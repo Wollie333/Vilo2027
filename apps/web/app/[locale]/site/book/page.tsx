@@ -17,7 +17,13 @@ import {
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { SiteCheckoutForm, type CheckoutRoom } from "./SiteCheckoutForm";
+import type { PricingModel } from "@/app/[locale]/dashboard/addons/schemas";
+
+import {
+  SiteCheckoutForm,
+  type CheckoutAddon,
+  type CheckoutRoom,
+} from "./SiteCheckoutForm";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +109,76 @@ export default async function SiteBookPage({
     minNights: r.min_nights ?? 1,
   }));
 
+  // Eligible add-ons for the picker. Grouped by add-on id: a property-wide row
+  // (room_id null) always shows; otherwise it's scoped to its room(s) and shown
+  // only when one is selected. Effective price = lowest across its rows (matches
+  // the server's pricing). The server re-validates/clamps everything at booking.
+  type AddonDef = {
+    id: string;
+    name: string;
+    pricing_model: string;
+    unit_price: number;
+    currency: string;
+    min_quantity: number;
+    max_quantity: number | null;
+    allow_custom_quantity: boolean;
+    stock_quantity: number | null;
+    is_required: boolean;
+    is_active: boolean;
+  };
+  type AddonJoinRow = {
+    addon_id: string;
+    room_id: string | null;
+    unit_price_override: number | null;
+    addons: AddonDef | AddonDef[] | null;
+  };
+  const { data: addonRows } = await admin
+    .from("property_addons")
+    .select(
+      "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active )",
+    )
+    .eq("property_id", propertyId);
+
+  const addonAgg = new Map<
+    string,
+    { def: AddonDef; effective: number; rooms: Set<string> | null }
+  >();
+  for (const raw of (addonRows ?? []) as unknown as AddonJoinRow[]) {
+    const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
+    if (!a || !a.is_active) continue;
+    const effective =
+      raw.unit_price_override == null
+        ? Number(a.unit_price)
+        : Number(raw.unit_price_override);
+    const cur = addonAgg.get(a.id);
+    if (!cur) {
+      addonAgg.set(a.id, {
+        def: a,
+        effective,
+        rooms: raw.room_id == null ? null : new Set([raw.room_id]),
+      });
+    } else {
+      cur.effective = Math.min(cur.effective, effective);
+      if (raw.room_id == null) cur.rooms = null;
+      else if (cur.rooms) cur.rooms.add(raw.room_id);
+    }
+  }
+  const addons: CheckoutAddon[] = [...addonAgg.values()].map(
+    ({ def, effective, rooms }) => ({
+      id: def.id,
+      name: def.name,
+      pricingModel: def.pricing_model as PricingModel,
+      unitPrice: effective,
+      currency: def.currency || property.currency || "ZAR",
+      minQuantity: def.min_quantity,
+      maxQuantity: def.max_quantity,
+      allowCustom: def.allow_custom_quantity,
+      stock: def.stock_quantity,
+      isRequired: def.is_required,
+      roomIds: rooms ? [...rooms] : null,
+    }),
+  );
+
   // Payment rails — card when the host has connected Paystack, EFT when a valid
   // default account exists. Both resolved server-side.
   const [cardPaystack, eftAvailable] = await Promise.all([
@@ -153,6 +229,7 @@ export default async function SiteBookPage({
           }
           bookingMode={property.booking_mode ?? "whole_listing"}
           rooms={rooms}
+          addons={addons}
           cardAvailable={Boolean(cardPaystack)}
           eftAvailable={eftAvailable}
           cancellation={cancellation}

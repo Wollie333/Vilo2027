@@ -4,12 +4,12 @@ import { z } from "zod";
 
 import {
   createBookingCore,
+  priceBooking,
   type CreateBookingCoreResult,
 } from "@/lib/bookings/createBooking";
 import type { CreateBookingInput } from "@/app/[locale]/property/[slug]/book/schemas";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { nightsBetween } from "@/lib/pricing";
-import { computeStayPricing } from "@/lib/pricing/quote";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveSiteProperty } from "@/lib/website/bookingFunnel";
 
@@ -38,10 +38,6 @@ export const siteQuoteSchema = z.object({
     .default([]),
   check_in: iso,
   check_out: iso,
-  guests: z.number().int().min(1).max(50),
-  children: z.number().int().min(0).max(50).default(0),
-  infants: z.number().int().min(0).max(50).default(0),
-  pets: z.number().int().min(0).max(50).default(0),
 });
 
 export type SiteQuoteResult =
@@ -49,14 +45,21 @@ export type SiteQuoteResult =
       ok: true;
       available: boolean;
       nights: number;
-      /** Server-recalculated total (accommodation + cleaning + age extras), or
-       *  null when the property can't be priced for this selection. */
+      /** Server-recalculated total (stay + cleaning + add-ons − coupon + age
+       *  extras), or null when the property can't be priced for this selection. */
       total: number | null;
       currency: string;
+      /** True when a supplied coupon code resolved and reduced the total. */
+      couponApplied: boolean;
     }
   | { ok: false; error: string };
 
-/** Live price + availability for the on-site checkout's running summary. */
+/**
+ * Live price + availability for the on-site checkout's running summary. Prices
+ * through the SAME `priceBooking` the create path uses (so add-ons + coupons are
+ * reflected exactly), with availability shown separately and an invalid coupon
+ * priced soft (ignored) instead of failing the quote.
+ */
 export async function siteBookingQuote(
   body: unknown,
 ): Promise<SiteQuoteResult> {
@@ -108,22 +111,21 @@ export async function siteBookingQuote(
     available = true;
   }
 
-  const priced = await computeStayPricing(admin, {
-    property_id: d.property_id,
-    check_in: d.check_in,
-    check_out: d.check_out,
-    scope: d.scope,
-    guests: d.guests,
-    rooms: d.room_guests,
-    party: { children: d.children, infants: d.infants, pets: d.pets },
+  // Price via the shared engine — add-ons + coupon (soft) included. Availability
+  // is shown above, so the price itself runs with skipAvailability.
+  const priced = await priceBooking(body, {
+    guestId: null,
+    skipAvailability: true,
+    couponSoft: true,
   });
 
   return {
     ok: true,
     available,
     nights,
-    total: priced.ok ? priced.data.total + priced.data.age_total : null,
-    currency: priced.ok ? priced.data.currency : member.currency,
+    total: priced.ok ? priced.priced.totalAmount : null,
+    currency: priced.ok ? priced.priced.listing.currency : member.currency,
+    couponApplied: priced.ok ? priced.priced.couponApplied : false,
   };
 }
 

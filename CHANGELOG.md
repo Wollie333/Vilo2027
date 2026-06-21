@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-21 — Add-ons + coupons on the on-site checkout (Phase 6c follow-up)
+
+Bring add-ons and coupon codes to the on-site checkout (the booking core already
+priced them — this exposes them in the UI and the live quote, guaranteed to match
+the charge).
+
+- **One pricing SSOT.** Split `lib/bookings/createBooking.ts` into `priceBooking`
+  (validate + re-price a stay: rooms/whole + add-ons + coupon + age extras, no
+  writes) and `createBookingCore` (price → persist → pay). So the live quote and
+  the final charge run the SAME pricing path and can't diverge. `priceBooking`
+  takes `skipAvailability` (the quote shows availability separately) and
+  `couponSoft` (an invalid coupon is ignored in a quote instead of erroring).
+- **Quote** (`siteBookingQuote` / `/api/site-booking-quote`) now prices through
+  `priceBooking` — the running total includes add-ons and an applied coupon, and
+  returns `couponApplied`. Replaces the add-on-blind `computeStayPricing` call.
+- **Checkout form** gains an "Add extras" section (selection-aware: property-wide
+  add-ons always show, room-scoped ones appear when their room is picked; required
+  add-ons show as "included"; per-night/qty respect the pricing model) and a
+  coupon field with a live applied/!applied indicator. Both flow into the quote
+  and the create payload; the server re-validates/clamps everything.
+- Eligible add-ons loaded in the checkout page loader (grouped by add-on, lowest
+  effective price). tsc + lint green.
+
+---
+
 ## 2026-06-21 — Enable on-site checkout on host sites (Phase 6c follow-up)
 
 Wire the on-site checkout in as the default booking entry point so it's actually

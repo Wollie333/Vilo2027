@@ -1,5 +1,7 @@
 import "server-only";
 
+import { z } from "zod";
+
 import {
   clampAddonQuantity,
   computeAddonSubtotal,
@@ -29,17 +31,101 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // ─────────────────────────────────────────────────────────────────────────
-// The ONE booking validate→price→persist→pay core, shared by both checkout
-// surfaces: the app's authenticated guest checkout (createBookingAction) and the
-// session-less on-site website checkout (/api/site-booking). The two surfaces
-// differ ONLY in how they resolve the actor (a signed-in user vs a passwordless
-// website lead) and where payment returns to; everything pricing/availability/
-// persistence runs identically here on the service-role admin client, so the
-// charged total can never diverge and the client is never trusted on price.
+// The ONE booking pricing + persistence path, shared by every surface so a
+// quoted total can NEVER diverge from the charged total and the client is never
+// trusted on price.
 //
-// Extracted verbatim from the original createBookingAction body (which now wraps
-// this) — same validation order, same engine calls, same persistence tail.
+//   priceBooking()      — validate + re-price a stay (rooms/whole + add-ons +
+//                         coupon + age extras) on the service-role admin client.
+//                         No writes. Used by the live quote AND by:
+//   createBookingCore() — price, then persist + start payment. The app's
+//                         authenticated checkout (createBookingAction) and the
+//                         session-less on-site checkout (/api/site-booking) both
+//                         call it; they differ only in actor + payment return.
 // ─────────────────────────────────────────────────────────────────────────
+
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Pricing-only subset of the booking input (no payment/contact fields), so a
+ *  quote can be priced before the guest has entered their details. */
+const priceBookingSchema = z
+  .object({
+    property_id: z.string().uuid(),
+    scope: z.enum(["whole_listing", "rooms"]).default("whole_listing"),
+    room_ids: z.array(z.string().uuid()).optional(),
+    room_guests: z
+      .array(
+        z.object({
+          room_id: z.string().uuid(),
+          guests: z.number().int().min(1).max(50),
+        }),
+      )
+      .optional(),
+    check_in: z.string().regex(ISO).optional(),
+    check_out: z.string().regex(ISO).optional(),
+    guests: z.coerce.number().int().min(1).max(50),
+    children: z.coerce.number().int().min(0).max(50).optional().default(0),
+    infants: z.coerce.number().int().min(0).max(50).optional().default(0),
+    pets: z.coerce.number().int().min(0).max(50).optional().default(0),
+    selected_addons: z
+      .array(
+        z.object({
+          addon_id: z.string().uuid(),
+          quantity: z.number().int().min(0).max(99),
+        }),
+      )
+      .optional()
+      .default([]),
+    coupon_code: z.string().trim().max(40).optional(),
+  })
+  .refine(
+    (d) =>
+      d.scope === "whole_listing" ||
+      (Array.isArray(d.room_ids) && d.room_ids.length > 0),
+    { message: "Select at least one room.", path: ["room_ids"] },
+  )
+  .refine(
+    (d) => typeof d.check_in === "string" && typeof d.check_out === "string",
+    { message: "Missing dates for this booking.", path: ["check_in"] },
+  );
+export type PriceBookingInput = z.infer<typeof priceBookingSchema>;
+
+type AddonInsert = {
+  label: string;
+  quantity: number;
+  unit_price: number;
+  pricing_model: PricingModel;
+  currency: string;
+  is_required: boolean;
+  subtotal: number;
+  addon_id: string;
+  sort_order: number;
+};
+
+export type PricedBooking = {
+  listing: { id: string; host_id: string; name: string; currency: string };
+  baseAmount: number;
+  cleaning: number;
+  totalAmount: number;
+  discountAmount: number;
+  couponId: string | null;
+  couponDiscount: number;
+  /** True when a supplied coupon resolved and reduced the total. */
+  couponApplied: boolean;
+  priceBreakdown: PriceBreakdown | null;
+  roomRowsForBooking: {
+    room_id: string;
+    base_amount: number;
+    cleaning_fee: number;
+  }[];
+  ageLines: AgeExtraLine[];
+  ageAllow: { children: boolean; infants: boolean; pets: boolean };
+  addonInserts: AddonInsert[];
+};
+
+export type PriceBookingResult =
+  | { ok: true; priced: PricedBooking }
+  | { ok: false; error: string };
 
 /** Who the booking is for + how to reach them (resolved by each surface). */
 export type BookingActor = { guestId: string; email: string };
@@ -70,26 +156,31 @@ function daysUntil(date: string): number {
 }
 
 /**
- * Validate, re-price (server-authoritative), persist and start payment for a
- * booking. `actor` is already resolved (auth or website lead); `ctx` carries the
- * payment origin + return path. Returns the redirect target instead of issuing
- * the redirect, so a server action can `redirect()` and a route handler can
- * return JSON.
+ * Validate + re-price a stay (server-authoritative). No writes. `opts.guestId`
+ * lets a coupon's per-guest cap be pre-checked (pass null for an anonymous
+ * quote). `opts.skipAvailability` skips the date-conflict RPCs (the quote shows
+ * availability separately; the create path always checks). `opts.couponSoft`
+ * prices WITHOUT a coupon that doesn't apply instead of erroring (for quotes).
  */
-export async function createBookingCore(
-  rawInput: CreateBookingInput,
-  actor: BookingActor,
-  ctx: BookingPaymentCtx,
-): Promise<CreateBookingCoreResult> {
-  const parsed = createBookingSchema.safeParse(rawInput);
+export async function priceBooking(
+  rawInput: unknown,
+  opts: {
+    guestId: string | null;
+    skipAvailability?: boolean;
+    couponSoft?: boolean;
+  },
+): Promise<PriceBookingResult> {
+  const parsed = priceBookingSchema.safeParse(rawInput);
   if (!parsed.success) {
-    return { ok: false, error: "Please check the form and try again." };
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Please check your selection.",
+    };
   }
   const d = parsed.data;
 
   const admin = createAdminClient();
 
-  // 2. Fetch listing — must be published.
   const { data: listing } = await admin
     .from("properties")
     .select(
@@ -102,7 +193,6 @@ export async function createBookingCore(
     return { ok: false, error: "This listing isn't available." };
   }
 
-  // 3. Date / mode validation.
   const nights = nightsBetween(d.check_in!, d.check_out!);
   if (nights <= 0) {
     return { ok: false, error: "Check-out must be after check-in." };
@@ -119,21 +209,8 @@ export async function createBookingCore(
     return { ok: false, error: "This listing only takes per-room bookings." };
   }
 
-  // 5. Branch by scope and assemble the priceable units.
-  let baseAmount = 0;
-  let cleaning = 0;
-  let totalAmount = 0;
-  let discountAmount = 0;
-  let couponId: string | null = null;
-  let couponDiscount = 0;
-  let priceBreakdown: PriceBreakdown | null = null;
   let pricingUnits: PricingUnit[] = [];
   let isWholeCombo = false;
-  let roomRowsForBooking: Array<{
-    room_id: string;
-    base_amount: number;
-    cleaning_fee: number;
-  }> = [];
   let ageRates = {
     childPrice: Number(listing.child_price ?? 0),
     infantPrice: Number(listing.infant_price ?? 0),
@@ -144,7 +221,6 @@ export async function createBookingCore(
     infants: listing.allow_infants ?? true,
     pets: listing.allow_pets ?? true,
   };
-  let ageLines: AgeExtraLine[] = [];
 
   if (d.scope === "rooms") {
     const roomIds = d.room_ids ?? [];
@@ -183,21 +259,23 @@ export async function createBookingCore(
     const guestsForRoom = (roomId: string) =>
       Math.max(1, guestsByRoom.get(roomId) ?? 1);
 
-    for (const r of roomRows) {
-      const { data: availResult, error: availErr } = await admin.rpc(
-        "room_is_available",
-        {
-          p_listing_id: listing.id,
-          p_room_id: r.id,
-          p_check_in: d.check_in!,
-          p_check_out: d.check_out!,
-        },
-      );
-      if (availErr || availResult === false) {
-        return {
-          ok: false,
-          error: "One of your rooms was just booked. Try different dates.",
-        };
+    if (!opts.skipAvailability) {
+      for (const r of roomRows) {
+        const { data: availResult, error: availErr } = await admin.rpc(
+          "room_is_available",
+          {
+            p_listing_id: listing.id,
+            p_room_id: r.id,
+            p_check_in: d.check_in!,
+            p_check_out: d.check_out!,
+          },
+        );
+        if (availErr || availResult === false) {
+          return {
+            ok: false,
+            error: "One of your rooms was just booked. Try different dates.",
+          };
+        }
       }
     }
 
@@ -278,19 +356,21 @@ export async function createBookingCore(
       };
     }
 
-    const { data: availResult, error: availErr } = await admin.rpc(
-      "listing_is_available_whole",
-      {
-        p_listing_id: listing.id,
-        p_check_in: d.check_in!,
-        p_check_out: d.check_out!,
-      },
-    );
-    if (availErr || availResult === false) {
-      return {
-        ok: false,
-        error: "These dates aren't available. Try different ones.",
-      };
+    if (!opts.skipAvailability) {
+      const { data: availResult, error: availErr } = await admin.rpc(
+        "listing_is_available_whole",
+        {
+          p_listing_id: listing.id,
+          p_check_in: d.check_in!,
+          p_check_out: d.check_out!,
+        },
+      );
+      if (availErr || availResult === false) {
+        return {
+          ok: false,
+          error: "These dates aren't available. Try different ones.",
+        };
+      }
     }
 
     pricingUnits = [
@@ -309,18 +389,8 @@ export async function createBookingCore(
     ];
   }
 
-  // 5e. Re-fetch eligible addons server-side and snapshot prices.
-  const addonInserts: Array<{
-    label: string;
-    quantity: number;
-    unit_price: number;
-    pricing_model: PricingModel;
-    currency: string;
-    is_required: boolean;
-    subtotal: number;
-    addon_id: string;
-    sort_order: number;
-  }> = [];
+  // Eligible add-ons — re-fetched + clamped server-side (never trust client qty).
+  const addonInserts: AddonInsert[] = [];
   {
     const roomIdScope =
       d.scope === "rooms"
@@ -429,137 +499,176 @@ export async function createBookingCore(
         sort_order: sortOrder++,
       });
     }
-
-    // 5f. Canonical pricing engine — never trusts a client-sent price.
-    const { data: seasonalRows } = await admin
-      .from("property_seasonal_pricing")
-      .select(
-        "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
-      )
-      .eq("property_id", listing.id)
-      .eq("is_active", true)
-      .lte("start_date", d.check_out!)
-      .gte("end_date", d.check_in!);
-
-    const seasonalRules: SeasonalRule[] = (seasonalRows ?? []).map((s) => ({
-      roomId: s.room_id,
-      startDate: s.start_date,
-      endDate: s.end_date,
-      adjustmentType: s.adjustment_type === "percent" ? "percent" : "absolute",
-      adjustmentValue: Number(s.adjustment_value),
-      label: s.label,
-      priority: s.priority ?? 0,
-      minNights: s.min_nights ?? null,
-      isActive: s.is_active,
-      createdAt: s.created_at,
-    }));
-
-    const breakdown = priceStay({
-      checkIn: d.check_in!,
-      checkOut: d.check_out!,
-      units: pricingUnits,
-      seasonalRules,
-      currency: listing.currency,
-      totalGuests: d.guests,
-      listingMinNights: listing.min_nights ?? 1,
-      isWholeCombo,
-      wholePct: numOrNull(listing.whole_property_discount_pct),
-      weeklyPct: numOrNull(listing.weekly_discount_pct),
-      monthlyPct: numOrNull(listing.monthly_discount_pct),
-      addons: addonInserts.map((a) => ({
-        label: a.label,
-        pricingModel: a.pricing_model,
-        unitPrice: a.unit_price,
-        quantity: a.quantity,
-        addonId: a.addon_id,
-      })),
-    });
-
-    if (nights < breakdown.effectiveMinNights) {
-      return {
-        ok: false,
-        error: `These dates need a minimum stay of ${breakdown.effectiveMinNights} nights.`,
-      };
-    }
-
-    // 5g. Coupon — re-validate + re-price server-side.
-    let finalBreakdown = breakdown;
-    if (d.coupon_code && d.coupon_code.trim().length > 0) {
-      const resolution = await resolveCoupon(admin, {
-        code: d.coupon_code,
-        hostId: listing.host_id,
-        listingId: listing.id,
-        nights,
-        guestId: actor.guestId,
-        roomIds:
-          d.scope === "rooms"
-            ? pricingUnits
-                .map((u) => u.roomId)
-                .filter((id): id is string => id !== null)
-            : [],
-        addonIds: addonInserts.map((a) => a.addon_id),
-        accommodationAmount:
-          breakdown.baseSubtotal - breakdown.discount.discountTotal,
-        addonsAmount: breakdown.addonsTotal,
-      });
-      if (!resolution.ok) {
-        return { ok: false, error: resolution.error };
-      }
-      finalBreakdown = priceStay({
-        checkIn: d.check_in!,
-        checkOut: d.check_out!,
-        units: pricingUnits,
-        seasonalRules,
-        currency: listing.currency,
-        totalGuests: d.guests,
-        listingMinNights: listing.min_nights ?? 1,
-        isWholeCombo,
-        wholePct: numOrNull(listing.whole_property_discount_pct),
-        weeklyPct: numOrNull(listing.weekly_discount_pct),
-        monthlyPct: numOrNull(listing.monthly_discount_pct),
-        addons: addonInserts.map((a) => ({
-          label: a.label,
-          pricingModel: a.pricing_model,
-          unitPrice: a.unit_price,
-          quantity: a.quantity,
-        })),
-        coupon: resolution.resolved,
-      });
-      if (finalBreakdown.couponDiscount <= 0) {
-        return { ok: false, error: "This coupon doesn’t apply to your order." };
-      }
-      couponId = resolution.couponId;
-      couponDiscount = finalBreakdown.couponDiscount;
-    }
-
-    const ageExtras = computeAgeExtras(
-      {
-        adults: 0,
-        children: ageAllow.children ? (d.children ?? 0) : 0,
-        infants: ageAllow.infants ? (d.infants ?? 0) : 0,
-        pets: ageAllow.pets ? (d.pets ?? 0) : 0,
-      },
-      ageRates,
-      nights,
-    );
-    ageLines = ageExtras.lines;
-
-    baseAmount = finalBreakdown.baseSubtotal;
-    cleaning = finalBreakdown.cleaningTotal;
-    discountAmount = finalBreakdown.discount.discountTotal;
-    totalAmount = finalBreakdown.total + ageExtras.total;
-    priceBreakdown = finalBreakdown;
-    roomRowsForBooking = finalBreakdown.units
-      .filter((u) => u.roomId !== null)
-      .map((u) => ({
-        room_id: u.roomId as string,
-        base_amount: u.baseSubtotal,
-        cleaning_fee: u.cleaningFee,
-      }));
   }
 
-  // 6. Insert booking.
+  // Canonical pricing engine.
+  const { data: seasonalRows } = await admin
+    .from("property_seasonal_pricing")
+    .select(
+      "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
+    )
+    .eq("property_id", listing.id)
+    .eq("is_active", true)
+    .lte("start_date", d.check_out!)
+    .gte("end_date", d.check_in!);
+
+  const seasonalRules: SeasonalRule[] = (seasonalRows ?? []).map((s) => ({
+    roomId: s.room_id,
+    startDate: s.start_date,
+    endDate: s.end_date,
+    adjustmentType: s.adjustment_type === "percent" ? "percent" : "absolute",
+    adjustmentValue: Number(s.adjustment_value),
+    label: s.label,
+    priority: s.priority ?? 0,
+    minNights: s.min_nights ?? null,
+    isActive: s.is_active,
+    createdAt: s.created_at,
+  }));
+
+  const engineInput = {
+    checkIn: d.check_in!,
+    checkOut: d.check_out!,
+    units: pricingUnits,
+    seasonalRules,
+    currency: listing.currency,
+    totalGuests: d.guests,
+    listingMinNights: listing.min_nights ?? 1,
+    isWholeCombo,
+    wholePct: numOrNull(listing.whole_property_discount_pct),
+    weeklyPct: numOrNull(listing.weekly_discount_pct),
+    monthlyPct: numOrNull(listing.monthly_discount_pct),
+    addons: addonInserts.map((a) => ({
+      label: a.label,
+      pricingModel: a.pricing_model,
+      unitPrice: a.unit_price,
+      quantity: a.quantity,
+      addonId: a.addon_id,
+    })),
+  };
+
+  const breakdown = priceStay(engineInput);
+
+  if (nights < breakdown.effectiveMinNights) {
+    return {
+      ok: false,
+      error: `These dates need a minimum stay of ${breakdown.effectiveMinNights} nights.`,
+    };
+  }
+
+  // Coupon — re-validate + re-price server-side.
+  let finalBreakdown = breakdown;
+  let couponId: string | null = null;
+  let couponDiscount = 0;
+  let couponApplied = false;
+  if (d.coupon_code && d.coupon_code.trim().length > 0) {
+    const resolution = await resolveCoupon(admin, {
+      code: d.coupon_code,
+      hostId: listing.host_id,
+      listingId: listing.id,
+      nights,
+      guestId: opts.guestId,
+      roomIds:
+        d.scope === "rooms"
+          ? pricingUnits
+              .map((u) => u.roomId)
+              .filter((id): id is string => id !== null)
+          : [],
+      addonIds: addonInserts.map((a) => a.addon_id),
+      accommodationAmount:
+        breakdown.baseSubtotal - breakdown.discount.discountTotal,
+      addonsAmount: breakdown.addonsTotal,
+    });
+    if (!resolution.ok) {
+      if (!opts.couponSoft) return { ok: false, error: resolution.error };
+    } else {
+      const withCoupon = priceStay({
+        ...engineInput,
+        coupon: resolution.resolved,
+      });
+      if (withCoupon.couponDiscount <= 0) {
+        if (!opts.couponSoft) {
+          return {
+            ok: false,
+            error: "This coupon doesn’t apply to your order.",
+          };
+        }
+      } else {
+        finalBreakdown = withCoupon;
+        couponId = resolution.couponId;
+        couponDiscount = withCoupon.couponDiscount;
+        couponApplied = true;
+      }
+    }
+  }
+
+  const ageExtras = computeAgeExtras(
+    {
+      adults: 0,
+      children: ageAllow.children ? (d.children ?? 0) : 0,
+      infants: ageAllow.infants ? (d.infants ?? 0) : 0,
+      pets: ageAllow.pets ? (d.pets ?? 0) : 0,
+    },
+    ageRates,
+    nights,
+  );
+
+  return {
+    ok: true,
+    priced: {
+      listing: {
+        id: listing.id,
+        host_id: listing.host_id,
+        name: listing.name,
+        currency: listing.currency,
+      },
+      baseAmount: finalBreakdown.baseSubtotal,
+      cleaning: finalBreakdown.cleaningTotal,
+      discountAmount: finalBreakdown.discount.discountTotal,
+      totalAmount: finalBreakdown.total + ageExtras.total,
+      couponId,
+      couponDiscount,
+      couponApplied,
+      priceBreakdown: finalBreakdown,
+      roomRowsForBooking: finalBreakdown.units
+        .filter((u) => u.roomId !== null)
+        .map((u) => ({
+          room_id: u.roomId as string,
+          base_amount: u.baseSubtotal,
+          cleaning_fee: u.cleaningFee,
+        })),
+      ageLines: ageExtras.lines,
+      ageAllow,
+      addonInserts,
+    },
+  };
+}
+
+/**
+ * Price a booking, then persist it + start payment. `actor` is already resolved
+ * (auth user or website lead); `ctx` carries the payment origin + return path.
+ * Returns the redirect target instead of issuing the redirect, so a server
+ * action can `redirect()` and a route handler can return JSON.
+ */
+export async function createBookingCore(
+  rawInput: CreateBookingInput,
+  actor: BookingActor,
+  ctx: BookingPaymentCtx,
+): Promise<CreateBookingCoreResult> {
+  // Price first (authoritative — runs availability + a hard coupon check).
+  const priceResult = await priceBooking(rawInput, { guestId: actor.guestId });
+  if (!priceResult.ok) return priceResult;
+  const p = priceResult.priced;
+
+  // Parse the full input for the persist-only fields (payment + contact).
+  const full = createBookingSchema.safeParse(rawInput);
+  if (!full.success) {
+    return { ok: false, error: "Please check the form and try again." };
+  }
+  const d = full.data;
+
+  const admin = createAdminClient();
   const isEft = d.payment_method === "eft";
+
   const additionalGuests = (d.additional_guests ?? [])
     .map((g) => ({
       name: g.name.trim(),
@@ -576,17 +685,17 @@ export async function createBookingCore(
 
   const legal = await getLegalDocuments();
 
-  const redeem: RedeemStep | undefined = couponId
+  const redeem: RedeemStep | undefined = p.couponId
     ? {
         claim: async (bookingId) => {
           const { data: redeemed, error: redeemErr } = await admin.rpc(
             "redeem_coupon",
             {
-              p_coupon_id: couponId,
+              p_coupon_id: p.couponId,
               p_booking_id: bookingId,
               p_guest_id: actor.guestId,
-              p_amount: couponDiscount,
-              p_currency: listing.currency,
+              p_amount: p.couponDiscount,
+              p_currency: p.listing.currency,
             },
           );
           if (redeemErr || redeemed !== true) {
@@ -602,17 +711,17 @@ export async function createBookingCore(
     : undefined;
 
   const addons: BookingAddonRow[] = [
-    ...ageLines.map((a, i) => ({
+    ...p.ageLines.map((a, i) => ({
       addon_id: null,
       label: a.label,
       quantity: a.quantity,
       unit_price: a.unitPrice,
-      currency: listing.currency,
+      currency: p.listing.currency,
       is_required: false,
       subtotal: a.subtotal,
       sort_order: 100 + i,
     })),
-    ...addonInserts.map((a) => ({
+    ...p.addonInserts.map((a) => ({
       addon_id: a.addon_id,
       label: a.label,
       quantity: a.quantity,
@@ -629,8 +738,8 @@ export async function createBookingCore(
   return persistBookingAndPay({
     admin,
     bookingInsert: {
-      property_id: listing.id,
-      host_id: listing.host_id,
+      property_id: p.listing.id,
+      host_id: p.listing.host_id,
       guest_id: actor.guestId,
       check_in: d.check_in,
       check_out: d.check_out,
@@ -639,20 +748,20 @@ export async function createBookingCore(
       guests_breakdown: {
         adults: Math.max(
           0,
-          d.guests - (ageAllow.children ? (d.children ?? 0) : 0),
+          d.guests - (p.ageAllow.children ? (d.children ?? 0) : 0),
         ),
-        children: ageAllow.children ? (d.children ?? 0) : 0,
-        infants: ageAllow.infants ? (d.infants ?? 0) : 0,
-        pets: ageAllow.pets ? (d.pets ?? 0) : 0,
+        children: p.ageAllow.children ? (d.children ?? 0) : 0,
+        infants: p.ageAllow.infants ? (d.infants ?? 0) : 0,
+        pets: p.ageAllow.pets ? (d.pets ?? 0) : 0,
       },
-      base_amount: baseAmount,
-      cleaning_fee: cleaning,
-      discount_amount: discountAmount,
-      coupon_id: couponId,
-      coupon_discount: couponDiscount,
-      total_amount: totalAmount,
-      price_breakdown: priceBreakdown,
-      currency: listing.currency,
+      base_amount: p.baseAmount,
+      cleaning_fee: p.cleaning,
+      discount_amount: p.discountAmount,
+      coupon_id: p.couponId,
+      coupon_discount: p.couponDiscount,
+      total_amount: p.totalAmount,
+      price_breakdown: p.priceBreakdown,
+      currency: p.listing.currency,
       payment_method: d.payment_method,
       status: isEft ? "pending_eft" : "pending",
       payment_status: "pending",
@@ -668,20 +777,20 @@ export async function createBookingCore(
       accepted_privacy_version: legal.privacy.version,
     },
     redeem,
-    bookingRooms: d.scope === "rooms" ? roomRowsForBooking : [],
+    bookingRooms: d.scope === "rooms" ? p.roomRowsForBooking : [],
     addons,
-    policy: { listingId: listing.id },
+    policy: { listingId: p.listing.id },
     payable: {
       scope: d.scope,
       status: isEft ? "pending_eft" : "pending",
       payment_status: "pending",
-      total_amount: totalAmount,
+      total_amount: p.totalAmount,
       deposit_amount: null,
-      currency: listing.currency,
+      currency: p.listing.currency,
       guest_id: actor.guestId,
-      property_id: listing.id,
-      listing_name: listing.name,
-      host_id: listing.host_id,
+      property_id: p.listing.id,
+      listing_name: p.listing.name,
+      host_id: p.listing.host_id,
     },
     payment: {
       method: d.payment_method,

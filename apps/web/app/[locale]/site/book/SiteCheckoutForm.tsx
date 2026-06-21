@@ -9,6 +9,10 @@ import {
 } from "react";
 
 import {
+  PRICING_LABEL,
+  type PricingModel,
+} from "@/app/[locale]/dashboard/addons/schemas";
+import {
   SectionShell,
   SectionHeading,
   Muted,
@@ -25,7 +29,25 @@ export type CheckoutRoom = {
   minNights: number;
 };
 
+export type CheckoutAddon = {
+  id: string;
+  name: string;
+  pricingModel: PricingModel;
+  unitPrice: number;
+  currency: string;
+  minQuantity: number;
+  maxQuantity: number | null;
+  allowCustom: boolean;
+  stock: number | null;
+  isRequired: boolean;
+  /** null = property-wide; otherwise shown only when one of these rooms is picked. */
+  roomIds: string[] | null;
+};
+
 type Scope = "whole_listing" | "rooms";
+
+const isPerNight = (m: PricingModel) =>
+  m === "per_night" || m === "per_guest_per_night";
 
 const fieldStyle: CSSProperties = {
   background: "var(--site-bg)",
@@ -69,6 +91,7 @@ export function SiteCheckoutForm({
   basePrice,
   bookingMode,
   rooms,
+  addons,
   cardAvailable,
   eftAvailable,
   cancellation,
@@ -82,6 +105,7 @@ export function SiteCheckoutForm({
   basePrice: number | null;
   bookingMode: string;
   rooms: CheckoutRoom[];
+  addons: CheckoutAddon[];
   cardAvailable: boolean;
   eftAvailable: boolean;
   cancellation: { title: string; note: string } | null;
@@ -121,6 +145,9 @@ export function SiteCheckoutForm({
   const [phone, setPhone] = useState("");
   const [requests, setRequests] = useState("");
 
+  const [addonQty, setAddonQty] = useState<Record<string, number>>({});
+  const [coupon, setCoupon] = useState("");
+
   const [method, setMethod] = useState<"paystack" | "eft">(
     cardAvailable ? "paystack" : "eft",
   );
@@ -130,6 +157,7 @@ export function SiteCheckoutForm({
     available: boolean;
     total: number | null;
     nights: number;
+    couponApplied: boolean;
   } | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -145,10 +173,40 @@ export function SiteCheckoutForm({
       ? selectedRoomIds.reduce((sum, id) => sum + (roomGuests[id] || 0), 0)
       : wholeGuests;
 
-  // Stable dep key for the per-room guest map (effect re-runs on any change).
-  const roomGuestsKey = JSON.stringify(roomGuests);
-
   const datesValid = Boolean(checkIn && checkOut && checkOut > checkIn);
+  const nights = useMemo(() => {
+    if (!datesValid) return 0;
+    return Math.round(
+      (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000,
+    );
+  }, [checkIn, checkOut, datesValid]);
+
+  // Add-ons available for the current selection (property-wide, or scoped to a
+  // selected room). Required ones are always shown as "included".
+  const visibleAddons = useMemo(
+    () =>
+      addons.filter(
+        (a) =>
+          a.roomIds == null ||
+          (scope === "rooms" &&
+            a.roomIds.some((rid) => selectedRoomIds.includes(rid))),
+      ),
+    [addons, scope, selectedRoomIds],
+  );
+
+  // Optional add-ons the guest picked (required ones are added server-side).
+  const selectedAddons = useMemo(
+    () =>
+      visibleAddons
+        .filter((a) => !a.isRequired && (addonQty[a.id] ?? 0) > 0)
+        .map((a) => ({ addon_id: a.id, quantity: addonQty[a.id] })),
+    [visibleAddons, addonQty],
+  );
+
+  // Stable dep keys so the quote effect re-runs on selection changes.
+  const roomGuestsKey = JSON.stringify(roomGuests);
+  const selectedAddonsKey = JSON.stringify(selectedAddons);
+
   const selectionValid =
     scope === "rooms" ? selectedRoomIds.length > 0 : canWhole;
   const canQuote = datesValid && selectionValid && guests > 0;
@@ -169,6 +227,7 @@ export function SiteCheckoutForm({
           website_id: websiteId,
           property_id: propertyId,
           scope,
+          room_ids: scope === "rooms" ? selectedRoomIds : undefined,
           room_guests:
             scope === "rooms"
               ? selectedRoomIds.map((id) => ({
@@ -182,6 +241,8 @@ export function SiteCheckoutForm({
           children,
           infants,
           pets,
+          selected_addons: selectedAddons,
+          coupon_code: coupon.trim() || undefined,
         }),
       })
         .then((r) => r.json())
@@ -192,6 +253,7 @@ export function SiteCheckoutForm({
               available: j.available,
               total: j.total,
               nights: j.nights,
+              couponApplied: j.couponApplied,
             });
           else setQuote(null);
         })
@@ -213,6 +275,8 @@ export function SiteCheckoutForm({
     infants,
     pets,
     roomGuestsKey,
+    selectedAddonsKey,
+    coupon,
   ]);
 
   function toggleRoom(r: CheckoutRoom) {
@@ -220,6 +284,20 @@ export function SiteCheckoutForm({
       const next = { ...prev };
       if (next[r.id] > 0) delete next[r.id];
       else next[r.id] = Math.max(1, r.minGuests);
+      return next;
+    });
+  }
+
+  function toggleAddon(a: CheckoutAddon) {
+    setAddonQty((prev) => {
+      const next = { ...prev };
+      if ((next[a.id] ?? 0) > 0) {
+        delete next[a.id];
+      } else {
+        next[a.id] = isPerNight(a.pricingModel)
+          ? Math.max(a.minQuantity, nights || 1)
+          : Math.max(a.minQuantity, 1);
+      }
       return next;
     });
   }
@@ -263,6 +341,8 @@ export function SiteCheckoutForm({
           children,
           infants,
           pets,
+          selected_addons: selectedAddons,
+          coupon_code: coupon.trim() || undefined,
           payment_method: method,
           guest_name: name.trim(),
           guest_email: email.trim(),
@@ -456,6 +536,80 @@ export function SiteCheckoutForm({
               </div>
             </Group>
 
+            {/* Add-ons */}
+            {visibleAddons.length > 0 ? (
+              <Group title="Add extras">
+                <div className="space-y-2">
+                  {visibleAddons.map((a) => {
+                    const on = a.isRequired || (addonQty[a.id] ?? 0) > 0;
+                    return (
+                      <div
+                        key={a.id}
+                        style={{
+                          borderColor: "var(--site-line)",
+                          borderRadius: "var(--site-radius)",
+                        }}
+                        className="flex items-center justify-between gap-3 border p-3"
+                      >
+                        <label className="flex flex-1 items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={a.isRequired}
+                            onChange={() => toggleAddon(a)}
+                            className="h-4 w-4"
+                          />
+                          <span>
+                            <span
+                              style={{ color: "var(--site-ink)" }}
+                              className="text-sm font-medium"
+                            >
+                              {a.name}
+                              {a.isRequired ? (
+                                <span
+                                  style={{ color: "var(--site-mute)" }}
+                                  className="ml-1.5 text-xs font-normal"
+                                >
+                                  (included)
+                                </span>
+                              ) : null}
+                            </span>
+                            <span
+                              style={{ color: "var(--site-mute)" }}
+                              className="ml-2 text-xs"
+                            >
+                              {money(a.unitPrice, a.currency)}{" "}
+                              {PRICING_LABEL[a.pricingModel]}
+                            </span>
+                          </span>
+                        </label>
+                        {on && !a.isRequired && a.allowCustom ? (
+                          <input
+                            type="number"
+                            min={Math.max(1, a.minQuantity)}
+                            max={a.maxQuantity ?? undefined}
+                            value={addonQty[a.id] ?? a.minQuantity}
+                            onChange={(e) =>
+                              setAddonQty((p) => ({
+                                ...p,
+                                [a.id]: Math.max(
+                                  1,
+                                  Number(e.target.value) || 1,
+                                ),
+                              }))
+                            }
+                            style={fieldStyle}
+                            className="w-16 border px-2 py-1.5 text-sm outline-none"
+                            aria-label={`Quantity for ${a.name}`}
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Group>
+            ) : null}
+
             {/* Contact */}
             <Group title="Your details">
               <div className="space-y-4">
@@ -522,6 +676,29 @@ export function SiteCheckoutForm({
                   Those dates aren’t available — please try different dates.
                 </p>
               ) : null}
+
+              {/* Coupon */}
+              <div className="pt-1">
+                <input
+                  value={coupon}
+                  onChange={(e) => setCoupon(e.target.value)}
+                  placeholder="Coupon code (optional)"
+                  maxLength={40}
+                  style={fieldStyle}
+                  className={inputCls}
+                  aria-label="Coupon code"
+                />
+                {coupon.trim() && quote ? (
+                  <p
+                    className={`mt-1 text-xs font-medium ${quote.couponApplied ? "text-green-600" : "text-red-600"}`}
+                  >
+                    {quote.couponApplied
+                      ? "Coupon applied ✓"
+                      : "That code doesn’t apply to your order."}
+                  </p>
+                ) : null}
+              </div>
+
               <div
                 style={{ borderColor: "var(--site-line)" }}
                 className="mt-3 flex items-center justify-between border-t pt-3"
