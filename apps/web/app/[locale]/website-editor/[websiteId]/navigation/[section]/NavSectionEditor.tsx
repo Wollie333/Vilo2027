@@ -218,7 +218,7 @@ function Toggle({
         <label style={{ margin: 0 }}>{label}</label>
         <button
           type="button"
-          className={`sw${on ? "on" : ""}`}
+          className={on ? "sw on" : "sw"}
           aria-pressed={on}
           onClick={onClick}
         />
