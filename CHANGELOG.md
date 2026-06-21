@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Phase 0: scoped design foundation
+
+Start of the founder-requested premium redesign of the Website CMS (Overview,
+Pages, Blog, Navigation, Forms + their editors) to match the approved mockups,
+with a simple in-page builder to follow. This save-point lays the shared visual
+foundation only — **no screen changes yet, zero visual change**.
+
+### Added
+- **`scripts/scope-css.mjs`** — a brace-aware generator that scopes a flat mockup
+  stylesheet under a wrapper class: prefixes every selector, collapses
+  `:root`/`html`/`body` onto the wrapper (stripping page-level height/margin
+  resets), namespaces `@keyframes` (so the two files can't clash on `fadeUp`),
+  and passes `@media`/`@font-face` through correctly.
+- **`apps/web/app/[locale]/dashboard/website/cms.css`** — generated from the
+  mockups' `cms-dash.css`, scoped under **`.vilo-cms`** (dashboard tab pages:
+  buttons, tags, cards, KPIs, funnel, page/site cards, tab bar, toast…).
+- **`apps/web/app/[locale]/dashboard/website/builder.css`** — generated from
+  `builder.css`, scoped under **`.vilo-builder`** (full-screen editor chrome +
+  inspector fields + the `.bk-*` canvas block previews with `.device` responsive
+  rules).
+- **`app/[locale]/dashboard/website/layout.tsx`** — imports both stylesheets for
+  the `/dashboard/website` subtree. CSS-only; returns children unchanged.
+
+### Notes
+- The app's existing `brand-*` tokens already match the mockup emerald palette
+  and all three fonts (Inter / Plus Jakarta Sans / JetBrains Mono) are already
+  loaded — so the mockups are Vilo's own brand, expressed more boldly.
+- Rules are **inert** until a screen adds `.vilo-cms` / `.vilo-builder` to its
+  root, which each subsequent phase will do as it's rebuilt. tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS Phase 7 save-point (c): image pipeline + lightbox + media + perf score — PHASE 7 COMPLETE
 
 Responsive, modern-format image delivery across the whole tenant site via

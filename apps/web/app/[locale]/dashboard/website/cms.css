@@ -1,0 +1,1115 @@
+/* AUTO-GENERATED from a Vilo mockup stylesheet — scoped under .vilo-cms.
+   Source: cms-dash.css. Do not edit by hand; regenerate via scripts/scope-css.mjs. */
+.vilo-cms {
+  --primary: #10b981;
+  --secondary: #064e3b;
+  --accent: #d1fae5;
+  --light: #f0fdf4;
+  --dark: #0a1510;
+  --ink: #052e1f;
+  --mute: #4a7c6a;
+  --line: #e4efe8;
+  --soft: #f0fdf4;
+  --side: #eef4f0;
+  --amber: #f59e0b;
+  --indigo: #6366f1;
+  --sky: #0ea5e9;
+  --red: #ef4444;
+  --slate: #94a3b8;
+}
+.vilo-cms * {
+  box-sizing: border-box;
+}
+.vilo-cms {
+  font-family: "Inter", system-ui, sans-serif;
+  background: #fff;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.vilo-cms .font-display {
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+.vilo-cms .num {
+  font-feature-settings: "tnum" 1;
+}
+.vilo-cms .mono {
+  font-family: "JetBrains Mono", monospace;
+}
+.vilo-cms .smallcaps {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.vilo-cms .thin-scroll::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.vilo-cms .thin-scroll::-webkit-scrollbar-thumb {
+  background: #dceae0;
+  border-radius: 8px;
+  border: 2px solid #fff;
+}
+.vilo-cms .thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.vilo-cms .icon-btn {
+  height: 38px;
+  width: 38px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mute);
+  transition:
+    background 0.12s,
+    color 0.12s;
+  cursor: pointer;
+  border: 0;
+  background: none;
+}
+.vilo-cms .icon-btn:hover {
+  background: var(--soft);
+  color: var(--ink);
+}
+.vilo-cms .av {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+.vilo-cms .av-1 {
+  background: #064e3b;
+  color: #fff;
+}
+.vilo-cms .av-2 {
+  background: #d1fae5;
+  color: #064e3b;
+}
+.vilo-cms .av-3 {
+  background: #0a1510;
+  color: #fff;
+}
+.vilo-cms .av-4 {
+  background: #4a7c6a;
+  color: #fff;
+}
+.vilo-cms .av-5 {
+  background: #f0fdf4;
+  color: #064e3b;
+  border: 1px solid #e4efe8;
+}
+.vilo-cms .av-6 {
+  background: #fef3c7;
+  color: #92400e;
+}
+.vilo-cms .av-7 {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+.vilo-cms .gnav {
+  width: 248px;
+  flex-shrink: 0;
+  background: var(--side);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+}
+.vilo-cms .gnav.collapsed {
+  width: 76px;
+}
+.vilo-cms .acct {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  margin: 10px;
+  padding: 0 10px;
+  border-radius: 13px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(6, 78, 59, 0.05);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.vilo-cms .acct:hover {
+  box-shadow: 0 8px 20px -12px rgba(6, 78, 59, 0.25);
+}
+.vilo-cms .acct .ai {
+  height: 30px;
+  width: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #064e3b;
+  color: #fff;
+}
+.vilo-cms .acct .an {
+  flex: 1;
+  min-width: 0;
+}
+.vilo-cms .acct .an b {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+.vilo-cms .acct .an span {
+  display: block;
+  font-size: 11px;
+  color: var(--mute);
+  white-space: nowrap;
+}
+.vilo-cms .gnav.collapsed .acct {
+  justify-content: center;
+  padding: 0;
+  width: 52px;
+  margin: 10px auto;
+}
+.vilo-cms .gnav.collapsed .acct .an,
+.vilo-cms .gnav.collapsed .acct .ac {
+  display: none;
+}
+.vilo-cms .gitem {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px 0 22px;
+  margin-right: 8px;
+  border-radius: 0 9999px 9999px 0;
+  color: #3a5a4e;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.vilo-cms .gitem:hover {
+  background: #e2ede6;
+}
+.vilo-cms .gitem.active {
+  background: #d1fae5;
+  color: #064e3b;
+  font-weight: 700;
+}
+.vilo-cms .gitem .ico {
+  width: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+}
+.vilo-cms .gitem .ico .dot2 {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  display: block;
+}
+.vilo-cms .gitem .glbl {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vilo-cms .gitem .gcnt {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #5b7065;
+  margin-left: 8px;
+}
+.vilo-cms .gitem.active .gcnt {
+  color: #064e3b;
+  font-weight: 700;
+}
+.vilo-cms .nav-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+.vilo-cms .nav-badge.new {
+  background: #10b981;
+  color: #fff;
+}
+.vilo-cms .nav-badge.pro {
+  background: #0a1510;
+  color: #fff;
+}
+.vilo-cms .ggroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px 5px 22px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mute);
+  cursor: pointer;
+  user-select: none;
+}
+.vilo-cms .ggroup .gchev {
+  margin-left: auto;
+  transition: transform 0.15s;
+  color: #9db4a8;
+}
+.vilo-cms .gsec {
+  height: 1px;
+  background: #e1ece5;
+  margin: 8px 12px;
+}
+.vilo-cms .gnav.collapsed .glbl,
+.vilo-cms .gnav.collapsed .gcnt,
+.vilo-cms .gnav.collapsed .ggroup,
+.vilo-cms .gnav.collapsed .nav-badge,
+.vilo-cms .gnav.collapsed .gsec {
+  display: none;
+}
+.vilo-cms .gnav.collapsed .gitem {
+  width: 48px;
+  height: 48px;
+  margin: 2px auto;
+  padding: 0;
+  border-radius: 9999px;
+  justify-content: center;
+}
+.vilo-cms .gnav.collapsed .gitem .ico {
+  margin-right: 0;
+}
+.vilo-cms .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    box-shadow 0.12s,
+    transform 0.1s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.vilo-cms .btn:active {
+  transform: translateY(1px);
+}
+.vilo-cms .btn-primary {
+  background: #10b981;
+  color: #fff;
+  box-shadow: 0 8px 20px -8px rgba(16, 185, 129, 0.6);
+}
+.vilo-cms .btn-primary:hover {
+  background: #064e3b;
+}
+.vilo-cms .btn-ghost {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--ink);
+}
+.vilo-cms .btn-ghost:hover {
+  background: var(--soft);
+}
+.vilo-cms .btn-dark {
+  background: #0a1510;
+  color: #fff;
+}
+.vilo-cms .btn-dark:hover {
+  background: #052e1f;
+}
+.vilo-cms .btn-sm {
+  height: 34px;
+  padding: 0 13px;
+  font-size: 12.5px;
+  border-radius: 9px;
+}
+.vilo-cms .btn-lg {
+  height: 46px;
+  padding: 0 22px;
+  font-size: 14px;
+  border-radius: 12px;
+}
+.vilo-cms .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px 3px 9px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.vilo-cms .tag .d {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+}
+.vilo-cms .tag.green {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #c7f0dc;
+}
+.vilo-cms .tag.green .d {
+  background: #10b981;
+}
+.vilo-cms .tag.amber {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fce9b6;
+}
+.vilo-cms .tag.amber .d {
+  background: #f59e0b;
+}
+.vilo-cms .tag.red {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fbd5d5;
+}
+.vilo-cms .tag.red .d {
+  background: #ef4444;
+}
+.vilo-cms .tag.indigo {
+  background: #eef0ff;
+  color: #4f46e5;
+  border-color: #d7dbfb;
+}
+.vilo-cms .tag.indigo .d {
+  background: #6366f1;
+}
+.vilo-cms .tag.sky {
+  background: #ecfaff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.vilo-cms .tag.sky .d {
+  background: #0ea5e9;
+}
+.vilo-cms .tag.gray {
+  background: #f4f7f5;
+  color: #5b7065;
+  border-color: #e4efe8;
+}
+.vilo-cms .tag.gray .d {
+  background: #94a3b8;
+}
+.vilo-cms .delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.vilo-cms .delta.up {
+  color: #047857;
+}
+.vilo-cms .delta.down {
+  color: #b91c1c;
+}
+.vilo-cms .card {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(6, 78, 59, 0.05);
+}
+.vilo-cms .card-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.vilo-cms .card-h h3 {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.vilo-cms .kpi {
+  position: relative;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 17px;
+  overflow: hidden;
+  transition:
+    box-shadow 0.14s,
+    transform 0.12s;
+}
+.vilo-cms .kpi:hover {
+  box-shadow: 0 14px 34px -20px rgba(6, 78, 59, 0.3);
+  transform: translateY(-1px);
+}
+.vilo-cms .kpi .kl {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.vilo-cms .kpi .kv {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 30px;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-top: 8px;
+}
+.vilo-cms .kpi .kf {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--mute);
+}
+.vilo-cms .kpi .kico {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  height: 30px;
+  width: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--soft);
+  color: var(--primary);
+}
+.vilo-cms .kpi.feat {
+  background: #064e3b;
+  border-color: #064e3b;
+  color: #fff;
+}
+.vilo-cms .kpi.feat .kl {
+  color: rgba(255, 255, 255, 0.65);
+}
+.vilo-cms .kpi.feat .kv {
+  color: #fff;
+}
+.vilo-cms .kpi.feat .kf {
+  color: var(--accent);
+}
+.vilo-cms .kpi.feat .kico {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.vilo-cms .spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 26px;
+}
+.vilo-cms .spark i {
+  flex: 1;
+  border-radius: 2px;
+  background: #c7efdc;
+  display: block;
+}
+.vilo-cms .kpi.feat .spark i {
+  background: rgba(255, 255, 255, 0.35);
+}
+.vilo-cms .funnel {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.vilo-cms .fstep {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.vilo-cms .fstep .ftop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 9px;
+}
+.vilo-cms .fstep .fname {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vilo-cms .fstep .fnum {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 23px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.vilo-cms .fstep .fsub {
+  font-size: 11px;
+  color: var(--mute);
+  margin-top: 2px;
+}
+.vilo-cms .fbarwrap {
+  height: 118px;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 7px;
+}
+.vilo-cms .fbar {
+  width: 100%;
+  border-radius: 9px 9px 0 0;
+  background: #10b981;
+  position: relative;
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 8px;
+}
+.vilo-cms .fstep:nth-child(1) .fbar {
+  background: #064e3b;
+}
+.vilo-cms .fstep:nth-child(2) .fbar {
+  background: #10b981;
+}
+.vilo-cms .fstep:nth-child(3) .fbar {
+  background: #34d399;
+}
+.vilo-cms .fstep:nth-child(4) .fbar {
+  background: #6ee7b7;
+}
+.vilo-cms .fdrop {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  color: var(--mute);
+}
+.vilo-cms .fdrop .fpct {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #064e3b;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  padding: 3px 9px;
+  box-shadow: 0 1px 2px rgba(6, 78, 59, 0.06);
+}
+.vilo-cms .pgcard {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.14s,
+    transform 0.12s;
+  text-decoration: none;
+  display: block;
+}
+.vilo-cms .pgcard:hover {
+  border-color: #cde6d8;
+  box-shadow: 0 16px 40px -22px rgba(6, 78, 59, 0.32);
+  transform: translateY(-2px);
+}
+.vilo-cms .pgthumb {
+  height: 118px;
+  position: relative;
+  background: #f4f8f5;
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+.vilo-cms .pgthumb .tbar {
+  height: 16px;
+  background: #fff;
+  border-bottom: 1px solid #eaf2ec;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+}
+.vilo-cms .pgthumb .tbar i {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: #d8e6dd;
+  display: block;
+}
+.vilo-cms .mini {
+  padding: 9px 10px;
+}
+.vilo-cms .mini .mhero {
+  height: 34px;
+  border-radius: 5px;
+  background: repeating-linear-gradient(
+    135deg,
+    #e8f5ee 0 9px,
+    #dcefe4 9px 18px
+  );
+}
+.vilo-cms .mini .mrow {
+  height: 5px;
+  border-radius: 9999px;
+  background: #e4efe8;
+  margin-top: 6px;
+}
+.vilo-cms .mini .mrow.w1 {
+  width: 70%;
+}
+.vilo-cms .mini .mrow.w2 {
+  width: 90%;
+}
+.vilo-cms .mini .mrow.w3 {
+  width: 45%;
+}
+.vilo-cms .mini .mblocks {
+  display: flex;
+  gap: 5px;
+  margin-top: 7px;
+}
+.vilo-cms .mini .mblocks i {
+  flex: 1;
+  height: 16px;
+  border-radius: 4px;
+  background: #eaf3ed;
+  display: block;
+}
+.vilo-cms .pgmeta {
+  padding: 11px 13px;
+}
+.vilo-cms .pgmeta .pgt {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.vilo-cms .pgmeta .pgs {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--mute);
+}
+.vilo-cms .pgcard .pgedit {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  height: 30px;
+  width: 30px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #064e3b;
+  opacity: 0;
+  transition: opacity 0.14s;
+}
+.vilo-cms .pgcard:hover .pgedit {
+  opacity: 1;
+}
+.vilo-cms .sitecard {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.16s,
+    transform 0.12s;
+  text-decoration: none;
+  display: block;
+}
+.vilo-cms .sitecard:hover {
+  border-color: #cde6d8;
+  box-shadow: 0 22px 50px -26px rgba(6, 78, 59, 0.34);
+  transform: translateY(-2px);
+}
+.vilo-cms .sitecard.cur {
+  border-color: #10b981;
+  box-shadow:
+    0 0 0 1px #10b981,
+    0 22px 50px -28px rgba(6, 78, 59, 0.34);
+}
+.vilo-cms .sitehero {
+  height: 128px;
+  position: relative;
+  background: #f0f6f2;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vilo-cms .sitehero .ph {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    #e6f4ec 0 14px,
+    #d9eee2 14px 28px
+  );
+}
+.vilo-cms .sitehero .glyph {
+  position: relative;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 34px;
+  color: #fff;
+  height: 60px;
+  width: 60px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.3);
+}
+.vilo-cms .sitebody {
+  padding: 15px 16px;
+}
+.vilo-cms .sitestats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 13px;
+}
+.vilo-cms .sitestats .ss {
+  text-align: left;
+}
+.vilo-cms .sitestats .ssv {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--ink);
+}
+.vilo-cms .sitestats .ssl {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-top: 2px;
+}
+.vilo-cms .siteswitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 12px 0 9px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.vilo-cms .siteswitch:hover {
+  background: var(--soft);
+  border-color: #cde6d8;
+}
+.vilo-cms .siteswitch .sg {
+  height: 28px;
+  width: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.vilo-cms .siteswitch .sn {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1;
+  display: block;
+}
+.vilo-cms .siteswitch .sd {
+  font-size: 11px;
+  color: var(--mute);
+  margin-top: 3px;
+  font-family: "JetBrains Mono", monospace;
+  display: block;
+  line-height: 1;
+}
+.vilo-cms .sitemenu {
+  position: absolute;
+  z-index: 50;
+  margin-top: 6px;
+  width: 300px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px -24px rgba(6, 78, 59, 0.4);
+  padding: 6px;
+  display: none;
+}
+.vilo-cms .sitemenu.show {
+  display: block;
+}
+.vilo-cms .smi {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.vilo-cms .smi:hover {
+  background: var(--soft);
+}
+.vilo-cms .smi .sg {
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.vilo-cms .smi b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  display: block;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+.vilo-cms .smi span {
+  font-size: 11px;
+  color: var(--mute);
+  font-family: "JetBrains Mono", monospace;
+}
+.vilo-cms .tile {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  padding: 18px;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.16s,
+    transform 0.12s;
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+}
+.vilo-cms .tile:hover {
+  border-color: #cde6d8;
+  box-shadow: 0 18px 44px -24px rgba(6, 78, 59, 0.32);
+  transform: translateY(-2px);
+}
+.vilo-cms .tile .tico {
+  height: 42px;
+  width: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--soft);
+  color: #064e3b;
+}
+.vilo-cms .tile h3 {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--ink);
+  margin-top: 13px;
+}
+.vilo-cms .tile p {
+  font-size: 12.5px;
+  color: var(--mute);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.vilo-cms .tile .tstat {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.vilo-cms .tile .tstat .tsv {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink);
+}
+.vilo-cms .tile .tstat .tsl {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin-top: 1px;
+}
+.vilo-cms .tile .tgo {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  color: #9db4a8;
+  transition:
+    transform 0.14s,
+    color 0.14s;
+}
+.vilo-cms .tile:hover .tgo {
+  transform: translate(2px, -2px);
+  color: #10b981;
+}
+.vilo-cms .lrow {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 11px 14px;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.12s;
+  text-decoration: none;
+}
+.vilo-cms .lrow:hover {
+  background: #fafcfb;
+}
+.vilo-cms .lrow + .lrow {
+  border-top: 1px solid #f0f5f2;
+}
+.vilo-cms .barmini {
+  height: 6px;
+  border-radius: 9999px;
+  background: #eaf3ed;
+  overflow: hidden;
+  flex: 1;
+}
+.vilo-cms .barmini i {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: #10b981;
+}
+.vilo-cms .toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #052e1f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 11px 18px;
+  border-radius: 11px;
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.vilo-cms .toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.vilo-cms .ctab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 44px;
+  padding: 0 2px;
+  margin: 0 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--mute);
+  white-space: nowrap;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  text-decoration: none;
+}
+.vilo-cms .ctab:first-child {
+  margin-left: 0;
+}
+.vilo-cms .ctab:hover {
+  color: var(--ink);
+}
+.vilo-cms .ctab.active {
+  color: #064e3b;
+}
+.vilo-cms .ctab.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2.5px;
+  border-radius: 3px 3px 0 0;
+  background: #10b981;
+}
+@keyframes vilo-cms-fadeUp {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .vilo-cms .fade {
+    animation: vilo-cms-fadeUp 0.28s ease both;
+  }
+}
+.vilo-cms .fade2 {
+  animation-delay: 0.05s;
+}
+.vilo-cms .fade3 {
+  animation-delay: 0.1s;
+}
+.vilo-cms .fade4 {
+  animation-delay: 0.15s;
+}
+.vilo-cms [hidden] {
+  display: none !important;
+}
