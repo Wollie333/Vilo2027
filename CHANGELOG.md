@@ -35,6 +35,33 @@ layout — but with **only real controls** (no fake toggles for unbuilt features
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · full-screen Form editor (Forms complete)
+
+Completes the Forms feature: a full-screen builder true to `Form Editor.html`.
+
+### Added
+- **`website-editor/[websiteId]/forms/[formId]/`** (`page.tsx` + `FormEditor.tsx`) — the
+  mockup builder: **palette** ("Add a field" by category: Contact / Choice & details /
+  Stay / Layout), a **live form document** canvas (editable title + description, `.ff`
+  field blocks with hover tools: move up/down · duplicate · delete; half/full width;
+  click-to-select; a submit-button preview), and an **inspector** (per-field label /
+  placeholder / help / required / width / options editor, or form settings when nothing
+  is selected). Full-screen **Preview** mode. Saves via `saveWebsiteFormAction`.
+- **`form-editor.css`** — the form-document + field-block styles, scoped `.vilo-builder`,
+  loaded in the editor route tree.
+- +57 i18n keys (10 field-type names + the editor labels).
+
+### Changed / Removed
+- **`FormsList`** — Edit / New now open the full-screen editor at
+  `/website-editor/.../forms/{id}`.
+- **Deleted** the old inline `FormsManager` + its dashboard `forms/[formId]` route
+  (superseded). The 7-type inline editor is gone; the builder now exposes all 15 types.
+
+### Hardening
+- Full `pnpm build` — **exit 0**; the new route builds, the deleted one is clean.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Forms manager (+ derived tracking)
 
 First Forms slice, true to `Forms Manager.html`. The full-screen form editor + the

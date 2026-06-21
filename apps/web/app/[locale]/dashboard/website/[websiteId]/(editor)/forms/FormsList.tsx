@@ -255,7 +255,7 @@ function FormRow({
 
   return (
     <Link
-      href={`/dashboard/website/${websiteId}/forms/${form.id}`}
+      href={`/website-editor/${websiteId}/forms/${form.id}`}
       className="ptr"
       style={{ gridTemplateColumns: GRID }}
     >
@@ -425,7 +425,7 @@ function NewFormModal({
         return;
       }
       onOpenChange(false);
-      router.push(`/dashboard/website/${websiteId}/forms/${res.id}`);
+      router.push(`/website-editor/${websiteId}/forms/${res.id}`);
     });
   }
 

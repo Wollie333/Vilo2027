@@ -1,0 +1,304 @@
+/* Form-editor document + field-block styles (from Form Editor.html), scoped
+   under .vilo-builder so they live with the rest of the builder design system.
+   Hand-authored to match the mockup; --ink/--mute/--line/--soft come from
+   builder.css (.vilo-builder). */
+
+.vilo-builder .form-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: #e8eeea;
+  display: flex;
+  justify-content: center;
+  padding: 26px 20px 120px;
+}
+.vilo-builder .form-doc {
+  width: 100%;
+  max-width: 680px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -30px rgba(6, 78, 59, 0.5);
+  align-self: flex-start;
+  overflow: hidden;
+}
+.vilo-builder .fd-accent {
+  height: 6px;
+  background: #10b981;
+}
+.vilo-builder .fd-head {
+  padding: 30px 38px 4px;
+}
+.vilo-builder .fd-title {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 27px;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  color: var(--ink);
+  outline: 0;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.vilo-builder .fd-desc {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--mute);
+  margin: 9px 0 0;
+  outline: 0;
+  width: 100%;
+  border: 0;
+  background: none;
+  resize: none;
+  font-family: inherit;
+  padding: 0;
+}
+.vilo-builder .fd-body {
+  padding: 20px 38px 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.vilo-builder .fd-foot {
+  padding: 6px 38px 34px;
+}
+.vilo-builder .fd-submit {
+  height: 48px;
+  border-radius: 11px;
+  background: #10b981;
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 26px;
+  box-shadow: 0 10px 22px -10px rgba(16, 185, 129, 0.7);
+}
+
+/* field block */
+.vilo-builder .ff {
+  position: relative;
+  width: 100%;
+  outline: 0;
+  border-radius: 11px;
+  padding: 13px 14px;
+  border: 1.5px solid transparent;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+  cursor: pointer;
+}
+.vilo-builder .ff.half {
+  width: calc(50% - 9px);
+}
+.vilo-builder .ff:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: #fbfefc;
+}
+.vilo-builder .ff.sel {
+  border-color: #10b981;
+  background: #f7fdfa;
+}
+.vilo-builder .flabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 7px;
+}
+.vilo-builder .ff.req .flabel::after {
+  content: " *";
+  color: #ef4444;
+  font-weight: 700;
+}
+.vilo-builder .fhelp {
+  font-size: 11.5px;
+  color: var(--mute);
+  margin: 6px 0 0;
+  line-height: 1.45;
+}
+.vilo-builder .finput {
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 13px;
+  font-size: 13.5px;
+  color: #9db4a8;
+}
+.vilo-builder .finput.area {
+  height: 84px;
+  align-items: flex-start;
+  padding-top: 11px;
+}
+.vilo-builder .finput.sel-in {
+  justify-content: space-between;
+}
+.vilo-builder .frow2 {
+  display: flex;
+  gap: 10px;
+}
+.vilo-builder .frow2 > .finput {
+  flex: 1;
+}
+.vilo-builder .fopts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vilo-builder .fopt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.vilo-builder .fopt .mk {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #c3dbce;
+  flex-shrink: 0;
+}
+.vilo-builder .fopt .mk.r {
+  border-radius: 9999px;
+}
+.vilo-builder .fopt .mk.c {
+  border-radius: 5px;
+}
+.vilo-builder .fstep {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  width: 140px;
+  height: 44px;
+  overflow: hidden;
+}
+.vilo-builder .fstep span {
+  flex: 1;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.vilo-builder .fstep b {
+  width: 42px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mute);
+  background: #f7fbf9;
+}
+.vilo-builder .fheading {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--ink);
+}
+.vilo-builder .ftext {
+  font-size: 13.5px;
+  color: var(--mute);
+  line-height: 1.6;
+}
+.vilo-builder .fdiv {
+  height: 1px;
+  background: var(--line);
+}
+.vilo-builder .ff-grip {
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #bbd3c6;
+  display: none;
+  cursor: grab;
+}
+.vilo-builder .ff:hover > .ff-grip,
+.vilo-builder .ff.sel > .ff-grip {
+  display: flex;
+}
+.vilo-builder .ff-tools {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 3px;
+  box-shadow: 0 8px 20px -10px rgba(6, 78, 59, 0.4);
+  z-index: 5;
+}
+.vilo-builder .ff:hover > .ff-tools,
+.vilo-builder .ff.sel > .ff-tools {
+  display: flex;
+}
+.vilo-builder .ff-tools button {
+  height: 26px;
+  width: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mute);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.vilo-builder .ff-tools button:hover {
+  background: var(--soft);
+  color: #064e3b;
+}
+.vilo-builder .ff-tools button.del:hover {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+/* options editor (inspector) */
+.vilo-builder .optrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.vilo-builder .optrow input {
+  flex: 1;
+}
+.vilo-builder .optrow button {
+  height: 30px;
+  width: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #9db4a8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.vilo-builder .optrow button:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+.vilo-builder .addopt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #10b981;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 2px;
+}

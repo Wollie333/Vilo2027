@@ -12,6 +12,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import "../dashboard/website/builder.css";
 import "../dashboard/website/nav.css";
 import "./blog-editor.css";
+import "./form-editor.css";
 
 export const dynamic = "force-dynamic";
 
