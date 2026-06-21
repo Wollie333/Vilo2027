@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Overview (portfolio + analytics)
+
+Rebuilds the Website Overview tab to the `Website CMS C.html` mockup — a multi-site
+**portfolio grid** above the existing **real** first-party analytics, restyled to the
+premium `.vilo-cms` system. No fake data: the booking-funnel strip and revenue/leads
+KPIs from the mockup are **omitted** (not tracked); the right-hand KPI rail surfaces
+honest metrics instead (Booking clicks · Conversion rate · Pages / visit).
+
+### Added
+- **Portfolio "All websites" grid** — `loadOverviewData` now returns a `portfolio`
+  array: every site the host owns (owner-scoped `host_websites`, oldest-first for
+  stable glyph accents) with **per-site real traffic** (visitors / pageviews / booking
+  clicks) over the active range, tallied from one grouped `website_analytics_events`
+  query. Rendered as `.sitecard`s (hero glyph + status tag + "Viewing" on the current
+  site + 3 stat tiles), with a "New website" action → `/dashboard/website`.
+
+### Changed
+- **Overview page** (`(editor)/page.tsx`) rebuilt to the mockup: Performance header
+  (site glyph + name + range pills) · chart card (big visitor count + `.delta` +
+  `TrafficChart` + 3-col Pageviews / Booking clicks / Conv-rate footer) + KPI rail ·
+  Top pages (`.lrow` + `.barmini`, real relative widths) · Traffic sources (real %
+  bars) · Devices · plus the existing **set-up checklist**, **needs-attention**, and
+  **image-performance** panels restyled as `.card`s. All metrics remain the real
+  pipeline (`loadWebsiteAnalytics` / `analyzeSitePerformance`).
+- +8 `website` en i18n keys (`ovPortfolioTitle`, `ovNewWebsite`, `ovViewing`,
+  `ovPerformance`, `ovVisitorsWord`, `ovConvRate`, `ovManagePages`; reuses
+  `statPagesPerVisit`). No DB change. tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Settings (premium layout, real controls)
 
 Rebuilds the Settings tab to the `Website Settings.html` mockup's `.sblock`/`.setrow`

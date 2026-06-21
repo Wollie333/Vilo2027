@@ -3,15 +3,13 @@ import {
   Check,
   CircleAlert,
   CircleCheck,
-  ExternalLink,
-  Feather,
   Gauge,
-  Globe,
-  Image as ImageIcon,
-  Newspaper,
-  Palette,
-  Pencil,
-  SearchCheck,
+  Layers,
+  Monitor,
+  MousePointerClick,
+  Percent,
+  Plus,
+  Smartphone,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -22,7 +20,6 @@ import { Link } from "@/i18n/navigation";
 import type { AnalyticsRange } from "@/lib/website/analytics";
 
 import { loadOverviewData } from "../loadOverviewData";
-import { CopyLinkButton } from "../_components/overview/CopyLinkButton";
 import { RangeTabs } from "../_components/overview/RangeTabs";
 import { TrafficChart } from "../_components/overview/TrafficChart";
 
@@ -34,20 +31,36 @@ const RANGE_DAYS: Record<AnalyticsRange, number> = {
   "90d": 90,
 };
 
-function Delta({ value, label }: { value: number | null; label: string }) {
-  if (value == null) return null;
+const STATUS_TONE = {
+  published: "green",
+  draft: "gray",
+  unpublished: "amber",
+} as const;
+
+const BADGE_KEY = {
+  draft: "draftBadge",
+  published: "publishedBadge",
+  unpublished: "unpublishedBadge",
+} as const;
+
+/** Source-bar accents (cycled), matching the mockup palette. */
+const SOURCE_COLORS = ["#10B981", "#064E3B", "#34D399", "#0EA5E9", "#94A3B8"];
+
+/** `.delta`-styled vs-previous indicator (emerald up / red down). */
+function CmsDelta({ value, label }: { value: number | null; label: string }) {
+  if (value == null)
+    return <span style={{ color: "var(--mute)" }}>{label}</span>;
   const up = value >= 0;
   const Icon = up ? TrendingUp : TrendingDown;
   return (
-    <span
-      className={`inline-flex items-center gap-1 text-[12px] font-medium ${
-        up ? "text-emerald-600" : "text-red-500"
-      }`}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {up ? "+" : ""}
-      {value}% {label}
-    </span>
+    <>
+      <span className={`delta ${up ? "up" : "down"}`}>
+        <Icon style={{ width: 13, height: 13 }} />
+        {up ? "+" : ""}
+        {value}%
+      </span>
+      <span style={{ color: "var(--mute)" }}>{label}</span>
+    </>
   );
 }
 
@@ -70,23 +83,70 @@ export default async function WebsiteOverviewPage({
   ]);
   if (!data) notFound();
 
-  const {
-    site,
-    analytics,
-    publicUrl,
-    previewUrl,
-    isLive,
-    signals,
-    performance,
-  } = data;
+  const { site, analytics, portfolio, isLive, signals, performance } = data;
   const base = `/dashboard/website/${websiteId}`;
+  const days = RANGE_DAYS[range];
+  const siteName =
+    site.brand.name?.trim() || site.businessName || site.subdomain;
+  const siteGlyph = (siteName[0] || "·").toUpperCase();
+  const siteColor = portfolio.find((p) => p.isCurrent)?.color ?? "#10B981";
+
+  // ── Set-up checklist (deep-linked) ──────────────────────────
+  const steps = [
+    {
+      key: "stepBrandTitle",
+      done: Boolean(site.brand.logo_path),
+      seg: "brand",
+    },
+    { key: "stepThemeTitle", done: Boolean(site.theme.accent), seg: "theme" },
+    { key: "stepPagesTitle", done: site.counts.pages > 0, seg: "pages" },
+    { key: "stepSeoTitle", done: Boolean(site.seo.title), seg: "seo" },
+    { key: "stepPublishTitle", done: isLive, seg: "" },
+  ];
+
+  // ── Right-rail KPIs (honest, real metrics only — no revenue/leads) ──
+  const kpis = [
+    {
+      key: "statBookingClicks",
+      icon: MousePointerClick,
+      value: format.number(analytics.bookingClicks),
+      delta: analytics.deltas.bookingClicks,
+    },
+    {
+      key: "statConversion",
+      icon: Percent,
+      value: `${Math.round(analytics.conversion * 100)}%`,
+      delta: null,
+    },
+    {
+      key: "statPagesPerVisit",
+      icon: Layers,
+      value: analytics.pagesPerVisit.toFixed(1),
+      delta: null,
+    },
+  ];
+
+  const topMax = Math.max(1, ...analytics.topPages.map((p) => p.views));
+  const sourcesTotal = analytics.sources.reduce((n, s) => n + s.visits, 0);
+  const deviceTotal = analytics.devices.desktop + analytics.devices.mobile;
+  const desktopPct =
+    deviceTotal > 0
+      ? Math.round((analytics.devices.desktop / deviceTotal) * 100)
+      : 0;
+  const devices =
+    deviceTotal > 0
+      ? [
+          { key: "ovDeviceDesktop", icon: Monitor, pct: desktopPct },
+          { key: "ovDeviceMobile", icon: Smartphone, pct: 100 - desktopPct },
+        ]
+      : [];
 
   const perfColor =
     performance.grade === "good"
-      ? "text-emerald-600"
+      ? "#047857"
       : performance.grade === "fair"
-        ? "text-amber-600"
-        : "text-red-500";
+        ? "#B45309"
+        : "#B91C1C";
   const perfBar =
     performance.grade === "good"
       ? "bg-emerald-500"
@@ -100,320 +160,461 @@ export default async function WebsiteOverviewPage({
         ? "perfGradeFair"
         : "perfGradePoor";
 
-  const publishedWhen = site.publishedAt
-    ? format.dateTime(new Date(site.publishedAt), {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : null;
-
-  const steps = [
-    {
-      key: "stepBrandTitle",
-      done: Boolean(site.brand.logo_path),
-      seg: "brand",
-    },
-    { key: "stepThemeTitle", done: Boolean(site.theme.accent), seg: "theme" },
-    { key: "stepPagesTitle", done: site.counts.pages > 0, seg: "pages" },
-    { key: "stepSeoTitle", done: Boolean(site.seo.title), seg: "seo" },
-    { key: "stepPublishTitle", done: isLive, seg: "" },
-  ];
-
-  const stats = [
-    {
-      key: "statVisitors",
-      value: format.number(analytics.visitors),
-      delta: analytics.deltas.visitors,
-    },
-    {
-      key: "statPageviews",
-      value: format.number(analytics.pageviews),
-      delta: analytics.deltas.pageviews,
-    },
-    {
-      key: "statBookingClicks",
-      value: format.number(analytics.bookingClicks),
-      delta: analytics.deltas.bookingClicks,
-    },
-    {
-      key: "statConversion",
-      value: `${Math.round(analytics.conversion * 100)}%`,
-      delta: null,
-    },
-  ];
-
-  const quickLinks = [
-    { seg: "brand", key: "tabBrand", icon: ImageIcon },
-    { seg: "theme", key: "tabTheme", icon: Palette },
-    { seg: "pages", key: "tabPages", icon: Feather },
-    { seg: "blog", key: "tabBlog", icon: Newspaper },
-    { seg: "domain", key: "tabDomain", icon: Globe },
-    { seg: "seo", key: "tabSeo", icon: SearchCheck },
-  ];
-
-  const deviceTotal = analytics.devices.desktop + analytics.devices.mobile;
-  const desktopPct =
-    deviceTotal > 0
-      ? Math.round((analytics.devices.desktop / deviceTotal) * 100)
-      : 0;
-
   return (
-    <div className="space-y-5">
-      {/* ── Status hero + checklist ───────────────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-        <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
+    <div className="vilo-cms space-y-9">
+      {/* ── Portfolio: all websites ──────────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                isLive ? "bg-emerald-500" : "bg-brand-mute/40"
-              }`}
-            />
-            <span className="font-display text-[15px] font-bold text-brand-ink">
-              {isLive ? t("statusLiveTitle") : t("statusDraftTitle")}
-            </span>
+            <h2
+              className="font-display text-[17px] font-extrabold"
+              style={{ color: "var(--ink)" }}
+            >
+              {t("ovPortfolioTitle")}
+            </h2>
+            <span className="tag gray num">{portfolio.length}</span>
+          </div>
+          <Link href="/dashboard/website" className="btn btn-dark btn-sm">
+            <Plus style={{ width: 15, height: 15 }} />
+            {t("ovNewWebsite")}
+          </Link>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {portfolio.map((p) => {
+            const stats: [string, string][] = [
+              ["statVisitors", format.number(p.visitors)],
+              ["statPageviews", format.number(p.pageviews)],
+              ["statBookingClicks", format.number(p.bookingClicks)],
+            ];
+            return (
+              <Link
+                key={p.id}
+                href={`/dashboard/website/${p.id}`}
+                className={`sitecard ${p.isCurrent ? "cur" : ""}`}
+              >
+                <div className="sitehero">
+                  <div className="ph" />
+                  <div className="glyph" style={{ background: p.color }}>
+                    {p.glyph}
+                  </div>
+                  <div style={{ position: "absolute", top: 11, left: 11 }}>
+                    <span className={`tag ${STATUS_TONE[p.status]}`}>
+                      <span className="d" />
+                      {t(BADGE_KEY[p.status])}
+                    </span>
+                  </div>
+                  {p.isCurrent ? (
+                    <div style={{ position: "absolute", top: 11, right: 11 }}>
+                      <span className="tag green">
+                        <span className="d" />
+                        {t("ovViewing")}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="sitebody">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div
+                        className="truncate font-display text-[15.5px] font-extrabold"
+                        style={{ color: "var(--ink)" }}
+                      >
+                        {p.name}
+                      </div>
+                      <div
+                        className="truncate font-mono text-[11.5px]"
+                        style={{ color: "var(--mute)" }}
+                      >
+                        {p.subdomain}
+                      </div>
+                    </div>
+                    <span
+                      className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px]"
+                      style={{ background: "var(--soft)", color: "#064E3B" }}
+                    >
+                      <ArrowUpRight style={{ width: 16, height: 16 }} />
+                    </span>
+                  </div>
+                  <div className="sitestats">
+                    {stats.map(([k, v]) => (
+                      <div key={k} className="ss">
+                        <div className="ssv num">{v}</div>
+                        <div className="ssl">{t(k)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── Performance header ───────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <span
+            className="flex h-[26px] w-[26px] items-center justify-center rounded-[7px] font-display text-[12px] font-extrabold text-white"
+            style={{ background: siteColor }}
+          >
+            {siteGlyph}
+          </span>
+          <h2
+            className="font-display text-[17px] font-extrabold"
+            style={{ color: "var(--ink)" }}
+          >
+            {t("ovPerformance")}
+          </h2>
+          <span className="text-[13px]" style={{ color: "var(--mute)" }}>
+            · {siteName}
+          </span>
+        </div>
+        <div className="ml-auto">
+          <RangeTabs value={range} />
+        </div>
+      </div>
+
+      {/* ── Chart + KPI rail ─────────────────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+        <section className="card overflow-hidden">
+          <div className="card-h" style={{ justifyContent: "space-between" }}>
+            <div className="flex items-baseline gap-3">
+              <div
+                className="num font-display text-[26px] font-extrabold"
+                style={{ color: "var(--ink)" }}
+              >
+                {format.number(analytics.visitors)}
+              </div>
+              <span className="text-[12.5px]" style={{ color: "var(--mute)" }}>
+                {t("ovVisitorsWord")} · {t("ovTrafficSub", { days })}
+              </span>
+              <CmsDelta
+                value={analytics.deltas.visitors}
+                label={t("ovVsPrev")}
+              />
+            </div>
           </div>
 
-          <a
-            href={isLive ? publicUrl : previewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group mt-3 inline-flex items-center gap-2 font-mono text-[15px] text-brand-secondary hover:text-brand-primary"
-          >
-            <Globe className="h-4 w-4" />
-            {publicUrl.replace(/^https?:\/\//, "")}
-            <ArrowUpRight className="h-4 w-4 opacity-0 transition group-hover:opacity-100" />
-          </a>
-          <p className="mt-2 text-[12.5px] text-brand-mute">
-            {isLive && publishedWhen
-              ? `${t("ovLastPublished", { when: publishedWhen })} · ${t("ovAutoSaved")}`
-              : t("ovDraftHint")}
-          </p>
+          {analytics.hasData ? (
+            <div style={{ height: 210, padding: "14px 8px 4px" }}>
+              <TrafficChart trend={analytics.trend} />
+            </div>
+          ) : (
+            <p
+              className="px-5 py-12 text-center text-sm"
+              style={{ color: "var(--mute)" }}
+            >
+              {t("ovNoTraffic")}
+            </p>
+          )}
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <a
-              href={isLive ? publicUrl : previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
-            >
-              <ExternalLink className="h-4 w-4 text-brand-mute" />
-              {t("ovVisitSite")}
-            </a>
-            <Link
-              href={`${base}/pages`}
-              className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
-            >
-              <Pencil className="h-4 w-4 text-brand-mute" />
-              {t("ovEditPages")}
-            </Link>
-            <CopyLinkButton url={publicUrl} />
+          <div
+            className="grid grid-cols-3 border-t"
+            style={{ borderColor: "var(--line)" }}
+          >
+            {(
+              [
+                ["statPageviews", format.number(analytics.pageviews)],
+                ["statBookingClicks", format.number(analytics.bookingClicks)],
+                ["ovConvRate", `${Math.round(analytics.conversion * 100)}%`],
+              ] as [string, string][]
+            ).map(([k, v], i) => (
+              <div
+                key={k}
+                className={`px-5 py-3.5 ${i < 2 ? "border-r" : ""}`}
+                style={{ borderColor: "var(--line)" }}
+              >
+                <div className="smallcaps">{t(k)}</div>
+                <div
+                  className="num mt-0.5 font-display text-[18px] font-bold"
+                  style={{ color: "var(--ink)" }}
+                >
+                  {v}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* Set-up checklist (deep-linked) */}
-        <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-          <h2 className="font-display text-lg font-bold text-brand-ink">
-            {t("checklistTitle")}
-          </h2>
-          <ul className="mt-4 space-y-1">
+        <aside className="space-y-4">
+          {kpis.map((k) => {
+            const Icon = k.icon;
+            return (
+              <div key={k.key} className="kpi">
+                <div className="kico">
+                  <Icon style={{ width: 16, height: 16 }} />
+                </div>
+                <div className="kl">{t(k.key)}</div>
+                <div className="kv num" style={{ fontSize: 26 }}>
+                  {k.value}
+                </div>
+                <div className="kf">
+                  <CmsDelta value={k.delta} label={t("ovVsPrev")} />
+                </div>
+              </div>
+            );
+          })}
+        </aside>
+      </div>
+
+      {/* ── Top pages + sources + devices ────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <section className="card overflow-hidden">
+          <div className="card-h" style={{ justifyContent: "space-between" }}>
+            <h3>{t("ovTopPages")}</h3>
+            <Link
+              href={`${base}/pages`}
+              className="text-[12px] font-semibold"
+              style={{ color: "#10B981" }}
+            >
+              {t("ovManagePages")}
+            </Link>
+          </div>
+          {analytics.topPages.length === 0 ? (
+            <p
+              className="px-5 py-8 text-center text-[13px]"
+              style={{ color: "var(--mute)" }}
+            >
+              {t("ovTopPagesEmpty")}
+            </p>
+          ) : (
+            <div className="p-2">
+              {analytics.topPages.map((p, i) => (
+                <div
+                  key={p.path}
+                  className="lrow"
+                  style={{ cursor: "default" }}
+                >
+                  <span
+                    className="num font-mono text-[12px]"
+                    style={{ width: 18, color: "#9DB4A8" }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span
+                    className="truncate text-[13px] font-semibold"
+                    style={{ width: 130, flexShrink: 0, color: "var(--ink)" }}
+                  >
+                    {p.path}
+                  </span>
+                  <span className="barmini">
+                    <i style={{ width: `${(p.views / topMax) * 100}%` }} />
+                  </span>
+                  <span
+                    className="num text-right text-[12px]"
+                    style={{ width: 48, color: "var(--mute)" }}
+                  >
+                    {format.number(p.views)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <aside className="space-y-5">
+          <section className="card overflow-hidden">
+            <div className="card-h">
+              <h3>{t("ovSourcesTitle")}</h3>
+            </div>
+            {analytics.sources.length === 0 ? (
+              <p
+                className="px-5 py-8 text-center text-[13px]"
+                style={{ color: "var(--mute)" }}
+              >
+                {t("ovTopPagesEmpty")}
+              </p>
+            ) : (
+              <div className="space-y-3 p-4">
+                {analytics.sources.map((s, i) => {
+                  const pct =
+                    sourcesTotal > 0
+                      ? Math.round((s.visits / sourcesTotal) * 100)
+                      : 0;
+                  return (
+                    <div key={s.label}>
+                      <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
+                        <span
+                          className="truncate font-medium"
+                          style={{ color: "var(--ink)" }}
+                        >
+                          {s.label === "Direct" ? t("ovSourceDirect") : s.label}
+                        </span>
+                        <span className="num" style={{ color: "var(--mute)" }}>
+                          {pct}%
+                        </span>
+                      </div>
+                      <div className="barmini">
+                        <i
+                          style={{
+                            width: `${pct}%`,
+                            background: SOURCE_COLORS[i % SOURCE_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="card overflow-hidden">
+            <div className="card-h">
+              <h3>{t("ovDevicesTitle")}</h3>
+            </div>
+            {devices.length === 0 ? (
+              <p
+                className="px-5 py-8 text-center text-[13px]"
+                style={{ color: "var(--mute)" }}
+              >
+                {t("ovTopPagesEmpty")}
+              </p>
+            ) : (
+              <div className="p-2">
+                {devices.map((d) => {
+                  const Icon = d.icon;
+                  return (
+                    <div
+                      key={d.key}
+                      className="lrow"
+                      style={{ cursor: "default" }}
+                    >
+                      <span
+                        className="flex h-8 w-8 items-center justify-center rounded-[8px]"
+                        style={{ background: "var(--soft)", color: "#064E3B" }}
+                      >
+                        <Icon style={{ width: 16, height: 16 }} />
+                      </span>
+                      <span
+                        className="flex-1 text-[13px] font-medium"
+                        style={{ color: "var(--ink)" }}
+                      >
+                        {t(d.key)}
+                      </span>
+                      <span
+                        className="num font-display text-[14px] font-bold"
+                        style={{ color: "var(--ink)" }}
+                      >
+                        {d.pct}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </aside>
+      </div>
+
+      {/* ── Setup & health: checklist · needs attention · image perf ── */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Checklist */}
+        <section className="card overflow-hidden">
+          <div className="card-h">
+            <h3>{t("checklistTitle")}</h3>
+          </div>
+          <ul className="p-2">
             {steps.map((s) => (
               <li key={s.key}>
-                <Link
-                  href={s.seg ? `${base}/${s.seg}` : base}
-                  className="group flex items-center justify-between gap-3 rounded-[8px] px-2 py-1.5 transition hover:bg-brand-light/60"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-full ${
-                        s.done
-                          ? "bg-brand-primary text-white"
-                          : "border border-brand-line text-transparent"
-                      }`}
-                    >
-                      <Check className="h-3 w-3" strokeWidth={3} />
-                    </span>
-                    <span
-                      className={`text-sm ${
-                        s.done
-                          ? "text-brand-mute line-through"
-                          : "font-medium text-brand-ink"
-                      }`}
-                    >
-                      {t(s.key)}
-                    </span>
+                <Link href={s.seg ? `${base}/${s.seg}` : base} className="lrow">
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                      s.done ? "text-white" : "text-transparent"
+                    }`}
+                    style={{
+                      background: s.done ? "#10B981" : "transparent",
+                      border: s.done ? "none" : "1px solid var(--line)",
+                    }}
+                  >
+                    <Check style={{ width: 12, height: 12 }} strokeWidth={3} />
                   </span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-brand-mute opacity-0 transition group-hover:opacity-100" />
+                  <span
+                    className="flex-1 text-[13px]"
+                    style={{
+                      color: s.done ? "var(--mute)" : "var(--ink)",
+                      textDecoration: s.done ? "line-through" : "none",
+                      fontWeight: s.done ? 400 : 500,
+                    }}
+                  >
+                    {t(s.key)}
+                  </span>
+                  <ArrowUpRight
+                    style={{ width: 14, height: 14, color: "var(--mute)" }}
+                  />
                 </Link>
               </li>
             ))}
           </ul>
         </section>
-      </div>
 
-      {/* ── Traffic dashboard ─────────────────────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-        <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-line px-5 py-3.5">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
-                {t("ovTrafficTitle")} ·{" "}
-                {t("ovTrafficSub", { days: RANGE_DAYS[range] })}
-              </div>
-              <div className="mt-1 flex items-center gap-2">
-                <span className="font-display text-[20px] font-bold text-brand-ink">
-                  {format.number(analytics.visitors)}
-                </span>
-                <Delta
-                  value={analytics.deltas.visitors}
-                  label={t("ovVsPrev")}
-                />
-              </div>
-            </div>
-            <RangeTabs value={range} />
+        {/* Needs attention */}
+        <section className="card overflow-hidden">
+          <div className="card-h">
+            <h3>{t("ovAttnTitle")}</h3>
           </div>
-
-          {analytics.hasData ? (
-            <div className="px-5 pt-4">
-              <TrafficChart trend={analytics.trend} />
-            </div>
-          ) : (
-            <p className="px-5 py-10 text-center text-sm text-brand-mute">
-              {t("ovNoTraffic")}
-            </p>
-          )}
-
-          <dl className="grid grid-cols-2 gap-px border-t border-brand-line bg-brand-line sm:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.key} className="bg-white p-4">
-                <dt className="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
-                  {t(s.key)}
-                </dt>
-                <dd className="mt-1 font-display text-[16px] font-bold text-brand-ink">
-                  {s.value}
-                </dd>
-                {s.delta != null ? <Delta value={s.delta} label="" /> : null}
-              </div>
-            ))}
-          </dl>
-        </section>
-
-        {/* Top pages */}
-        <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <div className="border-b border-brand-line px-5 py-3.5">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
-              {t("ovTopPages")}
-            </div>
-          </div>
-          {analytics.topPages.length === 0 ? (
-            <p className="px-5 py-8 text-center text-[13px] text-brand-mute">
-              {t("ovTopPagesEmpty")}
+          {signals.length === 0 ? (
+            <p
+              className="flex items-center gap-2 px-5 py-6 text-[13px]"
+              style={{ color: "var(--mute)" }}
+            >
+              <CircleCheck
+                style={{ width: 16, height: 16, color: "#047857" }}
+              />
+              {t("ovAttnAllGood")}
             </p>
           ) : (
-            <ul className="divide-y divide-brand-line">
-              {analytics.topPages.map((p) => (
-                <li
-                  key={p.path}
-                  className="flex items-center gap-3 px-5 py-2.5"
-                >
-                  <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-brand-mute">
-                    {p.path}
-                  </span>
-                  <span className="font-display text-[13px] font-bold text-brand-ink">
-                    {format.number(p.views)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-
-      {/* ── Sources + devices ─────────────────────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <div className="border-b border-brand-line px-5 py-3.5">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
-              {t("ovSourcesTitle")}
-            </div>
-          </div>
-          {analytics.sources.length === 0 ? (
-            <p className="px-5 py-8 text-center text-[13px] text-brand-mute">
-              {t("ovTopPagesEmpty")}
-            </p>
-          ) : (
-            <ul className="divide-y divide-brand-line">
-              {analytics.sources.map((s) => (
-                <li
-                  key={s.label}
-                  className="flex items-center gap-3 px-5 py-2.5"
-                >
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-brand-ink">
-                    {s.label === "Direct" ? t("ovSourceDirect") : s.label}
-                  </span>
-                  <span className="font-display text-[13px] font-bold text-brand-ink">
-                    {format.number(s.visits)}
-                  </span>
+            <ul className="space-y-2 p-3">
+              {signals.map((sig) => (
+                <li key={sig.key}>
+                  <Link
+                    href={sig.seg ? `${base}/${sig.seg}` : base}
+                    className="flex items-center gap-2.5 rounded-[10px] border px-3.5 py-2.5 text-[13px]"
+                    style={{
+                      borderColor: "#FDE68A",
+                      background: "#FFFBEB",
+                      color: "#92400E",
+                    }}
+                  >
+                    <CircleAlert
+                      style={{
+                        width: 16,
+                        height: 16,
+                        flexShrink: 0,
+                        color: "#B45309",
+                      }}
+                    />
+                    <span className="flex-1">
+                      {t(sig.key, { count: sig.count ?? 0 })}
+                    </span>
+                    <ArrowUpRight style={{ width: 14, height: 14 }} />
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
         </section>
 
-        <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
-            {t("ovDevicesTitle")}
+        {/* Image performance */}
+        <section className="card overflow-hidden">
+          <div className="card-h">
+            <Gauge style={{ width: 16, height: 16, color: "var(--mute)" }} />
+            <h3>{t("perfTitle")}</h3>
           </div>
-          {deviceTotal === 0 ? (
-            <p className="py-8 text-center text-[13px] text-brand-mute">
-              {t("ovTopPagesEmpty")}
-            </p>
-          ) : (
-            <div className="mt-4">
-              <div className="flex h-3 overflow-hidden rounded-pill bg-brand-light">
-                <span
-                  className="bg-brand-primary"
-                  style={{ width: `${desktopPct}%` }}
-                />
-                <span
-                  className="bg-brand-secondary"
-                  style={{ width: `${100 - desktopPct}%` }}
-                />
-              </div>
-              <div className="mt-3 flex items-center justify-between text-[13px]">
-                <span className="flex items-center gap-2 text-brand-ink">
-                  <span className="h-2.5 w-2.5 rounded-full bg-brand-primary" />
-                  {t("ovDeviceDesktop")} · {desktopPct}%
-                </span>
-                <span className="flex items-center gap-2 text-brand-ink">
-                  <span className="h-2.5 w-2.5 rounded-full bg-brand-secondary" />
-                  {t("ovDeviceMobile")} · {100 - desktopPct}%
-                </span>
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* ── Image performance ─────────────────────────────────── */}
-      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <div className="flex items-center gap-2">
-          <Gauge className="h-4 w-4 text-brand-mute" />
-          <h2 className="font-display text-lg font-bold text-brand-ink">
-            {t("perfTitle")}
-          </h2>
-        </div>
-        <p className="mt-1 text-[12.5px] text-brand-mute">{t("perfDesc")}</p>
-        <div className="mt-4 grid gap-5 sm:grid-cols-[180px_1fr] sm:items-center">
-          <div>
+          <div className="p-5">
             {performance.imageCount > 0 ? (
               <>
                 <div className="flex items-baseline gap-1">
                   <span
-                    className={`font-display text-4xl font-bold ${perfColor}`}
+                    className="font-display text-[34px] font-extrabold"
+                    style={{ color: perfColor }}
                   >
                     {performance.score}
                   </span>
-                  <span className="text-sm text-brand-mute">/ 100</span>
+                  <span className="text-sm" style={{ color: "var(--mute)" }}>
+                    / 100
+                  </span>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-pill bg-brand-light">
                   <span
@@ -422,90 +623,53 @@ export default async function WebsiteOverviewPage({
                   />
                 </div>
                 <span
-                  className={`mt-2 inline-block text-[13px] font-semibold ${perfColor}`}
+                  className="mt-2 inline-block text-[13px] font-semibold"
+                  style={{ color: perfColor }}
                 >
                   {t(perfGradeKey)}
                 </span>
+                <ul className="mt-4 space-y-2">
+                  {performance.checks.map((c) => (
+                    <li
+                      key={c.key}
+                      className="flex items-start gap-2 text-[13px]"
+                    >
+                      {c.status === "good" ? (
+                        <CircleCheck
+                          style={{
+                            width: 16,
+                            height: 16,
+                            marginTop: 2,
+                            flexShrink: 0,
+                            color: "#047857",
+                          }}
+                        />
+                      ) : (
+                        <CircleAlert
+                          style={{
+                            width: 16,
+                            height: 16,
+                            marginTop: 2,
+                            flexShrink: 0,
+                            color: "#B45309",
+                          }}
+                        />
+                      )}
+                      <span style={{ color: "var(--ink)" }}>
+                        {t(c.key, { count: c.count ?? 0 })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </>
             ) : (
-              <p className="text-sm text-brand-mute">{t("perfEmpty")}</p>
+              <p className="text-sm" style={{ color: "var(--mute)" }}>
+                {t("perfEmpty")}
+              </p>
             )}
           </div>
-          <ul className="space-y-2">
-            {performance.checks.map((c) => (
-              <li key={c.key} className="flex items-start gap-2 text-[13px]">
-                {c.status === "good" ? (
-                  <CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                ) : (
-                  <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-                )}
-                <span className="text-brand-ink">
-                  {t(c.key, { count: c.count ?? 0 })}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* ── Needs attention ───────────────────────────────────── */}
-      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <h2 className="font-display text-lg font-bold text-brand-ink">
-          {t("ovAttnTitle")}
-        </h2>
-        {signals.length === 0 ? (
-          <p className="mt-3 flex items-center gap-2 text-sm text-brand-mute">
-            <CircleCheck className="h-4 w-4 text-emerald-600" />
-            {t("ovAttnAllGood")}
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {signals.map((sig) => (
-              <li key={sig.key}>
-                <Link
-                  href={sig.seg ? `${base}/${sig.seg}` : base}
-                  className="group flex items-center gap-2.5 rounded-[10px] border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-900 transition hover:bg-amber-100"
-                >
-                  <CircleAlert className="h-4 w-4 shrink-0 text-amber-600" />
-                  <span className="flex-1">
-                    {t(sig.key, { count: sig.count ?? 0 })}
-                  </span>
-                  <ArrowUpRight className="h-3.5 w-3.5 opacity-0 transition group-hover:opacity-100" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* ── Quick links ───────────────────────────────────────── */}
-      <section>
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
-          {t("ovManageTitle")}
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {quickLinks.map((l) => {
-            const Icon = l.icon;
-            return (
-              <Link
-                key={l.seg}
-                href={`${base}/${l.seg}`}
-                className="group flex items-start gap-3.5 rounded-card border border-brand-line bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-brand-light text-brand-primary">
-                  <Icon className="h-[18px] w-[18px]" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-display text-[14px] font-bold text-brand-ink">
-                    {t(l.key)}
-                  </span>
-                </span>
-                <ArrowUpRight className="h-4 w-4 text-brand-mute opacity-0 transition group-hover:opacity-100" />
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
