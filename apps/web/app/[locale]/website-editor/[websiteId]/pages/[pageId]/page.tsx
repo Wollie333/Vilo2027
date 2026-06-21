@@ -26,6 +26,8 @@ export default async function FullScreenPageBuilder({
         ? t("pageAbout")
         : data.page.title || data.page.slug;
 
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+
   return (
     <PageBuilder
       websiteId={websiteId}
@@ -39,6 +41,14 @@ export default async function FullScreenPageBuilder({
       navigation={data.navigation}
       dataByType={data.dataByType}
       savedSections={data.savedSections}
+      pageSlug={data.page.slug}
+      pageSeo={{
+        title: data.page.seo.title ?? "",
+        description: data.page.seo.description ?? "",
+        focusKeyword: data.page.seo.focusKeyword ?? "",
+      }}
+      domain={`${data.subdomain}.${root}`}
+      ogImageUrl={data.ogImageUrl}
     />
   );
 }

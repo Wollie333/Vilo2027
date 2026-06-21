@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · In-builder Page settings (retire old route)
+
+Brings per-page **SEO** + **accessibility** into the full-screen page builder and
+**retires the legacy dashboard page-builder route** that still held them.
+
+### Added
+- **Page settings modal** in `website-editor/[websiteId]/pages/[pageId]/PageBuilder`
+  — a "Page settings" button in the toolbar opens a modal reusing the existing
+  `PageSeoCard` (per-page title/description/focus-keyword overrides + Google +
+  social preview + the Yoast-style `SeoAnalysis` coach, saved via
+  `savePageSeoAction`) and `A11yCard` (live accessibility score over the current
+  sections). The SEO coach's keyword-in-body check runs against **live** page text
+  (`extractSectionsText(sections)` recomputed as the host edits).
+- New props threaded from the loader (already returned by `loadPageBuilder`):
+  `pageSlug`, `pageSeo`, `domain`, `ogImageUrl`. +3 `website` en i18n keys.
+
+### Removed
+- **Legacy route** `dashboard/website/[websiteId]/(editor)/pages/[pageId]/page.tsx`
+  (the unlinked fallback builder) + its `SectionBuilder.tsx` and `DeviceFrame.tsx`.
+  The shared `_components/` (SectionEditor / Library / Thumb / fields / SeoAnalysis
+  / SocialPreview / PageSeoCard / A11yCard) and `loadPageBuilder.ts` stay — they're
+  reused by the full-screen builder. tsc + lint green; no DB change.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Columns container block
 
 Adds a **Columns** layout block — a bounded, single-level container (1–4 columns,

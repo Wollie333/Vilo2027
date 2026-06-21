@@ -52,6 +52,7 @@ import {
   Plus,
   Rocket,
   Search,
+  Settings2,
   ShieldCheck,
   SlidersHorizontal,
   Smartphone,
@@ -99,8 +100,16 @@ import {
   type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
+import { extractSectionsText } from "@/lib/website/seoAnalyzer";
+import {
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 
 import { SectionEditor } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/SectionEditor";
+import { PageSeoCard } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/PageSeoCard";
+import { A11yCard } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/A11yCard";
 
 const asset = (p: string | null | undefined) => websiteAssetUrl(p) ?? undefined;
 
@@ -237,6 +246,10 @@ export function PageBuilder({
   nav,
   navigation,
   dataByType,
+  pageSlug,
+  pageSeo,
+  domain,
+  ogImageUrl,
 }: {
   websiteId: string;
   pageId: string;
@@ -249,6 +262,10 @@ export function PageBuilder({
   navigation: SiteNavigation;
   dataByType: Partial<SiteDataByType>;
   savedSections: SavedSection[];
+  pageSlug: string;
+  pageSeo: { title: string; description: string; focusKeyword: string };
+  domain: string;
+  ogImageUrl?: string;
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -259,6 +276,7 @@ export function PageBuilder({
   const [dirty, setDirty] = useState(false);
   const [device, setDevice] = useState<Device>("desktop");
   const [previewing, setPreviewing] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [publishing, startPublish] = useTransition();
   const [autoStatus, setAutoStatus] = useState<
@@ -276,6 +294,8 @@ export function PageBuilder({
     () => buildPreviewData(sections, dataByType),
     [sections, dataByType],
   );
+  // Live page text for the SEO coach's keyword-in-body check.
+  const bodyText = useMemo(() => extractSectionsText(sections), [sections]);
   const selected = selectedId
     ? (sections.find((s) => s.id === selectedId) ?? null)
     : null;
@@ -475,6 +495,16 @@ export function PageBuilder({
               )}
               {autoLabel}
             </span>
+          ) : null}
+          {!previewing ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings2 style={{ width: 15, height: 15 }} />
+              {t("pageSettings")}
+            </button>
           ) : null}
           <button
             type="button"
@@ -684,6 +714,31 @@ export function PageBuilder({
           {t("exitPreview")}
         </button>
       ) : null}
+
+      <FormModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        title={t("pageSettings")}
+        description={t("pageSettingsSub")}
+        size="lg"
+      >
+        <div className="space-y-3">
+          <PageSeoCard
+            websiteId={websiteId}
+            pageId={pageId}
+            fallbackTitle={pageTitle}
+            slug={pageSlug}
+            bodyText={bodyText}
+            domain={domain}
+            ogImageUrl={ogImageUrl}
+            initial={pageSeo}
+          />
+          <A11yCard sections={sections} />
+        </div>
+        <FormModalFooter>
+          <FormModalCancel>{t("close")}</FormModalCancel>
+        </FormModalFooter>
+      </FormModal>
     </div>
   );
 }
