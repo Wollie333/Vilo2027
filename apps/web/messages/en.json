@@ -1051,6 +1051,8 @@
     "autosaved": "All changes saved",
     "unsavedChanges": "Unsaved — auto-saving…",
     "noSections": "No sections yet. Use “Add section” to start building this page.",
+    "pbOutline": "Sections",
+    "pbSelectHint": "Select a section in the outline or canvas to edit it.",
     "moveUp": "Move up",
     "moveDown": "Move down",
     "hideSection": "Hide from page",

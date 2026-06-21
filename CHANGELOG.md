@@ -5,6 +5,48 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · full-screen Page builder (foundation)
+
+The Pages editor becomes a full-screen visual builder (palette · live canvas ·
+inspector), built on the already-installed @dnd-kit. Founder-confirmed: build on
+dnd-kit, Pages first, then fold in nav.
+
+Key finding: the section builder was already feature-complete (dnd-kit reorder,
+live theme/brand preview via `SectionRenderer`/`SiteChrome`/`SiteThemeRoot`,
+per-type `SectionEditor` inspector, `SectionLibrary` palette, autosave). This slice
+**re-houses that logic** into the `.vilo-builder` mockup shell — no new data model.
+
+### Added
+- **`website-editor/[websiteId]/pages/[pageId]/`** (`page.tsx` + `PageBuilder.tsx`)
+  — full-screen builder reusing `loadPageBuilder`:
+  - **etop**: back to Pages, page title, desktop/tablet/mobile device toggle
+    (`.device`/`.tablet`/`.mobile`), autosave status, Publish.
+  - **Palette (left `.epanel.l`)**: a sortable **outline** of sections (drag to
+    reorder, click to select, hide/delete) + "Add section" → existing `SectionLibrary`.
+  - **Canvas (`.canvas-wrap` + `.device`)**: the real live theme/brand site at the
+    selected device width; click a section to select it (emerald selection ring).
+  - **Inspector (right `.epanel.r`)**: the existing `SectionEditor` for the selected
+    section + hide/duplicate/delete.
+  - Debounced autosave + before-unload guard preserved; Publish saves draft then
+    snapshots via `publishWebsiteAction`.
+- +2 i18n keys (`pbOutline`, `pbSelectHint`).
+
+### Changed
+- **`PagesManager`** — "Edit" (and post-create/duplicate redirects) now open the new
+  full-screen builder at `/website-editor/.../pages/{id}`.
+
+### Notes / deferred
+- The old dashboard page-edit route stays in place (unlinked) as a fallback. Its
+  `PageSeoCard` + `A11yCard` are **not yet** in the new builder — per-page SEO is still
+  editable in the **SEO tab**; an in-builder "Page settings" panel is the next slice.
+- Still to come: the **free elements** (Columns/Heading/Text/Image/Button/Spacer/Divider)
+  and **per-block desktop/tablet/mobile style overrides** (both additive schema work),
+  then fold headers/footers/menus onto the same engine.
+
+tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Navigation full-screen editors
 
 Completes the manager → editor flow: the Navigation tab is now view-only cards, and

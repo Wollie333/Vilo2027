@@ -265,7 +265,7 @@ function PageRow({
         return;
       }
       toast.success(t("pageDuplicated"));
-      router.push(`/dashboard/website/${websiteId}/pages/${res.id}`);
+      router.push(`/website-editor/${websiteId}/pages/${res.id}`);
     });
   }
 
@@ -318,7 +318,7 @@ function PageRow({
         </div>
 
         <Link
-          href={`/dashboard/website/${websiteId}/pages/${page.id}`}
+          href={`/website-editor/${websiteId}/pages/${page.id}`}
           title={t("editPage")}
           className="shrink-0 rounded-[10px] border border-brand-line bg-white p-2.5 text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
         >
@@ -414,7 +414,7 @@ function AddPageModal({
       onOpenChange(false);
       setTitle("");
       setTemplate("blank");
-      router.push(`/dashboard/website/${websiteId}/pages/${res.id}`);
+      router.push(`/website-editor/${websiteId}/pages/${res.id}`);
     });
   }
 
