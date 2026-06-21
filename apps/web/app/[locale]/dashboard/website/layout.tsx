@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 // wrapper class to their root; importing here only bundles the CSS for
 // /dashboard/website.
 import "./cms.css";
+import "./cms-extra.css";
 import "./builder.css";
 import "./nav.css";
 

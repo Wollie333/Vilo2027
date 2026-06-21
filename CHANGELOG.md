@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Phase 1: Blog tab
+
+Rebuilds the Blog tab to the `Blog Manager.html` mockup — a posts table with a
+status filter and a New-post template modal — wired to the existing blog data and
+actions. First screen to adopt the `.vilo-cms` design system.
+
+### Changed
+- **`blog/BlogManager.tsx`** — rebuilt from a stacked list into the mockup table:
+  header (title + count + “N published”), segmented filter (All / Published /
+  Drafts / Scheduled), New-post button, and a `.card` table (Post w/ cover thumb +
+  author + slug · Category chip · Status tag · Published date · Edit + ⋯ menu).
+  The ⋯ menu carries Feature/Unfeature + Delete (preserves the old actions). Wrapped
+  in `.vilo-cms`. Wired to `createBlogPostAction` / `deleteBlogPostAction` /
+  `setBlogFeaturedAction`.
+- **New-post modal** — 6 template cards (mockup copy); each seeds a blank draft and
+  opens the post editor (template content-seeding is a later enhancement).
+- **Categories & authors** moved into a modal (not shown in the mockup, but kept so
+  the feature isn’t stranded) — reuses the existing category/author editors +
+  `saveBlogCategoriesAction` / `saveBlogAuthorsAction`.
+- **`loadBlogEditor.ts`** — posts now also load `coverPath` + `authorName` for the
+  table. (Per-post “reads” isn’t tracked, so that column is omitted rather than
+  faked.)
+- **`blog/page.tsx`** — full-width; BlogManager now owns its own header.
+
+### Added
+- **`apps/web/app/[locale]/dashboard/website/cms-extra.css`** — the manager
+  page-level classes the mockups keep inline (`.ptr`, `.pthumb`, `.eseg`, `.tpl`,
+  `.modal`, `.stat`), hand-authored + scoped `.vilo-cms`; shared by the later
+  Forms/Pages managers. Imported in the website layout.
+- 16 `website` i18n keys (`blogCol*`, `blogPublishedCount`, `blogManageCats`,
+  `blogNewModalSub`, date labels, …).
+
+### Notes
+- The surrounding header + tab-bar chrome stays as-is this phase; restyling that
+  shared CMS shell (and re-homing the Theme/Brand/Rooms tabs) is its own phase,
+  paired with the Overview. tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Phase 0: scoped design foundation
 
 Start of the founder-requested premium redesign of the Website CMS (Overview,

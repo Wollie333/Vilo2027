@@ -1,0 +1,159 @@
+/* Website-CMS manager page primitives — the classes the mockups keep in each
+   page's inline <style> (identical across the Blog / Forms / Pages managers).
+   Hand-authored (not generated) and scoped under .vilo-cms so they live with the
+   rest of the emerald system. Grid column templates differ per table, so .ptr
+   carries everything EXCEPT grid-template-columns — each table sets that inline. */
+
+/* ---------- table row (manager lists) ---------- */
+.vilo-cms .ptr {
+  display: grid;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 13px;
+  transition:
+    background 0.12s,
+    box-shadow 0.12s;
+  cursor: pointer;
+  text-decoration: none;
+}
+.vilo-cms .ptr:hover {
+  background: #fafcfb;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+/* ---------- row thumbnail ---------- */
+.vilo-cms .pthumb {
+  height: 48px;
+  width: 68px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f4f8f5;
+  position: relative;
+}
+.vilo-cms .pthumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.vilo-cms .pthumb .tb {
+  height: 8px;
+  background: #fff;
+  border-bottom: 1px solid #eaf2ec;
+}
+.vilo-cms .pthumb .ph {
+  position: absolute;
+  inset: 8px 0 0;
+  background: repeating-linear-gradient(
+    135deg,
+    #e8f5ee 0 7px,
+    #dcefe4 7px 14px
+  );
+}
+
+/* ---------- segmented filter ---------- */
+.vilo-cms .eseg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: #f1f6f3;
+  border: 1px solid var(--line);
+}
+.vilo-cms .eseg button {
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.vilo-cms .eseg button.on {
+  background: #fff;
+  color: #064e3b;
+  box-shadow: 0 1px 2px rgba(6, 78, 59, 0.12);
+}
+
+/* ---------- template card (new-post / new-form modals) ---------- */
+.vilo-cms .tpl {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s,
+    transform 0.1s;
+  background: #fff;
+  text-align: left;
+  display: block;
+  width: 100%;
+}
+.vilo-cms .tpl:hover {
+  border-color: #bfe6d2;
+  box-shadow: 0 14px 30px -18px rgba(6, 78, 59, 0.4);
+  transform: translateY(-2px);
+}
+.vilo-cms .tpl .tp-img {
+  height: 96px;
+  background: #f2fbf6;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+}
+.vilo-cms .tpl .tp-b {
+  padding: 11px 13px;
+}
+
+/* ---------- modal ---------- */
+.vilo-cms .modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 46, 31, 0.4);
+  transition: opacity 0.2s;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.vilo-cms .modal {
+  width: 720px;
+  max-width: 100%;
+  max-height: 86vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 40px 90px -30px rgba(6, 78, 59, 0.5);
+}
+
+/* ---------- forms manager stat tiles ---------- */
+.vilo-cms .stat {
+  flex: 1;
+  min-width: 150px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px 16px;
+}
+.vilo-cms .stat .sv {
+  font-family: "Plus Jakarta Sans";
+  font-weight: 800;
+  font-size: 23px;
+  color: var(--ink);
+  line-height: 1;
+}
+.vilo-cms .stat .sl {
+  font-size: 12px;
+  color: var(--mute);
+  margin-top: 5px;
+}

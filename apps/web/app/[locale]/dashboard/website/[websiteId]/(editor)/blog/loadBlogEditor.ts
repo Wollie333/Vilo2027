@@ -20,6 +20,8 @@ export type BlogPostRow = {
   hasSeo: boolean;
   categoryId: string | null;
   categoryName: string | null;
+  coverPath: string | null;
+  authorName: string | null;
   publishAt: string | null;
   updatedAt: string;
 };
@@ -74,7 +76,7 @@ export async function loadBlogEditor(
       supabase
         .from("website_blog_posts")
         .select(
-          "id, title, slug, status, featured, seo, publish_at, updated_at, category:website_blog_categories ( id, name )",
+          "id, title, slug, status, featured, seo, cover_path, publish_at, updated_at, category:website_blog_categories ( id, name ), author:website_blog_authors ( id, name )",
         )
         .eq("website_id", site.id)
         .is("deleted_at", null)
@@ -94,6 +96,7 @@ export async function loadBlogEditor(
       id: string;
       name: string;
     } | null;
+    const author = p.author as unknown as { id: string; name: string } | null;
     const seo = (p.seo ?? {}) as { title?: string; description?: string };
     return {
       id: p.id,
@@ -104,6 +107,8 @@ export async function loadBlogEditor(
       hasSeo: Boolean(seo.title?.trim() || seo.description?.trim()),
       categoryId: category?.id ?? null,
       categoryName: category?.name ?? null,
+      coverPath: p.cover_path ?? null,
+      authorName: author?.name ?? null,
       publishAt: p.publish_at,
       updatedAt: p.updated_at,
     };
