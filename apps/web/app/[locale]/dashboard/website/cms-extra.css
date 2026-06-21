@@ -136,6 +136,226 @@
   box-shadow: 0 40px 90px -30px rgba(6, 78, 59, 0.5);
 }
 
+/* ---------- settings-page primitives (Domain / SEO / Settings tabs) ---------- */
+.vilo-cms .wrap-set {
+  max-width: 980px;
+}
+.vilo-cms .sblock {
+  margin-bottom: 24px;
+}
+.vilo-cms .sblock-h {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+.vilo-cms .sblock-h .si {
+  height: 36px;
+  width: 36px;
+  border-radius: 10px;
+  background: var(--soft);
+  color: #064e3b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.vilo-cms .sblock-h h2 {
+  font-family: "Plus Jakarta Sans";
+  font-weight: 800;
+  font-size: 16.5px;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.vilo-cms .sblock-h p {
+  font-size: 12.5px;
+  color: var(--mute);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+.vilo-cms .setrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.vilo-cms .setrow:last-child {
+  border-bottom: 0;
+}
+.vilo-cms .setrow.col {
+  display: block;
+}
+.vilo-cms .setrow .lbl {
+  flex: 1;
+  min-width: 0;
+}
+.vilo-cms .setrow .lbl b {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  display: block;
+}
+.vilo-cms .setrow .lbl span {
+  font-size: 12px;
+  color: var(--mute);
+  display: block;
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.vilo-cms .setrow .ctl {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.vilo-cms .field {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: var(--ink);
+  font-family: inherit;
+  background: #fff;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+.vilo-cms .field:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+.vilo-cms .field.mono {
+  font-family: "JetBrains Mono";
+  font-size: 12.5px;
+}
+.vilo-cms textarea.field {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.55;
+}
+.vilo-cms select.field {
+  cursor: pointer;
+}
+.vilo-cms .field-w {
+  width: 230px;
+  max-width: 100%;
+}
+.vilo-cms .lblrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.vilo-cms .lblrow label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #3a5a4e;
+}
+.vilo-cms .sw {
+  position: relative;
+  width: 40px;
+  height: 23px;
+  border-radius: 9999px;
+  background: #d7e4dc;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 0;
+  padding: 0;
+  flex-shrink: 0;
+}
+.vilo-cms .sw::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 19px;
+  height: 19px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s;
+}
+.vilo-cms .sw.on {
+  background: #10b981;
+}
+.vilo-cms .sw.on::after {
+  transform: translateX(17px);
+}
+
+/* ---------- domain tab ---------- */
+.vilo-cms .domhero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.vilo-cms .domhero .dg {
+  height: 48px;
+  width: 48px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: "Plus Jakarta Sans";
+  font-weight: 800;
+  font-size: 19px;
+  flex-shrink: 0;
+}
+.vilo-cms .dns {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.vilo-cms .dns .dh,
+.vilo-cms .dns .dr {
+  display: grid;
+  grid-template-columns: 62px 1.1fr 1.6fr 54px 30px;
+  gap: 12px;
+  padding: 10px 14px;
+  align-items: center;
+}
+.vilo-cms .dns .dh {
+  background: #fafcfb;
+  border-bottom: 1px solid var(--line);
+  font-weight: 700;
+  color: var(--mute);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+.vilo-cms .dns .dr {
+  border-bottom: 1px solid #f0f5f2;
+  font-family: "JetBrains Mono";
+  font-size: 12px;
+  color: var(--ink);
+}
+.vilo-cms .dns .dr:last-child {
+  border-bottom: 0;
+}
+.vilo-cms .dns .dr .cp {
+  height: 26px;
+  width: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #9db4a8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.vilo-cms .dns .dr .cp:hover {
+  color: #064e3b;
+  background: var(--soft);
+}
+
 /* ---------- forms manager stat tiles ---------- */
 .vilo-cms .stat {
   flex: 1;

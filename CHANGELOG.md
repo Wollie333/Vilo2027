@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Domain tab + settings primitives
+
+Rebuilds the Domain tab to the `Domain Manager.html` mockup and lays down the
+shared settings-page primitives the SEO + Settings tabs will reuse. A clean,
+non-breaking restyle — the domain backend (subdomain, custom-domain connect, DNS,
+SSL, canonical) is fully wired and unchanged.
+
+### Added — `cms-extra.css` (scoped `.vilo-cms`)
+- Shared **settings-page primitives**: `.wrap-set`, `.sblock` / `.sblock-h`,
+  `.setrow` (+`.col`/`.lbl`/`.ctl`), `.field` (+`.mono`/textarea/select/`.field-w`),
+  `.lblrow`, and the 40 px settings `.sw` toggle — the classes the Domain/SEO/
+  Settings mockups keep inline.
+- **Domain-specific**: `.domhero` (+`.dg`) and the `.dns` records table.
+
+### Changed
+- **`domain/DomainManager.tsx`** rebuilt to the mockup: Primary-domain card
+  (subdomain hero w/ Live + SSL-secured tags, inline edit), Connect-a-custom-domain
+  card (input + Connect, gated on Vercel config; DNS records table with copy; SSL
+  status), and a Forwarding & HTTPS card (Force HTTPS shown always-on; apex/www
+  primary-host choice). Wrapped in `.vilo-cms`; reuses every existing action
+  (`saveSubdomain`/`connect`/`refresh`/`remove`/`setCanonical`).
+- **`domain/page.tsx`** — full-width; DomainManager owns its header.
+- +24 `website` i18n keys (`domPrimaryTitle`, `domForwardingTitle`, …).
+
+### Notes
+- Received the Domain / SEO / Settings tab mockups — the tab set is now fully
+  designed. SEO + Settings reuse these primitives next; Forms is a larger unit
+  (its editor is currently inline and needs its own full-screen route). tsc +
+  lint green; verified by tsc + lint, not a live render.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Phase 2: full-screen Blog post editor
 
 Rebuilds the blog post editor to the `Blog Post Editor.html` mockup and makes it
