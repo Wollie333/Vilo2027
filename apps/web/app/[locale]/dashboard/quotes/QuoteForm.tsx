@@ -583,6 +583,8 @@ export function QuoteForm({
       const anyRoom = (listing?.rooms ?? []).some((r) => selectedRooms[r.id]);
       if (!anyRoom) {
         setPricedRooms([]);
+        // Per-room pricing needs a room — say so instead of a silent R0.
+        setPriceError("Select at least one room to price this quote.");
         return;
       }
     }
