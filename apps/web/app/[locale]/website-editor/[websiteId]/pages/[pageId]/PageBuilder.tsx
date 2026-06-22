@@ -104,8 +104,10 @@ import { websiteAssetUrl } from "@/lib/website/assets";
 import { newSection } from "@/lib/website/sectionDefaults";
 import {
   getThemeSectionPresets,
+  getThemeTemplates,
   themeGroupLabel,
   type ThemeSectionPreset,
+  type ThemeTemplate,
 } from "@/lib/website/themeSections";
 import {
   HERO_LAYOUTS,
@@ -311,6 +313,7 @@ export function PageBuilder({
   const localeRouter = useLocaleRouter();
   // Theme-attached designed sections (sidebar group named after the theme).
   const themePresets = getThemeSectionPresets(theme.preset);
+  const themeTemplates = getThemeTemplates(theme.preset);
   const themeLabel = themeGroupLabel(theme.preset);
   const [sections, setSections] = useState<WebsiteSection[]>(initialSections);
   const [selectedId, setSelectedId] = useState<string | null>(
@@ -329,6 +332,7 @@ export function PageBuilder({
   const [openingBrand, setOpeningBrand] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [paletteQuery, setPaletteQuery] = useState("");
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   // Site width (full / boxed) — applies to the whole site; persisted on toggle
   // and reflected live in the canvas preview.
   const [siteLayout, setSiteLayout] = useState<"full" | "boxed">(initialLayout);
@@ -422,6 +426,15 @@ export function PageBuilder({
     const at = insertAt ?? sections.length;
     mutate([...sections.slice(0, at), s, ...sections.slice(at)]);
     selectSection(s.id);
+    setInsertAt(null);
+  }
+  // Start a page from a designed theme template — APPENDS its sections (so it
+  // never destroys existing work; on an empty page it simply starts it).
+  function applyTemplate(tpl: ThemeTemplate) {
+    const next = tpl.make();
+    mutate([...sections, ...next]);
+    if (next[0]) selectSection(next[0].id);
+    setTemplatesOpen(false);
     setInsertAt(null);
   }
   function onDragEnd(e: DragEndEvent) {
@@ -677,6 +690,17 @@ export function PageBuilder({
               )}
               {autoLabel}
             </span>
+          ) : null}
+          {!previewing && themeTemplates.length > 0 ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setTemplatesOpen(true)}
+              title={t("pbTemplatesSub")}
+            >
+              <LayoutTemplate style={{ width: 15, height: 15 }} />
+              {t("pbTemplates")}
+            </button>
           ) : null}
           {!previewing ? (
             <button
@@ -942,6 +966,17 @@ export function PageBuilder({
                       <Blocks style={{ width: 26, height: 26 }} />
                     </div>
                     <p style={{ marginTop: 12 }}>{t("noSections")}</p>
+                    {themeTemplates.length > 0 ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ marginTop: 14 }}
+                        onClick={() => setTemplatesOpen(true)}
+                      >
+                        <LayoutTemplate style={{ width: 15, height: 15 }} />
+                        {t("pbStartFromTemplate")}
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <DndContext
@@ -1110,6 +1145,39 @@ export function PageBuilder({
             initial={pageSeo}
           />
           <A11yCard sections={sections} />
+        </div>
+        <FormModalFooter>
+          <FormModalCancel>{t("close")}</FormModalCancel>
+        </FormModalFooter>
+      </FormModal>
+
+      {/* Theme page-template gallery — start a page from a designed layout. */}
+      <FormModal
+        open={templatesOpen}
+        onOpenChange={setTemplatesOpen}
+        title={t("pbTemplates")}
+        description={t("pbTemplatesSub")}
+        size="lg"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          {themeTemplates.map((tpl) => (
+            <button
+              key={tpl.key}
+              type="button"
+              onClick={() => applyTemplate(tpl)}
+              className="flex flex-col items-start gap-1 rounded-[12px] border border-brand-line bg-white p-4 text-left transition hover:border-brand-primary hover:bg-brand-accent/20"
+            >
+              <span className="flex items-center gap-2 text-[14px] font-semibold text-brand-ink">
+                <LayoutTemplate
+                  style={{ width: 15, height: 15, color: "#10B981" }}
+                />
+                {tpl.label}
+              </span>
+              <span className="text-[12px] leading-snug text-brand-mute">
+                {tpl.description}
+              </span>
+            </button>
+          ))}
         </div>
         <FormModalFooter>
           <FormModalCancel>{t("close")}</FormModalCancel>

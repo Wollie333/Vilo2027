@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-06-22 — Theme page templates (Phase C)
+
+Themes can now ship full **page templates** (ordered compositions of their
+designed sections), surfaced as a gallery in the builder. Extends the code-defined
+registry: `getThemeTemplates(themeSlug)` + a `ThemeTemplate` type; the section
+factories were named so presets AND templates reuse them. **Aria** ships **Home**
+(spotlight hero → features → rooms → stats → reviews → CTA) and **About** (split
+hero → story → reviews → CTA).
+
+- **Builder:** a "Templates" header button + a "Start from a template" affordance
+  on the empty canvas open a gallery modal; choosing one **appends** the
+  template's designed sections (never destroys existing work — on an empty page
+  it simply starts it) and selects the first. +3 i18n.
+
+tsc + lint + 73 vitest green. Phase C now delivers both designed sections and
+page templates per theme; remaining is populating more themes' sets.
+
+---
+
 ## 2026-06-22 — Theme-attached designed sections (Phase C foundation)
 
 The architecture for "themes → designed sections": a **code-defined registry**
