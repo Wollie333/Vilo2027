@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-22 — Website CMS premium redesign · Nav reordering on the dnd-kit engine
+
+Brings the page builder's drag engine into the navigation editors — the safe,
+high-value core of "folding the nav onto the builder engine."
+
+### Added
+- **`navigation/SortableList.tsx`** — a generic `@dnd-kit` drag-to-reorder list
+  (same sensors/strategy as the page builder), with a ready-made drag handle via
+  a render prop (drag scoped to the handle, so row inputs stay clickable).
+
+### Changed
+- **`MenuBuilder`** (top-level menu items) and **`FooterBuilder`** (footer
+  columns) now reorder by **drag** instead of up/down buttons, matching the page
+  builder. Keyboard reordering still works (dnd-kit keyboard sensor). Nested
+  dropdown children / column links keep their up/down controls. No data or
+  public-render change. tsc + lint green.
+
+> **Deliberately NOT done — the full "sections-model" fold.** Re-representing the
+> header/footer as public `WebsiteSection`s (rewriting `SiteChrome` + the publish
+> snapshot) is high-risk (sticky/transparent header, mobile menu, dropdowns,
+> footer columns) for low benefit now that the shell + engine are already
+> unified. Left as a founder decision; recommendation is to skip it.
+
+---
+
 ## 2026-06-22 — Website CMS premium redesign · Nav editors aligned to the builder shell
 
 Makes the full-screen header/menu/footer editors visually match the page builder.

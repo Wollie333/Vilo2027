@@ -8,6 +8,7 @@ import type { SiteFooterColumn, SiteMenuItem } from "@/lib/site/types";
 
 import { TextField, ToggleField } from "../pages/[pageId]/_components/fields";
 import { IconBtn, PagePick, move, uid, type PageOption } from "./MenuBuilder";
+import { SortableList } from "./SortableList";
 
 export function FooterBuilder({
   columns,
@@ -52,28 +53,14 @@ export function FooterBuilder({
           {t("navFooterColsEmpty")}
         </p>
       ) : (
-        <ul className="space-y-3">
-          {columns.map((col, i) => (
-            <li
-              key={col.id}
-              className="rounded-card border border-brand-line p-3"
-            >
+        <SortableList items={columns} onReorder={onChange}>
+          {(col, i, handle) => (
+            <div className="mb-3 rounded-card border border-brand-line p-3">
               <div className="flex items-center gap-1.5">
+                {handle}
                 <span className="flex-1 truncate text-sm font-semibold text-brand-ink">
                   {col.heading || t("navFooterColHeading")}
                 </span>
-                <IconBtn
-                  onClick={() => onChange(move(columns, i, -1))}
-                  title={t("moveUp")}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </IconBtn>
-                <IconBtn
-                  onClick={() => onChange(move(columns, i, 1))}
-                  title={t("moveDown")}
-                >
-                  <ArrowDown className="h-4 w-4" />
-                </IconBtn>
                 <IconBtn
                   onClick={() =>
                     onChange(columns.filter((_, idx) => idx !== i))
@@ -175,9 +162,9 @@ export function FooterBuilder({
                 <Plus className="h-3.5 w-3.5" />
                 {t("navAddLink")}
               </button>
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        </SortableList>
       )}
 
       <button

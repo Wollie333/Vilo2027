@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import type { SiteMenuItem } from "@/lib/site/types";
 
 import { TextField, ToggleField } from "../pages/[pageId]/_components/fields";
+import { SortableList } from "./SortableList";
 
 export type PageOption = { label: string; href: string };
 
@@ -131,28 +132,14 @@ export function MenuBuilder({
           {t("navMenuEmpty")}
         </p>
       ) : (
-        <ul className="space-y-3">
-          {menu.map((item, i) => (
-            <li
-              key={item.id}
-              className="rounded-card border border-brand-line p-3"
-            >
+        <SortableList items={menu} onReorder={onChange}>
+          {(item, i, handle) => (
+            <div className="mb-3 rounded-card border border-brand-line p-3">
               <div className="flex items-center gap-1.5">
+                {handle}
                 <span className="flex-1 truncate text-sm font-semibold text-brand-ink">
                   {item.label || t("navLinkLabel")}
                 </span>
-                <IconBtn
-                  onClick={() => onChange(move(menu, i, -1))}
-                  title={t("moveUp")}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </IconBtn>
-                <IconBtn
-                  onClick={() => onChange(move(menu, i, 1))}
-                  title={t("moveDown")}
-                >
-                  <ArrowDown className="h-4 w-4" />
-                </IconBtn>
                 <IconBtn
                   onClick={() => onChange(menu.filter((_, idx) => idx !== i))}
                   title={t("navRemove")}
@@ -286,9 +273,9 @@ export function MenuBuilder({
                 <Plus className="h-3.5 w-3.5" />
                 {t("navAddChild")}
               </button>
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        </SortableList>
       )}
 
       <button
