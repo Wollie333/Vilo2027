@@ -63,7 +63,7 @@ export async function requestRefundAction(input: {
 
   const { data: payment } = await admin
     .from("payments")
-    .select("id, status, amount")
+    .select("id, status, amount, refunded_amount")
     .eq("booking_id", booking.id)
     .eq("status", "completed")
     .order("captured_at", { ascending: false })
@@ -75,6 +75,17 @@ export async function requestRefundAction(input: {
       ok: false,
       error:
         "No captured payment found for this booking yet — refunds open once payment clears.",
+    };
+  }
+  // Can't request more than was captured on this payment (less prior refunds).
+  const remaining =
+    Math.round(
+      (Number(payment.amount) - Number(payment.refunded_amount ?? 0)) * 100,
+    ) / 100;
+  if (parsed.data.amount > Math.max(0, remaining)) {
+    return {
+      ok: false,
+      error: "Refund can't exceed what you paid on this booking.",
     };
   }
 

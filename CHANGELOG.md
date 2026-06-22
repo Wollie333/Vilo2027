@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-22 — App-wide bug hunt: payments over-refund cap
+
+Capped refunds at money ACTUALLY captured, not just the requested/total figure.
+Previously every refund path (`approveRefundAction`, `hostInitiatedRefundAction`,
+guest `requestRefundAction`) validated only against `requested_amount` /
+`total_amount` — so a refund could exceed what was collected (e.g. a R1000 refund
+against a R500 deposit). Each now caps at `payment.amount − payment.refunded_amount`
+on the selected captured payment. Real cash-loss prevention (matters the moment
+provider refunds are wired).
+
+**Flagged (not implemented — can't test + money-critical):** card/webhook
+amount-verification on settlement. It's defense-in-depth (the Paystack reference
+pins the amount at init, so not an active exploit), but the card-confirm path
+can't be exercised without live Paystack keys, and a wrong amount comparison
+would block ALL real card confirmations. Needs testing with keys, not a blind
+patch.
+
+tsc + lint green.
+
+---
+
 ## 2026-06-22 — Analytics verified end-to-end + seeded into the fixture
 
 Verified the website-analytics pipeline works: POSТed the public `/api/site-track`

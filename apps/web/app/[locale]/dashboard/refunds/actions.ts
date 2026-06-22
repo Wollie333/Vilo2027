@@ -106,10 +106,29 @@ export async function approveRefundAction(input: {
   if (refund.status !== "pending" && refund.status !== "failed") {
     return { ok: false, error: `Cannot approve a ${refund.status} refund.` };
   }
-  if (parsed.data.amount > Number(refund.requested_amount)) {
+  // Cap against money ACTUALLY captured on the payment (amount minus any prior
+  // refunds), not just the requested figure — otherwise a refund could exceed
+  // what was ever collected (e.g. a R1000 request against a R500 deposit).
+  let maxRefundable = Number(refund.requested_amount);
+  if (refund.payment_id) {
+    const { data: pay } = await supabase
+      .from("payments")
+      .select("amount, refunded_amount")
+      .eq("id", refund.payment_id)
+      .maybeSingle();
+    if (pay) {
+      const remaining =
+        Math.round(
+          (Number(pay.amount) - Number(pay.refunded_amount ?? 0)) * 100,
+        ) / 100;
+      maxRefundable = Math.min(maxRefundable, Math.max(0, remaining));
+    }
+  }
+  if (parsed.data.amount > maxRefundable) {
     return {
       ok: false,
-      error: "Approved amount can't exceed the requested amount.",
+      error:
+        "Approved amount can't exceed what was captured on this payment (less any prior refunds).",
     };
   }
 
@@ -238,7 +257,7 @@ export async function hostInitiatedRefundAction(input: {
 
   const { data: payment } = await supabase
     .from("payments")
-    .select("id, status, amount")
+    .select("id, status, amount, refunded_amount")
     .eq("booking_id", booking.id)
     .eq("status", "completed")
     .order("captured_at", { ascending: false })
@@ -248,6 +267,18 @@ export async function hostInitiatedRefundAction(input: {
     return {
       ok: false,
       error: "No captured payment found for this booking.",
+    };
+  }
+  // Never refund more than was captured on this payment (less prior refunds).
+  const remaining =
+    Math.round(
+      (Number(payment.amount) - Number(payment.refunded_amount ?? 0)) * 100,
+    ) / 100;
+  if (parsed.data.amount > Math.max(0, remaining)) {
+    return {
+      ok: false,
+      error:
+        "Refund can't exceed what was captured on this payment (less any prior refunds).",
     };
   }
 
