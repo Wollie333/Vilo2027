@@ -139,6 +139,7 @@ export function SettingsForm({
   defaultEmail,
   defaultPhone,
   brandHref,
+  themeHref,
   seoHref,
   forms,
   initial,
@@ -148,6 +149,7 @@ export function SettingsForm({
   defaultEmail: string;
   defaultPhone: string;
   brandHref: string;
+  themeHref: string;
   seoHref: string;
   forms: Array<{ id: string; name: string }>;
   initial: SettingsState;
@@ -279,6 +281,15 @@ export function SettingsForm({
               style={{ width: 14, height: 14, color: "var(--mute)" }}
             />
             {t("settingsOpenBrand")}
+          </Link>
+        </Setrow>
+        <Setrow
+          title={t("settingsThemesRow")}
+          desc={t("settingsThemesRowDesc")}
+        >
+          <Link href={themeHref} className="btn btn-ghost btn-sm">
+            <Palette style={{ width: 14, height: 14, color: "var(--mute)" }} />
+            {t("settingsOpenThemes")}
           </Link>
         </Setrow>
       </Sblock>

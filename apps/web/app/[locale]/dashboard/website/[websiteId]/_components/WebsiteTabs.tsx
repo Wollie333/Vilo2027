@@ -6,15 +6,16 @@ import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
 
-// Editor tab bar. All tabs are now live (W6–W14).
+// Editor tab bar — the canonical 8 tabs from the approved mockups, in order.
+// Theme + Brand are NOT tabs: they're reached from Settings → Branding (Brand
+// Studio + Theme links) and the Overview set-up checklist. Their routes still
+// exist; they're just not top-level tabs.
 const LIVE_TABS: Array<{ key: string; seg: string }> = [
   { key: "tabOverview", seg: "" },
-  { key: "tabThemes", seg: "theme" },
-  { key: "tabBrand", seg: "brand" },
   { key: "tabPages", seg: "pages" },
+  { key: "tabBlog", seg: "blog" },
   { key: "tabNavigation", seg: "navigation" },
   { key: "tabForms", seg: "forms" },
-  { key: "tabBlog", seg: "blog" },
   { key: "tabDomain", seg: "domain" },
   { key: "tabSeo", seg: "seo" },
   { key: "tabSettings", seg: "settings" },

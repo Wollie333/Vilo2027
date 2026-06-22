@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-06-22 — Website CMS premium redesign · Tab bar reconciled to the mockup's 8
+
+Trims the editor tab bar to the approved mockup's canonical eight — Overview ·
+Pages · Blog · Navigation · Forms · Domain · SEO · Settings — in that order.
+
+### Changed
+- **`WebsiteTabs`** — removed the extra **Themes** and **Brand** tabs and put the
+  remaining eight in mockup order. Their routes still exist; they're now reached
+  from **Settings → Branding** (Brand Studio + a new "Open themes" link) and the
+  Overview set-up checklist, not as top-level tabs.
+- **Settings** — the Branding block gains a second row linking to the theme
+  picker (`themeHref`), beside the existing Brand Studio link. +3 en i18n keys.
+  tsc + lint green. No DB change.
+
+---
+
 ## 2026-06-22 — Website CMS premium redesign · Accurate device preview (container queries)
 
 Polishes the per-block responsive spacing so the builder's device toggle previews

@@ -54,6 +54,7 @@ export default async function WebsiteSettingsPage({
       defaultEmail={data.brand.contact?.email ?? ""}
       defaultPhone={data.brand.contact?.phone ?? ""}
       brandHref={`/dashboard/website/${websiteId}/brand`}
+      themeHref={`/dashboard/website/${websiteId}/theme`}
       seoHref={`/dashboard/website/${websiteId}/seo`}
       forms={forms.map((f) => ({ id: f.id, name: f.name }))}
       initial={{
