@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-06-22 — Turnstile unit tests + full-build validation
+
+Added `lib/security/turnstile.test.ts` (9 vitest cases): `verifyTurnstile` is
+inert with no secret (no network), fails closed on missing/blank token,
+`success:false`, and network error, passes on `success:true`, and posts
+secret/token/remoteip to siteverify; plus `clientIpFromHeaders` precedence
+(CF-Connecting-IP → x-forwarded-for first hop → x-real-ip → undefined). Stubs the
+`server-only` marker so the server helper runs under the node test env. Ran a
+full `pnpm build` (exit 0) to confirm the session's changes (Turnstile, GA4/Meta
+Pixel + consent, security headers) compose; vitest 73/73 green.
+
+---
+
 ## 2026-06-22 — Baseline security headers (SECURITY_CHECKLIST §7, non-CSP)
 
 Added the "safe" global security headers in `next.config.mjs` (`headers()` over
