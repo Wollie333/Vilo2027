@@ -509,6 +509,26 @@ export const websiteSettingsSchema = z.object({
   popupCtaLabel: z.string().trim().max(60).default(""),
   popupCtaHref: z.string().trim().max(300).default(""),
   popupFormId: z.string().uuid().or(z.literal("")).default(""),
+  // Third-party analytics (host's own GA4 + Meta Pixel), stored under
+  // `settings.analytics`. The pixels render on the public tenant site; a POPIA
+  // consent gate (default on) holds them until the visitor accepts.
+  ga4MeasurementId: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^G-[A-Z0-9]{4,}$/i, "invalid_ga4")
+    .or(z.literal(""))
+    .default(""),
+  metaPixelId: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^\d{6,20}$/, "invalid_pixel")
+    .or(z.literal(""))
+    .default(""),
+  cookieConsentEnabled: z.boolean().default(true),
+  cookieConsentMessage: z.string().trim().max(300).default(""),
+  privacyPolicyHref: z.string().trim().max(300).default(""),
 });
 
 export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;

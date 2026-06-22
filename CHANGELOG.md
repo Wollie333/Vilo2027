@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-06-22 — Website Settings · GA4 + Meta Pixel + POPIA cookie-consent
+
+**Host third-party analytics on tenant sites.** Hosts can paste their own GA4
+Measurement ID + Meta (Facebook) Pixel ID in Website → Settings; the scripts
+render on the published public site, gated behind a POPIA cookie-consent banner.
+
+- **Storage** — new `settings.analytics` block (`ga4`, `metaPixel`,
+  `cookieConsent{enabled,message,privacyHref}`), mirroring the existing
+  `settings.conversion` pattern. Added `SiteAnalyticsSettings` type
+  ([lib/site/types.ts](apps/web/lib/site/types.ts)); threaded through
+  `SiteContext` + frozen into `PublishSnapshot` (resolved snapshot→live in
+  `loadSiteContext`, captured in `buildWebsiteSnapshot`) so editing analytics
+  marks the site dirty for republish, like conversion.
+- **Settings UI** — new "Analytics & tracking" card in `SettingsForm` (GA4 ID +
+  Pixel ID inputs with format validation, a consent-required toggle defaulting
+  ON, custom banner message + privacy-policy link). Schema fields added to
+  `websiteSettingsSchema` (GA4 `^G-…`, Pixel `^\d{6,20}$`); persisted by the
+  existing `saveWebsiteSettingsAction`. +13 `website` i18n keys.
+- **Public render** — new client `components/site/SiteMarketing.tsx`: a
+  POPIA-correct consent gate that injects GA4 (gtag.js) + Meta Pixel **only after
+  the visitor accepts** (or immediately if the host turns the gate off); choice
+  persisted in localStorage; inert in builder/preview (never pollutes the host's
+  real analytics). Mounted in `SiteChrome` (next to the pop-up) and threaded via
+  `ctx.analytics` from all 6 public chrome call sites (SitePageView, on-site
+  book + thank-you, blog index/post/tag). Reuses the global `dataLayer`/`fbq`
+  Window types from `lib/analytics/purchase.ts`.
+
+No DB change (rides the `settings` jsonb). tsc green, lint clean, en.json valid.
+
+---
+
 ## 2026-06-22 — Production-readiness Step 2 (part) · Cloudflare Turnstile + security audit
 
 **Bot-hardening (Turnstile) on the public, session-less write endpoints** — the

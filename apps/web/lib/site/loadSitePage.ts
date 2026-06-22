@@ -38,6 +38,7 @@ import type {
   ReviewCard,
   RoomCard,
   RoomGroup,
+  SiteAnalyticsSettings,
   SiteBrand,
   SiteConversion,
   SiteData,
@@ -72,6 +73,8 @@ export type SiteContext = {
   navigation: SiteNavigation;
   /** Conversion chrome (WhatsApp button + announcement bar). */
   conversion: SiteConversion;
+  /** Host third-party analytics (GA4 + Meta Pixel + consent gate). */
+  analytics: SiteAnalyticsSettings;
   /** Resolved definition of the pop-up's embedded form, when one is set. */
   popupForm: SiteFormDef | null;
   /** Ordered, visible property ids for this site (channel membership). */
@@ -148,7 +151,10 @@ export async function loadSiteContext(
       theme: Record<string, unknown> | null;
       seo: Record<string, unknown> | null;
       navigation: Record<string, unknown> | null;
-      settings: { conversion?: SiteConversion } | null;
+      settings: {
+        conversion?: SiteConversion;
+        analytics?: SiteAnalyticsSettings;
+      } | null;
       published_snapshot: PublishSnapshot | null;
       business: {
         default_language: string | null;
@@ -217,6 +223,10 @@ export async function loadSiteContext(
   const conversion = (snap?.conversion ??
     site.settings?.conversion ??
     {}) as SiteConversion;
+  // Host analytics (GA4 + Meta Pixel) — same frozen-snapshot-then-live fallback.
+  const analytics = (snap?.analytics ??
+    site.settings?.analytics ??
+    {}) as SiteAnalyticsSettings;
 
   // Resolve the pop-up's embedded form live (its content stays current, like
   // rooms/blog) when one is referenced.
@@ -289,6 +299,7 @@ export async function loadSiteContext(
     nav,
     navigation,
     conversion,
+    analytics,
     popupForm,
     propertyIds,
     publishedRoomRows,

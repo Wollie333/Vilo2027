@@ -22,6 +22,7 @@ import {
   type SiteHeaderLayout,
 } from "@/lib/site/themes";
 import type {
+  SiteAnalyticsSettings,
   SiteBrand,
   SiteConversion,
   SiteFooterColumn,
@@ -35,6 +36,7 @@ import type {
 import { AnnouncementBar } from "./AnnouncementBar";
 import { PreviewBanner } from "./PreviewBanner";
 import { SiteAnalytics } from "./SiteAnalytics";
+import { SiteMarketing } from "./SiteMarketing";
 import { SitePopup } from "./SitePopup";
 import { StickyHeader } from "./StickyHeader";
 import { WhatsAppButton } from "./WhatsAppButton";
@@ -708,6 +710,7 @@ export function SiteChrome({
   preview,
   navigation = {},
   conversion = {},
+  analytics = {},
   popupForm = null,
   websiteId,
   editable,
@@ -726,6 +729,8 @@ export function SiteChrome({
   navigation?: SiteNavigation;
   /** Conversion chrome (WhatsApp button + announcement bar + pop-up). */
   conversion?: SiteConversion;
+  /** Host third-party analytics (GA4 + Meta Pixel + consent gate). */
+  analytics?: SiteAnalyticsSettings;
   /** Resolved definition of the pop-up's embedded form (when one is set). */
   popupForm?: SiteFormDef | null;
   /** The site id — lets the pop-up's embedded form submit. */
@@ -862,6 +867,8 @@ export function SiteChrome({
         websiteId={websiteId}
         interactive={!preview}
       />
+
+      <SiteMarketing analytics={analytics} interactive={!preview} />
     </div>
   );
 }

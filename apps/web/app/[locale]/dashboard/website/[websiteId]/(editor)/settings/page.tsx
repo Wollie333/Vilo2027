@@ -47,6 +47,17 @@ export default async function WebsiteSettingsPage({
   const ann = conversion.announcement ?? {};
   const pop = conversion.popup ?? {};
 
+  const analytics = (data.settings.analytics ?? {}) as {
+    ga4?: string;
+    metaPixel?: string;
+    cookieConsent?: {
+      enabled?: boolean;
+      message?: string;
+      privacyHref?: string;
+    };
+  };
+  const consent = analytics.cookieConsent ?? {};
+
   return (
     <SettingsForm
       websiteId={websiteId}
@@ -77,6 +88,11 @@ export default async function WebsiteSettingsPage({
         popupCtaLabel: pop.ctaLabel ?? "",
         popupCtaHref: pop.ctaHref ?? "",
         popupFormId: pop.formId ?? "",
+        ga4MeasurementId: analytics.ga4 ?? "",
+        metaPixelId: analytics.metaPixel ?? "",
+        cookieConsentEnabled: consent.enabled !== false,
+        cookieConsentMessage: consent.message ?? "",
+        privacyPolicyHref: consent.privacyHref ?? "",
       }}
     />
   );

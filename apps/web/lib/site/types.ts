@@ -128,6 +128,29 @@ export type SiteConversion = {
   };
 };
 
+/**
+ * Host-supplied third-party analytics for a tenant site, stored under
+ * `host_websites.settings.analytics` and frozen into the publish snapshot. The
+ * IDs belong to the HOST's own GA4 / Meta accounts — Vilo only injects the
+ * scripts on the public site. Because these set cookies, a POPIA consent gate
+ * (`cookieConsent`) defaults to ON: the pixels load only after the visitor
+ * accepts.
+ */
+export type SiteAnalyticsSettings = {
+  /** Google Analytics 4 Measurement ID, e.g. "G-XXXXXXXXXX". */
+  ga4?: string | null;
+  /** Meta (Facebook) Pixel ID — a numeric string. */
+  metaPixel?: string | null;
+  cookieConsent?: {
+    /** Require consent before loading any pixel (default true). */
+    enabled?: boolean;
+    /** Optional custom banner message. */
+    message?: string | null;
+    /** Optional link to the host's privacy/cookie policy. */
+    privacyHref?: string | null;
+  };
+};
+
 // ── Per-section live data (auto-populate sections only) ───────
 export type GalleryImage = { url: string; caption?: string | null };
 export type GalleryData = { images: GalleryImage[] };
@@ -327,6 +350,8 @@ export type PublishSnapshot = {
   navigation?: SiteNavigation;
   /** Conversion chrome (WhatsApp button + announcement bar). */
   conversion?: SiteConversion;
+  /** Host third-party analytics (GA4 + Meta Pixel + consent). */
+  analytics?: SiteAnalyticsSettings;
   propertyIds: string[];
   rooms: SnapshotRoom[];
   /** Per-property rooms-section overrides, keyed by property id. */

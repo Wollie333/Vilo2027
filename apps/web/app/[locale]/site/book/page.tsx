@@ -209,6 +209,7 @@ export default async function SiteBookPage({
         nav={ctx.nav}
         navigation={ctx.navigation}
         conversion={ctx.conversion}
+        analytics={ctx.analytics}
         popupForm={ctx.popupForm}
         websiteId={ctx.websiteId}
         bookHref={

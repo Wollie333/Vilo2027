@@ -2,6 +2,7 @@
 
 import {
   ArrowUpRight,
+  BarChart3,
   Bell,
   Check,
   Loader2,
@@ -51,6 +52,11 @@ type SettingsState = {
   popupCtaLabel: string;
   popupCtaHref: string;
   popupFormId: string;
+  ga4MeasurementId: string;
+  metaPixelId: string;
+  cookieConsentEnabled: boolean;
+  cookieConsentMessage: string;
+  privacyPolicyHref: string;
 };
 
 // ── Layout primitives (mockup .sblock / .setrow / .sw / .field) ──
@@ -198,10 +204,15 @@ export function SettingsForm({
         popupCtaLabel: state.popupCtaLabel.trim(),
         popupCtaHref: state.popupCtaHref.trim(),
         popupFormId: state.popupFormId,
+        ga4MeasurementId: state.ga4MeasurementId.trim(),
+        metaPixelId: state.metaPixelId.trim(),
+        cookieConsentEnabled: state.cookieConsentEnabled,
+        cookieConsentMessage: state.cookieConsentMessage.trim(),
+        privacyPolicyHref: state.privacyPolicyHref.trim(),
       });
       if (!res.ok) {
         toast.error(
-          res.error === "invalid" ? t("settingsEmailInvalid") : t("saveError"),
+          res.error === "invalid" ? t("settingsInvalid") : t("saveError"),
         );
         return;
       }
@@ -522,6 +533,63 @@ export function SettingsForm({
                 </div>
               </Setrow>
             ) : null}
+          </>
+        ) : null}
+      </Sblock>
+
+      {/* ANALYTICS & TRACKING */}
+      <Sblock
+        icon={BarChart3}
+        title={t("settingsAnalyticsTitle")}
+        desc={t("settingsAnalyticsDesc")}
+      >
+        <Setrow title={t("settingsGa4Row")} desc={t("settingsGa4Desc")} col>
+          <input
+            className="field mono"
+            value={state.ga4MeasurementId}
+            placeholder="G-XXXXXXXXXX"
+            maxLength={20}
+            onChange={(e) => set("ga4MeasurementId", e.target.value)}
+          />
+        </Setrow>
+        <Setrow title={t("settingsPixelRow")} desc={t("settingsPixelDesc")} col>
+          <input
+            className="field mono"
+            value={state.metaPixelId}
+            placeholder="123456789012345"
+            maxLength={20}
+            onChange={(e) => set("metaPixelId", e.target.value)}
+          />
+        </Setrow>
+        <Setrow
+          title={t("settingsConsentToggle")}
+          desc={t("settingsConsentDesc")}
+        >
+          <Sw
+            on={state.cookieConsentEnabled}
+            onChange={(v) => set("cookieConsentEnabled", v)}
+          />
+        </Setrow>
+        {state.cookieConsentEnabled ? (
+          <>
+            <Setrow title={t("settingsConsentMessage")} col>
+              <input
+                className="field"
+                value={state.cookieConsentMessage}
+                placeholder={t("settingsConsentMessagePlaceholder")}
+                maxLength={300}
+                onChange={(e) => set("cookieConsentMessage", e.target.value)}
+              />
+            </Setrow>
+            <Setrow title={t("settingsPrivacyHref")} col>
+              <input
+                className="field"
+                value={state.privacyPolicyHref}
+                placeholder="/privacy"
+                maxLength={300}
+                onChange={(e) => set("privacyPolicyHref", e.target.value)}
+              />
+            </Setrow>
           </>
         ) : null}
       </Sblock>

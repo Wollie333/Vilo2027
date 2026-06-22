@@ -2076,6 +2076,11 @@ export async function saveWebsiteSettingsAction(
     popupCtaLabel,
     popupCtaHref,
     popupFormId,
+    ga4MeasurementId,
+    metaPixelId,
+    cookieConsentEnabled,
+    cookieConsentMessage,
+    privacyPolicyHref,
   } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
@@ -2126,6 +2131,15 @@ export async function saveWebsiteSettingsAction(
         ctaLabel: popupCtaLabel.trim(),
         ctaHref: cleanHref(popupCtaHref),
         formId: popupFormId,
+      },
+    },
+    analytics: {
+      ga4: ga4MeasurementId.trim().toUpperCase(),
+      metaPixel: metaPixelId.trim(),
+      cookieConsent: {
+        enabled: cookieConsentEnabled,
+        message: cookieConsentMessage.trim(),
+        privacyHref: cleanHref(privacyPolicyHref),
       },
     },
   };

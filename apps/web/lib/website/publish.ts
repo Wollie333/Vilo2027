@@ -4,6 +4,7 @@ import { pageHref } from "@/lib/site/loadSitePage";
 import type {
   PropertyOverride,
   PublishSnapshot,
+  SiteAnalyticsSettings,
   SiteConversion,
   SiteNavItem,
   SiteNavigation,
@@ -126,6 +127,7 @@ export async function buildWebsiteSnapshot(
 
   const settings = ((site as { settings?: unknown })?.settings ?? {}) as {
     conversion?: SiteConversion;
+    analytics?: SiteAnalyticsSettings;
   };
 
   return {
@@ -136,6 +138,7 @@ export async function buildWebsiteSnapshot(
     navigation: ((site as { navigation?: unknown })?.navigation ??
       {}) as SiteNavigation,
     conversion: (settings.conversion ?? {}) as SiteConversion,
+    analytics: (settings.analytics ?? {}) as SiteAnalyticsSettings,
     propertyIds: (props ?? []).map((p) => p.property_id),
     rooms: normaliseRooms(rooms),
     propertyOverrides,
