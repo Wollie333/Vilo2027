@@ -2,7 +2,32 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶ ACTIVE LANE: Website CMS — PRODUCTION READINESS (RESUME HERE · 2026-06-22)
+## ▶▶ SAVE POINT — RESUME HERE (new session · 2026-06-22, late)
+
+**Branch:** `main` — working tree CLEAN, all committed (latest `cd8e516`). Build/lint/tsc/tests all GREEN (full `pnpm build` exit 0 this session).
+
+**Verify commands:** `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint --file …` + `pnpm exec vitest run`. **`pnpm build` ONLY when no dev server is running** (it shares `.next`); if a build dies with `MODULE_NOT_FOUND`/webpack-runtime, `rm -rf apps/web/.next` and rebuild.
+
+**🔑 TEST FIXTURE (use for all manual + QA testing):** `cd apps/web && pnpm seed:test-site` (idempotent, hits the linked cloud DB). Logs in: **host@vilotest.com / ViloTest123!** (+ guest@vilotest.com). Gives 1 guesthouse property "Olive Grove Guesthouse" (flexible, base R2600/wknd R2900, cleaning R450) + 3 rooms + photos + 4 reviews + 7 bookings (mixed statuses, invoices generated) + a PUBLISHED Aria-theme website (subdomain `vilotest`) + blog post + contact form + 14 days of analytics events. Live tenant site: `http://localhost:<port>/en/site?site=vilotest`.
+
+**WHAT THIS SESSION DID (big QA + app-wide bug-fix sweep):**
+- Built the test fixture (`seed:test-site`); fixed the booking-confirm invoice trigger (`host_business_details` regression → confirming bookings + invoices now work) via migration `20260622000000` (pushed). De-staled `seed-demo.mjs` (`listings`→`properties`).
+- Shipped earlier: Cloudflare Turnstile (inert until keys), GA4+Meta Pixel + POPIA consent banner, baseline security headers (`next.config.mjs`).
+- Verified working end-to-end (API/DB + browser): public site render (all tenant pages), property pages, directory (`/explore`, `/deals`), on-site checkout (EFT booking → thank-you), booking-funnel endpoints (quote/availability), forms→inbox, **analytics** (beacon→DB→dashboard, real data), **notifications** (dispatch→email/push/digest queues), **reporting** (admin platform report renders).
+- **Bug-fix batches committed** (each tsc+lint green): public-render perf `cache()` dedup + blog-cover URL + soft-delete display guards (`6c7790e`); security — open-redirect, impersonation expiry+target, admin financial/PII gates (`420b226`); dashboard booking-state — `mark_failed` won't decline confirmed bookings, flagReview/convertQuote robustness, period lock (`b04bcce`); payments over-refund cap (`f6db0f5`); iCal SSRF guard + enquiry stack gating (`dcd2bce`); quote form silent-R0 → surfaced errors (`15aeef9`,`cd8e516`).
+
+**▶ NEXT (start here):**
+1. **QUOTE FORM — likely "only a UI issue" (founder's hunch).** The pricing ENGINE is verified correct (drove the form: auto-priced R5 950 for 2 nights, R16 650 for 6 — `computeStayPricing` is right). The form previously SWALLOWED pricing failures → silent R0 + blocked send; now surfaces an amber reason. **To close:** open the quote form on the fixture, pick listing+dates, read the amber banner. If it names a config cause (no nightly rate / min-nights / pick-a-room) → not a code bug. **If the price CALCULATES but doesn't DISPLAY in the amount field / send stays disabled despite a non-zero total → that's the UI binding bug the founder suspects — reproduce + fix in `app/[locale]/dashboard/quotes/QuoteForm.tsx` (check `totals` memo ↔ `baseAmount`/`pricedRooms` state ↔ the send-button `disabled` + the total≤0 submit guard ~line 761).**
+2. **Flagged items — need LIVE KEYS or design decisions (do NOT patch blind):** webhook host-key signature model + retry/idempotency; card/webhook amount-verification (untestable w/o Paystack keys); overpayment-credit dedup; `convertQuoteAction` adopt-path marks ALL pending payments completed (needs deposit/balance split understood); email/push worker **double-send** (needs an atomic-claim migration + tested drain rewrite); `report-scheduler`/`track-listing-view` edge-fn auth.
+3. **Remaining QA tasks (tracker #1–#8, #12–#13, #15):** deep CMS-editor UI driving (builder add/delete/reorder, blog/forms/nav editors, brand/theme), dashboard mutation buttons, property-edit save round-trips, final cross-feature regression. Best done as a manual founder click-through against the fixture → hand back a punch-list.
+
+**OPS switches still off (inert-until-set, not bugs):** `NEXT_PUBLIC_ROOT_DOMAIN` + wildcard DNS (subdomains), `VERCEL_TOKEN/PROJECT_ID/TEAM_ID` (custom domains), `TURNSTILE_*`, host-set GA4/Pixel, `RESEND_API_KEY`/Expo (notification send), live Paystack/PayPal keys.
+
+**Dev-tooling gotcha:** the husky/lint-staged pre-commit SILENTLY reverts a LONE bracketed-path file (`[locale]`/`[id]`) commit as "empty commit" — commit it alongside another file (e.g. CHANGELOG) or `--no-verify`. Commit subjects must start lowercase after the type (commitlint).
+
+---
+
+## ▶ ACTIVE LANE: Website CMS — PRODUCTION READINESS (· 2026-06-22)
 
 **Branch:** `main` — working tree CLEAN, all work committed (latest `5afa8e4`). Dev server: `cd apps/web && PORT=3001 pnpm dev` → http://localhost:3001 (tenant site via `/en/site?site=<subdomain>`). **GOTCHA: do NOT run `pnpm build` while the dev server is up — it clobbers the shared `.next` and breaks the running server. Verify with `pnpm exec tsc --noEmit` + `pnpm next lint --file …` only.**
 

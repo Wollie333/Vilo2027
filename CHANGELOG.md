@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-06-22 — SAVE POINT (session end)
+
+Resume anchor written to `CURRENT_TASK.md` top. Session summary: built the
+`seed:test-site` fixture; fixed the booking-confirm invoice trigger; ran an
+app-wide audit + committed fix batches (public-render perf, security
+open-redirect/impersonation/admin-gates, dashboard booking-state, payments
+over-refund cap, iCal SSRF, quote silent-R0). Verified analytics, notifications,
+and reporting work. Full build + tsc + lint + tests green. Next session starts on
+the quote-form "UI issue" check + the flagged items (need live keys) — see
+CURRENT_TASK.md "SAVE POINT — RESUME HERE".
+
+---
+
 ## 2026-06-22 — Quote form: surface auto-price failures (no more silent R0)
 
 Founder reported the quote create form stays at R0 and won't send. Traced it: the
