@@ -99,28 +99,36 @@ export async function updatePaymentStatusAction(
       .eq("id", paymentId);
     if (pErr) return { ok: false, error: "Could not update the payment." };
 
-    const { error: bErr } = await admin
-      .from("bookings")
-      .update({
-        status: "declined",
-        previous_status: booking.status,
-        declined_at: now,
-        payment_status: "failed",
-      })
-      .eq("id", booking.id);
-    if (bErr) {
-      return {
-        ok: false,
-        error: "Payment marked failed, but the booking didn't update.",
-      };
-    }
-    if (booking.guest_id) {
-      await dispatchEvent({
-        kind: "booking_declined_guest",
-        recipientUserId: booking.guest_id,
-        guestId: booking.guest_id,
-        refs: { booking_id: booking.id },
-      });
+    // Only DECLINE the booking when it's still awaiting this payment to confirm.
+    // A confirmed booking can legitimately carry a pending EFT *balance* payment;
+    // marking that failed must NOT decline (and release the calendar for) a live
+    // booking — just record the failed payment so the host can chase it.
+    const awaitingConfirmation =
+      booking.status === "pending" || booking.status === "pending_eft";
+    if (awaitingConfirmation) {
+      const { error: bErr } = await admin
+        .from("bookings")
+        .update({
+          status: "declined",
+          previous_status: booking.status,
+          declined_at: now,
+          payment_status: "failed",
+        })
+        .eq("id", booking.id);
+      if (bErr) {
+        return {
+          ok: false,
+          error: "Payment marked failed, but the booking didn't update.",
+        };
+      }
+      if (booking.guest_id) {
+        await dispatchEvent({
+          kind: "booking_declined_guest",
+          recipientUserId: booking.guest_id,
+          guestId: booking.guest_id,
+          refs: { booking_id: booking.id },
+        });
+      }
     }
   }
 

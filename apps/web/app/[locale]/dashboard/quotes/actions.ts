@@ -914,7 +914,7 @@ export async function convertQuoteAction(
   }
 
   if (addons && addons.length > 0) {
-    await supabase.from("booking_addons").insert(
+    const { error: aErr } = await supabase.from("booking_addons").insert(
       addons.map((a) => ({
         booking_id: booking.id,
         label: a.label,
@@ -925,6 +925,13 @@ export async function convertQuoteAction(
         sort_order: a.sort_order,
       })),
     );
+    // Roll back the booking (rooms cascade) if add-ons fail — otherwise the
+    // booking total would include line items that don't exist. Mirrors the
+    // booking_rooms rollback above.
+    if (aErr) {
+      await supabase.from("bookings").delete().eq("id", booking.id);
+      return { ok: false, error: "Could not attach the booking add-ons." };
+    }
   }
 
   // Seed the first ledger entry — the deposit. Payments have no host-write RLS,

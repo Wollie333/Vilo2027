@@ -251,13 +251,16 @@ export async function flagReviewAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Your session expired. Please sign in again." };
+  }
 
   // Two-step: insert the audit row + set the review's flagged flag for
   // admin attention. The unique check on (review_id, flagged_by) keeps
   // hosts from flag-spamming the same review.
   const { error: flagErr } = await supabase.from("review_flags").insert({
     review_id: reviewId,
-    flagged_by: user!.id,
+    flagged_by: user.id,
     reason: parsed.data.reason,
     details:
       parsed.data.details && parsed.data.details.length > 0
@@ -268,7 +271,7 @@ export async function flagReviewAction(
     return { ok: false, error: "Couldn't flag the review. Try again." };
   }
 
-  await supabase
+  const { error: updErr } = await supabase
     .from("reviews")
     .update({
       flagged: true,
@@ -276,6 +279,12 @@ export async function flagReviewAction(
       flagged_reason: parsed.data.reason,
     })
     .eq("id", reviewId);
+  if (updErr) {
+    return {
+      ok: false,
+      error: "Flag recorded, but the review status didn't update. Try again.",
+    };
+  }
 
   revalidatePath("/dashboard/reviews");
   return { ok: true };

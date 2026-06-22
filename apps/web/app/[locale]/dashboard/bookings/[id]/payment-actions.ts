@@ -188,6 +188,15 @@ export async function markPaymentReceivedAction(
     };
   }
 
+  // Money lands "now" — block settling into a closed accounting period (matches
+  // recordBookingPaymentAction; this action previously skipped the lock).
+  const period = await assertPeriodOpen(
+    admin,
+    hostId,
+    new Date().toISOString(),
+  );
+  if (!period.ok) return { ok: false, error: period.error };
+
   const total = Number(booking.total_amount);
   const paidBefore = await sumCompletedPaid(admin, booking.id);
 

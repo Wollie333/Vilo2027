@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-06-22 — App-wide bug hunt: dashboard booking-state batch
+
+Second fix batch from the four audits — host-dashboard booking/money-state bugs.
+
+- **`mark_failed` could decline a confirmed booking (HIGH).** `updatePaymentStatusAction`
+  declined the booking unconditionally when an EFT payment was marked failed — but
+  a *confirmed* booking can carry a pending EFT *balance* payment, so failing that
+  released the calendar + sent a "declined" notice on a live booking. Now only
+  declines when the booking is still awaiting confirmation (pending/pending_eft);
+  otherwise just records the failed payment.
+- **`flagReviewAction` null-assertion + unchecked update (MED).** Replaced `user!.id`
+  with a real null guard (transient auth → clean error, not a throw) and now checks
+  the `reviews` flag-status update error.
+- **`convertQuoteAction` add-on insert error ignored (MED).** A failed `booking_addons`
+  insert left a confirmed booking whose total included non-existent line items.
+  Now rolls the booking back (rooms cascade) like the booking_rooms path.
+- **`markPaymentReceivedAction` missing period lock (LOW/MED).** Added the
+  `assertPeriodOpen` check its sibling `recordBookingPaymentAction` has, so a
+  seeded payment can't settle into a closed accounting period.
+
+tsc + lint green. **Flagged (not changed — needs the deposit/balance split model
+understood):** the `convertQuoteAction` adopt-path marks *all* pending payments
+completed (no `kind` filter) — a `kind` scope could break the legitimate
+full-payment case, so it needs careful review rather than a blind patch.
+
+---
+
 ## 2026-06-22 — App-wide bug hunt: security batch (admin/auth)
 
 Four parallel audits (payments, host dashboard, admin/auth, edge/integration)
