@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-06-22 — Website CMS premium redesign · Site-parts palette + build hardening
+
+- **Discoverable chrome editing** — the page builder's left palette gains a "Site
+  parts" group with **Header** and **Footer** buttons that select the chrome for
+  inline editing (keyboard-accessible; selected state highlighted). Previously the
+  header/footer were only selectable by hovering/clicking them in the canvas.
+  +1 i18n key (`pbSiteParts`); `.pal-item.sel` style.
+- **Hardening** — full `pnpm build` passes (exit 0, "Compiled successfully") and
+  full `pnpm lint` is clean across the app (only 2 pre-existing `<img>` warnings
+  in unrelated `reports/` components), with no stray `console.log`. Confirms the
+  whole redesign — including the public `SiteChrome` RSC change — builds for
+  production.
+
+---
+
 ## 2026-06-22 — Website CMS premium redesign · Header/footer folded into the page builder
 
 The deep fold — done the **solid, safe** way. The header, menu, and footer are now

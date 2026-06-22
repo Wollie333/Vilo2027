@@ -1160,6 +1160,7 @@
     "pbOutline": "Sections",
     "pbSelectHint": "Select a section in the outline or canvas to edit it.",
     "pbChromeHint": "Click a section, or the header or footer, to edit it.",
+    "pbSiteParts": "Site parts",
     "pbAddBlocks": "Add blocks",
     "pbInspector": "Inspector",
     "pbInsertHere": "Insert a block here",

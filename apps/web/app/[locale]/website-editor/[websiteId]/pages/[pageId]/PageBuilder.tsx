@@ -48,6 +48,8 @@ import {
   Monitor,
   MoveVertical,
   Newspaper,
+  PanelBottom,
+  PanelTop,
   Pilcrow,
   Plus,
   Rocket,
@@ -623,6 +625,32 @@ export function PageBuilder({
               <h3>{t("pbAddBlocks")}</h3>
             </div>
             <div className="epanel-b thin">
+              {/* Site parts — select the shared header/footer to edit inline. */}
+              <div className="pal-cat">{t("pbSiteParts")}</div>
+              <div className="pal-grid">
+                <button
+                  type="button"
+                  style={{ cursor: "pointer" }}
+                  className={`pal-item${selectedChrome === "header" ? "sel" : ""}`}
+                  onClick={() => selectChrome("header")}
+                >
+                  <span className="pi-ic">
+                    <PanelTop style={{ width: 16, height: 16 }} />
+                  </span>
+                  <span className="pi-nm">{t("navHeaderTitle")}</span>
+                </button>
+                <button
+                  type="button"
+                  style={{ cursor: "pointer" }}
+                  className={`pal-item${selectedChrome === "footer" ? "sel" : ""}`}
+                  onClick={() => selectChrome("footer")}
+                >
+                  <span className="pi-ic">
+                    <PanelBottom style={{ width: 16, height: 16 }} />
+                  </span>
+                  <span className="pi-nm">{t("navFooterTitle")}</span>
+                </button>
+              </div>
               {insertAt !== null ? (
                 <div className="pal-cat" style={{ color: "#064E3B" }}>
                   {t("pbInsertingHint")}

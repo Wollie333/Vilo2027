@@ -601,6 +601,11 @@
 .vilo-builder .vilo-chrome-edit:hover .vilo-chrome-label {
   opacity: 1 !important;
 }
+/* Selected "Site parts" palette item (header/footer). */
+.vilo-builder .pal-item.sel {
+  border-color: #10b981;
+  box-shadow: 0 0 0 1px #10b981;
+}
 .vilo-builder .device.tablet {
   max-width: 744px;
 }
