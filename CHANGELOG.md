@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-22 — Site width control: boxed vs full (Phase B3)
+
+A site-wide **layout** setting (full-width vs boxed/centred), controllable from
+the builder. Threaded end-to-end the same way as `settings.conversion`/
+`analytics`:
+
+- **Schema/types:** `SiteContext.layout` + `PublishSnapshot.layout`
+  (`"full" | "boxed"`). Stored at `host_websites.settings.layout`.
+- **Resolve + freeze:** `loadSitePage` resolves snapshot→live (default `full`);
+  `buildWebsiteSnapshot` freezes it (editing it dirties the site for republish).
+- **Render:** `SiteChrome` gained a `layout` prop — boxed centres the whole site
+  in a 1280px column with a soft shadow over a subtle backdrop; full is
+  unchanged. Threaded `layout={ctx.layout}` into `SitePageView` + the blog/book
+  routes + the builder canvas.
+- **Builder control:** a Full/Boxed segmented toggle beside the device switcher,
+  persisted immediately via a dedicated **`setWebsiteLayoutAction`** (merges only
+  `settings.layout`, kept separate from `saveWebsiteSettingsAction` so the big
+  settings save can't clobber it) and reflected live in the preview.
+- `loadPageBuilder` returns the current layout; +5 i18n keys.
+
+tsc + lint + 73 vitest green. Phase B complete (sidebar search, heroes-as-cards,
+section height, site width). Theme-attached sections + page templates (Phase C)
+remain. Boxed preview-page (dashboard preview) defaults to full for now.
+
+---
+
 ## 2026-06-22 — Page builder · section height control (Phase B2)
 
 Added a **Section height** control to the per-block style panel (Frame group) —

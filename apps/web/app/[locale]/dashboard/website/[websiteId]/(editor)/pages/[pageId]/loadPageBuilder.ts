@@ -60,6 +60,8 @@ export type PageBuilderData = {
   dataByType: Partial<SiteDataByType>;
   /** Host's reusable saved sections ("my blocks"). */
   savedSections: SavedSection[];
+  /** Site width (full = edge-to-edge, boxed = centred) for the preview + toggle. */
+  layout: "full" | "boxed";
 };
 
 /**
@@ -183,5 +185,6 @@ export async function loadPageBuilder(
     brandName,
     dataByType,
     savedSections,
+    layout: ctx?.layout ?? "full",
   };
 }

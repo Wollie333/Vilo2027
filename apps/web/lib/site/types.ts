@@ -352,6 +352,8 @@ export type PublishSnapshot = {
   conversion?: SiteConversion;
   /** Host third-party analytics (GA4 + Meta Pixel + consent). */
   analytics?: SiteAnalyticsSettings;
+  /** Site width: "full" (edge-to-edge) or "boxed" (centred max-width). */
+  layout?: "full" | "boxed";
   propertyIds: string[];
   rooms: SnapshotRoom[];
   /** Per-property rooms-section overrides, keyed by property id. */

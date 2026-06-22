@@ -52,6 +52,7 @@ export default async function FullScreenPageBuilder({
       }}
       domain={`${data.subdomain}.${root}`}
       ogImageUrl={data.ogImageUrl}
+      initialLayout={data.layout}
     />
   );
 }

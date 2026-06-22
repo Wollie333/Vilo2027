@@ -714,12 +714,15 @@ export function SiteChrome({
   popupForm = null,
   websiteId,
   editable,
+  layout = "full",
   children,
 }: {
   brand: SiteBrand;
   nav: SiteNavItem[];
   bookHref?: string;
   analyticsWebsiteId?: string;
+  /** Site width: "full" = edge-to-edge (default); "boxed" = centred max-width. */
+  layout?: "full" | "boxed";
   /** Chrome surface resolves dark → prefer the light logo variant. */
   darkChrome?: boolean;
   header?: SiteHeaderConfig;
@@ -758,8 +761,21 @@ export function SiteChrome({
   const transparentOver =
     navigation.header?.transparentOverHero === true && !topBar?.enabled;
   const headerDark = transparentOver || darkChrome;
-  return (
-    <div className="flex min-h-screen flex-col">
+  const boxed = layout === "boxed";
+  const body = (
+    <div
+      className="flex min-h-screen w-full flex-col"
+      style={
+        boxed
+          ? {
+              maxWidth: 1280,
+              marginInline: "auto",
+              background: "var(--site-bg)",
+              boxShadow: "0 0 60px rgba(0,0,0,0.12)",
+            }
+          : undefined
+      }
+    >
       {analyticsWebsiteId ? (
         <SiteAnalytics websiteId={analyticsWebsiteId} />
       ) : null}
@@ -869,6 +885,18 @@ export function SiteChrome({
       />
 
       <SiteMarketing analytics={analytics} interactive={!preview} />
+    </div>
+  );
+  if (!boxed) return body;
+  // Boxed: centre the site in a contained column over a subtle backdrop.
+  return (
+    <div
+      className="flex justify-center"
+      style={{
+        background: "color-mix(in srgb, var(--site-ink) 8%, var(--site-bg))",
+      }}
+    >
+      {body}
     </div>
   );
 }

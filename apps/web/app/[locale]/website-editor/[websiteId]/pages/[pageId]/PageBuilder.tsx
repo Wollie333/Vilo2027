@@ -83,6 +83,7 @@ import {
   publishWebsiteAction,
   saveDraftSectionsAction,
   saveNavigationAction,
+  setWebsiteLayoutAction,
 } from "@/app/[locale]/dashboard/website/actions";
 import type {
   NavigationConfig,
@@ -278,6 +279,7 @@ export function PageBuilder({
   pageSeo,
   domain,
   ogImageUrl,
+  initialLayout,
 }: {
   websiteId: string;
   pageId: string;
@@ -297,6 +299,7 @@ export function PageBuilder({
   pageSeo: { title: string; description: string; focusKeyword: string };
   domain: string;
   ogImageUrl?: string;
+  initialLayout: "full" | "boxed";
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -318,6 +321,9 @@ export function PageBuilder({
   const [openingBrand, setOpeningBrand] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [paletteQuery, setPaletteQuery] = useState("");
+  // Site width (full / boxed) — applies to the whole site; persisted on toggle
+  // and reflected live in the canvas preview.
+  const [siteLayout, setSiteLayout] = useState<"full" | "boxed">(initialLayout);
   const [publishing, startPublish] = useTransition();
   const [autoStatus, setAutoStatus] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -409,6 +415,22 @@ export function PageBuilder({
     const newIndex = sections.findIndex((s) => s.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     mutate(arrayMove(sections, oldIndex, newIndex));
+  }
+
+  // Site width (full / boxed) — persists immediately + updates the live preview;
+  // reverts on failure. A site-wide setting surfaced in the builder (like Brand).
+  function changeLayout(next: "full" | "boxed") {
+    if (next === siteLayout) return;
+    const prev = siteLayout;
+    setSiteLayout(next);
+    setWebsiteLayoutAction(websiteId, next).then((r) => {
+      if (!r.ok) {
+        setSiteLayout(prev);
+        toast.error(t("layoutSaveFailed"));
+      } else {
+        toast.success(t("layoutSaved"));
+      }
+    });
   }
 
   // Open Brand Studio from the builder — flush any in-progress edits first so the
@@ -589,6 +611,32 @@ export function PageBuilder({
                   </button>
                 );
               })}
+            </div>
+            {/* Site width — full (edge-to-edge) vs boxed (centred). */}
+            <div
+              className="seg"
+              role="group"
+              aria-label={t("fldSiteWidth")}
+              style={{ marginLeft: 6 }}
+            >
+              <button
+                type="button"
+                title={t("siteWidth_full")}
+                aria-pressed={siteLayout === "full"}
+                className={siteLayout === "full" ? "on" : ""}
+                onClick={() => changeLayout("full")}
+              >
+                <Monitor style={{ width: 16, height: 16 }} />
+              </button>
+              <button
+                type="button"
+                title={t("siteWidth_boxed")}
+                aria-pressed={siteLayout === "boxed"}
+                className={siteLayout === "boxed" ? "on" : ""}
+                onClick={() => changeLayout("boxed")}
+              >
+                <LayoutTemplate style={{ width: 16, height: 16 }} />
+              </button>
             </div>
           </div>
         ) : null}
@@ -835,6 +883,7 @@ export function PageBuilder({
                 navigation={navConfig}
                 header={theme.header}
                 footer={theme.footer}
+                layout={siteLayout}
                 editable={
                   previewing
                     ? undefined

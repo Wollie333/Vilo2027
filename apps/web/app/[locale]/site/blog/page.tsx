@@ -62,6 +62,7 @@ export default async function SiteBlogIndexPage({
         nav={ctx.nav}
         conversion={ctx.conversion}
         analytics={ctx.analytics}
+        layout={ctx.layout}
         popupForm={ctx.popupForm}
         websiteId={ctx.websiteId}
         darkChrome={siteSurfaceIsDark(ctx.theme)}

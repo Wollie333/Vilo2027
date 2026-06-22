@@ -77,6 +77,8 @@ export type SiteContext = {
   conversion: SiteConversion;
   /** Host third-party analytics (GA4 + Meta Pixel + consent gate). */
   analytics: SiteAnalyticsSettings;
+  /** Site width: "full" (edge-to-edge) or "boxed" (centred max-width). */
+  layout: "full" | "boxed";
   /** Resolved definition of the pop-up's embedded form, when one is set. */
   popupForm: SiteFormDef | null;
   /** Ordered, visible property ids for this site (channel membership). */
@@ -152,6 +154,7 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
       settings: {
         conversion?: SiteConversion;
         analytics?: SiteAnalyticsSettings;
+        layout?: "full" | "boxed";
       } | null;
       published_snapshot: PublishSnapshot | null;
       business: {
@@ -225,6 +228,10 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
   const analytics = (snap?.analytics ??
     site.settings?.analytics ??
     {}) as SiteAnalyticsSettings;
+  // Site width — same frozen-snapshot-then-live fallback; default edge-to-edge.
+  const layout = (snap?.layout ?? site.settings?.layout ?? "full") as
+    | "full"
+    | "boxed";
 
   // Resolve the pop-up's embedded form live (its content stays current, like
   // rooms/blog) when one is referenced.
@@ -298,6 +305,7 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
     navigation,
     conversion,
     analytics,
+    layout,
     popupForm,
     propertyIds,
     publishedRoomRows,

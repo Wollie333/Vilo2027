@@ -128,6 +128,7 @@ export async function buildWebsiteSnapshot(
   const settings = ((site as { settings?: unknown })?.settings ?? {}) as {
     conversion?: SiteConversion;
     analytics?: SiteAnalyticsSettings;
+    layout?: "full" | "boxed";
   };
 
   return {
@@ -139,6 +140,7 @@ export async function buildWebsiteSnapshot(
       {}) as SiteNavigation,
     conversion: (settings.conversion ?? {}) as SiteConversion,
     analytics: (settings.analytics ?? {}) as SiteAnalyticsSettings,
+    layout: settings.layout === "boxed" ? "boxed" : "full",
     propertyIds: (props ?? []).map((p) => p.property_id),
     rooms: normaliseRooms(rooms),
     propertyOverrides,

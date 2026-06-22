@@ -2050,6 +2050,40 @@ export async function saveSeoAction(input: SeoInput): Promise<ActionResult> {
  * there (it always lands in the inbox regardless). Merged into the existing
  * `settings` jsonb so domain/canonical-host keys are preserved.
  */
+// Dedicated, isolated setter for the site-width layout. Kept SEPARATE from
+// saveWebsiteSettingsAction so the builder can flip it without sending the whole
+// settings payload (and so the big settings save never clobbers it). Merges only
+// `settings.layout` into the jsonb. Editing it marks the site dirty for republish
+// (buildWebsiteSnapshot freezes settings.layout).
+export async function setWebsiteLayoutAction(
+  websiteId: string,
+  layout: "full" | "boxed",
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const mode = layout === "boxed" ? "boxed" : "full";
+  const supabase = createServerClient();
+  const { data: row } = await supabase
+    .from("host_websites")
+    .select("settings")
+    .eq("id", websiteId)
+    .maybeSingle();
+  const settings = {
+    ...((row?.settings ?? {}) as Record<string, unknown>),
+    layout: mode,
+  };
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ settings })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+  revalidatePath(`/dashboard/website/${websiteId}/settings`);
+  return { ok: true };
+}
+
 export async function saveWebsiteSettingsAction(
   input: WebsiteSettingsInput,
 ): Promise<ActionResult> {
