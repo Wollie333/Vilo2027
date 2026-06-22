@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-22 — Edge functions deployed + verified live (auth/hardening)
+
+Deployed both hardened edge functions to the linked project (`--use-api`, no
+Docker) and verified behavior against the live endpoints:
+
+- **report-scheduler** — `REPORT_SCHEDULER_SECRET` function-secret set; calls
+  with no/wrong `x-report-scheduler-secret` → **401**, correct secret → **200**
+  "No reports due". The fail-closed gate is live, so the previously
+  anon-key-only (effectively public) service-role job is now locked down.
+- **track-listing-view** — bad `property_id` → **400**; a real id sent with junk
+  `device:"hacker"` / `country:"ZZZZ"` / `duration:99999999` → **200** and the
+  row stored sanitized (`desktop` / `ZA` / `86400`). Test row cleaned up.
+
+**Could NOT set from here (founder launch step):** `ALTER DATABASE postgres SET
+app.report_scheduler_secret` is permission-denied for the Management-API role
+(`42501`). To make the hourly cron actually fire authenticated, the founder
+sets, in the Supabase SQL Editor: `app.report_scheduler_secret` (= the function
+secret), `app.settings.supabase_url`, `app.settings.supabase_anon_key` (all
+unset today, so the cron currently skips — fail-safe). The security gate itself
+is already live and needs nothing further.
+
+---
+
 ## 2026-06-22 — Flagged code fixes: convert over-credit, edge-fn auth, digest race
 
 Cleared the code-fixable flagged items (the rest genuinely need live Paystack/PayPal keys).
