@@ -52,7 +52,10 @@ export async function POST(req: Request) {
       {
         ok: false,
         error: `Couldn't send your request — ${message}`,
-        detail: e instanceof Error ? (e.stack ?? e.message) : String(e),
+        // Stack only in non-production — never leak server internals publicly.
+        ...(process.env.NODE_ENV !== "production"
+          ? { detail: e instanceof Error ? (e.stack ?? e.message) : String(e) }
+          : {}),
       },
       { status: 200 },
     );

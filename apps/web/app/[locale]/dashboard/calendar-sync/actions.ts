@@ -5,7 +5,11 @@ import { z } from "zod";
 
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertFetchableUrl } from "@/lib/security/ssrf";
 import { parseIcal, rangesToDates } from "@/lib/ical-parser";
+
+/** Cap imported dates per feed so a giant/hostile feed can't flood blocked_dates. */
+const MAX_IMPORTED_DATES = 1000;
 
 type Result = { ok: true; imported?: number } | { ok: false; error: string };
 
@@ -133,9 +137,10 @@ export async function syncIcalFeedAction(input: {
 
   const admin = createAdminClient();
 
-  // 1. Fetch
+  // 1. Fetch — SSRF guard first (reject private/loopback/metadata hosts).
   let body: string;
   try {
+    await assertFetchableUrl(feed.url);
     const res = await fetch(feed.url, {
       // 30s timeout via AbortController
       signal: AbortSignal.timeout(30_000),
@@ -159,9 +164,9 @@ export async function syncIcalFeedAction(input: {
     return { ok: false, error: `Couldn't fetch feed: ${message}` };
   }
 
-  // 2. Parse
+  // 2. Parse (cap dates so a hostile feed can't flood blocked_dates)
   const ranges = parseIcal(body);
-  const dates = rangesToDates(ranges);
+  const dates = rangesToDates(ranges).slice(0, MAX_IMPORTED_DATES);
 
   // 3. Diff — only touch source='ical' rows tied to THIS feed
   await admin

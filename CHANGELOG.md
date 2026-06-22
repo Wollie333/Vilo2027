@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-22 — App-wide bug hunt: iCal SSRF guard + enquiry stack-trace leak
+
+- **iCal import SSRF (HIGH).** `refreshIcalFeedAction` fetched the host-supplied
+  feed URL directly — an authenticated user could target internal services or the
+  cloud-metadata endpoint (169.254.169.254) and read the response back via the
+  stored `last_error`/imported content. New `lib/security/ssrf.ts`
+  (`assertFetchableUrl`): http(s) only + rejects hosts that resolve to
+  private/loopback/link-local/ULA/CGNAT addresses (incl. IPv4-mapped IPv6). Wired
+  in before the fetch; also cap imported dates at 1000 so a hostile feed can't
+  flood `blocked_dates`.
+- **`/api/enquiry` stack-trace leak.** The public endpoint returned `e.stack` in
+  the response body ("pre-MVP" affordance). Now gated on
+  `NODE_ENV !== "production"` — never leaks server internals in prod.
+
+tsc + lint green. **Flagged (need keys/design, not blind patches):** the
+`report-scheduler`/`track-listing-view` edge functions' auth+validation (Deno,
+separate deploy; track-listing-view is largely superseded by the validated
+`/api/site-track`), and the email/push worker **double-send** (needs an atomic
+claim — a migration + tested drain rewrite; only bites once the worker crons run
+with live send keys).
+
+---
+
 ## 2026-06-22 — App-wide bug hunt: payments over-refund cap
 
 Capped refunds at money ACTUALLY captured, not just the requested/total figure.
