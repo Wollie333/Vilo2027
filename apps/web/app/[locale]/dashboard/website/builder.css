@@ -262,6 +262,12 @@
   overflow-y: auto;
   min-height: 0;
 }
+/* The right inspector panel is narrow (~284px). Force every field grid to a
+   single column so controls stack vertically instead of running side-by-side
+   off the edge (covers grid-cols-2 / grid-cols-3 / sm:grid-cols-2 etc.). */
+.vilo-builder .epanel.r [class*="grid-cols-"] {
+  grid-template-columns: 1fr !important;
+}
 .vilo-builder .pal-search-wrap {
   position: relative;
   padding: 12px 14px 4px;

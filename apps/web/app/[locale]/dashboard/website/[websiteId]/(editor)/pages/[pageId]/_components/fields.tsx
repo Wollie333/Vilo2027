@@ -260,8 +260,10 @@ export function ImageField({
 
   return (
     <Field label={label} hint={hint}>
-      <div className="mt-1.5 flex items-center gap-3">
-        <div className="relative flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-brand-line bg-brand-light/40">
+      {/* Stack the preview above the buttons and let buttons wrap, so the
+          control never overflows the narrow inspector panel. */}
+      <div className="mt-1.5 flex flex-col items-start gap-2">
+        <div className="relative flex h-20 w-full shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-brand-line bg-brand-light/40">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="" className="h-full w-full object-cover" />
@@ -269,7 +271,7 @@ export function ImageField({
             <ImagePlus className="h-5 w-5 text-brand-mute/50" />
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={uploading}
