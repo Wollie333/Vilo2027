@@ -2,10 +2,10 @@
 
 **Direct-booking management for accommodation hosts and experience operators in South Africa.**
 
-Vilo gives hosts a professional, branded booking page and a private dashboard to manage listings, bookings, guest communication, payments, quotes, invoices and reviews — all in one place. Zero booking commission. Flat subscription only. Guests discover and book hosts directly via the Vilo Directory or a host's shareable profile URL (`viloplatform.com/[handle]`).
+Vilo gives hosts a professional, branded booking website and a private dashboard to manage listings, bookings, calendars, payments, quotes, invoices, guest communication and reviews — all in one place. Zero booking commission, flat subscription only. Guests discover and book hosts directly via the Vilo Directory, a host's shareable profile, or the host's own published website.
 
-> **Status:** pre-MVP, under active build. No real users yet. Live dev deploy: https://vilo2027.vercel.app
-> See **[Build status](#build-status)** below for an honest, code-level breakdown of what works today.
+> **Status:** pre-MVP, under active build. **No real users / no production data yet** — every table is treated as empty (see the pre-MVP data policy in [`CLAUDE.md`](./CLAUDE.md)). Live dev deploy: https://vilo2027.vercel.app
+> See **[Build status](#build-status)** for an honest, code-level breakdown of what works today.
 
 ---
 
@@ -13,13 +13,14 @@ Vilo gives hosts a professional, branded booking page and a private dashboard to
 
 | Layer | Technology |
 |---|---|
-| Web app | Next.js 14 (App Router), TypeScript (strict), Tailwind CSS, shadcn/ui, Zustand, React Hook Form + Zod |
-| Mobile app | Expo (scaffolded only — screens not yet built) |
+| Web app | Next.js 14.2 (App Router), TypeScript (strict), Tailwind CSS, shadcn/ui, Zustand, React Hook Form + Zod |
+| Mobile app | Expo (SDK 51+) — scaffolded, screens not yet built |
 | Backend | Supabase (PostgreSQL 15, Auth, Realtime, Storage) |
-| Server logic | **Next.js Server Actions** + API route workers (the bulk of business logic); Supabase Edge Functions only where a non-Next runtime is required (Paystack webhook, EFT detail decryption) |
-| Payments | **Paystack (ZAR) — live in checkout**; **Manual EFT — live**; PayPal — host config only, not yet wired into guest checkout |
-| Email / notifications | Resend + React Email, dispatched via an in-app/email/push notification queue drained by pg_cron |
-| Package manager | pnpm |
+| Server logic | **Next.js Server Actions** + API-route workers (the bulk of business logic); Supabase **Edge Functions** (Deno) only where a non-Next runtime is required — `paystack-webhook`, `eft-banking-details`, `report-scheduler`, `track-listing-view` |
+| Payments | **Paystack (ZAR)** — live in checkout; **Manual EFT** — live; PayPal — host config only, not yet wired into guest checkout |
+| Email / notifications | Resend + React Email, dispatched via an in-app / email / push notification queue drained by pg_cron (atomic claim — see below) |
+| Calendar sync | RFC 5545 iCal **import** (external feeds → blocked dates) + **export** (public per-listing feed) |
+| Package manager | **pnpm 9** (Node ≥ 20) |
 | Hosting | Vercel (web) |
 
 ---
@@ -29,28 +30,28 @@ Vilo gives hosts a professional, branded booking page and a private dashboard to
 ```
 vilo/
 ├── apps/
-│   ├── web/          # Next.js 14 web application (host dashboard, guest portal, admin, public site)
+│   ├── web/          # Next.js 14 web app (host dashboard, guest portal, admin, public + tenant sites)
 │   └── mobile/       # Expo app — scaffolded, not yet built
 ├── packages/
-│   ├── types/        # Shared TypeScript types (auto-generated from the DB)
+│   ├── types/        # Shared TS types (auto-generated from the DB)
 │   ├── schemas/      # Shared Zod validation schemas
-│   └── utils/        # Shared utility functions
+│   └── utils/        # Shared pure utilities
 ├── supabase/
-│   ├── functions/    # Edge Functions (Deno) — paystack-webhook, eft-banking-details
-│   └── migrations/   # SQL migrations (timestamped, append-only)
-└── emails/           # React Email templates
+│   ├── functions/    # Edge Functions (Deno) — paystack-webhook, eft-banking-details,
+│   │                 #   report-scheduler, track-listing-view
+│   └── migrations/   # SQL migrations (timestamped, append-only — never edited)
+└── *.md              # Project docs (see Documentation below)
 ```
 
 ---
 
 ## Getting started
 
-> **No local Docker / Supabase stack.** This project applies migrations directly to the
-> linked cloud project and generates types from it. Do **not** run `supabase start` /
-> `supabase db reset`.
+> **No local Docker / Supabase stack.** Migrations are applied directly to the linked
+> cloud project and types are generated from it. Do **not** run `supabase start` / `supabase db reset`.
 
 ### Prerequisites
-- Node.js 20, `pnpm` 9, Supabase CLI (`npx supabase@latest` works), and access to the linked Supabase project.
+- Node.js 20+, `pnpm` 9, the Supabase CLI, and access to the linked Supabase project.
 
 ### Setup
 ```bash
@@ -62,57 +63,75 @@ cp .env.example apps/web/.env.local   # fill in values — see ENV_VARS.md
 ```bash
 supabase db push --linked            # apply pending migrations to the cloud project, in order
 supabase migration list --linked     # verify local + remote are in sync
-supabase gen types typescript --linked > packages/types/database.types.ts   # regenerate types after a schema change
+# Regenerate types after a schema change (stdout only — never pipe stderr in):
+supabase gen types typescript --linked > packages/types/database.types.ts
 ```
 
 ### Run the web app
 ```bash
 cd apps/web
-pnpm dev        # → http://localhost:3000
-pnpm build      # production build (must pass with zero errors)
-pnpm lint       # must pass with zero warnings
+pnpm dev        # → http://localhost:3000   (tenant site: /en/site?site=<subdomain>)
+pnpm lint       # zero warnings required
+pnpm exec tsc --noEmit
+pnpm exec vitest run
+pnpm build      # production build — run ONLY when no dev server is up (shares .next)
+```
+
+### Test fixture (manual QA)
+```bash
+cd apps/web && pnpm seed:test-site   # idempotent; seeds the linked cloud DB
+# Logs in: host@vilotest.com / ViloTest123!  (+ guest@vilotest.com)
+# 1 guesthouse + 3 rooms + reviews + bookings + a PUBLISHED Aria-theme website (subdomain "vilotest")
 ```
 
 ---
 
 ## Build status
 
-_Honest, code-level snapshot — last reviewed **2026-06-03** via a full route + query + wiring audit. Percentages are share of MVP scope **wired in code** (UI → Server Action → real DB), not "verified in production." Build order priority: **Host dashboard → Guest portal → Admin**._
+_Honest, code-level snapshot — **2026-06-22**. Percentages are share of MVP scope **wired in code** (UI → Server Action/RPC → real DB), not "verified in production." Build priority: **Host dashboard → Website CMS → Guest portal → Admin**._
 
-### Host dashboard — ~80% of MVP scope wired
-**Working (UI + action + DB):** email/password auth & login; host onboarding/setup checklist; **listing editor** (all tabs — basic, photos→Storage, location, rooms, amenities, pricing, **seasonal pricing**, policies, add-ons, **guest access**); availability **calendar** + block dates; **iCal calendar-sync** (import external feeds); **bookings** list + detail + full lifecycle (confirm / decline / cancel / check-in / check-out, policy-based refund on cancel); **quotes** (create → send → guest open-tracking → convert to booking); **invoices + credit notes** (with PDF route handlers); **payments** list + EFT settle; **host-side refunds** (approve / decline); **coupons**; **host inbox** (realtime, host → guest); **reviews** + host replies; **settings** (profile, banking incl. bring-your-own Paystack/PayPal credentials, notification prefs); **staff** invites; **help centre**; in-app + email + push **notifications**.
-**Partial:** subscription page (plan **state machine only — no real billing calls**); data export/deletion (UI + soft-delete; fulfilment partial).
-**Not wired (explicit "coming soon" stubs):** Reports / analytics; Channels / multi-channel cross-posting.
+### Host dashboard — ~85% of MVP scope wired
+**Working (UI + action + DB):** email/password auth & login; host onboarding/setup checklist; **listing editor** (basic, photos→Storage, location, rooms, amenities, pricing, **seasonal pricing**, policies, add-ons, guest access); availability **calendar** + block dates; **bookings** list + detail + full lifecycle (confirm / decline / cancel / check-in / check-out, policy-based refund); **quotes** (create → send → open-tracking → convert to booking); **invoices + credit notes** (+ PDF); **payments** + EFT settle; **host-side refunds**; **coupons**; **host inbox** (realtime); **reviews** + replies; **settings** (profile, multi-business banking incl. own Paystack/PayPal credentials, notification prefs); **staff** invites; **help centre**; in-app + email + push **notifications**.
+**Partial:** subscription page (plan **state machine only — no real billing calls yet**); data export/deletion (UI + soft-delete; fulfilment partial). Reports/analytics dashboards render but report-generation is a placeholder.
+
+### Website CMS (host's own site) — substantial, the largest recent lane
+A full per-host website builder with a **frozen publish snapshot** (drafts never leak to the live site):
+- **Curated section system** + a simple in-page **builder** (@dnd-kit) with **free elements** (heading/text/image/button/spacer/divider + columns), **per-block responsive style** (padding/margin/border/radius/max-width/background/section-height), and inline header/footer/menu editing.
+- **7 professionally-designed, responsive hero layouts** (Spotlight, Split ×2, Full-screen, Minimal, Boxed, Search) with overlay/text-tone/height controls, surfaced as pickable sidebar cards.
+- **Theme-attached designed sections + page templates** (code-defined registry; the Aria flagship theme ships designed sections + Home/About templates).
+- **Searchable add-blocks sidebar**; **site width** toggle (full vs boxed); Brand Studio + Theme gallery.
+- **Pages / Blog / Forms** managers + full-screen editors; **SEO** (Yoast-style coach + Schema.org JSON-LD + canonical/sitemap); **Domains** (subdomain + custom-domain flow, dormant until ops env set).
+- **Conversion**: WhatsApp click-to-chat, announcement bar, pop-ups, **on-site checkout** (Paystack + EFT), forms → inbox/CRM.
+- **GA4 + Meta Pixel** with a POPIA consent gate; baseline security headers; Cloudflare Turnstile (inert until keys).
 
 ### Guest portal & public site — ~72%
-**Working:** marketing home; **`/explore`** directory search + filters + sort; **listing detail** (gallery, seasonal pricing, availability, reviews, host card); host public profile **`/[handle]`**; **booking flow** `/listing/[slug]/book` with server-side re-pricing, capacity + policy checks, coupons; **Paystack checkout + automatic EFT fallback**; booking success/failed; guest sign-up + onboarding + inline account-at-checkout; **My Trips** list + redesigned **Trip Details** (`/portal/trips/[id]`); **cancel** + **request refund**; **reviews** (submit + view); **public quote** accept/decline + view tracking; account notification prefs + POPIA data-deletion request.
-**Partial:** guest account settings — **no profile self-edit** (name/avatar/phone locked to onboarding values).
-**Not wired:** **guest inbox is read-only** (no compose/reply); **"Message host" from a listing is a dead link** — no pre-booking enquiry UI; **PayPal not offered at guest checkout** (and no PayPal webhook).
+**Working:** marketing home; **`/explore`** directory (search/filter/sort) + `/deals`; **listing detail**; host public profile `/[handle]`; **booking flow** with server-side re-pricing, capacity + policy checks, coupons; **Paystack checkout + automatic EFT fallback**; success/failed; guest sign-up + account-at-checkout; **My Trips** + Trip Details; cancel + request refund; **reviews**; **public quote** accept/decline; account notification prefs + POPIA deletion request; published **tenant websites** render end-to-end.
+**Not wired:** guest inbox is read-only (no compose); PayPal not offered at guest checkout.
 
 ### Admin panel — ~82%
-**Working:** dashboard KPIs; host management + verify; user/guest suspend/ban; booking management; payment management (read); review moderation queue; subscriptions (read); **impersonation** (signed cookie, audit-logged); **audit log**; broadcasts + individual notification send; full **help-centre CRUD**; directory/listing controls (filter/read); per-action permission gates.
-**Partial:** staff management (reads invites/roles; no invite-create UI yet); data-request fulfilment.
-**Not wired (stubs):** feature-flag-override editor; platform-settings editor. _(Admin AAL2/MFA gate intentionally disabled pre-MVP — restore before launch.)_
+**Working:** dashboard KPIs; host/user management + verify/suspend; booking + payment (read) management; review moderation; subscriptions (read); **impersonation** (signed cookie, expiry + target, audit-logged); **audit log**; broadcasts + individual notification send; full **help-centre CRUD**; per-action permission gates.
+**Not wired (stubs):** feature-flag-override + platform-settings editors. _(Admin MFA gate intentionally disabled pre-MVP — restore before launch.)_
 
 ### Platform infrastructure
-**Working:** notification system (in-app + email via Resend drain + push queue, with per-category prefs, quiet hours, digest); **12 pg_cron jobs** (pending/EFT booking expiry, 24h auto-cancel, review auto-publish + request queue, subscription expiry-warn + restrict, ranking recalc, response-rate, invite/log cleanup, email-queue drain); **Paystack webhook** (HMAC-SHA512 verified); EFT banking-details Edge Function; RLS + soft-delete across core tables; immutable audit log.
-**Gaps:** **subscription billing is a no-op** (no Paystack/PayPal subscription create/renew; grace period never auto-set on a failed charge); **PayPal webhook missing**; admin refund **escalation/dispute** queue is read-only; Paystack + Resend round-trips **not yet smoke-tested end-to-end in production**.
+**Working:** **notification system** (in-app + email via Resend drain + push queue; per-category prefs, quiet hours, digest) — drains now use an **atomic claim** (`FOR UPDATE SKIP LOCKED` + stale-reclaim) so overlapping cron ticks can't double-send; **calendar sync** — iCal **import** (atomic, non-destructive `import_ical_blocks` RPC; never overwrites a booking/manual block) + token-gated **export** feed; **pg_cron** jobs (booking expiry, auto-cancel, review publish/request, subscription warn/restrict, ranking, queue drains); **Paystack webhook** (HMAC-SHA512 verified, idempotent on `provider_reference`); EFT banking-details + report-scheduler (secret-gated) + track-listing-view (validated) Edge Functions; RLS + soft-delete across core tables; immutable audit log.
+**Gaps:** subscription billing is a no-op (no provider create/renew); PayPal webhook missing; **no 15-min iCal auto-sync cron** (import is manual "Sync now" / on-add); card/webhook **amount-verification** pending live Paystack keys.
 
 ### Mobile app — ~0%
-Expo project scaffolded; NativeWind wiring and all screens not yet built.
+Expo project scaffolded; screens not yet built.
 
 ---
 
-## Known gaps to MVP (and the recommended launch path)
+## Known gaps to MVP (recommended launch path)
 
-1. **Smoke-test the money + email round-trips in production** — create a real test booking and confirm the Paystack webhook flips it to confirmed and a Resend email actually lands. The code is wired; it has not been verified live.
-2. **Decide guest↔host messaging scope** — guests currently cannot reply or send pre-booking enquiries (inbox is one-way). Either ship one-way for MVP or build guest compose + enquiry.
-3. **PayPal** — either wire it end-to-end (checkout SDK + webhook) or remove PayPal from guest-facing copy and ship **Paystack + EFT only** for MVP.
-4. **Ship free-plan-only** — keep paid plans locked behind a "coming soon" state until subscription provider billing is wired. Feature gates already short-circuit open during pre-MVP.
-5. **Region / compliance** — Supabase is in **Frankfurt**; the spec targets `af-south-1` (Cape Town) for POPIA. Verify Resend sending domain (currently `resend.dev`), and re-enable the admin MFA gate. Sentry/PostHog are deferred to launch week.
-6. **Smaller polish** — guest profile self-edit; admin feature-flag + platform-settings editors; admin refund escalation; data-request fulfilment; Reports/Channels (post-MVP).
+1. **Set production env switches** (inert until set, by design): `ICAL_TOKEN_SECRET` (calendar export), `RESEND_API_KEY` + worker URL/secret (notification send), live Paystack/PayPal keys, `TURNSTILE_*`, `NEXT_PUBLIC_ROOT_DOMAIN` + DNS (tenant subdomains/custom domains), `app.report_scheduler_secret` + `app.settings.*` (report cron).
+2. **Smoke-test money + email round-trips in production** — a real Paystack booking → webhook confirms → Resend email lands.
+3. **Decide guest↔host messaging scope** — guest inbox is one-way today.
+4. **PayPal** — wire end-to-end (checkout + webhook) or ship Paystack + EFT only.
+5. **Ship free-plan-only** until subscription billing is wired (feature gates short-circuit open pre-MVP).
+6. **Region / compliance** — confirm Supabase region + POPIA, Resend sending domain, re-enable admin MFA.
+7. **Calendar auto-sync** — build `ical-sync-all` (cron) if hands-off feed refresh is wanted (import is manual today).
 
-**Recommended MVP:** free-plan-only, Paystack + EFT payments, after the live payment + email smoke test and a region decision. The host + guest core loop (host lists → guest discovers → books → pays → manages trip → reviews) is wired end-to-end today.
+The host + guest core loop (host lists & builds a site → guest discovers → books → pays → manages trip → reviews) is wired end-to-end today.
 
 ---
 
@@ -120,10 +139,11 @@ Expo project scaffolded; NativeWind wiring and all screens not yet built.
 
 ```bash
 pnpm dev                                   # web app (from apps/web)
-pnpm build                                 # production build (zero errors required)
-pnpm lint                                  # lint (zero warnings required)
+pnpm lint                                  # zero warnings required
+pnpm exec tsc --noEmit                     # type-check
+pnpm exec vitest run                       # unit tests
+pnpm build                                 # production build (no dev server running)
 supabase db push --linked                  # apply migrations to the cloud project
-supabase migration list --linked           # check migration sync
 supabase gen types typescript --linked > packages/types/database.types.ts
 ```
 
@@ -131,20 +151,20 @@ supabase gen types typescript --linked > packages/types/database.types.ts
 
 ## Documentation
 
-Project docs live in the repo root. **Note:** `PHASE_PLAN.md` checkboxes are out of date (they predate most of the build) — this README's **Build status** is the current source of truth for what's done; `CHANGELOG.md` is the session-by-session history.
+Project docs live in the repo root. `CHANGELOG.md` is the session-by-session history; `CURRENT_TASK.md` holds the live save point / resume anchor.
 
 | File | Purpose |
 |---|---|
-| [`CLAUDE.md`](./CLAUDE.md) | Auto-loaded by Claude Code — project brief and workflow |
-| [`RULES.md`](./RULES.md) · [`AGENT_RULES.md`](./AGENT_RULES.md) | Development rules and non-negotiable guardrails |
-| [`CONVENTIONS.md`](./CONVENTIONS.md) · [`ARCHITECTURE.md`](./ARCHITECTURE.md) | How code is written; folder structure & data flow |
-| [`DEVSTACK.md`](./DEVSTACK.md) · [`ENV_VARS.md`](./ENV_VARS.md) | Locked versions / dev setup; every env var |
+| [`CLAUDE.md`](./CLAUDE.md) | Project brief + workflow (auto-loaded by Claude Code) |
+| [`RULES.md`](./RULES.md) · [`AGENT_RULES.md`](./AGENT_RULES.md) | Development rules + non-negotiable guardrails |
+| [`CONVENTIONS.md`](./CONVENTIONS.md) · [`ARCHITECTURE.md`](./ARCHITECTURE.md) | How code is written; folder structure + data flow |
+| [`DEVSTACK.md`](./DEVSTACK.md) · [`ENV_VARS.md`](./ENV_VARS.md) · [`MIGRATIONS.md`](./MIGRATIONS.md) | Locked versions; every env var; migration workflow |
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Brand tokens, components, UI patterns |
-| [`EMAIL_TEMPLATES.md`](./EMAIL_TEMPLATES.md) · [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) | Email templates; push/in-app notification specs |
-| [`BOOKING_SYNC.md`](./BOOKING_SYNC.md) · [`ERROR_CODES.md`](./ERROR_CODES.md) | iCal sync spec; Edge Function error codes |
-| [`DECISIONS.md`](./DECISIONS.md) · [`SECURITY_CHECKLIST.md`](./SECURITY_CHECKLIST.md) | Architecture decision records; pre-launch security audit |
-| [`CHANGELOG.md`](./CHANGELOG.md) · [`CURRENT_TASK.md`](./CURRENT_TASK.md) | Build history; current session scope |
-| [`vilo-platform-mvp.md`](./vilo-platform-mvp.md) · [`supabase_database.md`](./supabase_database.md) · [`customer_journey.md`](./customer_journey.md) | Product spec; DB schema; user flows |
+| [`WEBSITE_CMS_PLAN.md`](./WEBSITE_CMS_PLAN.md) · [`WEBSITE_HOSTING.md`](./WEBSITE_HOSTING.md) | Website CMS plan; subdomain/custom-domain hosting |
+| [`BOOKING_SYNC.md`](./BOOKING_SYNC.md) · [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) · [`EMAIL_TEMPLATES.md`](./EMAIL_TEMPLATES.md) | iCal sync spec; notification specs; email templates |
+| [`DECISIONS.md`](./DECISIONS.md) · [`SECURITY_CHECKLIST.md`](./SECURITY_CHECKLIST.md) · [`ERROR_CODES.md`](./ERROR_CODES.md) | ADRs; pre-launch security audit; error codes |
+| [`CHANGELOG.md`](./CHANGELOG.md) · [`CURRENT_TASK.md`](./CURRENT_TASK.md) | Build history; current save point |
+| [`supabase_database.md`](./supabase_database.md) · [`customer_journey.md`](./customer_journey.md) | DB schema; mapped user flows |
 
 ---
 
@@ -153,6 +173,7 @@ Project docs live in the repo root. **Note:** `PHASE_PLAN.md` checkboxes are out
 This platform handles real payments and personal data.
 - `SUPABASE_SERVICE_ROLE_KEY` is **server-side only** — never in client code.
 - All mutations go through Server Actions / Edge Functions; webhook signatures are verified before any DB write.
+- Client-supplied prices are never trusted — always recalculated server-side.
 - Never commit `.env.local` or real secrets.
 - Read [`AGENT_RULES.md`](./AGENT_RULES.md) and [`SECURITY_CHECKLIST.md`](./SECURITY_CHECKLIST.md) before contributing.
 
