@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-22 — Theme-attached designed sections (Phase C foundation)
+
+The architecture for "themes → designed sections": a **code-defined registry**
+(`lib/website/themeSections.ts`) lets each theme ship professionally pre-styled,
+ready-to-pull-in sections. These are pre-configured instances of the EXISTING
+curated section types (variant + tone + style + starter copy), so they render +
+validate through the same schema — no new section types, no migration.
+
+- `getThemeSectionPresets(themeSlug)` keys off `SiteThemeConfig.preset`; the
+  **Aria** flagship theme ships an exemplar set (Spotlight hero, Split-feature
+  hero, Feature trio, Stats band, Closing CTA). Themes with no entry show no
+  theme group.
+- **Builder:** the add-blocks sidebar now shows a group **named after the active
+  theme** (capitalised slug) listing its presets as pickable cards, included in
+  the search index. `addThemePreset()` inserts `preset.make()` (fresh id,
+  pre-styled). Each preset uses the type-guarded `newSection` base so it stays
+  schema-valid.
+
+tsc + lint + 73 vitest green. Next: more themes' preset sets + theme **page
+templates** (start-a-page-from-a-template gallery wired to the theme).
+
+---
+
 ## 2026-06-22 — Site width control: boxed vs full (Phase B3)
 
 A site-wide **layout** setting (full-width vs boxed/centred), controllable from

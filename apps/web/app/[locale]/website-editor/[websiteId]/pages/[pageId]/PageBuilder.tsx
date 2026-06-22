@@ -103,6 +103,11 @@ import type {
 import { websiteAssetUrl } from "@/lib/website/assets";
 import { newSection } from "@/lib/website/sectionDefaults";
 import {
+  getThemeSectionPresets,
+  themeGroupLabel,
+  type ThemeSectionPreset,
+} from "@/lib/website/themeSections";
+import {
   HERO_LAYOUTS,
   isAutoPopulate,
   sectionsSchema,
@@ -304,6 +309,9 @@ export function PageBuilder({
   const t = useTranslations("website");
   const router = useRouter();
   const localeRouter = useLocaleRouter();
+  // Theme-attached designed sections (sidebar group named after the theme).
+  const themePresets = getThemeSectionPresets(theme.preset);
+  const themeLabel = themeGroupLabel(theme.preset);
   const [sections, setSections] = useState<WebsiteSection[]>(initialSections);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSections[0]?.id ?? null,
@@ -403,6 +411,14 @@ export function PageBuilder({
     if (heroVariant && s.type === "hero") {
       s.props = { ...s.props, variant: heroVariant };
     }
+    const at = insertAt ?? sections.length;
+    mutate([...sections.slice(0, at), s, ...sections.slice(at)]);
+    selectSection(s.id);
+    setInsertAt(null);
+  }
+  // Pull in a professionally-designed, theme-attached section (pre-styled).
+  function addThemePreset(preset: ThemeSectionPreset) {
+    const s = preset.make();
     const at = insertAt ?? sections.length;
     mutate([...sections.slice(0, at), s, ...sections.slice(at)]);
     selectSection(s.id);
@@ -798,6 +814,19 @@ export function PageBuilder({
                     </button>
                   );
                 };
+                const themeCard = (preset: ThemeSectionPreset) => (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    className="pal-item"
+                    onClick={() => addThemePreset(preset)}
+                  >
+                    <span className="pi-ic">
+                      <Sparkles style={{ width: 16, height: 16 }} />
+                    </span>
+                    <span className="pi-nm">{preset.label}</span>
+                  </button>
+                );
 
                 // ── Filtered (flat) results ──────────────────────────
                 if (q) {
@@ -811,7 +840,13 @@ export function PageBuilder({
                       t(`sectionType_${type}`).toLowerCase().includes(q) ||
                       type.replace(/_/g, " ").includes(q),
                   );
-                  if (heroHits.length + typeHits.length === 0) {
+                  const themeHits = themePresets.filter((p) =>
+                    p.label.toLowerCase().includes(q),
+                  );
+                  if (
+                    heroHits.length + typeHits.length + themeHits.length ===
+                    0
+                  ) {
                     return (
                       <div className="pal-cat" style={{ fontWeight: 600 }}>
                         {t("pbNoResults")}
@@ -820,6 +855,7 @@ export function PageBuilder({
                   }
                   return (
                     <div className="pal-grid">
+                      {themeHits.map(themeCard)}
                       {heroHits.map(heroCard)}
                       {typeHits.map(typeCard)}
                     </div>
@@ -859,6 +895,16 @@ export function PageBuilder({
                     {/* Heroes — the seven designed layouts. */}
                     <div className="pal-cat">{t("pbHeroes")}</div>
                     <div className="pal-grid">{HERO_LAYOUTS.map(heroCard)}</div>
+
+                    {/* Theme-attached designed sections (named after the theme). */}
+                    {themePresets.length > 0 ? (
+                      <>
+                        <div className="pal-cat">{themeLabel}</div>
+                        <div className="pal-grid">
+                          {themePresets.map(themeCard)}
+                        </div>
+                      </>
+                    ) : null}
 
                     {GROUPS.map((g) => (
                       <div key={g.key}>
