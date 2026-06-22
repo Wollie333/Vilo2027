@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-06-22 — Website CMS premium redesign · Nav editors aligned to the builder shell
+
+Makes the full-screen header/menu/footer editors visually match the page builder.
+
+### Changed
+- **`NavSectionEditor`** — the bespoke gray canvas is replaced with the shared
+  `.canvas-wrap` + `.device` frame (same centred white device card on the same
+  canvas), and the toolbar gains the page builder's desktop/tablet/phone device
+  toggle (`.seg`). The live `.vilo-nav` preview now renders inside the device
+  frame, so switching devices previews the header/footer at each width. No data
+  or behaviour change (still saves via `saveNavigationAction`). tsc + lint green.
+
+---
+
 ## 2026-06-22 — Website CMS premium redesign · Tab bar reconciled to the mockup's 8
 
 Trims the editor tab bar to the approved mockup's canonical eight — Overview ·

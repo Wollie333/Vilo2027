@@ -4,9 +4,13 @@ import {
   ArrowLeft,
   Check,
   Loader2,
+  Menu,
+  Monitor,
   PanelBottom,
   PanelTop,
-  Menu,
+  Smartphone,
+  Tablet,
+  type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState, useTransition } from "react";
@@ -30,6 +34,7 @@ import {
 import { FooterBuilder } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/FooterBuilder";
 
 type Section = "header" | "menu" | "footer";
+type Device = "desktop" | "tablet" | "phone";
 
 const SECTION_ICON = { header: PanelTop, menu: Menu, footer: PanelBottom };
 
@@ -52,6 +57,19 @@ export function NavSectionEditor({
   const router = useRouter();
   const [nav, setNav] = useState<NavigationConfig>(initial);
   const [saving, startSave] = useTransition();
+  const [device, setDevice] = useState<Device>("desktop");
+
+  const deviceClass =
+    device === "tablet"
+      ? "device tablet"
+      : device === "phone"
+        ? "device mobile"
+        : "device";
+  const devices: Array<{ key: Device; icon: LucideIcon; title: string }> = [
+    { key: "desktop", icon: Monitor, title: t("deviceDesktop") },
+    { key: "tablet", icon: Tablet, title: t("deviceTablet") },
+    { key: "phone", icon: Smartphone, title: t("devicePhone") },
+  ];
 
   const setHeader = (patch: Partial<NavigationConfig["header"]>) =>
     setNav((n) => ({ ...n, header: { ...n.header, ...patch } }));
@@ -112,6 +130,32 @@ export function NavSectionEditor({
         </div>
         <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginLeft: 14,
+          }}
+        >
+          <div className="seg" role="group" aria-label={t("livePreview")}>
+            {devices.map((d) => {
+              const Ico = d.icon;
+              return (
+                <button
+                  key={d.key}
+                  type="button"
+                  title={d.title}
+                  aria-pressed={device === d.key}
+                  className={device === d.key ? "on" : ""}
+                  onClick={() => setDevice(d.key)}
+                >
+                  <Ico style={{ width: 16, height: 16 }} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div
+          style={{
             marginLeft: "auto",
             display: "flex",
             alignItems: "center",
@@ -138,23 +182,16 @@ export function NavSectionEditor({
       </header>
 
       <div className="ebody">
-        {/* canvas — live preview */}
-        <div
-          className="thin"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            overflowY: "auto",
-            background: "#E8EEEA",
-            padding: "30px 24px 90px",
-          }}
-        >
-          <div className="vilo-nav">
-            {section === "footer" ? (
-              <NavFooterPreview nav={nav} brandName={brandName} />
-            ) : (
-              <NavHeaderPreview nav={nav} brandName={brandName} />
-            )}
+        {/* canvas — live preview in the shared device frame */}
+        <div className="canvas-wrap thin">
+          <div className={deviceClass}>
+            <div className="vilo-nav">
+              {section === "footer" ? (
+                <NavFooterPreview nav={nav} brandName={brandName} />
+              ) : (
+                <NavHeaderPreview nav={nav} brandName={brandName} />
+              )}
+            </div>
           </div>
         </div>
 
