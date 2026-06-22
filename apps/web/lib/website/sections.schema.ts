@@ -557,6 +557,9 @@ export const BLOCK_RADIUS = ["none", "sm", "md", "lg", "full"] as const;
 export type BlockRadius = (typeof BLOCK_RADIUS)[number];
 export const BLOCK_MAXWIDTH = ["full", "wide", "medium", "narrow"] as const;
 export type BlockMaxWidth = (typeof BLOCK_MAXWIDTH)[number];
+// Fixed minimum section height (any block). "auto" = content height.
+export const BLOCK_MINHEIGHT = ["auto", "sm", "md", "lg", "screen"] as const;
+export type BlockMinHeight = (typeof BLOCK_MINHEIGHT)[number];
 
 const blockViewportStyle = z
   .object({
@@ -581,6 +584,7 @@ export const blockStyleSchema = z.object({
   borderColor: z.enum(BLOCK_BORDER_COLOR).optional(),
   radius: z.enum(BLOCK_RADIUS).optional(),
   maxWidth: z.enum(BLOCK_MAXWIDTH).optional(),
+  minHeight: z.enum(BLOCK_MINHEIGHT).optional(),
 });
 export type BlockStyle = z.infer<typeof blockStyleSchema>;
 

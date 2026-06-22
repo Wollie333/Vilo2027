@@ -300,6 +300,20 @@ function BlockStyleEditor({
             }
           />
           <SelectField
+            label={t("fldSectionHeight")}
+            value={style.minHeight ?? "auto"}
+            options={[
+              { value: "auto", label: t("secHeight_auto") },
+              { value: "sm", label: t("secHeight_sm") },
+              { value: "md", label: t("secHeight_md") },
+              { value: "lg", label: t("secHeight_lg") },
+              { value: "screen", label: t("secHeight_screen") },
+            ]}
+            onChange={(v) =>
+              setFrame({ minHeight: v === "auto" ? undefined : v })
+            }
+          />
+          <SelectField
             label={t("fldBlockRadius")}
             value={style.radius ?? "none"}
             options={[

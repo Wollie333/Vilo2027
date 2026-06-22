@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-06-22 — Page builder · section height control (Phase B2)
+
+Added a **Section height** control to the per-block style panel (Frame group) —
+a fixed `min-height` preset (auto / short 320px / medium 480px / tall 640px /
+full-screen 100vh) that applies to ANY block. Rides the existing `style` jsonb
+(`minHeight`), emitted by `frameRules()`; additive, no migration. +6 i18n.
+tsc + lint green. (Site-width boxed/full toggle is the remaining Phase-B item.)
+
+---
+
 ## 2026-06-22 — Page builder · searchable sidebar + heroes-as-cards (Phase B1)
 
 The add-blocks sidebar gained a **search box** (filters every block + hero

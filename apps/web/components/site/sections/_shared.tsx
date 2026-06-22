@@ -110,6 +110,13 @@ const BLOCK_MAXWIDTH_CSS = {
   medium: "48rem",
   narrow: "32rem",
 } as const;
+const BLOCK_MINHEIGHT_CSS = {
+  auto: "",
+  sm: "320px",
+  md: "480px",
+  lg: "640px",
+  screen: "100vh",
+} as const;
 
 /** Global (all-viewport) frame rules: margin, border, radius, max-width. */
 function frameRules(style: BlockStyle): string {
@@ -127,6 +134,8 @@ function frameRules(style: BlockStyle): string {
   }
   const mw = style.maxWidth ? BLOCK_MAXWIDTH_CSS[style.maxWidth] : "";
   if (mw) out.push(`max-width:${mw};margin-left:auto;margin-right:auto`);
+  const mh = style.minHeight ? BLOCK_MINHEIGHT_CSS[style.minHeight] : "";
+  if (mh) out.push(`min-height:${mh}`);
   return out.join(";");
 }
 
