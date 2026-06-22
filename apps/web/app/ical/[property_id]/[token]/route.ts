@@ -24,6 +24,15 @@ export async function GET(
     return new NextResponse("Invalid listing id", { status: 400 });
   }
 
+  // Calendar export is gated on a configured ICAL_TOKEN_SECRET (it derives the
+  // per-listing feed token). Without it the signer throws — return a clean
+  // 503 "not configured" instead of a 500 stack on this public endpoint.
+  if (!process.env.ICAL_TOKEN_SECRET) {
+    return new NextResponse("Calendar export is not configured.", {
+      status: 503,
+    });
+  }
+
   if (!verifyListingToken(listingId, token)) {
     return new NextResponse("Invalid token", { status: 401 });
   }

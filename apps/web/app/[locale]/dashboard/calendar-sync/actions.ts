@@ -168,53 +168,45 @@ export async function syncIcalFeedAction(input: {
   const ranges = parseIcal(body);
   const dates = rangesToDates(ranges).slice(0, MAX_IMPORTED_DATES);
 
-  // 3. Diff — only touch source='ical' rows tied to THIS feed
-  await admin
-    .from("blocked_dates")
-    .delete()
-    .eq("ical_feed_id", feed.id)
-    .eq("source", "ical");
-
-  if (dates.length > 0) {
-    const rows = dates.map((date) => ({
-      property_id: feed.property_id,
-      date,
-      reason: "Imported from external calendar",
-      source: "ical",
-      ical_feed_id: feed.id,
-    }));
-
-    // Insert in batches of 500 to avoid PostgREST row-size limits.
-    for (let i = 0; i < rows.length; i += 500) {
-      const slice = rows.slice(i, i + 500);
-      const { error } = await admin
-        .from("blocked_dates")
-        .upsert(slice, { onConflict: "property_id,date" });
-      if (error) {
-        await admin
-          .from("ical_feeds")
-          .update({
-            status: "error",
-            last_sync_at: new Date().toISOString(),
-            last_error: error.message.slice(0, 500),
-          })
-          .eq("id", feed.id);
-        revalidatePath("/dashboard/calendar-sync");
-        return { ok: false, error: `Couldn't write blocks: ${error.message}` };
-      }
-    }
+  // 3. Write atomically + NON-destructively via the RPC: it replaces only this
+  // feed's own source='ical' rows and inserts the new dates with ON CONFLICT DO
+  // NOTHING (a manual / booking / quote_hold block on the same date always wins).
+  // (A plain upsert here previously failed — there is no (property_id,date)
+  // unique key, only the expression index the RPC targets.)
+  const { data: inserted, error: rpcError } = await admin.rpc(
+    "import_ical_blocks",
+    {
+      p_feed_id: feed.id,
+      p_property_id: feed.property_id,
+      p_dates: dates,
+    },
+  );
+  if (rpcError) {
+    await admin
+      .from("ical_feeds")
+      .update({
+        status: "error",
+        last_sync_at: new Date().toISOString(),
+        last_error: rpcError.message.slice(0, 500),
+      })
+      .eq("id", feed.id);
+    revalidatePath("/dashboard/calendar-sync");
+    return { ok: false, error: `Couldn't write blocks: ${rpcError.message}` };
   }
 
+  // Rows this feed actually blocks (dates already held by a real Vilo block are
+  // skipped by DO NOTHING and not counted).
+  const importedCount = typeof inserted === "number" ? inserted : dates.length;
   await admin
     .from("ical_feeds")
     .update({
       status: "active",
       last_sync_at: new Date().toISOString(),
       last_error: null,
-      imported_count: dates.length,
+      imported_count: importedCount,
     })
     .eq("id", feed.id);
 
   revalidatePath("/dashboard/calendar-sync");
-  return { ok: true, imported: dates.length };
+  return { ok: true, imported: importedCount };
 }

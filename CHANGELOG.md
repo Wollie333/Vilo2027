@@ -5,6 +5,49 @@
 
 ---
 
+## 2026-06-22 — Calendar sync: fix broken iCal import + lock it down with tests
+
+Audited calendar sync end-to-end. Found and fixed a **critical, 100%-reproducible
+import bug**, then added the test coverage it never had.
+
+**THE BUG (import was completely broken):** `syncIcalFeedAction` wrote imported
+dates with `.upsert(rows, { onConflict: "property_id,date" })`, but there is **no
+`(property_id,date)` unique constraint** — the only unique key is the expression
+index `unique_blocked_date_per_scope (property_id, COALESCE(room_id,'000…'), date)`.
+Every sync therefore failed with Postgres `42P10` and the feed was just marked
+`error`; **no external calendar ever blocked a single date.** Confirmed live
+against the cloud DB. (Also, the upsert's `DO UPDATE` would have been
+*destructive* — overwriting a real booking/manual block's `source` to `ical`,
+then deleting it on feed removal → double-booking risk.)
+
+**THE FIX:** migration `20260622030000` adds a `SECURITY DEFINER` RPC
+`import_ical_blocks(feed, property, dates[])` that atomically (a) replaces only
+this feed's own `source='ical'` rows and (b) inserts the new dates against the
+**real** expression conflict target with **`ON CONFLICT DO NOTHING`** — so a
+manual / booking / quote_hold block always wins (non-destructive, per
+`BOOKING_SYNC.md`). The action calls the RPC instead of the broken upsert.
+Verified live via `scripts/smoke-ical-import.mjs`: inserts dates, **preserves a
+manual block** on an overlapping date, idempotent.
+
+**Export hardening:** `/ical/[id]/[token]` now returns a clean **503** when
+`ICAL_TOKEN_SECRET` is unset (was throwing a 500). Logic confirmed PII-free
+(summaries are `Booked`/`Blocked`/reason only).
+
+**Tests (none existed):** `lib/ical.test.ts` + `lib/ical-parser.test.ts` — 23
+cases covering token sign/verify, `buildIcalFeed` (RFC 5545, CRLF, no PII,
+escaping), `collapseConsecutiveDates` (spans, room grouping, exclusive end),
+`parseIcal` (DTEND exclusive, folding, time-rounding, DTEND-less, invalid drop)
+and `rangesToDates` (expand/dedupe/clamp). Suite now 96 green (was 73).
+
+**⚠️ Two gaps flagged (not code bugs):** (1) `ICAL_TOKEN_SECRET` must be set
+(env) for export to work — unset locally + must be set in Vercel. (2) There is
+**no automatic 15-min sync cron** (`ical-sync-all`) — import is currently
+manual-only (host "Sync now" + on-add); periodic auto-sync is unimplemented.
+
+Migration pushed + types regenerated. tsc + lint + 96 vitest green.
+
+---
+
 ## 2026-06-22 — Theme page templates (Phase C)
 
 Themes can now ship full **page templates** (ordered compositions of their

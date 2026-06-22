@@ -9958,6 +9958,10 @@ export type Database = {
       gettransactionid: { Args: never; Returns: unknown }
       guest_gkey_for_email: { Args: { p_email: string }; Returns: string }
       has_admin_permission: { Args: { p_key: string }; Returns: boolean }
+      import_ical_blocks: {
+        Args: { p_dates: string[]; p_feed_id: string; p_property_id: string }
+        Returns: number
+      }
       increment_help_article_view: {
         Args: { p_article_id: string }
         Returns: undefined
