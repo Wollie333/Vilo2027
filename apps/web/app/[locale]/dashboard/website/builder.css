@@ -594,6 +594,13 @@
      against the SIMULATED device width, not the real viewport. */
   container-type: inline-size;
 }
+/* Click-to-select hover affordance for the inline header/footer chrome. */
+.vilo-builder .vilo-chrome-edit:hover {
+  outline-color: rgba(16, 185, 129, 0.5) !important;
+}
+.vilo-builder .vilo-chrome-edit:hover .vilo-chrome-label {
+  opacity: 1 !important;
+}
 .vilo-builder .device.tablet {
   max-width: 744px;
 }

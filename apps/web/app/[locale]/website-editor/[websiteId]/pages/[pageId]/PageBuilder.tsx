@@ -79,10 +79,14 @@ import { useTranslations } from "next-intl";
 import {
   publishWebsiteAction,
   saveDraftSectionsAction,
+  saveNavigationAction,
 } from "@/app/[locale]/dashboard/website/actions";
-import type { SavedSection } from "@/app/[locale]/dashboard/website/schemas";
+import type {
+  NavigationConfig,
+  SavedSection,
+} from "@/app/[locale]/dashboard/website/schemas";
 import { SectionRenderer } from "@/components/site/SectionRenderer";
-import { SiteChrome } from "@/components/site/SiteChrome";
+import { SiteChrome, type ChromeTarget } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
@@ -110,6 +114,12 @@ import {
 import { SectionEditor } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/SectionEditor";
 import { PageSeoCard } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/PageSeoCard";
 import { A11yCard } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/A11yCard";
+import { MenuBuilder } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
+import {
+  FooterInspector,
+  HeaderInspector,
+} from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavInspectors";
+import type { NavPageOption } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/loadPageBuilder";
 
 const asset = (p: string | null | undefined) => websiteAssetUrl(p) ?? undefined;
 
@@ -244,8 +254,9 @@ export function PageBuilder({
   brand,
   theme,
   nav,
-  navigation,
   dataByType,
+  initialNav,
+  navPages,
   pageSlug,
   pageSeo,
   domain,
@@ -262,6 +273,9 @@ export function PageBuilder({
   navigation: SiteNavigation;
   dataByType: Partial<SiteDataByType>;
   savedSections: SavedSection[];
+  initialNav: NavigationConfig;
+  navPages: NavPageOption[];
+  brandName: string;
   pageSlug: string;
   pageSeo: { title: string; description: string; focusKeyword: string };
   domain: string;
@@ -273,6 +287,12 @@ export function PageBuilder({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSections[0]?.id ?? null,
   );
+  // Inline chrome editing — header/footer are selectable in the same canvas.
+  const [navConfig, setNavConfig] = useState<NavigationConfig>(initialNav);
+  const [selectedChrome, setSelectedChrome] = useState<ChromeTarget | null>(
+    null,
+  );
+  const [navDirty, setNavDirty] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [device, setDevice] = useState<Device>("desktop");
   const [previewing, setPreviewing] = useState(false);
@@ -300,6 +320,32 @@ export function PageBuilder({
     ? (sections.find((s) => s.id === selectedId) ?? null)
     : null;
 
+  // ── Selection: a section OR a chrome region (header/footer), never both ──
+  const selectSection = (id: string) => {
+    setSelectedId(id);
+    setSelectedChrome(null);
+  };
+  const selectChrome = (target: ChromeTarget) => {
+    setSelectedChrome(target);
+    setSelectedId(null);
+  };
+
+  // ── Inline nav (chrome) editing ─────────────────────────────────────────
+  const navMutate = (next: NavigationConfig) => {
+    setNavConfig(next);
+    setNavDirty(true);
+  };
+  const setHeader = (patch: Partial<NavigationConfig["header"]>) =>
+    navMutate({ ...navConfig, header: { ...navConfig.header, ...patch } });
+  const setTop = (patch: Partial<NavigationConfig["topBar"]>) =>
+    navMutate({ ...navConfig, topBar: { ...navConfig.topBar, ...patch } });
+  const setFooter = (patch: Partial<NavigationConfig["footer"]>) =>
+    navMutate({ ...navConfig, footer: { ...navConfig.footer, ...patch } });
+  const setMenu = (menu: NavigationConfig["menu"]) =>
+    navMutate({ ...navConfig, menu });
+  const setColumns = (columns: NavigationConfig["footer"]["columns"]) =>
+    navMutate({ ...navConfig, footer: { ...navConfig.footer, columns } });
+
   function mutate(next: WebsiteSection[]) {
     setSections(next);
     setDirty(true);
@@ -322,13 +368,13 @@ export function PageBuilder({
       id: crypto.randomUUID(),
     } as WebsiteSection;
     mutate([...sections.slice(0, i + 1), copy, ...sections.slice(i + 1)]);
-    setSelectedId(copy.id);
+    selectSection(copy.id);
   }
   function addSection(type: SectionType) {
     const s = newSection(type);
     const at = insertAt ?? sections.length;
     mutate([...sections.slice(0, at), s, ...sections.slice(at)]);
-    setSelectedId(s.id);
+    selectSection(s.id);
     setInsertAt(null);
   }
   function onDragEnd(e: DragEndEvent) {
@@ -360,6 +406,18 @@ export function PageBuilder({
         return;
       }
       setDirty(false);
+      // Persist any inline header/footer edits before the publish snapshot.
+      if (navDirty) {
+        const navRes = await saveNavigationAction({
+          websiteId,
+          navigation: navConfig,
+        });
+        if (!navRes.ok) {
+          toast.error(t("draftSaveError"));
+          return;
+        }
+        setNavDirty(false);
+      }
       const res = await publishWebsiteAction(websiteId);
       if (!res.ok) {
         toast.error(t("publishError"));
@@ -393,15 +451,34 @@ export function PageBuilder({
     return () => clearTimeout(id);
   }, [sections, dirty, publishing, websiteId, pageId]);
 
+  // Debounced autosave for inline header/footer (chrome) edits.
   useEffect(() => {
-    if (!dirty) return;
+    if (!navDirty || publishing) return;
+    const id = setTimeout(() => {
+      setAutoStatus("saving");
+      void saveNavigationAction({ websiteId, navigation: navConfig }).then(
+        (res) => {
+          if (res.ok) {
+            setNavDirty(false);
+            setAutoStatus("saved");
+          } else {
+            setAutoStatus("error");
+          }
+        },
+      );
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [navConfig, navDirty, publishing, websiteId]);
+
+  useEffect(() => {
+    if (!dirty && !navDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  }, [dirty, navDirty]);
 
   const deviceClass =
     device === "tablet"
@@ -417,7 +494,7 @@ export function PageBuilder({
   const autoLabel =
     autoStatus === "saving"
       ? t("autosaving")
-      : dirty
+      : dirty || navDirty
         ? t("unsavedChanges")
         : t("autosaved");
 
@@ -512,6 +589,7 @@ export function PageBuilder({
             onClick={() => {
               setPreviewing((v) => !v);
               setSelectedId(null);
+              setSelectedChrome(null);
             }}
           >
             <Eye style={{ width: 15, height: 15 }} />
@@ -586,9 +664,14 @@ export function PageBuilder({
               <SiteChrome
                 brand={brand}
                 nav={nav}
-                navigation={navigation}
+                navigation={navConfig}
                 header={theme.header}
                 footer={theme.footer}
+                editable={
+                  previewing
+                    ? undefined
+                    : { selected: selectedChrome, onSelect: selectChrome }
+                }
               >
                 {sections.length === 0 ? (
                   <div className="canvas-empty">
@@ -615,7 +698,7 @@ export function PageBuilder({
                           selected={selectedId === s.id}
                           previewing={previewing}
                           data={previewData}
-                          onSelect={() => setSelectedId(s.id)}
+                          onSelect={() => selectSection(s.id)}
                           onToggle={() => toggleEnabled(s.id)}
                           onDuplicate={() => duplicateSection(s.id)}
                           onRemove={() => removeSection(s.id)}
@@ -640,7 +723,11 @@ export function PageBuilder({
               <h3>
                 {selected
                   ? t(`sectionType_${selected.type}`)
-                  : t("pbInspector")}
+                  : selectedChrome === "header"
+                    ? t("navHeaderTitle")
+                    : selectedChrome === "footer"
+                      ? t("navFooterTitle")
+                      : t("pbInspector")}
               </h3>
               {selected ? (
                 <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
@@ -678,7 +765,29 @@ export function PageBuilder({
               ) : null}
             </div>
             <div className="epanel-b thin">
-              {selected ? (
+              {selectedChrome === "header" ? (
+                <>
+                  <HeaderInspector
+                    nav={navConfig}
+                    setHeader={setHeader}
+                    setTop={setTop}
+                  />
+                  <div className="insp-sec">
+                    <MenuBuilder
+                      menu={navConfig.menu ?? []}
+                      pages={navPages}
+                      onChange={setMenu}
+                    />
+                  </div>
+                </>
+              ) : selectedChrome === "footer" ? (
+                <FooterInspector
+                  nav={navConfig}
+                  pages={navPages}
+                  setFooter={setFooter}
+                  setColumns={setColumns}
+                />
+              ) : selected ? (
                 <>
                   {isAutoPopulate(selected.type) ? (
                     <p className="insp-sec" style={{ fontSize: 12.5 }}>
@@ -696,7 +805,7 @@ export function PageBuilder({
                   <div className="ie-ic">
                     <SlidersHorizontal style={{ width: 22, height: 22 }} />
                   </div>
-                  <p>{t("pbSelectHint")}</p>
+                  <p>{t("pbChromeHint")}</p>
                 </div>
               )}
             </div>

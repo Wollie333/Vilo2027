@@ -4,6 +4,7 @@ import { getMyHostId } from "@/lib/host/current";
 import {
   assembleSiteDataByType,
   loadSiteContext,
+  pageHref,
   type SiteContext,
 } from "@/lib/site/loadSitePage";
 import type { SiteDataByType } from "@/lib/site/types";
@@ -19,9 +20,14 @@ import {
 import { extractSectionsText } from "@/lib/website/seoAnalyzer";
 
 import {
+  navigationSchema,
   savedSectionsSchema,
+  type NavigationConfig,
   type SavedSection,
 } from "@/app/[locale]/dashboard/website/schemas";
+
+/** A page link option for the nav menu / footer pickers. */
+export type NavPageOption = { label: string; href: string };
 
 export type PageBuilderData = {
   websiteId: string;
@@ -44,6 +50,12 @@ export type PageBuilderData = {
   nav: SiteContext["nav"];
   /** Navigation config so the preview chrome matches the published render. */
   navigation: SiteContext["navigation"];
+  /** The EDITABLE navigation config (header/menu/footer) for inline chrome edits. */
+  navConfig: NavigationConfig;
+  /** Page links for the menu / footer pickers. */
+  navPages: NavPageOption[];
+  /** Brand display name (for the nav previews / labels). */
+  brandName: string;
   /** Live data pool keyed by auto-populate type, so the preview is never stale. */
   dataByType: Partial<SiteDataByType>;
   /** Host's reusable saved sections ("my blocks"). */
@@ -67,12 +79,16 @@ export async function loadPageBuilder(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("id, subdomain, seo")
+    .select("id, subdomain, seo, navigation, brand")
     .eq("id", websiteId)
     .eq("host_id", hostId)
     .is("deleted_at", null)
     .maybeSingle();
   if (!site) return null;
+
+  const navConfig = navigationSchema.parse(site.navigation ?? {});
+  const brandName =
+    ((site.brand ?? {}) as { name?: string }).name?.trim() || site.subdomain;
 
   // Page must belong to this website (read via admin — owner already proven).
   const admin = createAdminClient();
@@ -120,6 +136,24 @@ export async function loadPageBuilder(
       (savedRow as { saved_sections?: unknown } | null)?.saved_sections ?? [],
     );
 
+  // Page links for the inline header/footer menu pickers.
+  const { data: pageRows } = await admin
+    .from("website_pages")
+    .select("kind, slug, nav_label, title, nav_order")
+    .eq("website_id", websiteId)
+    .order("nav_order", { ascending: true });
+  const navPages: NavPageOption[] = (
+    (pageRows ?? []) as {
+      kind: string;
+      slug: string;
+      nav_label: string | null;
+      title: string | null;
+    }[]
+  ).map((p) => ({
+    label: p.nav_label?.trim() || p.title?.trim() || p.slug,
+    href: pageHref(p.kind, p.slug),
+  }));
+
   return {
     websiteId,
     subdomain: site.subdomain,
@@ -144,6 +178,9 @@ export async function loadPageBuilder(
     theme: ctx?.theme ?? {},
     nav: ctx?.nav ?? [],
     navigation: ctx?.navigation ?? {},
+    navConfig,
+    navPages,
+    brandName,
     dataByType,
     savedSections,
   };

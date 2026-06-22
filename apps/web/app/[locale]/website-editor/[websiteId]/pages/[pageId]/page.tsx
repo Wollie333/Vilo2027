@@ -41,6 +41,9 @@ export default async function FullScreenPageBuilder({
       navigation={data.navigation}
       dataByType={data.dataByType}
       savedSections={data.savedSections}
+      initialNav={data.navConfig}
+      navPages={data.navPages}
+      brandName={data.brandName}
       pageSlug={data.page.slug}
       pageSeo={{
         title: data.page.seo.title ?? "",

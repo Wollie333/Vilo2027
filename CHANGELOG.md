@@ -5,6 +5,43 @@
 
 ---
 
+## 2026-06-22 — Website CMS premium redesign · Header/footer folded into the page builder
+
+The deep fold — done the **solid, safe** way. The header, menu, and footer are now
+edited **inline in the page-builder canvas**: click the header or footer in the
+live preview to select it and edit it in the inspector, exactly like a section.
+One unified site-builder canvas, with each surface keeping its correct data model
+and renderer (no public-chrome rewrite, no snapshot migration).
+
+### Added
+- **`SiteChrome` `editable` prop** (`ChromeEditable` / `ChromeTarget`) — a
+  builder-only overlay (`ChromeEditWrap`) that makes the header + footer
+  click-to-select (emerald ring + label; the region's own links go inert so a
+  click selects rather than navigates). **Undefined on the public site → renders
+  children verbatim, zero markup/behaviour change.** Hover affordance in
+  `builder.css`.
+- **Shared `navigation/NavInspectors.tsx`** — the `HeaderInspector` /
+  `FooterInspector` (+ `Fld`/`Toggle`) extracted from `NavSectionEditor` so the
+  standalone nav route AND the page builder use one implementation.
+- **`loadPageBuilder`** now also returns the editable `navConfig`
+  (`navigationSchema`), the page-link options (`navPages`), and `brandName`.
+
+### Changed
+- **`PageBuilder`** holds the live `navConfig`; selecting a section OR a chrome
+  region is mutually exclusive. The inspector renders the header inspector +
+  `MenuBuilder` (menu) or the footer inspector + `FooterBuilder` when a chrome
+  region is selected, else the `SectionEditor`. The canvas `SiteChrome` renders
+  the live `navConfig` and is `editable` (off in Preview). Inline chrome edits
+  **debounce-autosave** via `saveNavigationAction` and are persisted before a
+  Publish; the unsaved-guard + savedot include nav edits. +1 i18n key.
+- `NavSectionEditor` now imports the shared inspectors (no behaviour change).
+
+> Both editing surfaces (the standalone Navigation routes and the inline page
+> builder) share the same components, data model, and save action — no
+> divergence. tsc + lint + themes-compat all green. No DB change.
+
+---
+
 ## 2026-06-22 — Website CMS premium redesign · Nav reordering on the dnd-kit engine
 
 Brings the page builder's drag engine into the navigation editors — the safe,

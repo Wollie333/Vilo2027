@@ -48,6 +48,73 @@ const SOCIAL_ICONS = {
   website: Globe,
 } as const;
 
+/** Builder-only chrome editing: click the header/footer to select + edit it. */
+export type ChromeTarget = "header" | "footer";
+export type ChromeEditable = {
+  selected: ChromeTarget | null;
+  onSelect: (target: ChromeTarget) => void;
+};
+
+/**
+ * Wraps the header/footer region in a click-to-select overlay when the chrome is
+ * being edited inline in the page builder. On the public site (`editable`
+ * undefined) it renders the children verbatim — zero markup/behaviour change.
+ * In edit mode the region's own links are made inert (pointer-events: none) so a
+ * click selects the region instead of navigating.
+ */
+function ChromeEditWrap({
+  editable,
+  target,
+  label,
+  children,
+}: {
+  editable?: ChromeEditable;
+  target: ChromeTarget;
+  label: string;
+  children: ReactNode;
+}) {
+  if (!editable) return <>{children}</>;
+  const selected = editable.selected === target;
+  return (
+    <div
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        editable.onSelect(target);
+      }}
+      style={{
+        position: "relative",
+        cursor: "pointer",
+        outline: selected ? "2px solid #10B981" : "1px dashed transparent",
+        outlineOffset: -2,
+        transition: "outline-color .12s",
+      }}
+      className="vilo-chrome-edit"
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          zIndex: 40,
+          background: selected ? "#10B981" : "#064E3B",
+          color: "#fff",
+          fontSize: 11,
+          fontWeight: 600,
+          padding: "2px 8px",
+          borderBottomRightRadius: 7,
+          letterSpacing: ".02em",
+          opacity: selected ? 1 : 0,
+        }}
+        className="vilo-chrome-label"
+      >
+        {label}
+      </span>
+      <div style={{ pointerEvents: "none" }}>{children}</div>
+    </div>
+  );
+}
+
 /**
  * Logo per chosen style: wordmark (name), icon (mark only), mark (logo+name).
  * On a dark chrome surface it prefers the light logo variant; on narrow screens
@@ -643,6 +710,7 @@ export function SiteChrome({
   conversion = {},
   popupForm = null,
   websiteId,
+  editable,
   children,
 }: {
   brand: SiteBrand;
@@ -662,6 +730,8 @@ export function SiteChrome({
   popupForm?: SiteFormDef | null;
   /** The site id — lets the pop-up's embedded form submit. */
   websiteId?: string;
+  /** Builder-only: makes the header/footer click-to-select for inline editing. */
+  editable?: ChromeEditable;
   children: ReactNode;
 }) {
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
@@ -702,80 +772,87 @@ export function SiteChrome({
         preview={Boolean(preview)}
       />
 
-      {topBar?.enabled ? <TopBar bar={topBar} /> : null}
+      <ChromeEditWrap editable={editable} target="header" label="Header">
+        {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
-      <StickyHeader sticky={sticky} transparent={transparentOver}>
-        <div className="hidden md:block">
-          <HeaderInner
-            variant={header.desktop}
-            brand={brand}
-            menu={menu}
-            bookHref={effectiveBookHref}
-            bookLabel={bookLabel}
-            dark={headerDark}
-            preview={preview}
-          />
-        </div>
-        <div className="md:hidden">
-          <HeaderInner
-            variant={header.mobile}
-            brand={brand}
-            menu={menu}
-            bookHref={effectiveBookHref}
-            bookLabel={bookLabel}
-            dark={headerDark}
-            preview={preview}
-          />
-        </div>
-      </StickyHeader>
+        <StickyHeader sticky={sticky} transparent={transparentOver}>
+          <div className="hidden md:block">
+            <HeaderInner
+              variant={header.desktop}
+              brand={brand}
+              menu={menu}
+              bookHref={effectiveBookHref}
+              bookLabel={bookLabel}
+              dark={headerDark}
+              preview={preview}
+            />
+          </div>
+          <div className="md:hidden">
+            <HeaderInner
+              variant={header.mobile}
+              brand={brand}
+              menu={menu}
+              bookHref={effectiveBookHref}
+              bookLabel={bookLabel}
+              dark={headerDark}
+              preview={preview}
+            />
+          </div>
+        </StickyHeader>
+      </ChromeEditWrap>
 
       <main className="flex-1">{children}</main>
 
-      <footer
-        style={{
-          background: "var(--site-surface)",
-          borderColor: "var(--site-line)",
-        }}
-        className="border-t"
-      >
-        {footerColumns.length > 0 ? (
-          <FooterColumns
-            brand={brand}
-            columns={footerColumns}
-            copyright={navigation.footer?.copyright}
-            preview={preview}
-          />
-        ) : (
-          <>
-            <div className="hidden md:block">
-              <FooterInner
-                variant={footer.desktop}
-                brand={brand}
-                nav={flatNav}
-                preview={preview}
-              />
-            </div>
-            <div className="md:hidden">
-              <FooterInner
-                variant={footer.mobile}
-                brand={brand}
-                nav={flatNav}
-                preview={preview}
-              />
-            </div>
-          </>
-        )}
-        {navigation.footer?.showPoweredBy !== false ? (
-          <div style={{ borderColor: "var(--site-line)" }} className="border-t">
-            <p
-              style={{ color: "var(--site-mute)" }}
-              className="mx-auto w-full max-w-5xl px-5 py-3 text-center text-[11px]"
+      <ChromeEditWrap editable={editable} target="footer" label="Footer">
+        <footer
+          style={{
+            background: "var(--site-surface)",
+            borderColor: "var(--site-line)",
+          }}
+          className="border-t"
+        >
+          {footerColumns.length > 0 ? (
+            <FooterColumns
+              brand={brand}
+              columns={footerColumns}
+              copyright={navigation.footer?.copyright}
+              preview={preview}
+            />
+          ) : (
+            <>
+              <div className="hidden md:block">
+                <FooterInner
+                  variant={footer.desktop}
+                  brand={brand}
+                  nav={flatNav}
+                  preview={preview}
+                />
+              </div>
+              <div className="md:hidden">
+                <FooterInner
+                  variant={footer.mobile}
+                  brand={brand}
+                  nav={flatNav}
+                  preview={preview}
+                />
+              </div>
+            </>
+          )}
+          {navigation.footer?.showPoweredBy !== false ? (
+            <div
+              style={{ borderColor: "var(--site-line)" }}
+              className="border-t"
             >
-              Powered by Vilo
-            </p>
-          </div>
-        ) : null}
-      </footer>
+              <p
+                style={{ color: "var(--site-mute)" }}
+                className="mx-auto w-full max-w-5xl px-5 py-3 text-center text-[11px]"
+              >
+                Powered by Vilo
+              </p>
+            </div>
+          ) : null}
+        </footer>
+      </ChromeEditWrap>
 
       <WhatsAppButton whatsapp={conversion.whatsapp} />
 
