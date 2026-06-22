@@ -1363,6 +1363,32 @@ export async function unpublishWebsiteAction(
 }
 
 /**
+ * Soft-delete a website. Sets `deleted_at` (the public resolver + dashboard list
+ * both filter `deleted_at IS NULL`, so the site immediately stops resolving and
+ * disappears from the host's list) and unpublishes it. The row + its pages/forms
+ * are retained for recovery; we never hard-delete `host_websites` (AGENT_RULES).
+ */
+export async function deleteWebsiteAction(
+  websiteId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("host_websites")
+    .update({
+      deleted_at: new Date().toISOString(),
+      status: "unpublished",
+    })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website`);
+  return { ok: true };
+}
+
+/**
  * Save per-room visibility + cosmetic display overrides + order. Upserts one
  * `website_rooms` row per submitted room (sort_order = array index, so the host's
  * reorder sticks). Every room_id is verified to belong to the website's business

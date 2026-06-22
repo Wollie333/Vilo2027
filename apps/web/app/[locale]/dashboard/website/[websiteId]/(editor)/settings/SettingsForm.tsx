@@ -13,6 +13,7 @@ import {
   Rocket,
   ShieldAlert,
   Sparkles,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useTransition, type ReactNode } from "react";
@@ -20,9 +21,10 @@ import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
 
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter as useLocaleRouter } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import {
+  deleteWebsiteAction,
   publishWebsiteAction,
   saveWebsiteSettingsAction,
   unpublishWebsiteAction,
@@ -162,6 +164,7 @@ export function SettingsForm({
 }) {
   const t = useTranslations("website");
   const router = useRouter();
+  const localeRouter = useLocaleRouter();
   const [state, setState] = useState<SettingsState>(initial);
   const [saving, startSave] = useTransition();
   const [lifecycle, startLifecycle] = useTransition();
@@ -218,6 +221,24 @@ export function SettingsForm({
       }
       toast.success(t("settingsSaved"));
       router.refresh();
+    });
+  }
+
+  function onDelete() {
+    startLifecycle(async () => {
+      const ok = await modal.destructive({
+        title: t("settingsDeleteTitle"),
+        description: t("settingsDeleteBody"),
+        confirmLabel: t("settingsDeleteConfirm"),
+      });
+      if (!ok) return;
+      const res = await deleteWebsiteAction(websiteId);
+      if (!res.ok) {
+        toast.error(t("saveError"));
+        return;
+      }
+      toast.success(t("settingsDeleted"));
+      localeRouter.push("/dashboard/website");
     });
   }
 
@@ -641,6 +662,24 @@ export function SettingsForm({
               <Rocket style={{ width: 14, height: 14 }} />
             )}
             {isLive ? t("takeOfflineCta") : t("publishCta")}
+          </button>
+        </Setrow>
+        <Setrow title={t("settingsDeleteRow")} desc={t("settingsDeleteDesc")}>
+          <button
+            type="button"
+            className="btn btn-sm btn-danger"
+            onClick={onDelete}
+            disabled={lifecycle}
+          >
+            {lifecycle ? (
+              <Loader2
+                className="animate-spin"
+                style={{ width: 14, height: 14 }}
+              />
+            ) : (
+              <Trash2 style={{ width: 14, height: 14 }} />
+            )}
+            {t("settingsDeleteCta")}
           </button>
         </Setrow>
       </Sblock>
