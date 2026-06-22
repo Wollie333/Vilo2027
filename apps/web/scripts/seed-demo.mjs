@@ -184,11 +184,36 @@ async function main() {
     },
   ]);
 
-  // Banking: encryption is OPTIONAL app-side; plain text round-trips fine.
+  // 2b. Business details — drives the branded document numbering
+  // (INV-/Q-/CR-/RF- use the trading name) and the invoice/quote PDF header.
+  // The host-insert trigger already created a default `businesses` row; enrich it
+  // and capture its id — per-business banking + document numbering resolve from it.
+  const { data: business, error: businessError } = await admin
+    .from("businesses")
+    .update({
+      legal_name: "Cape Coast Retreats (Pty) Ltd",
+      trading_name: "Cape Coast Retreats",
+      vat_number: "4123456789",
+      company_registration_number: "2021/123456/07",
+      address_line1: "12 Marine Drive",
+      city: "Hermanus",
+      postal_code: "7200",
+      country: "ZA",
+    })
+    .eq("host_id", HOST_ID)
+    .eq("is_default", true)
+    .select("id")
+    .single();
+  if (businessError) throw new Error(`update default business: ${businessError.message}`);
+  const BUSINESS_ID = business.id;
+
+  // Banking: per-business now (eft_banking_details.business_id is NOT NULL).
+  // Encryption is OPTIONAL app-side; plain text round-trips fine.
   await up("eft_banking_details", [
     {
       id: BANKING_ID,
       host_id: HOST_ID,
+      business_id: BUSINESS_ID,
       account_holder: "Cape Coast Retreats (Pty) Ltd",
       account_number: "62812345678",
       bank_name: "FNB",
@@ -199,29 +224,8 @@ async function main() {
     },
   ]);
 
-  // 2b. Business details — drives the branded document numbering
-  // (INV-/Q-/CR-/RF- use the trading name) and the invoice/quote PDF header.
-  // The host-insert trigger already created a default `businesses` row; enrich it.
-  {
-    const { error } = await admin
-      .from("businesses")
-      .update({
-        legal_name: "Cape Coast Retreats (Pty) Ltd",
-        trading_name: "Cape Coast Retreats",
-        vat_number: "4123456789",
-        company_registration_number: "2021/123456/07",
-        address_line1: "12 Marine Drive",
-        city: "Hermanus",
-        postal_code: "7200",
-        country: "ZA",
-      })
-      .eq("host_id", HOST_ID)
-      .eq("is_default", true);
-    if (error) throw new Error(`update default business: ${error.message}`);
-  }
-
-  // 3. Listings
-  await up("listings", [
+  // 3. Properties (formerly `listings`)
+  await up("properties", [
     {
       id: LISTING_A,
       host_id: HOST_ID,
