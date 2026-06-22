@@ -1161,6 +1161,8 @@
     "pbOutline": "Sections",
     "pbSelectHint": "Select a section in the outline or canvas to edit it.",
     "pbChromeHint": "Click a section, or the header or footer, to edit it.",
+    "pbUndo": "Undo",
+    "pbRedo": "Redo",
     "pbSiteParts": "Site parts",
     "pbAddBlocks": "Add blocks",
     "pbSearchBlocks": "Search blocks…",

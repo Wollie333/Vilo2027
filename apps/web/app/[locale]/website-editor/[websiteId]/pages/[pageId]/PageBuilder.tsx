@@ -53,6 +53,7 @@ import {
   PanelTop,
   Pilcrow,
   Plus,
+  Redo2,
   Rocket,
   Search,
   Settings2,
@@ -67,13 +68,14 @@ import {
   Tag,
   Trash2,
   Type as TypeIcon,
+  Undo2,
   User,
   Video,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Link, useRouter as useLocaleRouter } from "@/i18n/navigation";
@@ -384,12 +386,63 @@ export function PageBuilder({
   const setColumns = (columns: NavigationConfig["footer"]["columns"]) =>
     navMutate({ ...navConfig, footer: { ...navConfig.footer, columns } });
 
-  function mutate(next: WebsiteSection[]) {
+  // ── Undo / redo history ────────────────────────────────────────────────
+  // A snapshot stack of section states. Structural edits (add/remove/reorder/
+  // duplicate/toggle/template) push a discrete entry; inspector field typing
+  // passes `coalesce` so a burst of keystrokes collapses into ONE undo step.
+  const pastRef = useRef<WebsiteSection[][]>([]);
+  const futureRef = useRef<WebsiteSection[][]>([]);
+  const lastSnapRef = useRef(0);
+  const sectionsRef = useRef(sections);
+  sectionsRef.current = sections;
+  const [, bumpHistory] = useState(0);
+  const refreshHistory = () => bumpHistory((v) => v + 1);
+
+  function mutate(next: WebsiteSection[], opts?: { coalesce?: boolean }) {
+    const now = Date.now();
+    const burst =
+      !!opts?.coalesce &&
+      now - lastSnapRef.current < 700 &&
+      lastSnapRef.current > 0;
+    lastSnapRef.current = now;
+    if (!burst) {
+      pastRef.current = [...pastRef.current, sections].slice(-50);
+      refreshHistory();
+    }
+    futureRef.current = [];
     setSections(next);
     setDirty(true);
   }
+  function undo() {
+    const past = pastRef.current;
+    if (!past.length) return;
+    const prev = past[past.length - 1];
+    pastRef.current = past.slice(0, -1);
+    futureRef.current = [...futureRef.current, sectionsRef.current].slice(-50);
+    lastSnapRef.current = 0;
+    setSections(prev);
+    setDirty(true);
+    refreshHistory();
+  }
+  function redo() {
+    const future = futureRef.current;
+    if (!future.length) return;
+    const next = future[future.length - 1];
+    futureRef.current = future.slice(0, -1);
+    pastRef.current = [...pastRef.current, sectionsRef.current].slice(-50);
+    lastSnapRef.current = 0;
+    setSections(next);
+    setDirty(true);
+    refreshHistory();
+  }
+  const canUndo = pastRef.current.length > 0;
+  const canRedo = futureRef.current.length > 0;
+
   const updateSection = (next: WebsiteSection) =>
-    mutate(sections.map((s) => (s.id === next.id ? next : s)));
+    mutate(
+      sections.map((s) => (s.id === next.id ? next : s)),
+      { coalesce: true },
+    );
   const toggleEnabled = (id: string) =>
     mutate(
       sections.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)),
@@ -572,6 +625,89 @@ export function PageBuilder({
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty, navDirty]);
 
+  // Force an immediate draft save (⌘/Ctrl+S) — autosave already covers idle, this
+  // gives explicit "save now" feedback. No-ops when clean or invalid.
+  function saveNow() {
+    if (!dirty || publishing) return;
+    if (firstInvalidSection(sections)) {
+      setAutoStatus("error");
+      toast.error(t("draftSaveError"));
+      return;
+    }
+    setAutoStatus("saving");
+    void saveDraftSectionsAction({ websiteId, pageId, sections }).then(
+      (res) => {
+        if (res.ok) {
+          setDirty(false);
+          setAutoStatus("saved");
+        } else {
+          setAutoStatus("error");
+        }
+      },
+    );
+  }
+
+  // Keyboard shortcuts. The listener mounts once; a ref carries the latest
+  // handlers + selection so it never goes stale. ⌘/Ctrl+Z undo, ⇧+Z (or ⌘/Ctrl+Y)
+  // redo, ⌘/Ctrl+S save, Delete/Backspace removes the selected section. Edits
+  // inside a text field / contenteditable (e.g. the rich-text editor) keep their
+  // own native undo — we never hijack those.
+  const shortcutRef = useRef({
+    undo,
+    redo,
+    saveNow,
+    removeSection,
+    selectedId,
+    previewing,
+  });
+  shortcutRef.current = {
+    undo,
+    redo,
+    saveNow,
+    removeSection,
+    selectedId,
+    previewing,
+  };
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey;
+      const el = document.activeElement as HTMLElement | null;
+      const editable =
+        !!el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable);
+      const s = shortcutRef.current;
+      const key = e.key.toLowerCase();
+      if (mod && key === "s") {
+        e.preventDefault();
+        s.saveNow();
+        return;
+      }
+      if (mod && key === "z") {
+        if (editable) return;
+        e.preventDefault();
+        if (e.shiftKey) s.redo();
+        else s.undo();
+        return;
+      }
+      if (mod && key === "y") {
+        if (editable) return;
+        e.preventDefault();
+        s.redo();
+        return;
+      }
+      if (key === "delete" || key === "backspace") {
+        if (editable || s.previewing || !s.selectedId) return;
+        e.preventDefault();
+        s.removeSection(s.selectedId);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const deviceClass =
     device === "tablet"
       ? "device tablet"
@@ -665,6 +801,32 @@ export function PageBuilder({
                 onClick={() => changeLayout("boxed")}
               >
                 <LayoutTemplate style={{ width: 16, height: 16 }} />
+              </button>
+            </div>
+            {/* Undo / redo of section edits. */}
+            <div
+              className="seg"
+              role="group"
+              aria-label={t("pbUndo")}
+              style={{ marginLeft: 6 }}
+            >
+              <button
+                type="button"
+                title={`${t("pbUndo")} (Ctrl+Z)`}
+                aria-label={t("pbUndo")}
+                disabled={!canUndo}
+                onClick={undo}
+              >
+                <Undo2 style={{ width: 16, height: 16 }} />
+              </button>
+              <button
+                type="button"
+                title={`${t("pbRedo")} (Ctrl+Shift+Z)`}
+                aria-label={t("pbRedo")}
+                disabled={!canRedo}
+                onClick={redo}
+              >
+                <Redo2 style={{ width: 16, height: 16 }} />
               </button>
             </div>
           </div>
