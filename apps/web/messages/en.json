@@ -1540,7 +1540,7 @@
     "fldHostName": "Host name",
     "fldHostPhoto": "Host photo",
     "fldHtml": "Content",
-    "fldHtmlHint": "Basic HTML is supported (headings, bold, lists, links).",
+    "fldHtmlHint": "Use the toolbar to format your text — headings, bold, italic, lists and quotes.",
     "fldLayout": "Layout",
     "fldMax": "Maximum to show",
     "fldRoomCtaLabel": "Room button label",

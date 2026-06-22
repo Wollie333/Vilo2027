@@ -1,6 +1,15 @@
 "use client";
 
-import { ImagePlus, Library, Loader2, Plus, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ImagePlus,
+  Library,
+  Loader2,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -348,6 +357,13 @@ export function ItemListEditor<T>({
   function patchAt(i: number, next: Partial<T>) {
     onChange(items.map((it, idx) => (idx === i ? { ...it, ...next } : it)));
   }
+  function move(i: number, dir: -1 | 1) {
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    const next = items.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  }
   return (
     <div>
       <span className="block text-[13px] font-semibold text-brand-ink">
@@ -359,14 +375,34 @@ export function ItemListEditor<T>({
             key={i}
             className="relative rounded-[10px] border border-brand-line bg-brand-light/30 p-3 pr-9"
           >
-            <button
-              type="button"
-              onClick={() => onChange(items.filter((_, idx) => idx !== i))}
-              className="absolute right-2 top-2 rounded p-1 text-brand-mute hover:bg-white hover:text-red-600"
-              aria-label="Remove"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <div className="absolute right-2 top-2 flex flex-col gap-0.5">
+              <button
+                type="button"
+                onClick={() => move(i, -1)}
+                disabled={i === 0}
+                className="rounded p-1 text-brand-mute transition hover:bg-white hover:text-brand-ink disabled:pointer-events-none disabled:opacity-30"
+                aria-label="Move up"
+              >
+                <ArrowUp className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => move(i, 1)}
+                disabled={i === items.length - 1}
+                className="rounded p-1 text-brand-mute transition hover:bg-white hover:text-brand-ink disabled:pointer-events-none disabled:opacity-30"
+                aria-label="Move down"
+              >
+                <ArrowDown className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+                className="rounded p-1 text-brand-mute transition hover:bg-white hover:text-red-600"
+                aria-label="Remove"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <div className="space-y-2">
               {renderItem(item, (n) => patchAt(i, n))}
             </div>

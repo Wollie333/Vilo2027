@@ -22,7 +22,10 @@ import type {
   WebsiteSection,
 } from "@/lib/website/sections.schema";
 
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
+
 import {
+  Field,
   ImageField,
   ItemListEditor,
   LiveNote,
@@ -982,14 +985,14 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
-          <TextArea
-            label={t("fldHtml")}
-            value={p.html}
-            onChange={(v) => set({ html: v })}
-            maxLength={50000}
-            rows={8}
-            hint={t("fldHtmlHint")}
-          />
+          <Field label={t("fldHtml")} hint={t("fldHtmlHint")}>
+            <div className="mt-1.5">
+              <RichTextEditor
+                value={p.html}
+                onChange={(v) => set({ html: v.slice(0, 50000) })}
+              />
+            </div>
+          </Field>
           <SelectField
             label={t("fldVariant")}
             value={p.variant}
