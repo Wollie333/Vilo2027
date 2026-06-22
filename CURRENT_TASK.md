@@ -2,9 +2,26 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶ ACTIVE LANE: Website CMS — PREMIUM REDESIGN to mockups (RESUME HERE · 2026-06-21)
+## ▶ ACTIVE LANE: Website CMS — PRODUCTION READINESS (RESUME HERE · 2026-06-22)
 
-**Branch:** `main` — all work committed, working tree clean; full `pnpm build` ran green twice this session group.
+**Branch:** `main` — working tree CLEAN, all work committed (latest `5afa8e4`). Dev server: `cd apps/web && PORT=3001 pnpm dev` → http://localhost:3001 (tenant site via `/en/site?site=<subdomain>`). **GOTCHA: do NOT run `pnpm build` while the dev server is up — it clobbers the shared `.next` and breaks the running server. Verify with `pnpm exec tsc --noEmit` + `pnpm next lint --file …` only.**
+
+**The PREMIUM REDESIGN is COMPLETE** (all 8 mockup tabs + full-screen editors + Elementor-but-simple builder [free elements + per-block responsive style w/ accurate device preview + columns] + unified inline header/footer/menu editing in the builder + Brand button + Site-parts palette). Detail in the historical log below + CHANGELOG (2026-06-21/22) + MEMORY.md. **Verified: full `pnpm build` exit 0, app-wide lint clean, tsc green, themes-compat 🎉.**
+
+**▶ NEW GOAL: get the Website CMS production-ready.** Founder wants to follow the readiness plan below (assessment given 2026-06-22). Current state = **feature-complete, NOT production-hardened (~70%)**. Work the gates in order:
+
+1. **MANUAL/LIVE QA PASS (do FIRST — #1 risk).** Almost ALL recent work (esp. the deep-fold inline chrome editing + the builder) was verified by tsc/lint/build, **NOT by clicking through a real browser**. Drive `localhost:3001` and exercise: page builder (add/edit/reorder EVERY section type + the 6 free elements + columns + per-block desktop/tablet/mobile style + tone/visibility/schedule); inline header/footer/menu editing (click chrome → edit → autosave → publish); Pages/Blog/Forms managers + their full-screen editors; Domain/SEO/Settings tabs; Brand button round-trip; on-site checkout (real booking → card + EFT) + forms submit → inbox; publish flow + live tenant render; desktop + mobile. Fix what breaks. (Can use Claude-in-Chrome / Preview MCP, but needs a logged-in host + a seeded test website.)
+2. **Security + bot-hardening.** Run `SECURITY_CHECKLIST.md` (RLS coverage, no service-role key client-side, webhook sigs, the NEW public `SiteChrome editable` path is builder-only/inert on public). Add **Cloudflare Turnstile** to forms (`/api/website-form-submit`) + on-site checkout (`/api/site-booking`) — currently honeypot-only (deferred earlier). Needs `TURNSTILE_*` env keys.
+3. **Ops / domains / payments / gates.** Set `NEXT_PUBLIC_ROOT_DOMAIN` + wildcard DNS so tenant subdomains/custom domains work for real (today only `?site=`); verify custom-domain DNS/SSL provisioning. Payments: live Paystack/PayPal keys + webhook verification confirmed against prod endpoints. **Flip the pre-MVP feature gates** (AGENT_RULES §3.4 — gates short-circuit to `true` + every plan open; must flip so plans actually gate) + seed real `plan_features`.
+4. **Lower priority:** cookie/consent banner (POPIA — SA legal, needed if any analytics embedded) · a thin E2E smoke test for booking + publish (CMS test coverage ≈ 0 today — only `lib/site/host.test.ts` + `lib/website/subdomain.test.ts`) · deferred Settings features (GA4/Meta Pixel integrations, password protection, maintenance mode, delete-website, editable general lang/tz/currency).
+
+**Founder is following this sequencing. Start a fresh session at step 1 (live QA) unless the founder redirects to a specific gate (e.g. Turnstile or the security pass).**
+
+---
+
+## ▶ COMPLETED LANE (historical): Website CMS — PREMIUM REDESIGN to mockups (· 2026-06-21→22)
+
+**Branch:** `main` — all work committed, working tree clean; full `pnpm build` exit 0.
 
 **Goal:** redesign the whole Website CMS to the founder's pixel mockups + a simple in-page builder. **Mockup HTML files live in `C:\Users\Wollie\Downloads\*.html`** (Page Builder A · Pages Manager (2) · Forms Manager · Form Editor · Navigation Manager · Blog Manager · Blog Post Editor · Domain Manager · SEO Manager · Website Settings · Website CMS C). READ these for fidelity — the plain "Pages Manager.html"/"Website Settings.html" 1.4MB files are iframe wrappers; use the numbered/real ones.
 

@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-22 — SAVE POINT · Website CMS premium redesign COMPLETE → production-readiness lane
+
+**Milestone.** The premium Website CMS redesign is done and hardened. Shipped this
+group: all 8 canonical mockup tabs + their full-screen editors; the
+"Elementor-but-simple" page builder (6 free elements + Columns + per-block
+desktop/tablet/mobile style with **accurate** container-query device preview);
+unified **inline header/menu/footer editing in the builder canvas** (the deep
+fold, done safely — `SiteChrome` gained an optional `editable` prop, public render
+unchanged); per-page SEO + a11y in the builder; the dnd-kit reorder engine in the
+nav editors; the tab bar reconciled to the mockup's 8; a Brand toolbar button; and
+a Site-parts palette. **Verified:** full `pnpm build` exit 0, app-wide lint clean,
+tsc green, themes-compat 🎉, no stray `console.log`.
+
+**Next lane — production readiness (~70% today, feature-complete but not
+hardened).** See `CURRENT_TASK.md` top for the ordered gate plan:
+1. **Live QA pass** (most recent work verified by tsc/lint/build, not real browser).
+2. **Security checklist + Turnstile** on forms/checkout (honeypot-only today).
+3. **Ops:** root-domain + wildcard DNS, live payment keys/webhooks, flip the
+   pre-MVP feature gates, seed real `plan_features`.
+4. Cookie/consent (POPIA), a thin booking/publish E2E, deferred Settings features.
+
+No code change in this entry — resume anchor + memory updated for a clean
+hand-off to a new session.
+
+---
+
 ## 2026-06-22 — Website CMS premium redesign · Brand Studio reachable from the builder
 
 Makes the page builder the single editing hub. Toolbar is now **Brand · Page
