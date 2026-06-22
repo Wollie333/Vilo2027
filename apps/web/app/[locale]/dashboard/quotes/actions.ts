@@ -765,6 +765,12 @@ export async function convertQuoteAction(
           .eq("id", existingId);
       }
       if (payment.state === "paid") {
+        // Complete ONLY the deposit row (the amount due now) — never sweep every
+        // pending row to completed. "Paid" here means the host received the
+        // pay-now amount, not the outstanding balance; an unscoped update would
+        // over-credit a booking that has any other pending payment row (e.g. a
+        // card-initiated one). Mirrors the fresh-convert path, which only ever
+        // completes the deposit. The balance stays owed on bookings.balance_due.
         await admin
           .from("payments")
           .update({
@@ -773,7 +779,8 @@ export async function convertQuoteAction(
             note: payment.note || "Payment received",
           })
           .eq("booking_id", existingId)
-          .eq("status", "pending");
+          .eq("status", "pending")
+          .eq("kind", "deposit");
       }
       await recomputeBookingPaymentState(admin, existingId);
 

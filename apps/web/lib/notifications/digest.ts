@@ -164,9 +164,24 @@ export async function runDigestDrain(): Promise<DigestRunResult> {
     const cadence: "daily" | "weekly" =
       hasWeekly && isMonday ? "weekly" : "daily";
 
-    const groups = groupByCategory(eligible, labelById);
+    const ids = eligible.map((i) => i.id as string);
 
     try {
+      // CLAIM the items first (atomic): flip sent_at only on rows still unsent.
+      // If an overlapping hourly tick already claimed them we get 0 rows back
+      // and skip — so a concurrent run can't send the same digest twice. (The
+      // trade-off vs send-then-mark: a failure after this point drops a digest
+      // rather than duplicating it, which for a digest is the safer direction.)
+      const { data: claimed } = await supabase
+        .from("pending_digest_items")
+        .update({ sent_at: new Date().toISOString() })
+        .in("id", ids)
+        .is("sent_at", null)
+        .select("id");
+      if (!claimed || claimed.length === 0) continue;
+
+      const groups = groupByCategory(eligible, labelById);
+
       if (profile?.email) {
         await supabase.from("notification_queue").insert({
           type: "notification_digest",
@@ -197,13 +212,6 @@ export async function runDigestDrain(): Promise<DigestRunResult> {
         p_category_id: "admin_broadcasts",
         p_severity: "info",
       });
-
-      // Mark every item sent.
-      const ids = eligible.map((i) => i.id as string);
-      await supabase
-        .from("pending_digest_items")
-        .update({ sent_at: new Date().toISOString() })
-        .in("id", ids);
 
       result.users_processed += 1;
       result.digests_sent += 1;

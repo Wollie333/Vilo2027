@@ -5,6 +5,53 @@
 
 ---
 
+## 2026-06-22 — Flagged code fixes: convert over-credit, edge-fn auth, digest race
+
+Cleared the code-fixable flagged items (the rest genuinely need live Paystack/PayPal keys).
+
+**convertQuoteAction over-credit** — the adopt path (`actions.ts`, guest already
+accepted the quote) marked *every* pending payment completed
+(`.eq("status","pending")` with no `kind`) when the host recorded payment.
+`acceptAndConvertQuote` seeds only one deposit row today, so it was latent — but
+any other pending row (e.g. a card-initiated one) would have been wrongly
+settled, marking a balance paid the guest never paid. Scoped the update to
+`.eq("kind","deposit")`, mirroring the fresh-convert path; the balance stays
+owed on `bookings.balance_due`. (Verified the ledger derives `paid` from
+completed inbound rows, so completing only the deposit is correct.)
+
+**report-scheduler edge-fn auth** — the hourly cron authenticated only with the
+PUBLIC anon key, so anyone could invoke a function that runs with the
+service-role key over every host's reports. Added a fail-closed
+`x-report-scheduler-secret` gate (timing-safe, `REPORT_SCHEDULER_SECRET`) and
+migration `20260622020000` reschedules the cron to send it from
+`app.report_scheduler_secret`, skipping the tick while unset. **Activate:**
+`ALTER DATABASE postgres SET app.report_scheduler_secret='…'` + set the same
+`REPORT_SCHEDULER_SECRET` in the function env + `supabase functions deploy
+report-scheduler` (not done here — deploy is a founder ops step).
+
+**track-listing-view hardening** — a public anon beacon that inserts with the
+service role. Kept it open (it must be) but validated every client field:
+property_id must be a uuid (clean 400 vs FK-500), device coerced to the column's
+CHECK enum, country to ISO-alpha-2, duration clamped to [0, 86400], referrer
+length-capped, session_id uuid-validated. A fake property_id still trips the FK
+(no garbage rows). **Activate:** `supabase functions deploy track-listing-view`.
+
+**digest drain race** — `runDigestDrain` (hourly) did send-then-mark, so an
+overlapping tick could double-send a digest. Reordered to claim-first: flip
+`sent_at` conditionally (`.is("sent_at",null).select()`) and only send if rows
+were claimed; a losing concurrent run gets 0 and skips. No migration. (Trade-off:
+a failure after claim drops a digest rather than duplicating — safer direction.)
+
+**Confirmed already-safe (no change):** Paystack webhook idempotency (UNIQUE
+`provider_reference` + `if status !== 'pending' return` + confirm gated on
+`.eq("status","pending")`) and overpayment-credit dedup (`postOverpaymentCredit`
+credits only each payment's incremental excess). Webhook **amount-verification**
+left as-is — needs live Paystack payloads to validate safely.
+
+tsc + lint + 73 vitest green; both migrations pushed.
+
+---
+
 ## 2026-06-22 — Notification drains: atomic claim (anti double-send)
 
 Closed two save-point items.

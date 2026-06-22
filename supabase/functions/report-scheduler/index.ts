@@ -3,8 +3,31 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-report-scheduler-secret",
 };
+
+// Constant-time compare so the shared-secret check can't be timing-probed.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+// This is an INTERNAL cron job that runs with the service-role key and processes
+// every host's due reports. The pg_cron tick must present a shared secret in the
+// x-report-scheduler-secret header (the platform's anon-key bearer alone is
+// public — it ships to every browser — so it is NOT real auth). Fail closed:
+// if REPORT_SCHEDULER_SECRET is unset, reject rather than run wide open.
+function authorised(req: Request): boolean {
+  const expected = Deno.env.get("REPORT_SCHEDULER_SECRET");
+  if (!expected) return false;
+  const provided = req.headers.get("x-report-scheduler-secret") ?? "";
+  return timingSafeEqual(provided, expected);
+}
 
 interface ScheduledReport {
   id: string;
@@ -22,6 +45,19 @@ serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!authorised(req)) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: { code: "UNAUTHORIZED", message: "" },
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      },
+    );
   }
 
   try {
@@ -58,19 +94,21 @@ serve(async (req) => {
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
-        }
+        },
       );
     }
 
     // Process each due report
     const results = await Promise.allSettled(
-      dueReports.map((report) => processScheduledReport(supabase, report))
+      dueReports.map((report) => processScheduledReport(supabase, report)),
     );
 
     const successCount = results.filter((r) => r.status === "fulfilled").length;
     const failedCount = results.filter((r) => r.status === "rejected").length;
 
-    console.log(`Processed ${successCount} reports successfully, ${failedCount} failed`);
+    console.log(
+      `Processed ${successCount} reports successfully, ${failedCount} failed`,
+    );
 
     return new Response(
       JSON.stringify({
@@ -87,7 +125,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      }
+      },
     );
   } catch (error) {
     console.error("report-scheduler error:", error);
@@ -99,7 +137,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
-      }
+      },
     );
   }
 });
@@ -125,13 +163,18 @@ async function processScheduledReport(supabase: any, report: ScheduledReport) {
     .single();
 
   if (createRunError) {
-    console.error(`Failed to create report_run for ${report.id}:`, createRunError);
+    console.error(
+      `Failed to create report_run for ${report.id}:`,
+      createRunError,
+    );
     throw new Error(`Failed to create report_run: ${createRunError.message}`);
   }
 
   try {
     // Generate report data
-    console.log(`Generating ${report.format.toUpperCase()} report for ${report.report_type}`);
+    console.log(
+      `Generating ${report.format.toUpperCase()} report for ${report.report_type}`,
+    );
 
     // TODO: Implement actual report generation based on report_type
     // For now, create a placeholder
@@ -191,7 +234,9 @@ async function processScheduledReport(supabase: any, report: ScheduledReport) {
       })
       .eq("id", report.id);
 
-    console.log(`Report ${report.id} processed successfully. Next run: ${nextRunAt}`);
+    console.log(
+      `Report ${report.id} processed successfully. Next run: ${nextRunAt}`,
+    );
 
     return {
       success: true,
