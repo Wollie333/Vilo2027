@@ -99,7 +99,10 @@ describe("verifyTurnstile", () => {
     await verifyTurnstile("tok", "1.2.3.4");
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchSpy.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
     expect(url).toContain("siteverify");
     const body = init.body as URLSearchParams;
     expect(body.get("secret")).toBe("sek");
