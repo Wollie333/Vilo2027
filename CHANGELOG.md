@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-06-22 — Live QA pass (Step 1) — first browser drive-through
+
+Drove the app in a real browser (Preview MCP) logged in as the seeded test host
+`host@vilotest.com`, exercising the highest-risk, never-clicked surfaces.
+
+**Verified working:** login flow; dashboard (greeting, KPIs, 4.8★/4 reviews, the
+confirmed R8 250 stay, "Confirm 1 pending"); Website CMS Overview (site switcher,
+8 tabs, portfolio card, publish bar); Pages manager (7 pages, Home = 9 sections,
+Live); the full-screen **page builder** (palette + live canvas + inspector load
+correctly, Hero auto-selected with all fields); **section editing** — edit
+headline → live canvas updates → debounced autosave → **persisted to DB**
+(confirmed by query); inline **header/footer site-part selection** sets
+`selectedChrome` (verified the button resolves to `pal-item sel`).
+
+**Fixed:** the site-part selected style never applied — `pal-item${… ? "sel" …}`
+was concatenated without a space (`pal-itemsel`), so the `.pal-item.sel` highlight
+was dead. Added the space (header + footer).
+
+**Noted for follow-up (not blockers):** (1) the builder's autosave→`router.refresh`
+re-mounts the editor and can reset the active selection mid-edit — worth a look;
+(2) client-router tab clicks occasionally raced back to Overview (direct nav is
+fine); (3) dashboard greets "Olive" (derived from the business name "Olive Grove"
+rather than the host's first name). Remaining Step-1 surfaces (Blog/Forms editors,
+Domain/SEO/Settings, on-site checkout, forms→inbox, mobile) still to drive.
+
+---
+
 ## 2026-06-22 — Fix booking-confirm invoice trigger + stale seed-demo
 
 **Issue #1 (launch-blocker) FIXED.** Confirming any booking threw `relation

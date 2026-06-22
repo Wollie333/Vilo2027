@@ -669,7 +669,7 @@ export function PageBuilder({
                 <button
                   type="button"
                   style={{ cursor: "pointer" }}
-                  className={`pal-item${selectedChrome === "header" ? "sel" : ""}`}
+                  className={`pal-item${selectedChrome === "header" ? " sel" : ""}`}
                   onClick={() => selectChrome("header")}
                 >
                   <span className="pi-ic">
@@ -680,7 +680,7 @@ export function PageBuilder({
                 <button
                   type="button"
                   style={{ cursor: "pointer" }}
-                  className={`pal-item${selectedChrome === "footer" ? "sel" : ""}`}
+                  className={`pal-item${selectedChrome === "footer" ? " sel" : ""}`}
                   onClick={() => selectChrome("footer")}
                 >
                   <span className="pi-ic">
