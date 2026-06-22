@@ -3,6 +3,10 @@ import type { CSSProperties, ReactNode } from "react";
 import type {
   BlockSpace,
   BlockStyle,
+  ElButtonSize,
+  ElColor,
+  ElSize,
+  ElWeight,
   SectionTone,
 } from "@/lib/website/sections.schema";
 
@@ -171,14 +175,24 @@ export function Muted({
   );
 }
 
+// Button size presets (preset-only, brand-safe). md = the long-standing default,
+// so existing callers that omit `size` render exactly as before.
+const BTN_SIZE: Record<ElButtonSize, string> = {
+  sm: "px-4 py-2 text-xs",
+  md: "px-6 py-3 text-sm",
+  lg: "px-8 py-4 text-base",
+};
+
 export function SiteButton({
   href,
   children,
   variant = "primary",
+  size = "md",
 }: {
   href: string;
   children: ReactNode;
   variant?: "primary" | "secondary";
+  size?: ElButtonSize;
 }) {
   const prefix = `--site-btn-${variant}`;
   const style: CSSProperties = {
@@ -191,11 +205,56 @@ export function SiteButton({
     <a
       href={href}
       style={style}
-      className="inline-flex items-center justify-center px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90"
+      className={`inline-flex items-center justify-center font-semibold transition-opacity hover:opacity-90 ${BTN_SIZE[size]}`}
     >
       {children}
     </a>
   );
+}
+
+// ── Element typography presets (brand-safe — tied to the theme) ──
+// Sizes scale off the theme's base size; weights are standard steps; colours are
+// theme palette roles. "auto"/"default" return the caller's fallback so an
+// element that doesn't override inherits the theme exactly as before.
+const EL_SIZE_CSS: Record<Exclude<ElSize, "auto">, string> = {
+  xs: "calc(var(--site-text-base) * 0.85)",
+  sm: "var(--site-text-base)",
+  md: "calc(var(--site-text-base) * 1.4)",
+  lg: "calc(var(--site-text-base) * 1.9)",
+  xl: "calc(var(--site-text-base) * 2.6)",
+  "2xl": "calc(var(--site-text-base) * 3.4)",
+};
+const EL_WEIGHT_CSS: Record<Exclude<ElWeight, "auto">, number> = {
+  light: 300,
+  normal: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+};
+
+/** Element font-size override, or `fallback` when "auto"/unset. */
+export function elFontSize(size: ElSize | undefined, fallback: string): string {
+  return size && size !== "auto" ? EL_SIZE_CSS[size] : fallback;
+}
+/** Element weight override, or `fallback` when "auto"/unset. */
+export function elFontWeight(
+  weight: ElWeight | undefined,
+  fallback: number | string,
+): number | string {
+  return weight && weight !== "auto" ? EL_WEIGHT_CSS[weight] : fallback;
+}
+/** Element colour override (theme role), or `fallback` when "default"/unset. */
+export function elColor(color: ElColor | undefined, fallback: string): string {
+  switch (color) {
+    case "muted":
+      return "var(--site-mute)";
+    case "accent":
+      return "var(--site-accent)";
+    case "secondary":
+      return "var(--site-secondary)";
+    default:
+      return fallback;
+  }
 }
 
 export function Card({

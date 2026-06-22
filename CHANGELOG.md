@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-22 — Page builder refinement · Slice 1 (per-element styling)
+
+Preset-based, brand-safe element customization (no raw px/hex — tied to the
+theme, per the curated-not-Elementor design law). All additive on the existing
+jsonb `sections.schema` — no migration.
+
+- **Heading + Text elements:** new **size** (Auto + xs→2xl, scaled off
+  `--site-text-base`), **weight** (Auto + light→bold), **colour** (default /
+  muted / accent / secondary theme roles). "Auto"/"default" inherit the theme,
+  so existing blocks look identical until changed.
+- **Button element:** **size** (sm/md/lg) — `SiteButton` gained an optional
+  `size` (defaults md, so every existing caller is unchanged).
+- **Spacer:** heights extended to xs / sm / md / lg / xl / 2xl (12–160px).
+- **Divider:** new **thickness** (thin/medium/thick → 1/2/4px).
+
+Shared CSS mappers (`elFontSize`/`elFontWeight`/`elColor`) + `BTN_SIZE` live in
+`components/site/sections/_shared.tsx`; inspector gets a shared `TypographyFields`
+control. +30 `website` i18n keys (en). tsc + lint + 73 vitest green.
+
+---
+
 ## 2026-06-22 — Edge functions deployed + verified live (auth/hardening)
 
 Deployed both hardened edge functions to the linked project (`--use-api`, no

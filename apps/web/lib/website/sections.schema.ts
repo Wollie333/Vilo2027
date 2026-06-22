@@ -397,15 +397,45 @@ const rateTableProps = z.object({
 // style overrides are planned follow-up slices.)
 const ELEMENT_ALIGN = ["left", "center", "right"] as const;
 
+// Preset typography tokens (brand-safe — tied to the theme, never raw px/hex):
+//   • size   — "auto" inherits (heading uses its level's --site-hN, text uses
+//              the body base); the rest scale off --site-text-base.
+//   • weight — "auto" inherits the theme heading/body weight.
+//   • color  — "default" inherits (heading=ink, text=mute); the rest are theme
+//              palette roles, so a host can recolour without going off-brand.
+export const EL_SIZE = ["auto", "xs", "sm", "md", "lg", "xl", "2xl"] as const;
+export type ElSize = (typeof EL_SIZE)[number];
+export const EL_WEIGHT = [
+  "auto",
+  "light",
+  "normal",
+  "medium",
+  "semibold",
+  "bold",
+] as const;
+export type ElWeight = (typeof EL_WEIGHT)[number];
+export const EL_COLOR = ["default", "muted", "accent", "secondary"] as const;
+export type ElColor = (typeof EL_COLOR)[number];
+export const EL_BUTTON_SIZE = ["sm", "md", "lg"] as const;
+export type ElButtonSize = (typeof EL_BUTTON_SIZE)[number];
+export const EL_DIVIDER_THICKNESS = ["thin", "medium", "thick"] as const;
+export type ElDividerThickness = (typeof EL_DIVIDER_THICKNESS)[number];
+
 const elHeadingProps = z.object({
   text: z.string().max(200),
   level: z.enum(["h2", "h3", "h4"]).default("h2"),
   align: z.enum(ELEMENT_ALIGN).default("left"),
+  size: z.enum(EL_SIZE).default("auto"),
+  weight: z.enum(EL_WEIGHT).default("auto"),
+  color: z.enum(EL_COLOR).default("default"),
 });
 
 const elTextProps = z.object({
   body: z.string().max(4000),
   align: z.enum(ELEMENT_ALIGN).default("left"),
+  size: z.enum(EL_SIZE).default("auto"),
+  weight: z.enum(EL_WEIGHT).default("auto"),
+  color: z.enum(EL_COLOR).default("default"),
 });
 
 const elImageProps = z.object({
@@ -421,15 +451,17 @@ const elButtonProps = z.object({
   label: z.string().max(60),
   href: z.string().max(500),
   variant: z.enum(["primary", "secondary"]).default("primary"),
+  size: z.enum(EL_BUTTON_SIZE).default("md"),
   align: z.enum(ELEMENT_ALIGN).default("left"),
 });
 
 const elSpacerProps = z.object({
-  size: z.enum(["sm", "md", "lg", "xl"]).default("md"),
+  size: z.enum(["xs", "sm", "md", "lg", "xl", "2xl"]).default("md"),
 });
 
 const elDividerProps = z.object({
   line: z.enum(["solid", "dashed", "dotted"]).default("solid"),
+  thickness: z.enum(EL_DIVIDER_THICKNESS).default("thin"),
   width: z.enum(["narrow", "full"]).default("full"),
 });
 

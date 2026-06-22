@@ -336,7 +336,14 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { text: "Section heading", level: "h2", align: "left" },
+        props: {
+          text: "Section heading",
+          level: "h2",
+          align: "left",
+          size: "auto",
+          weight: "auto",
+          color: "default",
+        },
       };
     case "el_text":
       return {
@@ -347,6 +354,9 @@ export function newSection(type: SectionType): WebsiteSection {
         props: {
           body: "Write something here — a short paragraph of your own copy.",
           align: "left",
+          size: "auto",
+          weight: "auto",
+          color: "default",
         },
       };
     case "el_image":
@@ -367,6 +377,7 @@ export function newSection(type: SectionType): WebsiteSection {
           label: "Learn more",
           href: "#",
           variant: "primary",
+          size: "md",
           align: "left",
         },
       };
@@ -384,7 +395,7 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { line: "solid", width: "full" },
+        props: { line: "solid", thickness: "thin", width: "full" },
       };
     case "columns":
       return {

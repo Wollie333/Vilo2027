@@ -14,6 +14,9 @@ import {
 import type {
   ColumnBlock,
   ColumnBlockKind,
+  ElColor,
+  ElSize,
+  ElWeight,
   WebsiteSection,
 } from "@/lib/website/sections.schema";
 
@@ -1379,6 +1382,12 @@ function SectionFields({
             onChange={(v) => set({ level: v })}
           />
           <AlignField value={p.align} onChange={(v) => set({ align: v })} />
+          <TypographyFields
+            size={p.size}
+            weight={p.weight}
+            color={p.color}
+            onChange={set}
+          />
         </div>
       );
     }
@@ -1397,6 +1406,12 @@ function SectionFields({
             rows={5}
           />
           <AlignField value={p.align} onChange={(v) => set({ align: v })} />
+          <TypographyFields
+            size={p.size}
+            weight={p.weight}
+            color={p.color}
+            onChange={set}
+          />
         </div>
       );
     }
@@ -1474,6 +1489,16 @@ function SectionFields({
             ]}
             onChange={(v) => set({ variant: v })}
           />
+          <SelectField
+            label={t("fldElButtonSize")}
+            value={p.size}
+            options={[
+              { value: "sm", label: t("elBtnSize_sm") },
+              { value: "md", label: t("elBtnSize_md") },
+              { value: "lg", label: t("elBtnSize_lg") },
+            ]}
+            onChange={(v) => set({ size: v })}
+          />
           <AlignField value={p.align} onChange={(v) => set({ align: v })} />
         </div>
       );
@@ -1489,10 +1514,12 @@ function SectionFields({
             label={t("fldElSpacerSize")}
             value={p.size}
             options={[
+              { value: "xs", label: t("elSpacer_xs") },
               { value: "sm", label: t("elSpacer_sm") },
               { value: "md", label: t("elSpacer_md") },
               { value: "lg", label: t("elSpacer_lg") },
               { value: "xl", label: t("elSpacer_xl") },
+              { value: "2xl", label: t("elSpacer_2xl") },
             ]}
             onChange={(v) => set({ size: v })}
           />
@@ -1515,6 +1542,16 @@ function SectionFields({
               { value: "dotted", label: t("elLine_dotted") },
             ]}
             onChange={(v) => set({ line: v })}
+          />
+          <SelectField
+            label={t("fldElThickness")}
+            value={p.thickness}
+            options={[
+              { value: "thin", label: t("elThick_thin") },
+              { value: "medium", label: t("elThick_medium") },
+              { value: "thick", label: t("elThick_thick") },
+            ]}
+            onChange={(v) => set({ thickness: v })}
           />
           <SelectField
             label={t("fldElWidth")}
@@ -1541,6 +1578,72 @@ function SectionFields({
     default:
       return null;
   }
+}
+
+/**
+ * Preset typography controls (size / weight / colour) shared by the heading and
+ * text elements. All preset-only and theme-tied: "Auto" inherits the theme, and
+ * colours are palette roles — a host can't enter raw px/hex, so it stays
+ * on-brand (RULES: curated, not Elementor).
+ */
+function TypographyFields({
+  size,
+  weight,
+  color,
+  onChange,
+}: {
+  size: ElSize;
+  weight: ElWeight;
+  color: ElColor;
+  onChange: (patch: {
+    size?: ElSize;
+    weight?: ElWeight;
+    color?: ElColor;
+  }) => void;
+}) {
+  const t = useTranslations("website");
+  return (
+    <>
+      <SelectField
+        label={t("fldElSize")}
+        value={size}
+        options={[
+          { value: "auto", label: t("elSize_auto") },
+          { value: "xs", label: t("elSize_xs") },
+          { value: "sm", label: t("elSize_sm") },
+          { value: "md", label: t("elSize_md") },
+          { value: "lg", label: t("elSize_lg") },
+          { value: "xl", label: t("elSize_xl") },
+          { value: "2xl", label: t("elSize_2xl") },
+        ]}
+        onChange={(v: ElSize) => onChange({ size: v })}
+      />
+      <SelectField
+        label={t("fldElWeight")}
+        value={weight}
+        options={[
+          { value: "auto", label: t("elWeight_auto") },
+          { value: "light", label: t("elWeight_light") },
+          { value: "normal", label: t("elWeight_normal") },
+          { value: "medium", label: t("elWeight_medium") },
+          { value: "semibold", label: t("elWeight_semibold") },
+          { value: "bold", label: t("elWeight_bold") },
+        ]}
+        onChange={(v: ElWeight) => onChange({ weight: v })}
+      />
+      <SelectField
+        label={t("fldElColor")}
+        value={color}
+        options={[
+          { value: "default", label: t("elColor_default") },
+          { value: "muted", label: t("elColor_muted") },
+          { value: "accent", label: t("elColor_accent") },
+          { value: "secondary", label: t("elColor_secondary") },
+        ]}
+        onChange={(v: ElColor) => onChange({ color: v })}
+      />
+    </>
+  );
 }
 
 /** Left/Centre/Right alignment select shared by the free elements. */

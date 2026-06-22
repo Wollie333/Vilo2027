@@ -4,7 +4,13 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
 
 import { SiteImg } from "../SiteImg";
-import { SiteButton, siteImageStyle } from "./_shared";
+import {
+  SiteButton,
+  elColor,
+  elFontSize,
+  elFontWeight,
+  siteImageStyle,
+} from "./_shared";
 
 // Free-element primitives (page-builder building blocks). Each is a small,
 // self-contained, theme-aware block driven by the scoped `--site-*` vars — never
@@ -49,11 +55,11 @@ export function ElHeadingSection({ props }: { props: HeadingProps }) {
   const align = (props.align ?? "left") as Align;
   const style: CSSProperties = {
     fontFamily: "var(--site-font-heading)",
-    fontWeight: "var(--site-weight-heading)" as unknown as number,
-    fontSize: H_SIZE[level],
+    fontWeight: elFontWeight(props.weight, "var(--site-weight-heading)"),
+    fontSize: elFontSize(props.size, H_SIZE[level]),
     lineHeight: "var(--site-leading-heading)" as unknown as number,
     letterSpacing: "var(--site-tracking-heading)",
-    color: "var(--site-ink)",
+    color: elColor(props.color, "var(--site-ink)"),
   };
   const text = props.text?.trim();
   if (!text) return null;
@@ -72,15 +78,21 @@ export function ElTextSection({ props }: { props: TextProps }) {
   const align = (props.align ?? "left") as Align;
   const body = props.body?.trim();
   if (!body) return null;
+  // Only emit overrides that are set, so "auto"/"default" inherits the theme
+  // (the className `text-base` size + body weight) exactly as before.
+  const style: CSSProperties = {
+    color: elColor(props.color, "var(--site-mute)"),
+    lineHeight: "var(--site-leading-body)" as unknown as number,
+  };
+  if (props.size && props.size !== "auto") {
+    style.fontSize = elFontSize(props.size, "");
+  }
+  if (props.weight && props.weight !== "auto") {
+    style.fontWeight = elFontWeight(props.weight, 400);
+  }
   return (
     <ElBlock className={textAlign(align)}>
-      <p
-        style={{
-          color: "var(--site-mute)",
-          lineHeight: "var(--site-leading-body)" as unknown as number,
-        }}
-        className="whitespace-pre-line text-base"
-      >
+      <p style={style} className="whitespace-pre-line text-base">
         {body}
       </p>
     </ElBlock>
@@ -167,6 +179,7 @@ export function ElButtonSection({ props }: { props: ButtonProps }) {
         <SiteButton
           href={props.href || "#"}
           variant={props.variant ?? "primary"}
+          size={props.size ?? "md"}
         >
           {label}
         </SiteButton>
@@ -177,7 +190,14 @@ export function ElButtonSection({ props }: { props: ButtonProps }) {
 
 // ── Spacer ────────────────────────────────────────────────────
 type SpacerProps = Extract<WebsiteSection, { type: "el_spacer" }>["props"];
-const SPACER_H = { sm: 24, md: 48, lg: 80, xl: 128 } as const;
+const SPACER_H = {
+  xs: 12,
+  sm: 24,
+  md: 48,
+  lg: 80,
+  xl: 128,
+  "2xl": 160,
+} as const;
 
 export function ElSpacerSection({ props }: { props: SpacerProps }) {
   return <div aria-hidden style={{ height: SPACER_H[props.size ?? "md"] }} />;
@@ -185,16 +205,18 @@ export function ElSpacerSection({ props }: { props: SpacerProps }) {
 
 // ── Divider ───────────────────────────────────────────────────
 type DividerProps = Extract<WebsiteSection, { type: "el_divider" }>["props"];
+const DIVIDER_PX = { thin: 1, medium: 2, thick: 4 } as const;
 
 export function ElDividerSection({ props }: { props: DividerProps }) {
   const narrow = (props.width ?? "full") === "narrow";
+  const px = DIVIDER_PX[props.thickness ?? "thin"];
   return (
     <ElBlock>
       <hr
         className={narrow ? "mx-auto w-24" : "w-full"}
         style={{
           border: "none",
-          borderTop: `1px ${props.line ?? "solid"} var(--site-line)`,
+          borderTop: `${px}px ${props.line ?? "solid"} var(--site-line)`,
         }}
       />
     </ElBlock>
