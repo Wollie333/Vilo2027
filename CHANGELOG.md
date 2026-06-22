@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-22 — Website CMS premium redesign · Brand Studio reachable from the builder
+
+Makes the page builder the single editing hub. Toolbar is now **Brand · Page
+settings · Preview · Publish**.
+
+### Added
+- **"Brand" toolbar button** (palette icon) in the page builder → opens **Brand
+  Studio**, **flush-saving** any in-progress section/nav edits first so the
+  round-trip never drops work (brand edits are global; the builder reloads fresh
+  on return). Distinct palette icon (not a second gear) to avoid clashing with
+  the existing "Page settings" gear. +1 i18n key (`brandStudioHint`; reuses
+  `tabBrand`).
+
+> Brand Studio is intentionally NOT embedded as a modal — it's a heavy standalone
+> editor with its own live-preview chrome, so a one-click navigation is the clean,
+> robust path. Brand is already not a tab and already linked from Settings →
+> Branding, so it's now reachable from the builder, Settings, and the Overview
+> checklist. tsc + lint green.
+
+---
+
 ## 2026-06-22 — Website CMS premium redesign · Site-parts palette + build hardening
 
 - **Discoverable chrome editing** — the page builder's left palette gains a "Site

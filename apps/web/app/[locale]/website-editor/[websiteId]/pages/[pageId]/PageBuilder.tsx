@@ -48,6 +48,7 @@ import {
   Monitor,
   MoveVertical,
   Newspaper,
+  Palette,
   PanelBottom,
   PanelTop,
   Pilcrow,
@@ -75,7 +76,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter as useLocaleRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 import {
@@ -285,6 +286,7 @@ export function PageBuilder({
 }) {
   const t = useTranslations("website");
   const router = useRouter();
+  const localeRouter = useLocaleRouter();
   const [sections, setSections] = useState<WebsiteSection[]>(initialSections);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSections[0]?.id ?? null,
@@ -299,6 +301,7 @@ export function PageBuilder({
   const [device, setDevice] = useState<Device>("desktop");
   const [previewing, setPreviewing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [openingBrand, setOpeningBrand] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
   const [publishing, startPublish] = useTransition();
   const [autoStatus, setAutoStatus] = useState<
@@ -386,6 +389,22 @@ export function PageBuilder({
     const newIndex = sections.findIndex((s) => s.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     mutate(arrayMove(sections, oldIndex, newIndex));
+  }
+
+  // Open Brand Studio from the builder — flush any in-progress edits first so the
+  // round-trip never drops work (brand edits are global; sections/nav reload on
+  // return), then navigate to the Brand Studio route.
+  async function openBrandStudio() {
+    setOpeningBrand(true);
+    if (dirty && !firstInvalidSection(sections)) {
+      await saveDraftSectionsAction({ websiteId, pageId, sections });
+      setDirty(false);
+    }
+    if (navDirty) {
+      await saveNavigationAction({ websiteId, navigation: navConfig });
+      setNavDirty(false);
+    }
+    localeRouter.push(`/dashboard/website/${websiteId}/brand`);
   }
 
   function onPublish() {
@@ -574,6 +593,25 @@ export function PageBuilder({
               )}
               {autoLabel}
             </span>
+          ) : null}
+          {!previewing ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={openBrandStudio}
+              disabled={openingBrand}
+              title={t("brandStudioHint")}
+            >
+              {openingBrand ? (
+                <Loader2
+                  className="animate-spin"
+                  style={{ width: 15, height: 15 }}
+                />
+              ) : (
+                <Palette style={{ width: 15, height: 15 }} />
+              )}
+              {t("tabBrand")}
+            </button>
           ) : null}
           {!previewing ? (
             <button
