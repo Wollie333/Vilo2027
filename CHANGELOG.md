@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-06-22 — Page builder refinement · Slice 2 (block layout controls)
+
+Extends the per-block style panel (the `style` jsonb on every section) — still
+preset-only/brand-safe, additive, no migration.
+
+- **Side padding (`padX`)** added to the per-device spacing row (left+right,
+  symmetric), alongside the existing top/bottom.
+- **Frame group (all viewports):** margin above/below, **max-width**
+  (full/wide/medium/narrow, auto-centred), **corner radius**
+  (none/sm/md/lg/pill), **border** (none/thin/medium/thick) + **border colour**
+  (theme roles: line/ink/accent, shown only when a border is set). Together they
+  turn any block into a framed "card".
+
+`blockStyleCss` gained `frameRules()` + padX emission (fixed preset scales);
+`BlockStyleEditor` gained the side-padding control + a "Frame" subsection. +27
+`website` i18n keys (en). tsc + lint + 73 vitest green.
+
+---
+
 ## 2026-06-22 — Page builder refinement · Slice 1 (per-element styling)
 
 Preset-based, brand-safe element customization (no raw px/hex — tied to the

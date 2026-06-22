@@ -511,10 +511,23 @@ const columnsProps = z.object({
 export const BLOCK_SPACE = ["none", "sm", "md", "lg", "xl"] as const;
 export type BlockSpace = (typeof BLOCK_SPACE)[number];
 
+// Frame controls (preset-only, brand-safe). border colour + radius are theme
+// roles / a fixed scale, so a host can't enter raw values and drift off-brand.
+export const BLOCK_BORDER = ["none", "thin", "medium", "thick"] as const;
+export type BlockBorder = (typeof BLOCK_BORDER)[number];
+export const BLOCK_BORDER_COLOR = ["line", "ink", "accent"] as const;
+export type BlockBorderColor = (typeof BLOCK_BORDER_COLOR)[number];
+export const BLOCK_RADIUS = ["none", "sm", "md", "lg", "full"] as const;
+export type BlockRadius = (typeof BLOCK_RADIUS)[number];
+export const BLOCK_MAXWIDTH = ["full", "wide", "medium", "narrow"] as const;
+export type BlockMaxWidth = (typeof BLOCK_MAXWIDTH)[number];
+
 const blockViewportStyle = z
   .object({
     padTop: z.enum(BLOCK_SPACE).optional(),
     padBottom: z.enum(BLOCK_SPACE).optional(),
+    // Left+right padding (one control — symmetric, keeps it simple/curated).
+    padX: z.enum(BLOCK_SPACE).optional(),
   })
   .optional();
 
@@ -524,6 +537,14 @@ export const blockStyleSchema = z.object({
   desktop: blockViewportStyle,
   tablet: blockViewportStyle,
   mobile: blockViewportStyle,
+  // Global frame (all viewports). Margin is outer spacing between blocks; the
+  // border/radius/maxWidth turn a block into a framed "card".
+  marginTop: z.enum(BLOCK_SPACE).optional(),
+  marginBottom: z.enum(BLOCK_SPACE).optional(),
+  border: z.enum(BLOCK_BORDER).optional(),
+  borderColor: z.enum(BLOCK_BORDER_COLOR).optional(),
+  radius: z.enum(BLOCK_RADIUS).optional(),
+  maxWidth: z.enum(BLOCK_MAXWIDTH).optional(),
 });
 export type BlockStyle = z.infer<typeof blockStyleSchema>;
 

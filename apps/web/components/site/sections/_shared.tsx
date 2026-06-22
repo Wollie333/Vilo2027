@@ -80,11 +80,53 @@ const BLOCK_PAD: Record<BlockSpace, number> = {
   xl: 112,
 };
 
-function viewportRules(v?: { padTop?: BlockSpace; padBottom?: BlockSpace }) {
+function viewportRules(v?: {
+  padTop?: BlockSpace;
+  padBottom?: BlockSpace;
+  padX?: BlockSpace;
+}) {
   if (!v) return "";
   const out: string[] = [];
   if (v.padTop) out.push(`padding-top:${BLOCK_PAD[v.padTop]}px`);
   if (v.padBottom) out.push(`padding-bottom:${BLOCK_PAD[v.padBottom]}px`);
+  if (v.padX)
+    out.push(
+      `padding-left:${BLOCK_PAD[v.padX]}px;padding-right:${BLOCK_PAD[v.padX]}px`,
+    );
+  return out.join(";");
+}
+
+// Frame preset → CSS maps (fixed, predictable scale — preset-only).
+const BLOCK_RADIUS_PX = { none: 0, sm: 6, md: 12, lg: 20, full: 9999 } as const;
+const BLOCK_BORDER_PX = { none: 0, thin: 1, medium: 2, thick: 4 } as const;
+const BLOCK_BORDER_COLOR_VAR = {
+  line: "var(--site-line)",
+  ink: "var(--site-ink)",
+  accent: "var(--site-accent)",
+} as const;
+const BLOCK_MAXWIDTH_CSS = {
+  full: "",
+  wide: "64rem",
+  medium: "48rem",
+  narrow: "32rem",
+} as const;
+
+/** Global (all-viewport) frame rules: margin, border, radius, max-width. */
+function frameRules(style: BlockStyle): string {
+  const out: string[] = [];
+  if (style.marginTop) out.push(`margin-top:${BLOCK_PAD[style.marginTop]}px`);
+  if (style.marginBottom)
+    out.push(`margin-bottom:${BLOCK_PAD[style.marginBottom]}px`);
+  if (style.border && style.border !== "none") {
+    const color = BLOCK_BORDER_COLOR_VAR[style.borderColor ?? "line"];
+    out.push(`border:${BLOCK_BORDER_PX[style.border]}px solid ${color}`);
+  }
+  if (style.radius && style.radius !== "none") {
+    out.push(`border-radius:${BLOCK_RADIUS_PX[style.radius]}px`);
+    out.push("overflow:hidden");
+  }
+  const mw = style.maxWidth ? BLOCK_MAXWIDTH_CSS[style.maxWidth] : "";
+  if (mw) out.push(`max-width:${mw};margin-left:auto;margin-right:auto`);
   return out.join(";");
 }
 
@@ -95,8 +137,11 @@ export function blockStyleCss(cls: string, style?: BlockStyle): string {
   const tb = viewportRules(style.tablet);
   const mb = viewportRules(style.mobile);
   let css = "";
-  const d = viewportRules(style.desktop);
-  if (d) css += `${sel}{${d}}`;
+  // Desktop padding + the global frame share the base rule.
+  const base = [viewportRules(style.desktop), frameRules(style)]
+    .filter(Boolean)
+    .join(";");
+  if (base) css += `${sel}{${base}}`;
   // Live site (viewport).
   if (tb) css += `@media(max-width:1024px){${sel}{${tb}}}`;
   if (mb) css += `@media(max-width:640px){${sel}{${mb}}}`;

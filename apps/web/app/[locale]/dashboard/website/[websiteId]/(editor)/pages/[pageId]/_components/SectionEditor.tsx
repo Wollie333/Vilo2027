@@ -12,6 +12,8 @@ import {
   type WebsitePropertyOption,
 } from "@/app/[locale]/dashboard/website/actions";
 import type {
+  BlockSpace,
+  BlockStyle,
   ColumnBlock,
   ColumnBlockKind,
   ElColor,
@@ -146,12 +148,17 @@ function BlockStyleEditor({
   const style = section.style ?? {};
   const vp = style[device] ?? {};
 
-  const setVp = (patch: { padTop?: string; padBottom?: string }) => {
+  const setVp = (patch: {
+    padTop?: string;
+    padBottom?: string;
+    padX?: string;
+  }) => {
     const next = { ...vp, ...patch };
     // Drop empty ("default") entries so the JSON stays lean.
     if (!next.padTop) delete next.padTop;
     if (!next.padBottom) delete next.padBottom;
-    const hasAny = next.padTop || next.padBottom;
+    if (!next.padX) delete next.padX;
+    const hasAny = next.padTop || next.padBottom || next.padX;
     onChange({
       ...section,
       style: { ...style, [device]: hasAny ? next : undefined },
@@ -159,8 +166,16 @@ function BlockStyleEditor({
   };
   const setBg = (bg: string | undefined) =>
     onChange({ ...section, style: { ...style, background: bg } });
+  // Global frame setters (drop empty so the JSON stays lean).
+  const setFrame = (patch: Partial<BlockStyle>) => {
+    const next: BlockStyle = { ...style, ...patch };
+    for (const k of Object.keys(patch) as Array<keyof BlockStyle>) {
+      if (!next[k]) delete next[k];
+    }
+    onChange({ ...section, style: next });
+  };
 
-  const spaceOptions = [
+  const spaceOptions: { value: BlockSpace | ""; label: string }[] = [
     { value: "", label: t("blockDefault") },
     { value: "none", label: t("spaceNone") },
     { value: "sm", label: t("elSpacer_sm") },
@@ -202,7 +217,7 @@ function BlockStyleEditor({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <SelectField
           label={t("fldPadTop")}
           value={vp.padTop ?? ""}
@@ -214,6 +229,12 @@ function BlockStyleEditor({
           value={vp.padBottom ?? ""}
           options={spaceOptions}
           onChange={(v) => setVp({ padBottom: v })}
+        />
+        <SelectField
+          label={t("fldPadX")}
+          value={vp.padX ?? ""}
+          options={spaceOptions}
+          onChange={(v) => setVp({ padX: v })}
         />
       </div>
 
@@ -243,6 +264,75 @@ function BlockStyleEditor({
             >
               {t("blockBgClear")}
             </button>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Frame — global (all viewports): margin, border, radius, max-width. */}
+      <div className="space-y-3 border-t border-dashed border-brand-line pt-3">
+        <span className="block text-[12px] font-semibold text-brand-ink">
+          {t("blockFrame")}
+        </span>
+        <div className="grid grid-cols-2 gap-3">
+          <SelectField
+            label={t("fldMarginTop")}
+            value={style.marginTop ?? ""}
+            options={spaceOptions}
+            onChange={(v) => setFrame({ marginTop: v || undefined })}
+          />
+          <SelectField
+            label={t("fldMarginBottom")}
+            value={style.marginBottom ?? ""}
+            options={spaceOptions}
+            onChange={(v) => setFrame({ marginBottom: v || undefined })}
+          />
+          <SelectField
+            label={t("fldBlockMaxWidth")}
+            value={style.maxWidth ?? "full"}
+            options={[
+              { value: "full", label: t("blockMaxWidth_full") },
+              { value: "wide", label: t("blockMaxWidth_wide") },
+              { value: "medium", label: t("blockMaxWidth_medium") },
+              { value: "narrow", label: t("blockMaxWidth_narrow") },
+            ]}
+            onChange={(v) =>
+              setFrame({ maxWidth: v === "full" ? undefined : v })
+            }
+          />
+          <SelectField
+            label={t("fldBlockRadius")}
+            value={style.radius ?? "none"}
+            options={[
+              { value: "none", label: t("blockRadius_none") },
+              { value: "sm", label: t("blockRadius_sm") },
+              { value: "md", label: t("blockRadius_md") },
+              { value: "lg", label: t("blockRadius_lg") },
+              { value: "full", label: t("blockRadius_full") },
+            ]}
+            onChange={(v) => setFrame({ radius: v === "none" ? undefined : v })}
+          />
+          <SelectField
+            label={t("fldBlockBorder")}
+            value={style.border ?? "none"}
+            options={[
+              { value: "none", label: t("blockBorder_none") },
+              { value: "thin", label: t("blockBorder_thin") },
+              { value: "medium", label: t("blockBorder_medium") },
+              { value: "thick", label: t("blockBorder_thick") },
+            ]}
+            onChange={(v) => setFrame({ border: v === "none" ? undefined : v })}
+          />
+          {style.border && style.border !== "none" ? (
+            <SelectField
+              label={t("fldBlockBorderColor")}
+              value={style.borderColor ?? "line"}
+              options={[
+                { value: "line", label: t("blockBorderColor_line") },
+                { value: "ink", label: t("blockBorderColor_ink") },
+                { value: "accent", label: t("blockBorderColor_accent") },
+              ]}
+              onChange={(v) => setFrame({ borderColor: v })}
+            />
           ) : null}
         </div>
       </div>
