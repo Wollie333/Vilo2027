@@ -1,19 +1,64 @@
+import type { CSSProperties } from "react";
+
 import { siteImageUrl } from "@/lib/site/image";
-import type { WebsiteSection } from "@/lib/website/sections.schema";
+import type {
+  HeroOverlay,
+  HeroTextTone,
+  HeroHeight,
+  WebsiteSection,
+} from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
+
+import { HeroSearchBar } from "./HeroSearchBar";
 
 type Props = Extract<WebsiteSection, { type: "hero" }>["props"];
 
-/** Shared headline + subheadline + CTA. `onDark` flips text to white when it
- *  sits over a darkened image; alignment follows the per-section align prop. */
+// Overlay strength (dark scrim over a photo so text stays legible).
+const OVERLAY_ALPHA: Record<HeroOverlay, number> = {
+  none: 0,
+  light: 0.25,
+  medium: 0.45,
+  strong: 0.65,
+};
+// Band height presets (min-height); "auto" uses padding only.
+const HEIGHT_MINH: Record<HeroHeight, string> = {
+  auto: "",
+  medium: "60vh",
+  tall: "78vh",
+  screen: "100vh",
+};
+
+function overlayGradient(overlay: HeroOverlay): string | undefined {
+  const a = OVERLAY_ALPHA[overlay];
+  if (a <= 0) return undefined;
+  return `linear-gradient(rgba(0,0,0,${a}),rgba(0,0,0,${a}))`;
+}
+
+/** Decide light vs dark copy: explicit tone wins, else follow the background. */
+function resolveOnDark(tone: HeroTextTone, overImage: boolean): boolean {
+  if (tone === "light") return true;
+  if (tone === "dark") return false;
+  return overImage;
+}
+
+/** Map legacy variant values onto the current seven layouts. */
+function normalizeVariant(v: Props["variant"]) {
+  if (v === "classic") return "spotlight" as const;
+  if (v === "split") return "split_right" as const;
+  return v;
+}
+
+/** Headline + subheadline + CTA. `onDark` flips copy to white over a photo. */
 function HeroInner({
   props,
   onDark,
   alignLeft,
+  hideCta = false,
 }: {
   props: Props;
   onDark: boolean;
   alignLeft: boolean;
+  hideCta?: boolean;
 }) {
   return (
     <>
@@ -39,7 +84,7 @@ function HeroInner({
           {props.subheadline}
         </p>
       ) : null}
-      {props.cta_label && props.cta_href ? (
+      {!hideCta && props.cta_label && props.cta_href ? (
         <div
           className="mt-8 flex"
           style={{ justifyContent: alignLeft ? "flex-start" : "center" }}
@@ -65,36 +110,44 @@ function HeroInner({
 export function HeroSection({
   props,
   asset,
+  interactive = false,
 }: {
   props: Props;
   asset?: SiteAssetResolver;
+  /** True on the live public site; false in the builder/preview. */
+  interactive?: boolean;
 }) {
-  const rawBg = asset?.(props.image_path) ?? props.image_path ?? undefined;
+  const variant = normalizeVariant(props.variant ?? "spotlight");
   const alignLeft = props.align === "left";
-  const variant = props.variant ?? "classic";
-  // Background images can't ride <SiteImg>, so resize them through the same
-  // transform pipeline at a fixed, variant-appropriate width (Phase 7c).
-  const bgClassic = rawBg
+  const minHeight = HEIGHT_MINH[props.height ?? "auto"] || undefined;
+
+  const rawBg = asset?.(props.image_path) ?? props.image_path ?? undefined;
+  const bgWide = rawBg
     ? siteImageUrl(rawBg, { width: 1920, quality: 68 })
     : undefined;
-  const bgSplit = rawBg
+  const bgSide = rawBg
     ? siteImageUrl(rawBg, { width: 1200, quality: 72 })
     : undefined;
 
-  // SPLIT — text beside the image (stacks on mobile); text uses theme colours.
-  if (variant === "split") {
+  // ── SPLIT — text beside the image (stacks on mobile) ──────────────
+  if (variant === "split_right" || variant === "split_left") {
+    const onDark = resolveOnDark(props.textTone ?? "auto", false);
+    const imageFirst = variant === "split_left";
     return (
       <section style={{ background: "var(--site-surface)" }}>
-        <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-14 md:grid-cols-2 md:gap-12 md:py-20">
+        <div
+          className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-14 md:grid-cols-2 md:gap-12 md:py-20"
+          style={minHeight ? { minHeight } : undefined}
+        >
           <div style={{ textAlign: alignLeft ? "left" : "center" }}>
-            <HeroInner props={props} onDark={false} alignLeft={alignLeft} />
+            <HeroInner props={props} onDark={onDark} alignLeft={alignLeft} />
           </div>
-          {bgSplit ? (
+          {bgSide ? (
             <div
               aria-hidden
-              className="order-first h-56 w-full md:order-last md:h-[26rem]"
+              className={`h-56 w-full md:h-[26rem] ${imageFirst ? "order-first" : "order-first md:order-last"}`}
               style={{
-                backgroundImage: `url(${bgSplit})`,
+                backgroundImage: `url(${bgSide})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 borderRadius: "var(--site-img-radius)",
@@ -106,46 +159,97 @@ export function HeroSection({
     );
   }
 
-  // MINIMAL — no image, compact padding, theme surface.
+  // ── MINIMAL — no image, typographic band on the theme surface ─────
   if (variant === "minimal") {
+    const onDark = resolveOnDark(props.textTone ?? "auto", false);
     return (
       <section
-        style={{ background: "var(--site-surface)" }}
-        className="px-5 py-14 md:py-20"
+        style={{ background: "var(--site-surface)", minHeight }}
+        className="flex items-center px-5 py-16 md:py-24"
       >
         <div
           className="mx-auto w-full max-w-3xl"
           style={{ textAlign: alignLeft ? "left" : "center" }}
         >
-          <HeroInner props={props} onDark={false} alignLeft={alignLeft} />
+          <HeroInner props={props} onDark={onDark} alignLeft={alignLeft} />
         </div>
       </section>
     );
   }
 
-  // CLASSIC (default) — full-bleed background image (or surface) with overlay.
+  // ── BOXED — content in an elevated card over a soft background ────
+  if (variant === "boxed") {
+    const onDark = resolveOnDark(props.textTone ?? "auto", false);
+    const bgStyle: CSSProperties = bgWide
+      ? {
+          backgroundImage: `${overlayGradient(props.overlay ?? "medium") ? overlayGradient(props.overlay ?? "medium") + "," : ""}url(${bgWide})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : { background: "var(--site-accent)" };
+    return (
+      <section
+        style={{ ...bgStyle, minHeight: minHeight ?? "60vh" }}
+        className="flex items-center px-5 py-16 md:py-24"
+      >
+        <div
+          className="mx-auto w-full max-w-2xl p-8 md:p-12"
+          style={{
+            background: "var(--site-surface)",
+            borderRadius: "var(--site-card-radius)",
+            boxShadow: "var(--site-card-shadow)",
+            textAlign: alignLeft ? "left" : "center",
+          }}
+        >
+          <HeroInner props={props} onDark={onDark} alignLeft={alignLeft} />
+        </div>
+      </section>
+    );
+  }
+
+  // ── SPOTLIGHT / FULLSCREEN / SEARCH — full-bleed image + overlay ──
+  const overImage = !!rawBg;
+  const onDark = resolveOnDark(props.textTone ?? "auto", overImage);
+  const overlay = overlayGradient(props.overlay ?? "medium");
+  const bgStyle: CSSProperties = bgWide
+    ? {
+        backgroundImage: `${overlay ? overlay + "," : ""}url(${bgWide})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : { background: "var(--site-surface)" };
+  const isFullscreen = variant === "fullscreen";
+  const isSearch = variant === "search";
+  // Fullscreen anchors copy to the bottom-left; the others centre it.
+  const padY = isFullscreen ? "py-20 md:py-28" : "py-24 md:py-32";
+  const defaultMinH = isFullscreen ? "88vh" : isSearch ? "70vh" : undefined;
+
   return (
     <section
-      style={
-        bgClassic
-          ? {
-              backgroundImage: `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.42)), url(${bgClassic})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }
-          : { background: "var(--site-surface)" }
-      }
-      className="px-5 py-24 md:py-32"
+      style={{ ...bgStyle, minHeight: minHeight ?? defaultMinH }}
+      className={`flex px-5 ${padY} ${isFullscreen ? "items-end" : "items-center"}`}
     >
       <div
-        className="mx-auto w-full max-w-4xl"
-        style={{ textAlign: alignLeft ? "left" : "center" }}
+        className={`mx-auto w-full ${isSearch ? "max-w-3xl" : "max-w-4xl"}`}
+        style={{
+          textAlign: isFullscreen ? "left" : alignLeft ? "left" : "center",
+        }}
       >
         <HeroInner
           props={props}
-          onDark={Boolean(rawBg)}
-          alignLeft={alignLeft}
+          onDark={onDark}
+          alignLeft={isFullscreen ? true : alignLeft}
+          hideCta={isSearch}
         />
+        {isSearch ? (
+          <div className="mt-8">
+            <HeroSearchBar
+              href={props.cta_href || "/explore"}
+              onDark={onDark}
+              interactive={interactive}
+            />
+          </div>
+        ) : null}
       </div>
     </section>
   );

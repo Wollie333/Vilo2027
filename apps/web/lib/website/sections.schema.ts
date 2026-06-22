@@ -90,7 +90,40 @@ export type SectionTone = (typeof SECTION_TONES)[number];
 export const SECTION_VISIBILITY = ["all", "desktop", "mobile"] as const;
 export type SectionVisibility = (typeof SECTION_VISIBILITY)[number];
 
-export const HERO_VARIANTS = ["classic", "split", "minimal"] as const;
+// Seven professionally-designed, responsive hero layouts (the host pulls one or
+// more in and edits photo/text/colours). `classic`/`split` are LEGACY values
+// kept only so already-saved heroes still parse + render — the palette offers
+// just the seven; the renderer maps classic→spotlight, split→split_right.
+export const HERO_VARIANTS = [
+  "spotlight",
+  "split_right",
+  "split_left",
+  "fullscreen",
+  "minimal",
+  "boxed",
+  "search",
+  "classic",
+  "split",
+] as const;
+/** The seven layouts surfaced in the builder (excludes legacy aliases). */
+export const HERO_LAYOUTS = [
+  "spotlight",
+  "split_right",
+  "split_left",
+  "fullscreen",
+  "minimal",
+  "boxed",
+  "search",
+] as const;
+export type HeroLayout = (typeof HERO_LAYOUTS)[number];
+// Hero style controls (preset-only, brand-safe). overlay darkens an image so
+// text stays legible; textTone forces light/dark copy; height sets the band.
+export const HERO_OVERLAY = ["none", "light", "medium", "strong"] as const;
+export type HeroOverlay = (typeof HERO_OVERLAY)[number];
+export const HERO_TEXT_TONE = ["auto", "light", "dark"] as const;
+export type HeroTextTone = (typeof HERO_TEXT_TONE)[number];
+export const HERO_HEIGHT = ["auto", "medium", "tall", "screen"] as const;
+export type HeroHeight = (typeof HERO_HEIGHT)[number];
 export const INTRO_VARIANTS = ["centered", "split", "lead"] as const;
 export const CTA_VARIANTS = ["banner", "card", "split"] as const;
 export const HIGHLIGHTS_VARIANTS = ["grid", "list", "plain"] as const;
@@ -119,7 +152,10 @@ const heroProps = z.object({
   cta_label: z.string().max(60).optional(),
   cta_href: z.string().max(500).optional(),
   align: z.enum(["left", "center"]).default("center"),
-  variant: z.enum(HERO_VARIANTS).default("classic"),
+  variant: z.enum(HERO_VARIANTS).default("spotlight"),
+  overlay: z.enum(HERO_OVERLAY).default("medium"),
+  textTone: z.enum(HERO_TEXT_TONE).default("auto"),
+  height: z.enum(HERO_HEIGHT).default("auto"),
 });
 
 const introProps = z.object({

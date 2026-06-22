@@ -136,7 +136,13 @@ function SectionSwitch({
 }) {
   switch (section.type) {
     case "hero":
-      return <HeroSection props={section.props} asset={asset} />;
+      return (
+        <HeroSection
+          props={section.props}
+          asset={asset}
+          interactive={interactive}
+        />
+      );
     case "intro":
       return <IntroSection props={section.props} />;
     case "highlights":

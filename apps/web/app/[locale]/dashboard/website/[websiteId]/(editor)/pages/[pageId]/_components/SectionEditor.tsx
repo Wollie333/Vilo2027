@@ -415,14 +415,58 @@ function SectionFields({
             onChange={(v) => set({ align: v })}
           />
           <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
+            label={t("fldHeroLayout")}
+            value={
+              p.variant === "classic"
+                ? "spotlight"
+                : p.variant === "split"
+                  ? "split_right"
+                  : p.variant
+            }
             options={[
-              { value: "classic", label: t("heroVariant_classic") },
-              { value: "split", label: t("heroVariant_split") },
-              { value: "minimal", label: t("heroVariant_minimal") },
+              { value: "spotlight", label: t("heroLayout_spotlight") },
+              { value: "split_right", label: t("heroLayout_split_right") },
+              { value: "split_left", label: t("heroLayout_split_left") },
+              { value: "fullscreen", label: t("heroLayout_fullscreen") },
+              { value: "minimal", label: t("heroLayout_minimal") },
+              { value: "boxed", label: t("heroLayout_boxed") },
+              { value: "search", label: t("heroLayout_search") },
             ]}
             onChange={(v) => set({ variant: v })}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField
+              label={t("fldHeroHeight")}
+              value={p.height ?? "auto"}
+              options={[
+                { value: "auto", label: t("heroHeight_auto") },
+                { value: "medium", label: t("heroHeight_medium") },
+                { value: "tall", label: t("heroHeight_tall") },
+                { value: "screen", label: t("heroHeight_screen") },
+              ]}
+              onChange={(v) => set({ height: v })}
+            />
+            <SelectField
+              label={t("fldHeroOverlay")}
+              value={p.overlay ?? "medium"}
+              options={[
+                { value: "none", label: t("heroOverlay_none") },
+                { value: "light", label: t("heroOverlay_light") },
+                { value: "medium", label: t("heroOverlay_medium") },
+                { value: "strong", label: t("heroOverlay_strong") },
+              ]}
+              onChange={(v) => set({ overlay: v })}
+            />
+          </div>
+          <SelectField
+            label={t("fldHeroTextTone")}
+            value={p.textTone ?? "auto"}
+            options={[
+              { value: "auto", label: t("heroTone_auto") },
+              { value: "light", label: t("heroTone_light") },
+              { value: "dark", label: t("heroTone_dark") },
+            ]}
+            onChange={(v) => set({ textTone: v })}
           />
         </div>
       );

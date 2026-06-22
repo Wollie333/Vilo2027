@@ -23,7 +23,10 @@ export function newSection(type: SectionType): WebsiteSection {
           headline: "Your headline here",
           subheadline: "A short welcoming line beneath it.",
           align: "center",
-          variant: "classic",
+          variant: "spotlight",
+          overlay: "medium",
+          textTone: "auto",
+          height: "auto",
         },
       };
     case "intro":

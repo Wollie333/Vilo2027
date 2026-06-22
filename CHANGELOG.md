@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-22 — Page builder · 7 professional hero layouts (Phase A)
+
+Rebuilt the `hero` section into seven designed, responsive layouts the host
+picks from, then edits photo / text / colours. Additive on the jsonb schema
+(legacy `classic`/`split` kept as aliases → spotlight/split_right so existing
+heroes still render); no migration.
+
+- **Layouts:** Spotlight (centred over image), Split-right, Split-left,
+  Full-screen, Minimal (text-only band), Boxed (elevated card over a soft bg),
+  Search (headline + inline check-in/out/guests bar).
+- **Controls (preset, brand-safe):** layout picker, **height**
+  (auto/medium/tall/full-screen via min-height), **image overlay**
+  (none/light/medium/strong scrim), **text colour** (auto/light/dark). Colours
+  stay theme-driven (`--site-*`) + button styles.
+- **Search hero:** new client `HeroSearchBar` deep-links into the booking flow
+  (`cta_href?from&to&guests`); inert in the builder preview. `HeroSection` now
+  receives `interactive` from `SectionRenderer`.
+- Inspector hero case + `sectionDefaults` + 24 i18n keys updated.
+
+Spacing/padding fixed for now (per scope). Surfacing the seven as pickable
+sidebar cards + sidebar search/grouping is the next phase. tsc + lint + 73
+vitest green.
+
+---
+
 ## 2026-06-22 — Page builder · inspector padding fix
 
 The full-screen builder's right inspector rendered `SectionEditor` flush in
