@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-06-22 — Page builder · inspector padding fix
+
+The full-screen builder's right inspector rendered `SectionEditor` flush in
+`.epanel-b` (no gutter), so controls sat too close to the panel edges. Wrapped
+it in a consistent 16px gutter (matches the panel header + the chrome
+inspectors' `.insp-sec`). UI-only.
+
+---
+
 ## 2026-06-22 — Page builder refinement · Slice 2 (block layout controls)
 
 Extends the per-block style panel (the `style` jsonb on every section) — still
