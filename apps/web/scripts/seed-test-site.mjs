@@ -815,10 +815,30 @@ async function main() {
         website_id: WEBSITE_ID,
         type: "contact",
         name: "Contact us",
+        // Field ids must be uuids (forms.schema.ts formFieldSchema.id) — the
+        // editor generates them; the public render/submit rejects non-uuid ids.
         fields: [
-          { id: "name", type: "text", label: "Your name", required: true },
-          { id: "email", type: "email", label: "Email", required: true },
-          { id: "message", type: "textarea", label: "Message", required: true },
+          {
+            id: "0b999999-9999-4999-8999-99999999fa01",
+            type: "text",
+            label: "Your name",
+            required: true,
+            width: "full",
+          },
+          {
+            id: "0b999999-9999-4999-8999-99999999fa02",
+            type: "email",
+            label: "Email",
+            required: true,
+            width: "full",
+          },
+          {
+            id: "0b999999-9999-4999-8999-99999999fa03",
+            type: "textarea",
+            label: "Message",
+            required: true,
+            width: "full",
+          },
         ],
         settings: {
           submitLabel: "Send message",

@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-06-22 — QA round 2: breadth smoke across all 3 features + integration APIs
+
+Planned the full QA as a 15-item tracked checklist (Website CMS → web-app core →
+directory → cross-feature) and ran a first pass.
+
+**Verified loading/rendering (public, via curl — reliable vs. the flaky authed
+browser):** all tenant-site pages (home/about/rooms/contact/blog/book → 200,
+render "Olive Grove"); the platform property page `/property/olive-grove-guesthouse`
+(200, 374 KB); the directory `/explore` (shows the seeded property + others); the
+`/deals` directory (200). The production build already passes, so no route has a
+compile/type break — a strong baseline.
+
+**Verified integration at the API layer (CMS ↔ core booking):**
+- `POST /api/site-booking-quote` → server-recalculated **R5 650** (2600×2 +
+  450 cleaning), correct.
+- `POST /api/website-availability` → correctly reports 2026-07-03/04/05 blocked
+  (= the seeded confirmed booking B2) — availability reflects real bookings
+  cross-feature.
+- `POST /api/website-form-submit` → `{ok:true, conversationId}` — submission
+  persists AND opens an inbox conversation (forms→inbox pipeline works).
+
+**Fixed:** the seeded contact form used non-uuid field ids (`"name"` etc.), but
+`forms.schema.ts` `formFieldSchema.id` requires a uuid — so the public form
+silently rejected as "isn't available." (App is correct; the editor always uses
+uuids — fixed the seed to match.)
+
+**Note:** authed UI driving is slow/flaky in this preview env (dev-server cold
+compiles + 30s eval cap + the builder's autosave→refresh churn killing evals), so
+the QA strategy is hybrid: curl/API/DB for reliable breadth + targeted browser
+for key interactions. Deeper authed flows (host dashboard, property management,
+full booking w/ payment, builder add/delete/reorder, blog/forms/nav editors)
+still to drive.
+
+---
+
 ## 2026-06-22 — Live QA pass (Step 1) — first browser drive-through
 
 Drove the app in a real browser (Preview MCP) logged in as the seeded test host
