@@ -4,7 +4,7 @@
 
 ## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-22, very late)
 
-**Branch:** `main` — working tree CLEAN, **all committed AND PUSHED** (latest `672d427`; `origin/main` in sync → Vercel deploying). tsc + lint + **96 vitest** all GREEN. (Founder's dev server runs on :3000 — do NOT `pnpm build` while it's up; verify with tsc/lint/vitest only.)
+**Branch:** `main` — working tree CLEAN, **all committed AND PUSHED, in sync with `origin/main`** (latest `22bbf0b`; Vercel deploying). README recreated to current state. tsc + lint + **96 vitest** all GREEN. (Founder's dev server runs on :3000 — do NOT `pnpm build` while it's up; verify with tsc/lint/vitest only.)
 
 **Verify commands:** `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint --file …` + `pnpm exec vitest run`. **`pnpm build` ONLY when no dev server is running** (it shares `.next`); if a build dies with `MODULE_NOT_FOUND`/webpack-runtime, `rm -rf apps/web/.next` and rebuild.
 
