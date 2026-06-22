@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-22 — Test-site seed (for live QA) + booking-confirm trigger bug found
+
+**New `scripts/seed-test-site.mjs` (`pnpm seed:test-site`)** — a complete,
+idempotent end-to-end fixture on the linked DB so the founder can log in and
+exercise everything for the Step-1 live QA:
+- Host `host@vilotest.com` / `ViloTest123!` (+ guest + 3 reviewer accounts,
+  auto-confirmed) · enriched business · 1 guesthouse **property** · **3 rooms** ·
+  photos · amenities · seasonal pricing · 4 published reviews · 7 bookings.
+- A **PUBLISHED website on the default `aria` theme** — all 7 blueprint pages
+  (published_sections copied from the theme so the public render shows content) ·
+  property + 3 rooms channel membership · 1 blog post · 1 contact form. Brand,
+  SEO, contact + socials on the row.
+- **Verified rendering:** `GET /site?site=vilotest` → 200, 208 KB, shows the
+  brand, both rooms, content and the footer. View at
+  `http://localhost:3001/en/site?site=vilotest`.
+
+Grounding fixes discovered while building it:
+- The canonical table is **`properties`** (the `listings→properties` rename is
+  live); `scripts/seed-demo.mjs` still writes to `.from("listings")` and is
+  therefore **broken on the current DB** — flagged for a follow-up.
+- **⚠️ Launch-blocker found:** `on_booking_confirmed_create_invoice()` (recreated
+  in migration `20260617000200`, line ~1848) still reads the dropped
+  `host_business_details` table, so **transitioning any booking to confirmed/
+  completed throws** — this breaks booking confirmation in the live app, not just
+  seeding. The seed leaves bookings `pending` to load; needs a dedicated fix
+  migration (recreate the function to read `businesses` with its current column
+  names). Spawned as a separate task.
+
+---
+
 ## 2026-06-22 — Turnstile unit tests + full-build validation
 
 Added `lib/security/turnstile.test.ts` (9 vitest cases): `verifyTurnstile` is
