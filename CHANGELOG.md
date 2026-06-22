@@ -5,6 +5,48 @@
 
 ---
 
+## 2026-06-22 — Production-readiness Step 2 (part) · Cloudflare Turnstile + security audit
+
+**Bot-hardening (Turnstile) on the public, session-less write endpoints** — the
+website form submit (`/api/website-form-submit`) and the on-site checkout
+(`/api/site-booking`), which were honeypot-only. Both keep the honeypot and now
+add a stronger gate that is **inert until the `TURNSTILE_*` keys are set** (same
+opt-in pattern as host routing + the feature gates), so dev and the current
+deploy are unchanged:
+- New server SSOT `lib/security/turnstile.ts` — `verifyTurnstile(token, ip?)`
+  (skips when `TURNSTILE_SECRET_KEY` unset; fail-closed once set: missing /
+  expired / invalid token → reject) + `clientIpFromHeaders` (CF-Connecting-IP →
+  x-forwarded-for → x-real-ip).
+- New client `components/site/TurnstileWidget.tsx` — explicit-render widget,
+  loads the CF script once, theme-aware, single-use token refreshed on a failed
+  submit; renders nothing + produces no token when `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+  unset. Exposes `turnstileEnabled()` so consumers gate their submit button only
+  when configured.
+- Wired into all three public submit surfaces: `FormSection`, the pop-up's
+  `PopupForm` (`SitePopup`), and the on-site `SiteCheckoutForm`; each sends `ts`
+  in the POST body (downstream Zod schemas are non-strict, so the field is
+  ignored by the booking/form parsers). Verification happens in the two route
+  handlers (header/IP access). Read-only quote/availability endpoints are
+  intentionally NOT gated (debounced, single-use token would fight live quoting).
+- `ENV_VARS.md`: documented `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`
+  (quick-ref table + a dedicated subsection + the `.env.local` template).
+
+**Security-checklist audit findings (this pass):**
+- ✅ `SUPABASE_SERVICE_ROLE_KEY` appears only in server-side files (scripts,
+  `lib/supabase/admin.ts`, impersonation, ical) — never a client component.
+- ✅ The new public `SiteChrome` `editable` path is builder-only: `ChromeEditWrap`
+  returns `<>{children}</>` verbatim when `editable` is undefined, and `editable`
+  is passed in exactly one place — `PageBuilder.tsx:736`. Public renders never set
+  it (zero markup/behaviour change on the live site).
+- ⚠️ **Open (flagged for the founder):** no security headers / CSP in
+  `next.config.mjs` (SECURITY_CHECKLIST §7). Deferred deliberately — an untested
+  CSP can break Paystack/PayPal/Supabase/maps/Turnstile and should land alongside
+  the Step 1 live QA so it can be validated in a real browser.
+
+tsc green, lint clean on all changed files. No DB change.
+
+---
+
 ## 2026-06-22 — SAVE POINT · Website CMS premium redesign COMPLETE → production-readiness lane
 
 **Milestone.** The premium Website CMS redesign is done and hardened. Shipped this

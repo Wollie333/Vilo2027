@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
 import { createSiteBooking } from "@/lib/website/siteCheckout";
 
 // Public on-site checkout endpoint (Phase 6B/c) — creates the booking
@@ -18,6 +19,26 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json(
       { ok: false, error: "Invalid request." },
+      { status: 200 },
+    );
+  }
+
+  // Bot-hardening — verify the Cloudflare Turnstile token before creating a
+  // booking + starting payment (inert until the TURNSTILE_* keys are set).
+  const ts =
+    body && typeof body === "object" && "ts" in body
+      ? (body as { ts?: unknown }).ts
+      : undefined;
+  const human = await verifyTurnstile(
+    typeof ts === "string" ? ts : undefined,
+    clientIpFromHeaders(req.headers),
+  );
+  if (!human.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Couldn't verify you're human. Please try again.",
+      },
       { status: 200 },
     );
   }

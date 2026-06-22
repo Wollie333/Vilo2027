@@ -18,6 +18,10 @@ import {
   Muted,
   Card,
 } from "@/components/site/sections/_shared";
+import {
+  TurnstileWidget,
+  turnstileEnabled,
+} from "@/components/site/TurnstileWidget";
 
 export type CheckoutRoom = {
   id: string;
@@ -152,6 +156,8 @@ export function SiteCheckoutForm({
     cardAvailable ? "paystack" : "eft",
   );
   const [ack, setAck] = useState(false);
+  const [tsToken, setTsToken] = useState<string | null>(null);
+  const [tsNonce, setTsNonce] = useState(0);
 
   const [quote, setQuote] = useState<{
     available: boolean;
@@ -307,7 +313,8 @@ export function SiteCheckoutForm({
     !name.trim() ||
     !email.trim() ||
     !ack ||
-    (!cardAvailable && !eftAvailable);
+    (!cardAvailable && !eftAvailable) ||
+    (turnstileEnabled() && !tsToken);
 
   async function onSubmit() {
     if (formInvalid || submitting) return;
@@ -350,6 +357,7 @@ export function SiteCheckoutForm({
           special_requests: requests.trim() || undefined,
           policy_acknowledged: true,
           return_path: returnPath,
+          ts: tsToken,
         }),
       });
       const json = (await res.json()) as
@@ -360,10 +368,12 @@ export function SiteCheckoutForm({
       } else {
         setError(json.error);
         setSubmitting(false);
+        setTsNonce((n) => n + 1); // refresh the single-use token for a retry
       }
     } catch {
       setError("Couldn't reach the server. Please try again.");
       setSubmitting(false);
+      setTsNonce((n) => n + 1);
     }
   }
 
@@ -770,6 +780,10 @@ export function SiteCheckoutForm({
                 )}
               </span>
             </label>
+
+            <div className="mt-4">
+              <TurnstileWidget onVerify={setTsToken} resetSignal={tsNonce} />
+            </div>
 
             {error ? (
               <p className="mt-3 text-sm font-medium text-red-600">{error}</p>

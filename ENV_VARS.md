@@ -35,6 +35,8 @@ This file documents every environment variable used across the platform, what it
 | `VERCEL_TOKEN` | Server only | — | ✅ | Custom domains |
 | `VERCEL_PROJECT_ID` | Server only | — | ✅ | Custom domains |
 | `VERCEL_TEAM_ID` | Server only | — | ✅ | Custom domains |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | ✅ | — | — | Website CMS (bot-hardening) |
+| `TURNSTILE_SECRET_KEY` | Server only | — | — | Website CMS (bot-hardening) |
 
 ---
 
@@ -67,6 +69,22 @@ button is disabled and the UI says custom domains aren't available yet.
 Also register the poll-worker URL in Vault (`website_domain_poll_url`); the cron
 bearer reuses `email_worker_secret`. Not needed for subdomain-only hosting. See
 `WEBSITE_HOSTING.md` for the full one-time setup.
+
+### `NEXT_PUBLIC_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`
+Cloudflare Turnstile keys for bot-hardening the public, session-less tenant-site
+write endpoints — the website form submit (`/api/website-form-submit`) and the
+on-site checkout (`/api/site-booking`). **Both are inert until set**, so the
+forms behave exactly as before (honeypot-only) in dev and any environment that
+hasn't configured them:
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — the public sitekey. When unset, the
+  `TurnstileWidget` renders nothing and no token is produced.
+- `TURNSTILE_SECRET_KEY` — the server secret. When unset, `verifyTurnstile`
+  skips verification (passes everything). NEVER expose to the client.
+
+Get both from the Cloudflare dashboard → Turnstile → add a widget (set the
+allowed hostnames to your tenant root domain + any custom domains). Verification
+is fail-closed once the secret is set: a missing/expired/invalid token is
+rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 
 ---
 
@@ -314,6 +332,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_APP_NAME=Vilo
 
 # ─── Maps: keyless (Leaflet + OpenStreetMap + Photon/Nominatim) ─
+
+# ─── Website CMS bot-hardening (Turnstile — inert if unset) ─
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=                 # leave blank locally
+TURNSTILE_SECRET_KEY=                           # leave blank locally
 
 # ─── Monitoring (optional locally) ─────────────────────
 NEXT_PUBLIC_SENTRY_DSN=

@@ -3,6 +3,10 @@
 import { X } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 
+import {
+  TurnstileWidget,
+  turnstileEnabled,
+} from "@/components/site/TurnstileWidget";
 import type { SiteConversion, SiteFormDef } from "@/lib/site/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -214,6 +218,8 @@ function PopupForm({
 }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [hp, setHp] = useState("");
+  const [tsToken, setTsToken] = useState<string | null>(null);
+  const [tsNonce, setTsNonce] = useState(0);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle",
   );
@@ -235,6 +241,7 @@ function PopupForm({
           form_id: form.id,
           values,
           hp,
+          ts: tsToken,
         }),
       });
       const result = (await res.json()) as { ok: boolean; error?: string };
@@ -244,6 +251,7 @@ function PopupForm({
       } else {
         setStatus("error");
         setError(result.error || "Something went wrong. Please try again.");
+        setTsNonce((n) => n + 1);
       }
     } catch {
       setStatus("error");
@@ -353,13 +361,19 @@ function PopupForm({
         );
       })}
 
+      {live ? (
+        <TurnstileWidget onVerify={setTsToken} resetSignal={tsNonce} />
+      ) : null}
+
       {status === "error" ? (
         <p className="text-sm font-medium text-red-600">{error}</p>
       ) : null}
 
       <button
         type="submit"
-        disabled={!live || status === "sending"}
+        disabled={
+          !live || status === "sending" || (turnstileEnabled() && !tsToken)
+        }
         style={{
           background: "var(--site-btn-primary-bg)",
           color: "var(--site-btn-primary-color)",

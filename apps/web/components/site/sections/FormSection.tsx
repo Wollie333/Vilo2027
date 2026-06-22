@@ -2,6 +2,10 @@
 
 import { useState, type CSSProperties, type FormEvent } from "react";
 
+import {
+  TurnstileWidget,
+  turnstileEnabled,
+} from "@/components/site/TurnstileWidget";
 import type { FormRenderData, SiteFormDef } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
@@ -42,6 +46,8 @@ export function FormSection({
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [hp, setHp] = useState(""); // honeypot
+  const [tsToken, setTsToken] = useState<string | null>(null); // Turnstile
+  const [tsNonce, setTsNonce] = useState(0); // bump to reset the challenge
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle",
   );
@@ -69,6 +75,7 @@ export function FormSection({
           form_id: form.id,
           values,
           hp,
+          ts: tsToken,
         }),
       });
       const result = (await res.json()) as { ok: boolean; error?: string };
@@ -77,6 +84,7 @@ export function FormSection({
       } else {
         setStatus("error");
         setError(result.error || "Something went wrong. Please try again.");
+        setTsNonce((n) => n + 1); // refresh the single-use token for a retry
       }
     } catch {
       setStatus("error");
@@ -378,13 +386,19 @@ export function FormSection({
         })}
       </div>
 
+      {live ? (
+        <TurnstileWidget onVerify={setTsToken} resetSignal={tsNonce} />
+      ) : null}
+
       {status === "error" ? (
         <p className="text-sm font-medium text-red-600">{error}</p>
       ) : null}
 
       <button
         type="submit"
-        disabled={!live || status === "sending"}
+        disabled={
+          !live || status === "sending" || (turnstileEnabled() && !tsToken)
+        }
         style={{
           background: "var(--site-btn-primary-bg)",
           color: "var(--site-btn-primary-color)",
