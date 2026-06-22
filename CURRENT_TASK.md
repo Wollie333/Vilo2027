@@ -28,11 +28,17 @@
 
 **▶ IN-BUILDER PAGE SETTINGS DONE (2026-06-21) → OLD ROUTE RETIRED.** Full-screen `PageBuilder` got a "Page settings" toolbar button → `FormModal` reusing the existing `PageSeoCard` (per-page seo_overrides title/desc/focus-keyword + Google + social preview + `SeoAnalysis` Yoast coach, saves via `savePageSeoAction`) + `A11yCard` (live a11y score over current sections). SEO keyword-in-body check uses LIVE `extractSectionsText(sections)` (recomputed as host edits). New props threaded from `loadPageBuilder` (already returned): `pageSlug`/`pageSeo`/`domain`/`ogImageUrl`. +3 i18n. **DELETED legacy route** `(editor)/pages/[pageId]/page.tsx` + `SectionBuilder.tsx` + `DeviceFrame.tsx` (+stale `.next/types`). KEPT (shared, reused by full-screen builder): `_components/` (SectionEditor/Library/Thumb/fields/SeoAnalysis/SocialPreview/PageSeoCard/A11yCard) + `loadPageBuilder.ts`. tsc+lint green.
 
-**▶ NEXT (resume here, in order):**
-1. Fold header/footer/menu editors onto the page-builder engine (replace the bespoke `NavSectionEditor` — currently `website-editor/[websiteId]/navigation/[section]`).
-2. (optional polish) container-query device preview for per-block responsive style; more free elements / column block kinds if the founder wants them; reconcile Theme/Brand tabs vs the mockup's 8-tab bar.
+**▶ POLISH + NAV-FOLD (2026-06-22, founder "do all three in order, start with polish"):**
+- **Container-query device preview** (commit `bea0c02`): `blockStyleCss` now emits BOTH `@media` (live site) AND `@container (max-width 1024/640)` rules; builder `.device` is a query container (`container-type:inline-size`) so the device toggle previews per-block spacing EXACTLY. `@container` inert on the public site (no ancestor container) → zero live-site risk.
+- **Tab bar → canonical 8** (commit `80cac50`): `WebsiteTabs` trimmed to Overview·Pages·Blog·Navigation·Forms·Domain·SEO·Settings (dropped Themes+Brand tabs); Theme+Brand reached via Settings→Branding (Brand Studio + new "Open themes" link, `themeHref`) + Overview checklist. Routes still exist.
+- **Nav editors → builder shell** (commit `eb4e57c`): `NavSectionEditor` canvas swapped to shared `.canvas-wrap`+`.device` frame + device toggle `.seg` (cosmetic; nav data/save unchanged).
+- **Nav reorder → dnd-kit engine** (commit `23f38af`): new `navigation/SortableList.tsx` (page builder's `@dnd-kit` drag, render-prop handle); `MenuBuilder` items + `FooterBuilder` columns now drag-reorder (nested children/links keep up/down). No public-render/data change.
 
-**Honest gaps shipped (intentional):** old dashboard `pages/[pageId]` route kept as an UNLINKED fallback (its `PageSeoCard`+`A11yCard` not yet in the new builder; per-page SEO is editable in the SEO tab meanwhile). Theme/Brand are still extra tabs vs the mockup's 8 (reconcile when convenient). Settings omits unbuilt sections (editable general/privacy/integrations/password/maintenance/transfer/delete — no backend actions). Overview will omit funnel/revenue/leads.
+**▶ DEEP-FOLD (sections model) — DELIBERATELY NOT DONE; founder decision pending.** Re-representing header/footer as public `WebsiteSection`s (rewrite `SiteChrome` + publish snapshot) = high regression risk on the most-visible chrome (sticky/transparent header, mobile menu, dropdowns, footer) for low benefit now that shell+engine are unified. **Recommendation: skip it.** If pursued, needs a written plan first (data-model + SiteChrome rewrite + snapshot migration).
+
+**▶ REDESIGN STATUS: effectively COMPLETE.** All mockup tabs + full-screen editors + the Elementor-but-simple page builder (free elements + per-block responsive style w/ accurate preview + columns) shipped. Remaining = founder calls only (deep-fold above; optional more free-element/column kinds).
+
+**Honest gaps shipped (intentional):** Theme route still inside `(editor)` group so its page shows the 8-tab bar with no active tab (reached via link). Settings omits unbuilt sections (editable general/privacy/integrations/password/maintenance/transfer/delete — no backend actions). Overview omits funnel/revenue/leads (not tracked).
 
 **Full per-commit detail:** MEMORY.md ([Website CMS phases]) + CHANGELOG.md (2026-06-21 entries). Commits this group: `4e304a0`→`84a4b74` (navigation → forms).
 
