@@ -60,10 +60,14 @@ export function sectionToneStyle(
 }
 
 // ── Per-block responsive style ────────────────────────────────
-// A scoped <style> with viewport media queries lets any section carry
-// desktop/tablet/mobile spacing overrides (correct on the live public site;
-// the builder device frames are an approximation, like the existing responsive
-// `visibility`). Breakpoints mirror Tailwind's lg/sm.
+// A scoped <style> lets any section carry desktop/tablet/mobile spacing
+// overrides. We emit BOTH:
+//   • @media queries — drive the LIVE public site (no container there).
+//   • @container queries — drive the builder's device frames, which are query
+//     containers (`.device { container-type: inline-size }`), so switching the
+//     device toggle previews the override EXACTLY. Inert on the public site
+//     (no ancestor container), so zero risk there.
+// Breakpoints mirror Tailwind's lg/sm.
 const BLOCK_PAD: Record<BlockSpace, number> = {
   none: 0,
   sm: 16,
@@ -83,13 +87,18 @@ function viewportRules(v?: { padTop?: BlockSpace; padBottom?: BlockSpace }) {
 /** Build the scoped CSS for a section's responsive spacing (empty when none). */
 export function blockStyleCss(cls: string, style?: BlockStyle): string {
   if (!style) return "";
+  const sel = `.${cls}`;
+  const tb = viewportRules(style.tablet);
+  const mb = viewportRules(style.mobile);
   let css = "";
   const d = viewportRules(style.desktop);
-  if (d) css += `.${cls}{${d}}`;
-  const tb = viewportRules(style.tablet);
-  if (tb) css += `@media(max-width:1024px){.${cls}{${tb}}}`;
-  const mb = viewportRules(style.mobile);
-  if (mb) css += `@media(max-width:640px){.${cls}{${mb}}}`;
+  if (d) css += `${sel}{${d}}`;
+  // Live site (viewport).
+  if (tb) css += `@media(max-width:1024px){${sel}{${tb}}}`;
+  if (mb) css += `@media(max-width:640px){${sel}{${mb}}}`;
+  // Builder device frames (container) — last so they win when both match.
+  if (tb) css += `@container (max-width:1024px){${sel}{${tb}}}`;
+  if (mb) css += `@container (max-width:640px){${sel}{${mb}}}`;
   return css;
 }
 

@@ -590,6 +590,9 @@
   overflow: hidden;
   transition: max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   align-self: flex-start;
+  /* Query container so per-block responsive spacing (@container rules) previews
+     against the SIMULATED device width, not the real viewport. */
+  container-type: inline-size;
 }
 .vilo-builder .device.tablet {
   max-width: 744px;

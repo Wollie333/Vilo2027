@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-06-22 — Website CMS premium redesign · Accurate device preview (container queries)
+
+Polishes the per-block responsive spacing so the builder's device toggle previews
+the override **exactly** (it was an approximation before).
+
+### Changed
+- `blockStyleCss` (`sections/_shared.tsx`) now emits **both** `@media` (drives the
+  live public site) **and** `@container` (max-width 1024 / 640) rules for the
+  tablet/mobile spacing. The builder's `.device` frame is now a query container
+  (`container-type: inline-size`), so the `@container` rules resolve against the
+  **simulated** device width — switching Desktop/Tablet/Mobile in the builder now
+  shows the real result. The `@container` rules are inert on the public site (no
+  ancestor container), so the live site is unchanged and zero-risk. tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · In-builder Page settings (retire old route)
 
 Brings per-page **SEO** + **accessibility** into the full-screen page builder and
