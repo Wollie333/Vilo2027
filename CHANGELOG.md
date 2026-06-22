@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-22 — Quote form: surface auto-price failures (no more silent R0)
+
+Founder reported the quote create form stays at R0 and won't send. Traced it: the
+form's auto-price (`priceStayNow(silent)`) calls the canonical engine
+(`computeStayPricing` — verified correct: it prices the seeded property at the
+same figures the public quote does) but **swallowed every failure silently**, so
+any unpriceable case (no nightly rate for the dates, below min-nights, rooms scope
+with no room selected, etc.) left a stuck R0 with no explanation and a quote that
+can't send (blocked by the total≤0 guard).
+
+Fix: capture the engine's error into a `priceError` state (set even on the silent
+path) and render an amber, actionable banner above the totals — "Couldn't
+auto-price — <reason>. Set a nightly rate / switch to per-room / enter an amount."
+So the host always sees WHY and what to do. (The backend engine itself is
+correct; this removes the silent dead-end and reveals the precise cause.)
+
+tsc + lint green.
+
+---
+
 ## 2026-06-22 — App-wide bug hunt: iCal SSRF guard + enquiry stack-trace leak
 
 - **iCal import SSRF (HIGH).** `refreshIcalFeedAction` fetched the host-supplied

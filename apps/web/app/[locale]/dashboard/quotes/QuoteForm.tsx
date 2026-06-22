@@ -268,6 +268,9 @@ export function QuoteForm({
   // Bumped each time pricing replaces the rooms — used to remount the editable
   // per-room amount fields so a fresh calendar price overrides a manual edit.
   const [priceVersion, setPriceVersion] = useState(0);
+  // Reason the auto-price last failed — surfaced so a stuck R0 total is never a
+  // silent dead-end (the host couldn't otherwise tell why a quote won't send).
+  const [priceError, setPriceError] = useState<string | null>(null);
   const [catalogSel, setCatalogSel] = useState<Record<string, string>>(
     Object.fromEntries(
       (initial?.catalogAddons ?? []).map((a) => [
@@ -535,10 +538,14 @@ export function QuoteForm({
           party: { children, infants, pets },
         });
         if (!r.ok || !r.data) {
-          if (!silent)
-            toast.error(r.ok ? "Could not price this stay." : r.error);
+          const msg = r.ok ? "Could not price this stay." : r.error;
+          // Surface the reason even on the silent auto-price path — otherwise the
+          // host just sees a stuck R0 total and a quote that won't send.
+          setPriceError(msg);
+          if (!silent) toast.error(msg);
           return;
         }
+        setPriceError(null);
         if (scope === "rooms") setPricedRooms(r.data.rooms);
         // Don't overwrite a base/cleaning the host has manually edited.
         else if (!pricingTouched) {
@@ -1726,6 +1733,15 @@ export function QuoteForm({
               </p>
             </div>
           )}
+
+          {/* Auto-price failure — never leave the host on a silent R0. */}
+          {priceError && datesValid && priceMode !== "single" ? (
+            <div className="mt-4 rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
+              Couldn’t auto-price this stay — {priceError} Set a nightly rate on
+              the listing for these dates, switch to per-room pricing, or enter
+              an amount manually below.
+            </div>
+          ) : null}
 
           {/* Totals strip */}
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
