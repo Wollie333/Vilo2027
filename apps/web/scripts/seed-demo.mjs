@@ -174,6 +174,17 @@ async function main() {
     },
   ]);
 
+  // Default business — the host-insert trigger creates it; banking + properties
+  // are business-scoped now (post listings→properties / multi-business rename).
+  const { data: bizRow } = await admin
+    .from("businesses")
+    .select("id")
+    .eq("host_id", HOST_ID)
+    .eq("is_default", true)
+    .maybeSingle();
+  const BUSINESS_ID = bizRow?.id;
+  if (!BUSINESS_ID) throw new Error("No default business created for host");
+
   await up("subscriptions", [
     {
       id: SUBSCRIPTION_ID,
@@ -189,6 +200,7 @@ async function main() {
     {
       id: BANKING_ID,
       host_id: HOST_ID,
+      business_id: BUSINESS_ID,
       account_holder: "Cape Coast Retreats (Pty) Ltd",
       account_number: "62812345678",
       bank_name: "FNB",
@@ -220,11 +232,12 @@ async function main() {
     if (error) throw new Error(`update default business: ${error.message}`);
   }
 
-  // 3. Listings
-  await up("listings", [
+  // 3. Properties (the table is `properties` after the listings→properties rename)
+  await up("properties", [
     {
       id: LISTING_A,
       host_id: HOST_ID,
+      business_id: BUSINESS_ID,
       property_type: "accommodation",
       accommodation_type: "self_catering",
       name: "Seaview Cottage, Hermanus",
@@ -254,6 +267,7 @@ async function main() {
     {
       id: LISTING_B,
       host_id: HOST_ID,
+      business_id: BUSINESS_ID,
       property_type: "accommodation",
       accommodation_type: "guesthouse",
       name: "The Vines Guesthouse, Stellenbosch",

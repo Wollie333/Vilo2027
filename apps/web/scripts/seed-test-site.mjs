@@ -111,19 +111,39 @@ async function setBookingStatus(id, patch) {
 
 async function seedBooking(base, finalStatus, { rooms = [], addons = [] } = {}) {
   if (await bookingExists(base.id)) return;
-  // NOTE: bookings are seeded as `pending` only. A booking-confirm trigger on
-  // this DB — on_booking_confirmed_create_invoice() — still reads the dropped
-  // `host_business_details` table, so ANY transition to confirmed/completed
-  // throws (a real app bug, flagged separately). Until that's fixed, we keep
-  // every seeded booking pending so the fixture loads. `finalStatus` is recorded
-  // for when the trigger fix lands and we can restore real transitions.
-  void finalStatus;
+  // Insert as pending, attach rooms/addons, then transition to the final status
+  // so the confirm trigger fires naturally (it generates the booking invoice via
+  // ensure_booking_invoice — fixed in migration 20260622000000). Completed
+  // bookings pass through `confirmed` so they get an invoice too.
   const { error } = await admin
     .from("bookings")
     .insert({ ...base, status: "pending" });
   if (error) throw new Error(`insert booking ${base.id}: ${error.message}`);
   if (rooms.length) await up("booking_rooms", rooms);
   if (addons.length) await up("booking_addons", addons);
+
+  if (finalStatus === "confirmed") {
+    await setBookingStatus(base.id, {
+      status: "confirmed",
+      confirmed_at: nowIso(),
+    });
+  } else if (finalStatus === "completed") {
+    await setBookingStatus(base.id, {
+      status: "confirmed",
+      confirmed_at: nowIso(),
+    });
+    await setBookingStatus(base.id, {
+      status: "completed",
+      checked_out_at: nowIso(),
+    });
+  } else if (finalStatus === "cancelled_by_guest") {
+    await setBookingStatus(base.id, {
+      status: "cancelled_by_guest",
+      cancelled_at: nowIso(),
+      cancelled_by: "guest",
+      cancellation_reason: "Change of travel plans",
+    });
+  }
 }
 
 // ── Seed ────────────────────────────────────────────────────────────────
@@ -819,7 +839,7 @@ async function main() {
     "   1 guesthouse property, 3 rooms, 4 published reviews, 7 bookings",
   );
   console.log(
-    "   (all 'pending' — booking-confirm trigger bug, see notes),",
+    "   (mixed statuses: pending / confirmed / completed / cancelled + invoices),",
   );
   console.log(
     "   + a PUBLISHED website on the '%s' theme (%d pages), blog post, contact form.",

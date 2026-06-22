@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-22 — Fix booking-confirm invoice trigger + stale seed-demo
+
+**Issue #1 (launch-blocker) FIXED.** Confirming any booking threw `relation
+"host_business_details" does not exist`. The per-business migrations
+(20260613000010/011) moved invoicing to `businesses` and dropped
+host_business_details; the later rename migrations (20260617000200/000300)
+regressed `on_booking_confirmed_create_invoice()` to a stale, host-keyed body
+that still read the dropped table. `ensure_booking_invoice()` already held the
+correct business-based logic (resolves the booking's business, reads `businesses`
+with the same `host_snapshot.business` jsonb keys, numbers per business), so new
+migration **`20260622000000_fix_booking_invoice_business_source.sql`** makes the
+trigger simply `PERFORM ensure_booking_invoice(NEW.id)` — one code path, no
+divergence, same firing condition + output keys. **Pushed to the linked DB.**
+Verified end-to-end via `seed:test-site`: bookings transition to confirmed/
+completed cleanly, **5 invoices generated** (`INV-OLIVEGROVEGUES-EDB88-…`, status
+`paid`) with a populated business snapshot (`trading_name`, `billing_city` from
+`businesses.city`).
+
+**Issue #2 FIXED.** `scripts/seed-demo.mjs` was stale post-rename — wrote to
+`.from("listings")` (now `properties`) and inserted host-only banking/properties.
+Repointed to `properties`, resolve the default business after the host insert,
+and set `business_id` on banking + both properties. `pnpm seed:demo` now runs
+clean end-to-end (its bookings also confirm + invoice via the fixed trigger).
+`seed-test-site.mjs` restored to real status transitions (was pending-only while
+the trigger was broken).
+
+---
+
 ## 2026-06-22 — Test-site seed (for live QA) + booking-confirm trigger bug found
 
 **New `scripts/seed-test-site.mjs` (`pnpm seed:test-site`)** — a complete,
