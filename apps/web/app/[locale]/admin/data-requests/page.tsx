@@ -3,7 +3,7 @@ import { Download, ShieldAlert, Trash2 } from "lucide-react";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnError } from "@/lib/supabase/query";
-import { requireAdmin } from "@/lib/admin";
+import { requirePermission } from "@/lib/admin";
 
 import { RequestActions } from "./RequestActions";
 
@@ -23,7 +23,8 @@ export default async function AdminDataRequestsPage({
 }: {
   searchParams?: { tab?: string };
 }) {
-  await requireAdmin();
+  // PII queue — gate on user-data permission, not mere staff membership.
+  await requirePermission("users.view");
 
   const tabParam = (searchParams?.tab ?? "pending").trim();
   const tab: Tab = (

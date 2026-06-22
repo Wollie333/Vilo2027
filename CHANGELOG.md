@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-22 — App-wide bug hunt: security batch (admin/auth)
+
+Four parallel audits (payments, host dashboard, admin/auth, edge/integration)
+swept the whole app. Fixing the confirmed findings in batches; this commit is the
+security (admin/auth) batch. Architectural/risky findings (webhook host-key
+signature model, webhook retry semantics, the overpayment-credit dedup refactor)
+are flagged for separate careful work rather than changed blind.
+
+- **Open redirect** — the post-auth `next` guard was `startsWith("/")`, which
+  accepts `//evil.com` / `/\evil.com` (browsers resolve cross-origin). New shared
+  `lib/auth/safeNext.ts` rejects those; applied in `postAuth.ts`, `(auth)/actions.ts`,
+  `login/page.tsx` (and via postAuth, the email-confirm route).
+- **Impersonation cookie never expired** — `verifyToken` checked only the HMAC,
+  not age; a copied cookie verified forever. Added a server-side expiry check
+  against `IMPERSONATION_MAX_AGE_SECONDS` (cookie maxAge is only a client hint).
+- **Impersonation target unvalidated** — `startImpersonationAction` opened a
+  session for any posted id. Now rejects self-impersonation, a non-existent
+  target, and another active staff member (separation of duties).
+- **Admin financials/PII over-exposed to low-privilege staff** — the `/admin`
+  overview (Vilo revenue/MRR + audit log) and the GDPR `/admin/data-requests`
+  page were gated only on staff membership. Overview now renders financial +
+  audit sections behind `hasPermission("payments.view")`/`"audit.view"`
+  (non-throwing, so the landing still works for all staff); data-requests now
+  requires `users.view`.
+
+tsc 0 errors, lint clean. Audits confirmed the rest of the admin/auth surface is
+solid (withAdminAudit on mutations, getUser-based gates, append-only respected).
+
+---
+
 ## 2026-06-22 — Hardening round 1: public-render perf + soft-delete guards + blog cover
 
 Two parallel agent audits (perf + correctness) over the MVP core; fixed the

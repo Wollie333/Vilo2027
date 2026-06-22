@@ -120,11 +120,25 @@ function verifyToken(token: string): ImpersonationContext | null {
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
 
+  let ctx: ImpersonationContext;
   try {
-    return JSON.parse(
+    ctx = JSON.parse(
       Buffer.from(payload, "base64url").toString("utf-8"),
     ) as ImpersonationContext;
   } catch {
     return null;
   }
+
+  // Enforce expiry server-side: the cookie `maxAge` is only a client hint, and
+  // the HMAC payload itself carries no expiry, so a copied/retained cookie would
+  // otherwise verify forever. Reject sessions older than the max age.
+  const startedMs = Date.parse(ctx.startedAt);
+  if (
+    !Number.isFinite(startedMs) ||
+    Date.now() - startedMs > IMPERSONATION_MAX_AGE_SECONDS * 1000
+  ) {
+    return null;
+  }
+
+  return ctx;
 }

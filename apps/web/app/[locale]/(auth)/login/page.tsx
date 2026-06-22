@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { safeNextPath } from "@/lib/auth/safeNext";
+
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -13,9 +15,6 @@ export default function LoginPage({
   searchParams?: { verify?: string; next?: string };
 }) {
   const justRegistered = searchParams?.verify === "1";
-  const next =
-    searchParams?.next && searchParams.next.startsWith("/")
-      ? searchParams.next
-      : null;
+  const next = safeNextPath(searchParams?.next);
   return <LoginForm justRegistered={justRegistered} next={next} />;
 }

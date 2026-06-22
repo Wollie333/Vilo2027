@@ -8,6 +8,7 @@ import {
 
 import { Link } from "@/i18n/navigation";
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
+import { hasPermission } from "@/lib/admin";
 import { buildPlatformReport } from "@/lib/billing/platform-report";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -133,6 +134,15 @@ export default async function AdminOverviewPage() {
   ];
   const needsAttention = attention.filter((a) => a.count > 0);
 
+  // The /admin landing is every staff member's home, but Vilo financials + the
+  // audit log are not for every role. Gate those sections (non-throwing, so the
+  // landing still renders the task counts for all staff). "Needs attention" stays
+  // visible to everyone.
+  const [canFinancials, canAudit] = await Promise.all([
+    hasPermission("payments.view"),
+    hasPermission("audit.view"),
+  ]);
+
   return (
     <div className="space-y-8">
       <header>
@@ -151,19 +161,26 @@ export default async function AdminOverviewPage() {
         </p>
       </header>
 
-      {/* SaaS revenue health */}
-      <section>
-        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-          Revenue health
-        </h2>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-          {revenueKpis.map((kpi) => (
-            <Link key={kpi.label} href={kpi.href} className="block">
-              <AdminKpiCard label={kpi.label} value={kpi.value} sub={kpi.sub} />
-            </Link>
-          ))}
-        </div>
-      </section>
+      {/* SaaS revenue health — gated on payments.view so lower-privilege staff
+          don't see Vilo financials. */}
+      {canFinancials && (
+        <section>
+          <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            Revenue health
+          </h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+            {revenueKpis.map((kpi) => (
+              <Link key={kpi.label} href={kpi.href} className="block">
+                <AdminKpiCard
+                  label={kpi.label}
+                  value={kpi.value}
+                  sub={kpi.sub}
+                />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Needs attention */}
       <section>
@@ -194,20 +211,26 @@ export default async function AdminOverviewPage() {
         )}
       </section>
 
-      {/* Growth & footprint */}
-      <section>
-        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-          Growth &amp; footprint
-        </h2>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-          {growthKpis.map((kpi) => (
-            <AdminKpiCard key={kpi.label} label={kpi.label} value={kpi.value} />
-          ))}
-        </div>
-      </section>
+      {/* Growth & footprint — platform/financial stats, same gate. */}
+      {canFinancials && (
+        <section>
+          <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            Growth &amp; footprint
+          </h2>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+            {growthKpis.map((kpi) => (
+              <AdminKpiCard
+                key={kpi.label}
+                label={kpi.label}
+                value={kpi.value}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Plan mix */}
-      {report.plans.length > 0 ? (
+      {canFinancials && report.plans.length > 0 ? (
         <section>
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="font-display text-lg font-semibold text-brand-ink">
@@ -249,61 +272,63 @@ export default async function AdminOverviewPage() {
         </section>
       ) : null}
 
-      {/* Recent admin activity */}
-      <section>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="font-display text-lg font-semibold text-brand-ink">
-            Recent admin activity
-          </h2>
-          <Link
-            href="/admin/audit"
-            className="text-[12px] font-medium text-brand-primary hover:underline"
-          >
-            View audit log →
-          </Link>
-        </div>
-        <div className="overflow-hidden rounded-card border border-brand-line bg-white">
-          <table className="w-full text-[13px]">
-            <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
-              <tr>
-                <th className="px-4 py-2.5">When</th>
-                <th className="px-4 py-2.5">Action</th>
-                <th className="px-4 py-2.5">Target</th>
-                <th className="px-4 py-2.5">Admin</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-brand-line">
-              {(auditRows ?? []).map((row) => (
-                <tr key={row.id} className="hover:bg-brand-light/40">
-                  <td className="px-4 py-2.5 text-brand-mute">
-                    {formatRelative(row.created_at)}
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-[12px]">
-                    {row.action}
-                  </td>
-                  <td className="px-4 py-2.5 text-brand-mute">
-                    {row.target_type}
-                    {row.target_id ? ` · ${row.target_id.slice(0, 8)}` : ""}
-                  </td>
-                  <td className="px-4 py-2.5 font-mono text-[12px] text-brand-mute">
-                    {row.admin_id.slice(0, 8)}
-                  </td>
-                </tr>
-              ))}
-              {(auditRows ?? []).length === 0 ? (
+      {/* Recent admin activity — audit log, gated on audit.view. */}
+      {canAudit && (
+        <section>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="font-display text-lg font-semibold text-brand-ink">
+              Recent admin activity
+            </h2>
+            <Link
+              href="/admin/audit"
+              className="text-[12px] font-medium text-brand-primary hover:underline"
+            >
+              View audit log →
+            </Link>
+          </div>
+          <div className="overflow-hidden rounded-card border border-brand-line bg-white">
+            <table className="w-full text-[13px]">
+              <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
                 <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-6 text-center text-brand-mute"
-                  >
-                    No admin actions logged yet.
-                  </td>
+                  <th className="px-4 py-2.5">When</th>
+                  <th className="px-4 py-2.5">Action</th>
+                  <th className="px-4 py-2.5">Target</th>
+                  <th className="px-4 py-2.5">Admin</th>
                 </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody className="divide-y divide-brand-line">
+                {(auditRows ?? []).map((row) => (
+                  <tr key={row.id} className="hover:bg-brand-light/40">
+                    <td className="px-4 py-2.5 text-brand-mute">
+                      {formatRelative(row.created_at)}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-[12px]">
+                      {row.action}
+                    </td>
+                    <td className="px-4 py-2.5 text-brand-mute">
+                      {row.target_type}
+                      {row.target_id ? ` · ${row.target_id.slice(0, 8)}` : ""}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-[12px] text-brand-mute">
+                      {row.admin_id.slice(0, 8)}
+                    </td>
+                  </tr>
+                ))}
+                {(auditRows ?? []).length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-4 py-6 text-center text-brand-mute"
+                    >
+                      No admin actions logged yet.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {/* Marketplace context — host↔guest money, NOT Vilo revenue. Kept as a
           quiet footnote so SaaS metrics above stay unambiguous. */}

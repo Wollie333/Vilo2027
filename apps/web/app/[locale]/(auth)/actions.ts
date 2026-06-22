@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { resolvePostAuthDestination } from "@/lib/auth/postAuth";
+import { safeNextPath } from "@/lib/auth/safeNext";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -69,8 +70,8 @@ export async function registerAction(
   const supabase = createServerClient();
   const origin = headers().get("origin") ?? "";
 
-  // Only honour relative next paths (open-redirect guard).
-  const safeNext = next && next.startsWith("/") ? next : null;
+  // Only honour same-origin relative next paths (open-redirect guard).
+  const safeNext = safeNextPath(next);
   const confirmUrl = safeNext
     ? `${origin}/auth/confirm?next=${encodeURIComponent(safeNext)}`
     : `${origin}/auth/confirm`;

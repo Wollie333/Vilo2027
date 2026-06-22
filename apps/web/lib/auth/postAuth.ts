@@ -1,3 +1,4 @@
+import { safeNextPath } from "@/lib/auth/safeNext";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -17,7 +18,7 @@ export async function resolvePostAuthDestination(
   userId: string | null,
   next?: string | null,
 ): Promise<string> {
-  const safeNext = next && next.startsWith("/") ? next : null;
+  const safeNext = safeNextPath(next);
   if (safeNext) return safeNext;
 
   if (!userId) return "/portal";
