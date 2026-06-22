@@ -11,6 +11,8 @@
 // `published_sections` — so unpublished edits never leak; a published site with
 // no snapshot yet (legacy) falls back to the live columns. PREVIEW: live columns
 // + `draft_sections`, allowing any status.
+import { cache } from "react";
+
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
@@ -122,16 +124,12 @@ export function pageHref(kind: string, slug: string): string {
  * Resolve a site by subdomain OR custom domain and build its chrome. Returns
  * null when no site matches (or it isn't published, in non-preview mode).
  */
-export async function loadSiteContext(
+const loadSiteContextCached = cache(async function loadSiteContextInner(
   ref: string,
-  opts: {
-    preview?: boolean;
-    themeSlug?: string;
-    siteParam?: string | null;
-  } = {},
+  preview: boolean,
+  previewThemeSlug: string | undefined,
+  siteParam: string | null | undefined,
 ): Promise<SiteContext | null> {
-  const preview = opts.preview ?? false;
-  const previewThemeSlug = opts.themeSlug;
   const sb = createAdminClient();
 
   const { data: site } = await sb
@@ -282,7 +280,7 @@ export async function loadSiteContext(
   // that's "" (e.g. /book); when the site is rendered via the app-domain
   // ?site=<sub> testing affordance it must carry the /[locale]/site prefix so the
   // link resolves on the app domain too. siteParam is set only in that case.
-  const bookBasePath = opts.siteParam ? `/${locale}/site` : "";
+  const bookBasePath = siteParam ? `/${locale}/site` : "";
 
   return {
     websiteId: site.id,
@@ -305,6 +303,30 @@ export async function loadSiteContext(
     publishedRoomRows,
     publishedPropertyOverrides,
   };
+});
+
+/**
+ * Resolve a site by subdomain OR custom domain and build its chrome. Returns null
+ * when no site matches (or it isn't published, in non-preview mode).
+ *
+ * Request-deduped via React `cache()` on primitive args, so a public page's
+ * `generateMetadata` + render share a single context+page load instead of two.
+ * Thin wrapper preserving the (ref, opts) signature for all callers.
+ */
+export function loadSiteContext(
+  ref: string,
+  opts: {
+    preview?: boolean;
+    themeSlug?: string;
+    siteParam?: string | null;
+  } = {},
+): Promise<SiteContext | null> {
+  return loadSiteContextCached(
+    ref,
+    opts.preview ?? false,
+    opts.themeSlug,
+    opts.siteParam ?? null,
+  );
 }
 
 /**
@@ -399,13 +421,12 @@ function withinSchedule(schedule?: { start?: string; end?: string }): boolean {
   return true;
 }
 
-export async function loadSitePage(
+const loadSitePageCached = cache(async function loadSitePageInner(
   ctx: SiteContext,
-  pathSlug: string[],
+  slug: string,
 ): Promise<SitePageResult | null> {
   const sb = createAdminClient();
-  const isHome = pathSlug.length === 0;
-  const slug = pathSlug.join("/");
+  const isHome = slug.length === 0;
 
   let query = sb
     .from("website_pages")
@@ -446,6 +467,19 @@ export async function loadSitePage(
     sections,
     data,
   };
+});
+
+/**
+ * Resolve a site page (sections + auto-populate data) for a path. Request-deduped
+ * via React `cache()` (keyed on the resolved ctx + joined slug) so a public
+ * page's generateMetadata + render share one section assembly. Thin wrapper keeps
+ * the (ctx, pathSlug[]) signature for all callers.
+ */
+export function loadSitePage(
+  ctx: SiteContext,
+  pathSlug: string[],
+): Promise<SitePageResult | null> {
+  return loadSitePageCached(ctx, pathSlug.join("/"));
 }
 
 type Sb = ReturnType<typeof createAdminClient>;
@@ -738,7 +772,10 @@ async function loadBookableProperties(
   const { data } = await sb
     .from("properties")
     .select("id, slug, name, currency, min_nights, max_guests")
-    .in("id", ids);
+    .in("id", ids)
+    // A property soft-deleted after publish (before re-publish) lingers in the
+    // frozen snapshot's propertyIds — exclude it so it doesn't surface on the site.
+    .is("deleted_at", null);
   const byId = new Map((data ?? []).map((p) => [(p as { id: string }).id, p]));
   const properties: BookableProperty[] = [];
   for (const id of ids) {
@@ -827,7 +864,9 @@ async function loadRateTable(
     const { data: props } = await sb
       .from("properties")
       .select("id, slug, name")
-      .in("id", propIds);
+      .in("id", propIds)
+      // Skip rooms whose property was soft-deleted after publish (see below).
+      .is("deleted_at", null);
     for (const p of props ?? []) {
       propById.set((p as { id: string }).id, {
         slug: (p as { slug: string | null }).slug ?? "",
@@ -852,6 +891,8 @@ async function loadRateTable(
       } | null;
       if (!room || room.is_active === false || room.deleted_at) return null;
       const prop = propById.get(room.property_id);
+      // Property soft-deleted after publish → not in propById (guarded above).
+      if (!prop) return null;
       const nightly = ov.display_price ?? room.base_price;
       return {
         roomId: room.id,
@@ -950,14 +991,31 @@ export async function assembleSiteDataByType(
       if (!types.has("gallery")) return;
       const { data: photos } = await sb
         .from("property_photos")
-        .select("url, sort_order, property_id")
+        .select(
+          "url, sort_order, property_id, property:properties!inner(deleted_at)",
+        )
         .in("property_id", ids)
         .order("sort_order", { ascending: true })
         .limit(60);
-      const images: GalleryImage[] = (photos ?? []).map((p) => ({
-        url: (p as { url: string }).url,
-        caption: null,
-      }));
+      const images: GalleryImage[] = (photos ?? [])
+        // Drop photos of a property soft-deleted after publish (lingers in the
+        // frozen snapshot's propertyIds). The embed types as an array.
+        .filter((p) => {
+          const prop = (
+            p as unknown as {
+              property?:
+                | { deleted_at: string | null }
+                | { deleted_at: string | null }[]
+                | null;
+            }
+          ).property;
+          const row = Array.isArray(prop) ? prop[0] : prop;
+          return !row?.deleted_at;
+        })
+        .map((p) => ({
+          url: (p as { url: string }).url,
+          caption: null,
+        }));
       out.gallery = { images };
     })(),
 
@@ -1282,7 +1340,9 @@ export async function loadSiteBlogPost(
   return {
     title: post.title,
     bodyHtml: sanitiseListingHtml(post.body_html ?? ""),
-    coverUrl: post.cover_path,
+    // Resolve the storage path to a public URL (matches blog index / related /
+    // blog_preview); returning the raw path broke the detail-page cover image.
+    coverUrl: websiteAssetUrl(post.cover_path ?? undefined) ?? null,
     date: (post.publish_at ?? post.created_at)?.slice(0, 10) ?? null,
     // Reusable author profile (Phase 8) wins; fall back to the legacy free-text name.
     authorName: post.author?.name ?? post.author_name,

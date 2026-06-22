@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-22 — Hardening round 1: public-render perf + soft-delete guards + blog cover
+
+Two parallel agent audits (perf + correctness) over the MVP core; fixed the
+high-confidence, behavior-safe findings in `lib/site/loadSitePage.ts`.
+
+**Perf — eliminate the double-load on every public micro-site request.** Each
+public page ran `generateMetadata` AND the render, each calling
+`loadSiteContext` + `loadSitePage` — so the full chrome query + section assembly
+(gallery/rooms/reviews/etc.) executed twice. Wrapped both in React `cache()`
+keyed on PRIMITIVES (the inline `opts`/`pathSlug[]` args would otherwise defeat
+dedup): `loadSiteContext` now has a primitive-keyed cached inner + thin wrapper
+(unchanged signature); `loadSitePage` keys on the joined slug. On a real tenant
+domain (no `?site=`/theme override) the two passes now share one load. Zero
+behavior change (request-scoped memoization).
+
+**Bug — blog detail cover image.** `loadSiteBlogPost` returned the raw
+`cover_path` instead of `websiteAssetUrl(...)`, so the blog *post* page showed a
+broken cover while the index (which wraps it) was fine. Fixed to match siblings.
+
+**Hardening — soft-deleted property could linger on a published site.**
+`loadBookableProperties`, `loadRateTable`, and the gallery photo fetch read by
+the FROZEN snapshot `propertyIds`; a property soft-deleted after publish (before
+re-publish) still surfaced in booking-search / rate-table / gallery (booking was
+already safely blocked downstream — display-only leak). Added `.is("deleted_at",
+null)` guards (gallery via a `properties!inner` embed + filter). Matches the
+existing `loadSpecialsPreview` guard.
+
+Verified: tsc 0 errors, lint clean, live tenant render still 200 with rooms +
+images. Both audits confirmed the rest of the surface is well-defended (money
+paths recalc server-side, ownership gates, DB-error handling).
+
+---
+
 ## 2026-06-22 — QA round 3: booking money-path + host dashboard + funnel endpoints
 
 Verified the critical flows end-to-end (reliable API/DB checks; the booking core
