@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-06-22 — Page builder: designed sections + page templates for all built-in themes
+
+Extended the theme-attached section system (Phase C) from Aria-only to **every
+built-in theme**. Previously only Aria shipped designed section presets + page
+templates in the page builder's theme sidebar; the other six active catalogue
+themes (`classic`, `modern`, `coastal`, `warm`, `minimal`, `nightfall`) fell
+back to an empty group. Now each ships its own curated set.
+
+**What's new in `lib/website/themeSections.ts`:**
+- A small type-safe `build<T>()` helper (narrows the discriminated `WebsiteSection`
+  union per type so each factory edits fully-typed props) replaces the per-theme
+  `if (s.type === …)` boilerplate. Aria's output is unchanged.
+- **6 themes × 5 section presets + 2 page templates (Home + About)** — each tuned
+  to the theme's character through VOICE, hero `variant`, section `tone` and
+  ordering (styling itself still comes from the theme `base`/`buildSiteVars`, so
+  these stay brand-safe). Examples: Coastal opens on a full-screen "Wake up by the
+  water" hero with a seaside amenities band; Minimal is a left-aligned "Less, but
+  better." hero with plain principles + numbers; Nightfall is a dark-toned
+  full-screen hero with a gold accent stats band.
+- Registry (`PRESETS`/`TEMPLATES`) keyed by theme slug — the builder picks them up
+  automatically via the existing `getThemeSectionPresets`/`getThemeTemplates`
+  (`theme.preset`); no PageBuilder change needed.
+
+**Additive only** — pre-configured instances of existing curated section types, so
+they render + validate through the same `sectionSchema`. **No migration, no DB or
+schema change.**
+
+**Tests:** new `lib/website/themeSections.test.ts` (37 cases) parses every preset
++ template section through the real `sectionSchema`, and asserts each theme ships
+presets + ≥1 template, unique keys, fresh ids per build, and empty results for
+unknown slugs. Suite now **133 green** (was 96). tsc + lint clean.
+
+---
+
 ## 2026-06-22 — Calendar sync: fix broken iCal import + lock it down with tests
 
 Audited calendar sync end-to-end. Found and fixed a **critical, 100%-reproducible

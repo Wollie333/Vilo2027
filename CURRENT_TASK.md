@@ -4,7 +4,9 @@
 
 ## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-22, very late)
 
-**Branch:** `main` — working tree CLEAN, **all committed AND PUSHED, in sync with `origin/main`** (latest `22bbf0b`; Vercel deploying). README recreated to current state. tsc + lint + **96 vitest** all GREEN. (Founder's dev server runs on :3000 — do NOT `pnpm build` while it's up; verify with tsc/lint/vitest only.)
+**Branch:** `main` — working tree CLEAN, **all committed AND PUSHED, in sync with `origin/main`**. README current. tsc + lint + **133 vitest** all GREEN. (Founder's dev server runs on :3000 — do NOT `pnpm build` while it's up; verify with tsc/lint/vitest only.)
+
+**LATEST (this session) — NEXT #1 DONE: designed sections + page templates for ALL built-in themes.** `lib/website/themeSections.ts` previously shipped designed presets/templates for Aria only; now all 6 other active catalogue themes (`classic`/`modern`/`coastal`/`warm`/`minimal`/`nightfall`) each get **5 section presets + Home/About templates**, tuned to the theme's voice/hero-variant/tone (styling still from the theme `base`/`buildSiteVars`). Added a type-safe `build<T>()` helper (Aria output unchanged). Registry keyed by slug → the builder picks them up via the existing `getThemeSectionPresets`/`getThemeTemplates` (`theme.preset`), **no PageBuilder change**. ADDITIVE — pre-configured instances of existing curated section types, **NO migration/DB/schema change**. New `themeSections.test.ts` (37 cases) parses every preset+template through `sectionSchema` (suite 96→133). tsc+lint green. **NOT yet browser-QA'd** (rolls into NEXT #5 manual QA).
 
 **Verify commands:** `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint --file …` + `pnpm exec vitest run`. **`pnpm build` ONLY when no dev server is running** (it shares `.next`); if a build dies with `MODULE_NOT_FOUND`/webpack-runtime, `rm -rf apps/web/.next` and rebuild.
 
@@ -29,7 +31,7 @@
 - **Builder inspector UI fixes** — added a 16px gutter; **ImageField stacks** (full-width preview above wrapped buttons) + scoped CSS forces all right-panel field grids to single column (no more side-by-side overflow).
 
 **▶ NEXT (start here):**
-1. **Page builder — more theme content (Phase C is functionally complete; this is content):** give the OTHER themes their own designed section presets + page templates (Aria is the exemplar in `lib/website/themeSections.ts`); optionally more Aria sections / element kinds.
+1. **Page builder — theme content: ✅ all 7 built-in themes now ship designed presets + Home/About templates** (`lib/website/themeSections.ts`). Optional follow-on (founder-call): MORE templates per theme (Rooms/Contact/Blog), more presets/section kinds, or per-theme preview thumbnails in the sidebar/template gallery.
 2. **Calendar sync follow-ups:** (a) set **`ICAL_TOKEN_SECRET`** in Vercel so export feeds work; (b) **no 15-min auto-sync cron exists** — import is manual-only ("Sync now"/on-add); build `ical-sync-all` (Next API route + pg_cron, mirror the email-worker pattern) if you want hands-off syncing.
 3. **report-scheduler launch step (privileged — needs founder SQL Editor):** `ALTER DATABASE postgres SET app.report_scheduler_secret='…'` (match the fn secret) + `app.settings.supabase_url` + `app.settings.supabase_anon_key` so the hourly cron fires (security gate already live/fail-closed; reporting gen is still a TODO placeholder).
 4. **Flagged item still needing LIVE KEYS:** card/webhook **amount-verification** (`event.data.amount` == expected `payment.amount`*100) — untestable without Paystack keys.
