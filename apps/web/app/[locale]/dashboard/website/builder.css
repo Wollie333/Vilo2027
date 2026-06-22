@@ -262,6 +262,47 @@
   overflow-y: auto;
   min-height: 0;
 }
+.vilo-builder .pal-search-wrap {
+  position: relative;
+  padding: 12px 14px 4px;
+}
+.vilo-builder .pal-search-ic {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--mute);
+  pointer-events: none;
+}
+.vilo-builder .pal-search {
+  width: 100%;
+  height: 34px;
+  padding: 0 28px 0 30px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 12.5px;
+  color: var(--ink);
+  outline: none;
+}
+.vilo-builder .pal-search:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+.vilo-builder .pal-search-x {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mute);
+  cursor: pointer;
+}
+.vilo-builder .pal-search-x:hover {
+  color: var(--ink);
+}
 .vilo-builder .pal-cat {
   padding: 14px 16px 6px;
   font-size: 10.5px;

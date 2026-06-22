@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-06-22 — Page builder · searchable sidebar + heroes-as-cards (Phase B1)
+
+The add-blocks sidebar gained a **search box** (filters every block + hero
+preset by name, with a flat results view) and the **seven hero layouts now
+appear as pickable cards** under a "Heroes" group — the host pulls a specific
+hero design straight in, then edits it. `addSection` takes an optional hero
+variant; `hero` moved out of the generic catHero group into its own preset row.
+Search-input styling added to `builder.css`; +3 i18n keys. tsc + lint + 73
+vitest green. (Theme-attached section group + site-width/section-height controls
+are the next Phase-B steps.)
+
+---
+
 ## 2026-06-22 — Page builder · 7 professional hero layouts (Phase A)
 
 Rebuilt the `hero` section into seven designed, responsive layouts the host

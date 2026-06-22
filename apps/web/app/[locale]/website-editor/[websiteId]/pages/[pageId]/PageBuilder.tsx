@@ -102,8 +102,10 @@ import type {
 import { websiteAssetUrl } from "@/lib/website/assets";
 import { newSection } from "@/lib/website/sectionDefaults";
 import {
+  HERO_LAYOUTS,
   isAutoPopulate,
   sectionsSchema,
+  type HeroLayout,
   type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
@@ -130,7 +132,8 @@ type Device = "desktop" | "tablet" | "phone";
 
 // Palette catalogue — same grouping as the SectionLibrary modal.
 const GROUPS: Array<{ key: string; types: SectionType[] }> = [
-  { key: "catHero", types: ["hero", "intro"] },
+  // Hero gets its own preset group (the 7 layouts); catHero keeps intro.
+  { key: "catHero", types: ["intro"] },
   {
     key: "catShowcase",
     types: [
@@ -210,6 +213,17 @@ const ICONS: Record<SectionType, LucideIcon> = {
   el_spacer: MoveVertical,
   el_divider: Minus,
   columns: Columns3,
+};
+
+// Icons for the seven hero presets surfaced as pickable cards in the sidebar.
+const HERO_ICONS: Record<HeroLayout, LucideIcon> = {
+  spotlight: ImageIcon,
+  split_right: Columns3,
+  split_left: Columns3,
+  fullscreen: Monitor,
+  minimal: TypeIcon,
+  boxed: LayoutTemplate,
+  search: Search,
 };
 
 /** Build the by-id SiteData map for the live preview from the per-type pool. */
@@ -303,6 +317,7 @@ export function PageBuilder({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [openingBrand, setOpeningBrand] = useState(false);
   const [insertAt, setInsertAt] = useState<number | null>(null);
+  const [paletteQuery, setPaletteQuery] = useState("");
   const [publishing, startPublish] = useTransition();
   const [autoStatus, setAutoStatus] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -375,8 +390,13 @@ export function PageBuilder({
     mutate([...sections.slice(0, i + 1), copy, ...sections.slice(i + 1)]);
     selectSection(copy.id);
   }
-  function addSection(type: SectionType) {
+  function addSection(type: SectionType, heroVariant?: HeroLayout) {
     const s = newSection(type);
+    // Hero presets: insert a hero pre-set to the chosen layout so the host can
+    // "pull in" a specific design from the sidebar, then edit photo/text/colour.
+    if (heroVariant && s.type === "hero") {
+      s.props = { ...s.props, variant: heroVariant };
+    }
     const at = insertAt ?? sections.length;
     mutate([...sections.slice(0, at), s, ...sections.slice(at)]);
     selectSection(s.id);
@@ -663,62 +683,144 @@ export function PageBuilder({
               <h3>{t("pbAddBlocks")}</h3>
             </div>
             <div className="epanel-b thin">
-              {/* Site parts — select the shared header/footer to edit inline. */}
-              <div className="pal-cat">{t("pbSiteParts")}</div>
-              <div className="pal-grid">
-                <button
-                  type="button"
-                  style={{ cursor: "pointer" }}
-                  className={`pal-item${selectedChrome === "header" ? "sel" : ""}`}
-                  onClick={() => selectChrome("header")}
-                >
-                  <span className="pi-ic">
-                    <PanelTop style={{ width: 16, height: 16 }} />
-                  </span>
-                  <span className="pi-nm">{t("navHeaderTitle")}</span>
-                </button>
-                <button
-                  type="button"
-                  style={{ cursor: "pointer" }}
-                  className={`pal-item${selectedChrome === "footer" ? "sel" : ""}`}
-                  onClick={() => selectChrome("footer")}
-                >
-                  <span className="pi-ic">
-                    <PanelBottom style={{ width: 16, height: 16 }} />
-                  </span>
-                  <span className="pi-nm">{t("navFooterTitle")}</span>
-                </button>
+              {/* Search across every block + hero preset by name. */}
+              <div className="pal-search-wrap">
+                <Search
+                  className="pal-search-ic"
+                  style={{ width: 14, height: 14 }}
+                />
+                <input
+                  type="text"
+                  className="pal-search"
+                  placeholder={t("pbSearchBlocks")}
+                  value={paletteQuery}
+                  onChange={(e) => setPaletteQuery(e.target.value)}
+                />
+                {paletteQuery ? (
+                  <button
+                    type="button"
+                    className="pal-search-x"
+                    onClick={() => setPaletteQuery("")}
+                    aria-label={t("blockBgClear")}
+                  >
+                    <X style={{ width: 13, height: 13 }} />
+                  </button>
+                ) : null}
               </div>
+
               {insertAt !== null ? (
                 <div className="pal-cat" style={{ color: "#064E3B" }}>
                   {t("pbInsertingHint")}
                 </div>
               ) : null}
-              {GROUPS.map((g) => (
-                <div key={g.key}>
-                  <div className="pal-cat">{t(g.key)}</div>
-                  <div className="pal-grid">
-                    {g.types.map((type) => {
-                      const Ico = ICONS[type];
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          className="pal-item"
-                          onClick={() => addSection(type)}
-                        >
-                          <span className="pi-ic">
-                            <Ico style={{ width: 16, height: 16 }} />
-                          </span>
-                          <span className="pi-nm">
-                            {t(`sectionType_${type}`)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+
+              {(() => {
+                const q = paletteQuery.trim().toLowerCase();
+                const heroCard = (variant: HeroLayout) => {
+                  const Ico = HERO_ICONS[variant];
+                  return (
+                    <button
+                      key={`hero-${variant}`}
+                      type="button"
+                      className="pal-item"
+                      onClick={() => addSection("hero", variant)}
+                    >
+                      <span className="pi-ic">
+                        <Ico style={{ width: 16, height: 16 }} />
+                      </span>
+                      <span className="pi-nm">
+                        {t(`heroLayout_${variant}`)}
+                      </span>
+                    </button>
+                  );
+                };
+                const typeCard = (type: SectionType) => {
+                  const Ico = ICONS[type];
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      className="pal-item"
+                      onClick={() => addSection(type)}
+                    >
+                      <span className="pi-ic">
+                        <Ico style={{ width: 16, height: 16 }} />
+                      </span>
+                      <span className="pi-nm">{t(`sectionType_${type}`)}</span>
+                    </button>
+                  );
+                };
+
+                // ── Filtered (flat) results ──────────────────────────
+                if (q) {
+                  const heroHits = HERO_LAYOUTS.filter(
+                    (v) =>
+                      t(`heroLayout_${v}`).toLowerCase().includes(q) ||
+                      "hero".includes(q),
+                  );
+                  const typeHits = GROUPS.flatMap((g) => g.types).filter(
+                    (type) =>
+                      t(`sectionType_${type}`).toLowerCase().includes(q) ||
+                      type.replace(/_/g, " ").includes(q),
+                  );
+                  if (heroHits.length + typeHits.length === 0) {
+                    return (
+                      <div className="pal-cat" style={{ fontWeight: 600 }}>
+                        {t("pbNoResults")}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="pal-grid">
+                      {heroHits.map(heroCard)}
+                      {typeHits.map(typeCard)}
+                    </div>
+                  );
+                }
+
+                // ── Default grouped view ─────────────────────────────
+                return (
+                  <>
+                    {/* Site parts — the shared header/footer (edit inline). */}
+                    <div className="pal-cat">{t("pbSiteParts")}</div>
+                    <div className="pal-grid">
+                      <button
+                        type="button"
+                        style={{ cursor: "pointer" }}
+                        className={`pal-item${selectedChrome === "header" ? "sel" : ""}`}
+                        onClick={() => selectChrome("header")}
+                      >
+                        <span className="pi-ic">
+                          <PanelTop style={{ width: 16, height: 16 }} />
+                        </span>
+                        <span className="pi-nm">{t("navHeaderTitle")}</span>
+                      </button>
+                      <button
+                        type="button"
+                        style={{ cursor: "pointer" }}
+                        className={`pal-item${selectedChrome === "footer" ? "sel" : ""}`}
+                        onClick={() => selectChrome("footer")}
+                      >
+                        <span className="pi-ic">
+                          <PanelBottom style={{ width: 16, height: 16 }} />
+                        </span>
+                        <span className="pi-nm">{t("navFooterTitle")}</span>
+                      </button>
+                    </div>
+
+                    {/* Heroes — the seven designed layouts. */}
+                    <div className="pal-cat">{t("pbHeroes")}</div>
+                    <div className="pal-grid">{HERO_LAYOUTS.map(heroCard)}</div>
+
+                    {GROUPS.map((g) => (
+                      <div key={g.key}>
+                        <div className="pal-cat">{t(g.key)}</div>
+                        <div className="pal-grid">{g.types.map(typeCard)}</div>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
             </div>
           </aside>
         ) : null}
