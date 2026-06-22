@@ -111,9 +111,20 @@ headers: [
 ]
 ```
 
-- [ ] `X-Frame-Options: DENY` — prevents clickjacking
-- [ ] `X-Content-Type-Options: nosniff` — prevents MIME sniffing
-- [ ] Content Security Policy blocks inline scripts from untrusted sources
+- [x] `X-Frame-Options: SAMEORIGIN` — prevents clickjacking. **NOT `DENY`** (the
+  spec above): the Brand Studio + Brand Preview iframe the app's own pages, which
+  `DENY` would break. Set globally in `next.config.mjs` (2026-06-22).
+- [x] `X-Content-Type-Options: nosniff` — prevents MIME sniffing (`next.config.mjs`).
+- [x] `Referrer-Policy: strict-origin-when-cross-origin` (`next.config.mjs`).
+- [x] `Permissions-Policy: camera=(), microphone=(), geolocation=(self)`
+  (`next.config.mjs`).
+- [x] `Strict-Transport-Security: max-age=31536000` — HSTS without
+  `includeSubDomains`/`preload` (so a connected custom domain can't force HTTPS
+  onto the host's unrelated subdomains) (`next.config.mjs`).
+- [ ] **Content Security Policy — DEFERRED to the Step-1 live-QA pass.** Must
+  allow Paystack/PayPal/Supabase/OpenStreetMap/YouTube/Turnstile/GA4/Meta and be
+  validated in a real browser before enabling. Will use `frame-ancestors 'self'`
+  to refine the clickjacking control alongside `X-Frame-Options`.
 - [ ] No `dangerouslySetInnerHTML` used with user-supplied content anywhere in the codebase
 
 ```bash

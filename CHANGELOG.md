@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-06-22 — Baseline security headers (SECURITY_CHECKLIST §7, non-CSP)
+
+Added the "safe" global security headers in `next.config.mjs` (`headers()` over
+`/:path*`): `X-Frame-Options: SAMEORIGIN` (not `DENY` — the Brand Studio +
+Brand Preview iframe the app's own pages, which DENY would break),
+`X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
+`Permissions-Policy: camera=(), microphone=(), geolocation=(self)`, and HSTS
+`max-age=31536000` (no `includeSubDomains`/`preload`, so a connected custom
+domain can't force HTTPS onto the host's unrelated subdomains). **CSP is
+deliberately deferred** to the Step-1 live-QA pass (must allow Paystack/PayPal/
+Supabase/OSM/YouTube/Turnstile/GA4/Meta and be browser-validated). Checklist §7
+updated. Config verified to load + emit the headers.
+
+---
+
 ## 2026-06-22 — Website Settings · GA4 + Meta Pixel + POPIA cookie-consent
 
 **Host third-party analytics on tenant sites.** Hosts can paste their own GA4
