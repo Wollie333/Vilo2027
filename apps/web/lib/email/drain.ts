@@ -47,16 +47,16 @@ export async function drainEmailQueue(): Promise<DrainResult> {
   // use the configured name (falling back to "Vilo") instead of hardcoding it.
   const brandName = await getBrandName();
 
-  const { data: rows, error: fetchError } = await supabase
-    .from("notification_queue")
-    .select("id, type, host_id, guest_id, payload, user_id, category_id")
-    .is("sent_at", null)
-    .is("failed_at", null)
-    .order("created_at", { ascending: true })
-    .limit(BATCH_SIZE);
+  // Atomically CLAIM a batch (stamps claimed_at via FOR UPDATE SKIP LOCKED) so
+  // two overlapping per-minute ticks never grab the same row and double-send.
+  // A crashed worker's claim goes stale after 300s and is reclaimed later.
+  const { data: rows, error: fetchError } = await supabase.rpc(
+    "claim_email_queue_batch",
+    { p_limit: BATCH_SIZE, p_stale_seconds: 300 },
+  );
 
   if (fetchError) {
-    throw new Error(`fetch queue failed: ${fetchError.message}`);
+    throw new Error(`claim queue failed: ${fetchError.message}`);
   }
 
   const result: DrainResult = {

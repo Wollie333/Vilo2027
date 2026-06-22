@@ -28,17 +28,17 @@ type QueueRow = {
 export async function drainPushQueue(): Promise<PushDrainResult> {
   const supabase = createAdminClient();
 
-  const { data: rows, error } = await supabase
-    .from("pending_push_queue")
-    .select("id, user_id, event_kind, payload")
-    .is("sent_at", null)
-    .is("failed_at", null)
-    .lte("release_at", new Date().toISOString())
-    .order("release_at", { ascending: true })
-    .limit(BATCH_SIZE);
+  // Atomically CLAIM a batch (stamps claimed_at via FOR UPDATE SKIP LOCKED) so
+  // two overlapping per-minute ticks never grab the same row and double-send.
+  // The claim also honours release_at (quiet-hours deferral) and reclaims a
+  // crashed worker's stale claim after 300s.
+  const { data: rows, error } = await supabase.rpc("claim_push_queue_batch", {
+    p_limit: BATCH_SIZE,
+    p_stale_seconds: 300,
+  });
 
   if (error) {
-    throw new Error(`fetch push queue failed: ${error.message}`);
+    throw new Error(`claim push queue failed: ${error.message}`);
   }
 
   const result: PushDrainResult = {

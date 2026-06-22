@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-06-22 — Notification drains: atomic claim (anti double-send)
+
+Closed two save-point items.
+
+**Quote form (NEXT item 1):** closed by code review (founder OK'd skipping the
+browser drive). `priceQuoteAction → computeStayPricing → setBaseAmount /
+setPricedRooms / setAgeLines → totals memo → amount fields` binds correctly in
+all three modes (whole-listing controlled `baseAmount`, per-room
+`RoomAmountInput` remounted via `priceVersion`, single-total). Send buttons are
+only gated by `busy || hasDateConflict`; the total≤0 check is a `validate()`
+toast, not a stuck disabled state. No UI binding bug — the real defect was the
+silent R0, already fixed by the amber banner.
+
+**Email + push worker double-send (flagged item):** the per-minute email
+(`lib/email/drain.ts`) and push (`lib/notifications/push-queue.ts`) workers did
+read-then-send (`SELECT … WHERE sent_at IS NULL` → send → `UPDATE sent_at`). A
+drain that exceeds its 60s budget overlaps the next cron tick → both ticks
+select the same rows → the guest gets the same email/push twice. **Fix:**
+migration `20260622010000` adds a nullable `claimed_at` to `notification_queue`
++ `pending_push_queue` and two `SECURITY DEFINER` claim RPCs
+(`claim_email_queue_batch` / `claim_push_queue_batch`) that atomically stamp a
+batch via `FOR UPDATE SKIP LOCKED` (concurrent ticks get disjoint sets) and
+reclaim a crashed worker's stale claim after 300s. Both drains now call the
+claim RPC instead of a plain select; `markSent`/`markFailed` unchanged. Pushed
+to the linked DB + types regenerated. New `scripts/smoke-queue-claim.mjs`
+verifies disjoint concurrent claims, claimed_at stamping, sent-row exclusion,
+and stale reclaim against the cloud DB — all pass. tsc + lint + 73 vitest tests
+green. (Digest drain is hourly/low-overlap-risk and left as-is — noted as a
+minor follow-up.)
+
+---
+
 ## 2026-06-22 — SAVE POINT (session end)
 
 Resume anchor written to `CURRENT_TASK.md` top. Session summary: built the

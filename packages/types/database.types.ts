@@ -4286,6 +4286,7 @@ export type Database = {
       notification_queue: {
         Row: {
           category_id: string | null
+          claimed_at: string | null
           created_at: string
           dedupe_key: string | null
           error: string | null
@@ -4300,6 +4301,7 @@ export type Database = {
         }
         Insert: {
           category_id?: string | null
+          claimed_at?: string | null
           created_at?: string
           dedupe_key?: string | null
           error?: string | null
@@ -4314,6 +4316,7 @@ export type Database = {
         }
         Update: {
           category_id?: string | null
+          claimed_at?: string | null
           created_at?: string
           dedupe_key?: string | null
           error?: string | null
@@ -4499,6 +4502,7 @@ export type Database = {
       }
       pending_push_queue: {
         Row: {
+          claimed_at: string | null
           created_at: string
           error: string | null
           event_kind: string
@@ -4510,6 +4514,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          claimed_at?: string | null
           created_at?: string
           error?: string | null
           event_kind: string
@@ -4521,6 +4526,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          claimed_at?: string | null
           created_at?: string
           error?: string | null
           event_kind?: string
@@ -9550,6 +9556,51 @@ export type Database = {
       check_feature_permission: {
         Args: { p_feature_key: string; p_host_id: string }
         Returns: Json
+      }
+      claim_email_queue_batch: {
+        Args: { p_limit: number; p_stale_seconds?: number }
+        Returns: {
+          category_id: string | null
+          claimed_at: string | null
+          created_at: string
+          dedupe_key: string | null
+          error: string | null
+          failed_at: string | null
+          guest_id: string | null
+          host_id: string | null
+          id: string
+          payload: Json
+          sent_at: string | null
+          type: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_push_queue_batch: {
+        Args: { p_limit: number; p_stale_seconds?: number }
+        Returns: {
+          claimed_at: string | null
+          created_at: string
+          error: string | null
+          event_kind: string
+          failed_at: string | null
+          id: string
+          payload: Json
+          release_at: string
+          sent_at: string | null
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "pending_push_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       clawback_affiliate_commission: {
         Args: { p_refund_ledger_id: string; p_source_ledger_id: string }
