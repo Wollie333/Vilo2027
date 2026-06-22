@@ -851,6 +851,83 @@ async function main() {
     console.log("  (form skipped:", e.message, ")");
   }
 
+  // 11. Website analytics — a 14-day spread so the Overview/analytics dashboards
+  // render real numbers (these are the same rows the live /api/site-track beacon
+  // produces). Delete-then-insert keeps re-runs idempotent.
+  await admin
+    .from("website_analytics_events")
+    .delete()
+    .eq("website_id", WEBSITE_ID);
+  {
+    const devices = ["desktop", "desktop", "mobile", "mobile", "desktop"];
+    const referrers = [
+      null,
+      "google.com",
+      "facebook.com",
+      "instagram.com",
+      null,
+      "google.com",
+    ];
+    const paths = ["/", "/", "/rooms", "/about", "/contact", "/", "/rooms"];
+    const countries = ["ZA", "ZA", "ZA", "GB", "DE", "ZA", "US"];
+    const rows = [];
+    const now = Date.now();
+    let sess = 0;
+    for (let d = 0; d < 14; d++) {
+      const dayMs = now - d * 86400000;
+      const sessions = 4 + (d % 7); // 4–10 sessions/day
+      for (let s = 0; s < sessions; s++) {
+        sess++;
+        const sessionId = `qa-sess-${d}-${s}`;
+        const device = devices[sess % devices.length];
+        const referrer = referrers[sess % referrers.length];
+        const country = countries[sess % countries.length];
+        const views = 1 + (sess % 3);
+        for (let v = 0; v < views; v++) {
+          rows.push({
+            website_id: WEBSITE_ID,
+            event: "pageview",
+            path: paths[(sess + v) % paths.length],
+            session_id: sessionId,
+            referrer_host: referrer,
+            device,
+            country,
+            created_at: new Date(dayMs - v * 60000).toISOString(),
+          });
+        }
+        if (sess % 3 === 0) {
+          rows.push({
+            website_id: WEBSITE_ID,
+            event: "booking_click",
+            path: "/rooms",
+            session_id: sessionId,
+            referrer_host: referrer,
+            device,
+            country,
+            created_at: new Date(dayMs).toISOString(),
+          });
+        }
+      }
+    }
+    let analyticsOk = true;
+    for (let i = 0; i < rows.length; i += 200) {
+      const { error } = await admin
+        .from("website_analytics_events")
+        .insert(rows.slice(i, i + 200));
+      if (error) {
+        console.log("  (analytics skipped:", error.message, ")");
+        analyticsOk = false;
+        break;
+      }
+    }
+    if (analyticsOk) {
+      console.log(
+        "   seeded %d website analytics events across 14 days",
+        rows.length,
+      );
+    }
+  }
+
   // ── Done ───────────────────────────────────────────────────────────────
   console.log("\n✅ Test-site seed complete.");
   console.log("   Host login:  %s / %s", HOST_EMAIL, HOST_PASSWORD);

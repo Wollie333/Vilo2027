@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-06-22 — Analytics verified end-to-end + seeded into the fixture
+
+Verified the website-analytics pipeline works: POSТed the public `/api/site-track`
+beacon → rows land in `website_analytics_events` with correct event/path/device
+(mobile from iPhone UA)/referrer-host. Added a repeatable 14-day analytics spread
+to `seed:test-site` (229 events: pageviews + booking-clicks, varied
+sessions/devices/sources). Confirmed the dashboard Overview now renders real
+numbers — **98 visitors / 197 pageviews / 32 booking-clicks (32.7% conversion)**,
+device + source breakdowns — instead of zeros. Analytics ✅.
+
+(Still to verify per the launch list: notifications + admin/host reporting.
+Remaining fix batches: payments over-refund/amount-verify, iCal SSRF + worker
+dedupe.)
+
+---
+
 ## 2026-06-22 — App-wide bug hunt: dashboard booking-state batch
 
 Second fix batch from the four audits — host-dashboard booking/money-state bugs.
