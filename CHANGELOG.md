@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-06-22 — QA round 3: booking money-path + host dashboard + funnel endpoints
+
+Verified the critical flows end-to-end (reliable API/DB checks; the booking core
+is shared by the platform + on-site paths):
+- **On-site booking (EFT) created end-to-end** → `pending_eft`, correct amounts
+  (whole R5 650 weekday / R5 950 with a weekend night; rooms R4 050), generated
+  reference, payment row; **thank-you page renders** EFT bank details + reference.
+- **Pricing engine correct** incl. weekday vs weekend nights and rooms-scope.
+- **Booking-funnel endpoints all correct:** `site-booking-quote`,
+  `website-quote` (R8 250 / 3 nights + deep-link), `website-availability`
+  (reflects the confirmed booking's blocked nights).
+- **Card path** correctly gated on the host's connected Paystack (loader) with a
+  graceful EFT fallback in the core — verified NOT a bug.
+- **Host dashboard** — bookings, properties, inbox (shows the website enquiry),
+  guests (shows the guest), calendar all load 200 with seeded data. Confirm/
+  decline proven at the trigger level (the seed's transitions generate invoices).
+- **Directory→book** — `/explore` lists the property, platform `/property/[slug]/book`
+  (+ `?via=platform`) renders the booking form.
+
+Tasks completed: #9 (on-site checkout integration), #10 (property pages), #11
+(platform booking core), #14 (directory). No code changes this round — no bugs
+surfaced (the card case was correct behavior). Remaining = deep authed-UI driving
+(builder add/delete/reorder + editors, brand/theme, property-edit save round-trips,
+dashboard mutation buttons) folded into #1–#8, #12–#13, #15.
+
+---
+
 ## 2026-06-22 — QA round 2: breadth smoke across all 3 features + integration APIs
 
 Planned the full QA as a 15-item tracked checklist (Website CMS → web-app core →
