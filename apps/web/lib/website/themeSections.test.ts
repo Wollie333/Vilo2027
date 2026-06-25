@@ -30,10 +30,10 @@ describe("themeSections registry", () => {
         expect(templates.length).toBeGreaterThan(0);
       });
 
-      it("ships Home, About and Contact page templates", () => {
+      it("ships Home, About, Contact, Rooms and Blog page templates", () => {
         const labels = templates.map((t) => t.label);
         expect(labels).toEqual(
-          expect.arrayContaining(["Home", "About", "Contact"]),
+          expect.arrayContaining(["Home", "About", "Contact", "Rooms", "Blog"]),
         );
       });
 
@@ -42,6 +42,20 @@ describe("themeSections registry", () => {
         expect(contact).toBeDefined();
         const types = contact!.make().map((s) => s.type);
         expect(types).toContain("contact_form");
+      });
+
+      it("the Rooms template includes a rooms preview", () => {
+        const rooms = templates.find((t) => t.label === "Rooms");
+        expect(rooms).toBeDefined();
+        const types = rooms!.make().map((s) => s.type);
+        expect(types).toContain("rooms_preview");
+      });
+
+      it("the Blog template includes a blog preview", () => {
+        const blog = templates.find((t) => t.label === "Blog");
+        expect(blog).toBeDefined();
+        const types = blog!.make().map((s) => s.type);
+        expect(types).toContain("blog_preview");
       });
 
       it("builds every preset into a schema-valid section", () => {

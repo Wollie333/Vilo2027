@@ -164,6 +164,32 @@ const aria = {
       s.props.heading = "Find us";
       s.props.variant = "split";
     }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "Everything you need";
+      s.props.items = [
+        { icon: "📶", label: "Fast Wi-Fi" },
+        { icon: "🅿️", label: "Free parking" },
+        { icon: "☕", label: "Breakfast" },
+        { icon: "❄️", label: "Air-conditioning" },
+        { icon: "🏊", label: "Pool" },
+        { icon: "🧺", label: "Laundry" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Rates";
+      s.props.items = [
+        { label: "Standard room", price: "R1 200", note: "per night" },
+        { label: "Deluxe suite", price: "R2 400", note: "per night" },
+      ];
+      s.props.footnote =
+        "Rates are indicative — your final price is confirmed at booking.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "From the journal";
+    }),
 };
 
 const ARIA_PRESETS: ThemeSectionPreset[] = [
@@ -186,6 +212,9 @@ const ARIA_PRESETS: ThemeSectionPreset[] = [
   },
   { key: "aria_contact_form", label: "Contact form", make: aria.contactForm },
   { key: "aria_faq", label: "FAQ", make: aria.faq },
+  { key: "aria_amenities", label: "Amenities", make: aria.amenities },
+  { key: "aria_pricing", label: "Rates", make: aria.pricing },
+  { key: "aria_blog", label: "Blog posts", make: aria.blog },
 ];
 
 const ARIA_TEMPLATES: ThemeTemplate[] = [
@@ -224,6 +253,23 @@ const ARIA_TEMPLATES: ThemeTemplate[] = [
       aria.faq(),
       aria.ctaBanner(),
     ],
+  },
+  {
+    key: "aria_rooms",
+    label: "Rooms",
+    description: "Your rooms, what's included, the rates and a closing CTA.",
+    make: () => [
+      aria.rooms(),
+      aria.amenities(),
+      aria.pricing(),
+      aria.ctaBanner(),
+    ],
+  },
+  {
+    key: "aria_blog",
+    label: "Blog",
+    description: "Your latest journal posts and a closing CTA.",
+    make: () => [aria.blog(), aria.ctaBanner()],
   },
 ];
 
@@ -340,6 +386,32 @@ const classic = {
       s.props.heading = "Where to find us";
       s.props.variant = "split";
     }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "Comforts & conveniences";
+      s.props.items = [
+        { icon: "🛏️", label: "Quality linens" },
+        { icon: "☕", label: "Breakfast served" },
+        { icon: "🅿️", label: "Private parking" },
+        { icon: "📶", label: "Wi-Fi throughout" },
+        { icon: "🛎️", label: "Attentive service" },
+        { icon: "🌿", label: "Garden & grounds" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Our rates";
+      s.props.items = [
+        { label: "Classic room", price: "R1 400", note: "per night" },
+        { label: "Garden suite", price: "R2 600", note: "per night" },
+      ];
+      s.props.footnote =
+        "Rates are indicative — your final price is confirmed at reservation.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "From the journal";
+    }),
 };
 
 const CLASSIC_PRESETS: ThemeSectionPreset[] = [
@@ -366,6 +438,9 @@ const CLASSIC_PRESETS: ThemeSectionPreset[] = [
     make: classic.contactForm,
   },
   { key: "classic_faq", label: "FAQ", make: classic.faq },
+  { key: "classic_amenities", label: "Amenities", make: classic.amenities },
+  { key: "classic_pricing", label: "Rates", make: classic.pricing },
+  { key: "classic_blog", label: "Blog posts", make: classic.blog },
 ];
 
 const CLASSIC_TEMPLATES: ThemeTemplate[] = [
@@ -405,6 +480,23 @@ const CLASSIC_TEMPLATES: ThemeTemplate[] = [
       classic.faq(),
       classic.invitation(),
     ],
+  },
+  {
+    key: "classic_rooms",
+    label: "Rooms",
+    description: "Our rooms, the comforts within, our rates and an invitation.",
+    make: () => [
+      classic.rooms(),
+      classic.amenities(),
+      classic.pricing(),
+      classic.invitation(),
+    ],
+  },
+  {
+    key: "classic_blog",
+    label: "Blog",
+    description: "The latest from the journal and an invitation.",
+    make: () => [classic.blog(), classic.invitation()],
   },
 ];
 
@@ -520,6 +612,32 @@ const modern = {
       s.props.heading = "Where we are";
       s.props.variant = "split";
     }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "What's included";
+      s.props.items = [
+        { icon: "📶", label: "Fast Wi-Fi" },
+        { icon: "🔌", label: "Smart TV" },
+        { icon: "🅿️", label: "Free parking" },
+        { icon: "❄️", label: "Climate control" },
+        { icon: "🍳", label: "Kitchenette" },
+        { icon: "🔑", label: "Self check-in" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Rates";
+      s.props.items = [
+        { label: "Studio", price: "R1 100", note: "per night" },
+        { label: "One-bedroom", price: "R1 900", note: "per night" },
+      ];
+      s.props.footnote =
+        "Final price is confirmed at booking — no hidden fees.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "Latest";
+    }),
 };
 
 const MODERN_PRESETS: ThemeSectionPreset[] = [
@@ -542,6 +660,9 @@ const MODERN_PRESETS: ThemeSectionPreset[] = [
     make: modern.contactForm,
   },
   { key: "modern_faq", label: "FAQ", make: modern.faq },
+  { key: "modern_amenities", label: "Amenities", make: modern.amenities },
+  { key: "modern_pricing", label: "Rates", make: modern.pricing },
+  { key: "modern_blog", label: "Blog posts", make: modern.blog },
 ];
 
 const MODERN_TEMPLATES: ThemeTemplate[] = [
@@ -579,6 +700,23 @@ const MODERN_TEMPLATES: ThemeTemplate[] = [
       modern.faq(),
       modern.cta(),
     ],
+  },
+  {
+    key: "modern_rooms",
+    label: "Rooms",
+    description: "Rooms, what's included, rates and a CTA.",
+    make: () => [
+      modern.rooms(),
+      modern.amenities(),
+      modern.pricing(),
+      modern.cta(),
+    ],
+  },
+  {
+    key: "modern_blog",
+    label: "Blog",
+    description: "Your latest posts and a CTA.",
+    make: () => [modern.blog(), modern.cta()],
   },
 ];
 
@@ -703,6 +841,20 @@ const coastal = {
       s.props.heading = "Find your way to the coast";
       s.props.variant = "split";
     }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Rates";
+      s.props.items = [
+        { label: "Sea-view room", price: "R1 600", note: "per night" },
+        { label: "Beach suite", price: "R2 800", note: "per night" },
+      ];
+      s.props.footnote =
+        "Rates are indicative — your final price is confirmed at booking.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "Coast notes";
+    }),
 };
 
 const COASTAL_PRESETS: ThemeSectionPreset[] = [
@@ -733,6 +885,8 @@ const COASTAL_PRESETS: ThemeSectionPreset[] = [
     make: coastal.contactForm,
   },
   { key: "coastal_faq", label: "FAQ", make: coastal.faq },
+  { key: "coastal_pricing", label: "Rates", make: coastal.pricing },
+  { key: "coastal_blog", label: "Blog posts", make: coastal.blog },
 ];
 
 const COASTAL_TEMPLATES: ThemeTemplate[] = [
@@ -771,6 +925,23 @@ const COASTAL_TEMPLATES: ThemeTemplate[] = [
       coastal.faq(),
       coastal.cta(),
     ],
+  },
+  {
+    key: "coastal_rooms",
+    label: "Rooms",
+    description: "Your rooms, seaside amenities, the rates and a CTA.",
+    make: () => [
+      coastal.rooms(),
+      coastal.amenities(),
+      coastal.pricing(),
+      coastal.cta(),
+    ],
+  },
+  {
+    key: "coastal_blog",
+    label: "Blog",
+    description: "Notes from the coast and a CTA.",
+    make: () => [coastal.blog(), coastal.cta()],
   },
 ];
 
@@ -883,6 +1054,32 @@ const warm = {
       s.props.heading = "How to find us";
       s.props.variant = "split";
     }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "Home comforts";
+      s.props.items = [
+        { icon: "☕", label: "Home-cooked breakfast" },
+        { icon: "🔥", label: "Cosy fireplace" },
+        { icon: "📶", label: "Free Wi-Fi" },
+        { icon: "🅿️", label: "Off-street parking" },
+        { icon: "🧺", label: "Laundry on request" },
+        { icon: "🐾", label: "Pet friendly" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Our rates";
+      s.props.items = [
+        { label: "Double room", price: "R1 100", note: "per night" },
+        { label: "Family room", price: "R1 800", note: "per night" },
+      ];
+      s.props.footnote =
+        "Breakfast included. Final price confirmed at booking.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "Stories from home";
+    }),
 };
 
 const WARM_PRESETS: ThemeSectionPreset[] = [
@@ -901,6 +1098,9 @@ const WARM_PRESETS: ThemeSectionPreset[] = [
   { key: "warm_cta", label: "Warm CTA", make: warm.cta },
   { key: "warm_contact_form", label: "Contact form", make: warm.contactForm },
   { key: "warm_faq", label: "FAQ", make: warm.faq },
+  { key: "warm_amenities", label: "Amenities", make: warm.amenities },
+  { key: "warm_pricing", label: "Rates", make: warm.pricing },
+  { key: "warm_blog", label: "Blog posts", make: warm.blog },
 ];
 
 const WARM_TEMPLATES: ThemeTemplate[] = [
@@ -934,6 +1134,18 @@ const WARM_TEMPLATES: ThemeTemplate[] = [
     label: "Contact",
     description: "A friendly contact form, how to find you, FAQs and a CTA.",
     make: () => [warm.contactForm(), warm.location(), warm.faq(), warm.cta()],
+  },
+  {
+    key: "warm_rooms",
+    label: "Rooms",
+    description: "Our rooms, the home comforts, our rates and a CTA.",
+    make: () => [warm.rooms(), warm.amenities(), warm.pricing(), warm.cta()],
+  },
+  {
+    key: "warm_blog",
+    label: "Blog",
+    description: "Stories from home and a CTA.",
+    make: () => [warm.blog(), warm.cta()],
   },
 ];
 
@@ -1028,6 +1240,31 @@ const minimal = {
       s.props.heading = "Location";
       s.props.variant = "list";
     }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "Included";
+      s.props.items = [
+        { label: "Wi-Fi" },
+        { label: "Parking" },
+        { label: "Breakfast" },
+        { label: "Heating & cooling" },
+        { label: "Workspace" },
+        { label: "Self check-in" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Rates";
+      s.props.items = [
+        { label: "Room", price: "R1 000", note: "per night" },
+        { label: "Suite", price: "R1 800", note: "per night" },
+      ];
+      s.props.footnote = "Final price confirmed at booking.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "Notes";
+    }),
 };
 
 const MINIMAL_PRESETS: ThemeSectionPreset[] = [
@@ -1046,6 +1283,9 @@ const MINIMAL_PRESETS: ThemeSectionPreset[] = [
     make: minimal.contactForm,
   },
   { key: "minimal_faq", label: "FAQ", make: minimal.faq },
+  { key: "minimal_amenities", label: "Amenities", make: minimal.amenities },
+  { key: "minimal_pricing", label: "Rates", make: minimal.pricing },
+  { key: "minimal_blog", label: "Blog posts", make: minimal.blog },
 ];
 
 const MINIMAL_TEMPLATES: ThemeTemplate[] = [
@@ -1083,6 +1323,23 @@ const MINIMAL_TEMPLATES: ThemeTemplate[] = [
       minimal.faq(),
       minimal.cta(),
     ],
+  },
+  {
+    key: "minimal_rooms",
+    label: "Rooms",
+    description: "Rooms, included, rates, book direct.",
+    make: () => [
+      minimal.rooms(),
+      minimal.amenities(),
+      minimal.pricing(),
+      minimal.cta(),
+    ],
+  },
+  {
+    key: "minimal_blog",
+    label: "Blog",
+    description: "Notes, book direct.",
+    make: () => [minimal.blog(), minimal.cta()],
   },
 ];
 
@@ -1201,6 +1458,33 @@ const nightfall = {
       s.props.heading = "Where to find us";
       s.props.variant = "split";
     }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "In residence";
+      s.props.items = [
+        { icon: "🥂", label: "Welcome drink" },
+        { icon: "🌙", label: "Blackout curtains" },
+        { icon: "📶", label: "Fast Wi-Fi" },
+        { icon: "🛁", label: "Deep soaking tub" },
+        { icon: "🍷", label: "In-room minibar" },
+        { icon: "🛎️", label: "24/7 concierge" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.tone = "accent";
+      s.props.heading = "Rates";
+      s.props.items = [
+        { label: "Twilight room", price: "R2 200", note: "per night" },
+        { label: "Midnight suite", price: "R3 900", note: "per night" },
+      ];
+      s.props.footnote =
+        "Rates are indicative — your final price is confirmed at booking.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "After dark";
+    }),
 };
 
 const NIGHTFALL_PRESETS: ThemeSectionPreset[] = [
@@ -1227,6 +1511,13 @@ const NIGHTFALL_PRESETS: ThemeSectionPreset[] = [
     make: nightfall.contactForm,
   },
   { key: "nightfall_faq", label: "FAQ", make: nightfall.faq },
+  {
+    key: "nightfall_amenities",
+    label: "Amenities",
+    make: nightfall.amenities,
+  },
+  { key: "nightfall_pricing", label: "Rates", make: nightfall.pricing },
+  { key: "nightfall_blog", label: "Blog posts", make: nightfall.blog },
 ];
 
 const NIGHTFALL_TEMPLATES: ThemeTemplate[] = [
@@ -1265,6 +1556,23 @@ const NIGHTFALL_TEMPLATES: ThemeTemplate[] = [
       nightfall.faq(),
       nightfall.cta(),
     ],
+  },
+  {
+    key: "nightfall_rooms",
+    label: "Rooms",
+    description: "The rooms, what's in residence, the rates and a CTA.",
+    make: () => [
+      nightfall.rooms(),
+      nightfall.amenities(),
+      nightfall.pricing(),
+      nightfall.cta(),
+    ],
+  },
+  {
+    key: "nightfall_blog",
+    label: "Blog",
+    description: "After-dark reading and a CTA.",
+    make: () => [nightfall.blog(), nightfall.cta()],
   },
 ];
 
