@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-25 — Page builder: Contact page template + contact-form/FAQ presets for every theme
+
+Each built-in theme already shipped **Home + About** page templates and 5 designed
+section presets; none shipped a **Contact** page or contact-oriented presets. Added
+both to all 7 themes (`aria`/`classic`/`modern`/`coastal`/`warm`/`minimal`/`nightfall`)
+in `lib/website/themeSections.ts`.
+
+**Per theme:**
+- 3 new theme-voiced section makers — `contactForm` (`contact_form`),
+  `faq` (3 practical, editable Q&As: check-in, parking, cancellation), and
+  `location` (map block). Copy + variants are tuned to each theme's character
+  (e.g. Coastal "Send us a wave", Minimal terse "Contact / A question? Send it.",
+  Nightfall "Reach out … concierge").
+- 2 new sidebar presets — **Contact form** + **FAQ** (theme group grew 5 → 7).
+- 1 new **Contact** page template — `[contact form → location → FAQ → theme CTA]`,
+  reusing each theme's existing closing CTA maker.
+
+**Additive only** — pre-configured instances of existing curated section types; they
+render + validate through the same `sectionSchema`. The builder surfaces them
+automatically via the existing `getThemeSectionPresets`/`getThemeTemplates` registry
+lookup — **no PageBuilder change, no migration, no DB/schema change.**
+
+**Tests:** `themeSections.test.ts` gained 2 assertions per theme (each ships
+Home/About/Contact; the Contact template contains a `contact_form`). Suite
+**133 → 147 green**. tsc + lint clean.
+
+---
+
 ## 2026-06-22 — Page builder: item reorder, WYSIWYG, undo/redo + shortcuts, delete-website
 
 Three builder/Settings enhancements (commits `4867092`, `8538683`, `9c7e50c`).

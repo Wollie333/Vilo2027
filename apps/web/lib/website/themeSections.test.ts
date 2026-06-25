@@ -30,6 +30,20 @@ describe("themeSections registry", () => {
         expect(templates.length).toBeGreaterThan(0);
       });
 
+      it("ships Home, About and Contact page templates", () => {
+        const labels = templates.map((t) => t.label);
+        expect(labels).toEqual(
+          expect.arrayContaining(["Home", "About", "Contact"]),
+        );
+      });
+
+      it("the Contact template includes a contact form", () => {
+        const contact = templates.find((t) => t.label === "Contact");
+        expect(contact).toBeDefined();
+        const types = contact!.make().map((s) => s.type);
+        expect(types).toContain("contact_form");
+      });
+
       it("builds every preset into a schema-valid section", () => {
         for (const preset of presets) {
           const result = sectionSchema.safeParse(preset.make());

@@ -133,6 +133,37 @@ const aria = {
         "Tell your story here — what makes the stay, and you, special.";
       s.props.variant = "lead";
     }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Get in touch";
+      s.props.body =
+        "Questions about your stay? Send us a message — we usually reply within a few hours.";
+      s.props.variant = "split";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Before you ask";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "What time is check-in?",
+          a: "Check-in is from 14:00 and check-out by 10:00 — flexible times on request.",
+        },
+        {
+          q: "Is parking available?",
+          a: "Yes — secure on-site parking, free for every guest.",
+        },
+        {
+          q: "What's your cancellation policy?",
+          a: "Free cancellation up to 7 days before arrival. Replace this with your own policy.",
+        },
+      ];
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "Find us";
+      s.props.variant = "split";
+    }),
 };
 
 const ARIA_PRESETS: ThemeSectionPreset[] = [
@@ -153,6 +184,8 @@ const ARIA_PRESETS: ThemeSectionPreset[] = [
     label: "Closing call-to-action",
     make: aria.ctaBanner,
   },
+  { key: "aria_contact_form", label: "Contact form", make: aria.contactForm },
+  { key: "aria_faq", label: "FAQ", make: aria.faq },
 ];
 
 const ARIA_TEMPLATES: ThemeTemplate[] = [
@@ -178,6 +211,17 @@ const ARIA_TEMPLATES: ThemeTemplate[] = [
       aria.heroSplit(),
       aria.intro(),
       aria.reviews(),
+      aria.ctaBanner(),
+    ],
+  },
+  {
+    key: "aria_contact",
+    label: "Contact",
+    description: "Contact form, where to find you, FAQs and a closing CTA.",
+    make: () => [
+      aria.contactForm(),
+      aria.location(),
+      aria.faq(),
       aria.ctaBanner(),
     ],
   },
@@ -265,6 +309,37 @@ const classic = {
       s.props.heading = "In our guests' words";
       s.props.variant = "list";
     }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Make an enquiry";
+      s.props.body =
+        "We'd be glad to answer any question before your stay. Do write to us.";
+      s.props.variant = "stacked";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Frequently asked";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "What time may I arrive?",
+          a: "Check-in is from 14:00, check-out by 10:00 — we'll gladly accommodate where we can.",
+        },
+        {
+          q: "Is parking provided?",
+          a: "Yes — complimentary, secure parking for resident guests.",
+        },
+        {
+          q: "How do cancellations work?",
+          a: "Free cancellation up to 7 days before arrival. Replace this with your own policy.",
+        },
+      ];
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "Where to find us";
+      s.props.variant = "split";
+    }),
 };
 
 const CLASSIC_PRESETS: ThemeSectionPreset[] = [
@@ -285,6 +360,12 @@ const CLASSIC_PRESETS: ThemeSectionPreset[] = [
     label: "Invitation CTA",
     make: classic.invitation,
   },
+  {
+    key: "classic_contact_form",
+    label: "Contact form",
+    make: classic.contactForm,
+  },
+  { key: "classic_faq", label: "FAQ", make: classic.faq },
 ];
 
 const CLASSIC_TEMPLATES: ThemeTemplate[] = [
@@ -311,6 +392,17 @@ const CLASSIC_TEMPLATES: ThemeTemplate[] = [
       classic.heroSplit(),
       classic.story(),
       classic.reviews(),
+      classic.invitation(),
+    ],
+  },
+  {
+    key: "classic_contact",
+    label: "Contact",
+    description: "An enquiry form, where to find you, FAQs and an invitation.",
+    make: () => [
+      classic.contactForm(),
+      classic.location(),
+      classic.faq(),
       classic.invitation(),
     ],
   },
@@ -398,6 +490,36 @@ const modern = {
       s.props.heading = "What people say";
       s.props.variant = "grid";
     }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Say hello";
+      s.props.body = "Drop us a line — we'll get back to you fast.";
+      s.props.variant = "split";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Quick answers";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "When can I check in?",
+          a: "From 14:00, with check-out by 10:00. Flexible times? Just ask.",
+        },
+        {
+          q: "Do you have parking?",
+          a: "Yes — free, secure on-site parking for guests.",
+        },
+        {
+          q: "Can I cancel?",
+          a: "Free cancellation up to 7 days before arrival. Swap in your own policy.",
+        },
+      ];
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "Where we are";
+      s.props.variant = "split";
+    }),
 };
 
 const MODERN_PRESETS: ThemeSectionPreset[] = [
@@ -414,6 +536,12 @@ const MODERN_PRESETS: ThemeSectionPreset[] = [
   { key: "modern_features", label: "Feature grid", make: modern.features },
   { key: "modern_metrics", label: "Metrics band", make: modern.metrics },
   { key: "modern_cta", label: "Closing CTA", make: modern.cta },
+  {
+    key: "modern_contact_form",
+    label: "Contact form",
+    make: modern.contactForm,
+  },
+  { key: "modern_faq", label: "FAQ", make: modern.faq },
 ];
 
 const MODERN_TEMPLATES: ThemeTemplate[] = [
@@ -438,6 +566,17 @@ const MODERN_TEMPLATES: ThemeTemplate[] = [
       modern.heroMinimal(),
       modern.intro(),
       modern.reviews(),
+      modern.cta(),
+    ],
+  },
+  {
+    key: "modern_contact",
+    label: "Contact",
+    description: "Contact form, where we are, quick answers and a CTA.",
+    make: () => [
+      modern.contactForm(),
+      modern.location(),
+      modern.faq(),
       modern.cta(),
     ],
   },
@@ -533,6 +672,37 @@ const coastal = {
         "Tell guests about your corner of the coast — the view, the village, the reason you never left.";
       s.props.variant = "lead";
     }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Send us a wave";
+      s.props.body =
+        "Questions about the coast or your stay? We're always happy to help.";
+      s.props.variant = "stacked";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Good to know";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "What time is check-in?",
+          a: "From 14:00, check-out by 10:00 — flexible times where the tide allows.",
+        },
+        {
+          q: "Is the beach really that close?",
+          a: "Yes — a short stroll from the door. Towels and beach chairs are provided.",
+        },
+        {
+          q: "What's the cancellation policy?",
+          a: "Free cancellation up to 7 days before arrival. Replace with your own policy.",
+        },
+      ];
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "Find your way to the coast";
+      s.props.variant = "split";
+    }),
 };
 
 const COASTAL_PRESETS: ThemeSectionPreset[] = [
@@ -557,6 +727,12 @@ const COASTAL_PRESETS: ThemeSectionPreset[] = [
     make: coastal.amenities,
   },
   { key: "coastal_cta", label: "Closing CTA", make: coastal.cta },
+  {
+    key: "coastal_contact_form",
+    label: "Contact form",
+    make: coastal.contactForm,
+  },
+  { key: "coastal_faq", label: "FAQ", make: coastal.faq },
 ];
 
 const COASTAL_TEMPLATES: ThemeTemplate[] = [
@@ -582,6 +758,17 @@ const COASTAL_TEMPLATES: ThemeTemplate[] = [
       coastal.heroSpotlight(),
       coastal.intro(),
       coastal.gallery(),
+      coastal.cta(),
+    ],
+  },
+  {
+    key: "coastal_contact",
+    label: "Contact",
+    description: "Contact form, directions to the coast, FAQs and a CTA.",
+    make: () => [
+      coastal.contactForm(),
+      coastal.location(),
+      coastal.faq(),
       coastal.cta(),
     ],
   },
@@ -665,6 +852,37 @@ const warm = {
       s.props.heading = "From guests who felt at home";
       s.props.variant = "grid";
     }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Drop us a line";
+      s.props.body =
+        "Have a question before you come to stay? We'd love to hear from you.";
+      s.props.variant = "stacked";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Things guests often ask";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "When can we arrive?",
+          a: "Check-in is from 14:00 and check-out by 10:00 — let us know and we'll do our best to help.",
+        },
+        {
+          q: "Is breakfast included?",
+          a: "A home-style breakfast is on us every morning. Dietary needs? Just tell us.",
+        },
+        {
+          q: "What if our plans change?",
+          a: "Free cancellation up to 7 days before arrival. Replace this with your own policy.",
+        },
+      ];
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "How to find us";
+      s.props.variant = "split";
+    }),
 };
 
 const WARM_PRESETS: ThemeSectionPreset[] = [
@@ -681,6 +899,8 @@ const WARM_PRESETS: ThemeSectionPreset[] = [
   { key: "warm_touches", label: "Little touches list", make: warm.touches },
   { key: "warm_host", label: "Meet your hosts", make: warm.host },
   { key: "warm_cta", label: "Warm CTA", make: warm.cta },
+  { key: "warm_contact_form", label: "Contact form", make: warm.contactForm },
+  { key: "warm_faq", label: "FAQ", make: warm.faq },
 ];
 
 const WARM_TEMPLATES: ThemeTemplate[] = [
@@ -708,6 +928,12 @@ const WARM_TEMPLATES: ThemeTemplate[] = [
       warm.reviews(),
       warm.cta(),
     ],
+  },
+  {
+    key: "warm_contact",
+    label: "Contact",
+    description: "A friendly contact form, how to find you, FAQs and a CTA.",
+    make: () => [warm.contactForm(), warm.location(), warm.faq(), warm.cta()],
   },
 ];
 
@@ -778,6 +1004,30 @@ const minimal = {
       s.props.heading = "Reviews";
       s.props.variant = "plain";
     }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Contact";
+      s.props.body = "A question? Send it. We'll reply.";
+      s.props.variant = "stacked";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "FAQ";
+      s.props.variant = "plain";
+      s.props.items = [
+        { q: "Check-in?", a: "From 14:00. Check-out by 10:00." },
+        { q: "Parking?", a: "Yes. On-site. Free." },
+        {
+          q: "Cancellation?",
+          a: "Free up to 7 days before arrival. Edit to match your policy.",
+        },
+      ];
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "Location";
+      s.props.variant = "list";
+    }),
 };
 
 const MINIMAL_PRESETS: ThemeSectionPreset[] = [
@@ -790,6 +1040,12 @@ const MINIMAL_PRESETS: ThemeSectionPreset[] = [
   { key: "minimal_principles", label: "Principles", make: minimal.principles },
   { key: "minimal_numbers", label: "Numbers", make: minimal.numbers },
   { key: "minimal_cta", label: "Book-direct CTA", make: minimal.cta },
+  {
+    key: "minimal_contact_form",
+    label: "Contact form",
+    make: minimal.contactForm,
+  },
+  { key: "minimal_faq", label: "FAQ", make: minimal.faq },
 ];
 
 const MINIMAL_TEMPLATES: ThemeTemplate[] = [
@@ -814,6 +1070,17 @@ const MINIMAL_TEMPLATES: ThemeTemplate[] = [
       minimal.heroBoxed(),
       minimal.intro(),
       minimal.reviews(),
+      minimal.cta(),
+    ],
+  },
+  {
+    key: "minimal_contact",
+    label: "Contact",
+    description: "Contact, location, FAQ, book direct.",
+    make: () => [
+      minimal.contactForm(),
+      minimal.location(),
+      minimal.faq(),
       minimal.cta(),
     ],
   },
@@ -903,6 +1170,37 @@ const nightfall = {
       s.props.heading = "Guest impressions";
       s.props.variant = "grid";
     }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Reach out";
+      s.props.body =
+        "For reservations and enquiries, send us a message — we'll respond promptly.";
+      s.props.variant = "split";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Questions";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "What are the check-in hours?",
+          a: "Check-in from 14:00, check-out by 10:00 — late arrivals welcome by arrangement.",
+        },
+        {
+          q: "Is there a concierge?",
+          a: "Yes — on hand around the clock to make your evening effortless.",
+        },
+        {
+          q: "How do cancellations work?",
+          a: "Free cancellation up to 7 days before arrival. Replace this with your own policy.",
+        },
+      ];
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "Where to find us";
+      s.props.variant = "split";
+    }),
 };
 
 const NIGHTFALL_PRESETS: ThemeSectionPreset[] = [
@@ -923,6 +1221,12 @@ const NIGHTFALL_PRESETS: ThemeSectionPreset[] = [
     make: nightfall.standing,
   },
   { key: "nightfall_cta", label: "After-dark CTA", make: nightfall.cta },
+  {
+    key: "nightfall_contact_form",
+    label: "Contact form",
+    make: nightfall.contactForm,
+  },
+  { key: "nightfall_faq", label: "FAQ", make: nightfall.faq },
 ];
 
 const NIGHTFALL_TEMPLATES: ThemeTemplate[] = [
@@ -948,6 +1252,17 @@ const NIGHTFALL_TEMPLATES: ThemeTemplate[] = [
       nightfall.heroSpotlight(),
       nightfall.intro(),
       nightfall.reviews(),
+      nightfall.cta(),
+    ],
+  },
+  {
+    key: "nightfall_contact",
+    label: "Contact",
+    description: "Contact form, where to find you, FAQs and a closing CTA.",
+    make: () => [
+      nightfall.contactForm(),
+      nightfall.location(),
+      nightfall.faq(),
       nightfall.cta(),
     ],
   },
