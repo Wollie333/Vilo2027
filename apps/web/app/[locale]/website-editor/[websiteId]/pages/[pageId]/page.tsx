@@ -24,7 +24,9 @@ export default async function FullScreenPageBuilder({
       ? t("pageHome")
       : data.page.kind === "about"
         ? t("pageAbout")
-        : data.page.title || data.page.slug;
+        : data.page.kind === "room_detail"
+          ? t("pageRoomDetail")
+          : data.page.title || data.page.slug;
 
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
 
@@ -53,6 +55,8 @@ export default async function FullScreenPageBuilder({
       domain={`${data.subdomain}.${root}`}
       ogImageUrl={data.ogImageUrl}
       initialLayout={data.layout}
+      pageKind={data.page.kind}
+      sampleRoom={data.sampleRoom}
     />
   );
 }

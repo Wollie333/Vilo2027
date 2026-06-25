@@ -3,11 +3,12 @@ import "server-only";
 import { getMyHostId } from "@/lib/host/current";
 import {
   assembleSiteDataByType,
+  loadSampleRoomDetail,
   loadSiteContext,
   pageHref,
   type SiteContext,
 } from "@/lib/site/loadSitePage";
-import type { SiteDataByType } from "@/lib/site/types";
+import type { RoomDetail, SiteDataByType } from "@/lib/site/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { websiteAssetUrl } from "@/lib/website/assets";
@@ -62,6 +63,8 @@ export type PageBuilderData = {
   savedSections: SavedSection[];
   /** Site width (full = edge-to-edge, boxed = centred) for the preview + toggle. */
   layout: "full" | "boxed";
+  /** A sample room for the preview of a room_detail page (null otherwise). */
+  sampleRoom: RoomDetail | null;
 };
 
 /**
@@ -116,6 +119,12 @@ export async function loadPageBuilder(
   const ctx = await loadSiteContext(site.subdomain, { preview: true });
   // The site row always resolves (we just read it), but be defensive.
   const sections = parseSectionsLoose(pageRow.draft_sections);
+  // On a room-detail page, fetch a sample room so the room-scoped sections
+  // (gallery/overview/amenities/rate) preview with real content in the builder.
+  const sampleRoom =
+    pageRow.kind === "room_detail" && ctx
+      ? await loadSampleRoomDetail(ctx)
+      : null;
   const dataByType = ctx
     ? await assembleSiteDataByType(
         admin,
@@ -186,5 +195,6 @@ export async function loadPageBuilder(
     dataByType,
     savedSections,
     layout: ctx?.layout ?? "full",
+    sampleRoom,
   };
 }

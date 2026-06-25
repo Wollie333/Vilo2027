@@ -1510,6 +1510,135 @@ function SectionFields({
       );
     }
 
+    case "room_gallery": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "carousel", label: t("roomGalleryVariant_carousel") },
+              { value: "grid", label: t("roomGalleryVariant_grid") },
+              { value: "stacked", label: t("roomGalleryVariant_stacked") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
+          <NumberField
+            label={t("fldMax")}
+            value={p.max}
+            min={1}
+            max={30}
+            onChange={(v) => set({ max: v })}
+          />
+          <LiveNote>{t("liveRoom")}</LiveNote>
+        </div>
+      );
+    }
+
+    case "room_overview": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldRoomHeadingOverride")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <ToggleField
+            label={t("fldShowFacts")}
+            checked={p.show_facts}
+            onChange={(v) => set({ show_facts: v })}
+          />
+          <ToggleField
+            label={t("fldShowPrice")}
+            checked={p.show_price}
+            onChange={(v) => set({ show_price: v })}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "split", label: t("roomOverviewVariant_split") },
+              { value: "stacked", label: t("roomOverviewVariant_stacked") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
+          <LiveNote>{t("liveRoom")}</LiveNote>
+        </div>
+      );
+    }
+
+    case "room_amenities": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "grid", label: t("roomAmenitiesVariant_grid") },
+              { value: "list", label: t("roomAmenitiesVariant_list") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
+          <LiveNote>{t("liveRoom")}</LiveNote>
+        </div>
+      );
+    }
+
+    case "room_rate": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextField
+            label={t("fldRoomCtaLabel")}
+            value={p.cta_label ?? ""}
+            onChange={(v) => set({ cta_label: v })}
+            maxLength={60}
+          />
+          <TextArea
+            label={t("fldRateTableNote")}
+            value={p.note ?? ""}
+            onChange={(v) => set({ note: v })}
+            maxLength={300}
+            rows={2}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "card", label: t("roomRateVariant_card") },
+              { value: "banner", label: t("roomRateVariant_banner") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
+          <LiveNote>{t("liveRoom")}</LiveNote>
+        </div>
+      );
+    }
+
     case "el_heading": {
       const p = section.props;
       const set = (patch: Partial<typeof p>) =>

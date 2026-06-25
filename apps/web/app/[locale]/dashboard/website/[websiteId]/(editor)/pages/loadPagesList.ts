@@ -1,8 +1,42 @@
 import "server-only";
 
 import { getMyHostId } from "@/lib/host/current";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServerClient } from "@/lib/supabase/server";
 import { parseSectionsLoose } from "@/lib/website/sections.schema";
+import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
+
+/**
+ * Ensure the website has its single `room_detail` template page, seeded with the
+ * theme's designed room layout. Idempotent — created lazily the first time the
+ * host opens the Pages manager so every site (incl. ones made before the feature)
+ * gets an editable room template. The public room route falls back to the theme
+ * default even before this exists, so rooms never 404.
+ */
+async function ensureRoomDetailPage(
+  supabase: SupabaseClient,
+  websiteId: string,
+  themePreset: string | null,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("website_id", websiteId)
+    .eq("kind", "room_detail")
+    .maybeSingle();
+  if (existing) return;
+
+  await supabase.from("website_pages").insert({
+    website_id: websiteId,
+    kind: "room_detail",
+    slug: "room-detail",
+    title: "Room details",
+    show_in_nav: false,
+    nav_order: 900,
+    draft_sections: getThemeRoomDetailSections(themePreset),
+    published_sections: [],
+  });
+}
 
 export type PageListItem = {
   id: string;
@@ -25,12 +59,14 @@ export async function loadPagesList(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("id")
+    .select("id, theme")
     .eq("id", websiteId)
     .eq("host_id", hostId)
     .is("deleted_at", null)
-    .maybeSingle();
+    .maybeSingle<{ id: string; theme: { preset?: string } | null }>();
   if (!site) return null;
+
+  await ensureRoomDetailPage(supabase, websiteId, site.theme?.preset ?? null);
 
   const { data: rows } = await supabase
     .from("website_pages")

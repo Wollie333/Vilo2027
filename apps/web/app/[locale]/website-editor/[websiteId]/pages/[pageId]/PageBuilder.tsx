@@ -96,6 +96,7 @@ import { SiteChrome, type ChromeTarget } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
+  RoomDetail,
   SiteBrand,
   SiteData,
   SiteDataByType,
@@ -114,6 +115,7 @@ import {
 import {
   HERO_LAYOUTS,
   isAutoPopulate,
+  isRoomScoped,
   sectionsSchema,
   type HeroLayout,
   type SectionType,
@@ -216,6 +218,10 @@ const ICONS: Record<SectionType, LucideIcon> = {
   booking_search: Search,
   availability_calendar: CalendarDays,
   rate_table: Table,
+  room_gallery: Images,
+  room_overview: BedDouble,
+  room_amenities: ListChecks,
+  room_rate: BadgeDollarSign,
   el_heading: Heading,
   el_text: Pilcrow,
   el_image: ImageIcon,
@@ -240,6 +246,7 @@ const HERO_ICONS: Record<HeroLayout, LucideIcon> = {
 function buildPreviewData(
   sections: WebsiteSection[],
   pool: Partial<SiteDataByType>,
+  sampleRoom?: RoomDetail | null,
 ): SiteData {
   const data: SiteData = {};
   const keys: SectionType[] = [
@@ -256,6 +263,11 @@ function buildPreviewData(
     "rate_table",
   ];
   for (const s of sections) {
+    // Room-scoped sections preview the sample room (on a room_detail page).
+    if (sampleRoom && isRoomScoped(s.type)) {
+      data[s.id] = { type: s.type, data: sampleRoom } as SiteData[string];
+      continue;
+    }
     if (!keys.includes(s.type)) continue;
     const slice = (pool as Record<string, unknown>)[s.type];
     if (slice) data[s.id] = { type: s.type, data: slice } as SiteData[string];
@@ -289,6 +301,8 @@ export function PageBuilder({
   domain,
   ogImageUrl,
   initialLayout,
+  pageKind,
+  sampleRoom,
 }: {
   websiteId: string;
   pageId: string;
@@ -309,6 +323,10 @@ export function PageBuilder({
   domain: string;
   ogImageUrl?: string;
   initialLayout: "full" | "boxed";
+  /** Page kind — drives the room-detail palette + preview affordances. */
+  pageKind: string;
+  /** Sample room for the room_detail preview (null on other pages). */
+  sampleRoom: RoomDetail | null;
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -317,6 +335,23 @@ export function PageBuilder({
   const themePresets = getThemeSectionPresets(theme.preset);
   const themeTemplates = getThemeTemplates(theme.preset);
   const themeLabel = themeGroupLabel(theme.preset);
+  // Palette groups — the room-scoped blocks only make sense on the room_detail
+  // template, so surface that group there (and only there).
+  const paletteGroups: Array<{ key: string; types: SectionType[] }> =
+    pageKind === "room_detail"
+      ? [
+          {
+            key: "catRoom",
+            types: [
+              "room_gallery",
+              "room_overview",
+              "room_amenities",
+              "room_rate",
+            ],
+          },
+          ...GROUPS,
+        ]
+      : GROUPS;
   const [sections, setSections] = useState<WebsiteSection[]>(initialSections);
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSections[0]?.id ?? null,
@@ -351,8 +386,8 @@ export function PageBuilder({
   );
 
   const previewData = useMemo(
-    () => buildPreviewData(sections, dataByType),
-    [sections, dataByType],
+    () => buildPreviewData(sections, dataByType, sampleRoom),
+    [sections, dataByType, sampleRoom],
   );
   // Live page text for the SEO coach's keyword-in-body check.
   const bodyText = useMemo(() => extractSectionsText(sections), [sections]);
@@ -1021,11 +1056,13 @@ export function PageBuilder({
                       t(`heroLayout_${v}`).toLowerCase().includes(q) ||
                       "hero".includes(q),
                   );
-                  const typeHits = GROUPS.flatMap((g) => g.types).filter(
-                    (type) =>
-                      t(`sectionType_${type}`).toLowerCase().includes(q) ||
-                      type.replace(/_/g, " ").includes(q),
-                  );
+                  const typeHits = paletteGroups
+                    .flatMap((g) => g.types)
+                    .filter(
+                      (type) =>
+                        t(`sectionType_${type}`).toLowerCase().includes(q) ||
+                        type.replace(/_/g, " ").includes(q),
+                    );
                   const themeHits = themePresets.filter((p) =>
                     p.label.toLowerCase().includes(q),
                   );
@@ -1092,7 +1129,7 @@ export function PageBuilder({
                       </>
                     ) : null}
 
-                    {GROUPS.map((g) => (
+                    {paletteGroups.map((g) => (
                       <div key={g.key}>
                         <div className="pal-cat">{t(g.key)}</div>
                         <div className="pal-grid">{g.types.map(typeCard)}</div>

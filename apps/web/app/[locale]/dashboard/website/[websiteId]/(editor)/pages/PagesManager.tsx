@@ -72,10 +72,12 @@ export function PagesManager({
   function pageTitle(p: ManagedPage) {
     if (p.kind === "home") return t("pageHome");
     if (p.kind === "about") return t("pageAbout");
+    if (p.kind === "room_detail") return t("pageRoomDetail");
     return p.title || p.slug;
   }
   function pageType(p: ManagedPage) {
     if (p.kind === "home") return t("pageTypeLanding");
+    if (p.kind === "room_detail") return t("pageTypeRoomTemplate");
     return t("pageTypeStandard");
   }
 
@@ -241,7 +243,9 @@ function PageRow({
   const router = useRouter();
   const [dup, startDup] = useTransition();
   const live = page.publishedCount > 0;
-  const path = page.kind === "home" ? "/" : `/${page.slug}`;
+  const system = page.kind === "room_detail";
+  const path =
+    page.kind === "home" ? "/" : system ? "/rooms/…" : `/${page.slug}`;
 
   function onDuplicateClick() {
     startDup(async () => {
@@ -304,14 +308,17 @@ function PageRow({
           <Pencil style={{ width: 14, height: 14, color: "var(--mute)" }} />
           {t("editPage")}
         </span>
-        <RowMenu
-          dup={dup}
-          inNav={page.showInNav}
-          canDelete={page.kind !== "home"}
-          onDuplicate={onDuplicateClick}
-          onToggleNav={onToggleNav}
-          onDelete={onDelete}
-        />
+        {/* The room-detail template is a system page — no duplicate/nav/delete. */}
+        {system ? null : (
+          <RowMenu
+            dup={dup}
+            inNav={page.showInNav}
+            canDelete={page.kind !== "home"}
+            onDuplicate={onDuplicateClick}
+            onToggleNav={onToggleNav}
+            onDelete={onDelete}
+          />
+        )}
       </div>
     </Link>
   );
