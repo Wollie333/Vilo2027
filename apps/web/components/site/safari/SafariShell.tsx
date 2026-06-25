@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
+import type { SitePreviewPage } from "@/lib/site/loadSitePage";
+
 import { SafariNav, type SafariNavLink } from "./SafariNav";
+import { SafariPreviewBar } from "./SafariPreviewBar";
 import { SafariPreviewLinks } from "./SafariPreviewLinks";
 
 import "./safari.css";
@@ -14,6 +17,7 @@ export function SafariShell({
   navLinks,
   bookHref,
   solidNav = false,
+  previewPages,
   children,
 }: {
   brandName: string;
@@ -21,6 +25,8 @@ export function SafariShell({
   bookHref?: string | null;
   /** For pages with no dark hero behind the nav (checkout): solid bar + top pad. */
   solidNav?: boolean;
+  /** When previewing a theme: the page navigator for the Vilo preview bar. */
+  previewPages?: SitePreviewPage[];
   children: ReactNode;
 }) {
   const monogram = (brandName.trim()[0] || "N").toUpperCase();
@@ -28,9 +34,15 @@ export function SafariShell({
     navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#";
   const contactHref = navLinks.find((l) => /contact/i.test(l.label))?.href;
   const reserve = bookHref || roomsHref;
+  const bar = previewPages && previewPages.length > 0;
+  // Top padding for the solid-nav (checkout) pages, plus the preview bar height.
+  const topPad = (solidNav ? 90 : 0) + (bar ? 44 : 0);
 
   return (
-    <div className="vilo-safari">
+    <div className={bar ? "vilo-safari pre" : "vilo-safari"}>
+      {bar ? (
+        <SafariPreviewBar themeName="Safari" pages={previewPages} />
+      ) : null}
       <SafariPreviewLinks />
       {/* Theme-scoped fonts (only the Safari design uses them) — intentionally
           not in the root layout. */}
@@ -49,7 +61,7 @@ export function SafariShell({
         forceSolid={solidNav}
       />
 
-      {solidNav ? <div style={{ paddingTop: 90 }}>{children}</div> : children}
+      {topPad ? <div style={{ paddingTop: topPad }}>{children}</div> : children}
 
       <footer className="footer">
         <div className="wrap">

@@ -1,3 +1,4 @@
+import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import { SafariShell, type SafariNavLink } from "./SafariShell";
@@ -552,12 +553,14 @@ export function SafariSiteView({
   brandName,
   navLinks,
   bookHref,
+  previewPages,
 }: {
   kind: string;
   sections: WebsiteSection[];
   brandName: string;
   navLinks: SafariNavLink[];
   bookHref?: string | null;
+  previewPages?: SitePreviewPage[];
 }) {
   let content;
   switch (kind) {
@@ -595,6 +598,7 @@ export function SafariSiteView({
       navLinks={navLinks}
       bookHref={bookHref}
       solidNav={kind === "checkout"}
+      previewPages={previewPages}
     >
       {content}
     </SafariShell>

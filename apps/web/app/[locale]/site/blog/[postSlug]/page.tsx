@@ -10,6 +10,7 @@ import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
+  buildSitePreviewPages,
   loadRelatedPosts,
   loadSiteBlogPost,
   loadSiteContext,
@@ -68,8 +69,15 @@ export default async function SiteBlogPostPage({
   const cover = siteAsset(post.coverUrl);
 
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    const previewPages = ctx.preview
+      ? await buildSitePreviewPages(ctx)
+      : undefined;
     return (
-      <SafariShell brandName={ctx.brand.name} navLinks={ctx.nav}>
+      <SafariShell
+        brandName={ctx.brand.name}
+        navLinks={ctx.nav}
+        previewPages={previewPages}
+      >
         <SafariArticleContent />
       </SafariShell>
     );

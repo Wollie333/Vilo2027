@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import {
+  buildSitePreviewPages,
   loadSiteContext,
   loadSiteRoomPage,
   siteBookHref,
@@ -66,11 +67,15 @@ export async function SiteRoomView({
     ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
 
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    const previewPages = ctx.preview
+      ? await buildSitePreviewPages(ctx)
+      : undefined;
     return (
       <SafariShell
         brandName={ctx.brand.name}
         navLinks={ctx.nav}
         bookHref={headerBookHref}
+        previewPages={previewPages}
       >
         <SafariRoomContent />
       </SafariShell>

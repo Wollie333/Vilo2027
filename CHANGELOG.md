@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-06-26 — Safari theme: Vilo preview bar + navigate to every page
+
+- **Vilo preview bar** (like the WordPress admin bar) — pinned above the header
+  while previewing a theme: the Vilo mark + "Previewing Safari" and a row of
+  links to EVERY page of the design. `SafariPreviewBar` + scoped CSS; the fixed
+  header drops to `top:44px` and content is padded under the bar. Only rendered
+  in preview (no `previewPages` on a live site → no bar).
+- **Navigate to any page, including ones not in the menu.** New
+  `buildSitePreviewPages(ctx)` returns the host's menu pages PLUS a sample **Room
+  detail** (`roomMenuLinks[0]`), a sample **Article**, **Checkout** and **Thank
+  you** — so the host can finally see those designs (they aren't in the site
+  menu). Wired through `SitePageView`/`SiteRoomView`/blog index/blog post → the
+  shell. Links go through `SafariPreviewLinks`, so they keep the preview context.
+  Verified: bar shows all 10 pages; clicking "Room detail" lands on the Safari
+  room page (Marula Suite) with the bar still present.
+
+---
+
 ## 2026-06-26 — Safari theme: design-true preview card + navigable preview
 
 - **Featured image now represents the real design.** The Safari gallery card was

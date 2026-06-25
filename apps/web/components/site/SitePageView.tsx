@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import {
+  buildSitePreviewPages,
   loadSiteContext,
   loadSitePage,
   siteBookHref,
@@ -96,6 +97,9 @@ export async function SitePageView({
   // design exactly. Unmapped kinds fall through to the standard themed pipeline.
   const activeThemeSlug = ctx.previewThemeSlug ?? ctx.theme.preset;
   if (activeThemeSlug === "safari" && SAFARI_PAGE_KINDS.has(result.page.kind)) {
+    const previewPages = ctx.preview
+      ? await buildSitePreviewPages(ctx)
+      : undefined;
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -105,6 +109,7 @@ export async function SitePageView({
           brandName={ctx.brand.name}
           navLinks={ctx.nav}
           bookHref={headerBookHref}
+          previewPages={previewPages}
         />
       </>
     );

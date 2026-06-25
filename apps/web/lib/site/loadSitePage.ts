@@ -1795,6 +1795,33 @@ export function expandAutoRooms(
   });
 }
 
+export type SitePreviewPage = { label: string; href: string };
+
+/**
+ * Every page of the site as a flat navigator, for the theme-preview bar — so a
+ * host previewing a theme can jump to ANY page, including ones not in the menu
+ * (a sample room detail, checkout, thank-you). Hrefs are tenant-relative; the
+ * preview client rewrites them to keep the /site prefix + preview params.
+ */
+export async function buildSitePreviewPages(
+  ctx: SiteContext,
+): Promise<SitePreviewPage[]> {
+  const pages: SitePreviewPage[] = ctx.nav.map((n) => ({
+    label: n.label,
+    href: n.href,
+  }));
+  const [rooms, posts] = await Promise.all([
+    roomMenuLinks(ctx),
+    loadSiteBlogIndex(ctx).catch(() => []),
+  ]);
+  if (rooms[0]) pages.push({ label: "Room detail", href: rooms[0].href });
+  if (posts[0])
+    pages.push({ label: "Article", href: `/blog/${posts[0].slug}` });
+  pages.push({ label: "Checkout", href: "/checkout" });
+  pages.push({ label: "Thank you", href: "/thank-you" });
+  return pages;
+}
+
 /** First visible room's detail — the sample shown in the builder preview. */
 export async function loadSampleRoomDetail(
   ctx: SiteContext,
