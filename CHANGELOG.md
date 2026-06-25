@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-06-25 — Hard-remove all themes except Aria (default)
+
+Migration `20260625020000_keep_only_aria_theme.sql` — `DELETE FROM site_themes
+WHERE slug <> 'aria'` and re-assert Aria as the active default. Applied to the
+linked cloud DB (migration list in sync). Safe: `site_themes` has no inbound FKs
+(host_websites stores the theme as a JSON `preset` slug), and pre-MVP has no sites
+on other themes. Verified: the theme page offers only `aria`. (The query-level
+default-only filter from the previous entry stays as defence-in-depth.)
+
+---
+
 ## 2026-06-25 — Only the default theme is offered
 
 Removed the other themes from the system — the theme gallery (and Brand Studio
