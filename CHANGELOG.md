@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-06-25 — Nav builder: enabling auto-list expands the item
+
+Small follow-up: when the host turns on "Auto-list my rooms" in the inspector,
+the menu item now **auto-expands** in the left tree (`setOpen[item.id] = true`),
+so the room tabs populate under it immediately — even if the item was collapsed.
+Browser-verified (collapsed → re-enable → Olive/Vineyard/Mountain reappear).
+tsc + lint green.
+
+---
+
 ## 2026-06-25 — Nav builder: Style tab now previews; auto-room tabs in the tree
 
 Two fixes to the navigation builder:

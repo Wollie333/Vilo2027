@@ -489,14 +489,16 @@ export function MenuStudio({
                 <CheckRow
                   label={t("menuAutoRoomsToggle")}
                   checked={!!selectedItem.autoRooms}
-                  onChange={(v) =>
+                  onChange={(v) => {
                     update(selected, {
                       autoRooms: v,
                       hiddenRoomIds: v
                         ? (selectedItem.hiddenRoomIds ?? [])
                         : undefined,
-                    })
-                  }
+                    });
+                    // Expand the item so its rooms populate in the tree at once.
+                    if (v) setOpen((p) => ({ ...p, [selectedItem.id]: true }));
+                  }}
                 />
                 {selectedItem.autoRooms ? (
                   rooms.length > 0 ? (
