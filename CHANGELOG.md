@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-25 — Fix: menu alignment now shows in the previews
+
+Menu alignment (start/center/end) applied on the live front (classic layout) but
+the builder previews ignored it — nav.css forces `.nv-menu{margin-left:auto}`
+(always right), so the centre preview didn't move. `NavHeaderPreview` now
+overrides the menu margins per the alignment setting, so the centre preview (menu
+builder + header builder) moves the menu left/center/right to match. Verified:
+start → menu near logo, center → centred, end → menu by the Book button. The
+front + nav-manager card (live iframe) were already correct. tsc + lint green.
+
+---
+
 ## 2026-06-25 — Fix: header builder preview now reflects the background colour
 
 The header **background colour** (and transparent state) applied on the live

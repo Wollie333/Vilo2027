@@ -59,6 +59,15 @@ export function NavHeaderPreview({
     ? "transparent"
     : nav.header?.bgColor?.trim() || undefined;
   const barBg: React.CSSProperties = headerBg ? { background: headerBg } : {};
+  // Menu alignment (classic layout). nav.css forces `.nv-menu{margin-left:auto}`
+  // (always right), so we override the margins per the host's alignment setting.
+  const menuAlign = nav.menuStyle?.align ?? "start";
+  const menuMargin: React.CSSProperties =
+    menuAlign === "center"
+      ? { marginLeft: "auto", marginRight: "auto" }
+      : menuAlign === "end"
+        ? { marginLeft: "auto", marginRight: 0 }
+        : { marginLeft: 0, marginRight: "auto" };
   // Layout-aware pieces, so the preview matches the chosen header style.
   const layout = nav.header?.layout ?? "classic";
   // Respect the header's logo style: icon = mark only, wordmark = name only.
@@ -73,10 +82,10 @@ export function NavHeaderPreview({
       ) : null}
     </div>
   );
-  const menuEl =
-    collapsed || menu.length === 0 ? null : (
-      <div className="nv-menu nvhm-pv">
-        {menu.slice(0, 6).map((m) => (
+  const menuItems =
+    collapsed || menu.length === 0
+      ? null
+      : menu.slice(0, 6).map((m) => (
           <span className="nv-mi" key={m.id} style={miStyle}>
             {m.label}
             {m.children && m.children.length > 0 ? (
@@ -85,9 +94,10 @@ export function NavHeaderPreview({
               </span>
             ) : null}
           </span>
-        ))}
-      </div>
-    );
+        ));
+  const menuEl = menuItems ? (
+    <div className="nv-menu nvhm-pv">{menuItems}</div>
+  ) : null;
   const burgerEl = (
     <Menu style={{ width: 20, height: 20, color: "var(--ink)" }} />
   );
@@ -142,7 +152,11 @@ export function NavHeaderPreview({
         ) : (
           <div className="nv-bar" style={barBg}>
             {brandEl}
-            {menuEl}
+            {menuItems ? (
+              <div className="nv-menu nvhm-pv" style={menuMargin}>
+                {menuItems}
+              </div>
+            ) : null}
             <div className="nv-right">{ctaEl}</div>
           </div>
         )}
