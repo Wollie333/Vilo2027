@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-06-25 — Menu builder preview honours all the logo rules
+
+The builder preview already reflected the header **layout** + **logo style**; now it
+also reflects the rest of the logo rules so it matches the live header:
+- **Show logo** off → the logo is hidden in the preview (empty slot keeps the
+  layout), matching the front.
+- **Logo size** (`logoMaxHeight`) → the preview mark scales with it (~0.45× the
+  live px).
+- (Logo style — icon / name / both — already honoured.)
+
+Verified in the menu builder: logo style "icon" → mark only ("O", no name); Show
+logo off → no logo at all. tsc + lint green; vilotest reset.
+
+---
+
 ## 2026-06-25 — Fix: menu alignment now shows in the previews
 
 Menu alignment (start/center/end) applied on the live front (classic layout) but

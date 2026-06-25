@@ -70,12 +70,25 @@ export function NavHeaderPreview({
         : { marginLeft: 0, marginRight: "auto" };
   // Layout-aware pieces, so the preview matches the chosen header style.
   const layout = nav.header?.layout ?? "classic";
-  // Respect the header's logo style: icon = mark only, wordmark = name only.
+  // Respect the header's logo rules so the preview matches the live header:
+  //  • showLogo  → hide the logo entirely (empty slot keeps the layout)
+  //  • logoStyle → icon = mark only, wordmark = name only, mark = both
+  //  • logoMaxHeight → scale the mark (the preview mark is ~0.45× the live px)
+  const showLogo = nav.header?.showLogo !== false;
   const logoStyle = nav.header?.logoStyle;
-  const brandEl = (
+  const logoH = nav.header?.logoMaxHeight;
+  const markSize = logoH ? Math.max(10, Math.round(logoH * 0.45)) : undefined;
+  const brandEl = !showLogo ? (
+    <span aria-hidden />
+  ) : (
     <div className="nv-brand">
       {logoStyle !== "wordmark" ? (
-        <span className="nv-mark">{mark(brandName)}</span>
+        <span
+          className="nv-mark"
+          style={markSize ? { width: markSize, height: markSize } : undefined}
+        >
+          {mark(brandName)}
+        </span>
       ) : null}
       {logoStyle !== "icon" ? (
         <span className="nv-name">{brandName}</span>
