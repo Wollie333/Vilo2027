@@ -12,6 +12,7 @@ import type {
 } from "@/lib/site/types";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import type { createServerClient } from "@/lib/supabase/server";
+import { parseRoomMediaOverrides } from "@/lib/website/roomMedia";
 
 // Works with either the owner-scoped server client (publish action / dirty check
 // run by the host) or the service-role admin client.
@@ -48,6 +49,7 @@ function normaliseRooms(
         display_currency: string | null;
         display_desc: string | null;
         sort_order: number | null;
+        media_overrides?: unknown;
       }>
     | null
     | undefined,
@@ -63,6 +65,7 @@ function normaliseRooms(
       display_currency: r.display_currency,
       display_desc: r.display_desc,
       sort_order: r.sort_order ?? 0,
+      media_overrides: parseRoomMediaOverrides(r.media_overrides),
     }))
     .sort((a, b) => a.sort_order - b.sort_order);
 }
@@ -100,7 +103,7 @@ export async function buildWebsiteSnapshot(
       sb
         .from("website_rooms")
         .select(
-          "room_id, is_visible, featured, badge, display_name, display_price, display_currency, display_desc, sort_order",
+          "room_id, is_visible, featured, badge, display_name, display_price, display_currency, display_desc, sort_order, media_overrides",
         )
         .eq("website_id", websiteId)
         .order("sort_order", { ascending: true }),

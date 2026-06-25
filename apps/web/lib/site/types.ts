@@ -11,6 +11,7 @@ import type {
   FormSettings,
   FormType,
 } from "@/lib/website/forms.schema";
+import type { RoomMediaOverrides } from "@/lib/website/roomMedia";
 
 export type SiteLogoStyle = "wordmark" | "mark" | "icon";
 
@@ -360,6 +361,8 @@ export type SnapshotRoom = {
   display_currency: string | null;
   display_desc: string | null;
   sort_order: number;
+  /** Per-room media overrides for the room-detail page (hidden ids + extras). */
+  media_overrides?: RoomMediaOverrides;
 };
 
 /** Per-property group overrides on the rooms section (heading/intro/hero). */

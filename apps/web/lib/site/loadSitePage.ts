@@ -25,6 +25,7 @@ import {
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
 import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
+import { parseRoomMediaOverrides } from "@/lib/website/roomMedia";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import {
   formFieldsSchema,
@@ -1526,7 +1527,7 @@ export async function loadRoomDetail(
     await Promise.all([
       sb
         .from("property_photos")
-        .select("url, sort_order")
+        .select("id, url, caption, sort_order")
         .eq("room_id", matchedId)
         .order("sort_order", { ascending: true }),
       sb
@@ -1542,10 +1543,36 @@ export async function loadRoomDetail(
   // Property soft-deleted after publish (lingers in the frozen snapshot) → hide.
   if (propRow?.deleted_at) return null;
 
-  const images: RoomDetailImage[] = (photos ?? []).map((p) => ({
-    url: (p as { url: string }).url,
-    alt: room.name,
+  // Per-room media overrides (frozen snapshot when published, else live): hide
+  // some of the room's photos from the website, and append extra uploaded images.
+  let mediaRaw: unknown = null;
+  if (ctx.publishedRoomRows) {
+    mediaRaw = ctx.publishedRoomRows.find(
+      (r) => r.room_id === matchedId,
+    )?.media_overrides;
+  } else {
+    const { data: wr } = await sb
+      .from("website_rooms")
+      .select("media_overrides")
+      .eq("website_id", ctx.websiteId)
+      .eq("room_id", matchedId)
+      .maybeSingle<{ media_overrides: unknown }>();
+    mediaRaw = wr?.media_overrides;
+  }
+  const overridesMedia = parseRoomMediaOverrides(mediaRaw);
+  const hidden = new Set(overridesMedia.hidden);
+
+  const roomImages: RoomDetailImage[] = (photos ?? [])
+    .filter((p) => !hidden.has((p as { id: string }).id))
+    .map((p) => ({
+      url: (p as { url: string }).url,
+      alt: (p as { caption: string | null }).caption?.trim() || room.name,
+    }));
+  const extraImages: RoomDetailImage[] = overridesMedia.extra.map((e) => ({
+    url: websiteAssetUrl(e.path) ?? e.path,
+    alt: e.alt?.trim() || room.name,
   }));
+  const images: RoomDetailImage[] = [...roomImages, ...extraImages];
 
   // Amenity keys for this room; fall back to the property's own amenities when
   // the room has none set (hosts often tag amenities at the property level).

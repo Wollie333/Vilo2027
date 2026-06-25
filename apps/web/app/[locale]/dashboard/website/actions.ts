@@ -29,6 +29,7 @@ import {
   restoreSnapshotToSite,
 } from "@/lib/website/restorePoints";
 import { newSection } from "@/lib/website/sectionDefaults";
+import { roomMediaOverridesSchema } from "@/lib/website/roomMedia";
 import {
   getThemeRoomDetailSections,
   hasThemeRoomDetailTemplate,
@@ -1513,6 +1514,89 @@ export async function saveWebsiteRoomsAction(
   }
 
   revalidatePath(`/dashboard/website/${websiteId}/rooms`);
+  return { ok: true };
+}
+
+// ============================================================
+// Media manager — alt edit + per-room media overrides
+// ============================================================
+
+/** Update (or set) the alt text of a media asset (owner-scoped). */
+export async function updateWebsiteMediaAltAction(
+  websiteId: string,
+  storagePath: string,
+  alt: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!storagePath.startsWith(`${websiteId}/`)) {
+    return { ok: false, error: "invalid_path" };
+  }
+  const supabase = createServerClient();
+  // Upsert: the row may not exist yet (legacy uploads only in storage).
+  const { error } = await supabase
+    .from("website_media")
+    .upsert(
+      { website_id: websiteId, path: storagePath, alt: alt.trim() || null },
+      { onConflict: "website_id,path" },
+    );
+  if (error) return { ok: false, error: "save_failed" };
+  revalidatePath(`/dashboard/website/${websiteId}/media`);
+  return { ok: true };
+}
+
+/**
+ * Save a room's media overrides for the room-detail page (hidden photo ids +
+ * extra images). Verifies the room belongs to the website's business, and that
+ * extra image paths live under this website's asset prefix (anti-tamper).
+ */
+export async function saveRoomMediaOverridesAction(
+  websiteId: string,
+  roomId: string,
+  overrides: { hidden: string[]; extra: { path: string; alt?: string }[] },
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const parsed = roomMediaOverridesSchema.safeParse(overrides);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  // Extra images must be this website's own assets.
+  if (parsed.data.extra.some((e) => !e.path.startsWith(`${websiteId}/`))) {
+    return { ok: false, error: "invalid_path" };
+  }
+
+  const supabase = createServerClient();
+  const { data: site } = await supabase
+    .from("host_websites")
+    .select("business_id")
+    .eq("id", websiteId)
+    .maybeSingle();
+  if (!site) return { ok: false, error: "not_found" };
+
+  // The room must belong to this business AND already be a channel member.
+  const { data: owned } = await supabase
+    .from("property_rooms")
+    .select("id, property:properties!inner ( business_id )")
+    .eq("id", roomId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  const ownerBiz = (
+    owned?.property as unknown as { business_id: string } | null
+  )?.business_id;
+  if (!owned || ownerBiz !== site.business_id) {
+    return { ok: false, error: "invalid" };
+  }
+
+  const { error } = await supabase
+    .from("website_rooms")
+    .update({ media_overrides: parsed.data })
+    .eq("website_id", websiteId)
+    .eq("room_id", roomId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/media`);
   return { ok: true };
 }
 

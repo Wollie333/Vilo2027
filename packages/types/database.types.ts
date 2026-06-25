@@ -9236,6 +9236,7 @@ export type Database = {
           featured: boolean
           id: string
           is_visible: boolean
+          media_overrides: Json
           room_id: string
           sort_order: number
           website_id: string
@@ -9250,6 +9251,7 @@ export type Database = {
           featured?: boolean
           id?: string
           is_visible?: boolean
+          media_overrides?: Json
           room_id: string
           sort_order?: number
           website_id: string
@@ -9264,6 +9266,7 @@ export type Database = {
           featured?: boolean
           id?: string
           is_visible?: boolean
+          media_overrides?: Json
           room_id?: string
           sort_order?: number
           website_id?: string
