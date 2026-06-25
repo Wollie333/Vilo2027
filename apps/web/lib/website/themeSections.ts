@@ -55,7 +55,8 @@ function build<T extends SectionType>(
 const roomDetail = {
   gallery: () =>
     build("room_gallery", (s) => {
-      s.props.variant = "carousel";
+      // Directory-style hero mosaic (big photo + grid + "View all") with lightbox.
+      s.props.variant = "mosaic";
       s.props.max = 12;
     }),
   overview: () =>

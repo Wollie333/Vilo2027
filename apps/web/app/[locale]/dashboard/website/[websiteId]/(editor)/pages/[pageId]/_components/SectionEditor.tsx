@@ -1520,6 +1520,7 @@ function SectionFields({
             label={t("fldVariant")}
             value={p.variant}
             options={[
+              { value: "mosaic", label: t("roomGalleryVariant_mosaic") },
               { value: "carousel", label: t("roomGalleryVariant_carousel") },
               { value: "grid", label: t("roomGalleryVariant_grid") },
               { value: "stacked", label: t("roomGalleryVariant_stacked") },

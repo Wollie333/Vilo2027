@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutGrid, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import type { GalleryImage } from "@/lib/site/types";
@@ -20,7 +20,7 @@ export function GalleryLightbox({
   layout,
 }: {
   images: GalleryImage[];
-  layout?: "grid" | "list" | "carousel";
+  layout?: "grid" | "list" | "carousel" | "mosaic";
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const isOpen = openIndex !== null;
@@ -74,27 +74,85 @@ export function GalleryLightbox({
 
   const active = openIndex !== null ? images[openIndex] : null;
 
+  // Directory-style hero mosaic: one large image + a 2×2 grid of thumbnails and
+  // a "Show all N photos" button. Any tile opens the same fullscreen lightbox.
+  const mosaic = layout === "mosaic" && count > 0;
+  const heroSpan = count > 1 ? "sm:col-span-2" : "col-span-4";
+
   return (
     <>
-      <div className={`grid gap-3 ${cols}`}>
-        {images.map((img, i) => (
+      {mosaic ? (
+        <div
+          className="relative grid h-[340px] grid-cols-4 grid-rows-2 gap-2 overflow-hidden sm:h-[460px]"
+          style={siteImageStyle}
+        >
           <button
-            key={i}
             type="button"
-            onClick={() => setOpenIndex(i)}
-            aria-label={img.caption || `View image ${i + 1}`}
-            className="group block cursor-zoom-in overflow-hidden"
-            style={siteImageStyle}
+            onClick={() => setOpenIndex(0)}
+            aria-label={images[0].caption || "View photo 1"}
+            className={`group relative col-span-4 row-span-2 cursor-zoom-in overflow-hidden ${heroSpan}`}
           >
             <SiteImg
-              src={img.url}
-              alt={img.caption ?? ""}
-              sizes={thumbSizes}
-              className="aspect-[4/3] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              src={images[0].url}
+              alt={images[0].caption ?? ""}
+              priority
+              sizes="(min-width: 640px) 50vw, 100vw"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
             />
           </button>
-        ))}
-      </div>
+          {images.slice(1, 5).map((img, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setOpenIndex(i + 1)}
+              aria-label={img.caption || `View photo ${i + 2}`}
+              className="group relative hidden cursor-zoom-in overflow-hidden sm:block"
+              style={{ background: "var(--site-bg)" }}
+            >
+              <SiteImg
+                src={img.url}
+                alt={img.caption ?? ""}
+                sizes="25vw"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+              />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setOpenIndex(0)}
+            style={{
+              background: "var(--site-surface)",
+              borderColor: "var(--site-line)",
+              color: "var(--site-ink)",
+              borderRadius: "var(--site-radius)",
+            }}
+            className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 border px-4 py-2 text-sm font-medium shadow-lift transition hover:opacity-90"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            View all {count} photo{count === 1 ? "" : "s"}
+          </button>
+        </div>
+      ) : (
+        <div className={`grid gap-3 ${cols}`}>
+          {images.map((img, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setOpenIndex(i)}
+              aria-label={img.caption || `View image ${i + 1}`}
+              className="group block cursor-zoom-in overflow-hidden"
+              style={siteImageStyle}
+            >
+              <SiteImg
+                src={img.url}
+                alt={img.caption ?? ""}
+                sizes={thumbSizes}
+                className="aspect-[4/3] w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              />
+            </button>
+          ))}
+        </div>
+      )}
 
       {active ? (
         <div

@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-25 — Room detail: directory-style mosaic gallery + lightbox
+
+The room-detail template's gallery now matches the directory listing's hero
+gallery: a large hero photo + a 2×2 grid of thumbnails + a "View all N photos"
+button, any of which opens the existing fullscreen lightbox (prev/next, keyboard,
+swipe, counter, caption).
+
+- New **`mosaic`** layout in the shared `GalleryLightbox` (themed via site vars,
+  reuses the lightbox overlay). Added `"mosaic"` to `ROOM_GALLERY_VARIANTS` and the
+  builder's room-gallery variant picker (`roomGalleryVariant_mosaic`).
+- The theme room-detail template (`themeSections.roomDetail.gallery`) now defaults
+  to `mosaic` (was `carousel`), so new sites get it automatically.
+- Existing room-detail pages were seeded once with the old default — they keep
+  their variant until the host switches it (now selectable in the builder). Updated
+  vilotest's room template to `mosaic` and verified live: published + preview room
+  pages render the mosaic, "View all 3 photos" opens the lightbox with prev/next.
+
+tsc + lint green.
+
+---
+
 ## 2026-06-25 — Fix (re-applied): menu styling class — array join
 
 The previous commit's one-character space fix **did not persist** through the

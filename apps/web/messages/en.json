@@ -1633,6 +1633,7 @@
     "fldRoomHeadingOverride": "Heading (defaults to the room name)",
     "fldShowFacts": "Show room facts (sleeps, beds, size…)",
     "fldShowPrice": "Show price",
+    "roomGalleryVariant_mosaic": "Mosaic (hero + grid, with lightbox)",
     "roomGalleryVariant_carousel": "Carousel",
     "roomGalleryVariant_grid": "Grid",
     "roomGalleryVariant_stacked": "Stacked (one large + grid)",

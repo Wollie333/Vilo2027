@@ -164,7 +164,12 @@ export const CONTACT_VARIANTS = ["stacked", "split"] as const;
 export const RICHTEXT_VARIANTS = ["narrow", "wide"] as const;
 export const TRUST_VARIANTS = ["badges", "grid"] as const;
 // Room-detail sections (room-scoped).
-export const ROOM_GALLERY_VARIANTS = ["carousel", "grid", "stacked"] as const;
+export const ROOM_GALLERY_VARIANTS = [
+  "mosaic",
+  "carousel",
+  "grid",
+  "stacked",
+] as const;
 export const ROOM_OVERVIEW_VARIANTS = ["split", "stacked"] as const;
 export const ROOM_AMENITIES_VARIANTS = ["grid", "list"] as const;
 export const ROOM_RATE_VARIANTS = ["card", "banner"] as const;
