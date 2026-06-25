@@ -575,6 +575,7 @@
     "themeApplyConfirm": "Apply theme",
     "themeApplied": "Theme applied.",
     "themeApplyError": "Couldn't apply the theme. Please try again.",
+    "themeNoRoomTemplate": "This theme can't be activated yet — it has no room-detail page design. Every theme needs one so individual rooms display correctly.",
     "themePreviewBtn": "Preview",
     "themePreviewActivate": "Preview & Activate",
     "themeCurrentlyActive": "Currently active",

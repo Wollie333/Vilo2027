@@ -29,6 +29,10 @@ import {
   restoreSnapshotToSite,
 } from "@/lib/website/restorePoints";
 import { newSection } from "@/lib/website/sectionDefaults";
+import {
+  getThemeRoomDetailSections,
+  hasThemeRoomDetailTemplate,
+} from "@/lib/website/themeSections";
 import type { FormType } from "@/lib/website/forms.schema";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import { validateSubdomain } from "@/lib/website/subdomain";
@@ -261,10 +265,6 @@ export async function applyThemeAction(
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
 
-  // Safety net: snapshot the current design BEFORE we replace anything, so the
-  // switch is always reversible (Phase 2.5).
-  await captureRestorePoint(websiteId, null, "auto_switch");
-
   const supabase = createServerClient();
   const { data: site } = await supabase
     .from("host_websites")
@@ -299,6 +299,18 @@ export async function applyThemeAction(
       : builtinThemeTemplates(siteName);
   }
 
+  // A theme is only activatable if it ships a designed room-detail template —
+  // every site has a room-detail page, and it must fit the theme. Fail BEFORE
+  // any mutation (no restore-point churn, no page wipe).
+  if (!hasThemeRoomDetailTemplate(slug)) {
+    return { ok: false, error: "no_room_template" };
+  }
+
+  // Safety net: snapshot the current design BEFORE we replace anything, so the
+  // switch is always reversible (Phase 2.5). After the gate so a blocked apply
+  // leaves no stray restore point.
+  await captureRestorePoint(websiteId, null, "auto_switch");
+
   // Returning to a previously-used theme restores the host's customised version
   // (not a blank reset) — unless a fresh seed is explicitly requested (reset).
   if (!fresh) {
@@ -322,17 +334,32 @@ export async function applyThemeAction(
     .eq("website_id", websiteId);
   if (deleteErr) return { ok: false, error: "delete_failed" };
 
-  const pagesToInsert = templates.map((tpl) => ({
-    website_id: websiteId,
-    kind: tpl.kind,
-    slug: tpl.slug,
-    title: tpl.title,
-    nav_label: tpl.nav_label,
-    nav_order: tpl.nav_order,
-    show_in_nav: tpl.show_in_nav,
-    draft_sections: tpl.sections,
-    published_sections: [],
-  }));
+  const pagesToInsert = [
+    ...templates.map((tpl) => ({
+      website_id: websiteId,
+      kind: tpl.kind,
+      slug: tpl.slug,
+      title: tpl.title,
+      nav_label: tpl.nav_label,
+      nav_order: tpl.nav_order,
+      show_in_nav: tpl.show_in_nav,
+      draft_sections: tpl.sections,
+      published_sections: [],
+    })),
+    // Every theme seeds its room-detail page so the room layout fits the theme
+    // (the page wipe above would otherwise drop a lazily-created one).
+    {
+      website_id: websiteId,
+      kind: "room_detail",
+      slug: "room-detail",
+      title: "Room details",
+      nav_label: null,
+      nav_order: 900,
+      show_in_nav: false,
+      draft_sections: getThemeRoomDetailSections(slug),
+      published_sections: [],
+    },
+  ];
 
   const { error: pagesErr } = await admin
     .from("website_pages")

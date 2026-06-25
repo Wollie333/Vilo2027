@@ -1708,6 +1708,19 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
 };
 
 /**
+ * Whether a theme ships a DESIGNED room-detail template. A theme must have one
+ * to be activatable (the room-detail page is part of every theme) — the
+ * `applyThemeAction` gate relies on this; `getThemeRoomDetailSections` still
+ * returns a safe fallback for rendering, but activation is blocked without a
+ * real design.
+ */
+export function hasThemeRoomDetailTemplate(
+  themeSlug: string | undefined | null,
+): boolean {
+  return !!themeSlug && themeSlug in ROOM_DETAIL;
+}
+
+/**
  * The designed room-detail layout for a theme slug. Falls back to the bare room
  * blocks for an unknown theme so a room page ALWAYS renders something sensible.
  */

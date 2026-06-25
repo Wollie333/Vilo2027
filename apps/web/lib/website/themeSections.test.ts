@@ -5,6 +5,7 @@ import {
   getThemeRoomDetailSections,
   getThemeSectionPresets,
   getThemeTemplates,
+  hasThemeRoomDetailTemplate,
   themeGroupLabel,
 } from "./themeSections";
 
@@ -153,6 +154,15 @@ describe("themeSections registry", () => {
         "room_amenities",
         "room_rate",
       ]);
+    });
+
+    it("reports a designed template for every built-in theme (gate for activation)", () => {
+      for (const slug of THEME_SLUGS) {
+        expect(hasThemeRoomDetailTemplate(slug)).toBe(true);
+      }
+      expect(hasThemeRoomDetailTemplate("does-not-exist")).toBe(false);
+      expect(hasThemeRoomDetailTemplate(null)).toBe(false);
+      expect(hasThemeRoomDetailTemplate(undefined)).toBe(false);
     });
   });
 });

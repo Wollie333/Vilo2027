@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-06-25 — Theme activation requires a room-detail template + seeds it
+
+Follow-up to the room-detail feature: the room-detail design now belongs to the
+theme, and **a theme can't be activated without one.**
+- `hasThemeRoomDetailTemplate(slug)` in `lib/website/themeSections.ts`; all 7
+  built-in themes return true (unit-tested).
+- `applyThemeAction` gates on it — returns `no_room_template` and **fails before
+  any mutation** (the restore-point capture moved after the gate, so a blocked
+  apply leaves no stray snapshot). The activate modal shows a clear message.
+- On activation the page reseed now also seeds the **`room_detail` page** with
+  `getThemeRoomDetailSections(slug)`, so the room layout always matches the
+  active theme (the page wipe previously dropped any lazily-created one).
+
+tsc + lint + 179 vitest green.
+
+---
+
 ## 2026-06-25 — Website CMS: individual room detail pages (every theme)
 
 Clicking a room card on a tenant site used to jump straight to the checkout. It

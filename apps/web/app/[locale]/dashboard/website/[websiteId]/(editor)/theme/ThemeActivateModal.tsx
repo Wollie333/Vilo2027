@@ -48,7 +48,11 @@ export function ThemeActivateModal({
     startApply(async () => {
       const res = await applyThemeAction({ websiteId, themeId: theme.id });
       if (!res.ok) {
-        toast.error(t("themeApplyError"));
+        toast.error(
+          res.error === "no_room_template"
+            ? t("themeNoRoomTemplate")
+            : t("themeApplyError"),
+        );
         return;
       }
       toast.success(t("themeApplied"));
