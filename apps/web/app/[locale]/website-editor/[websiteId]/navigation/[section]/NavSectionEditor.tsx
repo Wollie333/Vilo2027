@@ -45,6 +45,7 @@ export function NavSectionEditor({
   section,
   initial,
   pages,
+  rooms = [],
   brandName,
   subdomain,
 }: {
@@ -52,6 +53,7 @@ export function NavSectionEditor({
   section: Section;
   initial: NavigationConfig;
   pages: PageOption[];
+  rooms?: { roomId: string; name: string }[];
   brandName: string;
   subdomain: string;
 }) {
@@ -194,6 +196,7 @@ export function NavSectionEditor({
             setMenuStyle={setMenuStyle}
             setHeader={setHeader}
             pages={pages}
+            rooms={rooms}
             device={device}
             brandName={brandName}
           />

@@ -64,7 +64,11 @@ export type SiteMenuItem = {
   label: string;
   href: string;
   newTab?: boolean;
-  children?: SiteMenuItem[]; // one level of dropdown
+  children?: SiteMenuItem[]; // up to two levels of dropdown
+  /** Auto-fill this item's dropdown with the site's current rooms (live). */
+  autoRooms?: boolean;
+  /** Room ids excluded from the auto-rooms dropdown (host-hidden). */
+  hiddenRoomIds?: string[];
 };
 export type SiteFooterColumn = {
   id: string;

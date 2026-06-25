@@ -45,15 +45,38 @@ export default async function NavigationSectionEditorPage({
   const brandName =
     ((site.brand ?? {}) as { name?: string }).name?.trim() || site.subdomain;
 
-  const { data: pageRows } = await supabase
-    .from("website_pages")
-    .select("kind, slug, nav_label, title, nav_order")
-    .eq("website_id", websiteId)
-    .order("nav_order", { ascending: true });
+  const [{ data: pageRows }, { data: roomRows }] = await Promise.all([
+    supabase
+      .from("website_pages")
+      .select("kind, slug, nav_label, title, nav_order")
+      .eq("website_id", websiteId)
+      .order("nav_order", { ascending: true }),
+    // Visible rooms + their own names — for the auto-rooms hide list in the
+    // menu builder. (Labels use the room's name, not the website override.)
+    supabase
+      .from("website_rooms")
+      .select(
+        "room_id, sort_order, room:property_rooms!inner ( name, deleted_at )",
+      )
+      .eq("website_id", websiteId)
+      .eq("is_visible", true)
+      .order("sort_order", { ascending: true }),
+  ]);
   const pages = (pageRows ?? []).map((p) => ({
     label: p.nav_label?.trim() || p.title?.trim() || p.slug,
     href: pageHref(p.kind, p.slug),
   }));
+  const rooms = (roomRows ?? [])
+    .map((r) => {
+      const room = r.room as unknown as {
+        name: string;
+        deleted_at: string | null;
+      } | null;
+      return room && !room.deleted_at
+        ? { roomId: r.room_id as string, name: room.name }
+        : null;
+    })
+    .filter((x): x is { roomId: string; name: string } => x !== null);
 
   return (
     <NavSectionEditor
@@ -61,6 +84,7 @@ export default async function NavigationSectionEditorPage({
       section={section as Section}
       initial={navigation}
       pages={pages}
+      rooms={rooms}
       brandName={brandName}
       subdomain={site.subdomain}
     />

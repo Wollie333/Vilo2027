@@ -2,7 +2,6 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { roomSlugMap } from "@/lib/site/loadSitePage";
 import type { SiteMenuItem, SiteNavigation } from "@/lib/site/types";
 
 type PageRow = {
@@ -27,13 +26,11 @@ function isRoomsPage(p: { kind: string; slug: string }): boolean {
 /**
  * Build a default header menu from a site's in-nav pages (Home first, then the
  * rest by nav_order). Excludes the room_detail template (rendered only via the
- * room route). When the site has multiple rooms, each room's detail page is
- * nested as a sub-menu under the Rooms item (`roomLinks`).
+ * room route). The Rooms item is flagged `autoRooms` so its dropdown auto-fills
+ * with the site's current rooms at render — always up to date, with per-room
+ * hide via `hiddenRoomIds`.
  */
-export function buildDefaultMenu(
-  pages: PageRow[],
-  roomLinks: SiteMenuItem[] = [],
-): SiteMenuItem[] {
+export function buildDefaultMenu(pages: PageRow[]): SiteMenuItem[] {
   return pages
     .filter((p) => p.show_in_nav && p.kind !== "room_detail")
     .sort((a, b) => a.nav_order - b.nav_order)
@@ -43,71 +40,12 @@ export function buildDefaultMenu(
         label: p.nav_label?.trim() || p.title?.trim() || p.slug,
         href: href(p.kind, p.slug),
       };
-      if (roomLinks.length > 0 && isRoomsPage(p)) item.children = roomLinks;
+      if (isRoomsPage(p)) {
+        item.autoRooms = true;
+        item.hiddenRoomIds = [];
+      }
       return item;
     });
-}
-
-/**
- * The site's visible rooms as menu links (`/rooms/<slug>`), using the SAME slug
- * algorithm the public room route resolves with. Empty unless there are at least
- * two rooms (a single room needs no dropdown).
- */
-async function visibleRoomLinks(
-  supabase: SupabaseClient,
-  websiteId: string,
-): Promise<SiteMenuItem[]> {
-  const { data: wr } = await supabase
-    .from("website_rooms")
-    .select("room_id, display_name, sort_order")
-    .eq("website_id", websiteId)
-    .eq("is_visible", true)
-    .order("sort_order", { ascending: true });
-  const rows = (wr ?? []) as {
-    room_id: string;
-    display_name: string | null;
-    sort_order: number;
-  }[];
-  if (rows.length < 2) return [];
-
-  const ids = rows.map((r) => r.room_id);
-  const { data: pr } = await supabase
-    .from("property_rooms")
-    .select("id, name, is_active, deleted_at")
-    .in("id", ids);
-  const nameById = new Map(
-    (
-      (pr ?? []) as {
-        id: string;
-        name: string;
-        is_active: boolean | null;
-        deleted_at: string | null;
-      }[]
-    )
-      .filter((r) => r.is_active !== false && !r.deleted_at)
-      .map((r) => [r.id, r.name]),
-  );
-
-  const ordered = rows
-    .filter((r) => nameById.has(r.room_id))
-    .map((r) => ({
-      roomId: r.room_id,
-      // Slug parity: the public room route resolves slugs from the display-name
-      // override OR the room name, so compute the slug the SAME way…
-      slugName: r.display_name?.trim() || nameById.get(r.room_id) || "Room",
-      // …but the menu LABEL is the room's own name from Properties → Rooms.
-      label: nameById.get(r.room_id) || "Room",
-    }));
-  if (ordered.length < 2) return [];
-
-  const slugs = roomSlugMap(
-    ordered.map((r) => ({ roomId: r.roomId, name: r.slugName })),
-  );
-  return ordered.map((r) => ({
-    id: `room-${r.roomId}`,
-    label: r.label,
-    href: `/rooms/${slugs.get(r.roomId)}`,
-  }));
 }
 
 /**
@@ -123,17 +61,14 @@ export async function ensureDefaultMenu<T extends SiteNavigation>(
 ): Promise<T> {
   if (navigation.menu && navigation.menu.length > 0) return navigation;
 
-  const [{ data: pages }, roomLinks] = await Promise.all([
-    supabase
-      .from("website_pages")
-      .select("kind, slug, nav_label, title, nav_order, show_in_nav")
-      .eq("website_id", websiteId)
-      .eq("show_in_nav", true)
-      .order("nav_order", { ascending: true }),
-    visibleRoomLinks(supabase, websiteId),
-  ]);
+  const { data: pages } = await supabase
+    .from("website_pages")
+    .select("kind, slug, nav_label, title, nav_order, show_in_nav")
+    .eq("website_id", websiteId)
+    .eq("show_in_nav", true)
+    .order("nav_order", { ascending: true });
 
-  const menu = buildDefaultMenu((pages ?? []) as PageRow[], roomLinks);
+  const menu = buildDefaultMenu((pages ?? []) as PageRow[]);
   if (menu.length === 0) return navigation;
 
   const next = { ...navigation, menu } as T;

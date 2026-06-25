@@ -64,6 +64,7 @@ export function MenuStudio({
   setMenuStyle,
   setHeader,
   pages,
+  rooms = [],
   device,
   brandName,
 }: {
@@ -72,6 +73,7 @@ export function MenuStudio({
   setMenuStyle: (patch: Partial<NavigationConfig["menuStyle"]>) => void;
   setHeader: (patch: Partial<NavigationConfig["header"]>) => void;
   pages: PageOption[];
+  rooms?: { roomId: string; name: string }[];
   device: Device;
   brandName: string;
 }) {
@@ -159,12 +161,19 @@ export function MenuStudio({
                 <button
                   type="button"
                   onClick={() => setSelected(path)}
-                  className="flex-1 truncate text-left text-[13px] font-medium text-brand-ink"
+                  className="flex flex-1 items-center gap-1.5 truncate text-left text-[13px] font-medium text-brand-ink"
                 >
-                  {item.label || t("navLinkLabel")}
+                  <span className="truncate">
+                    {item.label || t("navLinkLabel")}
+                  </span>
+                  {item.autoRooms ? (
+                    <span className="shrink-0 rounded bg-brand-light px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
+                      {t("menuAutoRoomsBadge")}
+                    </span>
+                  ) : null}
                 </button>
                 <div className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
-                  {depth < 2 ? (
+                  {depth < 2 && !item.autoRooms ? (
                     <IconBtn
                       title={t("navAddChild")}
                       onClick={() => addChild(path)}
@@ -187,7 +196,7 @@ export function MenuStudio({
                   </IconBtn>
                 </div>
               </div>
-              {hasKids && isOpen ? (
+              {hasKids && isOpen && !item.autoRooms ? (
                 <Rows items={item.children ?? []} base={path} />
               ) : null}
             </div>
@@ -421,6 +430,56 @@ export function MenuStudio({
                 checked={selectedItem.newTab ?? false}
                 onChange={(v) => update(selected, { newTab: v })}
               />
+
+              {/* Auto-rooms: turn this item's dropdown into the live room list. */}
+              <div className="space-y-2 rounded-[10px] border border-brand-line p-2.5">
+                <CheckRow
+                  label={t("menuAutoRoomsToggle")}
+                  checked={!!selectedItem.autoRooms}
+                  onChange={(v) =>
+                    update(selected, {
+                      autoRooms: v,
+                      hiddenRoomIds: v
+                        ? (selectedItem.hiddenRoomIds ?? [])
+                        : undefined,
+                    })
+                  }
+                />
+                {selectedItem.autoRooms ? (
+                  rooms.length > 0 ? (
+                    <div className="space-y-1.5">
+                      <span className="block text-[11.5px] text-brand-mute">
+                        {t("menuAutoRoomsHint")}
+                      </span>
+                      {rooms.map((r) => {
+                        const hidden = (
+                          selectedItem.hiddenRoomIds ?? []
+                        ).includes(r.roomId);
+                        return (
+                          <CheckRow
+                            key={r.roomId}
+                            label={r.name}
+                            checked={!hidden}
+                            onChange={(show) => {
+                              const set = new Set(
+                                selectedItem.hiddenRoomIds ?? [],
+                              );
+                              if (show) set.delete(r.roomId);
+                              else set.add(r.roomId);
+                              update(selected, { hiddenRoomIds: [...set] });
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span className="block text-[11.5px] text-brand-mute">
+                      {t("menuAutoRoomsEmpty")}
+                    </span>
+                  )
+                ) : null}
+              </div>
+
               <button
                 type="button"
                 onClick={() => remove(selected)}

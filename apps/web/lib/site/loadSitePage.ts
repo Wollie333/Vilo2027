@@ -53,6 +53,7 @@ import type {
   SiteConversion,
   SiteData,
   SiteDataByType,
+  SiteMenuItem,
   SiteNavItem,
   SiteNavigation,
   SnapshotRoom,
@@ -297,7 +298,7 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
   // link resolves on the app domain too. siteParam is set only in that case.
   const bookBasePath = siteParam ? `/${locale}/site` : "";
 
-  return {
+  const ctx: SiteContext = {
     websiteId: site.id,
     businessId: site.business_id,
     subdomain: site.subdomain,
@@ -319,6 +320,18 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
     publishedRoomRows,
     publishedPropertyOverrides,
   };
+
+  // Auto-rooms menu: fill the flagged item's dropdown with the site's current
+  // rooms (minus hidden) so the menu is always up to date — public + preview.
+  if (navigation.menu?.some((i) => i.autoRooms)) {
+    const links = await roomMenuLinks(ctx);
+    ctx.navigation = {
+      ...navigation,
+      menu: expandAutoRooms(navigation.menu, links),
+    };
+  }
+
+  return ctx;
 });
 
 /**
@@ -1450,7 +1463,9 @@ async function orderedVisibleRooms(
   ctx: SiteContext,
 ): Promise<{
   overrides: RoomOverride[];
-  ordered: Array<{ roomId: string; name: string }>;
+  // `name` drives the slug (display override → room name, matching the route);
+  // `propName` is the room's own name (Properties → Rooms) for menu labels.
+  ordered: Array<{ roomId: string; name: string; propName: string }>;
 }> {
   const overrides = await visibleRoomOverrides(sb, ctx);
   const roomIds = overrides.map((o) => o.room_id).filter(Boolean);
@@ -1468,9 +1483,16 @@ async function orderedVisibleRooms(
         | { name: string; is_active: boolean | null; deleted_at: string | null }
         | undefined;
       if (!r || r.is_active === false || r.deleted_at) return null;
-      return { roomId: o.room_id, name: o.display_name?.trim() || r.name };
+      return {
+        roomId: o.room_id,
+        name: o.display_name?.trim() || r.name,
+        propName: r.name,
+      };
     })
-    .filter((x): x is { roomId: string; name: string } => x !== null);
+    .filter(
+      (x): x is { roomId: string; name: string; propName: string } =>
+        x !== null,
+    );
   return { overrides, ordered };
 }
 
@@ -1623,6 +1645,54 @@ export async function listRoomSlugs(ctx: SiteContext): Promise<string[]> {
   const { ordered } = await orderedVisibleRooms(sb, ctx);
   const map = roomSlugMap(ordered);
   return ordered.map((o) => map.get(o.roomId)).filter((s): s is string => !!s);
+}
+
+export type RoomMenuLink = { roomId: string; label: string; href: string };
+
+/**
+ * The site's visible rooms as menu links — label = the room's own name, href =
+ * its detail page (slug resolved exactly as the room route does). Drives the
+ * auto-rooms dropdown so the menu is always current.
+ */
+export async function roomMenuLinks(ctx: SiteContext): Promise<RoomMenuLink[]> {
+  const sb = createAdminClient();
+  const { ordered } = await orderedVisibleRooms(sb, ctx);
+  if (ordered.length === 0) return [];
+  const slugs = roomSlugMap(
+    ordered.map((o) => ({ roomId: o.roomId, name: o.name })),
+  );
+  return ordered.map((o) => ({
+    roomId: o.roomId,
+    label: o.propName,
+    href: siteRoomHref(ctx, slugs.get(o.roomId) ?? ""),
+  }));
+}
+
+/**
+ * Replace any auto-rooms menu item's children with the live room links (minus
+ * the host's hidden room ids). Pure — returns the same array when nothing is
+ * auto. Single source of truth used at render so public + preview always match.
+ */
+export function expandAutoRooms(
+  menu: SiteMenuItem[],
+  roomLinks: RoomMenuLink[],
+): SiteMenuItem[] {
+  if (!menu.some((i) => i.autoRooms)) return menu;
+  return menu.map((item) => {
+    if (!item.autoRooms) return item;
+    const hidden = new Set(item.hiddenRoomIds ?? []);
+    const visible = roomLinks.filter((l) => !hidden.has(l.roomId));
+    // A dropdown only makes sense with 2+ rooms; otherwise it's a plain link.
+    const children =
+      visible.length >= 2
+        ? visible.map((l) => ({
+            id: `room-${l.roomId}`,
+            label: l.label,
+            href: l.href,
+          }))
+        : undefined;
+    return { ...item, children };
+  });
 }
 
 /** First visible room's detail — the sample shown in the builder preview. */

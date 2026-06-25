@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-// defaultMenu is server-only and imports the heavy loadSitePage module; stub both
-// so we can unit-test the pure buildDefaultMenu.
+// defaultMenu is server-only; stub the marker so it imports under node.
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/site/loadSitePage", () => ({ roomSlugMap: () => new Map() }));
 
 import { buildDefaultMenu } from "./defaultMenu";
 
@@ -43,11 +41,6 @@ const pages = [
   },
 ];
 
-const roomLinks = [
-  { id: "room-1", label: "Olive Room", href: "/rooms/olive-room" },
-  { id: "room-2", label: "Vineyard Suite", href: "/rooms/vineyard-suite" },
-];
-
 describe("buildDefaultMenu", () => {
   it("lists in-nav pages by order and excludes the room_detail template", () => {
     expect(buildDefaultMenu(pages).map((i) => i.href)).toEqual([
@@ -57,20 +50,13 @@ describe("buildDefaultMenu", () => {
     ]);
   });
 
-  it("nests room links as a sub-menu under the Rooms item", () => {
-    const menu = buildDefaultMenu(pages, roomLinks);
-    const rooms = menu.find((i) => i.href === "/rooms");
-    expect(rooms?.children?.map((c) => c.href)).toEqual([
-      "/rooms/olive-room",
-      "/rooms/vineyard-suite",
-    ]);
-    // Only the Rooms item gets the children.
-    expect(menu.find((i) => i.href === "/")?.children).toBeUndefined();
-    expect(menu.find((i) => i.href === "/about")?.children).toBeUndefined();
-  });
-
-  it("adds no children when there are no room links (single/zero rooms)", () => {
-    const rooms = buildDefaultMenu(pages, []).find((i) => i.href === "/rooms");
-    expect(rooms?.children).toBeUndefined();
+  it("flags the Rooms item as auto-rooms (live dropdown) with an empty hidden set", () => {
+    const rooms = buildDefaultMenu(pages).find((i) => i.href === "/rooms");
+    expect(rooms?.autoRooms).toBe(true);
+    expect(rooms?.hiddenRoomIds).toEqual([]);
+    // Only the Rooms item is auto.
+    expect(
+      buildDefaultMenu(pages).find((i) => i.href === "/")?.autoRooms,
+    ).toBeUndefined();
   });
 });

@@ -603,6 +603,10 @@ const menuSubItemSchema = menuLinkSchema.extend({
 });
 export const menuItemSchema = menuLinkSchema.extend({
   children: z.array(menuSubItemSchema).max(12).optional(),
+  // When true, this item's dropdown is auto-filled at render with the site's
+  // current rooms (always up to date) — `hiddenRoomIds` are left out.
+  autoRooms: z.boolean().optional(),
+  hiddenRoomIds: z.array(z.string()).max(200).optional(),
 });
 
 /** Optional menu styling (the Style tab) — applied to the header menu. */
