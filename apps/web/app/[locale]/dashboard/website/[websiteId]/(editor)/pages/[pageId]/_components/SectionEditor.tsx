@@ -1749,9 +1749,13 @@ function SectionFields({
             label={t("fldElLevel")}
             value={p.level}
             options={[
+              { value: "h1", label: t("elLevel_h1") },
               { value: "h2", label: t("elLevel_h2") },
               { value: "h3", label: t("elLevel_h3") },
               { value: "h4", label: t("elLevel_h4") },
+              { value: "h5", label: t("elLevel_h5") },
+              { value: "h6", label: t("elLevel_h6") },
+              { value: "p", label: t("elLevel_p") },
             ]}
             onChange={(v) => set({ level: v })}
           />
@@ -2371,9 +2375,13 @@ function ColumnBlockEditor({
             label={t("fldElLevel")}
             value={block.level}
             options={[
+              { value: "h1", label: t("elLevel_h1") },
               { value: "h2", label: t("elLevel_h2") },
               { value: "h3", label: t("elLevel_h3") },
               { value: "h4", label: t("elLevel_h4") },
+              { value: "h5", label: t("elLevel_h5") },
+              { value: "h6", label: t("elLevel_h6") },
+              { value: "p", label: t("elLevel_p") },
             ]}
             onChange={(v) => onChange({ ...block, level: v })}
           />

@@ -17,9 +17,13 @@ import {
 type Props = Extract<WebsiteSection, { type: "columns" }>["props"];
 
 const H_SIZE = {
+  h1: "var(--site-h1, 2.5rem)",
   h2: "var(--site-h2)",
   h3: "var(--site-h3)",
   h4: "var(--site-h4)",
+  h5: "1.25rem",
+  h6: "1.05rem",
+  p: "1rem",
 } as const;
 
 /** One inline block inside a column. Theme-aware via the scoped `--site-*` vars. */

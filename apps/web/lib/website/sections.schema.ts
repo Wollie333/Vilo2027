@@ -493,7 +493,9 @@ export type ElDividerThickness = (typeof EL_DIVIDER_THICKNESS)[number];
 
 const elHeadingProps = z.object({
   text: z.string().max(200),
-  level: z.enum(["h2", "h3", "h4"]).default("h2"),
+  // The HTML tag this renders as — lets the host pick the right element for SEO
+  // (h1…h6) or a plain paragraph. Legacy values h2/h3/h4 still parse.
+  level: z.enum(["h1", "h2", "h3", "h4", "h5", "h6", "p"]).default("h2"),
   align: z.enum(ELEMENT_ALIGN).default("left"),
   size: z.enum(EL_SIZE).default("auto"),
   weight: z.enum(EL_WEIGHT).default("auto"),
@@ -544,7 +546,7 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("heading"),
     text: z.string().max(200),
-    level: z.enum(["h2", "h3", "h4"]).default("h3"),
+    level: z.enum(["h1", "h2", "h3", "h4", "h5", "h6", "p"]).default("h3"),
   }),
   z.object({ kind: z.literal("text"), body: z.string().max(2000) }),
   z.object({
