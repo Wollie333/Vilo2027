@@ -10,6 +10,8 @@ import { buildRoomJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 
 import { JsonLd } from "./JsonLd";
+import { SafariShell } from "./safari/SafariShell";
+import { SafariRoomContent } from "./safari/pages/SafariRoomContent";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
@@ -26,13 +28,15 @@ export async function SiteRoomView({
   roomSlug,
   preview = false,
   siteParam,
+  themeSlug,
 }: {
   siteRef: string;
   roomSlug: string;
   preview?: boolean;
   siteParam?: string | null;
+  themeSlug?: string;
 }) {
-  const ctx = await loadSiteContext(siteRef, { preview, siteParam });
+  const ctx = await loadSiteContext(siteRef, { preview, siteParam, themeSlug });
   if (!ctx) notFound();
 
   const result = await loadSiteRoomPage(ctx, roomSlug);
@@ -60,6 +64,18 @@ export async function SiteRoomView({
 
   const headerBookHref =
     ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    return (
+      <SafariShell
+        brandName={ctx.brand.name}
+        navLinks={ctx.nav}
+        bookHref={headerBookHref}
+      >
+        <SafariRoomContent />
+      </SafariShell>
+    );
+  }
 
   return (
     <>

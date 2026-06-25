@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SafariJournalContent } from "@/components/site/safari/pages/SafariJournalContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -39,7 +41,7 @@ export async function generateMetadata({
 export default async function SiteBlogIndexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ site?: string; preview?: string }>;
+  searchParams: Promise<{ site?: string; preview?: string; theme?: string }>;
 }) {
   const sp = await searchParams;
   const h = await headers();
@@ -50,10 +52,18 @@ export default async function SiteBlogIndexPage({
   if (!ref) notFound();
 
   const preview = sp?.preview === "1";
-  const ctx = await loadSiteContext(ref, { preview });
+  const ctx = await loadSiteContext(ref, { preview, themeSlug: sp?.theme });
   if (!ctx) notFound();
 
   const posts = await loadSiteBlogIndex(ctx);
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    return (
+      <SafariShell brandName={ctx.brand.name} navLinks={ctx.nav}>
+        <SafariJournalContent />
+      </SafariShell>
+    );
+  }
 
   return (
     <SiteThemeRoot theme={ctx.theme}>

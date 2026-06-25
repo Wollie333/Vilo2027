@@ -33,7 +33,7 @@ export default async function SiteRoomPage({
   searchParams,
 }: {
   params: Promise<{ roomSlug: string }>;
-  searchParams: Promise<{ site?: string; preview?: string }>;
+  searchParams: Promise<{ site?: string; preview?: string; theme?: string }>;
 }) {
   const { roomSlug } = await params;
   const sp = await searchParams;
@@ -50,6 +50,7 @@ export default async function SiteRoomPage({
       roomSlug={roomSlug}
       preview={sp?.preview === "1"}
       siteParam={sp?.site}
+      themeSlug={sp?.theme}
     />
   );
 }

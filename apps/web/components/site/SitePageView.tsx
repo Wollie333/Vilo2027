@@ -12,7 +12,7 @@ import type { SiteAssetResolver } from "@/lib/site/types";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { JsonLd } from "./JsonLd";
-import { SafariSiteView } from "./safari/SafariSiteView";
+import { SafariSiteView, SAFARI_PAGE_KINDS } from "./safari/SafariSiteView";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
@@ -91,15 +91,16 @@ export async function SitePageView({
   // through its own self-contained, scoped layer rather than the shared chrome +
   // section components, so it matches the design exactly. Driven by the same
   // page sections (by type) so content stays host-editable.
-  // Home page only for now — the bespoke Safari home is the first slice; interior
-  // pages (rooms/about/journal/contact/booking) render through the standard
-  // themed pipeline (Safari palette) until their designs are ported too.
+  // Safari is a fully bespoke design (the NenGama Lodge look) — every page kind it
+  // ships renders through its own self-contained, scoped layer so it matches the
+  // design exactly. Unmapped kinds fall through to the standard themed pipeline.
   const activeThemeSlug = ctx.previewThemeSlug ?? ctx.theme.preset;
-  if (activeThemeSlug === "safari" && pathSlug.length === 0) {
+  if (activeThemeSlug === "safari" && SAFARI_PAGE_KINDS.has(result.page.kind)) {
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
         <SafariSiteView
+          kind={result.page.kind}
           sections={result.sections}
           brandName={ctx.brand.name}
           navLinks={ctx.nav}

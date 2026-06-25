@@ -1,8 +1,23 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
-import { SafariNav, type SafariNavLink } from "./SafariNav";
+import { SafariShell, type SafariNavLink } from "./SafariShell";
+import { SafariAboutContent } from "./pages/SafariAboutContent";
+import { SafariBookingContent } from "./pages/SafariBookingContent";
+import { SafariContactContent } from "./pages/SafariContactContent";
+import { SafariJournalContent } from "./pages/SafariJournalContent";
+import { SafariRoomsContent } from "./pages/SafariRoomsContent";
+import { SafariThankYouContent } from "./pages/SafariThankYouContent";
 
-import "./safari.css";
+/** Page kinds (loadSitePage `kind`) the Safari theme renders bespoke. */
+export const SAFARI_PAGE_KINDS = new Set<string>([
+  "home",
+  "rooms",
+  "about",
+  "contact",
+  "blog",
+  "checkout",
+  "thank-you",
+]);
 
 // The NenGama Lodge design ported into the CMS. Text is driven by the host's
 // matching sections (by type); imagery + the bespoke layout come from the design
@@ -131,12 +146,9 @@ const STOCK_REVIEWS = [
   },
 ];
 
-/**
- * Renders a Safari-themed site page exactly in the NenGama Lodge style. Server
- * component; the only client island is the scroll-aware nav. Mounted by
- * SitePageView when the active theme slug is `safari`.
- */
-export function SafariSiteView({
+/** The bespoke NenGama home page. Text is driven by the host's matching
+ *  sections; imagery + the bespoke layout are the design's. */
+function SafariHomeContent({
   sections,
   brandName,
   navLinks,
@@ -154,7 +166,6 @@ export function SafariSiteView({
   const location = findSection(sections, "location")?.props;
   const cta = findSection(sections, "cta")?.props;
 
-  const monogram = (brandName.trim()[0] || "N").toUpperCase();
   const roomsHref =
     navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#suites";
   const aboutHref = navLinks.find((l) => /about|story/i.test(l.label))?.href;
@@ -172,23 +183,7 @@ export function SafariSiteView({
       : STOCK_EXP;
 
   return (
-    <div className="vilo-safari">
-      {/* Theme-scoped fonts (only the Safari design uses them) — intentionally
-          not in the root layout. */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Marcellus&display=swap"
-      />
-
-      <SafariNav
-        brandName={brandName}
-        monogram={monogram}
-        tagline="Lodge · Direct booking"
-        links={navLinks}
-        bookHref={reserve}
-      />
-
+    <>
       <section className="hero">
         <div className="hero-media">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -544,50 +539,64 @@ export function SafariSiteView({
           </div>
         </div>
       </section>
+    </>
+  );
+}
 
-      <footer className="footer">
-        <div className="wrap">
-          <div className="footer-top">
-            <div>
-              <span className="brand-name">{brandName}</span>
-              <p className="footer-blurb">
-                An unfenced wilderness lodge. Book direct for the best rate and
-                a warmer welcome.
-              </p>
-            </div>
-            <div className="foot-col">
-              <span className="foot-head">Explore</span>
-              {navLinks.slice(0, 4).map((l) => (
-                <a key={l.href + l.label} href={l.href}>
-                  {l.label}
-                </a>
-              ))}
-            </div>
-            <div className="foot-col">
-              <span className="foot-head">Visit</span>
-              {contactHref ? <a href={contactHref}>Contact</a> : null}
-              <a href={reserve}>Book a stay</a>
-            </div>
-            <div className="foot-col">
-              <span className="foot-head">Stay in touch</span>
-              <p className="footer-blurb" style={{ marginTop: 0 }}>
-                Quiet news from the reserve, a few times a year.
-              </p>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <span>© {brandName}. All rights reserved.</span>
-            <span className="foot-socials">
-              <a href="#" aria-label="Instagram">
-                Ig
-              </a>
-              <a href="#" aria-label="Facebook">
-                Fb
-              </a>
-            </span>
-          </div>
-        </div>
-      </footer>
-    </div>
+/** Picks the bespoke Safari content for the page kind and wraps it in the shared
+ *  Safari chrome (nav + footer). Mounted by SitePageView for `safari` sites whose
+ *  page kind is in SAFARI_PAGE_KINDS. */
+export function SafariSiteView({
+  kind,
+  sections,
+  brandName,
+  navLinks,
+  bookHref,
+}: {
+  kind: string;
+  sections: WebsiteSection[];
+  brandName: string;
+  navLinks: SafariNavLink[];
+  bookHref?: string | null;
+}) {
+  let content;
+  switch (kind) {
+    case "rooms":
+      content = <SafariRoomsContent />;
+      break;
+    case "about":
+      content = <SafariAboutContent />;
+      break;
+    case "contact":
+      content = <SafariContactContent />;
+      break;
+    case "blog":
+      content = <SafariJournalContent />;
+      break;
+    case "checkout":
+      content = <SafariBookingContent />;
+      break;
+    case "thank-you":
+      content = <SafariThankYouContent />;
+      break;
+    default:
+      content = (
+        <SafariHomeContent
+          sections={sections}
+          brandName={brandName}
+          navLinks={navLinks}
+          bookHref={bookHref}
+        />
+      );
+  }
+  return (
+    <SafariShell
+      brandName={brandName}
+      navLinks={navLinks}
+      bookHref={bookHref}
+      solidNav={kind === "checkout"}
+    >
+      {content}
+    </SafariShell>
   );
 }

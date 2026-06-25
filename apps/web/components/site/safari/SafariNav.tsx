@@ -17,6 +17,7 @@ export function SafariNav({
   links,
   bookHref,
   bookLabel = "Reserve",
+  forceSolid = false,
 }: {
   brandName: string;
   monogram: string;
@@ -24,17 +25,26 @@ export function SafariNav({
   links: SafariNavLink[];
   bookHref?: string | null;
   bookLabel?: string;
+  /** Pages without a dark hero (e.g. checkout) need a solid bar from the top. */
+  forceSolid?: boolean;
 }) {
-  const [solid, setSolid] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 12);
+    if (forceSolid) return;
+    const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [forceSolid]);
+
+  const cls = forceSolid
+    ? "nav solid"
+    : scrolled
+      ? "nav over-hero solid"
+      : "nav over-hero";
 
   return (
-    <header className={solid ? "nav over-hero solid" : "nav over-hero"}>
+    <header className={cls}>
       <div className="wrap nav-in">
         <a href={links[0]?.href || "#"} className="brand">
           <span className="brand-mark">{monogram}</span>

@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/site/JsonLd";
+import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SafariArticleContent } from "@/components/site/safari/pages/SafariArticleContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -42,7 +44,7 @@ export default async function SiteBlogPostPage({
   searchParams,
 }: {
   params: Promise<{ postSlug: string }>;
-  searchParams: Promise<{ site?: string; preview?: string }>;
+  searchParams: Promise<{ site?: string; preview?: string; theme?: string }>;
 }) {
   const { postSlug } = await params;
   const sp = await searchParams;
@@ -54,7 +56,7 @@ export default async function SiteBlogPostPage({
   if (!ref) notFound();
 
   const preview = sp?.preview === "1";
-  const ctx = await loadSiteContext(ref, { preview });
+  const ctx = await loadSiteContext(ref, { preview, themeSlug: sp?.theme });
   if (!ctx) notFound();
 
   const [post, relatedPosts] = await Promise.all([
@@ -64,6 +66,14 @@ export default async function SiteBlogPostPage({
   if (!post) notFound();
 
   const cover = siteAsset(post.coverUrl);
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    return (
+      <SafariShell brandName={ctx.brand.name} navLinks={ctx.nav}>
+        <SafariArticleContent />
+      </SafariShell>
+    );
+  }
 
   // Structured data (BlogPosting) — public render only.
   let jsonLdGraph: Record<string, unknown>[] = [];

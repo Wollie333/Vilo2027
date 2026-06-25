@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-06-26 — Safari theme: every page pixel-faithful (slice 2)
+
+Extended the bespoke Safari render layer to **all page types** — the whole site
+now matches the NenGama Lodge design, not just the home page:
+- Shared `SafariShell` (scoped `.vilo-safari` root + theme fonts + scroll-aware
+  nav + the NenGama footer with newsletter + "Powered by Vilo"). `SafariNav` got
+  a `forceSolid` mode for pages with no dark hero (checkout) so the bar stays
+  readable; the shell pads the top accordingly.
+- `SafariSiteView` is now a dispatcher: by `loadSitePage` page `kind` it renders
+  the matching bespoke content (home/rooms/about/contact/blog/checkout/
+  thank-you) inside the shell.
+- Ported the remaining NenGama pages to JSX content components under
+  `safari/pages/` (Rooms/Suites, Room detail, About, Journal index, Journal
+  article, Contact, Booking/checkout, Thank-you) — verbatim markup + the design's
+  Unsplash imagery (file-level eslint-disable for the intentional entities/`<img>`).
+- Ported the rest of the design's CSS into `safari.css` (forms, booking summary,
+  amenities, crumbs, journal cards, article typography, thank-you card).
+- Wired the standalone routes too: blog index, blog post, and room detail
+  (`SiteRoomView` + the route now thread `themeSlug` so preview works).
+
+Verified live (`?theme=safari`) on every page: home (hero-meta + suites + new
+footer), Suites (page-head + 3 suites + included pills), Room detail (Marula
+Suite + amenities), About (story + values), Contact (9-field form), Journal
+(featured + 6 cards + category chips), Article ("A table under the stars"),
+Checkout (stepped form + solid readable nav + summary), Thank-you (confirmation
+card + next-steps). tsc + lint green across all of it.
+
+CONTENT IS STILL STOCK (the design's NenGama copy/images) — wiring the host's
+real details into each page is the next and final step, as agreed.
+
+---
+
 ## 2026-06-26 — Safari theme: pixel-faithful NenGama home page (slice 1)
 
 The Safari theme now renders the **home page exactly** like the supplied NenGama
