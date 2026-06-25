@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-25 — Rates page template (live rate table)
+
+Added a **"Rates"** page template to the new-page picker. It seeds an intro + the
+**`rate_table`** section (auto-populated from the host's room rates → a neat table)
++ a Book CTA. `rate_table` already pulls live rates via `loadRateTable`, so the
+page shows real pricing with no extra setup. Added to `PAGE_TEMPLATES` +
+`PAGE_TEMPLATE_SECTIONS` (`rates: ["intro", "rate_table", "cta"]`) + i18n. Verified
+live: a created Rates page renders a `<table>` of rates + a Book CTA (200). tsc +
+lint green.
+
+---
+
 ## 2026-06-25 — Header builder pt.2: Book button consolidated + colour, logo, menu alignment
 
 - **Consolidation:** the Book button is now controlled in **one place** — the Header

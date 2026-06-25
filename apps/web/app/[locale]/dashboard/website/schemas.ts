@@ -542,6 +542,7 @@ export const PAGE_TEMPLATES = [
   "contact",
   "landing",
   "rooms",
+  "rates",
   "experiences",
   "gallery",
 ] as const;
@@ -555,6 +556,9 @@ export const PAGE_TEMPLATE_SECTIONS: Record<PageTemplate, SectionType[]> = {
   contact: ["intro", "contact_form"],
   landing: ["hero", "highlights", "rooms_preview", "reviews", "cta"],
   rooms: ["intro", "rooms_preview", "amenities", "pricing", "cta"],
+  // Rates page: intro + the live rate table (pulls the property's rates) + a
+  // book CTA. `rate_table` is auto-populated from the host's room rates.
+  rates: ["intro", "rate_table", "cta"],
   experiences: ["intro", "highlights", "gallery", "cta"],
   gallery: ["intro", "gallery"],
 };
