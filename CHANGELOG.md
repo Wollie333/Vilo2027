@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-25 — Elementor-style menu builder (3 tabs) + 2-level dropdowns + menu styling
+
+Rebuilt the menu editor into a builder-like, 3-panel experience and added a
+second level of dropdown nesting + menu styling. tsc + lint + 179 vitest green;
+browser-verified logged in.
+
+**Editor** — new `MenuStudio` (rendered by `NavSectionEditor` for the menu
+section): a **left panel with 3 tabs** (Elementor-style) — **Links** (the menu
+item tree: add/reorder/delete, a "which pages → links" quick-add, select a link,
+and **add sub + sub-sub items**), **Style** (link colour, hover colour, font
+weight, UPPERCASE), **Advanced** (collapse breakpoint + show-book toggle). The
+**center** is the device-aware live preview; the **right** panel is the selected
+link's inspector (label, link, link-to-page, open-in-new-tab, delete).
+
+**2-level nesting** — `menuItemSchema` now allows `children → children` (top →
+sub → sub-sub). The public desktop dropdown renders a sub-item with children as a
+labelled group (a clean mega-menu column, no fragile flyouts); the mobile drawer
+nests them in its accordion.
+
+**Menu styling** — `navigation.menuStyle` (`color`, `hoverColor`, `weight`,
+`uppercase`). Applied to the header menu via a scoped `.vilo-hmenu` `<style>`
+(handles base + hover); defaults reproduce the current look.
+
+(`MenuBuilder` is still used for inline chrome editing in the page builder — left
+as the simpler 1-level editor there.)
+
+---
+
 ## 2026-06-25 — Nav editor: device-aware preview + book-button control
 
 Follow-up to the responsive menu work. tsc + lint + 179 vitest green;
