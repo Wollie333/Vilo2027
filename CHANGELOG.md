@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-06-25 — Section builder: per-section text size & weight
+
+Added a **"Text"** group to the section style inspector (alongside Tone / Block
+style / Frame) so a section's typography can be tuned without code:
+- **Heading size** (S/M/L/XL), **Heading weight** (Normal→Bold), **Body text size**
+  (S/M/L) — new optional fields on `blockStyle`.
+- Applied via a scoped descendant rule `.wsec-<id> :is(h1..h6 / p,li){…}` whose
+  specificity (0,1,1) beats the section's Tailwind text utilities, with
+  `!important` so it also overrides sections that set fonts inline (e.g. the hero
+  headline's theme-font vars).
+
+Verified live in the builder: setting a hero heading to XL+Bold scaled it to 48px
+/ weight 700; resetting cleared it. tsc + lint green.
+
+---
+
 ## 2026-06-25 — Book button: link to an existing page or a custom URL
 
 The header **Book button** can now link to an **existing page** (a picker of the

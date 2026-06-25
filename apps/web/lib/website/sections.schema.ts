@@ -619,6 +619,12 @@ export const blockStyleSchema = z.object({
   radius: z.enum(BLOCK_RADIUS).optional(),
   maxWidth: z.enum(BLOCK_MAXWIDTH).optional(),
   minHeight: z.enum(BLOCK_MINHEIGHT).optional(),
+  // Typography overrides for this block's text (the inspector's "Text" controls).
+  // Applied to the section's headings / body via a scoped descendant rule whose
+  // specificity beats the section's Tailwind text utilities.
+  headingSize: z.enum(["sm", "md", "lg", "xl"]).optional(),
+  headingWeight: z.enum(["normal", "medium", "semibold", "bold"]).optional(),
+  bodySize: z.enum(["sm", "md", "lg"]).optional(),
 });
 export type BlockStyle = z.infer<typeof blockStyleSchema>;
 

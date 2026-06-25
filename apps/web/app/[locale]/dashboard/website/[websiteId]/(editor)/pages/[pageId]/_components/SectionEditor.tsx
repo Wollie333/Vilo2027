@@ -353,6 +353,50 @@ function BlockStyleEditor({
           ) : null}
         </div>
       </div>
+
+      {/* Typography — the section's text size & weight (overrides the theme). */}
+      <div className="space-y-3 border-t border-dashed border-brand-line pt-3">
+        <span className="block text-[12px] font-semibold text-brand-ink">
+          {t("blockText")}
+        </span>
+        <div className="grid grid-cols-2 gap-3">
+          <SelectField
+            label={t("fldHeadingSize")}
+            value={style.headingSize ?? ""}
+            options={[
+              { value: "", label: t("blockDefault") },
+              { value: "sm", label: t("textSize_sm") },
+              { value: "md", label: t("textSize_md") },
+              { value: "lg", label: t("textSize_lg") },
+              { value: "xl", label: t("textSize_xl") },
+            ]}
+            onChange={(v) => setFrame({ headingSize: v || undefined })}
+          />
+          <SelectField
+            label={t("fldHeadingWeight")}
+            value={style.headingWeight ?? ""}
+            options={[
+              { value: "", label: t("blockDefault") },
+              { value: "normal", label: t("weight_normal") },
+              { value: "medium", label: t("weight_medium") },
+              { value: "semibold", label: t("weight_semibold") },
+              { value: "bold", label: t("weight_bold") },
+            ]}
+            onChange={(v) => setFrame({ headingWeight: v || undefined })}
+          />
+          <SelectField
+            label={t("fldBodySize")}
+            value={style.bodySize ?? ""}
+            options={[
+              { value: "", label: t("blockDefault") },
+              { value: "sm", label: t("textSize_sm") },
+              { value: "md", label: t("textSize_md") },
+              { value: "lg", label: t("textSize_lg") },
+            ]}
+            onChange={(v) => setFrame({ bodySize: v || undefined })}
+          />
+        </div>
+      </div>
     </div>
   );
 }

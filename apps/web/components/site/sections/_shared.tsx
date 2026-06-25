@@ -139,6 +139,43 @@ function frameRules(style: BlockStyle): string {
   return out.join(";");
 }
 
+const HEADING_SIZE_CSS = {
+  sm: "1.5rem",
+  md: "1.875rem",
+  lg: "2.25rem",
+  xl: "3rem",
+} as const;
+const BODY_SIZE_CSS = { sm: "0.9rem", md: "1rem", lg: "1.125rem" } as const;
+const FONT_WEIGHT_CSS = {
+  normal: "400",
+  medium: "500",
+  semibold: "600",
+  bold: "700",
+} as const;
+
+/**
+ * Typography overrides → scoped rules targeting the section's text tags. Using a
+ * descendant `:is(...)` selector gives specificity (0,1,1), which beats the
+ * section's Tailwind text utilities (0,1,0) so the host's size/weight wins.
+ */
+function typographyRules(cls: string, style: BlockStyle): string {
+  // `!important` so the override also beats sections that set font size/weight
+  // via inline style (e.g. the hero headline uses inline theme-font vars).
+  const heading: string[] = [];
+  if (style.headingSize)
+    heading.push(`font-size:${HEADING_SIZE_CSS[style.headingSize]}!important`);
+  if (style.headingWeight)
+    heading.push(
+      `font-weight:${FONT_WEIGHT_CSS[style.headingWeight]}!important`,
+    );
+  let css = "";
+  if (heading.length)
+    css += `.${cls} :is(h1,h2,h3,h4,h5,h6){${heading.join(";")}}`;
+  if (style.bodySize)
+    css += `.${cls} :is(p,li){font-size:${BODY_SIZE_CSS[style.bodySize]}!important}`;
+  return css;
+}
+
 /** Build the scoped CSS for a section's responsive spacing (empty when none). */
 export function blockStyleCss(cls: string, style?: BlockStyle): string {
   if (!style) return "";
@@ -157,6 +194,7 @@ export function blockStyleCss(cls: string, style?: BlockStyle): string {
   // Builder device frames (container) — last so they win when both match.
   if (tb) css += `@container (max-width:1024px){${sel}{${tb}}}`;
   if (mb) css += `@container (max-width:640px){${sel}{${mb}}}`;
+  css += typographyRules(cls, style);
   return css;
 }
 
