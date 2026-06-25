@@ -12,6 +12,7 @@ import {
   FileText,
   Globe,
   Home as HomeIcon,
+  Images,
   LayoutDashboard,
   LifeBuoy,
   MessageSquare,
@@ -87,6 +88,9 @@ const PROPERTIES: GmailNavItem[] = [
   },
   { href: "/dashboard/coupons", label: "Coupons", icon: Ticket },
   { href: "/dashboard/reviews", label: "Reviews", icon: Star },
+  // Host-wide media library — manage website assets + listing/room photos in one
+  // place (last link in the Properties group).
+  { href: "/dashboard/media", label: "Media", icon: Images, match: "prefix" },
 ];
 
 const CHANNELS: GmailNavItem[] = [
