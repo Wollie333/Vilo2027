@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-25 — Edit alt text on listing + room photos
+
+The host Media manager's "Listings & rooms" photos are now clickable → an image
+detail modal to **edit alt text** (and delete), matching the website-media editor —
+so **every** image (website assets + listing/room photos) supports alt editing.
+For listing photos the alt is stored in `property_photos.caption` (what the public
+site already renders as the image's alt), via the new
+`setListingPhotoCaptionAction` (owner-scoped). Tiles missing alt show a "No alt"
+flag. tsc + lint green; round-trip verified in-browser (edit → save → persists).
+
+---
+
 ## 2026-06-25 — Host-wide Media manager (Properties sidebar)
 
 Follow-up to the website Media tab: a **dedicated host-level Media manager** at
