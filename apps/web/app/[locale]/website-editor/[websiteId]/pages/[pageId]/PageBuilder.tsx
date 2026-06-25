@@ -430,6 +430,10 @@ export function PageBuilder({
   const lastSnapRef = useRef(0);
   const sectionsRef = useRef(sections);
   sectionsRef.current = sections;
+  // Latest nav config, so an in-flight chrome autosave can tell whether the
+  // snapshot it saved is still current before clearing the dirty flag.
+  const navConfigRef = useRef(navConfig);
+  navConfigRef.current = navConfig;
   const [, bumpHistory] = useState(0);
   const refreshHistory = () => bumpHistory((v) => v + 1);
 
@@ -609,24 +613,30 @@ export function PageBuilder({
   }
 
   // Debounced autosave — valid drafts persist ~1.5s after the last edit.
+  // We clear `dirty` only when the *saved* snapshot is still the current one:
+  // an edit made while a save is in flight must not be marked saved by the
+  // older save resolving (that would cancel its own pending save and lose it).
   useEffect(() => {
     if (!dirty || publishing) return;
     if (firstInvalidSection(sections)) {
       setAutoStatus("error");
       return;
     }
+    const snapshot = sections;
     const id = setTimeout(() => {
       setAutoStatus("saving");
-      void saveDraftSectionsAction({ websiteId, pageId, sections }).then(
-        (res) => {
-          if (res.ok) {
-            setDirty(false);
-            setAutoStatus("saved");
-          } else {
-            setAutoStatus("error");
-          }
-        },
-      );
+      void saveDraftSectionsAction({
+        websiteId,
+        pageId,
+        sections: snapshot,
+      }).then((res) => {
+        if (res.ok) {
+          if (sectionsRef.current === snapshot) setDirty(false);
+          setAutoStatus("saved");
+        } else {
+          setAutoStatus("error");
+        }
+      });
     }, 1500);
     return () => clearTimeout(id);
   }, [sections, dirty, publishing, websiteId, pageId]);
@@ -634,12 +644,13 @@ export function PageBuilder({
   // Debounced autosave for inline header/footer (chrome) edits.
   useEffect(() => {
     if (!navDirty || publishing) return;
+    const snapshot = navConfig;
     const id = setTimeout(() => {
       setAutoStatus("saving");
-      void saveNavigationAction({ websiteId, navigation: navConfig }).then(
+      void saveNavigationAction({ websiteId, navigation: snapshot }).then(
         (res) => {
           if (res.ok) {
-            setNavDirty(false);
+            if (navConfigRef.current === snapshot) setNavDirty(false);
             setAutoStatus("saved");
           } else {
             setAutoStatus("error");
@@ -669,17 +680,20 @@ export function PageBuilder({
       toast.error(t("draftSaveError"));
       return;
     }
+    const snapshot = sections;
     setAutoStatus("saving");
-    void saveDraftSectionsAction({ websiteId, pageId, sections }).then(
-      (res) => {
-        if (res.ok) {
-          setDirty(false);
-          setAutoStatus("saved");
-        } else {
-          setAutoStatus("error");
-        }
-      },
-    );
+    void saveDraftSectionsAction({
+      websiteId,
+      pageId,
+      sections: snapshot,
+    }).then((res) => {
+      if (res.ok) {
+        if (sectionsRef.current === snapshot) setDirty(false);
+        setAutoStatus("saved");
+      } else {
+        setAutoStatus("error");
+      }
+    });
   }
 
   // Keyboard shortcuts. The listener mounts once; a ref carries the latest

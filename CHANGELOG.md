@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-06-25 — Harden the page builder: fix autosave data-loss race
+
+**Bug:** an edit made *while a draft save was in flight* could be silently lost.
+The older save would resolve and clear the `dirty` flag, which (a) cancelled the
+pending autosave of the newer edit and (b) marked the page "All changes saved"
+while it wasn't. Because the builder's back link is a client-side nav (no
+`beforeunload`), navigating away then dropped that edit.
+
+**Fix** (`PageBuilder.tsx`): each save now captures the snapshot it persists and
+clears `dirty`/`navDirty` **only if that snapshot is still the current one**
+(reference-equality against `sectionsRef`/new `navConfigRef`). A newer edit made
+mid-flight keeps the page dirty so its own debounced save still runs. Applied to
+the sections autosave, the chrome (header/footer/menu) autosave, and the explicit
+⌘/Ctrl+S `saveNow`. Happy-path autosave is unchanged (the guard is always true
+when no newer edit happened). tsc + lint + 181 vitest green; browser-verified the
+edit → "saving" → "All changes saved" cycle still works.
+
+---
+
 ## 2026-06-25 — Fix: room detail pages 404'd in preview
 
 Clicking a room in the **preview** tab 404'd: room links dropped the `preview=1`
