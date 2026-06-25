@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-25 — Nav builder: Style tab now previews; auto-room tabs in the tree
+
+Two fixes to the navigation builder:
+
+1. **Style tab didn't reflect in the preview.** `NavHeaderPreview` (the builder's
+   live header preview) rendered menu items with fixed `.nv-mi` CSS and ignored
+   `nav.menuStyle` entirely. It now applies the host's link colour, font weight,
+   and UPPERCASE to the preview items, matching the live header. (The front-end
+   already applied `menuStyle` via the scoped `.vilo-hmenu` style — it just needs
+   a Publish to go live; verified: red/uppercase published correctly, then
+   reverted.)
+2. **Auto-rooms tabs weren't visible in the tree.** When "Auto-list rooms" is on,
+   the Rooms item now expands to show each live room as a (read-only) child tab
+   right in the menu tree, each with an inline eye toggle to hide/show it from the
+   menu (writes `hiddenRoomIds`). Hidden rooms show struck-through. Mirrors the
+   inspector checkboxes so the host can manage rooms wherever they're looking.
+
+i18n: `menuAutoRoomHide` / `menuAutoRoomShow`. tsc + lint + 181 vitest green;
+browser-verified both (preview colour live-updates; Olive/Vineyard/Mountain tabs
+appear under Rooms with working hide toggles).
+
+---
+
 ## 2026-06-25 — Harden the renderer: per-section error boundary
 
 The whole app had **no error boundary anywhere** — so a single section throwing

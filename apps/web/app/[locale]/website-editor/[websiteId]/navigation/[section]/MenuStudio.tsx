@@ -3,6 +3,8 @@
 import {
   ChevronDown,
   ChevronRight,
+  Eye,
+  EyeOff,
   GripVertical,
   Plus,
   Trash2,
@@ -130,6 +132,10 @@ export function MenuStudio({
           const path = [...base, i];
           const depth = path.length - 1;
           const hasKids = !!item.children && item.children.length > 0;
+          // Auto-rooms items list the site's live rooms as (read-only) child
+          // tabs right here in the tree, so the host sees what the dropdown holds.
+          const hasAutoRooms = !!item.autoRooms && rooms.length > 0;
+          const expandable = hasKids || hasAutoRooms;
           const isOpen = open[item.id] ?? true;
           const isSel = samePath(selected, path);
           return (
@@ -140,7 +146,7 @@ export function MenuStudio({
                 }`}
                 style={{ marginLeft: depth * 16 }}
               >
-                {hasKids ? (
+                {expandable ? (
                   <button
                     type="button"
                     onClick={() =>
@@ -196,7 +202,54 @@ export function MenuStudio({
                   </IconBtn>
                 </div>
               </div>
-              {hasKids && isOpen && !item.autoRooms ? (
+              {item.autoRooms ? (
+                hasAutoRooms && isOpen ? (
+                  rooms.map((r) => {
+                    const isHidden = (item.hiddenRoomIds ?? []).includes(
+                      r.roomId,
+                    );
+                    return (
+                      <div
+                        key={r.roomId}
+                        className="group flex items-center gap-1 rounded-[8px] px-1.5 py-1 hover:bg-brand-light/40"
+                        style={{ marginLeft: (depth + 1) * 16 }}
+                      >
+                        <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-brand-line" />
+                        <button
+                          type="button"
+                          onClick={() => setSelected(path)}
+                          className={`flex-1 truncate text-left text-[12.5px] ${
+                            isHidden
+                              ? "text-brand-mute line-through"
+                              : "text-brand-ink"
+                          }`}
+                        >
+                          {r.name}
+                        </button>
+                        <IconBtn
+                          title={
+                            isHidden
+                              ? t("menuAutoRoomShow")
+                              : t("menuAutoRoomHide")
+                          }
+                          onClick={() => {
+                            const set = new Set(item.hiddenRoomIds ?? []);
+                            if (isHidden) set.delete(r.roomId);
+                            else set.add(r.roomId);
+                            update(path, { hiddenRoomIds: [...set] });
+                          }}
+                        >
+                          {isHidden ? (
+                            <EyeOff className="h-3.5 w-3.5" />
+                          ) : (
+                            <Eye className="h-3.5 w-3.5" />
+                          )}
+                        </IconBtn>
+                      </div>
+                    );
+                  })
+                ) : null
+              ) : hasKids && isOpen ? (
                 <Rows items={item.children ?? []} base={path} />
               ) : null}
             </div>

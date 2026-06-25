@@ -1905,6 +1905,8 @@
     "menuWeightBold": "Bold",
     "menuStyleUppercase": "UPPERCASE links",
     "menuAutoRoomsBadge": "Auto rooms",
+    "menuAutoRoomHide": "Hide this room from the menu",
+    "menuAutoRoomShow": "Show this room in the menu",
     "menuAutoRoomsToggle": "Auto-list my rooms in this dropdown",
     "menuAutoRoomsHint": "Always up to date with your rooms. Untick a room to hide it from the menu (it stays on the site).",
     "menuAutoRoomsEmpty": "No rooms are showing on this website yet.",

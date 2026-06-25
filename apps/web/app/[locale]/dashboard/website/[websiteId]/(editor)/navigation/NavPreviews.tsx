@@ -19,6 +19,14 @@ function mark(name: string) {
   return (name[0] || "·").toUpperCase();
 }
 
+/** weight token → CSS font-weight (mirrors SiteChrome.MENU_WEIGHT). */
+const MENU_WEIGHT: Record<string, number> = {
+  normal: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+};
+
 export function NavHeaderPreview({
   nav,
   brandName,
@@ -33,6 +41,14 @@ export function NavHeaderPreview({
   const showBook = nav.header.showBookCta !== false;
   const cta = showBook ? nav.header.ctaLabel?.trim() : undefined;
   const ann = nav.topBar;
+  // Reflect the Style tab (menuStyle) so the preview matches the live header.
+  const ms = nav.menuStyle;
+  const miStyle: React.CSSProperties = {
+    color: ms?.color?.trim() || undefined,
+    fontWeight: MENU_WEIGHT[ms?.weight ?? "medium"] ?? 500,
+    textTransform: ms?.uppercase ? "uppercase" : undefined,
+    letterSpacing: ms?.uppercase ? "0.05em" : undefined,
+  };
   return (
     <div className="nv-device">
       <div className="nv-frame">
@@ -50,7 +66,7 @@ export function NavHeaderPreview({
             {collapsed
               ? null
               : menu.slice(0, 6).map((m) => (
-                  <span className="nv-mi" key={m.id}>
+                  <span className="nv-mi" key={m.id} style={miStyle}>
                     {m.label}
                     {m.children && m.children.length > 0 ? (
                       <span className="car">
