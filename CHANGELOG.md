@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-25 — Host-wide Media manager (Properties sidebar)
+
+Follow-up to the website Media tab: a **dedicated host-level Media manager** at
+`/dashboard/media`, linked as the **last item in the Properties sidebar group**
+(icon `Images`) — so the media function is reachable app-wide, not just inside one
+website's CMS. Same design as the website Media tab, using the dashboard's brand
+palette. tsc + lint + 179 vitest green; browser-verified logged in.
+
+Two views (`HostMediaManager`):
+- **Website media** — every asset across **all** the host's websites
+  (`loadHostMedia` lists each site's `website-assets` storage + merges alt). Filter
+  by site, search by name/alt, upload (lands in the primary site), and a detail
+  modal to edit alt / delete. Each tile shows its site label + a "No alt" flag.
+- **Listings & rooms** — pick a listing, then "Listing photos (directory)" or a
+  specific room, to view + **add photos** (upload to `listing-photos` →
+  `property_photos`) + delete. Reuses the listing-editor photo actions
+  (`createListingPhotoUploadUrl` / `registerListingPhotoAction` /
+  `deleteListingPhotoAction`), so the host manages every listing's and room's
+  directory photos from one place. Owner-scoped by `host_id`.
+
+---
+
 ## 2026-06-25 — Media manager, per-room galleries, clickable room header, default menu
 
 A multi-part Website-CMS update. Migration `20260625010000` adds
