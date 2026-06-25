@@ -625,6 +625,9 @@ export const blockStyleSchema = z.object({
   headingSize: z.enum(["sm", "md", "lg", "xl"]).optional(),
   headingWeight: z.enum(["normal", "medium", "semibold", "bold"]).optional(),
   bodySize: z.enum(["sm", "md", "lg"]).optional(),
+  lineHeight: z
+    .enum(["tight", "snug", "normal", "relaxed", "loose"])
+    .optional(),
 });
 export type BlockStyle = z.infer<typeof blockStyleSchema>;
 

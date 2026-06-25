@@ -54,80 +54,116 @@ export function SectionEditor({
   onChange: (next: WebsiteSection) => void;
 }) {
   const t = useTranslations("website");
+  const [tab, setTab] = useState<"content" | "style" | "advanced">("content");
+  const tabs = [
+    ["content", t("inspTabContent")],
+    ["style", t("inspTabStyle")],
+    ["advanced", t("inspTabAdvanced")],
+  ] as const;
   return (
-    <div className="space-y-5">
-      <SectionFields
-        websiteId={websiteId}
-        section={section}
-        onChange={onChange}
-      />
-      <div className="space-y-4 border-t border-brand-line pt-4">
-        <SelectField
-          label={t("fldTone")}
-          value={section.tone}
-          options={[
-            { value: "default", label: t("tone_default") },
-            { value: "accent", label: t("tone_accent") },
-            { value: "dark", label: t("tone_dark") },
-            { value: "muted", label: t("tone_muted") },
-          ]}
-          onChange={(tone) => onChange({ ...section, tone })}
-        />
-        <SelectField
-          label={t("fldVisibility")}
-          value={section.visibility ?? "all"}
-          options={[
-            { value: "all", label: t("visibility_all") },
-            { value: "desktop", label: t("visibility_desktop") },
-            { value: "mobile", label: t("visibility_mobile") },
-          ]}
-          onChange={(v) => onChange({ ...section, visibility: v })}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <label className="block">
-            <span className="text-[12px] font-medium text-brand-mute">
-              {t("fldScheduleStart")}
-            </span>
-            <input
-              type="date"
-              value={section.schedule?.start ?? ""}
-              onChange={(e) =>
-                onChange({
-                  ...section,
-                  schedule: {
-                    ...section.schedule,
-                    start: e.target.value || undefined,
-                  },
-                })
-              }
-              className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[12px] font-medium text-brand-mute">
-              {t("fldScheduleEnd")}
-            </span>
-            <input
-              type="date"
-              value={section.schedule?.end ?? ""}
-              onChange={(e) =>
-                onChange({
-                  ...section,
-                  schedule: {
-                    ...section.schedule,
-                    end: e.target.value || undefined,
-                  },
-                })
-              }
-              className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
-            />
-          </label>
-        </div>
-        <p className="text-[11.5px] leading-snug text-brand-mute">
-          {t("scheduleHint")}
-        </p>
+    <div className="space-y-4">
+      {/* Tabs keep the inspector confined: Content (what it says) · Style
+          (colour, type, spacing, frame) · Advanced (visibility, schedule). */}
+      <div
+        role="tablist"
+        className="grid grid-cols-3 overflow-hidden rounded-[10px] border border-brand-line"
+      >
+        {tabs.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`px-2 py-1.5 text-[12.5px] font-semibold transition ${
+              tab === key
+                ? "bg-brand-light text-brand-secondary"
+                : "bg-white text-brand-mute hover:text-brand-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      <BlockStyleEditor section={section} onChange={onChange} />
+
+      {tab === "content" ? (
+        <SectionFields
+          websiteId={websiteId}
+          section={section}
+          onChange={onChange}
+        />
+      ) : tab === "style" ? (
+        <div className="space-y-4">
+          <SelectField
+            label={t("fldTone")}
+            value={section.tone}
+            options={[
+              { value: "default", label: t("tone_default") },
+              { value: "accent", label: t("tone_accent") },
+              { value: "dark", label: t("tone_dark") },
+              { value: "muted", label: t("tone_muted") },
+            ]}
+            onChange={(tone) => onChange({ ...section, tone })}
+          />
+          <BlockStyleEditor section={section} onChange={onChange} />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <SelectField
+            label={t("fldVisibility")}
+            value={section.visibility ?? "all"}
+            options={[
+              { value: "all", label: t("visibility_all") },
+              { value: "desktop", label: t("visibility_desktop") },
+              { value: "mobile", label: t("visibility_mobile") },
+            ]}
+            onChange={(v) => onChange({ ...section, visibility: v })}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[12px] font-medium text-brand-mute">
+                {t("fldScheduleStart")}
+              </span>
+              <input
+                type="date"
+                value={section.schedule?.start ?? ""}
+                onChange={(e) =>
+                  onChange({
+                    ...section,
+                    schedule: {
+                      ...section.schedule,
+                      start: e.target.value || undefined,
+                    },
+                  })
+                }
+                className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[12px] font-medium text-brand-mute">
+                {t("fldScheduleEnd")}
+              </span>
+              <input
+                type="date"
+                value={section.schedule?.end ?? ""}
+                onChange={(e) =>
+                  onChange({
+                    ...section,
+                    schedule: {
+                      ...section.schedule,
+                      end: e.target.value || undefined,
+                    },
+                  })
+                }
+                className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+              />
+            </label>
+          </div>
+          <p className="text-[11.5px] leading-snug text-brand-mute">
+            {t("scheduleHint")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -394,6 +430,19 @@ function BlockStyleEditor({
               { value: "lg", label: t("textSize_lg") },
             ]}
             onChange={(v) => setFrame({ bodySize: v || undefined })}
+          />
+          <SelectField
+            label={t("fldLineHeight")}
+            value={style.lineHeight ?? ""}
+            options={[
+              { value: "", label: t("blockDefault") },
+              { value: "tight", label: t("lineHeight_tight") },
+              { value: "snug", label: t("lineHeight_snug") },
+              { value: "normal", label: t("lineHeight_normal") },
+              { value: "relaxed", label: t("lineHeight_relaxed") },
+              { value: "loose", label: t("lineHeight_loose") },
+            ]}
+            onChange={(v) => setFrame({ lineHeight: v || undefined })}
           />
         </div>
       </div>

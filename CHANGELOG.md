@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-06-25 — Section inspector: tabs + line-height
+
+UI cleanup + more typography control (part 1 of the section-builder refinements):
+- The section inspector is now split into **Content / Style / Advanced** tabs —
+  Content = the section's own fields, Style = tone/background/typography/spacing/
+  frame, Advanced = visibility + schedule. Confines the long scroll without losing
+  any control.
+- Added **line-height** (Tight→Loose) to the Style → Text controls (`blockStyle.
+  lineHeight`), applied to the section's text via the scoped `!important` rule.
+- Padding (per-device) and margin already live in Style → Block style / Frame.
+
+Verified live (tabs switch; line-height "loose" → 2.0 on the canvas). tsc + lint
+green. Next: element tag (h1/h2/p) control, drag-to-reposition, and a flex Section
+container.
+
+---
+
 ## 2026-06-25 — Section builder: per-section text size & weight
 
 Added a **"Text"** group to the section style inspector (alongside Tone / Block

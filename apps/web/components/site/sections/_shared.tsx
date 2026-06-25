@@ -152,6 +152,13 @@ const FONT_WEIGHT_CSS = {
   semibold: "600",
   bold: "700",
 } as const;
+const LINE_HEIGHT_CSS = {
+  tight: "1.1",
+  snug: "1.25",
+  normal: "1.5",
+  relaxed: "1.7",
+  loose: "2",
+} as const;
 
 /**
  * Typography overrides → scoped rules targeting the section's text tags. Using a
@@ -173,6 +180,8 @@ function typographyRules(cls: string, style: BlockStyle): string {
     css += `.${cls} :is(h1,h2,h3,h4,h5,h6){${heading.join(";")}}`;
   if (style.bodySize)
     css += `.${cls} :is(p,li){font-size:${BODY_SIZE_CSS[style.bodySize]}!important}`;
+  if (style.lineHeight)
+    css += `.${cls} :is(h1,h2,h3,h4,h5,h6,p,li){line-height:${LINE_HEIGHT_CSS[style.lineHeight]}!important}`;
   return css;
 }
 
