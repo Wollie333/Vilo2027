@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-25 — Working mobile/tablet nav menu + host-controlled collapse
+
+The header menu now works properly on phones and tablets, not just desktop. Before
+this, the "mobile" header variant rendered the menu inline (or, for `minimal`, not
+at all) with desktop hover-dropdowns that don't work on touch — so hosts "saw no
+menu" on mobile.
+
+- New `components/site/SiteMobileMenu.tsx` — a themed **hamburger → slide-in
+  drawer**. Top-level items with children **expand inline (accordion)**, so
+  sub-menus work on touch; closes on link tap / backdrop / X / Escape; pinned
+  "Book now" CTA. Styled entirely off `--site-*`.
+- New `HeaderMenu` wrapper in `SiteChrome`: shows the full inline menu (desktop
+  hover-dropdowns) at/above the collapse breakpoint and the hamburger below it.
+  The `minimal` header variant now always uses the hamburger (stays compact).
+- **Host control:** `navigation.header.menuCollapse` (`mobile` | `tablet` |
+  `never`) — a "Collapse menu to a ☰ button" select in the Header editor
+  (`HeaderInspector`). Phones only (default), tablets too, or never (always-full
+  inline menu). Frozen into the publish snapshot like the rest of `navigation`.
+
+Desktop dropdowns + the MenuBuilder's sub-item editing already worked; this makes
+the same menus function + collapse responsively on every device. tsc + lint + 179
+vitest green; browser-verified at 375 px (hamburger + drawer) and 1100 px (full
+inline menu, no hamburger).
+
+---
+
 ## 2026-06-25 — Edit alt text on listing + room photos
 
 The host Media manager's "Listings & rooms" photos are now clickable → an image
