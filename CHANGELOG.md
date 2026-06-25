@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-25 — Aria theme: on-brand preview image
+
+Replaced the random picsum placeholder on the default Aria theme with a polished,
+on-brand **SVG homepage mockup** (header + hero + room cards in Aria's warm
+palette — terracotta `#C2522E` on `#FCF6F1`, serif). Stored as an inline
+`data:image/svg+xml;base64` URI (migration `20260625030000`), so it's
+self-contained with no external dependency. `websiteAssetUrl` now passes `data:`
+URIs through. Verified: the theme card renders the 800×500 mockup. Source SVG
+kept in `scripts/aria-preview.svg`.
+
+---
+
 ## 2026-06-25 — Hard-remove all themes except Aria (default)
 
 Migration `20260625020000_keep_only_aria_theme.sql` — `DELETE FROM site_themes

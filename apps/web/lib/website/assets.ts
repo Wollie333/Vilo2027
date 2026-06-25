@@ -10,7 +10,8 @@ const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "") ?? "";
 
 export function websiteAssetUrl(path?: string | null): string | null {
   if (!path) return null;
-  if (/^https?:\/\//.test(path)) return path;
+  // Absolute URLs and inline data URIs (e.g. the theme preview SVG) pass through.
+  if (/^(https?:\/\/|data:)/.test(path)) return path;
   return SUPA
     ? `${SUPA}/storage/v1/object/public/website-assets/${path}`
     : path;
