@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-25 — Nav editor: device-aware preview + book-button control
+
+Follow-up to the responsive menu work. tsc + lint + 179 vitest green;
+browser-verified (public site + nav editor, logged in).
+
+- **Device-aware nav preview.** The Header editor's device toggle
+  (desktop/tablet/phone) now drives the preview accurately: desktop shows the
+  inline menu + book CTA; tablet/phone show the **☰ hamburger** (per the host's
+  collapse setting) with the inline menu + CTA hidden. So the host can see and
+  edit how the menu behaves on each screen size. (`NavHeaderPreview` gained a
+  `device` prop; `NavSectionEditor` passes the selected device.)
+- **Book button controlled in the nav builder.** New
+  `navigation.header.showBookCta` (default true) + a "Show the 'Book now' button"
+  toggle in the Header editor (label/link fields collapse when off). When off, no
+  header/drawer book button anywhere.
+- **Mobile replaces the book button with the menu icon.** The header "Book now"
+  button now hides below the collapse breakpoint (`bookVisibilityClass`) — the ☰
+  hamburger takes its place, and the drawer carries the book button. On desktop
+  it shows as before. Verified: 375 px → book hidden + hamburger; 1100 px → book
+  shown, no hamburger.
+
+---
+
 ## 2026-06-25 — Working mobile/tablet nav menu + host-controlled collapse
 
 The header menu now works properly on phones and tablets, not just desktop. Before
