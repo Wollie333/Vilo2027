@@ -4,9 +4,16 @@
 
 ## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-25)
 
-**Branch:** `main` — working tree CLEAN, **all committed AND PUSHED, in sync with `origin/main` (HEAD `3948bec`)**. tsc + lint + **147 vitest** all GREEN (lint: only 2 pre-existing `<img>` warnings in `reports/_components`, untouched). (No dev server was running at session start; `pnpm build` is safe when none is up — it shares `.next` with the founder's :3000 dev server.)
+**Branch:** `main` — working tree CLEAN, all committed (push state at end of block). tsc + lint + **169 vitest** all GREEN + full `pnpm build` exit 0 (lint: only 2 pre-existing `<img>` warnings in `reports/_components`, untouched). (No dev server was running at session start; `pnpm build` is safe when none is up — it shares `.next` with the founder's :3000 dev server.)
 
-**THIS SESSION (2026-06-25) — builder polish: Contact templates for every theme.** Each theme had Home+About templates + 5 presets but no Contact page. Added to all 7 themes in `lib/website/themeSections.ts`: 3 theme-voiced makers (`contactForm`/`faq`/`location`), 2 new sidebar presets (Contact form + FAQ → group 5→7), and a **Contact** page template `[contact form → location → FAQ → theme CTA]`. Additive (existing section types, same `sectionSchema`), surfaced automatically via the registry — NO PageBuilder change, NO migration. `themeSections.test.ts` +2 assertions/theme (suite 133→147). tsc+lint green. **NOT browser-QA'd** (rolls into manual QA). **Inline-link button in the rich_text WYSIWYG still deferred** — needs the `@tiptap/extension-link` package (founder approval to install).
+**FOUNDER GRANTED standing permission (2026-06-25) to install required FREE deps without asking** (saved to memory `install-free-deps-allowed`; still surface paid ones).
+
+**THIS SESSION (2026-06-25) — builder polish, three parts (all additive, NO migration):**
+- **Contact templates for every theme** — 3 makers (`contactForm`/`faq`/`location`) + Contact form & FAQ presets + a **Contact** template per theme.
+- **WYSIWYG inline links** — `rich_text` tiptap editor got a **Link** button (new free dep `@tiptap/extension-link@^2.10.0`). **Sanitiser hardened** (`lib/sanitiseHtml.ts`): now allows `<a>` but restricts schemes to http(s)/mailto/tel (relative/#anchor pass; `javascript:`/`data:` dropped) and FORCES `rel="noopener noreferrer nofollow"`+`target="_blank"` on every link — applies to page-builder rich_text, listing descriptions AND blog bodies. New `lib/sanitiseHtml.test.ts` (8 cases).
+- **Rooms + Blog templates for every theme** — 3 more makers (`amenities`/`pricing`/`blog`) + Amenities/Rates/Blog-posts presets + **Rooms** (`rooms→amenities→rates→CTA`) and **Blog** (`blog→CTA`) templates. Themes now ship **Home/About/Contact/Rooms/Blog**.
+
+All in `lib/website/themeSections.ts` (+test); surfaced automatically via the registry — NO PageBuilder change. Suite 133→169. **NOT browser-QA'd** (rolls into manual QA).
 
 **SESSION RESUMED (2026-06-25):** Also picked up an interrupted prior session that built 3 features (commits `4867092`/`8538683`/`9c7e50c`) but was cut off before finishing the Definition of Done — CHANGELOG + this save point weren't updated and `9c7e50c` wasn't pushed. Verified all 3 commits green + sound, back-filled CHANGELOG, then PUSHED (origin/main reached `9d68eba`).
 
@@ -40,7 +47,7 @@
 - **Builder inspector UI fixes** — added a 16px gutter; **ImageField stacks** (full-width preview above wrapped buttons) + scoped CSS forces all right-panel field grids to single column (no more side-by-side overflow).
 
 **▶ NEXT (start here):**
-1. **Page builder — theme content: ✅ all 7 built-in themes now ship designed presets + Home/About/Contact templates** (`lib/website/themeSections.ts`; Contact added 2026-06-25 with contact-form/FAQ presets). Optional follow-on (founder-call): MORE templates per theme (Rooms/Blog), more presets/section kinds, per-theme preview thumbnails, or the deferred WYSIWYG inline-link button (`@tiptap/extension-link` — needs install approval).
+1. **Page builder — theme content: ✅ all 7 built-in themes now ship designed presets + Home/About/Contact/Rooms/Blog templates** (`lib/website/themeSections.ts`; Contact/Rooms/Blog + WYSIWYG inline-link button all added 2026-06-25). Optional follow-on (founder-call): per-theme preview thumbnails in the sidebar/template gallery, more section kinds, or a tone/colour picker for link styling on the public site.
 2. **Calendar sync follow-ups:** (a) set **`ICAL_TOKEN_SECRET`** in Vercel so export feeds work; (b) **no 15-min auto-sync cron exists** — import is manual-only ("Sync now"/on-add); build `ical-sync-all` (Next API route + pg_cron, mirror the email-worker pattern) if you want hands-off syncing.
 3. **report-scheduler launch step (privileged — needs founder SQL Editor):** `ALTER DATABASE postgres SET app.report_scheduler_secret='…'` (match the fn secret) + `app.settings.supabase_url` + `app.settings.supabase_anon_key` so the hourly cron fires (security gate already live/fail-closed; reporting gen is still a TODO placeholder).
 4. **Flagged item still needing LIVE KEYS:** card/webhook **amount-verification** (`event.data.amount` == expected `payment.amount`*100) — untestable without Paystack keys.

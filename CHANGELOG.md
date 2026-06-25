@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-25 — Page builder: WYSIWYG inline links + Rooms/Blog templates for every theme
+
+Two builder enhancements. Both verified with tsc + lint + a full `pnpm build`
+(exit 0); vitest **133 → 169**.
+
+**1. WYSIWYG rich-text: inline links (new free dep).** The `rich_text` editor's
+tiptap toolbar gained a **Link** button (set/edit/remove via prompt, on the
+selected text). Added the official `@tiptap/extension-link@^2.10.0` (matches the
+installed tiptap 2.10), configured with `openOnClick:false`, autolink, and a
+forced safe `rel`/`target`.
+- **Security — sanitiser hardened to match.** `lib/sanitiseHtml.ts` previously
+  stripped `<a>` entirely. It now allows `<a>` but: restricts schemes to
+  `http(s)`/`mailto`/`tel` (relative + `#anchor` URLs pass; `javascript:`/`data:`
+  are dropped) and **forces `rel="noopener noreferrer nofollow"` + `target="_blank"`
+  on every link** via a transform — so no XSS vector, reverse-tabnabbing, or SEO
+  leak through host-entered links. This applies everywhere the editor is used
+  (page-builder rich_text, listing descriptions, blog post bodies).
+- **Tests:** new `lib/sanitiseHtml.test.ts` (8 cases — formatting kept, scripts/
+  handlers stripped, http/mailto/tel/relative/#anchor links kept + hardened,
+  `javascript:`/`data:` dropped, image-scheme allowlist). Hint copy restored to
+  mention links.
+
+**2. Rooms + Blog page templates for every theme.** Each of the 7 built-in themes
+gained 3 more theme-voiced section makers (`amenities` — Coastal already had one,
+`pricing`, `blog`), 3 new sidebar presets each (Amenities/Rates/Blog posts), and
+**two new page templates**: **Rooms** (`rooms preview → amenities → rates → CTA`)
+and **Blog** (`blog preview → CTA`). Themes now ship Home/About/Contact/Rooms/Blog.
+Additive — existing section types, same `sectionSchema`, surfaced automatically by
+the registry; **no PageBuilder change, no migration.** `themeSections.test.ts`
+gained per-theme assertions for the Rooms/Blog templates.
+
+---
+
 ## 2026-06-25 — Page builder: Contact page template + contact-form/FAQ presets for every theme
 
 Each built-in theme already shipped **Home + About** page templates and 5 designed
