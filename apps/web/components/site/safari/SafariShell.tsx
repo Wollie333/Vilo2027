@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { SafariNav, type SafariNavLink } from "./SafariNav";
+import { SafariPreviewLinks } from "./SafariPreviewLinks";
 
 import "./safari.css";
 
@@ -30,6 +31,7 @@ export function SafariShell({
 
   return (
     <div className="vilo-safari">
+      <SafariPreviewLinks />
       {/* Theme-scoped fonts (only the Safari design uses them) — intentionally
           not in the root layout. */}
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
