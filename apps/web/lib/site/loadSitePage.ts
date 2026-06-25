@@ -565,7 +565,7 @@ function humaniseEnum(v: string | null | undefined): string | null {
  * name collisions deterministically by order (`-2`, `-3`), so the same input
  * order always yields the same slugs (and the room route can recompute + match).
  */
-function roomSlugMap(
+export function roomSlugMap(
   ordered: Array<{ roomId: string; name: string }>,
 ): Map<string, string> {
   const seen = new Map<string, number>();
