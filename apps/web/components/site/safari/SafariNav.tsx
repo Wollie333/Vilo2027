@@ -34,7 +34,7 @@ export function SafariNav({
   }, []);
 
   return (
-    <header className={`nav over-hero${solid ? "solid" : ""}`}>
+    <header className={solid ? "nav over-hero solid" : "nav over-hero"}>
       <div className="wrap nav-in">
         <a href={links[0]?.href || "#"} className="brand">
           <span className="brand-mark">{monogram}</span>

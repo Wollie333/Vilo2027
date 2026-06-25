@@ -295,7 +295,7 @@ export function SafariSiteView({
           </div>
           <div className="exp-grid">
             {expItems.map((e, i) => (
-              <div key={e.title + i} className={`exp${i === 0 ? "tall" : ""}`}>
+              <div key={e.title + i} className={i === 0 ? "exp tall" : "exp"}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={e.img} alt="" />
                 <div className="exp-body">
