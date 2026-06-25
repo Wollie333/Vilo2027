@@ -105,6 +105,10 @@ export type SiteNavigation = {
     bookCtaColor?: string | null;
     /** Show the brand logo in the header. Default true. */
     showLogo?: boolean;
+    /** Header-level logo style override (blank → Brand Studio value). */
+    logoStyle?: "wordmark" | "icon" | "mark";
+    /** Header-level logo height override in px (blank → Brand Studio value). */
+    logoMaxHeight?: number;
   };
   footer?: {
     showPoweredBy?: boolean; // default true

@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-25 — Header builder pt.3: real-design card + logo controls
+
+Finished the remaining header-builder follow-ups:
+
+- **Nav-manager header card shows the ACTUAL design.** Replaced the stylised
+  mini-frame with a scaled, cropped **iframe of the live preview** (`LivePreviewFrame`)
+  — true WYSIWYG (real theme, fonts, colours, logo, layout, menu + book). Added an
+  `embed=1` mode (threaded route → `SitePageView` → `SiteChrome` `hideBanner`) so the
+  preview banner is suppressed in the card. (The header *builder* keeps the live
+  `NavHeaderPreview` so it reflects unsaved edits instantly.)
+- **Logo controls in the header builder.** `header.logoStyle` (Logo+name / Name only
+  / Logo only) + `header.logoMaxHeight` (16–96px slider) — header-level overrides of
+  the Brand Studio logo, applied via `BrandLogo` `styleOverride`/`heightOverride`.
+  Verified live: setting "Name only" rendered the logo as the brand name with no mark.
+
+This completes the navigation/header epic (layouts → consolidation → real card +
+logo). tsc + lint green; vilotest reset to defaults.
+
+---
+
 ## 2026-06-25 — Rates page template (live rate table)
 
 Added a **"Rates"** page template to the new-page picker. It seeds an intro + the

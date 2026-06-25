@@ -128,12 +128,17 @@ function ChromeEditWrap({
 function BrandLogo({
   brand,
   dark = false,
+  styleOverride,
+  heightOverride,
 }: {
   brand: SiteBrand;
   dark?: boolean;
+  /** Header-level overrides (blank → brand value). */
+  styleOverride?: "wordmark" | "icon" | "mark";
+  heightOverride?: number;
 }) {
-  const style = brand.logoStyle ?? "mark";
-  const height = brand.logoMaxHeight ?? 40;
+  const style = styleOverride ?? brand.logoStyle ?? "mark";
+  const height = heightOverride ?? brand.logoMaxHeight ?? 40;
   const initial =
     brand.monogram?.trim().slice(0, 2).toUpperCase() ||
     (brand.name || "·").trim().charAt(0).toUpperCase();
@@ -202,10 +207,14 @@ function Logo({
   brand,
   dark,
   preview,
+  styleOverride,
+  heightOverride,
 }: {
   brand: SiteBrand;
   dark?: boolean;
   preview?: { subdomain: string; themeSlug?: string };
+  styleOverride?: "wordmark" | "icon" | "mark";
+  heightOverride?: number;
 }) {
   const href = buildNavHref("/", preview);
   return (
@@ -214,7 +223,12 @@ function Logo({
       data-nav-page="home"
       className="flex min-w-0 items-center gap-2.5"
     >
-      <BrandLogo brand={brand} dark={dark} />
+      <BrandLogo
+        brand={brand}
+        dark={dark}
+        styleOverride={styleOverride}
+        heightOverride={heightOverride}
+      />
     </a>
   );
 }
@@ -650,6 +664,8 @@ function HeaderInner({
   bookLabel,
   bookColor,
   showLogo = true,
+  logoStyle,
+  logoHeight,
   menuAlign = "start",
   dark,
   preview,
@@ -662,12 +678,20 @@ function HeaderInner({
   bookLabel?: string;
   bookColor?: string | null;
   showLogo?: boolean;
+  logoStyle?: "wordmark" | "icon" | "mark";
+  logoHeight?: number;
   menuAlign?: "start" | "center" | "end";
   dark?: boolean;
   preview?: { subdomain: string; themeSlug?: string };
 }) {
   const logoEl = showLogo ? (
-    <Logo brand={brand} dark={dark} preview={preview} />
+    <Logo
+      brand={brand}
+      dark={dark}
+      preview={preview}
+      styleOverride={logoStyle}
+      heightOverride={logoHeight}
+    />
   ) : (
     <span aria-hidden />
   );
@@ -1038,6 +1062,8 @@ export function SiteChrome({
               bookLabel={bookLabel}
               bookColor={navigation.header?.bookCtaColor}
               showLogo={navigation.header?.showLogo}
+              logoStyle={navigation.header?.logoStyle}
+              logoHeight={navigation.header?.logoMaxHeight}
               menuAlign={navigation.menuStyle?.align}
               dark={headerDark}
               preview={preview}
@@ -1053,6 +1079,8 @@ export function SiteChrome({
               bookLabel={bookLabel}
               bookColor={navigation.header?.bookCtaColor}
               showLogo={navigation.header?.showLogo}
+              logoStyle={navigation.header?.logoStyle}
+              logoHeight={navigation.header?.logoMaxHeight}
               menuAlign={navigation.menuStyle?.align}
               dark={headerDark}
               preview={preview}

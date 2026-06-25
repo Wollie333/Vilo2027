@@ -658,6 +658,10 @@ export const navigationSchema = z.object({
       bookCtaColor: z.string().trim().max(40).optional(),
       // Show the brand logo in the header (a visible-element toggle).
       showLogo: z.boolean().default(true),
+      // Header-level logo presentation overrides (blank → use the Brand Studio
+      // value). Lets the host tune how the logo shows in THIS header.
+      logoStyle: z.enum(["wordmark", "icon", "mark"]).optional(),
+      logoMaxHeight: z.number().int().min(16).max(96).optional(),
     })
     .default({
       sticky: true,

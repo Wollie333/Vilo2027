@@ -135,6 +135,44 @@ export function HeaderInspector({
           on={nav.header.showLogo !== false}
           onClick={() => setHeader({ showLogo: nav.header.showLogo === false })}
         />
+        {nav.header.showLogo !== false ? (
+          <>
+            <Fld label={t("navLogoStyle")}>
+              <select
+                value={nav.header.logoStyle ?? ""}
+                onChange={(e) =>
+                  setHeader({
+                    logoStyle:
+                      (e.target.value as "wordmark" | "icon" | "mark") ||
+                      undefined,
+                  })
+                }
+              >
+                <option value="">{t("navLogoStyleDefault")}</option>
+                <option value="mark">{t("navLogoStyle_mark")}</option>
+                <option value="wordmark">{t("navLogoStyle_wordmark")}</option>
+                <option value="icon">{t("navLogoStyle_icon")}</option>
+              </select>
+            </Fld>
+            <Fld label={t("navLogoHeight")}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="range"
+                  min={16}
+                  max={96}
+                  value={nav.header.logoMaxHeight ?? 40}
+                  onChange={(e) =>
+                    setHeader({ logoMaxHeight: Number(e.target.value) })
+                  }
+                  style={{ flex: 1 }}
+                />
+                <span className="text-[12px] tabular-nums text-brand-mute">
+                  {nav.header.logoMaxHeight ?? 40}px
+                </span>
+              </div>
+            </Fld>
+          </>
+        ) : null}
         <p className="mt-1 text-[11.5px] text-brand-mute">{t("navLogoHint")}</p>
       </div>
       <div className="insp-sec">
