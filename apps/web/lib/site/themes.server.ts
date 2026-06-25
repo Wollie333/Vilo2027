@@ -68,8 +68,8 @@ export async function loadActiveThemes(): Promise<ThemeOption[]> {
         "id, slug, name, description, preview_image_path, base, is_premium, price",
       )
       .eq("is_active", true)
-      // Only the default theme is offered — other themes removed from the system.
-      .eq("is_default", true)
+      // Every active theme is offered (default first via sort_order). The
+      // catalogue is curated in site_themes — currently Aria + Safari.
       .is("deleted_at", null)
       .order("sort_order", { ascending: true });
 

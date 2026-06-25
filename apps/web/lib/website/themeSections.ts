@@ -1604,9 +1604,240 @@ const NIGHTFALL_TEMPLATES: ThemeTemplate[] = [
   },
 ];
 
+// ── Safari — unfenced wilderness lodge (savanna ochre, bushveld green) ────
+// Voice modelled on the NenGama Lodge design: evocative, unhurried, the bush at
+// your door. Dark bands (tone "dark") echo the design's alternating dark
+// sections; the warm bone/ochre palette + serif display come from the base.
+const safari = {
+  heroFull: () =>
+    build("hero", (s) => {
+      s.tone = "dark";
+      s.props.headline = "Where the wild still runs";
+      s.props.subheadline =
+        "An unfenced lodge deep in the Waterberg — a handful of suites, wide skies, and the bush at your door.";
+      s.props.cta_label = "Check availability";
+      s.props.cta_href = "#book";
+      s.props.align = "center";
+      s.props.variant = "fullscreen";
+      s.props.overlay = "strong";
+      s.props.textTone = "light";
+      s.props.height = "tall";
+    }),
+  heroSplit: () =>
+    build("hero", (s) => {
+      s.props.headline = "A house at the heart of the bush";
+      s.props.subheadline =
+        "Twelve thousand hectares, three suites, and nothing between you and the horizon.";
+      s.props.cta_label = "Explore the lodge";
+      s.props.cta_href = "#rooms";
+      s.props.align = "left";
+      s.props.variant = "split_right";
+      s.props.height = "medium";
+    }),
+  story: () =>
+    build("intro", (s) => {
+      s.props.heading = "An unfenced wilderness";
+      s.props.body =
+        "Some places you pass through. This one stays with you. Days here move to the rhythm of the reserve — early light, long drives, the slow hush of the afternoon, and a fire under more stars than you have ever seen.\n\nReplace this with your own story: the land, the welcome, and why guests make the journey.";
+      s.props.variant = "lead";
+    }),
+  experiences: () =>
+    build("highlights", (s) => {
+      s.tone = "dark";
+      s.props.heading = "The reserve, unhurried";
+      s.props.variant = "grid";
+      s.props.items = [
+        {
+          icon: "Sunrise",
+          title: "Game drives",
+          body: "Dawn and dusk on the reserve with an expert guide and tracker.",
+        },
+        {
+          icon: "Footprints",
+          title: "Guided walks",
+          body: "Read the tracks on foot — the bush at its smallest and wildest.",
+        },
+        {
+          icon: "Flame",
+          title: "Boma evenings",
+          body: "Dinner under the stars around an open fire, stories included.",
+        },
+      ];
+    }),
+  rooms: () =>
+    build("rooms_preview", (s) => {
+      s.props.heading = "Three suites, one horizon";
+    }),
+  gallery: () =>
+    build("gallery", (s) => {
+      s.props.heading = "Moments from the reserve";
+    }),
+  reviews: () =>
+    build("reviews", (s) => {
+      s.props.heading = "Quiet that you can feel";
+      s.props.variant = "grid";
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.tone = "dark";
+      s.props.heading = "Deep in the Waterberg";
+      s.props.variant = "split";
+    }),
+  ctaBanner: () =>
+    build("cta", (s) => {
+      s.tone = "dark";
+      s.props.heading = "Your dates, under wide skies";
+      s.props.body =
+        "Book direct for the best rate and first pick of the season — we'll take care of the rest.";
+      s.props.button_label = "Check availability";
+      s.props.button_href = "#book";
+      s.props.variant = "banner";
+    }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Plan your stay";
+      s.props.body =
+        "Tell us your dates and what you're hoping for — a guide will be in touch to shape your time in the bush.";
+      s.props.variant = "split";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Good to know";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "How do we get there?",
+          a: "We're a scenic drive from the nearest town, with a fly-in option to a private strip. Full directions follow your booking.",
+        },
+        {
+          q: "Is it malaria-free?",
+          a: "Yes — the reserve sits in a malaria-free region, so it's an easy choice for families.",
+        },
+        {
+          q: "What's included?",
+          a: "Rates are full-board with daily guided activities. Replace this with your own inclusions.",
+        },
+      ];
+    }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "At the lodge";
+      s.props.items = [
+        { icon: "🔥", label: "Boma & fire pit" },
+        { icon: "🏊", label: "Rock pool" },
+        { icon: "🍷", label: "Sundowners" },
+        { icon: "🦓", label: "Daily game drives" },
+        { icon: "🍽️", label: "All meals" },
+        { icon: "📶", label: "Wi-Fi at the main house" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Rates";
+      s.props.items = [
+        {
+          label: "Suite, full-board",
+          price: "R6 500",
+          note: "per person / night",
+        },
+        { label: "Sole-use (whole lodge)", price: "On request", note: "" },
+      ];
+      s.props.footnote =
+        "Rates are indicative and include meals and daily activities — your final price is confirmed at booking.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "From the field journal";
+    }),
+};
+
+const SAFARI_PRESETS: ThemeSectionPreset[] = [
+  {
+    key: "safari_hero_full",
+    label: "Hero — fullscreen",
+    make: safari.heroFull,
+  },
+  { key: "safari_hero_split", label: "Hero — split", make: safari.heroSplit },
+  { key: "safari_story", label: "Story", make: safari.story },
+  { key: "safari_experiences", label: "Experiences", make: safari.experiences },
+  { key: "safari_gallery", label: "Gallery", make: safari.gallery },
+  { key: "safari_reviews", label: "Reviews", make: safari.reviews },
+  { key: "safari_location", label: "Location", make: safari.location },
+  { key: "safari_cta", label: "Booking CTA", make: safari.ctaBanner },
+  {
+    key: "safari_contact_form",
+    label: "Contact form",
+    make: safari.contactForm,
+  },
+  { key: "safari_faq", label: "FAQ", make: safari.faq },
+  { key: "safari_amenities", label: "At the lodge", make: safari.amenities },
+  { key: "safari_pricing", label: "Rates", make: safari.pricing },
+  { key: "safari_blog", label: "Journal", make: safari.blog },
+];
+
+const SAFARI_TEMPLATES: ThemeTemplate[] = [
+  {
+    key: "safari_home",
+    label: "Home",
+    description:
+      "Fullscreen hero, the story, experiences, suites, gallery, reviews, location and a booking CTA.",
+    make: () => [
+      safari.heroFull(),
+      safari.story(),
+      safari.experiences(),
+      safari.rooms(),
+      safari.gallery(),
+      safari.reviews(),
+      safari.location(),
+      safari.ctaBanner(),
+    ],
+  },
+  {
+    key: "safari_about",
+    label: "About",
+    description: "Split hero, your story, the experiences, reviews and a CTA.",
+    make: () => [
+      safari.heroSplit(),
+      safari.story(),
+      safari.experiences(),
+      safari.reviews(),
+      safari.ctaBanner(),
+    ],
+  },
+  {
+    key: "safari_rooms",
+    label: "Suites",
+    description: "Your suites, what's at the lodge, the rates and a CTA.",
+    make: () => [
+      safari.rooms(),
+      safari.amenities(),
+      safari.pricing(),
+      safari.ctaBanner(),
+    ],
+  },
+  {
+    key: "safari_journal",
+    label: "Journal",
+    description: "Your latest field-journal posts and a closing CTA.",
+    make: () => [safari.blog(), safari.ctaBanner()],
+  },
+  {
+    key: "safari_contact",
+    label: "Contact",
+    description: "Enquiry form, where to find you, good-to-know and a CTA.",
+    make: () => [
+      safari.contactForm(),
+      safari.location(),
+      safari.faq(),
+      safari.ctaBanner(),
+    ],
+  },
+];
+
 // ── Registry (keyed by theme slug = SiteThemeConfig.preset) ───────────────
 const PRESETS: Record<string, ThemeSectionPreset[]> = {
   aria: ARIA_PRESETS,
+  safari: SAFARI_PRESETS,
   classic: CLASSIC_PRESETS,
   modern: MODERN_PRESETS,
   coastal: COASTAL_PRESETS,
@@ -1616,6 +1847,7 @@ const PRESETS: Record<string, ThemeSectionPreset[]> = {
 };
 const TEMPLATES: Record<string, ThemeTemplate[]> = {
   aria: ARIA_TEMPLATES,
+  safari: SAFARI_TEMPLATES,
   classic: CLASSIC_TEMPLATES,
   modern: MODERN_TEMPLATES,
   coastal: COASTAL_TEMPLATES,
@@ -1629,7 +1861,7 @@ const TEMPLATES: Record<string, ThemeTemplate[]> = {
 // theme's blocks appear only while that theme is active. Keep in sync with the
 // active rows in site_themes (currently just the default, "aria"; the others
 // were removed). A site stuck on a removed theme simply gets no theme blocks.
-const ACTIVE_THEME_SLUGS = new Set<string>(["aria"]);
+const ACTIVE_THEME_SLUGS = new Set<string>(["aria", "safari"]);
 
 /** Designed section presets for the slug — only when that theme is active. */
 export function getThemeSectionPresets(
@@ -1666,6 +1898,14 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.rate(),
     aria.reviews(),
     aria.ctaBanner(),
+  ],
+  safari: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    safari.reviews(),
+    safari.ctaBanner(),
   ],
   classic: () => [
     roomDetail.gallery(),

@@ -61,6 +61,22 @@ export const SITE_PRESETS = {
     font: "sans",
     radius: "xl",
   },
+  // Safari — unfenced wilderness lodge. Warm bone/sand ground, espresso ink,
+  // savanna-ochre accent; serif display headings (elegant), near-sharp corners.
+  safari: {
+    label: "Safari",
+    palette: {
+      bg: "#F4EDE0",
+      surface: "#FBF6EC",
+      ink: "#221A11",
+      mute: "#6E6048",
+      line: "#DBCFB8",
+      accent: "#B26C2E",
+      accentInk: "#FFFFFF",
+    },
+    font: "elegant",
+    radius: "sm",
+  },
 } as const;
 
 export type SitePresetKey = keyof typeof SITE_PRESETS;

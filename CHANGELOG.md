@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-06-25 — New theme: Safari (second selectable theme)
+
+Added **Safari** — an unfenced-wilderness lodge theme modelled on the supplied
+NenGama Lodge design — as a SECOND selectable theme alongside Aria:
+- **Base** (palette + fonts): warm bone/sand ground (`#F4EDE0` / surface
+  `#FBF6EC`), espresso ink (`#221A11`), savanna-ochre accent (`#B26C2E`), serif
+  display (`elegant` — Cormorant-style headings), near-sharp corners (`radius
+  sm`). Added to `SITE_PRESETS` (code fallback) + the `site_themes` row.
+- **Selectable**: `loadActiveThemes` now offers every active theme (dropped the
+  default-only filter), so the Brand Studio gallery shows Aria + Safari, each
+  with its own preview image. Verified: 2 cards, 2 previews, Activate button.
+- **Section presets + page templates** (`themeSections.ts` `safari` factory):
+  fullscreen hero, the story, experiences (dark band), suites, gallery, reviews,
+  location (dark), booking CTA — in NenGama's voice; plus a room-detail template
+  so the theme is activatable. Gated by `ACTIVE_THEME_SLUGS` (now aria + safari).
+- **DB migration** `20260625050000_add_safari_theme.sql`: Safari row with base,
+  an on-palette SVG preview, and all required pages (home/about/suites/contact/
+  journal/checkout/thank-you) Safari-voiced, so applying the theme seeds a full
+  Safari-composed site (not the generic fallback). Applied to cloud.
+
+Fully customizable via the existing theme/colour + per-section style controls.
+Note: headings fall back to Georgia until Cormorant Garamond is web-loaded (same
+as Aria today) — a follow-up can load Cormorant + Jost for exact fidelity. tsc +
+lint green; migration pushed.
+
+---
+
 ## 2026-06-25 — Rates blocks now default to the host's live data
 
 Per founder: the Room rate + Seasonal pricing blocks should pull the host's
