@@ -5,6 +5,59 @@
 
 ---
 
+## 2026-06-25 — Website CMS: individual room detail pages (every theme)
+
+Clicking a room card on a tenant site used to jump straight to the checkout. It
+now opens a real **room detail page** at `/rooms/<room-slug>` that shows that
+room's photos, details, amenities and rate, with a "Book this room" button that
+deep-links into the checkout. Every theme ships a designed, **host-editable**
+room-detail template; all of a site's rooms render through it.
+
+**Routing + data**
+- New public route `app/[locale]/site/rooms/[roomSlug]/page.tsx` (+ `SiteRoomView`)
+  — mirrors the blog post route. Room slugs are derived from the room's display
+  name (collisions disambiguated deterministically by order); `loadRoomDetail`
+  resolves the slug against the site's visible rooms and loads photos +
+  amenities + facts + price live. Room cards now carry a `detailHref`
+  (`RoomCard.detailHref`); `RoomsPreviewSection` links the card title + button to
+  it (and no longer counts as a `booking_click` — the detail page's "Book this
+  room" button does).
+- Four new room-scoped section types — `room_gallery`, `room_overview`,
+  `room_amenities`, `room_rate` (additive jsonb, **no migration for sections**).
+  The route injects the viewed room into each; in the builder they preview a
+  sample room. Public components in `components/site/sections/RoomDetailSections.tsx`.
+  Amenities fall back to the property's amenities when a room has none set.
+
+**Template (every theme)**
+- `getThemeRoomDetailSections(themeSlug)` in `lib/website/themeSections.ts` — a
+  designed `gallery → overview → amenities → rate → reviews → CTA` layout per
+  theme (theme voice via its own reviews/CTA makers), with a bare-room fallback
+  for unknown themes. Used both to seed the page and as the public render
+  fallback, so a room page **always renders** even before the host customises it.
+
+**Editing (Pages + builder)**
+- A single `room_detail` page (kind `room_detail`, migration
+  `20260625000000` widens the `website_pages.kind` CHECK) is **lazily created**
+  the first time the host opens the Pages manager, seeded with the theme template.
+  It shows as a "Room details" / "Room template" row (no duplicate/delete/nav —
+  it's a system page) and opens in the full-screen page builder, where a new
+  "Room detail" palette group exposes the four room blocks (only on this page)
+  and the preview uses a sample room. `SectionEditor` gained inspectors for all
+  four types.
+
+**SEO**
+- `buildRoomJsonLd` emits a `HotelRoom` + `BreadcrumbList` (Home › Rooms › room;
+  the Rooms crumb is included only when a rooms listing page exists). Canonical
+  `/rooms/<slug>` + per-room `<title>`/description via `siteMetadata`. The tenant
+  sitemap lists every visible room and excludes the `room_detail` template page.
+
+**Verified** against the seeded test site (`vilotest`) in the browser: room cards
+link to `/rooms/<slug>`; the detail page renders gallery/overview/facts/amenities/
+rate/reviews/CTA with the Home › Rooms › <room> breadcrumb and HotelRoom JSON-LD
+(HTTP 200). tsc + lint + **178 vitest** + a full `pnpm build` (exit 0) all green.
+
+---
+
 ## 2026-06-25 — Page builder: WYSIWYG inline links + Rooms/Blog templates for every theme
 
 Two builder enhancements. Both verified with tsc + lint + a full `pnpm build`
