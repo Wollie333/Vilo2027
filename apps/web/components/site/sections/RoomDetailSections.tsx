@@ -1,14 +1,13 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
-import type { RoomDetail } from "@/lib/site/types";
+import type { GalleryImage, RoomDetail } from "@/lib/site/types";
 
-import { SiteImg } from "../SiteImg";
+import { GalleryLightbox } from "../GalleryLightbox";
 import {
   Card,
   Muted,
   SectionHeading,
   SectionShell,
   SiteButton,
-  siteImageStyle,
 } from "./_shared";
 
 function priceLabel(price?: number | null, currency?: string | null) {
@@ -53,74 +52,18 @@ export function RoomGallerySection({
   if (images.length === 0)
     return <RoomPlaceholder label="This room's photos appear here." />;
 
-  if (props.variant === "carousel") {
-    return (
-      <SectionShell>
-        <div className="grid auto-cols-[85%] grid-flow-col gap-4 overflow-x-auto sm:auto-cols-[60%] lg:auto-cols-[48%]">
-          {images.map((img, i) => (
-            <SiteImg
-              key={i}
-              src={img.url}
-              alt={img.alt ?? data?.name ?? ""}
-              sizes="(min-width: 1024px) 48vw, (min-width: 640px) 60vw, 85vw"
-              widths={[480, 768, 1024]}
-              style={siteImageStyle}
-              className="aspect-[4/3] w-full object-cover"
-            />
-          ))}
-        </div>
-      </SectionShell>
-    );
-  }
+  // Every photo is clickable → opens the swipeable fullscreen lightbox so guests
+  // can browse the room's images. The alt rides through as the caption.
+  const lightboxImages: GalleryImage[] = images.map((img) => ({
+    url: img.url,
+    caption: img.alt ?? data?.name ?? null,
+  }));
+  // "stacked" isn't a lightbox layout — fall back to a grid for it.
+  const layout = props.variant === "stacked" ? "grid" : props.variant;
 
-  if (props.variant === "stacked") {
-    const [first, ...rest] = images;
-    return (
-      <SectionShell>
-        <SiteImg
-          src={first.url}
-          alt={first.alt ?? data?.name ?? ""}
-          priority
-          sizes="(min-width: 1024px) 1024px, 100vw"
-          widths={[768, 1024, 1280, 1600]}
-          style={siteImageStyle}
-          className="aspect-[16/9] w-full object-cover"
-        />
-        {rest.length > 0 ? (
-          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3">
-            {rest.map((img, i) => (
-              <SiteImg
-                key={i}
-                src={img.url}
-                alt={img.alt ?? data?.name ?? ""}
-                sizes="(min-width: 768px) 33vw, 50vw"
-                widths={[320, 480, 640]}
-                style={siteImageStyle}
-                className="aspect-[4/3] w-full object-cover"
-              />
-            ))}
-          </div>
-        ) : null}
-      </SectionShell>
-    );
-  }
-
-  // grid
   return (
     <SectionShell>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-        {images.map((img, i) => (
-          <SiteImg
-            key={i}
-            src={img.url}
-            alt={img.alt ?? data?.name ?? ""}
-            sizes="(min-width: 768px) 33vw, 50vw"
-            widths={[320, 480, 640]}
-            style={siteImageStyle}
-            className="aspect-[4/3] w-full object-cover"
-          />
-        ))}
-      </div>
+      <GalleryLightbox images={lightboxImages} layout={layout} />
     </SectionShell>
   );
 }
