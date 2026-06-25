@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getMyHostId } from "@/lib/host/current";
 import { pageHref } from "@/lib/site/loadSitePage";
 import { createServerClient } from "@/lib/supabase/server";
+import { ensureDefaultMenu } from "@/lib/website/defaultMenu";
 import { navigationSchema } from "@/app/[locale]/dashboard/website/schemas";
 
 import { NavSectionEditor } from "./NavSectionEditor";
@@ -33,7 +34,14 @@ export default async function NavigationSectionEditorPage({
     .maybeSingle();
   if (!site) notFound();
 
-  const navigation = navigationSchema.parse(site.navigation ?? {});
+  const navigation =
+    section === "menu"
+      ? await ensureDefaultMenu(
+          supabase,
+          websiteId,
+          navigationSchema.parse(site.navigation ?? {}),
+        )
+      : navigationSchema.parse(site.navigation ?? {});
   const brandName =
     ((site.brand ?? {}) as { name?: string }).name?.trim() || site.subdomain;
 

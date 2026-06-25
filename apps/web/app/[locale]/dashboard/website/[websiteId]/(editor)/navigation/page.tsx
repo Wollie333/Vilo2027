@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
+import { ensureDefaultMenu } from "@/lib/website/defaultMenu";
 import { navigationSchema } from "@/app/[locale]/dashboard/website/schemas";
 
 import {
@@ -45,7 +46,13 @@ export default async function WebsiteNavigationPage({
     .maybeSingle();
   if (!site) notFound();
 
-  const navigation = navigationSchema.parse(site.navigation ?? {});
+  // First-time hosts get a real, editable default menu (derived from their pages)
+  // instead of the implicit "auto-pull every page" fallback.
+  const navigation = await ensureDefaultMenu(
+    supabase,
+    websiteId,
+    navigationSchema.parse(site.navigation ?? {}),
+  );
   const brandName =
     ((site.brand ?? {}) as { name?: string }).name?.trim() || site.subdomain;
 
