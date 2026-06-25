@@ -12,6 +12,7 @@ import type { SiteAssetResolver } from "@/lib/site/types";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { JsonLd } from "./JsonLd";
+import { SafariSiteView } from "./safari/SafariSiteView";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
@@ -85,6 +86,28 @@ export async function SitePageView({
   // there's nothing to book, so the button never links to a 404.
   const headerBookHref =
     ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+
+  // Safari is a fully bespoke design (the NenGama Lodge look) — it renders
+  // through its own self-contained, scoped layer rather than the shared chrome +
+  // section components, so it matches the design exactly. Driven by the same
+  // page sections (by type) so content stays host-editable.
+  // Home page only for now — the bespoke Safari home is the first slice; interior
+  // pages (rooms/about/journal/contact/booking) render through the standard
+  // themed pipeline (Safari palette) until their designs are ported too.
+  const activeThemeSlug = ctx.previewThemeSlug ?? ctx.theme.preset;
+  if (activeThemeSlug === "safari" && pathSlug.length === 0) {
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        <SafariSiteView
+          sections={result.sections}
+          brandName={ctx.brand.name}
+          navLinks={ctx.nav}
+          bookHref={headerBookHref}
+        />
+      </>
+    );
+  }
 
   return (
     <>

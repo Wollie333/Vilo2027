@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-06-26 — Safari theme: pixel-faithful NenGama home page (slice 1)
+
+The Safari theme now renders the **home page exactly** like the supplied NenGama
+Lodge design, not just the shared CMS sections in safari colours. Built as a
+self-contained, fully-scoped render layer (zero risk to other themes):
+- `components/site/safari/safari.css` — the NenGama 421-line stylesheet ported
+  and scoped under `.vilo-safari` (every selector prefixed; other data-theme/font
+  variants dropped). Tokens, nav, hero, split/intro + stat-badge, suite cards,
+  experiences, gallery mosaic, reviews, location, CTA band, footer, responsive.
+- `SafariSiteView.tsx` (server) — emits the exact NenGama markup, content driven
+  by the host's matching sections (by type: hero/intro/highlights/reviews/
+  location/cta) with the design's original Unsplash imagery + bespoke bits
+  (hero-meta stats, suite cards, gallery) as stock so a fresh site looks like the
+  example out of the box. Loads Cormorant Garamond + Jost + Marcellus (Google
+  Fonts, theme-scoped).
+- `SafariNav.tsx` (client) — the fixed transparent-over-hero header that fades to
+  a solid blurred bar on scroll.
+- `SitePageView` branches to `SafariSiteView` only when the active theme is
+  `safari` AND it's the home page (`pathSlug` empty); interior pages render
+  through the standard themed pipeline (Safari palette) until they're ported.
+
+Verified live (`?theme=safari` preview): bg `#F4EDE0`, ochre buttons `#B26C2E`,
+Cormorant headings, hero + 3 meta stats, 3 experiences, 7-tile gallery, 3 suite
+cards, 3 reviews, stock Unsplash images loading, nav solidifies on scroll;
+`/about` still renders normally (no home dupe, no 500). tsc + lint green.
+(Dev `.next` cache had corrupted mid-session — cleared + restarted the dev
+server; unrelated to this change.) NEXT: port the rooms/room-detail/about/
+journal/contact/booking pages to the same Safari layer.
+
+---
+
 ## 2026-06-25 — New theme: Safari (second selectable theme)
 
 Added **Safari** — an unfenced-wilderness lodge theme modelled on the supplied
