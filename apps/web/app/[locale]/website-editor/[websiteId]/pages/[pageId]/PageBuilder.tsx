@@ -1282,6 +1282,7 @@ export function PageBuilder({
                     nav={navConfig}
                     setHeader={setHeader}
                     setTop={setTop}
+                    pages={navPages}
                   />
                   <div className="insp-sec">
                     <MenuBuilder

@@ -58,10 +58,13 @@ export function HeaderInspector({
   nav,
   setHeader,
   setTop,
+  pages = [],
 }: {
   nav: NavigationConfig;
   setHeader: (p: Partial<NavigationConfig["header"]>) => void;
   setTop: (p: Partial<NavigationConfig["topBar"]>) => void;
+  /** In-nav pages, so the Book button can link to a page (or a custom URL). */
+  pages?: PageOption[];
 }) {
   const t = useTranslations("website");
   return (
@@ -93,6 +96,25 @@ export function HeaderInspector({
                 onChange={(e) => setHeader({ ctaHref: e.target.value })}
               />
             </Fld>
+            {pages.length > 0 ? (
+              <Fld label={t("navCtaPage")}>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const p = pages.find((x) => x.href === e.target.value);
+                    if (p) setHeader({ ctaHref: p.href });
+                    e.target.value = "";
+                  }}
+                >
+                  <option value="">{t("menuPickPage")}</option>
+                  {pages.map((p) => (
+                    <option key={p.href} value={p.href}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </Fld>
+            ) : null}
             <Fld label={t("navCtaColor")}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input

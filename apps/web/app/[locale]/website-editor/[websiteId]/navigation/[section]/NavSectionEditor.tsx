@@ -376,6 +376,7 @@ export function NavSectionEditor({
                     nav={nav}
                     setHeader={setHeader}
                     setTop={setTop}
+                    pages={pages}
                   />
                 ) : (
                   <FooterInspector

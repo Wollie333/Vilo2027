@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-25 — Book button: link to an existing page or a custom URL
+
+The header **Book button** can now link to an **existing page** (a picker of the
+site's in-nav pages) as well as a typed custom URL — matching how menu items
+already work (the menu builder's "Link to a page" picker was already there).
+`HeaderInspector` takes a `pages` prop (threaded from the nav editor + the page
+builder's inline chrome editing); choosing a page sets `ctaHref`. i18n
+`navCtaPage`. Verified: picking "About" set the Book link to `/about`. tsc + lint
+green.
+
+---
+
 ## 2026-06-25 — Fix: header preview — logo style + minimal alignment
 
 Two builder-preview fixes in `NavHeaderPreview`:
