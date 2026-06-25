@@ -2,11 +2,18 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-22, very late)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-25)
 
-**Branch:** `main` — working tree CLEAN, **all committed AND PUSHED, in sync with `origin/main`**. README current. tsc + lint + **133 vitest** all GREEN. (Founder's dev server runs on :3000 — do NOT `pnpm build` while it's up; verify with tsc/lint/vitest only.)
+**Branch:** `main` — working tree CLEAN. tsc + lint + **133 vitest** all GREEN (lint: only 2 pre-existing `<img>` warnings in `reports/_components`, untouched). HEAD = `9c7e50c`. ⚠️ **`9c7e50c` is committed but NOT pushed** — `origin/main` is at `8538683`. (No dev server was running at session start; `pnpm build` is safe when none is up — it shares `.next` with the founder's :3000 dev server.)
 
-**LATEST (this session) — NEXT #1 DONE: designed sections + page templates for ALL built-in themes.** `lib/website/themeSections.ts` previously shipped designed presets/templates for Aria only; now all 6 other active catalogue themes (`classic`/`modern`/`coastal`/`warm`/`minimal`/`nightfall`) each get **5 section presets + Home/About templates**, tuned to the theme's voice/hero-variant/tone (styling still from the theme `base`/`buildSiteVars`). Added a type-safe `build<T>()` helper (Aria output unchanged). Registry keyed by slug → the builder picks them up via the existing `getThemeSectionPresets`/`getThemeTemplates` (`theme.preset`), **no PageBuilder change**. ADDITIVE — pre-configured instances of existing curated section types, **NO migration/DB/schema change**. New `themeSections.test.ts` (37 cases) parses every preset+template through `sectionSchema` (suite 96→133). tsc+lint green. **NOT yet browser-QA'd** (rolls into NEXT #5 manual QA).
+**SESSION RESUMED (2026-06-25):** Picked up an interrupted prior session that built 3 features (commits `4867092`/`8538683`/`9c7e50c`) but was cut off before finishing the Definition of Done — CHANGELOG + this save point weren't updated and `9c7e50c` wasn't pushed. Verified all 3 commits are green (tsc/lint/133 vitest) and sound, then back-filled CHANGELOG (entry "Page builder: item reorder, WYSIWYG, undo/redo + shortcuts, delete-website") and this save point.
+
+**THE 3 NEWLY-DOCUMENTED COMMITS:**
+- `4867092` — **reorder section items** (`ItemListEditor` up/down for all multi-item sections) + **WYSIWYG rich_text** (tiptap `RichTextEditor` replaces the raw-HTML textarea; same `sanitiseListingHtml` chokepoint; inline-link button is a follow-up needing `@tiptap/extension-link`).
+- `8538683` — **undo/redo + keyboard shortcuts** in the builder (snapshot history; structural edits = discrete steps, typing coalesces over 700ms; Ctrl/Cmd+Z/Y/S, Delete removes selected section; native undo preserved in text fields).
+- `9c7e50c` — **delete-website** (`deleteWebsiteAction`, owner-scoped soft-delete `deleted_at`+unpublish, never hard-deleted per AGENT_RULES) + Settings danger-zone control. **← this is the unpushed one.**
+
+**EARLIER (same prior session group) — NEXT #1 DONE: designed sections + page templates for ALL built-in themes.** `lib/website/themeSections.ts` previously shipped designed presets/templates for Aria only; now all 6 other active catalogue themes (`classic`/`modern`/`coastal`/`warm`/`minimal`/`nightfall`) each get **5 section presets + Home/About templates**, tuned to the theme's voice/hero-variant/tone (styling still from the theme `base`/`buildSiteVars`). Added a type-safe `build<T>()` helper (Aria output unchanged). Registry keyed by slug → the builder picks them up via the existing `getThemeSectionPresets`/`getThemeTemplates` (`theme.preset`), **no PageBuilder change**. ADDITIVE — pre-configured instances of existing curated section types, **NO migration/DB/schema change**. New `themeSections.test.ts` (37 cases) parses every preset+template through `sectionSchema` (suite 96→133). tsc+lint green. **NOT yet browser-QA'd** (rolls into NEXT #5 manual QA).
 
 **Verify commands:** `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint --file …` + `pnpm exec vitest run`. **`pnpm build` ONLY when no dev server is running** (it shares `.next`); if a build dies with `MODULE_NOT_FOUND`/webpack-runtime, `rm -rf apps/web/.next` and rebuild.
 

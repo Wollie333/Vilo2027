@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-06-22 — Page builder: item reorder, WYSIWYG, undo/redo + shortcuts, delete-website
+
+Three builder/Settings enhancements (commits `4867092`, `8538683`, `9c7e50c`).
+All additive — no migration, DB or schema change. tsc + lint + 133 vitest green.
+
+**1. Reorder section items + WYSIWYG rich-text (`4867092`):**
+- `ItemListEditor` gained up/down move controls, so every multi-item section
+  (highlights, stats, logos, values, faq, amenities, pricing, trust) can be
+  reordered — previously add/remove only. Mirrors the Columns block reorder UX.
+- The `rich_text` section's raw-HTML textarea is replaced with the existing
+  tiptap `RichTextEditor` (bold/italic/strike/H2/H3/lists/quote/undo-redo),
+  matching the blog editor. Output stays sanitised at the same write + render
+  chokepoints (`sanitiseListingHtml`); 50k cap preserved. Hint copy updated.
+  (Inline link button is a follow-up — needs `@tiptap/extension-link`.)
+
+**2. Undo/redo + keyboard shortcuts (`8538683`):**
+- Snapshot history on the builder's section state. Structural edits
+  (add/remove/reorder/duplicate/toggle/template) push a discrete undo step;
+  inspector field typing coalesces a burst of keystrokes into one step (700ms
+  window). Undo/redo buttons in the toolbar (beside device/site-width).
+- Shortcuts: Ctrl/Cmd+Z undo, Shift+Z or Ctrl/Cmd+Y redo, Ctrl/Cmd+S save,
+  Delete/Backspace removes the selected section. Edits inside a text field /
+  contenteditable keep their native undo (never hijacked). The keydown listener
+  mounts once and reads latest handlers via a ref. +disabled `.seg` button style.
+
+**3. Delete-website action + Settings danger zone (`9c7e50c`):**
+- `deleteWebsiteAction` (owner-scoped via `assertWebsiteOwnership`) **soft-deletes**:
+  sets `deleted_at` + `status='unpublished'`. The public resolver and dashboard
+  list already filter `deleted_at IS NULL`, so the site stops resolving and leaves
+  the host's list immediately. Row + pages/forms retained for support recovery —
+  never hard-deleted (AGENT_RULES). New "Delete this website" row in the Settings
+  danger zone with a destructive confirm, then redirect to the website list.
+
+---
+
 ## 2026-06-22 — Page builder: designed sections + page templates for all built-in themes
 
 Extended the theme-attached section system (Phase C) from Aria-only to **every
