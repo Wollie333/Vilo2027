@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-06-25 — Fix (re-applied): menu styling class — array join
+
+The previous commit's one-character space fix **did not persist** through the
+commit (the committed `SiteChrome.tsx` still had `"vilo-hmenu"` with no space), so
+`class="vilo-hmenuhidden…"` was still shipping and menu styling — including **hover
+colour** — still didn't apply on the live site.
+
+Re-applied robustly: the nav class is now built with
+`[styled ? "vilo-hmenu" : "", className].filter(Boolean).join(" ")` instead of a
+fragile trailing-space template literal. Confirmed in the committed file (`git
+show HEAD`) and verified live across **all four** Style settings — link colour,
+hover colour, font weight, UPPERCASE all apply on the front (`nav.vilo-hmenu`
+present, links match `.vilo-hmenu a`, hover rule targets them) and in the middle
+builder preview. vilotest reset to defaults + republished. tsc green.
+
+---
+
 ## 2026-06-25 — Fix: menu styling never applied on the live site (class typo)
 
 **Root cause:** in `SiteChrome.MenuNav`, `` `${styled ? "vilo-hmenu" : ""}${className}` ``
