@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-25 — Header builder: 4 selectable layouts (overhaul pt.1)
+
+First part of the header-builder overhaul (architecture agreed with the founder:
+header builder owns header type/layout/visible-elements/transparency/book button;
+menu builder owns links; footer builder owns the footer).
+
+- **4 header layouts** — Classic (logo left · menu · book right), Centered (logo
+  on top), **Split** (menu · logo · book, new), Minimal (logo + ☰). Added `split`
+  to `SiteHeaderLayout` + implemented its `HeaderInner` variant.
+- **Single source of truth:** new `navigation.header.layout` — `SiteChrome` prefers
+  it over the theme's header layout, so the header builder owns the choice.
+- **Builder:** the header section now has a **left-sidebar layout picker** (4 cards
+  with mini diagrams); `NavHeaderPreview` is layout-aware so the centre preview
+  matches the pick live. Verified end-to-end (picker → save → live front renders
+  the chosen layout).
+
+Next: header inspector consolidation (book button colour + display rules, menu
+alignment, logo, visible-element toggles) and removing the duplicate book toggle
+from the menu builder. tsc + lint green.
+
+---
+
 ## 2026-06-25 — Room detail: directory-style mosaic gallery + lightbox
 
 The room-detail template's gallery now matches the directory listing's hero

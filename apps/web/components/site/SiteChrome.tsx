@@ -689,6 +689,34 @@ function HeaderInner({
       </div>
     );
   }
+  if (variant === "split") {
+    // split — menu left · logo centered · book right (symmetric three columns)
+    return (
+      <div className="mx-auto grid w-full max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-4">
+        <div className="flex justify-start">
+          <HeaderMenu
+            menu={menu}
+            collapse={collapse}
+            navClassName="items-center gap-5"
+            bookHref={bookHref}
+            bookLabel={bookLabel}
+            dark={dark}
+            preview={preview}
+          />
+        </div>
+        <div className="flex justify-center">
+          <Logo brand={brand} dark={dark} preview={preview} />
+        </div>
+        <div className="flex justify-end">
+          {bookHref ? (
+            <span className={bookVisibilityClass(collapse)}>
+              <BookCta href={bookHref} label={bookLabel} />
+            </span>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
   // classic — logo left · nav · book right
   return (
     <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
@@ -967,7 +995,7 @@ export function SiteChrome({
         <StickyHeader sticky={sticky} transparent={transparentOver}>
           <div className="hidden md:block">
             <HeaderInner
-              variant={header.desktop}
+              variant={navigation.header?.layout ?? header.desktop}
               brand={brand}
               menu={menu}
               collapse={menuCollapse}

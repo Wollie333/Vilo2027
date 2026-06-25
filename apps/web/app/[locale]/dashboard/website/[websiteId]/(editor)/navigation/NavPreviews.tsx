@@ -52,6 +52,34 @@ export function NavHeaderPreview({
   // Hover colour can't be expressed inline (no :hover) — and the inline base
   // colour would win over a plain rule, so the scoped hover rule uses !important.
   const hover = ms?.hoverColor?.trim();
+
+  // Layout-aware pieces, so the preview matches the chosen header style.
+  const layout = nav.header?.layout ?? "classic";
+  const brandEl = (
+    <div className="nv-brand">
+      <span className="nv-mark">{mark(brandName)}</span>
+      <span className="nv-name">{brandName}</span>
+    </div>
+  );
+  const menuEl =
+    collapsed || menu.length === 0 ? null : (
+      <div className="nv-menu nvhm-pv">
+        {menu.slice(0, 6).map((m) => (
+          <span className="nv-mi" key={m.id} style={miStyle}>
+            {m.label}
+            {m.children && m.children.length > 0 ? (
+              <span className="car">
+                <ChevronDown style={{ width: 14, height: 14 }} />
+              </span>
+            ) : null}
+          </span>
+        ))}
+      </div>
+    );
+  const burgerEl = (
+    <Menu style={{ width: 20, height: 20, color: "var(--ink)" }} />
+  );
+  const ctaEl = cta ? <span className="nv-cta solid">{cta}</span> : null;
   return (
     <div className="nv-device">
       <div className="nv-frame">
@@ -61,35 +89,44 @@ export function NavHeaderPreview({
         {ann?.enabled && ann.message?.trim() ? (
           <div className="nv-announce">{ann.message}</div>
         ) : null}
-        <div className="nv-bar">
-          <div className="nv-brand">
-            <span className="nv-mark">{mark(brandName)}</span>
-            <span className="nv-name">{brandName}</span>
+        {/* Collapsed views (or "minimal") show the ☰ icon; the drawer carries
+            the menu + book on the live site. Otherwise arrange per layout. */}
+        {collapsed || layout === "minimal" ? (
+          <div className="nv-bar">
+            {brandEl}
+            <div className="nv-right" style={{ gap: 8 }}>
+              {layout === "minimal" ? ctaEl : null}
+              {burgerEl}
+            </div>
           </div>
-          {/* Collapsed views show only the ☰ icon (no inline menu, book hidden);
-              the drawer carries them on the live site. */}
-          <div className="nv-menu nvhm-pv">
-            {collapsed
-              ? null
-              : menu.slice(0, 6).map((m) => (
-                  <span className="nv-mi" key={m.id} style={miStyle}>
-                    {m.label}
-                    {m.children && m.children.length > 0 ? (
-                      <span className="car">
-                        <ChevronDown style={{ width: 14, height: 14 }} />
-                      </span>
-                    ) : null}
-                  </span>
-                ))}
+        ) : layout === "centered" ? (
+          <div className="nv-bar" style={{ flexDirection: "column", gap: 10 }}>
+            {brandEl}
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              {menuEl}
+              {ctaEl}
+            </div>
           </div>
-          <div className="nv-right">
-            {collapsed ? (
-              <Menu style={{ width: 20, height: 20, color: "var(--ink)" }} />
-            ) : cta ? (
-              <span className="nv-cta solid">{cta}</span>
-            ) : null}
+        ) : layout === "split" ? (
+          <div
+            className="nv-bar"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ justifySelf: "start" }}>{menuEl}</div>
+            {brandEl}
+            <div style={{ justifySelf: "end" }}>{ctaEl}</div>
           </div>
-        </div>
+        ) : (
+          <div className="nv-bar">
+            {brandEl}
+            {menuEl}
+            <div className="nv-right">{ctaEl}</div>
+          </div>
+        )}
         <div className="nv-stub">
           <div className="ln t" />
           <div className="ln" />

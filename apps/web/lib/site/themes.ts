@@ -235,7 +235,7 @@ export type SiteSocial = { shape?: SiteSocialShape; style?: SiteSocialStyle };
 
 // Header & footer layout variants (Phase 5.5) — selectable per theme, with
 // separate desktop + mobile choices. Structural (read by SiteChrome), not vars.
-export type SiteHeaderLayout = "classic" | "centered" | "minimal";
+export type SiteHeaderLayout = "classic" | "centered" | "split" | "minimal";
 export type SiteFooterLayout = "centered" | "columns" | "simple";
 export type SiteChromeLayout<T> = { desktop: T; mobile: T };
 export type SiteHeaderConfig = SiteChromeLayout<SiteHeaderLayout>;
@@ -244,6 +244,7 @@ export type SiteFooterConfig = SiteChromeLayout<SiteFooterLayout>;
 export const SITE_HEADER_LAYOUTS: SiteHeaderLayout[] = [
   "classic",
   "centered",
+  "split",
   "minimal",
 ];
 export const SITE_FOOTER_LAYOUTS: SiteFooterLayout[] = [

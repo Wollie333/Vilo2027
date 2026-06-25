@@ -40,6 +40,101 @@ type Device = "desktop" | "tablet" | "phone";
 
 const SECTION_ICON = { header: PanelTop, menu: Menu, footer: PanelBottom };
 
+type HeaderLayout = "classic" | "centered" | "split" | "minimal";
+const HEADER_LAYOUTS: HeaderLayout[] = [
+  "classic",
+  "centered",
+  "split",
+  "minimal",
+];
+
+/** Tiny diagram of a header arrangement for the layout-picker cards. */
+function LayoutDiagram({ kind }: { kind: HeaderLayout }) {
+  const logo = (
+    <span
+      style={{ width: 16, height: 8, borderRadius: 2, background: "#10B981" }}
+    />
+  );
+  const lines = (
+    <span style={{ display: "flex", gap: 3 }}>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          style={{
+            width: 14,
+            height: 4,
+            borderRadius: 2,
+            background: "#cbd5e1",
+          }}
+        />
+      ))}
+    </span>
+  );
+  const btn = (
+    <span
+      style={{ width: 18, height: 9, borderRadius: 3, background: "#0f172a" }}
+    />
+  );
+  const burger = (
+    <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {[0, 1, 2].map((i) => (
+        <span key={i} style={{ width: 12, height: 2, background: "#0f172a" }} />
+      ))}
+    </span>
+  );
+  const shell: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    minHeight: 30,
+    padding: "0 8px",
+    gap: 5,
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 5,
+  };
+  if (kind === "centered") {
+    return (
+      <span
+        style={{ ...shell, flexDirection: "column", gap: 4, padding: "6px" }}
+      >
+        {logo}
+        {lines}
+      </span>
+    );
+  }
+  if (kind === "split") {
+    return (
+      <span style={shell}>
+        {lines}
+        <span style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          {logo}
+        </span>
+        {btn}
+      </span>
+    );
+  }
+  if (kind === "minimal") {
+    return (
+      <span style={shell}>
+        {logo}
+        <span style={{ flex: 1 }} />
+        {burger}
+      </span>
+    );
+  }
+  // classic
+  return (
+    <span style={shell}>
+      {logo}
+      <span style={{ flex: 1 }} />
+      {lines}
+      <span style={{ flex: 1 }} />
+      {btn}
+    </span>
+  );
+}
+
 export function NavSectionEditor({
   websiteId,
   section,
@@ -202,6 +297,56 @@ export function NavSectionEditor({
           />
         ) : (
           <>
+            {/* Header: left sidebar = layout picker (4 styles). */}
+            {section === "header" ? (
+              <aside className="epanel l" style={{ width: 232 }}>
+                <div className="epanel-h">
+                  <PanelTop
+                    style={{ width: 16, height: 16, color: "#10B981" }}
+                  />
+                  <h3>{t("navHeaderLayoutTitle")}</h3>
+                </div>
+                <div
+                  className="epanel-b thin"
+                  style={{ display: "grid", gap: 10, padding: 12 }}
+                >
+                  {HEADER_LAYOUTS.map((key) => {
+                    const on = (nav.header?.layout ?? "classic") === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setHeader({ layout: key })}
+                        aria-pressed={on}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 7,
+                          padding: 10,
+                          borderRadius: 10,
+                          border: `1.5px solid ${on ? "#10B981" : "#e5e7eb"}`,
+                          background: on ? "#ECFDF5" : "#fff",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <LayoutDiagram kind={key} />
+                        <span
+                          style={{
+                            fontSize: 12.5,
+                            fontWeight: 600,
+                            color: on ? "#047857" : "#0f172a",
+                          }}
+                        >
+                          {t(`headerLayout_${key}`)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+            ) : null}
+
             {/* canvas — live preview in the shared device frame */}
             <div className="canvas-wrap thin">
               <div className={deviceClass}>

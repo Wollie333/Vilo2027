@@ -89,6 +89,8 @@ export type SiteNavigation = {
   menuStyle?: SiteMenuStyle;
   topBar?: SiteTopBar;
   header?: {
+    /** Chosen header style; SiteChrome prefers this over the theme's layout. */
+    layout?: "classic" | "centered" | "split" | "minimal";
     ctaLabel?: string | null;
     ctaHref?: string | null;
     sticky?: boolean; // default true

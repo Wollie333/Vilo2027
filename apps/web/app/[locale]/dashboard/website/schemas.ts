@@ -222,6 +222,7 @@ export const SITE_SOCIAL_STYLES = ["filled", "outline", "plain"] as const;
 export const SITE_HEADER_LAYOUT_NAMES = [
   "classic",
   "centered",
+  "split",
   "minimal",
 ] as const;
 export const SITE_FOOTER_LAYOUT_NAMES = [
@@ -633,6 +634,9 @@ export const navigationSchema = z.object({
     .default({ enabled: false }),
   header: z
     .object({
+      // The chosen header style (the header builder's "layout" picker). Single
+      // source of truth — SiteChrome prefers this over the theme's header layout.
+      layout: z.enum(["classic", "centered", "split", "minimal"]).optional(),
       ctaLabel: z.string().trim().max(40).optional(),
       ctaHref: z.string().trim().max(500).optional(),
       sticky: z.boolean().default(true),
