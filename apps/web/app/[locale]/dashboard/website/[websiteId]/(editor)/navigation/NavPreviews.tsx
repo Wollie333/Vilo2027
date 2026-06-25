@@ -49,9 +49,15 @@ export function NavHeaderPreview({
     textTransform: ms?.uppercase ? "uppercase" : undefined,
     letterSpacing: ms?.uppercase ? "0.05em" : undefined,
   };
+  // Hover colour can't be expressed inline (no :hover) — and the inline base
+  // colour would win over a plain rule, so the scoped hover rule uses !important.
+  const hover = ms?.hoverColor?.trim();
   return (
     <div className="nv-device">
       <div className="nv-frame">
+        {hover ? (
+          <style>{`.nvhm-pv .nv-mi:hover{color:${hover} !important}`}</style>
+        ) : null}
         {ann?.enabled && ann.message?.trim() ? (
           <div className="nv-announce">{ann.message}</div>
         ) : null}
@@ -62,7 +68,7 @@ export function NavHeaderPreview({
           </div>
           {/* Collapsed views show only the ☰ icon (no inline menu, book hidden);
               the drawer carries them on the live site. */}
-          <div className="nv-menu">
+          <div className="nv-menu nvhm-pv">
             {collapsed
               ? null
               : menu.slice(0, 6).map((m) => (

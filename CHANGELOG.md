@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-25 — Fix: menu styling never applied on the live site (class typo)
+
+**Root cause:** in `SiteChrome.MenuNav`, `` `${styled ? "vilo-hmenu" : ""}${className}` ``
+concatenated the style hook and the layout classes with **no space**, rendering
+`class="vilo-hmenuhidden lg:flex…"`. So the `.vilo-hmenu` selector matched nothing
+and the scoped menu style (`menuStyleCss`) — link colour, **hover colour**, weight,
+UPPERCASE — never applied on the published/preview site. (This was also the real
+cause of the earlier "Style tab doesn't reflect on the front"; the previous check
+only confirmed the CSS was *emitted*, not *applied*.)
+
+**Fix:** add the missing space (`"vilo-hmenu "`). Verified live: `nav.vilo-hmenu`
+now exists, menu links match `.vilo-hmenu a`, the base colour applies, and the
+hover rule `.vilo-hmenu a:hover{color:…}` targets the links.
+
+Also: the builder preview (`NavHeaderPreview`) now reflects **hover colour** too,
+via a scoped `.nvhm-pv .nv-mi:hover` rule (with `!important`, since the base colour
+is inline on the preview spans). tsc + lint green; vilotest reset to defaults.
+
+---
+
 ## 2026-06-25 — Nav builder: enabling auto-list expands the item
 
 Small follow-up: when the host turns on "Auto-list my rooms" in the inspector,
