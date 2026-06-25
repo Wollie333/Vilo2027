@@ -66,10 +66,11 @@ export async function SiteRoomView({
   const headerBookHref =
     ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
 
+  const previewPages = ctx.preview
+    ? await buildSitePreviewPages(ctx)
+    : undefined;
+
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
-    const previewPages = ctx.preview
-      ? await buildSitePreviewPages(ctx)
-      : undefined;
     return (
       <SafariShell
         brandName={ctx.brand.name}
@@ -101,6 +102,12 @@ export async function SiteRoomView({
           analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
           header={ctx.theme.header}
           footer={ctx.theme.footer}
+          preview={
+            ctx.preview
+              ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+              : undefined
+          }
+          previewPages={previewPages}
         >
           <nav
             aria-label="Breadcrumb"

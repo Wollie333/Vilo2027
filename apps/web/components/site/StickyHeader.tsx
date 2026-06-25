@@ -15,6 +15,7 @@ export function StickyHeader({
   bgColor,
   scrolledBgColor,
   textColor,
+  topOffset = 0,
   children,
 }: {
   sticky: boolean;
@@ -26,6 +27,8 @@ export function StickyHeader({
   /** Header text/menu colour (the host's menu colour). Drives logo + menu so it
    *  stays legible on a custom/transparent background. Blank → sensible default. */
   textColor?: string | null;
+  /** Push the sticky/fixed header down by N px (the theme-preview bar height). */
+  topOffset?: number;
   children: ReactNode;
 }) {
   const [scrolled, setScrolled] = useState(false);
@@ -47,6 +50,7 @@ export function StickyHeader({
     const style: CSSProperties = {
       background: customBg || "var(--site-surface)",
       borderColor: "var(--site-line)",
+      ...(topOffset ? { top: topOffset } : null),
     };
     if (text) {
       (style as Record<string, string>)["--site-ink"] = text;
@@ -74,6 +78,7 @@ export function StickyHeader({
           borderColor: scrolled ? "rgba(255,255,255,0.12)" : "transparent",
           "--site-ink": text || "#ffffff",
           "--site-mute": text || "rgba(255,255,255,0.88)",
+          ...(topOffset ? { top: `${topOffset}px` } : null),
         } as CSSProperties
       }
       className="fixed inset-x-0 top-0 z-20 border-b transition-colors"

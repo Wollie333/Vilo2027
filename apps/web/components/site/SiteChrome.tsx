@@ -10,9 +10,10 @@ import {
   Twitter,
   Youtube,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
+import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 import {
   DEFAULT_FOOTER,
   DEFAULT_HEADER,
@@ -34,7 +35,7 @@ import type {
 } from "@/lib/site/types";
 
 import { AnnouncementBar } from "./AnnouncementBar";
-import { PreviewBanner } from "./PreviewBanner";
+import { SitePreviewBar } from "./SitePreviewBar";
 import { SiteAnalytics } from "./SiteAnalytics";
 import { SiteMarketing } from "./SiteMarketing";
 import { SiteMobileMenu } from "./SiteMobileMenu";
@@ -972,6 +973,7 @@ export function SiteChrome({
   editable,
   layout = "full",
   hideBanner = false,
+  previewPages,
   chromeInert = false,
   children,
 }: {
@@ -1000,6 +1002,8 @@ export function SiteChrome({
   editable?: ChromeEditable;
   /** Embedded preview (e.g. the nav-manager card iframe): hide the preview banner. */
   hideBanner?: boolean;
+  /** Theme-preview page navigator (the shared Vilo bar). Present only in preview. */
+  previewPages?: SitePreviewPage[];
   /** Page builder: render the header/footer non-interactive (context only). */
   chromeInert?: boolean;
   children: ReactNode;
@@ -1030,29 +1034,38 @@ export function SiteChrome({
     navigation.header?.transparentOverHero === true && !topBar?.enabled;
   const headerDark = transparentOver || darkChrome;
   const boxed = layout === "boxed";
+  // The shared Vilo theme-preview bar (single source of truth across all themes).
+  const showBar = Boolean(
+    preview && !hideBanner && previewPages && previewPages.length,
+  );
+  const bodyStyle: CSSProperties = {
+    ...(boxed
+      ? {
+          maxWidth: 1280,
+          marginInline: "auto",
+          background: "var(--site-bg)",
+          boxShadow: "0 0 60px rgba(0,0,0,0.12)",
+        }
+      : null),
+    // Clear the fixed preview bar (so the header's initial position sits below it).
+    ...(showBar ? { paddingTop: 44 } : null),
+  };
   const body = (
-    <div
-      className="flex min-h-screen w-full flex-col"
-      style={
-        boxed
-          ? {
-              maxWidth: 1280,
-              marginInline: "auto",
-              background: "var(--site-bg)",
-              boxShadow: "0 0 60px rgba(0,0,0,0.12)",
-            }
-          : undefined
-      }
-    >
+    <div className="flex min-h-screen w-full flex-col" style={bodyStyle}>
       {analyticsWebsiteId ? (
         <SiteAnalytics websiteId={analyticsWebsiteId} />
       ) : null}
 
-      {/* Preview mode banner (hidden when embedded in a manager card iframe) */}
-      {preview && !hideBanner ? (
-        <PreviewBanner
-          subdomain={preview.subdomain}
-          themeSlug={preview.themeSlug}
+      {/* Theme-preview bar (shared SSOT) — hidden when embedded in a card iframe. */}
+      {showBar && previewPages ? (
+        <SitePreviewBar
+          themeName={
+            preview?.themeSlug
+              ? preview.themeSlug.charAt(0).toUpperCase() +
+                preview.themeSlug.slice(1)
+              : "Theme"
+          }
+          pages={previewPages}
         />
       ) : null}
 
@@ -1076,6 +1089,7 @@ export function SiteChrome({
           bgColor={navigation.header?.bgColor}
           scrolledBgColor={navigation.header?.scrolledBgColor}
           textColor={navigation.menuStyle?.color}
+          topOffset={showBar ? 44 : 0}
         >
           <div className="hidden md:block">
             <HeaderInner

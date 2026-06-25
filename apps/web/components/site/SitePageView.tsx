@@ -95,11 +95,13 @@ export async function SitePageView({
   // Safari is a fully bespoke design (the NenGama Lodge look) — every page kind it
   // ships renders through its own self-contained, scoped layer so it matches the
   // design exactly. Unmapped kinds fall through to the standard themed pipeline.
+  // The shared theme-preview bar's page navigator (every theme, every page).
+  const previewPages = ctx.preview
+    ? await buildSitePreviewPages(ctx)
+    : undefined;
+
   const activeThemeSlug = ctx.previewThemeSlug ?? ctx.theme.preset;
   if (activeThemeSlug === "safari" && SAFARI_PAGE_KINDS.has(result.page.kind)) {
-    const previewPages = ctx.preview
-      ? await buildSitePreviewPages(ctx)
-      : undefined;
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -135,6 +137,7 @@ export async function SitePageView({
           footer={ctx.theme.footer}
           preview={previewContext}
           hideBanner={embed}
+          previewPages={previewPages}
         >
           <SectionRenderer
             sections={result.sections}

@@ -58,10 +58,11 @@ export default async function SiteBlogIndexPage({
 
   const posts = await loadSiteBlogIndex(ctx);
 
+  const previewPages = ctx.preview
+    ? await buildSitePreviewPages(ctx)
+    : undefined;
+
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
-    const previewPages = ctx.preview
-      ? await buildSitePreviewPages(ctx)
-      : undefined;
     return (
       <SafariShell
         brandName={ctx.brand.name}
@@ -87,6 +88,12 @@ export default async function SiteBlogIndexPage({
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
+        preview={
+          ctx.preview
+            ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+            : undefined
+        }
+        previewPages={previewPages}
       >
         <section className="mx-auto w-full max-w-5xl px-5 py-16 md:py-20">
           <h1

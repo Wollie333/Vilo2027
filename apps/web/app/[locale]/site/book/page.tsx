@@ -73,12 +73,13 @@ export default async function SiteBookPage({
   });
   if (!ctx) notFound();
 
+  const previewPages = ctx.preview
+    ? await buildSitePreviewPages(ctx)
+    : undefined;
+
   // Theme preview → show the Safari checkout DESIGN (the real booking engine
   // only runs on the live site), so the host sees the page's look while browsing.
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
-    const previewPages = ctx.preview
-      ? await buildSitePreviewPages(ctx)
-      : undefined;
     return (
       <SafariShell
         brandName={ctx.brand.name}
@@ -249,6 +250,12 @@ export default async function SiteBookPage({
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
+        preview={
+          ctx.preview
+            ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+            : undefined
+        }
+        previewPages={previewPages}
       >
         <SiteCheckoutForm
           websiteId={ctx.websiteId}

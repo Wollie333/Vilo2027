@@ -68,10 +68,11 @@ export default async function SiteBlogPostPage({
 
   const cover = siteAsset(post.coverUrl);
 
+  const previewPages = ctx.preview
+    ? await buildSitePreviewPages(ctx)
+    : undefined;
+
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
-    const previewPages = ctx.preview
-      ? await buildSitePreviewPages(ctx)
-      : undefined;
     return (
       <SafariShell
         brandName={ctx.brand.name}
@@ -123,6 +124,12 @@ export default async function SiteBlogPostPage({
           analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
           header={ctx.theme.header}
           footer={ctx.theme.footer}
+          preview={
+            ctx.preview
+              ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+              : undefined
+          }
+          previewPages={previewPages}
         >
           <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">
             <a

@@ -1,0 +1,74 @@
+/* Theme-agnostic theme-preview bar (single source of truth across all themes).
+   Not scoped to any theme so it renders identically on Safari + the standard
+   chrome. Fixed above everything; pages offset their header/content by 44px. */
+.site-prebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  background: #14100a;
+  color: #f3eadb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-family:
+    "Jost",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.site-prebar .pb-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+  color: #f3eadb;
+}
+.site-prebar .pb-brand b {
+  font-weight: 600;
+  color: #fff;
+}
+.site-prebar .pb-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+.site-prebar .pb-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.site-prebar a.pb-link {
+  color: rgba(243, 234, 219, 0.72);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    color 0.2s,
+    background 0.2s;
+}
+.site-prebar a.pb-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+/* The standard chrome offsets its (sticky) header below the bar. */
+.site-prebar-offset {
+  padding-top: 44px;
+}

@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 
+import { SitePreviewBar } from "../SitePreviewBar";
+
 import { SafariLightbox } from "./SafariLightbox";
 import { SafariNav, type SafariNavLink } from "./SafariNav";
-import { SafariPreviewBar } from "./SafariPreviewBar";
-import { SafariPreviewLinks } from "./SafariPreviewLinks";
 
 import "./safari.css";
 
@@ -41,10 +41,7 @@ export function SafariShell({
 
   return (
     <div className={bar ? "vilo-safari pre" : "vilo-safari"}>
-      {bar ? (
-        <SafariPreviewBar themeName="Safari" pages={previewPages} />
-      ) : null}
-      <SafariPreviewLinks />
+      {bar ? <SitePreviewBar themeName="Safari" pages={previewPages} /> : null}
       {/* Theme-scoped fonts (only the Safari design uses them) — intentionally
           not in the root layout. */}
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}

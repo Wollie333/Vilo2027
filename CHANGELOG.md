@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-06-26 — One preview bar for every theme (SSOT) + checkout + lightbox
+
+- **Single source of truth for theme previews.** Extracted the Vilo preview bar
+  + link interceptor into shared, theme-agnostic components
+  (`components/site/SitePreviewBar` + `SitePreviewLinks` + `site-preview.css`),
+  and wired them into BOTH the Safari shell AND the standard chrome
+  (`SiteChrome`) — replacing the old minimal `PreviewBanner` (deleted). Every
+  theme now gets the same bar with the full page navigator (incl. a sample room
+  detail, checkout, thank-you). `StickyHeader` got a `topOffset` so the standard
+  sticky/fixed header drops below the 44px bar; the chrome body pads to match.
+  `previewPages` is threaded through SitePageView/SiteRoomView/blog/book for all
+  themes. Verified: Aria + Safari show the identical bar; clicking "Room detail"
+  on Aria lands on the real Aria room page, bar intact.
+- **Checkout layout fixed.** Booking.html's `.checkout` grid + `.co-step` /
+  `.co-num` lived in an un-ported `<style>` block, so the form was full-width.
+  Ported them → the two-column form + summary (1.5fr/1fr, stacking on mobile)
+  with numbered step circles.
+- **Click-to-browse image lightbox** (`SafariLightbox`) — clicking a gallery
+  image (suite-hero, home gallery, framed images) opens a full-screen viewer with
+  prev/next + keyboard + a counter, using each image's `data-lb-src` hi-res
+  source. Verified on the room detail (1/5 → 2/5 …).
+
+tsc + lint green. (Dev `.next` needed a clean restart after deleting the old
+preview files — unrelated to the code.)
+
+---
+
 ## 2026-06-26 — Safari theme: mobile menu, room gallery, /book, preview-link fix
 
 - **Responsive mobile menu.** `SafariNav` now renders the design's hamburger

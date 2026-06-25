@@ -403,66 +403,7 @@
   border-color: var(--accent-deep);
 }
 
-/* theme-preview bar (Vilo) — pinned above the nav while previewing a theme */
-.vilo-safari .safari-prebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 44px;
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 16px;
-  background: #14100a;
-  color: #f3eadb;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  font-family: var(--sans);
-  font-size: 12px;
-  overflow-x: auto;
-  white-space: nowrap;
-}
-.vilo-safari .safari-prebar .pb-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 400;
-  flex-shrink: 0;
-  letter-spacing: 0.02em;
-}
-.vilo-safari .safari-prebar .pb-brand b {
-  font-weight: 600;
-  color: #fff;
-}
-.vilo-safari .safari-prebar .pb-sep {
-  width: 1px;
-  height: 18px;
-  background: rgba(255, 255, 255, 0.18);
-  flex-shrink: 0;
-}
-.vilo-safari .safari-prebar .pb-links {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-.vilo-safari .safari-prebar a.pb-link {
-  color: rgba(243, 234, 219, 0.72);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 11px;
-  padding: 6px 10px;
-  border-radius: 4px;
-  white-space: nowrap;
-  transition:
-    color 0.2s,
-    background 0.2s;
-}
-.vilo-safari .safari-prebar a.pb-link:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
-}
-/* When the preview bar is present, the fixed header drops below it. */
+/* When the shared preview bar is present, the fixed header drops below it. */
 .vilo-safari.pre .nav {
   top: 44px;
 }
