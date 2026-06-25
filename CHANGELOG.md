@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-26 — Safari theme: mobile menu, room gallery, /book, preview-link fix
+
+- **Responsive mobile menu.** `SafariNav` now renders the design's hamburger
+  (≤860px) + the full-screen `.mnav` overlay (dark, large serif links, ochre
+  Reserve) with open/close state; ported `.nav-burger` + `.mnav*` CSS. The nav
+  links + Reserve hide and the burger appears on small screens.
+- **Room-detail gallery fixed.** Room.html's gallery/layout lived in a page-level
+  `<style>` block that was never ported, so `.suite-hero` / `.room-layout` /
+  `.spec-row` / `.bk-card` were unstyled. Ported them (scoped) → the 3-tile
+  gallery grid (main + 2, responsive 2-up on mobile), the two-column body and the
+  sticky booking card now render correctly. The room nav is solid (no dark hero).
+- **/book shows the Safari design in preview.** The on-site checkout route now
+  branches to `SafariShell + SafariBookingContent` when previewing safari (the
+  live booking engine still runs on the activated site).
+- **Preview-link double-prefix bug fixed.** A link already carrying a site prefix
+  with a locale (`/en/site/book`) while the page was at `/site` got re-prefixed
+  → `/site/en/site/book` (404). The interceptor now recognises ANY
+  `/(<locale>/)?site` path and won't double-prefix it. Reserve → `/site/book` ✓.
+
+Verified live: burger opens the mobile menu; room gallery renders the grid;
+clicking Reserve lands on the Safari checkout at `/site/book` (no double prefix).
+tsc + lint green.
+
+---
+
 ## 2026-06-26 — Safari theme: Vilo preview bar + navigate to every page
 
 - **Vilo preview bar** (like the WordPress admin bar) — pinned above the header

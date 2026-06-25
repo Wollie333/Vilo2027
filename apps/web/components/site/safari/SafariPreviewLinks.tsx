@@ -42,10 +42,11 @@ export function SafariPreviewLinks() {
 
       const [pathAndQuery, hash] = raw.split("#");
       const [rawPath, rawQuery] = pathAndQuery.split("?");
-      // Don't double-prefix links that already carry it (e.g. the book CTA).
-      const prefixed =
-        prefix && (rawPath === prefix || rawPath.startsWith(prefix + "/"));
-      const path = prefixed
+      // Don't double-prefix links that are ALREADY a site path — with or without
+      // a locale segment (e.g. the book CTA emits `/en/site/book` while the page
+      // is served at `/site`). Only bare tenant paths (`/rooms`) get the prefix.
+      const isSitePath = /^\/(?:[^/]+\/)?site(?:\/|$)/.test(rawPath);
+      const path = isSitePath
         ? rawPath
         : `${prefix}${rawPath === "/" ? "" : rawPath}`;
 

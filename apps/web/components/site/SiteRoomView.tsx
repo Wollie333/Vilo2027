@@ -75,6 +75,7 @@ export async function SiteRoomView({
         brandName={ctx.brand.name}
         navLinks={ctx.nav}
         bookHref={headerBookHref}
+        solidNav
         previewPages={previewPages}
       >
         <SafariRoomContent />

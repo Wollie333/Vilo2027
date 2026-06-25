@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SafariBookingContent } from "@/components/site/safari/pages/SafariBookingContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { hostHasValidEft } from "@/lib/payments/eft";
@@ -10,6 +12,7 @@ import {
   type ListingPolicySummary,
 } from "@/lib/policy/listing-summary";
 import {
+  buildSitePreviewPages,
   loadSiteContext,
   resolveSiteRef,
   siteBookHref,
@@ -36,6 +39,8 @@ type SP = {
   to?: string;
   guests?: string;
   scope?: string;
+  preview?: string;
+  theme?: string;
 };
 
 const isIso = (v?: string) => Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v));
@@ -61,8 +66,33 @@ export default async function SiteBookPage({
   });
   if (!ref) notFound();
 
-  const ctx = await loadSiteContext(ref, { siteParam: sp?.site });
+  const ctx = await loadSiteContext(ref, {
+    siteParam: sp?.site,
+    preview: sp?.preview === "1",
+    themeSlug: sp?.theme,
+  });
   if (!ctx) notFound();
+
+  // Theme preview → show the Safari checkout DESIGN (the real booking engine
+  // only runs on the live site), so the host sees the page's look while browsing.
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    const previewPages = ctx.preview
+      ? await buildSitePreviewPages(ctx)
+      : undefined;
+    return (
+      <SafariShell
+        brandName={ctx.brand.name}
+        navLinks={ctx.nav}
+        bookHref={
+          ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+        }
+        solidNav
+        previewPages={previewPages}
+      >
+        <SafariBookingContent />
+      </SafariShell>
+    );
+  }
 
   const admin = createAdminClient();
 
