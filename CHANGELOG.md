@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-06-25 — Aria preview recoloured green + theme blocks gated to active themes
+
+- **Preview recolour:** the Aria preview used the wrong (orange) palette — Aria is
+  actually **green** (accent `#2F5D4F` on paper `#F6F4EF`). Regenerated the SVG in
+  Aria's real palette (migration `20260625040000`). Verified the card renders green.
+- **Theme building blocks only for active themes:** the page builder palette's
+  designed section presets + page templates are now gated by `ACTIVE_THEME_SLUGS`
+  (currently `["aria"]`). A theme's blocks appear only while that theme is active;
+  a site stuck on a removed theme gets no theme blocks (generic blocks still show).
+  Verified: an Aria site still shows the full "Aria" group (11 presets); no
+  regression.
+
+---
+
 ## 2026-06-25 — Aria theme: on-brand preview image
 
 Replaced the random picsum placeholder on the default Aria theme with a polished,

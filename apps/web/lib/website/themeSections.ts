@@ -1624,18 +1624,27 @@ const TEMPLATES: Record<string, ThemeTemplate[]> = {
   nightfall: NIGHTFALL_TEMPLATES,
 };
 
-/** Designed section presets for a theme slug (empty when the theme ships none). */
+// Themes currently ACTIVE in the system. Their designed building blocks (section
+// presets + page templates) are the only ones offered in the page builder — a
+// theme's blocks appear only while that theme is active. Keep in sync with the
+// active rows in site_themes (currently just the default, "aria"; the others
+// were removed). A site stuck on a removed theme simply gets no theme blocks.
+const ACTIVE_THEME_SLUGS = new Set<string>(["aria"]);
+
+/** Designed section presets for the slug — only when that theme is active. */
 export function getThemeSectionPresets(
   themeSlug: string | undefined | null,
 ): ThemeSectionPreset[] {
-  return (themeSlug && PRESETS[themeSlug]) || [];
+  if (!themeSlug || !ACTIVE_THEME_SLUGS.has(themeSlug)) return [];
+  return PRESETS[themeSlug] || [];
 }
 
-/** Designed page templates for a theme slug (empty when the theme ships none). */
+/** Designed page templates for the slug — only when that theme is active. */
 export function getThemeTemplates(
   themeSlug: string | undefined | null,
 ): ThemeTemplate[] {
-  return (themeSlug && TEMPLATES[themeSlug]) || [];
+  if (!themeSlug || !ACTIVE_THEME_SLUGS.has(themeSlug)) return [];
+  return TEMPLATES[themeSlug] || [];
 }
 
 /** Human label for the sidebar theme group (capitalised slug, fallback "Theme"). */
