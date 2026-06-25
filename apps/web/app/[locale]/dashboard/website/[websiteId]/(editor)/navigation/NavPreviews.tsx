@@ -1,6 +1,15 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Menu } from "lucide-react";
 
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
+
+type PreviewDevice = "desktop" | "tablet" | "phone";
+
+/** Does the menu collapse to a ☰ at this device, given the collapse setting? */
+function isCollapsed(collapse: string, device: PreviewDevice): boolean {
+  if (device === "phone") return collapse !== "never";
+  if (device === "tablet") return collapse === "tablet";
+  return false;
+}
 
 // Lightweight live previews for the Navigation manager cards, themed with the
 // scoped `.vilo-nav` chrome (nav.css). Built from the site's real navigation
@@ -13,12 +22,16 @@ function mark(name: string) {
 export function NavHeaderPreview({
   nav,
   brandName,
+  device = "desktop",
 }: {
   nav: NavigationConfig;
   brandName: string;
+  device?: PreviewDevice;
 }) {
   const menu = nav.menu ?? [];
-  const cta = nav.header.ctaLabel?.trim();
+  const collapsed = isCollapsed(nav.header.menuCollapse ?? "mobile", device);
+  const showBook = nav.header.showBookCta !== false;
+  const cta = showBook ? nav.header.ctaLabel?.trim() : undefined;
   const ann = nav.topBar;
   return (
     <div className="nv-device">
@@ -31,20 +44,28 @@ export function NavHeaderPreview({
             <span className="nv-mark">{mark(brandName)}</span>
             <span className="nv-name">{brandName}</span>
           </div>
+          {/* Collapsed views show only the ☰ icon (no inline menu, book hidden);
+              the drawer carries them on the live site. */}
           <div className="nv-menu">
-            {menu.slice(0, 6).map((m) => (
-              <span className="nv-mi" key={m.id}>
-                {m.label}
-                {m.children && m.children.length > 0 ? (
-                  <span className="car">
-                    <ChevronDown style={{ width: 14, height: 14 }} />
+            {collapsed
+              ? null
+              : menu.slice(0, 6).map((m) => (
+                  <span className="nv-mi" key={m.id}>
+                    {m.label}
+                    {m.children && m.children.length > 0 ? (
+                      <span className="car">
+                        <ChevronDown style={{ width: 14, height: 14 }} />
+                      </span>
+                    ) : null}
                   </span>
-                ) : null}
-              </span>
-            ))}
+                ))}
           </div>
           <div className="nv-right">
-            {cta ? <span className="nv-cta solid">{cta}</span> : null}
+            {collapsed ? (
+              <Menu style={{ width: 20, height: 20, color: "var(--ink)" }} />
+            ) : cta ? (
+              <span className="nv-cta solid">{cta}</span>
+            ) : null}
           </div>
         </div>
         <div className="nv-stub">

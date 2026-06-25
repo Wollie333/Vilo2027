@@ -488,6 +488,17 @@ function HeaderMenu({
   );
 }
 
+/**
+ * Header "Book now" visibility per breakpoint: it shows at/above the collapse
+ * breakpoint and hides below it (where the ☰ menu icon replaces it — the drawer
+ * carries the book button). "never" keeps it visible everywhere.
+ */
+function bookVisibilityClass(collapse: MenuCollapse): string {
+  if (collapse === "never") return "inline-flex";
+  if (collapse === "tablet") return "hidden lg:inline-flex";
+  return "hidden md:inline-flex";
+}
+
 function ContactLinks({ brand }: { brand: SiteBrand }) {
   if (!brand.contactEmail && !brand.contactPhone) return null;
   return (
@@ -584,7 +595,11 @@ function HeaderInner({
             dark={dark}
             preview={preview}
           />
-          {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
+          {bookHref ? (
+            <span className={bookVisibilityClass(collapse)}>
+              <BookCta href={bookHref} label={bookLabel} />
+            </span>
+          ) : null}
         </div>
       </div>
     );
@@ -594,7 +609,11 @@ function HeaderInner({
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
         <Logo brand={brand} dark={dark} preview={preview} />
         <div className="flex items-center gap-2">
-          {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
+          {bookHref ? (
+            <span className={bookVisibilityClass(collapse)}>
+              <BookCta href={bookHref} label={bookLabel} />
+            </span>
+          ) : null}
           {/* Minimal stays compact: the menu is always a hamburger drawer. */}
           {menu.length > 0 ? (
             <SiteMobileMenu
@@ -621,7 +640,11 @@ function HeaderInner({
         dark={dark}
         preview={preview}
       />
-      {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
+      {bookHref ? (
+        <span className={bookVisibilityClass(collapse)}>
+          <BookCta href={bookHref} label={bookLabel} />
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -819,7 +842,11 @@ export function SiteChrome({
   children: ReactNode;
 }) {
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
-  const effectiveBookHref = navigation.header?.ctaHref?.trim() || bookHref;
+  // The host can hide the header book button entirely from the nav builder.
+  const showBookCta = navigation.header?.showBookCta !== false;
+  const effectiveBookHref = showBookCta
+    ? navigation.header?.ctaHref?.trim() || bookHref
+    : undefined;
   const sticky = navigation.header?.sticky !== false;
   const menuCollapse: MenuCollapse =
     navigation.header?.menuCollapse ?? "mobile";

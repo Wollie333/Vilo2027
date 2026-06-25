@@ -192,7 +192,11 @@ export function NavSectionEditor({
               {section === "footer" ? (
                 <NavFooterPreview nav={nav} brandName={brandName} />
               ) : (
-                <NavHeaderPreview nav={nav} brandName={brandName} />
+                <NavHeaderPreview
+                  nav={nav}
+                  brandName={brandName}
+                  device={device}
+                />
               )}
             </div>
           </div>

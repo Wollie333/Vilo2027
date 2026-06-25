@@ -82,6 +82,8 @@ export type SiteNavigation = {
     transparentOverHero?: boolean;
     /** When the menu collapses to a ☰ button: phones only / tablets too / never. */
     menuCollapse?: "mobile" | "tablet" | "never";
+    /** Show the header "Book now" button (hidden on collapsed views). Default true. */
+    showBookCta?: boolean;
   };
   footer?: {
     showPoweredBy?: boolean; // default true

@@ -621,11 +621,15 @@ export const navigationSchema = z.object({
       // When the full menu collapses to a ☰ button: on phones only ("mobile"),
       // on tablets too ("tablet"), or never (always show the full inline menu).
       menuCollapse: z.enum(["mobile", "tablet", "never"]).default("mobile"),
+      // Show the "Book now" button in the header. On collapsed (mobile/tablet)
+      // views it's hidden and replaced by the ☰ menu icon — the drawer carries it.
+      showBookCta: z.boolean().default(true),
     })
     .default({
       sticky: true,
       transparentOverHero: false,
       menuCollapse: "mobile",
+      showBookCta: true,
     }),
   footer: z
     .object({

@@ -1918,6 +1918,8 @@
     "navHeaderDesc": "The button shown in your header and how the header behaves.",
     "navCtaLabel": "Button label",
     "navCtaHref": "Button link",
+    "navShowBookCta": "Show the “Book now” button",
+    "navBookCtaHint": "Shown on desktop. On mobile/tablet it's hidden and the ☰ menu icon takes its place — the button stays inside the menu drawer.",
     "navCtaHrefHint": "Where the header button goes (defaults to your booking link).",
     "navSticky": "Keep the header visible on scroll",
     "navTransparent": "Transparent header over the hero",

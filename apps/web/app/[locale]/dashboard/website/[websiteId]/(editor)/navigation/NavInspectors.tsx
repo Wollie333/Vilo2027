@@ -68,22 +68,36 @@ export function HeaderInspector({
     <>
       <div className="insp-sec">
         <div className="isec-t">{t("navCtaTitle")}</div>
-        <Fld label={t("navCtaLabel")}>
-          <input
-            type="text"
-            value={nav.header.ctaLabel ?? ""}
-            maxLength={40}
-            onChange={(e) => setHeader({ ctaLabel: e.target.value })}
-          />
-        </Fld>
-        <Fld label={t("navCtaHref")}>
-          <input
-            type="text"
-            value={nav.header.ctaHref ?? ""}
-            maxLength={500}
-            onChange={(e) => setHeader({ ctaHref: e.target.value })}
-          />
-        </Fld>
+        <Toggle
+          label={t("navShowBookCta")}
+          on={nav.header.showBookCta !== false}
+          onClick={() =>
+            setHeader({ showBookCta: nav.header.showBookCta === false })
+          }
+        />
+        {nav.header.showBookCta !== false ? (
+          <>
+            <Fld label={t("navCtaLabel")}>
+              <input
+                type="text"
+                value={nav.header.ctaLabel ?? ""}
+                maxLength={40}
+                onChange={(e) => setHeader({ ctaLabel: e.target.value })}
+              />
+            </Fld>
+            <Fld label={t("navCtaHref")}>
+              <input
+                type="text"
+                value={nav.header.ctaHref ?? ""}
+                maxLength={500}
+                onChange={(e) => setHeader({ ctaHref: e.target.value })}
+              />
+            </Fld>
+            <p className="mt-1 text-[11.5px] text-brand-mute">
+              {t("navBookCtaHint")}
+            </p>
+          </>
+        ) : null}
       </div>
       <div className="insp-sec">
         <div className="isec-t">{t("navBehaviourTitle")}</div>
