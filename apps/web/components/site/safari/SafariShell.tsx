@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 
+import { SafariLightbox } from "./SafariLightbox";
 import { SafariNav, type SafariNavLink } from "./SafariNav";
 import { SafariPreviewBar } from "./SafariPreviewBar";
 import { SafariPreviewLinks } from "./SafariPreviewLinks";
@@ -62,6 +63,8 @@ export function SafariShell({
       />
 
       {topPad ? <div style={{ paddingTop: topPad }}>{children}</div> : children}
+
+      <SafariLightbox />
 
       <footer className="footer">
         <div className="wrap">
