@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
-import { SITE_PRESETS, SITE_PRESET_KEYS, type SitePreset } from "./themes";
+import { SITE_PRESETS, DEFAULT_PRESET, type SitePreset } from "./themes";
 
 /** One selectable theme for the Brand Studio gallery / preset cards. */
 export type ThemeOption = {
@@ -30,19 +30,23 @@ type ThemeRow = {
   price: number | null;
 };
 
-/** The 6 built-in presets as themes — used until the site_themes table is
- * applied (and as a safety fallback if the catalogue is empty/unavailable). */
+/** The default preset as the sole theme — used as a safety fallback when the
+ * site_themes catalogue is empty/unavailable. Only the default theme is offered;
+ * other themes were removed from the system. */
 function presetThemes(): ThemeOption[] {
-  return SITE_PRESET_KEYS.map((slug) => ({
-    id: `preset:${slug}`,
-    slug,
-    name: SITE_PRESETS[slug].label,
-    description: null,
-    previewUrl: null,
-    base: SITE_PRESETS[slug],
-    isPremium: false,
-    price: null,
-  }));
+  const slug = DEFAULT_PRESET;
+  return [
+    {
+      id: `preset:${slug}`,
+      slug,
+      name: SITE_PRESETS[slug].label,
+      description: null,
+      previewUrl: null,
+      base: SITE_PRESETS[slug],
+      isPremium: false,
+      price: null,
+    },
+  ];
 }
 
 /**
@@ -64,6 +68,8 @@ export async function loadActiveThemes(): Promise<ThemeOption[]> {
         "id, slug, name, description, preview_image_path, base, is_premium, price",
       )
       .eq("is_active", true)
+      // Only the default theme is offered — other themes removed from the system.
+      .eq("is_default", true)
       .is("deleted_at", null)
       .order("sort_order", { ascending: true });
 

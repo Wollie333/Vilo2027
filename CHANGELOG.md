@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-25 — Only the default theme is offered
+
+Removed the other themes from the system — the theme gallery (and Brand Studio
+preset cards) now offer only the **default** theme. `loadActiveThemes` filters
+`site_themes` to `is_default = true`, and the empty-catalogue fallback returns just
+the `DEFAULT_PRESET` rather than all built-in presets. Verified live: the theme
+page shows a single theme (`aria`, the default) marked Active. tsc + lint green.
+(Other theme rows/presets are simply no longer surfaced — kept as data so any site
+referencing one still renders; re-enable later by activating them again.)
+
+---
+
 ## 2026-06-25 — Tabs side-by-side, overlay colour/%, page editor ≠ chrome
 
 - **Inspector tabs side-by-side.** The Content/Style/Advanced tabs were stacking
