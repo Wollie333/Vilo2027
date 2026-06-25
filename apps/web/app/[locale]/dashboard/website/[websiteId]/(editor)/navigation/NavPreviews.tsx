@@ -55,10 +55,16 @@ export function NavHeaderPreview({
 
   // Layout-aware pieces, so the preview matches the chosen header style.
   const layout = nav.header?.layout ?? "classic";
+  // Respect the header's logo style: icon = mark only, wordmark = name only.
+  const logoStyle = nav.header?.logoStyle;
   const brandEl = (
     <div className="nv-brand">
-      <span className="nv-mark">{mark(brandName)}</span>
-      <span className="nv-name">{brandName}</span>
+      {logoStyle !== "wordmark" ? (
+        <span className="nv-mark">{mark(brandName)}</span>
+      ) : null}
+      {logoStyle !== "icon" ? (
+        <span className="nv-name">{brandName}</span>
+      ) : null}
     </div>
   );
   const menuEl =
@@ -92,9 +98,9 @@ export function NavHeaderPreview({
         {/* Collapsed views (or "minimal") show the ☰ icon; the drawer carries
             the menu + book on the live site. Otherwise arrange per layout. */}
         {collapsed || layout === "minimal" ? (
-          <div className="nv-bar">
+          <div className="nv-bar" style={{ justifyContent: "space-between" }}>
             {brandEl}
-            <div className="nv-right" style={{ gap: 8 }}>
+            <div className="nv-right" style={{ gap: 8, marginLeft: "auto" }}>
               {layout === "minimal" ? ctaEl : null}
               {burgerEl}
             </div>

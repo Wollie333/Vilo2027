@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-06-25 — Fix: header preview — logo style + minimal alignment
+
+Two builder-preview fixes in `NavHeaderPreview`:
+- It now respects the header **logo style** (icon = mark only, wordmark = name only),
+  so "Logo only" actually shows just the icon in the preview.
+- **Minimal** layout no longer bunches everything to the left — the `.nv-bar` is now
+  `space-between` with the right group `margin-left:auto`, so the logo sits left and
+  the ☰ menu icon sits on the right (matching the live header).
+
+tsc + lint green.
+
+---
+
 ## 2026-06-25 — Header builder pt.3: real-design card + logo controls
 
 Finished the remaining header-builder follow-ups:
