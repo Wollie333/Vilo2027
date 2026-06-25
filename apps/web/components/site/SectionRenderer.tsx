@@ -276,9 +276,19 @@ function SectionSwitch({
         />
       );
     case "room_rates":
-      return <RoomRatesSection props={section.props} />;
+      return (
+        <RoomRatesSection
+          props={section.props}
+          data={dataFor(data, section.id, "room_rates")}
+        />
+      );
     case "seasonal_pricing":
-      return <SeasonalPricingSection props={section.props} />;
+      return (
+        <SeasonalPricingSection
+          props={section.props}
+          data={dataFor(data, section.id, "seasonal_pricing")}
+        />
+      );
     case "room_gallery":
       return (
         <RoomGallerySection

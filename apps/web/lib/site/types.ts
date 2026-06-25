@@ -348,6 +348,18 @@ export type RateRow = {
 };
 export type RateTableData = { rows: RateRow[] };
 
+/** One season for the editable Seasonal pricing block (auto source). Aggregated
+ *  by label across the site's `property_seasonal_pricing` rules. */
+export type SeasonRow = {
+  label: string;
+  /** Pre-formatted date range, e.g. "1 Dec – 15 Jan". */
+  dates: string;
+  /** "from" price across the rules under this label. */
+  priceFrom: number | null;
+  currency: string;
+};
+export type SeasonalPricingData = { seasons: SeasonRow[] };
+
 /** Live-data shape per auto-populate section type. */
 export type SiteDataByType = {
   gallery: GalleryData;
@@ -365,6 +377,10 @@ export type SiteDataByType = {
   booking_search: BookingFunnelData;
   availability_calendar: BookingFunnelData;
   rate_table: RateTableData;
+  // Editable rates blocks (default source = "auto"): room_rates reuses the live
+  // rate rows; seasonal_pricing reads property_seasonal_pricing, grouped by label.
+  room_rates: RateTableData;
+  seasonal_pricing: SeasonalPricingData;
   // Room-scoped sections — all render the SAME active room (injected by the
   // /rooms/<slug> route; a sample room in the builder preview).
   room_gallery: RoomDetail;

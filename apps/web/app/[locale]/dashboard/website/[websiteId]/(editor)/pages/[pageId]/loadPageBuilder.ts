@@ -130,8 +130,15 @@ export async function loadPageBuilder(
         admin,
         ctx,
         // `trust` is free-form but takes a live review score — request it too so
-        // the builder preview shows the score, like the public site does.
-        new Set<SectionType>([...AUTO_POPULATE_SECTIONS, "trust"]),
+        // the builder preview shows the score, like the public site does. The
+        // rates blocks (room_rates/seasonal_pricing) default to live data, so
+        // request them too — the renderer falls back to manual rows otherwise.
+        new Set<SectionType>([
+          ...AUTO_POPULATE_SECTIONS,
+          "trust",
+          "room_rates",
+          "seasonal_pricing",
+        ]),
       )
     : {};
 

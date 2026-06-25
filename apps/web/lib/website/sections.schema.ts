@@ -470,12 +470,17 @@ const rateTableProps = z.object({
   ctaLabel: z.string().max(60).optional(),
 });
 
-// Editable "Room rate" block — a manual list of room types + their price.
-// Display-only (the host types whatever they like, e.g. "From R1,200 / night"),
-// so there's no currency formatting or live-pricing dependency.
+// Source for the rates blocks. "auto" (default) pulls the host's live data set
+// in the app; "manual" uses the host-typed rows below as an override.
+const RATES_SOURCE = ["auto", "manual"] as const;
+
+// "Room rate" block. Defaults to the host's live room rates (same source as the
+// rate_table). In "manual" mode the host types the rows (price as free text,
+// e.g. "From R1,200 / night") — display-only, no live dependency.
 const roomRatesProps = z.object({
   heading,
   note: z.string().max(300).optional(),
+  source: z.enum(RATES_SOURCE).default("auto"),
   items: z
     .array(
       z.object({
@@ -488,11 +493,13 @@ const roomRatesProps = z.object({
     .default([]),
 });
 
-// Editable "Seasonal pricing" block — a manual list of seasons (name + date
-// range) and their price. Same display-only approach as the room rates block.
+// "Seasonal pricing" block. Defaults to the host's configured seasonal rules
+// (property_seasonal_pricing, grouped by label). In "manual" mode the host types
+// the rows below as an override.
 const seasonalPricingProps = z.object({
   heading,
   note: z.string().max(300).optional(),
+  source: z.enum(RATES_SOURCE).default("auto"),
   items: z
     .array(
       z.object({

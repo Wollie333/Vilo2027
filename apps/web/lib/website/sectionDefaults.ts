@@ -342,6 +342,7 @@ export function newSection(type: SectionType): WebsiteSection {
         props: {
           heading: "Room rates",
           note: "Per night, including breakfast. Minimum 2-night stay over weekends.",
+          source: "auto",
           items: [
             {
               room: "Garden Room",
@@ -370,6 +371,7 @@ export function newSection(type: SectionType): WebsiteSection {
         props: {
           heading: "Seasonal pricing",
           note: "Rates vary by season. Public holidays are charged at peak.",
+          source: "auto",
           items: [
             {
               season: "Peak",

@@ -823,6 +823,17 @@ async function assembleSectionData(
         if (byType.rate_table)
           data[s.id] = { type: "rate_table", data: byType.rate_table };
         break;
+      case "room_rates":
+        if (byType.room_rates)
+          data[s.id] = { type: "room_rates", data: byType.room_rates };
+        break;
+      case "seasonal_pricing":
+        if (byType.seasonal_pricing)
+          data[s.id] = {
+            type: "seasonal_pricing",
+            data: byType.seasonal_pricing,
+          };
+        break;
       default:
         break;
     }
@@ -1030,6 +1041,80 @@ async function loadRateTable(
 }
 
 /**
+ * The host's configured seasonal pricing for the site's properties, aggregated
+ * into a display-only list for the editable Seasonal pricing block (source
+ * "auto"). Reads the live `property_seasonal_pricing` rules (listing_id keeps its
+ * name post-rename → references properties), groups by label across all the
+ * site's properties, and reduces each label to one date range + a "from" price.
+ */
+async function loadSeasonalPricing(
+  sb: Sb,
+  ctx: SiteContext,
+): Promise<SiteDataByType["seasonal_pricing"]> {
+  const ids = ctx.propertyIds;
+  if (ids.length === 0) return { seasons: [] };
+  const { data } = await sb
+    .from("property_seasonal_pricing")
+    .select("label, start_date, end_date, price, currency, is_active")
+    .in("listing_id", ids)
+    .eq("is_active", true);
+  type Row = {
+    label: string;
+    start_date: string;
+    end_date: string;
+    price: number | string | null;
+    currency: string | null;
+  };
+  const rows = (data ?? []) as Row[];
+  if (rows.length === 0) return { seasons: [] };
+
+  // Group by label → earliest start, latest end, lowest price.
+  const byLabel = new Map<
+    string,
+    { start: string; end: string; price: number | null; currency: string }
+  >();
+  for (const r of rows) {
+    const label = (r.label ?? "").trim();
+    if (!label) continue;
+    const price = r.price == null ? null : Number(r.price);
+    const cur = byLabel.get(label);
+    if (!cur) {
+      byLabel.set(label, {
+        start: r.start_date,
+        end: r.end_date,
+        price,
+        currency: r.currency || "ZAR",
+      });
+      continue;
+    }
+    if (r.start_date < cur.start) cur.start = r.start_date;
+    if (r.end_date > cur.end) cur.end = r.end_date;
+    if (price != null && (cur.price == null || price < cur.price))
+      cur.price = price;
+  }
+
+  const fmt = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return new Intl.DateTimeFormat("en-ZA", {
+      day: "numeric",
+      month: "short",
+    }).format(d);
+  };
+
+  const seasons = [...byLabel.entries()]
+    .sort((a, b) => (a[1].start < b[1].start ? -1 : 1))
+    .map(([label, v]) => ({
+      label,
+      dates: `${fmt(v.start)} – ${fmt(v.end)}`,
+      priceFrom: v.price,
+      currency: v.currency,
+    }));
+
+  return { seasons };
+}
+
+/**
  * Resolve the live data for each requested auto-populate section TYPE (keyed by
  * type, not section id) — the SSOT used by both the public renderer
  * ({@link assembleSectionData}) and the dashboard builder preview, which asks for
@@ -1064,6 +1149,14 @@ export async function assembleSiteDataByType(
   }
   if (types.has("rate_table")) {
     out.rate_table = await loadRateTable(sb, ctx);
+  }
+  // Editable rates blocks (default source "auto") — room_rates reuses the live
+  // rate rows; seasonal_pricing reads the host's configured seasonal rules.
+  if (types.has("room_rates")) {
+    out.room_rates = await loadRateTable(sb, ctx);
+  }
+  if (types.has("seasonal_pricing")) {
+    out.seasonal_pricing = await loadSeasonalPricing(sb, ctx);
   }
 
   const ids = ctx.propertyIds;

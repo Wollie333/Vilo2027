@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-25 — Rates blocks now default to the host's live data
+
+Per founder: the Room rate + Seasonal pricing blocks should pull the host's
+existing data by default, not start blank. Added a `source` toggle to both
+(default **auto**):
+- **auto** — Room rates pulls live `property_rooms` (same source as `rate_table`:
+  real room name, "Sleeps N", formatted nightly price); Seasonal pricing reads
+  `property_seasonal_pricing` (renamed from `listing_seasonal_pricing`), grouped
+  by label → date range + "from" price.
+- **manual** — the host-typed rows (override), unchanged from before.
+- If auto has no live data (e.g. no seasonal rules configured), it falls back to
+  the seeded sample rows so the block never renders empty.
+
+Wiring: `SeasonalPricingData`/`SeasonRow` types; `loadSeasonalPricing` resolver +
+`room_rates`/`seasonal_pricing` cases in `assembleSectionData` /
+`assembleSiteDataByType`; `loadPageBuilder` + `buildPreviewData` request them so
+the builder preview shows live data too; `SectionRenderer` passes data;
+`RatesBlocks` renders live-or-manual uniformly; editor gets the source select +
+a live note. Kept OUT of `AUTO_POPULATE_SECTIONS` (hybrid, still editable — no
+forced live-only semantics). Verified in the builder: Room rates auto showed the
+real "Olive Room · Sleeps 2 · R 1 300 / night"; Seasonal fell back to the sample
+(vilotest has no seasonal rules). tsc + lint green; vilotest reset.
+
+---
+
 ## 2026-06-25 — Rates page: editable Room rate + Seasonal pricing blocks
 
 Two new manually-editable section types for the rates page (no live-pricing

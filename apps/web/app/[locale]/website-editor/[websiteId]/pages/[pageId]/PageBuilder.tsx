@@ -269,6 +269,8 @@ function buildPreviewData(
     "booking_search",
     "availability_calendar",
     "rate_table",
+    "room_rates",
+    "seasonal_pricing",
   ];
   for (const s of sections) {
     // Room-scoped sections preview the sample room (on a room_detail page).
