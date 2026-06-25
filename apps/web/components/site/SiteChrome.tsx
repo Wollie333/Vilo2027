@@ -403,7 +403,11 @@ function MenuNav({
 }) {
   if (menu.length === 0) return null;
   return (
-    <nav className={`${styled ? "vilo-hmenu" : ""}${className}`}>
+    <nav
+      className={[styled ? "vilo-hmenu" : "", className]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {menu.map((item) =>
         item.children && item.children.length > 0 ? (
           <div key={item.id} className="group relative">
