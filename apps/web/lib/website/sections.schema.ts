@@ -62,6 +62,9 @@ export const SECTION_TYPES = [
   "el_divider",
   // Columns — a bounded single-level container (NOT a general element tree).
   "columns",
+  // Flex container — a free-form block where the host arranges elements with
+  // flexbox (direction / justify / align / gap / wrap) to design their own row.
+  "flex",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
@@ -575,6 +578,26 @@ const columnsProps = z.object({
   align: z.enum(["left", "center"]).default("left"),
 });
 
+// Flex container — a single free-form block laid out with flexbox. Reuses the
+// column block kinds (heading/text/image/button) as its children.
+export const FLEX_DIRECTION = ["row", "column"] as const;
+export const FLEX_JUSTIFY = [
+  "start",
+  "center",
+  "end",
+  "between",
+  "around",
+] as const;
+export const FLEX_ALIGN = ["start", "center", "end", "stretch"] as const;
+const flexProps = z.object({
+  blocks: z.array(columnBlockSchema).max(20).default([]),
+  direction: z.enum(FLEX_DIRECTION).default("row"),
+  justify: z.enum(FLEX_JUSTIFY).default("start"),
+  align: z.enum(FLEX_ALIGN).default("stretch"),
+  gap: z.enum(["sm", "md", "lg"]).default("md"),
+  wrap: z.boolean().default(true),
+});
+
 // ── Per-block responsive style (additive) ─────────────────────
 // Optional per-viewport spacing overrides + an optional background colour.
 // Applied by the renderer's SectionWrap (a scoped <style> with media queries) —
@@ -802,6 +825,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("columns"),
     props: columnsProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("flex"),
+    props: flexProps,
   }),
 ]);
 

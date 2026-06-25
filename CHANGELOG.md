@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-06-25 — Flex container + heading tag control (builder refinements pt.2)
+
+- **Flex container** (`flex` section) — a free-form block where the host arranges
+  elements (heading / text / image / button) with **flexbox**: direction (row /
+  column), justify, align, gap, wrap. Reuses the column block primitives
+  (`InlineBlock` + `ColumnBlockEditor`). Added to the palette under Elements.
+  (Single-level for now — holds elements; nesting containers is a future step.)
+- **Heading element tag** — `el_heading` (and column heading blocks) can now render
+  as **h1–h6 or p**, not just h2/h3/h4 (size maps extended).
+- **Drag-to-reposition** confirmed already working — every section (incl. element
+  blocks) has a dnd-kit grip handle; no change needed.
+
+Verified live: flex block renders display:flex row, 32px gap, 3 children; controls
+present; added + removed cleanly. tsc + lint green; vilotest reset.
+
+---
+
 ## 2026-06-25 — Section inspector: tabs + line-height
 
 UI cleanup + more typography control (part 1 of the section-builder refinements):

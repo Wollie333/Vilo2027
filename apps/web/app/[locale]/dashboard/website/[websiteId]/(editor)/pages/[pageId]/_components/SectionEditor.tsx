@@ -1953,6 +1953,15 @@ function SectionFields({
         />
       );
 
+    case "flex":
+      return (
+        <FlexEditor
+          websiteId={websiteId}
+          section={section}
+          onChange={onChange}
+        />
+      );
+
     default:
       return null;
   }
@@ -2303,6 +2312,115 @@ function ColumnsEditor({
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Flex container editor — block list (reused) + flexbox layout controls. */
+function FlexEditor({
+  websiteId,
+  section,
+  onChange,
+}: {
+  websiteId: string;
+  section: Extract<WebsiteSection, { type: "flex" }>;
+  onChange: (next: WebsiteSection) => void;
+}) {
+  const t = useTranslations("website");
+  const p = section.props;
+  const blocks = p.blocks ?? [];
+  const set = (patch: Partial<typeof p>) =>
+    onChange({ ...section, props: { ...p, ...patch } });
+  const setBlocks = (b: ColumnBlock[]) => set({ blocks: b });
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <SelectField
+          label={t("fldFlexDirection")}
+          value={p.direction}
+          options={[
+            { value: "row", label: t("flexDir_row") },
+            { value: "column", label: t("flexDir_column") },
+          ]}
+          onChange={(v) => set({ direction: v })}
+        />
+        <SelectField
+          label={t("fldColumnsGap")}
+          value={p.gap}
+          options={[
+            { value: "sm", label: t("elSpacer_sm") },
+            { value: "md", label: t("elSpacer_md") },
+            { value: "lg", label: t("elSpacer_lg") },
+          ]}
+          onChange={(v) => set({ gap: v })}
+        />
+        <SelectField
+          label={t("fldFlexJustify")}
+          value={p.justify}
+          options={[
+            { value: "start", label: t("flexJustify_start") },
+            { value: "center", label: t("flexJustify_center") },
+            { value: "end", label: t("flexJustify_end") },
+            { value: "between", label: t("flexJustify_between") },
+            { value: "around", label: t("flexJustify_around") },
+          ]}
+          onChange={(v) => set({ justify: v })}
+        />
+        <SelectField
+          label={t("fldFlexAlign")}
+          value={p.align}
+          options={[
+            { value: "start", label: t("flexAlign_start") },
+            { value: "center", label: t("flexAlign_center") },
+            { value: "end", label: t("flexAlign_end") },
+            { value: "stretch", label: t("flexAlign_stretch") },
+          ]}
+          onChange={(v) => set({ align: v })}
+        />
+      </div>
+      <ToggleField
+        label={t("fldFlexWrap")}
+        checked={p.wrap !== false}
+        onChange={(v) => set({ wrap: v })}
+      />
+
+      <div className="space-y-3">
+        {blocks.map((block, bi) => (
+          <ColumnBlockEditor
+            key={bi}
+            websiteId={websiteId}
+            block={block}
+            isFirst={bi === 0}
+            isLast={bi === blocks.length - 1}
+            onChange={(next) =>
+              setBlocks(blocks.map((b, i) => (i === bi ? next : b)))
+            }
+            onRemove={() => setBlocks(blocks.filter((_, i) => i !== bi))}
+            onMove={(dir) => {
+              const j = bi + dir;
+              if (j < 0 || j >= blocks.length) return;
+              const next = [...blocks];
+              [next[bi], next[j]] = [next[j], next[bi]];
+              setBlocks(next);
+            }}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {(["heading", "text", "image", "button"] as ColumnBlockKind[]).map(
+          (kind) => (
+            <button
+              key={kind}
+              type="button"
+              onClick={() => setBlocks([...blocks, newColumnBlock(kind)])}
+              className="inline-flex items-center gap-1 rounded-[8px] border border-dashed border-brand-line px-2.5 py-1 text-[12px] font-medium text-brand-mute transition hover:border-brand-mute hover:text-brand-ink"
+            >
+              + {t(`blockKind_${kind}`)}
+            </button>
+          ),
+        )}
+      </div>
     </div>
   );
 }

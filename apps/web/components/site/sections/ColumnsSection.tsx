@@ -27,7 +27,7 @@ const H_SIZE = {
 } as const;
 
 /** One inline block inside a column. Theme-aware via the scoped `--site-*` vars. */
-function InlineBlock({
+export function InlineBlock({
   block,
   asset,
 }: {
@@ -130,6 +130,56 @@ export function ColumnsSection({
             {col.blocks.map((b, j) => (
               <InlineBlock key={j} block={b} asset={asset} />
             ))}
+          </div>
+        ))}
+      </div>
+    </SectionShell>
+  );
+}
+
+// ── Flex container ────────────────────────────────────────────
+type FlexProps = Extract<WebsiteSection, { type: "flex" }>["props"];
+const FLEX_JUSTIFY_CSS = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  between: "space-between",
+  around: "space-around",
+} as const;
+const FLEX_ALIGN_CSS = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  stretch: "stretch",
+} as const;
+const FLEX_GAP_PX = { sm: 16, md: 32, lg: 48 } as const;
+
+/** Free-form flex container — the host arranges blocks with flexbox to build
+ *  their own row/stack layout. Children reuse the column block primitives. */
+export function FlexSection({
+  props,
+  asset,
+}: {
+  props: FlexProps;
+  asset?: SiteAssetResolver;
+}) {
+  const blocks = props.blocks ?? [];
+  if (blocks.length === 0) return null;
+  return (
+    <SectionShell>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: props.direction === "column" ? "column" : "row",
+          justifyContent: FLEX_JUSTIFY_CSS[props.justify ?? "start"],
+          alignItems: FLEX_ALIGN_CSS[props.align ?? "stretch"],
+          gap: `${FLEX_GAP_PX[props.gap ?? "md"]}px`,
+          flexWrap: props.wrap === false ? "nowrap" : "wrap",
+        }}
+      >
+        {blocks.map((b, i) => (
+          <div key={i}>
+            <InlineBlock block={b} asset={asset} />
           </div>
         ))}
       </div>

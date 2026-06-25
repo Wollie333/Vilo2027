@@ -467,6 +467,28 @@ export function newSection(type: SectionType): WebsiteSection {
           ],
         },
       };
+    case "flex":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          direction: "row",
+          justify: "start",
+          align: "stretch",
+          gap: "md",
+          wrap: true,
+          blocks: [
+            { kind: "heading", text: "Your heading", level: "h3" },
+            {
+              kind: "text",
+              body: "Add elements and arrange them with the flex controls.",
+            },
+            { kind: "button", label: "Button", href: "#", variant: "primary" },
+          ],
+        },
+      };
     default: {
       // Exhaustiveness guard — a new SectionType must add a default above.
       const never: never = type;

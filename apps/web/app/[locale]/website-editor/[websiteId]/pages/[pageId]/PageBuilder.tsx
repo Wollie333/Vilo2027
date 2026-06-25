@@ -180,6 +180,7 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   {
     key: "catElements",
     types: [
+      "flex",
       "columns",
       "el_heading",
       "el_text",
@@ -229,6 +230,7 @@ const ICONS: Record<SectionType, LucideIcon> = {
   el_spacer: MoveVertical,
   el_divider: Minus,
   columns: Columns3,
+  flex: LayoutTemplate,
 };
 
 // Icons for the seven hero presets surfaced as pickable cards in the sidebar.
