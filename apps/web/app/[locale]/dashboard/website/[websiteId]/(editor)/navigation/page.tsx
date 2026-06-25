@@ -8,11 +8,8 @@ import { createServerClient } from "@/lib/supabase/server";
 import { ensureDefaultMenu } from "@/lib/website/defaultMenu";
 import { navigationSchema } from "@/app/[locale]/dashboard/website/schemas";
 
-import {
-  NavFooterPreview,
-  NavHeaderPreview,
-  NavMenuPills,
-} from "./NavPreviews";
+import { LivePreviewFrame } from "./LivePreviewFrame";
+import { NavFooterPreview, NavMenuPills } from "./NavPreviews";
 
 export const dynamic = "force-dynamic";
 
@@ -101,8 +98,8 @@ export default async function WebsiteNavigationPage({
           </Link>
         </div>
         <div className="nv-mod-prev">
-          <div className="nv-mod-prevwrap">
-            <NavHeaderPreview nav={navigation} brandName={brandName} />
+          <div className="nv-mod-prevwrap" style={{ padding: 0 }}>
+            <LivePreviewFrame subdomain={site.subdomain} />
           </div>
         </div>
       </div>

@@ -936,6 +936,7 @@ export function SiteChrome({
   websiteId,
   editable,
   layout = "full",
+  hideBanner = false,
   children,
 }: {
   brand: SiteBrand;
@@ -961,6 +962,8 @@ export function SiteChrome({
   websiteId?: string;
   /** Builder-only: makes the header/footer click-to-select for inline editing. */
   editable?: ChromeEditable;
+  /** Embedded preview (e.g. the nav-manager card iframe): hide the preview banner. */
+  hideBanner?: boolean;
   children: ReactNode;
 }) {
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
@@ -1007,8 +1010,8 @@ export function SiteChrome({
         <SiteAnalytics websiteId={analyticsWebsiteId} />
       ) : null}
 
-      {/* Preview mode banner */}
-      {preview ? (
+      {/* Preview mode banner (hidden when embedded in a manager card iframe) */}
+      {preview && !hideBanner ? (
         <PreviewBanner
           subdomain={preview.subdomain}
           themeSlug={preview.themeSlug}

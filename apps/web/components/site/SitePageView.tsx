@@ -38,6 +38,7 @@ export async function SitePageView({
   preview = false,
   themeSlug,
   siteParam,
+  embed = false,
 }: {
   siteRef: string;
   pathSlug: string[];
@@ -46,6 +47,8 @@ export async function SitePageView({
   /** Set when the site is reached via the app-domain ?site= affordance — makes
    *  on-site booking links carry the /[locale]/site prefix so they resolve. */
   siteParam?: string | null;
+  /** Embedded in a manager-card iframe → hide the preview banner. */
+  embed?: boolean;
 }) {
   const ctx = await loadSiteContext(siteRef, { preview, themeSlug, siteParam });
   if (!ctx) notFound();
@@ -102,6 +105,7 @@ export async function SitePageView({
           header={ctx.theme.header}
           footer={ctx.theme.footer}
           preview={previewContext}
+          hideBanner={embed}
         >
           <SectionRenderer
             sections={result.sections}

@@ -34,7 +34,12 @@ export async function generateMetadata({
 export default async function SiteHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ site?: string; preview?: string; theme?: string }>;
+  searchParams: Promise<{
+    site?: string;
+    preview?: string;
+    theme?: string;
+    embed?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const h = await headers();
@@ -50,6 +55,7 @@ export default async function SiteHomePage({
       preview={sp?.preview === "1"}
       themeSlug={sp?.theme}
       siteParam={sp?.site}
+      embed={sp?.embed === "1"}
     />
   );
 }
