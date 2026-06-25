@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-25 — Fix: room detail pages 404'd in preview
+
+Clicking a room in the **preview** tab 404'd: room links dropped the `preview=1`
+flag, so the room route loaded in non-preview mode (which returns null for an
+unpublished/draft site → 404, and wouldn't show draft content).
+- `siteRoomHref` now carries `&preview=1` (and `?site=`) when `ctx.preview`, so a
+  clicked room **card** keeps rendering in preview.
+- `roomMenuLinks` now returns a **clean** `/rooms/<slug>` path (not a baked one):
+  header menu links run through `buildNavHref`, which already adds the
+  `/site` + `?site=&preview=` for preview — baking them in `siteRoomHref` too was
+  double-encoding the menu links into a broken URL. Room cards (which bypass
+  `buildNavHref`) keep the baked `siteRoomHref`.
+
+Verified in preview: both the menu dropdown links and the room cards now open the
+room detail page (rendered from the room-detail template) instead of 404 — e.g.
+`/site/rooms/mountain-loft?site=…&preview=1` renders "Mountain Loft". tsc + lint +
+181 vitest green.
+
+---
+
 ## 2026-06-25 — Auto-rooms menu dropdown (always up to date) + per-room hide
 
 The Rooms menu item is now an **auto-rooms dropdown**: its children are resolved

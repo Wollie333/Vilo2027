@@ -556,14 +556,18 @@ export function siteBookHref(
 /**
  * Link to a room's detail page (`/rooms/<slug>`), relative to the site root so it
  * stays on the host's own domain; adds `?site=` on the app-domain ?site=
- * affordance so it resolves there too.
+ * affordance, and `&preview=1` when previewing so a clicked room keeps rendering
+ * in preview mode (draft sections, unpublished sites) instead of 404ing.
  */
 export function siteRoomHref(
-  ctx: Pick<SiteContext, "bookBasePath" | "subdomain">,
+  ctx: Pick<SiteContext, "bookBasePath" | "subdomain" | "preview">,
   slug: string,
 ): string {
-  const base = `${ctx.bookBasePath}/rooms/${encodeURIComponent(slug)}`;
-  return ctx.bookBasePath ? `${base}?site=${ctx.subdomain}` : base;
+  const qs = new URLSearchParams();
+  if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
+  if (ctx.preview) qs.set("preview", "1");
+  const q = qs.toString();
+  return `${ctx.bookBasePath}/rooms/${encodeURIComponent(slug)}${q ? `?${q}` : ""}`;
 }
 
 /** Humanise an enum value ("sea_view" → "Sea view"). */
@@ -1663,8 +1667,11 @@ export async function roomMenuLinks(ctx: SiteContext): Promise<RoomMenuLink[]> {
   );
   return ordered.map((o) => ({
     roomId: o.roomId,
+    // Clean site-relative path — the header MenuLink runs it through
+    // buildNavHref, which adds the /site + ?site=&preview= for preview itself
+    // (baking them here would double up). Matches every other menu item.
     label: o.propName,
-    href: siteRoomHref(ctx, slugs.get(o.roomId) ?? ""),
+    href: `/rooms/${slugs.get(o.roomId) ?? ""}`,
   }));
 }
 
