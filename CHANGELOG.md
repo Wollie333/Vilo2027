@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-06-25 — Rates page: editable Room rate + Seasonal pricing blocks
+
+Two new manually-editable section types for the rates page (no live-pricing
+dependency — the host types prices as free text, e.g. "From R1,200 / night"):
+- **Room rates** (`room_rates`) — a list of room types with price + a detail line.
+- **Seasonal pricing** (`seasonal_pricing`) — responsive cards of seasons
+  (name + date range + price/modifier + detail).
+
+Wired end to end: Zod schema + union, starter defaults, renderers
+(`RatesBlocks.tsx`) + `SectionRenderer` cases, the page-builder editors
+(`ItemListEditor` rows), both block-library palettes + thumbnails + the icon map,
+and the `rates` page template now ships `intro → room_rates → seasonal_pricing →
+cta` (the live `rate_table` remains available in the library). i18n added to
+en.json (the builder is English-only). Verified in the builder: both blocks
+appear in the library and render with content; tsc + lint green; vilotest reset.
+
+---
+
 ## 2026-06-25 — Menu alignment is now a universal control across all layouts
 
 Menu alignment (start / center / end) previously only affected the **classic**

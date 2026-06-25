@@ -47,7 +47,13 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   },
   {
     key: "catBooking",
-    types: ["booking_search", "availability_calendar", "rate_table"],
+    types: [
+      "booking_search",
+      "availability_calendar",
+      "rate_table",
+      "room_rates",
+      "seasonal_pricing",
+    ],
   },
   { key: "catLocation", types: ["location", "map"] },
   { key: "catConvert", types: ["cta", "contact_form", "form"] },

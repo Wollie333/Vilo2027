@@ -37,6 +37,10 @@ import { BookingSearchSection } from "./sections/BookingSearchSection";
 import { AvailabilityCalendarSection } from "./sections/AvailabilityCalendarSection";
 import { RateTableSection } from "./sections/RateTableSection";
 import {
+  RoomRatesSection,
+  SeasonalPricingSection,
+} from "./sections/RatesBlocks";
+import {
   RoomGallerySection,
   RoomOverviewSection,
   RoomAmenitiesSection,
@@ -271,6 +275,10 @@ function SectionSwitch({
           data={dataFor(data, section.id, "rate_table")}
         />
       );
+    case "room_rates":
+      return <RoomRatesSection props={section.props} />;
+    case "seasonal_pricing":
+      return <SeasonalPricingSection props={section.props} />;
     case "room_gallery":
       return (
         <RoomGallerySection

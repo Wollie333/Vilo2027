@@ -170,7 +170,13 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   },
   {
     key: "catBooking",
-    types: ["booking_search", "availability_calendar", "rate_table"],
+    types: [
+      "booking_search",
+      "availability_calendar",
+      "rate_table",
+      "room_rates",
+      "seasonal_pricing",
+    ],
   },
   { key: "catLocation", types: ["location", "map"] },
   { key: "catConvert", types: ["cta", "contact_form", "form"] },
@@ -217,6 +223,8 @@ const ICONS: Record<SectionType, LucideIcon> = {
   booking_search: Search,
   availability_calendar: CalendarDays,
   rate_table: Table,
+  room_rates: BadgeDollarSign,
+  seasonal_pricing: CalendarDays,
   room_gallery: Images,
   room_overview: BedDouble,
   room_amenities: ListChecks,

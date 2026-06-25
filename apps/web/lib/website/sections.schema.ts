@@ -46,6 +46,9 @@ export const SECTION_TYPES = [
   "booking_search",
   "availability_calendar",
   "rate_table",
+  // Editable rates blocks (manual content — no live pricing dependency).
+  "room_rates",
+  "seasonal_pricing",
   // Room detail — room-scoped sections that render the SINGLE room being viewed
   // (the /rooms/<slug> route injects the active room into each one's data). Only
   // meaningful on the `room_detail` page template.
@@ -467,6 +470,42 @@ const rateTableProps = z.object({
   ctaLabel: z.string().max(60).optional(),
 });
 
+// Editable "Room rate" block — a manual list of room types + their price.
+// Display-only (the host types whatever they like, e.g. "From R1,200 / night"),
+// so there's no currency formatting or live-pricing dependency.
+const roomRatesProps = z.object({
+  heading,
+  note: z.string().max(300).optional(),
+  items: z
+    .array(
+      z.object({
+        room: z.string().max(120),
+        price: z.string().max(60),
+        detail: z.string().max(200).optional(),
+      }),
+    )
+    .max(20)
+    .default([]),
+});
+
+// Editable "Seasonal pricing" block — a manual list of seasons (name + date
+// range) and their price. Same display-only approach as the room rates block.
+const seasonalPricingProps = z.object({
+  heading,
+  note: z.string().max(300).optional(),
+  items: z
+    .array(
+      z.object({
+        season: z.string().max(120),
+        dates: z.string().max(80).optional(),
+        price: z.string().max(60),
+        detail: z.string().max(200).optional(),
+      }),
+    )
+    .max(20)
+    .default([]),
+});
+
 // ── Free elements (page-builder primitives) ───────────────────
 // Light, self-contained building blocks the host drops between the curated
 // sections — free-form (never auto-populate). Deliberately simple: text, image,
@@ -778,6 +817,16 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("rate_table"),
     props: rateTableProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("room_rates"),
+    props: roomRatesProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("seasonal_pricing"),
+    props: seasonalPricingProps,
   }),
   z.object({
     ...sectionBase,

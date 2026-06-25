@@ -1650,6 +1650,118 @@ function SectionFields({
       );
     }
 
+    case "room_rates": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <ItemListEditor
+            label={t("fldRoomRates")}
+            items={p.items}
+            onChange={(items) => set({ items })}
+            blank={() => ({ room: "", price: "", detail: "" })}
+            addLabel={t("addRoomRate")}
+            max={20}
+            renderItem={(item, patch) => (
+              <>
+                <TextField
+                  label={t("fldRoomName")}
+                  value={item.room}
+                  onChange={(v) => patch({ room: v })}
+                  maxLength={120}
+                />
+                <TextField
+                  label={t("fldRatePrice")}
+                  value={item.price}
+                  onChange={(v) => patch({ price: v })}
+                  maxLength={60}
+                />
+                <TextField
+                  label={t("fldRateDetail")}
+                  value={item.detail ?? ""}
+                  onChange={(v) => patch({ detail: v })}
+                  maxLength={200}
+                />
+              </>
+            )}
+          />
+          <TextArea
+            label={t("fldNote")}
+            value={p.note ?? ""}
+            onChange={(v) => set({ note: v })}
+            maxLength={300}
+            rows={2}
+          />
+        </div>
+      );
+    }
+
+    case "seasonal_pricing": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <ItemListEditor
+            label={t("fldSeasons")}
+            items={p.items}
+            onChange={(items) => set({ items })}
+            blank={() => ({ season: "", dates: "", price: "", detail: "" })}
+            addLabel={t("addSeason")}
+            max={20}
+            renderItem={(item, patch) => (
+              <>
+                <TextField
+                  label={t("fldSeasonName")}
+                  value={item.season}
+                  onChange={(v) => patch({ season: v })}
+                  maxLength={120}
+                />
+                <TextField
+                  label={t("fldSeasonDates")}
+                  value={item.dates ?? ""}
+                  onChange={(v) => patch({ dates: v })}
+                  maxLength={80}
+                />
+                <TextField
+                  label={t("fldRatePrice")}
+                  value={item.price}
+                  onChange={(v) => patch({ price: v })}
+                  maxLength={60}
+                />
+                <TextField
+                  label={t("fldRateDetail")}
+                  value={item.detail ?? ""}
+                  onChange={(v) => patch({ detail: v })}
+                  maxLength={200}
+                />
+              </>
+            )}
+          />
+          <TextArea
+            label={t("fldNote")}
+            value={p.note ?? ""}
+            onChange={(v) => set({ note: v })}
+            maxLength={300}
+            rows={2}
+          />
+        </div>
+      );
+    }
+
     case "room_gallery": {
       const p = section.props;
       const set = (patch: Partial<typeof p>) =>

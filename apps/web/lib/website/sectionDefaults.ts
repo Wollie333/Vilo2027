@@ -333,6 +333,65 @@ export function newSection(type: SectionType): WebsiteSection {
           note: "Rates are per night from — your final price is confirmed at checkout.",
         },
       };
+    case "room_rates":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Room rates",
+          note: "Per night, including breakfast. Minimum 2-night stay over weekends.",
+          items: [
+            {
+              room: "Garden Room",
+              price: "From R1,200 / night",
+              detail: "Queen bed · garden view · sleeps 2",
+            },
+            {
+              room: "Vineyard Suite",
+              price: "From R1,850 / night",
+              detail: "King bed · private balcony · sleeps 2",
+            },
+            {
+              room: "Family Cottage",
+              price: "From R2,400 / night",
+              detail: "2 bedrooms · kitchenette · sleeps 4",
+            },
+          ],
+        },
+      };
+    case "seasonal_pricing":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Seasonal pricing",
+          note: "Rates vary by season. Public holidays are charged at peak.",
+          items: [
+            {
+              season: "Peak",
+              dates: "Dec – Jan",
+              price: "+30%",
+              detail: "Festive season & school holidays",
+            },
+            {
+              season: "High",
+              dates: "Feb – Apr · Sep – Nov",
+              price: "Standard rate",
+              detail: "Best weather for the winelands",
+            },
+            {
+              season: "Low",
+              dates: "May – Aug",
+              price: "−20%",
+              detail: "Cosy winter escapes",
+            },
+          ],
+        },
+      };
     case "room_gallery":
       return {
         id,

@@ -556,9 +556,10 @@ export const PAGE_TEMPLATE_SECTIONS: Record<PageTemplate, SectionType[]> = {
   contact: ["intro", "contact_form"],
   landing: ["hero", "highlights", "rooms_preview", "reviews", "cta"],
   rooms: ["intro", "rooms_preview", "amenities", "pricing", "cta"],
-  // Rates page: intro + the live rate table (pulls the property's rates) + a
-  // book CTA. `rate_table` is auto-populated from the host's room rates.
-  rates: ["intro", "rate_table", "cta"],
+  // Rates page: intro + an editable room-rate block + a seasonal-pricing block +
+  // a book CTA. The two rates blocks are manual content (host-edited); for a
+  // live, auto-populated table the `rate_table` section is also available.
+  rates: ["intro", "room_rates", "seasonal_pricing", "cta"],
   experiences: ["intro", "highlights", "gallery", "cta"],
   gallery: ["intro", "gallery"],
 };

@@ -329,6 +329,38 @@ export function SectionThumb({ type }: { type: SectionType }) {
           </div>
         </Frame>
       );
+    case "room_rates":
+      return (
+        <Frame>
+          <div className="flex flex-1 flex-col justify-center gap-1">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded bg-white px-1.5 py-1"
+              >
+                <Bar w="w-1/2" />
+                <div className="h-2 w-6 rounded bg-brand-accent" />
+              </div>
+            ))}
+          </div>
+        </Frame>
+      );
+    case "seasonal_pricing":
+      return (
+        <Frame>
+          <div className="grid flex-1 grid-cols-3 gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center justify-center gap-1 rounded bg-white py-1"
+              >
+                <Bar w="w-2/3" muted />
+                <div className="h-2 w-4 rounded bg-brand-accent" />
+              </div>
+            ))}
+          </div>
+        </Frame>
+      );
     case "el_heading":
       return (
         <Frame>
