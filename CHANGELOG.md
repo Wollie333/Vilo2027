@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-26 — Safari theme: design-true preview card + navigable preview
+
+- **Featured image now represents the real design.** The Safari gallery card was
+  the savanna hero photo; it's now a composite of the actual hero *design* — the
+  photo (embedded base64) under the design's dark overlay with the nav, gold
+  "Private Reserve" eyebrow, the serif "Where the wild keeps its silence"
+  headline and the 12,000 / Big Five / 4.98★ meta stats. Self-contained `data:`
+  URI (migration `20260626020000`), passes through `websiteAssetUrl`. Verified
+  rendering on the card (1600×1000).
+- **Theme Preview is now navigable across every page.** New client
+  `SafariPreviewLinks` (mounted in `SafariShell`): while previewing
+  (`?preview=1`), it intercepts internal link clicks and rewrites them to keep
+  the `/{locale}/site` prefix (handles the omitted default-locale → `/site`) +
+  the site/preview/theme params. So clicking through the design's nav (Suites,
+  About, Journal, Contact, …) stays in the Safari preview instead of breaking out
+  to the app domain. Verified: Preview → click "Rooms" → lands on the Safari
+  Suites page with the design intact. On a live (activated) site there are no
+  preview params, so it's inert and links behave normally.
+
+---
+
 ## 2026-06-26 — Safari theme: every page pixel-faithful (slice 2)
 
 Extended the bespoke Safari render layer to **all page types** — the whole site
