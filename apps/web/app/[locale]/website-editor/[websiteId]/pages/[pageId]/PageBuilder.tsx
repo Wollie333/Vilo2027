@@ -1441,7 +1441,12 @@ function BkBlock({
 
   if (previewing) {
     return section.enabled ? (
-      <SectionRenderer sections={[section]} data={data} asset={asset} />
+      <SectionRenderer
+        sections={[section]}
+        data={data}
+        asset={asset}
+        errorLabel={t("sectionRenderError")}
+      />
     ) : null;
   }
 
@@ -1503,6 +1508,7 @@ function BkBlock({
           sections={[{ ...section, enabled: true }]}
           data={data}
           asset={asset}
+          errorLabel={t("sectionRenderError")}
         />
       </div>
 

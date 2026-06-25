@@ -1158,6 +1158,7 @@
     "draftSaved": "Page saved.",
     "draftSaveError": "Couldn't save your page. Please try again.",
     "sectionInvalid": "Check the “{section}” section — a required field is empty.",
+    "sectionRenderError": "This section couldn’t be displayed. Open its settings to fix it, or remove it.",
     "autosaving": "Saving…",
     "autosaved": "All changes saved",
     "unsavedChanges": "Unsaved — auto-saving…",

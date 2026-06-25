@@ -7,6 +7,7 @@ import {
   type SiteData,
 } from "@/lib/site/types";
 
+import { SectionBoundary } from "./SectionBoundary";
 import { blockStyleCss, sectionToneStyle } from "./sections/_shared";
 
 import { HeroSection } from "./sections/HeroSection";
@@ -64,6 +65,7 @@ export function SectionRenderer({
   asset,
   websiteId,
   interactive = false,
+  errorLabel,
 }: {
   sections: WebsiteSection[];
   data?: SiteData;
@@ -72,6 +74,9 @@ export function SectionRenderer({
   websiteId?: string;
   /** True on the public site (forms submit); false in the builder preview. */
   interactive?: boolean;
+  /** Builder-only: shown in place of a section that throws at render. When
+   *  omitted (public site), a broken section is silently omitted instead. */
+  errorLabel?: string;
 }) {
   return (
     <>
@@ -79,13 +84,15 @@ export function SectionRenderer({
         .filter((s) => s.enabled)
         .map((section) => (
           <SectionWrap key={section.id} section={section}>
-            <SectionSwitch
-              section={section}
-              data={data}
-              asset={asset}
-              websiteId={websiteId}
-              interactive={interactive}
-            />
+            <SectionBoundary resetKey={section} fallbackLabel={errorLabel}>
+              <SectionSwitch
+                section={section}
+                data={data}
+                asset={asset}
+                websiteId={websiteId}
+                interactive={interactive}
+              />
+            </SectionBoundary>
           </SectionWrap>
         ))}
     </>

@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-06-25 — Harden the renderer: per-section error boundary
+
+The whole app had **no error boundary anywhere** — so a single section throwing
+at render (bad/edge-case data, an unexpected prop shape) crashed the entire
+`SectionRenderer` tree: a white-screened builder (losing the editing session) or
+a broken public page.
+
+**Fix:** new `SectionBoundary` (client class boundary) wraps each section inside
+the shared `SectionRenderer`, so one bad section is isolated:
+- **Public site** (no `errorLabel`) — the broken section is silently **omitted**;
+  the rest of the page renders normally and stays up.
+- **Builder** (passes `errorLabel`) — shows a compact, dismissable notice in the
+  section's place ("open its settings to fix it, or remove it") so the host knows
+  which section to fix, while every other section keeps working.
+- Boundary **auto-resets** when the section object changes (i.e. the host edits
+  it), so a fixed section re-renders without a reload.
+
+Covers all `SectionRenderer` call sites (builder canvas + in-builder preview,
+room view, public pages). Verified no regression: builder renders all 18 sections
+("All changes saved"), public site 200 with all sections. tsc + lint + 181 vitest
+green.
+
+---
+
 ## 2026-06-25 — Harden the page builder: fix autosave data-loss race
 
 **Bug:** an edit made *while a draft save was in flight* could be silently lost.
