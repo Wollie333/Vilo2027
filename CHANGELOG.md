@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-06-25 — Header builder pt.2: Book button consolidated + colour, logo, menu alignment
+
+- **Consolidation:** the Book button is now controlled in **one place** — the Header
+  builder. Removed the duplicate "show Book" toggle from the menu builder's Advanced
+  tab (replaced with a hint pointing to the Header builder).
+- **Book button:** added a **colour** control (`header.bookCtaColor`) — `BookCta`
+  uses it as the background, else falls back to the theme's button style.
+- **Visible elements:** **Show logo** toggle (`header.showLogo`) in the Header
+  inspector (logo image/style/size still live in Brand Studio, noted inline).
+- **Menu alignment:** start / center / end (`menuStyle.align`) in the menu builder's
+  Advanced tab — applied to the inline header menu.
+
+All wired through `SiteChrome` (HeaderInner gets `bookColor`/`showLogo`/`menuAlign`).
+Verified live: book colour, menu centering, logo toggle, and the menu-builder no
+longer shows a Book toggle. vilotest reset to defaults. tsc + lint green.
+
+---
+
 ## 2026-06-25 — Header builder: 4 selectable layouts (overhaul pt.1)
 
 First part of the header-builder overhaul (architecture agreed with the founder:

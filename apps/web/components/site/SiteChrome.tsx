@@ -219,17 +219,34 @@ function Logo({
   );
 }
 
-function BookCta({ href, label }: { href: string; label?: string }) {
-  return (
-    <a
-      href={href}
-      data-vilo-book
-      style={{
+function BookCta({
+  href,
+  label,
+  color,
+}: {
+  href: string;
+  label?: string;
+  /** Custom background colour from the header builder; blank → theme button. */
+  color?: string | null;
+}) {
+  const c = color?.trim();
+  const style: React.CSSProperties = c
+    ? {
+        background: c,
+        color: "#fff",
+        borderRadius: "var(--site-btn-primary-radius)",
+      }
+    : {
         background: "var(--site-btn-primary-bg)",
         color: "var(--site-btn-primary-color)",
         border: "var(--site-btn-primary-border)",
         borderRadius: "var(--site-btn-primary-radius)",
-      }}
+      };
+  return (
+    <a
+      href={href}
+      data-vilo-book
+      style={style}
       className="shrink-0 px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
     >
       {label || "Book now"}
@@ -631,6 +648,9 @@ function HeaderInner({
   collapse,
   bookHref,
   bookLabel,
+  bookColor,
+  showLogo = true,
+  menuAlign = "start",
   dark,
   preview,
 }: {
@@ -640,13 +660,27 @@ function HeaderInner({
   collapse: MenuCollapse;
   bookHref?: string;
   bookLabel?: string;
+  bookColor?: string | null;
+  showLogo?: boolean;
+  menuAlign?: "start" | "center" | "end";
   dark?: boolean;
   preview?: { subdomain: string; themeSlug?: string };
 }) {
+  const logoEl = showLogo ? (
+    <Logo brand={brand} dark={dark} preview={preview} />
+  ) : (
+    <span aria-hidden />
+  );
+  const alignClass =
+    menuAlign === "center"
+      ? "justify-center"
+      : menuAlign === "end"
+        ? "justify-end"
+        : "justify-start";
   if (variant === "centered") {
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-5 py-4">
-        <Logo brand={brand} dark={dark} preview={preview} />
+        {logoEl}
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
           <HeaderMenu
             menu={menu}
@@ -659,7 +693,7 @@ function HeaderInner({
           />
           {bookHref ? (
             <span className={bookVisibilityClass(collapse)}>
-              <BookCta href={bookHref} label={bookLabel} />
+              <BookCta href={bookHref} label={bookLabel} color={bookColor} />
             </span>
           ) : null}
         </div>
@@ -669,11 +703,11 @@ function HeaderInner({
   if (variant === "minimal") {
     return (
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
-        <Logo brand={brand} dark={dark} preview={preview} />
+        {logoEl}
         <div className="flex items-center gap-2">
           {bookHref ? (
             <span className={bookVisibilityClass(collapse)}>
-              <BookCta href={bookHref} label={bookLabel} />
+              <BookCta href={bookHref} label={bookLabel} color={bookColor} />
             </span>
           ) : null}
           {/* Minimal stays compact: the menu is always a hamburger drawer. */}
@@ -704,13 +738,11 @@ function HeaderInner({
             preview={preview}
           />
         </div>
-        <div className="flex justify-center">
-          <Logo brand={brand} dark={dark} preview={preview} />
-        </div>
+        <div className="flex justify-center">{logoEl}</div>
         <div className="flex justify-end">
           {bookHref ? (
             <span className={bookVisibilityClass(collapse)}>
-              <BookCta href={bookHref} label={bookLabel} />
+              <BookCta href={bookHref} label={bookLabel} color={bookColor} />
             </span>
           ) : null}
         </div>
@@ -720,11 +752,11 @@ function HeaderInner({
   // classic — logo left · nav · book right
   return (
     <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
-      <Logo brand={brand} dark={dark} preview={preview} />
+      {logoEl}
       <HeaderMenu
         menu={menu}
         collapse={collapse}
-        navClassName="items-center gap-6"
+        navClassName={`flex-1 ${alignClass} items-center gap-6`}
         bookHref={bookHref}
         bookLabel={bookLabel}
         dark={dark}
@@ -732,7 +764,7 @@ function HeaderInner({
       />
       {bookHref ? (
         <span className={bookVisibilityClass(collapse)}>
-          <BookCta href={bookHref} label={bookLabel} />
+          <BookCta href={bookHref} label={bookLabel} color={bookColor} />
         </span>
       ) : null}
     </div>
@@ -1001,6 +1033,9 @@ export function SiteChrome({
               collapse={menuCollapse}
               bookHref={effectiveBookHref}
               bookLabel={bookLabel}
+              bookColor={navigation.header?.bookCtaColor}
+              showLogo={navigation.header?.showLogo}
+              menuAlign={navigation.menuStyle?.align}
               dark={headerDark}
               preview={preview}
             />
@@ -1013,6 +1048,9 @@ export function SiteChrome({
               collapse={menuCollapse}
               bookHref={effectiveBookHref}
               bookLabel={bookLabel}
+              bookColor={navigation.header?.bookCtaColor}
+              showLogo={navigation.header?.showLogo}
+              menuAlign={navigation.menuStyle?.align}
               dark={headerDark}
               preview={preview}
             />

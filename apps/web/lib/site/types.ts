@@ -81,6 +81,8 @@ export type SiteMenuStyle = {
   hoverColor?: string | null;
   weight?: "normal" | "medium" | "semibold" | "bold";
   uppercase?: boolean;
+  /** Menu alignment within its header slot. */
+  align?: "start" | "center" | "end";
 };
 export type SiteNavigation = {
   /** Explicit header menu; when empty the page-derived nav is used. */
@@ -99,6 +101,10 @@ export type SiteNavigation = {
     menuCollapse?: "mobile" | "tablet" | "never";
     /** Show the header "Book now" button (hidden on collapsed views). Default true. */
     showBookCta?: boolean;
+    /** Book button background colour; blank → theme primary button style. */
+    bookCtaColor?: string | null;
+    /** Show the brand logo in the header. Default true. */
+    showLogo?: boolean;
   };
   footer?: {
     showPoweredBy?: boolean; // default true

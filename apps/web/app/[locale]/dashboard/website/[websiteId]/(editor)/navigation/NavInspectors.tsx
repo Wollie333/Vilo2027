@@ -93,11 +93,49 @@ export function HeaderInspector({
                 onChange={(e) => setHeader({ ctaHref: e.target.value })}
               />
             </Fld>
+            <Fld label={t("navCtaColor")}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="color"
+                  value={nav.header.bookCtaColor?.trim() || "#0f172a"}
+                  onChange={(e) => setHeader({ bookCtaColor: e.target.value })}
+                  style={{
+                    width: 40,
+                    height: 30,
+                    padding: 0,
+                    border: "1px solid var(--line,#e5e7eb)",
+                    borderRadius: 6,
+                    background: "none",
+                  }}
+                />
+                <span className="text-[12px] text-brand-mute">
+                  {nav.header.bookCtaColor?.trim() || t("navCtaColorDefault")}
+                </span>
+                {nav.header.bookCtaColor ? (
+                  <button
+                    type="button"
+                    onClick={() => setHeader({ bookCtaColor: undefined })}
+                    className="ml-auto text-[12px] text-brand-secondary hover:underline"
+                  >
+                    {t("reset")}
+                  </button>
+                ) : null}
+              </div>
+            </Fld>
             <p className="mt-1 text-[11.5px] text-brand-mute">
               {t("navBookCtaHint")}
             </p>
           </>
         ) : null}
+      </div>
+      <div className="insp-sec">
+        <div className="isec-t">{t("navElementsTitle")}</div>
+        <Toggle
+          label={t("navShowLogo")}
+          on={nav.header.showLogo !== false}
+          onClick={() => setHeader({ showLogo: nav.header.showLogo === false })}
+        />
+        <p className="mt-1 text-[11.5px] text-brand-mute">{t("navLogoHint")}</p>
       </div>
       <div className="insp-sec">
         <div className="isec-t">{t("navBehaviourTitle")}</div>

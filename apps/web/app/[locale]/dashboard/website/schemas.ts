@@ -617,8 +617,11 @@ export const menuStyleSchema = z
     hoverColor: z.string().trim().max(40).optional(),
     weight: z.enum(["normal", "medium", "semibold", "bold"]).default("medium"),
     uppercase: z.boolean().default(false),
+    // Where the menu sits within its slot in the header (the menu builder's
+    // Advanced "alignment" control).
+    align: z.enum(["start", "center", "end"]).default("start"),
   })
-  .default({ weight: "medium", uppercase: false });
+  .default({ weight: "medium", uppercase: false, align: "start" });
 
 export const navigationSchema = z.object({
   menu: z.array(menuItemSchema).max(20).default([]),
@@ -647,12 +650,17 @@ export const navigationSchema = z.object({
       // Show the "Book now" button in the header. On collapsed (mobile/tablet)
       // views it's hidden and replaced by the ☰ menu icon — the drawer carries it.
       showBookCta: z.boolean().default(true),
+      // Book button colour (background). Blank → theme's primary button style.
+      bookCtaColor: z.string().trim().max(40).optional(),
+      // Show the brand logo in the header (a visible-element toggle).
+      showLogo: z.boolean().default(true),
     })
     .default({
       sticky: true,
       transparentOverHero: false,
       menuCollapse: "mobile",
       showBookCta: true,
+      showLogo: true,
     }),
   footer: z
     .object({

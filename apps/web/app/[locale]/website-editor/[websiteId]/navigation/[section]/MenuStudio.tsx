@@ -376,6 +376,24 @@ export function MenuStudio({
             <div className="insp-sec space-y-3">
               <label className="block">
                 <span className="block text-[12.5px] font-semibold text-brand-ink">
+                  {t("menuAlignLabel")}
+                </span>
+                <select
+                  value={ms.align ?? "start"}
+                  onChange={(e) =>
+                    setMenuStyle({
+                      align: e.target.value as "start" | "center" | "end",
+                    })
+                  }
+                  className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+                >
+                  <option value="start">{t("menuAlign_start")}</option>
+                  <option value="center">{t("menuAlign_center")}</option>
+                  <option value="end">{t("menuAlign_end")}</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-[12.5px] font-semibold text-brand-ink">
                   {t("navMenuCollapse")}
                 </span>
                 <select
@@ -395,11 +413,9 @@ export function MenuStudio({
                   <option value="never">{t("navCollapseNever")}</option>
                 </select>
               </label>
-              <CheckRow
-                label={t("navShowBookCta")}
-                checked={nav.header.showBookCta !== false}
-                onChange={(v) => setHeader({ showBookCta: v })}
-              />
+              <p className="text-[11.5px] text-brand-mute">
+                {t("menuBookInHeaderHint")}
+              </p>
             </div>
           )}
         </div>
