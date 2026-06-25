@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-06-25 — Auto-rooms menu dropdown (always up to date) + per-room hide
+
+The Rooms menu item is now an **auto-rooms dropdown**: its children are resolved
+**live at render** from the site's current rooms (labelled with each room's own
+name, linking to its detail page) — so the menu stays up to date as rooms change,
+with no manual sync. The host can **hide individual rooms** from the menu
+(`hiddenRoomIds`) without removing them from the site. tsc + lint + 181 vitest
+green; browser-verified end-to-end.
+
+- **Model:** `SiteMenuItem` gains `autoRooms?` + `hiddenRoomIds?`
+  (schema + types). The default-menu seed flags the Rooms item `autoRooms: true`
+  (no stored children).
+- **Render:** `roomMenuLinks(ctx)` builds the live links (slug resolved exactly
+  as the room route does; label = `property_rooms.name`); `expandAutoRooms()`
+  fills the flagged item's children minus hidden rooms — applied once in
+  `loadSiteContext`, so public + preview always match. Shows a dropdown only with
+  2+ visible rooms (else a plain Rooms link).
+- **Builder:** the menu editor marks the item "Auto rooms", and its inspector has
+  an "Auto-list my rooms" toggle + a checkbox per room to show/hide it. Any item
+  can be switched to auto-rooms. Verified: hiding "Vineyard Suite" removed it from
+  the published header dropdown (Olive Room + Mountain Loft remained) while it
+  stayed in the on-page room cards.
+- **Live:** changes reach the site on Publish (snapshot freezes `navigation`),
+  per the standard draft → publish model.
+
+---
+
 ## 2026-06-25 — Room sub-menu labels = the room's own name + publish-verified
 
 Follow-up: the auto-nested room sub-menu items now label each link with the
