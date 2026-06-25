@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-25 — Header background control + fix menu colour over transparent
+
+The transparent-over-hero header hard-coded white text + a fixed dark scrolled
+background, so a host-set menu colour was ignored and the background wasn't
+controllable. Now:
+- **Menu colour is authoritative.** The menu colour (Menu → Style) drives the
+  header text (`--site-ink`/`--site-mute`) in every state, so setting it to black
+  actually shows black — even over a transparent header. Verified: black menu over
+  a transparent header now renders black (was forced white).
+- **Header background colour** (`header.bgColor`) for solid headers — e.g. a black
+  bar; pair with a white menu colour. Verified: `#222` solid header renders.
+- **Background on scroll** (`header.scrolledBgColor`) — when transparent-over-hero
+  is on, the bar fades to this colour once scrolled (blank → theme ink). Enables
+  "transparent over the hero, solid header on scroll" with full colour control.
+- New `ColorRow` inspector control; the controls appear contextually (solid bg when
+  not transparent, scrolled bg when transparent).
+
+tsc + lint green; vilotest reset to defaults.
+
+---
+
 ## 2026-06-25 — Aria preview recoloured green + theme blocks gated to active themes
 
 - **Preview recolour:** the Aria preview used the wrong (orange) palette — Aria is

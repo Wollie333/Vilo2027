@@ -12,10 +12,20 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 export function StickyHeader({
   sticky,
   transparent,
+  bgColor,
+  scrolledBgColor,
+  textColor,
   children,
 }: {
   sticky: boolean;
   transparent: boolean;
+  /** Solid header background; blank → theme surface. */
+  bgColor?: string | null;
+  /** Background once scrolled (transparent mode); blank → theme ink (dark). */
+  scrolledBgColor?: string | null;
+  /** Header text/menu colour (the host's menu colour). Drives logo + menu so it
+   *  stays legible on a custom/transparent background. Blank → sensible default. */
+  textColor?: string | null;
   children: ReactNode;
 }) {
   const [scrolled, setScrolled] = useState(false);
@@ -28,13 +38,23 @@ export function StickyHeader({
     return () => window.removeEventListener("scroll", onScroll);
   }, [transparent]);
 
+  const text = textColor?.trim();
+
   if (!transparent) {
+    // Solid bar. A custom background → drive the text colour too (so e.g. a black
+    // bar gets a readable menu/logo) — text wins via the host's menu colour.
+    const customBg = bgColor?.trim();
+    const style: CSSProperties = {
+      background: customBg || "var(--site-surface)",
+      borderColor: "var(--site-line)",
+    };
+    if (text) {
+      (style as Record<string, string>)["--site-ink"] = text;
+      (style as Record<string, string>)["--site-mute"] = text;
+    }
     return (
       <header
-        style={{
-          background: "var(--site-surface)",
-          borderColor: "var(--site-line)",
-        }}
+        style={style}
         className={sticky ? "sticky top-0 z-20 border-b" : "border-b"}
       >
         {children}
@@ -42,17 +62,18 @@ export function StickyHeader({
     );
   }
 
+  // Transparent over the hero, fading to a solid background on scroll. Text
+  // defaults to white (legible over a hero photo) but the host's menu colour wins.
   return (
     <header
       style={
         {
-          background: scrolled ? "var(--site-ink)" : "transparent",
+          background: scrolled
+            ? scrolledBgColor?.trim() || "var(--site-ink)"
+            : "transparent",
           borderColor: scrolled ? "rgba(255,255,255,0.12)" : "transparent",
-          // Header content is always rendered "dark" (light text + logo) when
-          // transparent-over-hero is on, so it reads over both the hero and the
-          // solid-dark scrolled state.
-          "--site-ink": "#ffffff",
-          "--site-mute": "rgba(255,255,255,0.88)",
+          "--site-ink": text || "#ffffff",
+          "--site-mute": text || "rgba(255,255,255,0.88)",
         } as CSSProperties
       }
       className="fixed inset-x-0 top-0 z-20 border-b transition-colors"

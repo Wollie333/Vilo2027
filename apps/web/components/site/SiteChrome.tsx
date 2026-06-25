@@ -1068,7 +1068,13 @@ export function SiteChrome({
         <style>{menuStyleCss(navigation.menuStyle)}</style>
         {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
-        <StickyHeader sticky={sticky} transparent={transparentOver}>
+        <StickyHeader
+          sticky={sticky}
+          transparent={transparentOver}
+          bgColor={navigation.header?.bgColor}
+          scrolledBgColor={navigation.header?.scrolledBgColor}
+          textColor={navigation.menuStyle?.color}
+        >
           <div className="hidden md:block">
             <HeaderInner
               variant={navigation.header?.layout ?? header.desktop}

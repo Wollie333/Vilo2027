@@ -54,6 +54,53 @@ export function Toggle({
   );
 }
 
+/** A colour swatch + value + reset, for optional colour overrides. */
+function ColorRow({
+  label,
+  value,
+  fallback = "#000000",
+  onChange,
+}: {
+  label: string;
+  value?: string | null;
+  fallback?: string;
+  onChange: (v: string | undefined) => void;
+}) {
+  const t = useTranslations("website");
+  return (
+    <Fld label={label}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <input
+          type="color"
+          value={value?.trim() || fallback}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            width: 40,
+            height: 30,
+            padding: 0,
+            border: "1px solid var(--line,#e5e7eb)",
+            borderRadius: 6,
+            background: "none",
+          }}
+          aria-label={label}
+        />
+        <span className="text-[12px] text-brand-mute">
+          {value?.trim() || t("navCtaColorDefault")}
+        </span>
+        {value ? (
+          <button
+            type="button"
+            onClick={() => onChange(undefined)}
+            className="ml-auto text-[12px] text-brand-secondary hover:underline"
+          >
+            {t("reset")}
+          </button>
+        ) : null}
+      </div>
+    </Fld>
+  );
+}
+
 export function HeaderInspector({
   nav,
   setHeader,
@@ -211,6 +258,26 @@ export function HeaderInspector({
             setHeader({ transparentOverHero: !nav.header.transparentOverHero })
           }
         />
+        {nav.header.transparentOverHero ? (
+          <>
+            <ColorRow
+              label={t("navScrolledBg")}
+              value={nav.header.scrolledBgColor}
+              fallback="#181715"
+              onChange={(v) => setHeader({ scrolledBgColor: v })}
+            />
+            <p className="mt-1 text-[11.5px] text-brand-mute">
+              {t("navScrolledBgHint")}
+            </p>
+          </>
+        ) : (
+          <ColorRow
+            label={t("navHeaderBg")}
+            value={nav.header.bgColor}
+            fallback="#ffffff"
+            onChange={(v) => setHeader({ bgColor: v })}
+          />
+        )}
         <Fld label={t("navMenuCollapse")}>
           <select
             value={nav.header.menuCollapse ?? "mobile"}

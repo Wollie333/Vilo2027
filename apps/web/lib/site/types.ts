@@ -97,6 +97,10 @@ export type SiteNavigation = {
     ctaHref?: string | null;
     sticky?: boolean; // default true
     transparentOverHero?: boolean;
+    /** Solid header background colour; blank → theme surface. */
+    bgColor?: string | null;
+    /** Background once scrolled (transparent mode); blank → theme ink. */
+    scrolledBgColor?: string | null;
     /** When the menu collapses to a ☰ button: phones only / tablets too / never. */
     menuCollapse?: "mobile" | "tablet" | "never";
     /** Show the header "Book now" button (hidden on collapsed views). Default true. */

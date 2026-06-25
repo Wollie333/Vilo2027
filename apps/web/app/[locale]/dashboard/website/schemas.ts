@@ -648,6 +648,12 @@ export const navigationSchema = z.object({
       ctaHref: z.string().trim().max(500).optional(),
       sticky: z.boolean().default(true),
       transparentOverHero: z.boolean().default(false),
+      // Header background colour (solid mode). Blank → theme surface. Lets the
+      // host set e.g. a solid black bar (pair with a white menu colour).
+      bgColor: z.string().trim().max(40).optional(),
+      // Background once the page is scrolled when transparentOverHero is on (the
+      // transparent bar fades to this). Blank → theme ink (dark).
+      scrolledBgColor: z.string().trim().max(40).optional(),
       // When the full menu collapses to a ☰ button: on phones only ("mobile"),
       // on tablets too ("tablet"), or never (always show the full inline menu).
       menuCollapse: z.enum(["mobile", "tablet", "never"]).default("mobile"),
