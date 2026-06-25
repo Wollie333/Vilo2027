@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
 import StarterKit from "@tiptap/starter-kit";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import {
@@ -10,6 +11,7 @@ import {
   ImagePlus,
   Italic,
   Library,
+  Link2,
   List,
   ListOrdered,
   Loader2,
@@ -57,6 +59,19 @@ export function RichTextEditor({
         heading: { levels: [2, 3] },
       }),
       Image.configure({ inline: false, allowBase64: false }),
+      // Links are sanitised server-side (lib/sanitiseHtml.ts forces a safe rel +
+      // restricts schemes); mirror that here so the editor preview matches the
+      // rendered output. openOnClick off so clicking a link in the editor edits
+      // rather than navigates.
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        protocols: ["mailto", "tel"],
+        HTMLAttributes: {
+          rel: "noopener noreferrer nofollow",
+          target: "_blank",
+        },
+      }),
     ],
     content: value || "",
     editable: !disabled,
@@ -66,7 +81,7 @@ export function RichTextEditor({
         // Tailwind doesn't have a prose plugin installed; replicate just
         // enough typography so the editor reads like the final article.
         class:
-          "min-h-[180px] max-h-[640px] overflow-y-auto rounded border border-brand-line bg-white p-3 text-sm leading-relaxed text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 [&_h2]:mt-3 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_strong]:font-semibold [&_p]:my-2 [&_img]:my-3 [&_img]:max-w-full [&_img]:rounded",
+          "min-h-[180px] max-h-[640px] overflow-y-auto rounded border border-brand-line bg-white p-3 text-sm leading-relaxed text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 [&_h2]:mt-3 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_strong]:font-semibold [&_p]:my-2 [&_img]:my-3 [&_img]:max-w-full [&_img]:rounded [&_a]:text-brand-primary [&_a]:underline [&_a]:underline-offset-2",
         "aria-label": "Description editor",
       },
     },
@@ -206,6 +221,22 @@ function Toolbar({
       label: "Quote",
       isActive: editor.isActive("blockquote"),
       onClick: () => editor.chain().focus().toggleBlockquote().run(),
+    },
+    {
+      icon: Link2,
+      label: "Link",
+      isActive: editor.isActive("link"),
+      onClick: () => {
+        const prev = editor.getAttributes("link").href as string | undefined;
+        const url = window.prompt(
+          "Link URL (leave blank to remove)",
+          prev ?? "",
+        );
+        if (url === null) return; // cancelled
+        const chain = editor.chain().focus().extendMarkRange("link");
+        if (url.trim() === "") chain.unsetLink().run();
+        else chain.setLink({ href: url.trim() }).run();
+      },
     },
   ];
 

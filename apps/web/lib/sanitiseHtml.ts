@@ -35,15 +35,32 @@ const ALLOWED_TAGS = [
   // http(s) below, so no javascript:/data: vectors slip through. Listing
   // descriptions never produce <img> (no image button), so this is additive.
   "img",
+  // Links: the page-builder rich_text editor + blog editor can insert <a>.
+  // Schemes are restricted to http(s)/mailto/tel below (relative + #anchor URLs
+  // are allowed by sanitize-html's default relative-URL handling), and every
+  // surviving link is forced to rel="noopener noreferrer nofollow" — so no
+  // javascript: vector and no reverse-tabnabbing/SEO-leak through user links.
+  "a",
 ];
 
 export function sanitiseListingHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: ALLOWED_TAGS,
-    allowedAttributes: { img: ["src", "alt"] },
+    allowedAttributes: { img: ["src", "alt"], a: ["href", "target", "rel"] },
     disallowedTagsMode: "discard",
     allowedSchemes: [],
-    allowedSchemesByTag: { img: ["http", "https"] },
+    allowedSchemesByTag: {
+      img: ["http", "https"],
+      a: ["http", "https", "mailto", "tel"],
+    },
+    transformTags: {
+      // Harden every link the user inserts: external links open safely, and we
+      // never pass link equity to arbitrary user-supplied destinations.
+      a: sanitizeHtml.simpleTransform("a", {
+        rel: "noopener noreferrer nofollow",
+        target: "_blank",
+      }),
+    },
   });
 }
 
