@@ -13,6 +13,7 @@ import { useState, useTransition } from "react";
 const LIVE_TABS: Array<{ key: string; seg: string }> = [
   { key: "tabOverview", seg: "" },
   { key: "tabPages", seg: "pages" },
+  { key: "tabMedia", seg: "media" },
   { key: "tabBlog", seg: "blog" },
   { key: "tabNavigation", seg: "navigation" },
   { key: "tabForms", seg: "forms" },

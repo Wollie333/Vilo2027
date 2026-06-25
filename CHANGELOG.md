@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-06-25 — Media manager, per-room galleries, clickable room header, default menu
+
+A multi-part Website-CMS update. Migration `20260625010000` adds
+`website_rooms.media_overrides` (jsonb); types regenerated. tsc + lint + 179
+vitest green; browser-verified on the seeded `vilotest` site (public room page +
+logged-in dashboard).
+
+**1. Media manager tab (WordPress-style).** New **Media** tab (between Pages and
+Blog) at `(editor)/media`. Two views:
+- **Library** — full-page grid of every website asset, search by **name or alt
+  text**, upload (reuses the signed-URL flow), and a detail modal to **edit alt
+  text** + delete. Reuses `website_media` + the existing media actions; added
+  `updateWebsiteMediaAltAction`.
+- **Room galleries** — pick a room, see its photos as toggle cards (click to
+  hide from the website — the photo stays on the room), and **add extra images**
+  from the library/upload. Saved via `saveRoomMediaOverridesAction`.
+
+**2. Per-room media overrides.** New `website_rooms.media_overrides`
+(`{hidden: photoId[], extra: [{path, alt}]}`, shared schema in
+`lib/website/roomMedia.ts`). `loadRoomDetail` now filters hidden photos and
+appends extras; frozen into the publish snapshot (`SnapshotRoom.media_overrides`,
+`buildWebsiteSnapshot`). Room photo alt now uses the photo's caption (falling
+back to the room name).
+
+**3. Clickable room header gallery.** The room-detail `room_gallery` block now
+renders through `GalleryLightbox` — every photo opens a swipeable fullscreen
+viewer (prev/next, keyboard, touch), so guests browse the room's images. The
+gallery is already first (header) in every theme's room-detail template.
+
+**4. Default editable menu.** First-time hosts had no menu (the header silently
+auto-pulled every page). `ensureDefaultMenu` (`lib/website/defaultMenu.ts`) now
+lazily materialises a real, editable menu from the site's pages when a host opens
+the Navigation manager / menu editor — so they can edit it. (Sub-menu dropdowns
+already worked end-to-end: `MenuBuilder` adds child items and the public header
+renders one level of hover/focus dropdowns — left as-is.)
+
+---
+
 ## 2026-06-25 — Theme activation requires a room-detail template + seeds it
 
 Follow-up to the room-detail feature: the room-detail design now belongs to the
