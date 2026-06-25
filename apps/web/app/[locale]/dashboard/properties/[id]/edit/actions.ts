@@ -499,6 +499,30 @@ export async function deleteListingPhotoAction(
   return { ok: true };
 }
 
+/**
+ * Set a photo's caption / alt text (owner-scoped). `property_photos.caption` is
+ * what the public site renders as the image's alt (room detail gallery, directory),
+ * so this is the alt-text editor for listing + room photos.
+ */
+export async function setListingPhotoCaptionAction(
+  listingId: string,
+  photoId: string,
+  caption: string,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const { error } = await own.db
+    .from("property_photos")
+    .update({ caption: caption.trim() || null })
+    .eq("id", photoId)
+    .eq("property_id", listingId);
+  if (error) return { ok: false, error: "Could not save the alt text." };
+
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
+  return { ok: true };
+}
+
 // Reorder listing-wide photos. The client passes the photo IDs in the new
 // display order; we write sort_order = index to match. Used by the drag-and-
 // drop reorder in PhotosTab — the first photo becomes the listing cover.

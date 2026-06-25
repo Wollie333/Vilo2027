@@ -9,6 +9,7 @@ import {
   createListingPhotoUploadUrl,
   deleteListingPhotoAction,
   registerListingPhotoAction,
+  setListingPhotoCaptionAction,
 } from "@/app/[locale]/dashboard/properties/[id]/edit/actions";
 import {
   createWebsiteMediaUploadUrl,
@@ -398,7 +399,7 @@ function ListingsView({ listings }: { listings: HostListingMedia[] }) {
   // "" = listing-level photos; otherwise a room id.
   const [scope, setScope] = useState<string>("");
   const [uploading, setUploading] = useState(false);
-  const [pending, start] = useTransition();
+  const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
 
   if (listings.length === 0) {
     return <Empty label="You don't have any listings yet." />;
@@ -407,6 +408,9 @@ function ListingsView({ listings }: { listings: HostListingMedia[] }) {
   const listing = listings[idx];
   const roomId = scope || null;
   const photos = listing.photos.filter((p) => (p.roomId ?? null) === roomId);
+  const openPhoto = openPhotoId
+    ? photos.find((p) => p.id === openPhotoId)
+    : null;
 
   async function onPick(file: File) {
     if (!validate(file)) return;
@@ -434,19 +438,6 @@ function ListingsView({ listings }: { listings: HostListingMedia[] }) {
     } finally {
       setUploading(false);
     }
-  }
-
-  function remove(photoId: string) {
-    if (!window.confirm("Remove this photo from the listing?")) return;
-    start(async () => {
-      const res = await deleteListingPhotoAction(listing.id, photoId);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success("Photo removed.");
-      router.refresh();
-    });
   }
 
   return (
@@ -518,9 +509,11 @@ function ListingsView({ listings }: { listings: HostListingMedia[] }) {
       ) : (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {photos.map((p) => (
-            <div
+            <button
               key={p.id}
-              className="group relative aspect-square overflow-hidden rounded-[10px] border border-brand-line"
+              type="button"
+              onClick={() => setOpenPhotoId(p.id)}
+              className="group relative aspect-square overflow-hidden rounded-[10px] border border-brand-line transition hover:border-brand-primary"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -528,20 +521,120 @@ function ListingsView({ listings }: { listings: HostListingMedia[] }) {
                 alt={p.caption ?? ""}
                 className="h-full w-full object-cover"
               />
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => remove(p.id)}
-                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-red-600 shadow-sm transition hover:bg-red-50"
-                aria-label="Remove photo"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
+              {!p.caption ? (
+                <span className="absolute bottom-1 left-1 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  No alt
+                </span>
+              ) : null}
+            </button>
           ))}
         </div>
       )}
+
+      {openPhoto ? (
+        <ListingPhotoDetail
+          listingId={listing.id}
+          photo={openPhoto}
+          onClose={() => setOpenPhotoId(null)}
+        />
+      ) : null}
     </section>
+  );
+}
+
+function ListingPhotoDetail({
+  listingId,
+  photo,
+  onClose,
+}: {
+  listingId: string;
+  photo: { id: string; url: string; caption: string | null };
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [alt, setAlt] = useState(photo.caption ?? "");
+  const [pending, start] = useTransition();
+
+  function save() {
+    start(async () => {
+      const res = await setListingPhotoCaptionAction(listingId, photo.id, alt);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Alt text saved.");
+      router.refresh();
+      onClose();
+    });
+  }
+  function remove() {
+    if (!window.confirm("Remove this photo from the listing?")) return;
+    start(async () => {
+      const res = await deleteListingPhotoAction(listingId, photo.id);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Photo removed.");
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <FormModal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title="Image details"
+      description="Alt text describes the photo for SEO and screen readers, and is used as its caption."
+      size="lg"
+    >
+      <div className="grid gap-5 sm:grid-cols-[1.4fr_1fr]">
+        <div className="overflow-hidden rounded-[12px] border border-brand-line">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photo.url}
+            alt={photo.caption ?? ""}
+            className="max-h-[50vh] w-full object-contain"
+          />
+        </div>
+        <div className="space-y-3">
+          <label className="block">
+            <span className="block text-[13px] font-semibold text-brand-ink">
+              Alt text
+            </span>
+            <textarea
+              value={alt}
+              onChange={(e) => setAlt(e.target.value)}
+              maxLength={300}
+              rows={3}
+              placeholder="Describe the photo"
+              className="mt-1.5 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary"
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={save}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+            >
+              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Save alt text
+            </button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </FormModal>
   );
 }
 
