@@ -4,7 +4,7 @@
 
 ## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-25)
 
-**Branch:** `main` — working tree CLEAN. tsc + lint + **147 vitest** all GREEN (lint: only 2 pre-existing `<img>` warnings in `reports/_components`, untouched). All committed; **push state: see end of this block.** (No dev server was running at session start; `pnpm build` is safe when none is up — it shares `.next` with the founder's :3000 dev server.)
+**Branch:** `main` — working tree CLEAN, **all committed AND PUSHED, in sync with `origin/main` (HEAD `3948bec`)**. tsc + lint + **147 vitest** all GREEN (lint: only 2 pre-existing `<img>` warnings in `reports/_components`, untouched). (No dev server was running at session start; `pnpm build` is safe when none is up — it shares `.next` with the founder's :3000 dev server.)
 
 **THIS SESSION (2026-06-25) — builder polish: Contact templates for every theme.** Each theme had Home+About templates + 5 presets but no Contact page. Added to all 7 themes in `lib/website/themeSections.ts`: 3 theme-voiced makers (`contactForm`/`faq`/`location`), 2 new sidebar presets (Contact form + FAQ → group 5→7), and a **Contact** page template `[contact form → location → FAQ → theme CTA]`. Additive (existing section types, same `sectionSchema`), surfaced automatically via the registry — NO PageBuilder change, NO migration. `themeSections.test.ts` +2 assertions/theme (suite 133→147). tsc+lint green. **NOT browser-QA'd** (rolls into manual QA). **Inline-link button in the rich_text WYSIWYG still deferred** — needs the `@tiptap/extension-link` package (founder approval to install).
 
