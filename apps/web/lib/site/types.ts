@@ -163,6 +163,8 @@ export type RoomCard = {
   description?: string | null;
   imageUrl?: string | null;
   bookHref: string; // absolute deep-link into the existing booking engine
+  /** Link to this room's detail page (/rooms/<slug>) — the card's primary click. */
+  detailHref?: string;
   featured?: boolean;
   badge?: string | null;
   /** Short facts derived from the room (e.g. "Sleeps 4", "2 beds", "Ensuite"). */
@@ -181,6 +183,32 @@ export type RoomsPreviewData = {
   rooms: RoomCard[];
   /** Per-property group meta, keyed by property id (only set when overrides exist). */
   groups?: Record<string, RoomGroup>;
+};
+
+// ── Room detail (the /rooms/<slug> page) ─────────────────────
+export type RoomDetailImage = { url: string; alt?: string | null };
+export type RoomAmenity = { icon?: string | null; label: string };
+/**
+ * The single room being viewed on a room-detail page. Resolved live from
+ * property_rooms (+ photos + amenities); the room-scoped sections (room_gallery,
+ * room_overview, room_amenities, room_rate) all render from this one object.
+ */
+export type RoomDetail = {
+  id: string;
+  /** URL slug (slugified display name; unique within the website's visible rooms). */
+  slug: string;
+  name: string;
+  description?: string | null;
+  price?: number | null;
+  currency?: string | null;
+  images: RoomDetailImage[];
+  /** Short facts (Sleeps 4, 2 beds, Ensuite, 28 m², Sea view). */
+  facts: string[];
+  amenities: RoomAmenity[];
+  /** Deep-link into the on-site checkout with this room preselected. */
+  bookHref: string;
+  propertyId: string;
+  propertyName?: string | null;
 };
 
 export type Poi = {
@@ -303,6 +331,12 @@ export type SiteDataByType = {
   booking_search: BookingFunnelData;
   availability_calendar: BookingFunnelData;
   rate_table: RateTableData;
+  // Room-scoped sections — all render the SAME active room (injected by the
+  // /rooms/<slug> route; a sample room in the builder preview).
+  room_gallery: RoomDetail;
+  room_overview: RoomDetail;
+  room_amenities: RoomDetail;
+  room_rate: RoomDetail;
 };
 export type AutoSectionType = keyof SiteDataByType;
 

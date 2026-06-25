@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { sectionSchema } from "./sections.schema";
 import {
+  getThemeRoomDetailSections,
   getThemeSectionPresets,
   getThemeTemplates,
   themeGroupLabel,
@@ -111,5 +112,47 @@ describe("themeSections registry", () => {
     expect(themeGroupLabel("aria")).toBe("Aria");
     expect(themeGroupLabel("nightfall")).toBe("Nightfall");
     expect(themeGroupLabel(null)).toBe("Theme");
+  });
+
+  describe("room-detail template", () => {
+    for (const slug of THEME_SLUGS) {
+      it(`${slug} builds schema-valid room-detail sections incl. the room blocks`, () => {
+        const sections = getThemeRoomDetailSections(slug);
+        expect(sections.length).toBeGreaterThan(0);
+        for (const s of sections) {
+          const result = sectionSchema.safeParse(s);
+          expect(
+            result.success,
+            `${slug}/${s.type}: ${result.success ? "" : JSON.stringify(result.error.issues)}`,
+          ).toBe(true);
+        }
+        const types = sections.map((s) => s.type);
+        expect(types).toEqual(
+          expect.arrayContaining([
+            "room_gallery",
+            "room_overview",
+            "room_amenities",
+            "room_rate",
+          ]),
+        );
+      });
+    }
+
+    it("gives every built section a fresh id each call", () => {
+      const a = getThemeRoomDetailSections("aria");
+      const b = getThemeRoomDetailSections("aria");
+      const ids = [...a, ...b].map((s) => s.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it("falls back to the bare room blocks for an unknown theme", () => {
+      const sections = getThemeRoomDetailSections("does-not-exist");
+      expect(sections.map((s) => s.type)).toEqual([
+        "room_gallery",
+        "room_overview",
+        "room_amenities",
+        "room_rate",
+      ]);
+    });
   });
 });

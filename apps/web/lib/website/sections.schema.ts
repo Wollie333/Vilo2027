@@ -46,6 +46,13 @@ export const SECTION_TYPES = [
   "booking_search",
   "availability_calendar",
   "rate_table",
+  // Room detail — room-scoped sections that render the SINGLE room being viewed
+  // (the /rooms/<slug> route injects the active room into each one's data). Only
+  // meaningful on the `room_detail` page template.
+  "room_gallery",
+  "room_overview",
+  "room_amenities",
+  "room_rate",
   // Free elements — light building blocks (page-builder primitives).
   "el_heading",
   "el_text",
@@ -78,6 +85,23 @@ export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
 
 export function isAutoPopulate(type: SectionType): boolean {
   return AUTO_POPULATE_SECTIONS.has(type);
+}
+
+/**
+ * Room-scoped sections render the SINGLE room currently being viewed. Unlike the
+ * auto-populate set (resolved by type for any page), these get the active room
+ * injected by the room route (`/rooms/<slug>`); in the builder preview they show
+ * a sample room. Only surfaced in the palette on the `room_detail` page.
+ */
+export const ROOM_SCOPED_SECTIONS: ReadonlySet<SectionType> = new Set([
+  "room_gallery",
+  "room_overview",
+  "room_amenities",
+  "room_rate",
+]);
+
+export function isRoomScoped(type: SectionType): boolean {
+  return ROOM_SCOPED_SECTIONS.has(type);
 }
 
 // ── Per-section presentation (Phase 1) ────────────────────────
@@ -139,6 +163,11 @@ export const MAP_VARIANTS = ["boxed", "wide"] as const;
 export const CONTACT_VARIANTS = ["stacked", "split"] as const;
 export const RICHTEXT_VARIANTS = ["narrow", "wide"] as const;
 export const TRUST_VARIANTS = ["badges", "grid"] as const;
+// Room-detail sections (room-scoped).
+export const ROOM_GALLERY_VARIANTS = ["carousel", "grid", "stacked"] as const;
+export const ROOM_OVERVIEW_VARIANTS = ["split", "stacked"] as const;
+export const ROOM_AMENITIES_VARIANTS = ["grid", "list"] as const;
+export const ROOM_RATE_VARIANTS = ["card", "banner"] as const;
 
 // ── Shared prop fragments ─────────────────────────────────────
 const heading = z.string().max(200).optional();
@@ -588,6 +617,34 @@ export const blockStyleSchema = z.object({
 });
 export type BlockStyle = z.infer<typeof blockStyleSchema>;
 
+// ── Room-detail props (room-scoped — render the viewed room) ───
+// All config only; the room's name/photos/price/amenities resolve live from the
+// active room (see lib/site/loadSitePage.ts loadRoomDetail).
+const roomGalleryProps = z.object({
+  variant: z.enum(ROOM_GALLERY_VARIANTS).default("carousel"),
+  max: z.number().int().min(1).max(30).default(12),
+});
+
+const roomOverviewProps = z.object({
+  /** Optional heading override; defaults to the room's name. */
+  heading,
+  show_facts: z.boolean().default(true),
+  show_price: z.boolean().default(true),
+  variant: z.enum(ROOM_OVERVIEW_VARIANTS).default("split"),
+});
+
+const roomAmenitiesProps = z.object({
+  heading,
+  variant: z.enum(ROOM_AMENITIES_VARIANTS).default("grid"),
+});
+
+const roomRateProps = z.object({
+  heading,
+  cta_label: z.string().max(60).default("Book this room"),
+  note: z.string().max(300).optional(),
+  variant: z.enum(ROOM_RATE_VARIANTS).default("card"),
+});
+
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
   id: z.string().uuid(),
@@ -678,6 +735,26 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("rate_table"),
     props: rateTableProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("room_gallery"),
+    props: roomGalleryProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("room_overview"),
+    props: roomOverviewProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("room_amenities"),
+    props: roomAmenitiesProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("room_rate"),
+    props: roomRateProps,
   }),
   z.object({
     ...sectionBase,

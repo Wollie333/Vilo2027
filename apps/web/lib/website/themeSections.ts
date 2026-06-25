@@ -50,6 +50,33 @@ function build<T extends SectionType>(
   return s;
 }
 
+// ── Room-detail blocks (theme-agnostic; styling comes from the theme base) ──
+// The /rooms/<slug> route injects the active room into each of these.
+const roomDetail = {
+  gallery: () =>
+    build("room_gallery", (s) => {
+      s.props.variant = "carousel";
+      s.props.max = 12;
+    }),
+  overview: () =>
+    build("room_overview", (s) => {
+      s.props.show_facts = true;
+      s.props.show_price = true;
+      s.props.variant = "split";
+    }),
+  amenities: () =>
+    build("room_amenities", (s) => {
+      s.props.heading = "Room amenities";
+      s.props.variant = "grid";
+    }),
+  rate: () =>
+    build("room_rate", (s) => {
+      s.props.cta_label = "Book this room";
+      s.props.note = "Your final price is confirmed at checkout.";
+      s.props.variant = "card";
+    }),
+};
+
 // ── Aria (the modern flagship theme) — modern editorial elegance ──────────
 const aria = {
   heroSpotlight: () =>
@@ -1614,4 +1641,85 @@ export function getThemeTemplates(
 export function themeGroupLabel(themeSlug: string | undefined | null): string {
   if (!themeSlug) return "Theme";
   return themeSlug.charAt(0).toUpperCase() + themeSlug.slice(1);
+}
+
+// ── Room-detail page template (one per theme) ──────────────────
+// The designed default layout for the `room_detail` page: the room blocks
+// (gallery → overview → amenities → rate) closed by the theme's own reviews +
+// CTA, so it carries the theme's voice. Used to seed a website's room_detail
+// page AND as the public render fallback when the host hasn't customised it.
+const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
+  aria: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    aria.reviews(),
+    aria.ctaBanner(),
+  ],
+  classic: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    classic.reviews(),
+    classic.invitation(),
+  ],
+  modern: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    modern.reviews(),
+    modern.cta(),
+  ],
+  coastal: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    coastal.reviews(),
+    coastal.cta(),
+  ],
+  warm: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    warm.reviews(),
+    warm.cta(),
+  ],
+  minimal: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    minimal.reviews(),
+    minimal.cta(),
+  ],
+  nightfall: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    nightfall.reviews(),
+    nightfall.cta(),
+  ],
+};
+
+/**
+ * The designed room-detail layout for a theme slug. Falls back to the bare room
+ * blocks for an unknown theme so a room page ALWAYS renders something sensible.
+ */
+export function getThemeRoomDetailSections(
+  themeSlug: string | undefined | null,
+): WebsiteSection[] {
+  const fn = themeSlug ? ROOM_DETAIL[themeSlug] : undefined;
+  if (fn) return fn();
+  return [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+  ];
 }

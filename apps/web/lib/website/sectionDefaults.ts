@@ -333,6 +333,42 @@ export function newSection(type: SectionType): WebsiteSection {
           note: "Rates are per night from — your final price is confirmed at checkout.",
         },
       };
+    case "room_gallery":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { variant: "carousel", max: 12 },
+      };
+    case "room_overview":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { show_facts: true, show_price: true, variant: "split" },
+      };
+    case "room_amenities":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { heading: "Room amenities", variant: "grid" },
+      };
+    case "room_rate":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          cta_label: "Book this room",
+          note: "Your final price is confirmed at checkout.",
+          variant: "card",
+        },
+      };
     case "el_heading":
       return {
         id,
