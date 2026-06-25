@@ -59,15 +59,15 @@ export function NavHeaderPreview({
     ? "transparent"
     : nav.header?.bgColor?.trim() || undefined;
   const barBg: React.CSSProperties = headerBg ? { background: headerBg } : {};
-  // Menu alignment (classic layout). nav.css forces `.nv-menu{margin-left:auto}`
-  // (always right), so we override the margins per the host's alignment setting.
+  // Menu alignment — mirror the live header: neutralise nav.css's forced
+  // `margin-left:auto` on .nv-menu, then position via flex justify (per layout).
   const menuAlign = nav.menuStyle?.align ?? "start";
-  const menuMargin: React.CSSProperties =
+  const menuJustify =
     menuAlign === "center"
-      ? { marginLeft: "auto", marginRight: "auto" }
+      ? "center"
       : menuAlign === "end"
-        ? { marginLeft: "auto", marginRight: 0 }
-        : { marginLeft: 0, marginRight: "auto" };
+        ? "flex-end"
+        : "flex-start";
   // Layout-aware pieces, so the preview matches the chosen header style.
   const layout = nav.header?.layout ?? "classic";
   // Respect the header's logo rules so the preview matches the live header:
@@ -109,7 +109,9 @@ export function NavHeaderPreview({
           </span>
         ));
   const menuEl = menuItems ? (
-    <div className="nv-menu nvhm-pv">{menuItems}</div>
+    <div className="nv-menu nvhm-pv" style={{ marginLeft: 0 }}>
+      {menuItems}
+    </div>
   ) : null;
   const burgerEl = (
     <Menu style={{ width: 20, height: 20, color: "var(--ink)" }} />
@@ -143,7 +145,15 @@ export function NavHeaderPreview({
             style={{ ...barBg, flexDirection: "column", gap: 10 }}
           >
             {brandEl}
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: menuJustify,
+                gap: 16,
+                width: "100%",
+              }}
+            >
               {menuEl}
               {ctaEl}
             </div>
@@ -158,18 +168,20 @@ export function NavHeaderPreview({
               alignItems: "center",
             }}
           >
-            <div style={{ justifySelf: "start" }}>{menuEl}</div>
+            <div style={{ display: "flex", justifyContent: menuJustify }}>
+              {menuEl}
+            </div>
             {brandEl}
             <div style={{ justifySelf: "end" }}>{ctaEl}</div>
           </div>
         ) : (
           <div className="nv-bar" style={barBg}>
             {brandEl}
-            {menuItems ? (
-              <div className="nv-menu nvhm-pv" style={menuMargin}>
-                {menuItems}
-              </div>
-            ) : null}
+            <div
+              style={{ flex: 1, display: "flex", justifyContent: menuJustify }}
+            >
+              {menuEl}
+            </div>
             <div className="nv-right">{ctaEl}</div>
           </div>
         )}

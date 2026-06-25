@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-25 — Menu alignment is now a universal control across all layouts
+
+Menu alignment (start / center / end) previously only affected the **classic**
+layout. It now positions the menu on every layout that has an inline menu:
+- **Classic** — `flex-1` + justify (unchanged).
+- **Centered** — the menu row justifies per the setting (was always centred).
+- **Split** — the left column justifies the menu per the setting.
+- **Minimal** — n/a (menu is always the hamburger drawer).
+
+So "give the classic layout a middle menu" = set **alignment → Center**. Applied
+to both the live header (`SiteChrome`) and the builder previews
+(`NavHeaderPreview`, which now neutralises nav.css's forced `margin-left:auto` and
+justifies the menu per layout). Verified on the live front at 1300px: classic +
+Center → `justify-content: center`, menu centred in the available space.
+
+Note: the builder's centre preview pane is narrower than a desktop (~626px). With
+a long site name, a full classic menu can fill that width, leaving no room to
+visibly shift — but the live site and the nav-manager card (full desktop width)
+align correctly. tsc + lint green; vilotest reset to default.
+
+---
+
 ## 2026-06-25 — Menu builder preview honours all the logo rules
 
 The builder preview already reflected the header **layout** + **logo style**; now it

@@ -714,7 +714,9 @@ function HeaderInner({
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-5 py-4">
         {logoEl}
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+        <div
+          className={`flex flex-wrap items-center ${alignClass} gap-x-6 gap-y-2`}
+        >
           <HeaderMenu
             menu={menu}
             collapse={collapse}
@@ -760,7 +762,7 @@ function HeaderInner({
     // split — menu left · logo centered · book right (symmetric three columns)
     return (
       <div className="mx-auto grid w-full max-w-5xl grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-4">
-        <div className="flex justify-start">
+        <div className={`flex ${alignClass}`}>
           <HeaderMenu
             menu={menu}
             collapse={collapse}
