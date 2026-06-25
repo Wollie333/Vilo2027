@@ -80,6 +80,8 @@ export type SiteNavigation = {
     ctaHref?: string | null;
     sticky?: boolean; // default true
     transparentOverHero?: boolean;
+    /** When the menu collapses to a ☰ button: phones only / tablets too / never. */
+    menuCollapse?: "mobile" | "tablet" | "never";
   };
   footer?: {
     showPoweredBy?: boolean; // default true

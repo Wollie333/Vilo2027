@@ -37,9 +37,12 @@ import { AnnouncementBar } from "./AnnouncementBar";
 import { PreviewBanner } from "./PreviewBanner";
 import { SiteAnalytics } from "./SiteAnalytics";
 import { SiteMarketing } from "./SiteMarketing";
+import { SiteMobileMenu } from "./SiteMobileMenu";
 import { SitePopup } from "./SitePopup";
 import { StickyHeader } from "./StickyHeader";
 import { WhatsAppButton } from "./WhatsAppButton";
+
+type MenuCollapse = "mobile" | "tablet" | "never";
 
 const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -433,6 +436,58 @@ function MenuNav({
   );
 }
 
+/**
+ * Responsive header menu: the full inline menu (desktop hover-dropdowns) at/above
+ * the collapse breakpoint, and a hamburger drawer below it. `collapse` lets the
+ * host choose when it collapses — phones only, tablets too, or never.
+ */
+function HeaderMenu({
+  menu,
+  collapse,
+  navClassName,
+  bookHref,
+  bookLabel,
+  dark,
+  preview,
+}: {
+  menu: SiteMenuItem[];
+  collapse: MenuCollapse;
+  navClassName: string;
+  bookHref?: string;
+  bookLabel?: string;
+  dark?: boolean;
+  preview?: PreviewCtx;
+}) {
+  if (menu.length === 0) return null;
+  if (collapse === "never") {
+    return (
+      <MenuNav
+        menu={menu}
+        className={`flex ${navClassName}`}
+        preview={preview}
+      />
+    );
+  }
+  const fullShow = collapse === "tablet" ? "hidden lg:flex" : "hidden md:flex";
+  const burgerShow = collapse === "tablet" ? "lg:hidden" : "md:hidden";
+  return (
+    <>
+      <MenuNav
+        menu={menu}
+        className={`${fullShow} ${navClassName}`}
+        preview={preview}
+      />
+      <SiteMobileMenu
+        menu={menu}
+        bookHref={bookHref}
+        bookLabel={bookLabel}
+        dark={dark}
+        className={burgerShow}
+      />
+    </>
+  );
+}
+
 function ContactLinks({ brand }: { brand: SiteBrand }) {
   if (!brand.contactEmail && !brand.contactPhone) return null;
   return (
@@ -500,6 +555,7 @@ function HeaderInner({
   variant,
   brand,
   menu,
+  collapse,
   bookHref,
   bookLabel,
   dark,
@@ -508,6 +564,7 @@ function HeaderInner({
   variant: SiteHeaderLayout;
   brand: SiteBrand;
   menu: SiteMenuItem[];
+  collapse: MenuCollapse;
   bookHref?: string;
   bookLabel?: string;
   dark?: boolean;
@@ -518,9 +575,13 @@ function HeaderInner({
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-5 py-4">
         <Logo brand={brand} dark={dark} preview={preview} />
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-          <MenuNav
+          <HeaderMenu
             menu={menu}
-            className="flex flex-wrap items-center gap-x-6 gap-y-2"
+            collapse={collapse}
+            navClassName="flex-wrap items-center gap-x-6 gap-y-2"
+            bookHref={bookHref}
+            bookLabel={bookLabel}
+            dark={dark}
             preview={preview}
           />
           {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
@@ -532,7 +593,18 @@ function HeaderInner({
     return (
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
         <Logo brand={brand} dark={dark} preview={preview} />
-        {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
+        <div className="flex items-center gap-2">
+          {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
+          {/* Minimal stays compact: the menu is always a hamburger drawer. */}
+          {menu.length > 0 ? (
+            <SiteMobileMenu
+              menu={menu}
+              bookHref={bookHref}
+              bookLabel={bookLabel}
+              dark={dark}
+            />
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -540,9 +612,13 @@ function HeaderInner({
   return (
     <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
       <Logo brand={brand} dark={dark} preview={preview} />
-      <MenuNav
+      <HeaderMenu
         menu={menu}
-        className="flex items-center gap-6"
+        collapse={collapse}
+        navClassName="items-center gap-6"
+        bookHref={bookHref}
+        bookLabel={bookLabel}
+        dark={dark}
         preview={preview}
       />
       {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
@@ -745,6 +821,8 @@ export function SiteChrome({
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
   const effectiveBookHref = navigation.header?.ctaHref?.trim() || bookHref;
   const sticky = navigation.header?.sticky !== false;
+  const menuCollapse: MenuCollapse =
+    navigation.header?.menuCollapse ?? "mobile";
   const topBar = navigation.topBar;
   // Explicit menu wins; otherwise fall back to the page-derived nav.
   const menu: SiteMenuItem[] =
@@ -802,6 +880,7 @@ export function SiteChrome({
               variant={header.desktop}
               brand={brand}
               menu={menu}
+              collapse={menuCollapse}
               bookHref={effectiveBookHref}
               bookLabel={bookLabel}
               dark={headerDark}
@@ -813,6 +892,7 @@ export function SiteChrome({
               variant={header.mobile}
               brand={brand}
               menu={menu}
+              collapse={menuCollapse}
               bookHref={effectiveBookHref}
               bookLabel={bookLabel}
               dark={headerDark}

@@ -99,6 +99,23 @@ export function HeaderInspector({
             setHeader({ transparentOverHero: !nav.header.transparentOverHero })
           }
         />
+        <Fld label={t("navMenuCollapse")}>
+          <select
+            value={nav.header.menuCollapse ?? "mobile"}
+            onChange={(e) =>
+              setHeader({
+                menuCollapse: e.target.value as "mobile" | "tablet" | "never",
+              })
+            }
+          >
+            <option value="mobile">{t("navCollapseMobile")}</option>
+            <option value="tablet">{t("navCollapseTablet")}</option>
+            <option value="never">{t("navCollapseNever")}</option>
+          </select>
+        </Fld>
+        <p className="mt-1 text-[11.5px] text-brand-mute">
+          {t("navMenuCollapseHint")}
+        </p>
       </div>
       <div className="insp-sec">
         <div className="isec-t">{t("navTopBarTitle")}</div>

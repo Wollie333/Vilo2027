@@ -618,8 +618,15 @@ export const navigationSchema = z.object({
       ctaHref: z.string().trim().max(500).optional(),
       sticky: z.boolean().default(true),
       transparentOverHero: z.boolean().default(false),
+      // When the full menu collapses to a ☰ button: on phones only ("mobile"),
+      // on tablets too ("tablet"), or never (always show the full inline menu).
+      menuCollapse: z.enum(["mobile", "tablet", "never"]).default("mobile"),
     })
-    .default({ sticky: true, transparentOverHero: false }),
+    .default({
+      sticky: true,
+      transparentOverHero: false,
+      menuCollapse: "mobile",
+    }),
   footer: z
     .object({
       showPoweredBy: z.boolean().default(true),
