@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-06-25 — Default menu nests each room's detail page under "Rooms"
+
+When a site has **multiple rooms**, the auto-seeded default menu now adds each
+room's detail page (`/rooms/<slug>`) as a **sub-menu under the Rooms item** — so
+first-time hosts get a working rooms dropdown out of the box. `buildDefaultMenu`
+takes the room links and attaches them to the rooms page item; `ensureDefaultMenu`
+resolves the site's visible rooms via the new `visibleRoomLinks`, using the SAME
+slug algorithm the public room route resolves with (`roomSlugMap`, now exported).
+Single-room sites get no dropdown. Only seeds when the menu is empty (the host
+then manages it freely). New `defaultMenu.test.ts` (3 cases); suite **179 → 182**.
+Verified live: clearing the test site's menu re-seeds Rooms ▾ Olive Room /
+Vineyard Suite / Mountain Loft.
+
+---
+
 ## 2026-06-25 — Elementor-style menu builder (3 tabs) + 2-level dropdowns + menu styling
 
 Rebuilt the menu editor into a builder-like, 3-panel experience and added a
