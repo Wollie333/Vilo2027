@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-25 — Tabs side-by-side, overlay colour/%, page editor ≠ chrome
+
+- **Inspector tabs side-by-side.** The Content/Style/Advanced tabs were stacking
+  (the `grid-cols-3` utility didn't apply in this panel — computed to a single
+  column). Forced a 3-column grid inline so they sit next to each other and read
+  cleanly.
+- **Hero overlay = colour + opacity %.** The hero overlay is no longer a fixed
+  black preset only — added an **overlay colour** picker + **opacity %** slider
+  (`heroProps.overlayColor` / `overlayOpacity`). When set they override the preset;
+  rendered via `color-mix`. Verified: red @ 70% → `color(srgb .8 0 0 / .7)` scrim.
+- **Header/menu/footer are theme elements — not editable in the page editor.**
+  Removed the page builder's inline chrome editing: no Header/Footer in the palette
+  (replaced with a note pointing to Navigation), the canvas chrome is now **inert**
+  (`SiteChrome chromeInert` — shown for context, links don't navigate, not
+  click-to-select). They're edited only via Navigation → Header / Menu / Footer.
+
+tsc + lint green; vilotest reset.
+
+---
+
 ## 2026-06-25 — Flex container + heading tag control (builder refinements pt.2)
 
 - **Flex container** (`flex` section) — a free-form block where the host arranges

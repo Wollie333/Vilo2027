@@ -191,6 +191,10 @@ const heroProps = z.object({
   align: z.enum(["left", "center"]).default("center"),
   variant: z.enum(HERO_VARIANTS).default("spotlight"),
   overlay: z.enum(HERO_OVERLAY).default("medium"),
+  // Fine overlay control: a colour + opacity %. When set they override the
+  // `overlay` preset (which stays as the simple/legacy black-scrim default).
+  overlayColor: z.string().max(40).optional(),
+  overlayOpacity: z.number().int().min(0).max(100).optional(),
   textTone: z.enum(HERO_TEXT_TONE).default("auto"),
   height: z.enum(HERO_HEIGHT).default("auto"),
 });

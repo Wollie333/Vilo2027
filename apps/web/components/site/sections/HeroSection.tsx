@@ -28,10 +28,17 @@ const HEIGHT_MINH: Record<HeroHeight, string> = {
   screen: "100vh",
 };
 
-function overlayGradient(overlay: HeroOverlay): string | undefined {
-  const a = OVERLAY_ALPHA[overlay];
+/** Overlay scrim over the hero photo. An explicit colour + opacity % wins;
+ *  otherwise the `overlay` preset (a black scrim) is used. */
+function overlayCss(props: Props): string | undefined {
+  const hasCustom = props.overlayOpacity != null;
+  const a = hasCustom
+    ? Math.max(0, Math.min(100, props.overlayOpacity ?? 0)) / 100
+    : OVERLAY_ALPHA[props.overlay ?? "medium"];
   if (a <= 0) return undefined;
-  return `linear-gradient(rgba(0,0,0,${a}),rgba(0,0,0,${a}))`;
+  const color = (hasCustom && props.overlayColor?.trim()) || "#000000";
+  const c = `color-mix(in srgb, ${color} ${Math.round(a * 100)}%, transparent)`;
+  return `linear-gradient(${c},${c})`;
 }
 
 /** Decide light vs dark copy: explicit tone wins, else follow the background. */
@@ -182,7 +189,7 @@ export function HeroSection({
     const onDark = resolveOnDark(props.textTone ?? "auto", false);
     const bgStyle: CSSProperties = bgWide
       ? {
-          backgroundImage: `${overlayGradient(props.overlay ?? "medium") ? overlayGradient(props.overlay ?? "medium") + "," : ""}url(${bgWide})`,
+          backgroundImage: `${overlayCss(props) ? overlayCss(props) + "," : ""}url(${bgWide})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }
@@ -210,7 +217,7 @@ export function HeroSection({
   // ── SPOTLIGHT / FULLSCREEN / SEARCH — full-bleed image + overlay ──
   const overImage = !!rawBg;
   const onDark = resolveOnDark(props.textTone ?? "auto", overImage);
-  const overlay = overlayGradient(props.overlay ?? "medium");
+  const overlay = overlayCss(props);
   const bgStyle: CSSProperties = bgWide
     ? {
         backgroundImage: `${overlay ? overlay + "," : ""}url(${bgWide})`,

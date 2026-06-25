@@ -69,16 +69,25 @@ export type ChromeEditable = {
  */
 function ChromeEditWrap({
   editable,
+  inert = false,
   target,
   label,
   children,
 }: {
   editable?: ChromeEditable;
+  /** Render the chrome non-interactive (page builder: shown for context, but the
+   *  header/footer are edited in Navigation, so their links must not navigate). */
+  inert?: boolean;
   target: ChromeTarget;
   label: string;
   children: ReactNode;
 }) {
-  if (!editable) return <>{children}</>;
+  if (!editable)
+    return inert ? (
+      <div style={{ pointerEvents: "none" }}>{children}</div>
+    ) : (
+      <>{children}</>
+    );
   const selected = editable.selected === target;
   return (
     <div
@@ -961,6 +970,7 @@ export function SiteChrome({
   editable,
   layout = "full",
   hideBanner = false,
+  chromeInert = false,
   children,
 }: {
   brand: SiteBrand;
@@ -988,6 +998,8 @@ export function SiteChrome({
   editable?: ChromeEditable;
   /** Embedded preview (e.g. the nav-manager card iframe): hide the preview banner. */
   hideBanner?: boolean;
+  /** Page builder: render the header/footer non-interactive (context only). */
+  chromeInert?: boolean;
   children: ReactNode;
 }) {
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
@@ -1047,7 +1059,12 @@ export function SiteChrome({
         preview={Boolean(preview)}
       />
 
-      <ChromeEditWrap editable={editable} target="header" label="Header">
+      <ChromeEditWrap
+        editable={editable}
+        inert={chromeInert}
+        target="header"
+        label="Header"
+      >
         <style>{menuStyleCss(navigation.menuStyle)}</style>
         {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
@@ -1091,7 +1108,12 @@ export function SiteChrome({
 
       <main className="flex-1">{children}</main>
 
-      <ChromeEditWrap editable={editable} target="footer" label="Footer">
+      <ChromeEditWrap
+        editable={editable}
+        inert={chromeInert}
+        target="footer"
+        label="Footer"
+      >
         <footer
           style={{
             background: "var(--site-surface)",

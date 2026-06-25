@@ -66,7 +66,11 @@ export function SectionEditor({
           (colour, type, spacing, frame) · Advanced (visibility, schedule). */}
       <div
         role="tablist"
-        className="grid grid-cols-3 overflow-hidden rounded-[10px] border border-brand-line"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        }}
+        className="overflow-hidden rounded-[10px] border border-brand-line"
       >
         {tabs.map(([key, label]) => (
           <button
@@ -567,6 +571,49 @@ function SectionFields({
               ]}
               onChange={(v) => set({ overlay: v })}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[12px] font-medium text-brand-mute">
+                {t("fldHeroOverlayColor")}
+              </span>
+              <input
+                type="color"
+                value={p.overlayColor?.trim() || "#000000"}
+                onChange={(e) => set({ overlayColor: e.target.value })}
+                className="mt-1 h-9 w-full cursor-pointer rounded-[8px] border border-brand-line bg-white"
+                aria-label={t("fldHeroOverlayColor")}
+              />
+            </label>
+            <label className="block">
+              <span className="text-[12px] font-medium text-brand-mute">
+                {t("fldHeroOverlayOpacity")}
+              </span>
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={
+                    p.overlayOpacity ??
+                    { none: 0, light: 25, medium: 45, strong: 65 }[
+                      p.overlay ?? "medium"
+                    ]
+                  }
+                  onChange={(e) =>
+                    set({ overlayOpacity: Number(e.target.value) })
+                  }
+                  className="flex-1"
+                />
+                <span className="w-9 text-right text-[12px] tabular-nums text-brand-mute">
+                  {p.overlayOpacity ??
+                    { none: 0, light: 25, medium: 45, strong: 65 }[
+                      p.overlay ?? "medium"
+                    ]}
+                  %
+                </span>
+              </div>
+            </label>
           </div>
           <SelectField
             label={t("fldHeroTextTone")}

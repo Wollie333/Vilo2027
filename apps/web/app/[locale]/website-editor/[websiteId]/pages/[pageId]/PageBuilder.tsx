@@ -49,8 +49,6 @@ import {
   MoveVertical,
   Newspaper,
   Palette,
-  PanelBottom,
-  PanelTop,
   Pilcrow,
   Plus,
   Redo2,
@@ -397,14 +395,11 @@ export function PageBuilder({
     ? (sections.find((s) => s.id === selectedId) ?? null)
     : null;
 
-  // ── Selection: a section OR a chrome region (header/footer), never both ──
+  // ── Selection: only sections are selectable in the page editor. Header/footer
+  // are theme elements, edited in the Navigation manager — never here. ──
   const selectSection = (id: string) => {
     setSelectedId(id);
     setSelectedChrome(null);
-  };
-  const selectChrome = (target: ChromeTarget) => {
-    setSelectedChrome(target);
-    setSelectedId(null);
   };
 
   // ── Inline nav (chrome) editing ─────────────────────────────────────────
@@ -1104,32 +1099,15 @@ export function PageBuilder({
                 // ── Default grouped view ─────────────────────────────
                 return (
                   <>
-                    {/* Site parts — the shared header/footer (edit inline). */}
+                    {/* Site parts — the shared header/footer are THEME elements,
+                        edited in the Navigation manager (not per-page). */}
                     <div className="pal-cat">{t("pbSiteParts")}</div>
-                    <div className="pal-grid">
-                      <button
-                        type="button"
-                        style={{ cursor: "pointer" }}
-                        className={`pal-item${selectedChrome === "header" ? "sel" : ""}`}
-                        onClick={() => selectChrome("header")}
-                      >
-                        <span className="pi-ic">
-                          <PanelTop style={{ width: 16, height: 16 }} />
-                        </span>
-                        <span className="pi-nm">{t("navHeaderTitle")}</span>
-                      </button>
-                      <button
-                        type="button"
-                        style={{ cursor: "pointer" }}
-                        className={`pal-item${selectedChrome === "footer" ? "sel" : ""}`}
-                        onClick={() => selectChrome("footer")}
-                      >
-                        <span className="pi-ic">
-                          <PanelBottom style={{ width: 16, height: 16 }} />
-                        </span>
-                        <span className="pi-nm">{t("navFooterTitle")}</span>
-                      </button>
-                    </div>
+                    <p
+                      className="px-1 pb-2 text-[11.5px] leading-snug"
+                      style={{ color: "var(--mute)" }}
+                    >
+                      {t("pbChromeInNav")}
+                    </p>
 
                     {/* Heroes — the seven designed layouts. */}
                     <div className="pal-cat">{t("pbHeroes")}</div>
@@ -1169,11 +1147,10 @@ export function PageBuilder({
                 header={theme.header}
                 footer={theme.footer}
                 layout={siteLayout}
-                editable={
-                  previewing
-                    ? undefined
-                    : { selected: selectedChrome, onSelect: selectChrome }
-                }
+                /* Header/footer are theme elements — shown here for context but
+                   edited in the Navigation manager, never per-page. So the chrome
+                   is inert (not click-to-select, links don't navigate). */
+                chromeInert
               >
                 {sections.length === 0 ? (
                   <div className="canvas-empty">
