@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-06-25 — Fix: header builder preview now reflects the background colour
+
+The header **background colour** (and transparent state) applied on the live
+front but not in the header builder's centre preview (`NavHeaderPreview`), so it
+looked like "no effect on preview". The preview bar now uses the header background
+(solid `bgColor` when not transparent, see-through when transparent-over-hero)
+across all four layouts, updating live as you change it. The live/published front
+was already correct (`<header style="background:…">`). tsc + lint green.
+
+---
+
 ## 2026-06-25 — Header background control + fix menu colour over transparent
 
 The transparent-over-hero header hard-coded white text + a fixed dark scrolled

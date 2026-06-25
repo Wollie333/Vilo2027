@@ -53,6 +53,12 @@ export function NavHeaderPreview({
   // colour would win over a plain rule, so the scoped hover rule uses !important.
   const hover = ms?.hoverColor?.trim();
 
+  // Reflect the header background: a solid colour when not transparent, or a
+  // see-through bar when transparent-over-hero (matches the live header).
+  const headerBg = nav.header?.transparentOverHero
+    ? "transparent"
+    : nav.header?.bgColor?.trim() || undefined;
+  const barBg: React.CSSProperties = headerBg ? { background: headerBg } : {};
   // Layout-aware pieces, so the preview matches the chosen header style.
   const layout = nav.header?.layout ?? "classic";
   // Respect the header's logo style: icon = mark only, wordmark = name only.
@@ -98,7 +104,10 @@ export function NavHeaderPreview({
         {/* Collapsed views (or "minimal") show the ☰ icon; the drawer carries
             the menu + book on the live site. Otherwise arrange per layout. */}
         {collapsed || layout === "minimal" ? (
-          <div className="nv-bar" style={{ justifyContent: "space-between" }}>
+          <div
+            className="nv-bar"
+            style={{ ...barBg, justifyContent: "space-between" }}
+          >
             {brandEl}
             <div className="nv-right" style={{ gap: 8, marginLeft: "auto" }}>
               {layout === "minimal" ? ctaEl : null}
@@ -106,7 +115,10 @@ export function NavHeaderPreview({
             </div>
           </div>
         ) : layout === "centered" ? (
-          <div className="nv-bar" style={{ flexDirection: "column", gap: 10 }}>
+          <div
+            className="nv-bar"
+            style={{ ...barBg, flexDirection: "column", gap: 10 }}
+          >
             {brandEl}
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               {menuEl}
@@ -117,6 +129,7 @@ export function NavHeaderPreview({
           <div
             className="nv-bar"
             style={{
+              ...barBg,
               display: "grid",
               gridTemplateColumns: "1fr auto 1fr",
               alignItems: "center",
@@ -127,7 +140,7 @@ export function NavHeaderPreview({
             <div style={{ justifySelf: "end" }}>{ctaEl}</div>
           </div>
         ) : (
-          <div className="nv-bar">
+          <div className="nv-bar" style={barBg}>
             {brandEl}
             {menuEl}
             <div className="nv-right">{ctaEl}</div>
