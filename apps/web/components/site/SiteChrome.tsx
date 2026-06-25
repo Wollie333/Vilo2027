@@ -358,10 +358,13 @@ function MenuLink({
   item,
   className = "",
   preview,
+  unstyled = false,
 }: {
   item: SiteMenuItem;
   className?: string;
   preview?: PreviewCtx;
+  /** Omit the inline colour so the styled-menu scoped CSS (.vilo-hmenu) wins. */
+  unstyled?: boolean;
 }) {
   const isExternal = item.href.startsWith("http");
   const href = buildNavHref(item.href, preview);
@@ -371,7 +374,7 @@ function MenuLink({
       target={item.newTab ? "_blank" : undefined}
       rel={item.newTab ? "noopener noreferrer" : undefined}
       data-nav-page={isExternal ? undefined : hrefToPageKey(item.href)}
-      style={{ color: "var(--site-mute)" }}
+      style={unstyled ? undefined : { color: "var(--site-mute)" }}
       className={`transition-colors hover:opacity-80 ${className}`}
     >
       {item.label}
@@ -379,25 +382,34 @@ function MenuLink({
   );
 }
 
-/** Header menu with one level of (CSS hover/focus) dropdowns — no client JS. */
+/**
+ * Header menu with up to two levels of (CSS hover/focus) dropdowns — no client
+ * JS. A top item's dropdown lists its sub-items; a sub-item that itself has
+ * children renders as a labelled group with its sub-sub links beneath (a clean
+ * mega-menu column, no fragile flyouts). When `styled`, the nav carries the
+ * `.vilo-hmenu` class so the host's menu style (colour/weight/uppercase + hover)
+ * applies via a scoped <style>, and links omit their inline colour.
+ */
 function MenuNav({
   menu,
   className = "",
   preview,
+  styled = false,
 }: {
   menu: SiteMenuItem[];
   className?: string;
   preview?: PreviewCtx;
+  styled?: boolean;
 }) {
   if (menu.length === 0) return null;
   return (
-    <nav className={className}>
+    <nav className={`${styled ? "vilo-hmenu" : ""}${className}`}>
       {menu.map((item) =>
         item.children && item.children.length > 0 ? (
           <div key={item.id} className="group relative">
             <button
               type="button"
-              style={{ color: "var(--site-mute)" }}
+              style={styled ? undefined : { color: "var(--site-mute)" }}
               className="inline-flex items-center gap-1 text-sm font-medium transition-colors hover:opacity-80"
             >
               {item.label}
@@ -410,16 +422,37 @@ function MenuNav({
                   border: "1px solid var(--site-line)",
                   borderRadius: "var(--site-radius)",
                 }}
-                className="min-w-[180px] py-1.5 shadow-lift"
+                className="min-w-[200px] py-1.5 shadow-lift"
               >
-                {item.children.map((child) => (
-                  <MenuLink
-                    key={child.id}
-                    item={child}
-                    preview={preview}
-                    className="block px-4 py-2 text-sm font-medium"
-                  />
-                ))}
+                {item.children.map((child) =>
+                  child.children && child.children.length > 0 ? (
+                    <div key={child.id} className="px-1.5 pb-1 pt-1.5">
+                      <div
+                        style={{ color: "var(--site-mute)" }}
+                        className="px-2.5 pb-0.5 text-[11px] font-semibold uppercase tracking-wide opacity-70"
+                      >
+                        {child.label}
+                      </div>
+                      {child.children.map((g) => (
+                        <MenuLink
+                          key={g.id}
+                          item={g}
+                          preview={preview}
+                          unstyled={styled}
+                          className="block px-4 py-2 text-sm font-medium"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <MenuLink
+                      key={child.id}
+                      item={child}
+                      preview={preview}
+                      unstyled={styled}
+                      className="block px-4 py-2 text-sm font-medium"
+                    />
+                  ),
+                )}
               </div>
             </div>
           </div>
@@ -428,11 +461,34 @@ function MenuNav({
             key={item.id}
             item={item}
             preview={preview}
+            unstyled={styled}
             className="text-sm font-medium"
           />
         ),
       )}
     </nav>
+  );
+}
+
+/** weight token → CSS font-weight. */
+const MENU_WEIGHT: Record<string, number> = {
+  normal: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+};
+
+/** Scoped CSS for the styled header menu (.vilo-hmenu) from the host's menuStyle. */
+function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
+  const color = style?.color?.trim() || "var(--site-mute)";
+  const hover = style?.hoverColor?.trim() || "var(--site-ink)";
+  const weight = MENU_WEIGHT[style?.weight ?? "medium"] ?? 500;
+  const transform = style?.uppercase ? "uppercase" : "none";
+  const spacing = style?.uppercase ? "0.05em" : "normal";
+  return (
+    `.vilo-hmenu a,.vilo-hmenu button{color:${color};font-weight:${weight};` +
+    `text-transform:${transform};letter-spacing:${spacing}}` +
+    `.vilo-hmenu a:hover,.vilo-hmenu button:hover{color:${hover};opacity:1}`
   );
 }
 
@@ -465,6 +521,7 @@ function HeaderMenu({
         menu={menu}
         className={`flex ${navClassName}`}
         preview={preview}
+        styled
       />
     );
   }
@@ -476,6 +533,7 @@ function HeaderMenu({
         menu={menu}
         className={`${fullShow} ${navClassName}`}
         preview={preview}
+        styled
       />
       <SiteMobileMenu
         menu={menu}
@@ -899,6 +957,7 @@ export function SiteChrome({
       />
 
       <ChromeEditWrap editable={editable} target="header" label="Header">
+        <style>{menuStyleCss(navigation.menuStyle)}</style>
         {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
         <StickyHeader sticky={sticky} transparent={transparentOver}>

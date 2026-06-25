@@ -27,14 +27,13 @@ import {
   NavFooterPreview,
   NavHeaderPreview,
 } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavPreviews";
-import {
-  MenuBuilder,
-  type PageOption,
-} from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
+import type { PageOption } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
 import {
   FooterInspector,
   HeaderInspector,
 } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavInspectors";
+
+import { MenuStudio } from "./MenuStudio";
 
 type Section = "header" | "menu" | "footer";
 type Device = "desktop" | "tablet" | "phone";
@@ -81,6 +80,8 @@ export function NavSectionEditor({
   const setFooter = (patch: Partial<NavigationConfig["footer"]>) =>
     setNav((n) => ({ ...n, footer: { ...n.footer, ...patch } }));
   const setMenu = (menu: SiteMenuItem[]) => setNav((n) => ({ ...n, menu }));
+  const setMenuStyle = (patch: Partial<NavigationConfig["menuStyle"]>) =>
+    setNav((n) => ({ ...n, menuStyle: { ...n.menuStyle, ...patch } }));
   const setColumns = (columns: SiteFooterColumn[]) =>
     setNav((n) => ({ ...n, footer: { ...n.footer, columns } }));
 
@@ -185,54 +186,61 @@ export function NavSectionEditor({
       </header>
 
       <div className="ebody">
-        {/* canvas — live preview in the shared device frame */}
-        <div className="canvas-wrap thin">
-          <div className={deviceClass}>
-            <div className="vilo-nav">
-              {section === "footer" ? (
-                <NavFooterPreview nav={nav} brandName={brandName} />
-              ) : (
-                <NavHeaderPreview
-                  nav={nav}
-                  brandName={brandName}
-                  device={device}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* inspector */}
-        <aside className="epanel r" style={{ width: 348 }}>
-          <div className="epanel-h">
-            <Icon style={{ width: 16, height: 16, color: "#10B981" }} />
-            <h3>{t("navInspectorTitle", { name: title })}</h3>
-          </div>
-          <div className="epanel-b thin">
-            {section === "header" ? (
-              <HeaderInspector
-                nav={nav}
-                setHeader={setHeader}
-                setTop={setTop}
-              />
-            ) : section === "menu" ? (
-              <div className="insp-sec">
-                <MenuBuilder
-                  menu={nav.menu ?? []}
-                  pages={pages}
-                  onChange={setMenu}
-                />
+        {section === "menu" ? (
+          /* Menu: Elementor-style 3-tab builder (left) · preview · item inspector */
+          <MenuStudio
+            nav={nav}
+            setMenu={setMenu}
+            setMenuStyle={setMenuStyle}
+            setHeader={setHeader}
+            pages={pages}
+            device={device}
+            brandName={brandName}
+          />
+        ) : (
+          <>
+            {/* canvas — live preview in the shared device frame */}
+            <div className="canvas-wrap thin">
+              <div className={deviceClass}>
+                <div className="vilo-nav">
+                  {section === "footer" ? (
+                    <NavFooterPreview nav={nav} brandName={brandName} />
+                  ) : (
+                    <NavHeaderPreview
+                      nav={nav}
+                      brandName={brandName}
+                      device={device}
+                    />
+                  )}
+                </div>
               </div>
-            ) : (
-              <FooterInspector
-                nav={nav}
-                pages={pages}
-                setFooter={setFooter}
-                setColumns={setColumns}
-              />
-            )}
-          </div>
-        </aside>
+            </div>
+
+            {/* inspector */}
+            <aside className="epanel r" style={{ width: 348 }}>
+              <div className="epanel-h">
+                <Icon style={{ width: 16, height: 16, color: "#10B981" }} />
+                <h3>{t("navInspectorTitle", { name: title })}</h3>
+              </div>
+              <div className="epanel-b thin">
+                {section === "header" ? (
+                  <HeaderInspector
+                    nav={nav}
+                    setHeader={setHeader}
+                    setTop={setTop}
+                  />
+                ) : (
+                  <FooterInspector
+                    nav={nav}
+                    pages={pages}
+                    setFooter={setFooter}
+                    setColumns={setColumns}
+                  />
+                )}
+              </div>
+            </aside>
+          </>
+        )}
       </div>
     </div>
   );

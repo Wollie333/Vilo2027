@@ -136,21 +136,47 @@ export function SiteMobileMenu({
                         className="mb-1 ml-3 flex flex-col gap-0.5 border-l pl-3"
                         style={{ borderColor: "var(--site-line)" }}
                       >
-                        {item.children!.map((child) => (
-                          <a
-                            key={child.id}
-                            href={child.href}
-                            target={child.newTab ? "_blank" : undefined}
-                            rel={
-                              child.newTab ? "noopener noreferrer" : undefined
-                            }
-                            onClick={() => setOpen(false)}
-                            style={{ color: "var(--site-mute)" }}
-                            className="block rounded-[var(--site-radius)] px-3 py-2.5 text-[15px] font-medium transition-colors hover:bg-[var(--site-surface)]"
-                          >
-                            {child.label}
-                          </a>
-                        ))}
+                        {item.children!.map((child) =>
+                          child.children && child.children.length > 0 ? (
+                            <div key={child.id} className="py-1">
+                              <div
+                                style={{ color: "var(--site-mute)" }}
+                                className="px-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wide opacity-70"
+                              >
+                                {child.label}
+                              </div>
+                              {child.children.map((g) => (
+                                <a
+                                  key={g.id}
+                                  href={g.href}
+                                  target={g.newTab ? "_blank" : undefined}
+                                  rel={
+                                    g.newTab ? "noopener noreferrer" : undefined
+                                  }
+                                  onClick={() => setOpen(false)}
+                                  style={{ color: "var(--site-mute)" }}
+                                  className="block rounded-[var(--site-radius)] px-3 py-2.5 text-[15px] font-medium transition-colors hover:bg-[var(--site-surface)]"
+                                >
+                                  {g.label}
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <a
+                              key={child.id}
+                              href={child.href}
+                              target={child.newTab ? "_blank" : undefined}
+                              rel={
+                                child.newTab ? "noopener noreferrer" : undefined
+                              }
+                              onClick={() => setOpen(false)}
+                              style={{ color: "var(--site-mute)" }}
+                              className="block rounded-[var(--site-radius)] px-3 py-2.5 text-[15px] font-medium transition-colors hover:bg-[var(--site-surface)]"
+                            >
+                              {child.label}
+                            </a>
+                          ),
+                        )}
                       </div>
                     ) : null}
                   </div>

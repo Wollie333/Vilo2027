@@ -597,12 +597,27 @@ const menuLinkSchema = z.object({
   href: z.string().trim().max(500),
   newTab: z.boolean().optional(),
 });
-export const menuItemSchema = menuLinkSchema.extend({
+// Two levels of nesting: top → sub → sub-sub (the sub-sub are leaf links).
+const menuSubItemSchema = menuLinkSchema.extend({
   children: z.array(menuLinkSchema).max(12).optional(),
 });
+export const menuItemSchema = menuLinkSchema.extend({
+  children: z.array(menuSubItemSchema).max(12).optional(),
+});
+
+/** Optional menu styling (the Style tab) — applied to the header menu. */
+export const menuStyleSchema = z
+  .object({
+    color: z.string().trim().max(40).optional(),
+    hoverColor: z.string().trim().max(40).optional(),
+    weight: z.enum(["normal", "medium", "semibold", "bold"]).default("medium"),
+    uppercase: z.boolean().default(false),
+  })
+  .default({ weight: "medium", uppercase: false });
 
 export const navigationSchema = z.object({
   menu: z.array(menuItemSchema).max(20).default([]),
+  menuStyle: menuStyleSchema,
   topBar: z
     .object({
       enabled: z.boolean().default(false),

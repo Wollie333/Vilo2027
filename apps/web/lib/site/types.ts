@@ -71,9 +71,18 @@ export type SiteFooterColumn = {
   heading?: string;
   links: SiteMenuItem[];
 };
+/** Optional styling for the header menu (the Style tab). */
+export type SiteMenuStyle = {
+  color?: string | null;
+  hoverColor?: string | null;
+  weight?: "normal" | "medium" | "semibold" | "bold";
+  uppercase?: boolean;
+};
 export type SiteNavigation = {
   /** Explicit header menu; when empty the page-derived nav is used. */
   menu?: SiteMenuItem[];
+  /** Menu link styling (colours / weight / uppercase). */
+  menuStyle?: SiteMenuStyle;
   topBar?: SiteTopBar;
   header?: {
     ctaLabel?: string | null;
