@@ -36,6 +36,12 @@ import { BookingSearchSection } from "./sections/BookingSearchSection";
 import { AvailabilityCalendarSection } from "./sections/AvailabilityCalendarSection";
 import { RateTableSection } from "./sections/RateTableSection";
 import {
+  RoomGallerySection,
+  RoomOverviewSection,
+  RoomAmenitiesSection,
+  RoomRateSection,
+} from "./sections/RoomDetailSections";
+import {
   ElHeadingSection,
   ElTextSection,
   ElImageSection,
@@ -256,6 +262,34 @@ function SectionSwitch({
         <RateTableSection
           props={section.props}
           data={dataFor(data, section.id, "rate_table")}
+        />
+      );
+    case "room_gallery":
+      return (
+        <RoomGallerySection
+          props={section.props}
+          data={dataFor(data, section.id, "room_gallery")}
+        />
+      );
+    case "room_overview":
+      return (
+        <RoomOverviewSection
+          props={section.props}
+          data={dataFor(data, section.id, "room_overview")}
+        />
+      );
+    case "room_amenities":
+      return (
+        <RoomAmenitiesSection
+          props={section.props}
+          data={dataFor(data, section.id, "room_amenities")}
+        />
+      );
+    case "room_rate":
+      return (
+        <RoomRateSection
+          props={section.props}
+          data={dataFor(data, section.id, "room_rate")}
         />
       );
     case "el_heading":

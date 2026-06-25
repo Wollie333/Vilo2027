@@ -14,6 +14,7 @@ import type {
   GalleryData,
   LocationData,
   ReviewsData,
+  RoomDetail,
   RoomsPreviewData,
 } from "./types";
 
@@ -143,6 +144,80 @@ export function buildSiteJsonLd(args: {
 
   graph.push(lodging);
   return graph;
+}
+
+/**
+ * HotelRoom + breadcrumb graph for a single room-detail page. Breadcrumb is
+ * Home › Rooms › <room> (the Rooms crumb is included only when a rooms listing
+ * page exists, so no broken intermediate URL).
+ */
+export function buildRoomJsonLd(args: {
+  ctx: SiteContext;
+  room: RoomDetail;
+  roomSlug: string;
+  roomsHref: string | null;
+  origin: string;
+}): Node[] {
+  const { ctx, room, roomSlug, roomsHref, origin } = args;
+  const siteUrl = origin.replace(/\/+$/, "");
+  const url = `${siteUrl}/rooms/${roomSlug}`;
+
+  const node: Node = {
+    "@type": "HotelRoom",
+    "@id": `${url}#room`,
+    name: room.name,
+    url,
+  };
+  if (room.description) node.description = room.description;
+  const image = room.images
+    .map((i) => abs(i.url))
+    .filter((u): u is string => !!u);
+  if (image.length) node.image = image;
+  if (room.price != null) {
+    node.offers = {
+      "@type": "Offer",
+      price: String(room.price),
+      priceCurrency: room.currency ?? "ZAR",
+      category: "LodgingReservation",
+      url: abs(room.bookHref) ?? url,
+    };
+  }
+
+  const crumbs: Node[] = [
+    { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+  ];
+  if (roomsHref) {
+    crumbs.push({
+      "@type": "ListItem",
+      position: 2,
+      name: "Rooms",
+      item: `${siteUrl}${roomsHref}`,
+    });
+    crumbs.push({
+      "@type": "ListItem",
+      position: 3,
+      name: room.name,
+      item: url,
+    });
+  } else {
+    crumbs.push({
+      "@type": "ListItem",
+      position: 2,
+      name: room.name,
+      item: url,
+    });
+  }
+
+  return [
+    {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      name: ctx.brand.name,
+      url: siteUrl,
+    },
+    node,
+    { "@type": "BreadcrumbList", itemListElement: crumbs },
+  ];
 }
 
 /** BlogPosting + breadcrumb graph for a single blog post page. */

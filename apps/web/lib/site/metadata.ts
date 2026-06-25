@@ -13,6 +13,7 @@ export async function siteMetadata(args: {
   siteParam?: string | null;
   pathSlug?: string[];
   postSlug?: string;
+  roomSlug?: string;
   preview?: boolean;
 }): Promise<Metadata> {
   const ref = resolveSiteRef({ host: args.host, siteParam: args.siteParam });
@@ -21,6 +22,7 @@ export async function siteMetadata(args: {
   const meta = await loadSiteMeta(ref, args.pathSlug ?? [], {
     preview: args.preview,
     postSlug: args.postSlug,
+    roomSlug: args.roomSlug,
   });
   if (!meta) return {};
 
@@ -36,11 +38,13 @@ export async function siteMetadata(args: {
       host.startsWith("localhost") || host.startsWith("127.")
         ? "http"
         : "https";
-    const path = args.postSlug
-      ? `/blog/${args.postSlug}`
-      : args.pathSlug && args.pathSlug.length
-        ? `/${args.pathSlug.join("/")}`
-        : "";
+    const path = args.roomSlug
+      ? `/rooms/${args.roomSlug}`
+      : args.postSlug
+        ? `/blog/${args.postSlug}`
+        : args.pathSlug && args.pathSlug.length
+          ? `/${args.pathSlug.join("/")}`
+          : "";
     canonical = `${scheme}://${host}${path}`;
   }
 

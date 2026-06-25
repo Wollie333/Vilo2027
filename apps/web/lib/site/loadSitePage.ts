@@ -14,13 +14,17 @@
 import { cache } from "react";
 
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
+import { slugify } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAmenityIndex } from "@/lib/taxonomy/getAmenities";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import {
+  isRoomScoped,
   parseSectionsLoose,
   type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
+import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import {
   formFieldsSchema,
@@ -38,7 +42,10 @@ import type {
   PropertyOverride,
   PublishSnapshot,
   ReviewCard,
+  RoomAmenity,
   RoomCard,
+  RoomDetail,
+  RoomDetailImage,
   RoomGroup,
   SiteAnalyticsSettings,
   SiteBrand,
@@ -346,7 +353,7 @@ export function loadSiteContext(
 export async function loadSiteMeta(
   ref: string,
   pathSlug: string[],
-  opts: { preview?: boolean; postSlug?: string } = {},
+  opts: { preview?: boolean; postSlug?: string; roomSlug?: string } = {},
 ): Promise<{
   title: string;
   description?: string;
@@ -372,7 +379,13 @@ export async function loadSiteMeta(
   let pageTitle: string | null = null;
   let pageDesc: string | undefined;
 
-  if (opts.postSlug) {
+  if (opts.roomSlug) {
+    const room = await loadRoomDetail(ctx, opts.roomSlug);
+    if (room) {
+      pageTitle = room.name;
+      pageDesc = room.description?.slice(0, 200) ?? undefined;
+    }
+  } else if (opts.postSlug) {
     const post = await loadSiteBlogPost(ctx, opts.postSlug);
     if (post) {
       pageTitle = post.title;
@@ -390,7 +403,7 @@ export async function loadSiteMeta(
     }
   }
 
-  const isHome = pathSlug.length === 0 && !opts.postSlug;
+  const isHome = pathSlug.length === 0 && !opts.postSlug && !opts.roomSlug;
   const title =
     isHome || !pageTitle ? siteTitle : `${pageTitle} · ${siteTitle}`;
 
@@ -524,6 +537,67 @@ export function siteBookHref(
   if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
   const q = qs.toString();
   return `${ctx.bookBasePath}/book${q ? `?${q}` : ""}`;
+}
+
+/**
+ * Link to a room's detail page (`/rooms/<slug>`), relative to the site root so it
+ * stays on the host's own domain; adds `?site=` on the app-domain ?site=
+ * affordance so it resolves there too.
+ */
+export function siteRoomHref(
+  ctx: Pick<SiteContext, "bookBasePath" | "subdomain">,
+  slug: string,
+): string {
+  const base = `${ctx.bookBasePath}/rooms/${encodeURIComponent(slug)}`;
+  return ctx.bookBasePath ? `${base}?site=${ctx.subdomain}` : base;
+}
+
+/** Humanise an enum value ("sea_view" → "Sea view"). */
+function humaniseEnum(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const s = v.replace(/_/g, " ").trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : null;
+}
+
+/**
+ * Build a stable URL slug per visible room from its display name. Disambiguates
+ * name collisions deterministically by order (`-2`, `-3`), so the same input
+ * order always yields the same slugs (and the room route can recompute + match).
+ */
+function roomSlugMap(
+  ordered: Array<{ roomId: string; name: string }>,
+): Map<string, string> {
+  const seen = new Map<string, number>();
+  const out = new Map<string, string>();
+  for (const r of ordered) {
+    const base = slugify(r.name) || "room";
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    out.set(r.roomId, n === 1 ? base : `${base}-${n}`);
+  }
+  return out;
+}
+
+/** Short facts from a live room row (cosmetic — no booking impact). */
+function roomFacts(room: {
+  max_guests: number | null;
+  bedrooms: number | null;
+  bathrooms?: number | null;
+  bed_type: string | null;
+  has_ensuite_bathroom: boolean | null;
+  room_size_sqm?: number | null;
+  view_type?: string | null;
+}): string[] {
+  const facts: string[] = [];
+  if (room.max_guests) facts.push(`Sleeps ${room.max_guests}`);
+  if (room.bedrooms)
+    facts.push(`${room.bedrooms} ${room.bedrooms === 1 ? "bed" : "beds"}`);
+  if (room.bed_type) facts.push(room.bed_type);
+  if (room.has_ensuite_bathroom) facts.push("Ensuite");
+  if (room.room_size_sqm) facts.push(`${room.room_size_sqm} m²`);
+  const view = humaniseEnum(room.view_type);
+  if (view) facts.push(view);
+  return facts;
 }
 
 /** Deep-link into the special booking flow, tagged as a website-channel booking. */
@@ -661,10 +735,23 @@ async function assembleSectionData(
   sb: Sb,
   ctx: SiteContext,
   sections: WebsiteSection[],
+  activeRoom?: RoomDetail | null,
 ): Promise<SiteData> {
   const types = new Set(sections.map((s) => s.type));
   const byType = await assembleSiteDataByType(sb, ctx, types);
   const data: SiteData = {};
+  // Room-scoped sections (room_gallery/overview/amenities/rate) all render the
+  // SAME active room. The room route passes it; on any other page it's absent so
+  // these sections render their own empty/placeholder state.
+  if (activeRoom) {
+    for (const s of sections) {
+      if (isRoomScoped(s.type))
+        data[s.id] = {
+          type: s.type,
+          data: activeRoom,
+        } as SiteData[string];
+    }
+  }
   for (const s of sections) {
     switch (s.type) {
       case "gallery":
@@ -1109,6 +1196,18 @@ export async function assembleSiteDataByType(
           photoByRoom.set(rid, (p as { url: string }).url);
       }
 
+      // Slug per visible room (same algorithm the room route uses to resolve a
+      // slug back to a room), so each card deep-links to its detail page.
+      const slugByRoom = roomSlugMap(
+        overrideRows.map((ov) => {
+          const r = roomById.get(ov.room_id) as { name: string } | undefined;
+          return {
+            roomId: ov.room_id,
+            name: ov.display_name?.trim() || r?.name || "Room",
+          };
+        }),
+      );
+
       const usedProps = new Set<string>();
       const rooms: RoomCard[] = overrideRows
         .map((ov): RoomCard | null => {
@@ -1149,6 +1248,10 @@ export async function assembleSiteDataByType(
               propertyId: room.property_id,
               roomId: room.id,
             }),
+            detailHref: (() => {
+              const s = slugByRoom.get(room.id);
+              return s ? siteRoomHref(ctx, s) : undefined;
+            })(),
             featured: ov.featured ?? false,
             badge: ov.badge?.trim() || null,
             facts,
@@ -1289,6 +1392,298 @@ export async function assembleSiteDataByType(
   ]);
 
   return out;
+}
+
+// ── Room detail (the /rooms/<slug> page) ─────────────────────
+
+type RoomOverride = {
+  room_id: string;
+  display_name: string | null;
+  display_price: number | null;
+  display_currency: string | null;
+  display_desc: string | null;
+  sort_order: number;
+};
+
+/** Visible room overrides — frozen snapshot when published, else live website_rooms. */
+async function visibleRoomOverrides(
+  sb: Sb,
+  ctx: SiteContext,
+): Promise<RoomOverride[]> {
+  if (ctx.publishedRoomRows) {
+    return ctx.publishedRoomRows
+      .filter((r) => r.is_visible)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((r) => ({
+        room_id: r.room_id,
+        display_name: r.display_name,
+        display_price: r.display_price,
+        display_currency: r.display_currency,
+        display_desc: r.display_desc,
+        sort_order: r.sort_order,
+      }));
+  }
+  const { data: wr } = await sb
+    .from("website_rooms")
+    .select(
+      "room_id, display_name, display_price, display_currency, display_desc, sort_order",
+    )
+    .eq("website_id", ctx.websiteId)
+    .eq("is_visible", true)
+    .order("sort_order", { ascending: true });
+  return (wr ?? []).map((r) => ({
+    room_id: (r as { room_id: string }).room_id,
+    display_name: (r as { display_name: string | null }).display_name,
+    display_price: (r as { display_price: number | string | null })
+      .display_price as number | null,
+    display_currency: (r as { display_currency: string | null })
+      .display_currency,
+    display_desc: (r as { display_desc: string | null }).display_desc,
+    sort_order: (r as { sort_order: number }).sort_order,
+  }));
+}
+
+/** The visible rooms in order, each with its resolved display name (for slugs). */
+async function orderedVisibleRooms(
+  sb: Sb,
+  ctx: SiteContext,
+): Promise<{
+  overrides: RoomOverride[];
+  ordered: Array<{ roomId: string; name: string }>;
+}> {
+  const overrides = await visibleRoomOverrides(sb, ctx);
+  const roomIds = overrides.map((o) => o.room_id).filter(Boolean);
+  if (roomIds.length === 0) return { overrides, ordered: [] };
+  const { data: prRows } = await sb
+    .from("property_rooms")
+    .select("id, name, is_active, deleted_at")
+    .in("id", roomIds);
+  const roomById = new Map(
+    (prRows ?? []).map((r) => [(r as { id: string }).id, r]),
+  );
+  const ordered = overrides
+    .map((o) => {
+      const r = roomById.get(o.room_id) as
+        | { name: string; is_active: boolean | null; deleted_at: string | null }
+        | undefined;
+      if (!r || r.is_active === false || r.deleted_at) return null;
+      return { roomId: o.room_id, name: o.display_name?.trim() || r.name };
+    })
+    .filter((x): x is { roomId: string; name: string } => x !== null);
+  return { overrides, ordered };
+}
+
+/**
+ * Load the full detail of one room by its URL slug (resolved against the site's
+ * visible rooms). Returns null when the slug matches no visible/active room.
+ */
+export async function loadRoomDetail(
+  ctx: SiteContext,
+  roomSlug: string,
+): Promise<RoomDetail | null> {
+  const sb = createAdminClient();
+  const { overrides, ordered } = await orderedVisibleRooms(sb, ctx);
+  if (ordered.length === 0) return null;
+
+  const slugByRoom = roomSlugMap(ordered);
+  let matchedId: string | null = null;
+  for (const [rid, slug] of slugByRoom) {
+    if (slug === roomSlug) {
+      matchedId = rid;
+      break;
+    }
+  }
+  if (!matchedId) return null;
+  const ov = overrides.find((o) => o.room_id === matchedId);
+  if (!ov) return null;
+
+  const { data: room } = await sb
+    .from("property_rooms")
+    .select(
+      "id, name, description, base_price, currency, property_id, is_active, deleted_at, max_guests, bedrooms, bathrooms, bed_type, has_ensuite_bathroom, room_size_sqm, view_type",
+    )
+    .eq("id", matchedId)
+    .maybeSingle<{
+      id: string;
+      name: string;
+      description: string | null;
+      base_price: number | string | null;
+      currency: string | null;
+      property_id: string;
+      is_active: boolean | null;
+      deleted_at: string | null;
+      max_guests: number | null;
+      bedrooms: number | null;
+      bathrooms: number | null;
+      bed_type: string | null;
+      has_ensuite_bathroom: boolean | null;
+      room_size_sqm: number | null;
+      view_type: string | null;
+    }>();
+  if (!room || room.is_active === false || room.deleted_at) return null;
+
+  const [{ data: photos }, { data: amenityRows }, { data: propRow }] =
+    await Promise.all([
+      sb
+        .from("property_photos")
+        .select("url, sort_order")
+        .eq("room_id", matchedId)
+        .order("sort_order", { ascending: true }),
+      sb
+        .from("property_amenities")
+        .select("amenity_key")
+        .eq("room_id", matchedId),
+      sb
+        .from("properties")
+        .select("name, deleted_at")
+        .eq("id", room.property_id)
+        .maybeSingle<{ name: string | null; deleted_at: string | null }>(),
+    ]);
+  // Property soft-deleted after publish (lingers in the frozen snapshot) → hide.
+  if (propRow?.deleted_at) return null;
+
+  const images: RoomDetailImage[] = (photos ?? []).map((p) => ({
+    url: (p as { url: string }).url,
+    alt: room.name,
+  }));
+
+  // Amenity keys for this room; fall back to the property's own amenities when
+  // the room has none set (hosts often tag amenities at the property level).
+  let amenityKeys = (amenityRows ?? []).map(
+    (a) => (a as { amenity_key: string }).amenity_key,
+  );
+  if (amenityKeys.length === 0) {
+    const { data: propAmenities } = await sb
+      .from("property_amenities")
+      .select("amenity_key")
+      .eq("property_id", room.property_id);
+    amenityKeys = (propAmenities ?? []).map(
+      (a) => (a as { amenity_key: string }).amenity_key,
+    );
+  }
+  const catalog = await getAmenityIndex();
+  const amenities: RoomAmenity[] = amenityKeys.map((key) => {
+    const c = catalog.get(key);
+    return {
+      icon: c?.icon ?? null,
+      label: c?.label ?? humaniseEnum(key) ?? key,
+    };
+  });
+
+  const price = ov.display_price ?? room.base_price;
+  return {
+    id: room.id,
+    slug: roomSlug,
+    name: ov.display_name?.trim() || room.name,
+    description: ov.display_desc?.trim() || room.description,
+    price: price == null ? null : Number(price),
+    currency: ov.display_currency || room.currency || "ZAR",
+    images,
+    facts: roomFacts(room),
+    amenities,
+    bookHref: siteBookHref(ctx, {
+      propertyId: room.property_id,
+      roomId: room.id,
+    }),
+    propertyId: room.property_id,
+    propertyName: propRow?.name ?? null,
+  };
+}
+
+/** Ordered URL slugs of the site's visible rooms (for the sitemap). */
+export async function listRoomSlugs(ctx: SiteContext): Promise<string[]> {
+  const sb = createAdminClient();
+  const { ordered } = await orderedVisibleRooms(sb, ctx);
+  const map = roomSlugMap(ordered);
+  return ordered.map((o) => map.get(o.roomId)).filter((s): s is string => !!s);
+}
+
+/** First visible room's detail — the sample shown in the builder preview. */
+export async function loadSampleRoomDetail(
+  ctx: SiteContext,
+): Promise<RoomDetail | null> {
+  const sb = createAdminClient();
+  const { ordered } = await orderedVisibleRooms(sb, ctx);
+  if (ordered.length === 0) return null;
+  const slug = roomSlugMap(ordered).get(ordered[0].roomId);
+  return slug ? loadRoomDetail(ctx, slug) : null;
+}
+
+/**
+ * The sections that make up the room-detail template — the host's `room_detail`
+ * page when present (draft in preview, published live), else the theme's
+ * designed default so a room page always renders.
+ */
+export async function loadRoomDetailSections(
+  ctx: SiteContext,
+): Promise<WebsiteSection[]> {
+  const sb = createAdminClient();
+  const { data: pageRow } = await sb
+    .from("website_pages")
+    .select("draft_sections, published_sections")
+    .eq("website_id", ctx.websiteId)
+    .eq("kind", "room_detail")
+    .maybeSingle<{ draft_sections: unknown; published_sections: unknown }>();
+
+  const sections = sanitiseSectionsHtml(
+    parseSectionsLoose(
+      pageRow
+        ? ctx.preview
+          ? pageRow.draft_sections
+          : pageRow.published_sections
+        : null,
+    ),
+  ).filter((s) => ctx.preview || withinSchedule(s.schedule));
+
+  if (sections.length > 0) return sections;
+  // No host template yet (or empty) → the theme's designed default.
+  return getThemeRoomDetailSections(ctx.theme.preset);
+}
+
+/**
+ * Path to a "rooms" listing page if the host has one (a page at slug `rooms`),
+ * else null — drives the middle "Rooms" breadcrumb crumb on a room page.
+ */
+export async function findRoomsIndexHref(
+  ctx: SiteContext,
+): Promise<string | null> {
+  const sb = createAdminClient();
+  const { data } = await sb
+    .from("website_pages")
+    .select("kind, slug")
+    .eq("website_id", ctx.websiteId)
+    .eq("slug", "rooms")
+    .neq("kind", "room_detail")
+    .maybeSingle<{ kind: string; slug: string }>();
+  return data ? pageHref(data.kind, data.slug) : null;
+}
+
+export type SiteRoomResult = {
+  room: RoomDetail;
+  sections: WebsiteSection[];
+  data: SiteData;
+  /** "/rooms" listing page path, when one exists (for the breadcrumb). */
+  roomsHref: string | null;
+};
+
+/**
+ * Assemble a full room-detail page: the viewed room + the template sections +
+ * their live data (with the active room injected into the room-scoped sections).
+ * Returns null when the slug matches no visible room.
+ */
+export async function loadSiteRoomPage(
+  ctx: SiteContext,
+  roomSlug: string,
+): Promise<SiteRoomResult | null> {
+  const room = await loadRoomDetail(ctx, roomSlug);
+  if (!room) return null;
+  const [sections, roomsHref] = await Promise.all([
+    loadRoomDetailSections(ctx),
+    findRoomsIndexHref(ctx),
+  ]);
+  const sb = createAdminClient();
+  const data = await assembleSectionData(sb, ctx, sections, room);
+  return { room, sections, data, roomsHref };
 }
 
 /** Load a single published blog post by slug (for the blog detail page). */

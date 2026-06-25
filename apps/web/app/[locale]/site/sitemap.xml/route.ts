@@ -1,5 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { loadSiteContext, resolveSiteRef } from "@/lib/site/loadSitePage";
+import {
+  listRoomSlugs,
+  loadSiteContext,
+  resolveSiteRef,
+} from "@/lib/site/loadSitePage";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +27,7 @@ export async function GET(request: Request) {
   }
 
   const sb = createAdminClient();
-  const [{ data: pages }, { data: posts }] = await Promise.all([
+  const [{ data: pages }, { data: posts }, roomSlugs] = await Promise.all([
     sb
       .from("website_pages")
       .select("kind, slug, updated_at")
@@ -34,6 +38,7 @@ export async function GET(request: Request) {
       .eq("website_id", ctx.websiteId)
       .eq("status", "published")
       .is("deleted_at", null),
+    listRoomSlugs(ctx),
   ]);
 
   const origin = url.origin;
@@ -47,11 +52,13 @@ export async function GET(request: Request) {
   const entries: { path: string; lastmod?: string }[] = [
     { path: "/", lastmod: day(homeRow?.updated_at as string | null) },
     ...pageRows
-      .filter((p) => p.kind !== "home")
+      // room_detail is a template rendered only via /rooms/<slug>, not browsable.
+      .filter((p) => p.kind !== "home" && p.kind !== "room_detail")
       .map((p) => ({
         path: `/${p.slug}`,
         lastmod: day(p.updated_at as string | null),
       })),
+    ...roomSlugs.map((slug) => ({ path: `/rooms/${slug}` })),
     ...(posts ?? []).map((p) => ({
       path: `/blog/${p.slug}`,
       lastmod: day(
