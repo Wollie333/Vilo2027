@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-06-25 — Room sub-menu labels = the room's own name + publish-verified
+
+Follow-up: the auto-nested room sub-menu items now label each link with the
+**room's own name** (from Properties → Rooms / `property_rooms.name`), not the
+per-website display-name override. The slug is still computed the same way the
+public room route resolves it (display-override → name) so the link always
+matches. Confirmed the full **save → publish → live** path: a saved menu is
+frozen into the publish snapshot (`buildWebsiteSnapshot` captures `navigation`),
+so it goes live on Publish — verified the published `vilotest` header now serves
+`/rooms/olive-room`, `/rooms/vineyard-suite`, `/rooms/mountain-loft` under Rooms.
+(Menu edits follow the standard draft → publish model — they reach the live site
+on Publish, not on save, so unpublished edits never leak.)
+
+---
+
 ## 2026-06-25 — Default menu nests each room's detail page under "Rooms"
 
 When a site has **multiple rooms**, the auto-seeded default menu now adds each

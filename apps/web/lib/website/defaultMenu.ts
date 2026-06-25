@@ -92,14 +92,20 @@ async function visibleRoomLinks(
     .filter((r) => nameById.has(r.room_id))
     .map((r) => ({
       roomId: r.room_id,
-      name: r.display_name?.trim() || nameById.get(r.room_id) || "Room",
+      // Slug parity: the public room route resolves slugs from the display-name
+      // override OR the room name, so compute the slug the SAME way…
+      slugName: r.display_name?.trim() || nameById.get(r.room_id) || "Room",
+      // …but the menu LABEL is the room's own name from Properties → Rooms.
+      label: nameById.get(r.room_id) || "Room",
     }));
   if (ordered.length < 2) return [];
 
-  const slugs = roomSlugMap(ordered);
+  const slugs = roomSlugMap(
+    ordered.map((r) => ({ roomId: r.roomId, name: r.slugName })),
+  );
   return ordered.map((r) => ({
     id: `room-${r.roomId}`,
-    label: r.name,
+    label: r.label,
     href: `/rooms/${slugs.get(r.roomId)}`,
   }));
 }
