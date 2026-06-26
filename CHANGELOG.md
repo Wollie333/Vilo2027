@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-06-26 — Safari editable in the builder (slice 1: the canvas keystone)
+
+Phase 2 of the UX lane: make the bespoke Safari (NenGama) theme editable in the
+page builder instead of editing a generic grey preview that looks nothing like
+the published design.
+
+- **Safari section components** — new `components/site/sections/SafariSections.tsx`
+  extracts each NenGama home band (hero, story/intro, experiences/highlights,
+  suites/rooms_preview, gallery, reviews, location, booking CTA) into a
+  per-section, host-editable component driven by the SAME flat `sections` the
+  builder already understands. Content comes from the section props; imagery
+  falls back to the design's stock; **the suites grid binds to the host's REAL
+  rooms** (name/price/photo/facts) when present, with stock as the out-of-box
+  fallback. Reviews bind to real review data + average/count.
+- **Theme-aware renderer** — `SectionRenderer`/`SectionSwitch` gained a
+  `themeVariant` (+ `safariCtx`) thread; when `"safari"`, supported types
+  dispatch to the Safari bands via `renderSafariSection`, falling back to the
+  generic block for anything without a Safari variant. One renderer, both
+  surfaces — so builder and live site match by construction.
+- **Safari-aware builder canvas** — `PageBuilder` now branches: when the active
+  theme is `safari`, the canvas renders inside the scoped `.vilo-safari` frame
+  (+ the theme fonts) and each block renders Safari-styled and selectable;
+  otherwise the generic chrome as before. `safari.css` is loaded in the editor
+  bundle only (scoped, never leaks).
+- **Verified live**: applied the Safari "Home" template to the test site → the
+  builder canvas renders the full NenGama design (savanna hero "Where the wild
+  still runs", experiences, gallery, reviews, CTA), the suites pull the real
+  Olive Grove rooms (Olive Room R1 300 / Vineyard Suite R1 900 / Mountain Loft
+  R2 100), and the Hero inspector edits headline/sub/image/button. Non-safari
+  themes are untouched (themeVariant undefined → generic path). tsc + lint green.
+
+NEXT (slice 2): unify the PUBLIC Safari home onto these same components (thread
+room/gallery/review `data` into `SafariSiteView`) so live === builder incl. real
+rooms; then the other Safari pages (Rooms, Room-detail, Rates, About, Contact,
+Journal) and a Safari palette that adds these bands directly.
+
+---
+
 ## 2026-06-26 — App-wide "every action gives feedback" + perf quick-wins
 
 New lane (Phase 1 of 2; Phase 2 = Safari editable in the builder). Founder

@@ -92,6 +92,11 @@ import type {
 import { SectionRenderer } from "@/components/site/SectionRenderer";
 import { SiteChrome, type ChromeTarget } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
+// Safari theme styles, scoped to `.vilo-safari`. Loaded in the editor bundle so
+// the canvas can render the bespoke NenGama design when Safari is active (it
+// never leaks: every rule is under .vilo-safari). Public site loads it via
+// SafariShell.
+import "@/components/site/safari/safari.css";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
   RoomDetail,
@@ -1149,20 +1154,11 @@ export function PageBuilder({
         {/* ── Canvas (live theme/brand preview) ─────── */}
         <div className="canvas-wrap thin">
           <div className={deviceClass}>
-            <SiteThemeRoot theme={theme}>
-              <SiteChrome
-                brand={brand}
-                nav={nav}
-                navigation={navConfig}
-                header={theme.header}
-                footer={theme.footer}
-                layout={siteLayout}
-                /* Header/footer are theme elements — shown here for context but
-                   edited in the Navigation manager, never per-page. So the chrome
-                   is inert (not click-to-select, links don't navigate). */
-                chromeInert
-              >
-                {sections.length === 0 ? (
+            {(() => {
+              const isSafari = theme.preset === "safari";
+              const themeVariant = isSafari ? "safari" : undefined;
+              const body =
+                sections.length === 0 ? (
                   <div className="canvas-empty">
                     <div className="ce-ic">
                       <Blocks style={{ width: 26, height: 26 }} />
@@ -1198,6 +1194,7 @@ export function PageBuilder({
                           selected={selectedId === s.id}
                           previewing={previewing}
                           data={previewData}
+                          themeVariant={themeVariant}
                           onSelect={() => selectSection(s.id)}
                           onToggle={() => toggleEnabled(s.id)}
                           onDuplicate={() => duplicateSection(s.id)}
@@ -1207,9 +1204,42 @@ export function PageBuilder({
                       ))}
                     </SortableContext>
                   </DndContext>
-                )}
-              </SiteChrome>
-            </SiteThemeRoot>
+                );
+
+              // Safari renders its bespoke design (scoped .vilo-safari + theme
+              // fonts) so the canvas matches the published NenGama look. Other
+              // themes render inside the generic chrome.
+              if (isSafari) {
+                return (
+                  <div className="vilo-safari">
+                    {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+                    <link
+                      rel="stylesheet"
+                      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Marcellus&display=swap"
+                    />
+                    {body}
+                  </div>
+                );
+              }
+              return (
+                <SiteThemeRoot theme={theme}>
+                  <SiteChrome
+                    brand={brand}
+                    nav={nav}
+                    navigation={navConfig}
+                    header={theme.header}
+                    footer={theme.footer}
+                    layout={siteLayout}
+                    /* Header/footer are theme elements — shown here for context
+                       but edited in the Navigation manager, never per-page. So
+                       the chrome is inert (no click-to-select, links dead). */
+                    chromeInert
+                  >
+                    {body}
+                  </SiteChrome>
+                </SiteThemeRoot>
+              );
+            })()}
           </div>
         </div>
 
@@ -1397,6 +1427,7 @@ function BkBlock({
   selected,
   previewing,
   data,
+  themeVariant,
   onSelect,
   onToggle,
   onDuplicate,
@@ -1408,6 +1439,7 @@ function BkBlock({
   selected: boolean;
   previewing: boolean;
   data: SiteData;
+  themeVariant?: string;
   onSelect: () => void;
   onToggle: () => void;
   onDuplicate: () => void;
@@ -1435,6 +1467,7 @@ function BkBlock({
         sections={[section]}
         data={data}
         asset={asset}
+        themeVariant={themeVariant}
         errorLabel={t("sectionRenderError")}
       />
     ) : null;
@@ -1498,6 +1531,7 @@ function BkBlock({
           sections={[{ ...section, enabled: true }]}
           data={data}
           asset={asset}
+          themeVariant={themeVariant}
           errorLabel={t("sectionRenderError")}
         />
       </div>
