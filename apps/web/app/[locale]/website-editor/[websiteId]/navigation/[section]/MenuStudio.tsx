@@ -22,7 +22,11 @@ import { useTranslations } from "next-intl";
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
 import type { PageOption } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
 import { NavHeaderPreview } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavPreviews";
-import type { SiteMenuItem } from "@/lib/site/types";
+import { SafariHero } from "@/components/site/sections/SafariSections";
+import { SafariShell } from "@/components/site/safari/SafariShell";
+import { buildSafariNav } from "@/lib/site/safariNav";
+import type { SiteBrand, SiteMenuItem } from "@/lib/site/types";
+import { newSection } from "@/lib/website/sectionDefaults";
 
 type Device = "desktop" | "tablet" | "phone";
 type Tab = "content" | "style" | "advanced";
@@ -69,6 +73,8 @@ export function MenuStudio({
   rooms = [],
   device,
   brandName,
+  brand,
+  themePreset,
 }: {
   nav: NavigationConfig;
   setMenu: (menu: SiteMenuItem[]) => void;
@@ -78,9 +84,23 @@ export function MenuStudio({
   rooms?: { roomId: string; name: string }[];
   device: Device;
   brandName: string;
+  brand: SiteBrand;
+  themePreset?: string | null;
 }) {
   const t = useTranslations("website");
   const menu = nav.menu ?? [];
+  const isSafari = themePreset === "safari";
+  const safariNav = isSafari
+    ? buildSafariNav({
+        nav: pages,
+        navigation: nav,
+        brand,
+        preview: false,
+        subdomain: "",
+      })
+    : null;
+  const heroSection = newSection("hero");
+  const heroProps = heroSection.type === "hero" ? heroSection.props : undefined;
   const [tab, setTab] = useState<Tab>("content");
   const [selected, setSelected] = useState<number[] | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -432,9 +452,19 @@ export function MenuStudio({
                 : "device"
           }
         >
-          <div className="vilo-nav">
-            <NavHeaderPreview nav={nav} brandName={brandName} device={device} />
-          </div>
+          {isSafari && safariNav ? (
+            <SafariShell brandName={brandName} nav={safariNav}>
+              {heroProps ? <SafariHero props={heroProps} /> : null}
+            </SafariShell>
+          ) : (
+            <div className="vilo-nav">
+              <NavHeaderPreview
+                nav={nav}
+                brandName={brandName}
+                device={device}
+              />
+            </div>
+          )}
         </div>
       </div>
 

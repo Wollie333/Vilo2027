@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-26 — Navigation managers render the real theme design + live binding
+
+The standalone header/menu/footer managers showed a GENERIC pill preview, so
+menu-style edits (e.g. hover colour) appeared to do nothing there. Now they render
+the REAL theme chrome, live-bound to the config being edited:
+
+- **`NavSectionEditor` + `MenuStudio`** render the actual `SafariShell` (built from
+  the live `navConfig` + a resolved `brand`) with a stock `SafariHero` behind it —
+  so the header shows over a real hero, the footer shows its real columns +
+  newsletter, and the menu shows the real nav. Off-theme falls back to the generic
+  preview. Loader now passes `theme` + a resolved `SiteBrand` (logo/socials/tagline).
+- Because the canvas is built from `navConfig` state, edits reflect INSTANTLY; the
+  manager's `.vilo-builder` root already un-fixes the nav (builder.css).
+
+Verified live in the managers (logged-in builder): header shows real chrome + hero;
+footer shows Explore/Visit + newsletter; menu Style-tab colour change flipped the
+canvas nav link white→#e8c87a immediately. tsc + lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Meta Pixel on Safari + dynamic Purchase after paying
 
 The host's tenant-site pixel (`SiteMarketing`: GA4 + Meta + POPIA consent) loaded

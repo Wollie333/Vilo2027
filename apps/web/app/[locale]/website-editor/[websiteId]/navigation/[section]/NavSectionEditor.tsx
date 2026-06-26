@@ -21,7 +21,15 @@ import { useTranslations } from "next-intl";
 
 import { saveNavigationAction } from "@/app/[locale]/dashboard/website/actions";
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
-import type { SiteFooterColumn, SiteMenuItem } from "@/lib/site/types";
+import { SafariHero } from "@/components/site/sections/SafariSections";
+import { SafariShell } from "@/components/site/safari/SafariShell";
+import { buildSafariNav } from "@/lib/site/safariNav";
+import type {
+  SiteBrand,
+  SiteFooterColumn,
+  SiteMenuItem,
+} from "@/lib/site/types";
+import { newSection } from "@/lib/website/sectionDefaults";
 
 import {
   NavFooterPreview,
@@ -142,6 +150,8 @@ export function NavSectionEditor({
   pages,
   rooms = [],
   brandName,
+  brand,
+  themePreset,
   subdomain,
 }: {
   websiteId: string;
@@ -150,6 +160,8 @@ export function NavSectionEditor({
   pages: PageOption[];
   rooms?: { roomId: string; name: string }[];
   brandName: string;
+  brand: SiteBrand;
+  themePreset?: string | null;
   subdomain: string;
 }) {
   const t = useTranslations("website");
@@ -164,6 +176,22 @@ export function NavSectionEditor({
       : device === "phone"
         ? "device mobile"
         : "device";
+
+  // Live theme preview: render the REAL chrome (built from the live navConfig +
+  // brand) so header/menu/footer edits — colours, logo, columns — show instantly
+  // and match the published site. Falls back to the generic preview off-theme.
+  const isSafari = themePreset === "safari";
+  const safariNav = isSafari
+    ? buildSafariNav({
+        nav: pages,
+        navigation: nav,
+        brand,
+        preview: false,
+        subdomain: "",
+      })
+    : null;
+  const heroSection = newSection("hero");
+  const heroProps = heroSection.type === "hero" ? heroSection.props : undefined;
   const devices: Array<{ key: Device; icon: LucideIcon; title: string }> = [
     { key: "desktop", icon: Monitor, title: t("deviceDesktop") },
     { key: "tablet", icon: Tablet, title: t("deviceTablet") },
@@ -294,6 +322,8 @@ export function NavSectionEditor({
             rooms={rooms}
             device={device}
             brandName={brandName}
+            brand={brand}
+            themePreset={themePreset}
           />
         ) : (
           <>
@@ -350,17 +380,23 @@ export function NavSectionEditor({
             {/* canvas — live preview in the shared device frame */}
             <div className="canvas-wrap thin">
               <div className={deviceClass}>
-                <div className="vilo-nav">
-                  {section === "footer" ? (
-                    <NavFooterPreview nav={nav} brandName={brandName} />
-                  ) : (
-                    <NavHeaderPreview
-                      nav={nav}
-                      brandName={brandName}
-                      device={device}
-                    />
-                  )}
-                </div>
+                {isSafari && safariNav ? (
+                  <SafariShell brandName={brandName} nav={safariNav}>
+                    {heroProps ? <SafariHero props={heroProps} /> : null}
+                  </SafariShell>
+                ) : (
+                  <div className="vilo-nav">
+                    {section === "footer" ? (
+                      <NavFooterPreview nav={nav} brandName={brandName} />
+                    ) : (
+                      <NavHeaderPreview
+                        nav={nav}
+                        brandName={brandName}
+                        device={device}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

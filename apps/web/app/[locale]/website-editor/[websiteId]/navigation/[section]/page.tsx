@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 
 import { getMyHostId } from "@/lib/host/current";
 import { pageHref } from "@/lib/site/loadSitePage";
+import type { SiteBrand } from "@/lib/site/types";
 import { createServerClient } from "@/lib/supabase/server";
+import { websiteAssetUrl } from "@/lib/website/assets";
 import { ensureDefaultMenu } from "@/lib/website/defaultMenu";
 import { navigationSchema } from "@/app/[locale]/dashboard/website/schemas";
 
@@ -27,7 +29,7 @@ export default async function NavigationSectionEditorPage({
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("id, subdomain, navigation, brand")
+    .select("id, subdomain, navigation, brand, theme")
     .eq("id", websiteId)
     .eq("host_id", hostId)
     .is("deleted_at", null)
@@ -42,8 +44,22 @@ export default async function NavigationSectionEditorPage({
           navigationSchema.parse(site.navigation ?? {}),
         )
       : navigationSchema.parse(site.navigation ?? {});
+  const rawBrand = (site.brand ?? {}) as Record<string, unknown>;
   const brandName =
-    ((site.brand ?? {}) as { name?: string }).name?.trim() || site.subdomain;
+    (rawBrand.name as string | undefined)?.trim() || site.subdomain;
+  // Resolved brand for the live theme preview (real logo + socials + tagline).
+  const brand: SiteBrand = {
+    name: brandName,
+    tagline: (rawBrand.tagline as string | null) ?? null,
+    logoUrl: websiteAssetUrl(rawBrand.logo_path as string | undefined),
+    logoLightUrl:
+      websiteAssetUrl(rawBrand.logo_light_path as string | undefined) ??
+      websiteAssetUrl(rawBrand.logo_path as string | undefined),
+    socials:
+      (rawBrand.socials as SiteBrand["socials"] | undefined) ?? undefined,
+  };
+  const themePreset =
+    ((site.theme ?? {}) as { preset?: string }).preset ?? null;
 
   const [{ data: pageRows }, { data: roomRows }] = await Promise.all([
     supabase
@@ -86,6 +102,8 @@ export default async function NavigationSectionEditorPage({
       pages={pages}
       rooms={rooms}
       brandName={brandName}
+      brand={brand}
+      themePreset={themePreset}
       subdomain={site.subdomain}
     />
   );
