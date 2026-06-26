@@ -5,7 +5,6 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 import { SafariSectionList, type SafariCtx } from "../sections/SafariSections";
 
 import { SafariShell, type SafariNavLink } from "./SafariShell";
-import { SafariAboutContent } from "./pages/SafariAboutContent";
 import { SafariBookingContent } from "./pages/SafariBookingContent";
 import { SafariContactContent } from "./pages/SafariContactContent";
 import { SafariJournalContent } from "./pages/SafariJournalContent";
@@ -66,7 +65,14 @@ export function SafariSiteView({
       content = <SafariRoomsContent />;
       break;
     case "about":
-      content = <SafariAboutContent />;
+      content = (
+        <SafariSectionList
+          sections={sections}
+          data={data}
+          asset={asset}
+          ctx={safariCtx}
+        />
+      );
       break;
     case "contact":
       content = <SafariContactContent />;

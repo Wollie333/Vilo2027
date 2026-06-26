@@ -643,6 +643,48 @@ export function SafariCta({
   );
 }
 
+/* ── HOST BIO (the people, split w/ photo) ──────────────────────────── */
+export function SafariHostBio({
+  props,
+  asset,
+}: {
+  props: P<"host_bio">;
+  asset?: SiteAssetResolver;
+}) {
+  return (
+    <section className="section bg-2">
+      <div className="wrap">
+        <div className="split">
+          <div className="split-media">
+            <div className="frame-img img-tall">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img(props.photo_path, asset, IMG.intro)} alt="" />
+            </div>
+          </div>
+          <div>
+            <span className="eyebrow">{props.heading || "Your hosts"}</span>
+            {props.name ? (
+              <h2
+                className="display"
+                style={{ marginTop: 24, fontSize: "clamp(2rem,4vw,3.2rem)" }}
+              >
+                {props.name}
+              </h2>
+            ) : null}
+            <p
+              className="lead"
+              style={{ marginTop: props.name ? 24 : 28, maxWidth: "54ch" }}
+            >
+              {props.body ||
+                "A few warm lines about the people who'll share the bush with you — what they love about hosting, and the touches guests remember."}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /**
  * Dispatch a section to its Safari-styled band. Returns `undefined` for section
  * types that have no Safari variant yet, so the caller falls back to the generic
@@ -690,6 +732,8 @@ export function renderSafariSection(
       return <SafariLocation props={section.props} asset={asset} ctx={ctx} />;
     case "cta":
       return <SafariCta props={section.props} asset={asset} ctx={ctx} />;
+    case "host_bio":
+      return <SafariHostBio props={section.props} asset={asset} />;
     default:
       return undefined;
   }

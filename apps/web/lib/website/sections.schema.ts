@@ -747,7 +747,14 @@ const roomRateProps = z.object({
 
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
-  id: z.string().uuid(),
+  // A section id is just a stable per-page key (React keys, selection, reorder) —
+  // it is NOT a DB foreign key, so it need not be a UUID. The builder generates
+  // UUIDs, but theme blueprints (site_themes.page_templates, seeded from
+  // migrations) use readable ids like "safari-about-hero". Requiring a UUID here
+  // made parseSectionsLoose silently DROP every such section, blanking the public
+  // page for any site that applied a theme from the catalogue. Accept any
+  // non-empty string.
+  id: z.string().min(1),
   enabled: z.boolean().default(true),
   tone: z.enum(SECTION_TONES).default("default"),
   // Optional so existing/new section literals don't all need to set them.

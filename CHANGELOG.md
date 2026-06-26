@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-26 — Safari About page section-driven + FIX: non-UUID section ids dropped
+
+Extending the home-page unification to the other Safari pages, starting with
+About — and uncovered a real bug along the way.
+
+**FIX (platform-wide):** `parseSectionsLoose` validated each section's `id` with
+`z.string().uuid()` and silently dropped any that failed. The built-in theme
+blueprints stored in `site_themes.page_templates` (seeded from migrations) use
+readable ids like `safari-about-hero`, so **every page seeded/applied from the
+catalogue rendered BLANK** on the public site (the sections were all discarded).
+A section id is only a per-page key (React keys, selection, reorder) — never a DB
+foreign key — so it needn't be a UUID. Relaxed `sectionBase.id` to
+`z.string().min(1)`. The builder still generates UUIDs; readable blueprint ids now
+survive. This unblocked the Safari About/Rooms/Contact/Blog pages at once.
+
+**About:** new `SafariHostBio` band (split photo + bio, `bg-2`) + `host_bio`
+mapped in `renderSafariSection`; `SafariSiteView` renders the About page via
+`SafariSectionList` (was hardcoded `SafariAboutContent`). Verified live: the
+About page renders hero ("A house at the heart of the bush") + intro + host_bio
+("Your guides") + highlights, all editable like the home bands.
+
+**Test repair:** `themeSections.test.ts` still parametrized over the 6 removed
+legacy themes (classic/modern/…) → 30 stale failures (pre-existing on HEAD).
+Scoped it to the active themes (aria, safari) and made the page-coverage checks
+content-based (safari names its pages "Suites"/"Journal", not "Rooms"/"Blog").
+Full suite green (131).
+
+NEXT: same treatment for Contact (needs `contact_form` + `faq` bands), Rooms
+(needs `amenities` + `pricing` bands), Journal (needs `blog_preview` band), then
+the room-detail types — then the per-page styling audit.
+
+---
+
 ## 2026-06-26 — Unify the public Safari home with the builder (real rooms live)
 
 The builder rendered the home from the new section components (real rooms), but

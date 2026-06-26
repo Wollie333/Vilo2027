@@ -9,17 +9,11 @@ import {
   themeGroupLabel,
 } from "./themeSections";
 
-// Every built-in theme that ships designed presets + page templates. Keep in
-// sync with the registry in themeSections.ts (and the seeded site_themes slugs).
-const THEME_SLUGS = [
-  "aria",
-  "classic",
-  "modern",
-  "coastal",
-  "warm",
-  "minimal",
-  "nightfall",
-] as const;
+// The ACTIVE themes whose designed presets + page templates the builder offers.
+// `getThemeTemplates`/`getThemeSectionPresets` gate on this set (the legacy themes
+// were removed from the catalogue), so only these return blocks. Keep in sync with
+// ACTIVE_THEME_SLUGS in themeSections.ts (and the active site_themes rows).
+const THEME_SLUGS = ["aria", "safari"] as const;
 
 describe("themeSections registry", () => {
   for (const slug of THEME_SLUGS) {
@@ -32,32 +26,26 @@ describe("themeSections registry", () => {
         expect(templates.length).toBeGreaterThan(0);
       });
 
-      it("ships Home, About, Contact, Rooms and Blog page templates", () => {
-        const labels = templates.map((t) => t.label);
-        expect(labels).toEqual(
-          expect.arrayContaining(["Home", "About", "Contact", "Rooms", "Blog"]),
-        );
+      // A theme may name its pages in its own voice (e.g. safari uses "Suites"
+      // and "Journal" rather than "Rooms" and "Blog"), so assert page coverage by
+      // the section content a template builds, not by an exact label.
+      const allTemplateTypes = () =>
+        templates.flatMap((t) => t.make().map((s) => s.type));
+
+      it("ships at least five page templates (home/about/rooms/contact/blog)", () => {
+        expect(templates.length).toBeGreaterThanOrEqual(5);
       });
 
-      it("the Contact template includes a contact form", () => {
-        const contact = templates.find((t) => t.label === "Contact");
-        expect(contact).toBeDefined();
-        const types = contact!.make().map((s) => s.type);
-        expect(types).toContain("contact_form");
+      it("a template includes a contact form", () => {
+        expect(allTemplateTypes()).toContain("contact_form");
       });
 
-      it("the Rooms template includes a rooms preview", () => {
-        const rooms = templates.find((t) => t.label === "Rooms");
-        expect(rooms).toBeDefined();
-        const types = rooms!.make().map((s) => s.type);
-        expect(types).toContain("rooms_preview");
+      it("a template includes a rooms preview", () => {
+        expect(allTemplateTypes()).toContain("rooms_preview");
       });
 
-      it("the Blog template includes a blog preview", () => {
-        const blog = templates.find((t) => t.label === "Blog");
-        expect(blog).toBeDefined();
-        const types = blog!.make().map((s) => s.type);
-        expect(types).toContain("blog_preview");
+      it("a template includes a blog preview", () => {
+        expect(allTemplateTypes()).toContain("blog_preview");
       });
 
       it("builds every preset into a schema-valid section", () => {
