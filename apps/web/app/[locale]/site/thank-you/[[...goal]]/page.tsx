@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SafariThankYouContent } from "@/components/site/safari/pages/SafariThankYouContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
@@ -143,6 +144,7 @@ export default async function SiteFormThankYouPage({
         analytics={ctx.analytics}
         interactive={!ctx.preview}
       >
+        {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
         <SafariThankYouContent
           state="form"
           firstName={firstName}
@@ -185,6 +187,7 @@ export default async function SiteFormThankYouPage({
         }
         previewPages={previewPages}
       >
+        {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
         <SectionShell width="narrow">
           <SectionHeading className="mb-3">{heading}</SectionHeading>
           <Muted className="text-center text-base">{message}</Muted>
