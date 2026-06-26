@@ -1130,16 +1130,18 @@ function SectionFields({
               </>
             )}
           />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "accordion", label: t("faqVariant_accordion") },
-              { value: "plain", label: t("faqVariant_plain") },
-              { value: "columns", label: t("faqVariant_columns") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "accordion", label: t("faqVariant_accordion") },
+                { value: "plain", label: t("faqVariant_plain") },
+                { value: "columns", label: t("faqVariant_columns") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
         </div>
       );
     }
@@ -1190,15 +1192,17 @@ function SectionFields({
             maxLength={300}
             rows={2}
           />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "stacked", label: t("contactVariant_stacked") },
-              { value: "split", label: t("contactVariant_split") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "stacked", label: t("contactVariant_stacked") },
+                { value: "split", label: t("contactVariant_split") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
           <LiveNote>{t("contactFormNote")}</LiveNote>
         </div>
       );
@@ -1309,16 +1313,18 @@ function SectionFields({
             path={p.photo_path}
             onChange={(path) => set({ photo_path: path })}
           />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "side", label: t("hostbioVariant_side") },
-              { value: "centered", label: t("hostbioVariant_centered") },
-              { value: "card", label: t("hostbioVariant_card") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "side", label: t("hostbioVariant_side") },
+                { value: "centered", label: t("hostbioVariant_centered") },
+                { value: "card", label: t("hostbioVariant_card") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
         </div>
       );
     }
@@ -2105,17 +2111,19 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "mosaic", label: t("roomGalleryVariant_mosaic") },
-              { value: "carousel", label: t("roomGalleryVariant_carousel") },
-              { value: "grid", label: t("roomGalleryVariant_grid") },
-              { value: "stacked", label: t("roomGalleryVariant_stacked") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "mosaic", label: t("roomGalleryVariant_mosaic") },
+                { value: "carousel", label: t("roomGalleryVariant_carousel") },
+                { value: "grid", label: t("roomGalleryVariant_grid") },
+                { value: "stacked", label: t("roomGalleryVariant_stacked") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
           <NumberField
             label={t("fldMax")}
             value={p.max}
@@ -2150,15 +2158,17 @@ function SectionFields({
             checked={p.show_price}
             onChange={(v) => set({ show_price: v })}
           />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "split", label: t("roomOverviewVariant_split") },
-              { value: "stacked", label: t("roomOverviewVariant_stacked") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "split", label: t("roomOverviewVariant_split") },
+                { value: "stacked", label: t("roomOverviewVariant_stacked") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
           <LiveNote>{t("liveRoom")}</LiveNote>
         </div>
       );
@@ -2215,15 +2225,17 @@ function SectionFields({
             maxLength={300}
             rows={2}
           />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "card", label: t("roomRateVariant_card") },
-              { value: "banner", label: t("roomRateVariant_banner") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "card", label: t("roomRateVariant_card") },
+                { value: "banner", label: t("roomRateVariant_banner") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
           <LiveNote>{t("liveRoom")}</LiveNote>
         </div>
       );
