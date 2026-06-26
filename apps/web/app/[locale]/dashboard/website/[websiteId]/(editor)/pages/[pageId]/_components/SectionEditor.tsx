@@ -37,6 +37,7 @@ import {
 } from "./fields";
 
 type Layout = "grid" | "list" | "carousel";
+type TabKey = "content" | "style" | "advanced" | "laptop" | "mobile";
 
 /**
  * Per-section editor: the type-specific fields (SectionFields) plus the shared
@@ -57,24 +58,27 @@ export function SectionEditor({
   themePreset?: string;
 }) {
   const t = useTranslations("website");
-  const [tab, setTab] = useState<"content" | "style" | "advanced">("content");
-  // On a bespoke theme (Safari) the section renders a fixed design: the per-block
-  // Style controls (tone + frame/spacing) and the desktop/mobile visibility toggle
-  // do nothing, so they're hidden — the inspector only shows controls that apply.
+  const [tab, setTab] = useState<TabKey>("content");
+  // On a bespoke theme (Safari) the section renders a fixed design, so instead of
+  // the generic Content/Style/Advanced tabs the inspector is organised by SCREEN
+  // SIZE — Desktop (the base content) · Laptop · Mobile — where each device can
+  // hide the section and swap its image for that screen. The generic Style/block
+  // controls (which do nothing on Safari) are dropped.
   const isSafari = themePreset === "safari";
   const tabs = (
     isSafari
       ? [
-          ["content", t("inspTabContent")],
-          ["advanced", t("inspTabAdvanced")],
+          ["content", t("inspTabDesktop")],
+          ["laptop", t("inspTabLaptop")],
+          ["mobile", t("inspTabMobile")],
         ]
       : [
           ["content", t("inspTabContent")],
           ["style", t("inspTabStyle")],
           ["advanced", t("inspTabAdvanced")],
         ]
-  ) as ReadonlyArray<readonly ["content" | "style" | "advanced", string]>;
-  // If the active tab is hidden for this theme, fall back to Content.
+  ) as ReadonlyArray<readonly [TabKey, string]>;
+  // If the active tab isn't available for this theme, fall back to Content/Desktop.
   const activeTab = tabs.some(([k]) => k === tab) ? tab : "content";
   return (
     <div className="space-y-4">
@@ -106,7 +110,14 @@ export function SectionEditor({
         ))}
       </div>
 
-      {activeTab === "content" ? (
+      {activeTab === "laptop" || activeTab === "mobile" ? (
+        <ResponsiveDeviceFields
+          device={activeTab}
+          websiteId={websiteId}
+          section={section}
+          onChange={onChange}
+        />
+      ) : activeTab === "content" ? (
         <SectionFields
           websiteId={websiteId}
           section={section}
@@ -469,6 +480,54 @@ function BlockStyleEditor({
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Per-device (Laptop / Mobile) overrides for a section — the Safari inspector's
+ * device tabs. Lets the host HIDE the section on that screen and (where the band
+ * supports it) swap its image. Empty = inherits the Desktop settings. Applied via
+ * the responsive CSS (@media live + @container in the builder device frames).
+ */
+function ResponsiveDeviceFields({
+  device,
+  websiteId,
+  section,
+  onChange,
+}: {
+  device: "laptop" | "mobile";
+  websiteId: string;
+  section: WebsiteSection;
+  onChange: (next: WebsiteSection) => void;
+}) {
+  const t = useTranslations("website");
+  const resp = section.responsive ?? {};
+  const dev = resp[device] ?? {};
+  const setDev = (patch: { hidden?: boolean; image_path?: string }) =>
+    onChange({
+      ...section,
+      responsive: { ...resp, [device]: { ...dev, ...patch } },
+    } as WebsiteSection);
+  // Only sections with a primary background image expose a per-device image swap.
+  const hasImage = section.type === "hero";
+  return (
+    <div className="space-y-4">
+      <ToggleField
+        label={t("fldHideOnDevice")}
+        checked={!!dev.hidden}
+        onChange={(v) => setDev({ hidden: v })}
+      />
+      {hasImage ? (
+        <ImageField
+          label={t("fldDeviceImage")}
+          websiteId={websiteId}
+          path={dev.image_path}
+          onChange={(path) => setDev({ image_path: path })}
+          hint={t("fldDeviceImageHint")}
+        />
+      ) : null}
+      <LiveNote>{t("responsiveDeviceNote")}</LiveNote>
     </div>
   );
 }

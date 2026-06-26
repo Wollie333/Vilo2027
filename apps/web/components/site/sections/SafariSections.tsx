@@ -32,6 +32,10 @@ type P<T extends WebsiteSection["type"]> = Extract<
   { type: T }
 >["props"];
 
+/** Per-device responsive overrides (Desktop/Laptop/Mobile tabs), shared by every
+ *  section via the schema's sectionBase. */
+export type SectionResponsive = WebsiteSection["responsive"];
+
 /** Cross-page links + brand used by the bands (hero/intro/cta/location). The
  *  builder canvas renders sections in isolation (links inert), so every field
  *  is optional with a sensible fallback. */
@@ -196,13 +200,29 @@ export function SafariHero({
   props,
   asset,
   ctx,
+  responsive,
 }: {
   props: P<"hero">;
   asset?: SiteAssetResolver;
   ctx?: SafariCtx;
+  responsive?: SectionResponsive;
 }) {
   const roomsHref = ctx?.roomsHref || "#suites";
   const aboutHref = ctx?.aboutHref;
+
+  // Per-device hero image. Desktop = the section image; laptop/mobile fall back
+  // to the next-larger when not overridden, so the CSS swap is gap-free. Only
+  // emit the extra <img>s when an override exists (no perf cost otherwise).
+  const desktopImg = img(props.image_path, asset, IMG.hero);
+  const laptopOverride = responsive?.laptop?.image_path;
+  const mobileOverride = responsive?.mobile?.image_path;
+  const laptopImg = laptopOverride
+    ? img(laptopOverride, asset, desktopImg)
+    : desktopImg;
+  const mobileImg = mobileOverride
+    ? img(mobileOverride, asset, laptopImg)
+    : laptopImg;
+  const hasResponsiveImg = Boolean(laptopOverride || mobileOverride);
 
   // Primary CTA — shown unless explicitly hidden; label falls back to the design.
   const showPrimary = props.show_cta !== false;
@@ -234,8 +254,19 @@ export function SafariHero({
   return (
     <section className={`hero${alignClass}`}>
       <div className="hero-media">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img(props.image_path, asset, IMG.hero)} alt="" />
+        {hasResponsiveImg ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="rimg rimg-desktop" src={desktopImg} alt="" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="rimg rimg-laptop" src={laptopImg} alt="" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="rimg rimg-mobile" src={mobileImg} alt="" />
+          </>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={desktopImg} alt="" />
+        )}
       </div>
       <div className="hero-inner">
         <div className="wrap">
@@ -1541,7 +1572,14 @@ export function renderSafariSection(
   const { data, asset, ctx } = opts;
   switch (section.type) {
     case "hero":
-      return <SafariHero props={section.props} asset={asset} ctx={ctx} />;
+      return (
+        <SafariHero
+          props={section.props}
+          asset={asset}
+          ctx={ctx}
+          responsive={section.responsive}
+        />
+      );
     case "intro":
       return <SafariIntro props={section.props} asset={asset} ctx={ctx} />;
     case "highlights":
@@ -1651,7 +1689,22 @@ export function SafariSectionList({
         .filter((s) => s.enabled)
         .map((s) => {
           const el = renderSafariSection(s, { data, asset, ctx });
-          return el === undefined ? null : <Fragment key={s.id}>{el}</Fragment>;
+          if (el === undefined) return null;
+          // Per-device hide: a `display:contents` wrapper (transparent for layout)
+          // that the responsive CSS collapses to `display:none` at the laptop /
+          // mobile breakpoint when the host hides this section there.
+          const cls = [
+            "vilo-rwrap",
+            s.responsive?.laptop?.hidden ? "rh-laptop" : "",
+            s.responsive?.mobile?.hidden ? "rh-mobile" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return (
+            <div key={s.id} className={cls}>
+              {el}
+            </div>
+          );
         })}
     </>
   );

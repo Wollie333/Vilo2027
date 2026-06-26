@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-26 — Safari per-device editing: Desktop / Laptop / Mobile tabs (audit pt.5)
+
+Founder wants to design per screen size (and the desktop hero image looked
+over-cropped on mobile). Reworked the Safari inspector into three **device tabs**
+and added a real responsive override system:
+
+- **Inspector tabs (Safari):** Content/Advanced → **Desktop · Laptop · Mobile**.
+  Desktop = the base content (as before). Laptop/Mobile = a **"Hide on this
+  screen size"** toggle + (hero) a **per-device image** override. Empty inherits
+  Desktop. (Other themes keep Content/Style/Advanced.)
+- **Data:** additive optional `responsive: { laptop?, mobile? }` on `sectionBase`
+  (`{ hidden?, image_path? }` each) — no migration.
+- **Rendering:** `SafariSectionList` wraps each section in a `display:contents`
+  `.vilo-rwrap` that collapses to `display:none` at the laptop (≤1024px) / mobile
+  (≤640px) breakpoint when hidden. The hero renders all three images (with
+  fall-back srcs) and swaps them per device. Driven by BOTH `@media` (live site)
+  AND `@container` (the builder's device frames are size containers) — same dual
+  pattern the generic `SectionWrap` uses — so the builder's device toggle and a
+  real phone both reflect it.
+
+Verified live at 375px: the intro hides and the hero swaps to its mobile image;
+at desktop both revert. This fixes the "hero too big on mobile" — the host sets a
+portrait mobile image. tsc + lint + 131 vitest green.
+
+NEXT: extend the per-device image swap beyond the hero (intro/cta/location/
+host_bio), optional per-device TEXT, and bring the device tabs to the generic
+themes. (Schedule is dropped from the simplified Safari inspector for now.)
+
+---
+
 ## 2026-06-26 — Fix Safari hero right-align + hide inert builder controls (audit pt.4)
 
 Two founder-reported issues + the inspector-decluttering directive ("the builder

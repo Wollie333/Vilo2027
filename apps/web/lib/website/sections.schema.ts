@@ -798,6 +798,27 @@ const sectionBase = {
       end: z.string().optional(),
     })
     .optional(),
+  // Per-device responsive overrides (the Desktop/Laptop/Mobile tabs). Desktop is
+  // the base (the section's own props); laptop (≤1024px) + mobile (≤640px) can
+  // HIDE the section and/or swap its primary image for that screen size. Applied
+  // with both @media (live site) and @container (builder device frames). Additive
+  // + optional, so existing sections never set it.
+  responsive: z
+    .object({
+      laptop: z
+        .object({
+          hidden: z.boolean().optional(),
+          image_path: z.string().optional(),
+        })
+        .optional(),
+      mobile: z
+        .object({
+          hidden: z.boolean().optional(),
+          image_path: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
   style: blockStyleSchema.optional(),
 };
 

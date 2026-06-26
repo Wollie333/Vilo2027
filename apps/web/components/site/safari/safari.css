@@ -668,6 +668,72 @@
   inset: 0;
   background: var(--hero-overlay);
 }
+/* ── Per-device responsive (Desktop / Laptop / Mobile tabs) ──────────────
+   Driven by BOTH @media (the live site) AND @container (the builder's device
+   frames, which are size containers). Laptop ≤1024px, Mobile ≤640px. */
+.vilo-safari .vilo-rwrap {
+  display: contents;
+}
+@media (max-width: 1024px) {
+  .vilo-safari .vilo-rwrap.rh-laptop {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .vilo-safari .vilo-rwrap.rh-mobile {
+    display: none;
+  }
+}
+@container (max-width: 1024px) {
+  .vilo-safari .vilo-rwrap.rh-laptop {
+    display: none;
+  }
+}
+@container (max-width: 640px) {
+  .vilo-safari .vilo-rwrap.rh-mobile {
+    display: none;
+  }
+}
+/* Per-device hero background image swap. The band always renders all three
+   (with fall-back srcs) when an override exists, so the swap is gap-free. */
+.vilo-safari .hero-media .rimg {
+  display: none;
+}
+.vilo-safari .hero-media .rimg-desktop {
+  display: block;
+}
+@media (max-width: 1024px) {
+  .vilo-safari .hero-media .rimg-desktop {
+    display: none;
+  }
+  .vilo-safari .hero-media .rimg-laptop {
+    display: block;
+  }
+}
+@media (max-width: 640px) {
+  .vilo-safari .hero-media .rimg-laptop {
+    display: none;
+  }
+  .vilo-safari .hero-media .rimg-mobile {
+    display: block;
+  }
+}
+@container (max-width: 1024px) {
+  .vilo-safari .hero-media .rimg-desktop {
+    display: none;
+  }
+  .vilo-safari .hero-media .rimg-laptop {
+    display: block;
+  }
+}
+@container (max-width: 640px) {
+  .vilo-safari .hero-media .rimg-laptop {
+    display: none;
+  }
+  .vilo-safari .hero-media .rimg-mobile {
+    display: block;
+  }
+}
 .vilo-safari .hero-inner {
   position: relative;
   z-index: 2;
