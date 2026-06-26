@@ -6,6 +6,7 @@ import {
   type RoomsPreviewData,
   type GalleryData,
   type ReviewsData,
+  type BlogPreviewData,
   type SiteAssetResolver,
   type SiteData,
 } from "@/lib/site/types";
@@ -38,6 +39,9 @@ export interface SafariCtx {
   aboutHref?: string;
   contactHref?: string;
   reserveHref?: string;
+  /** Host contact details for the contact band's detail card (real, not stock). */
+  contactEmail?: string | null;
+  contactPhone?: string | null;
 }
 
 const IMG = {
@@ -685,6 +689,422 @@ export function SafariHostBio({
   );
 }
 
+/* ── CONTACT FORM (enquiry grid: form + detail card) ────────────────── */
+const PLUS_ICON = (
+  <span className="pm">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  </span>
+);
+
+export function SafariContactForm({
+  props,
+  ctx,
+}: {
+  props: P<"contact_form">;
+  ctx?: SafariCtx;
+}) {
+  const email = ctx?.contactEmail?.trim();
+  const phone = ctx?.contactPhone?.trim();
+  return (
+    <section className="section">
+      <div className="wrap">
+        <div className="contact-grid">
+          <div>
+            <span className="eyebrow">{props.eyebrow || "Send a message"}</span>
+            <h2
+              className="display"
+              style={{ marginTop: 18, fontSize: "clamp(1.9rem,3.6vw,2.8rem)" }}
+            >
+              {props.heading || "Enquire & hold dates"}
+            </h2>
+            {props.body ? (
+              <p className="muted" style={{ marginTop: 18, maxWidth: "52ch" }}>
+                {props.body}
+              </p>
+            ) : null}
+            {/* Enquiry form — host-editable copy; submission wiring is a
+                follow-up (matches the prior hardcoded Safari contact form). */}
+            <form style={{ marginTop: 32 }}>
+              <div className="field-row">
+                <div className="field">
+                  <label>First name</label>
+                  <input type="text" placeholder="First name" />
+                </div>
+                <div className="field">
+                  <label>Last name</label>
+                  <input type="text" placeholder="Last name" />
+                </div>
+              </div>
+              <div className="field-row">
+                <div className="field">
+                  <label>Email</label>
+                  <input type="email" placeholder="you@email.com" />
+                </div>
+                {props.show_phone !== false ? (
+                  <div className="field">
+                    <label>Phone</label>
+                    <input type="tel" placeholder="+27 ..." />
+                  </div>
+                ) : null}
+              </div>
+              <div className="field-row">
+                <div className="field">
+                  <label>Approx. arrival</label>
+                  <input type="date" />
+                </div>
+                <div className="field">
+                  <label>Nights</label>
+                  <input type="number" min="1" defaultValue="3" />
+                </div>
+              </div>
+              <div className="field">
+                <label>Anything we should know?</label>
+                <textarea placeholder="Dates, the occasion, dietary needs, transfers..." />
+              </div>
+              <button type="button" className="btn btn-primary btn-lg">
+                <span>{props.submit_label || "Send enquiry"}</span>
+              </button>
+            </form>
+          </div>
+          <div>
+            <div className="detail-card">
+              {phone ? (
+                <div className="dc-row">
+                  <span className="ic">
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div className="t">{phone}</div>
+                    <div className="d">Reservations</div>
+                  </div>
+                </div>
+              ) : null}
+              {email ? (
+                <div className="dc-row">
+                  <span className="ic">
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="2" y="4" width="20" height="16" rx="2" />
+                      <path d="m22 7-10 6L2 7" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div className="t">{email}</div>
+                    <div className="d">We reply within one day</div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div
+              style={{
+                marginTop: 18,
+                padding: "22px 24px",
+                background: "var(--bg-2)",
+                borderRadius: 4,
+                display: "flex",
+                gap: 12,
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={{ color: "var(--green)", flexShrink: 0 }}>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </span>
+              <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>
+                Book direct and you pay exactly what we quote — no agents, no
+                booking fees, no commission.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── FAQ (accordion) ────────────────────────────────────────────────── */
+const STOCK_FAQ = [
+  {
+    q: "How do we get there?",
+    a: "We're a scenic drive from the nearest town, with a fly-in option to a private strip. Full directions follow your booking.",
+  },
+  {
+    q: "What's included?",
+    a: "Rates are full-board with daily guided activities. Replace this with your own inclusions.",
+  },
+  {
+    q: "What's your cancellation policy?",
+    a: "Book direct and there are no agency fees — tell guests your own terms here.",
+  },
+];
+
+export function SafariFaq({ props }: { props: P<"faq"> }) {
+  const items = props.items && props.items.length ? props.items : STOCK_FAQ;
+  return (
+    <section className="section bg-2">
+      <div className="wrap-narrow">
+        <div className="sec-head center" style={{ marginBottom: 40 }}>
+          <span className="eyebrow center no-rule">
+            {props.eyebrow || "Good to know"}
+          </span>
+          <h2
+            className="display"
+            style={{ marginTop: 18, fontSize: "clamp(2rem,4vw,3rem)" }}
+          >
+            {props.heading || "Frequently asked"}
+          </h2>
+        </div>
+        <div>
+          {items.map((it, i) => (
+            <details key={it.q + i} className="faq-item" open={i === 0}>
+              <summary>
+                {it.q}
+                {PLUS_ICON}
+              </summary>
+              <p>{it.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── AMENITIES (at the lodge, icon grid) ────────────────────────────── */
+const STOCK_AMENITIES = [
+  { icon: "🔥", label: "Boma & fire pit" },
+  { icon: "🏊", label: "Rock pool" },
+  { icon: "🍷", label: "Sundowners" },
+  { icon: "🦓", label: "Daily game drives" },
+  { icon: "🍽️", label: "All meals" },
+  { icon: "📶", label: "Wi-Fi at the main house" },
+];
+
+export function SafariAmenities({ props }: { props: P<"amenities"> }) {
+  const items =
+    props.items && props.items.length ? props.items : STOCK_AMENITIES;
+  return (
+    <section className="section bg-2">
+      <div className="wrap">
+        <div className="sec-head center">
+          <span className="eyebrow center no-rule">
+            {props.eyebrow || "At the lodge"}
+          </span>
+          <h2 className="display" style={{ marginTop: 18 }}>
+            {props.heading || "Everything, included"}
+          </h2>
+        </div>
+        <div
+          className="amenity-grid"
+          style={{
+            marginTop: 44,
+            gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+          }}
+        >
+          {items.map((it, i) => (
+            <div key={it.label + i} className="amenity">
+              {it.icon ? (
+                <span style={{ fontSize: 20, lineHeight: 1 }}>{it.icon}</span>
+              ) : null}
+              {it.label}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── PRICING (display-only rates) ───────────────────────────────────── */
+const STOCK_PRICING = [
+  { label: "Suite, full-board", price: "R6 500", note: "per person / night" },
+  { label: "Sole-use (whole lodge)", price: "On request", note: "" },
+];
+
+export function SafariPricing({ props }: { props: P<"pricing"> }) {
+  const items = props.items && props.items.length ? props.items : STOCK_PRICING;
+  return (
+    <section className="section">
+      <div className="wrap-narrow">
+        <div className="sec-head center" style={{ marginBottom: 40 }}>
+          <span className="eyebrow center no-rule">
+            {props.eyebrow || "Rates"}
+          </span>
+          <h2 className="display" style={{ marginTop: 18 }}>
+            {props.heading || "What it costs"}
+          </h2>
+        </div>
+        <div
+          style={{
+            border: "1px solid var(--line)",
+            borderRadius: 4,
+            overflow: "hidden",
+          }}
+        >
+          {items.map((it, i) => (
+            <div
+              key={it.label + i}
+              className="rate-row"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                gap: 24,
+                padding: "22px 26px",
+                borderTop: i === 0 ? "none" : "1px solid var(--line)",
+              }}
+            >
+              <div>
+                <div style={{ fontFamily: "var(--serif)", fontSize: "1.3rem" }}>
+                  {it.label}
+                </div>
+                {it.note ? (
+                  <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                    {it.note}
+                  </div>
+                ) : null}
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontSize: "1.5rem",
+                  color: "var(--gold)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {it.price}
+              </div>
+            </div>
+          ))}
+        </div>
+        {props.footnote ? (
+          <p
+            className="muted"
+            style={{ marginTop: 20, fontSize: 13, textAlign: "center" }}
+          >
+            {props.footnote}
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+/* ── BLOG PREVIEW (journal teaser, real posts) ──────────────────────── */
+const STOCK_POSTS = [
+  {
+    title: "Tracking the herd at first light",
+    excerpt:
+      "Notes from a cold morning drive — and the elephants that made it worth it.",
+    href: "#",
+    coverUrl: IMG.g1,
+    date: null as string | null,
+  },
+  {
+    title: "Why we took the fences down",
+    excerpt: "The slow work of letting a piece of land become wild again.",
+    href: "#",
+    coverUrl: IMG.g3,
+    date: null,
+  },
+  {
+    title: "A season of new arrivals",
+    excerpt: "Foals, calves and the first leopard cubs of the year.",
+    href: "#",
+    coverUrl: IMG.g5,
+    date: null,
+  },
+];
+
+export function SafariBlogPreview({
+  props,
+  data,
+}: {
+  props: P<"blog_preview">;
+  data?: BlogPreviewData;
+}) {
+  const real = data?.posts ?? [];
+  const posts = (real.length ? real : STOCK_POSTS).slice(0, props.max ?? 3);
+  return (
+    <section className="section">
+      <div className="wrap">
+        <div className="sec-head center" style={{ marginBottom: 44 }}>
+          <span className="eyebrow center no-rule">From the field journal</span>
+          <h2 className="display" style={{ marginTop: 18 }}>
+            {props.heading || "Latest from the journal"}
+          </h2>
+        </div>
+        <div className="post-grid">
+          {posts.map((post, i) => (
+            <a
+              key={post.href + i}
+              href={post.href || "#"}
+              className="post-card"
+            >
+              <div className="pc-media">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.coverUrl || STOCK_GALLERY[i % STOCK_GALLERY.length]}
+                  alt={post.title}
+                />
+              </div>
+              <h3 style={{ marginTop: 18 }}>{post.title}</h3>
+              {post.excerpt ? <p>{post.excerpt}</p> : null}
+              {post.date ? (
+                <div className="post-meta">
+                  <span>{post.date}</span>
+                </div>
+              ) : null}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /**
  * Dispatch a section to its Safari-styled band. Returns `undefined` for section
  * types that have no Safari variant yet, so the caller falls back to the generic
@@ -734,6 +1154,21 @@ export function renderSafariSection(
       return <SafariCta props={section.props} asset={asset} ctx={ctx} />;
     case "host_bio":
       return <SafariHostBio props={section.props} asset={asset} />;
+    case "contact_form":
+      return <SafariContactForm props={section.props} ctx={ctx} />;
+    case "faq":
+      return <SafariFaq props={section.props} />;
+    case "amenities":
+      return <SafariAmenities props={section.props} />;
+    case "pricing":
+      return <SafariPricing props={section.props} />;
+    case "blog_preview":
+      return (
+        <SafariBlogPreview
+          props={section.props}
+          data={dataFor(data, section.id, "blog_preview")}
+        />
+      );
     default:
       return undefined;
   }

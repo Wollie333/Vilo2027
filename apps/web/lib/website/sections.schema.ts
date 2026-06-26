@@ -348,6 +348,7 @@ const richTextProps = z.object({
 });
 
 const faqProps = z.object({
+  eyebrow: z.string().max(120).optional(),
   heading,
   items: z
     .array(
@@ -366,6 +367,7 @@ const faqProps = z.object({
 // lib/website/createWebsiteEnquiry.ts). The form posts the live website id so the
 // host is resolved server-side; never trusts anything client-supplied.
 const contactFormProps = z.object({
+  eyebrow: z.string().max(120).optional(),
   heading,
   body: z.string().max(600).optional(),
   submit_label: z.string().max(60).default("Send message"),
@@ -390,6 +392,7 @@ const formProps = z.object({
 
 // Free-form facilities/amenities grid (icon + label).
 const amenitiesProps = z.object({
+  eyebrow: z.string().max(120).optional(),
   heading,
   items: z
     .array(
@@ -404,6 +407,7 @@ const amenitiesProps = z.object({
 
 // Free-form display-only rates table (booking always re-prices server-side).
 const pricingProps = z.object({
+  eyebrow: z.string().max(120).optional(),
   heading,
   items: z
     .array(

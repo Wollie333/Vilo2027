@@ -114,6 +114,8 @@ export async function SitePageView({
           data={result.data}
           asset={siteAsset}
           brandName={ctx.brand.name}
+          contactEmail={ctx.brand.contactEmail}
+          contactPhone={ctx.brand.contactPhone}
           navLinks={ctx.nav}
           bookHref={headerBookHref}
           previewPages={previewPages}

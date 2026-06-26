@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-06-26 — Safari Contact + Rooms pages section-driven (+ new bands)
+
+Continued the Safari section-driven conversion to Contact and Rooms (same as
+About/home — the public render now uses `SafariSectionList`, so live === builder
+and every band is host-editable).
+
+New Safari bands (mapped in `renderSafariSection`):
+- `contact_form` — the NenGama enquiry grid (form + detail card). The detail card
+  shows the host's REAL contact (threaded `contactEmail`/`contactPhone` through
+  `SafariCtx` ← `SitePageView` ← `ctx.brand`), not stock NenGama details. Submit
+  wiring is a follow-up (matches the prior hardcoded form's behaviour).
+- `faq` — the accordion (`<details className="faq-item">`), items host-editable.
+- `amenities` — "at the lodge" icon grid.
+- `pricing` — display-only rates (serif labels, gold prices, footnote).
+- `blog_preview` — journal teaser cards (binds to real posts; stock fallback) so
+  the builder canvas + any blog_preview section render in the Safari design. (The
+  public `/blog` index keeps its dedicated real-posts `SafariJournalContent`.)
+
+Added optional `eyebrow` to the `contact_form`/`faq`/`amenities`/`pricing`
+schemas (additive; renders a sensible default — inspector wiring rolls into the
+styling/editability audit).
+
+`SafariSiteView` now renders Contact + Rooms via `SafariSectionList`; deleted the
+`SafariContactContent`/`SafariRoomsContent` imports. Verified live on vilotest:
+Contact shows the 2-col enquiry grid with the real host email/phone + FAQ
+accordion; Rooms shows real rooms (Olive Room…) in suite cards + amenities grid +
+rates table. tsc + lint + 131 vitest green.
+
+NEXT: room-detail route (`SiteRoomView`) + Rates page Safari bands, then the
+per-page styling audit (hide controls that don't apply to Safari, wire eyebrow
+inspectors).
+
+---
+
 ## 2026-06-26 — Safari About page section-driven + FIX: non-UUID section ids dropped
 
 Extending the home-page unification to the other Safari pages, starting with

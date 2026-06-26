@@ -6,11 +6,9 @@ import { SafariSectionList, type SafariCtx } from "../sections/SafariSections";
 
 import { SafariShell, type SafariNavLink } from "./SafariShell";
 import { SafariBookingContent } from "./pages/SafariBookingContent";
-import { SafariContactContent } from "./pages/SafariContactContent";
 import { SafariJournalContent } from "./pages/SafariJournalContent";
 import { SafariGenericContent } from "./pages/SafariGenericContent";
 import { SafariRatesContent } from "./pages/SafariRatesContent";
-import { SafariRoomsContent } from "./pages/SafariRoomsContent";
 import { SafariThankYouContent } from "./pages/SafariThankYouContent";
 
 /** Page kinds (loadSitePage `kind`) the Safari theme renders bespoke. */
@@ -34,6 +32,8 @@ export function SafariSiteView({
   data,
   asset,
   brandName,
+  contactEmail,
+  contactPhone,
   navLinks,
   bookHref,
   previewPages,
@@ -45,6 +45,8 @@ export function SafariSiteView({
   data?: SiteData;
   asset?: SiteAssetResolver;
   brandName: string;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
   navLinks: SafariNavLink[];
   bookHref?: string | null;
   previewPages?: SitePreviewPage[];
@@ -53,6 +55,8 @@ export function SafariSiteView({
     navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#suites";
   const safariCtx: SafariCtx = {
     brandName,
+    contactEmail,
+    contactPhone,
     roomsHref,
     aboutHref: navLinks.find((l) => /about|story/i.test(l.label))?.href,
     contactHref: navLinks.find((l) => /contact/i.test(l.label))?.href,
@@ -62,7 +66,14 @@ export function SafariSiteView({
   let content;
   switch (kind) {
     case "rooms":
-      content = <SafariRoomsContent />;
+      content = (
+        <SafariSectionList
+          sections={sections}
+          data={data}
+          asset={asset}
+          ctx={safariCtx}
+        />
+      );
       break;
     case "about":
       content = (
@@ -75,7 +86,14 @@ export function SafariSiteView({
       );
       break;
     case "contact":
-      content = <SafariContactContent />;
+      content = (
+        <SafariSectionList
+          sections={sections}
+          data={data}
+          asset={asset}
+          ctx={safariCtx}
+        />
+      );
       break;
     case "blog":
       content = <SafariJournalContent />;
