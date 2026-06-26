@@ -32,10 +32,21 @@ function initialsOf(name?: string | null): string {
  * meta, sanitised body HTML, author) so the preview matches what publishes and
  * the `.article` prose styling applies to the real content.
  */
-export function SafariArticleContent({ post }: { post?: SafariArticlePost }) {
+export function SafariArticleContent({
+  post,
+  links,
+}: {
+  post?: SafariArticlePost;
+  /** Resolved (preview-aware) nav targets, so links work on the live site AND in
+   *  the dashboard preview. Falls back to absolute paths for the live site. */
+  links?: { home?: string; journal?: string; rooms?: string };
+}) {
   const title = post?.title ?? "Untitled post";
   const cover = post?.coverUrl || STOCK_HERO;
   const author = post?.authorName ?? null;
+  const homeHref = links?.home || "/";
+  const journalHref = links?.journal || "/blog";
+  const roomsHref = links?.rooms || "/rooms";
 
   return (
     <>
@@ -47,9 +58,9 @@ export function SafariArticleContent({ post }: { post?: SafariArticlePost }) {
         <img src={cover} alt="" />
         <div className="wrap">
           <div className="crumbs">
-            <a href="/">Home</a>
+            <a href={homeHref}>Home</a>
             <span>·</span>
-            <a href="/blog">Journal</a>
+            <a href={journalHref}>Journal</a>
           </div>
           <h1 style={{ maxWidth: "18ch" }}>{title}</h1>
           <div
@@ -116,10 +127,10 @@ export function SafariArticleContent({ post }: { post?: SafariArticlePost }) {
                 see is the price you pay.
               </p>
               <div className="hero-cta">
-                <a href="/blog" className="btn btn-light btn-lg">
+                <a href={journalHref} className="btn btn-light btn-lg">
                   <span>All field notes</span>
                 </a>
-                <a href="/rooms" className="btn btn-on-dark btn-lg">
+                <a href={roomsHref} className="btn btn-on-dark btn-lg">
                   <span>View the suites</span>
                 </a>
               </div>

@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-06-26 — Safari article page: preview-aware links
+
+The single blog article (`SafariArticleContent`) already renders the bespoke
+design from the real post (cover hero, title, author/date, prose body, footer
+CTA) — content lives in the Blog tab, so there are no page-sections to rebuild.
+Fixed its one inconsistency: the crumb + CTA links were hard-coded (`/`, `/blog`,
+`/rooms`), which broke out of the dashboard preview. They now use the resolved
+nav hrefs (preview-aware), falling back to absolute paths on the live site.
+
+Verified live: crumbs + CTA buttons carry the preview params; real post renders.
+tsc + lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Safari Journal page: section-driven (live === builder) + real posts
 
 The blog index rendered the bespoke `SafariJournalContent` directly, so it ignored

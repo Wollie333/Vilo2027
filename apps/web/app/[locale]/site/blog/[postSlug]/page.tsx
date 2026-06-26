@@ -74,10 +74,12 @@ export default async function SiteBlogPostPage({
     : undefined;
 
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
     return (
       <SafariShell
         brandName={ctx.brand.name}
-        nav={buildSafariNav(ctx)}
+        nav={nav}
         previewPages={previewPages}
       >
         <SafariArticleContent
@@ -88,6 +90,13 @@ export default async function SiteBlogPostPage({
             date: post.date,
             authorName: post.authorName,
             excerpt: post.excerpt,
+          }}
+          links={{
+            home:
+              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+              navLinks[0]?.href,
+            journal: navLinks.find((l) => /journal|blog/i.test(l.label))?.href,
+            rooms: navLinks.find((l) => /suite|room/i.test(l.label))?.href,
           }}
         />
       </SafariShell>
