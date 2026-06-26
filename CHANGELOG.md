@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-26 — Safari About: complete the original design (conservation + founder note)
+
+Finished the About page so it matches the bespoke NenGama design exactly — added
+the two remaining blocks on the `host_bio` type (additive props, no migration):
+
+- **Conservation** — `SafariHostBio` now renders an optional reversed image-split
+  with a **check-list** (`points: {text}[]` + `reverse`). About uses it for
+  "Every stay protects the wild" + the 4 conservation commitments.
+- **Founder note** — the host_bio **`centered` variant** renders a no-photo
+  centred founder quote + author (heading→eyebrow, body→serif quote, name→author).
+- Inspector (Safari): "Image on the left" toggle + an editable check-list on
+  host_bio. `themeSections.safari_about` is now the full 7 blocks: page-head ·
+  story · stats · conservation · founder note · promises · CTA. Reseeded vilotest.
+
+Verified live (desktop + 375px): all 7 blocks render — page-head banner, 12,000
+badge, stats band, reversed conservation split with the 4-item checklist, the
+centred founder quote, numbered promises, CTA; collapse cleanly on mobile, zero
+overflow. tsc + lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Safari About page: follow the original NenGama design (not the home)
 
 Founder: the section-driven About looked like the home (full-screen hero + image

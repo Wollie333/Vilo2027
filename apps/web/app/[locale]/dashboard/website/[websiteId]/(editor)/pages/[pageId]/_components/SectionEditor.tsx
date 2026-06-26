@@ -1411,6 +1411,31 @@ function SectionFields({
             onChange={(path) => set({ photo_path: path })}
             hint={isSafari ? t("imgHintHostBio") : undefined}
           />
+          {isSafari ? (
+            <>
+              <ToggleField
+                label={t("fldReverseImage")}
+                checked={!!p.reverse}
+                onChange={(v) => set({ reverse: v })}
+              />
+              <ItemListEditor
+                label={t("fldCheckList")}
+                items={p.points ?? []}
+                onChange={(points) => set({ points })}
+                blank={() => ({ text: "" })}
+                addLabel={t("fldCheckListAdd")}
+                max={8}
+                renderItem={(item, patch) => (
+                  <TextField
+                    label={t("fldCheckListItem")}
+                    value={item.text}
+                    onChange={(v) => patch({ text: v })}
+                    maxLength={200}
+                  />
+                )}
+              />
+            </>
+          ) : null}
           {!isSafari ? (
             <SelectField
               label={t("fldVariant")}

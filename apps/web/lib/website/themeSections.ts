@@ -1678,6 +1678,28 @@ const safari = {
         { value: "0", label: "Internal fences" },
       ];
     }),
+  aboutConservation: () =>
+    build("host_bio", (s) => {
+      s.props.reverse = true;
+      s.props.heading = "Conservation";
+      s.props.name = "Every stay protects the wild";
+      s.props.body =
+        "We keep the lodge small on purpose. Fewer guests means lighter footprints and a bigger share of every booking going where it matters — into the land and the people who guard it.";
+      s.props.points = [
+        { text: "A full-time anti-poaching unit on the reserve" },
+        { text: "Black & white rhino monitored daily" },
+        { text: "40 local people employed from neighbouring villages" },
+        { text: "Borehole-fed waterholes through the dry season" },
+      ];
+    }),
+  aboutFounderNote: () =>
+    build("host_bio", (s) => {
+      s.props.variant = "centered";
+      s.props.heading = "A note from the family";
+      s.props.body =
+        "We don't think of ourselves as hoteliers. We're custodians who happen to keep three beautiful rooms. Come as our guests, leave as part of the reason this place still exists.";
+      s.props.name = "Lethabo & Naledi Mokoena";
+    }),
   aboutValues: () =>
     build("values", (s) => {
       s.props.heading = "Three quiet promises";
@@ -1851,11 +1873,13 @@ const SAFARI_TEMPLATES: ThemeTemplate[] = [
     key: "safari_about",
     label: "About",
     description:
-      "Page-header banner, your story, the stats band, your promises and a CTA.",
+      "Page-header banner, your story, the stats band, conservation, a founder note, your promises and a CTA.",
     make: () => [
       safari.aboutHero(),
       safari.aboutStory(),
       safari.aboutStats(),
+      safari.aboutConservation(),
+      safari.aboutFounderNote(),
       safari.aboutValues(),
       safari.ctaBanner(),
     ],

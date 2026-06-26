@@ -342,6 +342,13 @@ const hostBioProps = z.object({
   name: z.string().max(120).optional(),
   body: z.string().max(4000),
   photo_path: z.string().optional(),
+  // Optional check-list shown beneath the body (the Safari About "conservation"
+  // block) + reverse the image to the wide/left layout. Additive.
+  points: z
+    .array(z.object({ text: z.string().max(200) }))
+    .max(8)
+    .optional(),
+  reverse: z.boolean().optional(),
   variant: z.enum(HOSTBIO_VARIANTS).default("side"),
 });
 

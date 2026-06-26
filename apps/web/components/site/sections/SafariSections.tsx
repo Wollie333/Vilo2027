@@ -722,6 +722,22 @@ export function SafariCta({
 }
 
 /* ── HOST BIO (the people, split w/ photo) ──────────────────────────── */
+const CHECK_ICON = (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
 export function SafariHostBio({
   props,
   asset,
@@ -729,12 +745,58 @@ export function SafariHostBio({
   props: P<"host_bio">;
   asset?: SiteAssetResolver;
 }) {
+  // "centered" variant = a founder-note / quote block (no photo): eyebrow +
+  // a large serif quote + the author's name.
+  if (props.variant === "centered") {
+    return (
+      <section className="section bg-2">
+        <div className="wrap-narrow center">
+          <span className="eyebrow center no-rule">
+            {props.heading || "A note from us"}
+          </span>
+          <p
+            style={{
+              fontFamily: "var(--serif)",
+              fontSize: "clamp(1.6rem,3.2vw,2.5rem)",
+              lineHeight: 1.32,
+              marginTop: 28,
+              color: "var(--ink)",
+            }}
+          >
+            {props.body}
+          </p>
+          {props.name ? (
+            <div
+              style={{
+                marginTop: 34,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span style={{ fontFamily: "var(--serif)", fontSize: "1.5rem" }}>
+                {props.name}
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
+
+  // Split (image + heading/name/body), with an optional check-list (the About
+  // "conservation" block) and an optional reversed/wide image layout.
+  const points =
+    props.points?.map((p) => p.text).filter((t) => t?.trim()) ?? [];
   return (
     <section className="section bg-2">
       <div className="wrap">
-        <div className="split">
+        <div className={`split${props.reverse ? "reverse" : ""}`}>
           <div className="split-media">
-            <div className="frame-img img-tall">
+            <div
+              className={`frame-img ${props.reverse ? "img-wide" : "img-tall"}`}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img(props.photo_path, asset, IMG.intro)} alt="" />
             </div>
@@ -756,6 +818,19 @@ export function SafariHostBio({
               {props.body ||
                 "A few warm lines about the people who'll share the bush with you — what they love about hosting, and the touches guests remember."}
             </p>
+            {points.length ? (
+              <div
+                className="amenity-grid"
+                style={{ marginTop: 34, gridTemplateColumns: "1fr" }}
+              >
+                {points.map((p, i) => (
+                  <div key={p + i} className="amenity">
+                    {CHECK_ICON}
+                    {p}
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
