@@ -58,11 +58,24 @@ export function SectionEditor({
 }) {
   const t = useTranslations("website");
   const [tab, setTab] = useState<"content" | "style" | "advanced">("content");
-  const tabs = [
-    ["content", t("inspTabContent")],
-    ["style", t("inspTabStyle")],
-    ["advanced", t("inspTabAdvanced")],
-  ] as const;
+  // On a bespoke theme (Safari) the section renders a fixed design: the per-block
+  // Style controls (tone + frame/spacing) and the desktop/mobile visibility toggle
+  // do nothing, so they're hidden — the inspector only shows controls that apply.
+  const isSafari = themePreset === "safari";
+  const tabs = (
+    isSafari
+      ? [
+          ["content", t("inspTabContent")],
+          ["advanced", t("inspTabAdvanced")],
+        ]
+      : [
+          ["content", t("inspTabContent")],
+          ["style", t("inspTabStyle")],
+          ["advanced", t("inspTabAdvanced")],
+        ]
+  ) as ReadonlyArray<readonly ["content" | "style" | "advanced", string]>;
+  // If the active tab is hidden for this theme, fall back to Content.
+  const activeTab = tabs.some(([k]) => k === tab) ? tab : "content";
   return (
     <div className="space-y-4">
       {/* Tabs keep the inspector confined: Content (what it says) · Style
@@ -71,7 +84,7 @@ export function SectionEditor({
         role="tablist"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
         }}
         className="overflow-hidden rounded-[10px] border border-brand-line"
       >
@@ -80,10 +93,10 @@ export function SectionEditor({
             key={key}
             type="button"
             role="tab"
-            aria-selected={tab === key}
+            aria-selected={activeTab === key}
             onClick={() => setTab(key)}
             className={`px-2 py-1.5 text-[12.5px] font-semibold transition ${
-              tab === key
+              activeTab === key
                 ? "bg-brand-light text-brand-secondary"
                 : "bg-white text-brand-mute hover:text-brand-ink"
             }`}
@@ -93,14 +106,14 @@ export function SectionEditor({
         ))}
       </div>
 
-      {tab === "content" ? (
+      {activeTab === "content" ? (
         <SectionFields
           websiteId={websiteId}
           section={section}
           onChange={onChange}
           themePreset={themePreset}
         />
-      ) : tab === "style" ? (
+      ) : activeTab === "style" ? (
         <div className="space-y-4">
           <SelectField
             label={t("fldTone")}
@@ -117,16 +130,18 @@ export function SectionEditor({
         </div>
       ) : (
         <div className="space-y-4">
-          <SelectField
-            label={t("fldVisibility")}
-            value={section.visibility ?? "all"}
-            options={[
-              { value: "all", label: t("visibility_all") },
-              { value: "desktop", label: t("visibility_desktop") },
-              { value: "mobile", label: t("visibility_mobile") },
-            ]}
-            onChange={(v) => onChange({ ...section, visibility: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVisibility")}
+              value={section.visibility ?? "all"}
+              options={[
+                { value: "all", label: t("visibility_all") },
+                { value: "desktop", label: t("visibility_desktop") },
+                { value: "mobile", label: t("visibility_mobile") },
+              ]}
+              onChange={(v) => onChange({ ...section, visibility: v })}
+            />
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-[12px] font-medium text-brand-mute">
@@ -611,103 +626,110 @@ function SectionFields({
               <LiveNote>{t("fldStatsHint")}</LiveNote>
             </div>
           ) : null}
-          <SelectField
-            label={t("fldHeroLayout")}
-            value={
-              p.variant === "classic"
-                ? "spotlight"
-                : p.variant === "split"
-                  ? "split_right"
-                  : p.variant
-            }
-            options={[
-              { value: "spotlight", label: t("heroLayout_spotlight") },
-              { value: "split_right", label: t("heroLayout_split_right") },
-              { value: "split_left", label: t("heroLayout_split_left") },
-              { value: "fullscreen", label: t("heroLayout_fullscreen") },
-              { value: "minimal", label: t("heroLayout_minimal") },
-              { value: "boxed", label: t("heroLayout_boxed") },
-              { value: "search", label: t("heroLayout_search") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SelectField
-              label={t("fldHeroHeight")}
-              value={p.height ?? "auto"}
-              options={[
-                { value: "auto", label: t("heroHeight_auto") },
-                { value: "medium", label: t("heroHeight_medium") },
-                { value: "tall", label: t("heroHeight_tall") },
-                { value: "screen", label: t("heroHeight_screen") },
-              ]}
-              onChange={(v) => set({ height: v })}
-            />
-            <SelectField
-              label={t("fldHeroOverlay")}
-              value={p.overlay ?? "medium"}
-              options={[
-                { value: "none", label: t("heroOverlay_none") },
-                { value: "light", label: t("heroOverlay_light") },
-                { value: "medium", label: t("heroOverlay_medium") },
-                { value: "strong", label: t("heroOverlay_strong") },
-              ]}
-              onChange={(v) => set({ overlay: v })}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-[12px] font-medium text-brand-mute">
-                {t("fldHeroOverlayColor")}
-              </span>
-              <input
-                type="color"
-                value={p.overlayColor?.trim() || "#000000"}
-                onChange={(e) => set({ overlayColor: e.target.value })}
-                className="mt-1 h-9 w-full cursor-pointer rounded-[8px] border border-brand-line bg-white"
-                aria-label={t("fldHeroOverlayColor")}
+          {/* Layout / overlay / height / text-tone do nothing on the Safari hero
+              (it's a fixed full-bleed design with a CSS overlay + light text), so
+              they're hidden there — only the controls that actually apply show. */}
+          {!isSafari ? (
+            <>
+              <SelectField
+                label={t("fldHeroLayout")}
+                value={
+                  p.variant === "classic"
+                    ? "spotlight"
+                    : p.variant === "split"
+                      ? "split_right"
+                      : p.variant
+                }
+                options={[
+                  { value: "spotlight", label: t("heroLayout_spotlight") },
+                  { value: "split_right", label: t("heroLayout_split_right") },
+                  { value: "split_left", label: t("heroLayout_split_left") },
+                  { value: "fullscreen", label: t("heroLayout_fullscreen") },
+                  { value: "minimal", label: t("heroLayout_minimal") },
+                  { value: "boxed", label: t("heroLayout_boxed") },
+                  { value: "search", label: t("heroLayout_search") },
+                ]}
+                onChange={(v) => set({ variant: v })}
               />
-            </label>
-            <label className="block">
-              <span className="text-[12px] font-medium text-brand-mute">
-                {t("fldHeroOverlayOpacity")}
-              </span>
-              <div className="mt-1 flex items-center gap-2">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={
-                    p.overlayOpacity ??
-                    { none: 0, light: 25, medium: 45, strong: 65 }[
-                      p.overlay ?? "medium"
-                    ]
-                  }
-                  onChange={(e) =>
-                    set({ overlayOpacity: Number(e.target.value) })
-                  }
-                  className="flex-1"
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectField
+                  label={t("fldHeroHeight")}
+                  value={p.height ?? "auto"}
+                  options={[
+                    { value: "auto", label: t("heroHeight_auto") },
+                    { value: "medium", label: t("heroHeight_medium") },
+                    { value: "tall", label: t("heroHeight_tall") },
+                    { value: "screen", label: t("heroHeight_screen") },
+                  ]}
+                  onChange={(v) => set({ height: v })}
                 />
-                <span className="w-9 text-right text-[12px] tabular-nums text-brand-mute">
-                  {p.overlayOpacity ??
-                    { none: 0, light: 25, medium: 45, strong: 65 }[
-                      p.overlay ?? "medium"
-                    ]}
-                  %
-                </span>
+                <SelectField
+                  label={t("fldHeroOverlay")}
+                  value={p.overlay ?? "medium"}
+                  options={[
+                    { value: "none", label: t("heroOverlay_none") },
+                    { value: "light", label: t("heroOverlay_light") },
+                    { value: "medium", label: t("heroOverlay_medium") },
+                    { value: "strong", label: t("heroOverlay_strong") },
+                  ]}
+                  onChange={(v) => set({ overlay: v })}
+                />
               </div>
-            </label>
-          </div>
-          <SelectField
-            label={t("fldHeroTextTone")}
-            value={p.textTone ?? "auto"}
-            options={[
-              { value: "auto", label: t("heroTone_auto") },
-              { value: "light", label: t("heroTone_light") },
-              { value: "dark", label: t("heroTone_dark") },
-            ]}
-            onChange={(v) => set({ textTone: v })}
-          />
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-[12px] font-medium text-brand-mute">
+                    {t("fldHeroOverlayColor")}
+                  </span>
+                  <input
+                    type="color"
+                    value={p.overlayColor?.trim() || "#000000"}
+                    onChange={(e) => set({ overlayColor: e.target.value })}
+                    className="mt-1 h-9 w-full cursor-pointer rounded-[8px] border border-brand-line bg-white"
+                    aria-label={t("fldHeroOverlayColor")}
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[12px] font-medium text-brand-mute">
+                    {t("fldHeroOverlayOpacity")}
+                  </span>
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={
+                        p.overlayOpacity ??
+                        { none: 0, light: 25, medium: 45, strong: 65 }[
+                          p.overlay ?? "medium"
+                        ]
+                      }
+                      onChange={(e) =>
+                        set({ overlayOpacity: Number(e.target.value) })
+                      }
+                      className="flex-1"
+                    />
+                    <span className="w-9 text-right text-[12px] tabular-nums text-brand-mute">
+                      {p.overlayOpacity ??
+                        { none: 0, light: 25, medium: 45, strong: 65 }[
+                          p.overlay ?? "medium"
+                        ]}
+                      %
+                    </span>
+                  </div>
+                </label>
+              </div>
+              <SelectField
+                label={t("fldHeroTextTone")}
+                value={p.textTone ?? "auto"}
+                options={[
+                  { value: "auto", label: t("heroTone_auto") },
+                  { value: "light", label: t("heroTone_light") },
+                  { value: "dark", label: t("heroTone_dark") },
+                ]}
+                onChange={(v) => set({ textTone: v })}
+              />
+            </>
+          ) : null}
         </div>
       );
     }
@@ -771,16 +793,18 @@ function SectionFields({
               <LiveNote>{t("fldBadgeHint")}</LiveNote>
             </div>
           ) : null}
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "centered", label: t("introVariant_centered") },
-              { value: "split", label: t("introVariant_split") },
-              { value: "lead", label: t("introVariant_lead") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "centered", label: t("introVariant_centered") },
+                { value: "split", label: t("introVariant_split") },
+                { value: "lead", label: t("introVariant_lead") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
         </div>
       );
     }
@@ -842,16 +866,18 @@ function SectionFields({
               </>
             )}
           />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "grid", label: t("highlightsVariant_grid") },
-              { value: "list", label: t("highlightsVariant_list") },
-              { value: "plain", label: t("highlightsVariant_plain") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "grid", label: t("highlightsVariant_grid") },
+                { value: "list", label: t("highlightsVariant_list") },
+                { value: "plain", label: t("highlightsVariant_plain") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
         </div>
       );
     }
@@ -1236,16 +1262,18 @@ function SectionFields({
               hint={t("fldCtaHrefHint")}
             />
           </div>
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "banner", label: t("ctaVariant_banner") },
-              { value: "card", label: t("ctaVariant_card") },
-              { value: "split", label: t("ctaVariant_split") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "banner", label: t("ctaVariant_banner") },
+                { value: "card", label: t("ctaVariant_card") },
+                { value: "split", label: t("ctaVariant_split") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
         </div>
       );
     }
@@ -1343,21 +1371,23 @@ function SectionFields({
             onChange={(v) => set({ heading: v })}
             maxLength={200}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SelectField
-              label={t("fldLayout")}
-              value={(p.layout ?? "grid") as Layout}
-              options={layoutOptions}
-              onChange={(v) => set({ layout: v })}
-            />
-            <NumberField
-              label={t("fldMax")}
-              value={p.max}
-              min={1}
-              max={60}
-              onChange={(v) => set({ max: v })}
-            />
-          </div>
+          {!isSafari ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                label={t("fldLayout")}
+                value={(p.layout ?? "grid") as Layout}
+                options={layoutOptions}
+                onChange={(v) => set({ layout: v })}
+              />
+              <NumberField
+                label={t("fldMax")}
+                value={p.max}
+                min={1}
+                max={60}
+                onChange={(v) => set({ max: v })}
+              />
+            </div>
+          ) : null}
           <LiveNote>{t("liveGallery")}</LiveNote>
         </div>
       );
@@ -1384,21 +1414,23 @@ function SectionFields({
             onChange={(v) => set({ heading: v })}
             maxLength={200}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SelectField
-              label={t("fldLayout")}
-              value={(p.layout ?? "grid") as Layout}
-              options={layoutOptions}
-              onChange={(v) => set({ layout: v })}
-            />
-            <NumberField
-              label={t("fldMax")}
-              value={p.max}
-              min={1}
-              max={60}
-              onChange={(v) => set({ max: v })}
-            />
-          </div>
+          {!isSafari ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                label={t("fldLayout")}
+                value={(p.layout ?? "grid") as Layout}
+                options={layoutOptions}
+                onChange={(v) => set({ layout: v })}
+              />
+              <NumberField
+                label={t("fldMax")}
+                value={p.max}
+                min={1}
+                max={60}
+                onChange={(v) => set({ max: v })}
+              />
+            </div>
+          ) : null}
           <TextField
             label={t("fldRoomCtaLabel")}
             value={p.ctaLabel ?? ""}
@@ -1443,21 +1475,25 @@ function SectionFields({
             onChange={(path) => set({ image_path: path })}
             hint={t("fldImageHint")}
           />
-          <ToggleField
-            label={t("fldShowMap")}
-            checked={p.show_map}
-            onChange={(v) => set({ show_map: v })}
-          />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "split", label: t("locationVariant_split") },
-              { value: "stacked", label: t("locationVariant_stacked") },
-              { value: "list", label: t("locationVariant_list") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <>
+              <ToggleField
+                label={t("fldShowMap")}
+                checked={p.show_map}
+                onChange={(v) => set({ show_map: v })}
+              />
+              <SelectField
+                label={t("fldVariant")}
+                value={p.variant}
+                options={[
+                  { value: "split", label: t("locationVariant_split") },
+                  { value: "stacked", label: t("locationVariant_stacked") },
+                  { value: "list", label: t("locationVariant_list") },
+                ]}
+                onChange={(v) => set({ variant: v })}
+              />
+            </>
+          ) : null}
           <LiveNote>{t("liveLocation")}</LiveNote>
         </div>
       );
@@ -1493,23 +1529,27 @@ function SectionFields({
               hint={t("fldReviewsSubheadingHint")}
             />
           ) : null}
-          <NumberField
-            label={t("fldMax")}
-            value={p.max}
-            min={1}
-            max={30}
-            onChange={(v) => set({ max: v })}
-          />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "grid", label: t("reviewsVariant_grid") },
-              { value: "list", label: t("reviewsVariant_list") },
-              { value: "plain", label: t("reviewsVariant_plain") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <>
+              <NumberField
+                label={t("fldMax")}
+                value={p.max}
+                min={1}
+                max={30}
+                onChange={(v) => set({ max: v })}
+              />
+              <SelectField
+                label={t("fldVariant")}
+                value={p.variant}
+                options={[
+                  { value: "grid", label: t("reviewsVariant_grid") },
+                  { value: "list", label: t("reviewsVariant_list") },
+                  { value: "plain", label: t("reviewsVariant_plain") },
+                ]}
+                onChange={(v) => set({ variant: v })}
+              />
+            </>
+          ) : null}
           <LiveNote>{t("liveReviews")}</LiveNote>
         </div>
       );

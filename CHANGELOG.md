@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-26 — Fix Safari hero right-align + hide inert builder controls (audit pt.4)
+
+Two founder-reported issues + the inspector-decluttering directive ("the builder
+should only show settings that actually do something for the active theme").
+
+- **Right/centre align fix.** The hero `h1`/`.hero-sub` have a `max-width`, so
+  `text-align` alone only shifted their text — the blocks stayed left-anchored
+  (eyebrow moved, title/body didn't). Added `margin-inline:auto` (centre) /
+  `margin-left:auto` (right) to those blocks so the whole hero aligns. Verified
+  live: title + body + CTAs + stat row all move together now.
+- **Inspector decluttering (Safari).** Every Safari band renders a fixed design,
+  so a pile of generic controls did nothing. Hidden on Safari (gated on
+  `themePreset === "safari"`): the hero **layout/height/overlay/overlay-colour/
+  overlay-opacity/text-tone**; every section's **variant** selector (intro,
+  highlights, reviews, location, cta); the **layout + max** on gallery &
+  rooms_preview; **show-map** on location; the whole **Style tab** (tone + block
+  frame/spacing — `renderSafariSection` returns the band directly, no block-style
+  wrapper); and the Advanced **visibility** toggle (only `schedule` is honoured on
+  Safari, at the loader). The tab strip now shows just Content + Advanced on
+  Safari.
+
+Re the "green glow behind the CTA": it's the builder's selected-block outline
+(emerald `#10b981`), already re-tinted to the Safari ochre accent in pt.1
+(`builder.css` `.vilo-builder .vilo-safari .bk.sel::after`). If it still shows
+green, the builder tab is serving stale CSS — a hard reload picks up the ochre.
+tsc + lint + 131 vitest green.
+
+NEXT: same inert-control audit for the About / Rooms / Contact page section types
+(amenities/pricing/faq/contact_form variants, room-detail blocks), then the
+hardcoded Safari footer + the nav logo.
+
+---
+
 ## 2026-06-26 — Safari header now honours the host's full menu (audit pt.3)
 
 The Safari nav was a separate, simplified render path: it showed a flat,

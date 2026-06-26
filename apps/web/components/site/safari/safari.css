@@ -729,9 +729,15 @@
   letter-spacing: 3px;
   font-size: 14px;
 }
-/* Hero content alignment (host-controlled). Left is the default. */
+/* Hero content alignment (host-controlled). Left is the default. The h1/sub have
+   a max-width, so they must be re-anchored with margin (text-align alone only
+   shifts text WITHIN their box). */
 .vilo-safari .hero.hero--center .hero-inner .wrap {
   text-align: center;
+  margin-inline: auto;
+}
+.vilo-safari .hero.hero--center .hero-inner .wrap h1,
+.vilo-safari .hero.hero--center .hero-inner .wrap .hero-sub {
   margin-inline: auto;
 }
 .vilo-safari .hero.hero--center .hero-cta,
@@ -740,6 +746,10 @@
 }
 .vilo-safari .hero.hero--right .hero-inner .wrap {
   text-align: right;
+  margin-left: auto;
+}
+.vilo-safari .hero.hero--right .hero-inner .wrap h1,
+.vilo-safari .hero.hero--right .hero-inner .wrap .hero-sub {
   margin-left: auto;
 }
 .vilo-safari .hero.hero--right .hero-cta,
