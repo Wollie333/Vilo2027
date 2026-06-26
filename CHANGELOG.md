@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-26 — Form thank-you page: per-form redirect, type-aware copy
+
+Two thank-you templates now: the booking one (booking details) + a new FORM one
+(same themed design, different info), wired so the page knows where the visitor
+came from.
+
+- **Per-form "after submit" action** (`formSettingsSchema`): `message` (inline,
+  default), `page` (themed thank-you), or `url` (custom). Plus an optional
+  `thankYouHeading` override. Editable in the Forms editor.
+- **`FormSection`** honours it on success — redirects to `/thank-you?form=<id>&name=…`
+  (carrying the form id + a guessed first name) or the custom URL.
+- **`/site/thank-you` route** loads that form's TYPE + copy and renders the themed
+  design: newsletter → "You're on the list" / "You're subscribed"; contact/custom
+  → "Message received" / "Thank you". Host heading + success message win when set.
+  Safari design on a Safari site, themed generic shell otherwise.
+- **`SafariThankYouContent`** gains a `form` state (no booking summary/next-steps)
+  + eyebrow/heading overrides; the booking states are unchanged.
+
+Verified live: contact form → "Message received · Thank you, Naledi · <host msg>";
+newsletter + heading override → "You're on the list · Welcome to the wild"; booking
+thank-you still renders the real booking. tsc + lint + 131 vitest green.
+
+NOTE: the redirect fires from the `form` block (FormSection). On Safari, the `form`
+block isn't dispatched yet and the contact band is a static placeholder — so a
+host triggers this from a generic-theme form or the form block today. Rendering a
+working form ON a Safari page is the follow-up.
+
+---
+
 ## 2026-06-26 — Safari thank-you page: wire the real booking (was off-theme)
 
 The post-payment thank-you route had no Safari branch, so guests on a Safari site

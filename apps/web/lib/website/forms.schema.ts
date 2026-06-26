@@ -89,6 +89,16 @@ export const formSettingsSchema = z.object({
     .trim()
     .max(300)
     .default("Thanks — your message is on its way. We'll be in touch soon."),
+  // What happens after a successful submit:
+  //  - "message" → show the inline success message (default, unchanged)
+  //  - "page"    → redirect to the themed thank-you page (carries this form's id,
+  //                so the page shows copy tailored to the form's type)
+  //  - "url"     → redirect to a host-specified URL
+  afterSubmit: z.enum(["message", "page", "url"]).default("message"),
+  // Custom redirect target (afterSubmit === "url" only).
+  redirectUrl: z.string().trim().max(500).default(""),
+  // Optional heading override on the thank-you page (afterSubmit === "page").
+  thankYouHeading: z.string().trim().max(120).default(""),
   // Email-bearing forms open a "Website Enquiry" in the inbox (slice 2). Newsletter
   // forms ignore this (they upsert a CRM contact instead — slice 3).
   notifyInbox: z.boolean().default(true),

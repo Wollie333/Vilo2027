@@ -9,8 +9,9 @@ export interface SafariThankYouEft {
 }
 
 export interface SafariThankYouProps {
-  /** Booking outcome — drives the heading, icon and which extras show. */
-  state: "confirmed" | "eft" | "processing";
+  /** Outcome — drives the heading, icon and which extras show. "form" is the
+   *  post-form-submission thank-you (same design, no booking summary). */
+  state: "confirmed" | "eft" | "processing" | "form";
   firstName?: string | null;
   reference?: string | null;
   checkIn?: string | null;
@@ -21,9 +22,15 @@ export interface SafariThankYouProps {
   total?: string | null;
   /** Banking details for the awaiting-transfer (EFT) state. */
   eft?: SafariThankYouEft | null;
+  /** The host's form success message (form state only). */
+  message?: string | null;
+  /** Form state: eyebrow + heading override (type-aware copy from the route). */
+  eyebrow?: string | null;
+  headingText?: string | null;
   /** Preview-aware nav targets. */
   homeHref?: string;
   contactHref?: string;
+  roomsHref?: string;
 }
 
 const STOCK_HERO =
@@ -34,7 +41,7 @@ const COPY = {
     eyebrow: "Reservation confirmed",
     heading: (n: string) => (
       <>
-        You're booked, <span>{n}</span>
+        You're booked, <span>{n || "traveller"}</span>
       </>
     ),
     lead: "A confirmation is on its way to your inbox. We can't wait to welcome you.",
@@ -49,6 +56,18 @@ const COPY = {
     heading: () => <>We're confirming your payment</>,
     lead: "This can take a moment. We'll email your confirmation as soon as it's settled.",
   },
+  form: {
+    eyebrow: "Message received",
+    heading: (n: string) =>
+      n ? (
+        <>
+          Thank you, <span>{n}</span>
+        </>
+      ) : (
+        <>Thank you</>
+      ),
+    lead: "We've got your message and a real person at the lodge will reply soon.",
+  },
 } as const;
 
 export function SafariThankYouContent({
@@ -61,10 +80,18 @@ export function SafariThankYouContent({
   nights,
   total,
   eft,
+  message,
+  eyebrow,
+  headingText,
   homeHref = "/",
   contactHref = "/contact",
+  roomsHref,
 }: SafariThankYouProps) {
   const copy = COPY[state];
+  const isBooking = state !== "form";
+  const lead = state === "form" ? message?.trim() || copy.lead : copy.lead;
+  const eyebrowText =
+    state === "form" && eyebrow?.trim() ? eyebrow.trim() : copy.eyebrow;
 
   return (
     <>
@@ -73,7 +100,7 @@ export function SafariThankYouContent({
         <img className="bgimg" src={STOCK_HERO} alt="" />
         <div className="ty-card">
           <div className="ty-check">
-            {state === "confirmed" ? (
+            {state === "confirmed" || state === "form" ? (
               <svg
                 width="36"
                 height="36"
@@ -106,13 +133,15 @@ export function SafariThankYouContent({
             className="eyebrow center no-rule"
             style={{ marginTop: "20px", display: "inline-flex" }}
           >
-            {copy.eyebrow}
+            {eyebrowText}
           </span>
           <h1
             className="display"
             style={{ fontSize: "clamp(2.2rem,5vw,3.4rem)", marginTop: "14px" }}
           >
-            {copy.heading(firstName?.trim() || "traveller")}
+            {state === "form" && headingText?.trim()
+              ? headingText.trim()
+              : copy.heading(firstName?.trim() || "")}
           </h1>
           <p
             className="muted"
@@ -123,7 +152,7 @@ export function SafariThankYouContent({
               marginRight: "auto",
             }}
           >
-            {copy.lead}
+            {lead}
           </p>
           {reference ? (
             <div className="ty-ref">
@@ -131,45 +160,47 @@ export function SafariThankYouContent({
             </div>
           ) : null}
 
-          {/* SUMMARY — real booking dates / guests / total */}
-          <div className="ty-summary">
-            <div className="ty-row">
-              <span>Check in</span>
-              <b>{checkIn || "—"}</b>
-            </div>
-            <div className="ty-row">
-              <span>Check out</span>
-              <b>{checkOut || "—"}</b>
-            </div>
-            <div className="ty-row">
-              <span>Guests · nights</span>
-              <b>
-                {guests ?? "—"} {guests === 1 ? "guest" : "guests"}
-                {nights != null ? (
-                  <>
-                    {" · "}
-                    {nights} {nights === 1 ? "night" : "nights"}
-                  </>
-                ) : null}
-              </b>
-            </div>
-            {total ? (
-              <div className="ty-total">
-                <span
-                  style={{
-                    fontFamily: "var(--sans)",
-                    fontSize: "12px",
-                    letterSpacing: ".16em",
-                    textTransform: "uppercase",
-                    color: "var(--ink-soft)",
-                  }}
-                >
-                  {state === "confirmed" ? "Total paid" : "Total due"}
-                </span>
-                <span className="amt">{total}</span>
+          {/* SUMMARY — real booking dates / guests / total (booking only) */}
+          {isBooking ? (
+            <div className="ty-summary">
+              <div className="ty-row">
+                <span>Check in</span>
+                <b>{checkIn || "—"}</b>
               </div>
-            ) : null}
-          </div>
+              <div className="ty-row">
+                <span>Check out</span>
+                <b>{checkOut || "—"}</b>
+              </div>
+              <div className="ty-row">
+                <span>Guests · nights</span>
+                <b>
+                  {guests ?? "—"} {guests === 1 ? "guest" : "guests"}
+                  {nights != null ? (
+                    <>
+                      {" · "}
+                      {nights} {nights === 1 ? "night" : "nights"}
+                    </>
+                  ) : null}
+                </b>
+              </div>
+              {total ? (
+                <div className="ty-total">
+                  <span
+                    style={{
+                      fontFamily: "var(--sans)",
+                      fontSize: "12px",
+                      letterSpacing: ".16em",
+                      textTransform: "uppercase",
+                      color: "var(--ink-soft)",
+                    }}
+                  >
+                    {state === "confirmed" ? "Total paid" : "Total due"}
+                  </span>
+                  <span className="amt">{total}</span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* EFT banking details (awaiting-transfer state) */}
           {state === "eft" && eft ? (
@@ -276,17 +307,25 @@ export function SafariThankYouContent({
             <a href={homeHref} className="btn btn-primary btn-lg">
               <span>Back to home</span>
             </a>
-            <a href={contactHref} className="btn btn-ghost btn-lg">
-              <span>Send our team your flights</span>
-            </a>
+            {isBooking ? (
+              <a href={contactHref} className="btn btn-ghost btn-lg">
+                <span>Send our team your flights</span>
+              </a>
+            ) : roomsHref ? (
+              <a href={roomsHref} className="btn btn-ghost btn-lg">
+                <span>Browse the suites</span>
+              </a>
+            ) : null}
           </div>
-          <p
-            className="muted"
-            style={{ fontSize: "12.5px", marginTop: "22px" }}
-          >
-            Free cancellation up to 14 days before arrival · no booking fees
-            were charged.
-          </p>
+          {isBooking ? (
+            <p
+              className="muted"
+              style={{ fontSize: "12.5px", marginTop: "22px" }}
+            >
+              Free cancellation up to 14 days before arrival · no booking fees
+              were charged.
+            </p>
+          ) : null}
         </div>
       </section>
     </>

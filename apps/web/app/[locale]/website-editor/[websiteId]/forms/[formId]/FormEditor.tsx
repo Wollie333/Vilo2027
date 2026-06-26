@@ -757,12 +757,51 @@ function FormInspector({
       <div className="insp-sec">
         <div className="isec-t">{t("formEditorAfterSubmit")}</div>
         <div className="fld">
-          <label>{t("formEditorSuccess")}</label>
-          <textarea
-            value={settings.successMessage}
-            onChange={(e) => onPatch({ successMessage: e.target.value })}
-          />
+          <label>{t("formAfterSubmitAction")}</label>
+          <select
+            value={settings.afterSubmit}
+            onChange={(e) =>
+              onPatch({
+                afterSubmit: e.target.value as FormSettings["afterSubmit"],
+              })
+            }
+          >
+            <option value="message">{t("formAfterSubmit_message")}</option>
+            <option value="page">{t("formAfterSubmit_page")}</option>
+            <option value="url">{t("formAfterSubmit_url")}</option>
+          </select>
         </div>
+        {settings.afterSubmit !== "url" ? (
+          <div className="fld">
+            <label>{t("formEditorSuccess")}</label>
+            <textarea
+              value={settings.successMessage}
+              onChange={(e) => onPatch({ successMessage: e.target.value })}
+            />
+          </div>
+        ) : null}
+        {settings.afterSubmit === "page" ? (
+          <div className="fld">
+            <label>{t("formThankYouHeading")}</label>
+            <input
+              type="text"
+              value={settings.thankYouHeading}
+              placeholder={t("formThankYouHeadingPh")}
+              onChange={(e) => onPatch({ thankYouHeading: e.target.value })}
+            />
+          </div>
+        ) : null}
+        {settings.afterSubmit === "url" ? (
+          <div className="fld">
+            <label>{t("formRedirectUrl")}</label>
+            <input
+              type="text"
+              value={settings.redirectUrl}
+              placeholder="https://…"
+              onChange={(e) => onPatch({ redirectUrl: e.target.value })}
+            />
+          </div>
+        ) : null}
       </div>
       <div className="insp-sec">
         <div className="isec-t">{t("formEditorRouting")}</div>

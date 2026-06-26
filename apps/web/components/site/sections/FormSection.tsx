@@ -80,6 +80,27 @@ export function FormSection({
       });
       const result = (await res.json()) as { ok: boolean; error?: string };
       if (result.ok) {
+        const s = form.settings;
+        // Custom URL → straight there.
+        if (s.afterSubmit === "url" && s.redirectUrl.trim()) {
+          window.location.assign(s.redirectUrl.trim());
+          return;
+        }
+        // Themed thank-you page → carry this form's id (+ a first name when we can
+        // guess one) so the page shows type-aware copy.
+        if (s.afterSubmit === "page") {
+          const nameField = form.fields.find(
+            (f) => f.type === "text" && (values[f.id] ?? "").trim(),
+          );
+          const firstName = nameField
+            ? (values[nameField.id] ?? "").trim().split(/\s+/)[0]
+            : "";
+          const url = new URL("/thank-you", window.location.origin);
+          url.searchParams.set("form", form.id);
+          if (firstName) url.searchParams.set("name", firstName);
+          window.location.assign(url.toString());
+          return;
+        }
         setStatus("sent");
       } else {
         setStatus("error");
