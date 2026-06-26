@@ -199,7 +199,8 @@ export function SafariHero({
       <div className="hero-inner">
         <div className="wrap">
           <span className="eyebrow">
-            {ctx?.brandName ? `${ctx.brandName} · ` : ""}Private Reserve
+            {props.eyebrow ||
+              `${ctx?.brandName ? `${ctx.brandName} · ` : ""}Private Reserve`}
           </span>
           <h1>{props.headline || "Where the wild keeps its silence"}</h1>
           <p className="hero-sub">
@@ -246,9 +247,11 @@ export function SafariHero({
 /* ── INTRO (split wide-img) ─────────────────────────────────────────── */
 export function SafariIntro({
   props,
+  asset,
   ctx,
 }: {
   props: P<"intro">;
+  asset?: SiteAssetResolver;
   ctx?: SafariCtx;
 }) {
   return (
@@ -256,7 +259,9 @@ export function SafariIntro({
       <div className="wrap">
         <div className="split wide-img">
           <div>
-            <span className="eyebrow">An unfenced wilderness</span>
+            <span className="eyebrow">
+              {props.eyebrow || "An unfenced wilderness"}
+            </span>
             <h2
               className="display"
               style={{ marginTop: 24, fontSize: "clamp(2.2rem,4.4vw,3.6rem)" }}
@@ -278,7 +283,7 @@ export function SafariIntro({
           <div className="split-media">
             <div className="frame-img img-tall">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={IMG.intro} alt="" />
+              <img src={img(props.image_path, asset, IMG.intro)} alt="" />
             </div>
             <div className="stat-badge" style={{ right: -12, bottom: -24 }}>
               <b>2009</b>
@@ -292,28 +297,33 @@ export function SafariIntro({
 }
 
 /* ── HIGHLIGHTS (experiences, dark band) ────────────────────────────── */
-export function SafariHighlights({ props }: { props: P<"highlights"> }) {
+export function SafariHighlights({
+  props,
+  asset,
+}: {
+  props: P<"highlights">;
+  asset?: SiteAssetResolver;
+}) {
   const items =
     props.items && props.items.length
       ? props.items.map((it, i) => ({
           n: STOCK_EXP[i]?.n ?? `0${i + 1}`,
           title: it.title || STOCK_EXP[i]?.title || "",
           body: it.body || STOCK_EXP[i]?.body || "",
-          img: STOCK_EXP[i]?.img ?? IMG.exp1,
+          img: img(it.image_path, asset, STOCK_EXP[i]?.img ?? IMG.exp1),
         }))
       : STOCK_EXP;
   return (
     <section className="section bg-dark">
       <div className="wrap">
         <div className="sec-head">
-          <span className="eyebrow">Days here</span>
+          <span className="eyebrow">{props.eyebrow || "Days here"}</span>
           <h2 className="display">
             {props.heading || "The reserve, unhurried"}
           </h2>
           <p className="lead">
-            Everything is included, and nothing is compulsory. Your ranger
-            shapes each day around the weather, the wildlife and exactly how far
-            you feel like going.
+            {props.subheading ||
+              "Everything is included, and nothing is compulsory. Your ranger shapes each day around the weather, the wildlife and exactly how far you feel like going."}
           </p>
         </div>
         <div className="exp-grid">
@@ -537,9 +547,11 @@ export function SafariReviews({
 /* ── LOCATION (split) ───────────────────────────────────────────────── */
 export function SafariLocation({
   props,
+  asset,
   ctx,
 }: {
   props: P<"location">;
+  asset?: SiteAssetResolver;
   ctx?: SafariCtx;
 }) {
   return (
@@ -547,7 +559,7 @@ export function SafariLocation({
       <div className="wrap">
         <div className="split">
           <div>
-            <span className="eyebrow">Finding us</span>
+            <span className="eyebrow">{props.eyebrow || "Finding us"}</span>
             <h2
               className="display"
               style={{ marginTop: 22, fontSize: "clamp(2rem,4vw,3.2rem)" }}
@@ -555,9 +567,8 @@ export function SafariLocation({
               {props.heading || "Deep in the wild"}
             </h2>
             <p className="muted" style={{ marginTop: 24, maxWidth: "52ch" }}>
-              A malaria-free reserve a few hours from the city, or forty-five
-              minutes by light aircraft to our private airstrip. Full directions
-              follow your booking.
+              {props.body ||
+                "A malaria-free reserve a few hours from the city, or forty-five minutes by light aircraft to our private airstrip. Full directions follow your booking."}
             </p>
             {ctx?.contactHref ? (
               <div style={{ marginTop: 36 }}>
@@ -573,7 +584,11 @@ export function SafariLocation({
               style={{ height: "100%", minHeight: 380 }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={IMG.location} alt="" style={{ height: "100%" }} />
+              <img
+                src={img(props.image_path, asset, IMG.location)}
+                alt=""
+                style={{ height: "100%" }}
+              />
             </div>
           </div>
         </div>
@@ -585,9 +600,11 @@ export function SafariLocation({
 /* ── CTA (band) ─────────────────────────────────────────────────────── */
 export function SafariCta({
   props,
+  asset,
   ctx,
 }: {
   props: P<"cta">;
+  asset?: SiteAssetResolver;
   ctx?: SafariCtx;
 }) {
   const reserve = ctx?.reserveHref || ctx?.roomsHref || "#suites";
@@ -596,10 +613,11 @@ export function SafariCta({
       <div className="wrap">
         <div className="cta-band">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={IMG.cta} alt="" />
+          <img src={img(props.image_path, asset, IMG.cta)} alt="" />
           <div className="cta-inner">
             <span className="tag-pill">
-              Book direct · the price you see is the price you pay
+              {props.eyebrow ||
+                "Book direct · the price you see is the price you pay"}
             </span>
             <h2 style={{ marginTop: 22 }}>
               {props.heading || "Your dates, under wide skies"}
@@ -643,9 +661,9 @@ export function renderSafariSection(
     case "hero":
       return <SafariHero props={section.props} asset={asset} ctx={ctx} />;
     case "intro":
-      return <SafariIntro props={section.props} ctx={ctx} />;
+      return <SafariIntro props={section.props} asset={asset} ctx={ctx} />;
     case "highlights":
-      return <SafariHighlights props={section.props} />;
+      return <SafariHighlights props={section.props} asset={asset} />;
     case "rooms_preview":
       return (
         <SafariSuites
@@ -669,9 +687,9 @@ export function renderSafariSection(
         />
       );
     case "location":
-      return <SafariLocation props={section.props} ctx={ctx} />;
+      return <SafariLocation props={section.props} asset={asset} ctx={ctx} />;
     case "cta":
-      return <SafariCta props={section.props} ctx={ctx} />;
+      return <SafariCta props={section.props} asset={asset} ctx={ctx} />;
     default:
       return undefined;
   }

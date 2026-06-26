@@ -485,6 +485,13 @@ function SectionFields({
       return (
         <div className="space-y-4">
           <TextField
+            label={t("fldEyebrow")}
+            value={p.eyebrow ?? ""}
+            onChange={(v) => set({ eyebrow: v })}
+            maxLength={120}
+            hint={t("fldEyebrowHint")}
+          />
+          <TextField
             label={t("fldHeadline")}
             value={p.headline}
             onChange={(v) => set({ headline: v })}
@@ -636,6 +643,13 @@ function SectionFields({
       return (
         <div className="space-y-4">
           <TextField
+            label={t("fldEyebrow")}
+            value={p.eyebrow ?? ""}
+            onChange={(v) => set({ eyebrow: v })}
+            maxLength={120}
+            hint={t("fldEyebrowHint")}
+          />
+          <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
             onChange={(v) => set({ heading: v })}
@@ -647,6 +661,13 @@ function SectionFields({
             onChange={(v) => set({ body: v })}
             maxLength={4000}
             rows={5}
+          />
+          <ImageField
+            label={t("fldImage")}
+            websiteId={websiteId}
+            path={p.image_path}
+            onChange={(path) => set({ image_path: path })}
+            hint={t("fldImageHint")}
           />
           <SelectField
             label={t("fldVariant")}
@@ -669,10 +690,24 @@ function SectionFields({
       return (
         <div className="space-y-4">
           <TextField
+            label={t("fldEyebrow")}
+            value={p.eyebrow ?? ""}
+            onChange={(v) => set({ eyebrow: v })}
+            maxLength={120}
+            hint={t("fldEyebrowHint")}
+          />
+          <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
             onChange={(v) => set({ heading: v })}
             maxLength={200}
+          />
+          <TextArea
+            label={t("fldSubheading")}
+            value={p.subheading ?? ""}
+            onChange={(v) => set({ subheading: v })}
+            maxLength={600}
+            rows={2}
           />
           <ItemListEditor
             label={t("fldHighlights")}
@@ -694,6 +729,13 @@ function SectionFields({
                   onChange={(v) => patch({ body: v })}
                   maxLength={600}
                   rows={2}
+                />
+                <ImageField
+                  label={t("fldImage")}
+                  websiteId={websiteId}
+                  path={item.image_path}
+                  onChange={(path) => patch({ image_path: path })}
+                  hint={t("fldImageHint")}
                 />
               </>
             )}
@@ -1033,6 +1075,13 @@ function SectionFields({
       return (
         <div className="space-y-4">
           <TextField
+            label={t("fldEyebrow")}
+            value={p.eyebrow ?? ""}
+            onChange={(v) => set({ eyebrow: v })}
+            maxLength={120}
+            hint={t("fldEyebrowHint")}
+          />
+          <TextField
             label={t("fldHeading")}
             value={p.heading}
             onChange={(v) => set({ heading: v })}
@@ -1044,6 +1093,13 @@ function SectionFields({
             onChange={(v) => set({ body: v })}
             maxLength={600}
             rows={2}
+          />
+          <ImageField
+            label={t("fldImage")}
+            websiteId={websiteId}
+            path={p.image_path}
+            onChange={(path) => set({ image_path: path })}
+            hint={t("fldImageHint")}
           />
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField
@@ -1223,10 +1279,31 @@ function SectionFields({
       return (
         <div className="space-y-4">
           <TextField
+            label={t("fldEyebrow")}
+            value={p.eyebrow ?? ""}
+            onChange={(v) => set({ eyebrow: v })}
+            maxLength={120}
+            hint={t("fldEyebrowHint")}
+          />
+          <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
             onChange={(v) => set({ heading: v })}
             maxLength={200}
+          />
+          <TextArea
+            label={t("fldBody")}
+            value={p.body ?? ""}
+            onChange={(v) => set({ body: v })}
+            maxLength={1000}
+            rows={3}
+          />
+          <ImageField
+            label={t("fldImage")}
+            websiteId={websiteId}
+            path={p.image_path}
+            onChange={(path) => set({ image_path: path })}
+            hint={t("fldImageHint")}
           />
           <ToggleField
             label={t("fldShowMap")}

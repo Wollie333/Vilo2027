@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-26 — Safari builder: make the home bands' images + text editable
+
+Follow-up to the Safari-in-builder keystone — many elements in the Safari home
+bands were hardcoded (couldn't be changed). Added the missing content props +
+inspector fields and wired the bands to them (each falls back to the design's
+default when blank, so nothing changes out of the box):
+
+- **Eyebrow / label** (the small uppercase label above headings) — added to
+  hero, intro, highlights, location, cta. Editable per band.
+- **Images that couldn't be changed** — added `image_path` to intro, location
+  and cta (the split image, the location photo, the CTA band background) and a
+  per-item `image_path` to highlights (each experience image). Each gets an
+  inspector ImageField (upload / choose from library).
+- **Text that couldn't be changed** — highlights `subheading`, location `body`.
+- Schema additions are additive optional jsonb props (no migration). Generic
+  themes ignore them; the Safari bands consume them. SectionEditor gained the
+  fields; +i18n (fldEyebrow(Hint), fldSubheading, fldImage(Hint)).
+
+Verified live: selecting the Experiences band shows Eyebrow/Sub-heading/per-item
+Image fields, and editing the eyebrow updates the canvas instantly. tsc + lint
+green.
+
+NOT yet editable (theme character — candidates for the upcoming styling audit):
+the hero stat row (12,000 / Big Five / 4.98), the intro "2009" badge, and the
+suites/gallery section headings. Styling-control audit (hide redundant per
+theme/template, fix broken e.g. hero overlay-colour) is deferred until all
+Safari pages are in the builder, per the founder's sequencing.
+
+---
+
 ## 2026-06-26 — Page thumbnails (featured image) + fix the Safari blog preview
 
 - **Pages-manager thumbnails show the real featured image.** `loadPagesList`

@@ -187,6 +187,7 @@ const gridLayout = z.enum(["grid", "list", "carousel"]).optional();
 // ── Per-type props ────────────────────────────────────────────
 const heroProps = z.object({
   headline: z.string().max(200),
+  eyebrow: z.string().max(120).optional(),
   subheadline: z.string().max(400).optional(),
   image_path: z.string().optional(),
   cta_label: z.string().max(60).optional(),
@@ -204,18 +205,23 @@ const heroProps = z.object({
 
 const introProps = z.object({
   heading,
+  eyebrow: z.string().max(120).optional(),
   body: z.string().max(4000),
+  image_path: z.string().optional(),
   variant: z.enum(INTRO_VARIANTS).default("centered"),
 });
 
 const highlightsProps = z.object({
   heading,
+  eyebrow: z.string().max(120).optional(),
+  subheading: z.string().max(600).optional(),
   items: z
     .array(
       z.object({
         icon: z.string().max(60).optional(),
         title: z.string().max(120),
         body: z.string().max(600).optional(),
+        image_path: z.string().optional(),
       }),
     )
     .max(12)
@@ -275,6 +281,9 @@ const roomsPreviewProps = z.object({
 
 const locationProps = z.object({
   heading,
+  eyebrow: z.string().max(120).optional(),
+  body: z.string().max(1000).optional(),
+  image_path: z.string().optional(),
   show_map: z.boolean().default(true),
   variant: z.enum(LOCATION_VARIANTS).default("split"),
 });
@@ -287,9 +296,11 @@ const reviewsProps = z.object({
 
 const ctaProps = z.object({
   heading: z.string().max(200),
+  eyebrow: z.string().max(120).optional(),
   body: z.string().max(600).optional(),
   button_label: z.string().max(60),
   button_href: z.string().max(500),
+  image_path: z.string().optional(),
   variant: z.enum(CTA_VARIANTS).default("banner"),
 });
 
