@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-26 — Safari Rates page band + SafariSiteView collapse (all pages section-driven)
+
+Closes the Safari section-driven epic: every content page now renders from its
+sections through the shared Safari bands.
+
+- New `rate_table` Safari band (`SafariRateTable`) — the live nightly-rate table
+  (room name + "from" price in gold + Sleeps/min-nights + per-row Book CTA
+  deep-linking to checkout). Display-only; the engine always re-prices.
+- Collapsed `SafariSiteView`'s per-kind switch: home/about/rooms/contact/rates +
+  any custom page all render via one `SafariSectionList` (a page with no
+  recognised sections still falls back to the Safari generic shell). Only the
+  funnel pages stay bespoke — checkout, thank-you, and the blog (its own
+  real-posts route). Dropped the now-unused `SafariRatesContent` import.
+
+Verified live on vilotest by inserting a temporary `rate_table` page: it bound
+to the 3 real rooms (Olive Room R1 300 / Vineyard R1 900 / Mountain Loft R2 100)
+with working Book links, then removed the temp page (fixture restored to its 8
+pages). Re-verified home/about/rooms/contact/room-detail/blog all 200 after a
+`.next` clear (the dev cache corrupted mid-session — the documented gotcha).
+tsc + lint + 131 vitest green.
+
+Safari pages now section-driven: home, about, rooms, contact, room-detail, rates
+(+ blog via its real-posts route). NEXT: the per-page styling/editability audit —
+hide controls that don't apply to Safari (e.g. the hero overlay controls are
+inert; Safari's hero uses the CSS `--hero-overlay`) and wire the new `eyebrow`
+inspector fields. Optional: `room_rates`/`seasonal_pricing` Safari bands.
+
+---
+
 ## 2026-06-26 — Safari room-detail page section-driven (real room bound)
 
 The individual room page (`/rooms/<slug>`, `SiteRoomView`) rendered the

@@ -8,7 +8,6 @@ import { SafariShell, type SafariNavLink } from "./SafariShell";
 import { SafariBookingContent } from "./pages/SafariBookingContent";
 import { SafariJournalContent } from "./pages/SafariJournalContent";
 import { SafariGenericContent } from "./pages/SafariGenericContent";
-import { SafariRatesContent } from "./pages/SafariRatesContent";
 import { SafariThankYouContent } from "./pages/SafariThankYouContent";
 
 /** Page kinds (loadSitePage `kind`) the Safari theme renders bespoke. */
@@ -63,43 +62,23 @@ export function SafariSiteView({
     reserveHref: bookHref || roomsHref,
   };
 
+  // Every content page (home/about/rooms/contact/rates + any custom page) renders
+  // from its sections through the SAME Safari bands, so live === builder and every
+  // band is host-editable. Only the funnel pages stay bespoke: checkout/thank-you
+  // (booking flow) and the blog (its own real-posts route + index).
+  const sectionList = (
+    <SafariSectionList
+      sections={sections}
+      data={data}
+      asset={asset}
+      ctx={safariCtx}
+    />
+  );
+
   let content;
   switch (kind) {
-    case "rooms":
-      content = (
-        <SafariSectionList
-          sections={sections}
-          data={data}
-          asset={asset}
-          ctx={safariCtx}
-        />
-      );
-      break;
-    case "about":
-      content = (
-        <SafariSectionList
-          sections={sections}
-          data={data}
-          asset={asset}
-          ctx={safariCtx}
-        />
-      );
-      break;
-    case "contact":
-      content = (
-        <SafariSectionList
-          sections={sections}
-          data={data}
-          asset={asset}
-          ctx={safariCtx}
-        />
-      );
-      break;
     case "blog":
       content = <SafariJournalContent />;
-      break;
-    case "rates":
-      content = <SafariRatesContent />;
       break;
     case "checkout":
       content = <SafariBookingContent />;
@@ -107,33 +86,18 @@ export function SafariSiteView({
     case "thank-you":
       content = <SafariThankYouContent />;
       break;
-    case "home":
-      content = (
-        <SafariSectionList
-          sections={sections}
-          data={data}
-          asset={asset}
-          ctx={safariCtx}
-        />
-      );
-      break;
-    default: {
-      // Any other kind — a rates page if its sections are rate-style, otherwise a
-      // Safari-styled generic page. Never the old chrome.
-      const isRates = sections.some((s) =>
-        ["rate_table", "room_rates", "seasonal_pricing", "pricing"].includes(
-          s.type,
-        ),
-      );
-      content = isRates ? (
-        <SafariRatesContent />
+    default:
+      // home/about/rooms/contact/rates and any custom page: section-driven. A page
+      // with NO recognised sections falls back to the Safari generic shell so it's
+      // never blank.
+      content = sections.length ? (
+        sectionList
       ) : (
         <SafariGenericContent
           title={pageTitle || brandName}
           bookHref={bookHref}
         />
       );
-    }
   }
   return (
     <SafariShell

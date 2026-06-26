@@ -8,6 +8,7 @@ import {
   type ReviewsData,
   type BlogPreviewData,
   type RoomDetail,
+  type RateTableData,
   type SiteAssetResolver,
   type SiteData,
 } from "@/lib/site/types";
@@ -1383,6 +1384,104 @@ export function SafariRoomRate({
   );
 }
 
+/* ── RATE TABLE (live nightly rates, display-only) ──────────────────── */
+export function SafariRateTable({
+  props,
+  data,
+}: {
+  props: P<"rate_table">;
+  data?: RateTableData;
+}) {
+  const rows = data?.rows ?? [];
+  const cta = props.ctaLabel?.trim() || "Book";
+  return (
+    <section className="section">
+      <div className="wrap-narrow">
+        <div className="sec-head center" style={{ marginBottom: 40 }}>
+          <span className="eyebrow center no-rule">Rates</span>
+          <h2 className="display" style={{ marginTop: 18 }}>
+            {props.heading || "Nightly rates"}
+          </h2>
+        </div>
+        {rows.length === 0 ? (
+          <p className="muted" style={{ textAlign: "center" }}>
+            Your room rates appear here.
+          </p>
+        ) : (
+          <div
+            style={{
+              border: "1px solid var(--line)",
+              borderRadius: 4,
+              overflow: "hidden",
+            }}
+          >
+            {rows.map((row, i) => (
+              <div
+                key={row.roomId}
+                className="rate-row"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 20,
+                  padding: "20px 26px",
+                  borderTop: i === 0 ? "none" : "1px solid var(--line)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div
+                    style={{ fontFamily: "var(--serif)", fontSize: "1.3rem" }}
+                  >
+                    {row.name}
+                  </div>
+                  {row.maxGuests ? (
+                    <div
+                      className="muted"
+                      style={{ fontSize: 13, marginTop: 4 }}
+                    >
+                      Sleeps {row.maxGuests}
+                      {row.minNights ? ` · min ${row.minNights} nights` : ""}
+                    </div>
+                  ) : null}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
+                  <div style={{ textAlign: "right" }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--serif)",
+                        fontSize: "1.4rem",
+                        color: "var(--gold)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {roomPrice(row.nightlyFrom, row.currency) || "—"}
+                    </div>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      from / night
+                    </div>
+                  </div>
+                  <a href={row.bookHref} className="btn btn-primary">
+                    <span>{cta}</span>
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {props.note ? (
+          <p
+            className="muted"
+            style={{ marginTop: 20, fontSize: 13, textAlign: "center" }}
+          >
+            {props.note}
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 /**
  * Dispatch a section to its Safari-styled band. Returns `undefined` for section
  * types that have no Safari variant yet, so the caller falls back to the generic
@@ -1473,6 +1572,13 @@ export function renderSafariSection(
         <SafariRoomRate
           props={section.props}
           data={dataFor(data, section.id, "room_rate")}
+        />
+      );
+    case "rate_table":
+      return (
+        <SafariRateTable
+          props={section.props}
+          data={dataFor(data, section.id, "rate_table")}
         />
       );
     default:
