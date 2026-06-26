@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-26 — Conversion-goal thank-you pages (per goal, pixel-ready)
+
+Refined the form thank-you toward the host's real use case: 4 fixed forms
+(booking / enquiry / quote / subscribe), each needing its own Meta Pixel event.
+Solution: one themed template, but a **distinct URL per conversion goal** (not per
+form instance) so a pixel conversion can be wired per page.
+
+- **`form goal`** (`formSettingsSchema`): `enquiry | quote | subscribe | general`.
+  Picks the thank-you destination + (later) the pixel event. `afterSubmit` now
+  **defaults to `page`** so a new form auto-redirects with no config.
+- **`/thank-you/[[...goal]]`** — one optional-catch-all route serving `/thank-you`,
+  `/thank-you/enquiry`, `/thank-you/quote`, `/thank-you/subscribe`. Each renders the
+  themed design with goal-specific copy; the host's per-form heading + success
+  message override. `GOALS` map carries the pixel `event` name (Lead / Subscribe)
+  ready for the pixel slice.
+- **`FormSection`** redirects to `/thank-you/<goal>?form=<id>&name=…` on success.
+- Forms editor: a **Form goal** selector (shown when redirecting to a page).
+
+Verified live: all four goal URLs render 200 with distinct copy (Quote requested /
+You're subscribed / Message received); booking thank-you unchanged. tsc + lint +
+131 vitest green.
+
+NEXT (final objective): fire the mapped Meta Pixel event on each goal page.
+
+---
+
 ## 2026-06-26 — Form thank-you page: per-form redirect, type-aware copy
 
 Two thank-you templates now: the booking one (booking details) + a new FORM one

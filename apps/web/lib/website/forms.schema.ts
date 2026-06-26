@@ -90,11 +90,14 @@ export const formSettingsSchema = z.object({
     .max(300)
     .default("Thanks — your message is on its way. We'll be in touch soon."),
   // What happens after a successful submit:
-  //  - "message" → show the inline success message (default, unchanged)
-  //  - "page"    → redirect to the themed thank-you page (carries this form's id,
-  //                so the page shows copy tailored to the form's type)
+  //  - "page"    → redirect to the themed thank-you page for this form's GOAL
+  //                (the default — frictionless, on-theme, pixel-trackable)
+  //  - "message" → show the inline success message in place
   //  - "url"     → redirect to a host-specified URL
-  afterSubmit: z.enum(["message", "page", "url"]).default("message"),
+  afterSubmit: z.enum(["message", "page", "url"]).default("page"),
+  // The conversion this form represents — picks the thank-you destination
+  // (/thank-you/<goal>), its default copy, and (later) its Meta Pixel event.
+  goal: z.enum(["general", "enquiry", "quote", "subscribe"]).default("general"),
   // Custom redirect target (afterSubmit === "url" only).
   redirectUrl: z.string().trim().max(500).default(""),
   // Optional heading override on the thank-you page (afterSubmit === "page").

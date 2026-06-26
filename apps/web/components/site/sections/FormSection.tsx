@@ -86,8 +86,8 @@ export function FormSection({
           window.location.assign(s.redirectUrl.trim());
           return;
         }
-        // Themed thank-you page → carry this form's id (+ a first name when we can
-        // guess one) so the page shows type-aware copy.
+        // Themed thank-you page for this form's GOAL → carry the form id (+ a
+        // first name when we can guess one) so the page shows the right copy.
         if (s.afterSubmit === "page") {
           const nameField = form.fields.find(
             (f) => f.type === "text" && (values[f.id] ?? "").trim(),
@@ -95,7 +95,8 @@ export function FormSection({
           const firstName = nameField
             ? (values[nameField.id] ?? "").trim().split(/\s+/)[0]
             : "";
-          const url = new URL("/thank-you", window.location.origin);
+          const goalPath = s.goal && s.goal !== "general" ? `/${s.goal}` : "";
+          const url = new URL(`/thank-you${goalPath}`, window.location.origin);
           url.searchParams.set("form", form.id);
           if (firstName) url.searchParams.set("name", firstName);
           window.location.assign(url.toString());

@@ -781,15 +781,34 @@ function FormInspector({
           </div>
         ) : null}
         {settings.afterSubmit === "page" ? (
-          <div className="fld">
-            <label>{t("formThankYouHeading")}</label>
-            <input
-              type="text"
-              value={settings.thankYouHeading}
-              placeholder={t("formThankYouHeadingPh")}
-              onChange={(e) => onPatch({ thankYouHeading: e.target.value })}
-            />
-          </div>
+          <>
+            <div className="fld">
+              <label>{t("formGoal")}</label>
+              <select
+                value={settings.goal}
+                onChange={(e) =>
+                  onPatch({ goal: e.target.value as FormSettings["goal"] })
+                }
+              >
+                <option value="enquiry">{t("formGoal_enquiry")}</option>
+                <option value="quote">{t("formGoal_quote")}</option>
+                <option value="subscribe">{t("formGoal_subscribe")}</option>
+                <option value="general">{t("formGoal_general")}</option>
+              </select>
+              <p style={{ fontSize: "11px", opacity: 0.6, marginTop: "4px" }}>
+                {t("formGoalHint")}
+              </p>
+            </div>
+            <div className="fld">
+              <label>{t("formThankYouHeading")}</label>
+              <input
+                type="text"
+                value={settings.thankYouHeading}
+                placeholder={t("formThankYouHeadingPh")}
+                onChange={(e) => onPatch({ thankYouHeading: e.target.value })}
+              />
+            </div>
+          </>
         ) : null}
         {settings.afterSubmit === "url" ? (
           <div className="fld">

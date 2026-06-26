@@ -27,24 +27,64 @@ type SP = {
   site?: string;
   preview?: string;
   theme?: string;
-  /** The form whose success message to show. */
+  /** The form whose copy to show (for the host's success message override). */
   form?: string;
   /** Optional first name of the visitor, for a warmer heading. */
   name?: string;
 };
 
 /**
- * Standalone "thank you" page shown AFTER a website form is submitted (the form
- * posts, then redirects here). Sibling to the booking thank-you (`book/thank-you`)
- * — same themed design, different info: a confirmation message instead of booking
- * details. Renders the Safari design on a Safari site; the themed generic shell
- * otherwise.
+ * Conversion-goal thank-you templates. One per form GOAL (not per form), each a
+ * clean, distinct URL so a Meta Pixel conversion can be wired per page later. The
+ * `event` is the standard pixel event this page will fire (slice: pixel).
+ */
+const GOALS = {
+  general: {
+    eyebrow: "Message received",
+    heading: "Thank you",
+    message: "We've got your message and a real person will reply soon.",
+    event: "Lead",
+  },
+  enquiry: {
+    eyebrow: "Message received",
+    heading: "Thank you",
+    message: "We've got your enquiry — a real person will reply soon.",
+    event: "Lead",
+  },
+  quote: {
+    eyebrow: "Quote requested",
+    heading: "Thanks",
+    message: "We'll put your quote together and be in touch shortly.",
+    event: "Lead",
+  },
+  subscribe: {
+    eyebrow: "You're on the list",
+    heading: "You're subscribed",
+    message: "You're on the list — look out for the occasional note from us.",
+    event: "Subscribe",
+  },
+} as const;
+
+type Goal = keyof typeof GOALS;
+
+function resolveGoal(seg?: string[]): Goal {
+  const g = seg?.[0];
+  return g && g in GOALS ? (g as Goal) : "general";
+}
+
+/**
+ * Standalone form thank-you page (the form posts, then redirects here). Sibling
+ * to the booking thank-you (`book/thank-you`) — same themed design, different
+ * info, with copy tailored to the form's conversion goal (path segment).
  */
 export default async function SiteFormThankYouPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ goal?: string[] }>;
   searchParams: Promise<SP>;
 }) {
+  const { goal: goalSeg } = await params;
   const sp = await searchParams;
   const h = await headers();
   const ref = resolveSiteRef({
@@ -57,53 +97,33 @@ export default async function SiteFormThankYouPage({
   const ctx = await loadSiteContext(ref, { preview, themeSlug: sp?.theme });
   if (!ctx) notFound();
 
+  const goal = resolveGoal(goalSeg);
+  const goalCopy = GOALS[goal];
   const firstName = sp?.name?.trim().slice(0, 60) || null;
 
-  // Resolve the host's configured copy + the form TYPE for this submission, so
-  // the page responds to where the visitor came from. Defaults apply when no
-  // form id is passed or it isn't this site's.
-  let message: string | null = null;
-  let formType: "contact" | "custom" | "newsletter" = "contact";
+  // The host's per-form copy overrides the goal defaults.
+  let message: string = goalCopy.message;
   let headingOverride = "";
   const formId = sp?.form?.trim();
   if (formId) {
     const admin = createAdminClient();
     const { data } = await admin
       .from("website_forms")
-      .select("type, settings")
+      .select("settings")
       .eq("id", formId)
       .eq("website_id", ctx.websiteId)
       .is("deleted_at", null)
-      .maybeSingle<{ type: string; settings: unknown }>();
+      .maybeSingle<{ settings: unknown }>();
     if (data) {
       const settings = formSettingsSchema.parse(data.settings ?? {});
-      message = settings.successMessage;
+      if (settings.successMessage) message = settings.successMessage;
       headingOverride = settings.thankYouHeading;
-      if (
-        data.type === "newsletter" ||
-        data.type === "custom" ||
-        data.type === "contact"
-      ) {
-        formType = data.type;
-      }
     }
   }
 
-  // Copy tailored to the form type (unless the host set a heading override).
-  const isNewsletter = formType === "newsletter";
-  const eyebrow = isNewsletter ? "You're on the list" : "Message received";
   const heading =
     headingOverride ||
-    (isNewsletter
-      ? firstName
-        ? `You're subscribed, ${firstName}`
-        : "You're subscribed"
-      : firstName
-        ? `Thank you, ${firstName}`
-        : "Thank you");
-  const defaultMessage = isNewsletter
-    ? "You're on the list — look out for the occasional note from us."
-    : "We've got your message and a real person will reply soon.";
+    (firstName ? `${goalCopy.heading}, ${firstName}` : goalCopy.heading);
 
   const previewPages = ctx.preview
     ? await buildSitePreviewPages(ctx)
@@ -124,9 +144,9 @@ export default async function SiteFormThankYouPage({
         <SafariThankYouContent
           state="form"
           firstName={firstName}
-          eyebrow={eyebrow}
+          eyebrow={goalCopy.eyebrow}
           headingText={heading}
-          message={message || defaultMessage}
+          message={message}
           homeHref={
             navLinks.find((l) => /^home$/i.test(l.label))?.href ||
             navLinks[0]?.href
@@ -165,9 +185,7 @@ export default async function SiteFormThankYouPage({
       >
         <SectionShell width="narrow">
           <SectionHeading className="mb-3">{heading}</SectionHeading>
-          <Muted className="text-center text-base">
-            {message || defaultMessage}
-          </Muted>
+          <Muted className="text-center text-base">{message}</Muted>
         </SectionShell>
       </SiteChrome>
     </SiteThemeRoot>
