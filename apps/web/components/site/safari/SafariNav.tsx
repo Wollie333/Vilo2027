@@ -20,10 +20,11 @@ const WEIGHT: Record<NonNullable<SiteMenuStyle["weight"]>, number> = {
 };
 
 /** Scoped CSS that applies the host's menu style to the Safari header + drawer.
- *  Weight/uppercase apply in every state; the link COLOUR is applied only where
- *  the nav sits on a solid background (scrolled bar + the mobile drawer) so it
- *  can't make the menu invisible over the dark hero — there Safari keeps its
- *  adaptive white. */
+ *  When the host sets a colour/hover it takes effect in EVERY nav state (over the
+ *  hero, scrolled-solid, and the mobile drawer) — their choice wins. The links
+ *  inherit their colour from `.nav`, so a direct rule on the link overrides the
+ *  adaptive default in all states. With no colour set, the design's adaptive
+ *  white/ink is left untouched. */
 function menuStyleCss(style?: SiteMenuStyle | null): string {
   if (!style) return "";
   const color = style.color?.trim();
@@ -39,11 +40,11 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
     );
   if (color)
     rules.push(
-      `.vilo-safari .nav.solid .nav-links a,.vilo-safari .mnav-links a{color:${color};opacity:1}`,
+      `.vilo-safari .nav-links a,.vilo-safari .mnav-links a{color:${color};opacity:1}`,
     );
   if (hover)
     rules.push(
-      `.vilo-safari .nav.solid .nav-links a:hover,.vilo-safari .mnav-links a:hover{color:${hover};opacity:1}`,
+      `.vilo-safari .nav-links a:hover,.vilo-safari .mnav-links a:hover{color:${hover};opacity:1}`,
     );
   return rules.join("");
 }
