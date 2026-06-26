@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-26 — Image-size hints + per-device hero text/button layout (audit pt.6)
+
+Two founder asks on top of the device tabs:
+
+**1. Recommended image size under every image field.** Each Safari ImageField now
+shows the ideal dimensions for that exact slot: hero 2400×1350 (16:9), hero-laptop
+1600×900, hero-mobile 1080×1600 (portrait), intro/highlight 1200×1500 (4:5), CTA
+2000×900 (banner), host-bio 1000×1200, location 1200×1200 (square). Gated to
+Safari (other themes keep their generic hint).
+
+**2. Per-device hero TEXT + BUTTON LAYOUT.** Extended the `responsive.{laptop,
+mobile}` override (additive, no migration) with `headline`, `subheadline`, `align`
+(left/center/right) and `ctaStack`. The Laptop/Mobile tabs now let the host reword
+the hero, re-align it, and stack its buttons full-width — per screen. Rendered by
+`SafariHero` via responsive `<span>` text swaps + per-device `hero--{l,m}-{align}`
+/`hero--{l,m}-stack` classes, driven by both `@media` (live) and `@container`
+(builder frames). Fixed a source-order bug where the base alignment rules sat
+*after* the per-device ones (equal specificity) and overrode them — moved the base
+block above so the per-device rules win at their breakpoint.
+
+Verified live at 375px: hero shows the mobile headline/subtext, centre-aligned,
+buttons stacked full-width; desktop/laptop keep the base. tsc + lint + 131 vitest
+green.
+
+NEXT: extend per-device image/text to the other sections; bring device tabs to the
+generic themes; the hardcoded Safari footer + nav logo.
+
+---
+
 ## 2026-06-26 — Safari per-device editing: Desktop / Laptop / Mobile tabs (audit pt.5)
 
 Founder wants to design per screen size (and the desktop hero image looked

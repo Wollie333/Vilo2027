@@ -195,6 +195,19 @@ function initialsOf(name: string): string {
   );
 }
 
+/** Renders per-device text: the desktop value plus laptop/mobile variants that
+ *  the responsive CSS swaps in at each breakpoint. Used for the hero headline /
+ *  subheadline when the host overrides them per screen. */
+function RText({ d, l, m }: { d: string; l: string; m: string }) {
+  return (
+    <>
+      <span className="rtext rtext-desktop">{d}</span>
+      <span className="rtext rtext-laptop">{l}</span>
+      <span className="rtext rtext-mobile">{m}</span>
+    </>
+  );
+}
+
 /* ── HERO ───────────────────────────────────────────────────────────── */
 export function SafariHero({
   props,
@@ -244,15 +257,36 @@ export function SafariHero({
       : STOCK_HERO_STATS;
   const showStats = props.show_stats !== false && stats.length > 0;
 
-  const alignClass =
-    props.align === "center"
-      ? " hero--center"
-      : props.align === "right"
-        ? " hero--right"
-        : "";
+  // Per-device hero TEXT (headline / subheadline). Laptop falls back to desktop,
+  // mobile to laptop, so a partial override still reads cleanly.
+  const dHead = props.headline || "Where the wild keeps its silence";
+  const lHeadOv = responsive?.laptop?.headline?.trim();
+  const mHeadOv = responsive?.mobile?.headline?.trim();
+  const lHead = lHeadOv || dHead;
+  const mHead = mHeadOv || lHead;
+  const dSub =
+    props.subheadline ||
+    "A luxury retreat set on twelve thousand unfenced hectares of bushveld. A handful of suites, a handful of guests, and a horizon that belongs to no one.";
+  const lSubOv = responsive?.laptop?.subheadline?.trim();
+  const mSubOv = responsive?.mobile?.subheadline?.trim();
+  const lSub = lSubOv || dSub;
+  const mSub = mSubOv || lSub;
+
+  // Section classes: base alignment + per-device alignment + per-device button
+  // stacking (the "button layout per screen" control).
+  const baseAlign =
+    props.align && props.align !== "left" ? ` hero--${props.align}` : "";
+  const lAlign = responsive?.laptop?.align
+    ? ` hero--l-${responsive.laptop.align}`
+    : "";
+  const mAlign = responsive?.mobile?.align
+    ? ` hero--m-${responsive.mobile.align}`
+    : "";
+  const lStack = responsive?.laptop?.ctaStack ? " hero--l-stack" : "";
+  const mStack = responsive?.mobile?.ctaStack ? " hero--m-stack" : "";
 
   return (
-    <section className={`hero${alignClass}`}>
+    <section className={`hero${baseAlign}${lAlign}${mAlign}${lStack}${mStack}`}>
       <div className="hero-media">
         {hasResponsiveImg ? (
           <>
@@ -274,10 +308,15 @@ export function SafariHero({
             {props.eyebrow ||
               `${ctx?.brandName ? `${ctx.brandName} · ` : ""}Private Reserve`}
           </span>
-          <h1>{props.headline || "Where the wild keeps its silence"}</h1>
+          <h1>
+            {lHeadOv || mHeadOv ? (
+              <RText d={dHead} l={lHead} m={mHead} />
+            ) : (
+              dHead
+            )}
+          </h1>
           <p className="hero-sub">
-            {props.subheadline ||
-              "A luxury retreat set on twelve thousand unfenced hectares of bushveld. A handful of suites, a handful of guests, and a horizon that belongs to no one."}
+            {lSubOv || mSubOv ? <RText d={dSub} l={lSub} m={mSub} /> : dSub}
           </p>
           {showPrimary || showSecondary ? (
             <div className="hero-cta">

@@ -778,6 +778,18 @@ const roomRateProps = z.object({
   variant: z.enum(ROOM_RATE_VARIANTS).default("card"),
 });
 
+// Per-device override bag (laptop/mobile). `hidden`/`image_path` apply to any
+// section; the hero also honours `headline`/`subheadline`/`align`/`ctaStack` so a
+// host can reword the hero and restack its buttons per screen. All optional.
+const responsiveDeviceOverride = z.object({
+  hidden: z.boolean().optional(),
+  image_path: z.string().optional(),
+  headline: z.string().max(200).optional(),
+  subheadline: z.string().max(400).optional(),
+  align: z.enum(["left", "center", "right"]).optional(),
+  ctaStack: z.boolean().optional(),
+});
+
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
   // A section id is just a stable per-page key (React keys, selection, reorder) —
@@ -805,18 +817,8 @@ const sectionBase = {
   // + optional, so existing sections never set it.
   responsive: z
     .object({
-      laptop: z
-        .object({
-          hidden: z.boolean().optional(),
-          image_path: z.string().optional(),
-        })
-        .optional(),
-      mobile: z
-        .object({
-          hidden: z.boolean().optional(),
-          image_path: z.string().optional(),
-        })
-        .optional(),
+      laptop: responsiveDeviceOverride.optional(),
+      mobile: responsiveDeviceOverride.optional(),
     })
     .optional(),
   style: blockStyleSchema.optional(),

@@ -504,13 +504,20 @@ function ResponsiveDeviceFields({
   const t = useTranslations("website");
   const resp = section.responsive ?? {};
   const dev = resp[device] ?? {};
-  const setDev = (patch: { hidden?: boolean; image_path?: string }) =>
+  const setDev = (patch: {
+    hidden?: boolean;
+    image_path?: string;
+    headline?: string;
+    subheadline?: string;
+    align?: "left" | "center" | "right";
+    ctaStack?: boolean;
+  }) =>
     onChange({
       ...section,
       responsive: { ...resp, [device]: { ...dev, ...patch } },
     } as WebsiteSection);
-  // Only sections with a primary background image expose a per-device image swap.
-  const hasImage = section.type === "hero";
+  // The hero exposes per-device image / text / alignment / button layout.
+  const isHero = section.type === "hero";
   return (
     <div className="space-y-4">
       <ToggleField
@@ -518,14 +525,55 @@ function ResponsiveDeviceFields({
         checked={!!dev.hidden}
         onChange={(v) => setDev({ hidden: v })}
       />
-      {hasImage ? (
-        <ImageField
-          label={t("fldDeviceImage")}
-          websiteId={websiteId}
-          path={dev.image_path}
-          onChange={(path) => setDev({ image_path: path })}
-          hint={t("fldDeviceImageHint")}
-        />
+      {isHero ? (
+        <>
+          <ImageField
+            label={t("fldDeviceImage")}
+            websiteId={websiteId}
+            path={dev.image_path}
+            onChange={(path) => setDev({ image_path: path })}
+            hint={t(
+              device === "mobile" ? "imgHintHeroMobile" : "imgHintHeroLaptop",
+            )}
+          />
+          <TextField
+            label={t("fldHeadline")}
+            value={dev.headline ?? ""}
+            onChange={(v) => setDev({ headline: v })}
+            maxLength={200}
+            hint={t("fldDeviceTextHint")}
+          />
+          <TextArea
+            label={t("fldSubheadline")}
+            value={dev.subheadline ?? ""}
+            onChange={(v) => setDev({ subheadline: v })}
+            maxLength={400}
+            rows={2}
+          />
+          <SelectField
+            label={t("fldAlign")}
+            value={dev.align ?? "inherit"}
+            options={[
+              { value: "inherit", label: t("device_inherit") },
+              { value: "left", label: t("align_left") },
+              { value: "center", label: t("align_center") },
+              { value: "right", label: t("align_right") },
+            ]}
+            onChange={(v) =>
+              setDev({
+                align:
+                  v === "inherit"
+                    ? undefined
+                    : (v as "left" | "center" | "right"),
+              })
+            }
+          />
+          <ToggleField
+            label={t("fldStackButtons")}
+            checked={!!dev.ctaStack}
+            onChange={(v) => setDev({ ctaStack: v })}
+          />
+        </>
       ) : null}
       <LiveNote>{t("responsiveDeviceNote")}</LiveNote>
     </div>
@@ -590,7 +638,7 @@ function SectionFields({
             websiteId={websiteId}
             path={p.image_path}
             onChange={(path) => set({ image_path: path })}
-            hint={t("fldBackgroundImageHint")}
+            hint={isSafari ? t("imgHintHero") : t("fldBackgroundImageHint")}
           />
           {isSafari ? (
             <ToggleField
@@ -824,7 +872,7 @@ function SectionFields({
             websiteId={websiteId}
             path={p.image_path}
             onChange={(path) => set({ image_path: path })}
-            hint={t("fldImageHint")}
+            hint={isSafari ? t("imgHintIntro") : t("fldImageHint")}
           />
           {isSafari ? (
             <div className="space-y-3 rounded-[10px] border border-brand-line bg-brand-light/30 p-3">
@@ -920,7 +968,7 @@ function SectionFields({
                   websiteId={websiteId}
                   path={item.image_path}
                   onChange={(path) => patch({ image_path: path })}
-                  hint={t("fldImageHint")}
+                  hint={isSafari ? t("imgHintHighlight") : t("fldImageHint")}
                 />
               </>
             )}
@@ -1308,7 +1356,7 @@ function SectionFields({
             websiteId={websiteId}
             path={p.image_path}
             onChange={(path) => set({ image_path: path })}
-            hint={t("fldImageHint")}
+            hint={isSafari ? t("imgHintCta") : t("fldImageHint")}
           />
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField
@@ -1371,6 +1419,7 @@ function SectionFields({
             websiteId={websiteId}
             path={p.photo_path}
             onChange={(path) => set({ photo_path: path })}
+            hint={isSafari ? t("imgHintHostBio") : undefined}
           />
           {!isSafari ? (
             <SelectField
@@ -1538,7 +1587,7 @@ function SectionFields({
             websiteId={websiteId}
             path={p.image_path}
             onChange={(path) => set({ image_path: path })}
-            hint={t("fldImageHint")}
+            hint={isSafari ? t("imgHintLocation") : t("fldImageHint")}
           />
           {!isSafari ? (
             <>

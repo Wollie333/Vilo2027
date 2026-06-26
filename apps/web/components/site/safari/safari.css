@@ -734,6 +734,259 @@
     display: block;
   }
 }
+/* Per-device hero TEXT swap (headline / subheadline reworded per screen). */
+.vilo-safari .rtext {
+  display: none;
+}
+.vilo-safari .rtext-desktop {
+  display: inline;
+}
+@media (max-width: 1024px) {
+  .vilo-safari .rtext-desktop {
+    display: none;
+  }
+  .vilo-safari .rtext-laptop {
+    display: inline;
+  }
+}
+@media (max-width: 640px) {
+  .vilo-safari .rtext-laptop {
+    display: none;
+  }
+  .vilo-safari .rtext-mobile {
+    display: inline;
+  }
+}
+@container (max-width: 1024px) {
+  .vilo-safari .rtext-desktop {
+    display: none;
+  }
+  .vilo-safari .rtext-laptop {
+    display: inline;
+  }
+}
+@container (max-width: 640px) {
+  .vilo-safari .rtext-laptop {
+    display: none;
+  }
+  .vilo-safari .rtext-mobile {
+    display: inline;
+  }
+}
+/* Hero content alignment (host-controlled, all viewports). Left is the default.
+   The h1/sub have a max-width, so they must be re-anchored with margin (text-align
+   alone only shifts text WITHIN their box). MUST stay above the per-device rules
+   below so those win at their breakpoint (equal specificity → source order). */
+.vilo-safari .hero.hero--center .hero-inner .wrap {
+  text-align: center;
+  margin-inline: auto;
+}
+.vilo-safari .hero.hero--center .hero-inner .wrap h1,
+.vilo-safari .hero.hero--center .hero-inner .wrap .hero-sub {
+  margin-inline: auto;
+}
+.vilo-safari .hero.hero--center .hero-cta,
+.vilo-safari .hero.hero--center .hero-meta {
+  justify-content: center;
+}
+.vilo-safari .hero.hero--right .hero-inner .wrap {
+  text-align: right;
+  margin-left: auto;
+}
+.vilo-safari .hero.hero--right .hero-inner .wrap h1,
+.vilo-safari .hero.hero--right .hero-inner .wrap .hero-sub {
+  margin-left: auto;
+}
+.vilo-safari .hero.hero--right .hero-cta,
+.vilo-safari .hero.hero--right .hero-meta {
+  justify-content: flex-end;
+}
+/* Per-device hero ALIGNMENT + BUTTON STACK. Laptop = ≤1024, Mobile = ≤640;
+   each emitted for both @media (live) and @container (builder device frames). */
+@media (max-width: 1024px) {
+  .vilo-safari .hero.hero--l-left .hero-inner .wrap {
+    text-align: left;
+    margin-left: 0;
+  }
+  .vilo-safari .hero.hero--l-left .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--l-left .hero-inner .wrap .hero-sub {
+    margin-left: 0;
+    margin-right: auto;
+  }
+  .vilo-safari .hero.hero--l-left .hero-cta,
+  .vilo-safari .hero.hero--l-left .hero-meta {
+    justify-content: flex-start;
+  }
+  .vilo-safari .hero.hero--l-center .hero-inner .wrap {
+    text-align: center;
+    margin-inline: auto;
+  }
+  .vilo-safari .hero.hero--l-center .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--l-center .hero-inner .wrap .hero-sub {
+    margin-inline: auto;
+  }
+  .vilo-safari .hero.hero--l-center .hero-cta,
+  .vilo-safari .hero.hero--l-center .hero-meta {
+    justify-content: center;
+  }
+  .vilo-safari .hero.hero--l-right .hero-inner .wrap {
+    text-align: right;
+    margin-left: auto;
+  }
+  .vilo-safari .hero.hero--l-right .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--l-right .hero-inner .wrap .hero-sub {
+    margin-left: auto;
+  }
+  .vilo-safari .hero.hero--l-right .hero-cta,
+  .vilo-safari .hero.hero--l-right .hero-meta {
+    justify-content: flex-end;
+  }
+  .vilo-safari .hero.hero--l-stack .hero-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .vilo-safari .hero.hero--l-stack .hero-cta .btn {
+    width: 100%;
+  }
+}
+@media (max-width: 640px) {
+  .vilo-safari .hero.hero--m-left .hero-inner .wrap {
+    text-align: left;
+    margin-left: 0;
+  }
+  .vilo-safari .hero.hero--m-left .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--m-left .hero-inner .wrap .hero-sub {
+    margin-left: 0;
+    margin-right: auto;
+  }
+  .vilo-safari .hero.hero--m-left .hero-cta,
+  .vilo-safari .hero.hero--m-left .hero-meta {
+    justify-content: flex-start;
+  }
+  .vilo-safari .hero.hero--m-center .hero-inner .wrap {
+    text-align: center;
+    margin-inline: auto;
+  }
+  .vilo-safari .hero.hero--m-center .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--m-center .hero-inner .wrap .hero-sub {
+    margin-inline: auto;
+  }
+  .vilo-safari .hero.hero--m-center .hero-cta,
+  .vilo-safari .hero.hero--m-center .hero-meta {
+    justify-content: center;
+  }
+  .vilo-safari .hero.hero--m-right .hero-inner .wrap {
+    text-align: right;
+    margin-left: auto;
+  }
+  .vilo-safari .hero.hero--m-right .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--m-right .hero-inner .wrap .hero-sub {
+    margin-left: auto;
+  }
+  .vilo-safari .hero.hero--m-right .hero-cta,
+  .vilo-safari .hero.hero--m-right .hero-meta {
+    justify-content: flex-end;
+  }
+  .vilo-safari .hero.hero--m-stack .hero-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .vilo-safari .hero.hero--m-stack .hero-cta .btn {
+    width: 100%;
+  }
+}
+@container (max-width: 1024px) {
+  .vilo-safari .hero.hero--l-left .hero-inner .wrap {
+    text-align: left;
+    margin-left: 0;
+  }
+  .vilo-safari .hero.hero--l-left .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--l-left .hero-inner .wrap .hero-sub {
+    margin-left: 0;
+    margin-right: auto;
+  }
+  .vilo-safari .hero.hero--l-left .hero-cta,
+  .vilo-safari .hero.hero--l-left .hero-meta {
+    justify-content: flex-start;
+  }
+  .vilo-safari .hero.hero--l-center .hero-inner .wrap {
+    text-align: center;
+    margin-inline: auto;
+  }
+  .vilo-safari .hero.hero--l-center .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--l-center .hero-inner .wrap .hero-sub {
+    margin-inline: auto;
+  }
+  .vilo-safari .hero.hero--l-center .hero-cta,
+  .vilo-safari .hero.hero--l-center .hero-meta {
+    justify-content: center;
+  }
+  .vilo-safari .hero.hero--l-right .hero-inner .wrap {
+    text-align: right;
+    margin-left: auto;
+  }
+  .vilo-safari .hero.hero--l-right .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--l-right .hero-inner .wrap .hero-sub {
+    margin-left: auto;
+  }
+  .vilo-safari .hero.hero--l-right .hero-cta,
+  .vilo-safari .hero.hero--l-right .hero-meta {
+    justify-content: flex-end;
+  }
+  .vilo-safari .hero.hero--l-stack .hero-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .vilo-safari .hero.hero--l-stack .hero-cta .btn {
+    width: 100%;
+  }
+}
+@container (max-width: 640px) {
+  .vilo-safari .hero.hero--m-left .hero-inner .wrap {
+    text-align: left;
+    margin-left: 0;
+  }
+  .vilo-safari .hero.hero--m-left .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--m-left .hero-inner .wrap .hero-sub {
+    margin-left: 0;
+    margin-right: auto;
+  }
+  .vilo-safari .hero.hero--m-left .hero-cta,
+  .vilo-safari .hero.hero--m-left .hero-meta {
+    justify-content: flex-start;
+  }
+  .vilo-safari .hero.hero--m-center .hero-inner .wrap {
+    text-align: center;
+    margin-inline: auto;
+  }
+  .vilo-safari .hero.hero--m-center .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--m-center .hero-inner .wrap .hero-sub {
+    margin-inline: auto;
+  }
+  .vilo-safari .hero.hero--m-center .hero-cta,
+  .vilo-safari .hero.hero--m-center .hero-meta {
+    justify-content: center;
+  }
+  .vilo-safari .hero.hero--m-right .hero-inner .wrap {
+    text-align: right;
+    margin-left: auto;
+  }
+  .vilo-safari .hero.hero--m-right .hero-inner .wrap h1,
+  .vilo-safari .hero.hero--m-right .hero-inner .wrap .hero-sub {
+    margin-left: auto;
+  }
+  .vilo-safari .hero.hero--m-right .hero-cta,
+  .vilo-safari .hero.hero--m-right .hero-meta {
+    justify-content: flex-end;
+  }
+  .vilo-safari .hero.hero--m-stack .hero-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .vilo-safari .hero.hero--m-stack .hero-cta .btn {
+    width: 100%;
+  }
+}
 .vilo-safari .hero-inner {
   position: relative;
   z-index: 2;
@@ -807,34 +1060,6 @@
   letter-spacing: 3px;
   font-size: 14px;
 }
-/* Hero content alignment (host-controlled). Left is the default. The h1/sub have
-   a max-width, so they must be re-anchored with margin (text-align alone only
-   shifts text WITHIN their box). */
-.vilo-safari .hero.hero--center .hero-inner .wrap {
-  text-align: center;
-  margin-inline: auto;
-}
-.vilo-safari .hero.hero--center .hero-inner .wrap h1,
-.vilo-safari .hero.hero--center .hero-inner .wrap .hero-sub {
-  margin-inline: auto;
-}
-.vilo-safari .hero.hero--center .hero-cta,
-.vilo-safari .hero.hero--center .hero-meta {
-  justify-content: center;
-}
-.vilo-safari .hero.hero--right .hero-inner .wrap {
-  text-align: right;
-  margin-left: auto;
-}
-.vilo-safari .hero.hero--right .hero-inner .wrap h1,
-.vilo-safari .hero.hero--right .hero-inner .wrap .hero-sub {
-  margin-left: auto;
-}
-.vilo-safari .hero.hero--right .hero-cta,
-.vilo-safari .hero.hero--right .hero-meta {
-  justify-content: flex-end;
-}
-
 /* intro / split */
 .vilo-safari .split {
   display: grid;
