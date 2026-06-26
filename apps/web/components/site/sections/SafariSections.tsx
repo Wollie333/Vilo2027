@@ -427,7 +427,127 @@ export function SafariSuites({
   ctx?: SafariCtx;
 }) {
   const roomsHref = ctx?.roomsHref || "#suites";
+  const reserveHref = ctx?.reserveHref || roomsHref;
   const real = data?.rooms ?? [];
+
+  // "showcase" = the Suites page: each suite a full-width alternating split with
+  // a price badge, an amenity grid (from the room's facts) and View/Reserve CTAs.
+  if (props.display === "showcase") {
+    const max = props.max ?? 6;
+    const list = real.length
+      ? real.slice(0, max).map((r, i) => ({
+          tag: r.badge || r.facts?.[0] || STOCK_SUITES[i % 3]?.tag || "",
+          name: r.name,
+          desc: r.description || STOCK_SUITES[i % 3]?.desc || "",
+          facts: (r.facts && r.facts.length
+            ? r.facts
+            : (STOCK_SUITES[i % 3]?.meta ?? [])
+          ).slice(0, 4),
+          price:
+            r.price != null
+              ? `R${Number(r.price).toLocaleString("en-ZA")}`
+              : (STOCK_SUITES[i % 3]?.price ?? ""),
+          img: r.imageUrl || STOCK_SUITES[i % 3]?.img || IMG.suite1,
+          detailHref: r.detailHref || r.bookHref || roomsHref,
+          bookHref: r.bookHref || reserveHref,
+        }))
+      : STOCK_SUITES.map((s) => ({
+          tag: s.tag,
+          name: s.name,
+          desc: s.desc,
+          facts: s.meta,
+          price: s.price,
+          img: s.img,
+          detailHref: roomsHref,
+          bookHref: reserveHref,
+        }));
+    return (
+      <>
+        {list.map((s, i) => {
+          const reversed = i % 2 === 1;
+          return (
+            <section
+              key={s.name + i}
+              className={`section${reversed ? "bg-2" : ""}`}
+              id={i === 0 ? "suites" : undefined}
+            >
+              <div className="wrap">
+                <div className={`split wide-img${reversed ? "reverse" : ""}`}>
+                  <div className="split-media">
+                    <div className="frame-img img-wide">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.img} alt={s.name} />
+                    </div>
+                    {s.price ? (
+                      <div
+                        className="stat-badge"
+                        style={
+                          reversed
+                            ? { left: "-12px", bottom: "-22px" }
+                            : { right: "-12px", bottom: "-22px" }
+                        }
+                      >
+                        <b>{s.price}</b>
+                        <span>Per night, inclusive</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div>
+                    {s.tag ? <span className="eyebrow">{s.tag}</span> : null}
+                    <h2
+                      className="display"
+                      style={{
+                        marginTop: 20,
+                        fontSize: "clamp(2rem,4vw,3.2rem)",
+                      }}
+                    >
+                      {s.name}
+                    </h2>
+                    {s.desc ? (
+                      <p
+                        className="muted"
+                        style={{ marginTop: 22, maxWidth: "52ch" }}
+                      >
+                        {s.desc}
+                      </p>
+                    ) : null}
+                    {s.facts.length ? (
+                      <div className="amenity-grid" style={{ marginTop: 30 }}>
+                        {s.facts.map((f, j) => (
+                          <div key={f + j} className="amenity">
+                            {CHECK_ICON}
+                            {f}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div
+                      style={{
+                        marginTop: 36,
+                        display: "flex",
+                        gap: 14,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <a href={s.detailHref} className="btn btn-ghost">
+                        <span>View suite</span>
+                      </a>
+                      <a href={s.bookHref} className="btn btn-primary">
+                        <span>
+                          {s.price ? `Reserve · ${s.price}` : "Reserve"}
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          );
+        })}
+      </>
+    );
+  }
+
   const suites = real.length
     ? real.slice(0, 3).map((r, i) => ({
         tag: r.facts?.[0] || STOCK_SUITES[i]?.tag || "",
@@ -1074,6 +1194,49 @@ const STOCK_AMENITIES = [
 export function SafariAmenities({ props }: { props: P<"amenities"> }) {
   const items =
     props.items && props.items.length ? props.items : STOCK_AMENITIES;
+
+  // "inline" = the Suites page "what's included" bar: a centred row of pills.
+  if (props.variant === "inline") {
+    return (
+      <section className="section-sm bg-2">
+        <div className="wrap">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "clamp(20px,4vw,56px)",
+              flexWrap: "wrap",
+              textAlign: "center",
+            }}
+          >
+            {items.map((it, i) => (
+              <span key={it.label + i} className="tag-pill">
+                {it.icon ? (
+                  <span style={{ fontSize: 14, lineHeight: 1 }}>{it.icon}</span>
+                ) : (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                )}
+                {it.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="section bg-2">
       <div className="wrap">

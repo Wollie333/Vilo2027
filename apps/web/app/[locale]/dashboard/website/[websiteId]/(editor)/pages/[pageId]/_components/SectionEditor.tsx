@@ -1543,7 +1543,26 @@ function SectionFields({
             onChange={(v) => set({ heading: v })}
             maxLength={200}
           />
-          {!isSafari ? (
+          {isSafari ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField
+                label={t("fldRoomsDisplay")}
+                value={p.display ?? "grid"}
+                options={[
+                  { value: "grid", label: t("roomsDisplay_grid") },
+                  { value: "showcase", label: t("roomsDisplay_showcase") },
+                ]}
+                onChange={(v) => set({ display: v as "grid" | "showcase" })}
+              />
+              <NumberField
+                label={t("fldMax")}
+                value={p.max}
+                min={1}
+                max={60}
+                onChange={(v) => set({ max: v })}
+              />
+            </div>
+          ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               <SelectField
                 label={t("fldLayout")}
@@ -1559,13 +1578,15 @@ function SectionFields({
                 onChange={(v) => set({ max: v })}
               />
             </div>
+          )}
+          {p.display !== "showcase" ? (
+            <TextField
+              label={t("fldRoomCtaLabel")}
+              value={p.ctaLabel ?? ""}
+              onChange={(v) => set({ ctaLabel: v })}
+              maxLength={60}
+            />
           ) : null}
-          <TextField
-            label={t("fldRoomCtaLabel")}
-            value={p.ctaLabel ?? ""}
-            onChange={(v) => set({ ctaLabel: v })}
-            maxLength={60}
-          />
           <LiveNote>{t("liveRooms")}</LiveNote>
         </div>
       );
@@ -1772,6 +1793,17 @@ function SectionFields({
       return (
         <div className="space-y-4">
           {isSafari ? (
+            <SelectField
+              label={t("fldAmenitiesStyle")}
+              value={p.variant ?? "grid"}
+              options={[
+                { value: "grid", label: t("amenitiesStyle_grid") },
+                { value: "inline", label: t("amenitiesStyle_inline") },
+              ]}
+              onChange={(v) => set({ variant: v as "grid" | "inline" })}
+            />
+          ) : null}
+          {isSafari && p.variant !== "inline" ? (
             <TextField
               label={t("fldEyebrow")}
               value={p.eyebrow ?? ""}
@@ -1780,12 +1812,14 @@ function SectionFields({
               hint={t("fldEyebrowHint")}
             />
           ) : null}
-          <TextField
-            label={t("fldHeading")}
-            value={p.heading ?? ""}
-            onChange={(v) => set({ heading: v })}
-            maxLength={200}
-          />
+          {p.variant !== "inline" ? (
+            <TextField
+              label={t("fldHeading")}
+              value={p.heading ?? ""}
+              onChange={(v) => set({ heading: v })}
+              maxLength={200}
+            />
+          ) : null}
           <ItemListEditor
             label={t("fldAmenities")}
             items={p.items}

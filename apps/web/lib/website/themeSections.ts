@@ -1745,6 +1745,30 @@ const safari = {
     build("rooms_preview", (s) => {
       s.props.heading = "Three suites, one horizon";
     }),
+  // ── Suites-page blocks (the bespoke NenGama Suites design) ──
+  roomsHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Suites";
+      s.props.headline = "Three suites, one wild horizon";
+      s.props.subheadline =
+        "Each opens onto the reserve, each fully inclusive of meals, safaris and transfers. Choose the one that fits your stay.";
+    }),
+  roomsIncluded: () =>
+    build("amenities", (s) => {
+      s.props.variant = "inline";
+      s.props.items = [
+        { label: "All meals & house wines" },
+        { label: "Two daily safaris" },
+        { label: "Airstrip transfers" },
+        { label: "0% booking fees" },
+      ];
+    }),
+  roomsShowcase: () =>
+    build("rooms_preview", (s) => {
+      s.props.display = "showcase";
+      s.props.heading = "Three suites, one wild horizon";
+    }),
   gallery: () =>
     build("gallery", (s) => {
       s.props.heading = "Moments from the reserve";
@@ -1887,11 +1911,12 @@ const SAFARI_TEMPLATES: ThemeTemplate[] = [
   {
     key: "safari_rooms",
     label: "Suites",
-    description: "Your suites, what's at the lodge, the rates and a CTA.",
+    description:
+      "Page-header banner, what's included, your suites as full-width showcases and a CTA.",
     make: () => [
-      safari.rooms(),
-      safari.amenities(),
-      safari.pricing(),
+      safari.roomsHero(),
+      safari.roomsIncluded(),
+      safari.roomsShowcase(),
       safari.ctaBanner(),
     ],
   },

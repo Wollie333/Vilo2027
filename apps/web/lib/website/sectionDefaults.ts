@@ -115,7 +115,12 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { heading: "Rooms & rates", layout: "grid", max: 6 },
+        props: {
+          heading: "Rooms & rates",
+          layout: "grid",
+          max: 6,
+          display: "grid",
+        },
       };
     case "location":
       return {
@@ -256,6 +261,7 @@ export function newSection(type: SectionType): WebsiteSection {
             { icon: "☕", label: "Breakfast included" },
             { icon: "🏊", label: "Swimming pool" },
           ],
+          variant: "grid",
         },
       };
     case "pricing":

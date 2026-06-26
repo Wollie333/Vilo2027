@@ -308,6 +308,9 @@ const roomsPreviewProps = z.object({
   layout: gridLayout,
   max: z.number().int().min(1).max(60).default(6),
   ctaLabel: z.string().max(60).optional(),
+  // Safari: "grid" = the 3-up suite cards (home); "showcase" = full-width
+  // alternating suite splits with price badge + amenities (the Suites page).
+  display: z.enum(["grid", "showcase"]).default("grid"),
 });
 
 const locationProps = z.object({
@@ -444,6 +447,9 @@ const amenitiesProps = z.object({
     )
     .max(40)
     .default([]),
+  // Safari: "grid" = headed amenity grid; "inline" = a centred row of pills with
+  // no heading (the Suites page "what's included" bar).
+  variant: z.enum(["grid", "inline"]).default("grid"),
 });
 
 // Free-form display-only rates table (booking always re-prices server-side).

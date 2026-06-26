@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-26 — Safari Suites page: follow the original NenGama design (real rooms)
+
+The Suites page used the home-style 3-card grid + a generic amenities grid.
+Rebuilt it to the bespoke design while keeping it editable + bound to real rooms:
+
+- **Page-header banner** (compact hero) — "Three suites, one wild horizon".
+- **"What's included" pill bar** — `amenities` gains an `inline` variant (a
+  centred row of check pills, no heading) for the included strip.
+- **Suite showcase** — `rooms_preview` gains a `display: "showcase"` layout:
+  full-width **alternating splits** (image + price badge + amenity grid from the
+  room's facts + View/Reserve CTAs), bound to the host's REAL rooms (falls back
+  to stock). Inspector: "Suite layout" (cards/showcase) + amenities "Style"
+  (grid/pill bar). `safari_rooms` template = page-head · included · showcase ·
+  CTA; reseeded vilotest.
+
+Verified live: binds to the 3 real vilotest rooms (Olive Room / Vineyard Suite /
+Mountain Loft, real prices, real facts), middle suite reversed, 6 CTAs, page-head
+banner, included pills; collapses to 1 column on mobile, zero overflow. tsc +
+lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Safari About: complete the original design (conservation + founder note)
 
 Finished the About page so it matches the bespoke NenGama design exactly — added
