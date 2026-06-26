@@ -2,9 +2,13 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-26, Safari HOME page is the GOLD-STANDARD reference — fully working)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-26, fresh-session checkpoint — Safari HOME is the GOLD STANDARD)
 
-**Branch:** `main` — working tree CLEAN, all work committed + PUSHED (origin/main == local, latest `63df088`). tsc + lint + **131 vitest** GREEN. Preview-managed dev server on :3000 (name `web`, serverId rotates).
+**Branch:** `main` — working tree CLEAN, all work committed + PUSHED (origin/main == local, latest `67fe239`). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`). Preview-managed dev server on :3000 (name `web`, serverId rotates). **`.next` corrupts on HMR after big refactors (`vendor-chunks`/`useContext`-null 500 OR a stale `ReferenceError` even when tsc/vitest are GREEN) — recover: stop the preview server, `rm -rf apps/web/.next`, free :3000 (`Stop-Process`), restart. Hit it 3× across recent sessions.**
+
+**🔑 TEST FIXTURE:** `cd apps/web && pnpm seed:test-site` → host `host@vilotest.com` / `ViloTest123!`. Olive Grove Guesthouse + 3 rooms (Olive Room R1300 / Vineyard R1900 / Mountain Loft R2100) + a Safari site (subdomain `vilotest`). **Preview a Safari page:** `/en/site/<slug>?site=vilotest&preview=1&theme=safari` (home = `/en/site?site=vilotest&preview=1&theme=safari`). websiteId `0b999999-9999-4999-8999-999999999991`; home pageId `ffe05ac1-4cf4-402d-ab88-10b7e58aeacf`. Builder: `/en/website-editor/<websiteId>/pages/<pageId>` (NEEDS the host login — preview MCP can't reach the builder UI; verify builder features via the public render, which reflects builder output). **The home draft carries the founder's gibberish test edits (their content — leave it); structure/functionality is sound.**
+
+**✅ ALSO DONE (latest, `67fe239`): per-page SEO FEATURED IMAGE.** Page settings → SEO card now has an ImageField (upload/pick) for the page's share image → stored as a path in `website_pages.seo_overrides.image`; the public `og:image`+`twitter:image` prefer it over the site default. (Founder reported there was no way to set it.)
 
 **✅ THE SAFARI HOME PAGE NOW WORKS END-TO-END — it is the reference pattern to replicate to the other Safari pages + (later) other themes.** Verified live this session (desktop 1280 + mobile 375): all 8 sections render, real data binds (3 suites / 7 gallery / 3 reviews), lightbox opens, grids collapse to 1 column on mobile, **zero horizontal overflow**, burger nav. The SAME machinery (one `SafariSectionList` + `renderSafariSection` + the device-tab inspector + the responsive CSS) is what every Safari page uses, so about/rooms/contact/room-detail/rates ALL inherit it automatically (confirmed: all 200 with the `vilo-rwrap`/`vilo-rdup` wrappers present).
 
