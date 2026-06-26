@@ -7,6 +7,7 @@ import {
   type GalleryData,
   type ReviewsData,
   type BlogPreviewData,
+  type RoomDetail,
   type SiteAssetResolver,
   type SiteData,
 } from "@/lib/site/types";
@@ -1105,6 +1106,283 @@ export function SafariBlogPreview({
   );
 }
 
+/* ── ROOM DETAIL bands (bind to the single room in scope) ───────────── */
+// Shown in the builder canvas (no room in scope) so the band isn't invisible.
+function SafariRoomPlaceholder({ label }: { label: string }) {
+  return (
+    <section className="section">
+      <div className="wrap">
+        <div
+          style={{
+            border: "1px dashed var(--line)",
+            borderRadius: 4,
+            padding: 40,
+            textAlign: "center",
+            color: "var(--ink-soft)",
+            fontSize: 14,
+          }}
+        >
+          {label}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function roomPrice(price?: number | null, currency?: string | null): string {
+  if (price == null) return "";
+  const ccy = currency ?? "ZAR";
+  try {
+    return new Intl.NumberFormat("en-ZA", {
+      style: "currency",
+      currency: ccy,
+      maximumFractionDigits: 0,
+    }).format(price);
+  } catch {
+    return `R${Number(price).toLocaleString("en-ZA")}`;
+  }
+}
+
+export function SafariRoomGallery({
+  props,
+  data,
+}: {
+  props: P<"room_gallery">;
+  data?: RoomDetail;
+}) {
+  const images = (data?.images ?? []).slice(0, props.max ?? 12);
+  if (!images.length)
+    return <SafariRoomPlaceholder label="This room's photos appear here." />;
+  const [main, ...rest] = images;
+  return (
+    <section className="wrap">
+      <div className="suite-hero">
+        <div className="sh main">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={main.url}
+            data-lb-src={main.url}
+            alt={main.alt || data?.name || ""}
+          />
+        </div>
+        {rest.slice(0, 2).map((im, i) => (
+          <div key={im.url + i} className="sh">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={im.url} data-lb-src={im.url} alt={im.alt || ""} />
+          </div>
+        ))}
+        {images.length > 1 ? (
+          <button type="button" className="sh-count" data-lb-open>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="5" width="18" height="15" rx="2" />
+              <circle cx="12" cy="12.5" r="3.2" />
+              <path d="M8 5l1.5-2h5L16 5" />
+            </svg>
+            <span data-lb-count>View photos</span>
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+export function SafariRoomOverview({
+  props,
+  data,
+}: {
+  props: P<"room_overview">;
+  data?: RoomDetail;
+}) {
+  if (!data)
+    return (
+      <SafariRoomPlaceholder label="The room's name and details appear here." />
+    );
+  const title = props.heading?.trim() || data.name;
+  const facts = props.show_facts !== false ? data.facts : [];
+  const price =
+    props.show_price !== false ? roomPrice(data.price, data.currency) : "";
+  return (
+    <section className="section" style={{ paddingTop: "clamp(48px,6vw,72px)" }}>
+      <div className="wrap">
+        <span className="eyebrow no-rule">The suite</span>
+        <h1
+          className="display"
+          style={{ marginTop: 16, fontSize: "clamp(2.4rem,5vw,4rem)" }}
+        >
+          {title}
+        </h1>
+        {facts.length ? (
+          <div
+            style={{
+              marginTop: 22,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            {facts.map((f, i) => (
+              <span
+                key={f + i}
+                style={{
+                  border: "1px solid var(--line)",
+                  borderRadius: 999,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {data.description ? (
+          <p
+            className="lead"
+            style={{ marginTop: 26, maxWidth: "62ch", whiteSpace: "pre-line" }}
+          >
+            {data.description}
+          </p>
+        ) : null}
+        {price ? (
+          <p className="muted" style={{ marginTop: 22 }}>
+            From{" "}
+            <b style={{ color: "var(--gold)", fontFamily: "var(--serif)" }}>
+              {price}
+            </b>{" "}
+            / night
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+export function SafariRoomAmenities({
+  props,
+  data,
+}: {
+  props: P<"room_amenities">;
+  data?: RoomDetail;
+}) {
+  const amenities = data?.amenities ?? [];
+  if (!amenities.length)
+    return <SafariRoomPlaceholder label="This room's amenities appear here." />;
+  return (
+    <section className="section bg-2">
+      <div className="wrap">
+        <span className="eyebrow">In the suite</span>
+        <h2
+          className="display"
+          style={{ marginTop: 18, fontSize: "clamp(1.8rem,3.4vw,2.6rem)" }}
+        >
+          {props.heading || "Everything, thought of"}
+        </h2>
+        <div
+          className="amenity-grid"
+          style={{
+            marginTop: 28,
+            gridTemplateColumns:
+              props.variant === "list"
+                ? "1fr"
+                : "repeat(auto-fit,minmax(220px,1fr))",
+          }}
+        >
+          {amenities.map((a, i) => (
+            <div key={a.label + i} className="amenity">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              {a.label}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function SafariRoomRate({
+  props,
+  data,
+}: {
+  props: P<"room_rate">;
+  data?: RoomDetail;
+}) {
+  if (!data)
+    return (
+      <SafariRoomPlaceholder label="The room's rate and booking button appear here." />
+    );
+  const price = roomPrice(data.price, data.currency);
+  return (
+    <section className="section-sm">
+      <div className="wrap-narrow">
+        <div
+          style={{
+            border: "1px solid var(--line)",
+            borderRadius: 4,
+            padding: "clamp(28px,4vw,40px)",
+            display: "flex",
+            gap: 24,
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            {props.heading ? (
+              <h3 style={{ fontSize: "1.4rem" }}>{props.heading}</h3>
+            ) : null}
+            {price ? (
+              <div
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontSize: "2rem",
+                  color: "var(--gold)",
+                  marginTop: props.heading ? 6 : 0,
+                }}
+              >
+                {price}
+                <span className="muted" style={{ fontSize: 14, marginLeft: 8 }}>
+                  / night
+                </span>
+              </div>
+            ) : null}
+            {props.note ? (
+              <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+                {props.note}
+              </p>
+            ) : null}
+          </div>
+          <a href={data.bookHref} className="btn btn-primary btn-lg">
+            <span>{props.cta_label?.trim() || "Book this room"}</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /**
  * Dispatch a section to its Safari-styled band. Returns `undefined` for section
  * types that have no Safari variant yet, so the caller falls back to the generic
@@ -1167,6 +1445,34 @@ export function renderSafariSection(
         <SafariBlogPreview
           props={section.props}
           data={dataFor(data, section.id, "blog_preview")}
+        />
+      );
+    case "room_gallery":
+      return (
+        <SafariRoomGallery
+          props={section.props}
+          data={dataFor(data, section.id, "room_gallery")}
+        />
+      );
+    case "room_overview":
+      return (
+        <SafariRoomOverview
+          props={section.props}
+          data={dataFor(data, section.id, "room_overview")}
+        />
+      );
+    case "room_amenities":
+      return (
+        <SafariRoomAmenities
+          props={section.props}
+          data={dataFor(data, section.id, "room_amenities")}
+        />
+      );
+    case "room_rate":
+      return (
+        <SafariRoomRate
+          props={section.props}
+          data={dataFor(data, section.id, "room_rate")}
         />
       );
     default:

@@ -12,7 +12,7 @@ import { siteSurfaceIsDark } from "@/lib/site/themes";
 
 import { JsonLd } from "./JsonLd";
 import { SafariShell } from "./safari/SafariShell";
-import { SafariRoomContent } from "./safari/pages/SafariRoomContent";
+import { SafariSectionList, type SafariCtx } from "./sections/SafariSections";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
@@ -71,16 +71,32 @@ export async function SiteRoomView({
     : undefined;
 
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    const safariCtx: SafariCtx = {
+      brandName: ctx.brand.name,
+      contactEmail: ctx.brand.contactEmail,
+      contactPhone: ctx.brand.contactPhone,
+      roomsHref: roomsHref || undefined,
+      contactHref: ctx.nav.find((l) => /contact/i.test(l.label))?.href,
+      reserveHref: headerBookHref || room.bookHref,
+    };
     return (
-      <SafariShell
-        brandName={ctx.brand.name}
-        navLinks={ctx.nav}
-        bookHref={headerBookHref}
-        solidNav
-        previewPages={previewPages}
-      >
-        <SafariRoomContent />
-      </SafariShell>
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        <SafariShell
+          brandName={ctx.brand.name}
+          navLinks={ctx.nav}
+          bookHref={headerBookHref}
+          solidNav
+          previewPages={previewPages}
+        >
+          <SafariSectionList
+            sections={sections}
+            data={data}
+            asset={siteAsset}
+            ctx={safariCtx}
+          />
+        </SafariShell>
+      </>
     );
   }
 

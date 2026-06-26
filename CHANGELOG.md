@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-06-26 — Safari room-detail page section-driven (real room bound)
+
+The individual room page (`/rooms/<slug>`, `SiteRoomView`) rendered the
+hardcoded `SafariRoomContent`; it now renders the room-detail sections via
+`SafariSectionList`, bound to the live room.
+
+Four new room bands in `renderSafariSection` (each reads the `RoomDetail` in
+scope, with a builder-canvas placeholder when no room is present):
+- `room_gallery` — the `.suite-hero` mosaic (main + 2) wired to the existing
+  `SafariLightbox` (`data-lb-src`/`data-lb-open`, auto-filled photo count).
+- `room_overview` — eyebrow + room name + fact pills + description + "from R…".
+- `room_amenities` — the room's amenities as a Safari icon grid.
+- `room_rate` — price + note + a "Book this room" CTA deep-linking to checkout.
+
+These bands also light up the builder canvas (it renders through the same
+`renderSafariSection` via `SectionRenderer` with `themeVariant="safari"`).
+
+Verified live on vilotest `/rooms/olive-room`: real photos in the suite-hero
+(lightbox shows "3 photos"), "Olive Room" + facts (Sleeps 2 · 22 m²) + real
+amenities + R1 300 + a Book button deep-linking to the room's checkout. tsc +
+lint + 131 vitest green.
+
+NEXT: the optional Rates page (`rate_table` band) — then the per-page styling
+audit (hide Safari-irrelevant controls, wire eyebrow inspectors).
+
+---
+
 ## 2026-06-26 — Safari Contact + Rooms pages section-driven (+ new bands)
 
 Continued the Safari section-driven conversion to Contact and Rooms (same as
