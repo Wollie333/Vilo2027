@@ -4,9 +4,11 @@
  * A link into a HEAVY route (the page builder, the editors) that immediately
  * shows the labeled "what's happening" busy overlay on click, so the user gets
  * an explicit "Opening the editor…" message during the navigation latency — not
- * just a frozen screen. The overlay clears when the destination commits (the
- * route's loading.tsx skeleton then takes over), with a small minimum-visible
- * time so it never flashes on a warm/instant load.
+ * just a frozen screen. The overlay is nav-scoped: the root <BusyHost> clears it
+ * on the next route change (with a small min-visible beat so it never flashes),
+ * then the destination's loading.tsx skeleton takes over. Crucially the hide is
+ * NOT tied to this component's lifecycle — navigating unmounts it, so it must
+ * not be the thing responsible for clearing the overlay.
  *
  *   <PendingLink
  *     href={editHref}
@@ -27,10 +29,6 @@ import { useRouter } from "@/i18n/navigation";
 
 import { busy, type BusyOptions } from "./busy-host";
 
-// Keep the overlay up briefly even on fast navigations so it reads as a
-// deliberate "loading" beat rather than a flicker.
-const MIN_VISIBLE_MS = 550;
-
 type AnchorProps = Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
   "href" | "onClick"
@@ -48,18 +46,6 @@ export function PendingLink({
   children: React.ReactNode;
 } & AnchorProps) {
   const router = useRouter();
-  const [pending, start] = React.useTransition();
-  const idRef = React.useRef<number | null>(null);
-  const shownRef = React.useRef(0);
-
-  React.useEffect(() => {
-    if (pending || idRef.current == null) return;
-    const id = idRef.current;
-    idRef.current = null;
-    const wait = Math.max(0, MIN_VISIBLE_MS - (Date.now() - shownRef.current));
-    const t = setTimeout(() => busy.hide(id), wait);
-    return () => clearTimeout(t);
-  }, [pending]);
 
   return (
     <a
@@ -77,9 +63,8 @@ export function PendingLink({
           return;
         }
         e.preventDefault();
-        idRef.current = busy.show(busyOpts ?? {});
-        shownRef.current = Date.now();
-        start(() => router.push(href));
+        busy.showNav(busyOpts ?? {});
+        router.push(href);
       }}
       {...rest}
     >

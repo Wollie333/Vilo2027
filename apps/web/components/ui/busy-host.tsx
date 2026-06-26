@@ -7,31 +7,41 @@
  * for the SLOW, blocking actions — the ones where the user would otherwise sit
  * looking at a frozen screen wondering if their click registered:
  *
- *   // wrap an async action — overlay shows for its whole duration
+ *   // wrap an async mutation — overlay shows for its whole duration, always clears
  *   await busy.during(
  *     { title: "Publishing your site", message: "Pushing your latest changes live…" },
  *     () => publishWebsiteAction(id),
  *   );
  *
- *   // or drive it manually (e.g. before a navigation into a heavy route)
- *   const t = busy.show({ title: "Opening the editor", message: "Loading your page…" });
+ *   // a navigation into a heavy route — overlay auto-clears when the route changes
+ *   busy.showNav({ title: "Opening the editor", message: "Loading your page…" });
  *   router.push(href);
- *   // …hidden by the destination, or busy.hide(t)
+ *
+ * Two flavours of show:
+ *   • busy.show(opts)    → you own the lifecycle; pair with busy.hide(id) (or use during()).
+ *   • busy.showNav(opts) → "until the next navigation"; <BusyHost> clears it on the
+ *     next pathname change (with a min-visible beat so it never flashes), plus a
+ *     safety timeout so it can never stick if the navigation is a no-op.
  *
  * This is the app-wide standard for "click → labeled loading modal" (see
  * RULES.md → "Every action gives feedback"). It mirrors the dependency-free
  * external-store pattern in modal-host.tsx so every popup shares the design
  * system. For fast/non-blocking actions prefer a button spinner + toast; for
- * route transitions the global <RouteProgress/> top bar already covers you.
+ * ordinary links the global <NextTopLoader/> top bar already covers you.
  */
 
 import { Loader2 } from "lucide-react";
 import * as React from "react";
 
+import { usePathname } from "@/i18n/navigation";
+
 interface BusyRequest {
   id: number;
   title: string;
   message?: string;
+  /** Auto-cleared by <BusyHost> on the next route change. */
+  nav?: boolean;
+  shownAt: number;
 }
 
 // ---- tiny dependency-free external store (useSyncExternalStore) ----
@@ -62,7 +72,14 @@ const DEFAULTS = {
   message: "Just a moment — please don't close this window.",
 } as const;
 
-function show(opts: BusyOptions = {}): number {
+// Keep the overlay up briefly even on instant navigations so it reads as a
+// deliberate "loading" beat rather than a flicker.
+const MIN_VISIBLE_MS = 550;
+// A nav overlay can never outlive this — guards against a click that doesn't
+// actually change the route (so no pathname change ever clears it).
+const NAV_SAFETY_MS = 12000;
+
+function push(opts: BusyOptions, nav: boolean): number {
   const id = nextId++;
   stack = [
     ...stack,
@@ -70,9 +87,12 @@ function show(opts: BusyOptions = {}): number {
       id,
       title: opts.title ?? DEFAULTS.title,
       message: opts.message ?? DEFAULTS.message,
+      nav,
+      shownAt: Date.now(),
     },
   ];
   emit();
+  if (nav) setTimeout(() => hide(id), NAV_SAFETY_MS);
   return id;
 }
 
@@ -81,12 +101,20 @@ function hide(id?: number) {
   emit();
 }
 
+/** Clear all navigation-scoped entries, each after its min-visible beat. */
+function clearNav() {
+  for (const r of stack.filter((r) => r.nav)) {
+    const wait = Math.max(0, MIN_VISIBLE_MS - (Date.now() - r.shownAt));
+    setTimeout(() => hide(r.id), wait);
+  }
+}
+
 /**
  * Show the labeled overlay for the duration of an async action and always
- * clear it afterwards (even if the action throws). The common case.
+ * clear it afterwards (even if it throws). The common case for mutations.
  */
 async function during<T>(opts: BusyOptions, fn: () => Promise<T>): Promise<T> {
-  const id = show(opts);
+  const id = push(opts, false);
   try {
     return await fn();
   } finally {
@@ -95,17 +123,35 @@ async function during<T>(opts: BusyOptions, fn: () => Promise<T>): Promise<T> {
 }
 
 /** The imperative busy-overlay singleton. */
-export const busy = { show, hide, during };
+export const busy = {
+  /** Manual lifecycle — pair with busy.hide(id). */
+  show: (opts: BusyOptions = {}) => push(opts, false),
+  /** "Until the next navigation" — <BusyHost> clears it on route change. */
+  showNav: (opts: BusyOptions = {}) => push(opts, true),
+  hide,
+  during,
+};
 
 /**
- * Single mount point for the busy overlay. The most recently requested label
- * wins (last in the stack), so an action started on top of another shows its
- * own copy. Place once at the app root.
+ * Single mount point for the busy overlay. Lives at the app root so it survives
+ * the navigations it reports on — a link/source component unmounting mid-route
+ * must NOT be what clears the overlay (that left it stuck). Instead, nav-scoped
+ * overlays clear here on the next pathname change. The most recently requested
+ * label wins (last in the stack).
  */
 export function BusyHost() {
   const reqs = React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  const current = reqs[reqs.length - 1];
+  const pathname = usePathname();
+  const prevPath = React.useRef(pathname);
 
+  React.useEffect(() => {
+    if (prevPath.current !== pathname) {
+      prevPath.current = pathname;
+      clearNav();
+    }
+  }, [pathname]);
+
+  const current = reqs[reqs.length - 1];
   if (!current) return null;
 
   return (
