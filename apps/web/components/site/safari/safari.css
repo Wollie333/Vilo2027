@@ -1996,6 +1996,140 @@
   }
 }
 
+/* contact (page-specific) */
+.vilo-safari .contact-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: clamp(40px, 5vw, 72px);
+  align-items: start;
+}
+.vilo-safari .detail-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 34px;
+}
+.vilo-safari .dc-row {
+  display: flex;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.vilo-safari .dc-row:last-child {
+  border-bottom: none;
+}
+.vilo-safari .dc-row .ic {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.vilo-safari .dc-row .t {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+.vilo-safari .dc-row .d {
+  font-family: var(--sans);
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.vilo-safari .map-ph {
+  position: relative;
+  height: clamp(320px, 42vw, 460px);
+  border-radius: 4px;
+  overflow: hidden;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg-2),
+    var(--bg-2) 14px,
+    color-mix(in srgb, var(--bg-2) 60%, var(--bg)) 14px,
+    color-mix(in srgb, var(--bg-2) 60%, var(--bg)) 28px
+  );
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vilo-safari .map-pin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 0 18px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.vilo-safari .map-tag {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 12px 16px;
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+.vilo-safari .faq-item {
+  border-top: 1px solid var(--line);
+  padding: 24px 0;
+}
+.vilo-safari .faq-item summary {
+  font-family: var(--serif);
+  font-size: 1.45rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  color: var(--ink);
+}
+.vilo-safari .faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.vilo-safari .faq-item summary .pm {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.3s,
+    background 0.3s,
+    color 0.3s;
+}
+.vilo-safari .faq-item[open] summary .pm {
+  transform: rotate(45deg);
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.vilo-safari .faq-item p {
+  margin-top: 16px;
+  color: var(--ink-soft);
+  max-width: 64ch;
+}
+.vilo-safari .sent-msg {
+  display: none;
+  padding: 34px;
+  background: var(--bg-2);
+  border-radius: 4px;
+  text-align: center;
+}
+@media (max-width: 860px) {
+  .vilo-safari .contact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* interior responsive */
 @media (max-width: 1080px) {
   .vilo-safari .featured-post {

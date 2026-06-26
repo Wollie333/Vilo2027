@@ -2,7 +2,17 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-25)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-26)
+
+**Branch:** `main` — tsc + lint GREEN (lint: only 2 pre-existing `<img>` warnings in `reports/_components`, untouched). ⚠️ **A managed dev server is RUNNING on :3000** (preview server `web`, shares the `.next` dir) → do NOT `pnpm build` while it's up; verify with `pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP only.
+
+**ACTIVE LANE = the bespoke SAFARI theme** (NenGama Lodge design). Source mockups: `C:\Users\Wollie\Downloads\safari_theme_extract\NenGama Lodge\*.html` (+ `nengama.css`). Ported render layer lives in `apps/web/components/site/safari/` (`SafariShell`/`SafariNav`/`SafariSiteView`/`SafariLightbox` + `pages/Safari*Content.tsx` + `safari.css`). Preview a Safari page: `/en/site/<slug>?site=vilotest&preview=1&theme=safari`. **Recurring fidelity bug to watch:** each mockup HTML may carry a page-level `<style>` block that must be hand-ported into `safari.css` (scoped under `.vilo-safari`) — has bitten Room, Booking, and (now fixed) Contact. All mockup pages with inline `<style>` are ported now (Room/Booking/Contact/Thank-You done; About/Home/Journal/Rooms have none).
+
+**LATEST (2026-06-26) — Safari Contact page styles ported + React warning fixed.** Contact.html's page-level `<style>` block (`contact-grid`/`detail-card`/`dc-row`/`map-ph`/`map-pin`/`map-tag`/`faq-item`/`pm`/`sent-msg`) was never ported → the Contact page rendered unstyled. Ported it into `safari.css` verbatim (scoped). Also fixed a React controlled-input warning (`value="3"`→`defaultValue="3"` on the nights field). Browser-verified end-to-end (2-col grid + responsive collapse ≤860px, striped map placeholder w/ ochre pin + tag, FAQ accordion plus→cross). tsc + lint green. See CHANGELOG 2026-06-26.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-25)
 
 **Branch:** `main` — tsc + lint + **178 vitest** all GREEN + a full `pnpm build` exit 0 earlier (lint: only 2 pre-existing `<img>` warnings in `reports/_components`, untouched). ⚠️ **A managed dev server is RUNNING on :3000** (I restarted the founder's after a `.next` clobber — see note) → do NOT `pnpm build` while it's up.
 

@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-26 — Safari Contact page: port the missing page-level styles
+
+- **Contact page was rendering unstyled.** Contact.html shipped its layout in a
+  page-level `<style>` block (the recurring "un-ported style block" bug that
+  already bit Room.html and Booking.html). `SafariContactContent` consumed
+  `contact-grid` / `detail-card` / `dc-row` / `map-ph` / `map-pin` / `map-tag`
+  / `faq-item` / `pm` / `sent-msg` — none of which existed in `safari.css`, so
+  the form/details grid, the map placeholder and the FAQ accordion all fell back
+  to unstyled defaults. Ported the whole block into `safari.css` (scoped under
+  `.vilo-safari`), verbatim to the mockup. Browser-verified: two-column grid at
+  desktop (1.3fr/1fr) collapsing to one column ≤860px, the striped map
+  placeholder with the glowing ochre pin + location tag, and the FAQ accordion
+  with the plus→cross toggle on the open item.
+- **Cleared a React warning on the page.** The "approx. nights" number input was
+  a verbatim mockup port with `value="3"` and no `onChange` → React
+  "controlled field without onChange" warning. Switched to `defaultValue="3"`
+  (still shows 3, now mutable). Console clean after reload.
+
+tsc + lint green.
+
+---
+
 ## 2026-06-26 — Safari covers EVERY page + room-detail photo counter
 
 - **No page reverts to the old styles.** `SitePageView` now routes every page

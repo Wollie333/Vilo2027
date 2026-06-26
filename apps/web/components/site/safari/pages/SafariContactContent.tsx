@@ -91,7 +91,7 @@ export function SafariContactContent() {
                   </div>
                   <div className="field">
                     <label>Nights</label>
-                    <input type="number" min="1" value="3" />
+                    <input type="number" min="1" defaultValue="3" />
                   </div>
                 </div>
                 <div className="field">
