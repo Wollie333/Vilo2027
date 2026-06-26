@@ -98,6 +98,8 @@ export default async function SiteBlogIndexPage({
         nav={nav}
         bookHref={bookHref}
         previewPages={previewPages}
+        analytics={ctx.analytics}
+        interactive={!ctx.preview}
       >
         <SafariSectionList
           sections={sections}

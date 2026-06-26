@@ -81,6 +81,8 @@ export default async function SiteBlogPostPage({
         brandName={ctx.brand.name}
         nav={nav}
         previewPages={previewPages}
+        analytics={ctx.analytics}
+        interactive={!ctx.preview}
       >
         <SafariArticleContent
           post={{

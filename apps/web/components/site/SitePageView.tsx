@@ -120,6 +120,8 @@ export async function SitePageView({
           nav={buildSafariNav(ctx)}
           bookHref={headerBookHref}
           previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
         />
       </>
     );

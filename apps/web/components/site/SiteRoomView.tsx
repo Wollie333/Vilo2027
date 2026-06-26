@@ -91,6 +91,8 @@ export async function SiteRoomView({
           bookHref={headerBookHref}
           solidNav
           previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
         >
           <SafariSectionList
             sections={sections}

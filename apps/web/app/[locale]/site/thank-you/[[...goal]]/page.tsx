@@ -140,6 +140,8 @@ export default async function SiteFormThankYouPage({
         nav={nav}
         bookHref={bookHref}
         previewPages={previewPages}
+        analytics={ctx.analytics}
+        interactive={!ctx.preview}
       >
         <SafariThankYouContent
           state="form"

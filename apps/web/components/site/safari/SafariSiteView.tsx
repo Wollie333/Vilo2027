@@ -1,6 +1,10 @@
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 import type { SafariNavData } from "@/lib/site/safariNav";
-import type { SiteAssetResolver, SiteData } from "@/lib/site/types";
+import type {
+  SiteAnalyticsSettings,
+  SiteAssetResolver,
+  SiteData,
+} from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import { SafariSectionList, type SafariCtx } from "../sections/SafariSections";
@@ -37,6 +41,8 @@ export function SafariSiteView({
   nav,
   bookHref,
   previewPages,
+  analytics,
+  interactive,
 }: {
   kind: string;
   pageTitle?: string;
@@ -50,6 +56,8 @@ export function SafariSiteView({
   nav: SafariNavData;
   bookHref?: string | null;
   previewPages?: SitePreviewPage[];
+  analytics?: SiteAnalyticsSettings;
+  interactive?: boolean;
 }) {
   const navLinks = nav.links;
   const roomsHref =
@@ -123,6 +131,8 @@ export function SafariSiteView({
       bookHref={bookHref}
       solidNav={kind === "checkout"}
       previewPages={previewPages}
+      analytics={analytics}
+      interactive={interactive}
     >
       {content}
     </SafariShell>

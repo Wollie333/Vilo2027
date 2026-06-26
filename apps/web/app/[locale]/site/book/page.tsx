@@ -90,6 +90,8 @@ export default async function SiteBookPage({
         }
         solidNav
         previewPages={previewPages}
+        analytics={ctx.analytics}
+        interactive={!ctx.preview}
       >
         <SafariBookingContent />
       </SafariShell>

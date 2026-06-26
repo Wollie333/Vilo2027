@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-26 — Meta Pixel on Safari + dynamic Purchase after paying
+
+The host's tenant-site pixel (`SiteMarketing`: GA4 + Meta + POPIA consent) loaded
+only via `SiteChrome` — so it was MISSING on every Safari page. And the on-site
+booking thank-you never fired Purchase. Fixed both:
+
+- **`SafariShell` now renders `SiteMarketing`** (`analytics` + `interactive` props),
+  threaded through every Safari route (SitePageView/SafariSiteView, room, blog,
+  book, both thank-yous). The host's pixel + PageView now load site-wide on Safari;
+  never in the builder/preview.
+- **On-site booking thank-you fires `Purchase`** — new `FirePurchase` client wraps
+  the shared `firePurchase` (lib/analytics/purchase.ts), built from the REAL
+  booking: dynamic `value` + `currency` + reference, only once confirmed (EFT-
+  pending / processing don't count). Wired into BOTH the Safari + generic branches.
+
+Verified live (test pixel): the booking thank-you's `dataLayer` purchase carries
+`value: 10980, currency: ZAR`, real reference; the Meta pixel script + `fbq` load;
+a refresh de-dupes (no double-count). Reverted the test pixel. tsc + lint + 131
+vitest green.
+
+NEXT in this epic: Lead/Subscribe on the form thank-you goals · per-page pixel-event
+toggle + custom head code (page settings) · forms render on Safari pages.
+
+---
+
 ## 2026-06-26 — Safari chrome in the page builder (Phase 2: inline-editable)
 
 The page builder canvas showed NO header/footer for Safari (generic themes showed

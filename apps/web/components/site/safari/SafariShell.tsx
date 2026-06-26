@@ -2,8 +2,10 @@ import type { ReactNode } from "react";
 
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 import type { SafariNavData } from "@/lib/site/safariNav";
+import type { SiteAnalyticsSettings } from "@/lib/site/types";
 
 import { ChromeEditWrap, type ChromeEditable } from "../SiteChrome";
+import { SiteMarketing } from "../SiteMarketing";
 import { SitePreviewBar } from "../SitePreviewBar";
 
 import { SafariLightbox } from "./SafariLightbox";
@@ -106,6 +108,8 @@ export function SafariShell({
   bookHref,
   solidNav = false,
   previewPages,
+  analytics,
+  interactive = false,
   editable,
   children,
 }: {
@@ -117,6 +121,10 @@ export function SafariShell({
   solidNav?: boolean;
   /** When previewing a theme: the page navigator for the Vilo preview bar. */
   previewPages?: SitePreviewPage[];
+  /** Host third-party analytics (GA4 + Meta Pixel + consent gate). Injected on
+   *  the live site only (interactive); never in the builder/preview. */
+  analytics?: SiteAnalyticsSettings;
+  interactive?: boolean;
   /** Page-builder inline editing: click the header/footer to select + edit it.
    *  When set, the nav renders solid + in-flow (builder CSS) so it's visible and
    *  selectable; undefined on the live site → no change. */
@@ -293,6 +301,10 @@ export function SafariShell({
           </div>
         </footer>
       </ChromeEditWrap>
+
+      {interactive ? (
+        <SiteMarketing analytics={analytics} interactive={interactive} />
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { FirePurchase } from "@/components/site/FirePurchase";
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SafariThankYouContent } from "@/components/site/safari/pages/SafariThankYouContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
@@ -149,6 +150,28 @@ export default async function SiteThankYouPage({
     if (data) eft = data;
   }
 
+  // Purchase event (dynamic value + currency) — fired once the booking is paid.
+  // Null until confirmed, so EFT-pending / processing states don't count a sale.
+  const purchase =
+    isConfirmed && total != null
+      ? {
+          transactionId: booking.reference || booking.id,
+          value: total,
+          currency,
+          contentName: ctx.brand.name,
+          contentIds: [booking.property_id],
+          numItems: 1,
+          items: [
+            {
+              item_id: booking.property_id,
+              item_name: ctx.brand.name,
+              price: total,
+              quantity: 1,
+            },
+          ],
+        }
+      : null;
+
   // Safari theme → render the bespoke confirmation design with the real booking.
   if (ctx.theme.preset === "safari") {
     const nights =
@@ -165,7 +188,13 @@ export default async function SiteThankYouPage({
     const nav = buildSafariNav(ctx);
     const navLinks = nav.links;
     return (
-      <SafariShell brandName={ctx.brand.name} nav={nav}>
+      <SafariShell
+        brandName={ctx.brand.name}
+        nav={nav}
+        analytics={ctx.analytics}
+        interactive
+      >
+        <FirePurchase purchase={purchase} />
         <SafariThankYouContent
           state={
             isConfirmed ? "confirmed" : isEftPending ? "eft" : "processing"
@@ -206,6 +235,7 @@ export default async function SiteThankYouPage({
         header={ctx.theme.header}
         footer={ctx.theme.footer}
       >
+        <FirePurchase purchase={purchase} />
         <SectionShell width="narrow">
           <SectionHeading className="mb-3">
             {isConfirmed
