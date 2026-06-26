@@ -128,12 +128,53 @@ export function SafariShell({
     "A luxury lodge on a private reserve. A handful of suites, the wild at your door, and a slower way to be in the world.";
   const copyright = foot.copyright?.trim() || `© ${brandName} · South Africa`;
   const bar = previewPages && previewPages.length > 0;
-  // Top padding for the solid-nav (checkout) pages, plus the preview bar height.
-  const topPad = (solidNav ? 90 : 0) + (bar ? 44 : 0);
+  const tb = nav.topBar;
+  const showTopBar =
+    tb.enabled &&
+    Boolean(
+      tb.message?.trim() ||
+      tb.phone?.trim() ||
+      tb.email?.trim() ||
+      tb.whatsapp?.trim(),
+    );
+  // Top padding for the solid-nav (checkout) pages, plus the preview + announcement
+  // bar heights.
+  const topPad = (solidNav ? 90 : 0) + (bar ? 44 : 0) + (showTopBar ? 38 : 0);
+  const rootCls = [
+    "vilo-safari",
+    bar ? "pre" : "",
+    showTopBar ? "has-topbar" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className={bar ? "vilo-safari pre" : "vilo-safari"}>
+    <div className={rootCls}>
       {bar ? <SitePreviewBar themeName="Safari" pages={previewPages} /> : null}
+      {showTopBar ? (
+        <div className="safari-topbar">
+          <div className="wrap stb-in">
+            <span className="stb-msg">{tb.message?.trim() || ""}</span>
+            <span className="stb-contact">
+              {tb.phone?.trim() ? (
+                <a href={`tel:${tb.phone.replace(/\s+/g, "")}`}>{tb.phone}</a>
+              ) : null}
+              {tb.whatsapp?.trim() ? (
+                <a
+                  href={`https://wa.me/${tb.whatsapp.replace(/[^0-9]/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  WhatsApp
+                </a>
+              ) : null}
+              {tb.email?.trim() ? (
+                <a href={`mailto:${tb.email}`}>{tb.email}</a>
+              ) : null}
+            </span>
+          </div>
+        </div>
+      ) : null}
       {/* Theme-scoped fonts (only the Safari design uses them) — intentionally
           not in the root layout. */}
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
@@ -145,7 +186,7 @@ export function SafariShell({
       <SafariNav
         brandName={brandName}
         monogram={monogram}
-        tagline="Lodge · Direct booking"
+        tagline={nav.tagline?.trim() || "Lodge · Direct booking"}
         showLogo={nav.showLogo}
         logoUrl={nav.logoUrl}
         logoLightUrl={nav.logoLightUrl}
@@ -184,23 +225,28 @@ export function SafariShell({
                 </div>
               </div>
             ))}
-            <div>
-              <div className="foot-head">The reserve, in your inbox</div>
-              <p className="footer-blurb" style={{ marginTop: 0 }}>
-                Sightings, open dates and the occasional field note. Twice a
-                season, never more.
-              </p>
-              <div className="foot-news">
-                <input
-                  type="email"
-                  placeholder="you@email.com"
-                  aria-label="Email"
-                />
-                <button className="btn btn-primary btn-sm" type="button">
-                  <span>Join</span>
-                </button>
+            {foot.newsletter.enabled ? (
+              <div>
+                <div className="foot-head">
+                  {foot.newsletter.heading?.trim() ||
+                    "The reserve, in your inbox"}
+                </div>
+                <p className="footer-blurb" style={{ marginTop: 0 }}>
+                  {foot.newsletter.body?.trim() ||
+                    "Sightings, open dates and the occasional field note. Twice a season, never more."}
+                </p>
+                <div className="foot-news">
+                  <input
+                    type="email"
+                    placeholder="you@email.com"
+                    aria-label="Email"
+                  />
+                  <button className="btn btn-primary btn-sm" type="button">
+                    <span>Join</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
           <div className="footer-bottom">
             <span>{copyright}</span>

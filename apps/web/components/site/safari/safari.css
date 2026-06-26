@@ -479,6 +479,59 @@
   top: 44px;
 }
 
+/* announcement top bar (host-enabled) — sits above the nav */
+.vilo-safari .safari-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 61;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  background: var(--ink, #1d2417);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+}
+.vilo-safari.pre .safari-topbar {
+  top: 44px;
+}
+.vilo-safari .safari-topbar .stb-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+.vilo-safari .safari-topbar .stb-contact {
+  display: flex;
+  gap: 18px;
+  flex-shrink: 0;
+}
+.vilo-safari .safari-topbar a {
+  color: inherit;
+  text-decoration: none;
+}
+.vilo-safari .safari-topbar a:hover {
+  color: var(--gold, #c9a24b);
+}
+.vilo-safari.has-topbar .nav {
+  top: 38px;
+}
+.vilo-safari.pre.has-topbar .nav {
+  top: 82px;
+}
+@media (max-width: 640px) {
+  .vilo-safari .safari-topbar .stb-contact {
+    display: none;
+  }
+  .vilo-safari .safari-topbar .stb-in {
+    justify-content: center;
+  }
+}
+
 /* mobile menu (burger + full-screen overlay) */
 .vilo-safari .nav-burger {
   display: none;

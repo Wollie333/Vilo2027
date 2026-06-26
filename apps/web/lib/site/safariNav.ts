@@ -26,6 +26,12 @@ export type SafariFooterModel = {
   copyright?: string | null;
   showPoweredBy: boolean;
   socials: SafariSocial[];
+  /** Newsletter sign-up block (shown unless the host turns it off). */
+  newsletter: {
+    enabled: boolean;
+    heading?: string | null;
+    body?: string | null;
+  };
 };
 
 /** Everything the Safari header + footer need, resolved from the host's config. */
@@ -43,6 +49,14 @@ export type SafariNavData = {
   logoLightUrl?: string | null;
   logoMaxHeight?: number | null;
   tagline?: string | null;
+  /** Announcement top bar (shown above the nav when the host enables it). */
+  topBar: {
+    enabled: boolean;
+    message?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    email?: string | null;
+  };
   /** Resolved footer (columns, copyright, powered-by, socials). */
   footer: SafariFooterModel;
 };
@@ -176,13 +190,25 @@ export function buildSafariNav(ctx: {
     logoUrl: brand.logoUrl,
     logoLightUrl: brand.logoLightUrl ?? brand.logoUrl,
     logoMaxHeight: header.logoMaxHeight,
-    tagline: brand.tagline,
+    tagline: header.tagline,
+    topBar: {
+      enabled: ctx.navigation.topBar?.enabled === true,
+      message: ctx.navigation.topBar?.message,
+      phone: ctx.navigation.topBar?.phone,
+      whatsapp: ctx.navigation.topBar?.whatsapp,
+      email: ctx.navigation.topBar?.email,
+    },
     footer: {
       blurb: brand.tagline,
       columns,
       copyright: footerCfg.copyright,
       showPoweredBy: footerCfg.showPoweredBy !== false,
       socials,
+      newsletter: {
+        enabled: footerCfg.newsletter?.enabled !== false,
+        heading: footerCfg.newsletter?.heading,
+        body: footerCfg.newsletter?.body,
+      },
     },
   };
 }

@@ -95,6 +95,8 @@ export type SiteNavigation = {
     layout?: "classic" | "centered" | "split" | "minimal";
     ctaLabel?: string | null;
     ctaHref?: string | null;
+    /** Small subtitle beside the brand name (themes that show one, e.g. Safari). */
+    tagline?: string | null;
     sticky?: boolean; // default true
     transparentOverHero?: boolean;
     /** Solid header background colour; blank → theme surface. */
@@ -118,6 +120,12 @@ export type SiteNavigation = {
     showPoweredBy?: boolean; // default true
     copyright?: string | null;
     columns?: SiteFooterColumn[];
+    /** Optional newsletter sign-up block (themes that show one, e.g. Safari). */
+    newsletter?: {
+      enabled?: boolean;
+      heading?: string | null;
+      body?: string | null;
+    };
   };
 };
 

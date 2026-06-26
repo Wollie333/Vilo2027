@@ -117,6 +117,18 @@ export function HeaderInspector({
   return (
     <>
       <div className="insp-sec">
+        <div className="isec-t">{t("navBrandTitle")}</div>
+        <Fld label={t("navHeaderTagline")}>
+          <input
+            type="text"
+            value={nav.header.tagline ?? ""}
+            maxLength={80}
+            placeholder={t("navHeaderTaglinePh")}
+            onChange={(e) => setHeader({ tagline: e.target.value })}
+          />
+        </Fld>
+      </div>
+      <div className="insp-sec">
         <div className="isec-t">{t("navCtaTitle")}</div>
         <Toggle
           label={t("navShowBookCta")}
@@ -348,6 +360,8 @@ export function FooterInspector({
   setColumns: (c: SiteFooterColumn[]) => void;
 }) {
   const t = useTranslations("website");
+  const nl = nav.footer.newsletter;
+  const nlOn = nl?.enabled !== false;
   return (
     <>
       <div className="insp-sec">
@@ -367,6 +381,46 @@ export function FooterInspector({
             onChange={(e) => setFooter({ copyright: e.target.value })}
           />
         </Fld>
+      </div>
+      <div className="insp-sec">
+        <div className="isec-t">{t("navFooterNewsletter")}</div>
+        <Toggle
+          label={t("navFooterNewsletterShow")}
+          on={nlOn}
+          onClick={() => setFooter({ newsletter: { ...nl, enabled: !nlOn } })}
+        />
+        {nlOn ? (
+          <>
+            <Fld label={t("navFooterNewsletterHeading")}>
+              <input
+                type="text"
+                value={nl?.heading ?? ""}
+                maxLength={80}
+                placeholder={t("navFooterNewsletterHeadingPh")}
+                onChange={(e) =>
+                  setFooter({
+                    newsletter: {
+                      ...nl,
+                      enabled: nlOn,
+                      heading: e.target.value,
+                    },
+                  })
+                }
+              />
+            </Fld>
+            <Fld label={t("navFooterNewsletterBody")}>
+              <textarea
+                value={nl?.body ?? ""}
+                maxLength={200}
+                onChange={(e) =>
+                  setFooter({
+                    newsletter: { ...nl, enabled: nlOn, body: e.target.value },
+                  })
+                }
+              />
+            </Fld>
+          </>
+        ) : null}
       </div>
       <div className="insp-sec">
         <FooterBuilder

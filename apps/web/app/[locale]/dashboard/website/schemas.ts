@@ -647,6 +647,9 @@ export const navigationSchema = z.object({
       layout: z.enum(["classic", "centered", "split", "minimal"]).optional(),
       ctaLabel: z.string().trim().max(40).optional(),
       ctaHref: z.string().trim().max(500).optional(),
+      // Small subtitle beside the brand name (themes that show one, e.g. Safari's
+      // "Lodge · Direct booking"). Blank → the theme default.
+      tagline: z.string().trim().max(80).optional(),
       sticky: z.boolean().default(true),
       transparentOverHero: z.boolean().default(false),
       // Header background colour (solid mode). Blank → theme surface. Lets the
@@ -691,6 +694,14 @@ export const navigationSchema = z.object({
         )
         .max(5)
         .default([]),
+      // Optional newsletter sign-up block (themes that show one, e.g. Safari).
+      newsletter: z
+        .object({
+          enabled: z.boolean().default(true),
+          heading: z.string().trim().max(80).optional(),
+          body: z.string().trim().max(200).optional(),
+        })
+        .optional(),
     })
     .default({ showPoweredBy: true, columns: [] }),
 });
