@@ -58,6 +58,8 @@ export function SafariSiteView({
     brandName,
     contactEmail,
     contactPhone,
+    homeHref:
+      navLinks.find((l) => /^home$/i.test(l.label))?.href || navLinks[0]?.href,
     roomsHref,
     aboutHref: navLinks.find((l) => /about|story/i.test(l.label))?.href,
     contactHref: navLinks.find((l) => /contact/i.test(l.label))?.href,

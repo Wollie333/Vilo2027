@@ -1498,6 +1498,7 @@
     "fldCtaLabel": "Button label",
     "fldCtaHref": "Button link",
     "fldCtaHrefHint": "Use #rooms to jump to the rooms section, or a full link.",
+    "fldHeroCompact": "Compact page-header (inner pages)",
     "fldShowPrimaryCta": "Show primary button",
     "fldPrimaryCtaLabel": "Primary button label",
     "fldShowSecondaryCta": "Show secondary button",

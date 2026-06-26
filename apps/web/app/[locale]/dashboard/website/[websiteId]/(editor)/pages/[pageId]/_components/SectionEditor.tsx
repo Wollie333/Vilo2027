@@ -620,6 +620,13 @@ function SectionFields({
           />
           {isSafari ? (
             <ToggleField
+              label={t("fldHeroCompact")}
+              checked={!!p.compact}
+              onChange={(v) => set({ compact: v })}
+            />
+          ) : null}
+          {isSafari && !p.compact ? (
+            <ToggleField
               label={t("fldShowPrimaryCta")}
               checked={p.show_cta !== false}
               onChange={(v) => set({ show_cta: v })}

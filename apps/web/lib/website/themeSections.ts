@@ -1650,6 +1650,52 @@ const safari = {
         "Some places you pass through. This one stays with you. Days here move to the rhythm of the reserve — early light, long drives, the slow hush of the afternoon, and a fire under more stars than you have ever seen.\n\nReplace this with your own story: the land, the welcome, and why guests make the journey.";
       s.props.variant = "lead";
     }),
+  // ── About-page blocks (the bespoke NenGama About design) ──
+  aboutHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "About";
+      s.props.headline = "A family, a fence line we chose to remove";
+      s.props.subheadline =
+        "Since 2009 we've given this corner of the Waterberg back to the wild — and opened just three doors to share it.";
+    }),
+  aboutStory: () =>
+    build("intro", (s) => {
+      s.props.eyebrow = "Our story";
+      s.props.heading = "The land came first";
+      s.props.body =
+        "This began as a worn-out cattle farm — overgrazed, fenced into squares, its wildlife long gone. We bought the first 3,000 hectares with a single idea: take the fences down and let the bush decide what it wanted to be.\n\nFifteen years on, those squares are one unbroken wilderness. The grass came back, then the antelope, then the predators that follow them.";
+      s.props.badge_value = "12,000";
+      s.props.badge_label = "Hectares rewilded";
+      s.props.variant = "lead";
+    }),
+  aboutStats: () =>
+    build("stats", (s) => {
+      s.props.items = [
+        { value: "15", label: "Years rewilding" },
+        { value: "3", label: "Suites only" },
+        { value: "340+", label: "Species recorded" },
+        { value: "0", label: "Internal fences" },
+      ];
+    }),
+  aboutValues: () =>
+    build("values", (s) => {
+      s.props.heading = "Three quiet promises";
+      s.props.items = [
+        {
+          title: "Space, not crowds",
+          body: "Never more than six guests in the vehicle, and often it's just you and your ranger under the whole sky.",
+        },
+        {
+          title: "Honest pricing",
+          body: "One inclusive rate, booked direct with us. No agents, no booking fees, no commission. The price you're quoted is the price you pay.",
+        },
+        {
+          title: "People of this place",
+          body: "Our guides, trackers and cooks were raised in the Waterberg. Their knowledge isn't trained — it's inherited.",
+        },
+      ];
+    }),
   experiences: () =>
     build("highlights", (s) => {
       s.tone = "dark";
@@ -1804,12 +1850,13 @@ const SAFARI_TEMPLATES: ThemeTemplate[] = [
   {
     key: "safari_about",
     label: "About",
-    description: "Split hero, your story, the experiences, reviews and a CTA.",
+    description:
+      "Page-header banner, your story, the stats band, your promises and a CTA.",
     make: () => [
-      safari.heroSplit(),
-      safari.story(),
-      safari.experiences(),
-      safari.reviews(),
+      safari.aboutHero(),
+      safari.aboutStory(),
+      safari.aboutStats(),
+      safari.aboutValues(),
       safari.ctaBanner(),
     ],
   },

@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-26 — Safari About page: follow the original NenGama design (not the home)
+
+Founder: the section-driven About looked like the home (full-screen hero + image
+cards). Rebuilt it to the bespoke About design while keeping it editable — built
+the distinctive blocks as real Safari bands:
+
+- **Hero `compact` mode** — a short `.page-head` banner (breadcrumb + title) for
+  inner pages, instead of the 100svh home hero. New `compact` hero prop + a
+  "Compact page-header" toggle in the inspector (Safari). `homeHref` threaded into
+  `SafariCtx` for the breadcrumb's Home link.
+- **`SafariStats`** (`stats` type) — the dark band of big gold numbers
+  (15 / 3 / 340+ / 0). Auto-fit grid (2×2 on mobile).
+- **`SafariValues`** (`values` type) — the numbered "promises" feat-row
+  (01/02/03), replacing the home-style image cards.
+- `themeSections.safari_about` template → page-head · story (intro + "12,000
+  Hectares rewilded" badge) · stats · values · CTA. Reseeded vilotest's About.
+
+Verified live (desktop + 375px): page-head banner (no full hero), story badge,
+stats band, numbered promises, CTA; grids stack, zero overflow. tsc + lint + 131
+vitest green.
+
+NOTE: the catalogue-apply path reads `site_themes.page_templates` (migration JSON
+= the OLD about template) — a new safari site from the catalogue would still get
+the old About until a migration updates that JSON. The `themeSections.ts` (preset)
+path + vilotest are updated. Same dual-source caveat as before.
+
+---
+
 ## 2026-06-26 — Safari pages QA pass: fix split columns not collapsing on mobile
 
 QA'd every Safari page template at mobile (375px) against the home gold standard

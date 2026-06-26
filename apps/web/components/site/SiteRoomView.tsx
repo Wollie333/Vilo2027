@@ -76,6 +76,8 @@ export async function SiteRoomView({
       brandName: ctx.brand.name,
       contactEmail: ctx.brand.contactEmail,
       contactPhone: ctx.brand.contactPhone,
+      homeHref:
+        ctx.nav.find((l) => /^home$/i.test(l.label))?.href || ctx.nav[0]?.href,
       roomsHref: roomsHref || undefined,
       contactHref: ctx.nav.find((l) => /contact/i.test(l.label))?.href,
       reserveHref: headerBookHref || room.bookHref,

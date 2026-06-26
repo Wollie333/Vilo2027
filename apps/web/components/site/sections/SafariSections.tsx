@@ -41,6 +41,7 @@ export type SectionResponsive = WebsiteSection["responsive"];
  *  is optional with a sensible fallback. */
 export interface SafariCtx {
   brandName?: string;
+  homeHref?: string;
   roomsHref?: string;
   aboutHref?: string;
   contactHref?: string;
@@ -207,6 +208,30 @@ export function SafariHero({
 }) {
   const roomsHref = ctx?.roomsHref || "#suites";
   const aboutHref = ctx?.aboutHref;
+
+  // Compact "page header" banner for inner pages (About/Rooms/Contact) — a short
+  // image band with a breadcrumb + title, instead of the full-screen home hero.
+  if (props.compact) {
+    return (
+      <section className="page-head">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={img(props.image_path, asset, IMG.hero)} alt="" />
+        <div className="wrap">
+          <div className="crumbs">
+            <a href={ctx?.homeHref || "#"}>Home</a>
+            {props.eyebrow ? (
+              <>
+                <span>·</span>
+                <span>{props.eyebrow}</span>
+              </>
+            ) : null}
+          </div>
+          <h1>{props.headline || "About us"}</h1>
+          {props.subheadline ? <p>{props.subheadline}</p> : null}
+        </div>
+      </section>
+    );
+  }
 
   // Primary CTA — shown unless explicitly hidden; label falls back to the design.
   const showPrimary = props.show_cta !== false;
@@ -1533,6 +1558,106 @@ export function SafariRateTable({
   );
 }
 
+/* ── STATS (dark band of big numbers — the About design) ────────────── */
+const STOCK_STATS = [
+  { value: "15", label: "Years rewilding" },
+  { value: "3", label: "Suites only" },
+  { value: "340+", label: "Species recorded" },
+  { value: "0", label: "Internal fences" },
+];
+
+export function SafariStats({ props }: { props: P<"stats"> }) {
+  const items = props.items && props.items.length ? props.items : STOCK_STATS;
+  return (
+    <section className="section-sm bg-dark">
+      <div className="wrap">
+        {props.heading ? (
+          <div className="sec-head center" style={{ marginBottom: 34 }}>
+            <h2 className="display">{props.heading}</h2>
+          </div>
+        ) : null}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))",
+            gap: 32,
+            textAlign: "center",
+          }}
+        >
+          {items.map((s, i) => (
+            <div key={s.label + i}>
+              <div
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontSize: "clamp(2.6rem,5vw,4rem)",
+                  color: "var(--gold)",
+                  lineHeight: 1,
+                }}
+              >
+                {s.value}
+              </div>
+              <div
+                className="muted"
+                style={{
+                  fontSize: 12,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  marginTop: 10,
+                }}
+              >
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── VALUES (numbered "promises" — the About design) ────────────────── */
+const STOCK_VALUES = [
+  {
+    title: "Space, not crowds",
+    body: "Never more than six guests in the vehicle, and often it's just you and your ranger under the whole sky.",
+  },
+  {
+    title: "Honest pricing",
+    body: "One inclusive rate, booked direct. No agents, no booking fees, no commission — the price you're quoted is the price you pay.",
+  },
+  {
+    title: "People of this place",
+    body: "Our guides, trackers and cooks were raised here. Their knowledge isn't trained — it's inherited.",
+  },
+];
+
+export function SafariValues({ props }: { props: P<"values"> }) {
+  const items = props.items && props.items.length ? props.items : STOCK_VALUES;
+  return (
+    <section className="section">
+      <div className="wrap">
+        <div className="sec-head center">
+          <span className="eyebrow center no-rule">How we host</span>
+          <h2 className="display" style={{ marginTop: 18 }}>
+            {props.heading || "Three quiet promises"}
+          </h2>
+        </div>
+        <div className="feat-row">
+          {items.map((v, i) => (
+            <div key={v.title + i} className="feat">
+              <span className="kicker-num">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h3>{v.title}</h3>
+              {v.body ? <p>{v.body}</p> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /**
  * Dispatch a section to its Safari-styled band. Returns `undefined` for section
  * types that have no Safari variant yet, so the caller falls back to the generic
@@ -1582,6 +1707,10 @@ export function renderSafariSection(
       return <SafariCta props={section.props} asset={asset} ctx={ctx} />;
     case "host_bio":
       return <SafariHostBio props={section.props} asset={asset} />;
+    case "stats":
+      return <SafariStats props={section.props} />;
+    case "values":
+      return <SafariValues props={section.props} />;
     case "contact_form":
       return <SafariContactForm props={section.props} ctx={ctx} />;
     case "faq":

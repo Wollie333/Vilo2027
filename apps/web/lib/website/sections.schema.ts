@@ -213,6 +213,9 @@ const heroProps = z.object({
   // Stack the two CTAs vertically + full-width (nicer on phones). Per-device via
   // the responsive override like any other prop.
   cta_stack: z.boolean().optional(),
+  // Compact "page header" banner (breadcrumb + title) instead of the full-screen
+  // hero — used by inner pages (About/Rooms/Contact) on the Safari theme.
+  compact: z.boolean().optional(),
   align: z.enum(["left", "center", "right"]).default("center"),
   variant: z.enum(HERO_VARIANTS).default("spotlight"),
   overlay: z.enum(HERO_OVERLAY).default("medium"),
