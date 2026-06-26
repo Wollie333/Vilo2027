@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/site/JsonLd";
 import { SafariShell } from "@/components/site/safari/SafariShell";
+import { buildSafariNav } from "@/lib/site/safariNav";
 import { SafariArticleContent } from "@/components/site/safari/pages/SafariArticleContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
@@ -76,7 +77,7 @@ export default async function SiteBlogPostPage({
     return (
       <SafariShell
         brandName={ctx.brand.name}
-        navLinks={ctx.nav}
+        nav={buildSafariNav(ctx)}
         previewPages={previewPages}
       >
         <SafariArticleContent

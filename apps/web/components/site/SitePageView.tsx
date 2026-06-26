@@ -7,6 +7,7 @@ import {
   loadSitePage,
   siteBookHref,
 } from "@/lib/site/loadSitePage";
+import { buildSafariNav } from "@/lib/site/safariNav";
 import { buildSiteJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
@@ -116,7 +117,7 @@ export async function SitePageView({
           brandName={ctx.brand.name}
           contactEmail={ctx.brand.contactEmail}
           contactPhone={ctx.brand.contactPhone}
-          navLinks={ctx.nav}
+          nav={buildSafariNav(ctx)}
           bookHref={headerBookHref}
           previewPages={previewPages}
         />

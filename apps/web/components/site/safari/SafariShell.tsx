@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
+import type { SafariNavData } from "@/lib/site/safariNav";
 
 import { SitePreviewBar } from "../SitePreviewBar";
 
@@ -15,14 +16,15 @@ import "./safari.css";
 
 export function SafariShell({
   brandName,
-  navLinks,
+  nav,
   bookHref,
   solidNav = false,
   previewPages,
   children,
 }: {
   brandName: string;
-  navLinks: SafariNavLink[];
+  /** Resolved header model (host menu + style + book settings). */
+  nav: SafariNavData;
   bookHref?: string | null;
   /** For pages with no dark hero behind the nav (checkout): solid bar + top pad. */
   solidNav?: boolean;
@@ -30,6 +32,7 @@ export function SafariShell({
   previewPages?: SitePreviewPage[];
   children: ReactNode;
 }) {
+  const navLinks = nav.links;
   const monogram = (brandName.trim()[0] || "N").toUpperCase();
   const roomsHref =
     navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#";
@@ -56,6 +59,10 @@ export function SafariShell({
         tagline="Lodge · Direct booking"
         links={navLinks}
         bookHref={reserve}
+        bookLabel={nav.bookLabel}
+        showBook={nav.showBook}
+        bookColor={nav.bookColor}
+        menuStyle={nav.menuStyle}
         forceSolid={solidNav}
       />
 

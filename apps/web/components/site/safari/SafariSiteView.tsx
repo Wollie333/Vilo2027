@@ -1,10 +1,11 @@
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
+import type { SafariNavData } from "@/lib/site/safariNav";
 import type { SiteAssetResolver, SiteData } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import { SafariSectionList, type SafariCtx } from "../sections/SafariSections";
 
-import { SafariShell, type SafariNavLink } from "./SafariShell";
+import { SafariShell } from "./SafariShell";
 import { SafariBookingContent } from "./pages/SafariBookingContent";
 import { SafariJournalContent } from "./pages/SafariJournalContent";
 import { SafariGenericContent } from "./pages/SafariGenericContent";
@@ -33,7 +34,7 @@ export function SafariSiteView({
   brandName,
   contactEmail,
   contactPhone,
-  navLinks,
+  nav,
   bookHref,
   previewPages,
 }: {
@@ -46,10 +47,11 @@ export function SafariSiteView({
   brandName: string;
   contactEmail?: string | null;
   contactPhone?: string | null;
-  navLinks: SafariNavLink[];
+  nav: SafariNavData;
   bookHref?: string | null;
   previewPages?: SitePreviewPage[];
 }) {
+  const navLinks = nav.links;
   const roomsHref =
     navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#suites";
   const safariCtx: SafariCtx = {
@@ -102,7 +104,7 @@ export function SafariSiteView({
   return (
     <SafariShell
       brandName={brandName}
-      navLinks={navLinks}
+      nav={nav}
       bookHref={bookHref}
       solidNav={kind === "checkout"}
       previewPages={previewPages}

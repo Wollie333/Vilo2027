@@ -7,6 +7,7 @@ import {
   loadSiteRoomPage,
   siteBookHref,
 } from "@/lib/site/loadSitePage";
+import { buildSafariNav } from "@/lib/site/safariNav";
 import { buildRoomJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 
@@ -84,7 +85,7 @@ export async function SiteRoomView({
         <JsonLd graph={jsonLdGraph} />
         <SafariShell
           brandName={ctx.brand.name}
-          navLinks={ctx.nav}
+          nav={buildSafariNav(ctx)}
           bookHref={headerBookHref}
           solidNav
           previewPages={previewPages}

@@ -376,6 +376,59 @@
 .vilo-safari .nav-link:hover {
   opacity: 1;
 }
+/* Desktop dropdown (a menu item with children) — hover-reveal panel. */
+.vilo-safari .nav-dd {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.vilo-safari .nav-dd > .nav-link {
+  display: inline-flex;
+  align-items: center;
+}
+.vilo-safari .nav-dd-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  min-width: 188px;
+  background: #fff;
+  border: 1px solid rgba(20, 16, 10, 0.08);
+  border-radius: 4px;
+  box-shadow: 0 18px 40px -18px rgba(12, 9, 5, 0.45);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.18s,
+    transform 0.18s;
+  z-index: 60;
+}
+.vilo-safari .nav-dd:hover .nav-dd-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(2px);
+}
+.vilo-safari .nav-dd-menu a {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: 9px 12px;
+  border-radius: 3px;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.vilo-safari .nav-dd-menu a:hover {
+  background: var(--bg-2);
+  color: var(--accent);
+}
 .vilo-safari .nav-right {
   display: flex;
   align-items: center;
@@ -456,6 +509,43 @@
   padding: 6px 0;
 }
 .vilo-safari .mnav-links a:hover {
+  color: var(--gold);
+}
+/* Mobile drawer accordion (a menu item with children). */
+.vilo-safari .mnav-group {
+  display: flex;
+  flex-direction: column;
+}
+.vilo-safari .mnav-parent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--serif);
+  font-size: 2.6rem;
+  color: var(--dark-ink);
+  padding: 6px 0;
+  text-align: left;
+}
+.vilo-safari .mnav-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0 10px 16px;
+}
+.vilo-safari .mnav-sub a {
+  font-family: var(--sans);
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 6px 0;
+}
+.vilo-safari .mnav-sub a:hover {
   color: var(--gold);
 }
 

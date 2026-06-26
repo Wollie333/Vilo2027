@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { SafariShell } from "@/components/site/safari/SafariShell";
+import { buildSafariNav } from "@/lib/site/safariNav";
 import { SafariBookingContent } from "@/components/site/safari/pages/SafariBookingContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -83,7 +84,7 @@ export default async function SiteBookPage({
     return (
       <SafariShell
         brandName={ctx.brand.name}
-        navLinks={ctx.nav}
+        nav={buildSafariNav(ctx)}
         bookHref={
           ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
         }

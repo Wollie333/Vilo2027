@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-06-26 — Safari header now honours the host's full menu (audit pt.3)
+
+The Safari nav was a separate, simplified render path: it showed a flat,
+PAGE-DERIVED link list and ignored the host's built menu, dropdowns, menu style
+and book-button settings entirely — so MenuStudio had no effect on a Safari site.
+Wired it to the real navigation:
+
+- New `buildSafariNav(ctx)` (`lib/site/safariNav.ts`) resolves the header model
+  from `ctx.navigation`: prefers the host's `navigation.menu` (already
+  auto-rooms-expanded by the loader) over the page nav, maps one level of
+  **dropdown children**, and makes every href **preview-aware** (same rule as
+  SiteChrome's `buildNavHref`) — so the Safari nav links finally work in preview.
+- `SafariNav` rewritten to render dropdowns (desktop hover panel + mobile
+  accordion), apply the host's **menu style** (weight/uppercase everywhere; link
+  COLOUR only on the solid bar + drawer so it can't vanish over the dark hero),
+  and a host-controlled **book button** (label from `header.ctaLabel`, visibility
+  from `header.showBookCta`, colour from `header.bookCtaColor`).
+- New dropdown/accordion CSS in `safari.css`. Threaded the resolved `nav` bundle
+  through `SafariShell` and all five Safari mount points (SitePageView,
+  SiteRoomView, book, blog index + article).
+
+Verified live: the home nav now renders the host menu (Home/About/Rooms▾/
+Contact/Journal) with the Rooms dropdown showing the real rooms (Olive Room /
+Vineyard Suite / Mountain Loft), preview-aware links, and the host's custom book
+label. tsc + lint + 131 vitest green.
+
+NEXT: footer is still hardcoded (blurb/columns/newsletter/socials) — give the
+host the same control there; then finish the styling audit (hide Safari-inert
+hero overlay controls).
+
+---
+
 ## 2026-06-26 — Safari sections: expose every section heading/eyebrow (audit pt.2)
 
 Founder wants every element in every Safari section editable. Closed the

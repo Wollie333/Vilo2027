@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { SafariShell } from "@/components/site/safari/SafariShell";
+import { buildSafariNav } from "@/lib/site/safariNav";
 import { SafariJournalContent } from "@/components/site/safari/pages/SafariJournalContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
@@ -66,7 +67,7 @@ export default async function SiteBlogIndexPage({
     return (
       <SafariShell
         brandName={ctx.brand.name}
-        navLinks={ctx.nav}
+        nav={buildSafariNav(ctx)}
         previewPages={previewPages}
       >
         <SafariJournalContent posts={posts} />
