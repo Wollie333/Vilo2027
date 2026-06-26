@@ -189,7 +189,12 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { heading: "From the journal", max: 3, variant: "grid" },
+        props: {
+          heading: "From the journal",
+          max: 3,
+          variant: "grid",
+          display: "grid",
+        },
       };
     case "rich_text":
       return {

@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-26 — Safari Journal page: section-driven (live === builder) + real posts
+
+The blog index rendered the bespoke `SafariJournalContent` directly, so it ignored
+its page sections — the builder showed something different and the page-head /
+newsletter copy weren't editable. Made it section-driven like every other page:
+
+- **`blog/page.tsx` (safari)** now renders via `SafariSectionList` from the blog
+  page's own sections, with the real posts that `loadSitePage(ctx, ["blog"])`
+  already assembles into the `blog_preview` band.
+- **`blog_preview` `display: "journal"`** — a large featured post (the
+  featured/first one) + a grid of the rest, no heading (the page-head is the hero).
+  "grid" stays the home 3-up layout.
+- **`cta` `newsletter`** — renders an email + subscribe form instead of booking
+  buttons (the "Field notes, twice a season" band).
+- `safari_journal` template = page-head · journal posts · newsletter. Inspector:
+  blog "Post layout" (grid/journal) + cta "Newsletter sign-up" toggle. Reseeded
+  vilotest.
+
+Verified live: page-head banner, the real featured post bound in, newsletter form;
+collapses on mobile, zero overflow. tsc + lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Contact detail card: editable, hideable, auto-pulled
 
 The Safari contact detail card auto-pulled the account phone + email but the host

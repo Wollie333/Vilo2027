@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
-import { SafariJournalContent } from "@/components/site/safari/pages/SafariJournalContent";
+import {
+  SafariSectionList,
+  type SafariCtx,
+} from "@/components/site/sections/SafariSections";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -13,7 +16,9 @@ import {
   buildSitePreviewPages,
   loadSiteBlogIndex,
   loadSiteContext,
+  loadSitePage,
   resolveSiteRef,
+  siteBookHref,
 } from "@/lib/site/loadSitePage";
 import { siteMetadata } from "@/lib/site/metadata";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
@@ -64,13 +69,42 @@ export default async function SiteBlogIndexPage({
     : undefined;
 
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    // Section-driven (live === builder): the Journal page is editable like every
+    // other Safari page. Its blog_preview band binds to the real posts that
+    // loadSitePage already assembles for the "blog" page.
+    const result = await loadSitePage(ctx, ["blog"]);
+    const sections = result?.sections ?? [];
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
+    const roomsHref =
+      navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#suites";
+    const bookHref =
+      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+    const safariCtx: SafariCtx = {
+      brandName: ctx.brand.name,
+      contactEmail: ctx.brand.contactEmail,
+      contactPhone: ctx.brand.contactPhone,
+      homeHref:
+        navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+        navLinks[0]?.href,
+      roomsHref,
+      aboutHref: navLinks.find((l) => /about|story/i.test(l.label))?.href,
+      contactHref: navLinks.find((l) => /contact/i.test(l.label))?.href,
+      reserveHref: bookHref || roomsHref,
+    };
     return (
       <SafariShell
         brandName={ctx.brand.name}
-        nav={buildSafariNav(ctx)}
+        nav={nav}
+        bookHref={bookHref}
         previewPages={previewPages}
       >
-        <SafariJournalContent posts={posts} />
+        <SafariSectionList
+          sections={sections}
+          data={result?.data}
+          asset={siteAsset}
+          ctx={safariCtx}
+        />
       </SafariShell>
     );
   }

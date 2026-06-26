@@ -338,6 +338,9 @@ const ctaProps = z.object({
   button_href: z.string().max(500),
   image_path: z.string().optional(),
   variant: z.enum(CTA_VARIANTS).default("banner"),
+  // Safari: render a newsletter sign-up form (email + subscribe) instead of the
+  // booking buttons (the Journal page's "Field notes" sign-up band).
+  newsletter: z.boolean().optional(),
 });
 
 const hostBioProps = z.object({
@@ -374,6 +377,9 @@ const blogPreviewProps = z.object({
   eyebrow: z.string().max(120).optional(),
   max: z.number().int().min(1).max(12).default(3),
   variant: z.enum(BLOG_VARIANTS).default("grid"),
+  // Safari: "grid" = a 3-up card grid with a heading (home); "journal" = a large
+  // featured post + a grid of the rest, no heading (the Journal index page).
+  display: z.enum(["grid", "journal"]).default("grid"),
 });
 
 // Auto-populate: reads the business's active + show_on_website specials at render

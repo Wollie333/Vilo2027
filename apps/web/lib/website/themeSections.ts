@@ -1865,6 +1865,31 @@ const safari = {
     build("blog_preview", (s) => {
       s.props.heading = "From the field journal";
     }),
+  // ── Journal-page blocks (the bespoke NenGama Journal design) ──
+  journalHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Journal";
+      s.props.headline = "Field notes";
+      s.props.subheadline =
+        "Stories from the lodge — written by the people who live and work here.";
+    }),
+  journalPosts: () =>
+    build("blog_preview", (s) => {
+      s.props.display = "journal";
+      s.props.heading = "Field notes";
+      s.props.max = 9;
+    }),
+  newsletterCta: () =>
+    build("cta", (s) => {
+      s.tone = "dark";
+      s.props.newsletter = true;
+      s.props.heading = "Field notes, twice a season";
+      s.props.body =
+        "Sightings, open dates and the occasional recipe — no noise, just the lodge in your inbox.";
+      s.props.button_label = "Subscribe";
+      s.props.button_href = "#";
+    }),
 };
 
 const SAFARI_PRESETS: ThemeSectionPreset[] = [
@@ -1938,8 +1963,13 @@ const SAFARI_TEMPLATES: ThemeTemplate[] = [
   {
     key: "safari_journal",
     label: "Journal",
-    description: "Your latest field-journal posts and a closing CTA.",
-    make: () => [safari.blog(), safari.ctaBanner()],
+    description:
+      "Page-header banner, your posts (featured + grid) and a newsletter sign-up.",
+    make: () => [
+      safari.journalHero(),
+      safari.journalPosts(),
+      safari.newsletterCta(),
+    ],
   },
   {
     key: "safari_contact",

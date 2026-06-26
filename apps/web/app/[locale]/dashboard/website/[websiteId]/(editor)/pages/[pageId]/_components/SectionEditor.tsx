@@ -1411,13 +1411,22 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
-          <TextField
-            label={t("fldEyebrow")}
-            value={p.eyebrow ?? ""}
-            onChange={(v) => set({ eyebrow: v })}
-            maxLength={120}
-            hint={t("fldEyebrowHint")}
-          />
+          {isSafari ? (
+            <ToggleField
+              label={t("fldCtaNewsletter")}
+              checked={!!p.newsletter}
+              onChange={(v) => set({ newsletter: v })}
+            />
+          ) : null}
+          {!(isSafari && p.newsletter) ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading}
@@ -1445,13 +1454,15 @@ function SectionFields({
               onChange={(v) => set({ button_label: v })}
               maxLength={60}
             />
-            <TextField
-              label={t("fldButtonHref")}
-              value={p.button_href}
-              onChange={(v) => set({ button_href: v })}
-              maxLength={500}
-              hint={t("fldCtaHrefHint")}
-            />
+            {!(isSafari && p.newsletter) ? (
+              <TextField
+                label={t("fldButtonHref")}
+                value={p.button_href}
+                onChange={(v) => set({ button_href: v })}
+                maxLength={500}
+                hint={t("fldCtaHrefHint")}
+              />
+            ) : null}
           </div>
           {!isSafari ? (
             <SelectField
@@ -1816,6 +1827,17 @@ function SectionFields({
             onChange={(v) => set({ heading: v })}
             maxLength={200}
           />
+          {isSafari ? (
+            <SelectField
+              label={t("fldBlogDisplay")}
+              value={p.display ?? "grid"}
+              options={[
+                { value: "grid", label: t("blogDisplay_grid") },
+                { value: "journal", label: t("blogDisplay_journal") },
+              ]}
+              onChange={(v) => set({ display: v as "grid" | "journal" })}
+            />
+          ) : null}
           <NumberField
             label={t("fldMax")}
             value={p.max}
@@ -1823,16 +1845,18 @@ function SectionFields({
             max={12}
             onChange={(v) => set({ max: v })}
           />
-          <SelectField
-            label={t("fldVariant")}
-            value={p.variant}
-            options={[
-              { value: "grid", label: t("blogVariant_grid") },
-              { value: "list", label: t("blogVariant_list") },
-              { value: "compact", label: t("blogVariant_compact") },
-            ]}
-            onChange={(v) => set({ variant: v })}
-          />
+          {!isSafari ? (
+            <SelectField
+              label={t("fldVariant")}
+              value={p.variant}
+              options={[
+                { value: "grid", label: t("blogVariant_grid") },
+                { value: "list", label: t("blogVariant_list") },
+                { value: "compact", label: t("blogVariant_compact") },
+              ]}
+              onChange={(v) => set({ variant: v })}
+            />
+          ) : null}
           <LiveNote>{t("liveBlog")}</LiveNote>
         </div>
       );

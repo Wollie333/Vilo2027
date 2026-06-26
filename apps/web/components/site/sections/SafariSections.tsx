@@ -821,6 +821,53 @@ export function SafariCta({
   ctx?: SafariCtx;
 }) {
   const reserve = ctx?.reserveHref || ctx?.roomsHref || "#suites";
+
+  // Newsletter sign-up band (the Journal page): a heading + blurb + email field,
+  // no booking buttons or eyebrow pill.
+  if (props.newsletter) {
+    return (
+      <section className="section-sm" style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <div
+            className="cta-band"
+            style={{
+              paddingTop: "clamp(48px,6vw,84px)",
+              paddingBottom: "clamp(48px,6vw,84px)",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img(props.image_path, asset, IMG.cta)} alt="" />
+            <div className="cta-inner">
+              <h2>{props.heading || "Field notes, twice a season"}</h2>
+              <p>
+                {props.body ||
+                  "Sightings, open dates and the occasional recipe — no noise, just the lodge in your inbox."}
+              </p>
+              <form
+                className="foot-news"
+                style={{ maxWidth: 420, margin: "26px auto 0" }}
+              >
+                <input
+                  type="email"
+                  placeholder="you@email.com"
+                  aria-label="Email"
+                  style={{
+                    background: "rgba(255,255,255,.14)",
+                    borderColor: "rgba(255,255,255,.3)",
+                    color: "#fff",
+                  }}
+                />
+                <button className="btn btn-light btn-sm" type="button">
+                  <span>{props.button_label || "Subscribe"}</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="section-sm">
       <div className="wrap">
@@ -1437,6 +1484,99 @@ export function SafariBlogPreview({
   data?: BlogPreviewData;
 }) {
   const real = data?.posts ?? [];
+
+  // "journal" = the blog index page: a large featured post (the first/featured
+  // one) then a grid of the rest, with no section heading (the page-head is the
+  // hero). Falls back to stock so the builder canvas isn't empty.
+  if (props.display === "journal") {
+    const all = real.length ? real : STOCK_POSTS;
+    const featured = all[0];
+    const rest = all.slice(1, (props.max ?? 6) + 1);
+    return (
+      <>
+        {featured ? (
+          <section
+            className="section"
+            style={{ paddingBottom: "clamp(40px,5vw,64px)" }}
+          >
+            <div className="wrap">
+              <a href={featured.href || "#"} className="featured-post">
+                <div className="fp-media">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={featured.coverUrl || STOCK_GALLERY[0]}
+                    alt={featured.title}
+                  />
+                </div>
+                <div>
+                  <span className="post-cat">Featured</span>
+                  <h2
+                    className="display"
+                    style={{
+                      marginTop: 16,
+                      fontSize: "clamp(2rem,4vw,3.2rem)",
+                    }}
+                  >
+                    {featured.title}
+                  </h2>
+                  {featured.excerpt ? (
+                    <p className="lead" style={{ marginTop: 20 }}>
+                      {featured.excerpt}
+                    </p>
+                  ) : null}
+                  {featured.date ? (
+                    <div className="post-meta">
+                      <span>{featured.date}</span>
+                    </div>
+                  ) : null}
+                  <div style={{ marginTop: 26 }}>
+                    <span className="link-u">Read the story {ARROW}</span>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </section>
+        ) : null}
+        {rest.length > 0 ? (
+          <section
+            className="section"
+            style={{ paddingTop: "clamp(20px,3vw,40px)" }}
+          >
+            <div className="wrap">
+              <div className="post-grid">
+                {rest.map((post, i) => (
+                  <a
+                    key={post.href + i}
+                    href={post.href || "#"}
+                    className="post-card"
+                  >
+                    <div className="pc-media">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          post.coverUrl ||
+                          STOCK_GALLERY[(i + 1) % STOCK_GALLERY.length]
+                        }
+                        alt={post.title}
+                      />
+                    </div>
+                    <h3 style={{ marginTop: 18 }}>{post.title}</h3>
+                    {post.excerpt ? <p>{post.excerpt}</p> : null}
+                    {post.date ? (
+                      <div className="post-meta">
+                        <span>{post.date}</span>
+                      </div>
+                    ) : null}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
+      </>
+    );
+  }
+
   const posts = (real.length ? real : STOCK_POSTS).slice(0, props.max ?? 3);
   return (
     <section className="section">
