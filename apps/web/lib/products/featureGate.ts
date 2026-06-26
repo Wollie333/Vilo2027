@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { createServerClient } from "@/lib/supabase/server";
 
 /**
@@ -7,8 +9,12 @@ import { createServerClient } from "@/lib/supabase/server";
  *
  * Defaults to deny (`false`) on any miss or error, so a host with no active
  * subscription is locked out — the gate is fail-closed by design. Server-only.
+ *
+ * Wrapped in React `cache()` so repeated checks for the same (host, feature)
+ * within one request are deduped — the dashboard layout calls this on every
+ * navigation just to decide sidebar visibility, and this keeps it to one RPC.
  */
-export async function hostHasFeature(
+export const hostHasFeature = cache(async function hostHasFeature(
   hostId: string,
   featureKey: string,
 ): Promise<boolean> {
@@ -18,4 +24,4 @@ export async function hostHasFeature(
     p_feature_key: featureKey,
   });
   return (data as { is_enabled?: boolean } | null)?.is_enabled ?? false;
-}
+});

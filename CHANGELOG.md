@@ -5,6 +5,51 @@
 
 ---
 
+## 2026-06-26 — App-wide "every action gives feedback" + perf quick-wins
+
+New lane (Phase 1 of 2; Phase 2 = Safari editable in the builder). Founder
+wants no click to ever feel dead, plus a snappier app.
+
+**Tiered click-feedback system (new app-wide rule in RULES.md §4):**
+- **Global top progress bar** — `nextjs-toploader` (brand green, spinner off)
+  mounted in the root layout. Fires instantly on every navigation (link click,
+  `router.push`, back/forward) so a click is never dead while the next route
+  loads. Verified present in served HTML.
+- **Labeled "what's happening" busy overlay** — new `components/ui/busy-host.tsx`
+  (`busy.show/hide/during`, `<BusyHost>` mounted at root) mirroring the
+  dependency-free external-store pattern of `modal-host`. `busy.during({title,
+  message}, fn)` shows a centered modal for the whole duration of a slow
+  mutation. Wired into **Publish** ("Publishing your site — pushing your latest
+  changes live…").
+- **`<PendingLink>`** (`components/ui/pending-link.tsx`) — a heavy-route link
+  that shows the labeled overlay ("Opening the editor — loading your page…") on
+  click with a 550ms minimum so it never flashes, then hands off to the route
+  skeleton. Respects modifier/middle-click for open-in-new-tab; uses the
+  i18n-aware router. Wired into the Pages-manager "Edit page" row.
+- **Builder route skeleton** — new `website-editor/[websiteId]/loading.tsx`
+  (toolbar · palette · canvas · inspector) so opening the page builder / any
+  full-screen editor paints instantly instead of freezing the previous screen
+  (these were the only heavy routes with NO loading boundary).
+- New i18n: `openingEditor(Msg)`, `publishingSite(Msg)` (en).
+
+**Perf quick-wins (config-level, low risk):**
+- `next.config.mjs`: added `experimental.optimizePackageImports` (lucide,
+  recharts, cmdk, sonner, radix dialog/dropdown/select/popover/tabs) to
+  tree-shake barrels app-wide; added `images.remotePatterns` (Supabase Storage
+  host + unsplash) so `next/image` can optimise host photos; raised client
+  router `staleTimes` (dynamic 30→120, static 180→300) — mutations already
+  `router.refresh()`, so edits stay fresh.
+- Wrapped `hostHasFeature` in React `cache()` so the dashboard layout stops
+  re-running `check_feature_permission` on every navigation.
+
+DEFERRED (noted, not done): converting the 32 raw `<img>` to `next/image`
+(esp. the Safari public site — Phase 2 reworks those components, so converting
+now would be throwaway); `next/dynamic` for recharts + the tiptap editor (larger
+refactors). tsc + lint green. Interactive QA of the logged-in builder surfaces
+pending a browser session (founder's dev server holds :3000).
+
+---
+
 ## 2026-06-26 — Safari Contact page: port the missing page-level styles
 
 - **Contact page was rendering unstyled.** Contact.html shipped its layout in a

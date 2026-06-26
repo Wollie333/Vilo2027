@@ -31,23 +31,56 @@ const SECURITY_HEADERS = [
   { key: "Strict-Transport-Security", value: "max-age=31536000" },
 ];
 
+// Supabase Storage host (host's uploaded photos/logos) so next/image can
+// optimise them. Derived from the public URL when set, with a wildcard
+// fallback so it keeps working across environments. `images.unsplash.com`
+// covers the design themes' stock photography.
+const SUPABASE_HOST = (() => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").hostname || null;
+  } catch {
+    return null;
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: SUPABASE_HOST ?? "**.supabase.co" },
+      { protocol: "https", hostname: "**.supabase.co" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+  },
   experimental: {
     // Photo uploads go through a Server Action and PhotosManager allows up to
     // 8 MB images — the default 1 MB body cap would reject them. Raise it.
     serverActions: { bodySizeLimit: "12mb" },
-    // Client Router Cache lifetimes. A short `dynamic` window lets the client
-    // reuse a just-visited page for 30s, so bouncing between sidebar items
-    // feels instant instead of paying a full server roundtrip every revisit.
+    // Tree-shake heavy barrel packages so only the icons/charts/primitives a
+    // route actually uses are bundled (Next 14.2 modularises these imports).
+    // Broadest-reach, lowest-risk bundle win — every page imports from lucide.
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "cmdk",
+      "sonner",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-tabs",
+    ],
+    // Client Router Cache lifetimes. The `dynamic` window lets the client
+    // reuse a just-visited page so bouncing between sidebar items feels
+    // instant instead of paying a full server roundtrip every revisit.
     // Mutation flows call router.refresh() (which clears the cache), so edits
     // stay fresh; the one page that can't tolerate a stale render — the
     // /dashboard onboarding checklist — is guarded by <OnboardingFreshness/>,
     // which refetches on mount/focus. See app/dashboard/_components.
-    staleTimes: { dynamic: 30, static: 180 },
+    staleTimes: { dynamic: 120, static: 300 },
   },
 };
 

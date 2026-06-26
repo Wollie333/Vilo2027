@@ -11,6 +11,7 @@ import {
   publishWebsiteAction,
   unpublishWebsiteAction,
 } from "@/app/[locale]/dashboard/website/actions";
+import { busy } from "@/components/ui/busy-host";
 import { modal } from "@/components/ui/modal-host";
 
 /**
@@ -36,7 +37,10 @@ export function PublishBar({
 
   function onPublish() {
     startPublish(async () => {
-      const res = await publishWebsiteAction(websiteId);
+      const res = await busy.during(
+        { title: t("publishingSite"), message: t("publishingSiteMsg") },
+        () => publishWebsiteAction(websiteId),
+      );
       if (!res.ok) {
         toast.error(t("publishError"));
         return;

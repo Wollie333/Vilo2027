@@ -4,10 +4,12 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
+import NextTopLoader from "nextjs-toploader";
 
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { BrandProvider } from "@/components/brand/BrandProvider";
 import { CurrencyProvider } from "@/components/currency/CurrencyProvider";
+import { BusyHost } from "@/components/ui/busy-host";
 import { ModalHost } from "@/components/ui/modal-host";
 import { Toaster } from "@/components/ui/sonner";
 import { routing } from "@/i18n/routing";
@@ -74,6 +76,18 @@ export default async function RootLayout({
       className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}
     >
       <body className="font-sans antialiased">
+        {/* Instant top-bar feedback on EVERY navigation (link click, router
+            push, back/forward) so a click never feels dead while the next
+            route loads. Brand green; spinner off — the bar alone reads clean.
+            See RULES.md → "Every action gives feedback". */}
+        <NextTopLoader
+          color="#10B981"
+          height={3}
+          shadow="0 0 8px #10B981,0 0 4px #10B981"
+          showSpinner={false}
+          crawlSpeed={180}
+          speed={220}
+        />
         {metaPixelId ? <MetaPixel pixelId={metaPixelId} /> : null}
         <NextIntlClientProvider locale={locale} messages={messages}>
           <BrandProvider value={branding}>
@@ -82,6 +96,7 @@ export default async function RootLayout({
               <CookieBanner />
               <Toaster richColors position="top-center" />
               <ModalHost />
+              <BusyHost />
             </CurrencyProvider>
           </BrandProvider>
         </NextIntlClientProvider>

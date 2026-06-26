@@ -21,7 +21,8 @@ import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
 
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { PendingLink } from "@/components/ui/pending-link";
 import {
   createPageAction,
   deletePageAction,
@@ -261,8 +262,9 @@ function PageRow({
   }
 
   return (
-    <Link
+    <PendingLink
       href={`/website-editor/${websiteId}/pages/${page.id}`}
+      busy={{ title: t("openingEditor"), message: t("openingEditorMsg") }}
       className="ptr"
       style={{ gridTemplateColumns: GRID }}
     >
@@ -320,7 +322,7 @@ function PageRow({
           />
         )}
       </div>
-    </Link>
+    </PendingLink>
   );
 }
 

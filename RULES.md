@@ -107,6 +107,36 @@ Use Tailwind's spacing scale consistently. Don't invent custom spacing values. I
 ### Loading and empty states are not optional
 Every component that fetches data must have three states designed: loading (skeleton), empty, and populated. A spinner is not a loading state — use skeleton components that match the shape of the real content.
 
+### Every action gives immediate feedback (app-wide rule)
+**No click may ever feel dead.** The instant a user triggers a navigation or a
+mutation, the UI must show that something is happening — the user should never
+wonder whether their click registered. Feedback is **tiered** by how long the
+action takes; pick the lightest tier that fits, never nothing:
+
+1. **Navigations (any link / `router.push`)** — covered automatically by the
+   global top progress bar (`<NextTopLoader>` in the root layout). You get this
+   for free; don't add anything extra for ordinary links.
+2. **Heavy-route navigations** (the page builder + the full-screen editors) —
+   the destination MUST have a `loading.tsx` skeleton (so the new screen paints
+   instantly), and the trigger should use **`<PendingLink>`**
+   (`components/ui/pending-link.tsx`) to show the labeled *"Opening the editor —
+   loading your page…"* overlay during the latency.
+3. **Mutations that take more than a moment** (publish, delete, upload, apply
+   theme, bulk actions) — wrap the call in **`busy.during({ title, message }, fn)`**
+   (`components/ui/busy-host.tsx`) so the labeled "what's happening" modal shows
+   for its whole duration. Also keep the button in its pending state
+   (`disabled` + inline `<Loader2 className="animate-spin">`).
+4. **Quick, in-place mutations** (toggles, inline saves) — a button spinner +
+   pending state, then a `toast` (sonner) on the result. No modal needed.
+
+Always finish with a result signal: a `toast.success`/`toast.error`, an updated
+row, or a `router.refresh()`. The labeled copy must say what is happening in the
+host's words ("Publishing your site", not "Loading"). Primitives:
+`NextTopLoader` (global bar), `<PendingLink>` (heavy-nav overlay), `busy` +
+`<BusyHost>` (labeled mutation overlay), `BusyOverlay` (inline transition
+overlay), `modal` (confirm/alert), `Toaster` (results). Don't hand-roll new
+loading modals — reuse these.
+
 ### Error states must be helpful
 Error messages tell the user what happened and what to do next. "Something went wrong" is a last resort. "Booking could not be confirmed — please try again or contact support" is correct.
 
