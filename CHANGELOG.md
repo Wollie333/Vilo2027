@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-26 — Contact detail card: editable, hideable, auto-pulled
+
+The Safari contact detail card auto-pulled the account phone + email but the host
+couldn't change or hide them. Now:
+
+- **Auto-pull stays the default** — an empty `details` list shows the live account
+  phone + email (so a fresh site is correct out of the box).
+- **Override / add / hide** — `contact_form` gains `show_details` (toggle the whole
+  card) + `details` (an editable list of rows: emoji icon · value · caption).
+  Custom rows fully replace the auto rows; remove a row to hide it.
+- **"Pull in my phone & email"** — inspector button (Safari) materialises the
+  account contact into editable rows; `accountContact` (from brand) threaded
+  through PageBuilder → SectionEditor → SectionFields/ResponsiveDeviceFields.
+
+Verified live: auto-pull renders the real phone+email; a custom 3-row override
+renders with emoji icons + captions; reverted vilotest to the auto default. tsc +
+lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Safari Contact page: follow the original NenGama design (real details)
 
 The Contact page started straight into the form and used a location split. Rebuilt

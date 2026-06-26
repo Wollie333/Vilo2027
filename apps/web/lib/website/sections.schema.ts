@@ -420,6 +420,20 @@ const contactFormProps = z.object({
     .max(300)
     .default("Thanks — your message is on its way. We'll be in touch soon."),
   show_phone: z.boolean().default(true),
+  // The contact detail card (Safari): shown by default, auto-pulling the host's
+  // account phone + email. Set `details` to override/add/hide individual rows
+  // (icon emoji + value + caption); leave empty to keep the live auto-pull.
+  show_details: z.boolean().default(true),
+  details: z
+    .array(
+      z.object({
+        icon: z.string().max(8).optional(),
+        title: z.string().max(160),
+        label: z.string().max(160).optional(),
+      }),
+    )
+    .max(8)
+    .optional(),
   variant: z.enum(CONTACT_VARIANTS).default("stacked"),
 });
 

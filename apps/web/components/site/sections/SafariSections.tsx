@@ -1000,6 +1000,96 @@ export function SafariContactForm({
 }) {
   const email = ctx?.contactEmail?.trim();
   const phone = ctx?.contactPhone?.trim();
+
+  // Detail-card rows: the host's custom `details` if set, else auto-pull the
+  // account phone + email (so a fresh site shows real contact info immediately).
+  const PHONE_ICON = (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
+    </svg>
+  );
+  const EMAIL_ICON = (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-10 6L2 7" />
+    </svg>
+  );
+  const PIN_ICON = (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+
+  const custom = props.details?.filter((d) => d.title?.trim()) ?? [];
+  const detailRows =
+    custom.length > 0
+      ? custom.map((d, i) => (
+          <div key={d.title + i} className="dc-row">
+            <span className="ic">
+              {d.icon?.trim() ? (
+                <span style={{ fontSize: 20, lineHeight: 1 }}>{d.icon}</span>
+              ) : (
+                PIN_ICON
+              )}
+            </span>
+            <div>
+              <div className="t">{d.title}</div>
+              {d.label?.trim() ? <div className="d">{d.label}</div> : null}
+            </div>
+          </div>
+        ))
+      : [
+          phone ? (
+            <div key="auto-phone" className="dc-row">
+              <span className="ic">{PHONE_ICON}</span>
+              <div>
+                <div className="t">{phone}</div>
+                <div className="d">Reservations</div>
+              </div>
+            </div>
+          ) : null,
+          email ? (
+            <div key="auto-email" className="dc-row">
+              <span className="ic">{EMAIL_ICON}</span>
+              <div>
+                <div className="t">{email}</div>
+                <div className="d">We reply within one day</div>
+              </div>
+            </div>
+          ) : null,
+        ];
+
   return (
     <section className="section">
       <div className="wrap">
@@ -1061,87 +1151,41 @@ export function SafariContactForm({
               </button>
             </form>
           </div>
-          <div>
-            <div className="detail-card">
-              {phone ? (
-                <div className="dc-row">
-                  <span className="ic">
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div className="t">{phone}</div>
-                    <div className="d">Reservations</div>
-                  </div>
-                </div>
-              ) : null}
-              {email ? (
-                <div className="dc-row">
-                  <span className="ic">
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <rect x="2" y="4" width="20" height="16" rx="2" />
-                      <path d="m22 7-10 6L2 7" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div className="t">{email}</div>
-                    <div className="d">We reply within one day</div>
-                  </div>
-                </div>
-              ) : null}
+          {props.show_details !== false ? (
+            <div>
+              <div className="detail-card">{detailRows}</div>
+              <div
+                style={{
+                  marginTop: 18,
+                  padding: "22px 24px",
+                  background: "var(--bg-2)",
+                  borderRadius: 4,
+                  display: "flex",
+                  gap: 12,
+                  alignItems: "flex-start",
+                }}
+              >
+                <span style={{ color: "var(--green)", flexShrink: 0 }}>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </span>
+                <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>
+                  Book direct and you pay exactly what we quote — no agents, no
+                  booking fees, no commission.
+                </p>
+              </div>
             </div>
-            <div
-              style={{
-                marginTop: 18,
-                padding: "22px 24px",
-                background: "var(--bg-2)",
-                borderRadius: 4,
-                display: "flex",
-                gap: 12,
-                alignItems: "flex-start",
-              }}
-            >
-              <span style={{ color: "var(--green)", flexShrink: 0 }}>
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                >
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              </span>
-              <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>
-                Book direct and you pay exactly what we quote — no agents, no
-                booking fees, no commission.
-              </p>
-            </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </section>

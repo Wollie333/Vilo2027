@@ -1338,6 +1338,10 @@ export function PageBuilder({
                       section={selected}
                       onChange={updateSection}
                       themePreset={theme.preset}
+                      accountContact={{
+                        email: brand.contactEmail,
+                        phone: brand.contactPhone,
+                      }}
                     />
                   </div>
                 </>

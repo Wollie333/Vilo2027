@@ -224,6 +224,7 @@ export function newSection(type: SectionType): WebsiteSection {
           success_message:
             "Thanks — your message is on its way. We'll be in touch soon.",
           show_phone: true,
+          show_details: true,
           variant: "stacked",
         },
       };

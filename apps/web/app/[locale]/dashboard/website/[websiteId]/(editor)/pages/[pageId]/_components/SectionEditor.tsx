@@ -50,12 +50,15 @@ export function SectionEditor({
   section,
   onChange,
   themePreset,
+  accountContact,
 }: {
   websiteId: string;
   section: WebsiteSection;
   onChange: (next: WebsiteSection) => void;
   /** Active theme slug — gates theme-specific fields (e.g. Safari hero extras). */
   themePreset?: string;
+  /** The host's saved phone/email — used to pre-fill the contact detail card. */
+  accountContact?: { email?: string | null; phone?: string | null };
 }) {
   const t = useTranslations("website");
   const [tab, setTab] = useState<TabKey>("content");
@@ -117,6 +120,7 @@ export function SectionEditor({
           section={section}
           onChange={onChange}
           themePreset={themePreset}
+          accountContact={accountContact}
         />
       ) : activeTab === "content" ? (
         <SectionFields
@@ -124,6 +128,7 @@ export function SectionEditor({
           section={section}
           onChange={onChange}
           themePreset={themePreset}
+          accountContact={accountContact}
         />
       ) : activeTab === "style" ? (
         <div className="space-y-4">
@@ -498,12 +503,14 @@ function ResponsiveDeviceFields({
   section,
   onChange,
   themePreset,
+  accountContact,
 }: {
   device: "laptop" | "mobile";
   websiteId: string;
   section: WebsiteSection;
   onChange: (next: WebsiteSection) => void;
   themePreset?: string;
+  accountContact?: { email?: string | null; phone?: string | null };
 }) {
   const t = useTranslations("website");
   const resp = section.responsive ?? {};
@@ -552,6 +559,7 @@ function ResponsiveDeviceFields({
           section={mergedSection}
           onChange={onFieldsChange}
           themePreset={themePreset}
+          accountContact={accountContact}
         />
       ) : null}
     </div>
@@ -569,11 +577,13 @@ function SectionFields({
   section,
   onChange,
   themePreset,
+  accountContact,
 }: {
   websiteId: string;
   section: WebsiteSection;
   onChange: (next: WebsiteSection) => void;
   themePreset?: string;
+  accountContact?: { email?: string | null; phone?: string | null };
 }) {
   const t = useTranslations("website");
   const isSafari = themePreset === "safari";
@@ -1299,6 +1309,86 @@ function SectionFields({
               ]}
               onChange={(v) => set({ variant: v })}
             />
+          ) : null}
+          {isSafari ? (
+            <div className="space-y-3 rounded-[10px] border border-brand-line p-3">
+              <ToggleField
+                label={t("fldContactShowDetails")}
+                checked={p.show_details !== false}
+                onChange={(v) => set({ show_details: v })}
+              />
+              {p.show_details !== false ? (
+                <>
+                  <p className="text-[12px] leading-snug text-brand-mute">
+                    {t("fldContactDetailsHint")}
+                  </p>
+                  {(!p.details || p.details.length === 0) &&
+                  (accountContact?.phone || accountContact?.email) ? (
+                    <button
+                      type="button"
+                      className="rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[12px] font-medium text-brand-ink transition hover:border-brand-primary hover:bg-brand-accent/20"
+                      onClick={() =>
+                        set({
+                          details: [
+                            ...(accountContact?.phone
+                              ? [
+                                  {
+                                    icon: "📞",
+                                    title: accountContact.phone,
+                                    label: "Reservations",
+                                  },
+                                ]
+                              : []),
+                            ...(accountContact?.email
+                              ? [
+                                  {
+                                    icon: "✉️",
+                                    title: accountContact.email,
+                                    label: "We reply within a day",
+                                  },
+                                ]
+                              : []),
+                          ],
+                        })
+                      }
+                    >
+                      {t("fldContactPullDetails")}
+                    </button>
+                  ) : null}
+                  <ItemListEditor
+                    label={t("fldContactDetails")}
+                    items={p.details ?? []}
+                    onChange={(details) => set({ details })}
+                    blank={() => ({ icon: "", title: "", label: "" })}
+                    addLabel={t("fldContactDetailAdd")}
+                    max={8}
+                    renderItem={(item, patch) => (
+                      <>
+                        <TextField
+                          label={t("fldContactDetailIcon")}
+                          value={item.icon ?? ""}
+                          onChange={(v) => patch({ icon: v })}
+                          maxLength={8}
+                          hint={t("fldContactDetailIconHint")}
+                        />
+                        <TextField
+                          label={t("fldContactDetailValue")}
+                          value={item.title}
+                          onChange={(v) => patch({ title: v })}
+                          maxLength={160}
+                        />
+                        <TextField
+                          label={t("fldContactDetailCaption")}
+                          value={item.label ?? ""}
+                          onChange={(v) => patch({ label: v })}
+                          maxLength={160}
+                        />
+                      </>
+                    )}
+                  />
+                </>
+              ) : null}
+            </div>
           ) : null}
           <LiveNote>{t("contactFormNote")}</LiveNote>
         </div>
