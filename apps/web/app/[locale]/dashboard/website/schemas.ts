@@ -725,6 +725,9 @@ export const savePageSeoSchema = z.object({
   title: z.string().trim().max(70).default(""),
   description: z.string().trim().max(200).default(""),
   focusKeyword: z.string().trim().max(60).default(""),
+  // Per-page social/SEO featured image (og:image) — a website-assets storage
+  // PATH (uploaded/picked in Page settings). Empty clears it (inherits the site).
+  image: z.string().trim().max(500).default(""),
 });
 
 // ── Forms (Phase 4 — form builder) ────────────────────────────

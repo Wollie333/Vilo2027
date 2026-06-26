@@ -1162,7 +1162,8 @@ export async function savePageSeoAction(
 ): Promise<ActionResult> {
   const parsed = savePageSeoSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { websiteId, pageId, title, description, focusKeyword } = parsed.data;
+  const { websiteId, pageId, title, description, focusKeyword, image } =
+    parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
@@ -1183,6 +1184,7 @@ export async function savePageSeoAction(
     title: title.trim() || undefined,
     description: description.trim() || undefined,
     focusKeyword: focusKeyword.trim() || undefined,
+    image: image.trim() || undefined,
   };
 
   const { error } = await supabase

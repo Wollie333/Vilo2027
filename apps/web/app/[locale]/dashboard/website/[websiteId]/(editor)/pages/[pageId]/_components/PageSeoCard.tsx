@@ -8,8 +8,9 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 
 import { savePageSeoAction } from "@/app/[locale]/dashboard/website/actions";
+import { websiteAssetUrl } from "@/lib/website/assets";
 
-import { TextArea, TextField } from "./fields";
+import { ImageField, TextArea, TextField } from "./fields";
 import { SeoAnalysis } from "./SeoAnalysis";
 import { SocialPreview } from "./SocialPreview";
 
@@ -35,7 +36,12 @@ export function PageSeoCard({
   bodyText?: string;
   domain?: string;
   ogImageUrl?: string;
-  initial: { title: string; description: string; focusKeyword: string };
+  initial: {
+    title: string;
+    description: string;
+    focusKeyword: string;
+    image: string;
+  };
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -43,6 +49,7 @@ export function PageSeoCard({
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
   const [focusKeyword, setFocusKeyword] = useState(initial.focusKeyword);
+  const [image, setImage] = useState(initial.image);
   const [saving, startSave] = useTransition();
 
   function onSave() {
@@ -53,6 +60,7 @@ export function PageSeoCard({
         title,
         description,
         focusKeyword,
+        image,
       });
       if (!res.ok) {
         toast.error(t("saveError"));
@@ -96,7 +104,14 @@ export function PageSeoCard({
             title={previewTitle}
             description={description.trim() || t("pageSeoDescFallback")}
             domain={domain}
-            imageUrl={ogImageUrl}
+            imageUrl={websiteAssetUrl(image) ?? ogImageUrl}
+          />
+          <ImageField
+            label={t("pageSeoImageLabel")}
+            websiteId={websiteId}
+            path={image || undefined}
+            onChange={(path) => setImage(path ?? "")}
+            hint={t("pageSeoImageHint")}
           />
           <TextField
             label={t("pageSeoTitleLabel")}

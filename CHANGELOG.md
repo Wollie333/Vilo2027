@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-26 — Page settings: per-page SEO / featured (og:image) picker
+
+Page settings (the SEO card) showed a social-share preview but had no way to
+SET the image — only the site-level default applied. Added a per-page featured
+image:
+
+- `PageSeoCard` now has an **ImageField** (upload or pick from library) for the
+  page's share image; the social preview updates to it live. Stored as a
+  website-assets PATH in `website_pages.seo_overrides.image` (additive — no
+  migration); empty inherits the site default.
+- `savePageSeoSchema` + `savePageSeoAction` carry `image`; `loadPageBuilder`
+  threads it into the editor's `pageSeo.image`.
+- Public render (`buildSiteMetadata`): a page's `seo_overrides.image` now wins
+  over the site `og_image_path` for `og:image` + `twitter:image`.
+
+Verified live: set a page image → public home's og:image + twitter:image resolve
+to that asset URL (over the site default). tsc + lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Full per-device editing: every field, every Safari section (audit pt.7)
 
 Founder: "everything changeable on desktop should also be available in the laptop

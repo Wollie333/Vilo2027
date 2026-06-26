@@ -40,7 +40,12 @@ export type PageBuilderData = {
     kind: string;
     slug: string;
     title: string | null;
-    seo: { title?: string; description?: string; focusKeyword?: string };
+    seo: {
+      title?: string;
+      description?: string;
+      focusKeyword?: string;
+      image?: string;
+    };
   };
   sections: WebsiteSection[];
   /** Flattened section text for the SEO analyzer. */
@@ -112,6 +117,7 @@ export async function loadPageBuilder(
         title?: string;
         description?: string;
         focusKeyword?: string;
+        image?: string;
       } | null;
     }>();
   if (!pageRow) return null;
@@ -188,6 +194,7 @@ export async function loadPageBuilder(
         title: pageRow.seo_overrides?.title,
         description: pageRow.seo_overrides?.description,
         focusKeyword: pageRow.seo_overrides?.focusKeyword,
+        image: pageRow.seo_overrides?.image,
       },
     },
     sections,

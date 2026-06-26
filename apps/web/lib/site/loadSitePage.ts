@@ -392,6 +392,8 @@ export async function loadSiteMeta(
 
   let pageTitle: string | null = null;
   let pageDesc: string | undefined;
+  // Per-page featured image (Page settings → og:image), wins over the site default.
+  let pageOgPath: string | undefined;
 
   if (opts.roomSlug) {
     const room = await loadRoomDetail(ctx, opts.roomSlug);
@@ -411,9 +413,11 @@ export async function loadSiteMeta(
       const ov = result.page.seoOverrides as {
         title?: string;
         description?: string;
+        image?: string;
       };
       pageTitle = ov.title?.trim() || result.page.title?.trim() || null;
       pageDesc = ov.description?.trim() || undefined;
+      pageOgPath = ov.image?.trim() || undefined;
     }
   }
 
@@ -425,7 +429,10 @@ export async function loadSiteMeta(
     title,
     description: pageDesc || siteDesc,
     ogImageUrl:
-      websiteAssetUrl(seo.og_image_path) ?? ctx.brand.logoUrl ?? undefined,
+      websiteAssetUrl(pageOgPath) ??
+      websiteAssetUrl(seo.og_image_path) ??
+      ctx.brand.logoUrl ??
+      undefined,
     faviconUrl: ctx.brand.faviconUrl ?? undefined,
     appleIconUrl: ctx.brand.appleIconUrl ?? undefined,
     // Default to indexable; only false when the host opts out AND it's published.

@@ -334,7 +334,12 @@ export function PageBuilder({
   navPages: NavPageOption[];
   brandName: string;
   pageSlug: string;
-  pageSeo: { title: string; description: string; focusKeyword: string };
+  pageSeo: {
+    title: string;
+    description: string;
+    focusKeyword: string;
+    image: string;
+  };
   domain: string;
   ogImageUrl?: string;
   initialLayout: "full" | "boxed";

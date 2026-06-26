@@ -1126,6 +1126,8 @@
     "socialPreviewTitle": "Social share preview",
     "socialNoImage": "Set a share image in SEO settings for a richer preview.",
     "pageSeoSub": "Overrides site SEO",
+    "pageSeoImageLabel": "Featured / share image",
+    "pageSeoImageHint": "Shown when this page is shared on social media (og:image). Best at 1200 × 630px. Leave blank to use the site default.",
     "pageSeoTitleLabel": "Page title (SEO)",
     "pageSeoTitleHint": "Shown in search results & the browser tab for this page. Leave blank to use your site title.",
     "pageSeoDescLabel": "Meta description",
