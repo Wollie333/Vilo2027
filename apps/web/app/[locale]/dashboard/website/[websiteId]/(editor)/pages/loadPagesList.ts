@@ -3,6 +3,7 @@ import "server-only";
 import { getMyHostId } from "@/lib/host/current";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { siteImageUrl } from "@/lib/site/image";
+import { websiteAssetUrl } from "@/lib/website/assets";
 import { createServerClient } from "@/lib/supabase/server";
 import {
   parseSectionsLoose,
@@ -13,14 +14,20 @@ import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
 /** A page's featured-image thumbnail: the first uploaded image across its
  *  sections (hero background, image element, host photo …). Theme stock imagery
  *  isn't stored as a path, so pages that only use the design's stock return null
- *  (the manager shows the neutral placeholder). */
+ *  (the manager shows the neutral placeholder).
+ *
+ *  Stored values are bare `website-assets` paths, so resolve them to a public URL
+ *  first (`websiteAssetUrl`), THEN transform to a small thumbnail. Passing a bare
+ *  path straight to `siteImageUrl` returns it unchanged → a broken <img>. */
 function firstSectionImage(sections: WebsiteSection[]): string | null {
   for (const s of sections) {
     const p = s.props as Record<string, unknown>;
-    const raw = p.image_path ?? p.src;
+    const raw = p.image_path ?? p.photo_path ?? p.src;
     if (typeof raw === "string" && raw.trim()) {
-      const url = siteImageUrl(raw);
-      if (url) return url;
+      const full = websiteAssetUrl(raw);
+      if (full) {
+        return siteImageUrl(full, { width: 160, height: 120, resize: "cover" });
+      }
     }
   }
   return null;
