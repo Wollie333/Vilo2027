@@ -88,7 +88,20 @@ export function SafariSiteView({
       content = <SafariBookingContent />;
       break;
     case "thank-you":
-      content = <SafariThankYouContent />;
+      // Builder preview only (the live thank-you is the booking route, which
+      // passes the real booking). Show the confirmed design with sample data.
+      content = (
+        <SafariThankYouContent
+          state="confirmed"
+          firstName="traveller"
+          reference="NG-204815"
+          checkIn="10 Jul 2026"
+          checkOut="13 Jul 2026"
+          guests={2}
+          nights={3}
+          total="R45,180"
+        />
+      );
       break;
     default:
       // home/about/rooms/contact/rates and any custom page: section-driven. A page

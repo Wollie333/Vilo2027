@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-26 — Safari thank-you page: wire the real booking (was off-theme)
+
+The post-payment thank-you route had no Safari branch, so guests on a Safari site
+saw the generic confirmation — a theme break right at the end of the funnel. And
+`SafariThankYouContent` was static demo markup (hard-coded "NG-204815" / "Marula
+Suite"). Fixed both:
+
+- **`SafariThankYouContent` is now data-driven** — accepts the booking summary and
+  renders three states: **confirmed** (next-steps), **EFT-pending** (the host's
+  real banking details + "use as reference"), and **processing**. Dropped the fake
+  suite block (no room join on the booking). Preview-aware home/contact links.
+- **Thank-you route** gains a `ctx.theme.preset === "safari"` branch that builds
+  the state + nights and renders it inside `SafariShell`.
+
+Verified live against real vilotest bookings: confirmed ("You're booked,
+gerkuiii222", real ref/dates/6-nights/R 10 980 + next-steps) and EFT ("Awaiting
+your transfer" + FNB banking details). tsc + lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Safari article page: preview-aware links
 
 The single blog article (`SafariArticleContent`) already renders the bespoke
