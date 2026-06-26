@@ -79,7 +79,16 @@ export default async function SiteBlogPostPage({
         navLinks={ctx.nav}
         previewPages={previewPages}
       >
-        <SafariArticleContent />
+        <SafariArticleContent
+          post={{
+            title: post.title,
+            bodyHtml: post.bodyHtml,
+            coverUrl: post.coverUrl,
+            date: post.date,
+            authorName: post.authorName,
+            excerpt: post.excerpt,
+          }}
+        />
       </SafariShell>
     );
   }

@@ -69,7 +69,7 @@ export default async function SiteBlogIndexPage({
         navLinks={ctx.nav}
         previewPages={previewPages}
       >
-        <SafariJournalContent />
+        <SafariJournalContent posts={posts} />
       </SafariShell>
     );
   }

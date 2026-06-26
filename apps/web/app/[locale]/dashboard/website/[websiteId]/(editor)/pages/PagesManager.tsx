@@ -49,6 +49,7 @@ export type ManagedPage = {
   showInNav: boolean;
   draftCount: number;
   publishedCount: number;
+  thumbUrl: string | null;
 };
 
 // Pages mockup grid: Page · Type · Status · Sections · Actions.
@@ -270,8 +271,15 @@ function PageRow({
     >
       <div className="flex min-w-0 items-center gap-3">
         <div className="pthumb">
-          <div className="tb" />
-          <div className="ph" />
+          {page.thumbUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={page.thumbUrl} alt="" />
+          ) : (
+            <>
+              <div className="tb" />
+              <div className="ph" />
+            </>
+          )}
         </div>
         <div className="min-w-0">
           <div

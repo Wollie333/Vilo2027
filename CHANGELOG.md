@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-26 — Page thumbnails (featured image) + fix the Safari blog preview
+
+- **Pages-manager thumbnails show the real featured image.** `loadPagesList`
+  now derives each page's featured image (the first uploaded image across its
+  sections — hero background, image element, host photo) and `PagesManager`
+  renders it in the row `.pthumb` (mirroring the Blog manager's cover pattern).
+  Pages that use only theme stock imagery (no uploaded path) keep the neutral
+  placeholder until the host uploads one.
+- **Safari blog preview was broken — now bound to real posts.** The Safari
+  "Journal" index and article were hardcoded NenGama stock that ignored the
+  host's posts and linked to `/blog` (so clicking a post went nowhere). Bound
+  both to real data: `SafariJournalContent` takes the live `BlogIndexPost[]`
+  (featured-first + a grid, each linking to `/blog/<slug>`, with stock covers as
+  fallback and an empty state when there are no posts); `SafariArticleContent`
+  takes the real post (cover, title, meta, sanitised body HTML, author). Wired
+  through the blog index + post routes' Safari branch. Verified live: the
+  preview now shows the real "Five winelands tasting rooms…" post, and clicking
+  it opens the real article in the Safari design (no more stock content / dead
+  links). tsc + lint green.
+
+---
+
 ## 2026-06-26 — Safari editable in the builder (slice 1: the canvas keystone)
 
 Phase 2 of the UX lane: make the bespoke Safari (NenGama) theme editable in the

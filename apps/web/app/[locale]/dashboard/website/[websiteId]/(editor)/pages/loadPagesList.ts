@@ -2,9 +2,29 @@ import "server-only";
 
 import { getMyHostId } from "@/lib/host/current";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { siteImageUrl } from "@/lib/site/image";
 import { createServerClient } from "@/lib/supabase/server";
-import { parseSectionsLoose } from "@/lib/website/sections.schema";
+import {
+  parseSectionsLoose,
+  type WebsiteSection,
+} from "@/lib/website/sections.schema";
 import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
+
+/** A page's featured-image thumbnail: the first uploaded image across its
+ *  sections (hero background, image element, host photo …). Theme stock imagery
+ *  isn't stored as a path, so pages that only use the design's stock return null
+ *  (the manager shows the neutral placeholder). */
+function firstSectionImage(sections: WebsiteSection[]): string | null {
+  for (const s of sections) {
+    const p = s.props as Record<string, unknown>;
+    const raw = p.image_path ?? p.src;
+    if (typeof raw === "string" && raw.trim()) {
+      const url = siteImageUrl(raw);
+      if (url) return url;
+    }
+  }
+  return null;
+}
 
 /**
  * Ensure the website has its single `room_detail` template page, seeded with the
@@ -47,6 +67,8 @@ export type PageListItem = {
   showInNav: boolean;
   draftCount: number;
   publishedCount: number;
+  /** Featured image (first uploaded image in the page), or null for a placeholder. */
+  thumbUrl: string | null;
 };
 
 /** Owner-scoped list of a website's pages with section counts (W8 Pages tab). */
@@ -76,14 +98,18 @@ export async function loadPagesList(
     .eq("website_id", websiteId)
     .order("nav_order", { ascending: true });
 
-  return (rows ?? []).map((r) => ({
-    id: r.id,
-    kind: r.kind,
-    slug: r.slug,
-    navLabel: r.nav_label,
-    title: r.title,
-    showInNav: r.show_in_nav,
-    draftCount: parseSectionsLoose(r.draft_sections).length,
-    publishedCount: parseSectionsLoose(r.published_sections).length,
-  }));
+  return (rows ?? []).map((r) => {
+    const draft = parseSectionsLoose(r.draft_sections);
+    return {
+      id: r.id,
+      kind: r.kind,
+      slug: r.slug,
+      navLabel: r.nav_label,
+      title: r.title,
+      showInNav: r.show_in_nav,
+      draftCount: draft.length,
+      publishedCount: parseSectionsLoose(r.published_sections).length,
+      thumbUrl: firstSectionImage(draft),
+    };
+  });
 }
