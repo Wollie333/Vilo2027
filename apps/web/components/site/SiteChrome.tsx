@@ -68,7 +68,7 @@ export type ChromeEditable = {
  * In edit mode the region's own links are made inert (pointer-events: none) so a
  * click selects the region instead of navigating.
  */
-function ChromeEditWrap({
+export function ChromeEditWrap({
   editable,
   inert = false,
   target,

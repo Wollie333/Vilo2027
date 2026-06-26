@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 import type { SafariNavData } from "@/lib/site/safariNav";
 
+import { ChromeEditWrap, type ChromeEditable } from "../SiteChrome";
 import { SitePreviewBar } from "../SitePreviewBar";
 
 import { SafariLightbox } from "./SafariLightbox";
@@ -105,6 +106,7 @@ export function SafariShell({
   bookHref,
   solidNav = false,
   previewPages,
+  editable,
   children,
 }: {
   brandName: string;
@@ -115,6 +117,10 @@ export function SafariShell({
   solidNav?: boolean;
   /** When previewing a theme: the page navigator for the Vilo preview bar. */
   previewPages?: SitePreviewPage[];
+  /** Page-builder inline editing: click the header/footer to select + edit it.
+   *  When set, the nav renders solid + in-flow (builder CSS) so it's visible and
+   *  selectable; undefined on the live site → no change. */
+  editable?: ChromeEditable;
   children: ReactNode;
 }) {
   const navLinks = nav.links;
@@ -137,9 +143,12 @@ export function SafariShell({
       tb.email?.trim() ||
       tb.whatsapp?.trim(),
     );
-  // Top padding for the solid-nav (checkout) pages, plus the preview + announcement
-  // bar heights.
-  const topPad = (solidNav ? 90 : 0) + (bar ? 44 : 0) + (showTopBar ? 38 : 0);
+  // In the page builder the nav is forced solid + in-flow (builder CSS), so no
+  // fixed-nav top padding; on the live site it's the solid-nav + bar heights.
+  const builder = !!editable;
+  const topPad = builder
+    ? 0
+    : (solidNav ? 90 : 0) + (bar ? 44 : 0) + (showTopBar ? 38 : 0);
   const rootCls = [
     "vilo-safari",
     bar ? "pre" : "",
@@ -183,100 +192,107 @@ export function SafariShell({
         href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Marcellus&display=swap"
       />
 
-      <SafariNav
-        brandName={brandName}
-        monogram={monogram}
-        tagline={nav.tagline?.trim() || "Lodge · Direct booking"}
-        showLogo={nav.showLogo}
-        logoUrl={nav.logoUrl}
-        logoLightUrl={nav.logoLightUrl}
-        logoMaxHeight={nav.logoMaxHeight}
-        links={navLinks}
-        bookHref={reserve}
-        bookLabel={nav.bookLabel}
-        showBook={nav.showBook}
-        bookColor={nav.bookColor}
-        menuStyle={nav.menuStyle}
-        forceSolid={solidNav}
-      />
+      <ChromeEditWrap editable={editable} target="header" label="Header">
+        <SafariNav
+          brandName={brandName}
+          monogram={monogram}
+          tagline={nav.tagline?.trim() || "Lodge · Direct booking"}
+          showLogo={nav.showLogo}
+          logoUrl={nav.logoUrl}
+          logoLightUrl={nav.logoLightUrl}
+          logoMaxHeight={nav.logoMaxHeight}
+          links={navLinks}
+          bookHref={reserve}
+          bookLabel={nav.bookLabel}
+          showBook={nav.showBook}
+          bookColor={nav.bookColor}
+          menuStyle={nav.menuStyle}
+          forceSolid={solidNav || builder}
+        />
+      </ChromeEditWrap>
 
       {topPad ? <div style={{ paddingTop: topPad }}>{children}</div> : children}
 
       <SafariLightbox />
 
-      <footer className="footer">
-        <div className="wrap">
-          <div className="footer-top">
-            <div>
-              <span className="brand-name">{brandName}</span>
-              <p className="footer-blurb">{blurb}</p>
+      <ChromeEditWrap editable={editable} target="footer" label="Footer">
+        <footer className="footer">
+          <div className="wrap">
+            <div className="footer-top">
+              <div>
+                <span className="brand-name">{brandName}</span>
+                <p className="footer-blurb">{blurb}</p>
+              </div>
+              {foot.columns.map((col, i) => (
+                <div key={(col.heading ?? "") + i}>
+                  {col.heading ? (
+                    <div className="foot-head">{col.heading}</div>
+                  ) : null}
+                  <div className="foot-col">
+                    {col.links.map((l) => (
+                      <a key={l.href + l.label} href={l.href}>
+                        {l.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {foot.newsletter.enabled ? (
+                <div>
+                  <div className="foot-head">
+                    {foot.newsletter.heading?.trim() ||
+                      "The reserve, in your inbox"}
+                  </div>
+                  <p className="footer-blurb" style={{ marginTop: 0 }}>
+                    {foot.newsletter.body?.trim() ||
+                      "Sightings, open dates and the occasional field note. Twice a season, never more."}
+                  </p>
+                  <div className="foot-news">
+                    <input
+                      type="email"
+                      placeholder="you@email.com"
+                      aria-label="Email"
+                    />
+                    <button className="btn btn-primary btn-sm" type="button">
+                      <span>Join</span>
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
-            {foot.columns.map((col, i) => (
-              <div key={(col.heading ?? "") + i}>
-                {col.heading ? (
-                  <div className="foot-head">{col.heading}</div>
-                ) : null}
-                <div className="foot-col">
-                  {col.links.map((l) => (
-                    <a key={l.href + l.label} href={l.href}>
-                      {l.label}
+            <div className="footer-bottom">
+              <span>{copyright}</span>
+              {foot.showPoweredBy ? (
+                <span className="foot-vilo">
+                  <svg width="15" height="15" viewBox="0 0 100 100" fill="none">
+                    <rect width="100" height="100" rx="24" fill="#10B981" />
+                    <path
+                      d="M50 66L26 32H38L50 50L62 32H74L50 66Z"
+                      fill="#fff"
+                    />
+                  </svg>
+                  Powered by Vilo · 0% booking fees
+                </span>
+              ) : null}
+              {foot.socials.length > 0 ? (
+                <div className="foot-socials">
+                  {foot.socials.map((s) => (
+                    <a
+                      key={s.key}
+                      href={s.href}
+                      aria-label={s.label}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {SOCIAL_ICONS[s.key]}
                     </a>
                   ))}
                 </div>
-              </div>
-            ))}
-            {foot.newsletter.enabled ? (
-              <div>
-                <div className="foot-head">
-                  {foot.newsletter.heading?.trim() ||
-                    "The reserve, in your inbox"}
-                </div>
-                <p className="footer-blurb" style={{ marginTop: 0 }}>
-                  {foot.newsletter.body?.trim() ||
-                    "Sightings, open dates and the occasional field note. Twice a season, never more."}
-                </p>
-                <div className="foot-news">
-                  <input
-                    type="email"
-                    placeholder="you@email.com"
-                    aria-label="Email"
-                  />
-                  <button className="btn btn-primary btn-sm" type="button">
-                    <span>Join</span>
-                  </button>
-                </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
-          <div className="footer-bottom">
-            <span>{copyright}</span>
-            {foot.showPoweredBy ? (
-              <span className="foot-vilo">
-                <svg width="15" height="15" viewBox="0 0 100 100" fill="none">
-                  <rect width="100" height="100" rx="24" fill="#10B981" />
-                  <path d="M50 66L26 32H38L50 50L62 32H74L50 66Z" fill="#fff" />
-                </svg>
-                Powered by Vilo · 0% booking fees
-              </span>
-            ) : null}
-            {foot.socials.length > 0 ? (
-              <div className="foot-socials">
-                {foot.socials.map((s) => (
-                  <a
-                    key={s.key}
-                    href={s.href}
-                    aria-label={s.label}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {SOCIAL_ICONS[s.key]}
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </ChromeEditWrap>
     </div>
   );
 }

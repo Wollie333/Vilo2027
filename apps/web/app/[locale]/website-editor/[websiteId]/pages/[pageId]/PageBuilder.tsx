@@ -49,6 +49,8 @@ import {
   MoveVertical,
   Newspaper,
   Palette,
+  PanelBottom,
+  PanelTop,
   Pilcrow,
   Plus,
   Redo2,
@@ -90,7 +92,9 @@ import type {
   SavedSection,
 } from "@/app/[locale]/dashboard/website/schemas";
 import { SectionRenderer } from "@/components/site/SectionRenderer";
+import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SiteChrome, type ChromeTarget } from "@/components/site/SiteChrome";
+import { buildSafariNav } from "@/lib/site/safariNav";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 // Safari theme styles, scoped to `.vilo-safari`. Loaded in the editor bundle so
 // the canvas can render the bespoke NenGama design when Safari is active (it
@@ -355,6 +359,8 @@ export function PageBuilder({
   const themePresets = getThemeSectionPresets(theme.preset);
   const themeTemplates = getThemeTemplates(theme.preset);
   const themeLabel = themeGroupLabel(theme.preset);
+  // Safari renders + edits its bespoke header/footer inline in this canvas.
+  const themeIsSafari = theme.preset === "safari";
   // Palette groups — the room-scoped blocks only make sense on the room_detail
   // template, so surface that group there (and only there).
   const paletteGroups: Array<{ key: string; types: SectionType[] }> =
@@ -420,6 +426,12 @@ export function PageBuilder({
   const selectSection = (id: string) => {
     setSelectedId(id);
     setSelectedChrome(null);
+  };
+  // Safari: header/footer are selectable inline in the canvas (mutually exclusive
+  // with a section selection), edited via the same Header/Footer inspectors.
+  const selectChrome = (target: ChromeTarget) => {
+    setSelectedChrome(target);
+    setSelectedId(null);
   };
 
   // ── Inline nav (chrome) editing ─────────────────────────────────────────
@@ -1119,15 +1131,45 @@ export function PageBuilder({
                 // ── Default grouped view ─────────────────────────────
                 return (
                   <>
-                    {/* Site parts — the shared header/footer are THEME elements,
-                        edited in the Navigation manager (not per-page). */}
+                    {/* Site parts. On Safari the header/footer are edited inline
+                        here (select to edit); other themes edit them in the
+                        Navigation manager. */}
                     <div className="pal-cat">{t("pbSiteParts")}</div>
-                    <p
-                      className="px-1 pb-2 text-[11.5px] leading-snug"
-                      style={{ color: "var(--mute)" }}
-                    >
-                      {t("pbChromeInNav")}
-                    </p>
+                    {themeIsSafari ? (
+                      <div className="pal-grid">
+                        <button
+                          type="button"
+                          className={
+                            selectedChrome === "header"
+                              ? "pal-item sel"
+                              : "pal-item"
+                          }
+                          onClick={() => selectChrome("header")}
+                        >
+                          <PanelTop style={{ width: 18, height: 18 }} />
+                          <span>{t("navHeaderTitle")}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={
+                            selectedChrome === "footer"
+                              ? "pal-item sel"
+                              : "pal-item"
+                          }
+                          onClick={() => selectChrome("footer")}
+                        >
+                          <PanelBottom style={{ width: 18, height: 18 }} />
+                          <span>{t("navFooterTitle")}</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <p
+                        className="px-1 pb-2 text-[11.5px] leading-snug"
+                        style={{ color: "var(--mute)" }}
+                      >
+                        {t("pbChromeInNav")}
+                      </p>
+                    )}
 
                     {/* Heroes — the seven designed layouts. */}
                     <div className="pal-cat">{t("pbHeroes")}</div>
@@ -1211,19 +1253,29 @@ export function PageBuilder({
                   </DndContext>
                 );
 
-              // Safari renders its bespoke design (scoped .vilo-safari + theme
-              // fonts) so the canvas matches the published NenGama look. Other
-              // themes render inside the generic chrome.
+              // Safari renders its bespoke chrome (the SAME SafariShell as the live
+              // site, with the header/footer click-to-select), so the builder
+              // matches the published NenGama look AND the chrome is editable here
+              // — like the page sections. Other themes render the generic chrome.
               if (isSafari) {
                 return (
-                  <div className="vilo-safari">
-                    {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-                    <link
-                      rel="stylesheet"
-                      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Marcellus&display=swap"
-                    />
+                  <SafariShell
+                    brandName={brand.name}
+                    nav={buildSafariNav({
+                      nav,
+                      navigation: navConfig,
+                      brand,
+                      preview: false,
+                      subdomain: "",
+                    })}
+                    editable={
+                      previewing
+                        ? undefined
+                        : { selected: selectedChrome, onSelect: selectChrome }
+                    }
+                  >
                     {body}
-                  </div>
+                  </SafariShell>
                 );
               }
               return (

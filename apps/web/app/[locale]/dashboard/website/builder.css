@@ -730,6 +730,16 @@
 .vilo-builder .vilo-safari .bk-label {
   background: var(--accent);
 }
+/* In the builder canvas the Safari nav + announcement bar render IN FLOW (not
+   fixed-to-viewport) so they sit at the top of the page and can be clicked to
+   select. On the live site they stay fixed (this override is builder-scoped). */
+.vilo-builder .vilo-safari .nav,
+.vilo-builder .vilo-safari .safari-topbar {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+}
 .vilo-builder .bk-tools {
   position: absolute;
   top: 8px;

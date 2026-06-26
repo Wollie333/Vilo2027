@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-06-26 — Safari chrome in the page builder (Phase 2: inline-editable)
+
+The page builder canvas showed NO header/footer for Safari (generic themes showed
+inert chrome). Now the Safari builder canvas renders the SAME `SafariShell` as the
+live site, with the header + footer click-to-select — so the chrome is edited
+inline like the page sections, with the Safari design.
+
+- **`SafariShell` gains an `editable` prop** (`ChromeEditable`): wraps the nav +
+  footer in the shared `ChromeEditWrap` (exported from `SiteChrome`) for
+  click-to-select; forces the nav solid + in-flow in the builder. Undefined on the
+  live site → verbatim render, **zero change** (verified live).
+- **PageBuilder**: the Safari branch renders `SafariShell` (nav built from the live
+  `navConfig` + brand via `buildSafariNav`); a "Site parts" palette gets Header /
+  Footer buttons; `selectChrome` toggles the existing Header/Footer inspectors
+  (HeaderInspector + MenuBuilder / FooterInspector). Inline edits autosave via the
+  existing nav autosave.
+- **builder.css**: the Safari nav + announcement bar render `position: relative`
+  in the builder (so they're in-flow + selectable); fixed on the live site.
+
+tsc + lint + 131 vitest green; live Safari render unchanged. NOTE: the builder UI
+needs a visual check — it can't be reached by the preview tooling (host login).
+
+---
+
 ## 2026-06-26 — Conversion-goal thank-you pages (per goal, pixel-ready)
 
 Refined the form thank-you toward the host's real use case: 4 fixed forms
