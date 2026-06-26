@@ -1,5 +1,6 @@
 import "server-only";
 
+import { navigationSchema } from "@/app/[locale]/dashboard/website/schemas";
 import { pageHref } from "@/lib/site/loadSitePage";
 import type {
   PropertyOverride,
@@ -35,6 +36,18 @@ export function stableStringify(value: unknown): string {
   return `{${keys
     .map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`)
     .join(",")}}`;
+}
+
+/**
+ * Canonicalise a navigation config through the same Zod schema the save action
+ * uses, so a snapshot built here (raw column) and a freshly-saved one (schema-
+ * normalised, with defaults like an empty `menuStyle`) compare equal. Without
+ * this, a missing-key-vs-default-filled-key difference produced a permanent
+ * phantom "Unpublished changes". Falls back to the raw value if it can't parse.
+ */
+function normaliseNavigation(nav: unknown): SiteNavigation {
+  const parsed = navigationSchema.safeParse(nav ?? {});
+  return (parsed.success ? parsed.data : (nav ?? {})) as SiteNavigation;
 }
 
 function normaliseRooms(
@@ -139,8 +152,9 @@ export async function buildWebsiteSnapshot(
     theme: (site?.theme ?? {}) as Record<string, unknown>,
     seo: (site?.seo ?? {}) as Record<string, unknown>,
     nav,
-    navigation: ((site as { navigation?: unknown })?.navigation ??
-      {}) as SiteNavigation,
+    navigation: normaliseNavigation(
+      (site as { navigation?: unknown })?.navigation,
+    ),
     conversion: (settings.conversion ?? {}) as SiteConversion,
     analytics: (settings.analytics ?? {}) as SiteAnalyticsSettings,
     layout: settings.layout === "boxed" ? "boxed" : "full",
@@ -181,7 +195,13 @@ export async function computeWebsiteDirty(
   }
 
   const current = await buildWebsiteSnapshot(sb, websiteId);
-  if (stableStringify(current) !== stableStringify(site.published_snapshot)) {
+  // Canonicalise the stored snapshot's navigation the same way (legacy snapshots
+  // were frozen raw, before normalisation) so the comparison is apples-to-apples.
+  const published: PublishSnapshot = {
+    ...site.published_snapshot,
+    navigation: normaliseNavigation(site.published_snapshot.navigation),
+  };
+  if (stableStringify(current) !== stableStringify(published)) {
     return { isPublished: true, isDirty: true };
   }
 
