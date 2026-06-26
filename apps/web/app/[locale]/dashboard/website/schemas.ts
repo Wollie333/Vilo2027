@@ -728,6 +728,21 @@ export const savePagesSchema = z.object({
 
 export type SavePagesInput = z.infer<typeof savePagesSchema>;
 
+// Standard Meta-Pixel/GA4 events a host can fire ON a specific page (e.g. mark
+// the Suites page as a ViewContent, the Contact page as a Lead). "none" = fire
+// nothing extra (the site-wide PageView still fires). Curated to the events that
+// make sense for a hospitality site — Purchase is auto-fired on booking.
+export const PAGE_PIXEL_EVENTS = [
+  "none",
+  "ViewContent",
+  "Lead",
+  "Contact",
+  "Subscribe",
+  "Search",
+  "InitiateCheckout",
+  "CompleteRegistration",
+] as const;
+
 // Per-page SEO overrides (Phase 6) → website_pages.seo_overrides jsonb. Empty
 // strings mean "inherit the site-level SEO" and are stored as undefined.
 export const savePageSeoSchema = z.object({
@@ -739,6 +754,12 @@ export const savePageSeoSchema = z.object({
   // Per-page social/SEO featured image (og:image) — a website-assets storage
   // PATH (uploaded/picked in Page settings). Empty clears it (inherits the site).
   image: z.string().trim().max(500).default(""),
+  // Per-page Meta-Pixel/GA4 event fired on the live page (none = nothing extra).
+  pixelEvent: z.enum(PAGE_PIXEL_EVENTS).default("none"),
+  // Per-page custom head code (meta tags / verification / tracking snippets),
+  // injected into <head> on the live page only. The host's own site — trusted,
+  // like the site-level pixel/GA4 ids. Empty = nothing injected.
+  headCode: z.string().trim().max(4000).default(""),
 });
 
 // ── Forms (Phase 4 — form builder) ────────────────────────────

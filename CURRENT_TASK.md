@@ -2,7 +2,19 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-26 — Safari is the COMPLETE reference theme; 2 small tasks left)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-27 — Safari reference theme is COMPLETE; both remaining tasks DONE)
+
+**Branch:** `main` — tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`; corrupts on big-refactor HMR → stop server, `rm -rf apps/web/.next`, free :3000, restart). **⚠️ NEW GOTCHA: PowerShell `Set-Content`/`Get-Content` CORRUPTS UTF-8 box-drawing/em-dash chars in source files (PS 5.1 reads as ANSI → mojibake `â”€`). For line-range deletions use Git-Bash `sed -i 'A,Bd'` (byte-safe) or the Edit tool — NEVER round-trip a source file through PS Get/Set-Content. Hit it this session; reverted via `git checkout`.**
+
+**✅ THIS SESSION — the 2 remaining Safari tasks are DONE + verified live (see CHANGELOG 2026-06-27):**
+1. **Forms work FROM Safari pages.** `SafariContactForm` (was a static placeholder) is now a real client form (`components/site/sections/SafariContactForm.tsx`) → POSTs `/api/website-enquiry` → redirects to the themed enquiry thank-you. `renderSafariSection` also dispatches the generic `form` block (reuses `FormSection` inside a Safari shell + a `--site-*`→Safari token bridge). `websiteId`/`interactive` threaded through `renderSafariSection`/`SafariSectionList`/`SafariSiteView`/`SitePageView` + builder `SectionSwitch`. **New `lib/site/thankYouHref.ts`** = path-aware thank-you URL (preserves `/site` base + `?site=` so the loop resolves on BOTH path-based test sites AND live subdomains; `FormSection`'s `page` redirect uses it too). Verified live: contact submit → `/thank-you/enquiry?site=vilotest&name=LoopTwo` (themed, "Thank you, LoopTwo").
+2. **Per-page marketing settings** (Page settings → new "Marketing & tracking" block in `PageSeoCard`): a per-page **pixel-event** select (none/ViewContent/Lead/Contact/Subscribe/Search/InitiateCheckout/CompleteRegistration → `FirePixelEvent`) + a **custom head-code** box (`PageHeadCode` injects into live `<head>`, recreates `<script>` so snippets execute, cleans up on nav). Stored additively in `website_pages.seo_overrides` (no migration), read LIVE (no republish). `SitePageView` injects on live only (skipped in preview). **`FirePixelEvent` hardened** to poll ~3s for `fbq` (it loads only after consent) so the pixel event isn't lost — helps the existing goal thank-yous too. Verified live: head meta+script injected & ran, `vilo_lead` in dataLayer, preview injects nothing, builder shows the controls.
+
+**▶▶ THE SAFARI THEME IS NOW THE COMPLETE, FULLY-FUNCTIONAL REFERENCE.** Next themes = "scope the design, reuse the engine" — replay the `theme-productionization-playbook` 6 slices (render-layer · pages · chrome · forms+thank-you · pixel · per-page-settings). No Safari work outstanding.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-26 — Safari was the reference; the 2 tasks above were the remaining work)
 
 **Branch:** `main` — working tree CLEAN, all work committed + PUSHED (latest `575f8f2`). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`; corrupts on big-refactor HMR → stop server, `rm -rf apps/web/.next`, free :3000, restart).
 

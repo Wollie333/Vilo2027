@@ -343,6 +343,8 @@ export function PageBuilder({
     description: string;
     focusKeyword: string;
     image: string;
+    pixelEvent: string;
+    headCode: string;
   };
   domain: string;
   ogImageUrl?: string;

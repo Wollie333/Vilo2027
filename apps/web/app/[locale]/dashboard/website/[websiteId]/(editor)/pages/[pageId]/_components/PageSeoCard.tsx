@@ -8,11 +8,14 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 
 import { savePageSeoAction } from "@/app/[locale]/dashboard/website/actions";
+import { PAGE_PIXEL_EVENTS } from "@/app/[locale]/dashboard/website/schemas";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
-import { ImageField, TextArea, TextField } from "./fields";
+import { ImageField, SelectField, TextArea, TextField } from "./fields";
 import { SeoAnalysis } from "./SeoAnalysis";
 import { SocialPreview } from "./SocialPreview";
+
+type PixelEvent = (typeof PAGE_PIXEL_EVENTS)[number];
 
 /**
  * Collapsible per-page SEO override editor (Phase 6). Surfaces
@@ -41,6 +44,8 @@ export function PageSeoCard({
     description: string;
     focusKeyword: string;
     image: string;
+    pixelEvent: string;
+    headCode: string;
   };
 }) {
   const t = useTranslations("website");
@@ -50,6 +55,12 @@ export function PageSeoCard({
   const [description, setDescription] = useState(initial.description);
   const [focusKeyword, setFocusKeyword] = useState(initial.focusKeyword);
   const [image, setImage] = useState(initial.image);
+  const [pixelEvent, setPixelEvent] = useState<PixelEvent>(
+    (PAGE_PIXEL_EVENTS as readonly string[]).includes(initial.pixelEvent)
+      ? (initial.pixelEvent as PixelEvent)
+      : "none",
+  );
+  const [headCode, setHeadCode] = useState(initial.headCode);
   const [saving, startSave] = useTransition();
 
   function onSave() {
@@ -61,6 +72,8 @@ export function PageSeoCard({
         description,
         focusKeyword,
         image,
+        pixelEvent,
+        headCode,
       });
       if (!res.ok) {
         toast.error(t("saveError"));
@@ -137,6 +150,36 @@ export function PageSeoCard({
             bodyText={bodyText}
             slug={slug}
           />
+          {/* Marketing — per-page pixel event + custom head code. */}
+          <div className="space-y-4 border-t border-brand-line pt-4">
+            <p className="text-[13px] font-semibold text-brand-ink">
+              {t("pageMarketingTitle")}
+            </p>
+            <SelectField<PixelEvent>
+              label={t("pagePixelEventLabel")}
+              value={
+                (PAGE_PIXEL_EVENTS as readonly string[]).includes(pixelEvent)
+                  ? (pixelEvent as PixelEvent)
+                  : "none"
+              }
+              onChange={setPixelEvent}
+              options={PAGE_PIXEL_EVENTS.map((ev) => ({
+                value: ev,
+                label: ev === "none" ? t("pagePixelEventNone") : ev,
+              }))}
+            />
+            <p className="-mt-2 text-[12px] text-brand-mute">
+              {t("pagePixelEventHint")}
+            </p>
+            <TextArea
+              label={t("pageHeadCodeLabel")}
+              value={headCode}
+              onChange={setHeadCode}
+              maxLength={4000}
+              rows={5}
+              hint={t("pageHeadCodeHint")}
+            />
+          </div>
           <button
             type="button"
             onClick={onSave}

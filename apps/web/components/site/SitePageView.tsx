@@ -13,7 +13,9 @@ import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
+import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
+import { PageHeadCode } from "./PageHeadCode";
 import { SafariSiteView } from "./safari/SafariSiteView";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
@@ -89,6 +91,25 @@ export async function SitePageView({
   const headerBookHref =
     ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
 
+  // Per-page marketing overrides (Page settings → seo_overrides). Live site only:
+  // fire the host's chosen Pixel/GA4 event for this page + inject its custom head
+  // code. Read straight from the page row, so they take effect without republish.
+  const pageOv = (result.page.seoOverrides ?? {}) as {
+    pixelEvent?: string;
+    headCode?: string;
+  };
+  const pagePixelEvent =
+    !ctx.preview && pageOv.pixelEvent && pageOv.pixelEvent !== "none"
+      ? pageOv.pixelEvent
+      : null;
+  const pageHeadCode = !ctx.preview ? pageOv.headCode?.trim() || "" : "";
+  const pageMarketing = (
+    <>
+      {pagePixelEvent ? <FirePixelEvent event={pagePixelEvent} /> : null}
+      {pageHeadCode ? <PageHeadCode html={pageHeadCode} /> : null}
+    </>
+  );
+
   // Safari is a fully bespoke design (the NenGama Lodge look) — it renders
   // through its own self-contained, scoped layer rather than the shared chrome +
   // section components, so it matches the design exactly. Driven by the same
@@ -108,6 +129,7 @@ export async function SitePageView({
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
         <SafariSiteView
           kind={result.page.kind}
           pageTitle={result.page.title ?? undefined}
@@ -122,6 +144,7 @@ export async function SitePageView({
           previewPages={previewPages}
           analytics={ctx.analytics}
           interactive={!ctx.preview}
+          websiteId={ctx.websiteId}
         />
       </>
     );
@@ -130,6 +153,7 @@ export async function SitePageView({
   return (
     <>
       <JsonLd graph={jsonLdGraph} />
+      {pageMarketing}
       <SiteThemeRoot theme={ctx.theme}>
         <SiteChrome
           brand={ctx.brand}

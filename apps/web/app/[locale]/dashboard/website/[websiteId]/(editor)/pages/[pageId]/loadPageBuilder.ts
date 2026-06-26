@@ -45,6 +45,8 @@ export type PageBuilderData = {
       description?: string;
       focusKeyword?: string;
       image?: string;
+      pixelEvent?: string;
+      headCode?: string;
     };
   };
   sections: WebsiteSection[];
@@ -118,6 +120,8 @@ export async function loadPageBuilder(
         description?: string;
         focusKeyword?: string;
         image?: string;
+        pixelEvent?: string;
+        headCode?: string;
       } | null;
     }>();
   if (!pageRow) return null;
@@ -195,6 +199,8 @@ export async function loadPageBuilder(
         description: pageRow.seo_overrides?.description,
         focusKeyword: pageRow.seo_overrides?.focusKeyword,
         image: pageRow.seo_overrides?.image,
+        pixelEvent: pageRow.seo_overrides?.pixelEvent,
+        headCode: pageRow.seo_overrides?.headCode,
       },
     },
     sections,

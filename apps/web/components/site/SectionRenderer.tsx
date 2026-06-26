@@ -172,6 +172,8 @@ function SectionSwitch({
       data,
       asset,
       ctx: safariCtx,
+      websiteId,
+      interactive,
     });
     if (safari !== undefined) return safari;
   }

@@ -6,6 +6,7 @@ import {
   TurnstileWidget,
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
+import { siteThankYouHref } from "@/lib/site/thankYouHref";
 import type { FormRenderData, SiteFormDef } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
@@ -95,11 +96,13 @@ export function FormSection({
           const firstName = nameField
             ? (values[nameField.id] ?? "").trim().split(/\s+/)[0]
             : "";
-          const goalPath = s.goal && s.goal !== "general" ? `/${s.goal}` : "";
-          const url = new URL(`/thank-you${goalPath}`, window.location.origin);
-          url.searchParams.set("form", form.id);
-          if (firstName) url.searchParams.set("name", firstName);
-          window.location.assign(url.toString());
+          window.location.assign(
+            siteThankYouHref({
+              goal: s.goal,
+              formId: form.id,
+              name: firstName || undefined,
+            }),
+          );
           return;
         }
         setStatus("sent");

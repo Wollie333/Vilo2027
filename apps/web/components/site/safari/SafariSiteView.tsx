@@ -43,6 +43,7 @@ export function SafariSiteView({
   previewPages,
   analytics,
   interactive,
+  websiteId,
 }: {
   kind: string;
   pageTitle?: string;
@@ -58,6 +59,8 @@ export function SafariSiteView({
   previewPages?: SitePreviewPage[];
   analytics?: SiteAnalyticsSettings;
   interactive?: boolean;
+  /** Live website id, threaded to the section list for the form bands. */
+  websiteId?: string;
 }) {
   const navLinks = nav.links;
   const roomsHref =
@@ -84,6 +87,8 @@ export function SafariSiteView({
       data={data}
       asset={asset}
       ctx={safariCtx}
+      websiteId={websiteId}
+      interactive={interactive}
     />
   );
 

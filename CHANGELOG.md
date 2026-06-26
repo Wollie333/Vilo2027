@@ -5,6 +5,50 @@
 
 ---
 
+## 2026-06-27 — Safari forms submit → thank-you + per-page marketing settings
+
+The two tasks that close out the Safari reference theme. Both verified live.
+
+**1. Forms work FROM Safari pages (the form→thank-you loop).**
+- `SafariContactForm` is now a real client form (was a static placeholder with a
+  `type="button"`). It POSTs `/api/website-enquiry` (opens a Website Enquiry in the
+  host inbox), then redirects to the themed enquiry thank-you. The detail card +
+  "book direct" note are unchanged; only the `<form>` became interactive. Disabled
+  with a hint in the builder/preview (`interactive=false`).
+- `renderSafariSection` now also dispatches the generic `form` block — reusing the
+  shared `FormSection` engine (full goal→thank-you loop, any host-built form) inside
+  a Safari section shell, with a `--site-*`→Safari token bridge so it reads as part
+  of the design without re-implementing every field type.
+- `websiteId` + `interactive` threaded through `renderSafariSection` /
+  `SafariSectionList` / `SafariSiteView` / `SitePageView` and the builder
+  `SectionSwitch`.
+- **New `lib/site/thankYouHref.ts`** — builds a path-aware thank-you URL that
+  preserves the tenant base path + `site` param, so the loop resolves on BOTH
+  path-based (`?site=`) test sites AND live subdomains (the old origin-relative
+  `/thank-you` 404'd on `?site=` sites). `FormSection`'s `page` redirect now uses it
+  too (fixes the same latent gap for the generic form block).
+
+**2. Per-page marketing settings (Page settings → new "Marketing & tracking").**
+- **Conversion event** — a per-page Meta-Pixel/GA4 event select (none / ViewContent /
+  Lead / Contact / Subscribe / Search / InitiateCheckout / CompleteRegistration).
+  Fires via the existing `FirePixelEvent` on the live page.
+- **Custom head code** — a textarea injected into `<head>` on the live page only
+  (`PageHeadCode` client component; recreates `<script>` nodes so snippets actually
+  execute; cleans up on client nav). Host's own site — trusted, like the site pixel.
+- Both stored additively in `website_pages.seo_overrides` (no migration), read live
+  (no republish needed). Wired end-to-end: `savePageSeoSchema`/`savePageSeoAction`,
+  `loadPageBuilder` → `PageBuilder` → `PageSeoCard`, and `SitePageView` injects on
+  the live render (skipped in preview). i18n added.
+- **`FirePixelEvent` hardened** — it fired on mount but `fbq` only exists after
+  cookie-consent + an async script, so the event was often lost. It now also pushes
+  the GA4 dataLayer event immediately and polls ~3s for `fbq`, firing as soon as the
+  pixel loads. Benefits the existing goal thank-you events too.
+
+tsc + lint + **131 vitest** green. Verified live in the Preview MCP: Safari contact
+form submit → `/thank-you/enquiry?...&name=…` (themed, named heading); head code in
+`document.head` + injected `<script>` executed; per-page `vilo_lead` in dataLayer;
+preview render injects nothing; builder shows the new controls reflecting saved state.
+
 ## 2026-06-26 — Navigation managers render the real theme design + live binding
 
 The standalone header/menu/footer managers showed a GENERIC pill preview, so

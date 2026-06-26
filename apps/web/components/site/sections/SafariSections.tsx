@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
 import {
@@ -13,6 +13,9 @@ import {
   type SiteData,
 } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
+
+import { FormSection } from "./FormSection";
+import { SafariContactForm } from "./SafariContactForm";
 
 /**
  * The NenGama Lodge ("safari" theme) home page, broken into per-section,
@@ -1038,207 +1041,6 @@ const PLUS_ICON = (
   </span>
 );
 
-export function SafariContactForm({
-  props,
-  ctx,
-}: {
-  props: P<"contact_form">;
-  ctx?: SafariCtx;
-}) {
-  const email = ctx?.contactEmail?.trim();
-  const phone = ctx?.contactPhone?.trim();
-
-  // Detail-card rows: the host's custom `details` if set, else auto-pull the
-  // account phone + email (so a fresh site shows real contact info immediately).
-  const PHONE_ICON = (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" />
-    </svg>
-  );
-  const EMAIL_ICON = (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <path d="m22 7-10 6L2 7" />
-    </svg>
-  );
-  const PIN_ICON = (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-
-  const custom = props.details?.filter((d) => d.title?.trim()) ?? [];
-  const detailRows =
-    custom.length > 0
-      ? custom.map((d, i) => (
-          <div key={d.title + i} className="dc-row">
-            <span className="ic">
-              {d.icon?.trim() ? (
-                <span style={{ fontSize: 20, lineHeight: 1 }}>{d.icon}</span>
-              ) : (
-                PIN_ICON
-              )}
-            </span>
-            <div>
-              <div className="t">{d.title}</div>
-              {d.label?.trim() ? <div className="d">{d.label}</div> : null}
-            </div>
-          </div>
-        ))
-      : [
-          phone ? (
-            <div key="auto-phone" className="dc-row">
-              <span className="ic">{PHONE_ICON}</span>
-              <div>
-                <div className="t">{phone}</div>
-                <div className="d">Reservations</div>
-              </div>
-            </div>
-          ) : null,
-          email ? (
-            <div key="auto-email" className="dc-row">
-              <span className="ic">{EMAIL_ICON}</span>
-              <div>
-                <div className="t">{email}</div>
-                <div className="d">We reply within one day</div>
-              </div>
-            </div>
-          ) : null,
-        ];
-
-  return (
-    <section className="section">
-      <div className="wrap">
-        <div className="contact-grid">
-          <div>
-            <span className="eyebrow">{props.eyebrow || "Send a message"}</span>
-            <h2
-              className="display"
-              style={{ marginTop: 18, fontSize: "clamp(1.9rem,3.6vw,2.8rem)" }}
-            >
-              {props.heading || "Enquire & hold dates"}
-            </h2>
-            {props.body ? (
-              <p className="muted" style={{ marginTop: 18, maxWidth: "52ch" }}>
-                {props.body}
-              </p>
-            ) : null}
-            {/* Enquiry form — host-editable copy; submission wiring is a
-                follow-up (matches the prior hardcoded Safari contact form). */}
-            <form style={{ marginTop: 32 }}>
-              <div className="field-row">
-                <div className="field">
-                  <label>First name</label>
-                  <input type="text" placeholder="First name" />
-                </div>
-                <div className="field">
-                  <label>Last name</label>
-                  <input type="text" placeholder="Last name" />
-                </div>
-              </div>
-              <div className="field-row">
-                <div className="field">
-                  <label>Email</label>
-                  <input type="email" placeholder="you@email.com" />
-                </div>
-                {props.show_phone !== false ? (
-                  <div className="field">
-                    <label>Phone</label>
-                    <input type="tel" placeholder="+27 ..." />
-                  </div>
-                ) : null}
-              </div>
-              <div className="field-row">
-                <div className="field">
-                  <label>Approx. arrival</label>
-                  <input type="date" />
-                </div>
-                <div className="field">
-                  <label>Nights</label>
-                  <input type="number" min="1" defaultValue="3" />
-                </div>
-              </div>
-              <div className="field">
-                <label>Anything we should know?</label>
-                <textarea placeholder="Dates, the occasion, dietary needs, transfers..." />
-              </div>
-              <button type="button" className="btn btn-primary btn-lg">
-                <span>{props.submit_label || "Send enquiry"}</span>
-              </button>
-            </form>
-          </div>
-          {props.show_details !== false ? (
-            <div>
-              <div className="detail-card">{detailRows}</div>
-              <div
-                style={{
-                  marginTop: 18,
-                  padding: "22px 24px",
-                  background: "var(--bg-2)",
-                  borderRadius: 4,
-                  display: "flex",
-                  gap: 12,
-                  alignItems: "flex-start",
-                }}
-              >
-                <span style={{ color: "var(--green)", flexShrink: 0 }}>
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                </span>
-                <p style={{ fontSize: 14, color: "var(--ink-soft)" }}>
-                  Book direct and you pay exactly what we quote — no agents, no
-                  booking fees, no commission.
-                </p>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /* ── FAQ (accordion) ────────────────────────────────────────────────── */
 const STOCK_FAQ = [
   {
@@ -2100,15 +1902,33 @@ export function SafariValues({ props }: { props: P<"values"> }) {
  * types that have no Safari variant yet, so the caller falls back to the generic
  * renderer (the section still shows, just in the neutral style).
  */
+/** Bridges the generic FormSection's `--site-*` design tokens onto the Safari
+ *  palette so a host-built `form` block reads as part of the NenGama design. */
+const SAFARI_FORM_VARS = {
+  "--site-bg": "#fff",
+  "--site-surface": "var(--bg-2)",
+  "--site-line": "var(--line)",
+  "--site-ink": "var(--ink)",
+  "--site-mute": "var(--ink-soft)",
+  "--site-radius": "4px",
+  "--site-btn-primary-bg": "var(--accent)",
+  "--site-btn-primary-color": "#fff",
+  "--site-btn-primary-border": "none",
+  "--site-btn-primary-radius": "4px",
+} as CSSProperties;
+
 export function renderSafariSection(
   section: WebsiteSection,
   opts: {
     data?: SiteData;
     asset?: SiteAssetResolver;
     ctx?: SafariCtx;
+    /** Live website id + interactivity for the form bands (submit + redirect). */
+    websiteId?: string;
+    interactive?: boolean;
   },
 ): ReactNode | undefined {
-  const { data, asset, ctx } = opts;
+  const { data, asset, ctx, websiteId, interactive } = opts;
   switch (section.type) {
     case "hero":
       return <SafariHero props={section.props} asset={asset} ctx={ctx} />;
@@ -2151,7 +1971,31 @@ export function renderSafariSection(
     case "map":
       return <SafariMap props={section.props} />;
     case "contact_form":
-      return <SafariContactForm props={section.props} ctx={ctx} />;
+      return (
+        <SafariContactForm
+          props={section.props}
+          ctx={ctx}
+          websiteId={websiteId}
+          interactive={interactive}
+        />
+      );
+    case "form":
+      // Host-built form block — reuse the shared FormSection engine (full
+      // goal→thank-you loop) inside a Safari section shell. The `--site-*`
+      // bridge maps the generic field/button vars onto the Safari palette so it
+      // reads as part of the design without re-implementing every field type.
+      return (
+        <section className="section">
+          <div className="wrap" style={SAFARI_FORM_VARS}>
+            <FormSection
+              props={section.props}
+              data={dataFor(data, section.id, "form")}
+              websiteId={websiteId}
+              interactive={interactive}
+            />
+          </div>
+        </section>
+      );
     case "faq":
       return <SafariFaq props={section.props} />;
     case "amenities":
@@ -2229,14 +2073,19 @@ export function SafariSectionList({
   data,
   asset,
   ctx,
+  websiteId,
+  interactive,
 }: {
   sections: WebsiteSection[];
   data?: SiteData;
   asset?: SiteAssetResolver;
   ctx?: SafariCtx;
+  /** Threaded to the form bands so they submit + redirect on the live site. */
+  websiteId?: string;
+  interactive?: boolean;
 }) {
   const render = (s: WebsiteSection) =>
-    renderSafariSection(s, { data, asset, ctx });
+    renderSafariSection(s, { data, asset, ctx, websiteId, interactive });
   return (
     <>
       {sections
