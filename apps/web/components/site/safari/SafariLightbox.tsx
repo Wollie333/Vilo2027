@@ -32,10 +32,22 @@ export function SafariLightbox() {
     });
     setShots(list);
 
+    // Fill the room gallery's "N photos" indicator.
+    document
+      .querySelectorAll<HTMLElement>(".vilo-safari [data-lb-count]")
+      .forEach((el) => {
+        el.textContent = `${list.length} photo${list.length === 1 ? "" : "s"}`;
+      });
+
     const onClick = (e: MouseEvent) => {
-      const img = (e.target as HTMLElement)?.closest?.(
-        "img",
-      ) as HTMLImageElement | null;
+      const target = e.target as HTMLElement | null;
+      // The "view photos" badge opens the gallery at the first image.
+      if (target?.closest?.("[data-lb-open]")) {
+        e.preventDefault();
+        setIdx(0);
+        return;
+      }
+      const img = target?.closest?.("img") as HTMLImageElement | null;
       if (!img || img.dataset.lbIndex == null) return;
       e.preventDefault();
       setIdx(Number(img.dataset.lbIndex));

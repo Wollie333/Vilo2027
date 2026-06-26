@@ -6,6 +6,8 @@ import { SafariAboutContent } from "./pages/SafariAboutContent";
 import { SafariBookingContent } from "./pages/SafariBookingContent";
 import { SafariContactContent } from "./pages/SafariContactContent";
 import { SafariJournalContent } from "./pages/SafariJournalContent";
+import { SafariGenericContent } from "./pages/SafariGenericContent";
+import { SafariRatesContent } from "./pages/SafariRatesContent";
 import { SafariRoomsContent } from "./pages/SafariRoomsContent";
 import { SafariThankYouContent } from "./pages/SafariThankYouContent";
 
@@ -549,6 +551,7 @@ function SafariHomeContent({
  *  page kind is in SAFARI_PAGE_KINDS. */
 export function SafariSiteView({
   kind,
+  pageTitle,
   sections,
   brandName,
   navLinks,
@@ -556,6 +559,7 @@ export function SafariSiteView({
   previewPages,
 }: {
   kind: string;
+  pageTitle?: string;
   sections: WebsiteSection[];
   brandName: string;
   navLinks: SafariNavLink[];
@@ -576,13 +580,16 @@ export function SafariSiteView({
     case "blog":
       content = <SafariJournalContent />;
       break;
+    case "rates":
+      content = <SafariRatesContent />;
+      break;
     case "checkout":
       content = <SafariBookingContent />;
       break;
     case "thank-you":
       content = <SafariThankYouContent />;
       break;
-    default:
+    case "home":
       content = (
         <SafariHomeContent
           sections={sections}
@@ -591,6 +598,24 @@ export function SafariSiteView({
           bookHref={bookHref}
         />
       );
+      break;
+    default: {
+      // Any other kind — a rates page if its sections are rate-style, otherwise a
+      // Safari-styled generic page. Never the old chrome.
+      const isRates = sections.some((s) =>
+        ["rate_table", "room_rates", "seasonal_pricing", "pricing"].includes(
+          s.type,
+        ),
+      );
+      content = isRates ? (
+        <SafariRatesContent />
+      ) : (
+        <SafariGenericContent
+          title={pageTitle || brandName}
+          bookHref={bookHref}
+        />
+      );
+    }
   }
   return (
     <SafariShell

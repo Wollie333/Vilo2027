@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-06-26 — Safari covers EVERY page + room-detail photo counter
+
+- **No page reverts to the old styles.** `SitePageView` now routes every page
+  kind to the Safari layer when the theme is safari (was gated to a known-kinds
+  set, so `/our-rates` etc. fell back to the standard chrome). New
+  `SafariRatesContent` (page-head + inclusions + a rate table + seasons + CTA, in
+  the NenGama design language) renders for `rates` kinds AND for any page whose
+  sections are rate-style (rate_table/room_rates/seasonal_pricing/pricing). A
+  `SafariGenericContent` (page-head with the page title + CTA) is the catch-all
+  for any other kind — so the design is universal, never the old theme. Verified
+  `/our-rates` → Safari rates page.
+- **Room-detail photo counter.** A "N photos" badge sits on the suite gallery
+  (filled live by the lightbox from the gallery image count) and opens the
+  browsable lightbox on click. Verified: "5 photos" → opens at 1/5.
+
+tsc + lint green.
+
+---
+
 ## 2026-06-26 — One preview bar for every theme (SSOT) + checkout + lightbox
 
 - **Single source of truth for theme previews.** Extracted the Vilo preview bar

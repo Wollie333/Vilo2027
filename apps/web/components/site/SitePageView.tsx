@@ -13,7 +13,7 @@ import type { SiteAssetResolver } from "@/lib/site/types";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { JsonLd } from "./JsonLd";
-import { SafariSiteView, SAFARI_PAGE_KINDS } from "./safari/SafariSiteView";
+import { SafariSiteView } from "./safari/SafariSiteView";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
@@ -100,13 +100,16 @@ export async function SitePageView({
     ? await buildSitePreviewPages(ctx)
     : undefined;
 
+  // Safari is fully bespoke — EVERY page renders through its layer (no page ever
+  // falls back to the standard chrome / old styles).
   const activeThemeSlug = ctx.previewThemeSlug ?? ctx.theme.preset;
-  if (activeThemeSlug === "safari" && SAFARI_PAGE_KINDS.has(result.page.kind)) {
+  if (activeThemeSlug === "safari") {
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
         <SafariSiteView
           kind={result.page.kind}
+          pageTitle={result.page.title ?? undefined}
           sections={result.sections}
           brandName={ctx.brand.name}
           navLinks={ctx.nav}

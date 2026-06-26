@@ -29,6 +29,23 @@ export function SafariRoomContent() {
               alt="Outdoor bath"
             />
           </div>
+          <button type="button" className="sh-count" data-lb-open>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="5" width="18" height="15" rx="2" />
+              <circle cx="12" cy="12.5" r="3.2" />
+              <path d="M8 5l1.5-2h5L16 5" />
+            </svg>
+            <span data-lb-count>View photos</span>
+          </button>
         </div>
       </section>
 
