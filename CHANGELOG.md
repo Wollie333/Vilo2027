@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-26 — Safari sections: expose every section heading/eyebrow (audit pt.2)
+
+Founder wants every element in every Safari section editable. Closed the
+remaining hardcoded section headers (additive optional `eyebrow`/`subheading`
+props; bands fall back to the stock copy so nothing changes until edited):
+
+- **Suites** (`rooms_preview`) — the band ignored its props entirely; now uses
+  `eyebrow`, `heading`, and `ctaLabel` (the "All suites & rates" link).
+- **Gallery** — `eyebrow` + `heading` (were hardcoded "A look around" / "Moments
+  from the reserve").
+- **Reviews** — `eyebrow` + `subheading` (the line beside the rating).
+- **Journal preview** (`blog_preview`) — `eyebrow`.
+- **Rate table** — `eyebrow`.
+
+Inspector: added the matching fields to each section's editor, gated to the
+Safari theme (`isSafari`) like the hero extras, since only the Safari bands
+render an eyebrow on these types. (contact_form/faq/amenities/pricing eyebrows —
+added to the schema in audit pt.1 — are now wired into their inspectors too.)
+
+Verified live: public home still renders identically via the stock fallbacks;
+the founder's in-progress builder edits (intro/highlights eyebrow + heading) come
+through correctly. tsc + lint + 131 vitest green.
+
+NEXT: full menu/header control on the Safari theme (the bespoke `SafariNav`
+render path vs. the menu builder), then the remaining audit items (hide the
+Safari-inert hero overlay controls).
+
+---
+
 ## 2026-06-26 — Safari hero/intro: editable CTAs, stat row, badge, alignment (audit pt.1)
 
 First slice of the per-page styling/editability audit — the founder flagged the

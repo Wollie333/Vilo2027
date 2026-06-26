@@ -1583,6 +1583,7 @@
     "fldEyebrow": "Eyebrow / label",
     "fldEyebrowHint": "Small label above the heading.",
     "fldSubheading": "Sub-heading",
+    "fldReviewsSubheadingHint": "The small line beside the rating (e.g. 214 verified guest stays).",
     "fldImage": "Image",
     "fldImageHint": "Upload to replace the theme's default image.",
     "fldBody": "Text",

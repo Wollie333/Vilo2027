@@ -1064,6 +1064,15 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
@@ -1115,6 +1124,15 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
@@ -1310,6 +1328,15 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
@@ -1342,6 +1369,15 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
@@ -1433,12 +1469,30 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
             onChange={(v) => set({ heading: v })}
             maxLength={200}
           />
+          {isSafari ? (
+            <TextField
+              label={t("fldSubheading")}
+              value={p.subheading ?? ""}
+              onChange={(v) => set({ subheading: v })}
+              maxLength={300}
+              hint={t("fldReviewsSubheadingHint")}
+            />
+          ) : null}
           <NumberField
             label={t("fldMax")}
             value={p.max}
@@ -1467,6 +1521,15 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
@@ -1539,6 +1602,15 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
@@ -1580,6 +1652,15 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}
@@ -1805,6 +1886,15 @@ function SectionFields({
         onChange({ ...section, props: { ...p, ...patch } });
       return (
         <div className="space-y-4">
+          {isSafari ? (
+            <TextField
+              label={t("fldEyebrow")}
+              value={p.eyebrow ?? ""}
+              onChange={(v) => set({ eyebrow: v })}
+              maxLength={120}
+              hint={t("fldEyebrowHint")}
+            />
+          ) : null}
           <TextField
             label={t("fldHeading")}
             value={p.heading ?? ""}

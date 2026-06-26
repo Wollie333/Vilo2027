@@ -283,6 +283,7 @@ const logosProps = z.object({
 
 const galleryProps = z.object({
   heading,
+  eyebrow: z.string().max(120).optional(),
   layout: gridLayout,
   max: z.number().int().min(1).max(60).default(12),
 });
@@ -297,6 +298,7 @@ const mapProps = z.object({
 
 const roomsPreviewProps = z.object({
   heading,
+  eyebrow: z.string().max(120).optional(),
   layout: gridLayout,
   max: z.number().int().min(1).max(60).default(6),
   ctaLabel: z.string().max(60).optional(),
@@ -313,6 +315,8 @@ const locationProps = z.object({
 
 const reviewsProps = z.object({
   heading,
+  eyebrow: z.string().max(120).optional(),
+  subheading: z.string().max(300).optional(),
   max: z.number().int().min(1).max(30).default(6),
   variant: z.enum(REVIEWS_VARIANTS).default("grid"),
 });
@@ -351,6 +355,7 @@ const valuesProps = z.object({
 
 const blogPreviewProps = z.object({
   heading,
+  eyebrow: z.string().max(120).optional(),
   max: z.number().int().min(1).max(12).default(3),
   variant: z.enum(BLOG_VARIANTS).default("grid"),
 });
@@ -504,6 +509,7 @@ const availabilityCalendarProps = z.object({
 // server-side from the live rooms (display-only; booking always re-prices).
 const rateTableProps = z.object({
   heading,
+  eyebrow: z.string().max(120).optional(),
   note: z.string().max(300).optional(),
   ctaLabel: z.string().max(60).optional(),
 });

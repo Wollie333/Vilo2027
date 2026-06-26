@@ -385,6 +385,7 @@ export function SafariHighlights({
 
 /* ── SUITES (rooms_preview → real rooms) ────────────────────────────── */
 export function SafariSuites({
+  props,
   data,
   ctx,
 }: {
@@ -425,16 +426,18 @@ export function SafariSuites({
           }}
         >
           <div style={{ maxWidth: 560 }}>
-            <span className="eyebrow">Where you&apos;ll rest</span>
+            <span className="eyebrow">
+              {props.eyebrow || "Where you'll rest"}
+            </span>
             <h2
               className="display"
               style={{ marginTop: 22, fontSize: "clamp(2.2rem,4.4vw,3.6rem)" }}
             >
-              Three suites, one horizon
+              {props.heading || "Three suites, one horizon"}
             </h2>
           </div>
           <a href={roomsHref} className="link-u">
-            All suites &amp; rates {ARROW}
+            {props.ctaLabel || "All suites & rates"} {ARROW}
           </a>
         </div>
         <div className="suites-grid">
@@ -471,6 +474,7 @@ export function SafariSuites({
 
 /* ── GALLERY (mosaic) ───────────────────────────────────────────────── */
 export function SafariGallery({
+  props,
   data,
 }: {
   props: P<"gallery">;
@@ -485,12 +489,14 @@ export function SafariGallery({
     <section className="section">
       <div className="wrap">
         <div className="sec-head center">
-          <span className="eyebrow center no-rule">A look around</span>
+          <span className="eyebrow center no-rule">
+            {props.eyebrow || "A look around"}
+          </span>
           <h2
             className="display"
             style={{ marginTop: 18, fontSize: "clamp(2.2rem,4.4vw,3.4rem)" }}
           >
-            Moments from the reserve
+            {props.heading || "Moments from the reserve"}
           </h2>
         </div>
         <div className="gallery">
@@ -533,7 +539,7 @@ export function SafariReviews({
           style={{ alignItems: "center", marginBottom: 56 }}
         >
           <div>
-            <span className="eyebrow">Guest stays</span>
+            <span className="eyebrow">{props.eyebrow || "Guest stays"}</span>
             <h2
               className="display"
               style={{ marginTop: 22, fontSize: "clamp(2.2rem,4.4vw,3.4rem)" }}
@@ -558,7 +564,7 @@ export function SafariReviews({
                 ★★★★★
               </div>
               <p className="muted" style={{ marginTop: 8 }}>
-                {count} verified guest stays across four seasons
+                {props.subheading || `${count} verified guest stays`}
               </p>
             </div>
           </div>
@@ -1106,7 +1112,9 @@ export function SafariBlogPreview({
     <section className="section">
       <div className="wrap">
         <div className="sec-head center" style={{ marginBottom: 44 }}>
-          <span className="eyebrow center no-rule">From the field journal</span>
+          <span className="eyebrow center no-rule">
+            {props.eyebrow || "From the field journal"}
+          </span>
           <h2 className="display" style={{ marginTop: 18 }}>
             {props.heading || "Latest from the journal"}
           </h2>
@@ -1431,7 +1439,9 @@ export function SafariRateTable({
     <section className="section">
       <div className="wrap-narrow">
         <div className="sec-head center" style={{ marginBottom: 40 }}>
-          <span className="eyebrow center no-rule">Rates</span>
+          <span className="eyebrow center no-rule">
+            {props.eyebrow || "Rates"}
+          </span>
           <h2 className="display" style={{ marginTop: 18 }}>
             {props.heading || "Nightly rates"}
           </h2>
