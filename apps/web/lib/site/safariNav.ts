@@ -1,13 +1,34 @@
 import type { SafariNavLink } from "@/components/site/safari/SafariNav";
 
 import type {
+  SiteBrand,
+  SiteFooterColumn,
   SiteMenuItem,
   SiteMenuStyle,
   SiteNavItem,
   SiteNavigation,
+  SiteSocials,
 } from "./types";
 
-/** Everything the Safari header needs, resolved from the host's navigation. */
+/** A resolved social link for the footer (only configured ones are included). */
+export type SafariSocial = {
+  key: keyof SiteSocials;
+  href: string;
+  label: string;
+};
+
+/** The Safari footer model, resolved from the host's navigation + brand. */
+export type SafariFooterModel = {
+  /** Short brand blurb (brand tagline, else the design's default). */
+  blurb?: string | null;
+  /** Link columns — the host's footer columns, else a sensible default. */
+  columns: { heading?: string; links: SafariNavLink[] }[];
+  copyright?: string | null;
+  showPoweredBy: boolean;
+  socials: SafariSocial[];
+};
+
+/** Everything the Safari header + footer need, resolved from the host's config. */
 export type SafariNavData = {
   /** Top-level links (with one level of dropdown children), hrefs preview-aware. */
   links: SafariNavLink[];
@@ -15,6 +36,23 @@ export type SafariNavData = {
   bookLabel: string;
   showBook: boolean;
   bookColor?: string | null;
+  /** Header logo (real brand logo, with a light variant for the dark/transparent
+   *  nav); falls back to the monogram when absent or hidden. */
+  showLogo: boolean;
+  logoUrl?: string | null;
+  logoLightUrl?: string | null;
+  tagline?: string | null;
+  /** Resolved footer (columns, copyright, powered-by, socials). */
+  footer: SafariFooterModel;
+};
+
+const SOCIAL_LABEL: Record<keyof SiteSocials, string> = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  x: "X",
+  youtube: "YouTube",
+  linkedin: "LinkedIn",
+  website: "Website",
 };
 
 type Preview = { subdomain: string; themeSlug?: string };
@@ -59,6 +97,7 @@ function mapMenuItem(item: SiteMenuItem, preview?: Preview): SafariNavLink {
 export function buildSafariNav(ctx: {
   nav: SiteNavItem[];
   navigation: SiteNavigation;
+  brand: SiteBrand;
   preview: boolean;
   subdomain: string;
   previewThemeSlug?: string;
@@ -77,11 +116,71 @@ export function buildSafariNav(ctx: {
         }));
 
   const header = ctx.navigation.header ?? {};
+  const brand = ctx.brand;
+
+  // ── Footer ────────────────────────────────────────────────────────
+  const footerCfg = ctx.navigation.footer ?? {};
+  const cfgColumns = (footerCfg.columns ?? []).filter(
+    (c) => c.heading?.trim() || "" || (c.links?.length ?? 0) > 0,
+  );
+  // The Safari footer design has room for two link columns (brand · col · col ·
+  // newsletter), so cap there; the host can edit them in the footer builder.
+  const contactHref = links.find((l) => /contact/i.test(l.label))?.href;
+  const roomsHref = links.find((l) => /suite|room/i.test(l.label))?.href;
+  const columns: SafariFooterModel["columns"] = cfgColumns.length
+    ? cfgColumns.slice(0, 2).map((c: SiteFooterColumn) => ({
+        heading: c.heading,
+        links: (c.links ?? [])
+          .filter((l) => l.label?.trim())
+          .map((l) => ({ label: l.label, href: navHref(l.href, preview) })),
+      }))
+    : // Default: "Explore" (the menu) + "Visit" (reserve / getting here).
+      [
+        { heading: "Explore", links: links.slice(0, 5) },
+        {
+          heading: "Visit",
+          links: [
+            ...(roomsHref
+              ? [{ label: "Reserve a suite", href: roomsHref }]
+              : []),
+            ...(contactHref
+              ? [
+                  { label: "Getting here", href: contactHref },
+                  { label: "Transfers", href: contactHref },
+                ]
+              : []),
+          ],
+        },
+      ];
+
+  const socialEntries = Object.entries(brand.socials ?? {}) as [
+    keyof SiteSocials,
+    string | null | undefined,
+  ][];
+  const socials: SafariSocial[] = socialEntries
+    .filter(([, href]) => href && href.trim())
+    .map(([key, href]) => ({
+      key,
+      href: (href as string).trim(),
+      label: SOCIAL_LABEL[key],
+    }));
+
   return {
     links,
     menuStyle: ctx.navigation.menuStyle,
     bookLabel: header.ctaLabel?.trim() || "Reserve",
     showBook: header.showBookCta !== false,
     bookColor: header.bookCtaColor,
+    showLogo: header.showLogo !== false,
+    logoUrl: brand.logoUrl,
+    logoLightUrl: brand.logoLightUrl ?? brand.logoUrl,
+    tagline: brand.tagline,
+    footer: {
+      blurb: brand.tagline,
+      columns,
+      copyright: footerCfg.copyright,
+      showPoweredBy: footerCfg.showPoweredBy !== false,
+      socials,
+    },
   };
 }

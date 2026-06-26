@@ -14,6 +14,91 @@ import "./safari.css";
 // scroll-aware nav and the NenGama footer. Every Safari page renders its content
 // inside this so the frame is identical across the site.
 
+/** Footer social icons, keyed by the brand's social platforms. */
+const SOCIAL_ICONS: Record<string, ReactNode> = {
+  instagram: (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  facebook: (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    >
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  ),
+  x: (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L6 22H3l7.6-8.7L2.5 2H9l4.6 6.7L18.9 2Zm-1.1 18h1.8L7.3 4H5.4l12.4 16Z" />
+    </svg>
+  ),
+  youtube: (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    >
+      <path d="M22 12s0-3.2-.4-4.7a2.5 2.5 0 0 0-1.8-1.8C18.3 5 12 5 12 5s-6.3 0-7.8.5A2.5 2.5 0 0 0 2.4 7.3C2 8.8 2 12 2 12s0 3.2.4 4.7a2.5 2.5 0 0 0 1.8 1.8C5.7 19 12 19 12 19s6.3 0 7.8-.5a2.5 2.5 0 0 0 1.8-1.8C22 15.2 22 12 22 12Z" />
+      <path d="m10 15 5-3-5-3z" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  linkedin: (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="2" width="20" height="20" rx="3" />
+      <path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 0 1 4 0v4M11 13v4" />
+    </svg>
+  ),
+  website: (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
+    </svg>
+  ),
+};
+
 export function SafariShell({
   brandName,
   nav,
@@ -36,8 +121,12 @@ export function SafariShell({
   const monogram = (brandName.trim()[0] || "N").toUpperCase();
   const roomsHref =
     navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#";
-  const contactHref = navLinks.find((l) => /contact/i.test(l.label))?.href;
   const reserve = bookHref || roomsHref;
+  const foot = nav.footer;
+  const blurb =
+    foot.blurb?.trim() ||
+    "A luxury lodge on a private reserve. A handful of suites, the wild at your door, and a slower way to be in the world.";
+  const copyright = foot.copyright?.trim() || `© ${brandName} · South Africa`;
   const bar = previewPages && previewPages.length > 0;
   // Top padding for the solid-nav (checkout) pages, plus the preview bar height.
   const topPad = (solidNav ? 90 : 0) + (bar ? 44 : 0);
@@ -75,30 +164,22 @@ export function SafariShell({
           <div className="footer-top">
             <div>
               <span className="brand-name">{brandName}</span>
-              <p className="footer-blurb">
-                A luxury lodge on a private reserve. A handful of suites, the
-                wild at your door, and a slower way to be in the world.
-              </p>
+              <p className="footer-blurb">{blurb}</p>
             </div>
-            <div>
-              <div className="foot-head">Explore</div>
-              <div className="foot-col">
-                {navLinks.slice(0, 5).map((l) => (
-                  <a key={l.href + l.label} href={l.href}>
-                    {l.label}
-                  </a>
-                ))}
+            {foot.columns.map((col, i) => (
+              <div key={(col.heading ?? "") + i}>
+                {col.heading ? (
+                  <div className="foot-head">{col.heading}</div>
+                ) : null}
+                <div className="foot-col">
+                  {col.links.map((l) => (
+                    <a key={l.href + l.label} href={l.href}>
+                      {l.label}
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="foot-head">Visit</div>
-              <div className="foot-col">
-                {contactHref ? <a href={contactHref}>Getting here</a> : null}
-                {contactHref ? <a href={contactHref}>Transfers</a> : null}
-                <a href={reserve}>Reserve a suite</a>
-                {contactHref ? <a href={contactHref}>FAQ</a> : null}
-              </div>
-            </div>
+            ))}
             <div>
               <div className="foot-head">The reserve, in your inbox</div>
               <p className="footer-blurb" style={{ marginTop: 0 }}>
@@ -118,48 +199,31 @@ export function SafariShell({
             </div>
           </div>
           <div className="footer-bottom">
-            <span>© {brandName} · South Africa</span>
-            <span className="foot-vilo">
-              <svg width="15" height="15" viewBox="0 0 100 100" fill="none">
-                <rect width="100" height="100" rx="24" fill="#10B981" />
-                <path d="M50 66L26 32H38L50 50L62 32H74L50 66Z" fill="#fff" />
-              </svg>
-              Powered by Vilo · 0% booking fees
-            </span>
-            <div className="foot-socials">
-              <a href="#" aria-label="Instagram">
-                <svg
-                  width="17"
-                  height="17"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                >
-                  <rect x="2" y="2" width="20" height="20" rx="5" />
-                  <circle cx="12" cy="12" r="4" />
-                  <circle
-                    cx="17.5"
-                    cy="6.5"
-                    r="1"
-                    fill="currentColor"
-                    stroke="none"
-                  />
+            <span>{copyright}</span>
+            {foot.showPoweredBy ? (
+              <span className="foot-vilo">
+                <svg width="15" height="15" viewBox="0 0 100 100" fill="none">
+                  <rect width="100" height="100" rx="24" fill="#10B981" />
+                  <path d="M50 66L26 32H38L50 50L62 32H74L50 66Z" fill="#fff" />
                 </svg>
-              </a>
-              <a href="#" aria-label="Facebook">
-                <svg
-                  width="17"
-                  height="17"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                >
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-                </svg>
-              </a>
-            </div>
+                Powered by Vilo · 0% booking fees
+              </span>
+            ) : null}
+            {foot.socials.length > 0 ? (
+              <div className="foot-socials">
+                {foot.socials.map((s) => (
+                  <a
+                    key={s.key}
+                    href={s.href}
+                    aria-label={s.label}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {SOCIAL_ICONS[s.key]}
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </footer>
