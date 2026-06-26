@@ -2,7 +2,31 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-26, fresh-session checkpoint — Safari HOME is the GOLD STANDARD)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-26 — Safari is the COMPLETE reference theme; 2 small tasks left)
+
+**Branch:** `main` — working tree CLEAN, all work committed + PUSHED (latest `575f8f2`). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`; corrupts on big-refactor HMR → stop server, `rm -rf apps/web/.next`, free :3000, restart).
+
+**🔑 TEST FIXTURE:** `cd apps/web && pnpm seed:test-site` → host `host@vilotest.com` / `ViloTest123!`. Olive Grove Guesthouse (subdomain `vilotest`, theme = safari, PUBLISHED) + 3 rooms (Olive R1300 / Vineyard R1900 / Mountain Loft R2100). websiteId `0b999999-9999-4999-8999-999999999991`; home pageId `ffe05ac1-4cf4-402d-ab88-10b7e58aeacf`. **Preview a Safari page:** `/en/site/<slug>?site=vilotest&preview=1&theme=safari` (home = `/en/site?site=vilotest...`). **🟢 NEW: the Preview-MCP browser IS LOGGED IN as the test host — the BUILDER UI IS REACHABLE** at `/en/website-editor/<websiteId>/pages/<pageId>` + the nav managers at `/en/website-editor/<websiteId>/navigation/{header,menu,footer}`. Reseed page `draft_sections` / tweak settings directly via `node --env-file=.env.local` + `@supabase/supabase-js` service role. (Published sites read the frozen `published_snapshot` — set a value in BOTH `settings` + `published_snapshot` to test on the live, non-preview render; e.g. the pixel.)
+
+**✅ THE WHOLE SAFARI THEME IS NOW A FULLY FUNCTIONAL, EDITABLE, CONVERSION-TRACKED WEBSITE — the reference implementation to replay for every new theme.** This session shipped (all verified live, each its own commit):
+- **All pages pixel-perfect + section-driven** (home/about/suites/contact/journal index+article/checkout/thank-you) — builder canvas === live; bind real data (rooms/posts/contact/booking).
+- **Chrome data-driven + editable INLINE in the page builder** — header (real logo light/dark, tagline), footer (columns/copyright/powered-by/socials/newsletter), announcement top-bar; all from `navigation` + `brand`, click-to-select in the page-builder canvas (`SafariShell` `editable` prop + `ChromeEditWrap`).
+- **Nav managers render the REAL design + LIVE two-way binding** (`NavSectionEditor` + `MenuStudio` render the real `SafariShell` + a stock hero; edits show instantly; off-theme keeps the generic preview).
+- **Forms → conversion-goal thank-you** — per-form `goal` + `afterSubmit:page` default; `/thank-you/[[...goal]]` (enquiry/quote/subscribe/general), type-aware copy.
+- **Meta Pixel** — `SiteMarketing` now loads on Safari (was SiteChrome-only); `FirePurchase` fires dynamic Purchase (value/currency/ref) on the on-site booking thank-you; `FirePixelEvent` fires Lead/Subscribe on the goal thank-yous. Pixel-ID field already in Settings.
+- **Fixed: menu colour/hover now applies in EVERY nav state** (was solid-bar/drawer only → looked dead over the hero).
+
+**📋 THE PROCESS IS NOW A MEMORY: `theme-productionization-playbook` — every new theme FUNCTIONS identically (shared machinery); only the STYLING + which elements exist are scoped to that design. Replay the 6 slices: render-layer · pages · chrome · forms+thank-you · pixel · per-page-settings.**
+
+**▶▶ NEXT — 2 tasks left to finish the Safari reference (then it's "scope the design, reuse the engine" for new themes):**
+1. **Forms render ON Safari pages.** `renderSafariSection` doesn't dispatch the `form` block yet, and the Safari `contact_form` band (`SafariContactForm`) is a static placeholder (button `type=button`, no submit). So a host can't trigger the form→thank-you loop FROM a Safari page. Fix: dispatch `form` on Safari (Safari-styled `FormSection`) and/or wire `SafariContactForm` to POST `/api/website-enquiry` + redirect to `/thank-you/<goal>`.
+2. **Per-page Page-settings controls** (founder asks): a per-page **Pixel-event toggle** ("navigate to each page, choose whether/which event fires there") + a **custom head-code box** ("meta code in page settings"). Add to the page-settings panel (`PageSeoCard` area) + a per-page store (e.g. `seo_overrides` or a new field) + inject the head code on the live page. See [[safari-forms-pixel-todo]].
+
+**Memory pointers:** theme-productionization-playbook (the repeatable process) · safari-forms-pixel-todo (the 2 tasks above) · safari-theme-render-layer.
+
+---
+
+## ▶▶ EARLIER SAVE POINT (· Safari HOME gold standard)
 
 **Branch:** `main` — working tree CLEAN, all work committed + PUSHED (origin/main == local, latest `67fe239`). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`). Preview-managed dev server on :3000 (name `web`, serverId rotates). **`.next` corrupts on HMR after big refactors (`vendor-chunks`/`useContext`-null 500 OR a stale `ReferenceError` even when tsc/vitest are GREEN) — recover: stop the preview server, `rm -rf apps/web/.next`, free :3000 (`Stop-Process`), restart. Hit it 3× across recent sessions.**
 
