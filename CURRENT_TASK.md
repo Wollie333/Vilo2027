@@ -2,9 +2,24 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-26, ALL 6 Safari pages now section-driven)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-26, Safari editability audit pt.1–3 + full menu DONE)
 
-**Branch:** `main` — working tree CLEAN, all work committed (PUSH pending — run `git push`). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`). Preview-managed dev server on :3000 (name `web`). **`.next` corrupts on repeated HMR (the `vendor-chunks`/`useContext`-null 500 gotcha) — recover: stop the preview server, `rm -rf apps/web/.next`, free :3000 (`Stop-Process`), restart preview. Hit it twice this session; the home page 500'd until cleared.**
+**Branch:** `main` — working tree CLEAN, all work committed + PUSHED (origin/main == local, `3aa9f41`). tsc + lint + **131 vitest** GREEN.
+
+**✅ EDITABILITY AUDIT (founder directive "make every element in every section editable" + "full menu control"):**
+- **pt.1 (`ab782a7`/`e7659e4`)** — hero: two CTAs (primary+secondary, label/href/show toggles), editable+hideable STAT ROW (`stats` array), alignment left/center/right (band now honours it; home default fixed to left), intro "2009" badge editable+hideable. Inspector controls are theme-scoped (`SectionEditor` takes `themePreset` from PageBuilder; Safari extras gated on `isSafari`). Builder block-selection chrome re-tinted to the theme accent on `.vilo-safari` (was emerald — the "green hue").
+- **pt.2 (`89b1f6b`)** — exposed every remaining hardcoded section header: `rooms_preview` (band ignored its props — now uses eyebrow/heading/ctaLabel), `gallery`, `reviews` (eyebrow+subheading), `blog_preview`, `rate_table` all got `eyebrow`; inspector fields added per type (Safari-gated). All additive optional props w/ stock fallback (look unchanged until edited).
+- **pt.3 (`3aa9f41`) — FULL MENU CONTROL.** The Safari nav was a separate simplified path that ignored MenuStudio (flat page-derived links, no dropdowns/style/book control). New `buildSafariNav(ctx)` (`lib/site/safariNav.ts`) resolves the header from `ctx.navigation` (prefers the host menu, auto-rooms-expanded, one level of dropdowns, **preview-aware hrefs** so nav links finally work in preview). `SafariNav` rewritten: desktop hover dropdowns + mobile accordion, host menu style (weight/uppercase everywhere; link colour scoped to solid bar+drawer so it can't vanish over the hero), host book button (label/visibility/colour from `header.*`). Threaded through SafariShell + all 5 mount points (SitePageView, SiteRoomView, book, blog index+article). VERIFIED live: Rooms▾ dropdown shows real rooms.
+
+**▶▶ NEXT (audit remaining):** (1) the **Safari FOOTER is still hardcoded** (`SafariShell` — blurb, Explore/Visit columns, newsletter, socials, "Powered by") — give the host the same control (footer columns already exist in `navigation.footer`). (2) Hide **Safari-inert hero controls** (overlay/overlayColor/overlayOpacity do nothing — Safari uses the CSS `--hero-overlay`). (3) Logo: the Safari nav still shows a monogram+name, ignoring the host's logo image/`header.showLogo`/`logoStyle`.
+
+**Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`). Preview-managed dev server on :3000 (name `web`). **`.next` corrupts on repeated HMR (the `vendor-chunks`/`useContext`-null 500 gotcha) — recover: stop the preview server, `rm -rf apps/web/.next`, free :3000 (`Stop-Process`), restart preview. Hit it twice this session; the home page 500'd until cleared.**
+
+---
+
+### ▶▶ PRIOR SAVE POINT (· 2026-06-26, ALL 6 Safari pages now section-driven)
+
+**Branch:** `main` — tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`). Preview-managed dev server on :3000 (name `web`). **`.next` corrupts on repeated HMR (the `vendor-chunks`/`useContext`-null 500 gotcha) — recover: stop the preview server, `rm -rf apps/web/.next`, free :3000 (`Stop-Process`), restart preview. Hit it twice this session; the home page 500'd until cleared.**
 
 **✅ THIS SESSION — the Safari "make every page editable" epic is essentially DONE.** All 6 content pages now render PUBLICLY from their sections via `SafariSectionList` (live === builder), not hardcoded `Safari*Content`: **home** (was already done) + **about, rooms, contact, room-detail, rates** (this session) + **blog** (its own real-posts route, unchanged). Commits: `384fda7` (schema fix + About), `fb7ebe4` (Contact + Rooms), `78680ae` (room-detail), `ab782a7` (rate_table + SafariSiteView collapse). Each verified live in the Preview MCP.
 
