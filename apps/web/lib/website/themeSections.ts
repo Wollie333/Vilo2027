@@ -1801,6 +1801,21 @@ const safari = {
         "Tell us your dates and what you're hoping for — a guide will be in touch to shape your time in the bush.";
       s.props.variant = "split";
     }),
+  // ── Contact-page blocks (the bespoke NenGama Contact design) ──
+  contactHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Contact";
+      s.props.headline = "Let's plan your stay";
+      s.props.subheadline =
+        "Tell us who's travelling and when. A real person at the lodge replies within a day — often the same one who'll meet you at the gate.";
+    }),
+  contactMap: () =>
+    build("map", (s) => {
+      s.props.heading = "Find us";
+      s.props.address =
+        "NenGama Private Reserve · Waterberg Biosphere, Vaalwater, Limpopo";
+    }),
   faq: () =>
     build("faq", (s) => {
       s.props.heading = "Good to know";
@@ -1929,12 +1944,13 @@ const SAFARI_TEMPLATES: ThemeTemplate[] = [
   {
     key: "safari_contact",
     label: "Contact",
-    description: "Enquiry form, where to find you, good-to-know and a CTA.",
+    description:
+      "Page-header banner, enquiry form + details, a map and the good-to-know FAQ.",
     make: () => [
+      safari.contactHero(),
       safari.contactForm(),
-      safari.location(),
+      safari.contactMap(),
       safari.faq(),
-      safari.ctaBanner(),
     ],
   },
 ];

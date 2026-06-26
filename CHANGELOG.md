@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-26 — Safari Contact page: follow the original NenGama design (real details)
+
+The Contact page started straight into the form and used a location split. Rebuilt
+to the bespoke design, editable + bound to real contact data:
+
+- **Page-header banner** (compact hero) — "Let's plan your stay".
+- **Contact grid** — the existing `contact_form` band (form + detail card) already
+  matched; detail card binds to the host's REAL phone + email.
+- **Map** — new `SafariMap` band on the `map` type renders the `.map-ph` pin
+  placeholder + address tag (CSS already existed).
+- **FAQ** — the accordion (5 questions), unchanged.
+- `safari_contact` template = page-head · form+details · map · FAQ (dropped the
+  trailing CTA — the original ends on the FAQ). Reseeded vilotest.
+
+Verified live (desktop + 375px): page-head, contact grid with real phone/email,
+map pin + address tag, 5-question FAQ; grid collapses to 1 column on mobile, zero
+overflow. tsc + lint + 131 vitest green.
+
+---
+
 ## 2026-06-26 — Safari Suites page: follow the original NenGama design (real rooms)
 
 The Suites page used the home-style 3-card grid + a generic amenities grid.

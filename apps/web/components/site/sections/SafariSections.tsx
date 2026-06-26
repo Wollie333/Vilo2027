@@ -795,6 +795,21 @@ export function SafariLocation({
   );
 }
 
+/* ── MAP (placeholder pin — the Contact page) ───────────────────────── */
+export function SafariMap({ props }: { props: P<"map"> }) {
+  const tag = props.caption?.trim() || props.address?.trim() || "Find us";
+  return (
+    <section className="section-sm" style={{ paddingTop: 0 }}>
+      <div className="wrap">
+        <div className="map-ph">
+          <span className="map-pin" />
+          <div className="map-tag">📍 {tag}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ── CTA (band) ─────────────────────────────────────────────────────── */
 export function SafariCta({
   props,
@@ -1949,6 +1964,8 @@ export function renderSafariSection(
       return <SafariStats props={section.props} />;
     case "values":
       return <SafariValues props={section.props} />;
+    case "map":
+      return <SafariMap props={section.props} />;
     case "contact_form":
       return <SafariContactForm props={section.props} ctx={ctx} />;
     case "faq":
