@@ -146,6 +146,10 @@ export function SafariShell({
         brandName={brandName}
         monogram={monogram}
         tagline="Lodge · Direct booking"
+        showLogo={nav.showLogo}
+        logoUrl={nav.logoUrl}
+        logoLightUrl={nav.logoLightUrl}
+        logoMaxHeight={nav.logoMaxHeight}
         links={navLinks}
         bookHref={reserve}
         bookLabel={nav.bookLabel}

@@ -41,6 +41,7 @@ export type SafariNavData = {
   showLogo: boolean;
   logoUrl?: string | null;
   logoLightUrl?: string | null;
+  logoMaxHeight?: number | null;
   tagline?: string | null;
   /** Resolved footer (columns, copyright, powered-by, socials). */
   footer: SafariFooterModel;
@@ -174,6 +175,7 @@ export function buildSafariNav(ctx: {
     showLogo: header.showLogo !== false,
     logoUrl: brand.logoUrl,
     logoLightUrl: brand.logoLightUrl ?? brand.logoUrl,
+    logoMaxHeight: header.logoMaxHeight,
     tagline: brand.tagline,
     footer: {
       blurb: brand.tagline,

@@ -336,6 +336,12 @@
   gap: 13px;
   flex-shrink: 0;
 }
+.vilo-safari .brand-logo {
+  width: auto;
+  max-width: 220px;
+  display: block;
+  object-fit: contain;
+}
 .vilo-safari .brand-mark {
   width: 42px;
   height: 42px;

@@ -59,6 +59,10 @@ export function SafariNav({
   brandName,
   monogram,
   tagline,
+  showLogo = true,
+  logoUrl,
+  logoLightUrl,
+  logoMaxHeight,
   links,
   bookHref,
   bookLabel = "Reserve",
@@ -70,6 +74,12 @@ export function SafariNav({
   brandName: string;
   monogram: string;
   tagline?: string | null;
+  /** Real brand logo: a light variant for the transparent-over-hero state and a
+   *  standard one for the solid bar + drawer; falls back to the monogram. */
+  showLogo?: boolean;
+  logoUrl?: string | null;
+  logoLightUrl?: string | null;
+  logoMaxHeight?: number | null;
   links: SafariNavLink[];
   bookHref?: string | null;
   bookLabel?: string;
@@ -100,6 +110,13 @@ export function SafariNav({
 
   const styleCss = menuStyleCss(menuStyle);
   const homeHref = links[0]?.href || "#";
+  // Logo: light variant over the dark hero, standard variant on the solid bar +
+  // drawer. Falls back to the monogram when no logo / hidden.
+  const solid = forceSolid || scrolled;
+  const useLogo = showLogo && Boolean(logoLightUrl || logoUrl);
+  const headerLogo = solid ? logoUrl || logoLightUrl : logoLightUrl || logoUrl;
+  const solidLogo = logoUrl || logoLightUrl;
+  const logoH = logoMaxHeight || 38;
   const book = showBook && bookHref;
   const bookStyle = bookColor?.trim()
     ? { background: bookColor, borderColor: bookColor, color: "#fff" }
@@ -111,11 +128,23 @@ export function SafariNav({
       <header className={cls}>
         <div className="wrap nav-in">
           <a href={homeHref} className="brand">
-            <span className="brand-mark">{monogram}</span>
-            <span className="brand-name">
-              {brandName}
-              {tagline ? <small>{tagline}</small> : null}
-            </span>
+            {useLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className="brand-logo"
+                src={headerLogo as string}
+                alt={brandName}
+                style={{ height: logoH }}
+              />
+            ) : (
+              <>
+                <span className="brand-mark">{monogram}</span>
+                <span className="brand-name">
+                  {brandName}
+                  {tagline ? <small>{tagline}</small> : null}
+                </span>
+              </>
+            )}
           </a>
           <nav className="nav-links">
             {links.map((l) =>
@@ -209,8 +238,20 @@ export function SafariNav({
             className="brand"
             onClick={() => setMenuOpen(false)}
           >
-            <span className="brand-mark">{monogram}</span>
-            <span className="brand-name">{brandName}</span>
+            {useLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className="brand-logo"
+                src={solidLogo as string}
+                alt={brandName}
+                style={{ height: logoH }}
+              />
+            ) : (
+              <>
+                <span className="brand-mark">{monogram}</span>
+                <span className="brand-name">{brandName}</span>
+              </>
+            )}
           </a>
           <button
             type="button"
