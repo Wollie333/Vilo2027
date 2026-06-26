@@ -717,6 +717,19 @@
   display: flex;
   opacity: 0.85;
 }
+/* On a bespoke-theme canvas, tint the block selection chrome with the THEME's
+   accent (Safari = ochre) instead of the generic builder emerald, so the
+   selection outline/label doesn't clash with the design. `--accent` resolves
+   from the scoped theme (.vilo-safari) the blocks live inside. */
+.vilo-builder .vilo-safari .bk:hover::after {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.vilo-builder .vilo-safari .bk.sel::after {
+  border-color: var(--accent);
+}
+.vilo-builder .vilo-safari .bk-label {
+  background: var(--accent);
+}
 .vilo-builder .bk-tools {
   position: absolute;
   top: 8px;

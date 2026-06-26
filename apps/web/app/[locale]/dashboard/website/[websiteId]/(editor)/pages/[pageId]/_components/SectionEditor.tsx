@@ -48,10 +48,13 @@ export function SectionEditor({
   websiteId,
   section,
   onChange,
+  themePreset,
 }: {
   websiteId: string;
   section: WebsiteSection;
   onChange: (next: WebsiteSection) => void;
+  /** Active theme slug — gates theme-specific fields (e.g. Safari hero extras). */
+  themePreset?: string;
 }) {
   const t = useTranslations("website");
   const [tab, setTab] = useState<"content" | "style" | "advanced">("content");
@@ -95,6 +98,7 @@ export function SectionEditor({
           websiteId={websiteId}
           section={section}
           onChange={onChange}
+          themePreset={themePreset}
         />
       ) : tab === "style" ? (
         <div className="space-y-4">
@@ -464,12 +468,15 @@ function SectionFields({
   websiteId,
   section,
   onChange,
+  themePreset,
 }: {
   websiteId: string;
   section: WebsiteSection;
   onChange: (next: WebsiteSection) => void;
+  themePreset?: string;
 }) {
   const t = useTranslations("website");
+  const isSafari = themePreset === "safari";
 
   const layoutOptions: Array<{ value: Layout; label: string }> = [
     { value: "grid", label: t("layout_grid") },
@@ -511,9 +518,16 @@ function SectionFields({
             onChange={(path) => set({ image_path: path })}
             hint={t("fldBackgroundImageHint")}
           />
+          {isSafari ? (
+            <ToggleField
+              label={t("fldShowPrimaryCta")}
+              checked={p.show_cta !== false}
+              onChange={(v) => set({ show_cta: v })}
+            />
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField
-              label={t("fldCtaLabel")}
+              label={isSafari ? t("fldPrimaryCtaLabel") : t("fldCtaLabel")}
               value={p.cta_label ?? ""}
               onChange={(v) => set({ cta_label: v })}
               maxLength={60}
@@ -526,15 +540,77 @@ function SectionFields({
               hint={t("fldCtaHrefHint")}
             />
           </div>
+          {isSafari ? (
+            <>
+              <ToggleField
+                label={t("fldShowSecondaryCta")}
+                checked={p.show_cta2 !== false}
+                onChange={(v) => set({ show_cta2: v })}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField
+                  label={t("fldSecondaryCtaLabel")}
+                  value={p.cta2_label ?? ""}
+                  onChange={(v) => set({ cta2_label: v })}
+                  maxLength={60}
+                  hint={t("fldSecondaryCtaHint")}
+                />
+                <TextField
+                  label={t("fldCtaHref")}
+                  value={p.cta2_href ?? ""}
+                  onChange={(v) => set({ cta2_href: v })}
+                  maxLength={500}
+                  hint={t("fldCtaHrefHint")}
+                />
+              </div>
+            </>
+          ) : null}
           <SelectField
             label={t("fldAlign")}
             value={p.align}
             options={[
-              { value: "center", label: t("align_center") },
               { value: "left", label: t("align_left") },
+              { value: "center", label: t("align_center") },
+              { value: "right", label: t("align_right") },
             ]}
             onChange={(v) => set({ align: v })}
           />
+          {isSafari ? (
+            <div className="space-y-3 rounded-[10px] border border-brand-line bg-brand-light/30 p-3">
+              <ToggleField
+                label={t("fldShowStats")}
+                checked={p.show_stats !== false}
+                onChange={(v) => set({ show_stats: v })}
+              />
+              {p.show_stats !== false ? (
+                <ItemListEditor
+                  label={t("fldStats")}
+                  items={p.stats ?? []}
+                  onChange={(stats) => set({ stats })}
+                  blank={() => ({ value: "", label: "" })}
+                  addLabel={t("fldStatsAdd")}
+                  max={4}
+                  renderItem={(item, patch) => (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <TextField
+                        label={t("fldStatValue")}
+                        value={item.value ?? ""}
+                        onChange={(v) => patch({ value: v })}
+                        maxLength={60}
+                      />
+                      <TextField
+                        label={t("fldStatLabel")}
+                        value={item.label ?? ""}
+                        onChange={(v) => patch({ label: v })}
+                        maxLength={80}
+                      />
+                    </div>
+                  )}
+                />
+              ) : null}
+              <LiveNote>{t("fldStatsHint")}</LiveNote>
+            </div>
+          ) : null}
           <SelectField
             label={t("fldHeroLayout")}
             value={
@@ -669,6 +745,32 @@ function SectionFields({
             onChange={(path) => set({ image_path: path })}
             hint={t("fldImageHint")}
           />
+          {isSafari ? (
+            <div className="space-y-3 rounded-[10px] border border-brand-line bg-brand-light/30 p-3">
+              <ToggleField
+                label={t("fldShowBadge")}
+                checked={p.show_badge !== false}
+                onChange={(v) => set({ show_badge: v })}
+              />
+              {p.show_badge !== false ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <TextField
+                    label={t("fldBadgeValue")}
+                    value={p.badge_value ?? ""}
+                    onChange={(v) => set({ badge_value: v })}
+                    maxLength={40}
+                  />
+                  <TextField
+                    label={t("fldBadgeLabel")}
+                    value={p.badge_label ?? ""}
+                    onChange={(v) => set({ badge_label: v })}
+                    maxLength={80}
+                  />
+                </div>
+              ) : null}
+              <LiveNote>{t("fldBadgeHint")}</LiveNote>
+            </div>
+          ) : null}
           <SelectField
             label={t("fldVariant")}
             value={p.variant}

@@ -192,7 +192,25 @@ const heroProps = z.object({
   image_path: z.string().optional(),
   cta_label: z.string().max(60).optional(),
   cta_href: z.string().max(500).optional(),
-  align: z.enum(["left", "center"]).default("center"),
+  // Optional SECONDARY cta + per-cta visibility (used by the Safari hero, which
+  // ships two buttons). Additive — generic heroes ignore them.
+  cta2_label: z.string().max(60).optional(),
+  cta2_href: z.string().max(500).optional(),
+  show_cta: z.boolean().optional(),
+  show_cta2: z.boolean().optional(),
+  // Optional stat row beneath the hero (Safari "12,000 Hectares" etc.). When
+  // omitted the Safari band shows its stock stats; `show_stats:false` hides them.
+  stats: z
+    .array(
+      z.object({
+        value: z.string().max(60),
+        label: z.string().max(80).optional(),
+      }),
+    )
+    .max(4)
+    .optional(),
+  show_stats: z.boolean().optional(),
+  align: z.enum(["left", "center", "right"]).default("center"),
   variant: z.enum(HERO_VARIANTS).default("spotlight"),
   overlay: z.enum(HERO_OVERLAY).default("medium"),
   // Fine overlay control: a colour + opacity %. When set they override the
@@ -208,6 +226,11 @@ const introProps = z.object({
   eyebrow: z.string().max(120).optional(),
   body: z.string().max(4000),
   image_path: z.string().optional(),
+  // Optional stat badge over the image (Safari "2009 / Family-run since"). When
+  // omitted the Safari band shows its stock badge; `show_badge:false` hides it.
+  badge_value: z.string().max(40).optional(),
+  badge_label: z.string().max(80).optional(),
+  show_badge: z.boolean().optional(),
   variant: z.enum(INTRO_VARIANTS).default("centered"),
 });
 

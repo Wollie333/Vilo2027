@@ -1332,6 +1332,7 @@ export function PageBuilder({
                       websiteId={websiteId}
                       section={selected}
                       onChange={updateSection}
+                      themePreset={theme.preset}
                     />
                   </div>
                 </>

@@ -1617,7 +1617,16 @@ const safari = {
         "An unfenced lodge deep in the Waterberg — a handful of suites, wide skies, and the bush at your door.";
       s.props.cta_label = "Check availability";
       s.props.cta_href = "#book";
-      s.props.align = "center";
+      s.props.cta2_label = "Our story";
+      s.props.cta2_href = "/about";
+      s.props.stats = [
+        { value: "12,000", label: "Hectares" },
+        { value: "Big Five", label: "Free-roaming" },
+        { value: "4.98 ★★★★★", label: "214 guest stays" },
+      ];
+      // The NenGama home hero is left-aligned (the bespoke design); the host can
+      // switch to centre/right in the builder.
+      s.props.align = "left";
       s.props.variant = "fullscreen";
       s.props.overlay = "strong";
       s.props.textTone = "light";

@@ -5,6 +5,48 @@
 
 ---
 
+## 2026-06-26 — Safari hero/intro: editable CTAs, stat row, badge, alignment (audit pt.1)
+
+First slice of the per-page styling/editability audit — the founder flagged the
+Safari hero's "extra" theme elements as uneditable. Made them all host-editable
+(additive optional props, NO migration):
+
+- **Two hero CTAs.** The hero already rendered a primary + a hardcoded "Our story"
+  secondary; now both are configurable: `cta2_label`/`cta2_href` + `show_cta`/
+  `show_cta2` toggles. The band shows/hides each and uses the host's label/link.
+- **Hero stat row** ("12,000 Hectares" etc.) — new `stats` array (value + label,
+  ItemListEditor) + `show_stats` toggle. Falls back to the design's stock stats.
+- **Hero alignment** — `align` gained `"right"` (was left/center only); the Safari
+  band now HONOURS align via `hero--center`/`hero--right` CSS (it previously
+  ignored it). Fixed the home hero default to `left` (the bespoke NenGama design;
+  the template's `center` was a latent no-op) in `themeSections.heroFull`, which
+  also now seeds the secondary CTA + stats so new Safari sites are editable OOTB.
+- **Intro stat badge** ("2009 / Family-run since") — new `badge_value`/
+  `badge_label` + `show_badge` toggle on the intro band.
+
+These inspector controls are **theme-scoped**: `SectionEditor`/`SectionFields`
+now take `themePreset` (threaded from `PageBuilder`) and only show the Safari
+extras when `preset === "safari"`. New i18n keys (en) for all fields.
+
+**Builder selection chrome themed.** The selected-block outline/label used the
+generic builder emerald (`#10b981`), which clashed with the warm Safari canvas
+(the "greenish hue" the founder spotted — it's builder UI, not the published
+design). On a `.vilo-safari` canvas it now tints with the theme accent (ochre)
+via `builder.css`.
+
+Patched the vilotest home draft to match (align left, 2 CTAs, stats, badge) so
+the fixture shows the correct left-aligned design with populated, editable
+fields. Verified live: public home renders left-aligned with both CTAs
+("Check availability" + "Our story"), the stat row, and the 2009 badge. tsc +
+lint + 131 vitest green. (Builder inspector itself not browser-tested — needs the
+host login; code follows the existing field-component patterns.)
+
+NEXT (audit cont.): hide the Safari-inert hero overlay controls
+(overlay/overlayColor/overlayOpacity — Safari uses the CSS `--hero-overlay`);
+expose any remaining baked defaults (suites/gallery headings).
+
+---
+
 ## 2026-06-26 — Safari Rates page band + SafariSiteView collapse (all pages section-driven)
 
 Closes the Safari section-driven epic: every content page now renders from its

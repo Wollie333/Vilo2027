@@ -145,6 +145,13 @@ const STOCK_REVIEWS = [
 
 const STOCK_GALLERY = [IMG.g1, IMG.g2, IMG.g3, IMG.g4, IMG.g5, IMG.g6, IMG.g7];
 
+// Default hero stat row — shown until the host edits/hides it.
+const STOCK_HERO_STATS = [
+  { value: "12,000", label: "Hectares" },
+  { value: "Big Five", label: "Free-roaming" },
+  { value: "4.98 ★★★★★", label: "214 guest stays" },
+];
+
 const ARROW = (
   <svg
     width="16"
@@ -196,8 +203,36 @@ export function SafariHero({
 }) {
   const roomsHref = ctx?.roomsHref || "#suites";
   const aboutHref = ctx?.aboutHref;
+
+  // Primary CTA — shown unless explicitly hidden; label falls back to the design.
+  const showPrimary = props.show_cta !== false;
+  const primaryLabel = props.cta_label || "Explore the suites";
+  const primaryHref = props.cta_href?.trim() || roomsHref;
+
+  // Secondary CTA — host-set label/href, or the legacy "Our story" → About link
+  // for sites that haven't configured one yet. Hidden when show_cta2 === false.
+  const secondaryLabel =
+    props.cta2_label?.trim() || (aboutHref ? "Our story" : "");
+  const secondaryHref = props.cta2_href?.trim() || aboutHref || "#";
+  const showSecondary = props.show_cta2 !== false && secondaryLabel;
+
+  // Stat row — host-editable; falls back to the design's stock stats. Hidden
+  // entirely when show_stats === false.
+  const stats =
+    props.stats && props.stats.length
+      ? props.stats.filter((s) => s.value?.trim())
+      : STOCK_HERO_STATS;
+  const showStats = props.show_stats !== false && stats.length > 0;
+
+  const alignClass =
+    props.align === "center"
+      ? " hero--center"
+      : props.align === "right"
+        ? " hero--right"
+        : "";
+
   return (
-    <section className="hero">
+    <section className={`hero${alignClass}`}>
       <div className="hero-media">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={img(props.image_path, asset, IMG.hero)} alt="" />
@@ -213,37 +248,33 @@ export function SafariHero({
             {props.subheadline ||
               "A luxury retreat set on twelve thousand unfenced hectares of bushveld. A handful of suites, a handful of guests, and a horizon that belongs to no one."}
           </p>
-          <div className="hero-cta">
-            <a href={roomsHref} className="btn btn-primary btn-lg">
-              <span>{props.cta_label || "Explore the suites"}</span>
-            </a>
-            {aboutHref ? (
-              <a href={aboutHref} className="btn btn-on-dark btn-lg">
-                <span>Our story</span>
-              </a>
-            ) : null}
-          </div>
-          <div className="hero-meta">
-            <div className="hm">
-              <b>12,000</b>
-              <span>Hectares</span>
+          {showPrimary || showSecondary ? (
+            <div className="hero-cta">
+              {showPrimary ? (
+                <a href={primaryHref} className="btn btn-primary btn-lg">
+                  <span>{primaryLabel}</span>
+                </a>
+              ) : null}
+              {showSecondary ? (
+                <a href={secondaryHref} className="btn btn-on-dark btn-lg">
+                  <span>{secondaryLabel}</span>
+                </a>
+              ) : null}
             </div>
-            <div className="div" />
-            <div className="hm">
-              <b>Big Five</b>
-              <span>Free-roaming</span>
+          ) : null}
+          {showStats ? (
+            <div className="hero-meta">
+              {stats.map((s, i) => (
+                <Fragment key={s.value + i}>
+                  {i > 0 ? <div className="div" /> : null}
+                  <div className="hm">
+                    <b>{s.value}</b>
+                    {s.label ? <span>{s.label}</span> : null}
+                  </div>
+                </Fragment>
+              ))}
             </div>
-            <div className="div" />
-            <div className="hm">
-              <b>
-                4.98
-                <span className="stars" style={{ fontSize: 11, marginLeft: 6 }}>
-                  ★★★★★
-                </span>
-              </b>
-              <span>214 guest stays</span>
-            </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </section>
@@ -291,10 +322,12 @@ export function SafariIntro({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img(props.image_path, asset, IMG.intro)} alt="" />
             </div>
-            <div className="stat-badge" style={{ right: -12, bottom: -24 }}>
-              <b>2009</b>
-              <span>Family-run since</span>
-            </div>
+            {props.show_badge !== false ? (
+              <div className="stat-badge" style={{ right: -12, bottom: -24 }}>
+                <b>{props.badge_value || "2009"}</b>
+                <span>{props.badge_label || "Family-run since"}</span>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
