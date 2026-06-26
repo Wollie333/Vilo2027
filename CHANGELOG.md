@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-06-26 — Full per-device editing: every field, every Safari section (audit pt.7)
+
+Founder: "everything changeable on desktop should also be available in the laptop
+and mobile panes — full control of what shows on each screen, all sections, all
+pages." Generalised the per-device system from hero-only specific fields to a
+**generic per-section props override**:
+
+- **Schema:** `responsive.{laptop,mobile}` is now `{ hidden?, props?: <partial of
+  the section's own props> }` (loose record; additive, no migration). Replaces the
+  earlier hero-specific fields.
+- **Editor:** the Laptop/Mobile tabs now render the **same content form as
+  Desktop** (`ResponsiveDeviceFields` → `SectionFields` on a merged section).
+  Whatever the host changes is stored as an override — only the fields that DIFFER
+  from Desktop are kept, so untouched fields keep inheriting (and a later Desktop
+  edit still flows through). Plus the "hide on this screen" toggle.
+- **Render:** `SafariSectionList` renders a section once per screen size when it
+  has an override (each with its merged props, laptop⊃desktop, mobile⊃laptop),
+  wrapped in `.vilo-rdup-{desktop,laptop,mobile}` (`display:contents`) that the
+  responsive CSS shows for its range — Desktop >1024, Laptop 641–1024, Mobile
+  ≤640 — via both `@media` (live) and `@container` (builder frames). Sections with
+  only a hide flag still use the lightweight single-render `.vilo-rwrap`.
+- Reverted the hero's bespoke per-device code (RText/rimg/`hero--l/m-*`) — the
+  generic merge covers text/image/alignment. Kept `cta_stack` as a real hero prop
+  ("stack buttons") so it's editable on desktop AND per-device like everything
+  else. `SafariLightbox` now skips images in hidden duplicates so the gallery
+  count isn't padded.
+
+Verified live: set hero (mobile text + image + centre + stacked) and intro (mobile
+heading) overrides — at 375px the mobile values render; at laptop only the
+desktop-content copy shows (1 of 3 in DOM); zero horizontal overflow. tsc + lint +
+131 vitest green.
+
+NEXT: bring the device tabs to the generic (non-Safari) themes; the hardcoded
+Safari footer + nav logo. (Edge cases of duplicate-render — duplicate element ids,
+form duplication — are acceptable for now; noted.)
+
+---
+
 ## 2026-06-26 — Image-size hints + per-device hero text/button layout (audit pt.6)
 
 Two founder asks on top of the device tabs:

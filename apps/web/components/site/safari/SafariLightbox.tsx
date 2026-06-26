@@ -20,6 +20,10 @@ export function SafariLightbox() {
       document.querySelectorAll<HTMLImageElement>(
         ".vilo-safari .suite-hero img, .vilo-safari .gallery img, .vilo-safari .frame-img img, .vilo-safari [data-lb-src]",
       ),
+    ).filter(
+      // Skip images inside a hidden per-device duplicate (display:none → no box),
+      // so a responsive section's off-screen copies don't pad the gallery count.
+      (img) => img.offsetParent !== null || img.getClientRects().length > 0,
     );
     const list: Shot[] = [];
     els.forEach((img) => {

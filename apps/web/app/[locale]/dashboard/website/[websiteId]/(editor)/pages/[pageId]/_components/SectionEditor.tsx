@@ -116,6 +116,7 @@ export function SectionEditor({
           websiteId={websiteId}
           section={section}
           onChange={onChange}
+          themePreset={themePreset}
         />
       ) : activeTab === "content" ? (
         <SectionFields
@@ -485,97 +486,74 @@ function BlockStyleEditor({
 }
 
 /**
- * Per-device (Laptop / Mobile) overrides for a section — the Safari inspector's
- * device tabs. Lets the host HIDE the section on that screen and (where the band
- * supports it) swap its image. Empty = inherits the Desktop settings. Applied via
- * the responsive CSS (@media live + @container in the builder device frames).
+ * Per-device (Laptop / Mobile) editor — the Safari inspector's device tabs. Shows
+ * the SAME content form as Desktop, but every change is stored as an override for
+ * just this screen size (only the fields that differ from Desktop are kept, so
+ * untouched fields keep inheriting). Plus a "hide on this screen" toggle. Rendered
+ * per breakpoint via the responsive CSS (@media live + @container builder frames).
  */
 function ResponsiveDeviceFields({
   device,
   websiteId,
   section,
   onChange,
+  themePreset,
 }: {
   device: "laptop" | "mobile";
   websiteId: string;
   section: WebsiteSection;
   onChange: (next: WebsiteSection) => void;
+  themePreset?: string;
 }) {
   const t = useTranslations("website");
   const resp = section.responsive ?? {};
   const dev = resp[device] ?? {};
-  const setDev = (patch: {
-    hidden?: boolean;
-    image_path?: string;
-    headline?: string;
-    subheadline?: string;
-    align?: "left" | "center" | "right";
-    ctaStack?: boolean;
-  }) =>
+  const baseProps = section.props as Record<string, unknown>;
+  const override = (dev.props ?? {}) as Record<string, unknown>;
+  // The section as the host sees it on this device: desktop values + overrides.
+  const mergedSection = {
+    ...section,
+    props: { ...baseProps, ...override },
+  } as WebsiteSection;
+
+  const setHidden = (hidden: boolean) =>
     onChange({
       ...section,
-      responsive: { ...resp, [device]: { ...dev, ...patch } },
+      responsive: { ...resp, [device]: { ...dev, hidden } },
     } as WebsiteSection);
-  // The hero exposes per-device image / text / alignment / button layout.
-  const isHero = section.type === "hero";
+
+  // Store only the fields that differ from Desktop, so unchanged fields keep
+  // inheriting (and a later Desktop edit still flows through).
+  const onFieldsChange = (next: WebsiteSection) => {
+    const nextProps = next.props as Record<string, unknown>;
+    const diff: Record<string, unknown> = {};
+    for (const k of Object.keys(nextProps)) {
+      if (JSON.stringify(nextProps[k]) !== JSON.stringify(baseProps[k])) {
+        diff[k] = nextProps[k];
+      }
+    }
+    onChange({
+      ...section,
+      responsive: { ...resp, [device]: { ...dev, props: diff } },
+    } as WebsiteSection);
+  };
+
   return (
     <div className="space-y-4">
       <ToggleField
         label={t("fldHideOnDevice")}
         checked={!!dev.hidden}
-        onChange={(v) => setDev({ hidden: v })}
+        onChange={setHidden}
       />
-      {isHero ? (
-        <>
-          <ImageField
-            label={t("fldDeviceImage")}
-            websiteId={websiteId}
-            path={dev.image_path}
-            onChange={(path) => setDev({ image_path: path })}
-            hint={t(
-              device === "mobile" ? "imgHintHeroMobile" : "imgHintHeroLaptop",
-            )}
-          />
-          <TextField
-            label={t("fldHeadline")}
-            value={dev.headline ?? ""}
-            onChange={(v) => setDev({ headline: v })}
-            maxLength={200}
-            hint={t("fldDeviceTextHint")}
-          />
-          <TextArea
-            label={t("fldSubheadline")}
-            value={dev.subheadline ?? ""}
-            onChange={(v) => setDev({ subheadline: v })}
-            maxLength={400}
-            rows={2}
-          />
-          <SelectField
-            label={t("fldAlign")}
-            value={dev.align ?? "inherit"}
-            options={[
-              { value: "inherit", label: t("device_inherit") },
-              { value: "left", label: t("align_left") },
-              { value: "center", label: t("align_center") },
-              { value: "right", label: t("align_right") },
-            ]}
-            onChange={(v) =>
-              setDev({
-                align:
-                  v === "inherit"
-                    ? undefined
-                    : (v as "left" | "center" | "right"),
-              })
-            }
-          />
-          <ToggleField
-            label={t("fldStackButtons")}
-            checked={!!dev.ctaStack}
-            onChange={(v) => setDev({ ctaStack: v })}
-          />
-        </>
-      ) : null}
       <LiveNote>{t("responsiveDeviceNote")}</LiveNote>
+      {!dev.hidden ? (
+        <SectionFields
+          websiteId={websiteId}
+          section={mergedSection}
+          onChange={onFieldsChange}
+          themePreset={themePreset}
+        />
+      ) : null}
     </div>
   );
 }
@@ -685,6 +663,11 @@ function SectionFields({
                   hint={t("fldCtaHrefHint")}
                 />
               </div>
+              <ToggleField
+                label={t("fldStackButtons")}
+                checked={!!p.cta_stack}
+                onChange={(v) => set({ cta_stack: v })}
+              />
             </>
           ) : null}
           <SelectField

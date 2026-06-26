@@ -694,84 +694,54 @@
     display: none;
   }
 }
-/* Per-device hero background image swap. The band always renders all three
-   (with fall-back srcs) when an override exists, so the swap is gap-free. */
-.vilo-safari .hero-media .rimg {
+/* Per-device CONTENT override: the band is rendered once per screen size (each
+   with its merged props) and the matching copy is shown. Desktop > 1024px,
+   Laptop 641–1024px, Mobile ≤ 640px. Emitted for both @media (live site) AND
+   @container (the builder's device frames are size containers). */
+.vilo-safari .vilo-rdup {
+  display: contents;
+}
+.vilo-safari .vilo-rdup-laptop,
+.vilo-safari .vilo-rdup-mobile {
   display: none;
 }
-.vilo-safari .hero-media .rimg-desktop {
-  display: block;
-}
 @media (max-width: 1024px) {
-  .vilo-safari .hero-media .rimg-desktop {
+  .vilo-safari .vilo-rdup-desktop {
     display: none;
   }
-  .vilo-safari .hero-media .rimg-laptop {
-    display: block;
+}
+@media (min-width: 641px) and (max-width: 1024px) {
+  .vilo-safari .vilo-rdup-laptop {
+    display: contents;
   }
 }
 @media (max-width: 640px) {
-  .vilo-safari .hero-media .rimg-laptop {
-    display: none;
-  }
-  .vilo-safari .hero-media .rimg-mobile {
-    display: block;
+  .vilo-safari .vilo-rdup-mobile {
+    display: contents;
   }
 }
 @container (max-width: 1024px) {
-  .vilo-safari .hero-media .rimg-desktop {
+  .vilo-safari .vilo-rdup-desktop {
     display: none;
   }
-  .vilo-safari .hero-media .rimg-laptop {
-    display: block;
+}
+@container (min-width: 641px) and (max-width: 1024px) {
+  .vilo-safari .vilo-rdup-laptop {
+    display: contents;
   }
 }
 @container (max-width: 640px) {
-  .vilo-safari .hero-media .rimg-laptop {
-    display: none;
-  }
-  .vilo-safari .hero-media .rimg-mobile {
-    display: block;
+  .vilo-safari .vilo-rdup-mobile {
+    display: contents;
   }
 }
-/* Per-device hero TEXT swap (headline / subheadline reworded per screen). */
-.vilo-safari .rtext {
-  display: none;
+/* Hero buttons stacked full-width (props.cta_stack; per-device via the override). */
+.vilo-safari .hero.hero--stack .hero-cta {
+  flex-direction: column;
+  align-items: stretch;
 }
-.vilo-safari .rtext-desktop {
-  display: inline;
-}
-@media (max-width: 1024px) {
-  .vilo-safari .rtext-desktop {
-    display: none;
-  }
-  .vilo-safari .rtext-laptop {
-    display: inline;
-  }
-}
-@media (max-width: 640px) {
-  .vilo-safari .rtext-laptop {
-    display: none;
-  }
-  .vilo-safari .rtext-mobile {
-    display: inline;
-  }
-}
-@container (max-width: 1024px) {
-  .vilo-safari .rtext-desktop {
-    display: none;
-  }
-  .vilo-safari .rtext-laptop {
-    display: inline;
-  }
-}
-@container (max-width: 640px) {
-  .vilo-safari .rtext-laptop {
-    display: none;
-  }
-  .vilo-safari .rtext-mobile {
-    display: inline;
-  }
+.vilo-safari .hero.hero--stack .hero-cta .btn {
+  width: 100%;
 }
 /* Hero content alignment (host-controlled, all viewports). Left is the default.
    The h1/sub have a max-width, so they must be re-anchored with margin (text-align
@@ -800,192 +770,6 @@
 .vilo-safari .hero.hero--right .hero-cta,
 .vilo-safari .hero.hero--right .hero-meta {
   justify-content: flex-end;
-}
-/* Per-device hero ALIGNMENT + BUTTON STACK. Laptop = ≤1024, Mobile = ≤640;
-   each emitted for both @media (live) and @container (builder device frames). */
-@media (max-width: 1024px) {
-  .vilo-safari .hero.hero--l-left .hero-inner .wrap {
-    text-align: left;
-    margin-left: 0;
-  }
-  .vilo-safari .hero.hero--l-left .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--l-left .hero-inner .wrap .hero-sub {
-    margin-left: 0;
-    margin-right: auto;
-  }
-  .vilo-safari .hero.hero--l-left .hero-cta,
-  .vilo-safari .hero.hero--l-left .hero-meta {
-    justify-content: flex-start;
-  }
-  .vilo-safari .hero.hero--l-center .hero-inner .wrap {
-    text-align: center;
-    margin-inline: auto;
-  }
-  .vilo-safari .hero.hero--l-center .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--l-center .hero-inner .wrap .hero-sub {
-    margin-inline: auto;
-  }
-  .vilo-safari .hero.hero--l-center .hero-cta,
-  .vilo-safari .hero.hero--l-center .hero-meta {
-    justify-content: center;
-  }
-  .vilo-safari .hero.hero--l-right .hero-inner .wrap {
-    text-align: right;
-    margin-left: auto;
-  }
-  .vilo-safari .hero.hero--l-right .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--l-right .hero-inner .wrap .hero-sub {
-    margin-left: auto;
-  }
-  .vilo-safari .hero.hero--l-right .hero-cta,
-  .vilo-safari .hero.hero--l-right .hero-meta {
-    justify-content: flex-end;
-  }
-  .vilo-safari .hero.hero--l-stack .hero-cta {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .vilo-safari .hero.hero--l-stack .hero-cta .btn {
-    width: 100%;
-  }
-}
-@media (max-width: 640px) {
-  .vilo-safari .hero.hero--m-left .hero-inner .wrap {
-    text-align: left;
-    margin-left: 0;
-  }
-  .vilo-safari .hero.hero--m-left .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--m-left .hero-inner .wrap .hero-sub {
-    margin-left: 0;
-    margin-right: auto;
-  }
-  .vilo-safari .hero.hero--m-left .hero-cta,
-  .vilo-safari .hero.hero--m-left .hero-meta {
-    justify-content: flex-start;
-  }
-  .vilo-safari .hero.hero--m-center .hero-inner .wrap {
-    text-align: center;
-    margin-inline: auto;
-  }
-  .vilo-safari .hero.hero--m-center .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--m-center .hero-inner .wrap .hero-sub {
-    margin-inline: auto;
-  }
-  .vilo-safari .hero.hero--m-center .hero-cta,
-  .vilo-safari .hero.hero--m-center .hero-meta {
-    justify-content: center;
-  }
-  .vilo-safari .hero.hero--m-right .hero-inner .wrap {
-    text-align: right;
-    margin-left: auto;
-  }
-  .vilo-safari .hero.hero--m-right .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--m-right .hero-inner .wrap .hero-sub {
-    margin-left: auto;
-  }
-  .vilo-safari .hero.hero--m-right .hero-cta,
-  .vilo-safari .hero.hero--m-right .hero-meta {
-    justify-content: flex-end;
-  }
-  .vilo-safari .hero.hero--m-stack .hero-cta {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .vilo-safari .hero.hero--m-stack .hero-cta .btn {
-    width: 100%;
-  }
-}
-@container (max-width: 1024px) {
-  .vilo-safari .hero.hero--l-left .hero-inner .wrap {
-    text-align: left;
-    margin-left: 0;
-  }
-  .vilo-safari .hero.hero--l-left .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--l-left .hero-inner .wrap .hero-sub {
-    margin-left: 0;
-    margin-right: auto;
-  }
-  .vilo-safari .hero.hero--l-left .hero-cta,
-  .vilo-safari .hero.hero--l-left .hero-meta {
-    justify-content: flex-start;
-  }
-  .vilo-safari .hero.hero--l-center .hero-inner .wrap {
-    text-align: center;
-    margin-inline: auto;
-  }
-  .vilo-safari .hero.hero--l-center .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--l-center .hero-inner .wrap .hero-sub {
-    margin-inline: auto;
-  }
-  .vilo-safari .hero.hero--l-center .hero-cta,
-  .vilo-safari .hero.hero--l-center .hero-meta {
-    justify-content: center;
-  }
-  .vilo-safari .hero.hero--l-right .hero-inner .wrap {
-    text-align: right;
-    margin-left: auto;
-  }
-  .vilo-safari .hero.hero--l-right .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--l-right .hero-inner .wrap .hero-sub {
-    margin-left: auto;
-  }
-  .vilo-safari .hero.hero--l-right .hero-cta,
-  .vilo-safari .hero.hero--l-right .hero-meta {
-    justify-content: flex-end;
-  }
-  .vilo-safari .hero.hero--l-stack .hero-cta {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .vilo-safari .hero.hero--l-stack .hero-cta .btn {
-    width: 100%;
-  }
-}
-@container (max-width: 640px) {
-  .vilo-safari .hero.hero--m-left .hero-inner .wrap {
-    text-align: left;
-    margin-left: 0;
-  }
-  .vilo-safari .hero.hero--m-left .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--m-left .hero-inner .wrap .hero-sub {
-    margin-left: 0;
-    margin-right: auto;
-  }
-  .vilo-safari .hero.hero--m-left .hero-cta,
-  .vilo-safari .hero.hero--m-left .hero-meta {
-    justify-content: flex-start;
-  }
-  .vilo-safari .hero.hero--m-center .hero-inner .wrap {
-    text-align: center;
-    margin-inline: auto;
-  }
-  .vilo-safari .hero.hero--m-center .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--m-center .hero-inner .wrap .hero-sub {
-    margin-inline: auto;
-  }
-  .vilo-safari .hero.hero--m-center .hero-cta,
-  .vilo-safari .hero.hero--m-center .hero-meta {
-    justify-content: center;
-  }
-  .vilo-safari .hero.hero--m-right .hero-inner .wrap {
-    text-align: right;
-    margin-left: auto;
-  }
-  .vilo-safari .hero.hero--m-right .hero-inner .wrap h1,
-  .vilo-safari .hero.hero--m-right .hero-inner .wrap .hero-sub {
-    margin-left: auto;
-  }
-  .vilo-safari .hero.hero--m-right .hero-cta,
-  .vilo-safari .hero.hero--m-right .hero-meta {
-    justify-content: flex-end;
-  }
-  .vilo-safari .hero.hero--m-stack .hero-cta {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .vilo-safari .hero.hero--m-stack .hero-cta .btn {
-    width: 100%;
-  }
 }
 .vilo-safari .hero-inner {
   position: relative;

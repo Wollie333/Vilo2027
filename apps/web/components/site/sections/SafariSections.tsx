@@ -195,47 +195,18 @@ function initialsOf(name: string): string {
   );
 }
 
-/** Renders per-device text: the desktop value plus laptop/mobile variants that
- *  the responsive CSS swaps in at each breakpoint. Used for the hero headline /
- *  subheadline when the host overrides them per screen. */
-function RText({ d, l, m }: { d: string; l: string; m: string }) {
-  return (
-    <>
-      <span className="rtext rtext-desktop">{d}</span>
-      <span className="rtext rtext-laptop">{l}</span>
-      <span className="rtext rtext-mobile">{m}</span>
-    </>
-  );
-}
-
 /* ── HERO ───────────────────────────────────────────────────────────── */
 export function SafariHero({
   props,
   asset,
   ctx,
-  responsive,
 }: {
   props: P<"hero">;
   asset?: SiteAssetResolver;
   ctx?: SafariCtx;
-  responsive?: SectionResponsive;
 }) {
   const roomsHref = ctx?.roomsHref || "#suites";
   const aboutHref = ctx?.aboutHref;
-
-  // Per-device hero image. Desktop = the section image; laptop/mobile fall back
-  // to the next-larger when not overridden, so the CSS swap is gap-free. Only
-  // emit the extra <img>s when an override exists (no perf cost otherwise).
-  const desktopImg = img(props.image_path, asset, IMG.hero);
-  const laptopOverride = responsive?.laptop?.image_path;
-  const mobileOverride = responsive?.mobile?.image_path;
-  const laptopImg = laptopOverride
-    ? img(laptopOverride, asset, desktopImg)
-    : desktopImg;
-  const mobileImg = mobileOverride
-    ? img(mobileOverride, asset, laptopImg)
-    : laptopImg;
-  const hasResponsiveImg = Boolean(laptopOverride || mobileOverride);
 
   // Primary CTA — shown unless explicitly hidden; label falls back to the design.
   const showPrimary = props.show_cta !== false;
@@ -257,50 +228,22 @@ export function SafariHero({
       : STOCK_HERO_STATS;
   const showStats = props.show_stats !== false && stats.length > 0;
 
-  // Per-device hero TEXT (headline / subheadline). Laptop falls back to desktop,
-  // mobile to laptop, so a partial override still reads cleanly.
-  const dHead = props.headline || "Where the wild keeps its silence";
-  const lHeadOv = responsive?.laptop?.headline?.trim();
-  const mHeadOv = responsive?.mobile?.headline?.trim();
-  const lHead = lHeadOv || dHead;
-  const mHead = mHeadOv || lHead;
-  const dSub =
-    props.subheadline ||
-    "A luxury retreat set on twelve thousand unfenced hectares of bushveld. A handful of suites, a handful of guests, and a horizon that belongs to no one.";
-  const lSubOv = responsive?.laptop?.subheadline?.trim();
-  const mSubOv = responsive?.mobile?.subheadline?.trim();
-  const lSub = lSubOv || dSub;
-  const mSub = mSubOv || lSub;
-
-  // Section classes: base alignment + per-device alignment + per-device button
-  // stacking (the "button layout per screen" control).
-  const baseAlign =
-    props.align && props.align !== "left" ? ` hero--${props.align}` : "";
-  const lAlign = responsive?.laptop?.align
-    ? ` hero--l-${responsive.laptop.align}`
-    : "";
-  const mAlign = responsive?.mobile?.align
-    ? ` hero--m-${responsive.mobile.align}`
-    : "";
-  const lStack = responsive?.laptop?.ctaStack ? " hero--l-stack" : "";
-  const mStack = responsive?.mobile?.ctaStack ? " hero--m-stack" : "";
+  // Alignment + button stacking. All per-device variation comes from the
+  // responsive props override (the whole hero is re-rendered per breakpoint), so
+  // the band just reads its own props.
+  const alignClass =
+    props.align === "center"
+      ? " hero--center"
+      : props.align === "right"
+        ? " hero--right"
+        : "";
+  const stackClass = props.cta_stack ? " hero--stack" : "";
 
   return (
-    <section className={`hero${baseAlign}${lAlign}${mAlign}${lStack}${mStack}`}>
+    <section className={`hero${alignClass}${stackClass}`}>
       <div className="hero-media">
-        {hasResponsiveImg ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="rimg rimg-desktop" src={desktopImg} alt="" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="rimg rimg-laptop" src={laptopImg} alt="" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="rimg rimg-mobile" src={mobileImg} alt="" />
-          </>
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={desktopImg} alt="" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={img(props.image_path, asset, IMG.hero)} alt="" />
       </div>
       <div className="hero-inner">
         <div className="wrap">
@@ -308,15 +251,10 @@ export function SafariHero({
             {props.eyebrow ||
               `${ctx?.brandName ? `${ctx.brandName} · ` : ""}Private Reserve`}
           </span>
-          <h1>
-            {lHeadOv || mHeadOv ? (
-              <RText d={dHead} l={lHead} m={mHead} />
-            ) : (
-              dHead
-            )}
-          </h1>
+          <h1>{props.headline || "Where the wild keeps its silence"}</h1>
           <p className="hero-sub">
-            {lSubOv || mSubOv ? <RText d={dSub} l={lSub} m={mSub} /> : dSub}
+            {props.subheadline ||
+              "A luxury retreat set on twelve thousand unfenced hectares of bushveld. A handful of suites, a handful of guests, and a horizon that belongs to no one."}
           </p>
           {showPrimary || showSecondary ? (
             <div className="hero-cta">
@@ -1611,14 +1549,7 @@ export function renderSafariSection(
   const { data, asset, ctx } = opts;
   switch (section.type) {
     case "hero":
-      return (
-        <SafariHero
-          props={section.props}
-          asset={asset}
-          ctx={ctx}
-          responsive={section.responsive}
-        />
-      );
+      return <SafariHero props={section.props} asset={asset} ctx={ctx} />;
     case "intro":
       return <SafariIntro props={section.props} asset={asset} ctx={ctx} />;
     case "highlights":
@@ -1711,6 +1642,20 @@ export function renderSafariSection(
  * counterpart to the builder canvas, so live === builder. Section types without
  * a Safari band are skipped (the home template only uses mapped types).
  */
+/** True when a per-device override actually changes something (vs an empty bag). */
+function hasOverrideProps(o?: { props?: Record<string, unknown> }): boolean {
+  return !!o?.props && Object.keys(o.props).length > 0;
+}
+
+/** A section with a partial props override merged over its desktop props. */
+function withProps(
+  s: WebsiteSection,
+  override?: Record<string, unknown>,
+): WebsiteSection {
+  if (!override || Object.keys(override).length === 0) return s;
+  return { ...s, props: { ...s.props, ...override } } as WebsiteSection;
+}
+
 export function SafariSectionList({
   sections,
   data,
@@ -1722,27 +1667,67 @@ export function SafariSectionList({
   asset?: SiteAssetResolver;
   ctx?: SafariCtx;
 }) {
+  const render = (s: WebsiteSection) =>
+    renderSafariSection(s, { data, asset, ctx });
   return (
     <>
       {sections
         .filter((s) => s.enabled)
         .map((s) => {
-          const el = renderSafariSection(s, { data, asset, ctx });
-          if (el === undefined) return null;
-          // Per-device hide: a `display:contents` wrapper (transparent for layout)
-          // that the responsive CSS collapses to `display:none` at the laptop /
-          // mobile breakpoint when the host hides this section there.
-          const cls = [
-            "vilo-rwrap",
-            s.responsive?.laptop?.hidden ? "rh-laptop" : "",
-            s.responsive?.mobile?.hidden ? "rh-mobile" : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
+          const lap = s.responsive?.laptop;
+          const mob = s.responsive?.mobile;
+          const lapProps = hasOverrideProps(lap);
+          const mobProps = hasOverrideProps(mob);
+
+          // No per-device CONTENT override → render once. A per-device HIDE still
+          // works via the lightweight `.vilo-rwrap` wrapper (display:contents →
+          // none at the breakpoint), so we avoid duplicating the section's markup.
+          if (!lapProps && !mobProps) {
+            const el = render(s);
+            if (el === undefined) return null;
+            const cls = [
+              "vilo-rwrap",
+              lap?.hidden ? "rh-laptop" : "",
+              mob?.hidden ? "rh-mobile" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <div key={s.id} className={cls}>
+                {el}
+              </div>
+            );
+          }
+
+          // Per-device CONTENT override → render the whole band once per screen
+          // size (each with its merged props) and let the responsive CSS show the
+          // one that matches. Laptop inherits desktop, mobile inherits laptop.
+          const laptopProps = lapProps
+            ? { ...(s.props as Record<string, unknown>), ...lap!.props }
+            : undefined;
+          const mobileBase =
+            laptopProps ?? (s.props as Record<string, unknown>);
+          const mobileProps = mobProps
+            ? { ...mobileBase, ...mob!.props }
+            : undefined;
+          const desktopEl = render(s);
+          if (desktopEl === undefined) return null;
+          const laptopEl = lap?.hidden
+            ? null
+            : render(withProps(s, laptopProps));
+          const mobileEl = mob?.hidden
+            ? null
+            : render(withProps(s, mobileProps));
           return (
-            <div key={s.id} className={cls}>
-              {el}
-            </div>
+            <Fragment key={s.id}>
+              <div className="vilo-rdup vilo-rdup-desktop">{desktopEl}</div>
+              {laptopEl ? (
+                <div className="vilo-rdup vilo-rdup-laptop">{laptopEl}</div>
+              ) : null}
+              {mobileEl ? (
+                <div className="vilo-rdup vilo-rdup-mobile">{mobileEl}</div>
+              ) : null}
+            </Fragment>
           );
         })}
     </>

@@ -210,6 +210,9 @@ const heroProps = z.object({
     .max(4)
     .optional(),
   show_stats: z.boolean().optional(),
+  // Stack the two CTAs vertically + full-width (nicer on phones). Per-device via
+  // the responsive override like any other prop.
+  cta_stack: z.boolean().optional(),
   align: z.enum(["left", "center", "right"]).default("center"),
   variant: z.enum(HERO_VARIANTS).default("spotlight"),
   overlay: z.enum(HERO_OVERLAY).default("medium"),
@@ -778,16 +781,15 @@ const roomRateProps = z.object({
   variant: z.enum(ROOM_RATE_VARIANTS).default("card"),
 });
 
-// Per-device override bag (laptop/mobile). `hidden`/`image_path` apply to any
-// section; the hero also honours `headline`/`subheadline`/`align`/`ctaStack` so a
-// host can reword the hero and restack its buttons per screen. All optional.
+// Per-device override (laptop/mobile). `hidden` drops the section on that screen;
+// `props` is a partial of the SECTION'S OWN props — any field the host changes in
+// the Laptop/Mobile editor pane is stored here and merged over the desktop props
+// when rendering at that breakpoint. Unset fields inherit desktop. Stored as a
+// loose record (the editor writes well-formed values via the typed section form;
+// the band ignores any field it doesn't read).
 const responsiveDeviceOverride = z.object({
   hidden: z.boolean().optional(),
-  image_path: z.string().optional(),
-  headline: z.string().max(200).optional(),
-  subheadline: z.string().max(400).optional(),
-  align: z.enum(["left", "center", "right"]).optional(),
-  ctaStack: z.boolean().optional(),
+  props: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ── Section discriminated union ───────────────────────────────
