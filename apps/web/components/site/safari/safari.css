@@ -2388,7 +2388,11 @@
   .vilo-safari .nav-burger {
     display: block;
   }
-  .vilo-safari .split {
+  /* Collapse every split to one column — `.split.wide-img` (and `.reverse`) carry
+     a 2-col template at higher specificity, so they must be named here too. */
+  .vilo-safari .split,
+  .vilo-safari .split.wide-img,
+  .vilo-safari .split.reverse {
     grid-template-columns: 1fr;
     gap: 36px;
   }

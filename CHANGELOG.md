@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-26 — Safari pages QA pass: fix split columns not collapsing on mobile
+
+QA'd every Safari page template at mobile (375px) against the home gold standard
+(About / Rooms / Contact / Room-detail / Journal / Checkout). Found one real
+responsive bug: the `.split.wide-img` and `.split.reverse` blocks (intro,
+host-bio, conservation) stayed **2-column on mobile** — their 2-class template
+out-specified the single `.split` collapse rule, so they rendered as two ~157px
+columns. Named them in the ≤860px collapse so all split variants drop to one
+column. (Fixes About's intro + the home intro + any split-based section.)
+
+Everything else verified clean — no horizontal content overflow on any page (the
+preview bar's own scroll is separate); suites/amenity/exp/contact grids all stack
+to 1 column; the room-detail suite-hero keeps its main image full-width with
+thumbnails below; journal featured-post collapses. 131 vitest green.
+
+NEXT: continue finishing the Safari pages/sections, then header/nav/footer, then
+replicate the per-theme-scoped pattern to the other themes.
+
+---
+
 ## 2026-06-26 — Page settings: per-page SEO / featured (og:image) picker
 
 Page settings (the SEO card) showed a social-share preview but had no way to
