@@ -111,6 +111,8 @@ export async function SitePageView({
           kind={result.page.kind}
           pageTitle={result.page.title ?? undefined}
           sections={result.sections}
+          data={result.data}
+          asset={siteAsset}
           brandName={ctx.brand.name}
           navLinks={ctx.nav}
           bookHref={headerBookHref}

@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-26 — Unify the public Safari home with the builder (real rooms live)
+
+The builder rendered the home from the new section components (real rooms), but
+the PUBLIC/published home still used the old hardcoded `SafariHomeContent` (stock
+"Marula Suite"), so publishing diverged from the builder. Unified them:
+
+- New `SafariSectionList` (in SafariSections) renders an ordered section list in
+  the Safari design — the public-site counterpart to the builder canvas, so
+  live === builder.
+- `SafariSiteView` now takes the live `data` (rooms/gallery/reviews) + asset
+  resolver + a nav-derived `SafariCtx`, and renders the home via
+  `SafariSectionList`. Deleted the redundant hardcoded `SafariHomeContent` + its
+  stock constants (~520 lines) — the bands + stock fallbacks now live once in
+  SafariSections.
+- `SitePageView` threads `result.data` + `siteAsset` into the Safari branch.
+
+Verified live (preview): the public Safari home renders the real Olive Grove
+rooms (Olive Room R1 300 / Vineyard R1 900 / Mountain Loft R2 100) in the
+NenGama suite-card design, with all bands (hero/experiences/gallery/reviews/cta)
+driven by the page's sections. tsc + lint green.
+
+NEXT: the same section-driven unification for the other Safari pages (Rooms,
+Room-detail, Rates, About, Contact, Journal) — they still render hardcoded on
+the public site — plus Safari variants for their section types (amenities,
+pricing, contact_form, faq, rate_table).
+
+---
+
 ## 2026-06-26 — Safari builder: make the home bands' images + text editable
 
 Follow-up to the Safari-in-builder keystone — many elements in the Safari home

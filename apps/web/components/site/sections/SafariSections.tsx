@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
 import {
@@ -693,4 +693,32 @@ export function renderSafariSection(
     default:
       return undefined;
   }
+}
+
+/**
+ * Renders an ordered list of sections in the Safari design — the public-site
+ * counterpart to the builder canvas, so live === builder. Section types without
+ * a Safari band are skipped (the home template only uses mapped types).
+ */
+export function SafariSectionList({
+  sections,
+  data,
+  asset,
+  ctx,
+}: {
+  sections: WebsiteSection[];
+  data?: SiteData;
+  asset?: SiteAssetResolver;
+  ctx?: SafariCtx;
+}) {
+  return (
+    <>
+      {sections
+        .filter((s) => s.enabled)
+        .map((s) => {
+          const el = renderSafariSection(s, { data, asset, ctx });
+          return el === undefined ? null : <Fragment key={s.id}>{el}</Fragment>;
+        })}
+    </>
+  );
 }
