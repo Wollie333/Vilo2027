@@ -2,24 +2,22 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-27 PM #4 — RESPONSIVE PER-LINK MENU STYLING, slice 1 done; per-page rules NEXT)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-27 PM #4 — RESPONSIVE MENU CUSTOMIZATION COMPLETE; all 4 slices done)
 
-**Branch:** `main` — working tree CLEAN, all work committed + **PUSHED** (latest `3cdb9e8`, origin == local). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`).
+**Branch:** `main` — working tree CLEAN, all work committed + **PUSHED** (latest `5f60d48`, origin == local). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`).
 
-**FOUNDER DIRECTIVE (PM #4):** build responsive menu customization — **per-link (per-instance) styling + per-page rules, settable per screen size, live on the canvas** (like the page-builder responsive design). Chosen scope: per-link = colour/hover/text-size/weight/uppercase + background/pill; per-page = show/hide links + menu appearance per page + style overrides per page. (NOT "different links per page".)
+**FOUNDER DIRECTIVE (PM #4) — DONE:** responsive menu customization — **per-link (per-instance) styling + per-page rules, per screen size, live on the canvas** (like the page-builder responsive design). ALL FOUR SLICES SHIPPED + verified live (per-commit detail in CHANGELOG 2026-06-27 PM):
+- **Slice 1 (`3cdb9e8`) — per-link responsive styling (Safari).** Additive `style` on every menu link (`MenuItemStyle` = desktop base + `tablet`/`mobile` diff layers). Each link has an `mi-<id>` class; `menuItemStyleCss` in `SafariNav.tsx` emits per-item scoped CSS; builder-only **`previewDevice`** renders the active device's merged layer FLAT so the canvas previews each screen size instantly. Inspector "This link's style" (colour/hover/size/weight/uppercase + bg/pill), device-aware.
+- **Slice 2 (`5f60d48`) — per-link styling for GENERIC themes** (`SiteChrome.menuItemStyleCss`, `.vilo-hmenu a.mi-<id>`, MenuLink `mi-` class, `previewDevice`). Verified via classic-theme flip.
+- **Slice 3 (`cc008d8`) — per-page SHOW/HIDE links.** `hiddenOnPages?: string[]` on the item; `lib/site/menuPage.ts` (`pageKeyFor`/`filterMenuForPage`); `buildSafariNav(ctx, pageKey)` + `SiteChrome` `currentPageKey` filter by the current page; `SitePageView` computes it. Editor "Show on pages" checklist; canvas filters by the active backdrop page.
+- **Slice 4 (`fb3cf03`) — per-page APPEARANCE + STYLE overrides.** `navigation.perPage: Record<pageKey, MenuPageOverride>` (transparent/bgColor/colour/hover/fontSize), merged in `buildSafariNav` + `SiteChrome`. Layout tab "<page> — this page only" panel scoped to the active backdrop.
 
-**✅ SLICE 1 DONE (`3cdb9e8`) — per-link responsive styling on SAFARI, verified live:**
-- Additive `style` on every menu link (`menuLinkSchema` / `SiteMenuItem` `MenuItemStyle`) = a desktop base + `tablet`/`mobile` diff layers (stored diffs only; no migration).
-- `SafariNavLink`/`mapMenuItem` carry `id`+`style`; each link has an `mi-<id>` class; new `menuItemStyleCss` in `SafariNav.tsx` emits per-item scoped CSS. A builder-only **`previewDevice`** (threaded SafariNavCanvas→Shell→Nav from the device switcher) renders the ACTIVE device's merged layer FLAT so the canvas previews each screen size instantly (works around the `@media`-vs-real-viewport limitation).
-- Editor: the selected-link inspector has a device-aware **"This link's style"** section (MenuStudio, uses `device` + `setItemStyle`/`selLayer`). i18n `menuItemStyleTitle/Hint/Inherit/Bg/Pill`.
-- Verified: Contact → red+cream-bg+pill on desktop, blue on tablet; canvas reflected each device independently in real time.
+**KEY PATTERNS (reuse):** (1) per-device preview = pass `previewDevice`, emit the active device's merged style as FLAT CSS in the builder (no media query); live site keeps `@media`. (2) per-page = the backdrop **page switcher** (`NavBackdrop`, top bar) supplies the page key; `filterMenuForPage`/`navigation.perPage[key]` are the SSOT both chromes + the canvas share. (3) the canvas renders the SAME public components (SafariShell/SiteChrome) with the live editor nav.
 
-**▶▶ NEXT SLICES (the rest of the founder's request):**
-- **Slice 2 — generic-theme per-link styling** (SiteChrome `.vilo-hmenu a.mi-<id>` + `previewDevice`; MenuLink gets the `mi-` class). Lower priority (founder is on Safari).
-- **Slice 3 — per-page SHOW/HIDE links** (`hiddenOnPages?: string[]` on the item; filter at render by current page key; editor toggle scoped to the selected **backdrop page** — reuse the canvas page switcher). Higher value.
-- **Slice 4 — per-page menu APPEARANCE + STYLE overrides** (per-page transparent/solid + per-page menuStyle override; edited in the selected backdrop-page context).
-
-**KEY:** the per-device preview trick = pass `previewDevice` and emit the active device's merged style as FLAT CSS in the builder (no media query); the live site keeps `@media`. Reuse for slice 2 + any future responsive-in-canvas styling. The backdrop **page switcher** (`NavBackdrop`, top bar) gives the page dimension for per-page slices.
+**▶▶ NEXT (founder's call — the menu/nav builder is now very complete):**
+- **RESUME FORMS** (the parked bigger epic — EPIC 3+4 shipped earlier; new scope is the founder's to define).
+- **Start the SECOND theme** (replay [[theme-productionization-playbook]]); the nav builder + per-link/per-page machinery now work for any theme.
+- **Optional menu polish (low priority):** per-item styling on the GENERIC mobile drawer (SiteMobileMenu — currently inline-menu only for generic); per-page rules for room-detail pages (only the standard pages are in the backdrop/visibility list).
 
 ---
 
