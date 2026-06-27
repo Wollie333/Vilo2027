@@ -1646,7 +1646,9 @@ function BkBlock({
     <div
       ref={setNodeRef}
       style={style}
-      className={`bk${selected ? "sel" : ""}${isDragging ? "dragging" : ""}`}
+      className={["bk", selected ? "sel" : "", isDragging ? "dragging" : ""]
+        .filter(Boolean)
+        .join(" ")}
       onClick={onSelect}
     >
       <div className="bk-label">

@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-06-27 (PM) — Fix page builder block class-concat space bug
+
+- **`apps/web/app/[locale]/website-editor/[websiteId]/pages/[pageId]/PageBuilder.tsx`**
+  — the canvas block wrapper built its className via template literal without
+  spaces (`` `bk${selected ? "sel" : ""}${isDragging ? "dragging" : ""}` ``),
+  so a selected section rendered the single class `bksel` (and `bkdragging`
+  while dragging) — matching neither `.bk` nor `.bk.sel` in `builder.css`.
+  Effect: selected sections lost their persistent green outline, the
+  `.bk-label` type tag, and the `.bk-tools` hover toolbar; dragging blocks
+  lost their `.bk.dragging` opacity. Switched to the safe join pattern
+  `["bk", selected ? "sel" : "", isDragging ? "dragging" : ""].filter(Boolean).join(" ")`
+  per the CURRENT_TASK.md gotcha guidance. `tsc --noEmit` + `next lint` clean.
+
 ## 2026-06-27 (PM) — Website CMS open to all users (pre-MVP) + publish-indicator diagnosis
 
 **Founder directive:** every user must be able to access + create + publish
