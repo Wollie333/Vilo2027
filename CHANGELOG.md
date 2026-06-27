@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-06-27 (PM) — Website CMS open to all users (pre-MVP) + publish-indicator diagnosis
+
+**Founder directive:** every user must be able to access + create + publish
+websites with NO plan blockers for now; subscription/permission scoping comes
+later via products in admin. The website feature gate had been switched to
+fail-closed (`hostHasFeature` → `check_feature_permission`, deny on no active
+subscription), so a host without a subscription was locked out of the whole
+website CMS.
+
+- **`lib/products/featureGate.ts`** — `hostHasFeature` now short-circuits the
+  `website_*` family (`website_builder` / `website_blog` /
+  `website_custom_domain`) to `true` before the RPC. One edit opens every gate
+  that flows through it: the sidebar Website link, the portfolio page, BOTH
+  editor layouts (`dashboard/website/[id]/layout` + `website-editor/[id]/layout`
+  `WebsiteLocked`), every website server action (`assertWebsiteFeature` routes
+  through `hostHasFeature`), and listing visibility. Directory listing stays
+  gated. Trivially revertible (delete the `PRE_MVP_OPEN_FEATURES` block) when
+  product-based gating lands. Matches CLAUDE.md "Feature Permissions" pre-MVP
+  policy.
+
+**"Unpublished changes stays orange after Publish" — diagnosed, no code change
+needed.** Reproduced the publish flow live on vilotest (Safari) AND with the
+site flipped to `coastal`: in both cases Publish cleared the indicator to "All
+changes published". The publish/dirty machinery (`computeWebsiteDirty` vs
+`buildWebsiteSnapshot`) is idempotent even with this session's rich per-device
+nav data. The stuck-orange case was a site with `status = published` but a NULL
+`published_snapshot` (`computeWebsiteDirty` correctly reports that as dirty) — it
+only persists when the Publish itself fails, which it did under the fail-closed
+gate. Opening the gate (above) lets the publish run and write the snapshot,
+clearing the indicator.
+
 ## 2026-06-27 (PM) — Nav canvas resizes per screen size for GENERIC themes too
 
 Completes the previous entry's follow-up: the **generic (non-Safari) chrome**
