@@ -53,6 +53,11 @@ export type SafariNavData = {
   bgColor?: string | null;
   /** Background the transparent bar fades to on scroll. Blank → Safari paper. */
   scrolledBgColor?: string | null;
+  /** When the inline menu collapses to the ☰ drawer (header behaviour). */
+  menuCollapse: "mobile" | "tablet" | "never";
+  /** Logo lockup style (Elements): wordmark = name only, icon = mark only,
+   *  mark = mark + name; unset = the design default. */
+  logoStyle?: "wordmark" | "icon" | "mark" | null;
   menuStyle?: SiteMenuStyle | null;
   bookLabel: string;
   showBook: boolean;
@@ -204,6 +209,8 @@ export function buildSafariNav(ctx: {
     transparent: header.transparentOverHero !== false,
     bgColor: header.bgColor,
     scrolledBgColor: header.scrolledBgColor,
+    menuCollapse: header.menuCollapse ?? "mobile",
+    logoStyle: header.logoStyle,
     menuStyle: ctx.navigation.menuStyle,
     bookLabel: header.ctaLabel?.trim() || "Reserve",
     showBook: header.showBookCta !== false,

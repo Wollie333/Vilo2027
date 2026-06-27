@@ -76,6 +76,8 @@ export function SafariNav({
   sticky = true,
   bgColor,
   scrolledBgColor,
+  menuCollapse = "mobile",
+  logoStyle,
 }: {
   brandName: string;
   monogram: string;
@@ -104,6 +106,10 @@ export function SafariNav({
   bgColor?: string | null;
   /** Background the transparent bar fades to on scroll. Blank → Safari paper. */
   scrolledBgColor?: string | null;
+  /** Breakpoint at which the inline menu collapses to the ☰ drawer. */
+  menuCollapse?: "mobile" | "tablet" | "never";
+  /** Logo lockup style (Elements): wordmark/icon/mark; unset = design default. */
+  logoStyle?: "wordmark" | "icon" | "mark" | null;
 }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -127,6 +133,8 @@ export function SafariNav({
     // Non-sticky → un-pin the bar (CSS makes it absolute over the hero when
     // transparent, or in-flow when solid) so it scrolls away with the page.
     sticky ? "" : "nav-static",
+    // Where the inline menu collapses to the ☰ drawer (CSS media queries).
+    menuCollapse === "never" ? "" : `collapse-${menuCollapse}`,
   ]
     .filter(Boolean)
     .join(" ");
@@ -154,29 +162,52 @@ export function SafariNav({
     ? { background: bookColor, borderColor: bookColor, color: "#fff" }
     : undefined;
 
+  // Brand lockup honouring the Elements → logo style: wordmark = name only,
+  // icon = mark only (logo image, else the monogram circle), mark = mark + name.
+  // Unset = the design default (the logo image alone, else the monogram + name).
+  const renderBrandInner = (logoSrc?: string | null) => {
+    const nameEl = (
+      <span className="brand-name">
+        {brandName}
+        {tagline ? <small>{tagline}</small> : null}
+      </span>
+    );
+    const imgEl = logoSrc ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        className="brand-logo"
+        src={logoSrc}
+        alt={brandName}
+        style={{ height: logoH }}
+      />
+    ) : null;
+    const markEl = imgEl ?? <span className="brand-mark">{monogram}</span>;
+    if (logoStyle === "wordmark") return nameEl;
+    if (logoStyle === "icon") return markEl;
+    if (logoStyle === "mark")
+      return (
+        <>
+          {markEl}
+          {nameEl}
+        </>
+      );
+    return (
+      imgEl ?? (
+        <>
+          {markEl}
+          {nameEl}
+        </>
+      )
+    );
+  };
+
   return (
     <>
       {styleCss ? <style>{styleCss}</style> : null}
       <header className={`${cls} lay-${layout}`} style={headerStyle}>
         <div className="wrap nav-in">
           <a href={homeHref} className="brand">
-            {useLogo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className="brand-logo"
-                src={headerLogo as string}
-                alt={brandName}
-                style={{ height: logoH }}
-              />
-            ) : (
-              <>
-                <span className="brand-mark">{monogram}</span>
-                <span className="brand-name">
-                  {brandName}
-                  {tagline ? <small>{tagline}</small> : null}
-                </span>
-              </>
-            )}
+            {renderBrandInner(useLogo ? headerLogo : null)}
           </a>
           <nav className="nav-links">
             {links.map((l) =>
@@ -270,20 +301,7 @@ export function SafariNav({
             className="brand"
             onClick={() => setMenuOpen(false)}
           >
-            {useLogo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className="brand-logo"
-                src={solidLogo as string}
-                alt={brandName}
-                style={{ height: logoH }}
-              />
-            ) : (
-              <>
-                <span className="brand-mark">{monogram}</span>
-                <span className="brand-name">{brandName}</span>
-              </>
-            )}
+            {renderBrandInner(useLogo ? solidLogo : null)}
           </a>
           <button
             type="button"

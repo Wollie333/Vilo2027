@@ -229,6 +229,8 @@ export function SafariShell({
           sticky={headerFixed}
           bgColor={nav.bgColor}
           scrolledBgColor={nav.scrolledBgColor}
+          menuCollapse={nav.menuCollapse}
+          logoStyle={nav.logoStyle}
         />
       </ChromeEditWrap>
 

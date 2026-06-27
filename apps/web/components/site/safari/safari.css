@@ -525,6 +525,30 @@
   position: relative;
 }
 
+/* Menu collapse breakpoint (Behaviour: "collapse menu") — mirrors the generic
+   theme: `mobile` collapses to the ☰ drawer below 768px, `tablet` below 1024px,
+   `never` keeps the inline menu at every width. Below the breakpoint the inline
+   menu + header book button hide and the burger appears (the drawer carries the
+   book). `lay-minimal` always uses the drawer regardless (its own rule above). */
+@media (max-width: 767.98px) {
+  .vilo-safari .nav.collapse-mobile .nav-links,
+  .vilo-safari .nav.collapse-mobile .nav-right .btn {
+    display: none;
+  }
+  .vilo-safari .nav.collapse-mobile .nav-burger {
+    display: block;
+  }
+}
+@media (max-width: 1023.98px) {
+  .vilo-safari .nav.collapse-tablet .nav-links,
+  .vilo-safari .nav.collapse-tablet .nav-right .btn {
+    display: none;
+  }
+  .vilo-safari .nav.collapse-tablet .nav-burger {
+    display: block;
+  }
+}
+
 /* When the shared preview bar is present, the fixed header drops below it. */
 .vilo-safari.pre .nav {
   top: 44px;
@@ -2491,13 +2515,6 @@
   }
 }
 @media (max-width: 860px) {
-  .vilo-safari .nav-links,
-  .vilo-safari .nav-right .btn {
-    display: none;
-  }
-  .vilo-safari .nav-burger {
-    display: block;
-  }
   /* Collapse every split to one column — `.split.wide-img` (and `.reverse`) carry
      a 2-col template at higher specificity, so they must be named here too. */
   .vilo-safari .split,
