@@ -2,9 +2,14 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-27 PM #4 — RESPONSIVE MENU CUSTOMIZATION COMPLETE; all 4 slices done)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-27 PM #4 — RESPONSIVE MENU CUSTOMIZATION COMPLETE + 3 founder follow-ups)
 
-**Branch:** `main` — working tree CLEAN, all work committed + **PUSHED** (latest `5f60d48`, origin == local). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`).
+**Branch:** `main` — working tree CLEAN, all work committed + **PUSHED** (latest `ae6f638`, origin == local). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`).
+
+**✅ 3 FOUNDER FOLLOW-UPS DONE (on top of the 4 slices below):**
+- **THE STANDARD is recorded** (`fb81f9b`) — `THEME_CONTRACT.md` → "Menu / nav customization standard" + memory [[nav-builder-standard]]. **Every future theme must comply:** real-canvas preview · per-device · per-link · per-page · two-state colours · reset-to-default. Build all nav/menu work to this shape.
+- **Two-state colours** (`fb81f9b`) — transparent-over-hero headers carry an over-hero colour AND a scrolled colour. `menuStyle.scrolledColor`/`scrolledHoverColor` + per-page `scrolledColor`; Safari renders scrolled under `.nav.solid` (wins by specificity). Style tab + per-page panel show the scrolled fields when transparent. Verified: over-hero white → red on scroll.
+- **Reset-to-theme-default** (`ae6f638`) — colours (✕)/size/weight already cleared; added ✕ to the toggles (`CheckRow.onReset`) + a "↺ Reset to theme default" button per style group (per-link / global Style tab / per-page). Verified: per-link red → theme white.
 
 **FOUNDER DIRECTIVE (PM #4) — DONE:** responsive menu customization — **per-link (per-instance) styling + per-page rules, per screen size, live on the canvas** (like the page-builder responsive design). ALL FOUR SLICES SHIPPED + verified live (per-commit detail in CHANGELOG 2026-06-27 PM):
 - **Slice 1 (`3cdb9e8`) — per-link responsive styling (Safari).** Additive `style` on every menu link (`MenuItemStyle` = desktop base + `tablet`/`mobile` diff layers). Each link has an `mi-<id>` class; `menuItemStyleCss` in `SafariNav.tsx` emits per-item scoped CSS; builder-only **`previewDevice`** renders the active device's merged layer FLAT so the canvas previews each screen size instantly. Inspector "This link's style" (colour/hover/size/weight/uppercase + bg/pill), device-aware.
