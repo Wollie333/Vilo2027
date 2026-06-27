@@ -80,6 +80,48 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
     rules.push(
       `.vilo-safari .nav-dd-menu a:hover,.vilo-safari .mnav-sub a:hover{color:${subHover}}`,
     );
+  // Desktop top-level link size (inline menu only — the drawer has its own size).
+  if (typeof style.fontSize === "number")
+    rules.push(`.vilo-safari .nav-links a{font-size:${style.fontSize}px}`);
+
+  // ── Tablet override — the inline menu at tablet widths (≤1024px). Only the
+  //    fields the host changed for tablet; everything else inherits desktop. ──
+  const tb = style.tablet;
+  if (tb) {
+    const tr: string[] = [];
+    if (tb.color?.trim()) tr.push(`color:${tb.color.trim()}`);
+    if (typeof tb.fontSize === "number") tr.push(`font-size:${tb.fontSize}px`);
+    if (tb.weight) tr.push(`font-weight:${WEIGHT[tb.weight]}`);
+    if (tb.uppercase !== undefined)
+      tr.push(`text-transform:${tb.uppercase ? "uppercase" : "none"}`);
+    const parts: string[] = [];
+    if (tr.length) parts.push(`.vilo-safari .nav-links a{${tr.join(";")}}`);
+    if (tb.hoverColor?.trim())
+      parts.push(
+        `.vilo-safari .nav-links a:hover{color:${tb.hoverColor.trim()}}`,
+      );
+    if (parts.length)
+      rules.push(`@media (max-width:1024px){${parts.join("")}}`);
+  }
+
+  // ── Mobile override — the ☰ drawer / overlay. Its own background + link
+  //    styling, independent of the desktop inline menu. ──
+  const mb = style.mobile;
+  if (mb) {
+    if (mb.overlayBg?.trim())
+      rules.push(`.vilo-safari .mnav{background:${mb.overlayBg.trim()}}`);
+    const mr: string[] = [];
+    if (mb.color?.trim()) mr.push(`color:${mb.color.trim()}`);
+    if (typeof mb.fontSize === "number") mr.push(`font-size:${mb.fontSize}px`);
+    if (mb.weight) mr.push(`font-weight:${WEIGHT[mb.weight]}`);
+    if (mb.uppercase !== undefined)
+      mr.push(`text-transform:${mb.uppercase ? "uppercase" : "none"}`);
+    if (mr.length) rules.push(`.vilo-safari .mnav-links a{${mr.join(";")}}`);
+    if (mb.hoverColor?.trim())
+      rules.push(
+        `.vilo-safari .mnav-links a:hover{color:${mb.hoverColor.trim()}}`,
+      );
+  }
   return rules.join("");
 }
 

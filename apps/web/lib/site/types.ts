@@ -76,11 +76,23 @@ export type SiteFooterColumn = {
   links: SiteMenuItem[];
 };
 /** Optional styling for the header menu (the Style tab). */
+/** Per-device override (tablet/mobile) — only the differing fields are stored.
+ *  Optional strings (no null) to match the Zod-inferred builder type. */
+export type SiteMenuDeviceStyle = {
+  color?: string;
+  hoverColor?: string;
+  weight?: "normal" | "medium" | "semibold" | "bold";
+  uppercase?: boolean;
+  fontSize?: number;
+};
+
 export type SiteMenuStyle = {
   color?: string | null;
   hoverColor?: string | null;
   weight?: "normal" | "medium" | "semibold" | "bold";
   uppercase?: boolean;
+  /** Top-level link size (px). */
+  fontSize?: number;
   /** Menu alignment within its header slot. */
   align?: "start" | "center" | "end";
   /** Sub-menu (dropdown) styling — separate from the top-level links. */
@@ -89,6 +101,10 @@ export type SiteMenuStyle = {
   submenuBg?: string | null;
   /** Layout: horizontal spacing between top-level links (px). */
   itemGap?: number;
+  /** Per-device overrides scoped to screen size (mirrors the page builder). */
+  tablet?: SiteMenuDeviceStyle;
+  /** Mobile = the ☰ drawer / overlay (its own background + link styling). */
+  mobile?: SiteMenuDeviceStyle & { overlayBg?: string };
 };
 export type SiteNavigation = {
   /** Explicit header menu; when empty the page-derived nav is used. */

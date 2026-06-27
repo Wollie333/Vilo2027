@@ -615,13 +615,27 @@ export const menuItemSchema = menuLinkSchema.extend({
   hiddenRoomIds: z.array(z.string()).max(200).optional(),
 });
 
+// Per-device menu-style override (tablet / mobile). All optional — only the
+// fields that DIFFER from the desktop base are stored, mirroring the page
+// builder's responsive overrides; unset fields inherit the desktop values.
+const menuDeviceStyleSchema = z.object({
+  color: z.string().trim().max(40).optional(),
+  hoverColor: z.string().trim().max(40).optional(),
+  weight: z.enum(["normal", "medium", "semibold", "bold"]).optional(),
+  uppercase: z.boolean().optional(),
+  fontSize: z.number().int().min(8).max(48).optional(),
+});
+
 /** Optional menu styling (the Style tab) — applied to the header menu. */
 export const menuStyleSchema = z
   .object({
+    // ── Desktop base ──
     color: z.string().trim().max(40).optional(),
     hoverColor: z.string().trim().max(40).optional(),
     weight: z.enum(["normal", "medium", "semibold", "bold"]).default("medium"),
     uppercase: z.boolean().default(false),
+    // Top-level link size (px). Blank → theme default.
+    fontSize: z.number().int().min(8).max(40).optional(),
     // Where the menu sits within its slot in the header (the menu builder's
     // Layout "alignment" control).
     align: z.enum(["start", "center", "end"]).default("start"),
@@ -632,6 +646,13 @@ export const menuStyleSchema = z
     submenuBg: z.string().trim().max(40).optional(),
     // Layout: horizontal spacing between top-level links (px). Blank → theme.
     itemGap: z.number().int().min(4).max(64).optional(),
+    // ── Per-device overrides (scoped to screen size) ──
+    // Tablet — the inline menu at tablet widths (only diffs from desktop).
+    tablet: menuDeviceStyleSchema.optional(),
+    // Mobile — the ☰ drawer / overlay (its own bg + link styling).
+    mobile: menuDeviceStyleSchema
+      .extend({ overlayBg: z.string().trim().max(40).optional() })
+      .optional(),
   })
   .default({ weight: "medium", uppercase: false, align: "start" });
 

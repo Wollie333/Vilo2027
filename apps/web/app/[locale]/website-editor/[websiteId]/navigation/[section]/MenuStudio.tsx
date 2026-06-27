@@ -23,7 +23,11 @@ import { SortableList } from "@/app/[locale]/dashboard/website/[websiteId]/(edit
 import { SafariHero } from "@/components/site/sections/SafariSections";
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
-import type { SiteBrand, SiteMenuItem } from "@/lib/site/types";
+import type {
+  SiteBrand,
+  SiteMenuDeviceStyle,
+  SiteMenuItem,
+} from "@/lib/site/types";
 import { newSection } from "@/lib/website/sectionDefaults";
 
 type Device = "desktop" | "tablet" | "phone";
@@ -284,6 +288,22 @@ export function MenuStudio({
   }
 
   const ms = nav.menuStyle ?? {};
+  // Device-scoped styling (page-builder pattern): the top-bar device switcher
+  // selects which layer the Style tab edits — desktop base, the tablet override,
+  // or the mobile drawer. Only the fields that DIFFER from desktop are stored.
+  const devLayer: SiteMenuDeviceStyle & { overlayBg?: string } =
+    device === "tablet"
+      ? (ms.tablet ?? {})
+      : device === "phone"
+        ? (ms.mobile ?? {})
+        : ms;
+  const setDeviceStyle = (patch: Partial<SiteMenuDeviceStyle>) => {
+    if (device === "tablet")
+      setMenuStyle({ tablet: { ...(ms.tablet ?? {}), ...patch } });
+    else if (device === "phone")
+      setMenuStyle({ mobile: { ...(ms.mobile ?? {}), ...patch } });
+    else setMenuStyle(patch);
+  };
 
   return (
     <>
@@ -359,28 +379,39 @@ export function MenuStudio({
             </div>
           ) : tab === "style" ? (
             <div className="insp-sec space-y-3">
-              <GroupLabel>{t("menuStyleTopGroup")}</GroupLabel>
+              {/* Which device am I styling? (driven by the top-bar device switcher) */}
+              <div className="rounded-[8px] bg-brand-light/60 px-2.5 py-2 text-[11.5px] leading-snug text-brand-mute">
+                <span className="font-semibold text-brand-ink">
+                  {t(`menuStyleDevice_${device}`)}
+                </span>
+                {device === "desktop"
+                  ? ` · ${t("menuStyleDeviceBase")}`
+                  : ` · ${t("menuStyleDeviceInherit")}`}
+              </div>
+              <GroupLabel>
+                {device === "phone"
+                  ? t("menuStyleOverlayGroup")
+                  : t("menuStyleTopGroup")}
+              </GroupLabel>
               <ColorField
                 label={t("menuStyleColor")}
-                value={ms.color ?? ""}
-                onChange={(v) => setMenuStyle({ color: v })}
+                value={devLayer.color ?? ""}
+                onChange={(v) => setDeviceStyle({ color: v || undefined })}
               />
               <ColorField
                 label={t("menuStyleHover")}
-                value={ms.hoverColor ?? ""}
-                onChange={(v) => setMenuStyle({ hoverColor: v })}
+                value={devLayer.hoverColor ?? ""}
+                onChange={(v) => setDeviceStyle({ hoverColor: v || undefined })}
               />
               <label className="block">
                 <span className="block text-[12.5px] font-semibold text-brand-ink">
                   {t("menuStyleWeight")}
                 </span>
                 <select
-                  value={ms.weight ?? "medium"}
+                  value={devLayer.weight ?? ms.weight ?? "medium"}
                   onChange={(e) =>
-                    setMenuStyle({
-                      weight: e.target.value as NonNullable<
-                        NavigationConfig["menuStyle"]
-                      >["weight"],
+                    setDeviceStyle({
+                      weight: e.target.value as SiteMenuDeviceStyle["weight"],
                     })
                   }
                   className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
@@ -393,34 +424,60 @@ export function MenuStudio({
               </label>
               <CheckRow
                 label={t("menuStyleUppercase")}
-                checked={ms.uppercase ?? false}
-                onChange={(v) => setMenuStyle({ uppercase: v })}
+                checked={devLayer.uppercase ?? ms.uppercase ?? false}
+                onChange={(v) => setDeviceStyle({ uppercase: v })}
+              />
+              <RangeField
+                label={t("menuStyleSize")}
+                value={devLayer.fontSize}
+                fallback={device === "phone" ? 26 : 12}
+                min={device === "phone" ? 16 : 9}
+                max={device === "phone" ? 48 : 22}
+                onChange={(n) => setDeviceStyle({ fontSize: n })}
               />
 
-              {/* Sub-menu (dropdown) styling — separate from the top-level links. */}
-              <div className="mt-1 border-t border-brand-line pt-3">
-                <GroupLabel>{t("menuStyleSubGroup")}</GroupLabel>
-                <p className="mb-2 text-[11.5px] text-brand-mute">
-                  {t("menuStyleSubHint")}
-                </p>
-                <div className="space-y-3">
-                  <ColorField
-                    label={t("menuStyleSubColor")}
-                    value={ms.submenuColor ?? ""}
-                    onChange={(v) => setMenuStyle({ submenuColor: v })}
-                  />
-                  <ColorField
-                    label={t("menuStyleSubHover")}
-                    value={ms.submenuHoverColor ?? ""}
-                    onChange={(v) => setMenuStyle({ submenuHoverColor: v })}
-                  />
-                  <ColorField
-                    label={t("menuStyleSubBg")}
-                    value={ms.submenuBg ?? ""}
-                    onChange={(v) => setMenuStyle({ submenuBg: v })}
-                  />
+              {/* Mobile (drawer) only — the overlay background. */}
+              {device === "phone" ? (
+                <ColorField
+                  label={t("menuStyleOverlayBg")}
+                  value={ms.mobile?.overlayBg ?? ""}
+                  onChange={(v) =>
+                    setMenuStyle({
+                      mobile: {
+                        ...(ms.mobile ?? {}),
+                        overlayBg: v || undefined,
+                      },
+                    })
+                  }
+                />
+              ) : null}
+
+              {/* Desktop only — dropdown (sub-menu) styling. */}
+              {device === "desktop" ? (
+                <div className="mt-1 border-t border-brand-line pt-3">
+                  <GroupLabel>{t("menuStyleSubGroup")}</GroupLabel>
+                  <p className="mb-2 text-[11.5px] text-brand-mute">
+                    {t("menuStyleSubHint")}
+                  </p>
+                  <div className="space-y-3">
+                    <ColorField
+                      label={t("menuStyleSubColor")}
+                      value={ms.submenuColor ?? ""}
+                      onChange={(v) => setMenuStyle({ submenuColor: v })}
+                    />
+                    <ColorField
+                      label={t("menuStyleSubHover")}
+                      value={ms.submenuHoverColor ?? ""}
+                      onChange={(v) => setMenuStyle({ submenuHoverColor: v })}
+                    />
+                    <ColorField
+                      label={t("menuStyleSubBg")}
+                      value={ms.submenuBg ?? ""}
+                      onChange={(v) => setMenuStyle({ submenuBg: v })}
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           ) : (
             <div className="insp-sec space-y-3">
@@ -737,6 +794,51 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
     <div className="text-[11px] font-bold uppercase tracking-wider text-brand-mute">
       {children}
     </div>
+  );
+}
+
+function RangeField({
+  label,
+  value,
+  fallback,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value?: number;
+  fallback: number;
+  min: number;
+  max: number;
+  onChange: (n: number | undefined) => void;
+}) {
+  const t = useTranslations("website");
+  return (
+    <label className="block">
+      <span className="flex items-center justify-between text-[12.5px] font-semibold text-brand-ink">
+        {label}
+        <span className="text-[12px] tabular-nums text-brand-mute">
+          {value ?? fallback}px
+        </span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value ?? fallback}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-2 w-full"
+      />
+      {typeof value === "number" ? (
+        <button
+          type="button"
+          onClick={() => onChange(undefined)}
+          className="mt-1 text-[11.5px] font-medium text-brand-mute hover:text-brand-ink"
+        >
+          {t("reset")}
+        </button>
+      ) : null}
+    </label>
   );
 }
 
