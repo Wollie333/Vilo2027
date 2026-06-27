@@ -26,6 +26,7 @@ import { buildSafariNav } from "@/lib/site/safariNav";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
   MenuItemStyleLayer,
+  MenuPageOverride,
   SiteBrand,
   SiteConversion,
   SiteData,
@@ -97,6 +98,7 @@ export function MenuStudio({
   darkChrome = false,
   backdropKey = "home",
   pageList = [],
+  setPerPage,
 }: {
   nav: NavigationConfig;
   setMenu: (menu: SiteMenuItem[]) => void;
@@ -124,6 +126,8 @@ export function MenuStudio({
   backdropKey?: string;
   /** All pages (key + label) for the per-link page-visibility control. */
   pageList?: { key: string; label: string }[];
+  /** Set a per-page appearance/style override (Layout tab → This page). */
+  setPerPage?: (key: string, patch: Partial<MenuPageOverride>) => void;
 }) {
   const t = useTranslations("website");
   const menu = nav.menu ?? [];
@@ -517,6 +521,83 @@ export function MenuStudio({
             </div>
           ) : (
             <div className="insp-sec space-y-3">
+              {/* This-page overrides — appearance + style for the page currently
+                  behind the menu (the backdrop). Merges over the global values. */}
+              {setPerPage
+                ? (() => {
+                    const ppo = nav.perPage?.[backdropKey] ?? {};
+                    const label =
+                      pageList.find((p) => p.key === backdropKey)?.label ??
+                      backdropKey;
+                    const transpVal =
+                      ppo.transparentOverHero === undefined
+                        ? ""
+                        : ppo.transparentOverHero
+                          ? "transparent"
+                          : "solid";
+                    return (
+                      <div className="space-y-3 rounded-[10px] border border-brand-line p-2.5">
+                        <GroupLabel>
+                          {t("menuPageOverridesTitle", { page: label })}
+                        </GroupLabel>
+                        <p className="text-[11.5px] text-brand-mute">
+                          {t("menuPageOverridesHint")}
+                        </p>
+                        <label className="block">
+                          <span className="block text-[12.5px] font-semibold text-brand-ink">
+                            {t("menuPageTransparency")}
+                          </span>
+                          <select
+                            value={transpVal}
+                            onChange={(e) =>
+                              setPerPage(backdropKey, {
+                                transparentOverHero:
+                                  e.target.value === ""
+                                    ? undefined
+                                    : e.target.value === "transparent",
+                              })
+                            }
+                            className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+                          >
+                            <option value="">
+                              {t("menuPageTransp_inherit")}
+                            </option>
+                            <option value="transparent">
+                              {t("menuPageTransp_transparent")}
+                            </option>
+                            <option value="solid">
+                              {t("menuPageTransp_solid")}
+                            </option>
+                          </select>
+                        </label>
+                        <ColorField
+                          label={t("menuPageBarColor")}
+                          value={ppo.bgColor ?? ""}
+                          onChange={(v) =>
+                            setPerPage(backdropKey, { bgColor: v || undefined })
+                          }
+                        />
+                        <ColorField
+                          label={t("menuStyleColor")}
+                          value={ppo.color ?? ""}
+                          onChange={(v) =>
+                            setPerPage(backdropKey, { color: v || undefined })
+                          }
+                        />
+                        <RangeField
+                          label={t("menuStyleSize")}
+                          value={ppo.fontSize}
+                          fallback={14}
+                          min={9}
+                          max={40}
+                          onChange={(n) =>
+                            setPerPage(backdropKey, { fontSize: n })
+                          }
+                        />
+                      </div>
+                    );
+                  })()
+                : null}
               <label className="block">
                 <span className="block text-[12.5px] font-semibold text-brand-ink">
                   {t("menuAlignLabel")}

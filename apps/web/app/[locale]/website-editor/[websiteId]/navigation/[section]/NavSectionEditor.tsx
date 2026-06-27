@@ -27,6 +27,7 @@ import { SiteChromeCanvas } from "@/components/site/SiteChromeCanvas";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
+  MenuPageOverride,
   SiteBrand,
   SiteConversion,
   SiteFooterColumn,
@@ -242,6 +243,16 @@ export function NavSectionEditor({
   const setMenu = (menu: SiteMenuItem[]) => setNav((n) => ({ ...n, menu }));
   const setMenuStyle = (patch: Partial<NavigationConfig["menuStyle"]>) =>
     setNav((n) => ({ ...n, menuStyle: { ...n.menuStyle, ...patch } }));
+  // Per-page appearance/style override for one page key (merges over the global).
+  const setPerPage = (key: string, patch: Partial<MenuPageOverride>) =>
+    setNav((n) => {
+      const cur = (n.perPage ?? {})[key] ?? {};
+      const next = { ...cur, ...patch };
+      // Drop keys set back to undefined so an empty override doesn't linger.
+      for (const k of Object.keys(next) as (keyof MenuPageOverride)[])
+        if (next[k] === undefined) delete next[k];
+      return { ...n, perPage: { ...(n.perPage ?? {}), [key]: next } };
+    });
   const setColumns = (columns: SiteFooterColumn[]) =>
     setNav((n) => ({ ...n, footer: { ...n.footer, columns } }));
 
@@ -400,6 +411,7 @@ export function NavSectionEditor({
             darkChrome={darkChrome}
             backdropKey={backdropKey}
             pageList={backdrops.map((b) => ({ key: b.key, label: b.label }))}
+            setPerPage={setPerPage}
           />
         ) : (
           <>

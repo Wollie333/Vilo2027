@@ -127,11 +127,21 @@ export type SiteMenuStyle = {
   /** Mobile = the ☰ drawer / overlay (its own background + link styling). */
   mobile?: SiteMenuDeviceStyle & { overlayBg?: string };
 };
+/** Per-page menu/header override — appearance + style scoped to one page key. */
+export type MenuPageOverride = {
+  transparentOverHero?: boolean;
+  bgColor?: string;
+  color?: string;
+  hoverColor?: string;
+  fontSize?: number;
+};
 export type SiteNavigation = {
   /** Explicit header menu; when empty the page-derived nav is used. */
   menu?: SiteMenuItem[];
   /** Menu link styling (colours / weight / uppercase). */
   menuStyle?: SiteMenuStyle;
+  /** Per-page appearance/style overrides, keyed by page key ("home" or a slug). */
+  perPage?: Record<string, MenuPageOverride>;
   topBar?: SiteTopBar;
   header?: {
     /** Chosen header style; SiteChrome prefers this over the theme's layout. */

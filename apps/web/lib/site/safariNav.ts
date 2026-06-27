@@ -209,18 +209,33 @@ export function buildSafariNav(
       label: SOCIAL_LABEL[key],
     }));
 
+  // ── Per-page appearance/style override (transparent / bar colour / menu
+  //    colour + size for THIS page) — merges over the global values. ──
+  const override = pageKey ? ctx.navigation.perPage?.[pageKey] : undefined;
+  const menuStyle =
+    override &&
+    (override.color || override.hoverColor || override.fontSize != null)
+      ? {
+          ...(ctx.navigation.menuStyle ?? {}),
+          ...(override.color ? { color: override.color } : {}),
+          ...(override.hoverColor ? { hoverColor: override.hoverColor } : {}),
+          ...(override.fontSize != null ? { fontSize: override.fontSize } : {}),
+        }
+      : ctx.navigation.menuStyle;
+
   return {
     links,
     layout: (header.layout as SafariHeaderLayout) || "classic",
     sticky: header.sticky !== false,
     // Safari is transparent-over-hero by design; only an explicit `false` makes
-    // it a solid bar from the top.
-    transparent: header.transparentOverHero !== false,
-    bgColor: header.bgColor,
+    // it a solid bar from the top. A per-page override wins for this page.
+    transparent:
+      override?.transparentOverHero ?? header.transparentOverHero !== false,
+    bgColor: override?.bgColor ?? header.bgColor,
     scrolledBgColor: header.scrolledBgColor,
     menuCollapse: header.menuCollapse ?? "mobile",
     logoStyle: header.logoStyle,
-    menuStyle: ctx.navigation.menuStyle,
+    menuStyle,
     bookLabel: header.ctaLabel?.trim() || "Reserve",
     showBook: header.showBookCta !== false,
     bookColor: header.bookCtaColor,

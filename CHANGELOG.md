@@ -19,6 +19,21 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Menu builder: per-page appearance + style overrides (slice 4)
+
+**The menu's appearance can now differ per page** — transparent-over-hero vs
+solid, solid-bar colour, menu link colour + size — scoped to one page. Slice 4
+of the responsive-menu epic; completes the per-page rules.
+- Additive `navigation.perPage: Record<pageKey, MenuPageOverride>` (transparent /
+  bgColor / colour / hoverColor / fontSize); no migration.
+- `buildSafariNav(ctx, pageKey)` and `SiteChrome` merge the override for the
+  current page over the global transparency / bar colour / menu style.
+- Editor: the Layout tab gained a "<page> — this page only" panel (scoped to the
+  active backdrop via the page switcher): Header inherit/transparent/solid, solid
+  bar colour, menu colour, link size.
+- Verified live: set About's menu colour green → green only on the About backdrop;
+  Home stayed the default white. 131 vitest + tsc + lint green.
+
 ## 2026-06-27 (PM) — Menu builder: per-page show/hide links (slice 3)
 
 **A menu link can now be hidden on specific pages** (e.g. hide "Book" on

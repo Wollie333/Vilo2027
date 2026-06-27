@@ -1034,10 +1034,28 @@ export function SiteChrome({
     href: m.href,
   }));
   const footerColumns = navigation.footer?.columns ?? [];
+  // Per-page appearance/style override (transparent / bar colour / menu colour
+  // for THIS page) — merges over the global values.
+  const pageOverride = currentPageKey
+    ? navigation.perPage?.[currentPageKey]
+    : undefined;
+  const pageTransparent =
+    pageOverride?.transparentOverHero ??
+    navigation.header?.transparentOverHero === true;
+  const pageBgColor = pageOverride?.bgColor ?? navigation.header?.bgColor;
+  const mergedMenuStyle =
+    pageOverride && (pageOverride.color || pageOverride.hoverColor)
+      ? {
+          ...(navigation.menuStyle ?? {}),
+          ...(pageOverride.color ? { color: pageOverride.color } : {}),
+          ...(pageOverride.hoverColor
+            ? { hoverColor: pageOverride.hoverColor }
+            : {}),
+        }
+      : navigation.menuStyle;
   // Transparent-over-hero and a top bar can't coexist (the fixed header would
   // overlay the top bar) — the top bar wins.
-  const transparentOver =
-    navigation.header?.transparentOverHero === true && !topBar?.enabled;
+  const transparentOver = pageTransparent && !topBar?.enabled;
   const headerDark = transparentOver || darkChrome;
   const boxed = layout === "boxed";
   // The shared Vilo theme-preview bar (single source of truth across all themes).
@@ -1086,15 +1104,15 @@ export function SiteChrome({
         target="header"
         label="Header"
       >
-        <style>{menuStyleCss(navigation.menuStyle)}</style>
+        <style>{menuStyleCss(mergedMenuStyle)}</style>
         {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
         <StickyHeader
           sticky={sticky}
           transparent={transparentOver}
-          bgColor={navigation.header?.bgColor}
+          bgColor={pageBgColor}
           scrolledBgColor={navigation.header?.scrolledBgColor}
-          textColor={navigation.menuStyle?.color}
+          textColor={mergedMenuStyle?.color}
           topOffset={showBar ? 44 : 0}
         >
           <div className="hidden md:block">

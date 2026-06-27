@@ -681,9 +681,23 @@ export const menuStyleSchema = z
   })
   .default({ weight: "medium", uppercase: false, align: "start" });
 
+// Per-page menu/header OVERRIDE — appearance + style scoped to one page key
+// ("home" or a slug). All optional; only set fields override the global value.
+const menuPageOverrideSchema = z.object({
+  // Header appearance for this page (transparent-over-hero on/off + solid bar bg).
+  transparentOverHero: z.boolean().optional(),
+  bgColor: z.string().trim().max(40).optional(),
+  // Menu styling for this page.
+  color: z.string().trim().max(40).optional(),
+  hoverColor: z.string().trim().max(40).optional(),
+  fontSize: z.number().int().min(8).max(40).optional(),
+});
+
 export const navigationSchema = z.object({
   menu: z.array(menuItemSchema).max(20).default([]),
   menuStyle: menuStyleSchema,
+  // Per-page appearance/style overrides, keyed by page key ("home" or a slug).
+  perPage: z.record(z.string(), menuPageOverrideSchema).optional(),
   topBar: z
     .object({
       enabled: z.boolean().default(false),
