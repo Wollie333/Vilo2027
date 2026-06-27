@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 
 import { ThreadQuoteCard } from "./ThreadQuoteCard";
 import type { ThreadBooking, ThreadQuote } from "./ThreadQuoteCard";
+import { WebsiteEnquiryCard } from "./WebsiteEnquiryCard";
 import { latestIssuedVersionByQuote, quoteCardKind } from "./quote-thread";
 
 // Canonical thread message wall — the WhatsApp-style green/white bubble chat
@@ -255,6 +256,18 @@ export function ChatMessageWall({
                       ) : null}
                     </div>
                   </div>
+                </div>
+              );
+            }
+
+            // Website contact/booking-form enquiry — a quote-request-style card
+            // with a "Website enquiry" pill (the guest's submission follows as a
+            // normal bubble).
+            if (m.isSystem && m.systemEvent === "website_enquiry") {
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <WebsiteEnquiryCard body={m.body} />
                 </div>
               );
             }

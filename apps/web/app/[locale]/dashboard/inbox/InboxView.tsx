@@ -137,7 +137,7 @@ function chipFor(c: {
 }): { tone: ChatChipTone; label: string } | null {
   if (c.status === "archived") return { tone: "neutral", label: "Archived" };
   // A website contact-form enquiry — distinct sky chip from a quote enquiry.
-  if (c.source === "website") return { tone: "sky", label: "Website" };
+  if (c.source === "website") return { tone: "sky", label: "Website enquiry" };
   if (c.isEnquiry) return { tone: "amber", label: "Enquiry" };
   switch (c.bookingStatus) {
     case "confirmed":

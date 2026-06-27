@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-06-27 (PM) — Forms EPIC 4a: website enquiry renders as a quote-request-style card
+
+**A website contact/booking-form enquiry now reads like a "Request a quote" in
+the inbox, with a "Website enquiry" pill.** Previously it showed as a flat amber
+system pill + a plain bubble.
+- New presentational `WebsiteEnquiryCard` (sky-bordered, globe icon, "Website
+  enquiry" pill, captured contact rows) — the website-source analogue of
+  `ThreadQuoteCard`'s request card. `ChatMessageWall` dispatches the
+  `website_enquiry` system event to it (the guest's full submission still renders
+  as the bubble beneath). No DB shape change — keyed on the existing event.
+- The inbox list/header chip for a website-source conversation now reads "Website
+  enquiry" (was "Website").
+- Verified live in the host inbox: a real form submission rendered the card +
+  pill + contact rows above the submission bubble. tsc + lint green.
+- **NOT YET DONE (EPIC 4b, needs a product decision):** turning a booking-form
+  submission into a REAL draft quote in the quote pipeline — a website form isn't
+  tied to one property/listing, so property resolution + pricing is a scoping
+  call left for the founder.
+
 ## 2026-06-27 (PM) — Forms EPIC 3c: every field type adopts the active theme
 
 **Host-built form fields now read as part of the theme — not just the text
