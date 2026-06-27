@@ -2,9 +2,31 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-27 PM #2 — FORMS EPICS 3 + 4 ALL DONE; NEXT = menu-builder polish OR new theme)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-27 PM #3 — MENU/NAV BUILDER 100% MVP; forms parked for later by founder)
 
-**Branch:** `main` — working tree CLEAN, all work committed + **PUSHED** (latest `9eca33f`, origin == local). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`).
+**Branch:** `main` — working tree CLEAN, all work committed + **PUSHED** (latest `bd9d5b4`, origin == local). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`).
+
+**FOUNDER DIRECTIVE THIS (PM #3) BLOCK:** put a HOLD on all other CMS work and drive the **menu/nav builder to 100% MVP**. The headline requirement: **the canvas must render the REAL site page (real chrome + real page design) so the host sees the menu exactly as it'll look live.** Forms is the bigger next task (founder: "more feature rich, will take a while") — resume forms AFTER this. The whole nav-builder backlog is now DONE (6 commits, each verified live + pushed; per-commit detail in CHANGELOG 2026-06-27 PM):
+- **Real site in the canvas (`b0e679f`) — THE headline.** New `components/site/safari/SafariNavCanvas.tsx` renders the public Safari path (`SafariShell(liveNav) > SafariSectionList(real home sections)`) behind the LIVE chrome — replaces the old stock-hero backdrop. The nav editor server page (`navigation/[section]/page.tsx`) loads the real page via `loadSiteContext`+`loadSitePage`; the client-safe `websiteAssetUrl` resolves assets. Header/menu/footer editors all use it.
+- **Generic-theme parity (`bd9d5b4`).** New `components/site/SiteChromeCanvas.tsx` does the same for NON-Safari themes (`SiteThemeRoot > SiteChrome(liveNav) > SectionRenderer`). Verified by flipping the test site to `classic` then reverting. The old `NavHeaderPreview` is now only the last-resort fallback.
+- **Mobile drawer live preview (`c540839`).** Phone device → the Safari ☰ drawer renders OPEN inside the canvas (builder-only `forceMenuOpen` through SafariNav/Shell/Canvas + a builder-scoped CSS rule pinning the `position:fixed` `.mnav` to the bounded viewport). Mobile menu is now WYSIWYG.
+- **Page switcher (`c61a6bb`).** Top-bar dropdown (`NavBackdrop[]`, capped 12, funnel pages excluded) picks which real page sits behind the live menu (Home/About/Suites/Contact/Journal/Room details). Chrome stays live across switches.
+- **Drag-to-nest (`4badb6b`).** New `MenuTree.tsx` (dnd-kit sortable-tree): one DndContext over a flattened list + live depth projection from the pointer's x-offset (clamped to the 2-level limit); drop reorders + reparents + rebuilds. Replaced the per-level `SortableList` in MenuStudio (row JSX preserved via `renderRow`/`renderExtra`; auto-rooms items stay non-draggable leaves). Verified: drag Gallery right → nests under Journal; drag Contact up → reorders without nesting.
+
+**KEY PATTERNS (reuse for any future canvas-in-builder work):**
+- The canvas is a CLIENT component rendering the SAME public render components (SafariShell/SafariSectionList, or SiteThemeRoot/SiteChrome/SectionRenderer) — they're not "use client" but have NO server-only imports, so they render client-side fine. Pass the LIVE editor nav so edits reflect instantly; pass `interactive={false}`/`chromeInert` to keep it a preview. NEVER pass a function (asset resolver) across server→client — define it client-side from `websiteAssetUrl`.
+- To preview a non-Safari theme on the Safari test fixture: temporarily flip `host_websites.theme.preset` (jsonb) to e.g. `classic`, verify, revert. Non-destructive.
+
+**▶▶ NEXT (founder's call):**
+- **RESUME FORMS** (the parked bigger epic — see the PM #2 save point below; EPIC 3 + 4 already shipped, so this is NEW forms scope the founder will define).
+- **Start the SECOND theme** (replay [[theme-productionization-playbook]]); the nav builder + generic `SiteChromeCanvas` now make a new theme's nav editor work for free.
+- **Optional nav polish (low priority):** drag-to-nest currently nests under the item ABOVE (standard tree projection) — fine; auto-rooms dropdown doesn't expand in the canvas preview (rooms show in the tree only).
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-27 PM #2 — FORMS EPICS 3 + 4 ALL DONE)
+
+**Branch:** `main` — was latest `9eca33f`. tsc + lint + **131 vitest** GREEN.
 
 **✅ DONE THIS (PM #2) SESSION — the whole FORMS backlog (EPIC 3 + EPIC 4), 5 commits, each verified live + pushed (per-commit detail in CHANGELOG 2026-06-27 PM):**
 - **EPIC 3a (`5be2e0b`)** — a `rooms` form field auto-populates the host's REAL visible rooms (like nav auto-rooms). `loadSiteForms` injects `orderedVisibleRooms` names into every `rooms` field (snapshot-aware SSOT); new `loadWebsiteRoomNames` feeds the Form editor, which now shows live rooms read-only instead of "Room A/Room B".
