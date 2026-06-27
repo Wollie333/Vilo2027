@@ -25,6 +25,7 @@ import {
   type SiteHeaderLayout,
 } from "@/lib/site/themes";
 import type {
+  LogoOverride,
   MenuItemStyleLayer,
   SiteAnalyticsSettings,
   SiteBrand,
@@ -745,6 +746,9 @@ function HeaderInner({
   showLogo = true,
   logoStyle,
   logoHeight,
+  logoTablet,
+  logoMobile,
+  previewDevice,
   menuAlign = "start",
   dark,
   preview,
@@ -760,21 +764,68 @@ function HeaderInner({
   showLogo?: boolean;
   logoStyle?: "wordmark" | "icon" | "mark";
   logoHeight?: number;
+  /** Per-device logo overrides (tablet / mobile); unset inherits desktop. */
+  logoTablet?: LogoOverride;
+  logoMobile?: LogoOverride;
+  /** Builder-only: active device, so the logo previews for that screen. */
+  previewDevice?: "desktop" | "tablet" | "phone";
   menuAlign?: "start" | "center" | "end";
   dark?: boolean;
   preview?: { subdomain: string; themeSlug?: string };
   burger?: BurgerConfig;
 }) {
-  const logoEl = showLogo ? (
-    <Logo
-      brand={brand}
-      dark={dark}
-      preview={preview}
-      styleOverride={logoStyle}
-      heightOverride={logoHeight}
-    />
+  // Per-device logo (desktop base + tablet/mobile overrides). Style swaps markup,
+  // so — like Safari — the builder renders the active device (previewDevice) and
+  // the live site renders all three toggled by @media (the wrapper CSS lives in
+  // the SiteChrome <style>). Its breakpoints compose with the header bands.
+  const baseLogo = {
+    show: showLogo !== false,
+    style: logoStyle,
+    height: logoHeight,
+  };
+  const resolveLogo = (d: "desktop" | "tablet" | "phone") => {
+    const o = d === "tablet" ? logoTablet : d === "phone" ? logoMobile : null;
+    return o
+      ? {
+          show: o.show ?? baseLogo.show,
+          style: o.style ?? baseLogo.style,
+          height: o.maxHeight ?? baseLogo.height,
+        }
+      : baseLogo;
+  };
+  const oneLogo = (c: {
+    show: boolean;
+    style?: "wordmark" | "icon" | "mark";
+    height?: number;
+  }) =>
+    c.show ? (
+      <Logo
+        brand={brand}
+        dark={dark}
+        preview={preview}
+        styleOverride={c.style}
+        heightOverride={c.height}
+      />
+    ) : (
+      <span aria-hidden />
+    );
+  const hasLogoOverride = Boolean(logoTablet || logoMobile);
+  const logoEl = !hasLogoOverride ? (
+    oneLogo(baseLogo)
+  ) : previewDevice ? (
+    oneLogo(resolveLogo(previewDevice))
   ) : (
-    <span aria-hidden />
+    <>
+      <span className="vilo-lg-rd vilo-lg-dt">
+        {oneLogo(resolveLogo("desktop"))}
+      </span>
+      <span className="vilo-lg-rd vilo-lg-tb">
+        {oneLogo(resolveLogo("tablet"))}
+      </span>
+      <span className="vilo-lg-rd vilo-lg-mb">
+        {oneLogo(resolveLogo("phone"))}
+      </span>
+    </>
   );
   const alignClass =
     menuAlign === "center"
@@ -1130,6 +1181,15 @@ export function SiteChrome({
             : {}),
         }
       : navigation.menuStyle;
+  // Per-device logo visibility (live only) — toggles the three logo variants by
+  // @media. display:contents so the lockup lays out as if rendered directly.
+  const logoRdCss =
+    (navigation.header?.logoTablet || navigation.header?.logoMobile) &&
+    !previewDevice
+      ? ".vilo-lg-tb,.vilo-lg-mb{display:none}.vilo-lg-dt{display:contents}" +
+        "@media (max-width:1024px){.vilo-lg-dt{display:none}.vilo-lg-tb{display:contents}}" +
+        "@media (max-width:640px){.vilo-lg-tb{display:none}.vilo-lg-mb{display:contents}}"
+      : "";
   // Transparent-over-hero and a top bar can't coexist (the fixed header would
   // overlay the top bar) — the top bar wins.
   const transparentOver = pageTransparent && !topBar?.enabled;
@@ -1183,7 +1243,8 @@ export function SiteChrome({
       >
         <style>
           {menuStyleCss(mergedMenuStyle) +
-            menuItemStyleCss(menu, previewDevice)}
+            menuItemStyleCss(menu, previewDevice) +
+            logoRdCss}
         </style>
         {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
@@ -1207,6 +1268,9 @@ export function SiteChrome({
               showLogo={navigation.header?.showLogo}
               logoStyle={navigation.header?.logoStyle}
               logoHeight={navigation.header?.logoMaxHeight}
+              logoTablet={navigation.header?.logoTablet}
+              logoMobile={navigation.header?.logoMobile}
+              previewDevice={previewDevice}
               menuAlign={navigation.menuStyle?.align}
               dark={headerDark}
               preview={preview}
@@ -1225,6 +1289,9 @@ export function SiteChrome({
               showLogo={navigation.header?.showLogo}
               logoStyle={navigation.header?.logoStyle}
               logoHeight={navigation.header?.logoMaxHeight}
+              logoTablet={navigation.header?.logoTablet}
+              logoMobile={navigation.header?.logoMobile}
+              previewDevice={previewDevice}
               menuAlign={navigation.menuStyle?.align}
               dark={headerDark}
               preview={preview}

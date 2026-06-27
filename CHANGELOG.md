@@ -29,8 +29,15 @@ the logo per device: in the builder it renders the active device's variant
 (`display:contents` wrappers) — the only way to swap the logo STYLE markup per
 screen size. The menu builder's "Menu style" inspector gained a **Logo** section
 (show/style/size) — Desktop edits the base, Tablet/Mobile the override + reset.
-Verified live: Mobile → icon-only logo; Desktop stayed mark+name. Generic-theme
-parity is the next step. 131 vitest + tsc + lint green.
+Verified live: Mobile → icon-only logo; Desktop stayed mark+name. 131 vitest +
+tsc + lint green.
+
+**Generic-theme parity** — the per-device logo applies to non-Safari themes too:
+`SiteChrome`'s `HeaderInner` resolves the logo per device (builder = active
+device via `previewDevice`; live = three `display:contents` variants toggled by
+`@media`, whose breakpoints compose with the header's md: band split). Verified
+on a classic flip: Mobile → icon-only ("O" monogram), Desktop → mark + full
+name; reverted to Safari.
 
 ## 2026-06-27 (PM) — ☰ icon glyph variants + generic-theme parity
 
