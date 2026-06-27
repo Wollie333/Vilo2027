@@ -19,6 +19,21 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Menu builder: drag-to-nest
+
+**You can now build dropdowns by dragging** — drag a link right past a half-indent
+to nest it under the link above, drag left to outdent (clamped to the two-level
+limit), all in addition to reordering. Previously nesting was only via the indent
+button.
+- New `MenuTree` (the dnd-kit "sortable tree" pattern): the whole tree is ONE
+  DndContext over a flattened visible list with live depth projection from the
+  pointer's horizontal offset; on drop it reorders + reparents and rebuilds the
+  nested menu. Replaces the old per-level `SortableList` tree in `MenuStudio`
+  (row rendering kept via a `renderRow`/`renderExtra` callback). Auto-rooms items
+  stay leaves — their live room rows render via `renderExtra`, never draggable.
+- Verified live: dragging "Gallery" right nested it under "Journal" (chevron +
+  16px indent); dragging "Contact" straight up reordered it without nesting.
+
 ## 2026-06-27 (PM) — Nav builder polish: mobile drawer preview + page switcher
 
 Two MVP gaps closed on the new real-site nav canvas:

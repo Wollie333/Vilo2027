@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  GripVertical,
   Plus,
   Trash2,
   Type as TypeIcon,
@@ -19,7 +20,6 @@ import { useTranslations } from "next-intl";
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
 import type { PageOption } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
 import { NavHeaderPreview } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavPreviews";
-import { SortableList } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/SortableList";
 import { SafariNavCanvas } from "@/components/site/safari/SafariNavCanvas";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import type {
@@ -29,6 +29,8 @@ import type {
   SiteMenuItem,
 } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
+
+import { MenuTree } from "./MenuTree";
 
 type Device = "desktop" | "tablet" | "phone";
 type Tab = "content" | "style" | "advanced";
@@ -65,20 +67,6 @@ function getAt(menu: SiteMenuItem[], path: number[]): SiteMenuItem | null {
 }
 const samePath = (a: number[] | null, b: number[]) =>
   !!a && a.length === b.length && a.every((v, i) => v === b[i]);
-/** Replace the sibling array at `base` ([] = top level) — used by drag-reorder. */
-function setChildrenAt(
-  menu: SiteMenuItem[],
-  base: number[],
-  next: SiteMenuItem[],
-): SiteMenuItem[] {
-  if (base.length === 0) return next;
-  const [i, ...rest] = base;
-  return menu.map((it, idx) =>
-    idx === i
-      ? { ...it, children: setChildrenAt(it.children ?? [], rest, next) }
-      : it,
-  );
-}
 
 export function MenuStudio({
   nav,
@@ -144,9 +132,6 @@ export function MenuStudio({
     );
     if (samePath(selected, path)) setSelected(null);
   };
-  // Drag-reorder a whole level (siblings under `base`; [] = top level).
-  const reorderLevel = (base: number[], next: SiteMenuItem[]) =>
-    setMenu(setChildrenAt(menu, base, next));
   const addChild = (path: number[]) => {
     const item = getAt(menu, path);
     setMenu(
@@ -162,139 +147,126 @@ export function MenuStudio({
   };
   const addTop = (item?: SiteMenuItem) => setMenu([...menu, item ?? newItem()]);
 
-  // ── Recursive tree level — each level is a drag-reorderable SortableList ──
-  function Rows({ items, base }: { items: SiteMenuItem[]; base: number[] }) {
+  // One row of the drag-to-nest tree (the rest of the tree machinery — flatten,
+  // depth projection, reorder + reparent — lives in MenuTree).
+  const renderRow = ({
+    item,
+    path,
+    depth,
+    handleProps,
+  }: {
+    item: SiteMenuItem;
+    path: number[];
+    depth: number;
+    handleProps: Record<string, unknown>;
+    ghost: boolean;
+  }) => {
+    const hasKids = !!item.children && item.children.length > 0;
+    const hasAutoRooms = !!item.autoRooms && rooms.length > 0;
+    const isOpen = open[item.id] ?? true;
+    const isSel = samePath(selected, path);
     return (
-      <SortableList
-        id={`menu-lvl-${base.join("-") || "root"}`}
-        items={items}
-        onReorder={(next) => reorderLevel(base, next)}
+      <div
+        className={`group flex items-center gap-0.5 rounded-[8px] py-1 pr-1.5 ${
+          isSel ? "bg-brand-light" : "hover:bg-brand-light/50"
+        }`}
       >
-        {(item, i, handle) => {
-          const path = [...base, i];
-          const depth = path.length - 1;
-          const hasKids = !!item.children && item.children.length > 0;
-          // Auto-rooms items list the site's live rooms as (read-only) child
-          // tabs right here in the tree, so the host sees what the dropdown holds.
-          const hasAutoRooms = !!item.autoRooms && rooms.length > 0;
-          const isOpen = open[item.id] ?? true;
-          const isSel = samePath(selected, path);
-          return (
-            <>
-              <div
-                className={`group flex items-center gap-0.5 rounded-[8px] py-1 pr-1.5 ${
-                  isSel ? "bg-brand-light" : "hover:bg-brand-light/50"
-                }`}
-                style={{ marginLeft: depth * 16 }}
-              >
-                {handle}
-                {hasKids || hasAutoRooms ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setOpen((p) => ({ ...p, [item.id]: !isOpen }))
-                    }
-                    className="text-brand-mute"
-                    aria-label="Toggle"
-                  >
-                    {isOpen ? (
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    ) : (
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                ) : (
-                  <span className="w-3.5" />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setSelected(path)}
-                  className="flex flex-1 items-center gap-1.5 truncate text-left text-[13px] font-medium text-brand-ink"
-                >
-                  <span className="truncate">
-                    {item.label || t("navLinkLabel")}
-                  </span>
-                  {item.autoRooms ? (
-                    <span className="shrink-0 rounded bg-brand-light px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
-                      {t("menuAutoRoomsBadge")}
-                    </span>
-                  ) : null}
-                </button>
-                <div className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
-                  {depth < 2 && !item.autoRooms ? (
-                    <IconBtn
-                      title={t("navAddChild")}
-                      onClick={() => addChild(path)}
-                    >
-                      <CornerDownRight className="h-3.5 w-3.5" />
-                    </IconBtn>
-                  ) : null}
-                  <IconBtn
-                    title={t("mediaDelete")}
-                    danger
-                    onClick={() => remove(path)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </IconBtn>
-                </div>
-              </div>
-              {item.autoRooms ? (
-                hasAutoRooms && isOpen ? (
-                  <div style={{ marginLeft: (depth + 1) * 16 }}>
-                    {rooms.map((r) => {
-                      const isHidden = (item.hiddenRoomIds ?? []).includes(
-                        r.roomId,
-                      );
-                      return (
-                        <div
-                          key={r.roomId}
-                          className="group flex items-center gap-1 rounded-[8px] px-1.5 py-1 hover:bg-brand-light/40"
-                        >
-                          <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-brand-line" />
-                          <button
-                            type="button"
-                            onClick={() => setSelected(path)}
-                            className={`flex-1 truncate text-left text-[12.5px] ${
-                              isHidden
-                                ? "text-brand-mute line-through"
-                                : "text-brand-ink"
-                            }`}
-                          >
-                            {r.name}
-                          </button>
-                          <IconBtn
-                            title={
-                              isHidden
-                                ? t("menuAutoRoomShow")
-                                : t("menuAutoRoomHide")
-                            }
-                            onClick={() => {
-                              const set = new Set(item.hiddenRoomIds ?? []);
-                              if (isHidden) set.delete(r.roomId);
-                              else set.add(r.roomId);
-                              update(path, { hiddenRoomIds: [...set] });
-                            }}
-                          >
-                            {isHidden ? (
-                              <EyeOff className="h-3.5 w-3.5" />
-                            ) : (
-                              <Eye className="h-3.5 w-3.5" />
-                            )}
-                          </IconBtn>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null
-              ) : hasKids && isOpen ? (
-                <Rows items={item.children ?? []} base={path} />
-              ) : null}
-            </>
-          );
-        }}
-      </SortableList>
+        <button
+          type="button"
+          className="cursor-grab touch-none rounded p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink active:cursor-grabbing"
+          title={t("dragToReorder")}
+          aria-label={t("dragToReorder")}
+          {...handleProps}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        {hasKids || hasAutoRooms ? (
+          <button
+            type="button"
+            onClick={() => setOpen((p) => ({ ...p, [item.id]: !isOpen }))}
+            className="text-brand-mute"
+            aria-label="Toggle"
+          >
+            {isOpen ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
+          </button>
+        ) : (
+          <span className="w-3.5" />
+        )}
+        <button
+          type="button"
+          onClick={() => setSelected(path)}
+          className="flex flex-1 items-center gap-1.5 truncate text-left text-[13px] font-medium text-brand-ink"
+        >
+          <span className="truncate">{item.label || t("navLinkLabel")}</span>
+          {item.autoRooms ? (
+            <span className="shrink-0 rounded bg-brand-light px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
+              {t("menuAutoRoomsBadge")}
+            </span>
+          ) : null}
+        </button>
+        <div className="flex items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
+          {depth < 2 && !item.autoRooms ? (
+            <IconBtn title={t("navAddChild")} onClick={() => addChild(path)}>
+              <CornerDownRight className="h-3.5 w-3.5" />
+            </IconBtn>
+          ) : null}
+          <IconBtn title={t("mediaDelete")} danger onClick={() => remove(path)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </IconBtn>
+        </div>
+      </div>
     );
-  }
+  };
+
+  // Live (read-only) room rows beneath an auto-rooms item — they aren't draggable
+  // menu items, so they render here rather than in the flattened tree.
+  const renderExtra = (item: SiteMenuItem, path: number[]) => {
+    if (!item.autoRooms || rooms.length === 0) return null;
+    if (!(open[item.id] ?? true)) return null;
+    return (
+      <div style={{ marginLeft: 16 }}>
+        {rooms.map((r) => {
+          const isHidden = (item.hiddenRoomIds ?? []).includes(r.roomId);
+          return (
+            <div
+              key={r.roomId}
+              className="group flex items-center gap-1 rounded-[8px] px-1.5 py-1 hover:bg-brand-light/40"
+            >
+              <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-brand-line" />
+              <button
+                type="button"
+                onClick={() => setSelected(path)}
+                className={`flex-1 truncate text-left text-[12.5px] ${
+                  isHidden ? "text-brand-mute line-through" : "text-brand-ink"
+                }`}
+              >
+                {r.name}
+              </button>
+              <IconBtn
+                title={isHidden ? t("menuAutoRoomShow") : t("menuAutoRoomHide")}
+                onClick={() => {
+                  const set = new Set(item.hiddenRoomIds ?? []);
+                  if (isHidden) set.delete(r.roomId);
+                  else set.add(r.roomId);
+                  update(path, { hiddenRoomIds: [...set] });
+                }}
+              >
+                {isHidden ? (
+                  <EyeOff className="h-3.5 w-3.5" />
+                ) : (
+                  <Eye className="h-3.5 w-3.5" />
+                )}
+              </IconBtn>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const ms = nav.menuStyle ?? {};
   // Device-scoped styling (page-builder pattern): the top-bar device switcher
@@ -351,7 +323,13 @@ export function MenuStudio({
           {tab === "content" ? (
             <div className="insp-sec">
               <div className="px-1.5 pb-2">
-                <Rows items={menu} base={[]} />
+                <MenuTree
+                  menu={menu}
+                  setMenu={setMenu}
+                  open={open}
+                  renderRow={renderRow}
+                  renderExtra={renderExtra}
+                />
               </div>
               <button
                 type="button"
