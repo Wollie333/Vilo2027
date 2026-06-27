@@ -166,6 +166,7 @@ export type SiteNavigation = {
       color?: string;
       size?: number;
       weight?: "thin" | "regular" | "bold";
+      style?: "lines" | "short" | "dots" | "grid";
       bg?: string;
     };
     /** When the menu collapses to a ☰ button: phones only / tablets too / never. */

@@ -65,6 +65,7 @@ export type SafariNavData = {
     color?: string;
     size?: number;
     weight?: "thin" | "regular" | "bold";
+    style?: "lines" | "short" | "dots" | "grid";
     bg?: string;
   };
   bookLabel: string;

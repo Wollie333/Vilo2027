@@ -235,6 +235,56 @@ function menuItemStyleCss(
  * by the host's menu style, with a host-controlled "book" button. The scroll +
  * dropdown state are the only reason this is a client component.
  */
+/** The ☰ icon glyph for the chosen style: 3 lines / short staggered lines / 3
+ *  dots (meatball) / 9-dot grid. Stroke for the line styles, fill for the dots. */
+function BurgerGlyph({
+  style,
+  size,
+  color,
+  weight,
+}: {
+  style?: "lines" | "short" | "dots" | "grid";
+  size: number;
+  color: string;
+  weight: number;
+}) {
+  if (style === "dots") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        {[5, 12, 19].map((cx) => (
+          <circle key={cx} cx={cx} cy="12" r="1.8" />
+        ))}
+      </svg>
+    );
+  }
+  if (style === "grid") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+        {[6, 12, 18].flatMap((cy) =>
+          [6, 12, 18].map((cx) => (
+            <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="1.5" />
+          )),
+        )}
+      </svg>
+    );
+  }
+  const d =
+    style === "short" ? "M3 6h18M3 12h12M3 18h18" : "M3 6h18M3 12h18M3 18h18";
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={weight}
+      strokeLinecap="round"
+    >
+      <path d={d} />
+    </svg>
+  );
+}
+
 export function SafariNav({
   brandName,
   monogram,
@@ -291,11 +341,12 @@ export function SafariNav({
   menuCollapse?: "mobile" | "tablet" | "never";
   /** Logo lockup style (Elements): wordmark/icon/mark; unset = design default. */
   logoStyle?: "wordmark" | "icon" | "mark" | null;
-  /** Mobile ☰ icon design (colour / size / stroke weight / button background). */
+  /** Mobile ☰ icon design (colour / size / stroke weight / glyph / button bg). */
   burger?: {
     color?: string;
     size?: number;
     weight?: "thin" | "regular" | "bold";
+    style?: "lines" | "short" | "dots" | "grid";
     bg?: string;
   };
   /** Builder-only: force the ☰ drawer OPEN so the host can preview + style the
@@ -529,23 +580,18 @@ export function SafariNav({
                   : undefined
               }
             >
-              <svg
-                width={burger?.size ?? 26}
-                height={burger?.size ?? 26}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={burger?.color?.trim() || "currentColor"}
-                strokeWidth={
+              <BurgerGlyph
+                style={burger?.style}
+                size={burger?.size ?? 26}
+                color={burger?.color?.trim() || "currentColor"}
+                weight={
                   burger?.weight === "thin"
                     ? 1
                     : burger?.weight === "bold"
                       ? 2.5
                       : 1.5
                 }
-                strokeLinecap="round"
-              >
-                <path d="M3 6h18M3 12h18M3 18h18" />
-              </svg>
+              />
             </button>
           </div>
         </div>

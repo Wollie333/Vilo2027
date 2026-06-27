@@ -750,6 +750,8 @@ export const navigationSchema = z.object({
           color: z.string().trim().max(40).optional(),
           size: z.number().int().min(16).max(48).optional(),
           weight: z.enum(["thin", "regular", "bold"]).optional(),
+          /** Glyph variant: 3 lines / short staggered lines / 3 dots / 9-dot grid. */
+          style: z.enum(["lines", "short", "dots", "grid"]).optional(),
           /** Optional button background behind the icon. Blank → none. */
           bg: z.string().trim().max(40).optional(),
         })

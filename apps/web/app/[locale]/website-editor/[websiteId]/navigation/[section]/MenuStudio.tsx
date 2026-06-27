@@ -699,6 +699,28 @@ export function MenuStudio({
           <option value="bold">{t("menuBurgerBold")}</option>
         </select>
       </label>
+      <label className="block">
+        <span className="block text-[12.5px] font-semibold text-brand-ink">
+          {t("menuBurgerStyle")}
+        </span>
+        <select
+          value={burger.style ?? "lines"}
+          onChange={(e) =>
+            setHeader({
+              burger: {
+                ...burger,
+                style: e.target.value as "lines" | "short" | "dots" | "grid",
+              },
+            })
+          }
+          className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+        >
+          <option value="lines">{t("menuBurgerStyle_lines")}</option>
+          <option value="short">{t("menuBurgerStyle_short")}</option>
+          <option value="dots">{t("menuBurgerStyle_dots")}</option>
+          <option value="grid">{t("menuBurgerStyle_grid")}</option>
+        </select>
+      </label>
 
       {/* The slide-in drawer. */}
       <div className="mt-1 border-t border-brand-line pt-3">
@@ -856,7 +878,7 @@ export function MenuStudio({
               data={homeData}
               contactEmail={contactEmail}
               contactPhone={contactPhone}
-              forceMobileOpen={device === "phone"}
+              forceMobileOpen={device === "phone" && tab !== "mobile"}
               previewDevice={device}
             />
           ) : themeConfig ? (
