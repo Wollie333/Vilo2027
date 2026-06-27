@@ -21,12 +21,17 @@ import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas"
 import type { PageOption } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
 import { NavHeaderPreview } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavPreviews";
 import { SafariNavCanvas } from "@/components/site/safari/SafariNavCanvas";
+import { SiteChromeCanvas } from "@/components/site/SiteChromeCanvas";
 import { buildSafariNav } from "@/lib/site/safariNav";
+import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
   SiteBrand,
+  SiteConversion,
   SiteData,
   SiteMenuDeviceStyle,
   SiteMenuItem,
+  SiteNavItem,
+  SiteNavigation,
 } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
@@ -84,6 +89,11 @@ export function MenuStudio({
   homeBookHref = null,
   contactEmail = null,
   contactPhone = null,
+  themeConfig = null,
+  navItems = [],
+  conversion = null,
+  chromeLayout = "full",
+  darkChrome = false,
 }: {
   nav: NavigationConfig;
   setMenu: (menu: SiteMenuItem[]) => void;
@@ -101,6 +111,12 @@ export function MenuStudio({
   homeBookHref?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
+  /** Generic-theme canvas inputs (non-Safari). */
+  themeConfig?: SiteThemeConfig | null;
+  navItems?: SiteNavItem[];
+  conversion?: SiteConversion | null;
+  chromeLayout?: "full" | "boxed";
+  darkChrome?: boolean;
 }) {
   const t = useTranslations("website");
   const menu = nav.menu ?? [];
@@ -571,6 +587,19 @@ export function MenuStudio({
               contactEmail={contactEmail}
               contactPhone={contactPhone}
               forceMobileOpen={device === "phone"}
+            />
+          ) : themeConfig ? (
+            <SiteChromeCanvas
+              theme={themeConfig}
+              brand={brand}
+              nav={navItems}
+              navigation={nav as unknown as SiteNavigation}
+              conversion={conversion ?? undefined}
+              layout={chromeLayout}
+              darkChrome={darkChrome}
+              bookHref={homeBookHref}
+              sections={homeSections}
+              data={homeData}
             />
           ) : (
             <div className="vilo-nav">

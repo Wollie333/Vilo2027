@@ -7,7 +7,13 @@ import {
   pageHref,
   siteBookHref,
 } from "@/lib/site/loadSitePage";
-import type { SiteBrand, SiteData } from "@/lib/site/types";
+import { siteSurfaceIsDark, type SiteThemeConfig } from "@/lib/site/themes";
+import type {
+  SiteBrand,
+  SiteConversion,
+  SiteData,
+  SiteNavItem,
+} from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import { createServerClient } from "@/lib/supabase/server";
 import { websiteAssetUrl } from "@/lib/website/assets";
@@ -106,6 +112,12 @@ export default async function NavigationSectionEditorPage({
   let homeBookHref: string | null = null;
   let contactEmail: string | null = null;
   let contactPhone: string | null = null;
+  // Generic-theme canvas inputs (non-Safari): the resolved theme + chrome data.
+  let themeConfig: SiteThemeConfig | null = null;
+  let navItems: SiteNavItem[] = [];
+  let conversion: SiteConversion | null = null;
+  let chromeLayout: "full" | "boxed" = "full";
+  let darkChrome = false;
   try {
     const siteCtx = await loadSiteContext(site.subdomain, {
       preview: true,
@@ -116,6 +128,11 @@ export default async function NavigationSectionEditorPage({
         siteCtx.propertyIds.length > 0 ? siteBookHref(siteCtx, {}) : null;
       contactEmail = siteCtx.brand.contactEmail ?? null;
       contactPhone = siteCtx.brand.contactPhone ?? null;
+      themeConfig = siteCtx.theme;
+      navItems = siteCtx.nav;
+      conversion = siteCtx.conversion;
+      chromeLayout = siteCtx.layout;
+      darkChrome = siteSurfaceIsDark(siteCtx.theme);
       // Home first, then the rest in nav order. Skip the bespoke funnel pages
       // (checkout/thank-you) — they aren't useful menu backdrops.
       const candidates = (pageRows ?? [])
@@ -170,6 +187,11 @@ export default async function NavigationSectionEditorPage({
       homeBookHref={homeBookHref}
       contactEmail={contactEmail}
       contactPhone={contactPhone}
+      themeConfig={themeConfig}
+      navItems={navItems}
+      conversion={conversion}
+      chromeLayout={chromeLayout}
+      darkChrome={darkChrome}
     />
   );
 }

@@ -23,11 +23,16 @@ import { useTranslations } from "next-intl";
 import { saveNavigationAction } from "@/app/[locale]/dashboard/website/actions";
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
 import { SafariNavCanvas } from "@/components/site/safari/SafariNavCanvas";
+import { SiteChromeCanvas } from "@/components/site/SiteChromeCanvas";
 import { buildSafariNav } from "@/lib/site/safariNav";
+import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
   SiteBrand,
+  SiteConversion,
   SiteFooterColumn,
   SiteMenuItem,
+  SiteNavItem,
+  SiteNavigation,
 } from "@/lib/site/types";
 
 import {
@@ -157,6 +162,11 @@ export function NavSectionEditor({
   homeBookHref = null,
   contactEmail = null,
   contactPhone = null,
+  themeConfig = null,
+  navItems = [],
+  conversion = null,
+  chromeLayout = "full",
+  darkChrome = false,
 }: {
   websiteId: string;
   section: Section;
@@ -172,6 +182,12 @@ export function NavSectionEditor({
   homeBookHref?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
+  /** Generic-theme canvas inputs (non-Safari). */
+  themeConfig?: SiteThemeConfig | null;
+  navItems?: SiteNavItem[];
+  conversion?: SiteConversion | null;
+  chromeLayout?: "full" | "boxed";
+  darkChrome?: boolean;
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -373,6 +389,11 @@ export function NavSectionEditor({
             homeBookHref={homeBookHref}
             contactEmail={contactEmail}
             contactPhone={contactPhone}
+            themeConfig={themeConfig}
+            navItems={navItems}
+            conversion={conversion}
+            chromeLayout={chromeLayout}
+            darkChrome={darkChrome}
           />
         ) : (
           <>
@@ -446,6 +467,21 @@ export function NavSectionEditor({
                     contactEmail={contactEmail}
                     contactPhone={contactPhone}
                     forceMobileOpen={device === "phone"}
+                  />
+                ) : themeConfig ? (
+                  /* Generic theme: the REAL page behind the live chrome. */
+                  <SiteChromeCanvas
+                    theme={themeConfig}
+                    brand={brand}
+                    nav={navItems}
+                    navigation={nav as unknown as SiteNavigation}
+                    conversion={conversion ?? undefined}
+                    layout={chromeLayout}
+                    darkChrome={darkChrome}
+                    bookHref={homeBookHref}
+                    websiteId={websiteId}
+                    sections={homeSections}
+                    data={homeData}
                   />
                 ) : (
                   <div className="vilo-nav">

@@ -19,6 +19,21 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Nav canvas: real page for non-Safari themes too
+
+The real-site nav canvas now covers EVERY theme, not just Safari. New client
+`components/site/SiteChromeCanvas.tsx` renders the generic public path
+(`SiteThemeRoot > SiteChrome > SectionRenderer`) with the editor's live
+navigation, so header/menu/footer edits reflect instantly over the real page;
+`chromeInert` + non-interactive sections keep it a preview. The nav editor server
+page threads the resolved theme + nav + conversion + layout + dark-surface flag;
+`NavSectionEditor`/`MenuStudio` render it for non-Safari themes (the stylised
+`NavHeaderPreview` is now only the last-resort fallback when no theme resolves).
+Verified by temporarily flipping the test site to the `classic` theme: the canvas
+rendered the real home page (8 sections) in the generic chrome and a link rename
+reflected live; reverted to Safari after. This closes all of the founder's menu/
+nav builder gaps. 131 vitest + tsc + lint green.
+
 ## 2026-06-27 (PM) — Menu builder: drag-to-nest
 
 **You can now build dropdowns by dragging** — drag a link right past a half-indent
