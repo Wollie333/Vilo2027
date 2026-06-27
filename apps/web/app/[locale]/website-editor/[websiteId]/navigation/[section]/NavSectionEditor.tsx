@@ -21,15 +21,15 @@ import { useTranslations } from "next-intl";
 
 import { saveNavigationAction } from "@/app/[locale]/dashboard/website/actions";
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
-import { SafariHero } from "@/components/site/sections/SafariSections";
-import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SafariNavCanvas } from "@/components/site/safari/SafariNavCanvas";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import type {
   SiteBrand,
+  SiteData,
   SiteFooterColumn,
   SiteMenuItem,
 } from "@/lib/site/types";
-import { newSection } from "@/lib/website/sectionDefaults";
+import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import {
   NavFooterPreview,
@@ -153,6 +153,11 @@ export function NavSectionEditor({
   brand,
   themePreset,
   subdomain,
+  homeSections = [],
+  homeData,
+  homeBookHref = null,
+  contactEmail = null,
+  contactPhone = null,
 }: {
   websiteId: string;
   section: Section;
@@ -163,6 +168,12 @@ export function NavSectionEditor({
   brand: SiteBrand;
   themePreset?: string | null;
   subdomain: string;
+  /** The host's real home page (draft) — the canvas backdrop behind the chrome. */
+  homeSections?: WebsiteSection[];
+  homeData?: SiteData;
+  homeBookHref?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -190,8 +201,6 @@ export function NavSectionEditor({
         subdomain: "",
       })
     : null;
-  const heroSection = newSection("hero");
-  const heroProps = heroSection.type === "hero" ? heroSection.props : undefined;
   const devices: Array<{ key: Device; icon: LucideIcon; title: string }> = [
     { key: "desktop", icon: Monitor, title: t("deviceDesktop") },
     { key: "tablet", icon: Tablet, title: t("deviceTablet") },
@@ -324,6 +333,11 @@ export function NavSectionEditor({
             brandName={brandName}
             brand={brand}
             themePreset={themePreset}
+            homeSections={homeSections}
+            homeData={homeData}
+            homeBookHref={homeBookHref}
+            contactEmail={contactEmail}
+            contactPhone={contactPhone}
           />
         ) : (
           <>
@@ -388,9 +402,15 @@ export function NavSectionEditor({
                   .join(" ")}
               >
                 {isSafari && safariNav ? (
-                  <SafariShell brandName={brandName} nav={safariNav}>
-                    {heroProps ? <SafariHero props={heroProps} /> : null}
-                  </SafariShell>
+                  <SafariNavCanvas
+                    brandName={brandName}
+                    nav={safariNav}
+                    bookHref={homeBookHref}
+                    sections={homeSections}
+                    data={homeData}
+                    contactEmail={contactEmail}
+                    contactPhone={contactPhone}
+                  />
                 ) : (
                   <div className="vilo-nav">
                     {section === "footer" ? (

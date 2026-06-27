@@ -20,15 +20,15 @@ import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas"
 import type { PageOption } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
 import { NavHeaderPreview } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavPreviews";
 import { SortableList } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/SortableList";
-import { SafariHero } from "@/components/site/sections/SafariSections";
-import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SafariNavCanvas } from "@/components/site/safari/SafariNavCanvas";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import type {
   SiteBrand,
+  SiteData,
   SiteMenuDeviceStyle,
   SiteMenuItem,
 } from "@/lib/site/types";
-import { newSection } from "@/lib/website/sectionDefaults";
+import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 type Device = "desktop" | "tablet" | "phone";
 type Tab = "content" | "style" | "advanced";
@@ -91,6 +91,11 @@ export function MenuStudio({
   brandName,
   brand,
   themePreset,
+  homeSections = [],
+  homeData,
+  homeBookHref = null,
+  contactEmail = null,
+  contactPhone = null,
 }: {
   nav: NavigationConfig;
   setMenu: (menu: SiteMenuItem[]) => void;
@@ -102,6 +107,12 @@ export function MenuStudio({
   brandName: string;
   brand: SiteBrand;
   themePreset?: string | null;
+  /** The host's real home page (draft) — the canvas backdrop behind the chrome. */
+  homeSections?: WebsiteSection[];
+  homeData?: SiteData;
+  homeBookHref?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
 }) {
   const t = useTranslations("website");
   const menu = nav.menu ?? [];
@@ -115,8 +126,6 @@ export function MenuStudio({
         subdomain: "",
       })
     : null;
-  const heroSection = newSection("hero");
-  const heroProps = heroSection.type === "hero" ? heroSection.props : undefined;
   const [tab, setTab] = useState<Tab>("content");
   const [selected, setSelected] = useState<number[] | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -557,21 +566,33 @@ export function MenuStudio({
         </div>
       </aside>
 
-      {/* CENTER — live preview */}
+      {/* CENTER — live preview: the host's REAL home page behind the live chrome,
+          so the menu they're editing shows on the actual design (Safari). The
+          `nav-scroll-preview` viewport lets them scroll the real page + watch the
+          sticky menu behave. Off-theme keeps the generic header preview. */}
       <div className="canvas-wrap thin">
         <div
-          className={
+          className={[
             device === "tablet"
               ? "device tablet"
               : device === "phone"
                 ? "device mobile"
-                : "device"
-          }
+                : "device",
+            isSafari ? "nav-scroll-preview" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           {isSafari && safariNav ? (
-            <SafariShell brandName={brandName} nav={safariNav}>
-              {heroProps ? <SafariHero props={heroProps} /> : null}
-            </SafariShell>
+            <SafariNavCanvas
+              brandName={brandName}
+              nav={safariNav}
+              bookHref={homeBookHref}
+              sections={homeSections}
+              data={homeData}
+              contactEmail={contactEmail}
+              contactPhone={contactPhone}
+            />
           ) : (
             <div className="vilo-nav">
               <NavHeaderPreview

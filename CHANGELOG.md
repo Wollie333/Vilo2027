@@ -19,6 +19,31 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Nav editor canvas now renders the REAL site (not a stock hero)
+
+**The header / menu / footer builder canvas now shows the host's ACTUAL home page
+behind the live chrome** — so the host sees their menu on the real design exactly
+as the public site will look, the founder's headline requirement for the nav
+builder. Previously the canvas rendered the live chrome over a stock placeholder
+hero ("Your headline here").
+- New client `components/site/safari/SafariNavCanvas.tsx` renders the SAME public
+  Safari path — `SafariShell(liveNav) > SafariSectionList(real home sections)` —
+  non-interactive, fed the editor's in-progress nav so header/menu/footer edits
+  still reflect INSTANTLY while the body is the genuine page. Falls back to a
+  stock hero only when the home page has no sections.
+- The nav editor server page (`navigation/[section]/page.tsx`) loads the real
+  home page (draft) via `loadSiteContext` + `loadSitePage` and passes its
+  sections/data + contact/book info down; the resolver is the client-safe
+  `websiteAssetUrl`, so no function crosses the server/client boundary.
+- `NavSectionEditor` (header/footer) + `MenuStudio` (menu) both swap the stock
+  hero for `SafariNavCanvas`; MenuStudio's canvas gains the `nav-scroll-preview`
+  viewport so the host can scroll the real page + watch the sticky menu behave.
+  Off-theme (non-Safari) keeps the existing generic header preview unchanged.
+- Verified live: the menu canvas shows the real home page (8 sections, real
+  footer "Powered by Vilo"); renaming a link instantly updated the canvas nav;
+  the viewport scrolls the real page with a sticky header. 131 vitest + tsc +
+  lint green.
+
 ## 2026-06-27 (PM) — Forms EPIC 4b: booking forms auto-create a real draft quote
 
 **A booking form (a `dates` field with both dates) now feeds the real quote

@@ -1,8 +1,14 @@
 import { notFound } from "next/navigation";
 
 import { getMyHostId } from "@/lib/host/current";
-import { pageHref } from "@/lib/site/loadSitePage";
-import type { SiteBrand } from "@/lib/site/types";
+import {
+  loadSiteContext,
+  loadSitePage,
+  pageHref,
+  siteBookHref,
+} from "@/lib/site/loadSitePage";
+import type { SiteBrand, SiteData } from "@/lib/site/types";
+import type { WebsiteSection } from "@/lib/website/sections.schema";
 import { createServerClient } from "@/lib/supabase/server";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import { ensureDefaultMenu } from "@/lib/website/defaultMenu";
@@ -82,6 +88,35 @@ export default async function NavigationSectionEditorPage({
     label: p.nav_label?.trim() || p.title?.trim() || p.slug,
     href: pageHref(p.kind, p.slug),
   }));
+
+  // The host's REAL home page (draft) — rendered as the canvas backdrop so the
+  // nav editor is true WYSIWYG (the menu sits on the real design, not a stock
+  // hero). Loaded via the same path the public site uses; best-effort (a blank
+  // result just falls back to the stock hero in the canvas).
+  let homeSections: WebsiteSection[] = [];
+  let homeData: SiteData | undefined;
+  let homeBookHref: string | null = null;
+  let contactEmail: string | null = null;
+  let contactPhone: string | null = null;
+  try {
+    const siteCtx = await loadSiteContext(site.subdomain, {
+      preview: true,
+      siteParam: site.subdomain,
+    });
+    if (siteCtx) {
+      const home = await loadSitePage(siteCtx, []);
+      if (home) {
+        homeSections = home.sections;
+        homeData = home.data;
+      }
+      homeBookHref =
+        siteCtx.propertyIds.length > 0 ? siteBookHref(siteCtx, {}) : null;
+      contactEmail = siteCtx.brand.contactEmail ?? null;
+      contactPhone = siteCtx.brand.contactPhone ?? null;
+    }
+  } catch {
+    // Best-effort backdrop — the editor still works without the real page.
+  }
   const rooms = (roomRows ?? [])
     .map((r) => {
       const room = r.room as unknown as {
@@ -105,6 +140,11 @@ export default async function NavigationSectionEditorPage({
       brand={brand}
       themePreset={themePreset}
       subdomain={site.subdomain}
+      homeSections={homeSections}
+      homeData={homeData}
+      homeBookHref={homeBookHref}
+      contactEmail={contactEmail}
+      contactPhone={contactPhone}
     />
   );
 }
