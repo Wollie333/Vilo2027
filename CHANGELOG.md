@@ -19,6 +19,24 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Menu builder IA: Links + Mobile menu tabs; global style → inspector
+
+**Restructured the menu builder to the page-builder pattern** (founder request —
+the Style/Layout tabs were redundant). Left tabs are now **Links · Mobile menu**;
+the right inspector gained **Desktop · Tablet · Mobile** tabs (synced to the
+canvas + top-bar device — one device control), exactly like the page-builder
+section inspector:
+- **Select a link** → its settings + per-link style (the device tabs pick the
+  screen size).
+- **Deselect** → **"Menu style"** (the old Style + Layout, incl. two-state
+  colours, submenu, alignment/spacing, per-page overrides, reset), per device.
+- **Mobile menu tab** → the ☰ chrome: when the menu collapses + the drawer
+  background (link colours/sizes for the drawer stay in the link's Mobile style
+  tab). (Icon design lands next.)
+Verified live: tabs render, device tabs sync the canvas (phone → drawer opens) +
+top-bar, link select swaps the header, the global style sits under "Menu style".
+131 vitest + tsc + lint green.
+
 ## 2026-06-27 (PM) — Menu builder: reset-to-theme-default on styling fields
 
 **Every styling control can now revert to the theme default.** Colours (✕), size

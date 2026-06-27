@@ -396,6 +396,7 @@ export function NavSectionEditor({
             pages={pages}
             rooms={rooms}
             device={device}
+            setDevice={setDevice}
             brandName={brandName}
             brand={brand}
             themePreset={themePreset}

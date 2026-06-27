@@ -7,10 +7,9 @@ import {
   EyeOff,
   GripVertical,
   Plus,
+  Smartphone,
   Trash2,
   Type as TypeIcon,
-  Palette,
-  SlidersHorizontal,
   CornerDownRight,
 } from "lucide-react";
 import { useState } from "react";
@@ -40,7 +39,7 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 import { MenuTree } from "./MenuTree";
 
 type Device = "desktop" | "tablet" | "phone";
-type Tab = "content" | "style" | "advanced";
+type Tab = "links" | "mobile";
 
 // ── Pure tree helpers (path = array of sibling indices) ───────
 function uid() {
@@ -83,6 +82,7 @@ export function MenuStudio({
   pages,
   rooms = [],
   device,
+  setDevice,
   brandName,
   brand,
   themePreset,
@@ -107,6 +107,8 @@ export function MenuStudio({
   pages: PageOption[];
   rooms?: { roomId: string; name: string }[];
   device: Device;
+  /** Set the active device (the inspector device tabs drive the shared switcher). */
+  setDevice?: (d: Device) => void;
   brandName: string;
   brand: SiteBrand;
   themePreset?: string | null;
@@ -149,7 +151,7 @@ export function MenuStudio({
         backdropKey,
       )
     : null;
-  const [tab, setTab] = useState<Tab>("content");
+  const [tab, setTab] = useState<Tab>("links");
   const [selected, setSelected] = useState<number[] | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -359,19 +361,342 @@ export function MenuStudio({
       });
   };
 
+  // Device tab strip (Desktop · Tablet · Mobile) — the single device selector,
+  // synced to the canvas; the page-builder pattern, in the inspector header.
+  const deviceTabs = (
+    <div
+      role="tablist"
+      className="mx-3 mt-3 overflow-hidden rounded-[10px] border border-brand-line"
+      style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}
+    >
+      {(["desktop", "tablet", "phone"] as const).map((d) => (
+        <button
+          key={d}
+          type="button"
+          role="tab"
+          aria-selected={device === d}
+          onClick={() => setDevice?.(d)}
+          className={`px-2 py-1.5 text-[12px] font-semibold transition ${
+            device === d
+              ? "bg-brand-primary text-white"
+              : "bg-white text-brand-mute hover:bg-brand-light"
+          }`}
+        >
+          {t(`menuStyleDevice_${d}`)}
+        </button>
+      ))}
+    </div>
+  );
+
+  // GLOBAL menu style — shown in the right inspector when NO link is selected
+  // (page-builder "deselect = global settings"). Device-aware via the tabs above.
+  const menuStyleInspector = (
+    <div className="insp-sec space-y-3">
+      <GroupLabel>
+        {device === "phone"
+          ? t("menuStyleOverlayGroup")
+          : t("menuStyleTopGroup")}
+      </GroupLabel>
+      <ColorField
+        label={
+          device === "desktop" && headerTransparent
+            ? t("menuStyleColorOverHero")
+            : t("menuStyleColor")
+        }
+        value={devLayer.color ?? ""}
+        onChange={(v) => setDeviceStyle({ color: v || undefined })}
+      />
+      <ColorField
+        label={t("menuStyleHover")}
+        value={devLayer.hoverColor ?? ""}
+        onChange={(v) => setDeviceStyle({ hoverColor: v || undefined })}
+      />
+      {device === "desktop" && headerTransparent ? (
+        <>
+          <ColorField
+            label={t("menuStyleColorScrolled")}
+            value={ms.scrolledColor ?? ""}
+            onChange={(v) => setMenuStyle({ scrolledColor: v || undefined })}
+          />
+          <ColorField
+            label={t("menuStyleHoverScrolled")}
+            value={ms.scrolledHoverColor ?? ""}
+            onChange={(v) =>
+              setMenuStyle({ scrolledHoverColor: v || undefined })
+            }
+          />
+        </>
+      ) : null}
+      <label className="block">
+        <span className="block text-[12.5px] font-semibold text-brand-ink">
+          {t("menuStyleWeight")}
+        </span>
+        <select
+          value={devLayer.weight ?? ms.weight ?? "medium"}
+          onChange={(e) =>
+            setDeviceStyle({
+              weight: e.target.value as SiteMenuDeviceStyle["weight"],
+            })
+          }
+          className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+        >
+          <option value="normal">{t("menuWeightNormal")}</option>
+          <option value="medium">{t("menuWeightMedium")}</option>
+          <option value="semibold">{t("menuWeightSemibold")}</option>
+          <option value="bold">{t("menuWeightBold")}</option>
+        </select>
+      </label>
+      <CheckRow
+        label={t("menuStyleUppercase")}
+        checked={devLayer.uppercase ?? ms.uppercase ?? false}
+        onChange={(v) => setDeviceStyle({ uppercase: v })}
+      />
+      <RangeField
+        label={t("menuStyleSize")}
+        value={devLayer.fontSize}
+        fallback={device === "phone" ? 26 : 12}
+        min={device === "phone" ? 16 : 9}
+        max={device === "phone" ? 48 : 22}
+        onChange={(n) => setDeviceStyle({ fontSize: n })}
+      />
+      {/* Desktop only — dropdown (sub-menu) styling + layout. */}
+      {device === "desktop" ? (
+        <>
+          <div className="mt-1 border-t border-brand-line pt-3">
+            <GroupLabel>{t("menuStyleSubGroup")}</GroupLabel>
+            <p className="mb-2 text-[11.5px] text-brand-mute">
+              {t("menuStyleSubHint")}
+            </p>
+            <div className="space-y-3">
+              <ColorField
+                label={t("menuStyleSubColor")}
+                value={ms.submenuColor ?? ""}
+                onChange={(v) => setMenuStyle({ submenuColor: v })}
+              />
+              <ColorField
+                label={t("menuStyleSubHover")}
+                value={ms.submenuHoverColor ?? ""}
+                onChange={(v) => setMenuStyle({ submenuHoverColor: v })}
+              />
+              <ColorField
+                label={t("menuStyleSubBg")}
+                value={ms.submenuBg ?? ""}
+                onChange={(v) => setMenuStyle({ submenuBg: v })}
+              />
+            </div>
+          </div>
+          <div className="mt-1 border-t border-brand-line pt-3">
+            <GroupLabel>{t("menuTabLayout")}</GroupLabel>
+            <label className="mt-2 block">
+              <span className="block text-[12.5px] font-semibold text-brand-ink">
+                {t("menuAlignLabel")}
+              </span>
+              <select
+                value={ms.align ?? "start"}
+                onChange={(e) =>
+                  setMenuStyle({
+                    align: e.target.value as "start" | "center" | "end",
+                  })
+                }
+                className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+              >
+                <option value="start">{t("menuAlign_start")}</option>
+                <option value="center">{t("menuAlign_center")}</option>
+                <option value="end">{t("menuAlign_end")}</option>
+              </select>
+            </label>
+            <label className="mt-3 block">
+              <span className="flex items-center justify-between text-[12.5px] font-semibold text-brand-ink">
+                {t("menuItemGapLabel")}
+                <span className="text-[12px] tabular-nums text-brand-mute">
+                  {ms.itemGap ?? t("menuItemGapDefault")}
+                  {ms.itemGap ? "px" : ""}
+                </span>
+              </span>
+              <input
+                type="range"
+                min={8}
+                max={56}
+                value={ms.itemGap ?? 38}
+                onChange={(e) =>
+                  setMenuStyle({ itemGap: Number(e.target.value) })
+                }
+                className="mt-2 w-full"
+              />
+              {ms.itemGap ? (
+                <button
+                  type="button"
+                  onClick={() => setMenuStyle({ itemGap: undefined })}
+                  className="mt-1 text-[11.5px] font-medium text-brand-mute hover:text-brand-ink"
+                >
+                  {t("reset")}
+                </button>
+              ) : null}
+            </label>
+          </div>
+        </>
+      ) : null}
+      {/* This-page overrides — appearance + style for the page behind the menu. */}
+      {setPerPage
+        ? (() => {
+            const ppo = nav.perPage?.[backdropKey] ?? {};
+            const label =
+              pageList.find((p) => p.key === backdropKey)?.label ?? backdropKey;
+            const transpVal =
+              ppo.transparentOverHero === undefined
+                ? ""
+                : ppo.transparentOverHero
+                  ? "transparent"
+                  : "solid";
+            return (
+              <div className="mt-1 space-y-3 rounded-[10px] border border-brand-line p-2.5">
+                <GroupLabel>
+                  {t("menuPageOverridesTitle", { page: label })}
+                </GroupLabel>
+                <p className="text-[11.5px] text-brand-mute">
+                  {t("menuPageOverridesHint")}
+                </p>
+                <label className="block">
+                  <span className="block text-[12.5px] font-semibold text-brand-ink">
+                    {t("menuPageTransparency")}
+                  </span>
+                  <select
+                    value={transpVal}
+                    onChange={(e) =>
+                      setPerPage(backdropKey, {
+                        transparentOverHero:
+                          e.target.value === ""
+                            ? undefined
+                            : e.target.value === "transparent",
+                      })
+                    }
+                    className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+                  >
+                    <option value="">{t("menuPageTransp_inherit")}</option>
+                    <option value="transparent">
+                      {t("menuPageTransp_transparent")}
+                    </option>
+                    <option value="solid">{t("menuPageTransp_solid")}</option>
+                  </select>
+                </label>
+                <ColorField
+                  label={t("menuPageBarColor")}
+                  value={ppo.bgColor ?? ""}
+                  onChange={(v) =>
+                    setPerPage(backdropKey, { bgColor: v || undefined })
+                  }
+                />
+                <ColorField
+                  label={
+                    headerTransparent
+                      ? t("menuStyleColorOverHero")
+                      : t("menuStyleColor")
+                  }
+                  value={ppo.color ?? ""}
+                  onChange={(v) =>
+                    setPerPage(backdropKey, { color: v || undefined })
+                  }
+                />
+                {headerTransparent ? (
+                  <ColorField
+                    label={t("menuStyleColorScrolled")}
+                    value={ppo.scrolledColor ?? ""}
+                    onChange={(v) =>
+                      setPerPage(backdropKey, { scrolledColor: v || undefined })
+                    }
+                  />
+                ) : null}
+                <RangeField
+                  label={t("menuStyleSize")}
+                  value={ppo.fontSize}
+                  fallback={14}
+                  min={9}
+                  max={40}
+                  onChange={(n) => setPerPage(backdropKey, { fontSize: n })}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPerPage(backdropKey, {
+                      transparentOverHero: undefined,
+                      bgColor: undefined,
+                      color: undefined,
+                      hoverColor: undefined,
+                      scrolledColor: undefined,
+                      fontSize: undefined,
+                    })
+                  }
+                  className="text-[11.5px] font-semibold text-brand-mute hover:text-brand-ink"
+                >
+                  ↺ {t("menuResetToTheme")}
+                </button>
+              </div>
+            );
+          })()
+        : null}
+      <button
+        type="button"
+        onClick={resetDeviceStyle}
+        className="mt-1 text-[11.5px] font-semibold text-brand-mute hover:text-brand-ink"
+      >
+        ↺ {t("menuResetToTheme")}
+      </button>
+    </div>
+  );
+
+  // MOBILE MENU panel (left "Mobile menu" tab) — the ☰ chrome: when it collapses,
+  // the drawer background, and (task 23) the icon design. Drawer LINK styling lives
+  // in the inspector's Mobile device tab.
+  const mobileMenuPanel = (
+    <div className="insp-sec space-y-3">
+      <p className="rounded-[8px] bg-brand-light/60 px-2.5 py-2 text-[11.5px] leading-snug text-brand-mute">
+        {t("menuMobilePanelHint")}
+      </p>
+      <label className="block">
+        <span className="block text-[12.5px] font-semibold text-brand-ink">
+          {t("navMenuCollapse")}
+        </span>
+        <select
+          value={nav.header.menuCollapse ?? "mobile"}
+          onChange={(e) =>
+            setHeader({
+              menuCollapse: e.target.value as "mobile" | "tablet" | "never",
+            })
+          }
+          className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+        >
+          <option value="mobile">{t("navCollapseMobile")}</option>
+          <option value="tablet">{t("navCollapseTablet")}</option>
+          <option value="never">{t("navCollapseNever")}</option>
+        </select>
+        <p className="mt-1 text-[11.5px] text-brand-mute">
+          {t("navMenuCollapseHint")}
+        </p>
+      </label>
+      <ColorField
+        label={t("menuStyleOverlayBg")}
+        value={ms.mobile?.overlayBg ?? ""}
+        onChange={(v) =>
+          setMenuStyle({
+            mobile: { ...(ms.mobile ?? {}), overlayBg: v || undefined },
+          })
+        }
+      />
+    </div>
+  );
+
   return (
     <>
       {/* LEFT — tabbed builder */}
       <aside className="epanel l" style={{ width: 320 }}>
         <div
           role="tablist"
-          className="m-3 grid grid-cols-3 overflow-hidden rounded-[10px] border border-brand-line"
+          className="m-3 grid grid-cols-2 overflow-hidden rounded-[10px] border border-brand-line"
         >
           {(
             [
-              ["content", t("menuTabContent"), TypeIcon],
-              ["style", t("menuTabStyle"), Palette],
-              ["advanced", t("menuTabLayout"), SlidersHorizontal],
+              ["links", t("menuTabLinks"), TypeIcon],
+              ["mobile", t("menuTabMobile"), Smartphone],
             ] as const
           ).map(([key, label, Ico]) => (
             <button
@@ -393,7 +718,7 @@ export function MenuStudio({
         </div>
 
         <div className="epanel-b thin" style={{ paddingTop: 0 }}>
-          {tab === "content" ? (
+          {tab === "links" ? (
             <div className="insp-sec">
               <div className="px-1.5 pb-2">
                 <MenuTree
@@ -437,321 +762,8 @@ export function MenuStudio({
                 </div>
               ) : null}
             </div>
-          ) : tab === "style" ? (
-            <div className="insp-sec space-y-3">
-              {/* Which device am I styling? (driven by the top-bar device switcher) */}
-              <div className="rounded-[8px] bg-brand-light/60 px-2.5 py-2 text-[11.5px] leading-snug text-brand-mute">
-                <span className="font-semibold text-brand-ink">
-                  {t(`menuStyleDevice_${device}`)}
-                </span>
-                {device === "desktop"
-                  ? ` · ${t("menuStyleDeviceBase")}`
-                  : ` · ${t("menuStyleDeviceInherit")}`}
-              </div>
-              <GroupLabel>
-                {device === "phone"
-                  ? t("menuStyleOverlayGroup")
-                  : t("menuStyleTopGroup")}
-              </GroupLabel>
-              <ColorField
-                label={
-                  device === "desktop" && headerTransparent
-                    ? t("menuStyleColorOverHero")
-                    : t("menuStyleColor")
-                }
-                value={devLayer.color ?? ""}
-                onChange={(v) => setDeviceStyle({ color: v || undefined })}
-              />
-              <ColorField
-                label={t("menuStyleHover")}
-                value={devLayer.hoverColor ?? ""}
-                onChange={(v) => setDeviceStyle({ hoverColor: v || undefined })}
-              />
-              {/* Scrolled-state colour — only meaningful when the header is
-                  transparent over the hero (desktop layer; state, not per-device). */}
-              {device === "desktop" && headerTransparent ? (
-                <>
-                  <ColorField
-                    label={t("menuStyleColorScrolled")}
-                    value={ms.scrolledColor ?? ""}
-                    onChange={(v) =>
-                      setMenuStyle({ scrolledColor: v || undefined })
-                    }
-                  />
-                  <ColorField
-                    label={t("menuStyleHoverScrolled")}
-                    value={ms.scrolledHoverColor ?? ""}
-                    onChange={(v) =>
-                      setMenuStyle({ scrolledHoverColor: v || undefined })
-                    }
-                  />
-                </>
-              ) : null}
-              <label className="block">
-                <span className="block text-[12.5px] font-semibold text-brand-ink">
-                  {t("menuStyleWeight")}
-                </span>
-                <select
-                  value={devLayer.weight ?? ms.weight ?? "medium"}
-                  onChange={(e) =>
-                    setDeviceStyle({
-                      weight: e.target.value as SiteMenuDeviceStyle["weight"],
-                    })
-                  }
-                  className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
-                >
-                  <option value="normal">{t("menuWeightNormal")}</option>
-                  <option value="medium">{t("menuWeightMedium")}</option>
-                  <option value="semibold">{t("menuWeightSemibold")}</option>
-                  <option value="bold">{t("menuWeightBold")}</option>
-                </select>
-              </label>
-              <CheckRow
-                label={t("menuStyleUppercase")}
-                checked={devLayer.uppercase ?? ms.uppercase ?? false}
-                onChange={(v) => setDeviceStyle({ uppercase: v })}
-              />
-              <RangeField
-                label={t("menuStyleSize")}
-                value={devLayer.fontSize}
-                fallback={device === "phone" ? 26 : 12}
-                min={device === "phone" ? 16 : 9}
-                max={device === "phone" ? 48 : 22}
-                onChange={(n) => setDeviceStyle({ fontSize: n })}
-              />
-
-              {/* Mobile (drawer) only — the overlay background. */}
-              {device === "phone" ? (
-                <ColorField
-                  label={t("menuStyleOverlayBg")}
-                  value={ms.mobile?.overlayBg ?? ""}
-                  onChange={(v) =>
-                    setMenuStyle({
-                      mobile: {
-                        ...(ms.mobile ?? {}),
-                        overlayBg: v || undefined,
-                      },
-                    })
-                  }
-                />
-              ) : null}
-
-              {/* Desktop only — dropdown (sub-menu) styling. */}
-              {device === "desktop" ? (
-                <div className="mt-1 border-t border-brand-line pt-3">
-                  <GroupLabel>{t("menuStyleSubGroup")}</GroupLabel>
-                  <p className="mb-2 text-[11.5px] text-brand-mute">
-                    {t("menuStyleSubHint")}
-                  </p>
-                  <div className="space-y-3">
-                    <ColorField
-                      label={t("menuStyleSubColor")}
-                      value={ms.submenuColor ?? ""}
-                      onChange={(v) => setMenuStyle({ submenuColor: v })}
-                    />
-                    <ColorField
-                      label={t("menuStyleSubHover")}
-                      value={ms.submenuHoverColor ?? ""}
-                      onChange={(v) => setMenuStyle({ submenuHoverColor: v })}
-                    />
-                    <ColorField
-                      label={t("menuStyleSubBg")}
-                      value={ms.submenuBg ?? ""}
-                      onChange={(v) => setMenuStyle({ submenuBg: v })}
-                    />
-                  </div>
-                </div>
-              ) : null}
-              <button
-                type="button"
-                onClick={resetDeviceStyle}
-                className="mt-1 text-[11.5px] font-semibold text-brand-mute hover:text-brand-ink"
-              >
-                ↺ {t("menuResetToTheme")}
-              </button>
-            </div>
           ) : (
-            <div className="insp-sec space-y-3">
-              {/* This-page overrides — appearance + style for the page currently
-                  behind the menu (the backdrop). Merges over the global values. */}
-              {setPerPage
-                ? (() => {
-                    const ppo = nav.perPage?.[backdropKey] ?? {};
-                    const label =
-                      pageList.find((p) => p.key === backdropKey)?.label ??
-                      backdropKey;
-                    const transpVal =
-                      ppo.transparentOverHero === undefined
-                        ? ""
-                        : ppo.transparentOverHero
-                          ? "transparent"
-                          : "solid";
-                    return (
-                      <div className="space-y-3 rounded-[10px] border border-brand-line p-2.5">
-                        <GroupLabel>
-                          {t("menuPageOverridesTitle", { page: label })}
-                        </GroupLabel>
-                        <p className="text-[11.5px] text-brand-mute">
-                          {t("menuPageOverridesHint")}
-                        </p>
-                        <label className="block">
-                          <span className="block text-[12.5px] font-semibold text-brand-ink">
-                            {t("menuPageTransparency")}
-                          </span>
-                          <select
-                            value={transpVal}
-                            onChange={(e) =>
-                              setPerPage(backdropKey, {
-                                transparentOverHero:
-                                  e.target.value === ""
-                                    ? undefined
-                                    : e.target.value === "transparent",
-                              })
-                            }
-                            className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
-                          >
-                            <option value="">
-                              {t("menuPageTransp_inherit")}
-                            </option>
-                            <option value="transparent">
-                              {t("menuPageTransp_transparent")}
-                            </option>
-                            <option value="solid">
-                              {t("menuPageTransp_solid")}
-                            </option>
-                          </select>
-                        </label>
-                        <ColorField
-                          label={t("menuPageBarColor")}
-                          value={ppo.bgColor ?? ""}
-                          onChange={(v) =>
-                            setPerPage(backdropKey, { bgColor: v || undefined })
-                          }
-                        />
-                        <ColorField
-                          label={
-                            headerTransparent
-                              ? t("menuStyleColorOverHero")
-                              : t("menuStyleColor")
-                          }
-                          value={ppo.color ?? ""}
-                          onChange={(v) =>
-                            setPerPage(backdropKey, { color: v || undefined })
-                          }
-                        />
-                        {headerTransparent ? (
-                          <ColorField
-                            label={t("menuStyleColorScrolled")}
-                            value={ppo.scrolledColor ?? ""}
-                            onChange={(v) =>
-                              setPerPage(backdropKey, {
-                                scrolledColor: v || undefined,
-                              })
-                            }
-                          />
-                        ) : null}
-                        <RangeField
-                          label={t("menuStyleSize")}
-                          value={ppo.fontSize}
-                          fallback={14}
-                          min={9}
-                          max={40}
-                          onChange={(n) =>
-                            setPerPage(backdropKey, { fontSize: n })
-                          }
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPerPage(backdropKey, {
-                              transparentOverHero: undefined,
-                              bgColor: undefined,
-                              color: undefined,
-                              hoverColor: undefined,
-                              scrolledColor: undefined,
-                              fontSize: undefined,
-                            })
-                          }
-                          className="text-[11.5px] font-semibold text-brand-mute hover:text-brand-ink"
-                        >
-                          ↺ {t("menuResetToTheme")}
-                        </button>
-                      </div>
-                    );
-                  })()
-                : null}
-              <label className="block">
-                <span className="block text-[12.5px] font-semibold text-brand-ink">
-                  {t("menuAlignLabel")}
-                </span>
-                <select
-                  value={ms.align ?? "start"}
-                  onChange={(e) =>
-                    setMenuStyle({
-                      align: e.target.value as "start" | "center" | "end",
-                    })
-                  }
-                  className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
-                >
-                  <option value="start">{t("menuAlign_start")}</option>
-                  <option value="center">{t("menuAlign_center")}</option>
-                  <option value="end">{t("menuAlign_end")}</option>
-                </select>
-              </label>
-              {/* Horizontal spacing between top-level links. */}
-              <label className="block">
-                <span className="flex items-center justify-between text-[12.5px] font-semibold text-brand-ink">
-                  {t("menuItemGapLabel")}
-                  <span className="text-[12px] tabular-nums text-brand-mute">
-                    {ms.itemGap ?? t("menuItemGapDefault")}
-                    {ms.itemGap ? "px" : ""}
-                  </span>
-                </span>
-                <input
-                  type="range"
-                  min={8}
-                  max={56}
-                  value={ms.itemGap ?? 38}
-                  onChange={(e) =>
-                    setMenuStyle({ itemGap: Number(e.target.value) })
-                  }
-                  className="mt-2 w-full"
-                />
-                {ms.itemGap ? (
-                  <button
-                    type="button"
-                    onClick={() => setMenuStyle({ itemGap: undefined })}
-                    className="mt-1 text-[11.5px] font-medium text-brand-mute hover:text-brand-ink"
-                  >
-                    {t("reset")}
-                  </button>
-                ) : null}
-              </label>
-              <label className="block">
-                <span className="block text-[12.5px] font-semibold text-brand-ink">
-                  {t("navMenuCollapse")}
-                </span>
-                <select
-                  value={nav.header.menuCollapse ?? "mobile"}
-                  onChange={(e) =>
-                    setHeader({
-                      menuCollapse: e.target.value as
-                        | "mobile"
-                        | "tablet"
-                        | "never",
-                    })
-                  }
-                  className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
-                >
-                  <option value="mobile">{t("navCollapseMobile")}</option>
-                  <option value="tablet">{t("navCollapseTablet")}</option>
-                  <option value="never">{t("navCollapseNever")}</option>
-                </select>
-                <p className="mt-1 text-[11.5px] text-brand-mute">
-                  {t("navMenuCollapseHint")}
-                </p>
-              </label>
-            </div>
+            mobileMenuPanel
           )}
         </div>
       </aside>
@@ -816,8 +828,15 @@ export function MenuStudio({
       <aside className="epanel r" style={{ width: 312 }}>
         <div className="epanel-h">
           <TypeIcon style={{ width: 16, height: 16, color: "#10B981" }} />
-          <h3>{t("menuSelectedLink")}</h3>
+          <h3>
+            {selectedItem && selected
+              ? t("menuSelectedLink")
+              : t("menuStyleTitle")}
+          </h3>
         </div>
+        {/* Screen-size tabs (page-builder pattern) — drive which device layer the
+            controls below edit, for BOTH the link panel and the global menu style. */}
+        {deviceTabs}
         <div className="epanel-b thin">
           {selectedItem && selected ? (
             <div className="insp-sec space-y-3">
@@ -958,16 +977,12 @@ export function MenuStudio({
               ) : null}
 
               {/* Per-link STYLE — overrides the global menu style for THIS link,
-                  per screen size (the top-bar device switcher picks the layer). */}
+                  per screen size (the inspector device tabs pick the layer). */}
               <div className="insp-sec space-y-3 border-t border-brand-line pt-3">
-                <div className="rounded-[8px] bg-brand-light/60 px-2.5 py-2 text-[11.5px] leading-snug text-brand-mute">
-                  <span className="font-semibold text-brand-ink">
-                    {t(`menuStyleDevice_${device}`)}
-                  </span>
-                  {" · "}
-                  {t("menuItemStyleHint")}
-                </div>
                 <GroupLabel>{t("menuItemStyleTitle")}</GroupLabel>
+                <p className="-mt-1 text-[11.5px] text-brand-mute">
+                  {t("menuItemStyleHint")}
+                </p>
                 <ColorField
                   label={t("menuStyleColor")}
                   value={selLayer.color ?? ""}
@@ -1046,11 +1061,7 @@ export function MenuStudio({
               </button>
             </div>
           ) : (
-            <div className="insp-sec">
-              <p className="text-[12.5px] text-brand-mute">
-                {t("menuSelectHint")}
-              </p>
-            </div>
+            menuStyleInspector
           )}
         </div>
       </aside>
