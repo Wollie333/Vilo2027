@@ -15,11 +15,13 @@ export function ReviewViewTabs({
   reviewCount,
   needsResponseCount,
   guestRatingCount,
+  externalSourceCount,
 }: {
   active: string;
   reviewCount: number;
   needsResponseCount: number;
   guestRatingCount: number;
+  externalSourceCount?: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -34,6 +36,8 @@ export function ReviewViewTabs({
         router.push(`${pathname}?view=activity`);
       } else if (key === "guest-ratings") {
         router.push(`${pathname}?view=guest-ratings`);
+      } else if (key === "external") {
+        router.push(`${pathname}?view=external`);
       } else {
         router.push(pathname);
       }
@@ -61,6 +65,11 @@ export function ReviewViewTabs({
           key: "guest-ratings",
           label: "Guest ratings",
           count: guestRatingCount || undefined,
+        },
+        {
+          key: "external",
+          label: "External",
+          count: externalSourceCount || undefined,
         },
       ]}
     />

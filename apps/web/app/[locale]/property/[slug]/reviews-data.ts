@@ -1,3 +1,8 @@
+import {
+  aggregateRating,
+  type AggregatedRating,
+  type ReviewSource,
+} from "@/lib/listings/aggregateRating";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -22,6 +27,18 @@ export type PublicReview = {
   photos: string[];
 };
 
+export type ExternalReview = {
+  id: string;
+  source: ReviewSource;
+  reviewerName: string;
+  reviewerAvatar: string | null;
+  createdAt: string;
+  rating: number;
+  body: string | null;
+  hostReply: string | null;
+  reviewUrl: string | null;
+};
+
 export type ReviewCategory = { key: string; label: string; avg: number };
 export type ReviewTheme = {
   label: string;
@@ -39,6 +56,10 @@ export type ReviewsData = {
   tripTypes: TripTypeCount[];
   featured: PublicReview | null;
   reviews: PublicReview[];
+  /** External reviews mapped to this listing (from Google, Facebook, Trustpilot). */
+  externalReviews: ExternalReview[];
+  /** Aggregated rating across Vilo + external sources. */
+  aggregated: AggregatedRating;
 };
 
 const CATEGORY_META: { key: string; col: string; label: string }[] = [
@@ -95,32 +116,48 @@ export async function loadListingReviews(
 ): Promise<ReviewsData> {
   const supabase = createServerClient();
 
-  const [{ data: reviewRows }, { data: themeRows }, { data: listingRow }] =
-    await Promise.all([
-      supabase
-        .from("reviews")
-        .select(
-          `id, rating, body, created_at, trip_type, helpful_count, host_response,
+  const [
+    { data: reviewRows },
+    { data: themeRows },
+    { data: listingRow },
+    { data: externalRows },
+  ] = await Promise.all([
+    supabase
+      .from("reviews")
+      .select(
+        `id, rating, body, created_at, trip_type, helpful_count, host_response,
          rating_cleanliness, rating_communication, rating_checkin,
          rating_accuracy, rating_location, rating_value,
          guest:user_profiles!reviews_guest_id_fkey ( full_name ),
          booking:bookings ( nights, guest_name ),
          photos:review_photos ( storage_path, sort_order )`,
-        )
-        .eq("property_id", listingId)
-        .eq("is_published", true)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("property_review_themes")
-        .select("label, icon_key, mention_count, sort_order")
-        .eq("property_id", listingId)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("properties")
-        .select("featured_review_id")
-        .eq("id", listingId)
-        .maybeSingle(),
-    ]);
+      )
+      .eq("property_id", listingId)
+      .eq("is_published", true)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("property_review_themes")
+      .select("label, icon_key, mention_count, sort_order")
+      .eq("property_id", listingId)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("properties")
+      .select("featured_review_id")
+      .eq("id", listingId)
+      .maybeSingle(),
+    // External reviews linked to this property (visible only)
+    supabase
+      .from("external_reviews")
+      .select(
+        `id, rating, body, reviewed_at, reviewer_name, reviewer_avatar_url,
+         host_reply, review_url,
+         source:external_review_sources!inner ( source )`,
+      )
+      .eq("property_id", listingId)
+      .eq("is_visible", true)
+      .is("deleted_at", null)
+      .order("reviewed_at", { ascending: false }),
+  ]);
   const featuredReviewId = listingRow?.featured_review_id ?? null;
 
   const rows = (reviewRows ?? []) as unknown as RawReview[];
@@ -200,6 +237,58 @@ export async function loadListingReviews(
     )[0] ?? null;
   const featured = pinned ?? fallback;
 
+  // Transform external reviews
+  type RawExternal = {
+    id: string;
+    rating: number;
+    body: string | null;
+    reviewed_at: string;
+    reviewer_name: string;
+    reviewer_avatar_url: string | null;
+    host_reply: string | null;
+    review_url: string | null;
+    source: { source: string };
+  };
+  const externalReviews: ExternalReview[] = (
+    (externalRows ?? []) as unknown as RawExternal[]
+  ).map((r) => ({
+    id: r.id,
+    source: (r.source?.source ?? "google") as ReviewSource,
+    reviewerName: r.reviewer_name,
+    reviewerAvatar: r.reviewer_avatar_url,
+    createdAt: r.reviewed_at,
+    rating: r.rating,
+    body: r.body,
+    hostReply: r.host_reply,
+    reviewUrl: r.review_url,
+  }));
+
+  // Calculate aggregated rating across sources
+  const externalBySource = new Map<
+    ReviewSource,
+    { sum: number; count: number }
+  >();
+  for (const r of externalReviews) {
+    const prev = externalBySource.get(r.source) ?? { sum: 0, count: 0 };
+    externalBySource.set(r.source, {
+      sum: prev.sum + r.rating,
+      count: prev.count + 1,
+    });
+  }
+  const sourceRatings: Array<{
+    source: ReviewSource;
+    count: number;
+    average: number;
+  }> = [{ source: "vilo" as ReviewSource, count, average }];
+  for (const [src, data] of externalBySource) {
+    sourceRatings.push({
+      source: src,
+      count: data.count,
+      average: data.count > 0 ? data.sum / data.count : 0,
+    });
+  }
+  const aggregated = aggregateRating(sourceRatings);
+
   return {
     count,
     average,
@@ -209,5 +298,7 @@ export async function loadListingReviews(
     tripTypes,
     featured,
     reviews,
+    externalReviews,
+    aggregated,
   };
 }

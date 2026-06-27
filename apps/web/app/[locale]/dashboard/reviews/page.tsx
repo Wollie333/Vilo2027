@@ -16,6 +16,7 @@ import { fetchRequestableReviews } from "@/lib/reviews/eligible";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { ExternalReviewsHub } from "./ExternalReviewsHub";
 import { FilterTabs } from "./FilterTabs";
 import { GuestRatingsHub } from "./GuestRatingsHub";
 import { RequestReviewButton } from "./RequestReviewButton";
@@ -98,7 +99,9 @@ export default async function ReviewsPage({
       ? "activity"
       : searchParams?.view === "guest-ratings"
         ? ("guest-ratings" as const)
-        : ("reviews" as const);
+        : searchParams?.view === "external"
+          ? ("external" as const)
+          : ("reviews" as const);
 
   const requestable = await fetchRequestableReviews(supabase, {
     hostId: host.id,
@@ -170,6 +173,7 @@ export default async function ReviewsPage({
     { count: repliedCount },
     { count: flaggedCount },
     { data: hostListings },
+    { count: externalReviewCount },
   ] = await Promise.all([
     baseCountQuery(),
     baseCountQuery().is("host_response", null),
@@ -181,6 +185,12 @@ export default async function ReviewsPage({
       .eq("host_id", host.id)
       .is("deleted_at", null)
       .order("total_reviews", { ascending: false }),
+    supabase
+      .from("external_reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", host.id)
+      .eq("is_visible", true)
+      .is("deleted_at", null),
   ]);
 
   // Review ids currently pinned as a listing's featured review.
@@ -343,12 +353,15 @@ export default async function ReviewsPage({
         reviewCount={totalReviews}
         needsResponseCount={needsReplyTotal}
         guestRatingCount={guestRatings.length}
+        externalSourceCount={externalReviewCount ?? 0}
       />
 
       {view === "activity" ? (
         <ReviewActivityTable rows={activity} />
       ) : view === "guest-ratings" ? (
         <GuestRatingsHub rows={guestRatings} />
+      ) : view === "external" ? (
+        <ExternalReviewsHub hostId={host.id} />
       ) : (
         <div className="space-y-7">
           {/* ─── Summary row ────────────────────────────────────────── */}

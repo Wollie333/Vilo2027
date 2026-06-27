@@ -2337,6 +2337,224 @@ export type Database = {
           },
         ]
       }
+      external_review_sources: {
+        Row: {
+          access_token: string | null
+          account_name: string | null
+          account_url: string | null
+          api_key: string | null
+          api_secret: string | null
+          created_at: string
+          deleted_at: string | null
+          external_account_id: string
+          host_id: string
+          id: string
+          is_active: boolean
+          last_sync_error: string | null
+          last_synced_at: string | null
+          refresh_token: string | null
+          source: string
+          sync_cursor: string | null
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_name?: string | null
+          account_url?: string | null
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          external_account_id: string
+          host_id: string
+          id?: string
+          is_active?: boolean
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          refresh_token?: string | null
+          source: string
+          sync_cursor?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          account_name?: string | null
+          account_url?: string | null
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          external_account_id?: string
+          host_id?: string
+          id?: string
+          is_active?: boolean
+          last_sync_error?: string | null
+          last_synced_at?: string | null
+          refresh_token?: string | null
+          source?: string
+          sync_cursor?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_review_sources_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_review_sync_log: {
+        Row: {
+          completed_at: string | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          reviews_added: number | null
+          reviews_fetched: number | null
+          reviews_updated: number | null
+          source_id: string
+          started_at: string
+          status: string
+          sync_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          reviews_added?: number | null
+          reviews_fetched?: number | null
+          reviews_updated?: number | null
+          source_id: string
+          started_at?: string
+          status: string
+          sync_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          reviews_added?: number | null
+          reviews_fetched?: number | null
+          reviews_updated?: number | null
+          source_id?: string
+          started_at?: string
+          status?: string
+          sync_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_review_sync_log_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "external_review_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_reviews: {
+        Row: {
+          body: string | null
+          created_at: string
+          deleted_at: string | null
+          external_review_id: string
+          external_reviewer_id: string | null
+          host_id: string
+          host_reply: string | null
+          host_reply_at: string | null
+          id: string
+          is_featured: boolean
+          is_visible: boolean
+          language: string | null
+          property_id: string | null
+          rating: number | null
+          reply_sync_error: string | null
+          reply_synced: boolean
+          review_url: string | null
+          reviewed_at: string
+          reviewer_avatar_url: string | null
+          reviewer_name: string | null
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          external_review_id: string
+          external_reviewer_id?: string | null
+          host_id: string
+          host_reply?: string | null
+          host_reply_at?: string | null
+          id?: string
+          is_featured?: boolean
+          is_visible?: boolean
+          language?: string | null
+          property_id?: string | null
+          rating?: number | null
+          reply_sync_error?: string | null
+          reply_synced?: boolean
+          review_url?: string | null
+          reviewed_at: string
+          reviewer_avatar_url?: string | null
+          reviewer_name?: string | null
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          external_review_id?: string
+          external_reviewer_id?: string | null
+          host_id?: string
+          host_reply?: string | null
+          host_reply_at?: string | null
+          id?: string
+          is_featured?: boolean
+          is_visible?: boolean
+          language?: string | null
+          property_id?: string | null
+          rating?: number | null
+          reply_sync_error?: string | null
+          reply_synced?: boolean
+          review_url?: string | null
+          reviewed_at?: string
+          reviewer_avatar_url?: string | null
+          reviewer_name?: string | null
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_reviews_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_reviews_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_reviews_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "external_review_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       featured_listings: {
         Row: {
           created_at: string

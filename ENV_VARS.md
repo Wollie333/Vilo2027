@@ -304,7 +304,61 @@ see ADR-013 in `DECISIONS.md`.)
 
 ---
 
-## 9. Local Development `.env.local` Template
+## 9. External Reviews Integration
+
+OAuth connections to Google Business Profile and Facebook Pages, plus API key storage for Trustpilot.
+
+### `OAUTH_CIPHER_KEY`
+- **What:** AES-256-GCM encryption key for OAuth tokens stored in the database
+- **Format:** Base64-encoded 32-byte key
+- **Generate:** `openssl rand -base64 32`
+- **Used in:** Server Actions, Edge Functions
+- **Environments:** All
+- ⚠️ **Server-side only. Never expose to client. If lost, all OAuth tokens must be re-authenticated.**
+
+### `GOOGLE_REVIEWS_CLIENT_ID`
+- **What:** Google Cloud OAuth 2.0 client ID for Google Business Profile API
+- **Format:** `123456789-abcdef.apps.googleusercontent.com`
+- **Where to get:** Google Cloud Console → APIs & Services → Credentials → Create OAuth client ID (Web application)
+- **Required scopes:** `https://www.googleapis.com/auth/business.manage`
+- **Used in:** Server Actions (OAuth flow)
+- **Environments:** All
+
+### `GOOGLE_REVIEWS_SECRET`
+- **What:** Google Cloud OAuth 2.0 client secret
+- **Format:** `GOCSPX-...`
+- **Where to get:** Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID → Client secret
+- **Used in:** Server Actions (token exchange)
+- **Environments:** All
+- ⚠️ **Server-side only.**
+
+### `FACEBOOK_APP_ID`
+- **What:** Facebook App ID for Pages API access
+- **Format:** Numeric string (e.g., `123456789012345`)
+- **Where to get:** Meta for Developers → My Apps → App Settings → Basic → App ID
+- **Required permissions:** `pages_read_engagement`, `pages_manage_engagement`
+- **Used in:** Server Actions (OAuth flow)
+- **Environments:** All
+
+### `FACEBOOK_APP_SECRET`
+- **What:** Facebook App secret
+- **Format:** Alphanumeric string
+- **Where to get:** Meta for Developers → My Apps → App Settings → Basic → App Secret
+- **Used in:** Server Actions (token exchange)
+- **Environments:** All
+- ⚠️ **Server-side only.**
+
+### `EXTERNAL_REVIEWS_WORKER_SECRET`
+- **What:** Bearer token for authenticating the daily sync cron job
+- **Format:** Random string (min 32 characters)
+- **Generate:** `openssl rand -base64 32`
+- **Used in:** `/api/external-reviews-worker` route, Supabase Vault
+- **Environments:** Staging, Production
+- **Note:** Store in Supabase Vault as `external_reviews_worker_secret`
+
+---
+
+## 10. Local Development `.env.local` Template
 
 ```env
 # ─── Supabase (local) ───────────────────────────────────
