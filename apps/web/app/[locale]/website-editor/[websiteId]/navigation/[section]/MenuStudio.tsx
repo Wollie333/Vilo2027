@@ -647,41 +647,99 @@ export function MenuStudio({
   // MOBILE MENU panel (left "Mobile menu" tab) — the ☰ chrome: when it collapses,
   // the drawer background, and (task 23) the icon design. Drawer LINK styling lives
   // in the inspector's Mobile device tab.
+  const burger = nav.header.burger ?? {};
   const mobileMenuPanel = (
     <div className="insp-sec space-y-3">
       <p className="rounded-[8px] bg-brand-light/60 px-2.5 py-2 text-[11.5px] leading-snug text-brand-mute">
         {t("menuMobilePanelHint")}
       </p>
+
+      {/* The ☰ icon design. */}
+      <GroupLabel>{t("menuBurgerGroup")}</GroupLabel>
+      <ColorField
+        label={t("menuBurgerColor")}
+        value={burger.color ?? ""}
+        onChange={(v) =>
+          setHeader({ burger: { ...burger, color: v || undefined } })
+        }
+      />
+      <ColorField
+        label={t("menuBurgerBg")}
+        value={burger.bg ?? ""}
+        onChange={(v) =>
+          setHeader({ burger: { ...burger, bg: v || undefined } })
+        }
+      />
+      <RangeField
+        label={t("menuBurgerSize")}
+        value={burger.size}
+        fallback={26}
+        min={16}
+        max={48}
+        onChange={(n) => setHeader({ burger: { ...burger, size: n } })}
+      />
       <label className="block">
         <span className="block text-[12.5px] font-semibold text-brand-ink">
-          {t("navMenuCollapse")}
+          {t("menuBurgerWeight")}
         </span>
         <select
-          value={nav.header.menuCollapse ?? "mobile"}
+          value={burger.weight ?? "regular"}
           onChange={(e) =>
             setHeader({
-              menuCollapse: e.target.value as "mobile" | "tablet" | "never",
+              burger: {
+                ...burger,
+                weight: e.target.value as "thin" | "regular" | "bold",
+              },
             })
           }
           className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
         >
-          <option value="mobile">{t("navCollapseMobile")}</option>
-          <option value="tablet">{t("navCollapseTablet")}</option>
-          <option value="never">{t("navCollapseNever")}</option>
+          <option value="thin">{t("menuBurgerThin")}</option>
+          <option value="regular">{t("menuBurgerRegular")}</option>
+          <option value="bold">{t("menuBurgerBold")}</option>
         </select>
-        <p className="mt-1 text-[11.5px] text-brand-mute">
-          {t("navMenuCollapseHint")}
-        </p>
       </label>
-      <ColorField
-        label={t("menuStyleOverlayBg")}
-        value={ms.mobile?.overlayBg ?? ""}
-        onChange={(v) =>
-          setMenuStyle({
-            mobile: { ...(ms.mobile ?? {}), overlayBg: v || undefined },
-          })
-        }
-      />
+
+      {/* The slide-in drawer. */}
+      <div className="mt-1 border-t border-brand-line pt-3">
+        <GroupLabel>{t("menuDrawerGroup")}</GroupLabel>
+        <div className="mt-2">
+          <ColorField
+            label={t("menuStyleOverlayBg")}
+            value={ms.mobile?.overlayBg ?? ""}
+            onChange={(v) =>
+              setMenuStyle({
+                mobile: { ...(ms.mobile ?? {}), overlayBg: v || undefined },
+              })
+            }
+          />
+        </div>
+      </div>
+
+      {/* When the inline menu collapses to the ☰. */}
+      <div className="mt-1 border-t border-brand-line pt-3">
+        <label className="block">
+          <span className="block text-[12.5px] font-semibold text-brand-ink">
+            {t("navMenuCollapse")}
+          </span>
+          <select
+            value={nav.header.menuCollapse ?? "mobile"}
+            onChange={(e) =>
+              setHeader({
+                menuCollapse: e.target.value as "mobile" | "tablet" | "never",
+              })
+            }
+            className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+          >
+            <option value="mobile">{t("navCollapseMobile")}</option>
+            <option value="tablet">{t("navCollapseTablet")}</option>
+            <option value="never">{t("navCollapseNever")}</option>
+          </select>
+          <p className="mt-1 text-[11.5px] text-brand-mute">
+            {t("navMenuCollapseHint")}
+          </p>
+        </label>
+      </div>
     </div>
   );
 
@@ -704,7 +762,11 @@ export function MenuStudio({
               type="button"
               role="tab"
               aria-selected={tab === key}
-              onClick={() => setTab(key)}
+              onClick={() => {
+                setTab(key);
+                // Opening the Mobile menu tab shows the ☰ + drawer in the canvas.
+                if (key === "mobile") setDevice?.("phone");
+              }}
               className={`flex items-center justify-center gap-1.5 px-2 py-2 text-[12.5px] font-semibold transition ${
                 tab === key
                   ? "bg-brand-primary text-white"

@@ -161,6 +161,13 @@ export type SiteNavigation = {
     bgColor?: string | null;
     /** Background once scrolled (transparent mode); blank → theme ink. */
     scrolledBgColor?: string | null;
+    /** Mobile ☰ icon design. */
+    burger?: {
+      color?: string;
+      size?: number;
+      weight?: "thin" | "regular" | "bold";
+      bg?: string;
+    };
     /** When the menu collapses to a ☰ button: phones only / tablets too / never. */
     menuCollapse?: "mobile" | "tablet" | "never";
     /** Show the header "Book now" button (hidden on collapsed views). Default true. */

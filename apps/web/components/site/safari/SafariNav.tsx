@@ -256,6 +256,7 @@ export function SafariNav({
   scrolledBgColor,
   menuCollapse = "mobile",
   logoStyle,
+  burger,
   forceMenuOpen = false,
   previewDevice,
 }: {
@@ -290,6 +291,13 @@ export function SafariNav({
   menuCollapse?: "mobile" | "tablet" | "never";
   /** Logo lockup style (Elements): wordmark/icon/mark; unset = design default. */
   logoStyle?: "wordmark" | "icon" | "mark" | null;
+  /** Mobile ☰ icon design (colour / size / stroke weight / button background). */
+  burger?: {
+    color?: string;
+    size?: number;
+    weight?: "thin" | "regular" | "bold";
+    bg?: string;
+  };
   /** Builder-only: force the ☰ drawer OPEN so the host can preview + style the
    *  mobile menu in the nav editor's phone device. Never set on the live site. */
   forceMenuOpen?: boolean;
@@ -511,14 +519,29 @@ export function SafariNav({
               aria-label="Open menu"
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen(true)}
+              style={
+                burger?.bg?.trim()
+                  ? {
+                      background: burger.bg.trim(),
+                      borderRadius: 8,
+                      padding: 6,
+                    }
+                  : undefined
+              }
             >
               <svg
-                width="26"
-                height="26"
+                width={burger?.size ?? 26}
+                height={burger?.size ?? 26}
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
+                stroke={burger?.color?.trim() || "currentColor"}
+                strokeWidth={
+                  burger?.weight === "thin"
+                    ? 1
+                    : burger?.weight === "bold"
+                      ? 2.5
+                      : 1.5
+                }
                 strokeLinecap="round"
               >
                 <path d="M3 6h18M3 12h18M3 18h18" />
@@ -545,12 +568,18 @@ export function SafariNav({
             onClick={() => setMenuOpen(false)}
           >
             <svg
-              width="26"
-              height="26"
+              width={burger?.size ?? 26}
+              height={burger?.size ?? 26}
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
+              stroke={burger?.color?.trim() || "currentColor"}
+              strokeWidth={
+                burger?.weight === "thin"
+                  ? 1
+                  : burger?.weight === "bold"
+                    ? 2.5
+                    : 1.5
+              }
               strokeLinecap="round"
             >
               <path d="M18 6 6 18M6 6l12 12" />

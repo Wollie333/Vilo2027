@@ -60,6 +60,13 @@ export type SafariNavData = {
    *  mark = mark + name; unset = the design default. */
   logoStyle?: "wordmark" | "icon" | "mark" | null;
   menuStyle?: SiteMenuStyle | null;
+  /** Mobile ☰ icon design (colour / size / stroke weight / button background). */
+  burger?: {
+    color?: string;
+    size?: number;
+    weight?: "thin" | "regular" | "bold";
+    bg?: string;
+  };
   bookLabel: string;
   showBook: boolean;
   bookColor?: string | null;
@@ -242,6 +249,7 @@ export function buildSafariNav(
     menuCollapse: header.menuCollapse ?? "mobile",
     logoStyle: header.logoStyle,
     menuStyle,
+    burger: header.burger,
     bookLabel: header.ctaLabel?.trim() || "Reserve",
     showBook: header.showBookCta !== false,
     bookColor: header.bookCtaColor,

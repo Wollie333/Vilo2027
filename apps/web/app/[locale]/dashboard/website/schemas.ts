@@ -744,6 +744,16 @@ export const navigationSchema = z.object({
       showBookCta: z.boolean().default(true),
       // Book button colour (background). Blank → theme's primary button style.
       bookCtaColor: z.string().trim().max(40).optional(),
+      // Mobile ☰ menu icon design (the burger that opens the drawer).
+      burger: z
+        .object({
+          color: z.string().trim().max(40).optional(),
+          size: z.number().int().min(16).max(48).optional(),
+          weight: z.enum(["thin", "regular", "bold"]).optional(),
+          /** Optional button background behind the icon. Blank → none. */
+          bg: z.string().trim().max(40).optional(),
+        })
+        .optional(),
       // Show the brand logo in the header (a visible-element toggle).
       showLogo: z.boolean().default(true),
       // Header-level logo presentation overrides (blank → use the Brand Studio

@@ -19,6 +19,18 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Mobile menu editor: ☰ icon design + drawer + collapse
+
+**The Mobile menu tab now customizes the whole ☰ experience.** New
+`navigation.header.burger` (additive, no migration): icon **colour**, **size**,
+**line thickness** (thin/regular/bold), and an optional **button background** —
+applied to both the header ☰ and the drawer's close ✕ in `SafariNav` (so it
+previews whether the drawer is open or shut). The Mobile menu tab groups: **The ☰
+icon** (those controls), **The drawer** (overlay background), and **Collapse**
+(when the inline menu becomes the ☰). Opening the tab auto-switches the canvas to
+phone so it's WYSIWYG. Verified live: icon colour → the canvas burger turned red.
+131 vitest + tsc + lint green.
+
 ## 2026-06-27 (PM) — Menu builder IA: Links + Mobile menu tabs; global style → inspector
 
 **Restructured the menu builder to the page-builder pattern** (founder request —
