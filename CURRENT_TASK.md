@@ -4,9 +4,13 @@
 
 ## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-27 PM #4 — RESPONSIVE MENU CUSTOMIZATION COMPLETE + 3 founder follow-ups)
 
-**Branch:** `main` — working tree CLEAN, all work committed + **PUSHED** (latest `ae6f638`, origin == local). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`).
+**Branch:** `main` — working tree CLEAN, all work committed + **PUSHED** (latest `789d8b6`, origin == local). tsc + lint + **131 vitest** GREEN. **Verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint` + the Preview MCP — NEVER `pnpm build` while a dev server runs** (shared `.next`).
 
-**✅ 3 FOUNDER FOLLOW-UPS DONE (on top of the 4 slices below):**
+**✅ MENU BUILDER IA REDESIGN + MOBILE MENU EDITOR (latest, `0c1d257` + `789d8b6`):**
+- **IA restructure (page-builder pattern, founder request).** Left tabs are now **Links · Mobile menu** (Style/Layout removed). The right inspector has **Desktop·Tablet·Mobile** tabs synced to the canvas + top-bar (ONE device control via `setDevice` prop): **select a link** → its settings + per-link style; **deselect** → **"Menu style"** (the old global Style+Layout: two-state colours, submenu, align/spacing, per-page, reset) per device. Helper consts `deviceTabs`/`menuStyleInspector`/`mobileMenuPanel` in `MenuStudio`. **GOTCHA:** Tailwind `grid-cols-3` JIT-purged after I removed the old 3-tab bar → device tabs stacked; fixed with inline `gridTemplateColumns:"1fr 1fr 1fr"`.
+- **Mobile menu editor (`789d8b6`).** New `navigation.header.burger` (additive): icon colour/size/line-thickness/bg → `SafariNav` styles BOTH the header ☰ and the drawer close ✕. Mobile menu tab = **The ☰ icon** + **The drawer** (overlay bg) + **Collapse**; opening it auto-switches the canvas to phone. Verified: icon colour → red burger.
+
+**✅ 3 FOUNDER FOLLOW-UPS DONE (earlier):**
 - **THE STANDARD is recorded** (`fb81f9b`) — `THEME_CONTRACT.md` → "Menu / nav customization standard" + memory [[nav-builder-standard]]. **Every future theme must comply:** real-canvas preview · per-device · per-link · per-page · two-state colours · reset-to-default. Build all nav/menu work to this shape.
 - **Two-state colours** (`fb81f9b`) — transparent-over-hero headers carry an over-hero colour AND a scrolled colour. `menuStyle.scrolledColor`/`scrolledHoverColor` + per-page `scrolledColor`; Safari renders scrolled under `.nav.solid` (wins by specificity). Style tab + per-page panel show the scrolled fields when transparent. Verified: over-hero white → red on scroll.
 - **Reset-to-theme-default** (`ae6f638`) — colours (✕)/size/weight already cleared; added ✕ to the toggles (`CheckRow.onReset`) + a "↺ Reset to theme default" button per style group (per-link / global Style tab / per-page). Verified: per-link red → theme white.
