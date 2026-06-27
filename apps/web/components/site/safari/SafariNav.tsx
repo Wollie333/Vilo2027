@@ -127,10 +127,20 @@ export function SafariNav({
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     if (forceSolid) return;
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    // capture:true so a scroll inside a bounded container (the nav-manager's
+    // header preview) also drives the transparent→solid fade — scroll events
+    // don't bubble, so without capture only the live window scroll would count.
+    const onScroll = (e?: Event) => {
+      const t = e?.target;
+      const containerY = t instanceof HTMLElement ? t.scrollTop : 0;
+      setScrolled(window.scrollY > 12 || containerY > 12);
+    };
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, {
+      passive: true,
+      capture: true,
+    });
+    return () => window.removeEventListener("scroll", onScroll, true);
   }, [forceSolid]);
 
   const [menuOpen, setMenuOpen] = useState(false);

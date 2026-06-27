@@ -377,9 +377,14 @@ export function NavSectionEditor({
               </aside>
             ) : null}
 
-            {/* canvas — live preview in the shared device frame */}
+            {/* canvas — live preview in the shared device frame. For Safari the
+                chrome becomes a bounded, scrollable viewport with a sticky header
+                (CSS `.nav-scroll-preview`) so the host can preview the scroll
+                interaction — the transparent→solid fade + scroll background. */}
             <div className="canvas-wrap thin">
-              <div className={deviceClass}>
+              <div
+                className={`${deviceClass}${isSafari ? "nav-scroll-preview" : ""}`}
+              >
                 {isSafari && safariNav ? (
                   <SafariShell brandName={brandName} nav={safariNav}>
                     {heroProps ? <SafariHero props={heroProps} /> : null}

@@ -740,6 +740,23 @@
   left: auto;
   right: auto;
 }
+
+/* Nav-manager header preview: turn the Safari chrome into a bounded, scrollable
+   viewport with a STICKY header, so the host can see the scroll interaction
+   (the transparent→solid fade + the scroll background colour) exactly as the
+   live site behaves. The negative margin lets the sticky bar overlap the hero
+   like the live fixed header (so the over-hero white text sits on the image). */
+.vilo-builder .nav-scroll-preview .vilo-safari {
+  height: 600px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.vilo-builder .nav-scroll-preview .vilo-safari .nav {
+  position: sticky;
+  top: 0;
+  margin-bottom: -90px;
+  z-index: 60;
+}
 .vilo-builder .bk-tools {
   position: absolute;
   top: 8px;
