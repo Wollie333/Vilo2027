@@ -72,6 +72,15 @@ export const formFieldSchema = z.object({
   help: z.string().max(300).optional(),
   // Inline label for a `consent` checkbox (the text beside the box).
   optLabel: z.string().max(300).optional(),
+  // Consent fields only — an optional link rendered inside the consent label
+  // (e.g. the host's Terms & Conditions or privacy policy). `linkLabel` is the
+  // clickable text; `linkUrl` the destination (http(s)/mailto/relative only —
+  // enforced at render). Ignored for every other field type.
+  linkUrl: z.string().trim().max(500).optional(),
+  linkLabel: z.string().trim().max(120).optional(),
+  // Consent fields only — when true, ticking the box opts the guest into the
+  // host's marketing email (write-once email consent on their contact record).
+  marketing: z.boolean().optional(),
   // Choices for select/radio/checkboxes/rooms; ignored for other types.
   options: z.array(z.string().trim().min(1).max(120)).max(30).optional(),
 });

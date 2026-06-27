@@ -23,6 +23,19 @@ const fieldStyle: CSSProperties = {
 const inputCls = "w-full border px-4 py-3 text-sm outline-none";
 
 /**
+ * A consent link is host-supplied — only allow safe schemes (http(s)/mailto and
+ * site-relative paths). Anything else (javascript:, data:, …) is dropped so the
+ * link renders as plain text. Mirrors the lib/sanitiseHtml scheme allow-list.
+ */
+function safeConsentHref(url: string | undefined): string | null {
+  const u = (url ?? "").trim();
+  if (!u) return null;
+  if (/^(https?:|mailto:)/i.test(u)) return u;
+  if (u.startsWith("/") || u.startsWith("#")) return u;
+  return null;
+}
+
+/**
  * Public render of a host-built form (Phase 4). The form definition is resolved
  * live (auto-populate `data`), and the section picks its own by `props.form_id`.
  * On submit it posts the website + form id and the raw values to
@@ -265,7 +278,8 @@ export function FormSection({
           </fieldset>
         );
       case "checkbox":
-      case "consent":
+      case "consent": {
+        const href = safeConsentHref(field.linkUrl);
         return (
           <label
             style={{ color: "var(--site-ink)" }}
@@ -282,10 +296,26 @@ export function FormSection({
             />
             <span>
               {field.optLabel || field.label}
+              {href ? (
+                <>
+                  {" "}
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ color: "var(--site-accent)" }}
+                    className="font-medium underline"
+                  >
+                    {field.linkLabel?.trim() || "Terms & Conditions"}
+                  </a>
+                </>
+              ) : null}
               {field.required ? " *" : ""}
             </span>
           </label>
         );
+      }
       case "dates": {
         const [din = "", dout = ""] = v.split(" → ");
         return (

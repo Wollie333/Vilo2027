@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-06-27 (PM) — Forms EPIC 3b: consent field links T&Cs + opts into marketing
+
+**A consent checkbox can now link to the host's Terms/privacy and double as a
+marketing opt-in.** Three additive, optional consent-field props (jsonb, no
+migration): `linkUrl`, `linkLabel`, `marketing`.
+- **Render:** the consent label renders a link after its text when `linkUrl` is
+  set — scheme-guarded (http(s)/mailto/relative only; anything else falls back to
+  plain text), `target="_blank"` + forced `rel="noopener noreferrer nofollow"`,
+  tinted with `--site-accent`. Label defaults to "Terms & Conditions".
+- **Marketing opt-in:** on submit, a *ticked* consent field flagged `marketing`
+  writes write-once `email_consent` on the guest's `host_contacts` row and adds a
+  `website-optin` tag — independent of inbox routing, respects a blocked contact.
+- **Builder:** the consent inspector gained Link URL / Link text inputs + a
+  "Subscribe to marketing" toggle; the canvas preview shows the link inline.
+- i18n: `formEditorConsentLinkUrl(Ph)` / `…LinkLabel(Ph)` / `…Marketing(Hint)`.
+- Verified live: builder controls + WYSIWYG link; public Safari render (`/terms`,
+  blank-target, security rels, accent colour); end-to-end POST set
+  `email_consent=true` + the `website-optin` tag on the contact. tsc + lint green.
+
 ## 2026-06-27 (PM) — Forms EPIC 3a: booking `rooms` field auto-populates live rooms
 
 **A form's `rooms` field now fills with the host's REAL, current rooms** — like

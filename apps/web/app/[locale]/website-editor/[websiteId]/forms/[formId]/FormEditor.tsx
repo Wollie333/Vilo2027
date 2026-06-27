@@ -538,7 +538,17 @@ function FieldPreview({
       return (
         <div className="fopt">
           <span className="mk c" />
-          {field.optLabel || field.label || "I agree"}
+          <span>
+            {field.optLabel || field.label || "I agree"}
+            {field.linkUrl?.trim() ? (
+              <>
+                {" "}
+                <span style={{ color: "#10B981", textDecoration: "underline" }}>
+                  {field.linkLabel?.trim() || "Terms & Conditions"}
+                </span>
+              </>
+            ) : null}
+          </span>
         </div>
       );
     case "dates":
@@ -619,13 +629,49 @@ function FieldInspector({
         ) : field.type === "divider" ? (
           <p className="isec-t">{t("formEditorDividerHint")}</p>
         ) : isConsent ? (
-          <div className="fld">
-            <label>{t("formEditorConsentText")}</label>
-            <textarea
-              value={field.optLabel ?? ""}
-              onChange={(e) => onPatch({ optLabel: e.target.value })}
-            />
-          </div>
+          <>
+            <div className="fld">
+              <label>{t("formEditorConsentText")}</label>
+              <textarea
+                value={field.optLabel ?? ""}
+                onChange={(e) => onPatch({ optLabel: e.target.value })}
+              />
+            </div>
+            <div className="fld">
+              <label>{t("formEditorConsentLinkUrl")}</label>
+              <input
+                type="text"
+                value={field.linkUrl ?? ""}
+                placeholder={t("formEditorConsentLinkUrlPh")}
+                onChange={(e) => onPatch({ linkUrl: e.target.value })}
+              />
+            </div>
+            {field.linkUrl?.trim() ? (
+              <div className="fld">
+                <label>{t("formEditorConsentLinkLabel")}</label>
+                <input
+                  type="text"
+                  value={field.linkLabel ?? ""}
+                  placeholder={t("formEditorConsentLinkLabelPh")}
+                  onChange={(e) => onPatch({ linkLabel: e.target.value })}
+                />
+              </div>
+            ) : null}
+            <div className="fld">
+              <div className="fld-row">
+                <label style={{ margin: 0 }}>
+                  {t("formEditorConsentMarketing")}
+                </label>
+                <Sw
+                  on={Boolean(field.marketing)}
+                  onClick={() => onPatch({ marketing: !field.marketing })}
+                />
+              </div>
+              <p className="fhelp" style={{ marginTop: 4 }}>
+                {t("formEditorConsentMarketingHint")}
+              </p>
+            </div>
+          </>
         ) : (
           <>
             <div className="fld">

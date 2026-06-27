@@ -162,6 +162,39 @@ export async function submitWebsiteForm(
     return { ok: true, data: {} };
   }
 
+  // MARKETING OPT-IN — a ticked consent field flagged `marketing` subscribes the
+  // guest to the host's marketing email (write-once email consent on their
+  // contact). Independent of inbox routing: it runs whenever there's an email and
+  // a ticked opt-in, even on a newsletter form or with inbox off. Best-effort.
+  const marketingTicked = fields.data.some(
+    (f) => f.marketing && Boolean(validated.clean[f.id]),
+  );
+  if (marketingTicked && email) {
+    const { data: site } = await admin
+      .from("host_websites")
+      .select("host_id")
+      .eq("id", d.website_id)
+      .maybeSingle();
+    if (site?.host_id) {
+      const { data: existing } = await admin
+        .from("host_contacts")
+        .select("blocked")
+        .eq("host_id", site.host_id)
+        .ilike("email", email)
+        .maybeSingle();
+      if (!existing?.blocked) {
+        await upsertHostContact(admin, {
+          hostId: site.host_id,
+          email,
+          name: nameField ? validated.clean[nameField.id] : null,
+          phone: phone ?? null,
+          emailConsent: true,
+          addTags: ["website-optin"],
+        });
+      }
+    }
+  }
+
   const wantsInbox =
     formType !== "newsletter" && settings.notifyInbox && Boolean(email);
 
