@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-27 — Safari header layouts + publish-state fix + inbox cleanup
+
+**Header layouts now work on the Safari theme.** The nav manager's layout picker
+(classic / centered / split / minimal) did nothing on Safari — `SafariNav`
+rendered one fixed arrangement. Threaded `navigation.header.layout` through
+`buildSafariNav` → `SafariShell` → `SafariNav` and added scoped `.lay-*` CSS
+variants (DOM order constant; `order`/grid/wrap rearrange so dropdowns, menu
+style and over-hero adaptivity all still work):
+- **split** — menu left · logo absolutely-centred (stays centred regardless of
+  menu width) · book right.
+- **centered** — logo on top, menu + book on a centred row beneath.
+- **minimal** — logo + always-on hamburger (menu lives in the drawer).
+- **classic** (default) — the base flex (logo left · menu · book right).
+The header nav-manager already renders the real `SafariShell` over a hero and the
+4-card picker sets `header.layout`, so the editor is now true WYSIWYG and the
+controls drive both the preview and the live site. Verified live: all 4 layouts on
+the published header + the editor preview switching on card click. (`03258f9`)
+
+**Fixed a phantom "Unpublished changes".** `buildWebsiteSnapshot` read the
+`navigation` column raw while saves normalise it through `navigationSchema` (which
+injects a default `menuStyle`), so a missing-key-vs-default-filled-key difference
+showed a permanent phantom dirty state. Canonicalised navigation through the schema
+on both the freshly-built snapshot AND the stored `published_snapshot` before
+comparing. Verified: phantom drift → clean, a real menuStyle change → dirty. The
+indicator itself was confirmed accurate + deterministic (publish clears it, stays
+clear on reload). (`bc47720`)
+
+Also removed two stray test enquiries (`loop test` / `loop two`) from the test
+fixture inbox.
+
 ## 2026-06-27 — Safari forms submit → thank-you + per-page marketing settings
 
 The two tasks that close out the Safari reference theme. Both verified live.
