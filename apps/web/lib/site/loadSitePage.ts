@@ -886,6 +886,27 @@ async function loadSiteForms(
   const forms: SiteFormDef[] = (data ?? []).map((f) =>
     mapFormRow(f as Parameters<typeof mapFormRow>[0]),
   );
+
+  // Auto-populate every `rooms` field with the host's REAL current rooms (mirror
+  // the nav auto-rooms): the field type IS "my rooms", so the live, visible-room
+  // names always win over whatever placeholder options were stored. Resolved once
+  // and shared across all forms. Snapshot-aware via orderedVisibleRooms, so the
+  // published site and the live preview both show the right set.
+  const hasRoomsField = forms.some((form) =>
+    form.fields.some((field) => field.type === "rooms"),
+  );
+  if (hasRoomsField) {
+    const { ordered } = await orderedVisibleRooms(sb, ctx);
+    const roomNames = ordered.map((o) => o.name);
+    if (roomNames.length > 0) {
+      for (const form of forms) {
+        for (const field of form.fields) {
+          if (field.type === "rooms") field.options = roomNames;
+        }
+      }
+    }
+  }
+
   return { forms };
 }
 

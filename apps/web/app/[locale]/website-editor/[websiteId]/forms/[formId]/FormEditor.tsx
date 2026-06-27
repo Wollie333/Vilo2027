@@ -89,6 +89,7 @@ export function FormEditor({
   initialName,
   initialFields,
   initialSettings,
+  roomNames = [],
 }: {
   websiteId: string;
   formId: string;
@@ -97,6 +98,8 @@ export function FormEditor({
   initialName: string;
   initialFields: FormField[];
   initialSettings: FormSettings;
+  /** The host's live visible rooms — what a `rooms` field auto-fills with. */
+  roomNames?: string[];
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -130,11 +133,9 @@ export function FormEditor({
       required: false,
       width: "full",
     };
-    if (isChoiceField(type)) {
-      f.options =
-        type === "rooms"
-          ? [t("formEditorRoomA"), t("formEditorRoomB")]
-          : [t("formEditorOption1"), t("formEditorOption2")];
+    // `rooms` auto-fills from the host's live rooms — no stored options.
+    if (isChoiceField(type) && type !== "rooms") {
+      f.options = [t("formEditorOption1"), t("formEditorOption2")];
     }
     if (type === "consent") f.optLabel = t("formEditorConsentDefault");
     const at = selectedId
@@ -326,6 +327,7 @@ export function FormEditor({
                   <FieldBlock
                     key={f.id}
                     field={f}
+                    roomNames={roomNames}
                     selected={selectedId === f.id}
                     previewing={previewing}
                     onSelect={() => setSelectedId(f.id)}
@@ -360,6 +362,7 @@ export function FormEditor({
               {selected ? (
                 <FieldInspector
                   field={selected}
+                  roomNames={roomNames}
                   onPatch={(p) => patchField(selected.id, p)}
                   onDelete={() => del(selected.id)}
                 />
@@ -391,6 +394,7 @@ export function FormEditor({
 // ── canvas field block ──────────────────────────────────────
 function FieldBlock({
   field,
+  roomNames,
   selected,
   previewing,
   onSelect,
@@ -400,6 +404,7 @@ function FieldBlock({
   onDel,
 }: {
   field: FormField;
+  roomNames: string[];
   selected: boolean;
   previewing: boolean;
   onSelect: () => void;
@@ -480,14 +485,21 @@ function FieldBlock({
           {field.label || t(`fieldType_${field.type}`)}
         </label>
       )}
-      <FieldPreview field={field} />
+      <FieldPreview field={field} roomNames={roomNames} />
       {field.help ? <div className="fhelp">{field.help}</div> : null}
     </div>
   );
 }
 
-function FieldPreview({ field }: { field: FormField }) {
-  const opts = field.options ?? [];
+function FieldPreview({
+  field,
+  roomNames,
+}: {
+  field: FormField;
+  roomNames: string[];
+}) {
+  // A `rooms` field renders the host's LIVE rooms — never the stored options.
+  const opts = field.type === "rooms" ? roomNames : (field.options ?? []);
   switch (field.type) {
     case "textarea":
       return <div className="finput area">{field.placeholder}</div>;
@@ -576,15 +588,19 @@ function Sw({ on, onClick }: { on: boolean; onClick: () => void }) {
 
 function FieldInspector({
   field,
+  roomNames,
   onPatch,
   onDelete,
 }: {
   field: FormField;
+  roomNames: string[];
   onPatch: (p: Partial<FormField>) => void;
   onDelete: () => void;
 }) {
   const t = useTranslations("website");
-  const hasOpts = isChoiceField(field.type);
+  const isRooms = field.type === "rooms";
+  // A `rooms` field auto-fills from live rooms — its choices aren't host-edited.
+  const hasOpts = isChoiceField(field.type) && !isRooms;
   const isLayout = isLayoutField(field.type);
   const isConsent = field.type === "consent" || field.type === "checkbox";
   const opts = field.options ?? [];
@@ -679,6 +695,29 @@ function FieldInspector({
             <Plus style={{ width: 14, height: 14 }} />
             {t("formEditorAddOption")}
           </button>
+        </div>
+      ) : null}
+
+      {isRooms ? (
+        <div className="insp-sec">
+          <div className="isec-t">{t("formEditorRoomsAuto")}</div>
+          <p className="isec-t" style={{ fontWeight: 400, opacity: 0.75 }}>
+            {t("formEditorRoomsAutoHint")}
+          </p>
+          {roomNames.length > 0 ? (
+            <div className="fopts" style={{ marginTop: 6 }}>
+              {roomNames.map((name, i) => (
+                <div className="fopt" key={i}>
+                  <span className="mk r" />
+                  {name}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="isec-t" style={{ fontWeight: 400, color: "#EF4444" }}>
+              {t("formEditorRoomsAutoEmpty")}
+            </p>
+          )}
         </div>
       ) : null}
 

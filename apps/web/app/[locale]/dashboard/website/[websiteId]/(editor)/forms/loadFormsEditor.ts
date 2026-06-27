@@ -30,6 +30,49 @@ export type FormsEditorData = {
   forms: FormEditorRow[];
 };
 
+/**
+ * The website's visible rooms as display names, in builder order — what a
+ * `rooms` form field auto-populates with. Owner-scoped is enforced by the
+ * caller (the form editor already verified ownership). Mirrors the public
+ * render's orderedVisibleRooms (display_name override → room name), but always
+ * LIVE (the editor has no published snapshot). Returns [] when there are none.
+ */
+export async function loadWebsiteRoomNames(
+  websiteId: string,
+): Promise<string[]> {
+  const supabase = createServerClient();
+  const { data: wr } = await supabase
+    .from("website_rooms")
+    .select("room_id, display_name, sort_order")
+    .eq("website_id", websiteId)
+    .eq("is_visible", true)
+    .order("sort_order", { ascending: true });
+  const rows = wr ?? [];
+  const ids = rows.map((r) => r.room_id).filter(Boolean);
+  if (ids.length === 0) return [];
+  const { data: pr } = await supabase
+    .from("property_rooms")
+    .select("id, name, is_active, deleted_at")
+    .in("id", ids);
+  const byId = new Map(
+    (pr ?? []).map((r) => [
+      (r as { id: string }).id,
+      r as {
+        name: string;
+        is_active: boolean | null;
+        deleted_at: string | null;
+      },
+    ]),
+  );
+  return rows
+    .map((r) => {
+      const room = byId.get(r.room_id);
+      if (!room || room.is_active === false || room.deleted_at) return null;
+      return (r.display_name?.trim() || room.name) as string;
+    })
+    .filter((n): n is string => Boolean(n));
+}
+
 /** True when a sections jsonb array embeds `formId` via a `form` section. */
 function sectionsEmbed(sections: unknown, formId: string): boolean {
   if (!Array.isArray(sections)) return false;

@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 
-import { loadFormsEditor } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/forms/loadFormsEditor";
+import {
+  loadFormsEditor,
+  loadWebsiteRoomNames,
+} from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/forms/loadFormsEditor";
 
 import { FormEditor } from "./FormEditor";
 
@@ -17,6 +20,10 @@ export default async function FullScreenFormEditorPage({
   const form = data.forms.find((f) => f.id === formId);
   if (!form) notFound();
 
+  // Live rooms a `rooms` field will auto-populate with — shown read-only in the
+  // builder so the host sees the real list instead of editing placeholders.
+  const roomNames = await loadWebsiteRoomNames(websiteId);
+
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
 
   return (
@@ -28,6 +35,7 @@ export default async function FullScreenFormEditorPage({
       initialName={form.name}
       initialFields={form.fields}
       initialSettings={form.settings}
+      roomNames={roomNames}
     />
   );
 }

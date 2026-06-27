@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-06-27 (PM) — Forms EPIC 3a: booking `rooms` field auto-populates live rooms
+
+**A form's `rooms` field now fills with the host's REAL, current rooms** — like
+the nav auto-rooms, the field type *is* "my rooms", so the host never maintains a
+stale list.
+- **Render (SSOT):** `loadSiteForms` resolves the site's visible rooms once (via
+  the snapshot-aware `orderedVisibleRooms`) and injects their display names as the
+  `options` of every `rooms` field across all forms. Public site + live builder
+  preview both show the right set; published/preview honour the snapshot. Verified
+  live: a booking form's Room select rendered `Olive Room / Vineyard Suite /
+  Mountain Loft` on the public Safari page.
+- **Builder:** new `loadWebsiteRoomNames(websiteId)` (live, owner-scoped) feeds the
+  Form editor; the `rooms` field's canvas preview shows the first real room and its
+  inspector lists the live rooms read-only ("Your rooms" — auto-fills, no
+  hand-editing) instead of the old editable "Room A / Room B" placeholders. A new
+  `rooms` field no longer seeds dead placeholder options.
+- i18n: `formEditorRoomsAuto` / `…Hint` / `…Empty` (replaced unused
+  `formEditorRoomA` / `…RoomB`). tsc + lint green.
+
 ## 2026-06-27 — Safari header layouts + publish-state fix + inbox cleanup
 
 **Header layouts now work on the Safari theme.** The nav manager's layout picker
