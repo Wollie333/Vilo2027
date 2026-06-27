@@ -59,6 +59,23 @@ export type SiteTopBar = {
   email?: string | null;
   message?: string | null;
 };
+/** One layer of a per-link style override (desktop base, or a tablet/mobile diff). */
+export type MenuItemStyleLayer = {
+  color?: string;
+  hoverColor?: string;
+  fontSize?: number;
+  weight?: "normal" | "medium" | "semibold" | "bold";
+  uppercase?: boolean;
+  /** Background colour — turns the link into a button/pill when set. */
+  bg?: string;
+  /** Rounded pill shape (with padding). */
+  pill?: boolean;
+};
+/** Responsive per-link style: a desktop base + tablet/mobile diff layers. */
+export type MenuItemStyle = MenuItemStyleLayer & {
+  tablet?: MenuItemStyleLayer;
+  mobile?: MenuItemStyleLayer;
+};
 export type SiteMenuItem = {
   id: string;
   label: string;
@@ -69,6 +86,8 @@ export type SiteMenuItem = {
   autoRooms?: boolean;
   /** Room ids excluded from the auto-rooms dropdown (host-hidden). */
   hiddenRoomIds?: string[];
+  /** Per-link responsive style override (the selected-link Style controls). */
+  style?: MenuItemStyle;
 };
 export type SiteFooterColumn = {
   id: string;

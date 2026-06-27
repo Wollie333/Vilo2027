@@ -467,6 +467,7 @@ export function NavSectionEditor({
                     contactEmail={contactEmail}
                     contactPhone={contactPhone}
                     forceMobileOpen={device === "phone"}
+                    previewDevice={device}
                   />
                 ) : themeConfig ? (
                   /* Generic theme: the REAL page behind the live chrome. */

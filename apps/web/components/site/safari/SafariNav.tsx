@@ -3,13 +3,21 @@
 import { useEffect, useState } from "react";
 
 import type { SafariHeaderLayout } from "@/lib/site/safariNav";
-import type { SiteMenuStyle } from "@/lib/site/types";
+import type {
+  MenuItemStyle,
+  MenuItemStyleLayer,
+  SiteMenuStyle,
+} from "@/lib/site/types";
 
 /** A nav link as rendered in the Safari header (supports one level of dropdown). */
 export type SafariNavLink = {
+  /** Stable menu-item id — drives the per-link style class `mi-<id>`. */
+  id?: string;
   label: string;
   href: string;
   newTab?: boolean;
+  /** Per-link responsive style override (the selected-link Style controls). */
+  style?: MenuItemStyle;
   children?: SafariNavLink[];
 };
 
@@ -125,6 +133,87 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
   return rules.join("");
 }
 
+// ── Per-LINK style (the selected-link Style controls) ────────────────────────
+/** One style layer → CSS declarations (no selector). */
+function itemLayerDecls(s: MenuItemStyleLayer): string {
+  const out: string[] = [];
+  if (s.color?.trim()) out.push(`color:${s.color.trim()};opacity:1`);
+  if (typeof s.fontSize === "number") out.push(`font-size:${s.fontSize}px`);
+  if (s.weight) out.push(`font-weight:${WEIGHT[s.weight]}`);
+  if (s.uppercase !== undefined)
+    out.push(`text-transform:${s.uppercase ? "uppercase" : "none"}`);
+  if (s.bg?.trim()) out.push(`background:${s.bg.trim()};display:inline-block`);
+  if (s.pill) out.push("border-radius:9999px;padding:.35em 1em");
+  return out.join(";");
+}
+const mergeLayers = (
+  base: MenuItemStyleLayer,
+  over?: MenuItemStyleLayer,
+): MenuItemStyleLayer => ({ ...base, ...(over ?? {}) });
+
+/**
+ * Scoped CSS for per-link styling. Each styled link carries a `mi-<id>` class;
+ * inline links (header + dropdown) get the desktop layer (with a tablet @media on
+ * the live site), the drawer copy gets the mobile-merged layer. In the builder the
+ * `previewDevice` is set, so the inline rule renders the ACTIVE device's merged
+ * style flat (no media query) — the canvas reflects the chosen screen size at once.
+ */
+function menuItemStyleCss(
+  links: SafariNavLink[],
+  previewDevice?: "desktop" | "tablet" | "phone",
+): string {
+  const rules: string[] = [];
+  const walk = (list: SafariNavLink[]) => {
+    for (const l of list) {
+      const st = l.style;
+      if (l.id && st) {
+        const id = l.id;
+        const inlineSel = `.vilo-safari .nav-links a.mi-${id},.vilo-safari .nav-dd-menu a.mi-${id}`;
+        const drawerSel = `.vilo-safari .mnav-links a.mi-${id},.vilo-safari .mnav-sub a.mi-${id},.vilo-safari .mnav-parent.mi-${id}`;
+        const desktop: MenuItemStyleLayer = {
+          color: st.color,
+          hoverColor: st.hoverColor,
+          fontSize: st.fontSize,
+          weight: st.weight,
+          uppercase: st.uppercase,
+          bg: st.bg,
+          pill: st.pill,
+        };
+        // Inline links: the active device's merged layer in the builder; the
+        // desktop layer + a tablet @media on the live site.
+        const inlineLayer =
+          previewDevice === "tablet"
+            ? mergeLayers(desktop, st.tablet)
+            : desktop;
+        const inlineDecls = itemLayerDecls(inlineLayer);
+        if (inlineDecls) rules.push(`${inlineSel}{${inlineDecls}}`);
+        const inlineHover = inlineLayer.hoverColor?.trim();
+        if (inlineHover)
+          rules.push(
+            `.vilo-safari .nav-links a.mi-${id}:hover,.vilo-safari .nav-dd-menu a.mi-${id}:hover{color:${inlineHover}}`,
+          );
+        if (!previewDevice && st.tablet) {
+          const tDecls = itemLayerDecls(st.tablet);
+          if (tDecls)
+            rules.push(`@media (max-width:1024px){${inlineSel}{${tDecls}}}`);
+        }
+        // Drawer copy: the mobile-merged layer (shown when the drawer is open).
+        const drawerLayer = mergeLayers(desktop, st.mobile);
+        const drawerDecls = itemLayerDecls(drawerLayer);
+        if (drawerDecls) rules.push(`${drawerSel}{${drawerDecls}}`);
+        const drawerHover = drawerLayer.hoverColor?.trim();
+        if (drawerHover)
+          rules.push(
+            `.vilo-safari .mnav-links a.mi-${id}:hover,.vilo-safari .mnav-sub a.mi-${id}:hover{color:${drawerHover}}`,
+          );
+      }
+      if (l.children?.length) walk(l.children);
+    }
+  };
+  walk(links);
+  return rules.join("");
+}
+
 /**
  * NenGama-style fixed header: transparent + light over the hero, fading to a
  * solid blurred bar on scroll (the design's `.nav.over-hero` → `.solid`). Renders
@@ -154,6 +243,7 @@ export function SafariNav({
   menuCollapse = "mobile",
   logoStyle,
   forceMenuOpen = false,
+  previewDevice,
 }: {
   brandName: string;
   monogram: string;
@@ -189,6 +279,9 @@ export function SafariNav({
   /** Builder-only: force the ☰ drawer OPEN so the host can preview + style the
    *  mobile menu in the nav editor's phone device. Never set on the live site. */
   forceMenuOpen?: boolean;
+  /** Builder-only: the active device, so per-link styles render flat for that
+   *  screen size in the canvas (no media query). Unset on the live site. */
+  previewDevice?: "desktop" | "tablet" | "phone";
 }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -256,7 +349,8 @@ export function SafariNav({
   const bookCss = bookColor?.trim()
     ? `.vilo-safari .nav-book-custom,.vilo-safari .nav-book-custom:hover{background:${bookColor.trim()}!important;border-color:${bookColor.trim()}!important;color:#fff!important}`
     : "";
-  const styleCss = menuStyleCss(menuStyle) + bookCss;
+  const styleCss =
+    menuStyleCss(menuStyle) + menuItemStyleCss(links, previewDevice) + bookCss;
   const bookClass = bookColor?.trim() ? " nav-book-custom" : "";
   const homeHref = links[0]?.href || "#";
   // Logo: light variant over the dark hero, standard variant on the solid bar +
@@ -340,7 +434,7 @@ export function SafariNav({
                 <span key={l.href + l.label} className="nav-dd">
                   <a
                     href={l.href}
-                    className="nav-link"
+                    className={l.id ? `nav-link mi-${l.id}` : "nav-link"}
                     target={l.newTab ? "_blank" : undefined}
                     rel={l.newTab ? "noopener noreferrer" : undefined}
                   >
@@ -365,6 +459,7 @@ export function SafariNav({
                       <a
                         key={c.href + c.label}
                         href={c.href}
+                        className={c.id ? `mi-${c.id}` : undefined}
                         target={c.newTab ? "_blank" : undefined}
                         rel={c.newTab ? "noopener noreferrer" : undefined}
                       >
@@ -377,7 +472,7 @@ export function SafariNav({
                 <a
                   key={l.href + l.label}
                   href={l.href}
-                  className="nav-link"
+                  className={l.id ? `nav-link mi-${l.id}` : "nav-link"}
                   target={l.newTab ? "_blank" : undefined}
                   rel={l.newTab ? "noopener noreferrer" : undefined}
                 >
@@ -456,6 +551,7 @@ export function SafariNav({
                 <a
                   key={l.href + l.label}
                   href={l.href}
+                  className={l.id ? `mi-${l.id}` : undefined}
                   target={l.newTab ? "_blank" : undefined}
                   rel={l.newTab ? "noopener noreferrer" : undefined}
                   onClick={() => setMenuOpen(false)}
@@ -469,7 +565,7 @@ export function SafariNav({
               <div key={l.href + l.label} className="mnav-group">
                 <button
                   type="button"
-                  className="mnav-parent"
+                  className={l.id ? `mnav-parent mi-${l.id}` : "mnav-parent"}
                   aria-expanded={expanded}
                   onClick={() =>
                     setOpenMobile((s) => ({
@@ -502,6 +598,7 @@ export function SafariNav({
                       <a
                         key={c.href + c.label}
                         href={c.href}
+                        className={c.id ? `mi-${c.id}` : undefined}
                         target={c.newTab ? "_blank" : undefined}
                         rel={c.newTab ? "noopener noreferrer" : undefined}
                         onClick={() => setMenuOpen(false)}

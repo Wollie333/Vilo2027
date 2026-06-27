@@ -25,6 +25,7 @@ import { SiteChromeCanvas } from "@/components/site/SiteChromeCanvas";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
+  MenuItemStyleLayer,
   SiteBrand,
   SiteConversion,
   SiteData,
@@ -135,6 +136,29 @@ export function MenuStudio({
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   const selectedItem = selected ? getAt(menu, selected) : null;
+
+  // The selected link's per-device style layer (desktop base / tablet / mobile),
+  // driven by the top-bar device switcher — exactly like the global Style tab.
+  const selStyle = selectedItem?.style ?? {};
+  const selLayer: MenuItemStyleLayer =
+    device === "tablet"
+      ? (selStyle.tablet ?? {})
+      : device === "phone"
+        ? (selStyle.mobile ?? {})
+        : selStyle;
+  const setItemStyle = (patch: Partial<MenuItemStyleLayer>) => {
+    if (!selected || !selectedItem) return;
+    const cur = selectedItem.style ?? {};
+    if (device === "tablet")
+      update(selected, {
+        style: { ...cur, tablet: { ...(cur.tablet ?? {}), ...patch } },
+      });
+    else if (device === "phone")
+      update(selected, {
+        style: { ...cur, mobile: { ...(cur.mobile ?? {}), ...patch } },
+      });
+    else update(selected, { style: { ...cur, ...patch } });
+  };
 
   const update = (path: number[], patch: Partial<SiteMenuItem>) =>
     setMenu(
@@ -587,6 +611,7 @@ export function MenuStudio({
               contactEmail={contactEmail}
               contactPhone={contactPhone}
               forceMobileOpen={device === "phone"}
+              previewDevice={device}
             />
           ) : themeConfig ? (
             <SiteChromeCanvas
@@ -724,6 +749,74 @@ export function MenuStudio({
                     </span>
                   )
                 ) : null}
+              </div>
+
+              {/* Per-link STYLE — overrides the global menu style for THIS link,
+                  per screen size (the top-bar device switcher picks the layer). */}
+              <div className="insp-sec space-y-3 border-t border-brand-line pt-3">
+                <div className="rounded-[8px] bg-brand-light/60 px-2.5 py-2 text-[11.5px] leading-snug text-brand-mute">
+                  <span className="font-semibold text-brand-ink">
+                    {t(`menuStyleDevice_${device}`)}
+                  </span>
+                  {" · "}
+                  {t("menuItemStyleHint")}
+                </div>
+                <GroupLabel>{t("menuItemStyleTitle")}</GroupLabel>
+                <ColorField
+                  label={t("menuStyleColor")}
+                  value={selLayer.color ?? ""}
+                  onChange={(v) => setItemStyle({ color: v || undefined })}
+                />
+                <ColorField
+                  label={t("menuStyleHover")}
+                  value={selLayer.hoverColor ?? ""}
+                  onChange={(v) => setItemStyle({ hoverColor: v || undefined })}
+                />
+                <RangeField
+                  label={t("menuStyleSize")}
+                  value={selLayer.fontSize}
+                  fallback={device === "phone" ? 22 : 14}
+                  min={8}
+                  max={48}
+                  onChange={(n) => setItemStyle({ fontSize: n })}
+                />
+                <label className="block">
+                  <span className="block text-[12.5px] font-semibold text-brand-ink">
+                    {t("menuStyleWeight")}
+                  </span>
+                  <select
+                    value={selLayer.weight ?? ""}
+                    onChange={(e) =>
+                      setItemStyle({
+                        weight:
+                          (e.target.value as MenuItemStyleLayer["weight"]) ||
+                          undefined,
+                      })
+                    }
+                    className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+                  >
+                    <option value="">{t("menuItemInherit")}</option>
+                    <option value="normal">{t("menuWeightNormal")}</option>
+                    <option value="medium">{t("menuWeightMedium")}</option>
+                    <option value="semibold">{t("menuWeightSemibold")}</option>
+                    <option value="bold">{t("menuWeightBold")}</option>
+                  </select>
+                </label>
+                <CheckRow
+                  label={t("menuStyleUppercase")}
+                  checked={selLayer.uppercase ?? false}
+                  onChange={(v) => setItemStyle({ uppercase: v })}
+                />
+                <ColorField
+                  label={t("menuItemBg")}
+                  value={selLayer.bg ?? ""}
+                  onChange={(v) => setItemStyle({ bg: v || undefined })}
+                />
+                <CheckRow
+                  label={t("menuItemPill")}
+                  checked={selLayer.pill ?? false}
+                  onChange={(v) => setItemStyle({ pill: v || undefined })}
+                />
               </div>
 
               <button

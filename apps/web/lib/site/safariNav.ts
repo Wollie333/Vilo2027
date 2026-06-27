@@ -110,14 +110,18 @@ function mapMenuItem(item: SiteMenuItem, preview?: Preview): SafariNavLink {
   const children = (item.children ?? [])
     .filter((c) => c.label?.trim())
     .map((c) => ({
+      id: c.id,
       label: c.label,
       href: navHref(c.href, preview),
       newTab: c.newTab,
+      ...(c.style ? { style: c.style } : {}),
     }));
   return {
+    id: item.id,
     label: item.label,
     href: navHref(item.href, preview),
     newTab: item.newTab,
+    ...(item.style ? { style: item.style } : {}),
     ...(children.length ? { children } : {}),
   };
 }

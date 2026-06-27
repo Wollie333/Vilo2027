@@ -112,6 +112,7 @@ export function SafariShell({
   interactive = false,
   editable,
   forceMenuOpen = false,
+  previewDevice,
   children,
 }: {
   brandName: string;
@@ -132,6 +133,8 @@ export function SafariShell({
   editable?: ChromeEditable;
   /** Builder-only: force the mobile ☰ drawer open (phone-device preview). */
   forceMenuOpen?: boolean;
+  /** Builder-only: active device, so per-link styles preview for that screen. */
+  previewDevice?: "desktop" | "tablet" | "phone";
   children: ReactNode;
 }) {
   const navLinks = nav.links;
@@ -235,6 +238,7 @@ export function SafariShell({
           menuCollapse={nav.menuCollapse}
           logoStyle={nav.logoStyle}
           forceMenuOpen={forceMenuOpen}
+          previewDevice={previewDevice}
         />
       </ChromeEditWrap>
 

@@ -19,6 +19,25 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Menu builder: per-link responsive styling (Safari)
+
+**Each menu link can now be styled individually, per screen size** — colour,
+hover, size, weight, uppercase, plus a background colour + rounded pill (button-
+style links). Slice 1 of the responsive-menu epic (Safari theme).
+- **Schema/types:** additive `style` on every menu link (`menuLinkSchema` /
+  `SiteMenuItem`) — a desktop base layer + `tablet`/`mobile` diff layers, mirroring
+  the global menu's per-device pattern (only stored diffs win; no migration).
+- **Render:** `SafariNavLink`/`mapMenuItem` thread `id`+`style`; each link carries
+  an `mi-<id>` class; new `menuItemStyleCss` emits per-item scoped CSS (inline =
+  desktop + a tablet `@media` on the live site; drawer = mobile-merged). A
+  builder-only `previewDevice` makes the canvas render the ACTIVE device's merged
+  layer flat, so switching screen size previews instantly.
+- **Editor:** the selected-link inspector gained a device-aware "This link's
+  style" section (driven by the top-bar device switcher) with all the controls.
+- Verified live on Safari: set Contact → red + cream background + pill on desktop,
+  blue on tablet; the canvas reflected each device independently in real time.
+  131 vitest + tsc + lint green. NEXT slices: generic-theme links, per-page rules.
+
 ## 2026-06-27 (PM) — Nav canvas: real page for non-Safari themes too
 
 The real-site nav canvas now covers EVERY theme, not just Safari. New client

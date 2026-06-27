@@ -597,11 +597,34 @@ export const deleteSavedSectionSchema = z.object({
 export type DeleteSavedSectionInput = z.infer<typeof deleteSavedSectionSchema>;
 
 // --- Navigation (menu, top bar, header CTA/behaviour, footer extras) ---
+
+// Per-LINK style override (one layer). Sits on top of the global menu style for
+// THIS link only. All optional — unset fields inherit the global/desktop value.
+const menuItemStyleLayerSchema = z.object({
+  color: z.string().trim().max(40).optional(),
+  hoverColor: z.string().trim().max(40).optional(),
+  fontSize: z.number().int().min(8).max(48).optional(),
+  weight: z.enum(["normal", "medium", "semibold", "bold"]).optional(),
+  uppercase: z.boolean().optional(),
+  /** Background colour (turns the link into a button/pill when set). */
+  bg: z.string().trim().max(40).optional(),
+  /** Rounded pill shape (with padding) — for button-style links. */
+  pill: z.boolean().optional(),
+});
+// Responsive per-link style: a desktop base + tablet/mobile diff layers, exactly
+// like the global menu's per-device overrides (only stored diffs win).
+const menuItemStyleSchema = menuItemStyleLayerSchema.extend({
+  tablet: menuItemStyleLayerSchema.optional(),
+  mobile: menuItemStyleLayerSchema.optional(),
+});
+
 const menuLinkSchema = z.object({
   id: z.string(),
   label: z.string().trim().max(60),
   href: z.string().trim().max(500),
   newTab: z.boolean().optional(),
+  /** Per-link responsive style override (the selected-link Style controls). */
+  style: menuItemStyleSchema.optional(),
 });
 // Two levels of nesting: top → sub → sub-sub (the sub-sub are leaf links).
 const menuSubItemSchema = menuLinkSchema.extend({
