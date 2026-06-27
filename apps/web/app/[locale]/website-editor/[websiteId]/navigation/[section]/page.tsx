@@ -21,6 +21,14 @@ export const dynamic = "force-dynamic";
 const SECTIONS = ["header", "menu", "footer"] as const;
 type Section = (typeof SECTIONS)[number];
 
+/** One page the host can put behind the live menu in the nav-editor canvas. */
+export type NavBackdrop = {
+  key: string;
+  label: string;
+  sections: WebsiteSection[];
+  data?: SiteData;
+};
+
 export default async function NavigationSectionEditorPage({
   params,
 }: {
@@ -89,12 +97,12 @@ export default async function NavigationSectionEditorPage({
     href: pageHref(p.kind, p.slug),
   }));
 
-  // The host's REAL home page (draft) — rendered as the canvas backdrop so the
-  // nav editor is true WYSIWYG (the menu sits on the real design, not a stock
-  // hero). Loaded via the same path the public site uses; best-effort (a blank
-  // result just falls back to the stock hero in the canvas).
-  let homeSections: WebsiteSection[] = [];
-  let homeData: SiteData | undefined;
+  // The host's REAL pages (draft) — rendered as the canvas backdrop so the nav
+  // editor is true WYSIWYG (the menu sits on the real design, not a stock hero).
+  // Every page is loaded via the same path the public site uses so the host can
+  // switch which page sits behind the menu. Best-effort (a blank result just
+  // falls back to the stock hero in the canvas). Capped to keep load bounded.
+  const backdrops: NavBackdrop[] = [];
   let homeBookHref: string | null = null;
   let contactEmail: string | null = null;
   let contactPhone: string | null = null;
@@ -104,18 +112,36 @@ export default async function NavigationSectionEditorPage({
       siteParam: site.subdomain,
     });
     if (siteCtx) {
-      const home = await loadSitePage(siteCtx, []);
-      if (home) {
-        homeSections = home.sections;
-        homeData = home.data;
-      }
       homeBookHref =
         siteCtx.propertyIds.length > 0 ? siteBookHref(siteCtx, {}) : null;
       contactEmail = siteCtx.brand.contactEmail ?? null;
       contactPhone = siteCtx.brand.contactPhone ?? null;
+      // Home first, then the rest in nav order. Skip the bespoke funnel pages
+      // (checkout/thank-you) — they aren't useful menu backdrops.
+      const candidates = (pageRows ?? [])
+        .filter((p) => !["checkout", "thank-you"].includes(p.kind))
+        .sort((a, b) => (a.kind === "home" ? -1 : b.kind === "home" ? 1 : 0))
+        .slice(0, 12);
+      const loaded = await Promise.all(
+        candidates.map(async (p): Promise<NavBackdrop | null> => {
+          const path = p.kind === "home" ? [] : [p.slug];
+          const res = await loadSitePage(siteCtx, path).catch(() => null);
+          if (!res) return null;
+          return {
+            key: p.kind === "home" ? "home" : p.slug,
+            label:
+              p.kind === "home"
+                ? "Home"
+                : p.nav_label?.trim() || p.title?.trim() || p.slug,
+            sections: res.sections,
+            data: res.data,
+          };
+        }),
+      );
+      backdrops.push(...loaded.filter((b): b is NavBackdrop => b !== null));
     }
   } catch {
-    // Best-effort backdrop — the editor still works without the real page.
+    // Best-effort backdrop — the editor still works without the real pages.
   }
   const rooms = (roomRows ?? [])
     .map((r) => {
@@ -140,8 +166,7 @@ export default async function NavigationSectionEditorPage({
       brand={brand}
       themePreset={themePreset}
       subdomain={site.subdomain}
-      homeSections={homeSections}
-      homeData={homeData}
+      backdrops={backdrops}
       homeBookHref={homeBookHref}
       contactEmail={contactEmail}
       contactPhone={contactPhone}

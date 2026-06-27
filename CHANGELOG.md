@@ -19,6 +19,21 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Nav builder polish: mobile drawer preview + page switcher
+
+Two MVP gaps closed on the new real-site nav canvas:
+- **Mobile drawer live preview** — on the phone device the Safari ☰ drawer now
+  renders OPEN inside the canvas frame (builder-only `forceMenuOpen` through
+  SafariNav/Shell/Canvas + a builder-scoped CSS rule that pins the otherwise
+  `position:fixed` `.mnav` to the bounded viewport). The host can finally see +
+  style the mobile menu WYSIWYG; verified the mobile link colour updates the
+  open drawer live.
+- **Page switcher** — a top-bar dropdown picks which real page sits behind the
+  live menu (Home / About / Suites / Contact / Journal / Room details). The nav
+  editor server page loads every page (capped 12, funnel pages excluded) via the
+  same public path; the canvas swaps the backdrop while the chrome stays live.
+  Verified: switching to Contact rendered the real Contact page under the menu.
+
 ## 2026-06-27 (PM) — Nav editor canvas now renders the REAL site (not a stock hero)
 
 **The header / menu / footer builder canvas now shows the host's ACTUAL home page

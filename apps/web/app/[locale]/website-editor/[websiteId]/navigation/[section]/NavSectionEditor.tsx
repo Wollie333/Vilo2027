@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   Check,
+  Layers,
   Loader2,
   Menu,
   Monitor,
@@ -25,11 +26,9 @@ import { SafariNavCanvas } from "@/components/site/safari/SafariNavCanvas";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import type {
   SiteBrand,
-  SiteData,
   SiteFooterColumn,
   SiteMenuItem,
 } from "@/lib/site/types";
-import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import {
   NavFooterPreview,
@@ -42,6 +41,7 @@ import {
 } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavInspectors";
 
 import { MenuStudio } from "./MenuStudio";
+import type { NavBackdrop } from "./page";
 
 type Section = "header" | "menu" | "footer";
 type Device = "desktop" | "tablet" | "phone";
@@ -153,8 +153,7 @@ export function NavSectionEditor({
   brand,
   themePreset,
   subdomain,
-  homeSections = [],
-  homeData,
+  backdrops = [],
   homeBookHref = null,
   contactEmail = null,
   contactPhone = null,
@@ -168,9 +167,8 @@ export function NavSectionEditor({
   brand: SiteBrand;
   themePreset?: string | null;
   subdomain: string;
-  /** The host's real home page (draft) — the canvas backdrop behind the chrome. */
-  homeSections?: WebsiteSection[];
-  homeData?: SiteData;
+  /** The host's real pages (draft) — the canvas backdrop behind the chrome. */
+  backdrops?: NavBackdrop[];
   homeBookHref?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
@@ -180,6 +178,14 @@ export function NavSectionEditor({
   const [nav, setNav] = useState<NavigationConfig>(initial);
   const [saving, startSave] = useTransition();
   const [device, setDevice] = useState<Device>("desktop");
+  // Which real page sits behind the live menu (default the first = home).
+  const [backdropKey, setBackdropKey] = useState<string>(
+    backdrops[0]?.key ?? "home",
+  );
+  const activeBackdrop =
+    backdrops.find((b) => b.key === backdropKey) ?? backdrops[0];
+  const homeSections = activeBackdrop?.sections ?? [];
+  const homeData = activeBackdrop?.data;
 
   const deviceClass =
     device === "tablet"
@@ -291,6 +297,35 @@ export function NavSectionEditor({
               );
             })}
           </div>
+          {/* Which real page sits behind the live menu (Safari real-page canvas). */}
+          {isSafari && backdrops.length > 1 ? (
+            <label
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+              title={t("navBackdropTitle")}
+            >
+              <Layers style={{ width: 15, height: 15, color: "#64748b" }} />
+              <select
+                value={backdropKey}
+                onChange={(e) => setBackdropKey(e.target.value)}
+                aria-label={t("navBackdropTitle")}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 8,
+                  padding: "5px 8px",
+                  fontSize: 12.5,
+                  background: "#fff",
+                  color: "#0f172a",
+                  cursor: "pointer",
+                }}
+              >
+                {backdrops.map((b) => (
+                  <option key={b.key} value={b.key}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </div>
         <div
           style={{

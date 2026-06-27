@@ -2084,6 +2084,7 @@
     "fldHeroOverlayColor": "Overlay colour",
     "fldHeroOverlayOpacity": "Overlay opacity",
     "navHeaderLayoutTitle": "Header layout",
+    "navBackdropTitle": "Preview page behind the menu",
     "reset": "Reset",
     "navCtaPage": "Or link to a page",
     "navHeaderBg": "Background colour",
