@@ -5,15 +5,12 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  GripVertical,
   Plus,
   Trash2,
   Type as TypeIcon,
   Palette,
   SlidersHorizontal,
   CornerDownRight,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -22,6 +19,7 @@ import { useTranslations } from "next-intl";
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
 import type { PageOption } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
 import { NavHeaderPreview } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/NavPreviews";
+import { SortableList } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/SortableList";
 import { SafariHero } from "@/components/site/sections/SafariSections";
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
@@ -63,6 +61,20 @@ function getAt(menu: SiteMenuItem[], path: number[]): SiteMenuItem | null {
 }
 const samePath = (a: number[] | null, b: number[]) =>
   !!a && a.length === b.length && a.every((v, i) => v === b[i]);
+/** Replace the sibling array at `base` ([] = top level) — used by drag-reorder. */
+function setChildrenAt(
+  menu: SiteMenuItem[],
+  base: number[],
+  next: SiteMenuItem[],
+): SiteMenuItem[] {
+  if (base.length === 0) return next;
+  const [i, ...rest] = base;
+  return menu.map((it, idx) =>
+    idx === i
+      ? { ...it, children: setChildrenAt(it.children ?? [], rest, next) }
+      : it,
+  );
+}
 
 export function MenuStudio({
   nav,
@@ -119,16 +131,9 @@ export function MenuStudio({
     );
     if (samePath(selected, path)) setSelected(null);
   };
-  const move = (path: number[], dir: -1 | 1) =>
-    setMenu(
-      editSiblings(menu, path, (sib, idx) => {
-        const j = idx + dir;
-        if (j < 0 || j >= sib.length) return sib;
-        const n = sib.slice();
-        [n[idx], n[j]] = [n[j], n[idx]];
-        return n;
-      }),
-    );
+  // Drag-reorder a whole level (siblings under `base`; [] = top level).
+  const reorderLevel = (base: number[], next: SiteMenuItem[]) =>
+    setMenu(setChildrenAt(menu, base, next));
   const addChild = (path: number[]) => {
     const item = getAt(menu, path);
     setMenu(
@@ -144,29 +149,33 @@ export function MenuStudio({
   };
   const addTop = (item?: SiteMenuItem) => setMenu([...menu, item ?? newItem()]);
 
-  // ── Recursive tree row ──
+  // ── Recursive tree level — each level is a drag-reorderable SortableList ──
   function Rows({ items, base }: { items: SiteMenuItem[]; base: number[] }) {
     return (
-      <>
-        {items.map((item, i) => {
+      <SortableList
+        id={`menu-lvl-${base.join("-") || "root"}`}
+        items={items}
+        onReorder={(next) => reorderLevel(base, next)}
+      >
+        {(item, i, handle) => {
           const path = [...base, i];
           const depth = path.length - 1;
           const hasKids = !!item.children && item.children.length > 0;
           // Auto-rooms items list the site's live rooms as (read-only) child
           // tabs right here in the tree, so the host sees what the dropdown holds.
           const hasAutoRooms = !!item.autoRooms && rooms.length > 0;
-          const expandable = hasKids || hasAutoRooms;
           const isOpen = open[item.id] ?? true;
           const isSel = samePath(selected, path);
           return (
-            <div key={item.id}>
+            <>
               <div
-                className={`group flex items-center gap-1 rounded-[8px] px-1.5 py-1.5 ${
+                className={`group flex items-center gap-0.5 rounded-[8px] py-1 pr-1.5 ${
                   isSel ? "bg-brand-light" : "hover:bg-brand-light/50"
                 }`}
                 style={{ marginLeft: depth * 16 }}
               >
-                {expandable ? (
+                {handle}
+                {hasKids || hasAutoRooms ? (
                   <button
                     type="button"
                     onClick={() =>
@@ -182,7 +191,7 @@ export function MenuStudio({
                     )}
                   </button>
                 ) : (
-                  <GripVertical className="h-3.5 w-3.5 text-brand-line" />
+                  <span className="w-3.5" />
                 )}
                 <button
                   type="button"
@@ -207,12 +216,6 @@ export function MenuStudio({
                       <CornerDownRight className="h-3.5 w-3.5" />
                     </IconBtn>
                   ) : null}
-                  <IconBtn title="Up" onClick={() => move(path, -1)}>
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </IconBtn>
-                  <IconBtn title="Down" onClick={() => move(path, 1)}>
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </IconBtn>
                   <IconBtn
                     title={t("mediaDelete")}
                     danger
@@ -224,58 +227,59 @@ export function MenuStudio({
               </div>
               {item.autoRooms ? (
                 hasAutoRooms && isOpen ? (
-                  rooms.map((r) => {
-                    const isHidden = (item.hiddenRoomIds ?? []).includes(
-                      r.roomId,
-                    );
-                    return (
-                      <div
-                        key={r.roomId}
-                        className="group flex items-center gap-1 rounded-[8px] px-1.5 py-1 hover:bg-brand-light/40"
-                        style={{ marginLeft: (depth + 1) * 16 }}
-                      >
-                        <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-brand-line" />
-                        <button
-                          type="button"
-                          onClick={() => setSelected(path)}
-                          className={`flex-1 truncate text-left text-[12.5px] ${
-                            isHidden
-                              ? "text-brand-mute line-through"
-                              : "text-brand-ink"
-                          }`}
+                  <div style={{ marginLeft: (depth + 1) * 16 }}>
+                    {rooms.map((r) => {
+                      const isHidden = (item.hiddenRoomIds ?? []).includes(
+                        r.roomId,
+                      );
+                      return (
+                        <div
+                          key={r.roomId}
+                          className="group flex items-center gap-1 rounded-[8px] px-1.5 py-1 hover:bg-brand-light/40"
                         >
-                          {r.name}
-                        </button>
-                        <IconBtn
-                          title={
-                            isHidden
-                              ? t("menuAutoRoomShow")
-                              : t("menuAutoRoomHide")
-                          }
-                          onClick={() => {
-                            const set = new Set(item.hiddenRoomIds ?? []);
-                            if (isHidden) set.delete(r.roomId);
-                            else set.add(r.roomId);
-                            update(path, { hiddenRoomIds: [...set] });
-                          }}
-                        >
-                          {isHidden ? (
-                            <EyeOff className="h-3.5 w-3.5" />
-                          ) : (
-                            <Eye className="h-3.5 w-3.5" />
-                          )}
-                        </IconBtn>
-                      </div>
-                    );
-                  })
+                          <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-brand-line" />
+                          <button
+                            type="button"
+                            onClick={() => setSelected(path)}
+                            className={`flex-1 truncate text-left text-[12.5px] ${
+                              isHidden
+                                ? "text-brand-mute line-through"
+                                : "text-brand-ink"
+                            }`}
+                          >
+                            {r.name}
+                          </button>
+                          <IconBtn
+                            title={
+                              isHidden
+                                ? t("menuAutoRoomShow")
+                                : t("menuAutoRoomHide")
+                            }
+                            onClick={() => {
+                              const set = new Set(item.hiddenRoomIds ?? []);
+                              if (isHidden) set.delete(r.roomId);
+                              else set.add(r.roomId);
+                              update(path, { hiddenRoomIds: [...set] });
+                            }}
+                          >
+                            {isHidden ? (
+                              <EyeOff className="h-3.5 w-3.5" />
+                            ) : (
+                              <Eye className="h-3.5 w-3.5" />
+                            )}
+                          </IconBtn>
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : null
               ) : hasKids && isOpen ? (
                 <Rows items={item.children ?? []} base={path} />
               ) : null}
-            </div>
+            </>
           );
-        })}
-      </>
+        }}
+      </SortableList>
     );
   }
 

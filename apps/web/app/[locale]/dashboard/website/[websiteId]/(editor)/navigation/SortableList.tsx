@@ -32,10 +32,15 @@ export function SortableList<T extends { id: string }>({
   items,
   onReorder,
   children,
+  id,
 }: {
   items: T[];
   onReorder: (next: T[]) => void;
   children: (item: T, index: number, handle: ReactNode) => ReactNode;
+  /** Stable DndContext id — REQUIRED when nesting SortableLists (e.g. a menu
+   *  tree) so dnd-kit's a11y ids are deterministic and don't mismatch on SSR
+   *  hydration. Omit for a single (non-nested) list. */
+  id?: string;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -55,6 +60,7 @@ export function SortableList<T extends { id: string }>({
 
   return (
     <DndContext
+      id={id}
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={onDragEnd}
