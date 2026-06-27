@@ -19,6 +19,23 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Menu builder: per-page show/hide links (slice 3)
+
+**A menu link can now be hidden on specific pages** (e.g. hide "Book" on
+checkout). Slice 3 of the responsive-menu epic — works on both chromes.
+- Additive `hiddenOnPages?: string[]` (page keys) on every menu link
+  (`menuLinkSchema` / `SiteMenuItem`); no migration.
+- New `lib/site/menuPage.ts` (`pageKeyFor` / `pageKeyFromHref` /
+  `filterMenuForPage`). `buildSafariNav(ctx, pageKey)` and `SiteChrome`
+  (`currentPageKey` prop) filter the menu by the current page; `SitePageView`
+  computes the key from `result.page` and threads it to both.
+- The nav editor filters the canvas by the active **backdrop page** (the page
+  switcher), and the selected-link inspector gained a "Show on pages" checklist;
+  unticking a page hides the link there.
+- Verified live: hid "Journal" on Contact → it vanished on the Contact backdrop
+  and stayed on Home, reflecting instantly as the backdrop changed. 131 vitest +
+  tsc + lint green.
+
 ## 2026-06-27 (PM) — Menu builder: per-link responsive styling (Safari)
 
 **Each menu link can now be styled individually, per screen size** — colour,

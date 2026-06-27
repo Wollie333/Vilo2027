@@ -31,6 +31,7 @@ export function SiteChromeCanvas({
   brand,
   nav,
   navigation,
+  currentPageKey,
   conversion,
   layout,
   darkChrome,
@@ -45,6 +46,8 @@ export function SiteChromeCanvas({
   nav: SiteNavItem[];
   /** Live navigation config (editor state) — drives the header menu + footer. */
   navigation: SiteNavigation;
+  /** The page behind the menu — drops links hidden on it (per-page rules). */
+  currentPageKey?: string;
   conversion?: SiteConversion;
   layout?: "full" | "boxed";
   darkChrome?: boolean;
@@ -59,6 +62,7 @@ export function SiteChromeCanvas({
         brand={brand}
         nav={nav}
         navigation={navigation}
+        currentPageKey={currentPageKey}
         conversion={conversion}
         layout={layout}
         darkChrome={darkChrome}

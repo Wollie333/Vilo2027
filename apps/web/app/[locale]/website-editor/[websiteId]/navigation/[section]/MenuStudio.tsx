@@ -95,6 +95,8 @@ export function MenuStudio({
   conversion = null,
   chromeLayout = "full",
   darkChrome = false,
+  backdropKey = "home",
+  pageList = [],
 }: {
   nav: NavigationConfig;
   setMenu: (menu: SiteMenuItem[]) => void;
@@ -118,18 +120,25 @@ export function MenuStudio({
   conversion?: SiteConversion | null;
   chromeLayout?: "full" | "boxed";
   darkChrome?: boolean;
+  /** The page sitting behind the menu (canvas backdrop) — for per-page rules. */
+  backdropKey?: string;
+  /** All pages (key + label) for the per-link page-visibility control. */
+  pageList?: { key: string; label: string }[];
 }) {
   const t = useTranslations("website");
   const menu = nav.menu ?? [];
   const isSafari = themePreset === "safari";
   const safariNav = isSafari
-    ? buildSafariNav({
-        nav: pages,
-        navigation: nav,
-        brand,
-        preview: false,
-        subdomain: "",
-      })
+    ? buildSafariNav(
+        {
+          nav: pages,
+          navigation: nav,
+          brand,
+          preview: false,
+          subdomain: "",
+        },
+        backdropKey,
+      )
     : null;
   const [tab, setTab] = useState<Tab>("content");
   const [selected, setSelected] = useState<number[] | null>(null);
@@ -619,6 +628,7 @@ export function MenuStudio({
               brand={brand}
               nav={navItems}
               navigation={nav as unknown as SiteNavigation}
+              currentPageKey={backdropKey}
               conversion={conversion ?? undefined}
               layout={chromeLayout}
               darkChrome={darkChrome}
@@ -750,6 +760,38 @@ export function MenuStudio({
                   )
                 ) : null}
               </div>
+
+              {/* Per-page VISIBILITY — show/hide this link on specific pages.
+                  Unchecking a page hides the link there; the canvas reflects it
+                  when that page is the backdrop. */}
+              {pageList.length > 0 ? (
+                <div className="insp-sec space-y-2 border-t border-brand-line pt-3">
+                  <GroupLabel>{t("menuPageVisibility")}</GroupLabel>
+                  <p className="text-[11.5px] text-brand-mute">
+                    {t("menuPageVisibilityHint")}
+                  </p>
+                  {pageList.map((p) => {
+                    const hidden = (selectedItem.hiddenOnPages ?? []).includes(
+                      p.key,
+                    );
+                    return (
+                      <CheckRow
+                        key={p.key}
+                        label={p.label}
+                        checked={!hidden}
+                        onChange={(show) => {
+                          const set = new Set(selectedItem.hiddenOnPages ?? []);
+                          if (show) set.delete(p.key);
+                          else set.add(p.key);
+                          update(selected, {
+                            hiddenOnPages: set.size ? [...set] : undefined,
+                          });
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              ) : null}
 
               {/* Per-link STYLE — overrides the global menu style for THIS link,
                   per screen size (the top-bar device switcher picks the layer). */}

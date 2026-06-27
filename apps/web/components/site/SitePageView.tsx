@@ -7,6 +7,7 @@ import {
   loadSitePage,
   siteBookHref,
 } from "@/lib/site/loadSitePage";
+import { pageKeyFor } from "@/lib/site/menuPage";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import { buildSiteJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
@@ -60,6 +61,9 @@ export async function SitePageView({
 
   const result = await loadSitePage(ctx, pathSlug);
   if (!result) notFound();
+
+  // Current page key for per-page menu rules (show/hide links per page).
+  const currentPageKey = pageKeyFor(result.page.kind, result.page.slug);
 
   // Build preview context for SiteChrome if in preview mode
   const previewContext = ctx.preview
@@ -139,7 +143,7 @@ export async function SitePageView({
           brandName={ctx.brand.name}
           contactEmail={ctx.brand.contactEmail}
           contactPhone={ctx.brand.contactPhone}
-          nav={buildSafariNav(ctx)}
+          nav={buildSafariNav(ctx, currentPageKey)}
           bookHref={headerBookHref}
           previewPages={previewPages}
           analytics={ctx.analytics}
@@ -159,6 +163,7 @@ export async function SitePageView({
           brand={ctx.brand}
           nav={ctx.nav}
           navigation={ctx.navigation}
+          currentPageKey={currentPageKey}
           conversion={ctx.conversion}
           analytics={ctx.analytics}
           layout={ctx.layout}

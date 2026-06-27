@@ -13,6 +13,7 @@ import {
 import type { CSSProperties, ReactNode } from "react";
 
 import { siteImageUrl } from "@/lib/site/image";
+import { filterMenuForPage } from "@/lib/site/menuPage";
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 import {
   DEFAULT_FOOTER,
@@ -966,6 +967,7 @@ export function SiteChrome({
   footer = DEFAULT_FOOTER,
   preview,
   navigation = {},
+  currentPageKey,
   conversion = {},
   analytics = {},
   popupForm = null,
@@ -990,6 +992,8 @@ export function SiteChrome({
   /** Preview mode context — shows banner and preserves params in nav links. */
   preview?: { subdomain: string; themeSlug?: string };
   navigation?: SiteNavigation;
+  /** Current page key — drops links the host hid on this page (per-page rules). */
+  currentPageKey?: string;
   /** Conversion chrome (WhatsApp button + announcement bar + pop-up). */
   conversion?: SiteConversion;
   /** Host third-party analytics (GA4 + Meta Pixel + consent gate). */
@@ -1019,10 +1023,12 @@ export function SiteChrome({
     navigation.header?.menuCollapse ?? "mobile";
   const topBar = navigation.topBar;
   // Explicit menu wins; otherwise fall back to the page-derived nav.
-  const menu: SiteMenuItem[] =
+  const menu: SiteMenuItem[] = filterMenuForPage(
     navigation.menu && navigation.menu.length > 0
       ? navigation.menu
-      : nav.map((n) => ({ id: n.href, label: n.label, href: n.href }));
+      : nav.map((n) => ({ id: n.href, label: n.label, href: n.href })),
+    currentPageKey,
+  );
   const flatNav: SiteNavItem[] = menu.map((m) => ({
     label: m.label,
     href: m.href,

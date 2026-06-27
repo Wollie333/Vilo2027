@@ -625,6 +625,8 @@ const menuLinkSchema = z.object({
   newTab: z.boolean().optional(),
   /** Per-link responsive style override (the selected-link Style controls). */
   style: menuItemStyleSchema.optional(),
+  /** Page keys this link is HIDDEN on ("home" or a slug) — per-page show/hide. */
+  hiddenOnPages: z.array(z.string().trim().max(120)).max(60).optional(),
 });
 // Two levels of nesting: top → sub → sub-sub (the sub-sub are leaf links).
 const menuSubItemSchema = menuLinkSchema.extend({

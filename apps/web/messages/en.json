@@ -2085,6 +2085,8 @@
     "menuItemInherit": "Inherit from menu",
     "menuItemBg": "Background colour",
     "menuItemPill": "Rounded pill (button style)",
+    "menuPageVisibility": "Show on pages",
+    "menuPageVisibilityHint": "Untick a page to hide this link there.",
     "pbChromeInNav": "The header & footer are part of your theme — edit them in Navigation (Header, Menu, Footer).",
     "fldHeroOverlayColor": "Overlay colour",
     "fldHeroOverlayOpacity": "Overlay opacity",

@@ -88,6 +88,8 @@ export type SiteMenuItem = {
   hiddenRoomIds?: string[];
   /** Per-link responsive style override (the selected-link Style controls). */
   style?: MenuItemStyle;
+  /** Page keys this link is HIDDEN on ("home" or a slug) — per-page show/hide. */
+  hiddenOnPages?: string[];
 };
 export type SiteFooterColumn = {
   id: string;

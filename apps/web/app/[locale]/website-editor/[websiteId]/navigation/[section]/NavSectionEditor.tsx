@@ -215,13 +215,17 @@ export function NavSectionEditor({
   // and match the published site. Falls back to the generic preview off-theme.
   const isSafari = themePreset === "safari";
   const safariNav = isSafari
-    ? buildSafariNav({
-        nav: pages,
-        navigation: nav,
-        brand,
-        preview: false,
-        subdomain: "",
-      })
+    ? buildSafariNav(
+        {
+          nav: pages,
+          navigation: nav,
+          brand,
+          preview: false,
+          subdomain: "",
+        },
+        // Filter the canvas menu by the page sitting behind it (per-page rules).
+        backdropKey,
+      )
     : null;
   const devices: Array<{ key: Device; icon: LucideIcon; title: string }> = [
     { key: "desktop", icon: Monitor, title: t("deviceDesktop") },
@@ -394,6 +398,8 @@ export function NavSectionEditor({
             conversion={conversion}
             chromeLayout={chromeLayout}
             darkChrome={darkChrome}
+            backdropKey={backdropKey}
+            pageList={backdrops.map((b) => ({ key: b.key, label: b.label }))}
           />
         ) : (
           <>
@@ -476,6 +482,7 @@ export function NavSectionEditor({
                     brand={brand}
                     nav={navItems}
                     navigation={nav as unknown as SiteNavigation}
+                    currentPageKey={backdropKey}
                     conversion={conversion ?? undefined}
                     layout={chromeLayout}
                     darkChrome={darkChrome}

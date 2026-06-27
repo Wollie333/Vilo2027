@@ -1,5 +1,6 @@
 import type { SafariNavLink } from "@/components/site/safari/SafariNav";
 
+import { filterMenuForPage } from "./menuPage";
 import type {
   SiteBrand,
   SiteFooterColumn,
@@ -133,19 +134,23 @@ function mapMenuItem(item: SiteMenuItem, preview?: Preview): SafariNavLink {
  * configured. Book button + menu styling come straight from the host's header
  * settings.
  */
-export function buildSafariNav(ctx: {
-  nav: SiteNavItem[];
-  navigation: SiteNavigation;
-  brand: SiteBrand;
-  preview: boolean;
-  subdomain: string;
-  previewThemeSlug?: string;
-}): SafariNavData {
+export function buildSafariNav(
+  ctx: {
+    nav: SiteNavItem[];
+    navigation: SiteNavigation;
+    brand: SiteBrand;
+    preview: boolean;
+    subdomain: string;
+    previewThemeSlug?: string;
+  },
+  /** Current page key — drops links the host hid on this page (per-page rules). */
+  pageKey?: string,
+): SafariNavData {
   const preview: Preview | undefined = ctx.preview
     ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
     : undefined;
 
-  const menu = ctx.navigation.menu;
+  const menu = filterMenuForPage(ctx.navigation.menu ?? [], pageKey);
   const links: SafariNavLink[] =
     menu && menu.length > 0
       ? menu.filter((i) => i.label?.trim()).map((i) => mapMenuItem(i, preview))
