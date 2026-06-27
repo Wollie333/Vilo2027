@@ -34,7 +34,8 @@ import {
   getThemeRoomDetailSections,
   hasThemeRoomDetailTemplate,
 } from "@/lib/website/themeSections";
-import type { FormType } from "@/lib/website/forms.schema";
+import type { FormField, FormType } from "@/lib/website/forms.schema";
+import { FORM_TEMPLATES } from "@/lib/website/formTemplates";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import { validateSubdomain } from "@/lib/website/subdomain";
 import {
@@ -2599,17 +2600,27 @@ export async function createWebsiteFormAction(
 ): Promise<CreateResult> {
   const parsed = createWebsiteFormSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { websiteId, name, type } = parsed.data;
+  const { websiteId, name, type, template } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
 
+  // Seed from a starter template when one is named — fields get a fresh uuid
+  // each, and the form's type comes from the template. Otherwise an empty form.
+  const tpl = template ? FORM_TEMPLATES[template] : undefined;
+  const formType: FormType = tpl?.type ?? type;
+  const fields: FormField[] = (tpl?.fields ?? []).map((f) => ({
+    ...f,
+    id: uuid(),
+  }));
+  const settings = tpl?.settings ?? {};
+
   const supabase = createServerClient();
   const { data: form, error } = await supabase
     .from("website_forms")
-    .insert({ website_id: websiteId, name, type, fields: [], settings: {} })
+    .insert({ website_id: websiteId, name, type: formType, fields, settings })
     .select("id")
     .single();
   if (error || !form) return { ok: false, error: "create_failed" };

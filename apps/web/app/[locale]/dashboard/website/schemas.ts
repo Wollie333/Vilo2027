@@ -877,6 +877,10 @@ export const createWebsiteFormSchema = z.object({
   websiteId: z.string().uuid(),
   name: z.string().trim().min(1, "Name the form.").max(120),
   type: z.enum(FORM_TYPES).default("contact"),
+  // Optional starter-template key (see lib/website/formTemplates.ts). When set,
+  // the form is seeded with that template's fields + settings and `type` is
+  // taken from the template. Unknown/missing → an empty form of `type`.
+  template: z.string().trim().max(40).optional(),
 });
 export type CreateWebsiteFormInput = z.infer<typeof createWebsiteFormSchema>;
 

@@ -10,6 +10,7 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
+  Star,
   Trash2,
 } from "lucide-react";
 import {
@@ -54,6 +55,7 @@ const TEMPLATES: Array<{ key: string; type: FormType; icon: typeof Mail }> = [
   { key: "booking", type: "contact", icon: CalendarCheck },
   { key: "newsletter", type: "newsletter", icon: Mail },
   { key: "contact", type: "contact", icon: Inbox },
+  { key: "review", type: "contact", icon: Star },
 ];
 
 export function FormsList({
@@ -468,6 +470,7 @@ function NewFormModal({
         websiteId,
         name: t(`formTpl_${tpl.key}`),
         type: tpl.type,
+        template: tpl.key,
       });
       if (!res.ok) {
         toast.error(t("formsCreateError"));
