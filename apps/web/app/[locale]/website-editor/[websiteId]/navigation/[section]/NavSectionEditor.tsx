@@ -413,6 +413,7 @@ export function NavSectionEditor({
                     setHeader={setHeader}
                     setTop={setTop}
                     pages={pages}
+                    transparentDefault={isSafari}
                   />
                 ) : (
                   <FooterInspector

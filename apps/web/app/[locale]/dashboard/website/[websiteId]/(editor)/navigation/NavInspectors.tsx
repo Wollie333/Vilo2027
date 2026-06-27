@@ -106,13 +106,19 @@ export function HeaderInspector({
   setHeader,
   setTop,
   pages = [],
+  transparentDefault = false,
 }: {
   nav: NavigationConfig;
   setHeader: (p: Partial<NavigationConfig["header"]>) => void;
   setTop: (p: Partial<NavigationConfig["topBar"]>) => void;
   /** In-nav pages, so the Book button can link to a page (or a custom URL). */
   pages?: PageOption[];
+  /** Theme's natural transparent-over-hero default when the host hasn't chosen
+   *  (Safari is transparent by design; generic themes are solid). Drives the
+   *  toggle's displayed state so it matches what actually renders. */
+  transparentDefault?: boolean;
 }) {
+  const transparentOn = nav.header.transparentOverHero ?? transparentDefault;
   const t = useTranslations("website");
   return (
     <>
@@ -265,12 +271,10 @@ export function HeaderInspector({
         />
         <Toggle
           label={t("navTransparent")}
-          on={nav.header.transparentOverHero}
-          onClick={() =>
-            setHeader({ transparentOverHero: !nav.header.transparentOverHero })
-          }
+          on={transparentOn}
+          onClick={() => setHeader({ transparentOverHero: !transparentOn })}
         />
-        {nav.header.transparentOverHero ? (
+        {transparentOn ? (
           <>
             <ColorRow
               label={t("navScrolledBg")}

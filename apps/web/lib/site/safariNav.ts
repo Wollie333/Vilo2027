@@ -44,6 +44,15 @@ export type SafariNavData = {
   links: SafariNavLink[];
   /** Chosen header layout (host's `navigation.header.layout`, default classic). */
   layout: SafariHeaderLayout;
+  /** Keep the header fixed/visible on scroll (header behaviour setting). */
+  sticky: boolean;
+  /** Transparent over the hero, fading to solid on scroll. Safari's natural look;
+   *  default true (unset), false → a solid bar from the top. */
+  transparent: boolean;
+  /** Solid-bar background override (when not transparent). Blank → Safari paper. */
+  bgColor?: string | null;
+  /** Background the transparent bar fades to on scroll. Blank → Safari paper. */
+  scrolledBgColor?: string | null;
   menuStyle?: SiteMenuStyle | null;
   bookLabel: string;
   showBook: boolean;
@@ -189,6 +198,12 @@ export function buildSafariNav(ctx: {
   return {
     links,
     layout: (header.layout as SafariHeaderLayout) || "classic",
+    sticky: header.sticky !== false,
+    // Safari is transparent-over-hero by design; only an explicit `false` makes
+    // it a solid bar from the top.
+    transparent: header.transparentOverHero !== false,
+    bgColor: header.bgColor,
+    scrolledBgColor: header.scrolledBgColor,
     menuStyle: ctx.navigation.menuStyle,
     bookLabel: header.ctaLabel?.trim() || "Reserve",
     showBook: header.showBookCta !== false,

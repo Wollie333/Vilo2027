@@ -154,9 +154,18 @@ export function SafariShell({
   // In the page builder the nav is forced solid + in-flow (builder CSS), so no
   // fixed-nav top padding; on the live site it's the solid-nav + bar heights.
   const builder = !!editable;
+  // Header behaviour settings (nav manager → Behaviour): solid-from-top when the
+  // host turns transparency off (or on pages with no dark hero / in the builder);
+  // pinned (fixed) unless the host turns "keep visible on scroll" off.
+  const headerSolid = solidNav || builder || !nav.transparent;
+  const headerFixed = nav.sticky && !builder;
+  // The header occupies layout space (needs top padding) ONLY when it's both
+  // pinned AND solid-from-top. A transparent fixed bar overlays the hero, and a
+  // non-sticky bar takes its own space / scrolls away — neither needs padding.
+  const headerPad = headerFixed && headerSolid ? 90 : 0;
   const topPad = builder
     ? 0
-    : (solidNav ? 90 : 0) + (bar ? 44 : 0) + (showTopBar ? 38 : 0);
+    : headerPad + (bar ? 44 : 0) + (showTopBar ? 38 : 0);
   const rootCls = [
     "vilo-safari",
     bar ? "pre" : "",
@@ -216,7 +225,10 @@ export function SafariShell({
           showBook={nav.showBook}
           bookColor={nav.bookColor}
           menuStyle={nav.menuStyle}
-          forceSolid={solidNav || builder}
+          forceSolid={headerSolid}
+          sticky={headerFixed}
+          bgColor={nav.bgColor}
+          scrolledBgColor={nav.scrolledBgColor}
         />
       </ChromeEditWrap>
 

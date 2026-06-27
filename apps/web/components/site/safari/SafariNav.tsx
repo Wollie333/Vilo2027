@@ -73,6 +73,9 @@ export function SafariNav({
   bookColor,
   menuStyle,
   forceSolid = false,
+  sticky = true,
+  bgColor,
+  scrolledBgColor,
 }: {
   brandName: string;
   monogram: string;
@@ -91,8 +94,16 @@ export function SafariNav({
   showBook?: boolean;
   bookColor?: string | null;
   menuStyle?: SiteMenuStyle | null;
-  /** Pages without a dark hero (e.g. checkout) need a solid bar from the top. */
+  /** Solid bar from the top (no transparent-over-hero) — pages without a dark
+   *  hero (checkout), the builder, OR the host turning transparency off. */
   forceSolid?: boolean;
+  /** Keep the header pinned/visible on scroll (header behaviour). False → the
+   *  header scrolls away with the page. */
+  sticky?: boolean;
+  /** Solid-bar background override (transparency off). Blank → Safari paper. */
+  bgColor?: string | null;
+  /** Background the transparent bar fades to on scroll. Blank → Safari paper. */
+  scrolledBgColor?: string | null;
 }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -107,11 +118,27 @@ export function SafariNav({
   // Which mobile-drawer parents are expanded (accordion).
   const [openMobile, setOpenMobile] = useState<Record<string, boolean>>({});
 
-  const cls = forceSolid
-    ? "nav solid"
+  const cls = [
+    forceSolid
+      ? "nav solid"
+      : scrolled
+        ? "nav over-hero solid"
+        : "nav over-hero",
+    // Non-sticky → un-pin the bar (CSS makes it absolute over the hero when
+    // transparent, or in-flow when solid) so it scrolls away with the page.
+    sticky ? "" : "nav-static",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  // Custom solid background (host's Behaviour colours): the solid-from-top bar
+  // uses `bgColor`; the transparent bar fades to `scrolledBgColor` once scrolled.
+  const customBg = forceSolid
+    ? bgColor?.trim()
     : scrolled
-      ? "nav over-hero solid"
-      : "nav over-hero";
+      ? scrolledBgColor?.trim()
+      : "";
+  const headerStyle = customBg ? { background: customBg } : undefined;
 
   const styleCss = menuStyleCss(menuStyle);
   const homeHref = links[0]?.href || "#";
@@ -130,7 +157,7 @@ export function SafariNav({
   return (
     <>
       {styleCss ? <style>{styleCss}</style> : null}
-      <header className={`${cls} lay-${layout}`}>
+      <header className={`${cls} lay-${layout}`} style={headerStyle}>
         <div className="wrap nav-in">
           <a href={homeHref} className="brand">
             {useLogo ? (

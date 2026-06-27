@@ -515,6 +515,16 @@
   display: block;
 }
 
+/* Non-sticky header (Behaviour: "keep visible on scroll" off) — un-pin the bar
+   so it scrolls away with the page. Transparent → absolute over the hero; solid
+   → in normal flow above the content. */
+.vilo-safari .nav.nav-static {
+  position: absolute;
+}
+.vilo-safari .nav.nav-static.solid {
+  position: relative;
+}
+
 /* When the shared preview bar is present, the fixed header drops below it. */
 .vilo-safari.pre .nav {
   top: 44px;

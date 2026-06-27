@@ -1361,6 +1361,7 @@ export function PageBuilder({
                     setHeader={setHeader}
                     setTop={setTop}
                     pages={navPages}
+                    transparentDefault={themeIsSafari}
                   />
                   <div className="insp-sec">
                     <MenuBuilder

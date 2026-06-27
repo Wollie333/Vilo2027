@@ -651,7 +651,11 @@ export const navigationSchema = z.object({
       // "Lodge · Direct booking"). Blank → the theme default.
       tagline: z.string().trim().max(80).optional(),
       sticky: z.boolean().default(true),
-      transparentOverHero: z.boolean().default(false),
+      // Transparent over the hero (fades to solid on scroll). Left OPTIONAL (no
+      // default) so "unset" means "let the theme decide": generic themes treat
+      // unset as solid (SiteChrome uses `=== true`); the Safari design treats
+      // unset as transparent (its natural look). An explicit false forces solid.
+      transparentOverHero: z.boolean().optional(),
       // Header background colour (solid mode). Blank → theme surface. Lets the
       // host set e.g. a solid black bar (pair with a white menu colour).
       bgColor: z.string().trim().max(40).optional(),
