@@ -548,6 +548,29 @@
     display: block;
   }
 }
+/* Builder device frames are size containers (`.device { container-type }`), so
+   mirror the collapse breakpoints as @container queries → on the Desktop/Tablet/
+   Mobile tabs the canvas collapses to the ☰ drawer at the SIMULATED device width,
+   exactly like the live @media does at the real viewport. Inert on the live site
+   (no container ancestor there), so this only affects the builder canvas. */
+@container (max-width: 767.98px) {
+  .vilo-safari .nav.collapse-mobile .nav-links,
+  .vilo-safari .nav.collapse-mobile .nav-right .btn {
+    display: none;
+  }
+  .vilo-safari .nav.collapse-mobile .nav-burger {
+    display: block;
+  }
+}
+@container (max-width: 1023.98px) {
+  .vilo-safari .nav.collapse-tablet .nav-links,
+  .vilo-safari .nav.collapse-tablet .nav-right .btn {
+    display: none;
+  }
+  .vilo-safari .nav.collapse-tablet .nav-burger {
+    display: block;
+  }
+}
 
 /* When the shared preview bar is present, the fixed header drops below it. */
 .vilo-safari.pre .nav {

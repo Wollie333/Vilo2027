@@ -664,6 +664,26 @@
 .vilo-builder .device.mobile {
   max-width: 380px;
 }
+/* Nav/menu builder canvas — Safari (`.nav-scroll-preview`): the device is a flex
+   item whose default `min-width: auto` floors it at the chrome's intrinsic width
+   (the full inline nav ≈ 768px), so `max-width` never shrank the frame and the
+   Tablet/Mobile tabs did nothing. `min-width: 0` lets it shrink, and an explicit
+   per-device `width` (with `max-width: 100%` so a narrow editor still fits) drives
+   the real simulated width — so the @container collapse + per-device styles
+   actually preview the real screen size. Scoped to the Safari canvas, whose
+   chrome collapses via @container; the generic chrome still collapses via @media
+   (viewport), so resizing its frame would only squish it — left as a follow-up. */
+.vilo-builder .canvas-wrap.thin .nav-scroll-preview.device {
+  min-width: 0;
+}
+.vilo-builder .canvas-wrap.thin .nav-scroll-preview.device.tablet {
+  width: 744px;
+  max-width: 100%;
+}
+.vilo-builder .canvas-wrap.thin .nav-scroll-preview.device.mobile {
+  width: 380px;
+  max-width: 100%;
+}
 .vilo-builder .pg {
   font-size: 15px;
   line-height: 1.6;

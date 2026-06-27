@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-27 (PM) — Nav canvas now resizes to the real screen size (Safari)
+
+**The menu builder canvas was never actually changing width when you picked
+Tablet/Mobile** — so the menu always showed its desktop (inline) state. Root
+cause: the `.device` frame is a flex item, and its default `min-width: auto`
+floored it at the Safari chrome's intrinsic width (the full inline nav ≈ 768px),
+so the per-device `max-width` never shrank it. Fix (both CSS-only):
+- `builder.css` — Safari-scoped (`.nav-scroll-preview.device`) `min-width: 0` +
+  an explicit per-device `width` (744 / 380, `max-width: 100%` so narrow editors
+  still fit). The frame now genuinely resizes.
+- `safari.css` — mirrored the menu-collapse breakpoints as `@container` queries
+  (the device frames are size containers) alongside the existing `@media`, so the
+  inline menu collapses to the ☰ at the SIMULATED width, inert on the live site.
+
+Verified live (1920 viewport): Desktop → 1080px inline menu; Tablet → 744px ☰;
+Mobile → 380px ☰ — the canvas reflects the real menu per screen size, and all the
+per-device styling/logo previews compose on top. **Generic (non-Safari) themes
+still collapse via @media (viewport), so their canvas isn't responsive yet — left
+as the next task (would need the chrome's md: band split → @container).** 131
+vitest + tsc green.
+
 ## 2026-06-27 (PM) — Forms EPIC 4a: website enquiry renders as a quote-request-style card
 
 **A website contact/booking-form enquiry now reads like a "Request a quote" in
