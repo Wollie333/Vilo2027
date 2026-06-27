@@ -522,6 +522,7 @@ export function PageBuilder({
     futureRef.current = [...futureRef.current, sectionsRef.current].slice(-50);
     lastSnapRef.current = 0;
     setSections(prev);
+    setSelectedChild(null);
     setDirty(true);
     refreshHistory();
   }
@@ -533,6 +534,7 @@ export function PageBuilder({
     pastRef.current = [...pastRef.current, sectionsRef.current].slice(-50);
     lastSnapRef.current = 0;
     setSections(next);
+    setSelectedChild(null);
     setDirty(true);
     refreshHistory();
   }
@@ -551,6 +553,8 @@ export function PageBuilder({
   function removeSection(id: string) {
     mutate(sections.filter((s) => s.id !== id));
     if (selectedId === id) setSelectedId(null);
+    // Never leave a child selection pointing at a section that just changed.
+    if (selectedChild?.sectionId === id) setSelectedChild(null);
   }
   function duplicateSection(id: string) {
     const i = sections.findIndex((s) => s.id === id);
