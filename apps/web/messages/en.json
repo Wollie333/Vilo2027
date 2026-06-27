@@ -2080,6 +2080,7 @@
     "menuWeightSemibold": "Semibold",
     "menuWeightBold": "Bold",
     "menuStyleUppercase": "UPPERCASE links",
+    "menuResetToTheme": "Reset to theme default",
     "menuStyleColorOverHero": "Link colour (over hero)",
     "menuStyleColorScrolled": "Link colour (scrolled)",
     "menuStyleHoverScrolled": "Hover colour (scrolled)",

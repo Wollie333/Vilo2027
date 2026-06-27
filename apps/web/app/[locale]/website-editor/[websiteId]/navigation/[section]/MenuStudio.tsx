@@ -343,6 +343,21 @@ export function MenuStudio({
       setMenuStyle({ mobile: { ...(ms.mobile ?? {}), ...patch } });
     else setMenuStyle(patch);
   };
+  // Reset the active device's menu style back to the theme default.
+  const resetDeviceStyle = () => {
+    if (device === "tablet") setMenuStyle({ tablet: undefined });
+    else if (device === "phone") setMenuStyle({ mobile: undefined });
+    else
+      setMenuStyle({
+        color: undefined,
+        hoverColor: undefined,
+        scrolledColor: undefined,
+        scrolledHoverColor: undefined,
+        fontSize: undefined,
+        weight: "medium",
+        uppercase: false,
+      });
+  };
 
   return (
     <>
@@ -547,6 +562,13 @@ export function MenuStudio({
                   </div>
                 </div>
               ) : null}
+              <button
+                type="button"
+                onClick={resetDeviceStyle}
+                className="mt-1 text-[11.5px] font-semibold text-brand-mute hover:text-brand-ink"
+              >
+                ↺ {t("menuResetToTheme")}
+              </button>
             </div>
           ) : (
             <div className="insp-sec space-y-3">
@@ -638,6 +660,22 @@ export function MenuStudio({
                             setPerPage(backdropKey, { fontSize: n })
                           }
                         />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPerPage(backdropKey, {
+                              transparentOverHero: undefined,
+                              bgColor: undefined,
+                              color: undefined,
+                              hoverColor: undefined,
+                              scrolledColor: undefined,
+                              fontSize: undefined,
+                            })
+                          }
+                          className="text-[11.5px] font-semibold text-brand-mute hover:text-brand-ink"
+                        >
+                          ↺ {t("menuResetToTheme")}
+                        </button>
                       </div>
                     );
                   })()
@@ -974,6 +1012,7 @@ export function MenuStudio({
                   label={t("menuStyleUppercase")}
                   checked={selLayer.uppercase ?? false}
                   onChange={(v) => setItemStyle({ uppercase: v })}
+                  onReset={() => setItemStyle({ uppercase: undefined })}
                 />
                 <ColorField
                   label={t("menuItemBg")}
@@ -984,7 +1023,17 @@ export function MenuStudio({
                   label={t("menuItemPill")}
                   checked={selLayer.pill ?? false}
                   onChange={(v) => setItemStyle({ pill: v || undefined })}
+                  onReset={() => setItemStyle({ pill: undefined })}
                 />
+                <button
+                  type="button"
+                  onClick={() =>
+                    selected && update(selected, { style: undefined })
+                  }
+                  className="mt-1 text-[11.5px] font-semibold text-brand-mute hover:text-brand-ink"
+                >
+                  ↺ {t("menuResetToTheme")}
+                </button>
               </div>
 
               <button
@@ -1136,20 +1185,34 @@ function CheckRow({
   label,
   checked,
   onChange,
+  onReset,
 }: {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  /** When set + the value is on, shows a reset to clear back to the theme default. */
+  onReset?: () => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-brand-ink">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-      />
-      {label}
-    </label>
+    <div className="flex items-center justify-between">
+      <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-brand-ink">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+        />
+        {label}
+      </label>
+      {onReset && checked ? (
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-[11.5px] font-medium text-brand-mute hover:text-brand-ink"
+        >
+          ✕
+        </button>
+      ) : null}
+    </div>
   );
 }

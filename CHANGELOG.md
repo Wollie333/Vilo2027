@@ -19,6 +19,16 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Menu builder: reset-to-theme-default on styling fields
+
+**Every styling control can now revert to the theme default.** Colours (✕), size
+(reset), and weight ("Inherit") already cleared; added a clear (✕) to the boolean
+toggles (uppercase/pill, via `CheckRow.onReset`) and a **"↺ Reset to theme
+default"** button to each style group — the per-link style section (clears the
+link's `style`), the global Style tab (clears the active device layer), and the
+per-page panel (clears that page's override). Verified live: a per-link red
+reverted to the theme's default white on reset. THEME_CONTRACT rule #5.
+
 ## 2026-06-27 (PM) — Menu: two-state colours for transparent-over-hero headers
 
 **A transparent-over-hero header now carries TWO menu colours** — one for over the
