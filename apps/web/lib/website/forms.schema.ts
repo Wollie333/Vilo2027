@@ -88,6 +88,32 @@ export type FormField = z.infer<typeof formFieldSchema>;
 
 export const formFieldsSchema = z.array(formFieldSchema).max(40);
 
+// ── Per-form style (additive, optional) ──────────────────────
+// The form inherits the active theme by default; these override specific bits
+// of the look for this form only. Applied as scoped CSS vars on the form (both
+// the public render and the builder canvas) — see lib/website/formStyle.ts.
+const hexColor = z
+  .string()
+  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/);
+export const FORM_FIELD_RADII = ["sharp", "rounded", "pill"] as const;
+export type FormFieldRadius = (typeof FORM_FIELD_RADII)[number];
+export const FORM_BUTTON_ALIGN = ["left", "center", "right", "full"] as const;
+export type FormButtonAlign = (typeof FORM_BUTTON_ALIGN)[number];
+
+export const formStyleSchema = z.object({
+  // Accent for focus rings, checkboxes/radios and the consent link.
+  accent: hexColor.optional(),
+  // Input corner shape.
+  fieldRadius: z.enum(FORM_FIELD_RADII).optional(),
+  // Input fill + border colours.
+  fieldBg: hexColor.optional(),
+  fieldBorder: hexColor.optional(),
+  // Submit-button fill (text colour is auto-contrasted) + its alignment.
+  buttonBg: hexColor.optional(),
+  buttonAlign: z.enum(FORM_BUTTON_ALIGN).optional(),
+});
+export type FormStyle = z.infer<typeof formStyleSchema>;
+
 // Form-level settings (stored in website_forms.settings jsonb).
 export const formSettingsSchema = z.object({
   // Optional intro shown under the form title on the public site.
@@ -120,6 +146,8 @@ export const formSettingsSchema = z.object({
   // low-friction form (e.g. a short newsletter signup) where the captcha hurts
   // conversion more than spam costs.
   spamProtection: z.boolean().default(true),
+  // Optional per-form style overrides (Styles tab). Empty = inherit the theme.
+  style: formStyleSchema.default({}),
 });
 export type FormSettings = z.infer<typeof formSettingsSchema>;
 

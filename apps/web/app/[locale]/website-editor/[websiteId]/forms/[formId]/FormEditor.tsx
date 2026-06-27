@@ -69,8 +69,10 @@ import {
   type FormField,
   type FormFieldType,
   type FormSettings,
+  type FormStyle,
   type FormType,
 } from "@/lib/website/forms.schema";
+import { formStyleVars } from "@/lib/website/formStyle";
 
 const nid = () => crypto.randomUUID();
 
@@ -380,7 +382,7 @@ export function FormEditor({
 
         {/* canvas */}
         <div className="form-wrap thin">
-          <div className="form-doc">
+          <div className="form-doc" style={formStyleVars(settings.style)}>
             <div className="fd-accent" />
             <div className="fd-head">
               <input
@@ -441,8 +443,28 @@ export function FormEditor({
                 </DndContext>
               )}
             </div>
-            <div className="fd-foot">
-              <div className="fd-submit">
+            <div
+              className="fd-foot"
+              style={{
+                display: "flex",
+                justifyContent:
+                  settings.style?.buttonAlign === "center"
+                    ? "center"
+                    : settings.style?.buttonAlign === "right"
+                      ? "flex-end"
+                      : settings.style?.buttonAlign === "full"
+                        ? "stretch"
+                        : "flex-start",
+              }}
+            >
+              <div
+                className="fd-submit"
+                style={
+                  settings.style?.buttonAlign === "full"
+                    ? { width: "100%" }
+                    : undefined
+                }
+              >
                 {settings.submitLabel || t("formEditorSend")}
               </div>
             </div>
@@ -1000,6 +1022,59 @@ function FormInspector({
   onPatch: (p: Partial<FormSettings>) => void;
 }) {
   const t = useTranslations("website");
+  const [tab, setTab] = useState<"settings" | "styles">("settings");
+
+  const tabs: ReadonlyArray<readonly [typeof tab, string]> = [
+    ["settings", t("formTabSettings")],
+    ["styles", t("formTabStyles")],
+  ];
+
+  return (
+    <>
+      <div
+        role="tablist"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          margin: "12px 14px 2px",
+        }}
+        className="overflow-hidden rounded-[10px] border border-brand-line"
+      >
+        {tabs.map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            onClick={() => setTab(key)}
+            className={`px-2 py-1.5 text-[12.5px] font-semibold transition ${
+              tab === key
+                ? "bg-brand-light text-brand-secondary"
+                : "bg-white text-brand-mute hover:text-brand-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "styles" ? (
+        <FormStyles settings={settings} onPatch={onPatch} />
+      ) : (
+        <FormSettingsPanel settings={settings} onPatch={onPatch} />
+      )}
+    </>
+  );
+}
+
+function FormSettingsPanel({
+  settings,
+  onPatch,
+}: {
+  settings: FormSettings;
+  onPatch: (p: Partial<FormSettings>) => void;
+}) {
+  const t = useTranslations("website");
   return (
     <>
       <div className="insp-sec">
@@ -1109,6 +1184,168 @@ function FormInspector({
             {t("formEditorSpamProtectHint")}
           </p>
         </div>
+      </div>
+    </>
+  );
+}
+
+// ── Styles tab ──────────────────────────────────────────────
+// Per-form overrides of the themed look. Each writes to settings.style; the
+// canvas (.form-doc) + the public FormSection both apply them as `--vform-*`
+// vars (lib/website/formStyle.ts), so the canvas previews changes instantly.
+function ColorRow({
+  label,
+  value,
+  fallback,
+  onChange,
+  onReset,
+}: {
+  label: string;
+  value: string | undefined;
+  fallback: string;
+  onChange: (v: string) => void;
+  onReset: () => void;
+}) {
+  const t = useTranslations("website");
+  return (
+    <div className="fld">
+      <div className="fld-row">
+        <label style={{ margin: 0 }}>{label}</label>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <input
+            type="color"
+            value={value ?? fallback}
+            onChange={(e) => onChange(e.target.value)}
+            style={{
+              width: 34,
+              height: 26,
+              padding: 0,
+              border: "1px solid var(--line)",
+              borderRadius: 7,
+              background: "none",
+              cursor: "pointer",
+            }}
+          />
+          {value ? (
+            <button
+              type="button"
+              title={t("formStyleResetField")}
+              aria-label={t("formStyleResetField")}
+              onClick={onReset}
+              style={{
+                display: "flex",
+                color: "var(--mute)",
+                background: "none",
+                border: 0,
+                cursor: "pointer",
+              }}
+            >
+              <X style={{ width: 14, height: 14 }} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const RADII = ["sharp", "rounded", "pill"] as const;
+const BTN_ALIGNS = ["left", "center", "right", "full"] as const;
+
+function FormStyles({
+  settings,
+  onPatch,
+}: {
+  settings: FormSettings;
+  onPatch: (p: Partial<FormSettings>) => void;
+}) {
+  const t = useTranslations("website");
+  const s = settings.style ?? {};
+  const patchStyle = (p: Partial<FormStyle>) =>
+    onPatch({ style: { ...s, ...p } });
+  const hasAny = Object.values(s).some((v) => v !== undefined && v !== "");
+
+  return (
+    <>
+      <div className="insp-sec">
+        <div className="isec-t">{t("formStyleFields")}</div>
+        <ColorRow
+          label={t("formStyleAccent")}
+          value={s.accent}
+          fallback="#16A34A"
+          onChange={(v) => patchStyle({ accent: v })}
+          onReset={() => patchStyle({ accent: undefined })}
+        />
+        <div className="fld">
+          <label>{t("formStyleCorners")}</label>
+          <div className="choice">
+            {RADII.map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={s.fieldRadius === r ? "on" : ""}
+                onClick={() => patchStyle({ fieldRadius: r })}
+              >
+                {t(`formStyleCorner_${r}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <ColorRow
+          label={t("formStyleFieldBg")}
+          value={s.fieldBg}
+          fallback="#FFFFFF"
+          onChange={(v) => patchStyle({ fieldBg: v })}
+          onReset={() => patchStyle({ fieldBg: undefined })}
+        />
+        <ColorRow
+          label={t("formStyleFieldBorder")}
+          value={s.fieldBorder}
+          fallback="#D8E6DF"
+          onChange={(v) => patchStyle({ fieldBorder: v })}
+          onReset={() => patchStyle({ fieldBorder: undefined })}
+        />
+      </div>
+
+      <div className="insp-sec">
+        <div className="isec-t">{t("formStyleButton")}</div>
+        <ColorRow
+          label={t("formStyleButtonColor")}
+          value={s.buttonBg}
+          fallback="#16A34A"
+          onChange={(v) => patchStyle({ buttonBg: v })}
+          onReset={() => patchStyle({ buttonBg: undefined })}
+        />
+        <div className="fld">
+          <label>{t("formStyleButtonAlign")}</label>
+          <div className="choice">
+            {BTN_ALIGNS.map((a) => (
+              <button
+                key={a}
+                type="button"
+                className={s.buttonAlign === a ? "on" : ""}
+                onClick={() => patchStyle({ buttonAlign: a })}
+              >
+                {t(`formStyleAlign_${a}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="insp-sec">
+        <p className="fhelp" style={{ marginBottom: 8 }}>
+          {t("formStyleHint")}
+        </p>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          style={{ width: "100%" }}
+          disabled={!hasAny}
+          onClick={() => onPatch({ style: {} })}
+        >
+          {t("formStyleReset")}
+        </button>
       </div>
     </>
   );

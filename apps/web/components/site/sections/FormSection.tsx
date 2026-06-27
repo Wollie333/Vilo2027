@@ -6,6 +6,7 @@ import {
   TurnstileWidget,
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
+import { formStyleVars } from "@/lib/website/formStyle";
 import { siteThankYouHref } from "@/lib/site/thankYouHref";
 import type { FormRenderData, SiteFormDef } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
@@ -14,20 +15,25 @@ import { SectionShell, SectionHeading, Muted } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "form" }>["props"];
 
+// Field look reads the per-form `--vform-*` overrides first, falling back to the
+// active theme's `--site-*` (so an unstyled form looks exactly as before). The
+// `--vform-*` vars are set on the <form> from the form's `style` (Styles tab).
 const fieldStyle: CSSProperties = {
-  background: "var(--site-bg)",
-  borderColor: "var(--site-line)",
+  background: "var(--vform-field-bg, var(--site-bg))",
+  borderColor: "var(--vform-field-border, var(--site-line))",
   color: "var(--site-ink)",
-  borderRadius: "var(--site-radius)",
+  borderRadius: "var(--vform-radius, var(--site-radius))",
   // Tints native control chrome (select arrow, date-picker indicator, number
-  // spinners) with the theme accent so every field reads as part of the design.
-  accentColor: "var(--site-accent)",
+  // spinners) with the accent so every field reads as part of the design.
+  accentColor: "var(--vform-accent, var(--site-accent))",
 };
 const inputCls = "w-full border px-4 py-3 text-sm outline-none";
 
-// Tick/dot of a checkbox or radio in the theme accent (these inputs don't take
-// the bordered field style — just the native accent).
-const checkStyle: CSSProperties = { accentColor: "var(--site-accent)" };
+// Tick/dot of a checkbox or radio in the accent (these inputs don't take the
+// bordered field style — just the native accent).
+const checkStyle: CSSProperties = {
+  accentColor: "var(--vform-accent, var(--site-accent))",
+};
 
 /**
  * A consent link is host-supplied — only allow safe schemes (http(s)/mailto and
@@ -318,7 +324,7 @@ export function FormSection({
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                     onClick={(e) => e.stopPropagation()}
-                    style={{ color: "var(--site-accent)" }}
+                    style={{ color: "var(--vform-accent, var(--site-accent))" }}
                     className="font-medium underline"
                   >
                     {field.linkLabel?.trim() || "Terms & Conditions"}
@@ -385,8 +391,19 @@ export function FormSection({
     }
   }
 
+  const styleVars = formStyleVars(form.settings.style);
+  const btnAlign = form.settings.style?.buttonAlign;
+  const btnJustify =
+    btnAlign === "center"
+      ? "center"
+      : btnAlign === "right"
+        ? "flex-end"
+        : btnAlign === "full"
+          ? "stretch"
+          : "flex-start";
+
   const formEl = (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4" style={styleVars}>
       {/* Honeypot — hidden from real users; bots fill it and get dropped. */}
       <input
         type="text"
@@ -463,19 +480,25 @@ export function FormSection({
         <p className="text-sm font-medium text-red-600">{error}</p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={!live || status === "sending" || (needsTurnstile && !tsToken)}
-        style={{
-          background: "var(--site-btn-primary-bg)",
-          color: "var(--site-btn-primary-color)",
-          border: "var(--site-btn-primary-border)",
-          borderRadius: "var(--site-btn-primary-radius)",
-        }}
-        className="inline-flex w-full items-center justify-center px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto"
-      >
-        {status === "sending" ? "Sending…" : form.settings.submitLabel}
-      </button>
+      <div style={{ display: "flex", justifyContent: btnJustify }}>
+        <button
+          type="submit"
+          disabled={
+            !live || status === "sending" || (needsTurnstile && !tsToken)
+          }
+          style={{
+            background: "var(--vform-btn-bg, var(--site-btn-primary-bg))",
+            color: "var(--vform-btn-fg, var(--site-btn-primary-color))",
+            border: "var(--site-btn-primary-border)",
+            borderRadius: "var(--vform-radius, var(--site-btn-primary-radius))",
+          }}
+          className={`inline-flex items-center justify-center px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 ${
+            btnAlign === "full" ? "w-full" : "w-full sm:w-auto"
+          }`}
+        >
+          {status === "sending" ? "Sending…" : form.settings.submitLabel}
+        </button>
+      </div>
       {!interactive ? (
         <p style={{ color: "var(--site-mute)" }} className="text-xs">
           This form is interactive on your published site.
