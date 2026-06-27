@@ -106,6 +106,55 @@ shared** — a new theme inherits them by rendering the shared `FormSection` /
 `SiteMarketing` / `FirePixelEvent` / `PageHeadCode` (Safari does this via a
 `--site-*`→theme token bridge for forms). Only slices 1–3 are theme-scoped.
 
+## ★ The north star: conform an uploaded theme design (HTML / CSS / JS)
+
+**The end goal of the Website CMS (founder, 2026-06-27, "the most important aspect"):**
+a designer hands over a raw theme — `*.html` pages + `*.css` + `*.js` — and we
+**conform it to this contract** so it becomes a fully functional Vilo theme
+(editable in the builders, data-bound, forms→inbox, analytics, publishable). The
+whole point of the layering + the contract above is to make that conformance a
+**mechanical slot-filling exercise**, not bespoke engineering each time.
+
+**Conformance workflow (what "conform an uploaded design" means, step by step):**
+1. **Scope the CSS.** Wrap every selector under one theme root `.vilo-<t>`
+   (or compile it scoped). Port any page-level `<style>` blocks too. Nothing leaks.
+2. **Kill / replace the JS.** Theme JS is almost always nav toggles / sliders /
+   scroll effects → re-implement with our React behaviour (the `<T>Nav` scroll/
+   drawer pattern, shared lightbox, etc.). We do NOT ship arbitrary uploaded JS.
+3. **Carve the markup into section bands.** Map each visual block in the design to
+   one of our section `type`s (hero, intro, highlights, rooms_preview, gallery,
+   reviews, location, cta, host_bio, faq, amenities, pricing, contact_form, form,
+   blog_preview, rate_table, room_* …). One component per band in
+   `<T>Sections.tsx`, content from section props (stock fallback baked in), bound
+   to live data. Wire the `render<T>Section` dispatcher into `SectionRenderer`.
+   *If a design has a block we have no type for, add a new shared section type
+   (schema + inspector + generic render) — that's a layer-1/2 add every theme then
+   gets, NOT a theme-private hack.*
+4. **Carve the chrome.** Header/nav + footer → a `<T>Shell` + `<T>Nav` that honour
+   the **header/menu settings contract table** above. This is the most contract-
+   heavy part — the table is the checklist.
+5. **Bind data + mount.** Suites→real rooms, journal→real posts, contact→real
+   brand, forms→`FormSection`/thank-you, analytics→`SiteMarketing`. Branch the
+   routes (`SitePageView` etc.) to the theme when active. Seed templates in
+   `lib/website/themeSections.ts`.
+6. **Verify each slice live** (tsc + lint + vitest + Preview MCP), commit per slice.
+
+**What makes this fast (and what to keep investing in):**
+- A **complete shared section-type catalogue** — the more design blocks already
+  have a type + inspector + data binding, the less per-theme work. Growing this is
+  the highest-leverage investment toward one-click theme import.
+- A **theme scaffold** — a skeleton `<T>Shell`/`<T>Nav`/`<T>Sections` with empty
+  slots to drop the uploaded markup + scoped CSS into. (Build this when the 2nd
+  bespoke theme lands, factored from Safari.)
+- The **settings contract table** staying authoritative — a new theme's chrome is
+  "implement these N rows," nothing more to discover.
+- Eventually: a **conformance checklist / generator** that, given the uploaded
+  files, scaffolds the theme folder + scoped CSS + stub bands to fill.
+
+Until that tooling exists, conformance is **this document, executed by hand per
+theme** — which is already far faster than designing from scratch, because every
+non-styling concern is shared.
+
 ## Rule of thumb when building
 
 Before adding a nav/header/menu/section capability, ask **"which layer?"**:
