@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { BurgerGlyph, type BurgerConfig } from "@/components/site/BurgerGlyph";
 import type { SiteMenuItem } from "@/lib/site/types";
 
 /**
@@ -16,12 +17,15 @@ export function SiteMobileMenu({
   bookHref,
   bookLabel,
   dark,
+  burger,
   className = "",
 }: {
   menu: SiteMenuItem[];
   bookHref?: string;
   bookLabel?: string;
   dark?: boolean;
+  /** Host ☰ icon design (colour / size / weight / glyph / button background). */
+  burger?: BurgerConfig;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -50,10 +54,19 @@ export function SiteMobileMenu({
         onClick={() => setOpen(true)}
         aria-label="Open menu"
         aria-expanded={open}
-        style={{ color: dark ? "#fff" : "var(--site-ink)" }}
+        style={{
+          color: dark ? "#fff" : "var(--site-ink)",
+          ...(burger?.bg?.trim()
+            ? { background: burger.bg.trim(), borderRadius: 8 }
+            : {}),
+        }}
         className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--site-radius)] transition-opacity hover:opacity-80"
       >
-        <Menu className="h-6 w-6" />
+        <BurgerGlyph
+          burger={burger}
+          fallbackColor={dark ? "#fff" : "var(--site-ink)"}
+          fallbackSize={24}
+        />
       </button>
 
       {open ? (

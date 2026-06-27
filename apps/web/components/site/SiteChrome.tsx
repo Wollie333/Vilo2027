@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
+import type { BurgerConfig } from "@/components/site/BurgerGlyph";
 import { siteImageUrl } from "@/lib/site/image";
 import { filterMenuForPage } from "@/lib/site/menuPage";
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
@@ -615,6 +616,7 @@ function HeaderMenu({
   bookLabel,
   dark,
   preview,
+  burger,
 }: {
   menu: SiteMenuItem[];
   collapse: MenuCollapse;
@@ -623,6 +625,7 @@ function HeaderMenu({
   bookLabel?: string;
   dark?: boolean;
   preview?: PreviewCtx;
+  burger?: BurgerConfig;
 }) {
   if (menu.length === 0) return null;
   if (collapse === "never") {
@@ -650,6 +653,7 @@ function HeaderMenu({
         bookHref={bookHref}
         bookLabel={bookLabel}
         dark={dark}
+        burger={burger}
         className={burgerShow}
       />
     </>
@@ -744,6 +748,7 @@ function HeaderInner({
   menuAlign = "start",
   dark,
   preview,
+  burger,
 }: {
   variant: SiteHeaderLayout;
   brand: SiteBrand;
@@ -758,6 +763,7 @@ function HeaderInner({
   menuAlign?: "start" | "center" | "end";
   dark?: boolean;
   preview?: { subdomain: string; themeSlug?: string };
+  burger?: BurgerConfig;
 }) {
   const logoEl = showLogo ? (
     <Logo
@@ -786,6 +792,7 @@ function HeaderInner({
           <HeaderMenu
             menu={menu}
             collapse={collapse}
+            burger={burger}
             navClassName="flex-wrap items-center gap-x-6 gap-y-2"
             bookHref={bookHref}
             bookLabel={bookLabel}
@@ -818,6 +825,7 @@ function HeaderInner({
               bookHref={bookHref}
               bookLabel={bookLabel}
               dark={dark}
+              burger={burger}
             />
           ) : null}
         </div>
@@ -832,6 +840,7 @@ function HeaderInner({
           <HeaderMenu
             menu={menu}
             collapse={collapse}
+            burger={burger}
             navClassName="items-center gap-5"
             bookHref={bookHref}
             bookLabel={bookLabel}
@@ -857,6 +866,7 @@ function HeaderInner({
       <HeaderMenu
         menu={menu}
         collapse={collapse}
+        burger={burger}
         navClassName={`flex-1 ${alignClass} items-center gap-6`}
         bookHref={bookHref}
         bookLabel={bookLabel}
@@ -1200,6 +1210,7 @@ export function SiteChrome({
               menuAlign={navigation.menuStyle?.align}
               dark={headerDark}
               preview={preview}
+              burger={navigation.header?.burger}
             />
           </div>
           <div className="md:hidden">
@@ -1217,6 +1228,7 @@ export function SiteChrome({
               menuAlign={navigation.menuStyle?.align}
               dark={headerDark}
               preview={preview}
+              burger={navigation.header?.burger}
             />
           </div>
         </StickyHeader>

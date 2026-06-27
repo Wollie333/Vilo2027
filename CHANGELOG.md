@@ -19,6 +19,20 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — ☰ icon glyph variants + generic-theme parity
+
+Two follow-ons to the mobile menu editor:
+- **Glyph variants** — the ☰ icon can be 3 lines (default), short staggered
+  lines, 3 dots (meatball), or a 9-dot grid. New `burger.style` enum; a shared
+  `components/site/BurgerGlyph.tsx` renders the chosen shape (stroke for lines,
+  filled circles for dots/grid). "Icon style" select in the Mobile menu tab; the
+  tab now shows the drawer CLOSED so the icon is visible while editing.
+- **Generic-theme parity** — the icon config (colour/size/weight/glyph/bg) now
+  applies to non-Safari themes too: `SiteMobileMenu` renders `BurgerGlyph` and
+  `SiteChrome` threads `navigation.header.burger` to it. Verified by flipping the
+  test site to `classic`: dots glyph + red fill on the generic trigger; reverted.
+  131 vitest + tsc + lint green.
+
 ## 2026-06-27 (PM) — Mobile menu editor: ☰ icon design + drawer + collapse
 
 **The Mobile menu tab now customizes the whole ☰ experience.** New
