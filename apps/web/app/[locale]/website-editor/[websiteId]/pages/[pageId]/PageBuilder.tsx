@@ -135,7 +135,11 @@ import {
   FormModalFooter,
 } from "@/components/ui/form-modal";
 
-import { SectionEditor } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/SectionEditor";
+import {
+  ColumnBlockEditor,
+  SectionEditor,
+} from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/SectionEditor";
+import { ContainerCanvas } from "./ContainerCanvas";
 import { PageSeoCard } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/PageSeoCard";
 import { A11yCard } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/A11yCard";
 import { MenuBuilder } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/navigation/MenuBuilder";
@@ -384,6 +388,12 @@ export function PageBuilder({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSections[0]?.id ?? null,
   );
+  // A selected child element inside a "Section" (flex) container — routes the
+  // inspector to the element editor while the parent section stays selected.
+  const [selectedChild, setSelectedChild] = useState<{
+    sectionId: string;
+    index: number;
+  } | null>(null);
   // Inline chrome editing — header/footer are selectable in the same canvas.
   const [navConfig, setNavConfig] = useState<NavigationConfig>(initialNav);
   const [selectedChrome, setSelectedChrome] = useState<ChromeTarget | null>(
@@ -422,12 +432,33 @@ export function PageBuilder({
   const selected = selectedId
     ? (sections.find((s) => s.id === selectedId) ?? null)
     : null;
+  // When an element inside a Section is selected, the inspector edits that
+  // element. Resolved here (with the parent narrowed to `flex`) so the JSX +
+  // mutation callbacks stay type-safe.
+  const flexChild =
+    selected &&
+    selected.type === "flex" &&
+    selectedChild?.sectionId === selected.id &&
+    (selected.props.blocks ?? [])[selectedChild.index]
+      ? {
+          sec: selected,
+          index: selectedChild.index,
+          block: selected.props.blocks[selectedChild.index],
+        }
+      : null;
 
   // ── Selection: only sections are selectable in the page editor. Header/footer
   // are theme elements, edited in the Navigation manager — never here. ──
   const selectSection = (id: string) => {
     setSelectedId(id);
     setSelectedChrome(null);
+    setSelectedChild(null);
+  };
+  // Select an element inside a Section container (keeps the parent selected).
+  const selectChild = (sectionId: string, index: number | null) => {
+    setSelectedId(sectionId);
+    setSelectedChrome(null);
+    setSelectedChild(index === null ? null : { sectionId, index });
   };
   // Safari: header/footer are selectable inline in the canvas (mutually exclusive
   // with a section selection), edited via the same Header/Footer inspectors.
@@ -1244,7 +1275,14 @@ export function PageBuilder({
                           previewing={previewing}
                           data={previewData}
                           themeVariant={themeVariant}
+                          selectedChildIndex={
+                            selectedChild?.sectionId === s.id
+                              ? selectedChild.index
+                              : null
+                          }
                           onSelect={() => selectSection(s.id)}
+                          onSelectChild={(idx) => selectChild(s.id, idx)}
+                          onChange={updateSection}
                           onToggle={() => toggleEnabled(s.id)}
                           onDuplicate={() => duplicateSection(s.id)}
                           onRemove={() => removeSection(s.id)}
@@ -1388,16 +1426,76 @@ export function PageBuilder({
                   {/* Consistent 16px gutter so inspector controls don't sit flush
                       against the panel edges (matches the header padding). */}
                   <div className="p-4">
-                    <SectionEditor
-                      websiteId={websiteId}
-                      section={selected}
-                      onChange={updateSection}
-                      themePreset={theme.preset}
-                      accountContact={{
-                        email: brand.contactEmail,
-                        phone: brand.contactPhone,
-                      }}
-                    />
+                    {flexChild ? (
+                      <div className="space-y-3">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-[12.5px] font-medium text-brand-mute hover:text-brand-ink"
+                          onClick={() => setSelectedChild(null)}
+                        >
+                          ‹ {t("ccBackToSection")}
+                        </button>
+                        <ColumnBlockEditor
+                          websiteId={websiteId}
+                          block={flexChild.block}
+                          isFirst={flexChild.index === 0}
+                          isLast={
+                            flexChild.index ===
+                            flexChild.sec.props.blocks.length - 1
+                          }
+                          onChange={(nb) =>
+                            updateSection({
+                              ...flexChild.sec,
+                              props: {
+                                ...flexChild.sec.props,
+                                blocks: flexChild.sec.props.blocks.map(
+                                  (b, i) => (i === flexChild.index ? nb : b),
+                                ),
+                              },
+                            })
+                          }
+                          onRemove={() => {
+                            updateSection({
+                              ...flexChild.sec,
+                              props: {
+                                ...flexChild.sec.props,
+                                blocks: flexChild.sec.props.blocks.filter(
+                                  (_, i) => i !== flexChild.index,
+                                ),
+                              },
+                            });
+                            setSelectedChild(null);
+                          }}
+                          onMove={(dir) => {
+                            const i = flexChild.index;
+                            const j = i + dir;
+                            const bl = flexChild.sec.props.blocks;
+                            if (j < 0 || j >= bl.length) return;
+                            const next = [...bl];
+                            [next[i], next[j]] = [next[j], next[i]];
+                            updateSection({
+                              ...flexChild.sec,
+                              props: { ...flexChild.sec.props, blocks: next },
+                            });
+                            setSelectedChild({
+                              sectionId: flexChild.sec.id,
+                              index: j,
+                            });
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <SectionEditor
+                        websiteId={websiteId}
+                        section={selected}
+                        onChange={updateSection}
+                        themePreset={theme.preset}
+                        accountContact={{
+                          email: brand.contactEmail,
+                          phone: brand.contactPhone,
+                        }}
+                      />
+                    )}
                   </div>
                 </>
               ) : (
@@ -1493,7 +1591,10 @@ function BkBlock({
   previewing,
   data,
   themeVariant,
+  selectedChildIndex,
   onSelect,
+  onSelectChild,
+  onChange,
   onToggle,
   onDuplicate,
   onRemove,
@@ -1505,7 +1606,10 @@ function BkBlock({
   previewing: boolean;
   data: SiteData;
   themeVariant?: string;
+  selectedChildIndex: number | null;
   onSelect: () => void;
+  onSelectChild: (index: number | null) => void;
+  onChange: (next: WebsiteSection) => void;
   onToggle: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
@@ -1592,13 +1696,24 @@ function BkBlock({
       </div>
 
       <div style={{ opacity: section.enabled ? 1 : 0.45 }}>
-        <SectionRenderer
-          sections={[{ ...section, enabled: true }]}
-          data={data}
-          asset={asset}
-          themeVariant={themeVariant}
-          errorLabel={t("sectionRenderError")}
-        />
+        {section.type === "flex" ? (
+          // The "Section" container is edited element-by-element on the canvas.
+          <ContainerCanvas
+            section={section}
+            asset={asset}
+            selectedIndex={selectedChildIndex}
+            onSelectChild={onSelectChild}
+            onChange={onChange}
+          />
+        ) : (
+          <SectionRenderer
+            sections={[{ ...section, enabled: true }]}
+            data={data}
+            asset={asset}
+            themeVariant={themeVariant}
+            errorLabel={t("sectionRenderError")}
+          />
+        )}
       </div>
 
       <div className="bk-insert">

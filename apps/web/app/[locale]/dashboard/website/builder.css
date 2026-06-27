@@ -950,6 +950,148 @@
   margin: 0;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
 }
+
+/* ── "Section" container canvas (flex) — on-canvas element placement ── */
+.vilo-builder .cc-wrap {
+  padding: 24px;
+}
+.vilo-builder .cc-block {
+  position: relative;
+  outline: 1px dashed transparent;
+  outline-offset: 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: outline-color 0.1s;
+}
+.vilo-builder .cc-block:hover {
+  outline-color: rgba(16, 185, 129, 0.5);
+}
+.vilo-builder .cc-block.sel {
+  outline: 2px solid #10b981;
+}
+.vilo-builder .cc-block-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateY(-100%);
+  background: #10b981;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px 5px 0 0;
+  display: none;
+  z-index: 6;
+  white-space: nowrap;
+}
+.vilo-builder .cc-block:hover > .cc-block-label,
+.vilo-builder .cc-block.sel > .cc-block-label {
+  display: block;
+}
+.vilo-builder .cc-block-tools {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 2px;
+  box-shadow: 0 8px 20px -10px rgba(6, 78, 59, 0.4);
+  z-index: 6;
+}
+.vilo-builder .cc-block:hover > .cc-block-tools,
+.vilo-builder .cc-block.sel > .cc-block-tools {
+  display: flex;
+}
+.vilo-builder .cc-block-tools button {
+  height: 24px;
+  width: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mute);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.vilo-builder .cc-block-tools button:hover {
+  background: var(--soft);
+  color: #064e3b;
+}
+.vilo-builder .cc-block-tools button.del:hover {
+  background: #fef2f2;
+  color: #ef4444;
+}
+.vilo-builder .cc-block-tools button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.vilo-builder .cc-ph {
+  padding: 14px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--mute);
+  font-size: 12.5px;
+  text-align: center;
+}
+.vilo-builder .cc-empty {
+  margin: 16px;
+  padding: 28px;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+  text-align: center;
+}
+.vilo-builder .cc-empty-t {
+  color: var(--mute);
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.vilo-builder .cc-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 14px;
+}
+.vilo-builder .cc-wrap > .cc-add {
+  padding-top: 16px;
+  margin-top: 18px;
+  border-top: 1px dashed var(--line);
+}
+.vilo-builder .cc-add-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mute);
+}
+.vilo-builder .cc-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.vilo-builder .cc-add-btn:hover {
+  border-color: #10b981;
+  background: var(--soft);
+  color: #064e3b;
+}
 .vilo-builder .canvas-empty {
   padding: 80px 30px;
   text-align: center;

@@ -2951,7 +2951,7 @@ function FormFieldsEditor({
 }
 
 /** A blank inline block of the given kind (column content). */
-function newColumnBlock(kind: ColumnBlockKind): ColumnBlock {
+export function newColumnBlock(kind: ColumnBlockKind): ColumnBlock {
   switch (kind) {
     case "heading":
       return { kind, text: "Heading", level: "h3" };
@@ -3205,7 +3205,7 @@ function FlexEditor({
 }
 
 /** One inline block's fields inside a column, with move/remove controls. */
-function ColumnBlockEditor({
+export function ColumnBlockEditor({
   websiteId,
   block,
   isFirst,

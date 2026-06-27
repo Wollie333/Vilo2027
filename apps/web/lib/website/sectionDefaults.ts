@@ -541,25 +541,20 @@ export function newSection(type: SectionType): WebsiteSection {
         },
       };
     case "flex":
+      // The "Section" container — a blank vertical stack the host fills with
+      // elements on the canvas. Starts empty so it reads as a blank section.
       return {
         id,
         type,
         enabled: true,
         tone: "default",
         props: {
-          direction: "row",
+          direction: "column",
           justify: "start",
           align: "stretch",
           gap: "md",
           wrap: true,
-          blocks: [
-            { kind: "heading", text: "Your heading", level: "h3" },
-            {
-              kind: "text",
-              body: "Add elements and arrange them with the flex controls.",
-            },
-            { kind: "button", label: "Button", href: "#", variant: "primary" },
-          ],
+          blocks: [],
         },
       };
     default: {
