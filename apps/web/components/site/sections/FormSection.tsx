@@ -19,8 +19,15 @@ const fieldStyle: CSSProperties = {
   borderColor: "var(--site-line)",
   color: "var(--site-ink)",
   borderRadius: "var(--site-radius)",
+  // Tints native control chrome (select arrow, date-picker indicator, number
+  // spinners) with the theme accent so every field reads as part of the design.
+  accentColor: "var(--site-accent)",
 };
 const inputCls = "w-full border px-4 py-3 text-sm outline-none";
+
+// Tick/dot of a checkbox or radio in the theme accent (these inputs don't take
+// the bordered field style — just the native accent).
+const checkStyle: CSSProperties = { accentColor: "var(--site-accent)" };
 
 /**
  * A consent link is host-supplied — only allow safe schemes (http(s)/mailto and
@@ -246,6 +253,7 @@ export function FormSection({
                     required={field.required}
                     checked={v === opt}
                     onChange={() => setValue(field.id, opt)}
+                    style={checkStyle}
                     className="h-4 w-4"
                   />
                   <span>{opt}</span>
@@ -269,6 +277,7 @@ export function FormSection({
                     type="checkbox"
                     checked={(values[field.id] ?? "").split(", ").includes(opt)}
                     onChange={() => toggleCheck(field.id, opt)}
+                    style={checkStyle}
                     className="h-4 w-4"
                   />
                   <span>{opt}</span>
@@ -292,6 +301,7 @@ export function FormSection({
               onChange={(e) =>
                 setValue(field.id, e.target.checked ? "Yes" : "")
               }
+              style={checkStyle}
               className="mt-0.5 h-4 w-4"
             />
             <span>

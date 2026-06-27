@@ -1910,6 +1910,10 @@ const SAFARI_FORM_VARS = {
   "--site-line": "var(--line)",
   "--site-ink": "var(--ink)",
   "--site-mute": "var(--ink-soft)",
+  // Accent drives the consent/T&Cs link colour + the checkbox/radio tick, so it
+  // must map to the Safari ochre (it isn't inherited inside the form scope).
+  "--site-accent": "var(--accent)",
+  "--site-accent-ink": "#fff",
   "--site-radius": "4px",
   "--site-btn-primary-bg": "var(--accent)",
   "--site-btn-primary-color": "#fff",

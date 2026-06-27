@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-06-27 (PM) — Forms EPIC 3c: every field type adopts the active theme
+
+**Host-built form fields now read as part of the theme — not just the text
+inputs.** The `form` block already bridged `--site-*` onto Safari, but the bridge
+omitted `--site-accent`, so the consent/T&Cs link and the native checkbox/radio
+ticks fell back to dark ink / the browser's default blue.
+- **Safari bridge:** `SAFARI_FORM_VARS` now maps `--site-accent` →`var(--accent)`
+  (+ `--site-accent-ink`), so accent-driven form bits use the Safari ochre.
+- **FormSection:** `accent-color: var(--site-accent)` is applied to the shared
+  field style (tints select arrows, date-picker indicators, number spinners) and
+  explicitly to every checkbox/radio/checkboxes/consent input (the tick/dot now
+  matches the theme on EVERY theme, since each defines `--site-accent`).
+- Verified live on Safari: the consent link + checkbox tick + input accent all
+  resolve to `rgb(178,108,46)` (ochre); screenshot confirms the on-theme form.
+  tsc + lint green.
+
 ## 2026-06-27 (PM) — Forms EPIC 3b: consent field links T&Cs + opts into marketing
 
 **A consent checkbox can now link to the host's Terms/privacy and double as a
