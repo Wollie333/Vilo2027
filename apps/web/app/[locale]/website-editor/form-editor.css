@@ -210,18 +210,61 @@
   height: 1px;
   background: var(--line);
 }
-.vilo-builder .ff-grip {
+/* Field type tag (with drag grip) — mirrors the page builder's .bk-label. */
+.vilo-builder .ff-label {
   position: absolute;
-  left: -2px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #bbd3c6;
+  top: 0;
+  left: 0;
+  transform: translateY(-100%);
+  background: #10b981;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px 6px 0 0;
   display: none;
-  cursor: grab;
+  align-items: center;
+  gap: 6px;
+  z-index: 6;
+  white-space: nowrap;
 }
-.vilo-builder .ff:hover > .ff-grip,
-.vilo-builder .ff.sel > .ff-grip {
+.vilo-builder .ff:hover > .ff-label,
+.vilo-builder .ff.sel > .ff-label {
   display: flex;
+}
+.vilo-builder .ff-label .fl-grip {
+  cursor: grab;
+  display: flex;
+  opacity: 0.85;
+}
+.vilo-builder .ff-label .fl-grip:active {
+  cursor: grabbing;
+}
+/* Insert-above affordance — mirrors the page builder's .bk-insert button. */
+.vilo-builder .ff-insert {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  height: 24px;
+  width: 24px;
+  border-radius: 9999px;
+  background: #10b981;
+  color: #fff;
+  border: 2px solid #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 7;
+  box-shadow: 0 4px 12px -3px rgba(16, 185, 129, 0.7);
+  transition:
+    opacity 0.12s,
+    transform 0.12s;
+}
+.vilo-builder .ff:hover > .ff-insert {
+  display: flex;
+  transform: translate(-50%, -50%) scale(1);
 }
 .vilo-builder .ff-tools {
   position: absolute;

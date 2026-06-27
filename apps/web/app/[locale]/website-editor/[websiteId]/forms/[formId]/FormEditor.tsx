@@ -40,6 +40,7 @@ import {
   Pilcrow,
   Plus,
   PlusSquare,
+  Search,
   Settings2,
   SquareCheck,
   Trash2,
@@ -130,6 +131,10 @@ export function FormEditor({
   const [fields, setFields] = useState<FormField[]>(initialFields);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
+  // When set, the next palette pick inserts at this index (set by the per-field
+  // "+" affordance), mirroring the page builder's insert-between.
+  const [insertAt, setInsertAt] = useState<number | null>(null);
   const [saving, startSave] = useTransition();
 
   const selected = selectedId
@@ -160,11 +165,17 @@ export function FormEditor({
       f.options = [t("formEditorOption1"), t("formEditorOption2")];
     }
     if (type === "consent") f.optLabel = t("formEditorConsentDefault");
-    const at = selectedId
-      ? fields.findIndex((x) => x.id === selectedId) + 1
-      : fields.length;
+    // Insert position: an explicit "+" target wins; else after the selected
+    // field; else append.
+    const at =
+      insertAt !== null
+        ? insertAt
+        : selectedId
+          ? fields.findIndex((x) => x.id === selectedId) + 1
+          : fields.length;
     setFields((fs) => [...fs.slice(0, at), f, ...fs.slice(at)]);
     setSelectedId(f.id);
+    setInsertAt(null);
   }
 
   const sensors = useSensors(
@@ -293,29 +304,76 @@ export function FormEditor({
               <h3>{t("formEditorAddField")}</h3>
             </div>
             <div className="epanel-b thin">
-              {CATS.map((c) => (
-                <div key={c.key}>
-                  <div className="pal-cat">{t(`formEditorCat_${c.key}`)}</div>
-                  <div className="pal-list">
-                    {c.types.map((type) => {
-                      const Ico = ICONS[type];
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          className="pal-item"
-                          onClick={() => addField(type)}
-                        >
-                          <span className="pi-ic">
-                            <Ico style={{ width: 16, height: 16 }} />
-                          </span>
-                          <span className="pi-nm">{fieldLabel(type)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+              {/* Search every field type by name (mirrors the page builder). */}
+              <div className="pal-search-wrap">
+                <Search
+                  className="pal-search-ic"
+                  style={{ width: 14, height: 14 }}
+                />
+                <input
+                  type="text"
+                  className="pal-search"
+                  placeholder={t("formEditorSearchPh")}
+                  value={paletteQuery}
+                  onChange={(e) => setPaletteQuery(e.target.value)}
+                />
+                {paletteQuery ? (
+                  <button
+                    type="button"
+                    className="pal-search-x"
+                    onClick={() => setPaletteQuery("")}
+                    aria-label={t("formEditorSearchClear")}
+                  >
+                    <X style={{ width: 13, height: 13 }} />
+                  </button>
+                ) : null}
+              </div>
+
+              {insertAt !== null ? (
+                <div className="pal-cat" style={{ color: "#064E3B" }}>
+                  {t("formEditorInsertHint")}
                 </div>
-              ))}
+              ) : null}
+
+              {(() => {
+                const q = paletteQuery.trim().toLowerCase();
+                const card = (type: FormFieldType) => {
+                  const Ico = ICONS[type];
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      className="pal-item"
+                      onClick={() => addField(type)}
+                    >
+                      <span className="pi-ic">
+                        <Ico style={{ width: 16, height: 16 }} />
+                      </span>
+                      <span className="pi-nm">{fieldLabel(type)}</span>
+                    </button>
+                  );
+                };
+                if (q) {
+                  const hits = CATS.flatMap((c) => c.types).filter(
+                    (type) =>
+                      fieldLabel(type).toLowerCase().includes(q) ||
+                      type.replace(/_/g, " ").includes(q),
+                  );
+                  return hits.length === 0 ? (
+                    <div className="pal-cat" style={{ fontWeight: 400 }}>
+                      {t("formEditorNoFields")}
+                    </div>
+                  ) : (
+                    <div className="pal-grid">{hits.map(card)}</div>
+                  );
+                }
+                return CATS.map((c) => (
+                  <div key={c.key}>
+                    <div className="pal-cat">{t(`formEditorCat_${c.key}`)}</div>
+                    <div className="pal-grid">{c.types.map(card)}</div>
+                  </div>
+                ));
+              })()}
             </div>
           </aside>
         ) : null}
@@ -362,14 +420,19 @@ export function FormEditor({
                     items={fields.map((f) => f.id)}
                     strategy={rectSortingStrategy}
                   >
-                    {fields.map((f) => (
+                    {fields.map((f, i) => (
                       <SortableField
                         key={f.id}
                         field={f}
+                        typeName={fieldLabel(f.type)}
                         roomNames={roomNames}
                         selected={selectedId === f.id}
                         previewing={previewing}
-                        onSelect={() => setSelectedId(f.id)}
+                        onSelect={() => {
+                          setSelectedId(f.id);
+                          setInsertAt(null);
+                        }}
+                        onInsertBefore={() => setInsertAt(i)}
                         onDup={() => dup(f.id)}
                         onDel={() => del(f.id)}
                       />
@@ -437,10 +500,12 @@ export function FormEditor({
 // select. Hidden in preview, where no editing tools show.
 function SortableField(props: {
   field: FormField;
+  typeName: string;
   roomNames: string[];
   selected: boolean;
   previewing: boolean;
   onSelect: () => void;
+  onInsertBefore: () => void;
   onDup: () => void;
   onDel: () => void;
 }) {
@@ -459,18 +524,19 @@ function SortableField(props: {
     zIndex: isDragging ? 20 : undefined,
     opacity: isDragging ? 0.85 : undefined,
   };
+  // The grip lives inside the type-label tab (mirrors the page builder's
+  // .bk-label > .bl-grip), and carries the drag listeners.
   const grip = props.previewing ? null : (
-    <button
-      type="button"
-      className="ff-grip"
+    <span
+      className="fl-grip"
       title={t("dragToReorder")}
       aria-label={t("dragToReorder")}
       onClick={(e) => e.stopPropagation()}
       {...attributes}
       {...listeners}
     >
-      <GripVertical style={{ width: 16, height: 16 }} />
-    </button>
+      <GripVertical style={{ width: 13, height: 13 }} />
+    </span>
   );
   return (
     <FieldBlock
@@ -485,10 +551,12 @@ function SortableField(props: {
 // ── canvas field block ──────────────────────────────────────
 function FieldBlock({
   field,
+  typeName,
   roomNames,
   selected,
   previewing,
   onSelect,
+  onInsertBefore,
   onDup,
   onDel,
   dragRef,
@@ -496,10 +564,12 @@ function FieldBlock({
   grip,
 }: {
   field: FormField;
+  typeName: string;
   roomNames: string[];
   selected: boolean;
   previewing: boolean;
   onSelect: () => void;
+  onInsertBefore: () => void;
   onDup: () => void;
   onDel: () => void;
   dragRef?: Ref<HTMLDivElement>;
@@ -509,6 +579,26 @@ function FieldBlock({
   const t = useTranslations("website");
   const cls = `ff ${field.width === "half" ? "half" : ""} ${selected ? "sel" : ""} ${field.required ? "req" : ""}`;
   const isConsent = field.type === "consent" || field.type === "checkbox";
+
+  // Type label tag (with the drag grip) + insert-above affordance — both mirror
+  // the page builder's .bk-label / .bk-insert chrome.
+  const label = previewing ? null : (
+    <div className="ff-label">
+      {grip}
+      {typeName}
+    </div>
+  );
+  const insert = previewing ? null : (
+    <button
+      type="button"
+      className="ff-insert"
+      title={t("formEditorInsertHere")}
+      aria-label={t("formEditorInsertHere")}
+      onClick={(e) => (e.stopPropagation(), onInsertBefore())}
+    >
+      <Plus style={{ width: 14, height: 14 }} />
+    </button>
+  );
 
   const tools = previewing ? null : (
     <div className="ff-tools">
@@ -567,7 +657,8 @@ function FieldBlock({
       }}
       onClick={onSelect}
     >
-      {grip}
+      {label}
+      {insert}
       {tools}
       {inner}
     </div>
