@@ -210,6 +210,7 @@ export function SafariShell({
           logoLightUrl={nav.logoLightUrl}
           logoMaxHeight={nav.logoMaxHeight}
           links={navLinks}
+          layout={nav.layout}
           bookHref={reserve}
           bookLabel={nav.bookLabel}
           showBook={nav.showBook}

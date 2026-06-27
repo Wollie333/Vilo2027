@@ -474,6 +474,47 @@
   border-color: var(--accent-deep);
 }
 
+/* ── Header layout variants (the nav manager's layout picker) ───────────
+   DOM order is constant (brand · menu · book); each layout rearranges via
+   order/grid/wrap so the live header reflects the host's chosen layout.
+   `classic` (default) keeps the base flex: logo left · menu · book right. */
+
+/* split — menu left · logo centred · book right. The brand is absolutely
+   centred so it stays dead-centre regardless of how wide the menu is (a wide
+   menu in a grid track would otherwise push it off-centre). */
+.vilo-safari .lay-split .nav-in {
+  position: relative;
+  justify-content: space-between;
+}
+.vilo-safari .lay-split .brand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* centered — logo centred on top, menu + book on a centred row beneath it. */
+.vilo-safari .lay-centered .nav-in {
+  flex-wrap: wrap;
+  justify-content: center;
+  height: auto;
+  min-height: 90px;
+  padding: 16px 0;
+  gap: 8px 30px;
+}
+.vilo-safari .lay-centered .brand {
+  flex-basis: 100%;
+  justify-content: center;
+}
+
+/* minimal — logo left · book + always-on hamburger right (menu in the drawer). */
+.vilo-safari .lay-minimal .nav-links {
+  display: none;
+}
+.vilo-safari .lay-minimal .nav-burger {
+  display: block;
+}
+
 /* When the shared preview bar is present, the fixed header drops below it. */
 .vilo-safari.pre .nav {
   top: 44px;

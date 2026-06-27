@@ -35,9 +35,15 @@ export type SafariFooterModel = {
 };
 
 /** Everything the Safari header + footer need, resolved from the host's config. */
+/** Header layout (the nav manager's layout picker) — drives where the logo, menu
+ *  and book button sit. Mirrors the generic SiteChrome header layouts. */
+export type SafariHeaderLayout = "classic" | "centered" | "split" | "minimal";
+
 export type SafariNavData = {
   /** Top-level links (with one level of dropdown children), hrefs preview-aware. */
   links: SafariNavLink[];
+  /** Chosen header layout (host's `navigation.header.layout`, default classic). */
+  layout: SafariHeaderLayout;
   menuStyle?: SiteMenuStyle | null;
   bookLabel: string;
   showBook: boolean;
@@ -182,6 +188,7 @@ export function buildSafariNav(ctx: {
 
   return {
     links,
+    layout: (header.layout as SafariHeaderLayout) || "classic",
     menuStyle: ctx.navigation.menuStyle,
     bookLabel: header.ctaLabel?.trim() || "Reserve",
     showBook: header.showBookCta !== false,

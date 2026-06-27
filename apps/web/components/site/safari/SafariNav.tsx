@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import type { SafariHeaderLayout } from "@/lib/site/safariNav";
 import type { SiteMenuStyle } from "@/lib/site/types";
 
 /** A nav link as rendered in the Safari header (supports one level of dropdown). */
@@ -65,6 +66,7 @@ export function SafariNav({
   logoLightUrl,
   logoMaxHeight,
   links,
+  layout = "classic",
   bookHref,
   bookLabel = "Reserve",
   showBook = true,
@@ -75,6 +77,8 @@ export function SafariNav({
   brandName: string;
   monogram: string;
   tagline?: string | null;
+  /** Header layout — places logo/menu/book (the nav manager's layout picker). */
+  layout?: SafariHeaderLayout;
   /** Real brand logo: a light variant for the transparent-over-hero state and a
    *  standard one for the solid bar + drawer; falls back to the monogram. */
   showLogo?: boolean;
@@ -126,7 +130,7 @@ export function SafariNav({
   return (
     <>
       {styleCss ? <style>{styleCss}</style> : null}
-      <header className={cls}>
+      <header className={`${cls} lay-${layout}`}>
         <div className="wrap nav-in">
           <a href={homeHref} className="brand">
             {useLogo ? (
