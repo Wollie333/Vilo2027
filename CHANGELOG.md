@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-27 (PM) — Nav canvas resizes per screen size for GENERIC themes too
+
+Completes the previous entry's follow-up: the **generic (non-Safari) chrome**
+collapsed only via Tailwind viewport utilities (`hidden md:block` / `md:hidden`,
+`md:flex`, …), which read the REAL viewport — so the nav-builder canvas always
+showed the desktop menu on the Tablet/Mobile tabs. Now the canvas resizes + the
+chrome collapses at the SIMULATED width, exactly as Safari does. Approach mirrors
+Safari but keeps the live site untouched:
+- `SiteChrome.tsx` — kept every Tailwind utility (still drives the live site) and
+  added paired `vilo-cq-*` markers: `vilo-cq-d` / `vilo-cq-m` on the header +
+  footer desktop/mobile band split, `vilo-cq-full-{md,lg}` / `vilo-cq-burg-{md,lg}`
+  on the inline menu + ☰, `vilo-cq-book-{md,lg}` on the Book button. Suffix from
+  the new `cqBreak(collapse)` helper (`tablet`→`lg`, else `md`).
+- `builder.css` — re-scoped the frame-resize from `.nav-scroll-preview` to
+  `.nav-canvas` (now applies to BOTH chromes) and added `@container` rules under
+  `.vilo-builder .nav-canvas` that re-toggle the `vilo-cq-*` markers at the
+  simulated device width (`!important` beats Tailwind's @media, which still fires
+  at the real viewport inside the canvas). Builder + nav-canvas scoped → inert on
+  the live site and on the page builder.
+- `MenuStudio.tsx` + `NavSectionEditor.tsx` — added the `nav-canvas` class to the
+  device frame for ALL themes (Safari keeps `nav-scroll-preview` for its scroll
+  viewport).
+
+Verified live (1920 viewport, test site flipped to `classic` then reverted):
+Desktop → 1080px inline menu; Tablet → 744px ☰ (mobile band); Mobile → 380px ☰.
+Safari re-verified unregressed (frame still 1080/744/380, inline links only at
+desktop). tsc + lint green.
+
 ## 2026-06-27 (PM) — Nav canvas now resizes to the real screen size (Safari)
 
 **The menu builder canvas was never actually changing width when you picked

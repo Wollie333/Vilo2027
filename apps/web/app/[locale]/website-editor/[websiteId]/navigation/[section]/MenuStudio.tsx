@@ -951,6 +951,7 @@ export function MenuStudio({
               : device === "phone"
                 ? "device mobile"
                 : "device",
+            "nav-canvas",
             isSafari ? "nav-scroll-preview" : "",
           ]
             .filter(Boolean)

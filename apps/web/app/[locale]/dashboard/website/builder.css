@@ -664,25 +664,81 @@
 .vilo-builder .device.mobile {
   max-width: 380px;
 }
-/* Nav/menu builder canvas — Safari (`.nav-scroll-preview`): the device is a flex
-   item whose default `min-width: auto` floors it at the chrome's intrinsic width
-   (the full inline nav ≈ 768px), so `max-width` never shrank the frame and the
-   Tablet/Mobile tabs did nothing. `min-width: 0` lets it shrink, and an explicit
+/* Nav/menu builder canvas (`.nav-canvas`): the device is a flex item whose
+   default `min-width: auto` floors it at the chrome's intrinsic width (the full
+   inline nav ≈ 768px), so `max-width` never shrank the frame and the Tablet/
+   Mobile tabs did nothing. `min-width: 0` lets it shrink, and an explicit
    per-device `width` (with `max-width: 100%` so a narrow editor still fits) drives
    the real simulated width — so the @container collapse + per-device styles
-   actually preview the real screen size. Scoped to the Safari canvas, whose
-   chrome collapses via @container; the generic chrome still collapses via @media
-   (viewport), so resizing its frame would only squish it — left as a follow-up. */
-.vilo-builder .canvas-wrap.thin .nav-scroll-preview.device {
+   actually preview the real screen size. Applies to BOTH chromes: Safari
+   collapses via @container in safari.css; the generic chrome collapses via the
+   `vilo-cq-*` @container rules below. */
+.vilo-builder .canvas-wrap.thin .nav-canvas.device {
   min-width: 0;
 }
-.vilo-builder .canvas-wrap.thin .nav-scroll-preview.device.tablet {
+.vilo-builder .canvas-wrap.thin .nav-canvas.device.tablet {
   width: 744px;
   max-width: 100%;
 }
-.vilo-builder .canvas-wrap.thin .nav-scroll-preview.device.mobile {
+.vilo-builder .canvas-wrap.thin .nav-canvas.device.mobile {
   width: 380px;
   max-width: 100%;
+}
+
+/* Generic (non-Safari) nav canvas: the chrome's desktop/mobile band split + menu
+   collapse + Book-button visibility are Tailwind viewport utilities (@media), so
+   in the canvas they read the REAL (large) viewport and always show the desktop
+   menu. The chrome carries paired `vilo-cq-*` markers; here we re-toggle them via
+   @container against the SIMULATED device width (the `.nav-canvas.device` frame is
+   a size container), so the canvas collapses to the ☰ at the right screen size —
+   exactly as @media does on the live site. Scoped to `.vilo-builder .nav-canvas`
+   so it's inert on the live site (the Tailwind @media utilities still drive it
+   there) and on the page builder. `!important` beats the Tailwind utilities,
+   which still fire at the real viewport inside the canvas.
+   Defaults below = narrow (container < 768): mobile band, ☰, no desktop book. */
+.vilo-builder .nav-canvas .vilo-cq-d {
+  display: none !important;
+}
+.vilo-builder .nav-canvas .vilo-cq-m {
+  display: block !important;
+}
+.vilo-builder .nav-canvas .vilo-cq-full-md,
+.vilo-builder .nav-canvas .vilo-cq-full-lg,
+.vilo-builder .nav-canvas .vilo-cq-book-md,
+.vilo-builder .nav-canvas .vilo-cq-book-lg {
+  display: none !important;
+}
+.vilo-builder .nav-canvas .vilo-cq-burg-md,
+.vilo-builder .nav-canvas .vilo-cq-burg-lg {
+  display: block !important;
+}
+@container (min-width: 768px) {
+  .vilo-builder .nav-canvas .vilo-cq-d {
+    display: block !important;
+  }
+  .vilo-builder .nav-canvas .vilo-cq-m {
+    display: none !important;
+  }
+  .vilo-builder .nav-canvas .vilo-cq-full-md {
+    display: flex !important;
+  }
+  .vilo-builder .nav-canvas .vilo-cq-book-md {
+    display: inline-flex !important;
+  }
+  .vilo-builder .nav-canvas .vilo-cq-burg-md {
+    display: none !important;
+  }
+}
+@container (min-width: 1024px) {
+  .vilo-builder .nav-canvas .vilo-cq-full-lg {
+    display: flex !important;
+  }
+  .vilo-builder .nav-canvas .vilo-cq-book-lg {
+    display: inline-flex !important;
+  }
+  .vilo-builder .nav-canvas .vilo-cq-burg-lg {
+    display: none !important;
+  }
 }
 .vilo-builder .pg {
   font-size: 15px;

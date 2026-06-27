@@ -641,11 +641,14 @@ function HeaderMenu({
   }
   const fullShow = collapse === "tablet" ? "hidden lg:flex" : "hidden md:flex";
   const burgerShow = collapse === "tablet" ? "lg:hidden" : "md:hidden";
+  // Builder-canvas container-query markers (paired with the Tailwind viewport
+  // utilities above, which still drive the live site). See `cqBreak`.
+  const bp = cqBreak(collapse);
   return (
     <>
       <MenuNav
         menu={menu}
-        className={`${fullShow} ${navClassName}`}
+        className={`${fullShow} vilo-cq-full-${bp} ${navClassName}`}
         preview={preview}
         styled
       />
@@ -655,10 +658,21 @@ function HeaderMenu({
         bookLabel={bookLabel}
         dark={dark}
         burger={burger}
-        className={burgerShow}
+        className={`${burgerShow} vilo-cq-burg-${bp}`}
       />
     </>
   );
+}
+
+/**
+ * The collapse breakpoint as a container-query suffix. The live site collapses
+ * the inline menu via Tailwind viewport utilities (`md`/`lg`); the nav-builder
+ * canvas re-toggles the paired `vilo-cq-*-{md,lg}` markers via @container at the
+ * SIMULATED device width (see builder.css "generic nav canvas"). Inert on the
+ * live site — the marker rules are scoped to `.vilo-builder .nav-canvas`.
+ */
+function cqBreak(collapse: MenuCollapse): "md" | "lg" {
+  return collapse === "tablet" ? "lg" : "md";
 }
 
 /**
@@ -668,8 +682,8 @@ function HeaderMenu({
  */
 function bookVisibilityClass(collapse: MenuCollapse): string {
   if (collapse === "never") return "inline-flex";
-  if (collapse === "tablet") return "hidden lg:inline-flex";
-  return "hidden md:inline-flex";
+  if (collapse === "tablet") return "hidden lg:inline-flex vilo-cq-book-lg";
+  return "hidden md:inline-flex vilo-cq-book-md";
 }
 
 function ContactLinks({ brand }: { brand: SiteBrand }) {
@@ -1256,7 +1270,7 @@ export function SiteChrome({
           textColor={mergedMenuStyle?.color}
           topOffset={showBar ? 44 : 0}
         >
-          <div className="hidden md:block">
+          <div className="vilo-cq-d hidden md:block">
             <HeaderInner
               variant={navigation.header?.layout ?? header.desktop}
               brand={brand}
@@ -1277,7 +1291,7 @@ export function SiteChrome({
               burger={navigation.header?.burger}
             />
           </div>
-          <div className="md:hidden">
+          <div className="vilo-cq-m md:hidden">
             <HeaderInner
               variant={header.mobile}
               brand={brand}
@@ -1325,7 +1339,7 @@ export function SiteChrome({
             />
           ) : (
             <>
-              <div className="hidden md:block">
+              <div className="vilo-cq-d hidden md:block">
                 <FooterInner
                   variant={footer.desktop}
                   brand={brand}
@@ -1333,7 +1347,7 @@ export function SiteChrome({
                   preview={preview}
                 />
               </div>
-              <div className="md:hidden">
+              <div className="vilo-cq-m md:hidden">
                 <FooterInner
                   variant={footer.mobile}
                   brand={brand}

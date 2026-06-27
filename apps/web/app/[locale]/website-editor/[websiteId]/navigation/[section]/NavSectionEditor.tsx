@@ -472,7 +472,11 @@ export function NavSectionEditor({
                 interaction — the transparent→solid fade + scroll background. */}
             <div className="canvas-wrap thin">
               <div
-                className={[deviceClass, isSafari ? "nav-scroll-preview" : ""]
+                className={[
+                  deviceClass,
+                  "nav-canvas",
+                  isSafari ? "nav-scroll-preview" : "",
+                ]
                   .filter(Boolean)
                   .join(" ")}
               >
