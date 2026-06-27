@@ -19,6 +19,17 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Menu builder: per-link styling for generic themes (slice 2)
+
+**Per-link styling now works on every theme**, not just Safari — completes the
+responsive-menu epic. `SiteChrome` gained a `menuItemStyleCss` (scoped to
+`.vilo-hmenu a.mi-<id>`) mirroring the Safari generator (desktop + tablet
+`@media`; builder `previewDevice` renders the active device's merged layer flat),
+the `MenuLink` gets the `mi-<id>` class, and `SiteChromeCanvas`/the editors thread
+`previewDevice`. Verified by flipping the test site to `classic`: a per-link
+colour applied to the generic header menu live; reverted to Safari after. 131
+vitest + tsc + lint green.
+
 ## 2026-06-27 (PM) — Menu builder: per-page appearance + style overrides (slice 4)
 
 **The menu's appearance can now differ per page** — transparent-over-hero vs

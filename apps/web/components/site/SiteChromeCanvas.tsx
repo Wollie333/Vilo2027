@@ -39,6 +39,7 @@ export function SiteChromeCanvas({
   websiteId,
   sections,
   data,
+  previewDevice,
 }: {
   theme: SiteThemeConfig;
   brand: SiteBrand;
@@ -48,6 +49,8 @@ export function SiteChromeCanvas({
   navigation: SiteNavigation;
   /** The page behind the menu — drops links hidden on it (per-page rules). */
   currentPageKey?: string;
+  /** Builder: active device, so per-link styles preview for that screen size. */
+  previewDevice?: "desktop" | "tablet" | "phone";
   conversion?: SiteConversion;
   layout?: "full" | "boxed";
   darkChrome?: boolean;
@@ -63,6 +66,7 @@ export function SiteChromeCanvas({
         nav={nav}
         navigation={navigation}
         currentPageKey={currentPageKey}
+        previewDevice={previewDevice}
         conversion={conversion}
         layout={layout}
         darkChrome={darkChrome}

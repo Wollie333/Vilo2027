@@ -24,6 +24,7 @@ import {
   type SiteHeaderLayout,
 } from "@/lib/site/themes";
 import type {
+  MenuItemStyleLayer,
   SiteAnalyticsSettings,
   SiteBrand,
   SiteConversion,
@@ -417,7 +418,7 @@ function MenuLink({
       rel={item.newTab ? "noopener noreferrer" : undefined}
       data-nav-page={isExternal ? undefined : hrefToPageKey(item.href)}
       style={unstyled ? undefined : { color: "var(--site-mute)" }}
-      className={`transition-colors hover:opacity-80 ${className}`}
+      className={`transition-colors hover:opacity-80 ${className}${item.id ? ` mi-${item.id}` : ""}`}
     >
       {item.label}
     </a>
@@ -536,6 +537,69 @@ function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
     `text-transform:${transform};letter-spacing:${spacing}}` +
     `.vilo-hmenu a:hover,.vilo-hmenu button:hover{color:${hover};opacity:1}`
   );
+}
+
+/** One per-link style layer → CSS declarations (no selector). */
+function menuItemDecls(s: MenuItemStyleLayer): string {
+  const out: string[] = [];
+  if (s.color?.trim()) out.push(`color:${s.color.trim()}`);
+  if (typeof s.fontSize === "number") out.push(`font-size:${s.fontSize}px`);
+  if (s.weight) out.push(`font-weight:${MENU_WEIGHT[s.weight] ?? 500}`);
+  if (s.uppercase !== undefined)
+    out.push(`text-transform:${s.uppercase ? "uppercase" : "none"}`);
+  if (s.bg?.trim()) out.push(`background:${s.bg.trim()};display:inline-block`);
+  if (s.pill) out.push("border-radius:9999px;padding:.35em 1em");
+  return out.join(";");
+}
+
+/**
+ * Per-LINK scoped CSS for the generic header menu (`.vilo-hmenu a.mi-<id>`).
+ * Each styled link gets the desktop layer (+ a tablet @media on the live site);
+ * in the builder `previewDevice` renders the active device's merged layer flat so
+ * the canvas reflects the chosen screen size at once. Mirrors the Safari version.
+ */
+function menuItemStyleCss(
+  menu: SiteMenuItem[],
+  previewDevice?: "desktop" | "tablet" | "phone",
+): string {
+  const rules: string[] = [];
+  const walk = (items: SiteMenuItem[]) => {
+    for (const it of items) {
+      const st = it.style;
+      if (it.id && st) {
+        const sel = `.vilo-hmenu a.mi-${it.id},.vilo-hmenu button.mi-${it.id}`;
+        const desktop: MenuItemStyleLayer = {
+          color: st.color,
+          hoverColor: st.hoverColor,
+          fontSize: st.fontSize,
+          weight: st.weight,
+          uppercase: st.uppercase,
+          bg: st.bg,
+          pill: st.pill,
+        };
+        const layer: MenuItemStyleLayer =
+          previewDevice === "tablet"
+            ? { ...desktop, ...(st.tablet ?? {}) }
+            : previewDevice === "phone"
+              ? { ...desktop, ...(st.mobile ?? {}) }
+              : desktop;
+        const decls = menuItemDecls(layer);
+        if (decls) rules.push(`${sel}{${decls}}`);
+        if (layer.hoverColor?.trim())
+          rules.push(
+            `.vilo-hmenu a.mi-${it.id}:hover{color:${layer.hoverColor.trim()}}`,
+          );
+        if (!previewDevice && st.tablet) {
+          const tDecls = menuItemDecls(st.tablet);
+          if (tDecls)
+            rules.push(`@media (max-width:1024px){${sel}{${tDecls}}}`);
+        }
+      }
+      if (it.children?.length) walk(it.children);
+    }
+  };
+  walk(menu);
+  return rules.join("");
 }
 
 /**
@@ -968,6 +1032,7 @@ export function SiteChrome({
   preview,
   navigation = {},
   currentPageKey,
+  previewDevice,
   conversion = {},
   analytics = {},
   popupForm = null,
@@ -994,6 +1059,8 @@ export function SiteChrome({
   navigation?: SiteNavigation;
   /** Current page key — drops links the host hid on this page (per-page rules). */
   currentPageKey?: string;
+  /** Builder-only: active device, so per-link styles preview for that screen. */
+  previewDevice?: "desktop" | "tablet" | "phone";
   /** Conversion chrome (WhatsApp button + announcement bar + pop-up). */
   conversion?: SiteConversion;
   /** Host third-party analytics (GA4 + Meta Pixel + consent gate). */
@@ -1104,7 +1171,10 @@ export function SiteChrome({
         target="header"
         label="Header"
       >
-        <style>{menuStyleCss(mergedMenuStyle)}</style>
+        <style>
+          {menuStyleCss(mergedMenuStyle) +
+            menuItemStyleCss(menu, previewDevice)}
+        </style>
         {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
         <StickyHeader

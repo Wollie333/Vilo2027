@@ -495,6 +495,7 @@ export function NavSectionEditor({
                     nav={navItems}
                     navigation={nav as unknown as SiteNavigation}
                     currentPageKey={backdropKey}
+                    previewDevice={device}
                     conversion={conversion ?? undefined}
                     layout={chromeLayout}
                     darkChrome={darkChrome}
