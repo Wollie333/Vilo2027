@@ -183,7 +183,7 @@ export function SafariNav({
   const useLogo = showLogo && Boolean(logoLightUrl || logoUrl);
   const headerLogo = solid ? logoUrl || logoLightUrl : logoLightUrl || logoUrl;
   const solidLogo = logoUrl || logoLightUrl;
-  const logoH = logoMaxHeight || 38;
+  const logoH = logoMaxHeight || 40;
   const book = showBook && bookHref;
   const bookStyle = bookColor?.trim()
     ? { background: bookColor, borderColor: bookColor, color: "#fff" }
@@ -208,7 +208,20 @@ export function SafariNav({
         style={{ height: logoH }}
       />
     ) : null;
-    const markEl = imgEl ?? <span className="brand-mark">{monogram}</span>;
+    // The monogram circle scales with the Logo height setting too (the design's
+    // 42px is the ~40 default); the serif initial keeps the same ~0.52 ratio.
+    const markEl = imgEl ?? (
+      <span
+        className="brand-mark"
+        style={{
+          width: logoH,
+          height: logoH,
+          fontSize: Math.round(logoH * 0.52),
+        }}
+      >
+        {monogram}
+      </span>
+    );
     // "Show logo" off → drop the visual mark/image, keep the brand name as a
     // clean wordmark (the home link stays visible + clickable).
     if (!showLogo) return nameEl;
