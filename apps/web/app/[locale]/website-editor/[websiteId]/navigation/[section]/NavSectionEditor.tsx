@@ -410,6 +410,7 @@ export function NavSectionEditor({
                     data={homeData}
                     contactEmail={contactEmail}
                     contactPhone={contactPhone}
+                    forceMobileOpen={device === "phone"}
                   />
                 ) : (
                   <div className="vilo-nav">

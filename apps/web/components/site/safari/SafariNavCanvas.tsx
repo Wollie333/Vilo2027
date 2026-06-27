@@ -37,6 +37,7 @@ export function SafariNavCanvas({
   data,
   contactEmail,
   contactPhone,
+  forceMobileOpen = false,
 }: {
   brandName: string;
   /** Live nav built from the editor's in-progress navigation (updates instantly). */
@@ -47,6 +48,8 @@ export function SafariNavCanvas({
   data?: SiteData;
   contactEmail?: string | null;
   contactPhone?: string | null;
+  /** Builder phone preview: open the mobile ☰ drawer so it can be styled. */
+  forceMobileOpen?: boolean;
 }) {
   const navLinks = nav.links;
   const roomsHref =
@@ -81,7 +84,12 @@ export function SafariNavCanvas({
   }
 
   return (
-    <SafariShell brandName={brandName} nav={nav} bookHref={bookHref}>
+    <SafariShell
+      brandName={brandName}
+      nav={nav}
+      bookHref={bookHref}
+      forceMenuOpen={forceMobileOpen}
+    >
       {body}
     </SafariShell>
   );

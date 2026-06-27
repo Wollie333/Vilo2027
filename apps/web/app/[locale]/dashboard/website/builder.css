@@ -764,6 +764,18 @@
   position: relative;
   margin-bottom: 0;
 }
+/* Mobile ☰ drawer preview (phone device): the live drawer is position:fixed so
+   it would escape the bounded canvas and cover the whole builder. Pin it to the
+   scroll viewport instead so it overlays ONLY the device frame — sticky keeps it
+   in view as the host scrolls + styles it. Builder-scoped; the live site keeps
+   position:fixed. */
+.vilo-builder .nav-scroll-preview .vilo-safari .mnav {
+  position: sticky;
+  top: 0;
+  height: 600px;
+  margin-bottom: -600px;
+  z-index: 120;
+}
 .vilo-builder .bk-tools {
   position: absolute;
   top: 8px;

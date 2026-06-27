@@ -592,6 +592,7 @@ export function MenuStudio({
               data={homeData}
               contactEmail={contactEmail}
               contactPhone={contactPhone}
+              forceMobileOpen={device === "phone"}
             />
           ) : (
             <div className="vilo-nav">

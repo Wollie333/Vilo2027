@@ -111,6 +111,7 @@ export function SafariShell({
   analytics,
   interactive = false,
   editable,
+  forceMenuOpen = false,
   children,
 }: {
   brandName: string;
@@ -129,6 +130,8 @@ export function SafariShell({
    *  When set, the nav renders solid + in-flow (builder CSS) so it's visible and
    *  selectable; undefined on the live site → no change. */
   editable?: ChromeEditable;
+  /** Builder-only: force the mobile ☰ drawer open (phone-device preview). */
+  forceMenuOpen?: boolean;
   children: ReactNode;
 }) {
   const navLinks = nav.links;
@@ -231,6 +234,7 @@ export function SafariShell({
           scrolledBgColor={nav.scrolledBgColor}
           menuCollapse={nav.menuCollapse}
           logoStyle={nav.logoStyle}
+          forceMenuOpen={forceMenuOpen}
         />
       </ChromeEditWrap>
 

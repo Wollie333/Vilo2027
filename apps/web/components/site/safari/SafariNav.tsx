@@ -153,6 +153,7 @@ export function SafariNav({
   scrolledBgColor,
   menuCollapse = "mobile",
   logoStyle,
+  forceMenuOpen = false,
 }: {
   brandName: string;
   monogram: string;
@@ -185,6 +186,9 @@ export function SafariNav({
   menuCollapse?: "mobile" | "tablet" | "never";
   /** Logo lockup style (Elements): wordmark/icon/mark; unset = design default. */
   logoStyle?: "wordmark" | "icon" | "mark" | null;
+  /** Builder-only: force the ☰ drawer OPEN so the host can preview + style the
+   *  mobile menu in the nav editor's phone device. Never set on the live site. */
+  forceMenuOpen?: boolean;
 }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -208,6 +212,12 @@ export function SafariNav({
   const [menuOpen, setMenuOpen] = useState(false);
   // Which mobile-drawer parents are expanded (accordion).
   const [openMobile, setOpenMobile] = useState<Record<string, boolean>>({});
+
+  // Builder phone preview: open the drawer so the host can see + style the mobile
+  // menu. Runs when forceMenuOpen flips on (e.g. switching to the phone device).
+  useEffect(() => {
+    if (forceMenuOpen) setMenuOpen(true);
+  }, [forceMenuOpen]);
 
   const cls = [
     forceSolid
