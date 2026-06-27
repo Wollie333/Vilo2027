@@ -1,6 +1,23 @@
 "use client";
 
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   ArrowLeft,
   BedDouble,
   Calendar,
@@ -13,13 +30,12 @@ import {
   ClipboardList,
   Copy,
   Eye,
+  GripVertical,
   Hash,
   Heading,
   Loader2,
   Mail,
   Minus,
-  MoveDown,
-  MoveUp,
   Phone,
   Pilcrow,
   Plus,
@@ -33,7 +49,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import {
+  useState,
+  useTransition,
+  type CSSProperties,
+  type ReactNode,
+  type Ref,
+} from "react";
 import { toast } from "sonner";
 
 import { Link } from "@/i18n/navigation";
@@ -145,17 +167,24 @@ export function FormEditor({
     setSelectedId(f.id);
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   function patchField(id: string, patch: Partial<FormField>) {
     setFields((fs) => fs.map((f) => (f.id === id ? { ...f, ...patch } : f)));
   }
-  function move(id: string, dir: -1 | 1) {
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
     setFields((fs) => {
-      const i = fs.findIndex((f) => f.id === id);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= fs.length) return fs;
-      const next = [...fs];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
+      const oldIndex = fs.findIndex((f) => f.id === active.id);
+      const newIndex = fs.findIndex((f) => f.id === over.id);
+      if (oldIndex < 0 || newIndex < 0) return fs;
+      return arrayMove(fs, oldIndex, newIndex);
     });
   }
   function dup(id: string) {
@@ -323,20 +352,30 @@ export function FormEditor({
                   <p style={{ marginTop: 8 }}>{t("formEditorEmpty")}</p>
                 </div>
               ) : (
-                fields.map((f) => (
-                  <FieldBlock
-                    key={f.id}
-                    field={f}
-                    roomNames={roomNames}
-                    selected={selectedId === f.id}
-                    previewing={previewing}
-                    onSelect={() => setSelectedId(f.id)}
-                    onUp={() => move(f.id, -1)}
-                    onDown={() => move(f.id, 1)}
-                    onDup={() => dup(f.id)}
-                    onDel={() => del(f.id)}
-                  />
-                ))
+                <DndContext
+                  id="form-fields"
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={onDragEnd}
+                >
+                  <SortableContext
+                    items={fields.map((f) => f.id)}
+                    strategy={rectSortingStrategy}
+                  >
+                    {fields.map((f) => (
+                      <SortableField
+                        key={f.id}
+                        field={f}
+                        roomNames={roomNames}
+                        selected={selectedId === f.id}
+                        previewing={previewing}
+                        onSelect={() => setSelectedId(f.id)}
+                        onDup={() => dup(f.id)}
+                        onDel={() => del(f.id)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               )}
             </div>
             <div className="fd-foot">
@@ -391,6 +430,58 @@ export function FormEditor({
   );
 }
 
+// ── sortable wrapper ────────────────────────────────────────
+// Threads dnd-kit's node ref + transform onto the `.ff` block itself (NOT a
+// wrapping div) so the half-width flex layout in `.fd-body` is preserved. The
+// grip carries the drag listeners; the rest of the block stays clickable to
+// select. Hidden in preview, where no editing tools show.
+function SortableField(props: {
+  field: FormField;
+  roomNames: string[];
+  selected: boolean;
+  previewing: boolean;
+  onSelect: () => void;
+  onDup: () => void;
+  onDel: () => void;
+}) {
+  const t = useTranslations("website");
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.field.id });
+  const dragStyle: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 20 : undefined,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+  const grip = props.previewing ? null : (
+    <button
+      type="button"
+      className="ff-grip"
+      title={t("dragToReorder")}
+      aria-label={t("dragToReorder")}
+      onClick={(e) => e.stopPropagation()}
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical style={{ width: 16, height: 16 }} />
+    </button>
+  );
+  return (
+    <FieldBlock
+      {...props}
+      dragRef={setNodeRef}
+      dragStyle={dragStyle}
+      grip={grip}
+    />
+  );
+}
+
 // ── canvas field block ──────────────────────────────────────
 function FieldBlock({
   field,
@@ -398,40 +489,29 @@ function FieldBlock({
   selected,
   previewing,
   onSelect,
-  onUp,
-  onDown,
   onDup,
   onDel,
+  dragRef,
+  dragStyle,
+  grip,
 }: {
   field: FormField;
   roomNames: string[];
   selected: boolean;
   previewing: boolean;
   onSelect: () => void;
-  onUp: () => void;
-  onDown: () => void;
   onDup: () => void;
   onDel: () => void;
+  dragRef?: Ref<HTMLDivElement>;
+  dragStyle?: CSSProperties;
+  grip?: ReactNode;
 }) {
   const t = useTranslations("website");
   const cls = `ff ${field.width === "half" ? "half" : ""} ${selected ? "sel" : ""} ${field.required ? "req" : ""}`;
+  const isConsent = field.type === "consent" || field.type === "checkbox";
 
   const tools = previewing ? null : (
     <div className="ff-tools">
-      <button
-        type="button"
-        title={t("moveUp")}
-        onClick={(e) => (e.stopPropagation(), onUp())}
-      >
-        <MoveUp style={{ width: 15, height: 15 }} />
-      </button>
-      <button
-        type="button"
-        title={t("moveDown")}
-        onClick={(e) => (e.stopPropagation(), onDown())}
-      >
-        <MoveDown style={{ width: 15, height: 15 }} />
-      </button>
       <button
         type="button"
         title={t("duplicateSection")}
@@ -450,43 +530,46 @@ function FieldBlock({
     </div>
   );
 
+  let inner: ReactNode;
   if (field.type === "heading") {
-    return (
-      <div className={cls} onClick={onSelect}>
-        {tools}
-        <div className="fheading">
-          {field.label || t("formEditorHeadingDefault")}
-        </div>
+    inner = (
+      <div className="fheading">
+        {field.label || t("formEditorHeadingDefault")}
       </div>
     );
-  }
-  if (field.type === "paragraph") {
-    return (
-      <div className={cls} onClick={onSelect}>
-        {tools}
-        <div className="ftext">{field.label || t("formEditorTextDefault")}</div>
-      </div>
+  } else if (field.type === "paragraph") {
+    inner = (
+      <div className="ftext">{field.label || t("formEditorTextDefault")}</div>
+    );
+  } else if (field.type === "divider") {
+    inner = <div className="fdiv" />;
+  } else {
+    inner = (
+      <>
+        {isConsent ? null : (
+          <label className="flabel">
+            {field.label || t(`fieldType_${field.type}`)}
+          </label>
+        )}
+        <FieldPreview field={field} roomNames={roomNames} />
+        {field.help ? <div className="fhelp">{field.help}</div> : null}
+      </>
     );
   }
-  if (field.type === "divider") {
-    return (
-      <div className={cls} style={{ padding: "18px 14px" }} onClick={onSelect}>
-        {tools}
-        <div className="fdiv" />
-      </div>
-    );
-  }
-  const isConsent = field.type === "consent" || field.type === "checkbox";
+
   return (
-    <div className={cls} onClick={onSelect}>
+    <div
+      ref={dragRef}
+      className={cls}
+      style={{
+        ...dragStyle,
+        ...(field.type === "divider" ? { padding: "18px 14px" } : null),
+      }}
+      onClick={onSelect}
+    >
+      {grip}
       {tools}
-      {isConsent ? null : (
-        <label className="flabel">
-          {field.label || t(`fieldType_${field.type}`)}
-        </label>
-      )}
-      <FieldPreview field={field} roomNames={roomNames} />
-      {field.help ? <div className="fhelp">{field.help}</div> : null}
+      {inner}
     </div>
   );
 }
@@ -917,6 +1000,23 @@ function FormInspector({
               onClick={() => onPatch({ notifyInbox: !settings.notifyInbox })}
             />
           </div>
+        </div>
+      </div>
+      <div className="insp-sec">
+        <div className="isec-t">{t("formEditorSpam")}</div>
+        <div className="fld">
+          <div className="fld-row">
+            <label style={{ margin: 0 }}>{t("formEditorSpamProtect")}</label>
+            <Sw
+              on={settings.spamProtection !== false}
+              onClick={() =>
+                onPatch({ spamProtection: settings.spamProtection === false })
+              }
+            />
+          </div>
+          <p className="fhelp" style={{ marginTop: 4 }}>
+            {t("formEditorSpamProtectHint")}
+          </p>
         </div>
       </div>
     </>

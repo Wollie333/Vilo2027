@@ -896,6 +896,14 @@ export const deleteWebsiteFormSchema = z.object({
 });
 export type DeleteWebsiteFormInput = z.infer<typeof deleteWebsiteFormSchema>;
 
+export const duplicateWebsiteFormSchema = z.object({
+  websiteId: z.string().uuid(),
+  formId: z.string().uuid(),
+});
+export type DuplicateWebsiteFormInput = z.infer<
+  typeof duplicateWebsiteFormSchema
+>;
+
 export const SUBMISSION_STATUSES = ["new", "read", "archived", "spam"] as const;
 
 export const setSubmissionStatusSchema = z.object({

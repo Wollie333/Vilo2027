@@ -77,6 +77,10 @@ export function FormSection({
   const usable = Boolean(form) && (form?.fields.length ?? 0) > 0;
   const live = interactive && Boolean(websiteId) && usable;
   const variant = props.variant ?? "stacked";
+  // Per-form spam protection (defaults on). When off, skip the Turnstile
+  // challenge for this form — the server skips its verification to match.
+  const spamOn = form?.settings.spamProtection !== false;
+  const needsTurnstile = spamOn && turnstileEnabled();
 
   function setValue(id: string, v: string) {
     setValues((prev) => ({ ...prev, [id]: v }));
@@ -451,7 +455,7 @@ export function FormSection({
         })}
       </div>
 
-      {live ? (
+      {live && spamOn ? (
         <TurnstileWidget onVerify={setTsToken} resetSignal={tsNonce} />
       ) : null}
 
@@ -461,9 +465,7 @@ export function FormSection({
 
       <button
         type="submit"
-        disabled={
-          !live || status === "sending" || (turnstileEnabled() && !tsToken)
-        }
+        disabled={!live || status === "sending" || (needsTurnstile && !tsToken)}
         style={{
           background: "var(--site-btn-primary-bg)",
           color: "var(--site-btn-primary-color)",

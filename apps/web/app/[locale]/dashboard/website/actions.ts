@@ -68,6 +68,7 @@ import {
   createWebsiteFormSchema,
   saveWebsiteFormSchema,
   deleteWebsiteFormSchema,
+  duplicateWebsiteFormSchema,
   setSubmissionStatusSchema,
   seoSchema,
   websiteSettingsSchema,
@@ -94,6 +95,7 @@ import {
   type CreateWebsiteFormInput,
   type SaveWebsiteFormInput,
   type DeleteWebsiteFormInput,
+  type DuplicateWebsiteFormInput,
   type SetSubmissionStatusInput,
   type SeoInput,
   type WebsiteSettingsInput,
@@ -2632,12 +2634,13 @@ export async function saveWebsiteFormAction(
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
 
-  // Normalise: only `select` fields keep options; drop empties elsewhere so the
-  // public render never sees a stray choices list.
+  // Normalise: the host-edited choice fields (select/radio/checkboxes) keep their
+  // options minus empties; `rooms` is auto-filled and every other type carries no
+  // choices, so drop the list there.
   const cleanFields = fields.map((f) => ({
     ...f,
     options:
-      f.type === "select"
+      f.type === "select" || f.type === "radio" || f.type === "checkboxes"
         ? (f.options ?? []).filter((o) => o.trim().length > 0)
         : undefined,
   }));
@@ -2653,6 +2656,51 @@ export async function saveWebsiteFormAction(
 
   revalidatePath(`/dashboard/website/${websiteId}/forms`);
   return { ok: true };
+}
+
+/**
+ * Clone a form (fields + settings, same type) under a "(copy)" name. The copy
+ * starts with no embeds and no submissions — it's a fresh form the host can
+ * tweak. Owner + feature gated like every other CMS write.
+ */
+export async function duplicateWebsiteFormAction(
+  input: DuplicateWebsiteFormInput,
+): Promise<CreateResult> {
+  const parsed = duplicateWebsiteFormSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, formId } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: src } = await supabase
+    .from("website_forms")
+    .select("name, type, fields, settings")
+    .eq("id", formId)
+    .eq("website_id", websiteId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!src) return { ok: false, error: "not_found" };
+
+  const copyName = `${src.name} (copy)`.slice(0, 120);
+  const { data: form, error } = await supabase
+    .from("website_forms")
+    .insert({
+      website_id: websiteId,
+      name: copyName,
+      type: src.type,
+      fields: src.fields ?? [],
+      settings: src.settings ?? {},
+    })
+    .select("id")
+    .single();
+  if (error || !form) return { ok: false, error: "create_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/forms`);
+  return { ok: true, id: form.id };
 }
 
 /** A form option for the page-builder form picker (id + name + type). */

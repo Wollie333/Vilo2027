@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { verifyTurnstile } from "@/lib/security/turnstile";
 import { createWebsiteEnquiry } from "@/lib/website/createWebsiteEnquiry";
 import { upsertHostContact } from "@/lib/guests/contacts";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -146,6 +147,7 @@ async function resolveBookingTarget(
 
 export async function submitWebsiteForm(
   input: unknown,
+  opts: { turnstileToken?: string; clientIp?: string } = {},
 ): Promise<WebsiteFormSubmitResult> {
   const parsed = websiteFormSubmitSchema.safeParse(input);
   if (!parsed.success) {
@@ -174,6 +176,19 @@ export async function submitWebsiteForm(
   const formType = formRow.type as FormType;
   if (!fields.success || fields.data.length === 0) {
     return { ok: false, error: "This form isn't available right now." };
+  }
+
+  // Bot-hardening — verify the Cloudflare Turnstile token unless this form has
+  // spam protection turned off (per-form). Inert until the TURNSTILE_* keys are
+  // configured (verifyTurnstile then resolves ok). The honeypot above always runs.
+  if (settings.spamProtection !== false) {
+    const human = await verifyTurnstile(opts.turnstileToken, opts.clientIp);
+    if (!human.ok) {
+      return {
+        ok: false,
+        error: "Couldn't verify you're human. Please try again.",
+      };
+    }
   }
 
   const validated = validateAgainstFields(fields.data, d.values);

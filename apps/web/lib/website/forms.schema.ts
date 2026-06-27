@@ -114,6 +114,12 @@ export const formSettingsSchema = z.object({
   // Email-bearing forms open a "Website Enquiry" in the inbox (slice 2). Newsletter
   // forms ignore this (they upsert a CRM contact instead — slice 3).
   notifyInbox: z.boolean().default(true),
+  // Show the Cloudflare Turnstile challenge on this form and verify it server-side
+  // (inert unless the TURNSTILE_* keys are configured). The honeypot always runs;
+  // this is the second, stronger gate. Defaults on; a host can turn it off for a
+  // low-friction form (e.g. a short newsletter signup) where the captcha hurts
+  // conversion more than spam costs.
+  spamProtection: z.boolean().default(true),
 });
 export type FormSettings = z.infer<typeof formSettingsSchema>;
 

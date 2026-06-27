@@ -8,6 +8,7 @@ import {
   ExternalLink,
   Inbox,
   MailOpen,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
@@ -56,21 +57,50 @@ export function ResponsesManager({
     forms.some((f) => f.id === initialFormId) ? initialFormId : "all",
   );
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [query, setQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const formById = useMemo(() => new Map(forms.map((f) => [f.id, f])), [forms]);
 
   const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    // Local-day bounds: "from" at 00:00, "to" through 23:59:59 so both ends are
+    // inclusive of the picked calendar day.
+    const fromMs = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
+    const toMs = toDate ? new Date(`${toDate}T23:59:59.999`).getTime() : null;
     return submissions.filter((s) => {
       if (formFilter !== "all" && s.formId !== formFilter) return false;
-      if (statusFilter === "active")
-        return s.status === "new" || s.status === "read";
-      if (statusFilter === "archived")
-        return s.status === "archived" || s.status === "spam";
+      if (statusFilter === "active") {
+        if (s.status !== "new" && s.status !== "read") return false;
+      } else if (statusFilter === "archived") {
+        if (s.status !== "archived" && s.status !== "spam") return false;
+      }
+      if (fromMs !== null || toMs !== null) {
+        const ms = new Date(s.createdAt).getTime();
+        if (fromMs !== null && ms < fromMs) return false;
+        if (toMs !== null && ms > toMs) return false;
+      }
+      if (q) {
+        const form = formById.get(s.formId);
+        const hay = [form?.name ?? "", ...Object.values(s.data)]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [submissions, formFilter, statusFilter]);
+  }, [
+    submissions,
+    formFilter,
+    statusFilter,
+    query,
+    fromDate,
+    toDate,
+    formById,
+  ]);
 
   function patchStatus(id: string, status: FormSubmissionRow["status"]) {
     setSubmissions((prev) =>
@@ -170,6 +200,35 @@ export function ResponsesManager({
           <option value="archived">{t("responsesStatusArchived")}</option>
           <option value="all">{t("responsesStatusAll")}</option>
         </select>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-mute" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("responsesSearchPh")}
+            aria-label={t("responsesSearchPh")}
+            className="w-[180px] rounded-[10px] border border-brand-line bg-white py-2 pl-8 pr-3 text-sm text-brand-ink outline-none focus:border-brand-primary"
+          />
+        </div>
+        <input
+          type="date"
+          value={fromDate}
+          max={toDate || undefined}
+          onChange={(e) => setFromDate(e.target.value)}
+          aria-label={t("responsesDateFrom")}
+          title={t("responsesDateFrom")}
+          className={selectCls}
+        />
+        <input
+          type="date"
+          value={toDate}
+          min={fromDate || undefined}
+          onChange={(e) => setToDate(e.target.value)}
+          aria-label={t("responsesDateTo")}
+          title={t("responsesDateTo")}
+          className={selectCls}
+        />
         <span className="text-[13px] text-brand-mute">
           {t("responsesCount", { count: visible.length })}
         </span>

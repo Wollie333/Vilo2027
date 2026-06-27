@@ -2,6 +2,7 @@
 
 import {
   CalendarCheck,
+  Copy,
   FileText,
   Inbox,
   Loader2,
@@ -26,6 +27,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import {
   createWebsiteFormAction,
   deleteWebsiteFormAction,
+  duplicateWebsiteFormAction,
 } from "@/app/[locale]/dashboard/website/actions";
 import type { FormType } from "@/lib/website/forms.schema";
 import { Modal } from "@/components/ui/modal";
@@ -62,10 +64,26 @@ export function FormsList({
   initialForms: FormEditorRow[];
 }) {
   const t = useTranslations("website");
+  const router = useRouter();
   const [forms, setForms] = useState<FormEditorRow[]>(initialForms);
   const [filter, setFilter] = useState<Filter>("all");
   const [addOpen, setAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+  function duplicate(formId: string) {
+    setDuplicatingId(formId);
+    void (async () => {
+      const res = await duplicateWebsiteFormAction({ websiteId, formId });
+      if (!res.ok) {
+        setDuplicatingId(null);
+        toast.error(t("formsCreateError"));
+        return;
+      }
+      toast.success(t("formDuplicated"));
+      router.push(`/website-editor/${websiteId}/forms/${res.id}`);
+    })();
+  }
 
   const shown =
     filter === "all" ? forms : forms.filter((f) => f.status === filter);
@@ -180,7 +198,9 @@ export function FormsList({
                 key={f.id}
                 websiteId={websiteId}
                 form={f}
+                duplicating={duplicatingId === f.id}
                 onDelete={() => setDeleteId(f.id)}
+                onDuplicate={() => duplicate(f.id)}
               />
             ))
           )}
@@ -238,11 +258,15 @@ export function FormsList({
 function FormRow({
   websiteId,
   form,
+  duplicating,
   onDelete,
+  onDuplicate,
 }: {
   websiteId: string;
   form: FormEditorRow;
+  duplicating: boolean;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
   const t = useTranslations("website");
   const Icon = TYPE_ICON[form.type];
@@ -317,7 +341,12 @@ function FormRow({
           <Pencil style={{ width: 14, height: 14, color: "var(--mute)" }} />
           {t("editPage")}
         </span>
-        <RowMenu websiteId={websiteId} onDelete={onDelete} />
+        <RowMenu
+          websiteId={websiteId}
+          duplicating={duplicating}
+          onDelete={onDelete}
+          onDuplicate={onDuplicate}
+        />
       </div>
     </Link>
   );
@@ -325,10 +354,14 @@ function FormRow({
 
 function RowMenu({
   websiteId,
+  duplicating,
   onDelete,
+  onDuplicate,
 }: {
   websiteId: string;
+  duplicating: boolean;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
   const t = useTranslations("website");
   const [open, setOpen] = useState(false);
@@ -386,6 +419,22 @@ function RowMenu({
             <Inbox style={{ width: 15, height: 15 }} />
             {t("viewSubmissions")}
           </Link>
+          <button
+            type="button"
+            className="rm-item"
+            disabled={duplicating}
+            onClick={stop(onDuplicate)}
+          >
+            {duplicating ? (
+              <Loader2
+                className="animate-spin"
+                style={{ width: 15, height: 15 }}
+              />
+            ) : (
+              <Copy style={{ width: 15, height: 15 }} />
+            )}
+            {t("duplicateForm")}
+          </button>
           <button
             type="button"
             className="rm-item rm-danger"
