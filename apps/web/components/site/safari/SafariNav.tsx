@@ -60,6 +60,26 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
     rules.push(
       `.vilo-safari .nav-links a:hover,.vilo-safari .mnav-links a:hover{color:${hover};opacity:1}`,
     );
+  // Horizontal spacing between top-level links (Layout → item spacing).
+  if (typeof style.itemGap === "number")
+    rules.push(`.vilo-safari .nav-links{gap:${style.itemGap}px}`);
+  // Sub-menu (dropdown) styling — desktop dropdown panel + items, and the mobile
+  // drawer's nested links, so nested links are styled separately from the top.
+  const subColor = style.submenuColor?.trim();
+  const subHover = style.submenuHoverColor?.trim() || subColor;
+  const subBg = style.submenuBg?.trim();
+  if (subBg)
+    rules.push(
+      `.vilo-safari .nav-dd-menu{background:${subBg};border-color:${subBg}}`,
+    );
+  if (subColor)
+    rules.push(
+      `.vilo-safari .nav-dd-menu a,.vilo-safari .mnav-sub a{color:${subColor}}`,
+    );
+  if (subHover)
+    rules.push(
+      `.vilo-safari .nav-dd-menu a:hover,.vilo-safari .mnav-sub a:hover{color:${subHover}}`,
+    );
   return rules.join("");
 }
 

@@ -623,8 +623,15 @@ export const menuStyleSchema = z
     weight: z.enum(["normal", "medium", "semibold", "bold"]).default("medium"),
     uppercase: z.boolean().default(false),
     // Where the menu sits within its slot in the header (the menu builder's
-    // Advanced "alignment" control).
+    // Layout "alignment" control).
     align: z.enum(["start", "center", "end"]).default("start"),
+    // Sub-menu (dropdown) styling — applied to dropdown items + the panel, so a
+    // host can style nested links separately from the top-level menu.
+    submenuColor: z.string().trim().max(40).optional(),
+    submenuHoverColor: z.string().trim().max(40).optional(),
+    submenuBg: z.string().trim().max(40).optional(),
+    // Layout: horizontal spacing between top-level links (px). Blank → theme.
+    itemGap: z.number().int().min(4).max(64).optional(),
   })
   .default({ weight: "medium", uppercase: false, align: "start" });
 

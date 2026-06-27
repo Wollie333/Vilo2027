@@ -294,23 +294,8 @@ export function HeaderInspector({
             onChange={(v) => setHeader({ bgColor: v })}
           />
         )}
-        <Fld label={t("navMenuCollapse")}>
-          <select
-            value={nav.header.menuCollapse ?? "mobile"}
-            onChange={(e) =>
-              setHeader({
-                menuCollapse: e.target.value as "mobile" | "tablet" | "never",
-              })
-            }
-          >
-            <option value="mobile">{t("navCollapseMobile")}</option>
-            <option value="tablet">{t("navCollapseTablet")}</option>
-            <option value="never">{t("navCollapseNever")}</option>
-          </select>
-        </Fld>
-        <p className="mt-1 text-[11.5px] text-brand-mute">
-          {t("navMenuCollapseHint")}
-        </p>
+        {/* "Collapse menu" lives in the Menu builder (Layout tab) — it's a menu
+            concern, not a header-container one. */}
       </div>
       <div className="insp-sec">
         <div className="isec-t">{t("navTopBarTitle")}</div>

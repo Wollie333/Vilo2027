@@ -83,6 +83,12 @@ export type SiteMenuStyle = {
   uppercase?: boolean;
   /** Menu alignment within its header slot. */
   align?: "start" | "center" | "end";
+  /** Sub-menu (dropdown) styling — separate from the top-level links. */
+  submenuColor?: string | null;
+  submenuHoverColor?: string | null;
+  submenuBg?: string | null;
+  /** Layout: horizontal spacing between top-level links (px). */
+  itemGap?: number;
 };
 export type SiteNavigation = {
   /** Explicit header menu; when empty the page-derived nav is used. */

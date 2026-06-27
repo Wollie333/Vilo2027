@@ -293,7 +293,7 @@ export function MenuStudio({
             [
               ["content", t("menuTabContent"), TypeIcon],
               ["style", t("menuTabStyle"), Palette],
-              ["advanced", t("menuTabAdvanced"), SlidersHorizontal],
+              ["advanced", t("menuTabLayout"), SlidersHorizontal],
             ] as const
           ).map(([key, label, Ico]) => (
             <button
@@ -355,6 +355,7 @@ export function MenuStudio({
             </div>
           ) : tab === "style" ? (
             <div className="insp-sec space-y-3">
+              <GroupLabel>{t("menuStyleTopGroup")}</GroupLabel>
               <ColorField
                 label={t("menuStyleColor")}
                 value={ms.color ?? ""}
@@ -391,6 +392,31 @@ export function MenuStudio({
                 checked={ms.uppercase ?? false}
                 onChange={(v) => setMenuStyle({ uppercase: v })}
               />
+
+              {/* Sub-menu (dropdown) styling — separate from the top-level links. */}
+              <div className="mt-1 border-t border-brand-line pt-3">
+                <GroupLabel>{t("menuStyleSubGroup")}</GroupLabel>
+                <p className="mb-2 text-[11.5px] text-brand-mute">
+                  {t("menuStyleSubHint")}
+                </p>
+                <div className="space-y-3">
+                  <ColorField
+                    label={t("menuStyleSubColor")}
+                    value={ms.submenuColor ?? ""}
+                    onChange={(v) => setMenuStyle({ submenuColor: v })}
+                  />
+                  <ColorField
+                    label={t("menuStyleSubHover")}
+                    value={ms.submenuHoverColor ?? ""}
+                    onChange={(v) => setMenuStyle({ submenuHoverColor: v })}
+                  />
+                  <ColorField
+                    label={t("menuStyleSubBg")}
+                    value={ms.submenuBg ?? ""}
+                    onChange={(v) => setMenuStyle({ submenuBg: v })}
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div className="insp-sec space-y-3">
@@ -412,6 +438,35 @@ export function MenuStudio({
                   <option value="end">{t("menuAlign_end")}</option>
                 </select>
               </label>
+              {/* Horizontal spacing between top-level links. */}
+              <label className="block">
+                <span className="flex items-center justify-between text-[12.5px] font-semibold text-brand-ink">
+                  {t("menuItemGapLabel")}
+                  <span className="text-[12px] tabular-nums text-brand-mute">
+                    {ms.itemGap ?? t("menuItemGapDefault")}
+                    {ms.itemGap ? "px" : ""}
+                  </span>
+                </span>
+                <input
+                  type="range"
+                  min={8}
+                  max={56}
+                  value={ms.itemGap ?? 38}
+                  onChange={(e) =>
+                    setMenuStyle({ itemGap: Number(e.target.value) })
+                  }
+                  className="mt-2 w-full"
+                />
+                {ms.itemGap ? (
+                  <button
+                    type="button"
+                    onClick={() => setMenuStyle({ itemGap: undefined })}
+                    className="mt-1 text-[11.5px] font-medium text-brand-mute hover:text-brand-ink"
+                  >
+                    {t("reset")}
+                  </button>
+                ) : null}
+              </label>
               <label className="block">
                 <span className="block text-[12.5px] font-semibold text-brand-ink">
                   {t("navMenuCollapse")}
@@ -432,10 +487,10 @@ export function MenuStudio({
                   <option value="tablet">{t("navCollapseTablet")}</option>
                   <option value="never">{t("navCollapseNever")}</option>
                 </select>
+                <p className="mt-1 text-[11.5px] text-brand-mute">
+                  {t("navMenuCollapseHint")}
+                </p>
               </label>
-              <p className="text-[11.5px] text-brand-mute">
-                {t("menuBookInHeaderHint")}
-              </p>
             </div>
           )}
         </div>
@@ -670,6 +725,14 @@ function ColorField({
         ) : null}
       </div>
     </label>
+  );
+}
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[11px] font-bold uppercase tracking-wider text-brand-mute">
+      {children}
+    </div>
   );
 }
 
