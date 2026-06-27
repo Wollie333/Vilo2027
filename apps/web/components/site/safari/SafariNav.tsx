@@ -20,6 +20,19 @@ const WEIGHT: Record<NonNullable<SiteMenuStyle["weight"]>, number> = {
   bold: 700,
 };
 
+/** True when a #rrggbb colour is dark enough to need light text on top (so a
+ *  host's custom solid/scrolled header colour stays readable — brand + menu +
+ *  burger flip to white over a dark bar, dark over a light one). */
+function isDarkColor(hex?: string | null): boolean {
+  const c = (hex || "").trim().replace("#", "");
+  if (c.length < 6) return false;
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  if ([r, g, b].some(Number.isNaN)) return false;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.55;
+}
+
 /** Scoped CSS that applies the host's menu style to the Safari header + drawer.
  *  When the host sets a colour/hover it takes effect in EVERY nav state (over the
  *  hero, scrolled-solid, and the mobile drawer) — their choice wins. The links
@@ -146,9 +159,23 @@ export function SafariNav({
     : scrolled
       ? scrolledBgColor?.trim()
       : "";
-  const headerStyle = customBg ? { background: customBg } : undefined;
+  // A custom bar colour also sets a readable text colour (brand + menu + burger
+  // inherit it); the host's explicit menu colour, if any, still wins for links.
+  const headerStyle = customBg
+    ? {
+        background: customBg,
+        color: isDarkColor(customBg) ? "#fff" : "var(--ink)",
+      }
+    : undefined;
 
-  const styleCss = menuStyleCss(menuStyle);
+  // The host's book-button colour as a scoped rule so it also wins on HOVER (the
+  // design's solid-bar `.btn-on-dark:hover` would otherwise override the inline
+  // colour). Covers the header + drawer book buttons.
+  const bookCss = bookColor?.trim()
+    ? `.vilo-safari .nav-book-custom,.vilo-safari .nav-book-custom:hover{background:${bookColor.trim()}!important;border-color:${bookColor.trim()}!important;color:#fff!important}`
+    : "";
+  const styleCss = menuStyleCss(menuStyle) + bookCss;
+  const bookClass = bookColor?.trim() ? " nav-book-custom" : "";
   const homeHref = links[0]?.href || "#";
   // Logo: light variant over the dark hero, standard variant on the solid bar +
   // drawer. Falls back to the monogram when no logo / hidden.
@@ -182,6 +209,9 @@ export function SafariNav({
       />
     ) : null;
     const markEl = imgEl ?? <span className="brand-mark">{monogram}</span>;
+    // "Show logo" off → drop the visual mark/image, keep the brand name as a
+    // clean wordmark (the home link stays visible + clickable).
+    if (!showLogo) return nameEl;
     if (logoStyle === "wordmark") return nameEl;
     if (logoStyle === "icon") return markEl;
     if (logoStyle === "mark")
@@ -265,7 +295,7 @@ export function SafariNav({
             {book ? (
               <a
                 href={bookHref}
-                className="btn btn-on-dark btn-sm"
+                className={`btn btn-on-dark btn-sm${bookClass}`}
                 style={bookStyle}
               >
                 <span>{bookLabel}</span>
@@ -393,7 +423,7 @@ export function SafariNav({
         {book ? (
           <a
             href={bookHref}
-            className="btn btn-primary btn-lg btn-block"
+            className={`btn btn-primary btn-lg btn-block${bookClass}`}
             style={bookStyle}
             onClick={() => setMenuOpen(false)}
           >
