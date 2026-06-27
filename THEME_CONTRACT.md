@@ -162,3 +162,45 @@ Before adding a nav/header/menu/section capability, ask **"which layer?"**:
   + each theme's render honours it (Safari first, as the reference).
 - Never bury a host option inside one theme's render. Never re-implement a builder
   per theme. Keep `header = the bar`, `menu = the links`.
+
+## Menu / nav customization standard (2026-06-27 — the locked way it works)
+
+This is **the standard every theme must comply with.** The menu/nav builder was
+built to this shape; new themes implement only their render layer (§3) and inherit
+all of it.
+
+**1. The canvas previews the REAL site.** The header/menu/footer editors render the
+host's **actual page** (real chrome + real sections) behind the **live** menu, not
+a stylised mini-preview or a stock hero. Safari → `SafariNavCanvas` (real
+`SafariShell` + `SafariSectionList`); generic → `SiteChromeCanvas` (real
+`SiteThemeRoot > SiteChrome > SectionRenderer`). A new theme's canvas reuses its
+own public render components the same way. A **page switcher** (top bar,
+`NavBackdrop`) picks which real page sits behind the menu.
+
+**2. Everything is per-device (responsive), live.** The device switcher
+(desktop/tablet/mobile) drives which layer the controls edit. The render emits the
+live site's `@media` rules AND, in the builder, the active device's merged style
+as **flat CSS** via a `previewDevice` prop — so the canvas reflects the chosen
+screen size instantly (no media-query-vs-viewport mismatch). Mirror this for any
+responsive-in-canvas styling.
+
+**3. Three customization axes, all additive jsonb (no migration):**
+- **Global menu style** — `navigation.menuStyle` (+ `tablet`/`mobile` layers).
+- **Per-LINK style** — `SiteMenuItem.style` (`MenuItemStyle` = desktop base +
+  `tablet`/`mobile`): colour/hover/size/weight/uppercase + background/pill. Render
+  via a stable `mi-<id>` class + scoped CSS (`SafariNav.menuItemStyleCss` /
+  `SiteChrome.menuItemStyleCss`).
+- **Per-PAGE rules** — `SiteMenuItem.hiddenOnPages` (show/hide per page) +
+  `navigation.perPage[pageKey]` (appearance + style override per page). The page
+  key (`lib/site/menuPage.ts pageKeyFor`) is shared by `buildSafariNav(ctx,
+  pageKey)`, `SiteChrome`'s `currentPageKey`, and the canvas backdrop.
+
+**4. Transparent-over-hero headers have TWO colour states.** When a header is
+transparent over the hero, the menu (and bar) carry a separate **over-hero** colour
+and **scrolled/solid** colour — Safari renders the scrolled colour under
+`.nav.solid`. A new theme with a transparent-on-hero header must honour both
+(`menuStyle.color`/`scrolledColor`, `navigation.header.bgColor`/`scrolledBgColor`).
+
+**5. Every styling field resets to the theme default.** Each control offers a
+reset that clears the host override (→ `undefined` = inherit the theme's default
+styling). Builder controls own this; the render simply omits unset fields.

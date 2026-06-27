@@ -214,11 +214,17 @@ export function buildSafariNav(
   const override = pageKey ? ctx.navigation.perPage?.[pageKey] : undefined;
   const menuStyle =
     override &&
-    (override.color || override.hoverColor || override.fontSize != null)
+    (override.color ||
+      override.hoverColor ||
+      override.scrolledColor ||
+      override.fontSize != null)
       ? {
           ...(ctx.navigation.menuStyle ?? {}),
           ...(override.color ? { color: override.color } : {}),
           ...(override.hoverColor ? { hoverColor: override.hoverColor } : {}),
+          ...(override.scrolledColor
+            ? { scrolledColor: override.scrolledColor }
+            : {}),
           ...(override.fontSize != null ? { fontSize: override.fontSize } : {}),
         }
       : ctx.navigation.menuStyle;

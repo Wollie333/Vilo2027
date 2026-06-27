@@ -657,6 +657,11 @@ export const menuStyleSchema = z
     // ── Desktop base ──
     color: z.string().trim().max(40).optional(),
     hoverColor: z.string().trim().max(40).optional(),
+    // Scrolled-state colours — when the header is transparent over the hero, the
+    // link/hover colour once the bar turns solid on scroll (the over-hero colour
+    // is `color`/`hoverColor` above). Blank → the over-hero colour carries over.
+    scrolledColor: z.string().trim().max(40).optional(),
+    scrolledHoverColor: z.string().trim().max(40).optional(),
     weight: z.enum(["normal", "medium", "semibold", "bold"]).default("medium"),
     uppercase: z.boolean().default(false),
     // Top-level link size (px). Blank → theme default.
@@ -690,6 +695,8 @@ const menuPageOverrideSchema = z.object({
   // Menu styling for this page.
   color: z.string().trim().max(40).optional(),
   hoverColor: z.string().trim().max(40).optional(),
+  /** Scrolled-state menu colour for this page (transparent-over-hero headers). */
+  scrolledColor: z.string().trim().max(40).optional(),
   fontSize: z.number().int().min(8).max(40).optional(),
 });
 

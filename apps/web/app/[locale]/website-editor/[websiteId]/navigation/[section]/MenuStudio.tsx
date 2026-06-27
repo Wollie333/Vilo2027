@@ -132,6 +132,11 @@ export function MenuStudio({
   const t = useTranslations("website");
   const menu = nav.menu ?? [];
   const isSafari = themePreset === "safari";
+  // Is the header transparent over the hero? (Safari defaults to transparent.)
+  // Only then does a separate "scrolled" colour make sense.
+  const headerTransparent = isSafari
+    ? nav.header?.transparentOverHero !== false
+    : nav.header?.transparentOverHero === true;
   const safariNav = isSafari
     ? buildSafariNav(
         {
@@ -434,7 +439,11 @@ export function MenuStudio({
                   : t("menuStyleTopGroup")}
               </GroupLabel>
               <ColorField
-                label={t("menuStyleColor")}
+                label={
+                  device === "desktop" && headerTransparent
+                    ? t("menuStyleColorOverHero")
+                    : t("menuStyleColor")
+                }
                 value={devLayer.color ?? ""}
                 onChange={(v) => setDeviceStyle({ color: v || undefined })}
               />
@@ -443,6 +452,26 @@ export function MenuStudio({
                 value={devLayer.hoverColor ?? ""}
                 onChange={(v) => setDeviceStyle({ hoverColor: v || undefined })}
               />
+              {/* Scrolled-state colour — only meaningful when the header is
+                  transparent over the hero (desktop layer; state, not per-device). */}
+              {device === "desktop" && headerTransparent ? (
+                <>
+                  <ColorField
+                    label={t("menuStyleColorScrolled")}
+                    value={ms.scrolledColor ?? ""}
+                    onChange={(v) =>
+                      setMenuStyle({ scrolledColor: v || undefined })
+                    }
+                  />
+                  <ColorField
+                    label={t("menuStyleHoverScrolled")}
+                    value={ms.scrolledHoverColor ?? ""}
+                    onChange={(v) =>
+                      setMenuStyle({ scrolledHoverColor: v || undefined })
+                    }
+                  />
+                </>
+              ) : null}
               <label className="block">
                 <span className="block text-[12.5px] font-semibold text-brand-ink">
                   {t("menuStyleWeight")}
@@ -578,12 +607,27 @@ export function MenuStudio({
                           }
                         />
                         <ColorField
-                          label={t("menuStyleColor")}
+                          label={
+                            headerTransparent
+                              ? t("menuStyleColorOverHero")
+                              : t("menuStyleColor")
+                          }
                           value={ppo.color ?? ""}
                           onChange={(v) =>
                             setPerPage(backdropKey, { color: v || undefined })
                           }
                         />
+                        {headerTransparent ? (
+                          <ColorField
+                            label={t("menuStyleColorScrolled")}
+                            value={ppo.scrolledColor ?? ""}
+                            onChange={(v) =>
+                              setPerPage(backdropKey, {
+                                scrolledColor: v || undefined,
+                              })
+                            }
+                          />
+                        ) : null}
                         <RangeField
                           label={t("menuStyleSize")}
                           value={ppo.fontSize}

@@ -68,6 +68,20 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
     rules.push(
       `.vilo-safari .nav-links a:hover,.vilo-safari .mnav-links a:hover{color:${hover};opacity:1}`,
     );
+  // Scrolled-state colour — when the transparent bar turns solid on scroll (or on
+  // an always-solid page), the inline links take this colour instead of the
+  // over-hero `color`. Higher specificity (`.nav.solid …`) so it wins in that
+  // state; the drawer keeps its own colour.
+  const scrolledColor = style.scrolledColor?.trim();
+  const scrolledHover = style.scrolledHoverColor?.trim() || scrolledColor;
+  if (scrolledColor)
+    rules.push(
+      `.vilo-safari .nav.solid .nav-links a{color:${scrolledColor};opacity:1}`,
+    );
+  if (scrolledHover)
+    rules.push(
+      `.vilo-safari .nav.solid .nav-links a:hover{color:${scrolledHover};opacity:1}`,
+    );
   // Horizontal spacing between top-level links (Layout → item spacing).
   if (typeof style.itemGap === "number")
     rules.push(`.vilo-safari .nav-links{gap:${style.itemGap}px}`);

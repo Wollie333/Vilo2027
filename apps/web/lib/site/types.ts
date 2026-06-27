@@ -108,6 +108,9 @@ export type SiteMenuDeviceStyle = {
 };
 
 export type SiteMenuStyle = {
+  /** Scrolled-state link/hover colour (transparent-over-hero headers). */
+  scrolledColor?: string;
+  scrolledHoverColor?: string;
   color?: string | null;
   hoverColor?: string | null;
   weight?: "normal" | "medium" | "semibold" | "bold";
@@ -133,6 +136,8 @@ export type MenuPageOverride = {
   bgColor?: string;
   color?: string;
   hoverColor?: string;
+  /** Scrolled-state menu colour for this page (transparent-over-hero headers). */
+  scrolledColor?: string;
   fontSize?: number;
 };
 export type SiteNavigation = {

@@ -19,6 +19,20 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Menu: two-state colours for transparent-over-hero headers
+
+**A transparent-over-hero header now carries TWO menu colours** — one for over the
+hero, one for once the bar turns solid on scroll (the founder's request; also a
+THEME_CONTRACT rule now). Additive `menuStyle.scrolledColor`/`scrolledHoverColor`
++ per-page `scrolledColor`; Safari renders the scrolled colour under `.nav.solid`
+(higher specificity than the over-hero base). The Style tab relabels the base to
+"Link colour (over hero)" and adds "Link colour (scrolled)" + "Hover (scrolled)"
+when the header is transparent; the per-page panel gets a scrolled colour too.
+Verified live: over-hero white → red once the canvas scrolls the bar solid.
+**Standard recorded** in `THEME_CONTRACT.md` ("Menu / nav customization standard")
++ the `nav-builder-standard` memory: real-canvas preview · per-device · per-link ·
+per-page · two-state colours · reset-to-default — every future theme must comply.
+
 ## 2026-06-27 (PM) — Menu builder: per-link styling for generic themes (slice 2)
 
 **Per-link styling now works on every theme**, not just Safari — completes the
