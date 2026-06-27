@@ -140,6 +140,12 @@ export type MenuPageOverride = {
   scrolledColor?: string;
   fontSize?: number;
 };
+/** Per-device logo override (tablet/mobile) — unset fields inherit desktop. */
+export type LogoOverride = {
+  show?: boolean;
+  style?: "wordmark" | "icon" | "mark";
+  maxHeight?: number;
+};
 export type SiteNavigation = {
   /** Explicit header menu; when empty the page-derived nav is used. */
   menu?: SiteMenuItem[];
@@ -169,6 +175,9 @@ export type SiteNavigation = {
       style?: "lines" | "short" | "dots" | "grid";
       bg?: string;
     };
+    /** Per-device logo overrides (tablet / mobile) — unset inherits desktop. */
+    logoTablet?: LogoOverride;
+    logoMobile?: LogoOverride;
     /** When the menu collapses to a ☰ button: phones only / tablets too / never. */
     menuCollapse?: "mobile" | "tablet" | "never";
     /** Show the header "Book now" button (hidden on collapsed views). Default true. */

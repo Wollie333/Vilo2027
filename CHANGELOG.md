@@ -19,6 +19,19 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
+## 2026-06-27 (PM) — Per-device logo overrides (Safari)
+
+**The header logo can now differ on tablet/mobile** — size, show/hide, AND style
+(wordmark/icon/mark) — overriding the desktop default. Additive
+`navigation.header.logoTablet`/`logoMobile` (no migration). `SafariNav` resolves
+the logo per device: in the builder it renders the active device's variant
+(`previewDevice`); on the live site it renders all three toggled by `@media`
+(`display:contents` wrappers) — the only way to swap the logo STYLE markup per
+screen size. The menu builder's "Menu style" inspector gained a **Logo** section
+(show/style/size) — Desktop edits the base, Tablet/Mobile the override + reset.
+Verified live: Mobile → icon-only logo; Desktop stayed mark+name. Generic-theme
+parity is the next step. 131 vitest + tsc + lint green.
+
 ## 2026-06-27 (PM) — ☰ icon glyph variants + generic-theme parity
 
 Two follow-ons to the mobile menu editor:

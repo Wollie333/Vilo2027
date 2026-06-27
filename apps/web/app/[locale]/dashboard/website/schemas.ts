@@ -762,6 +762,22 @@ export const navigationSchema = z.object({
       // value). Lets the host tune how the logo shows in THIS header.
       logoStyle: z.enum(["wordmark", "icon", "mark"]).optional(),
       logoMaxHeight: z.number().int().min(16).max(96).optional(),
+      // Per-device logo overrides (tablet / mobile) — only the differing fields
+      // are stored; unset inherits the desktop logo settings above.
+      logoTablet: z
+        .object({
+          show: z.boolean().optional(),
+          style: z.enum(["wordmark", "icon", "mark"]).optional(),
+          maxHeight: z.number().int().min(16).max(96).optional(),
+        })
+        .optional(),
+      logoMobile: z
+        .object({
+          show: z.boolean().optional(),
+          style: z.enum(["wordmark", "icon", "mark"]).optional(),
+          maxHeight: z.number().int().min(16).max(96).optional(),
+        })
+        .optional(),
     })
     .default({
       sticky: true,

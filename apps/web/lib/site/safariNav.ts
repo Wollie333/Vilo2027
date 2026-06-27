@@ -2,6 +2,7 @@ import type { SafariNavLink } from "@/components/site/safari/SafariNav";
 
 import { filterMenuForPage } from "./menuPage";
 import type {
+  LogoOverride,
   SiteBrand,
   SiteFooterColumn,
   SiteMenuItem,
@@ -77,6 +78,9 @@ export type SafariNavData = {
   logoUrl?: string | null;
   logoLightUrl?: string | null;
   logoMaxHeight?: number | null;
+  /** Per-device logo overrides (tablet / mobile); unset inherits desktop. */
+  logoTablet?: LogoOverride;
+  logoMobile?: LogoOverride;
   tagline?: string | null;
   /** Announcement top bar (shown above the nav when the host enables it). */
   topBar: {
@@ -258,6 +262,8 @@ export function buildSafariNav(
     logoUrl: brand.logoUrl,
     logoLightUrl: brand.logoLightUrl ?? brand.logoUrl,
     logoMaxHeight: header.logoMaxHeight,
+    logoTablet: header.logoTablet,
+    logoMobile: header.logoMobile,
     tagline: header.tagline,
     topBar: {
       enabled: ctx.navigation.topBar?.enabled === true,

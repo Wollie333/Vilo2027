@@ -345,6 +345,46 @@ export function MenuStudio({
       setMenuStyle({ mobile: { ...(ms.mobile ?? {}), ...patch } });
     else setMenuStyle(patch);
   };
+  // Per-device LOGO override (desktop edits the base header logo; tablet/mobile
+  // edit the override). Surfaced in the menu builder's Menu style inspector.
+  type LogoLayer = {
+    show?: boolean;
+    style?: "wordmark" | "icon" | "mark";
+    maxHeight?: number;
+  };
+  const baseLogoLayer: LogoLayer = {
+    show: nav.header.showLogo !== false,
+    style: nav.header.logoStyle,
+    maxHeight: nav.header.logoMaxHeight,
+  };
+  const logoLayer: LogoLayer =
+    device === "tablet"
+      ? (nav.header.logoTablet ?? {})
+      : device === "phone"
+        ? (nav.header.logoMobile ?? {})
+        : baseLogoLayer;
+  const setLogo = (patch: Partial<LogoLayer>) => {
+    if (device === "tablet")
+      setHeader({
+        logoTablet: { ...(nav.header.logoTablet ?? {}), ...patch },
+      });
+    else if (device === "phone")
+      setHeader({
+        logoMobile: { ...(nav.header.logoMobile ?? {}), ...patch },
+      });
+    else {
+      const p: Partial<NavigationConfig["header"]> = {};
+      if (patch.show !== undefined) p.showLogo = patch.show;
+      if (patch.style !== undefined) p.logoStyle = patch.style;
+      if (patch.maxHeight !== undefined) p.logoMaxHeight = patch.maxHeight;
+      setHeader(p);
+    }
+  };
+  const resetLogoLayer = () => {
+    if (device === "tablet") setHeader({ logoTablet: undefined });
+    else if (device === "phone") setHeader({ logoMobile: undefined });
+  };
+
   // Reset the active device's menu style back to the theme default.
   const resetDeviceStyle = () => {
     if (device === "tablet") setMenuStyle({ tablet: undefined });
@@ -392,6 +432,53 @@ export function MenuStudio({
   // (page-builder "deselect = global settings"). Device-aware via the tabs above.
   const menuStyleInspector = (
     <div className="insp-sec space-y-3">
+      {/* LOGO — desktop edits the base header logo; tablet/mobile override it. */}
+      <div className="space-y-3 rounded-[10px] border border-brand-line p-2.5">
+        <GroupLabel>{t("menuLogoGroup")}</GroupLabel>
+        {device !== "desktop" ? (
+          <p className="-mt-1 text-[11.5px] text-brand-mute">
+            {t("menuLogoOverrideHint")}
+          </p>
+        ) : null}
+        <CheckRow
+          label={t("navShowLogo")}
+          checked={logoLayer.show ?? baseLogoLayer.show ?? true}
+          onChange={(v) => setLogo({ show: v })}
+          onReset={device !== "desktop" ? resetLogoLayer : undefined}
+        />
+        <label className="block">
+          <span className="block text-[12.5px] font-semibold text-brand-ink">
+            {t("navLogoStyle")}
+          </span>
+          <select
+            value={logoLayer.style ?? ""}
+            onChange={(e) =>
+              setLogo({
+                style: (e.target.value as LogoLayer["style"]) || undefined,
+              })
+            }
+            className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+          >
+            <option value="">
+              {device === "desktop"
+                ? t("navLogoStyleDefault")
+                : t("menuItemInherit")}
+            </option>
+            <option value="wordmark">{t("navLogoStyle_wordmark")}</option>
+            <option value="icon">{t("navLogoStyle_icon")}</option>
+            <option value="mark">{t("navLogoStyle_mark")}</option>
+          </select>
+        </label>
+        <RangeField
+          label={t("navLogoHeight")}
+          value={logoLayer.maxHeight}
+          fallback={baseLogoLayer.maxHeight ?? 40}
+          min={16}
+          max={96}
+          onChange={(n) => setLogo({ maxHeight: n })}
+        />
+      </div>
+
       <GroupLabel>
         {device === "phone"
           ? t("menuStyleOverlayGroup")

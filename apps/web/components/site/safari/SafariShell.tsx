@@ -237,6 +237,8 @@ export function SafariShell({
           scrolledBgColor={nav.scrolledBgColor}
           menuCollapse={nav.menuCollapse}
           logoStyle={nav.logoStyle}
+          logoTablet={nav.logoTablet}
+          logoMobile={nav.logoMobile}
           burger={nav.burger}
           forceMenuOpen={forceMenuOpen}
           previewDevice={previewDevice}

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { BurgerGlyph } from "@/components/site/BurgerGlyph";
 import type { SafariHeaderLayout } from "@/lib/site/safariNav";
 import type {
+  LogoOverride,
   MenuItemStyle,
   MenuItemStyleLayer,
   SiteMenuStyle,
@@ -257,6 +258,8 @@ export function SafariNav({
   scrolledBgColor,
   menuCollapse = "mobile",
   logoStyle,
+  logoTablet,
+  logoMobile,
   burger,
   forceMenuOpen = false,
   previewDevice,
@@ -292,6 +295,9 @@ export function SafariNav({
   menuCollapse?: "mobile" | "tablet" | "never";
   /** Logo lockup style (Elements): wordmark/icon/mark; unset = design default. */
   logoStyle?: "wordmark" | "icon" | "mark" | null;
+  /** Per-device logo overrides (tablet / mobile); unset inherits desktop. */
+  logoTablet?: LogoOverride;
+  logoMobile?: LogoOverride;
   /** Mobile ☰ icon design (colour / size / stroke weight / glyph / button bg). */
   burger?: {
     color?: string;
@@ -380,19 +386,41 @@ export function SafariNav({
   // Logo: light variant over the dark hero, standard variant on the solid bar +
   // drawer. Falls back to the monogram when no logo / hidden.
   const solid = forceSolid || scrolled;
-  const useLogo = showLogo && Boolean(logoLightUrl || logoUrl);
   const headerLogo = solid ? logoUrl || logoLightUrl : logoLightUrl || logoUrl;
   const solidLogo = logoUrl || logoLightUrl;
-  const logoH = logoMaxHeight || 40;
   const book = showBook && bookHref;
   const bookStyle = bookColor?.trim()
     ? { background: bookColor, borderColor: bookColor, color: "#fff" }
     : undefined;
 
-  // Brand lockup honouring the Elements → logo style: wordmark = name only,
-  // icon = mark only (logo image, else the monogram circle), mark = mark + name.
-  // Unset = the design default (the logo image alone, else the monogram + name).
-  const renderBrandInner = (logoSrc?: string | null) => {
+  // Per-device logo config (desktop base + tablet/mobile diffs).
+  type LogoCfg = {
+    show: boolean;
+    style?: "wordmark" | "icon" | "mark" | null;
+    height: number;
+  };
+  const baseLogo: LogoCfg = {
+    show: showLogo,
+    style: logoStyle,
+    height: logoMaxHeight || 40,
+  };
+  const resolveLogo = (d: "desktop" | "tablet" | "phone"): LogoCfg => {
+    const o = d === "tablet" ? logoTablet : d === "phone" ? logoMobile : null;
+    if (!o) return baseLogo;
+    return {
+      show: o.show ?? baseLogo.show,
+      style: o.style ?? baseLogo.style,
+      height: o.maxHeight ?? baseLogo.height,
+    };
+  };
+  const hasLogoOverride = Boolean(logoTablet || logoMobile);
+
+  // Brand lockup honouring a logo config (show/style/height): wordmark = name
+  // only, icon = mark only, mark = mark + name, unset = the design default.
+  const renderBrandInner = (
+    logoSrc: string | null | undefined,
+    cfg: LogoCfg,
+  ) => {
     const nameEl = (
       <span className="brand-name">
         {brandName}
@@ -405,29 +433,25 @@ export function SafariNav({
         className="brand-logo"
         src={logoSrc}
         alt={brandName}
-        style={{ height: logoH }}
+        style={{ height: cfg.height }}
       />
     ) : null;
-    // The monogram circle scales with the Logo height setting too (the design's
-    // 42px is the ~40 default); the serif initial keeps the same ~0.52 ratio.
     const markEl = imgEl ?? (
       <span
         className="brand-mark"
         style={{
-          width: logoH,
-          height: logoH,
-          fontSize: Math.round(logoH * 0.52),
+          width: cfg.height,
+          height: cfg.height,
+          fontSize: Math.round(cfg.height * 0.52),
         }}
       >
         {monogram}
       </span>
     );
-    // "Show logo" off → drop the visual mark/image, keep the brand name as a
-    // clean wordmark (the home link stays visible + clickable).
-    if (!showLogo) return nameEl;
-    if (logoStyle === "wordmark") return nameEl;
-    if (logoStyle === "icon") return markEl;
-    if (logoStyle === "mark")
+    if (!cfg.show) return nameEl;
+    if (cfg.style === "wordmark") return nameEl;
+    if (cfg.style === "icon") return markEl;
+    if (cfg.style === "mark")
       return (
         <>
           {markEl}
@@ -444,13 +468,44 @@ export function SafariNav({
     );
   };
 
+  // Header brand content, per device: a single variant for the active device in
+  // the builder (previewDevice), all three toggled by @media on the live site
+  // (the only way to swap the logo STYLE markup per screen size).
+  const headerBrand = !hasLogoOverride ? (
+    renderBrandInner(headerLogo, baseLogo)
+  ) : previewDevice ? (
+    renderBrandInner(headerLogo, resolveLogo(previewDevice))
+  ) : (
+    <>
+      <span className="brand-rd brand-rd-dt">
+        {renderBrandInner(headerLogo, resolveLogo("desktop"))}
+      </span>
+      <span className="brand-rd brand-rd-tb">
+        {renderBrandInner(headerLogo, resolveLogo("tablet"))}
+      </span>
+      <span className="brand-rd brand-rd-mb">
+        {renderBrandInner(headerLogo, resolveLogo("phone"))}
+      </span>
+    </>
+  );
+  // Visibility CSS for the three live variants (display:contents so the lockup
+  // lays out inside `.brand` as if rendered directly).
+  const logoRdCss =
+    hasLogoOverride && !previewDevice
+      ? ".vilo-safari .brand-rd-tb,.vilo-safari .brand-rd-mb{display:none}" +
+        ".vilo-safari .brand-rd-dt{display:contents}" +
+        "@media (max-width:1024px){.vilo-safari .brand-rd-dt{display:none}.vilo-safari .brand-rd-tb{display:contents}}" +
+        "@media (max-width:640px){.vilo-safari .brand-rd-tb{display:none}.vilo-safari .brand-rd-mb{display:contents}}"
+      : "";
+
   return (
     <>
       {styleCss ? <style>{styleCss}</style> : null}
+      {logoRdCss ? <style>{logoRdCss}</style> : null}
       <header className={`${cls} lay-${layout}`} style={headerStyle}>
         <div className="wrap nav-in">
           <a href={homeHref} className="brand">
-            {renderBrandInner(useLogo ? headerLogo : null)}
+            {headerBrand}
           </a>
           <nav className="nav-links">
             {links.map((l) =>
@@ -544,7 +599,7 @@ export function SafariNav({
             className="brand"
             onClick={() => setMenuOpen(false)}
           >
-            {renderBrandInner(useLogo ? solidLogo : null)}
+            {renderBrandInner(solidLogo, resolveLogo("phone"))}
           </a>
           <button
             type="button"

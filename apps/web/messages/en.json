@@ -2057,6 +2057,8 @@
     "menuTabAdvanced": "Advanced",
     "menuTabLayout": "Layout",
     "menuStyleTitle": "Menu style",
+    "menuLogoGroup": "Logo",
+    "menuLogoOverrideHint": "Overrides the desktop logo for this screen size.",
     "menuMobilePanelHint": "The ☰ menu and slide-in drawer. Link colours/sizes for the drawer live in the Mobile tab of a link's style.",
     "menuBurgerGroup": "The ☰ icon",
     "menuBurgerColor": "Icon colour",
