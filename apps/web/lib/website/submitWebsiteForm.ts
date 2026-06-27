@@ -68,6 +68,82 @@ function validateAgainstFields(
   return { ok: true, clean };
 }
 
+/** Parse a `dates` field value ("YYYY-MM-DD → YYYY-MM-DD") into a valid range. */
+function parseDateRange(
+  raw: string | undefined,
+): { checkIn: string; checkOut: string } | null {
+  if (!raw) return null;
+  const [ci, co] = raw.split("→").map((s) => s.trim());
+  const re = /^\d{4}-\d{2}-\d{2}$/;
+  if (!ci || !co || !re.test(ci) || !re.test(co) || co <= ci) return null;
+  return { checkIn: ci, checkOut: co };
+}
+
+type BookingTarget = {
+  propertyId: string;
+  scope: "whole_listing" | "rooms";
+  roomIds: string[];
+};
+
+/**
+ * Resolve which property (and optional room) a booking-form submission targets,
+ * for the auto-draft-quote path. Uses the site's visible rooms: a chosen room
+ * name pins its room + property; otherwise, when every visible room belongs to
+ * ONE property, that property (whole-listing). Returns null when it can't be
+ * resolved unambiguously (e.g. rooms across multiple properties, no choice) —
+ * the caller then falls back to a plain website enquiry.
+ */
+async function resolveBookingTarget(
+  admin: ReturnType<typeof createAdminClient>,
+  websiteId: string,
+  roomName: string | undefined,
+): Promise<BookingTarget | null> {
+  const { data: wr } = await admin
+    .from("website_rooms")
+    .select("room_id, display_name")
+    .eq("website_id", websiteId)
+    .eq("is_visible", true);
+  const ids = (wr ?? []).map((r) => r.room_id).filter(Boolean);
+  if (ids.length === 0) return null;
+
+  const { data: pr } = await admin
+    .from("property_rooms")
+    .select("id, name, property_id, is_active, deleted_at")
+    .in("id", ids);
+  const active = (pr ?? []).filter(
+    (r) =>
+      (r as { is_active: boolean | null }).is_active !== false &&
+      !(r as { deleted_at: string | null }).deleted_at,
+  ) as Array<{ id: string; name: string; property_id: string }>;
+  if (active.length === 0) return null;
+
+  // A chosen room pins the property exactly.
+  const want = roomName?.trim().toLowerCase();
+  if (want) {
+    const displayByRoom = new Map(
+      (wr ?? []).map((r) => [
+        r.room_id,
+        (r as { display_name: string | null }).display_name,
+      ]),
+    );
+    const match = active.find(
+      (r) => (displayByRoom.get(r.id)?.trim() || r.name).toLowerCase() === want,
+    );
+    if (match)
+      return {
+        propertyId: match.property_id,
+        scope: "rooms",
+        roomIds: [match.id],
+      };
+  }
+
+  // No specific room → only resolvable when all rooms are one property.
+  const props = [...new Set(active.map((r) => r.property_id))];
+  if (props.length === 1)
+    return { propertyId: props[0], scope: "whole_listing", roomIds: [] };
+  return null;
+}
+
 export async function submitWebsiteForm(
   input: unknown,
 ): Promise<WebsiteFormSubmitResult> {
@@ -195,10 +271,83 @@ export async function submitWebsiteForm(
     }
   }
 
-  const wantsInbox =
-    formType !== "newsletter" && settings.notifyInbox && Boolean(email);
-
   let conversationId: string | undefined;
+
+  // BOOKING QUOTE — a booking form (a `dates` field with both dates filled)
+  // routes to the real quote pipeline so the host gets a DRAFT quote to complete
+  // & send, not just an enquiry. The conversation is tagged source="website" so
+  // it still carries the "Website enquiry" pill while rendering a real
+  // quote-request card. Falls back to the plain enquiry below when intent or the
+  // property can't be resolved, or the pipeline declines.
+  let bookingQuoted = false;
+  const datesField = fields.data.find((f) => f.type === "dates");
+  const range = datesField
+    ? parseDateRange(validated.clean[datesField.id])
+    : null;
+  if (email && range && settings.notifyInbox) {
+    const roomsField = fields.data.find((f) => f.type === "rooms");
+    const roomName = roomsField ? validated.clean[roomsField.id] : undefined;
+    const target = await resolveBookingTarget(admin, d.website_id, roomName);
+    if (target) {
+      const guestsField = fields.data.find(
+        (f) => f.type === "guests" || f.type === "number",
+      );
+      const adults = Math.max(
+        1,
+        parseInt(
+          guestsField ? (validated.clean[guestsField.id] ?? "") : "",
+          10,
+        ) || 1,
+      );
+      const guessedName = (
+        nameField ? validated.clean[nameField.id] : email.split("@")[0]
+      ).trim();
+      const message =
+        fields.data
+          .map((f) => {
+            const v = validated.clean[f.id];
+            return v ? `${f.label}: ${v}` : null;
+          })
+          .filter(Boolean)
+          .join("\n") ||
+        `Booking request (${range.checkIn} → ${range.checkOut}).`;
+
+      const { createEnquiry } = await import("@/lib/enquiry/create-enquiry");
+      const quoted = await createEnquiry(
+        {
+          property_id: target.propertyId,
+          scope: target.scope,
+          room_ids: target.roomIds,
+          check_in: range.checkIn,
+          check_out: range.checkOut,
+          guests_breakdown: { adults, children: 0, infants: 0, pets: 0 },
+          message,
+          guest_name: guessedName.length >= 2 ? guessedName : "Website visitor",
+          guest_email: email,
+          guest_phone: phone ?? "",
+        },
+        { source: "website" },
+      );
+      if (quoted.ok) {
+        bookingQuoted = true;
+        conversationId = quoted.data.conversationId;
+        if (conversationId) {
+          await admin
+            .from("website_form_submissions")
+            .update({ conversation_id: conversationId })
+            .eq("id", subRow.id);
+        }
+      }
+      // quoted not ok (e.g. listing unpublished, rate-limited) → fall through.
+    }
+  }
+
+  const wantsInbox =
+    !bookingQuoted &&
+    formType !== "newsletter" &&
+    settings.notifyInbox &&
+    Boolean(email);
+
   if (wantsInbox && email) {
     // Sender name: first text field value, else the email local part.
     const guessedName = (

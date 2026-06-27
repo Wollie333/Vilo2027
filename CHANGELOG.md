@@ -19,10 +19,28 @@ system pill + a plain bubble.
   enquiry" (was "Website").
 - Verified live in the host inbox: a real form submission rendered the card +
   pill + contact rows above the submission bubble. tsc + lint green.
-- **NOT YET DONE (EPIC 4b, needs a product decision):** turning a booking-form
-  submission into a REAL draft quote in the quote pipeline — a website form isn't
-  tied to one property/listing, so property resolution + pricing is a scoping
-  call left for the founder.
+## 2026-06-27 (PM) — Forms EPIC 4b: booking forms auto-create a real draft quote
+
+**A booking form (a `dates` field with both dates) now feeds the real quote
+pipeline** — the founder chose auto-create over a host-triggered button.
+- **submitWebsiteForm** detects booking intent and resolves the target property
+  from the chosen room (`rooms` field → room → property; scope "rooms") or, with
+  no room chosen, the site's single property (scope "whole_listing"). When it
+  resolves, it routes to `createEnquiry` (the same pipeline as a listing "Request
+  a quote") with `{ source: "website" }`, producing an auto-priced DRAFT quote +
+  a real quote-request card in the thread. Unresolvable (rooms across multiple
+  properties, no dates) or a declined pipeline → falls back to the plain website
+  enquiry. Marketing opt-in (3b) still runs either way.
+- **createEnquiry** gained an optional server-only `source` arg: the conversation
+  is created (and matched) within that source, so a website quote keeps its
+  "Website enquiry" pill and never folds into a prior direct-enquiry thread.
+- Verified live: a booking submission (Olive Room, 2 guests, 1–5 Aug) created a
+  `source="website"` conversation bound to Olive Grove with a draft quote
+  (scope rooms, R5 350, Olive Room R5 200) → the inbox shows the "Quote request
+  (draft)" card + "Complete & send quote" CTA and the "Website enquiry" list
+  chip. 131 vitest + tsc + lint green.
+
+(Prior interim note removed — 4b is now done.)
 
 ## 2026-06-27 (PM) — Forms EPIC 3c: every field type adopts the active theme
 

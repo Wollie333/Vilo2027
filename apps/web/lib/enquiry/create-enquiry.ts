@@ -117,6 +117,12 @@ function isWithinQuietHours(
 
 export async function createEnquiry(
   input: unknown,
+  // Optional origin tag for the conversation. A website booking form passes
+  // "website" so the quote thread still carries the "Website enquiry" pill while
+  // rendering a real quote-request card. Omitted → the default direct-enquiry
+  // behaviour (source left unset). NOT part of the public schema — it's a
+  // server-side caller decision, never client-supplied.
+  opts?: { source?: string },
 ): Promise<RequestQuoteResult> {
   const parsed = guestQuoteRequestSchema.safeParse(input);
   if (!parsed.success) {
@@ -222,16 +228,20 @@ export async function createEnquiry(
     lastStage: "new_quote",
   });
 
-  // Find-or-create the enquiry conversation.
+  // Find-or-create the enquiry conversation. When a source tag is set (website
+  // booking form), match + create within that source so the origin pill sticks
+  // and a website quote never folds into a prior direct-enquiry thread.
   let conversationId: string;
-  const { data: conv } = await admin
+  let convQuery = admin
     .from("conversations")
     .select("id")
     .eq("host_id", listing.host_id)
     .eq("guest_id", guestId)
     .eq("property_id", listing.id)
     .eq("is_enquiry", true)
-    .neq("status", "archived")
+    .neq("status", "archived");
+  if (opts?.source) convQuery = convQuery.eq("source", opts.source);
+  const { data: conv } = await convQuery
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
@@ -247,6 +257,7 @@ export async function createEnquiry(
         is_enquiry: true,
         status: "open",
         pipeline_stage: "new_quote",
+        ...(opts?.source ? { source: opts.source } : {}),
       })
       .select("id")
       .single();
