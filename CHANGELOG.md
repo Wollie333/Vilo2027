@@ -23,6 +23,24 @@ The header nav-manager already renders the real `SafariShell` over a hero and th
 controls drive both the preview and the live site. Verified live: all 4 layouts on
 the published header + the editor preview switching on card click. (`03258f9`)
 
+**Every header setting now affects the Safari front end** (full audit). Threaded
+the remaining ignored settings through `buildSafariNav → SafariShell → SafariNav`:
+- **Behaviour → keep visible on scroll** (`sticky`): off → the bar un-pins and
+  scrolls away (absolute over the hero when transparent, in-flow when solid);
+  `SafariShell` drops the fixed-header top padding. (`59b7b50`)
+- **Behaviour → transparency** (`transparentOverHero`): off → a solid bar from the
+  top (`bgColor`), instead of the transparent-over-hero fade (`scrolledBgColor`
+  for the scrolled state). Made the schema field optional so "unset" means "theme
+  decides" — generic stays solid, Safari stays transparent by design; the inspector
+  toggle now shows the true Safari default (ON). (`59b7b50`)
+- **Elements → logo style** (`logoStyle`): wordmark / icon / mark now render
+  name-only / mark-only / mark+name on the brand (header + drawer); unset keeps the
+  design default. (`8483234`)
+- **Behaviour → collapse menu** (`menuCollapse`): the inline menu collapses to the
+  ☰ drawer at the chosen breakpoint (mobile <768 / tablet <1024 / never), mirroring
+  the generic theme — replaced the hardcoded 860px nav collapse. (`8483234`)
+Verified live across all combinations + breakpoints (1280/900/375px).
+
 **Fixed a phantom "Unpublished changes".** `buildWebsiteSnapshot` read the
 `navigation` column raw while saves normalise it through `navigationSchema` (which
 injects a default `menuStyle`), so a missing-key-vs-default-filled-key difference
