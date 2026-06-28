@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { ThemedDateRange } from "./ThemedDateRange";
+
 /**
  * Sticky per-room booking form — a compact card that floats on the right of the
  * room-detail page (desktop) or docks to the bottom (mobile), always visible as
@@ -106,29 +108,20 @@ export function RoomBookingDock({
           )}
         </div>
         <div className="rbd-fields">
-          <div className="rbd-row">
-            <div className="rbd-col">
-              <label>Check-in</label>
-              <input
-                type="date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                style={fieldStyle}
-                disabled={!interactive}
-              />
-            </div>
-            <div className="rbd-col">
-              <label>Check-out</label>
-              <input
-                type="date"
-                value={to}
-                min={from || undefined}
-                onChange={(e) => setTo(e.target.value)}
-                style={fieldStyle}
-                disabled={!interactive}
-              />
-            </div>
-          </div>
+          <ThemedDateRange
+            from={from}
+            to={to}
+            onChange={(f, t) => {
+              setFrom(f);
+              setTo(t);
+            }}
+            accent={accent}
+            ink={ink}
+            mute={mute}
+            line={line}
+            surface={surface}
+            radius={radius}
+          />
           <div style={{ marginTop: 10 }}>
             <label>Guests</label>
             <select
