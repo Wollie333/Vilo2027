@@ -2,7 +2,28 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #2 — prod-deploy VERIFIED + 2 CMS builder bug-fixes)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #3 — WEBSITE CMS → MVP PUSH: all 5 phases shipped (local, committed, NOT pushed))
+
+**Founder directive:** drive the website CMS to 100% MVP in LOCAL dev, then push to Vercel once solid. Worked priority order; **every phase verified `tsc --noEmit` + `next lint` (both exit 0)**, committed **locally to `main` (NO push — push = prod deploy, awaiting founder's go).** No DB migrations (all JSON-shape additive). Commits: `919f2f1` (P1+P2+P5+bugfixes) · `5d2ede7` (P3) · `b9e25ee` (P4).
+
+**WHAT SHIPPED (5 phases):**
+1. **P1 — Spacer & divider as inline container elements.** `el_spacer`/`el_divider` are now `ColumnBlock` kinds inside the Section (flex) + Columns containers (schema branches, `newColumnBlock`, `ContainerCanvas` add-bar + both inspector add-lists, `ColumnBlockEditor` controls, `InlineBlock` render).
+2. **P2 — Per-page SEO.** New per-page **noindex** toggle (PageSeoCard → `savePageSeoSchema.noindex` → `loadSiteMeta` emits `robots:noindex` overriding site). Blog posts now use their **own cover** as `og:image` + render `og:type=article` w/ publishedTime/author (`loadSiteMeta` returns ogType/publishedTime/authorName; `metadata.ts` branches OG).
+3. **P5 (founder's #1) — Inline form-field editing in the page builder.** A `form` section's inspector has an **"Edit form fields"** button → opens the FULL form builder (palette, dnd reorder, field/settings/styles inspectors) in a full-screen `createPortal` overlay; no leaving the builder. Reuses `FormEditor` via new `embedded`/`onClose` prop; save `router.refresh()`es so the canvas re-resolves. New `getWebsiteFormForEditorAction` loads the form payload to the client.
+4. **P3 — Settings hub.** Publish-status badge (Live/Draft/Unpublished) in the header; **site name + tagline quick-edit** persisted to the `brand` jsonb (`websiteSettingsSchema.brandName/brandTagline`; `saveWebsiteSettingsAction` merges `brand` alongside `settings`; blank name ignored); **Domain link** added to the Access block.
+5. **P4 — Per-element styling in containers.** Container children gain the standalone `el_*` styling: heading/text get align+size/weight/color, image gets width+align, button gets size+align (all optional → legacy blocks inherit). `InlineBlock` reuses `elColor/elFontSize/elFontWeight`; editor reuses `AlignField`+`TypographyFields`.
+
+**⚠️ VERIFICATION CAVEAT — green at tsc+lint, NOT live-clicked.** A dev server is already running on **:3000** (PID 3244, founder's session) — the Preview MCP can't attach, and unauth'd curls 307→login before the route compiles. So I could not drive the UI. The founder's running server HOT-RELOADS these source edits on navigation. **Needs a live smoke-test by the founder** (esp. P5 the overlay editor + P4 the per-element controls). Confirmed: `FormEditor` is `"use client"` (safe import), no circular import, prettier ran via lint-staged.
+
+**▶▶ NEXT:**
+1. **Founder live-test** the 5 phases on :3000 (log in as `host@vilotest.com`/`ViloTest123!`), report issues.
+2. **Then push to Vercel** (founder's explicit go — push to `main` = full prod deploy) once happy.
+3. **Deferred (post-MVP, noted in CHANGELOG):** per-DEVICE responsive overrides for individual container children (big schema/render change; container already has responsive visibility). Blog-post head-code/pixel parity. Favicon + blog-config in Settings (Brand Studio already owns favicon; blog config = new feature).
+4. Untracked `docs/features/LOOKING_FOR_FEATURE.md` present in tree — not mine, left alone. Stray `nul` artifact keeps regenerating (some tool writes to NUL) — `rm -f nul` before commits.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-28 EOD #2 — prod-deploy VERIFIED + 2 CMS builder bug-fixes)
 
 **Branch:** `main` — bug-fixes **NOT yet committed/pushed** as of this save point (awaiting founder's go; pushing `main` = full prod deploy). `tsc` + `next lint` both **exit 0**. (131 vitest unchanged — not re-run; no logic touched.)
 
