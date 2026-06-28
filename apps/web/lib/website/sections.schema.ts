@@ -685,17 +685,29 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
     kind: z.literal("heading"),
     text: z.string().max(200),
     level: z.enum(["h1", "h2", "h3", "h4", "h5", "h6", "p"]).default("h3"),
+    // Per-element styling (mirrors el_heading) — all optional so legacy blocks
+    // and "auto"/"default" keep inheriting the theme exactly as before.
+    align: z.enum(ELEMENT_ALIGN).optional(),
+    size: z.enum(EL_SIZE).optional(),
+    weight: z.enum(EL_WEIGHT).optional(),
+    color: z.enum(EL_COLOR).optional(),
   }),
   z.object({
     id: z.string().optional(),
     kind: z.literal("text"),
     body: z.string().max(2000),
+    align: z.enum(ELEMENT_ALIGN).optional(),
+    size: z.enum(EL_SIZE).optional(),
+    weight: z.enum(EL_WEIGHT).optional(),
+    color: z.enum(EL_COLOR).optional(),
   }),
   z.object({
     id: z.string().optional(),
     kind: z.literal("image"),
     image_path: z.string().optional(),
     alt: z.string().max(200).optional(),
+    width: z.enum(["narrow", "medium", "full"]).optional(),
+    align: z.enum(ELEMENT_ALIGN).optional(),
   }),
   z.object({
     id: z.string().optional(),
@@ -703,6 +715,8 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
     label: z.string().max(60),
     href: z.string().max(500),
     variant: z.enum(["primary", "secondary"]).default("primary"),
+    size: z.enum(EL_BUTTON_SIZE).optional(),
+    align: z.enum(ELEMENT_ALIGN).optional(),
   }),
   // Structural helpers — mirror the el_spacer / el_divider section props so a
   // container child can add vertical rhythm or a rule without leaving the block.

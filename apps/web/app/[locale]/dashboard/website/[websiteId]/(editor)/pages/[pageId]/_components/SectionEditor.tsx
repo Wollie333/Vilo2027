@@ -3026,13 +3026,38 @@ export function newColumnBlock(kind: ColumnBlockKind): ColumnBlock {
   const id = crypto.randomUUID();
   switch (kind) {
     case "heading":
-      return { id, kind, text: "Heading", level: "h3" };
+      return {
+        id,
+        kind,
+        text: "Heading",
+        level: "h3",
+        align: "left",
+        size: "auto",
+        weight: "auto",
+        color: "default",
+      };
     case "text":
-      return { id, kind, body: "Add some text." };
+      return {
+        id,
+        kind,
+        body: "Add some text.",
+        align: "left",
+        size: "auto",
+        weight: "auto",
+        color: "default",
+      };
     case "image":
-      return { id, kind };
+      return { id, kind, width: "full", align: "center" };
     case "button":
-      return { id, kind, label: "Button", href: "#", variant: "primary" };
+      return {
+        id,
+        kind,
+        label: "Button",
+        href: "#",
+        variant: "primary",
+        size: "md",
+        align: "left",
+      };
     case "spacer":
       return { id, kind, size: "md" };
     case "divider":
@@ -3372,17 +3397,39 @@ export function ColumnBlockEditor({
             ]}
             onChange={(v) => onChange({ ...block, level: v })}
           />
+          <AlignField
+            value={block.align ?? "left"}
+            onChange={(v) => onChange({ ...block, align: v })}
+          />
+          <TypographyFields
+            size={block.size ?? "auto"}
+            weight={block.weight ?? "auto"}
+            color={block.color ?? "default"}
+            onChange={(patch) => onChange({ ...block, ...patch })}
+          />
         </div>
       ) : null}
 
       {block.kind === "text" ? (
-        <TextArea
-          label={t("fldBody")}
-          value={block.body}
-          onChange={(v) => onChange({ ...block, body: v })}
-          maxLength={2000}
-          rows={3}
-        />
+        <div className="space-y-2.5">
+          <TextArea
+            label={t("fldBody")}
+            value={block.body}
+            onChange={(v) => onChange({ ...block, body: v })}
+            maxLength={2000}
+            rows={3}
+          />
+          <AlignField
+            value={block.align ?? "left"}
+            onChange={(v) => onChange({ ...block, align: v })}
+          />
+          <TypographyFields
+            size={block.size ?? "auto"}
+            weight={block.weight ?? "auto"}
+            color={block.color ?? "default"}
+            onChange={(patch) => onChange({ ...block, ...patch })}
+          />
+        </div>
       ) : null}
 
       {block.kind === "image" ? (
@@ -3398,6 +3445,20 @@ export function ColumnBlockEditor({
             value={block.alt ?? ""}
             onChange={(v) => onChange({ ...block, alt: v })}
             maxLength={200}
+          />
+          <SelectField
+            label={t("fldElWidth")}
+            value={block.width ?? "full"}
+            options={[
+              { value: "narrow", label: t("elWidth_narrow") },
+              { value: "medium", label: t("elWidth_medium") },
+              { value: "full", label: t("elWidth_full") },
+            ]}
+            onChange={(v) => onChange({ ...block, width: v })}
+          />
+          <AlignField
+            value={block.align ?? "center"}
+            onChange={(v) => onChange({ ...block, align: v })}
           />
         </div>
       ) : null}
@@ -3424,6 +3485,20 @@ export function ColumnBlockEditor({
               { value: "secondary", label: t("elButton_secondary") },
             ]}
             onChange={(v) => onChange({ ...block, variant: v })}
+          />
+          <SelectField
+            label={t("fldElButtonSize")}
+            value={block.size ?? "md"}
+            options={[
+              { value: "sm", label: t("elBtnSize_sm") },
+              { value: "md", label: t("elBtnSize_md") },
+              { value: "lg", label: t("elBtnSize_lg") },
+            ]}
+            onChange={(v) => onChange({ ...block, size: v })}
+          />
+          <AlignField
+            value={block.align ?? "left"}
+            onChange={(v) => onChange({ ...block, align: v })}
           />
         </div>
       ) : null}

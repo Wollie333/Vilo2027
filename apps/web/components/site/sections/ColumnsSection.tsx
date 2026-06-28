@@ -11,6 +11,9 @@ import {
   SectionHeading,
   SectionShell,
   SiteButton,
+  elColor,
+  elFontSize,
+  elFontWeight,
   siteImageStyle,
 } from "./_shared";
 
@@ -26,6 +29,13 @@ const H_SIZE = {
   p: "1rem",
 } as const;
 
+type ElAlign = "left" | "center" | "right";
+const IMG_MAX = { narrow: "32rem", medium: "48rem", full: "100%" } as const;
+const elTextAlign = (a: ElAlign) =>
+  a === "center" ? "center" : a === "right" ? "right" : "left";
+const elJustify = (a: ElAlign) =>
+  a === "center" ? "center" : a === "right" ? "flex-end" : "flex-start";
+
 /** One inline block inside a column. Theme-aware via the scoped `--site-*` vars. */
 export function InlineBlock({
   block,
@@ -36,50 +46,75 @@ export function InlineBlock({
 }) {
   switch (block.kind) {
     case "heading": {
+      if (!block.text?.trim()) return null;
       const level = block.level ?? "h3";
       const style: CSSProperties = {
         fontFamily: "var(--site-font-heading)",
-        fontWeight: "var(--site-weight-heading)" as unknown as number,
-        fontSize: H_SIZE[level],
+        fontWeight: elFontWeight(block.weight, "var(--site-weight-heading)"),
+        fontSize: elFontSize(block.size, H_SIZE[level]),
         lineHeight: "var(--site-leading-heading)" as unknown as number,
         letterSpacing: "var(--site-tracking-heading)",
-        color: "var(--site-ink)",
+        color: elColor(block.color, "var(--site-ink)"),
+        textAlign: elTextAlign((block.align ?? "left") as ElAlign),
       };
       const Tag = level;
-      return block.text?.trim() ? <Tag style={style}>{block.text}</Tag> : null;
+      return <Tag style={style}>{block.text}</Tag>;
     }
-    case "text":
-      return block.body?.trim() ? (
-        <p
-          style={{
-            color: "var(--site-mute)",
-            lineHeight: "var(--site-leading-body)" as unknown as number,
-          }}
-          className="whitespace-pre-line text-base"
-        >
+    case "text": {
+      if (!block.body?.trim()) return null;
+      const style: CSSProperties = {
+        color: elColor(block.color, "var(--site-mute)"),
+        lineHeight: "var(--site-leading-body)" as unknown as number,
+        textAlign: elTextAlign((block.align ?? "left") as ElAlign),
+      };
+      if (block.size && block.size !== "auto") {
+        style.fontSize = elFontSize(block.size, "");
+      }
+      if (block.weight && block.weight !== "auto") {
+        style.fontWeight = elFontWeight(block.weight, 400);
+      }
+      return (
+        <p style={style} className="whitespace-pre-line text-base">
           {block.body}
         </p>
-      ) : null;
+      );
+    }
     case "image": {
       const src = asset?.(block.image_path) ?? block.image_path ?? undefined;
       if (!src) return null;
+      const align = (block.align ?? "center") as ElAlign;
       return (
-        <SiteImg
-          src={src}
-          alt={block.alt ?? ""}
-          style={siteImageStyle}
-          className="h-auto w-full object-cover"
-          sizes="(min-width: 768px) 360px, 100vw"
-          widths={[240, 360, 480, 720]}
-        />
+        <figure
+          className="w-full"
+          style={{
+            maxWidth: IMG_MAX[block.width ?? "full"],
+            marginLeft: align === "left" ? 0 : "auto",
+            marginRight: align === "right" ? 0 : "auto",
+          }}
+        >
+          <SiteImg
+            src={src}
+            alt={block.alt ?? ""}
+            style={siteImageStyle}
+            className="h-auto w-full object-cover"
+            sizes="(min-width: 768px) 360px, 100vw"
+            widths={[240, 360, 480, 720]}
+          />
+        </figure>
       );
     }
     case "button":
       return block.label?.trim() ? (
-        <div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: elJustify((block.align ?? "left") as ElAlign),
+          }}
+        >
           <SiteButton
             href={block.href || "#"}
             variant={block.variant ?? "primary"}
+            size={block.size ?? "md"}
           >
             {block.label}
           </SiteButton>

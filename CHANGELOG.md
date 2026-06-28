@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-28 (EOD #5) — Website CMS → MVP push (part 3): per-element styling in containers (Phase 4)
+
+Container children (`ColumnBlock` heading/text/image/button inside Section & Columns)
+now carry the same per-element styling the standalone `el_*` sections have, so a
+host can style elements without leaving the container. `tsc` + `next lint` green.
+No migration.
+
+- **Schema** — added optional `align` + typography (`size` / `weight` / `color`)
+  to heading & text blocks, `width` + `align` to image, `size` + `align` to
+  button. All optional so legacy blocks (and "auto"/"default") keep inheriting
+  the theme — no data backfill, no literal churn.
+- **Render** (`InlineBlock`) — reuses the shared `elColor` / `elFontSize` /
+  `elFontWeight` helpers (which already accept undefined) + per-block text-align,
+  image max-width/justify, and button size/justify. Identical output to the
+  standalone elements.
+- **Editor** (`ColumnBlockEditor`) — reuses the shared `AlignField` +
+  `TypographyFields` and the width/size selects, so the inline controls match the
+  full element editors exactly.
+- `newColumnBlock` seeds sensible starting values per kind.
+
+**Deferred (noted):** per-DEVICE responsive overrides for individual container
+children — a much larger schema/render change; the container itself already has
+responsive visibility, so this is post-MVP.
+
+---
+
 ## 2026-06-28 (EOD #4) — Website CMS → MVP push (part 2): settings consolidation (Phase 3)
 
 Settings page is now a clearer hub (founder: settings felt "scattered + missing").
