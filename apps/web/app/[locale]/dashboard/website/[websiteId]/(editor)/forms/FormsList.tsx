@@ -148,14 +148,23 @@ export function FormsList({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm ml-auto"
-          onClick={() => setAddOpen(true)}
-        >
-          <Plus style={{ width: 15, height: 15 }} />
-          {t("newForm")}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <Link
+            href={`/dashboard/website/${websiteId}/forms/responses`}
+            className="btn btn-ghost btn-sm"
+          >
+            <Inbox style={{ width: 15, height: 15 }} />
+            {t("formViewSubmissions")}
+          </Link>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => setAddOpen(true)}
+          >
+            <Plus style={{ width: 15, height: 15 }} />
+            {t("newForm")}
+          </button>
+        </div>
       </div>
 
       <section

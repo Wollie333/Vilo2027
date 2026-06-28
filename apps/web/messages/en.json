@@ -726,6 +726,7 @@
     "formFilterLive": "Published",
     "formFilterDraft": "Drafts",
     "newForm": "New form",
+    "formViewSubmissions": "View submissions",
     "formColForm": "Form",
     "formColType": "Type",
     "formColStatus": "Status",

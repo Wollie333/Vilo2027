@@ -192,7 +192,10 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
     ],
   },
   { key: "catLocation", types: ["location", "map"] },
-  { key: "catConvert", types: ["cta", "contact_form", "form"] },
+  // One unified Form element (`form` — pick which of the host's forms to show).
+  // The legacy hardcoded `contact_form` is retired from the palette (it still
+  // renders on existing pages for back-compat) so hosts add ONE form element.
+  { key: "catConvert", types: ["cta", "form"] },
   { key: "catMore", types: ["rich_text", "faq"] },
   {
     key: "catElements",
