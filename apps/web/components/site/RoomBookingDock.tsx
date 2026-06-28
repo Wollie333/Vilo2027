@@ -52,6 +52,22 @@ export function RoomBookingDock({
       ? `${ccy === "ZAR" ? "R" : ccy} ${groupThousands(price)}`
       : null;
 
+  // Selected stay length + an estimated subtotal (nights × nightly). Final price
+  // — incl. fees — is confirmed on the checkout. Hydration-safe: both dates start
+  // empty so the summary is absent on the server render too.
+  const nights = (() => {
+    if (!from || !to) return 0;
+    const a = Date.parse(`${from}T00:00:00`);
+    const b = Date.parse(`${to}T00:00:00`);
+    if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+    const n = Math.round((b - a) / 86400000);
+    return n > 0 ? n : 0;
+  })();
+  const stayLabel =
+    nights > 0 && price != null
+      ? `${ccy === "ZAR" ? "R" : ccy} ${groupThousands(nights * price)}`
+      : null;
+
   function book() {
     if (!interactive) return;
     const params = new URLSearchParams();
@@ -138,6 +154,26 @@ export function RoomBookingDock({
             </select>
           </div>
         </div>
+        {nights > 0 ? (
+          <div
+            style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: `1px solid ${line}`,
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "space-between",
+              fontSize: 14,
+            }}
+          >
+            <span style={{ color: mute }}>
+              {nights} {nights === 1 ? "night" : "nights"}
+            </span>
+            {stayLabel ? (
+              <span style={{ color: ink, fontWeight: 700 }}>{stayLabel}</span>
+            ) : null}
+          </div>
+        ) : null}
         <button type="button" className="rbd-btn" onClick={book}>
           Book this room
         </button>

@@ -143,7 +143,16 @@ export function ThemedDateRange({
     <div ref={wrapRef} style={{ position: "relative" }}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          const opening = !open;
+          setOpen(opening);
+          // Open on the check-in month so picking the check-out date is right
+          // there — the guest never has to hunt for the correct month.
+          if (opening && from) {
+            const d = fromISO(from);
+            if (d) setView({ y: d.getFullYear(), m: d.getMonth() });
+          }
+        }}
         style={{
           display: "flex",
           gap: 12,

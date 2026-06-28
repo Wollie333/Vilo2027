@@ -471,9 +471,13 @@ function NewFormModal({
 }) {
   const t = useTranslations("website");
   const router = useRouter();
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
+  // Stays true from the click through the route change — the modal keeps showing
+  // a loading state until the form builder renders (no close-then-blank flash).
+  const [creating, setCreating] = useState(false);
 
   function pick(tpl: (typeof TEMPLATES)[number]) {
+    setCreating(true);
     start(async () => {
       const res = await createWebsiteFormAction({
         websiteId,
@@ -482,10 +486,12 @@ function NewFormModal({
         template: tpl.key,
       });
       if (!res.ok) {
+        setCreating(false);
         toast.error(t("formsCreateError"));
         return;
       }
-      onOpenChange(false);
+      // Don't close the modal — navigate while it stays open, so it dissolves
+      // straight into the builder instead of flashing an empty screen.
       router.push(`/website-editor/${websiteId}/forms/${res.id}`);
     });
   }
@@ -493,43 +499,54 @@ function NewFormModal({
   return (
     <FormModal
       open={open}
-      onOpenChange={onOpenChange}
+      // Block dismissal while creating so the loading state can't be cancelled
+      // into a blank gap.
+      onOpenChange={(o) => {
+        if (!creating) onOpenChange(o);
+      }}
       title={t("newFormTitle")}
       description={t("newFormSub")}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
-        {TEMPLATES.map((tpl) => {
-          const Icon = tpl.icon;
-          return (
-            <button
-              key={tpl.key}
-              type="button"
-              disabled={pending}
-              onClick={() => pick(tpl)}
-              className="flex items-start gap-3 rounded-[12px] border border-brand-line bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-light disabled:opacity-50"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
-                {pending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Icon className="h-5 w-5" />
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[13.5px] font-semibold text-brand-ink">
-                  {t(`formTpl_${tpl.key}`)}
-                </span>
-                <span className="mt-0.5 block text-[11.5px] leading-snug text-brand-mute">
-                  {t(`formTplDesc_${tpl.key}`)}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <FormModalFooter>
-        <FormModalCancel>{t("cancel")}</FormModalCancel>
-      </FormModalFooter>
+      {creating ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+          <Loader2 className="h-7 w-7 animate-spin text-brand-primary" />
+          <p className="text-sm font-semibold text-brand-ink">
+            {t("formsCreating")}
+          </p>
+          <p className="text-[12px] text-brand-mute">{t("formsCreatingSub")}</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {TEMPLATES.map((tpl) => {
+              const Icon = tpl.icon;
+              return (
+                <button
+                  key={tpl.key}
+                  type="button"
+                  onClick={() => pick(tpl)}
+                  className="flex items-start gap-3 rounded-[12px] border border-brand-line bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-light"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] font-semibold text-brand-ink">
+                      {t(`formTpl_${tpl.key}`)}
+                    </span>
+                    <span className="mt-0.5 block text-[11.5px] leading-snug text-brand-mute">
+                      {t(`formTplDesc_${tpl.key}`)}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <FormModalFooter>
+            <FormModalCancel>{t("cancel")}</FormModalCancel>
+          </FormModalFooter>
+        </>
+      )}
     </FormModal>
   );
 }

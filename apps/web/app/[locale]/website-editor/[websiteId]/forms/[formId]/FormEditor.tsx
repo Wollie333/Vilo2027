@@ -1140,8 +1140,9 @@ function FormSettingsPanel({
                   onPatch({ goal: e.target.value as FormSettings["goal"] })
                 }
               >
-                <option value="enquiry">{t("formGoal_enquiry")}</option>
+                <option value="booking">{t("formGoal_booking")}</option>
                 <option value="quote">{t("formGoal_quote")}</option>
+                <option value="enquiry">{t("formGoal_enquiry")}</option>
                 <option value="subscribe">{t("formGoal_subscribe")}</option>
                 <option value="general">{t("formGoal_general")}</option>
               </select>
