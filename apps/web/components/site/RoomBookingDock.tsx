@@ -29,12 +29,15 @@ export function RoomBookingDock({
   price,
   currency,
   bookHref,
+  maxGuests,
   interactive = true,
 }: {
   roomName: string;
   price?: number | null;
   currency?: string | null;
   bookHref: string;
+  /** Caps the guest selector so a guest can't pick more than the room sleeps. */
+  maxGuests?: number | null;
   /** False in the builder canvas — the form is shown but inert. */
   interactive?: boolean;
 }) {
@@ -68,11 +71,16 @@ export function RoomBookingDock({
       ? `${ccy === "ZAR" ? "R" : ccy} ${groupThousands(nights * price)}`
       : null;
 
+  // Cap the guest selector at what the room sleeps (falls back to 8).
+  const guestMax = Math.min(30, Math.max(1, maxGuests ?? 8));
+  const datesReady = Boolean(from && to && nights > 0);
+
   function book() {
-    if (!interactive) return;
+    // Require dates so the checkout never lands empty (it can't price without them).
+    if (!interactive || !datesReady) return;
     const params = new URLSearchParams();
-    if (from) params.set("from", from);
-    if (to) params.set("to", to);
+    params.set("from", from);
+    params.set("to", to);
     params.set("guests", String(guests));
     const sep = bookHref.includes("?") ? "&" : "?";
     window.location.href = `${bookHref}${sep}${params.toString()}`;
@@ -146,7 +154,7 @@ export function RoomBookingDock({
               style={fieldStyle}
               disabled={!interactive}
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              {Array.from({ length: guestMax }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>
                   {n} {n === 1 ? "guest" : "guests"}
                 </option>
@@ -174,8 +182,14 @@ export function RoomBookingDock({
             ) : null}
           </div>
         ) : null}
-        <button type="button" className="rbd-btn" onClick={book}>
-          Book this room
+        <button
+          type="button"
+          className="rbd-btn"
+          onClick={book}
+          disabled={!datesReady}
+          style={datesReady ? undefined : { opacity: 0.55, cursor: "default" }}
+        >
+          {datesReady ? "Book this room" : "Select your dates"}
         </button>
       </div>
     </aside>

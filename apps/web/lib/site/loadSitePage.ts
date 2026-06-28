@@ -1886,6 +1886,7 @@ export async function loadRoomDetail(
     }),
     propertyId: room.property_id,
     propertyName: propRow?.name ?? null,
+    maxGuests: room.max_guests ?? null,
     policies: hasPolicies ? policies : null,
   };
 }

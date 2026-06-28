@@ -317,26 +317,32 @@ export async function submitWebsiteForm(
       d.website_id,
       rF ? validated.clean[rF.id] : undefined,
     );
-    if (target) {
-      const gF = fields.data.find(
-        (f) => f.type === "guests" || f.type === "number",
-      );
-      const guests = Math.max(
-        1,
-        parseInt(gF ? (validated.clean[gF.id] ?? "") : "", 10) || 1,
-      );
-      const qs = new URLSearchParams();
-      qs.set("property", target.propertyId);
-      if (target.scope === "whole_listing") qs.set("scope", "whole_listing");
-      else if (target.roomIds[0]) qs.set("room", target.roomIds[0]);
-      if (rng) {
-        qs.set("from", rng.checkIn);
-        qs.set("to", rng.checkOut);
-      }
-      qs.set("guests", String(guests));
-      return { ok: true, data: { bookingQuery: qs.toString() } };
+    // A booking form must reach the checkout — never silently degrade to an
+    // enquiry. If we can't resolve a single property/room (e.g. a multi-property
+    // site with no room chosen), tell the guest what to do.
+    if (!target) {
+      return {
+        ok: false,
+        error: "Please choose a room or property to continue to booking.",
+      };
     }
-    // No resolvable property → fall through to the normal enquiry handling.
+    const gF = fields.data.find(
+      (f) => f.type === "guests" || f.type === "number",
+    );
+    const guests = Math.max(
+      1,
+      parseInt(gF ? (validated.clean[gF.id] ?? "") : "", 10) || 1,
+    );
+    const qs = new URLSearchParams();
+    qs.set("property", target.propertyId);
+    if (target.scope === "whole_listing") qs.set("scope", "whole_listing");
+    else if (target.roomIds[0]) qs.set("room", target.roomIds[0]);
+    if (rng) {
+      qs.set("from", rng.checkIn);
+      qs.set("to", rng.checkOut);
+    }
+    qs.set("guests", String(guests));
+    return { ok: true, data: { bookingQuery: qs.toString() } };
   }
 
   // QUOTE REQUEST — a QUOTE form (goal "quote", with a `dates` field filled)

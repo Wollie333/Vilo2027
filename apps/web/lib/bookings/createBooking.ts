@@ -197,6 +197,11 @@ export async function priceBooking(
   if (nights <= 0) {
     return { ok: false, error: "Check-out must be after check-in." };
   }
+  // Reject stays that start in the past (stale/edited deep-links) so a guest can
+  // never pay for dates that have already gone.
+  if (daysUntil(d.check_in!) < 0) {
+    return { ok: false, error: "Check-in can’t be in the past." };
+  }
   const minNights = listing.min_nights ?? 1;
   if (nights < minNights) {
     return {

@@ -326,6 +326,8 @@ export type RoomDetail = {
   bookHref: string;
   propertyId: string;
   propertyName?: string | null;
+  /** Max occupancy — caps the booking dock's guest selector. */
+  maxGuests?: number | null;
   /** Auto-populated "things to know" (from the parent property) — drives the
    *  room_policies section. Absent when the property has none set. */
   policies?: RoomPolicies | null;

@@ -75,12 +75,14 @@ export function ThemedDateRange({
 
   useEffect(() => {
     if (!open) return;
-    function onDoc(e: MouseEvent) {
+    // `pointerdown` fires for both mouse and touch, so the calendar dismisses on a
+    // tap-outside on mobile (where a `mousedown`-only listener wouldn't).
+    function onDoc(e: Event) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node))
         setOpen(false);
     }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("pointerdown", onDoc);
+    return () => document.removeEventListener("pointerdown", onDoc);
   }, [open]);
 
   function pick(iso: string) {

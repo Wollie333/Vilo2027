@@ -307,6 +307,11 @@ export function SiteCheckoutForm({
 
   const formInvalid =
     !canQuote ||
+    // Don't let the guest pay until the stay is confirmed available AND priced —
+    // otherwise they'd fill everything, pay, and bounce at the booking step.
+    !quote ||
+    !quote.available ||
+    quote.total == null ||
     !name.trim() ||
     !email.trim() ||
     !ack ||
@@ -673,6 +678,12 @@ export function SiteCheckoutForm({
               {quote && !quote.available ? (
                 <p className="text-sm font-medium text-red-600">
                   Those dates aren’t available — please try different dates.
+                </p>
+              ) : null}
+              {quote && quote.available && quote.total == null ? (
+                <p className="text-sm font-medium text-red-600">
+                  We couldn’t price this stay — check the minimum number of
+                  nights or try different dates.
                 </p>
               ) : null}
 
