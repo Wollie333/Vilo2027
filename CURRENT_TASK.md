@@ -2,7 +2,28 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #4 — 4 DEFERRED CMS ITEMS SHIPPED (local, committed, NOT pushed))
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #5 — BOOKING-SYSTEM EPIC KICKED OFF: per-room override FOUNDATION shipped + verified)
+
+**Founder directive: turn the website CMS into a full booking system; whatever we build now is the FOUNDATION for ALL future themes (~5 themes planned, same logic, unique designs). Work the list in order.** Big finding from a 3-subagent code survey: **most of what the founder described already exists** — the room_detail template is already builder-editable + renders per-room (verified live); on-site booking + payment (Paystack card + EFT, server-side pricing, verified webhooks) is already built (Phase 6c); forms already have ONE `form` element + editor + a filterable submissions viewer. So the real work is **unify / seed / refine**, not build-from-zero.
+
+**✅ ARCHITECTURE LOCKED (founder decisions):**
+- **Room model = ONE template + per-room OVERRIDE layer** (NOT a materialized page per room — that would freeze rooms from template edits + carry create/rename/delete sync). Per-room power = a room may **append extras AND hide/replace specific template sections**; default = pure template (template edits propagate). Rooms shown **nested under the template in Pages** (derived live from the rooms list — no page-per-room to create/sync). Builder gets a **"Template (all rooms)" ↔ "This room only"** toggle.
+- **Config belongs in its feature's home, not Settings:** Brand assets → Brand Studio (refine it, don't duplicate; DROP the favicon row I added in `1dfbde2`). **Blog settings → the Blog manager** (a "Blog settings" button) + wire to the blog page in the builder. (memory [[brand-studio-owns-brand-assets]])
+
+**✅ SHIPPED THIS SESSION — per-room override SERVER FOUNDATION (engine → render → save), theme-agnostic, all tsc-clean + verified:**
+1. **Engine (`70e7a3d`)** — `lib/website/roomDetailOverride.ts`: `roomDetailOverrideSchema` (`{ hidden:string[], replaced:Record<sectionId,Section>, extras:Section[] }`) + `parseRoomDetailOverride` (safe→null) + pure `mergeRoomDetailSections(template, override)` (drop hidden → swap replaced → append extras). Migration `20260628240000_website_room_detail_overrides.sql` = additive nullable `website_rooms.detail_overrides jsonb`.
+2. **Render (`967dc7c`)** — `loadSiteRoomPage` loads the viewed room's `detail_overrides` + merges over the template before injecting live room data. Surgically added the column to `database.types.ts` (NOT a full regen — would clobber the parallel session's unapplied table types). **VERIFIED LIVE:** seeded an extra block on Olive Room → it rendered (HTTP 200) on that room only; pure-template rooms deterministically unchanged (null → template).
+3. **Save (`ede0c66`)** — `saveRoomDetailOverrideAction` (owner+feature gated, anti-tamper room∈website, empty→NULL).
+
+**⚠️ MIGRATION SITUATION (important):** My column `website_rooms.detail_overrides` **IS applied on the linked cloud DB** — but `supabase db push --linked` FAILED on the parallel **looking-for** session's first migration (`20260628100000_looking_for_schema.sql` → `function update_updated_at_column() does not exist`), so I applied MINE in isolation by temporarily holding their 7 `*looking_for*.sql` files out of `supabase/migrations/`, pushing only mine, then restoring them (all 7 back, verified). **The looking-for migrations are still PENDING + BROKEN on remote — their session's fix.** When they push, my `if not exists` migration is already satisfied. (Their next `db push` may need `--include-all` since mine applied out-of-order — minor.)
+
+**▶▶ NEXT (per-room UI — the usable layer):** (a) **Pages nesting** — render each room indented under the "Room Details Template" row in `PagesManager` (derive from website_rooms; each links to the room-scoped builder). (b) **Room-scoped builder** — open a room → builder shows template + that room's live data + a "Template (all rooms)" ↔ "This room only" toggle; This-room mode edits `detail_overrides` (hide/replace template sections + add extras) via `saveRoomDetailOverrideAction`. Then the rest of the epic (task list #6–#13): new room elements, premium/Safari room design, **Forms** (4 defaults seeded+auto-placed, retire `contact_form` → one element, submissions button, guest-contact on every submit), embed booking form on room template, builder 3-category taxonomy (Layout/Theme/Utility), checkout refine + PayPal + editable copy, Brand Studio refine + drop Settings favicon, **blog settings → Blog manager**.
+
+**Commit count:** the 12 prior unpushed + 4 today (`70e7a3d`,`967dc7c`,`ede0c66` + the upcoming docs). Still NOT pushed (push = prod deploy). ⚠️ `.next` was corrupted by the dev gremlin during room-route verification — recover before live checks (`preview_stop`→`rm -rf apps/web/.next`→free :3000→`preview_start web`→warm ONE route).
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-28 EOD #4 — 4 DEFERRED CMS ITEMS SHIPPED (local, committed, NOT pushed))
 
 **Founder said "work the deferred items" → all 4 done, each `tsc --noEmit` + `next lint` clean, committed locally to `main` (NO push — push = prod deploy, awaiting go).** Commits: `8883a86` (#1) · `1dfbde2` (#2) · `10a1b85` (#3) · `0c4c215` (#4). **12 commits now unpushed** (the 8 prior CMS phases + these 4). Dev server HEALTHY on **:3000** (home 200, Safari site 200). No DB migrations (all JSON-shape additive on existing jsonb columns).
 
