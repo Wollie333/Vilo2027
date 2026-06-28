@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-28 (EOD #13) — Room builder: live canvas (fix — "customise individual rooms not rendering in canvas")
+
+The per-room editor (RoomBuilder v1) shipped without a live canvas (deferred to
+v2) — the founder needs to SEE the room while customizing it. Added the canvas,
+reusing the page builder's machinery so it's the real render, not an approximation:
+
+- `loadRoomBuilder` now surfaces the viewed room's `RoomDetail`; the room route
+  loads `loadPageBuilder` alongside it (theme chrome + per-type live-data pool).
+- `RoomBuilder` gained the center canvas (the standard `.canvas-wrap`/`.device`
+  frame between the controls + inspector): `SafariShell` (safari) or
+  `SiteThemeRoot`+`SiteChrome` (generic) wrapping `SectionRenderer` over the
+  **merged** sections (`mergeRoomDetailSections(template, {hidden, extras})`) with
+  THIS room's data injected (a local `buildRoomPreviewData` mirroring the page
+  builder's). Recomputes as the host toggles hide / adds / edits — so the canvas
+  is exactly what the public room page renders.
+
+`tsc` + `next lint` clean. **Verified live:** Olive Room's editor canvas renders
+the full Safari room page — gallery (3 photos), "Olive Room / Sleeps 2 / 1 Queen /
+22m² / From R 1 300", amenities, Book CTA, reviews — with its real data.
+
+---
+
 ## 2026-06-28 (EOD #12) — Forms: guest-on-every-submit + 4 default forms seeded on site creation
 
 Two slices of the forms epic (#8).

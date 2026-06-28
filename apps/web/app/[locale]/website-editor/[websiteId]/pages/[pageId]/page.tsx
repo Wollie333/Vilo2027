@@ -21,10 +21,14 @@ export default async function FullScreenPageBuilder({
 
   // Room-scoped editing: `?room=<id>` opens the per-room editor (the room's
   // overrides layered over the shared template) instead of the template builder.
+  // Reuse loadPageBuilder for the live canvas (theme chrome + per-type data pool).
   if (roomId) {
-    const roomData = await loadRoomBuilder(websiteId, pageId, roomId);
-    if (!roomData) notFound();
-    return <RoomBuilder data={roomData} />;
+    const [roomData, pageData] = await Promise.all([
+      loadRoomBuilder(websiteId, pageId, roomId),
+      loadPageBuilder(websiteId, pageId),
+    ]);
+    if (!roomData || !pageData) notFound();
+    return <RoomBuilder data={roomData} page={pageData} />;
   }
 
   const [t, data] = await Promise.all([

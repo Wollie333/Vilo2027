@@ -23,12 +23,45 @@ import { saveRoomDetailOverrideAction } from "@/app/[locale]/dashboard/website/a
 import { SectionEditor } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/SectionEditor";
 import { SectionLibrary } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/SectionLibrary";
 import { newSection } from "@/lib/website/sectionDefaults";
-import type {
-  SectionType,
-  WebsiteSection,
+import {
+  isRoomScoped,
+  type SectionType,
+  type WebsiteSection,
 } from "@/lib/website/sections.schema";
+import { mergeRoomDetailSections } from "@/lib/website/roomDetailOverride";
+import { SectionRenderer } from "@/components/site/SectionRenderer";
+import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SiteChrome } from "@/components/site/SiteChrome";
+import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
+import { buildSafariNav } from "@/lib/site/safariNav";
+import { websiteAssetUrl } from "@/lib/website/assets";
+import type { SiteData, SiteDataByType } from "@/lib/site/types";
+import type { PageBuilderData } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/loadPageBuilder";
 
 import type { RoomBuilderData } from "./loadRoomBuilder";
+
+const assetUrl = (p: string | null | undefined) =>
+  websiteAssetUrl(p) ?? undefined;
+
+/** Build the preview data map for the canvas: room-scoped sections get THIS
+ *  room's live detail; the rest pull from the per-type pool (mirrors the page
+ *  builder's buildPreviewData). */
+function buildRoomPreviewData(
+  sections: WebsiteSection[],
+  pool: Partial<SiteDataByType>,
+  room: RoomBuilderData["room"],
+): SiteData {
+  const data: SiteData = {};
+  for (const s of sections) {
+    if (room && isRoomScoped(s.type)) {
+      data[s.id] = { type: s.type, data: room } as SiteData[string];
+      continue;
+    }
+    const slice = (pool as Record<string, unknown>)[s.type];
+    if (slice) data[s.id] = { type: s.type, data: slice } as SiteData[string];
+  }
+  return data;
+}
 
 /**
  * Per-room editor — the host customizes ONE room on top of the shared room
@@ -37,7 +70,13 @@ import type { RoomBuilderData } from "./loadRoomBuilder";
  * sections below. Saves to `website_rooms.detail_overrides`; the shared design
  * stays in the template builder (edits there propagate to every room).
  */
-export function RoomBuilder({ data }: { data: RoomBuilderData }) {
+export function RoomBuilder({
+  data,
+  page,
+}: {
+  data: RoomBuilderData;
+  page: PageBuilderData;
+}) {
   const t = useTranslations("website");
   const [hidden, setHidden] = useState<Set<string>>(
     () => new Set(data.override?.hidden ?? []),
@@ -64,6 +103,24 @@ export function RoomBuilder({ data }: { data: RoomBuilderData }) {
   const dirty = current !== initial;
 
   const selected = extras.find((s) => s.id === selectedId) ?? null;
+
+  // The live canvas = the template merged with this room's overrides (drop hidden
+  // → append extras), with THIS room's data injected — exactly what the public
+  // room page renders. Recomputes as the host toggles/adds/edits.
+  const merged = useMemo(
+    () =>
+      mergeRoomDetailSections(data.templateSections, {
+        hidden: [...hidden],
+        replaced: {},
+        extras,
+      }),
+    [data.templateSections, hidden, extras],
+  );
+  const previewData = useMemo(
+    () => buildRoomPreviewData(merged, page.dataByType, data.room),
+    [merged, page.dataByType, data.room],
+  );
+  const isSafari = data.themePreset === "safari";
 
   function toggleHidden(id: string) {
     setHidden((prev) => {
@@ -296,6 +353,55 @@ export function RoomBuilder({ data }: { data: RoomBuilderData }) {
             </button>
           </div>
         </aside>
+
+        {/* Live canvas — the room rendered exactly as the public page will, with
+            this room's real data + the host's per-room overrides applied. */}
+        <div className="canvas-wrap">
+          <div className="device">
+            {isSafari ? (
+              <SafariShell
+                brandName={page.brand.name}
+                nav={buildSafariNav({
+                  nav: page.nav,
+                  navigation: page.navConfig,
+                  brand: page.brand,
+                  preview: false,
+                  subdomain: "",
+                })}
+              >
+                <SectionRenderer
+                  sections={merged}
+                  data={previewData}
+                  asset={assetUrl}
+                  themeVariant="safari"
+                  interactive={false}
+                  errorLabel={t("sectionRenderError")}
+                />
+              </SafariShell>
+            ) : (
+              <SiteThemeRoot theme={page.theme}>
+                <SiteChrome
+                  brand={page.brand}
+                  nav={page.nav}
+                  navigation={page.navConfig}
+                  header={page.theme.header}
+                  footer={page.theme.footer}
+                  layout={page.layout}
+                  chromeInert
+                >
+                  <SectionRenderer
+                    sections={merged}
+                    data={previewData}
+                    asset={assetUrl}
+                    themeVariant={data.themePreset}
+                    interactive={false}
+                    errorLabel={t("sectionRenderError")}
+                  />
+                </SiteChrome>
+              </SiteThemeRoot>
+            )}
+          </div>
+        </div>
 
         <main className="epanel r">
           {selected ? (

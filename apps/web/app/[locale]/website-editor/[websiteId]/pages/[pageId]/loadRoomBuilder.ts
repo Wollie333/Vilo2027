@@ -2,6 +2,7 @@ import "server-only";
 
 import { getMyHostId } from "@/lib/host/current";
 import { loadRoomEditorData, loadSiteContext } from "@/lib/site/loadSitePage";
+import type { RoomDetail } from "@/lib/site/types";
 import { createServerClient } from "@/lib/supabase/server";
 import type { RoomDetailOverride } from "@/lib/website/roomDetailOverride";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
@@ -21,6 +22,9 @@ export type RoomBuilderData = {
   templateSections: WebsiteSection[];
   /** This room's current override (null = pure template). */
   override: RoomDetailOverride | null;
+  /** The viewed room's live detail — injected into room-scoped sections so the
+   *  canvas previews THIS room's real photos/price/amenities. */
+  room: RoomDetail | null;
 };
 
 /**
@@ -66,5 +70,6 @@ export async function loadRoomBuilder(
     themePreset: site.theme?.preset ?? ctx.theme.preset ?? "",
     templateSections: editor.templateSections,
     override: editor.override,
+    room: editor.room,
   };
 }
