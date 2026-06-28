@@ -339,18 +339,17 @@ export async function submitWebsiteForm(
     // No resolvable property → fall through to the normal enquiry handling.
   }
 
-  // BOOKING QUOTE — a booking form (a `dates` field with both dates filled)
+  // QUOTE REQUEST — a QUOTE form (goal "quote", with a `dates` field filled)
   // routes to the real quote pipeline so the host gets a DRAFT quote to complete
-  // & send, not just an enquiry. The conversation is tagged source="website" so
-  // it still carries the "Website enquiry" pill while rendering a real
-  // quote-request card. Falls back to the plain enquiry below when intent or the
-  // property can't be resolved, or the pipeline declines.
+  // & send, not just an enquiry. Two distinct logics: goal "booking" hands off to
+  // checkout (above); goal "quote" creates a quote here. Other forms (contact,
+  // newsletter) never create a quote — they fall through to the plain enquiry.
   let bookingQuoted = false;
   const datesField = fields.data.find((f) => f.type === "dates");
   const range = datesField
     ? parseDateRange(validated.clean[datesField.id])
     : null;
-  if (email && range && settings.notifyInbox) {
+  if (email && range && settings.notifyInbox && settings.goal === "quote") {
     const roomsField = fields.data.find((f) => f.type === "rooms");
     const roomName = roomsField ? validated.clean[roomsField.id] : undefined;
     const target = await resolveBookingTarget(admin, d.website_id, roomName);

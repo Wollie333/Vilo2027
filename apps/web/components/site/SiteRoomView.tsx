@@ -125,6 +125,7 @@ export async function SiteRoomView({
               data={data}
               asset={siteAsset}
               ctx={safariCtx}
+              interactive
             />
           </RoomDockLayout>
         </SafariShell>
@@ -209,7 +210,7 @@ export async function SiteRoomView({
               data={data}
               asset={siteAsset}
               websiteId={ctx.websiteId}
-              interactive={!ctx.preview}
+              interactive
             />
           </RoomDockLayout>
         </SiteChrome>

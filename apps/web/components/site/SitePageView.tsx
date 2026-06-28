@@ -183,7 +183,9 @@ export async function SitePageView({
             data={result.data}
             asset={siteAsset}
             websiteId={ctx.websiteId}
-            interactive={!ctx.preview}
+            // Live on the public render (live + preview) so forms work in preview;
+            // analytics stays preview-gated in SiteChrome's SiteMarketing.
+            interactive
           />
         </SiteChrome>
       </SiteThemeRoot>

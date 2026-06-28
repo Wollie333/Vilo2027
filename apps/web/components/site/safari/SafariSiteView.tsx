@@ -88,7 +88,10 @@ export function SafariSiteView({
       asset={asset}
       ctx={safariCtx}
       websiteId={websiteId}
-      interactive={interactive}
+      // Always live on the public render (live + preview) so forms work when the
+      // host previews. SafariSiteView is never the builder canvas; the shell keeps
+      // its own `interactive` for analytics (gated off in preview).
+      interactive
     />
   );
 
