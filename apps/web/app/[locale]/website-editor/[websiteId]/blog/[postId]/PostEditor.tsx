@@ -26,6 +26,7 @@ import {
   saveBlogPostAction,
   type MediaItem,
 } from "@/app/[locale]/dashboard/website/actions";
+import { PAGE_PIXEL_EVENTS } from "@/app/[locale]/dashboard/website/schemas";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { MediaLibrary } from "@/components/website/MediaLibrary";
 import { modal } from "@/components/ui/modal-host";
@@ -280,6 +281,8 @@ export function PostEditor({
         seoTitle: post.seoTitle,
         seoDescription: post.seoDescription,
         seoFocusKeyword: post.seoFocusKeyword,
+        headCode: post.headCode,
+        pixelEvent: post.pixelEvent as (typeof PAGE_PIXEL_EVENTS)[number],
       });
       if (!res.ok) {
         toast.error(t("saveError"));
@@ -669,6 +672,40 @@ export function PostEditor({
                 <div className="sd">
                   {seoDesc || t("blogSeoDescPlaceholder")}
                 </div>
+              </div>
+            </div>
+
+            <div className="insp-sec">
+              <div className="isec-t">{t("blogMarketingTitle")}</div>
+              <div className="fld">
+                <label>{t("blogPixelEvent")}</label>
+                <select
+                  value={post.pixelEvent}
+                  onChange={(e) => patch({ pixelEvent: e.target.value })}
+                >
+                  {PAGE_PIXEL_EVENTS.map((ev) => (
+                    <option key={ev} value={ev}>
+                      {ev === "none" ? t("blogPixelEventNone") : ev}
+                    </option>
+                  ))}
+                </select>
+                <span className="fld-hint">{t("blogPixelEventHint")}</span>
+              </div>
+              <div className="fld">
+                <label>{t("blogHeadCode")}</label>
+                <textarea
+                  value={post.headCode}
+                  maxLength={4000}
+                  rows={4}
+                  spellCheck={false}
+                  placeholder="<meta ... />"
+                  style={{
+                    fontFamily: "ui-monospace, monospace",
+                    fontSize: 12,
+                  }}
+                  onChange={(e) => patch({ headCode: e.target.value })}
+                />
+                <span className="fld-hint">{t("blogHeadCodeHint")}</span>
               </div>
             </div>
 

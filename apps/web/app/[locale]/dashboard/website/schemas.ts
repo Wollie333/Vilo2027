@@ -386,6 +386,21 @@ export type SaveWebsiteRoomsInput = z.infer<typeof saveWebsiteRoomsSchema>;
 
 export const BLOG_POST_STATUSES = ["draft", "published", "scheduled"] as const;
 
+// Standard Meta-Pixel/GA4 events a host can fire ON a specific page or blog post
+// (e.g. mark the Suites page as a ViewContent, a post as a Lead). "none" = fire
+// nothing extra (the site-wide PageView still fires). Curated to the events that
+// make sense for a hospitality site — Purchase is auto-fired on booking.
+export const PAGE_PIXEL_EVENTS = [
+  "none",
+  "ViewContent",
+  "Lead",
+  "Contact",
+  "Subscribe",
+  "Search",
+  "InitiateCheckout",
+  "CompleteRegistration",
+] as const;
+
 // One category as edited in the list — `id` is present for existing rows, absent
 // for newly-added ones (the action assigns it). Slug is derived from the name.
 export const blogCategorySchema = z.object({
@@ -424,6 +439,13 @@ export const saveBlogPostSchema = z.object({
   seoTitle: z.string().trim().max(70).default(""),
   seoDescription: z.string().trim().max(200).default(""),
   seoFocusKeyword: z.string().trim().max(60).default(""),
+  // Per-post custom head code (meta tags / verification / tracking snippets),
+  // injected into <head> on the live post page only — parity with per-page
+  // headCode. The host's own site, trusted like the site-level pixel/GA4 ids.
+  headCode: z.string().trim().max(4000).default(""),
+  // Per-post Meta-Pixel/GA4 event fired on the live post page (none = nothing
+  // extra beyond the site-wide PageView) — parity with the per-page pixelEvent.
+  pixelEvent: z.enum(PAGE_PIXEL_EVENTS).default("none"),
 });
 
 export type SaveBlogPostInput = z.infer<typeof saveBlogPostSchema>;
@@ -843,21 +865,6 @@ export const savePagesSchema = z.object({
 });
 
 export type SavePagesInput = z.infer<typeof savePagesSchema>;
-
-// Standard Meta-Pixel/GA4 events a host can fire ON a specific page (e.g. mark
-// the Suites page as a ViewContent, the Contact page as a Lead). "none" = fire
-// nothing extra (the site-wide PageView still fires). Curated to the events that
-// make sense for a hospitality site — Purchase is auto-fired on booking.
-export const PAGE_PIXEL_EVENTS = [
-  "none",
-  "ViewContent",
-  "Lead",
-  "Contact",
-  "Subscribe",
-  "Search",
-  "InitiateCheckout",
-  "CompleteRegistration",
-] as const;
 
 // Per-page SEO overrides (Phase 6) → website_pages.seo_overrides jsonb. Empty
 // strings mean "inherit the site-level SEO" and are stored as undefined.

@@ -34,6 +34,10 @@ export type BlogPostEditorData = {
     seoTitle: string;
     seoDescription: string;
     seoFocusKeyword: string;
+    /** Per-post custom <head> code (live post page only). */
+    headCode: string;
+    /** Per-post Meta-Pixel/GA4 event ("none" = nothing extra). */
+    pixelEvent: string;
   };
 };
 
@@ -109,6 +113,8 @@ export async function loadBlogPost(
     title?: string;
     description?: string;
     focusKeyword?: string;
+    headCode?: string;
+    pixelEvent?: string;
   };
 
   return {
@@ -138,6 +144,8 @@ export async function loadBlogPost(
       seoTitle: seo.title ?? "",
       seoDescription: seo.description ?? "",
       seoFocusKeyword: seo.focusKeyword ?? "",
+      headCode: seo.headCode ?? "",
+      pixelEvent: seo.pixelEvent ?? "none",
     },
   };
 }

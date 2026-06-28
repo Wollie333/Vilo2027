@@ -1986,12 +1986,16 @@ export async function loadSiteBlogPost(
   authorAvatarUrl: string | null;
   excerpt: string | null;
   tags: { name: string; slug: string }[];
+  /** Per-post marketing overrides (live post page only): custom head code + a
+   *  Meta-Pixel/GA4 event — parity with per-page seo_overrides. */
+  headCode: string;
+  pixelEvent: string;
 } | null> {
   const sb = createAdminClient();
   let q = sb
     .from("website_blog_posts")
     .select(
-      "title, body_html, cover_path, publish_at, created_at, author_name, excerpt, status, deleted_at, author:website_blog_authors ( name, avatar_path, bio ), tags:website_blog_post_tags ( tag:website_blog_tags ( name, slug ) )",
+      "title, body_html, cover_path, publish_at, created_at, author_name, excerpt, status, deleted_at, seo, author:website_blog_authors ( name, avatar_path, bio ), tags:website_blog_post_tags ( tag:website_blog_tags ( name, slug ) )",
     )
     .eq("website_id", ctx.websiteId)
     .eq("slug", postSlug);
@@ -2004,6 +2008,7 @@ export async function loadSiteBlogPost(
     created_at: string;
     author_name: string | null;
     excerpt: string | null;
+    seo: { headCode?: string; pixelEvent?: string } | null;
     author: {
       name: string | null;
       avatar_path: string | null;
@@ -2040,6 +2045,8 @@ export async function loadSiteBlogPost(
       websiteAssetUrl(post.author?.avatar_path ?? undefined) ?? null,
     excerpt: post.excerpt,
     tags,
+    headCode: post.seo?.headCode?.trim() || "",
+    pixelEvent: post.seo?.pixelEvent || "none",
   };
 }
 

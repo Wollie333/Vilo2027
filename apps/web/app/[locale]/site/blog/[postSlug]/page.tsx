@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/site/JsonLd";
+import { FirePixelEvent } from "@/components/site/FirePixelEvent";
+import { PageHeadCode } from "@/components/site/PageHeadCode";
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import { SafariArticleContent } from "@/components/site/safari/pages/SafariArticleContent";
@@ -73,6 +75,21 @@ export default async function SiteBlogPostPage({
     ? await buildSitePreviewPages(ctx)
     : undefined;
 
+  // Per-post marketing overrides (Blog editor → SEO): fire the post's pixel event
+  // + inject its custom head code on the LIVE post page only (parity with pages,
+  // see SitePageView). Skipped in preview so editor previews don't fire tracking.
+  const postPixelEvent =
+    !ctx.preview && post.pixelEvent && post.pixelEvent !== "none"
+      ? post.pixelEvent
+      : "";
+  const postHeadCode = !ctx.preview ? post.headCode : "";
+  const marketing = (
+    <>
+      {postPixelEvent ? <FirePixelEvent event={postPixelEvent} /> : null}
+      {postHeadCode ? <PageHeadCode html={postHeadCode} /> : null}
+    </>
+  );
+
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
     const nav = buildSafariNav(ctx);
     const navLinks = nav.links;
@@ -84,6 +101,7 @@ export default async function SiteBlogPostPage({
         analytics={ctx.analytics}
         interactive={!ctx.preview}
       >
+        {marketing}
         <SafariArticleContent
           post={{
             title: post.title,
@@ -131,6 +149,7 @@ export default async function SiteBlogPostPage({
 
   return (
     <>
+      {marketing}
       <JsonLd graph={jsonLdGraph} />
       <SiteThemeRoot theme={ctx.theme}>
         <SiteChrome

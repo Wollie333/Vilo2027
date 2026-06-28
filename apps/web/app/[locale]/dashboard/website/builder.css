@@ -491,6 +491,13 @@
   color: #3a5a4e;
   margin-bottom: 5px;
 }
+.vilo-builder .fld .fld-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--mute);
+}
 .vilo-builder .fld input[type="text"],
 .vilo-builder .fld input[type="email"],
 .vilo-builder .fld textarea,

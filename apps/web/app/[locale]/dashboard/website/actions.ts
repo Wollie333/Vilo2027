@@ -1768,6 +1768,8 @@ export async function saveBlogPostAction(
     seoTitle,
     seoDescription,
     seoFocusKeyword,
+    headCode,
+    pixelEvent,
   } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
@@ -1852,6 +1854,8 @@ export async function saveBlogPostAction(
         title: seoTitle || undefined,
         description: seoDescription || undefined,
         focusKeyword: seoFocusKeyword || undefined,
+        headCode: headCode || undefined,
+        pixelEvent: pixelEvent !== "none" ? pixelEvent : undefined,
       },
     })
     .eq("id", postId)

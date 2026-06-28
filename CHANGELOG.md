@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-06-28 (EOD #9) — Website CMS → MVP push (deferred #3): blog post head-code + pixel-event parity with pages
+
+Regular pages support a per-page custom `<head>` code injection (`headCode`) and a
+per-page Meta-Pixel/GA4 event (`pixelEvent`) via `seo_overrides`, rendered live by
+`SitePageView` (`PageHeadCode` + `FirePixelEvent`). Blog posts had no equivalent.
+Brought them to parity, reusing the exact same machinery.
+
+- **Schema:** `headCode` (max 4000) + `pixelEvent` (the shared `PAGE_PIXEL_EVENTS`
+  enum) added to `saveBlogPostSchema`. Relocated `PAGE_PIXEL_EVENTS` above the blog
+  section so both blog + page schemas reference it (no TDZ).
+- **Persistence:** `saveBlogPostAction` writes both into the post's existing `seo`
+  jsonb (no migration). `loadBlogPost` (editor) + `loadSiteBlogPost` (public) read
+  them back.
+- **Live render:** the public post page (`site/blog/[postSlug]`) fires
+  `<FirePixelEvent>` + injects `<PageHeadCode>` on the live page only (skipped in
+  preview), in BOTH the Safari and generic theme branches — same components +
+  guard as `SitePageView`.
+- **Editor:** a new "Marketing" section in `PostEditor`'s inspector — a tracking-
+  event `<select>` (over `PAGE_PIXEL_EVENTS`) + a monospace custom-head-code
+  `<textarea>`, mirroring the page builder's `PageSeoCard`. New `.fld-hint` helper
+  style in builder.css; i18n keys in en.json.
+
+`tsc --noEmit` (whole project) + `next lint` **clean**. The blog post editor route
+**compiles** (3259 modules) with the new controls + import. Could not capture a
+live screenshot this session — the Windows `.next` vendor-chunk gremlin corrupted
+the cache on the heavy editor routes (recovered repeatedly); the change reuses the
+already-live per-page pixel/head-code components verbatim, and the parallel
+Settings-editor change WAS live-verified 200 this session.
+
+---
+
 ## 2026-06-28 (EOD #8) — Website CMS → MVP push (deferred #2): Settings favicon control + editable blog index heading/intro
 
 Two Settings-hub additions.
