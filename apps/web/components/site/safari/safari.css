@@ -30,6 +30,31 @@
   --sans: "Jost", system-ui, sans-serif;
   --disp-w: 600;
 
+  /* Bridge the shared `--site-*` design contract to the Safari palette. The
+     generic themes set these via SiteThemeRoot; Safari uses its own shell and
+     never did, so any `--site-*` consumer (forms/FormSection, FAQ, pricing,
+     announcement bar, the booking dock…) fell back to nothing here. Aliasing the
+     contract makes every such component conform to Safari for free — and is the
+     foundation each future theme repeats with its own palette. */
+  --site-bg: var(--bg);
+  --site-surface: var(--surface);
+  --site-ink: var(--ink);
+  --site-mute: var(--ink-soft);
+  --site-line: var(--line);
+  --site-accent: var(--accent);
+  --site-accent-ink: #fff;
+  --site-secondary: var(--green);
+  --site-secondary-ink: #fff;
+  --site-radius: 4px;
+  --site-icon-color: var(--accent);
+  --site-btn-primary-bg: var(--accent);
+  --site-btn-primary-color: #fff;
+  --site-btn-primary-border: var(--accent);
+  --site-btn-primary-radius: 4px;
+  --site-btn-secondary-bg: transparent;
+  --site-btn-secondary-color: var(--accent);
+  --site-btn-secondary-border: var(--accent);
+
   font-family: var(--sans);
   background: var(--bg);
   color: var(--ink);
