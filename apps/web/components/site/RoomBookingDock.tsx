@@ -10,6 +10,18 @@ import { useState } from "react";
  * server-side. Theme-agnostic: reads `--site-*` with `--accent/--ink` fallbacks
  * so it's on-theme on both the generic themes and the Safari design.
  */
+/** Group an integer's digits in threes with spaces (no regex/Intl — SWC-safe and
+ *  deterministic across SSR + client). e.g. 1300 → "1 300". */
+function groupThousands(n: number): string {
+  const s = String(Math.round(n));
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 === 0) out += " ";
+    out += s[i];
+  }
+  return out;
+}
+
 export function RoomBookingDock({
   roomName,
   price,
@@ -35,9 +47,7 @@ export function RoomBookingDock({
   const ccy = currency ?? "ZAR";
   const priceLabel =
     price != null
-      ? `${ccy === "ZAR" ? "R" : ccy} ${Math.round(price)
-          .toString()
-          .replace(/\B(?=(\d{3})+(?!\d))/g, " ")}`
+      ? `${ccy === "ZAR" ? "R" : ccy} ${groupThousands(price)}`
       : null;
 
   function book() {
@@ -74,7 +84,7 @@ export function RoomBookingDock({
         .room-book-dock{position:fixed;top:96px;right:20px;width:300px;z-index:40;}
         .room-book-dock .rbd-card{border:1px solid ${line};border-radius:${radius};background:${surface};padding:18px;box-shadow:0 18px 40px -28px rgba(6,40,28,.45);}
         .room-book-dock .rbd-row{display:flex;gap:8px;}
-        .room-book-dock .rbd-row>div{flex:1;}
+        .room-book-dock .rbd-col{flex:1;}
         .room-book-dock label{display:block;font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:${mute};margin:0 0 4px;}
         .room-book-dock .rbd-btn{width:100%;margin-top:12px;padding:12px;border:none;border-radius:9px;background:${accent};color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
         .room-book-dock .rbd-btn:hover{filter:brightness(1.05);}
@@ -104,7 +114,7 @@ export function RoomBookingDock({
         </div>
         <div className="rbd-fields">
           <div className="rbd-row">
-            <div>
+            <div className="rbd-col">
               <label>Check-in</label>
               <input
                 type="date"
@@ -114,7 +124,7 @@ export function RoomBookingDock({
                 disabled={!interactive}
               />
             </div>
-            <div>
+            <div className="rbd-col">
               <label>Check-out</label>
               <input
                 type="date"
