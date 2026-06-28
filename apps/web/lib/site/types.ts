@@ -326,6 +326,21 @@ export type RoomDetail = {
   bookHref: string;
   propertyId: string;
   propertyName?: string | null;
+  /** Auto-populated "things to know" (from the parent property) — drives the
+   *  room_policies section. Absent when the property has none set. */
+  policies?: RoomPolicies | null;
+};
+
+/** "Things to know" for a room — sourced from the parent property (cancellation,
+ *  check-in/out, house rules, key allowances). All optional; the section only
+ *  renders the lines that have a value. */
+export type RoomPolicies = {
+  cancellation?: string | null;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  houseRules?: string | null;
+  children?: boolean | null;
+  pets?: boolean | null;
 };
 
 export type Poi = {
@@ -470,6 +485,7 @@ export type SiteDataByType = {
   room_overview: RoomDetail;
   room_amenities: RoomDetail;
   room_rate: RoomDetail;
+  room_policies: RoomDetail;
 };
 export type AutoSectionType = keyof SiteDataByType;
 

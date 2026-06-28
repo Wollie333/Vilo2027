@@ -298,3 +298,89 @@ export function RoomRateSection({
     </SectionShell>
   );
 }
+
+// ── Room "things to know" (auto policies) ─────────────────────
+type PoliciesProps = Extract<
+  WebsiteSection,
+  { type: "room_policies" }
+>["props"];
+
+/** Lines to render from a room's auto-populated policies (check-in/out,
+ *  cancellation, allowances) — only those with a value. */
+function policyItems(
+  p: NonNullable<RoomDetail["policies"]>,
+): { label: string; value: string }[] {
+  const items: { label: string; value: string }[] = [];
+  if (p.checkIn) items.push({ label: "Check-in", value: `From ${p.checkIn}` });
+  if (p.checkOut)
+    items.push({ label: "Check-out", value: `Until ${p.checkOut}` });
+  if (p.cancellation)
+    items.push({ label: "Cancellation", value: p.cancellation });
+  if (p.children != null)
+    items.push({
+      label: "Children",
+      value: p.children ? "Welcome" : "Not suitable for children",
+    });
+  if (p.pets != null)
+    items.push({ label: "Pets", value: p.pets ? "Allowed" : "Not allowed" });
+  return items;
+}
+
+export function RoomPoliciesSection({
+  props,
+  data,
+}: {
+  props: PoliciesProps;
+  data?: RoomDetail;
+}) {
+  const p = data?.policies;
+  if (!p)
+    return (
+      <RoomPlaceholder label="This room's cancellation policy and house rules appear here." />
+    );
+  const items = policyItems(p);
+  return (
+    <SectionShell>
+      <SectionHeading centered={false} className="mb-6">
+        {props.heading || "Things to know"}
+      </SectionHeading>
+      <div
+        className={
+          props.variant === "list"
+            ? "space-y-5"
+            : "grid gap-x-8 gap-y-5 sm:grid-cols-2"
+        }
+      >
+        {items.map((it, i) => (
+          <div key={i}>
+            <div
+              style={{ color: "var(--site-mute)" }}
+              className="text-[11px] font-semibold uppercase tracking-wide"
+            >
+              {it.label}
+            </div>
+            <div style={{ color: "var(--site-ink)" }} className="mt-1 text-sm">
+              {it.value}
+            </div>
+          </div>
+        ))}
+      </div>
+      {p.houseRules ? (
+        <div className="mt-6">
+          <div
+            style={{ color: "var(--site-mute)" }}
+            className="text-[11px] font-semibold uppercase tracking-wide"
+          >
+            House rules
+          </div>
+          <p
+            style={{ color: "var(--site-ink)" }}
+            className="mt-1 whitespace-pre-line text-sm"
+          >
+            {p.houseRules}
+          </p>
+        </div>
+      ) : null}
+    </SectionShell>
+  );
+}

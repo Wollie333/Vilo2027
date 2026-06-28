@@ -1329,6 +1329,8 @@
     "sectionType_room_overview": "Room overview",
     "sectionType_room_amenities": "Room amenities",
     "sectionType_room_rate": "Room rate & book",
+    "sectionType_room_policies": "Things to know",
+    "sectionDesc_room_policies": "Auto cancellation policy, check-in/out & house rules for this room.",
     "sectionType_el_heading": "Heading",
     "sectionType_el_text": "Text",
     "sectionType_el_image": "Image",

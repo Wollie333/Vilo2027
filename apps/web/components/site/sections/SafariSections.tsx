@@ -1714,6 +1714,91 @@ export function SafariRoomRate({
   );
 }
 
+/* ── ROOM POLICIES — auto "things to know" (cancellation, check-in/out) ── */
+export function SafariRoomPolicies({
+  props,
+  data,
+}: {
+  props: P<"room_policies">;
+  data?: RoomDetail;
+}) {
+  const p = data?.policies;
+  if (!p)
+    return (
+      <SafariRoomPlaceholder label="This room's cancellation policy and house rules appear here." />
+    );
+  const items: { label: string; value: string }[] = [];
+  if (p.checkIn) items.push({ label: "Check-in", value: `From ${p.checkIn}` });
+  if (p.checkOut)
+    items.push({ label: "Check-out", value: `Until ${p.checkOut}` });
+  if (p.cancellation)
+    items.push({ label: "Cancellation", value: p.cancellation });
+  if (p.children != null)
+    items.push({
+      label: "Children",
+      value: p.children ? "Welcome" : "Not suitable",
+    });
+  if (p.pets != null)
+    items.push({ label: "Pets", value: p.pets ? "Allowed" : "Not allowed" });
+  const labelStyle: CSSProperties = {
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: ".08em",
+  };
+  return (
+    <section className="section-sm">
+      <div className="wrap-narrow">
+        <span className="eyebrow">Good to know</span>
+        <h2
+          className="display"
+          style={{ marginTop: 18, fontSize: "clamp(1.8rem,3.4vw,2.6rem)" }}
+        >
+          {props.heading || "Things to know"}
+        </h2>
+        <div
+          style={{
+            marginTop: 28,
+            display: "grid",
+            gridTemplateColumns:
+              props.variant === "list"
+                ? "1fr"
+                : "repeat(auto-fit,minmax(220px,1fr))",
+            gap: "24px 40px",
+          }}
+        >
+          {items.map((it, i) => (
+            <div
+              key={i}
+              style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}
+            >
+              <div className="muted" style={labelStyle}>
+                {it.label}
+              </div>
+              <div style={{ marginTop: 4, fontSize: 15 }}>{it.value}</div>
+            </div>
+          ))}
+        </div>
+        {p.houseRules ? (
+          <div
+            style={{
+              marginTop: 28,
+              borderTop: "1px solid var(--line)",
+              paddingTop: 14,
+            }}
+          >
+            <div className="muted" style={labelStyle}>
+              House rules
+            </div>
+            <p style={{ marginTop: 6, fontSize: 15, whiteSpace: "pre-line" }}>
+              {p.houseRules}
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 /* ── RATE TABLE (live nightly rates, display-only) ──────────────────── */
 export function SafariRateTable({
   props,
@@ -2183,6 +2268,13 @@ export function renderSafariSection(
         <SafariRoomRate
           props={section.props}
           data={dataFor(data, section.id, "room_rate")}
+        />
+      );
+    case "room_policies":
+      return (
+        <SafariRoomPolicies
+          props={section.props}
+          data={dataFor(data, section.id, "room_policies")}
         />
       );
     case "rate_table":

@@ -56,6 +56,7 @@ export const SECTION_TYPES = [
   "room_overview",
   "room_amenities",
   "room_rate",
+  "room_policies",
   // Free elements — light building blocks (page-builder primitives).
   "el_heading",
   "el_text",
@@ -104,6 +105,7 @@ export const ROOM_SCOPED_SECTIONS: ReadonlySet<SectionType> = new Set([
   "room_overview",
   "room_amenities",
   "room_rate",
+  "room_policies",
 ]);
 
 export function isRoomScoped(type: SectionType): boolean {
@@ -862,6 +864,13 @@ const roomRateProps = z.object({
   variant: z.enum(ROOM_RATE_VARIANTS).default("card"),
 });
 
+// "Things to know" — auto-populated from the parent property (cancellation,
+// check-in/out, house rules). The host only controls the heading + layout.
+const roomPoliciesProps = z.object({
+  heading,
+  variant: z.enum(["grid", "list"]).default("grid"),
+});
+
 // Per-device override (laptop/mobile). `hidden` drops the section on that screen;
 // `props` is a partial of the SECTION'S OWN props — any field the host changes in
 // the Laptop/Mobile editor pane is stored here and merged over the desktop props
@@ -1011,6 +1020,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("room_rate"),
     props: roomRateProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("room_policies"),
+    props: roomPoliciesProps,
   }),
   z.object({
     ...sectionBase,

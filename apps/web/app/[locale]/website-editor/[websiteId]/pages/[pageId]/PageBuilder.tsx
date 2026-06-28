@@ -245,6 +245,7 @@ const ICONS: Record<SectionType, LucideIcon> = {
   room_overview: BedDouble,
   room_amenities: ListChecks,
   room_rate: BadgeDollarSign,
+  room_policies: ShieldCheck,
   el_heading: Heading,
   el_text: Pilcrow,
   el_image: ImageIcon,

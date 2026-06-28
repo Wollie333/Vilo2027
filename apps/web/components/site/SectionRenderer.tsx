@@ -45,6 +45,7 @@ import {
   RoomOverviewSection,
   RoomAmenitiesSection,
   RoomRateSection,
+  RoomPoliciesSection,
 } from "./sections/RoomDetailSections";
 import {
   ElHeadingSection,
@@ -341,6 +342,13 @@ function SectionSwitch({
         <RoomRateSection
           props={section.props}
           data={dataFor(data, section.id, "room_rate")}
+        />
+      );
+    case "room_policies":
+      return (
+        <RoomPoliciesSection
+          props={section.props}
+          data={dataFor(data, section.id, "room_policies")}
         />
       );
     case "el_heading":

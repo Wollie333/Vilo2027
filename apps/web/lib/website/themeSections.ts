@@ -76,6 +76,13 @@ const roomDetail = {
       s.props.note = "Your final price is confirmed at checkout.";
       s.props.variant = "card";
     }),
+  policies: () =>
+    build("room_policies", (s) => {
+      // Auto "things to know" (cancellation, check-in/out, house rules) pulled
+      // from the parent property — like the listing's policy block, per room.
+      s.props.heading = "Things to know";
+      s.props.variant = "grid";
+    }),
 };
 
 // ── Aria (the modern flagship theme) — modern editorial elegance ──────────
@@ -2047,6 +2054,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
     aria.reviews(),
     aria.ctaBanner(),
   ],
@@ -2055,6 +2063,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
     safari.reviews(),
     safari.ctaBanner(),
   ],
@@ -2063,6 +2072,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
     classic.reviews(),
     classic.invitation(),
   ],
@@ -2071,6 +2081,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
     modern.reviews(),
     modern.cta(),
   ],
@@ -2079,6 +2090,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
     coastal.reviews(),
     coastal.cta(),
   ],
@@ -2087,6 +2099,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
     warm.reviews(),
     warm.cta(),
   ],
@@ -2095,6 +2108,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
     minimal.reviews(),
     minimal.cta(),
   ],
@@ -2103,6 +2117,7 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
     nightfall.reviews(),
     nightfall.cta(),
   ],
@@ -2135,5 +2150,6 @@ export function getThemeRoomDetailSections(
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.policies(),
   ];
 }

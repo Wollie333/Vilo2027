@@ -442,6 +442,14 @@ export function newSection(type: SectionType): WebsiteSection {
           variant: "card",
         },
       };
+    case "room_policies":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { heading: "Things to know", variant: "grid" },
+      };
     case "el_heading":
       return {
         id,

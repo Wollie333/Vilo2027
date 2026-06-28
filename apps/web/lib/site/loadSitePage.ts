@@ -1722,9 +1722,20 @@ export async function loadRoomDetail(
         .eq("room_id", matchedId),
       sb
         .from("properties")
-        .select("name, deleted_at")
+        .select(
+          "name, deleted_at, cancellation_policy_label, check_in_time, check_out_time, house_rules, allow_children, allow_pets",
+        )
         .eq("id", room.property_id)
-        .maybeSingle<{ name: string | null; deleted_at: string | null }>(),
+        .maybeSingle<{
+          name: string | null;
+          deleted_at: string | null;
+          cancellation_policy_label: string | null;
+          check_in_time: string | null;
+          check_out_time: string | null;
+          house_rules: string | null;
+          allow_children: boolean | null;
+          allow_pets: boolean | null;
+        }>(),
     ]);
   // Property soft-deleted after publish (lingers in the frozen snapshot) → hide.
   if (propRow?.deleted_at) return null;
@@ -1784,6 +1795,30 @@ export async function loadRoomDetail(
   });
 
   const price = ov.display_price ?? room.base_price;
+
+  // "Things to know" — auto-pulled from the parent property. Only kept when at
+  // least one line has content (so the section hides itself on empty data).
+  const fmtTime = (t: string | null | undefined): string | null => {
+    if (!t) return null;
+    const [h, m] = t.split(":");
+    return h && m ? `${h.padStart(2, "0")}:${m}` : t;
+  };
+  const policies = {
+    cancellation: propRow?.cancellation_policy_label?.trim() || null,
+    checkIn: fmtTime(propRow?.check_in_time),
+    checkOut: fmtTime(propRow?.check_out_time),
+    houseRules: propRow?.house_rules?.trim() || null,
+    children: propRow?.allow_children ?? null,
+    pets: propRow?.allow_pets ?? null,
+  };
+  const hasPolicies =
+    !!policies.cancellation ||
+    !!policies.checkIn ||
+    !!policies.checkOut ||
+    !!policies.houseRules ||
+    policies.children != null ||
+    policies.pets != null;
+
   return {
     id: room.id,
     slug: roomSlug,
@@ -1800,6 +1835,7 @@ export async function loadRoomDetail(
     }),
     propertyId: room.property_id,
     propertyName: propRow?.name ?? null,
+    policies: hasPolicies ? policies : null,
   };
 }
 
