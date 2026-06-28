@@ -25,6 +25,8 @@ import {
   ElSpacerSection,
   ElTextSection,
 } from "./Elements";
+import { RichTextSection } from "./RichTextSection";
+import { VideoSection } from "./VideoSection";
 
 /**
  * The NenGama Lodge ("safari" theme) home page, broken into per-section,
@@ -1981,6 +1983,12 @@ function renderSafariGenericFallback(
       break;
     case "el_divider":
       el = <ElDividerSection props={section.props} />;
+      break;
+    case "rich_text":
+      el = <RichTextSection props={section.props} />;
+      break;
+    case "video":
+      el = <VideoSection props={section.props} />;
       break;
     case "columns":
       el = <ColumnsSection props={section.props} asset={opts.asset} />;

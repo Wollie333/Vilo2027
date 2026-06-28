@@ -23,6 +23,10 @@ builder non-WYSIWYG for the founder's main theme.
   leading/tracking/`--site-text-base`) so they render ON-THEME, not unstyled.
 - Types with genuinely no Safari rendering still return undefined → still skipped.
 - No circular import (the leaf components don't import SafariSections).
+- **Extended** the same fallback to `rich_text` + `video` (both pure-render content
+  blocks a host commonly adds in the builder — also previously skipped on Safari).
+  Data-dependent / bespoke types (`trust`, `specials_preview`, booking-funnel) left
+  skipped.
 
 `tsc` clean for this file (the only repo-wide `tsc` errors are the parallel
 `looking-for/*` session's, not mine). **Could not live-verify** the Safari render
