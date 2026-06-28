@@ -1213,7 +1213,7 @@ export function SiteChrome({
   const showBar = Boolean(
     preview && !hideBanner && previewPages && previewPages.length,
   );
-  const bodyStyle: CSSProperties = {
+  const bodyStyle = {
     ...(boxed
       ? {
           maxWidth: 1280,
@@ -1224,7 +1224,13 @@ export function SiteChrome({
       : null),
     // Clear the fixed preview bar (so the header's initial position sits below it).
     ...(showBar ? { paddingTop: 44 } : null),
-  };
+    // Total fixed-bar offset (preview bar + top bar + sticky header) so sticky
+    // in-content elements — e.g. the room booking dock — sit BELOW the header
+    // with a gap instead of scrolling behind it. Mirrors SafariShell.
+    "--vilo-sticky-top": `${
+      (showBar ? 44 : 0) + (topBar?.enabled ? 38 : 0) + (sticky ? 96 : 28)
+    }px`,
+  } as CSSProperties;
   const body = (
     <div className="flex min-h-screen w-full flex-col" style={bodyStyle}>
       {analyticsWebsiteId ? (

@@ -29,7 +29,7 @@ export function RoomDockLayout({
       <style>{`
         .room-dock-grid{display:flex;gap:32px;align-items:flex-start;max-width:1280px;margin:8px auto 0;padding:0 20px;}
         .room-dock-grid .room-dock-main{flex:1;min-width:0;}
-        .room-dock-grid .room-dock-aside{width:340px;flex-shrink:0;position:sticky;top:100px;}
+        .room-dock-grid .room-dock-aside{width:340px;flex-shrink:0;position:sticky;top:var(--vilo-sticky-top,110px);}
         @media (max-width:980px){
           .room-dock-grid{flex-direction:column;gap:18px;padding:0 14px;}
           .room-dock-grid .room-dock-aside{position:static;width:100%;}

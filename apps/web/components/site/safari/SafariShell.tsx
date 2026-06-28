@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import type { SitePreviewPage } from "@/lib/site/loadSitePage";
 import type { SafariNavData } from "@/lib/site/safariNav";
@@ -181,7 +181,17 @@ export function SafariShell({
     .join(" ");
 
   return (
-    <div className={rootCls}>
+    <div
+      className={rootCls}
+      // Expose the total fixed-bar offset (preview bar + topbar + solid nav) so
+      // sticky in-content elements — e.g. the room booking dock — can sit BELOW
+      // the fixed header with a gap instead of scrolling behind it.
+      style={
+        {
+          "--vilo-sticky-top": `${topPad + 20}px`,
+        } as CSSProperties
+      }
+    >
       {bar ? <SitePreviewBar themeName="Safari" pages={previewPages} /> : null}
       {showTopBar ? (
         <div className="safari-topbar">
