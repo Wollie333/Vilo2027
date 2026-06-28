@@ -34,7 +34,15 @@ import {
   getThemeRoomDetailSections,
   hasThemeRoomDetailTemplate,
 } from "@/lib/website/themeSections";
-import type { FormField, FormType } from "@/lib/website/forms.schema";
+import type {
+  FormField,
+  FormSettings,
+  FormType,
+} from "@/lib/website/forms.schema";
+import {
+  loadFormsEditor,
+  loadWebsiteRoomNames,
+} from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/forms/loadFormsEditor";
 import { FORM_TEMPLATES } from "@/lib/website/formTemplates";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import { validateSubdomain } from "@/lib/website/subdomain";
@@ -1174,6 +1182,7 @@ export async function savePageSeoAction(
     image,
     pixelEvent,
     headCode,
+    noindex,
   } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
@@ -1198,6 +1207,7 @@ export async function savePageSeoAction(
     image: image.trim() || undefined,
     pixelEvent: pixelEvent !== "none" ? pixelEvent : undefined,
     headCode: headCode.trim() || undefined,
+    noindex: noindex || undefined,
   };
 
   const { error } = await supabase
@@ -2775,6 +2785,54 @@ export async function listWebsiteFormsAction(
       name: f.name,
       type: f.type as FormType,
     })),
+  };
+}
+
+/**
+ * Load one form's full editor payload (type + name + fields + settings, plus the
+ * subdomain and live room names) for editing INLINE in the page builder — the
+ * same data the full-screen form editor page loads, but callable from the client
+ * so a `form` section can open the editor in a modal without navigating away.
+ */
+export async function getWebsiteFormForEditorAction(
+  websiteId: string,
+  formId: string,
+): Promise<
+  | {
+      ok: true;
+      form: {
+        type: FormType;
+        name: string;
+        fields: FormField[];
+        settings: FormSettings;
+      };
+      subdomain: string;
+      roomNames: string[];
+    }
+  | { ok: false; error: string }
+> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const data = await loadFormsEditor(websiteId);
+  if (!data) return { ok: false, error: "not_found" };
+  const form = data.forms.find((f) => f.id === formId);
+  if (!form) return { ok: false, error: "not_found" };
+
+  const roomNames = await loadWebsiteRoomNames(websiteId);
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  return {
+    ok: true,
+    form: {
+      type: form.type,
+      name: form.name,
+      fields: form.fields,
+      settings: form.settings,
+    },
+    subdomain: `${data.subdomain}.${root}`,
+    roomNames,
   };
 }
 

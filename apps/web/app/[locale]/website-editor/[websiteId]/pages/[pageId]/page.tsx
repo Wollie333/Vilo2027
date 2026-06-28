@@ -54,6 +54,7 @@ export default async function FullScreenPageBuilder({
         image: data.page.seo.image ?? "",
         pixelEvent: data.page.seo.pixelEvent ?? "none",
         headCode: data.page.seo.headCode ?? "",
+        noindex: data.page.seo.noindex ?? false,
       }}
       domain={`${data.subdomain}.${root}`}
       ogImageUrl={data.ogImageUrl}

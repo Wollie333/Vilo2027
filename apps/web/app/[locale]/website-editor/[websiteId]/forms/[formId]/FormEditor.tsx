@@ -115,6 +115,8 @@ export function FormEditor({
   initialFields,
   initialSettings,
   roomNames = [],
+  embedded = false,
+  onClose,
 }: {
   websiteId: string;
   formId: string;
@@ -125,6 +127,10 @@ export function FormEditor({
   initialSettings: FormSettings;
   /** The host's live visible rooms — what a `rooms` field auto-fills with. */
   roomNames?: string[];
+  /** When mounted inside the page builder (modal/overlay) rather than its own
+   *  route — swaps the "back to forms" link for a Close action. */
+  embedded?: boolean;
+  onClose?: () => void;
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -242,10 +248,20 @@ export function FormEditor({
       }}
     >
       <header className="etop">
-        <Link href={`/dashboard/website/${websiteId}/forms`} className="eback">
-          <ArrowLeft style={{ width: 16, height: 16 }} />
-          {t("formsHeading")}
-        </Link>
+        {embedded ? (
+          <button type="button" className="eback" onClick={onClose}>
+            <X style={{ width: 16, height: 16 }} />
+            {t("close")}
+          </button>
+        ) : (
+          <Link
+            href={`/dashboard/website/${websiteId}/forms`}
+            className="eback"
+          >
+            <ArrowLeft style={{ width: 16, height: 16 }} />
+            {t("formsHeading")}
+          </Link>
+        )}
         <div className="epage">
           <span className="pico">
             <ClipboardList style={{ width: 16, height: 16 }} />

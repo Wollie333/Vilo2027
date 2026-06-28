@@ -376,6 +376,11 @@ export async function loadSiteMeta(
   appleIconUrl?: string;
   robotsIndex: boolean;
   gscToken?: string;
+  // Open Graph type — "article" for blog posts (with timestamps/author), else
+  // "website". Lets social cards render blog posts as articles.
+  ogType?: "website" | "article";
+  publishedTime?: string;
+  authorName?: string;
 } | null> {
   const ctx = await loadSiteContext(ref, { preview: opts.preview });
   if (!ctx) return null;
@@ -394,6 +399,13 @@ export async function loadSiteMeta(
   let pageDesc: string | undefined;
   // Per-page featured image (Page settings → og:image), wins over the site default.
   let pageOgPath: string | undefined;
+  // Per-page search-engine opt-out (Page settings → noindex), overrides the site.
+  let pageNoindex = false;
+  // Already-resolved OG image URL (blog cover) — bypasses the path resolver.
+  let pageOgUrl: string | undefined;
+  let ogType: "website" | "article" = "website";
+  let publishedTime: string | undefined;
+  let authorName: string | undefined;
 
   if (opts.roomSlug) {
     const room = await loadRoomDetail(ctx, opts.roomSlug);
@@ -406,6 +418,11 @@ export async function loadSiteMeta(
     if (post) {
       pageTitle = post.title;
       pageDesc = post.excerpt ?? undefined;
+      // A shared blog post should card its own cover image + render as an article.
+      pageOgUrl = post.coverUrl ?? undefined;
+      ogType = "article";
+      publishedTime = post.date ?? undefined;
+      authorName = post.authorName ?? undefined;
     }
   } else {
     const result = await loadSitePage(ctx, pathSlug);
@@ -414,10 +431,12 @@ export async function loadSiteMeta(
         title?: string;
         description?: string;
         image?: string;
+        noindex?: boolean;
       };
       pageTitle = ov.title?.trim() || result.page.title?.trim() || null;
       pageDesc = ov.description?.trim() || undefined;
       pageOgPath = ov.image?.trim() || undefined;
+      pageNoindex = ov.noindex === true;
     }
   }
 
@@ -429,15 +448,20 @@ export async function loadSiteMeta(
     title,
     description: pageDesc || siteDesc,
     ogImageUrl:
+      pageOgUrl ??
       websiteAssetUrl(pageOgPath) ??
       websiteAssetUrl(seo.og_image_path) ??
       ctx.brand.logoUrl ??
       undefined,
     faviconUrl: ctx.brand.faviconUrl ?? undefined,
     appleIconUrl: ctx.brand.appleIconUrl ?? undefined,
-    // Default to indexable; only false when the host opts out AND it's published.
-    robotsIndex: seo.robots_index !== false,
+    // Default to indexable; false when the site opts out OR this page is marked
+    // noindex in its Page settings.
+    robotsIndex: seo.robots_index !== false && !pageNoindex,
     gscToken: seo.gsc_token?.trim() || undefined,
+    ogType,
+    publishedTime,
+    authorName,
   };
 }
 

@@ -85,10 +85,38 @@ export function InlineBlock({
           </SiteButton>
         </div>
       ) : null;
+    case "spacer":
+      return (
+        <div aria-hidden style={{ height: SPACER_H[block.size ?? "md"] }} />
+      );
+    case "divider": {
+      const narrow = (block.width ?? "full") === "narrow";
+      return (
+        <hr
+          className={narrow ? "mx-auto w-24" : "w-full"}
+          style={{
+            border: "none",
+            borderTop: `${DIVIDER_PX[block.thickness ?? "thin"]}px ${
+              block.line ?? "solid"
+            } var(--site-line)`,
+          }}
+        />
+      );
+    }
     default:
       return null;
   }
 }
+
+const SPACER_H = {
+  xs: 12,
+  sm: 24,
+  md: 48,
+  lg: 80,
+  xl: 128,
+  "2xl": 160,
+} as const;
+const DIVIDER_PX = { thin: 1, medium: 2, thick: 4 } as const;
 
 const COLS: Record<number, string> = {
   1: "grid-cols-1",

@@ -62,12 +62,22 @@ export async function siteMetadata(args: {
     robots: index
       ? { index: true, follow: true }
       : { index: false, follow: false },
-    openGraph: {
-      title: meta.title,
-      description: meta.description,
-      images: ogImages,
-      type: "website",
-    },
+    openGraph:
+      meta.ogType === "article"
+        ? {
+            title: meta.title,
+            description: meta.description,
+            images: ogImages,
+            type: "article",
+            publishedTime: meta.publishedTime,
+            authors: meta.authorName ? [meta.authorName] : undefined,
+          }
+        : {
+            title: meta.title,
+            description: meta.description,
+            images: ogImages,
+            type: "website",
+          },
     twitter: {
       card: ogImages ? "summary_large_image" : "summary",
       title: meta.title,

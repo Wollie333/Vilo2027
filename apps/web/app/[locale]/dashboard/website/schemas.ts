@@ -866,6 +866,9 @@ export const savePageSeoSchema = z.object({
   // injected into <head> on the live page only. The host's own site — trusted,
   // like the site-level pixel/GA4 ids. Empty = nothing injected.
   headCode: z.string().trim().max(4000).default(""),
+  // Per-page search-engine visibility. true = emit robots noindex,nofollow for
+  // THIS page only (overrides the site-level robots_index). Default indexable.
+  noindex: z.boolean().default(false),
 });
 
 // ── Forms (Phase 4 — form builder) ────────────────────────────

@@ -5,6 +5,71 @@
 
 ---
 
+## 2026-06-28 (EOD #3) — Website CMS → MVP push (part 1): container elements · per-page SEO · inline form editing
+
+Founder directive: drive the website CMS to 100% MVP. Worked in priority order;
+each phase verified with `tsc --noEmit` + `next lint` (both exit 0). No DB
+migrations (all JSON-shape additive). Local dev only — not pushed to Vercel yet.
+
+**Phase 1 — Spacer & divider as inline container elements.** `el_spacer` /
+`el_divider` existed only as full sections; now they're also `ColumnBlock`
+kinds usable INSIDE the Section (flex) and Columns containers. Added `spacer` /
+`divider` branches to `columnBlockSchema` (mirroring the element-section props),
+`newColumnBlock` cases, the `ContainerCanvas` add-bar (MoveVertical / Minus
+icons), both container inspectors' add-block lists, the `ColumnBlockEditor`
+controls (size · line · thickness · width), and public rendering in
+`InlineBlock` (ColumnsSection). i18n `blockKind_spacer` / `blockKind_divider`.
+
+**Phase 2 — Per-page SEO.** (a) New per-page **noindex** toggle
+(`savePageSeoSchema.noindex`) threaded through the action, page loader, the
+PageSeoCard UI (ToggleField), and `loadSiteMeta` so a page marked noindex emits
+`robots: noindex,nofollow` (overrides the site-level robots_index). (b) Blog
+posts now card their **own cover image** as `og:image` (was falling back to the
+site logo) and render as `og:type=article` with `publishedTime` + author —
+`loadSiteMeta` returns `ogType`/`publishedTime`/`authorName`, `metadata.ts`
+branches the OpenGraph block.
+
+**Phase 5 — Inline form-field editing in the page builder (founder's #1).** A
+`form` section's inspector gained an **"Edit form fields"** button that opens the
+FULL form builder (palette, dnd reorder, field + form-settings + styles
+inspectors) in a full-screen overlay — no navigating to the Forms tab. Reuses
+the existing `FormEditor` via a new `embedded` / `onClose` prop (swaps the
+"back to forms" link for Close; save still `router.refresh()`es so the canvas
+re-resolves). New `getWebsiteFormForEditorAction` loads the form payload
+(type/name/fields/settings + subdomain + live room names) to the client;
+`FormFieldsEditor` opens it through a `createPortal` overlay. i18n
+`formSectionEditFields` / `formSectionEditError`; softened `formSectionNote`.
+
+**Also:** verified the prior production deploy (`4d0c4a2`) is live + healthy
+(home 200, auth gate works). Carries the EOD #2 builder bug-fixes below.
+
+---
+
+## 2026-06-28 (EOD #2) — CMS builder bug-fixes: selected-section outline + Section-child stable keys
+
+Two small, well-defined fixes from the prior code-review (carryover #4),
+verified green (`tsc` + `next lint` exit 0). No schema migration (JSON-only).
+
+- **Selected page-builder section lost its chrome** (`PageBuilder.tsx`). The
+  `BkBlock` wrapper built its class with the documented class-concat space bug:
+  `` `bk${selected?"sel":""}${isDragging?"dragging":""}` `` produced `bksel` /
+  `bkdragging`, matching neither the base `.bk` nor the `.bk.sel` / `.bk.dragging`
+  modifiers — so a **selected section lost its green outline, persistent label,
+  and tools** (and its base `.bk` positioning while selected). Fixed with the
+  standard `["bk", selected?"sel":"", isDragging?"dragging":""].filter(Boolean).join(" ")`.
+  Resolves background task `task_4089fb68`.
+
+- **Section-container child reorder glitch** (`ContainerCanvas.tsx` +
+  `sections.schema.ts` + `SectionEditor.tsx`). The on-canvas Section children
+  (`ColumnBlock`s) were keyed by array index, so reordering with ↑/↓ caused
+  React to reconcile by position and glitch the rendered preview. Added an
+  optional `id` to `columnBlockSchema` (each discriminated branch), stamped a
+  `crypto.randomUUID()` in `newColumnBlock`, and keyed the canvas on
+  `b.id ?? \`idx-${i}\`` (legacy id-less blocks fall back to index). `id` is
+  optional so existing draft JSON still validates.
+
+---
+
 ## 2026-06-27 (PM) — Website CMS open to all users (pre-MVP) + publish-indicator diagnosis
 
 **Founder directive:** every user must be able to access + create + publish

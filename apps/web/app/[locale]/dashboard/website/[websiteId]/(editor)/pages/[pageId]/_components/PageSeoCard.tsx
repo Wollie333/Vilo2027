@@ -11,7 +11,13 @@ import { savePageSeoAction } from "@/app/[locale]/dashboard/website/actions";
 import { PAGE_PIXEL_EVENTS } from "@/app/[locale]/dashboard/website/schemas";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
-import { ImageField, SelectField, TextArea, TextField } from "./fields";
+import {
+  ImageField,
+  SelectField,
+  TextArea,
+  TextField,
+  ToggleField,
+} from "./fields";
 import { SeoAnalysis } from "./SeoAnalysis";
 import { SocialPreview } from "./SocialPreview";
 
@@ -46,6 +52,7 @@ export function PageSeoCard({
     image: string;
     pixelEvent: string;
     headCode: string;
+    noindex: boolean;
   };
 }) {
   const t = useTranslations("website");
@@ -61,6 +68,7 @@ export function PageSeoCard({
       : "none",
   );
   const [headCode, setHeadCode] = useState(initial.headCode);
+  const [noindex, setNoindex] = useState(initial.noindex);
   const [saving, startSave] = useTransition();
 
   function onSave() {
@@ -74,6 +82,7 @@ export function PageSeoCard({
         image,
         pixelEvent,
         headCode,
+        noindex,
       });
       if (!res.ok) {
         toast.error(t("saveError"));
@@ -179,6 +188,16 @@ export function PageSeoCard({
               rows={5}
               hint={t("pageHeadCodeHint")}
             />
+            <div className="border-t border-brand-line pt-4">
+              <ToggleField
+                label={t("pageNoindexLabel")}
+                checked={noindex}
+                onChange={setNoindex}
+              />
+              <p className="mt-1.5 text-[12px] text-brand-mute">
+                {t("pageNoindexHint")}
+              </p>
+            </div>
           </div>
           <button
             type="button"

@@ -349,6 +349,7 @@ export function PageBuilder({
     image: string;
     pixelEvent: string;
     headCode: string;
+    noindex: boolean;
   };
   domain: string;
   ogImageUrl?: string;
@@ -1650,7 +1651,9 @@ function BkBlock({
     <div
       ref={setNodeRef}
       style={style}
-      className={`bk${selected ? "sel" : ""}${isDragging ? "dragging" : ""}`}
+      className={["bk", selected ? "sel" : "", isDragging ? "dragging" : ""]
+        .filter(Boolean)
+        .join(" ")}
       onClick={onSelect}
     >
       <div className="bk-label">

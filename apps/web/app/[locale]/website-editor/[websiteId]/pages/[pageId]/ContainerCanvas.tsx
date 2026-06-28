@@ -5,6 +5,8 @@ import {
   ArrowUp,
   Heading,
   Image as ImageIcon,
+  Minus,
+  MoveVertical,
   Pilcrow,
   SquareMousePointer,
   Trash2,
@@ -51,6 +53,8 @@ const ADD_KINDS: Array<{ kind: ColumnBlockKind; Icon: LucideIcon }> = [
   { kind: "text", Icon: Pilcrow },
   { kind: "image", Icon: ImageIcon },
   { kind: "button", Icon: SquareMousePointer },
+  { kind: "spacer", Icon: MoveVertical },
+  { kind: "divider", Icon: Minus },
 ];
 
 /** A block with no content yet — show a placeholder instead of an empty box. */
@@ -148,7 +152,7 @@ export function ContainerCanvas({
       <div style={flexStyle}>
         {blocks.map((b, i) => (
           <div
-            key={i}
+            key={b.id ?? `idx-${i}`}
             className={["cc-block", selectedIndex === i ? "sel" : ""]
               .filter(Boolean)
               .join(" ")}

@@ -2,7 +2,21 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD — PRODUCTION DEPLOY: forms refinement + EXTERNAL REVIEWS feature pushed to `main` → Vercel/Supabase prod)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #2 — prod-deploy VERIFIED + 2 CMS builder bug-fixes)
+
+**Branch:** `main` — bug-fixes **NOT yet committed/pushed** as of this save point (awaiting founder's go; pushing `main` = full prod deploy). `tsc` + `next lint` both **exit 0**. (131 vitest unchanged — not re-run; no logic touched.)
+
+**WHAT HAPPENED THIS SESSION:**
+1. **✅ Verified the production deploy (NEXT-item #1 from the prior save point).** `https://vilo2027.vercel.app` for `4d0c4a2`: home `/`→**200**, `/en/login`→`/login`→**200** (locale strip), `/en/dashboard`→`/login?next=/dashboard`→**200** (auth gate works). Edge Functions CI = success. Database Migrations CI = failure (KNOWN — missing `SUPABASE_DB_URL`/`SUPABASE_ACCESS_TOKEN` secrets; migrations applied manually, list in sync). `vilotest` preview 307s in prod = expected (prod DB clean, no test fixtures). Removed a stray 0-byte `nul` Windows artifact from the tree.
+2. **✅ Two CMS builder bug-fixes (NEXT-item #4 carryover).** (a) `PageBuilder.tsx` `BkBlock` className space bug (`bksel`/`bkdragging` → none matched `.bk`/`.bk.sel`/`.bk.dragging`, so a SELECTED section lost its outline/label/tools + base positioning) → `.filter(Boolean).join(" ")`. This is the `task_4089fb68` chip (the founder had ALREADY spun that into its own session — heads-up for a possible dup one-liner). (b) Section-container child reorder glitch — `ColumnBlock` was keyed by index. Added optional `id` to `columnBlockSchema` (each branch), stamped `crypto.randomUUID()` in `newColumnBlock`, keyed `ContainerCanvas` on `b.id ?? \`idx-${i}\``. JSON-only, no migration; `id` optional so legacy draft JSON still validates.
+
+**⚠️ NOT live-verified in a browser** (only tsc+lint). Rationale: BkBlock is a pure class-string fix matching an already-proven pattern; the reorder fix is a transient React-reconciliation artifact the Preview-MCP can't reliably exercise (onClick select/reorder don't fire — documented). Files touched: `PageBuilder.tsx`, `ContainerCanvas.tsx`, `lib/website/sections.schema.ts`, `SectionEditor.tsx` (`newColumnBlock`), `CHANGELOG.md`, this file.
+
+**▶▶ NEXT:** (a) **founder: commit + push these 2 fixes?** (push = prod deploy). (b) Remaining items: Section-child drag-reorder + spacer/divider kinds · `db-migrate.yml` CI secrets · external-reviews ops env · preview-404 (needs URL) · second theme.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-28 EOD — PRODUCTION DEPLOY: forms refinement + EXTERNAL REVIEWS feature pushed to `main` → Vercel/Supabase prod)
 
 **Branch:** `main` — everything committed + **PUSHED to prod** (latest = the deploy commits below). **Pushing to `main` IS a full production deploy** (`CI_CD.md`): Vercel web build + `db-migrate.yml` (applies migrations to prod Supabase) + `deploy-functions.yml` (deploys Edge Functions). **`pnpm build` PASSED (exit 0, 690 pages) on the full tree before the push** — tsc + lint clean, 131 vitest.
 

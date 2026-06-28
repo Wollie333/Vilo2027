@@ -680,21 +680,43 @@ const elDividerProps = z.object({
 // flat list of sections. Collapses to one column on mobile.
 const columnBlockSchema = z.discriminatedUnion("kind", [
   z.object({
+    // Stable identity for React keys / reorder (optional: legacy blocks predate it).
+    id: z.string().optional(),
     kind: z.literal("heading"),
     text: z.string().max(200),
     level: z.enum(["h1", "h2", "h3", "h4", "h5", "h6", "p"]).default("h3"),
   }),
-  z.object({ kind: z.literal("text"), body: z.string().max(2000) }),
   z.object({
+    id: z.string().optional(),
+    kind: z.literal("text"),
+    body: z.string().max(2000),
+  }),
+  z.object({
+    id: z.string().optional(),
     kind: z.literal("image"),
     image_path: z.string().optional(),
     alt: z.string().max(200).optional(),
   }),
   z.object({
+    id: z.string().optional(),
     kind: z.literal("button"),
     label: z.string().max(60),
     href: z.string().max(500),
     variant: z.enum(["primary", "secondary"]).default("primary"),
+  }),
+  // Structural helpers — mirror the el_spacer / el_divider section props so a
+  // container child can add vertical rhythm or a rule without leaving the block.
+  z.object({
+    id: z.string().optional(),
+    kind: z.literal("spacer"),
+    size: z.enum(["xs", "sm", "md", "lg", "xl", "2xl"]).default("md"),
+  }),
+  z.object({
+    id: z.string().optional(),
+    kind: z.literal("divider"),
+    line: z.enum(["solid", "dashed", "dotted"]).default("solid"),
+    thickness: z.enum(EL_DIVIDER_THICKNESS).default("thin"),
+    width: z.enum(["narrow", "full"]).default("full"),
   }),
 ]);
 export type ColumnBlock = z.infer<typeof columnBlockSchema>;

@@ -1,16 +1,25 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import {
+  getWebsiteFormForEditorAction,
   listWebsiteBookablePropertiesAction,
   listWebsiteFormsAction,
   type WebsiteFormOption,
   type WebsitePropertyOption,
 } from "@/app/[locale]/dashboard/website/actions";
+import { FormEditor } from "@/app/[locale]/website-editor/[websiteId]/forms/[formId]/FormEditor";
+import type {
+  FormField,
+  FormSettings,
+  FormType,
+} from "@/lib/website/forms.schema";
 import type {
   BlockSpace,
   BlockStyle,
@@ -2891,6 +2900,18 @@ function FormFieldsEditor({
   const t = useTranslations("website");
   const [forms, setForms] = useState<WebsiteFormOption[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // Inline form-field editor — opens the full form builder in an overlay so the
+  // host edits the chosen form's fields without leaving the page builder.
+  const [editing, setEditing] = useState<{
+    formId: string;
+    type: FormType;
+    name: string;
+    fields: FormField[];
+    settings: FormSettings;
+    subdomain: string;
+    roomNames: string[];
+  } | null>(null);
+  const [openingEditor, setOpeningEditor] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -2908,6 +2929,26 @@ function FormFieldsEditor({
   const set = (patch: Partial<typeof p>) =>
     onChange({ ...section, props: { ...p, ...patch } });
 
+  async function openEditor() {
+    if (!p.form_id || openingEditor) return;
+    setOpeningEditor(true);
+    const res = await getWebsiteFormForEditorAction(websiteId, p.form_id);
+    setOpeningEditor(false);
+    if (!res.ok) {
+      toast.error(t("formSectionEditError"));
+      return;
+    }
+    setEditing({
+      formId: p.form_id,
+      type: res.form.type,
+      name: res.form.name,
+      fields: res.form.fields,
+      settings: res.form.settings,
+      subdomain: res.subdomain,
+      roomNames: res.roomNames,
+    });
+  }
+
   return (
     <div className="space-y-4">
       {loaded && forms.length === 0 ? (
@@ -2923,6 +2964,36 @@ function FormFieldsEditor({
           onChange={(v) => set({ form_id: v || undefined })}
         />
       )}
+      {p.form_id ? (
+        <button
+          type="button"
+          onClick={openEditor}
+          disabled={openingEditor}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] font-semibold text-brand-ink transition hover:border-brand-mute disabled:opacity-50"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          {openingEditor ? t("loading") : t("formSectionEditFields")}
+        </button>
+      ) : null}
+      {editing
+        ? createPortal(
+            <div className="fixed inset-0 z-[70]">
+              <FormEditor
+                websiteId={websiteId}
+                formId={editing.formId}
+                formType={editing.type}
+                subdomain={editing.subdomain}
+                initialName={editing.name}
+                initialFields={editing.fields}
+                initialSettings={editing.settings}
+                roomNames={editing.roomNames}
+                embedded
+                onClose={() => setEditing(null)}
+              />
+            </div>,
+            document.body,
+          )
+        : null}
       <TextField
         label={t("fldHeading")}
         value={p.heading ?? ""}
@@ -2952,15 +3023,20 @@ function FormFieldsEditor({
 
 /** A blank inline block of the given kind (column content). */
 export function newColumnBlock(kind: ColumnBlockKind): ColumnBlock {
+  const id = crypto.randomUUID();
   switch (kind) {
     case "heading":
-      return { kind, text: "Heading", level: "h3" };
+      return { id, kind, text: "Heading", level: "h3" };
     case "text":
-      return { kind, body: "Add some text." };
+      return { id, kind, body: "Add some text." };
     case "image":
-      return { kind };
+      return { id, kind };
     case "button":
-      return { kind, label: "Button", href: "#", variant: "primary" };
+      return { id, kind, label: "Button", href: "#", variant: "primary" };
+    case "spacer":
+      return { id, kind, size: "md" };
+    case "divider":
+      return { id, kind, line: "solid", thickness: "thin", width: "full" };
   }
 }
 
@@ -3074,20 +3150,27 @@ function ColumnsEditor({
             ))}
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {(["heading", "text", "image", "button"] as ColumnBlockKind[]).map(
-              (kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  onClick={() =>
-                    setColumnBlocks(ci, [...col.blocks, newColumnBlock(kind)])
-                  }
-                  className="inline-flex items-center gap-1 rounded-[8px] border border-dashed border-brand-line px-2.5 py-1 text-[12px] font-medium text-brand-mute transition hover:border-brand-mute hover:text-brand-ink"
-                >
-                  + {t(`blockKind_${kind}`)}
-                </button>
-              ),
-            )}
+            {(
+              [
+                "heading",
+                "text",
+                "image",
+                "button",
+                "spacer",
+                "divider",
+              ] as ColumnBlockKind[]
+            ).map((kind) => (
+              <button
+                key={kind}
+                type="button"
+                onClick={() =>
+                  setColumnBlocks(ci, [...col.blocks, newColumnBlock(kind)])
+                }
+                className="inline-flex items-center gap-1 rounded-[8px] border border-dashed border-brand-line px-2.5 py-1 text-[12px] font-medium text-brand-mute transition hover:border-brand-mute hover:text-brand-ink"
+              >
+                + {t(`blockKind_${kind}`)}
+              </button>
+            ))}
           </div>
         </div>
       ))}
@@ -3187,18 +3270,25 @@ function FlexEditor({
         ))}
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {(["heading", "text", "image", "button"] as ColumnBlockKind[]).map(
-          (kind) => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => setBlocks([...blocks, newColumnBlock(kind)])}
-              className="inline-flex items-center gap-1 rounded-[8px] border border-dashed border-brand-line px-2.5 py-1 text-[12px] font-medium text-brand-mute transition hover:border-brand-mute hover:text-brand-ink"
-            >
-              + {t(`blockKind_${kind}`)}
-            </button>
-          ),
-        )}
+        {(
+          [
+            "heading",
+            "text",
+            "image",
+            "button",
+            "spacer",
+            "divider",
+          ] as ColumnBlockKind[]
+        ).map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            onClick={() => setBlocks([...blocks, newColumnBlock(kind)])}
+            className="inline-flex items-center gap-1 rounded-[8px] border border-dashed border-brand-line px-2.5 py-1 text-[12px] font-medium text-brand-mute transition hover:border-brand-mute hover:text-brand-ink"
+          >
+            + {t(`blockKind_${kind}`)}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -3334,6 +3424,56 @@ export function ColumnBlockEditor({
               { value: "secondary", label: t("elButton_secondary") },
             ]}
             onChange={(v) => onChange({ ...block, variant: v })}
+          />
+        </div>
+      ) : null}
+
+      {block.kind === "spacer" ? (
+        <SelectField
+          label={t("fldElSpacerSize")}
+          value={block.size}
+          options={[
+            { value: "xs", label: t("elSize_xs") },
+            { value: "sm", label: t("elSize_sm") },
+            { value: "md", label: t("elSize_md") },
+            { value: "lg", label: t("elSize_lg") },
+            { value: "xl", label: t("elSize_xl") },
+            { value: "2xl", label: t("elSize_2xl") },
+          ]}
+          onChange={(v) => onChange({ ...block, size: v })}
+        />
+      ) : null}
+
+      {block.kind === "divider" ? (
+        <div className="space-y-2.5">
+          <SelectField
+            label={t("fldElDividerLine")}
+            value={block.line}
+            options={[
+              { value: "solid", label: t("elLine_solid") },
+              { value: "dashed", label: t("elLine_dashed") },
+              { value: "dotted", label: t("elLine_dotted") },
+            ]}
+            onChange={(v) => onChange({ ...block, line: v })}
+          />
+          <SelectField
+            label={t("fldElThickness")}
+            value={block.thickness}
+            options={[
+              { value: "thin", label: t("elThick_thin") },
+              { value: "medium", label: t("elThick_medium") },
+              { value: "thick", label: t("elThick_thick") },
+            ]}
+            onChange={(v) => onChange({ ...block, thickness: v })}
+          />
+          <SelectField
+            label={t("fldElWidth")}
+            value={block.width}
+            options={[
+              { value: "narrow", label: t("elWidth_narrow") },
+              { value: "full", label: t("elWidth_full") },
+            ]}
+            onChange={(v) => onChange({ ...block, width: v })}
           />
         </div>
       ) : null}
