@@ -1,37 +1,45 @@
 import type { ReactNode } from "react";
 
 /**
- * Room-detail page layout, property-listing style: the room content (gallery +
- * sections) in the main column on the left, and the booking dock in a STICKY
- * right rail that starts beside the content and scrolls down with the page (it no
- * longer floats/overlaps the gallery). Stacks on mobile (booking card below the
- * content). Theme-agnostic; used on the public room page (both themes) and the
- * room-builder canvas so they match.
+ * Room-detail page layout, matching the directory listing display
+ * (`property/[slug]`): the photo gallery runs FULL-WIDTH at the top, then the
+ * room content sits in a left column with the booking dock in a STICKY right rail
+ * that starts BELOW the images and scrolls with the page. Stacks on mobile
+ * (booking card below the content). Theme-agnostic; used on the public room page
+ * (both themes) + the room-builder canvas so they match.
  *
- * NOTE: the inline <style> deliberately uses descendant selectors only (no `>`
- * child combinator) — React HTML-escapes `>` to `&gt;` server-side only, which
- * trips a hydration mismatch inside a <style>.
+ * NOTE: the inline <style> uses descendant selectors only (no `>` child
+ * combinator) — React escapes `>` to `&gt;` server-side only, tripping a
+ * hydration mismatch inside a <style>.
  */
 export function RoomDockLayout({
+  gallery,
   children,
   dock,
 }: {
+  /** Full-width section(s) shown above the 2-column grid (the room gallery). */
+  gallery?: ReactNode;
+  /** The room content — the left column of the grid. */
   children: ReactNode;
+  /** The booking dock — the sticky right rail. */
   dock: ReactNode;
 }) {
   return (
-    <div className="room-dock-wrap">
+    <div className="room-dock-page">
       <style>{`
-        .room-dock-wrap{display:flex;gap:28px;align-items:flex-start;max-width:1280px;margin:0 auto;padding:20px 20px 0;}
-        .room-dock-wrap .room-dock-main{flex:1;min-width:0;}
-        .room-dock-wrap .room-dock-aside{width:332px;flex-shrink:0;position:sticky;top:96px;}
+        .room-dock-grid{display:flex;gap:32px;align-items:flex-start;max-width:1280px;margin:8px auto 0;padding:0 20px;}
+        .room-dock-grid .room-dock-main{flex:1;min-width:0;}
+        .room-dock-grid .room-dock-aside{width:340px;flex-shrink:0;position:sticky;top:100px;}
         @media (max-width:980px){
-          .room-dock-wrap{flex-direction:column;gap:18px;padding:14px 14px 0;}
-          .room-dock-wrap .room-dock-aside{position:static;width:100%;}
+          .room-dock-grid{flex-direction:column;gap:18px;padding:0 14px;}
+          .room-dock-grid .room-dock-aside{position:static;width:100%;}
         }
       `}</style>
-      <div className="room-dock-main">{children}</div>
-      <aside className="room-dock-aside">{dock}</aside>
+      {gallery}
+      <div className="room-dock-grid">
+        <div className="room-dock-main">{children}</div>
+        <aside className="room-dock-aside">{dock}</aside>
+      </div>
     </div>
   );
 }

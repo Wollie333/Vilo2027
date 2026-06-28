@@ -125,6 +125,17 @@ export function RoomBuilder({
   );
   const isSafari = data.themePreset === "safari";
 
+  // Listing-style split: the gallery renders full-width up top, the rest in the
+  // content column beside the sticky booking dock (mirrors the public room page).
+  const galleryMerged = useMemo(
+    () => merged.filter((s) => s.type === "room_gallery"),
+    [merged],
+  );
+  const contentMerged = useMemo(
+    () => merged.filter((s) => s.type !== "room_gallery"),
+    [merged],
+  );
+
   // Scroll the canvas to a newly-added extra so the host sees it appear (extras
   // append after the template, which can be below the fold on a long room page).
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -396,6 +407,16 @@ export function RoomBuilder({
                 })}
               >
                 <RoomDockLayout
+                  gallery={
+                    <SectionRenderer
+                      sections={galleryMerged}
+                      data={previewData}
+                      asset={assetUrl}
+                      themeVariant="safari"
+                      interactive={false}
+                      errorLabel={t("sectionRenderError")}
+                    />
+                  }
                   dock={
                     <RoomBookingDock
                       roomName={data.roomName}
@@ -407,7 +428,7 @@ export function RoomBuilder({
                   }
                 >
                   <SectionRenderer
-                    sections={merged}
+                    sections={contentMerged}
                     data={previewData}
                     asset={assetUrl}
                     themeVariant="safari"
@@ -428,6 +449,16 @@ export function RoomBuilder({
                   chromeInert
                 >
                   <RoomDockLayout
+                    gallery={
+                      <SectionRenderer
+                        sections={galleryMerged}
+                        data={previewData}
+                        asset={assetUrl}
+                        themeVariant={data.themePreset}
+                        interactive={false}
+                        errorLabel={t("sectionRenderError")}
+                      />
+                    }
                     dock={
                       <RoomBookingDock
                         roomName={data.roomName}
@@ -439,7 +470,7 @@ export function RoomBuilder({
                     }
                   >
                     <SectionRenderer
-                      sections={merged}
+                      sections={contentMerged}
                       data={previewData}
                       asset={assetUrl}
                       themeVariant={data.themePreset}

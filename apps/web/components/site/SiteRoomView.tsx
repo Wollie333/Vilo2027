@@ -47,6 +47,11 @@ export async function SiteRoomView({
   if (!result) notFound();
   const { room, sections, data, roomsHref } = result;
 
+  // Listing-style layout: the room gallery runs full-width up top, the rest of the
+  // sections sit in the content column beside the sticky booking dock.
+  const gallerySections = sections.filter((s) => s.type === "room_gallery");
+  const contentSections = sections.filter((s) => s.type !== "room_gallery");
+
   let jsonLdGraph: Record<string, unknown>[] = [];
   if (!ctx.preview) {
     const h = await headers();
@@ -97,6 +102,14 @@ export async function SiteRoomView({
           interactive={!ctx.preview}
         >
           <RoomDockLayout
+            gallery={
+              <SafariSectionList
+                sections={gallerySections}
+                data={data}
+                asset={siteAsset}
+                ctx={safariCtx}
+              />
+            }
             dock={
               <RoomBookingDock
                 roomName={room.name}
@@ -108,7 +121,7 @@ export async function SiteRoomView({
             }
           >
             <SafariSectionList
-              sections={sections}
+              sections={contentSections}
               data={data}
               asset={siteAsset}
               ctx={safariCtx}
@@ -172,6 +185,15 @@ export async function SiteRoomView({
             </ol>
           </nav>
           <RoomDockLayout
+            gallery={
+              <SectionRenderer
+                sections={gallerySections}
+                data={data}
+                asset={siteAsset}
+                websiteId={ctx.websiteId}
+                interactive={!ctx.preview}
+              />
+            }
             dock={
               <RoomBookingDock
                 roomName={room.name}
@@ -183,7 +205,7 @@ export async function SiteRoomView({
             }
           >
             <SectionRenderer
-              sections={sections}
+              sections={contentSections}
               data={data}
               asset={siteAsset}
               websiteId={ctx.websiteId}
