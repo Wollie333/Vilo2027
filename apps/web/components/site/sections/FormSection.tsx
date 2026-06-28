@@ -8,6 +8,7 @@ import {
 } from "@/components/site/TurnstileWidget";
 import { formStyleVars } from "@/lib/website/formStyle";
 import { siteThankYouHref } from "@/lib/site/thankYouHref";
+import { ThemedDateRange } from "@/components/site/ThemedDateRange";
 import type { FormRenderData, SiteFormDef } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
@@ -356,31 +357,23 @@ export function FormSection({
       }
       case "dates": {
         const [din = "", dout = ""] = v.split(" → ");
+        // Bespoke themed calendar (not native date inputs), styled from the form's
+        // --vform-*/--site-* tokens so it matches the theme.
         return (
-          <label className="block space-y-1.5">
+          <div className="block space-y-1.5">
             {labelSpan(field)}
-            <div className="flex gap-3">
-              <input
-                type="date"
-                required={field.required}
-                value={din}
-                style={fieldStyle}
-                className={inputCls}
-                onChange={(e) =>
-                  setValue(field.id, `${e.target.value} → ${dout}`)
-                }
-              />
-              <input
-                type="date"
-                value={dout}
-                style={fieldStyle}
-                className={inputCls}
-                onChange={(e) =>
-                  setValue(field.id, `${din} → ${e.target.value}`)
-                }
-              />
-            </div>
-          </label>
+            <ThemedDateRange
+              from={din}
+              to={dout.trim()}
+              onChange={(f, t) => setValue(field.id, `${f} → ${t}`)}
+              accent="var(--vform-accent, var(--site-accent))"
+              ink="var(--site-ink)"
+              mute="var(--site-mute)"
+              line="var(--vform-field-border, var(--site-line))"
+              surface="var(--site-surface)"
+              radius="var(--vform-radius, var(--site-radius))"
+            />
+          </div>
         );
       }
       default: {
