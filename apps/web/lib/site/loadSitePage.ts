@@ -29,6 +29,7 @@ import { parseRoomMediaOverrides } from "@/lib/website/roomMedia";
 import {
   mergeRoomDetailSections,
   parseRoomDetailOverride,
+  type RoomDetailOverride,
 } from "@/lib/website/roomDetailOverride";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import {
@@ -1897,6 +1898,53 @@ export async function loadSampleRoomDetail(
   if (ordered.length === 0) return null;
   const slug = roomSlugMap(ordered).get(ordered[0].roomId);
   return slug ? loadRoomDetail(ctx, slug) : null;
+}
+
+export type RoomEditorData = {
+  /** The room's live detail (name/photos/price) for the editor preview link. */
+  room: RoomDetail | null;
+  /** Display name (override → room name) for the editor header. */
+  name: string;
+  /** Public slug for "preview this room". */
+  slug: string | null;
+  /** The shared template sections (what every room inherits). */
+  templateSections: WebsiteSection[];
+  /** This room's current override (null = pure template). */
+  override: RoomDetailOverride | null;
+};
+
+/**
+ * Everything the per-room editor needs for ONE room: its live detail, the shared
+ * template sections, and the room's current overrides. Returns null when the room
+ * isn't a visible member of the site. Reuses the same resolution as the public
+ * room page so the editor is consistent with what renders.
+ */
+export async function loadRoomEditorData(
+  ctx: SiteContext,
+  roomId: string,
+): Promise<RoomEditorData | null> {
+  const sb = createAdminClient();
+  const { ordered } = await orderedVisibleRooms(sb, ctx);
+  const entry = ordered.find((r) => r.roomId === roomId);
+  if (!entry) return null;
+  const slug = roomSlugMap(ordered).get(roomId) ?? null;
+  const [room, templateSections, ovRow] = await Promise.all([
+    slug ? loadRoomDetail(ctx, slug) : Promise.resolve(null),
+    loadRoomDetailSections(ctx),
+    sb
+      .from("website_rooms")
+      .select("detail_overrides")
+      .eq("website_id", ctx.websiteId)
+      .eq("room_id", roomId)
+      .maybeSingle<{ detail_overrides: unknown }>(),
+  ]);
+  return {
+    room,
+    name: entry.name,
+    slug,
+    templateSections,
+    override: parseRoomDetailOverride(ovRow.data?.detail_overrides),
+  };
 }
 
 /**

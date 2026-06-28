@@ -4,15 +4,29 @@ import { getTranslations } from "next-intl/server";
 import { loadPageBuilder } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/loadPageBuilder";
 
 import { PageBuilder } from "./PageBuilder";
+import { loadRoomBuilder } from "./loadRoomBuilder";
+import { RoomBuilder } from "./RoomBuilder";
 
 export const dynamic = "force-dynamic";
 
 export default async function FullScreenPageBuilder({
   params,
+  searchParams,
 }: {
   params: Promise<{ websiteId: string; pageId: string }>;
+  searchParams: Promise<{ room?: string }>;
 }) {
   const { websiteId, pageId } = await params;
+  const { room: roomId } = await searchParams;
+
+  // Room-scoped editing: `?room=<id>` opens the per-room editor (the room's
+  // overrides layered over the shared template) instead of the template builder.
+  if (roomId) {
+    const roomData = await loadRoomBuilder(websiteId, pageId, roomId);
+    if (!roomData) notFound();
+    return <RoomBuilder data={roomData} />;
+  }
+
   const [t, data] = await Promise.all([
     getTranslations("website"),
     loadPageBuilder(websiteId, pageId),
