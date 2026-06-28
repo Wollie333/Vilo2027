@@ -38,7 +38,11 @@
   font-weight: 300;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
+  /* `clip` (not `hidden`) contains full-bleed sections horizontally WITHOUT
+     forcing overflow-y to `auto` — `hidden` would make this a scroll container
+     and break `position: sticky` on the booking dock (it would stick to this box
+     instead of the viewport). */
+  overflow-x: clip;
 }
 
 .vilo-safari * {
