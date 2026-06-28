@@ -32,6 +32,7 @@ import {
 import { mergeRoomDetailSections } from "@/lib/website/roomDetailOverride";
 import { SectionRenderer } from "@/components/site/SectionRenderer";
 import { RoomBookingDock } from "@/components/site/RoomBookingDock";
+import { RoomDockLayout } from "@/components/site/RoomDockLayout";
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -394,21 +395,26 @@ export function RoomBuilder({
                   subdomain: "",
                 })}
               >
-                <SectionRenderer
-                  sections={merged}
-                  data={previewData}
-                  asset={assetUrl}
-                  themeVariant="safari"
-                  interactive={false}
-                  errorLabel={t("sectionRenderError")}
-                />
-                <RoomBookingDock
-                  roomName={data.roomName}
-                  price={data.room?.price}
-                  currency={data.room?.currency}
-                  bookHref={data.room?.bookHref ?? "#"}
-                  interactive={false}
-                />
+                <RoomDockLayout
+                  dock={
+                    <RoomBookingDock
+                      roomName={data.roomName}
+                      price={data.room?.price}
+                      currency={data.room?.currency}
+                      bookHref={data.room?.bookHref ?? "#"}
+                      interactive={false}
+                    />
+                  }
+                >
+                  <SectionRenderer
+                    sections={merged}
+                    data={previewData}
+                    asset={assetUrl}
+                    themeVariant="safari"
+                    interactive={false}
+                    errorLabel={t("sectionRenderError")}
+                  />
+                </RoomDockLayout>
               </SafariShell>
             ) : (
               <SiteThemeRoot theme={page.theme}>
@@ -421,21 +427,26 @@ export function RoomBuilder({
                   layout={page.layout}
                   chromeInert
                 >
-                  <SectionRenderer
-                    sections={merged}
-                    data={previewData}
-                    asset={assetUrl}
-                    themeVariant={data.themePreset}
-                    interactive={false}
-                    errorLabel={t("sectionRenderError")}
-                  />
-                  <RoomBookingDock
-                    roomName={data.roomName}
-                    price={data.room?.price}
-                    currency={data.room?.currency}
-                    bookHref={data.room?.bookHref ?? "#"}
-                    interactive={false}
-                  />
+                  <RoomDockLayout
+                    dock={
+                      <RoomBookingDock
+                        roomName={data.roomName}
+                        price={data.room?.price}
+                        currency={data.room?.currency}
+                        bookHref={data.room?.bookHref ?? "#"}
+                        interactive={false}
+                      />
+                    }
+                  >
+                    <SectionRenderer
+                      sections={merged}
+                      data={previewData}
+                      asset={assetUrl}
+                      themeVariant={data.themePreset}
+                      interactive={false}
+                      errorLabel={t("sectionRenderError")}
+                    />
+                  </RoomDockLayout>
                 </SiteChrome>
               </SiteThemeRoot>
             )}

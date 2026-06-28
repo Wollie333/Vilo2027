@@ -81,20 +81,13 @@ export function RoomBookingDock({
   return (
     <aside className="room-book-dock" aria-label="Book this room">
       <style>{`
-        .room-book-dock{position:fixed;top:96px;right:20px;width:300px;z-index:40;}
+        .room-book-dock{width:100%;}
         .room-book-dock .rbd-card{border:1px solid ${line};border-radius:${radius};background:${surface};padding:18px;box-shadow:0 18px 40px -28px rgba(6,40,28,.45);}
         .room-book-dock .rbd-row{display:flex;gap:8px;}
         .room-book-dock .rbd-col{flex:1;}
         .room-book-dock label{display:block;font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:${mute};margin:0 0 4px;}
         .room-book-dock .rbd-btn{width:100%;margin-top:12px;padding:12px;border:none;border-radius:9px;background:${accent};color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
         .room-book-dock .rbd-btn:hover{filter:brightness(1.05);}
-        @media (max-width:980px){
-          .room-book-dock{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;z-index:50;}
-          .room-book-dock .rbd-card{border-radius:14px 14px 0 0;display:flex;align-items:center;gap:14px;}
-          .room-book-dock .rbd-fields{display:none;}
-          .room-book-dock .rbd-btn{margin-top:0;width:auto;flex-shrink:0;padding:12px 22px;}
-          .room-book-dock .rbd-price{flex:1;}
-        }
       `}</style>
       <div className="rbd-card">
         <div className="rbd-price" style={{ marginBottom: 12 }}>

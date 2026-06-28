@@ -665,17 +665,6 @@
   border-color: #10b981;
   box-shadow: 0 0 0 1px #10b981;
 }
-/* The room booking dock is position:fixed on the live site (a sticky right-rail
-   card). Inside the builder canvas, scope it to the device frame so it previews
-   at the room's top-right instead of floating over the inspector panel. */
-.vilo-builder .device {
-  position: relative;
-}
-.vilo-builder .device .room-book-dock {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-}
 .vilo-builder .device.tablet {
   max-width: 744px;
 }

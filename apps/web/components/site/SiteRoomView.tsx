@@ -13,6 +13,7 @@ import { siteSurfaceIsDark } from "@/lib/site/themes";
 
 import { JsonLd } from "./JsonLd";
 import { RoomBookingDock } from "./RoomBookingDock";
+import { RoomDockLayout } from "./RoomDockLayout";
 import { SafariShell } from "./safari/SafariShell";
 import { SafariSectionList, type SafariCtx } from "./sections/SafariSections";
 import { SectionRenderer } from "./SectionRenderer";
@@ -95,19 +96,24 @@ export async function SiteRoomView({
           analytics={ctx.analytics}
           interactive={!ctx.preview}
         >
-          <SafariSectionList
-            sections={sections}
-            data={data}
-            asset={siteAsset}
-            ctx={safariCtx}
-          />
-          <RoomBookingDock
-            roomName={room.name}
-            price={room.price}
-            currency={room.currency}
-            bookHref={room.bookHref}
-            interactive={!ctx.preview}
-          />
+          <RoomDockLayout
+            dock={
+              <RoomBookingDock
+                roomName={room.name}
+                price={room.price}
+                currency={room.currency}
+                bookHref={room.bookHref}
+                interactive={!ctx.preview}
+              />
+            }
+          >
+            <SafariSectionList
+              sections={sections}
+              data={data}
+              asset={siteAsset}
+              ctx={safariCtx}
+            />
+          </RoomDockLayout>
         </SafariShell>
       </>
     );
@@ -165,20 +171,25 @@ export async function SiteRoomView({
               </li>
             </ol>
           </nav>
-          <SectionRenderer
-            sections={sections}
-            data={data}
-            asset={siteAsset}
-            websiteId={ctx.websiteId}
-            interactive={!ctx.preview}
-          />
-          <RoomBookingDock
-            roomName={room.name}
-            price={room.price}
-            currency={room.currency}
-            bookHref={room.bookHref}
-            interactive={!ctx.preview}
-          />
+          <RoomDockLayout
+            dock={
+              <RoomBookingDock
+                roomName={room.name}
+                price={room.price}
+                currency={room.currency}
+                bookHref={room.bookHref}
+                interactive={!ctx.preview}
+              />
+            }
+          >
+            <SectionRenderer
+              sections={sections}
+              data={data}
+              asset={siteAsset}
+              websiteId={ctx.websiteId}
+              interactive={!ctx.preview}
+            />
+          </RoomDockLayout>
         </SiteChrome>
       </SiteThemeRoot>
     </>
