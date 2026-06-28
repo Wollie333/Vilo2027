@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-28 (EOD #10) — Website CMS → MVP push (deferred #4): per-device visibility for container children
+
+Container children (the `ColumnBlock` heading/text/image/button/spacer/divider
+inside Section & Columns containers) gained a **per-device "Show on" control** —
+parity with a section's own `visibility`. A host can now hide a child on mobile
+("Desktop only") or show it only on mobile ("Mobile only").
+
+- **Schema:** new shared `blockBase` (`id` + `visibility`) spread into every
+  `ColumnBlock` kind; `visibility` reuses the existing `SECTION_VISIBILITY`
+  enum (`all`/`desktop`/`mobile`). Additive + optional — legacy blocks unchanged.
+- **Render:** `ColumnsSection` + `FlexSection` wrap a child in the same Tailwind
+  utilities sections use (`hidden md:block` for desktop-only, `block md:hidden`
+  for mobile-only) — theme-agnostic, so it works on the generic site AND the
+  Safari fallback. "all"/unset adds no wrapper (no extra DOM).
+- **Editor:** a "Show on" `SelectField` at the foot of `ColumnBlockEditor`,
+  applied to every block kind; "All devices" stores `undefined` to keep JSON lean.
+  Reuses the existing `fldVisibility` / `visibility_*` i18n keys (no new strings).
+
+Scope note: this delivers the **hide/show** dimension of per-device overrides
+(the most common need, and exact parity with sections). Full per-device
+*re-styling* (different align/size/colour per breakpoint) would need the
+duplicate-render machinery that is currently Safari-only (`.vilo-rdup-*`) — left
+as a follow-on.
+
+`tsc --noEmit` (whole project) + `next lint` **clean**. **Live-verified** on
+`:3000`: seeded a flex container with three children (mobile-only / desktop-only /
+always) onto the home draft, rendered the Safari preview, and confirmed the DOM —
+`<div class="block md:hidden">` wraps the mobile-only child, `<div class="hidden
+md:block">` wraps the desktop-only child, and the "always" child renders unwrapped.
+Restored the draft afterwards (fixture intact).
+
+---
+
 ## 2026-06-28 (EOD #9) — Website CMS → MVP push (deferred #3): blog post head-code + pixel-event parity with pages
 
 Regular pages support a per-page custom `<head>` code injection (`headCode`) and a

@@ -3552,6 +3552,23 @@ export function ColumnBlockEditor({
           />
         </div>
       ) : null}
+
+      {/* Per-device visibility — applies to every block kind (parity with a
+          section's own "Show on" control). "all" stores undefined to keep JSON lean. */}
+      <div className="mt-3 border-t border-brand-line pt-3">
+        <SelectField
+          label={t("fldVisibility")}
+          value={block.visibility ?? "all"}
+          options={[
+            { value: "all", label: t("visibility_all") },
+            { value: "desktop", label: t("visibility_desktop") },
+            { value: "mobile", label: t("visibility_mobile") },
+          ]}
+          onChange={(v) =>
+            onChange({ ...block, visibility: v === "all" ? undefined : v })
+          }
+        />
+      </div>
     </div>
   );
 }

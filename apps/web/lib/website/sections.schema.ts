@@ -678,10 +678,19 @@ const elDividerProps = z.object({
 // short list of inline content blocks (heading / text / image / button). This
 // is NOT a general element tree — columns cannot nest columns; the page stays a
 // flat list of sections. Collapses to one column on mobile.
+// Fields shared by every column-block kind. `id` is a stable React/reorder key
+// (optional: legacy blocks predate it). `visibility` mirrors a section's own
+// `visibility` — hide this child on mobile ("desktop") or show it only on mobile
+// ("mobile"); "all"/unset = always shown. Applied theme-agnostically with the
+// same Tailwind `hidden md:block` / `block md:hidden` utilities sections use.
+const blockBase = {
+  id: z.string().optional(),
+  visibility: z.enum(SECTION_VISIBILITY).optional(),
+};
+
 const columnBlockSchema = z.discriminatedUnion("kind", [
   z.object({
-    // Stable identity for React keys / reorder (optional: legacy blocks predate it).
-    id: z.string().optional(),
+    ...blockBase,
     kind: z.literal("heading"),
     text: z.string().max(200),
     level: z.enum(["h1", "h2", "h3", "h4", "h5", "h6", "p"]).default("h3"),
@@ -693,7 +702,7 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
     color: z.enum(EL_COLOR).optional(),
   }),
   z.object({
-    id: z.string().optional(),
+    ...blockBase,
     kind: z.literal("text"),
     body: z.string().max(2000),
     align: z.enum(ELEMENT_ALIGN).optional(),
@@ -702,7 +711,7 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
     color: z.enum(EL_COLOR).optional(),
   }),
   z.object({
-    id: z.string().optional(),
+    ...blockBase,
     kind: z.literal("image"),
     image_path: z.string().optional(),
     alt: z.string().max(200).optional(),
@@ -710,7 +719,7 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
     align: z.enum(ELEMENT_ALIGN).optional(),
   }),
   z.object({
-    id: z.string().optional(),
+    ...blockBase,
     kind: z.literal("button"),
     label: z.string().max(60),
     href: z.string().max(500),
@@ -721,12 +730,12 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
   // Structural helpers — mirror the el_spacer / el_divider section props so a
   // container child can add vertical rhythm or a rule without leaving the block.
   z.object({
-    id: z.string().optional(),
+    ...blockBase,
     kind: z.literal("spacer"),
     size: z.enum(["xs", "sm", "md", "lg", "xl", "2xl"]).default("md"),
   }),
   z.object({
-    id: z.string().optional(),
+    ...blockBase,
     kind: z.literal("divider"),
     line: z.enum(["solid", "dashed", "dotted"]).default("solid"),
     thickness: z.enum(EL_DIVIDER_THICKNESS).default("thin"),

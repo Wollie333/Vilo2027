@@ -30,6 +30,19 @@ const H_SIZE = {
 } as const;
 
 type ElAlign = "left" | "center" | "right";
+
+/** Per-device visibility for a container child — same semantics + Tailwind
+ *  utilities as a section's own `visibility` ("desktop" hides on mobile;
+ *  "mobile" shows only on mobile). Empty for "all"/unset (no wrapper needed). */
+function blockVisibilityClass(block: ColumnBlock): string {
+  const v = block.visibility;
+  return v === "desktop"
+    ? "hidden md:block"
+    : v === "mobile"
+      ? "block md:hidden"
+      : "";
+}
+
 const IMG_MAX = { narrow: "32rem", medium: "48rem", full: "100%" } as const;
 const elTextAlign = (a: ElAlign) =>
   a === "center" ? "center" : a === "right" ? "right" : "left";
@@ -190,9 +203,16 @@ export function ColumnsSection({
               centered ? "items-center text-center" : ""
             }`}
           >
-            {col.blocks.map((b, j) => (
-              <InlineBlock key={j} block={b} asset={asset} />
-            ))}
+            {col.blocks.map((b, j) => {
+              const vis = blockVisibilityClass(b);
+              return vis ? (
+                <div key={j} className={vis}>
+                  <InlineBlock block={b} asset={asset} />
+                </div>
+              ) : (
+                <InlineBlock key={j} block={b} asset={asset} />
+              );
+            })}
           </div>
         ))}
       </div>
@@ -241,7 +261,7 @@ export function FlexSection({
         }}
       >
         {blocks.map((b, i) => (
-          <div key={i}>
+          <div key={i} className={blockVisibilityClass(b) || undefined}>
             <InlineBlock block={b} asset={asset} />
           </div>
         ))}
