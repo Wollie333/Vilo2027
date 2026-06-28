@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-06-28 (EOD #12) — Forms: guest-on-every-submit + 4 default forms seeded on site creation
+
+Two slices of the forms epic (#8).
+
+- **Guest-contact on EVERY submit (`submitWebsiteForm.ts`).** Contacts were created
+  only selectively (newsletter / marketing-opt-in / inbox-routed). Now every
+  email-bearing submission upserts a contact in the host's CRM (`host_contacts`,
+  owned by Vilo + shared with the host), tagged `website`, `email_consent=false`
+  (a lead, not a subscriber) — so the host ALWAYS gets the lead regardless of
+  routing. Consolidated the duplicated host-lookup + blocked-check into one
+  `canContact` gate reused by the newsletter / marketing-opt-in routes (which now
+  layer consent + their tags on top). **Verified live:** a real submit created a
+  `host_contacts` row `tags:["website"]`.
+- **4 default forms seeded on site creation (`createWebsiteAction`).** Every new
+  site now gets Contact us / Get a quote / Booking request / Newsletter signup
+  out of the box (from `FORM_TEMPLATES` via the new `DEFAULT_FORM_SEEDS` list +
+  a new `quote` template), each field uuid-stamped like `createWebsiteFormAction`.
+  Auto-placement onto the relevant pages + collapsing the legacy `contact_form`
+  into the one Form element are the next slices.
+
+`tsc` + `next lint` clean.
+
+---
+
 ## 2026-06-28 (EOD #11) — Room template: per-room override engine (foundation, theme-agnostic)
 
 Founder direction: the `room_detail` template drives the shared design for ALL

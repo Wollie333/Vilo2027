@@ -44,7 +44,10 @@ import {
   loadFormsEditor,
   loadWebsiteRoomNames,
 } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/forms/loadFormsEditor";
-import { FORM_TEMPLATES } from "@/lib/website/formTemplates";
+import {
+  DEFAULT_FORM_SEEDS,
+  FORM_TEMPLATES,
+} from "@/lib/website/formTemplates";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import { validateSubdomain } from "@/lib/website/subdomain";
 import {
@@ -528,6 +531,23 @@ export async function createWebsiteAction(
     .select("id")
     .single();
   if (insErr || !site) return { ok: false, error: "create_failed" };
+
+  // Seed the 4 default forms (contact / quote / booking / subscribe) so the site
+  // is a working site out of the box — the host can drag any into a page via the
+  // builder's Form element, or edit them in the Forms manager. Each field gets a
+  // fresh uuid (same as createWebsiteFormAction).
+  await supabase.from("website_forms").insert(
+    DEFAULT_FORM_SEEDS.map(({ name, template }) => {
+      const tpl = FORM_TEMPLATES[template];
+      return {
+        website_id: site.id,
+        name,
+        type: tpl.type,
+        fields: tpl.fields.map((f) => ({ ...f, id: uuid() })),
+        settings: tpl.settings,
+      };
+    }),
+  );
 
   // Seed pages: use theme's page_templates if available, else hardcoded starters.
   const hasTemplates =

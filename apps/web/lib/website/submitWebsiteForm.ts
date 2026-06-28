@@ -216,74 +216,79 @@ export async function submitWebsiteForm(
   const emailField = fields.data.find((f) => f.type === "email");
   const email = emailField ? validated.clean[emailField.id] : undefined;
 
-  // Best-guess sender name/phone from the submitted fields (shared by both the
-  // inbox and newsletter routes below).
+  // Best-guess sender name/phone from the submitted fields (shared by the contact,
+  // inbox and booking routes below).
   const nameField = fields.data.find(
     (f) => f.type === "text" && validated.clean[f.id],
   );
   const phoneField = fields.data.find((f) => f.type === "phone");
   const phone = phoneField ? validated.clean[phoneField.id] : undefined;
+  const senderName = nameField ? validated.clean[nameField.id] : null;
 
-  // NEWSLETTER — add the email to the host's CRM contacts (tag `newsletter` +
-  // marketing consent), no inbox conversation. Respects a blocked contact.
-  if (formType === "newsletter" && email) {
-    const { data: site } = await admin
-      .from("host_websites")
-      .select("host_id")
-      .eq("id", d.website_id)
+  // Resolve the host once + check the contact isn't blocked (reused by every
+  // CRM-contact write below).
+  const { data: site } = await admin
+    .from("host_websites")
+    .select("host_id")
+    .eq("id", d.website_id)
+    .maybeSingle();
+  const hostId = (site?.host_id as string | undefined) ?? undefined;
+  let canContact = false;
+  if (hostId && email) {
+    const { data: existing } = await admin
+      .from("host_contacts")
+      .select("blocked")
+      .eq("host_id", hostId)
+      .ilike("email", email)
       .maybeSingle();
-    if (site?.host_id) {
-      const { data: existing } = await admin
-        .from("host_contacts")
-        .select("blocked")
-        .eq("host_id", site.host_id)
-        .ilike("email", email)
-        .maybeSingle();
-      if (!existing?.blocked) {
-        await upsertHostContact(admin, {
-          hostId: site.host_id,
-          email,
-          name: nameField ? validated.clean[nameField.id] : null,
-          phone: phone ?? null,
-          emailConsent: true,
-          addTags: ["newsletter"],
-        });
-      }
+    canContact = !existing?.blocked;
+  }
+
+  // GUEST-ON-EVERY-SUBMIT — every email-bearing entry creates/updates a contact in
+  // the host's CRM (a record Vilo owns + shares with the host), tagged `website`,
+  // so the host ALWAYS gets the lead regardless of the newsletter / inbox / booking
+  // routing below. emailConsent stays false here (a lead, not a marketing
+  // subscriber) — the newsletter / opt-in routes add consent on top.
+  if (canContact) {
+    await upsertHostContact(admin, {
+      hostId: hostId!,
+      email: email!,
+      name: senderName,
+      phone: phone ?? null,
+      addTags: ["website"],
+    });
+  }
+
+  // NEWSLETTER — additionally flag marketing consent + a `newsletter` tag; no inbox
+  // conversation (the universal contact above already captured the lead).
+  if (formType === "newsletter" && email) {
+    if (canContact) {
+      await upsertHostContact(admin, {
+        hostId: hostId!,
+        email,
+        name: senderName,
+        phone: phone ?? null,
+        emailConsent: true,
+        addTags: ["newsletter"],
+      });
     }
     return { ok: true, data: {} };
   }
 
-  // MARKETING OPT-IN — a ticked consent field flagged `marketing` subscribes the
-  // guest to the host's marketing email (write-once email consent on their
-  // contact). Independent of inbox routing: it runs whenever there's an email and
-  // a ticked opt-in, even on a newsletter form or with inbox off. Best-effort.
+  // MARKETING OPT-IN — a ticked consent field flagged `marketing` adds write-once
+  // marketing consent + a `website-optin` tag, on top of the `website` contact.
   const marketingTicked = fields.data.some(
     (f) => f.marketing && Boolean(validated.clean[f.id]),
   );
-  if (marketingTicked && email) {
-    const { data: site } = await admin
-      .from("host_websites")
-      .select("host_id")
-      .eq("id", d.website_id)
-      .maybeSingle();
-    if (site?.host_id) {
-      const { data: existing } = await admin
-        .from("host_contacts")
-        .select("blocked")
-        .eq("host_id", site.host_id)
-        .ilike("email", email)
-        .maybeSingle();
-      if (!existing?.blocked) {
-        await upsertHostContact(admin, {
-          hostId: site.host_id,
-          email,
-          name: nameField ? validated.clean[nameField.id] : null,
-          phone: phone ?? null,
-          emailConsent: true,
-          addTags: ["website-optin"],
-        });
-      }
-    }
+  if (marketingTicked && canContact) {
+    await upsertHostContact(admin, {
+      hostId: hostId!,
+      email: email!,
+      name: senderName,
+      phone: phone ?? null,
+      emailConsent: true,
+      addTags: ["website-optin"],
+    });
   }
 
   let conversationId: string | undefined;

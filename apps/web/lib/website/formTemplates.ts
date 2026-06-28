@@ -67,6 +67,21 @@ export const FORM_TEMPLATES: Record<string, FormTemplate> = {
     settings: { goal: "quote" },
   },
 
+  // Quote enquiry → a general "request a quote" form (dates + party, no specific
+  // room). Routes to the draft-quote pipeline when a property resolves.
+  quote: {
+    type: "contact",
+    fields: [
+      text("Name", { required: true, width: "half" }),
+      field("email", "Email", { required: true, width: "half" }),
+      field("phone", "Phone", { width: "half" }),
+      field("dates", "Preferred dates", { width: "half" }),
+      field("guests", "Guests", { width: "half" }),
+      field("textarea", "What are you looking for?", { required: true }),
+    ],
+    settings: { goal: "quote" },
+  },
+
   // Newsletter → CRM contact + marketing consent, no inbox thread.
   newsletter: {
     type: "newsletter",
@@ -106,3 +121,16 @@ export const FORM_TEMPLATES: Record<string, FormTemplate> = {
 export function isFormTemplateKey(key: string | undefined): key is string {
   return Boolean(key && key in FORM_TEMPLATES);
 }
+
+/** The 4 forms every new site is seeded with so it works out of the box: a
+ *  contact form (→ contact page), a quote enquiry (→ get-a-quote page), a booking
+ *  request (→ room template), and a newsletter signup (→ footer). `key` is the
+ *  stable slot used for auto-placement; `name` is the host-visible form name. */
+export const DEFAULT_FORM_SEEDS = [
+  { key: "contact", name: "Contact us", template: "contact" },
+  { key: "quote", name: "Get a quote", template: "quote" },
+  { key: "booking", name: "Booking request", template: "booking" },
+  { key: "subscribe", name: "Newsletter signup", template: "newsletter" },
+] as const;
+
+export type DefaultFormKey = (typeof DEFAULT_FORM_SEEDS)[number]["key"];
