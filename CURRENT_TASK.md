@@ -2,7 +2,23 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #3 — WEBSITE CMS → MVP PUSH: 6 phases shipped (local, committed, NOT pushed))
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #4 — 4 DEFERRED CMS ITEMS SHIPPED (local, committed, NOT pushed))
+
+**Founder said "work the deferred items" → all 4 done, each `tsc --noEmit` + `next lint` clean, committed locally to `main` (NO push — push = prod deploy, awaiting go).** Commits: `8883a86` (#1) · `1dfbde2` (#2) · `10a1b85` (#3) · `0c4c215` (#4). **12 commits now unpushed** (the 8 prior CMS phases + these 4). Dev server HEALTHY on **:3000** (home 200, Safari site 200). No DB migrations (all JSON-shape additive on existing jsonb columns).
+
+**WHAT SHIPPED (4 deferred items):**
+1. **Safari fallback finished (`8883a86`).** `renderSafariGenericFallback` now receives the live `data` map + dispatches the 7 data-driven types the generic renderer handles but Safari silently skipped — `logos`, `specials_preview`, `trust`, `booking_search`, `availability_calendar`, `room_rates`, `seasonal_pricing`. Every type the generic renderer covers now renders on the Safari site too. **Verified:** Safari public site SSRs 200 with the 7 new imports in the bundle.
+2. **Settings favicon + editable blog index (`1dfbde2`).** Favicon control added to Settings → Branding (reuses the Brand-Studio `AssetUploader`, slot `favicon` — persists on upload, no logic dup; favicon already rendered into `<head>`). Editable generic-theme blog index heading/intro: `blogHeading`/`blogIntro` → `settings.blog` → `SiteContext.blog` (read live) → `/blog` listing (old hardcoded strings as fallbacks; Safari blog index stays section-driven). **Live-verified** (settings page 200, snapshot + screenshot of both new blocks).
+3. **Blog post head-code/pixel parity (`10a1b85`).** Blog posts now support per-post `headCode` + `pixelEvent` (shared `PAGE_PIXEL_EVENTS` enum, relocated above the blog schema) — parity with pages. Stored in the post's existing `seo` jsonb (no migration); fired/injected on the live post page only (both Safari + generic branches) via the same `FirePixelEvent`/`PageHeadCode` components pages use. New "Marketing" section in `PostEditor`. **Compile-verified** (route compiles, 3259 modules; not screenshotted — the `.next` gremlin corrupted the heavy editor routes repeatedly; reuses the already-live per-page components verbatim).
+4. **Per-device visibility for container children (`0c4c215`).** Container children (heading/text/image/button/spacer/divider in Section & Columns) get a "Show on" control (all/desktop/mobile) — parity with a section's `visibility`. Shared `blockBase` adds optional `visibility` (reuses `SECTION_VISIBILITY`); `ColumnsSection`/`FlexSection` wrap a child in the same `hidden md:block` / `block md:hidden` utilities (theme-agnostic). `ColumnBlockEditor` gained the select (reuses `fldVisibility`/`visibility_*` keys). Hide/show only — full per-device RE-styling (Safari-only `.vilo-rdup-*` duplicate-render) left as a follow-on. **Live-verified** (seeded mobile-only/desktop-only/always children onto the home draft → confirmed `block md:hidden` / `hidden md:block` / unwrapped in the rendered DOM, then restored the draft).
+
+**⚠️ repo-wide `tsc` shows 1 error — NOT mine.** The parallel "looking-for" session (untracked `looking-for/*`, `reports/*`, its migrations + modified `featureGate.ts`/`features.ts`/`Sidebar.tsx`/`quotes/*`/`notifications/*`) has a `TS2741` in `looking-for/my-quotes/page.tsx`. My files type-check clean; leave the looking-for tree alone (it owns every modified/untracked file in `git status`).
+
+**▶▶ NEXT:** (1) Founder live-test #3 (blog Marketing controls) + #2/#4 if wanted, then **push to Vercel** (all 12 commits = full prod deploy) once happy. (2) Optional follow-ons noted above: full per-device child RE-styling; Safari fallback for any remaining bespoke types.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-28 EOD #3 — WEBSITE CMS → MVP PUSH: 6 phases shipped (local, committed, NOT pushed))
 
 **⏸️ PAUSED (founder's call) — "I will tell you what to do next."** Nothing in flight; work is committed + the tree is clean of my artifacts. Dev server is HEALTHY on **:3000** (home 200; warm `/site` carefully — it's the route that corrupts `.next`, see below). Await the founder's next instruction.
 
