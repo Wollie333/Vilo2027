@@ -2,7 +2,29 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #5 — BOOKING-SYSTEM EPIC KICKED OFF: per-room override FOUNDATION shipped + verified)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #6 — PER-ROOM EDITING COMPLETE + FORMS CORE shipped; full build PASSES)
+
+**Founder: "continue make it good harden everything afterwards."** Two features advanced + a hardening pass, all `tsc`+lint clean, **full `pnpm build` PASSES app-wide** (the real gate — incl. the parallel looking-for code), **no `console.log`** in any of today's files. Local commits only (NOT pushed). Dev server HEALTHY on **:3000** (fresh, post-build rebuild).
+
+**✅ PER-ROOM EDITING — COMPLETE + verified** (engine→render→save→nesting→room builder). See the EOD #5 block below for the full breakdown. Commits `70e7a3d`,`967dc7c`,`ede0c66`,`604c1ac`,`9600a6b`. The founder's ask (template drives shared design; host edits each room; rooms indented in Pages) is delivered end-to-end, theme-agnostic. **v2 deferred:** inline live preview (today via "Preview room" link) + per-section *replace* (v1 = hide + extras).
+
+**✅ FORMS CORE — shipped (`df3dd78`,`fe15351`):**
+- **Guest-contact on EVERY submit** — `submitWebsiteForm` now upserts a `host_contacts` CRM contact (tag `website`, consent=false) for every email-bearing submission, not just newsletter/inbox-routed. Consolidated the duplicate host-lookup into one `canContact` gate. **Verified live** (a real submit created the contact).
+- **4 default forms seeded on site creation** — `createWebsiteAction` seeds Contact us / Get a quote / Booking request / Newsletter signup from `FORM_TEMPLATES` via new `DEFAULT_FORM_SEEDS` + a new `quote` template.
+- **Submissions button** — prominent "View submissions" in the Forms manager header → the filterable responses viewer.
+- **One Form element** — legacy `contact_form` retired from the builder palette (still renders on existing pages); hosts add ONE `form` element + pick which form.
+
+**⚠️ FORMS AUTO-PLACEMENT = the remaining forms piece (task #14, deferred deliberately).** Finding: the warm theme seeds NO pages beyond home/about (`site_themes.page_templates` empty → hardcoded fallback), so auto-placement belongs at **page creation**, not site creation: make `PAGE_TEMPLATE_SECTIONS.contact`/`landing` use a `form` section pointing to the seeded contact form; add a "get a quote" page template (quote form); booking form onto the room_detail template; wire the footer subscribe → subscribe form. `createPageAction` resolves the seeded form id. Needs its own careful, verified slice.
+
+**⚠️ :3000 CONTENTION:** a parallel node process (the looking-for session's dev server?) keeps grabbing :3000 between my runs — I kill it + restart mine when the founder asks for a fresh server. The looking-for migrations are still PENDING + BROKEN on remote (their fix; mine applied in isolation — see EOD #5).
+
+**▶▶ NEXT (epic tasks #6,#7,#9–#14):** forms auto-placement (#14) · new room-bound elements (#6) · premium/Safari room design (#7) · embed booking form on room template (#9) · builder 3-category taxonomy (#10) · checkout refine + PayPal + editable copy (#11) · Brand Studio refine + drop Settings favicon (#12) · blog settings → Blog manager (#13).
+
+**Commit count:** 12 prior unpushed + **today's 10** (`70e7a3d`,`967dc7c`,`ede0c66`,`fa12b44`,`604c1ac`,`ad3afa6`,`9600a6b`,`5f20154`,`df3dd78`,`fe15351`). Still NOT pushed (push = prod deploy). Gremlin/`.next` + :3000 recovery notes are in the EOD #5 block.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-28 EOD #5 — BOOKING-SYSTEM EPIC KICKED OFF: per-room override FOUNDATION shipped + verified)
 
 **Founder directive: turn the website CMS into a full booking system; whatever we build now is the FOUNDATION for ALL future themes (~5 themes planned, same logic, unique designs). Work the list in order.** Big finding from a 3-subagent code survey: **most of what the founder described already exists** — the room_detail template is already builder-editable + renders per-room (verified live); on-site booking + payment (Paystack card + EFT, server-side pricing, verified webhooks) is already built (Phase 6c); forms already have ONE `form` element + editor + a filterable submissions viewer. So the real work is **unify / seed / refine**, not build-from-zero.
 
