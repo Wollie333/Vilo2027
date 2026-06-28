@@ -52,7 +52,9 @@ export const FORM_TEMPLATES: Record<string, FormTemplate> = {
     settings: { goal: "enquiry" },
   },
 
-  // Booking enquiry → a dates+room form routes to the draft-quote pipeline.
+  // Booking → a dates+room form that hands off to the themed on-site checkout
+  // (the shared Vilo booking flow). The contact is captured on submit, then the
+  // guest is sent to /book to confirm availability, price & pay.
   booking: {
     type: "contact",
     fields: [
@@ -62,9 +64,8 @@ export const FORM_TEMPLATES: Record<string, FormTemplate> = {
       field("dates", "Check-in / out", { required: true }),
       field("guests", "Guests", { width: "half" }),
       field("rooms", "Room", { width: "half" }),
-      field("textarea", "Message"),
     ],
-    settings: { goal: "quote" },
+    settings: { goal: "booking" },
   },
 
   // Quote enquiry → a general "request a quote" form (dates + party, no specific

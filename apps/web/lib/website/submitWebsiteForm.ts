@@ -35,7 +35,17 @@ export const websiteFormSubmitSchema = z.object({
 });
 
 export type WebsiteFormSubmitResult =
-  | { ok: true; data: { conversationId?: string } }
+  | {
+      ok: true;
+      data: {
+        conversationId?: string;
+        // For booking forms: the query string for the on-site checkout
+        // (`property=…&room=…&from=…&to=…&guests=…`). FormSection resolves the
+        // site-relative `/book` base on the client (tenant vs app-domain) and
+        // sends the guest there — the shared Vilo booking handoff.
+        bookingQuery?: string;
+      };
+    }
   | { ok: false; error: string };
 
 /** Coerce a stored value to a trimmed display string. */
@@ -292,6 +302,42 @@ export async function submitWebsiteForm(
   }
 
   let conversationId: string | undefined;
+
+  // BOOKING HAND-OFF — a form whose goal is "booking" sends the guest into the
+  // themed on-site checkout (the same flow as every other booking) instead of
+  // creating a quote. The contact has already been captured above (so the host
+  // gets the lead even if checkout is abandoned). We resolve the property/room +
+  // dates and return the checkout query; FormSection redirects to `/book`.
+  if (settings.goal === "booking") {
+    const dF = fields.data.find((f) => f.type === "dates");
+    const rng = dF ? parseDateRange(validated.clean[dF.id]) : null;
+    const rF = fields.data.find((f) => f.type === "rooms");
+    const target = await resolveBookingTarget(
+      admin,
+      d.website_id,
+      rF ? validated.clean[rF.id] : undefined,
+    );
+    if (target) {
+      const gF = fields.data.find(
+        (f) => f.type === "guests" || f.type === "number",
+      );
+      const guests = Math.max(
+        1,
+        parseInt(gF ? (validated.clean[gF.id] ?? "") : "", 10) || 1,
+      );
+      const qs = new URLSearchParams();
+      qs.set("property", target.propertyId);
+      if (target.scope === "whole_listing") qs.set("scope", "whole_listing");
+      else if (target.roomIds[0]) qs.set("room", target.roomIds[0]);
+      if (rng) {
+        qs.set("from", rng.checkIn);
+        qs.set("to", rng.checkOut);
+      }
+      qs.set("guests", String(guests));
+      return { ok: true, data: { bookingQuery: qs.toString() } };
+    }
+    // No resolvable property → fall through to the normal enquiry handling.
+  }
 
   // BOOKING QUOTE — a booking form (a `dates` field with both dates filled)
   // routes to the real quote pipeline so the host gets a DRAFT quote to complete

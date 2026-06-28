@@ -579,7 +579,7 @@ function firstNameLastInitial(name: string | null | undefined): string {
  * adds `&site=` when rendered via the app-domain ?site= testing affordance.
  */
 export function siteBookHref(
-  ctx: Pick<SiteContext, "bookBasePath" | "subdomain">,
+  ctx: Pick<SiteContext, "bookBasePath" | "subdomain" | "preview">,
   params: {
     propertyId?: string;
     roomId?: string;
@@ -595,6 +595,9 @@ export function siteBookHref(
   if (params.to) qs.set("to", params.to);
   if (params.guests != null) qs.set("guests", String(params.guests));
   if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
+  // Stay in preview so a "Book" tap from a draft/unpublished site keeps rendering
+  // the themed checkout in preview mode instead of 404ing on the live route.
+  if (ctx.preview) qs.set("preview", "1");
   const q = qs.toString();
   return `${ctx.bookBasePath}/book${q ? `?${q}` : ""}`;
 }

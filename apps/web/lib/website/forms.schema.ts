@@ -132,7 +132,11 @@ export const formSettingsSchema = z.object({
   afterSubmit: z.enum(["message", "page", "url"]).default("page"),
   // The conversion this form represents — picks the thank-you destination
   // (/thank-you/<goal>), its default copy, and (later) its Meta Pixel event.
-  goal: z.enum(["general", "enquiry", "quote", "subscribe"]).default("general"),
+  // "booking" is special: instead of a thank-you page, the form hands the guest
+  // off to the themed on-site checkout (the same flow as every other booking).
+  goal: z
+    .enum(["general", "enquiry", "quote", "subscribe", "booking"])
+    .default("general"),
   // Custom redirect target (afterSubmit === "url" only).
   redirectUrl: z.string().trim().max(500).default(""),
   // Optional heading override on the thank-you page (afterSubmit === "page").

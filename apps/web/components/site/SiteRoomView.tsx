@@ -116,7 +116,7 @@ export async function SiteRoomView({
                 price={room.price}
                 currency={room.currency}
                 bookHref={room.bookHref}
-                interactive={!ctx.preview}
+                interactive
               />
             }
           >
@@ -200,7 +200,7 @@ export async function SiteRoomView({
                 price={room.price}
                 currency={room.currency}
                 bookHref={room.bookHref}
-                interactive={!ctx.preview}
+                interactive
               />
             }
           >

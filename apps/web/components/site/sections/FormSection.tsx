@@ -109,9 +109,27 @@ export function FormSection({
           ts: tsToken,
         }),
       });
-      const result = (await res.json()) as { ok: boolean; error?: string };
+      const result = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        data?: { bookingQuery?: string };
+      };
       if (result.ok) {
         const s = form.settings;
+        // Booking form → hand off to the themed on-site checkout (the shared Vilo
+        // booking flow). The server returns the checkout query; we resolve the
+        // site-relative `/book` base on the client so it works on both the tenant
+        // domain (root) and the app-domain `…/site` testing affordance.
+        if (result.data?.bookingQuery) {
+          const path = window.location.pathname;
+          const i = path.indexOf("/site/");
+          const base = i >= 0 ? path.slice(0, i + 5) : "";
+          const site = new URLSearchParams(window.location.search).get("site");
+          let q = result.data.bookingQuery;
+          if (site) q += `&site=${encodeURIComponent(site)}`;
+          window.location.assign(`${base}/book?${q}`);
+          return;
+        }
         // Custom URL → straight there.
         if (s.afterSubmit === "url" && s.redirectUrl.trim()) {
           window.location.assign(s.redirectUrl.trim());
