@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-06-28 (EOD #11) — Room template: per-room override engine (foundation, theme-agnostic)
+
+Founder direction: the `room_detail` template drives the shared design for ALL
+rooms, AND the host can customize individual rooms on top of it — with template
+edits propagating to every room and per-room edits layering on. Chosen model:
+**one template + a per-room override layer** (not a materialized page per room,
+which would freeze rooms from template changes + carry create/rename/delete sync).
+Per-room power: a room may append extras AND hide/replace specific template
+sections; default = pure template.
+
+This commit lands the migration-free **engine** (the foundation every future
+theme reuses, since it lives at the sections layer):
+- `lib/website/roomDetailOverride.ts` — `roomDetailOverrideSchema`
+  (`{ hidden: string[], replaced: Record<sectionId, Section>, extras: Section[] }`),
+  `parseRoomDetailOverride` (safe parse → null on absent/malformed so a bad value
+  never breaks a room page), `hasRoomOverride`, and the pure
+  `mergeRoomDetailSections(template, override)` (template → drop hidden → swap
+  replaced in place → append extras; overrides keyed to since-removed template
+  ids are ignored, so the template stays the source of truth).
+- Migration `20260628240000_website_room_detail_overrides.sql` — additive nullable
+  `website_rooms.detail_overrides jsonb` (idempotent `add column if not exists`).
+  **NOT yet applied** — the parallel `looking-for` session has 5 pending
+  migrations in the tree, so a blanket `db push --linked` would apply theirs too;
+  the column needs applying in isolation before the render-wiring slice.
+
+`tsc --noEmit` clean. Next slices: render wiring (merge in `loadRoomDetail`) →
+Pages nesting (rooms indented under the template) → room-scoped builder
+("Template (all rooms)" ↔ "This room only").
+
+---
+
 ## 2026-06-28 (EOD #10) — Website CMS → MVP push (deferred #4): per-device visibility for container children
 
 Container children (the `ColumnBlock` heading/text/image/button/spacer/divider
