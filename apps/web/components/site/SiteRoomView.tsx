@@ -12,6 +12,7 @@ import { buildRoomJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 
 import { JsonLd } from "./JsonLd";
+import { RoomBookingDock } from "./RoomBookingDock";
 import { SafariShell } from "./safari/SafariShell";
 import { SafariSectionList, type SafariCtx } from "./sections/SafariSections";
 import { SectionRenderer } from "./SectionRenderer";
@@ -100,6 +101,13 @@ export async function SiteRoomView({
             asset={siteAsset}
             ctx={safariCtx}
           />
+          <RoomBookingDock
+            roomName={room.name}
+            price={room.price}
+            currency={room.currency}
+            bookHref={room.bookHref}
+            interactive={!ctx.preview}
+          />
         </SafariShell>
       </>
     );
@@ -162,6 +170,13 @@ export async function SiteRoomView({
             data={data}
             asset={siteAsset}
             websiteId={ctx.websiteId}
+            interactive={!ctx.preview}
+          />
+          <RoomBookingDock
+            roomName={room.name}
+            price={room.price}
+            currency={room.currency}
+            bookHref={room.bookHref}
             interactive={!ctx.preview}
           />
         </SiteChrome>

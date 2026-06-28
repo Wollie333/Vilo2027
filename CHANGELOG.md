@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-28 (EOD #14) — Room pages: sticky booking form + room-builder add-scroll
+
+Founder feedback on the per-room editor: (a) "I can see no room" / "adding
+elements does nothing", (b) "each room detail page should have a booking form to
+the right that is sticky".
+
+- **Sticky booking form on every room page** — new `RoomBookingDock` (client): a
+  compact card (price + check-in/out + guests + "Book this room") that deep-links
+  to the on-site checkout (`room.bookHref` + chosen params; price recalculated
+  server-side). `position:fixed` top-right on desktop, docks to a bottom bar on
+  mobile. Theme-agnostic (`--site-*` with `--accent/--ink` fallbacks → on-theme on
+  generic + Safari). Rendered on the public room page (`SiteRoomView`, both
+  themes) AND the room-builder canvas. A builder.css rule scopes it to the canvas
+  device (absolute) so it previews at the room's top-right instead of over the
+  inspector. **Verified live:** public Olive Room page renders the dock
+  ("R 1 300 / night · Book this room"); builder canvas previews it scoped to the
+  device.
+- **Add-scroll** — RoomBuilder now smooth-scrolls the canvas to a newly-added
+  extra (extras append after the template, often below the fold — so "add" now
+  visibly shows the new section).
+- **Re: "no room"** — confirmed the editor render path works (seeded an extra →
+  it appears in the canvas; the room renders with its real data). The most likely
+  cause is a stale dev server from the `:3000` contention (an old server without
+  the EOD #13 canvas fix). Fresh server confirmed serving the canvas.
+
+`tsc` + `next lint` clean.
+
+---
+
 ## 2026-06-28 (EOD #13) — Room builder: live canvas (fix — "customise individual rooms not rendering in canvas")
 
 The per-room editor (RoomBuilder v1) shipped without a live canvas (deferred to

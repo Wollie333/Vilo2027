@@ -13,7 +13,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
@@ -30,6 +30,7 @@ import {
 } from "@/lib/website/sections.schema";
 import { mergeRoomDetailSections } from "@/lib/website/roomDetailOverride";
 import { SectionRenderer } from "@/components/site/SectionRenderer";
+import { RoomBookingDock } from "@/components/site/RoomBookingDock";
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -121,6 +122,20 @@ export function RoomBuilder({
     [merged, page.dataByType, data.room],
   );
   const isSafari = data.themePreset === "safari";
+
+  // Scroll the canvas to a newly-added extra so the host sees it appear (extras
+  // append after the template, which can be below the fold on a long room page).
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const prevExtras = useRef(extras.length);
+  useEffect(() => {
+    if (extras.length > prevExtras.current && canvasRef.current) {
+      canvasRef.current.scrollTo({
+        top: canvasRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+    prevExtras.current = extras.length;
+  }, [extras.length]);
 
   function toggleHidden(id: string) {
     setHidden((prev) => {
@@ -356,7 +371,7 @@ export function RoomBuilder({
 
         {/* Live canvas — the room rendered exactly as the public page will, with
             this room's real data + the host's per-room overrides applied. */}
-        <div className="canvas-wrap">
+        <div className="canvas-wrap" ref={canvasRef}>
           <div className="device">
             {isSafari ? (
               <SafariShell
@@ -377,6 +392,13 @@ export function RoomBuilder({
                   interactive={false}
                   errorLabel={t("sectionRenderError")}
                 />
+                <RoomBookingDock
+                  roomName={data.roomName}
+                  price={data.room?.price}
+                  currency={data.room?.currency}
+                  bookHref={data.room?.bookHref ?? "#"}
+                  interactive={false}
+                />
               </SafariShell>
             ) : (
               <SiteThemeRoot theme={page.theme}>
@@ -396,6 +418,13 @@ export function RoomBuilder({
                     themeVariant={data.themePreset}
                     interactive={false}
                     errorLabel={t("sectionRenderError")}
+                  />
+                  <RoomBookingDock
+                    roomName={data.roomName}
+                    price={data.room?.price}
+                    currency={data.room?.currency}
+                    bookHref={data.room?.bookHref ?? "#"}
+                    interactive={false}
                   />
                 </SiteChrome>
               </SiteThemeRoot>
