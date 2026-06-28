@@ -35,6 +35,8 @@ type PopupTrigger = "delay" | "scroll" | "exit";
 type PopupFrequency = "once" | "daily" | "always";
 
 type SettingsState = {
+  brandName: string;
+  brandTagline: string;
   enquiryEmailEnabled: boolean;
   enquiryEmailTo: string;
   whatsappEnabled: boolean;
@@ -149,6 +151,7 @@ export function SettingsForm({
   brandHref,
   themeHref,
   seoHref,
+  domainHref,
   forms,
   initial,
 }: {
@@ -159,6 +162,7 @@ export function SettingsForm({
   brandHref: string;
   themeHref: string;
   seoHref: string;
+  domainHref: string;
   forms: Array<{ id: string; name: string }>;
   initial: SettingsState;
 }) {
@@ -188,6 +192,8 @@ export function SettingsForm({
     startSave(async () => {
       const res = await saveWebsiteSettingsAction({
         websiteId,
+        brandName: state.brandName.trim(),
+        brandTagline: state.brandTagline.trim(),
         enquiryEmailEnabled: state.enquiryEmailEnabled,
         enquiryEmailTo: emailTo,
         whatsappEnabled: state.whatsappEnabled,
@@ -283,6 +289,26 @@ export function SettingsForm({
             {t("settingsSub")}
           </p>
         </div>
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold"
+          style={
+            isLive
+              ? { background: "#ECFDF5", color: "#047857" }
+              : status === "unpublished"
+                ? { background: "#FEF2F2", color: "#B91C1C" }
+                : { background: "#FEF9C3", color: "#A16207" }
+          }
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: "currentColor" }}
+          />
+          {isLive
+            ? t("statusLive")
+            : status === "unpublished"
+              ? t("statusUnpublished")
+              : t("statusDraft")}
+        </span>
         <button
           type="button"
           className="btn btn-primary btn-sm ml-auto"
@@ -307,6 +333,24 @@ export function SettingsForm({
         title={t("settingsBrandingTitle")}
         desc={t("settingsBrandingDesc")}
       >
+        <Setrow title={t("settingsSiteNameRow")} col>
+          <input
+            className="field"
+            value={state.brandName}
+            onChange={(e) => set("brandName", e.target.value)}
+            maxLength={120}
+            placeholder={t("settingsSiteNamePh")}
+          />
+        </Setrow>
+        <Setrow title={t("settingsTaglineRow")} col>
+          <input
+            className="field"
+            value={state.brandTagline}
+            onChange={(e) => set("brandTagline", e.target.value)}
+            maxLength={200}
+            placeholder={t("settingsTaglinePh")}
+          />
+        </Setrow>
         <Setrow title={t("settingsThemeRow")} desc={t("settingsThemeRowDesc")}>
           <Link href={brandHref} className="btn btn-ghost btn-sm">
             <Paintbrush
@@ -627,6 +671,14 @@ export function SettingsForm({
         >
           <Link href={seoHref} className="btn btn-ghost btn-sm">
             {t("settingsOpenSeo")}
+            <ArrowUpRight
+              style={{ width: 14, height: 14, color: "var(--mute)" }}
+            />
+          </Link>
+        </Setrow>
+        <Setrow title={t("settingsDomainRow")} desc={t("settingsDomainDesc")}>
+          <Link href={domainHref} className="btn btn-ghost btn-sm">
+            {t("settingsOpenDomain")}
             <ArrowUpRight
               style={{ width: 14, height: 14, color: "var(--mute)" }}
             />

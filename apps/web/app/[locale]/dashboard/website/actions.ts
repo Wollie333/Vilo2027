@@ -2253,6 +2253,8 @@ export async function saveWebsiteSettingsAction(
   if (!parsed.success) return { ok: false, error: "invalid" };
   const {
     websiteId,
+    brandName,
+    brandTagline,
     enquiryEmailEnabled,
     enquiryEmailTo,
     whatsappEnabled,
@@ -2295,9 +2297,18 @@ export async function saveWebsiteSettingsAction(
   const supabase = createServerClient();
   const { data: row } = await supabase
     .from("host_websites")
-    .select("settings")
+    .select("settings, brand")
     .eq("id", websiteId)
     .maybeSingle();
+  // Site identity lives in the `brand` jsonb (Brand Studio's home). Merge in the
+  // quick-edited name/tagline without disturbing the rest of brand. A blank name
+  // is ignored so the host can't accidentally wipe their site name.
+  const prevBrand = (row?.brand ?? {}) as Record<string, unknown>;
+  const brand = {
+    ...prevBrand,
+    name: brandName.trim() || (prevBrand.name as string | undefined),
+    tagline: brandTagline.trim() || undefined,
+  };
   const settings = {
     ...((row?.settings ?? {}) as Record<string, unknown>),
     enquiry: {
@@ -2342,7 +2353,7 @@ export async function saveWebsiteSettingsAction(
 
   const { error } = await supabase
     .from("host_websites")
-    .update({ settings })
+    .update({ settings, brand })
     .eq("id", websiteId);
   if (error) return { ok: false, error: "save_failed" };
 

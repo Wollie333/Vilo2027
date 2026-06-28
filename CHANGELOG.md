@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-28 (EOD #4) — Website CMS → MVP push (part 2): settings consolidation (Phase 3)
+
+Settings page is now a clearer hub (founder: settings felt "scattered + missing").
+`tsc` + `next lint` green. No migration.
+
+- **Publish-status badge** in the settings header (Live / Draft / Unpublished),
+  colour-coded — the page already received `status` but never showed it.
+- **Site identity quick-edit** — Site name + Tagline inputs at the top of the
+  Branding block, persisted to the `brand` jsonb. `websiteSettingsSchema` gained
+  `brandName` / `brandTagline`; `saveWebsiteSettingsAction` now reads + merges the
+  `brand` column alongside `settings` (blank name is ignored so it can't wipe the
+  site name). Removes the need to detour to Brand Studio for a name change.
+- **Domain link** added to the Access block (`domainHref`) — the domain manager
+  was previously unreachable from Settings.
+
+i18n: `statusDraft` / `statusUnpublished`, `settingsSiteNameRow` / `…Ph`,
+`settingsTaglineRow` / `…Ph`, `settingsDomainRow` / `…Desc` / `settingsOpenDomain`.
+
+---
+
 ## 2026-06-28 (EOD #3) — Website CMS → MVP push (part 1): container elements · per-page SEO · inline form editing
 
 Founder directive: drive the website CMS to 100% MVP. Worked in priority order;

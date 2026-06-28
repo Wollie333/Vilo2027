@@ -481,6 +481,10 @@ export type SeoInput = z.infer<typeof seoSchema>;
 // regardless). An empty/disabled address simply means inbox-only.
 export const websiteSettingsSchema = z.object({
   websiteId: z.string().uuid(),
+  // Site identity — quick-edit of brand.name / brand.tagline from Settings (the
+  // same values Brand Studio owns). Empty name is ignored (keeps the current).
+  brandName: z.string().trim().max(120).default(""),
+  brandTagline: z.string().trim().max(200).default(""),
   enquiryEmailEnabled: z.boolean().default(false),
   enquiryEmailTo: z
     .string()

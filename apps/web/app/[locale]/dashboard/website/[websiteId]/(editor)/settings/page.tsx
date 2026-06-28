@@ -67,8 +67,11 @@ export default async function WebsiteSettingsPage({
       brandHref={`/dashboard/website/${websiteId}/brand`}
       themeHref={`/dashboard/website/${websiteId}/theme`}
       seoHref={`/dashboard/website/${websiteId}/seo`}
+      domainHref={`/dashboard/website/${websiteId}/domain`}
       forms={forms.map((f) => ({ id: f.id, name: f.name }))}
       initial={{
+        brandName: data.brand.name ?? "",
+        brandTagline: data.brand.tagline ?? "",
         enquiryEmailEnabled: enquiry.emailEnabled === true,
         enquiryEmailTo: enquiry.emailTo ?? "",
         whatsappEnabled: wa.enabled === true,
