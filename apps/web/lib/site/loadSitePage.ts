@@ -53,6 +53,7 @@ import type {
   RoomDetail,
   RoomDetailImage,
   RoomGroup,
+  RoomPolicies,
   SiteAnalyticsSettings,
   SiteBrand,
   SiteConversion,
@@ -854,6 +855,10 @@ async function assembleSectionData(
       case "trust":
         if (byType.trust) data[s.id] = { type: "trust", data: byType.trust };
         break;
+      case "policies":
+        if (byType.policies)
+          data[s.id] = { type: "policies", data: byType.policies };
+        break;
       case "booking_search":
         if (byType.booking_search)
           data[s.id] = {
@@ -1569,6 +1574,49 @@ export async function assembleSiteDataByType(
         };
       });
       out.blog_preview = { posts: cards };
+    })(),
+
+    // POLICIES — property-level "Things to know" pulled from the site's PRIMARY
+    // property (ids[0]). Same shape + time formatting as loadRoomDetail's
+    // policies bag; kept only when at least one line has a value (so the section
+    // hides itself on empty data).
+    (async () => {
+      if (!types.has("policies")) return;
+      const { data: propRow } = await sb
+        .from("properties")
+        .select(
+          "cancellation_policy_label, check_in_time, check_out_time, house_rules, allow_children, allow_pets",
+        )
+        .eq("id", ids[0])
+        .maybeSingle<{
+          cancellation_policy_label: string | null;
+          check_in_time: string | null;
+          check_out_time: string | null;
+          house_rules: string | null;
+          allow_children: boolean | null;
+          allow_pets: boolean | null;
+        }>();
+      const fmtTime = (t: string | null | undefined): string | null => {
+        if (!t) return null;
+        const [h, m] = t.split(":");
+        return h && m ? `${h.padStart(2, "0")}:${m}` : t;
+      };
+      const bag: RoomPolicies = {
+        cancellation: propRow?.cancellation_policy_label?.trim() || null,
+        checkIn: fmtTime(propRow?.check_in_time),
+        checkOut: fmtTime(propRow?.check_out_time),
+        houseRules: propRow?.house_rules?.trim() || null,
+        children: propRow?.allow_children ?? null,
+        pets: propRow?.allow_pets ?? null,
+      };
+      const hasPolicies =
+        !!bag.cancellation ||
+        !!bag.checkIn ||
+        !!bag.checkOut ||
+        !!bag.houseRules ||
+        bag.children != null ||
+        bag.pets != null;
+      if (hasPolicies) out.policies = bag;
     })(),
   ]);
 

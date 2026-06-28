@@ -8,6 +8,7 @@ import {
   type ReviewsData,
   type BlogPreviewData,
   type RoomDetail,
+  type RoomPolicies,
   type RateTableData,
   type SiteAssetResolver,
   type SiteData,
@@ -1715,18 +1716,18 @@ export function SafariRoomRate({
 }
 
 /* ── ROOM POLICIES — auto "things to know" (cancellation, check-in/out) ── */
-export function SafariRoomPolicies({
-  props,
-  data,
+/** Shared Safari "things to know" band — reused by the ROOM-scoped
+ *  `room_policies` and the PROPERTY-level `policies` sections (same shape). */
+export function SafariPolicyView({
+  heading,
+  variant,
+  policies,
 }: {
-  props: P<"room_policies">;
-  data?: RoomDetail;
+  heading?: string;
+  variant: "grid" | "list";
+  policies: RoomPolicies;
 }) {
-  const p = data?.policies;
-  if (!p)
-    return (
-      <SafariRoomPlaceholder label="This room's cancellation policy and house rules appear here." />
-    );
+  const p = policies;
   const items: { label: string; value: string }[] = [];
   if (p.checkIn) items.push({ label: "Check-in", value: `From ${p.checkIn}` });
   if (p.checkOut)
@@ -1753,16 +1754,14 @@ export function SafariRoomPolicies({
           className="display"
           style={{ marginTop: 18, fontSize: "clamp(1.8rem,3.4vw,2.6rem)" }}
         >
-          {props.heading || "Things to know"}
+          {heading || "Things to know"}
         </h2>
         <div
           style={{
             marginTop: 28,
             display: "grid",
             gridTemplateColumns:
-              props.variant === "list"
-                ? "1fr"
-                : "repeat(auto-fit,minmax(220px,1fr))",
+              variant === "list" ? "1fr" : "repeat(auto-fit,minmax(220px,1fr))",
             gap: "24px 40px",
           }}
         >
@@ -1796,6 +1795,45 @@ export function SafariRoomPolicies({
         ) : null}
       </div>
     </section>
+  );
+}
+
+export function SafariRoomPolicies({
+  props,
+  data,
+}: {
+  props: P<"room_policies">;
+  data?: RoomDetail;
+}) {
+  const p = data?.policies;
+  if (!p)
+    return (
+      <SafariRoomPlaceholder label="This room's cancellation policy and house rules appear here." />
+    );
+  return (
+    <SafariPolicyView
+      heading={props.heading}
+      variant={props.variant}
+      policies={p}
+    />
+  );
+}
+
+/* ── PROPERTY POLICIES — auto "things to know" (site's primary property) ── */
+export function SafariPolicies({
+  props,
+  data,
+}: {
+  props: P<"policies">;
+  data?: RoomPolicies;
+}) {
+  if (!data) return null;
+  return (
+    <SafariPolicyView
+      heading={props.heading}
+      variant={props.variant}
+      policies={data}
+    />
   );
 }
 
@@ -2275,6 +2313,13 @@ export function renderSafariSection(
         <SafariRoomPolicies
           props={section.props}
           data={dataFor(data, section.id, "room_policies")}
+        />
+      );
+    case "policies":
+      return (
+        <SafariPolicies
+          props={section.props}
+          data={dataFor(data, section.id, "policies")}
         />
       );
     case "rate_table":

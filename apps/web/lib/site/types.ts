@@ -470,6 +470,11 @@ export type SiteDataByType = {
   // The trust section is free-form (badges in props) but takes an OPTIONAL live
   // review aggregate (average + count) — reuses the reviews shape.
   trust: ReviewsData;
+  // Property-level "Things to know" — auto-pulled from the site's PRIMARY
+  // property (cancellation, check-in/out, house rules, allowances). Unlike the
+  // room-scoped room_policies, this is resolved by type (not room) and its data
+  // is a RoomPolicies object directly. Reuses the RoomPolicies shape.
+  policies: RoomPolicies;
   // Booking funnel — search + calendar share the bookable-property set; the
   // rate table reads live nightly rates. Pricing/availability resolve live.
   booking_search: BookingFunnelData;

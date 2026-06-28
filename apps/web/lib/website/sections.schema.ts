@@ -40,6 +40,9 @@ export const SECTION_TYPES = [
   "form",
   "specials_preview",
   "amenities",
+  // Property-level "Things to know" — auto-pulled from the site's primary
+  // property (NOT room-scoped; resolved by type like amenities/reviews).
+  "policies",
   "pricing",
   "video",
   "trust",
@@ -871,6 +874,15 @@ const roomPoliciesProps = z.object({
   variant: z.enum(["grid", "list"]).default("grid"),
 });
 
+// Property-level "Things to know" — auto-populated from the site's PRIMARY
+// property (cancellation, check-in/out, house rules, child/pet allowances). Not
+// room-scoped: resolved by type like amenities/reviews. Host controls only the
+// heading + layout.
+const policiesProps = z.object({
+  heading,
+  variant: z.enum(["grid", "list"]).default("grid"),
+});
+
 // Per-device override (laptop/mobile). `hidden` drops the section on that screen;
 // `props` is a partial of the SECTION'S OWN props — any field the host changes in
 // the Laptop/Mobile editor pane is stored here and merged over the desktop props
@@ -972,6 +984,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("amenities"),
     props: amenitiesProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("policies"),
+    props: policiesProps,
   }),
   z.object({ ...sectionBase, type: z.literal("pricing"), props: pricingProps }),
   z.object({ ...sectionBase, type: z.literal("video"), props: videoProps }),

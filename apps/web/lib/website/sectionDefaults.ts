@@ -270,6 +270,14 @@ export function newSection(type: SectionType): WebsiteSection {
           variant: "grid",
         },
       };
+    case "policies":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { heading: "Things to know", variant: "grid" },
+      };
     case "pricing":
       return {
         id,

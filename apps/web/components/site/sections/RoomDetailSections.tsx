@@ -1,5 +1,5 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
-import type { GalleryImage, RoomDetail } from "@/lib/site/types";
+import type { GalleryImage, RoomDetail, RoomPolicies } from "@/lib/site/types";
 
 import { GalleryLightbox } from "../GalleryLightbox";
 import {
@@ -326,27 +326,27 @@ function policyItems(
   return items;
 }
 
-export function RoomPoliciesSection({
-  props,
-  data,
+/** The shared "things to know" view — the policy grid + house-rules block.
+ *  Reused by the ROOM-scoped `room_policies` band and the PROPERTY-level
+ *  `policies` band (both render the same RoomPolicies shape). */
+export function PolicyView({
+  heading,
+  variant,
+  policies,
 }: {
-  props: PoliciesProps;
-  data?: RoomDetail;
+  heading?: string;
+  variant: "grid" | "list";
+  policies: RoomPolicies;
 }) {
-  const p = data?.policies;
-  if (!p)
-    return (
-      <RoomPlaceholder label="This room's cancellation policy and house rules appear here." />
-    );
-  const items = policyItems(p);
+  const items = policyItems(policies);
   return (
     <SectionShell>
       <SectionHeading centered={false} className="mb-6">
-        {props.heading || "Things to know"}
+        {heading || "Things to know"}
       </SectionHeading>
       <div
         className={
-          props.variant === "list"
+          variant === "list"
             ? "space-y-5"
             : "grid gap-x-8 gap-y-5 sm:grid-cols-2"
         }
@@ -365,7 +365,7 @@ export function RoomPoliciesSection({
           </div>
         ))}
       </div>
-      {p.houseRules ? (
+      {policies.houseRules ? (
         <div className="mt-6">
           <div
             style={{ color: "var(--site-mute)" }}
@@ -377,10 +377,57 @@ export function RoomPoliciesSection({
             style={{ color: "var(--site-ink)" }}
             className="mt-1 whitespace-pre-line text-sm"
           >
-            {p.houseRules}
+            {policies.houseRules}
           </p>
         </div>
       ) : null}
     </SectionShell>
+  );
+}
+
+export function RoomPoliciesSection({
+  props,
+  data,
+}: {
+  props: PoliciesProps;
+  data?: RoomDetail;
+}) {
+  const p = data?.policies;
+  if (!p)
+    return (
+      <RoomPlaceholder label="This room's cancellation policy and house rules appear here." />
+    );
+  return (
+    <PolicyView
+      heading={props.heading || "Things to know"}
+      variant={props.variant}
+      policies={p}
+    />
+  );
+}
+
+// ── Property "things to know" (auto policies — site's primary property) ──
+type PropertyPoliciesProps = Extract<
+  WebsiteSection,
+  { type: "policies" }
+>["props"];
+
+/** PROPERTY-level "things to know". Unlike room_policies this isn't room-scoped:
+ *  its data is the site's primary property, resolved by section type. Renders
+ *  nothing on a page with no policy data (no builder placeholder). */
+export function PoliciesSection({
+  props,
+  data,
+}: {
+  props: PropertyPoliciesProps;
+  data?: RoomPolicies;
+}) {
+  if (!data) return null;
+  return (
+    <PolicyView
+      heading={props.heading || "Things to know"}
+      variant={props.variant}
+      policies={data}
+    />
   );
 }
