@@ -11,6 +11,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -251,121 +252,130 @@ export function RoomBuilder({
 
       <div className="ebody">
         <aside className="epanel l">
-          <div className="insp-sec">
-            <div className="isec-t">{t("roomEditTemplateSections")}</div>
-            <p className="text-[11.5px]" style={{ color: "var(--mute)" }}>
-              {t("roomEditTemplateHint")}
-            </p>
-            <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-              {data.templateSections.map((s) => {
-                const isHidden = hidden.has(s.id);
-                return (
-                  <div
-                    key={s.id}
-                    className="flex items-center justify-between rounded-[10px] border border-brand-line bg-white px-3 py-2"
-                    style={{ opacity: isHidden ? 0.55 : 1 }}
-                  >
-                    <span
-                      className="truncate text-[12.5px] font-medium"
-                      style={{
-                        color: "var(--ink)",
-                        textDecoration: isHidden ? "line-through" : "none",
-                      }}
-                    >
-                      {t(`sectionType_${s.type}`)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => toggleHidden(s.id)}
-                      className="rounded p-1 text-brand-mute hover:bg-brand-light"
-                      aria-label={
-                        isHidden ? t("roomEditShow") : t("roomEditHide")
-                      }
-                      title={isHidden ? t("roomEditShow") : t("roomEditHide")}
-                    >
-                      {isHidden ? (
-                        <EyeOff style={{ width: 15, height: 15 }} />
-                      ) : (
-                        <Eye style={{ width: 15, height: 15 }} />
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="epanel-h">
+            <h3>{t("roomEditSectionsTitle")}</h3>
           </div>
-
-          <div className="insp-sec">
-            <div className="isec-t">{t("roomEditExtras")}</div>
-            {extras.length === 0 ? (
+          <div className="epanel-b">
+            <div className="insp-sec">
+              <div className="isec-t">{t("roomEditTemplateSections")}</div>
               <p className="text-[11.5px]" style={{ color: "var(--mute)" }}>
-                {t("roomEditEmptyExtras")}
+                {t("roomEditTemplateHint")}
               </p>
-            ) : (
-              <div style={{ display: "grid", gap: 6 }}>
-                {extras.map((s, i) => (
-                  <div
-                    key={s.id}
-                    className={`flex items-center gap-1.5 rounded-[10px] border px-2.5 py-2 ${
-                      selectedId === s.id
-                        ? "border-brand-primary"
-                        : "border-brand-line"
-                    } bg-white`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(s.id)}
-                      className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+              <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                {data.templateSections.map((s) => {
+                  const isHidden = hidden.has(s.id);
+                  return (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between rounded-[10px] border border-brand-line bg-white px-3 py-2"
+                      style={{ opacity: isHidden ? 0.55 : 1 }}
                     >
-                      <Pencil
-                        style={{ width: 13, height: 13, color: "var(--mute)" }}
-                      />
                       <span
                         className="truncate text-[12.5px] font-medium"
-                        style={{ color: "var(--ink)" }}
+                        style={{
+                          color: "var(--ink)",
+                          textDecoration: isHidden ? "line-through" : "none",
+                        }}
                       >
                         {t(`sectionType_${s.type}`)}
                       </span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={i === 0}
-                      onClick={() => moveExtra(s.id, -1)}
-                      className="rounded p-1 text-brand-mute hover:bg-brand-light disabled:opacity-30"
-                      aria-label={t("moveUp")}
-                    >
-                      <ArrowUp style={{ width: 13, height: 13 }} />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={i === extras.length - 1}
-                      onClick={() => moveExtra(s.id, 1)}
-                      className="rounded p-1 text-brand-mute hover:bg-brand-light disabled:opacity-30"
-                      aria-label={t("moveDown")}
-                    >
-                      <ArrowDown style={{ width: 13, height: 13 }} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeExtra(s.id)}
-                      className="rounded p-1 text-brand-mute hover:text-red-600"
-                      aria-label={t("removeItem")}
-                    >
-                      <Trash2 style={{ width: 13, height: 13 }} />
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        type="button"
+                        onClick={() => toggleHidden(s.id)}
+                        className="rounded p-1 text-brand-mute hover:bg-brand-light"
+                        aria-label={
+                          isHidden ? t("roomEditShow") : t("roomEditHide")
+                        }
+                        title={isHidden ? t("roomEditShow") : t("roomEditHide")}
+                      >
+                        {isHidden ? (
+                          <EyeOff style={{ width: 15, height: 15 }} />
+                        ) : (
+                          <Eye style={{ width: 15, height: 15 }} />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              style={{ marginTop: 8, width: "100%" }}
-              onClick={() => setLibraryOpen(true)}
-            >
-              <Plus style={{ width: 14, height: 14 }} />
-              {t("roomEditAddSection")}
-            </button>
+            </div>
+
+            <div className="insp-sec">
+              <div className="isec-t">{t("roomEditExtras")}</div>
+              {extras.length === 0 ? (
+                <p className="text-[11.5px]" style={{ color: "var(--mute)" }}>
+                  {t("roomEditEmptyExtras")}
+                </p>
+              ) : (
+                <div style={{ display: "grid", gap: 6 }}>
+                  {extras.map((s, i) => (
+                    <div
+                      key={s.id}
+                      className={`flex items-center gap-1.5 rounded-[10px] border px-2.5 py-2 ${
+                        selectedId === s.id
+                          ? "border-brand-primary"
+                          : "border-brand-line"
+                      } bg-white`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSelectedId(s.id)}
+                        className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                      >
+                        <Pencil
+                          style={{
+                            width: 13,
+                            height: 13,
+                            color: "var(--mute)",
+                          }}
+                        />
+                        <span
+                          className="truncate text-[12.5px] font-medium"
+                          style={{ color: "var(--ink)" }}
+                        >
+                          {t(`sectionType_${s.type}`)}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={i === 0}
+                        onClick={() => moveExtra(s.id, -1)}
+                        className="rounded p-1 text-brand-mute hover:bg-brand-light disabled:opacity-30"
+                        aria-label={t("moveUp")}
+                      >
+                        <ArrowUp style={{ width: 13, height: 13 }} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={i === extras.length - 1}
+                        onClick={() => moveExtra(s.id, 1)}
+                        className="rounded p-1 text-brand-mute hover:bg-brand-light disabled:opacity-30"
+                        aria-label={t("moveDown")}
+                      >
+                        <ArrowDown style={{ width: 13, height: 13 }} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeExtra(s.id)}
+                        className="rounded p-1 text-brand-mute hover:text-red-600"
+                        aria-label={t("removeItem")}
+                      >
+                        <Trash2 style={{ width: 13, height: 13 }} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ marginTop: 8, width: "100%" }}
+                onClick={() => setLibraryOpen(true)}
+              >
+                <Plus style={{ width: 14, height: 14 }} />
+                {t("roomEditAddSection")}
+              </button>
+            </div>
           </div>
         </aside>
 
@@ -433,21 +443,31 @@ export function RoomBuilder({
         </div>
 
         <main className="epanel r">
-          {selected ? (
-            <SectionEditor
-              websiteId={data.websiteId}
-              section={selected}
-              onChange={updateExtra}
-              themePreset={data.themePreset}
+          <div className="epanel-h">
+            <SlidersHorizontal
+              style={{ width: 16, height: 16, color: "#10B981" }}
             />
-          ) : (
-            <div
-              className="flex h-full items-center justify-center p-8 text-center text-[13px]"
-              style={{ color: "var(--mute)" }}
-            >
-              {t("roomEditInspectorHint")}
-            </div>
-          )}
+            <h3>
+              {selected ? t(`sectionType_${selected.type}`) : t("pbInspector")}
+            </h3>
+          </div>
+          <div className="epanel-b thin">
+            {selected ? (
+              <SectionEditor
+                websiteId={data.websiteId}
+                section={selected}
+                onChange={updateExtra}
+                themePreset={data.themePreset}
+              />
+            ) : (
+              <div
+                className="insp-sec text-center text-[13px]"
+                style={{ color: "var(--mute)" }}
+              >
+                {t("roomEditInspectorHint")}
+              </div>
+            )}
+          </div>
         </main>
       </div>
 
