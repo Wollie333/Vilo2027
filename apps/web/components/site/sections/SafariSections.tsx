@@ -16,6 +16,15 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import { FormSection } from "./FormSection";
 import { SafariContactForm } from "./SafariContactForm";
+import { ColumnsSection, FlexSection } from "./ColumnsSection";
+import {
+  ElButtonSection,
+  ElDividerSection,
+  ElHeadingSection,
+  ElImageSection,
+  ElSpacerSection,
+  ElTextSection,
+} from "./Elements";
 
 /**
  * The NenGama Lodge ("safari" theme) home page, broken into per-section,
@@ -1921,6 +1930,70 @@ const SAFARI_FORM_VARS = {
   "--site-btn-primary-radius": "4px",
 } as CSSProperties;
 
+/** Bridges the generic free-element / container `--site-*` tokens onto the Safari
+ *  palette + type scale, so a host-built Section / Columns / heading / text /
+ *  image / button / spacer / divider renders ON-THEME on the live Safari site
+ *  (these types have no bespoke Safari band; without this they'd be skipped). */
+const SAFARI_ELEMENT_VARS = {
+  ...SAFARI_FORM_VARS,
+  "--site-secondary": "var(--accent-deep)",
+  "--site-font-heading": "var(--serif)",
+  "--site-weight-heading": "600",
+  "--site-h1": "3rem",
+  "--site-h2": "2.25rem",
+  "--site-h3": "1.6rem",
+  "--site-h4": "1.3rem",
+  "--site-leading-heading": "1.15",
+  "--site-tracking-heading": "-0.01em",
+  "--site-leading-body": "1.7",
+  "--site-text-base": "1.05rem",
+} as CSSProperties;
+
+/** Render the free elements + containers (which have no bespoke Safari band) via
+ *  the shared generic components, themed onto Safari. Returns undefined for types
+ *  that genuinely have no Safari rendering, so the caller still skips those. */
+function renderSafariGenericFallback(
+  section: WebsiteSection,
+  opts: { asset?: SiteAssetResolver; interactive?: boolean },
+): ReactNode | undefined {
+  let el: ReactNode;
+  switch (section.type) {
+    case "el_heading":
+      el = <ElHeadingSection props={section.props} />;
+      break;
+    case "el_text":
+      el = <ElTextSection props={section.props} />;
+      break;
+    case "el_image":
+      el = (
+        <ElImageSection
+          props={section.props}
+          asset={opts.asset}
+          interactive={opts.interactive}
+        />
+      );
+      break;
+    case "el_button":
+      el = <ElButtonSection props={section.props} />;
+      break;
+    case "el_spacer":
+      el = <ElSpacerSection props={section.props} />;
+      break;
+    case "el_divider":
+      el = <ElDividerSection props={section.props} />;
+      break;
+    case "columns":
+      el = <ColumnsSection props={section.props} asset={opts.asset} />;
+      break;
+    case "flex":
+      el = <FlexSection props={section.props} asset={opts.asset} />;
+      break;
+    default:
+      return undefined;
+  }
+  return <div style={SAFARI_ELEMENT_VARS}>{el}</div>;
+}
+
 export function renderSafariSection(
   section: WebsiteSection,
   opts: {
@@ -2088,8 +2161,19 @@ export function SafariSectionList({
   websiteId?: string;
   interactive?: boolean;
 }) {
-  const render = (s: WebsiteSection) =>
-    renderSafariSection(s, { data, asset, ctx, websiteId, interactive });
+  const render = (s: WebsiteSection) => {
+    const safari = renderSafariSection(s, {
+      data,
+      asset,
+      ctx,
+      websiteId,
+      interactive,
+    });
+    if (safari !== undefined) return safari;
+    // No bespoke Safari band → render free elements + containers via the shared
+    // generic components (themed onto Safari) so builder === live for those too.
+    return renderSafariGenericFallback(s, { asset, interactive });
+  };
   return (
     <>
       {sections

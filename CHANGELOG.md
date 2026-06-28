@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-28 (EOD #6) — Website CMS → MVP push (part 4): Safari renders containers + free elements (Phase 6)
+
+Found during verification: the Safari theme's `renderSafariSection` returned
+`undefined` for `columns` / `flex` / `el_*` (no bespoke band), so those section
+types — including the new Section containers, spacer/divider, and per-element
+styling from Phases 1 & 4 — were **silently skipped on the live Safari site**
+(they only showed in the builder + generic themes). Pre-existing, but it made the
+builder non-WYSIWYG for the founder's main theme.
+
+- **`SafariSectionList`'s `render` now falls back** to a new
+  `renderSafariGenericFallback` when no Safari band exists, rendering the shared
+  generic components (`ColumnsSection` / `FlexSection` / `El*Section`) wrapped in
+  a `SAFARI_ELEMENT_VARS` div. That bridge extends `SAFARI_FORM_VARS` with the
+  type-scale + palette tokens the elements read (`--site-font-heading` → Safari's
+  `--serif`, `--site-h1..4`, `--site-ink/mute/line/accent/secondary`,
+  leading/tracking/`--site-text-base`) so they render ON-THEME, not unstyled.
+- Types with genuinely no Safari rendering still return undefined → still skipped.
+- No circular import (the leaf components don't import SafariSections).
+
+`tsc` clean for this file (the only repo-wide `tsc` errors are the parallel
+`looking-for/*` session's, not mine). **Could not live-verify** the Safari render
+this session — the Windows `.next` cache corrupted twice on navigation-during-
+recompile (a known dev-env gremlin, recovered each time); needs a visual check.
+
+---
+
 ## 2026-06-28 (EOD #5) — Website CMS → MVP push (part 3): per-element styling in containers (Phase 4)
 
 Container children (`ColumnBlock` heading/text/image/button inside Section & Columns)
