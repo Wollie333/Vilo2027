@@ -9447,6 +9447,7 @@ export type Database = {
         Row: {
           badge: string | null
           created_at: string
+          detail_overrides: Json | null
           display_currency: string | null
           display_desc: string | null
           display_name: string | null
@@ -9462,6 +9463,7 @@ export type Database = {
         Insert: {
           badge?: string | null
           created_at?: string
+          detail_overrides?: Json | null
           display_currency?: string | null
           display_desc?: string | null
           display_name?: string | null
@@ -9477,6 +9479,7 @@ export type Database = {
         Update: {
           badge?: string | null
           created_at?: string
+          detail_overrides?: Json | null
           display_currency?: string | null
           display_desc?: string | null
           display_name?: string | null

@@ -26,6 +26,10 @@ import {
 } from "@/lib/website/sections.schema";
 import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
 import { parseRoomMediaOverrides } from "@/lib/website/roomMedia";
+import {
+  mergeRoomDetailSections,
+  parseRoomDetailOverride,
+} from "@/lib/website/roomDetailOverride";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import {
   formFieldsSchema,
@@ -1963,11 +1967,25 @@ export async function loadSiteRoomPage(
 ): Promise<SiteRoomResult | null> {
   const room = await loadRoomDetail(ctx, roomSlug);
   if (!room) return null;
-  const [sections, roomsHref] = await Promise.all([
+  const sb = createAdminClient();
+  const [template, roomsHref, overrideRow] = await Promise.all([
     loadRoomDetailSections(ctx),
     findRoomsIndexHref(ctx),
+    sb
+      .from("website_rooms")
+      .select("detail_overrides")
+      .eq("website_id", ctx.websiteId)
+      .eq("room_id", room.id)
+      .maybeSingle<{ detail_overrides: unknown }>(),
   ]);
-  const sb = createAdminClient();
+  // Layer this room's optional per-room overrides over the shared template
+  // (drop hidden → swap replaced → append extras). Pure-template rooms (the
+  // common case) merge to the template unchanged. The merged list then gets the
+  // active room's live data injected like any room-detail page.
+  const sections = mergeRoomDetailSections(
+    template,
+    parseRoomDetailOverride(overrideRow.data?.detail_overrides),
+  );
   const data = await assembleSectionData(sb, ctx, sections, room);
   return { room, sections, data, roomsHref };
 }
