@@ -28,13 +28,16 @@ export function RoomBookingDock({
   const [to, setTo] = useState("");
   const [guests, setGuests] = useState(2);
 
+  // Deterministic price format (NO Intl): Intl currency formatting differs between
+  // the Node SSR and the browser (ICU version + the space/grouping chars it emits),
+  // which trips a hydration mismatch in this client component. Plain thousands-
+  // spaced text renders identically on both.
+  const ccy = currency ?? "ZAR";
   const priceLabel =
     price != null
-      ? new Intl.NumberFormat("en-ZA", {
-          style: "currency",
-          currency: currency ?? "ZAR",
-          maximumFractionDigits: 0,
-        }).format(price)
+      ? `${ccy === "ZAR" ? "R" : ccy} ${Math.round(price)
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, " ")}`
       : null;
 
   function book() {
