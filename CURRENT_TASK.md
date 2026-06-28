@@ -2,9 +2,13 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #3 — WEBSITE CMS → MVP PUSH: all 5 phases shipped (local, committed, NOT pushed))
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #3 — WEBSITE CMS → MVP PUSH: 6 phases shipped (local, committed, NOT pushed))
 
-**Founder directive:** drive the website CMS to 100% MVP in LOCAL dev, then push to Vercel once solid. Worked priority order; **every phase verified `tsc --noEmit` + `next lint` (both exit 0)**, committed **locally to `main` (NO push — push = prod deploy, awaiting founder's go).** No DB migrations (all JSON-shape additive). Commits: `919f2f1` (P1+P2+P5+bugfixes) · `5d2ede7` (P3) · `b9e25ee` (P4).
+**Founder directive:** drive the website CMS to 100% MVP in LOCAL dev, then push to Vercel once solid. Worked priority order; **every phase `tsc --noEmit` + `next lint` clean (for my files)**, committed **locally to `main` (NO push — push = prod deploy, awaiting founder's go).** No DB migrations (all JSON-shape additive). Commits: `919f2f1` (P1+P2+P5+bugfixes) · `5d2ede7` (P3) · `b9e25ee` (P4) · `203fb41` (P6).
+
+**⚠️ repo-wide `tsc` is RED — but NOT from my code.** A **parallel "looking-for" session** (untracked: `app/[locale]/{dashboard,portal,}/looking-for/*`, `supabase/migrations/20260628100000_looking_for_schema.sql`, modified `featureGate.ts`/`features.ts`/`Sidebar.tsx`/quotes/*) has ~11 `TS2352` errors in ITS files. I excluded all of it from my commits; my files type-check clean. Don't attribute those errors to the CMS work.
+
+**6. P6 — Safari renders containers + free elements (`203fb41`).** FOUND during verification: `renderSafariSection` returned `undefined` for `columns`/`flex`/`el_*` (no bespoke Safari band) → those sections (incl. P1 spacer/divider + P4 styling) were **silently skipped on the live Safari site** (builder + generic themes only). Fixed: `SafariSectionList.render` falls back to new `renderSafariGenericFallback` → shared generic components wrapped in `SAFARI_ELEMENT_VARS` (extends `SAFARI_FORM_VARS` with type-scale/palette tokens → on-theme). **NOT live-verified** (see caveat).
 
 **WHAT SHIPPED (5 phases):**
 1. **P1 — Spacer & divider as inline container elements.** `el_spacer`/`el_divider` are now `ColumnBlock` kinds inside the Section (flex) + Columns containers (schema branches, `newColumnBlock`, `ContainerCanvas` add-bar + both inspector add-lists, `ColumnBlockEditor` controls, `InlineBlock` render).
@@ -13,13 +17,14 @@
 4. **P3 — Settings hub.** Publish-status badge (Live/Draft/Unpublished) in the header; **site name + tagline quick-edit** persisted to the `brand` jsonb (`websiteSettingsSchema.brandName/brandTagline`; `saveWebsiteSettingsAction` merges `brand` alongside `settings`; blank name ignored); **Domain link** added to the Access block.
 5. **P4 — Per-element styling in containers.** Container children gain the standalone `el_*` styling: heading/text get align+size/weight/color, image gets width+align, button gets size+align (all optional → legacy blocks inherit). `InlineBlock` reuses `elColor/elFontSize/elFontWeight`; editor reuses `AlignField`+`TypographyFields`.
 
-**⚠️ VERIFICATION CAVEAT — green at tsc+lint, NOT live-clicked.** A dev server is already running on **:3000** (PID 3244, founder's session) — the Preview MCP can't attach, and unauth'd curls 307→login before the route compiles. So I could not drive the UI. The founder's running server HOT-RELOADS these source edits on navigation. **Needs a live smoke-test by the founder** (esp. P5 the overlay editor + P4 the per-element controls). Confirmed: `FormEditor` is `"use client"` (safe import), no circular import, prettier ran via lint-staged.
+**✅ LIVE-VERIFIED this session (Preview MCP on :3000, logged in as test host):** P1 — palette shows Section/Spacer/Divider. P2 — a noindex page renders `<meta name=robots content="noindex, nofollow">`. P3 — settings page shows the Live status badge + Site name ("Olive Grove Guesthouse") + Tagline pre-filled + Domain link (screenshot). Build health — page-builder + settings + /site routes compile 200, no console errors.
+**❌ NOT live-verified (env blockers, NOT code):** P5 overlay editor + P4 per-element controls = interactive React onClicks the Preview MCP can't reliably fire. P6 Safari render = couldn't confirm because (a) the `/en/site/<custom-slug>?preview=1` path redirected to `/` (preview-routing quirk for custom-page slugs), and (b) **the Windows `.next` cache CORRUPTED TWICE** (`Cannot find module './vendor-chunks/…'`) on navigation-during-recompile — recovered each time (`preview_stop` → `rm -rf apps/web/.next` → free :3000 → `preview_start web` → warm ONE route via curl, don't browser-nav during compile). Server is currently HEALTHY on :3000 (home 200, safari preview 200).
 
 **▶▶ NEXT:**
-1. **Founder live-test** the 5 phases on :3000 (log in as `host@vilotest.com`/`ViloTest123!`), report issues.
+1. **Founder live-test on :3000** (`host@vilotest.com`/`ViloTest123!`): P5 (Pages → select a Form section → "Edit form fields" overlay), P4 (add a Section → child → align/size/colour controls), **P6 (add a Section/Columns or element on a page → publish/preview the SAFARI site → confirm it now RENDERS)**.
 2. **Then push to Vercel** (founder's explicit go — push to `main` = full prod deploy) once happy.
-3. **Deferred (post-MVP, noted in CHANGELOG):** per-DEVICE responsive overrides for individual container children (big schema/render change; container already has responsive visibility). Blog-post head-code/pixel parity. Favicon + blog-config in Settings (Brand Studio already owns favicon; blog config = new feature).
-4. Untracked `docs/features/LOOKING_FOR_FEATURE.md` present in tree — not mine, left alone. Stray `nul` artifact keeps regenerating (some tool writes to NUL) — `rm -f nul` before commits.
+3. **Deferred (post-MVP, in CHANGELOG):** per-DEVICE responsive overrides for container children; blog head-code/pixel parity; favicon + blog-config in Settings. The other Safari-skipped types (`rich_text`, `video`, `trust`, `specials_preview`, booking-funnel) still return undefined → could extend the P6 fallback to them if wanted.
+4. **Parallel "looking-for" session** owns the untracked/modified files in the tree (incl. its own migration + tsc errors) — leave alone. Stray `nul` keeps regenerating — `rm -f nul` before commits.
 
 ---
 
