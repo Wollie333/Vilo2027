@@ -18,11 +18,15 @@ import {
  *  - `hidden`   — template section ids dropped for THIS room.
  *  - `replaced` — template section id → a replacement section for THIS room.
  *  - `extras`   — extra sections appended after the template for THIS room.
+ *  - `order`    — per-room section order (template + extra ids). Ids missing from
+ *                 the list keep their relative position at the end, so a template
+ *                 section added later still shows up.
  */
 export const roomDetailOverrideSchema = z.object({
   hidden: z.array(z.string().min(1)).max(60).default([]),
   replaced: z.record(z.string(), sectionSchema).default({}),
   extras: z.array(sectionSchema).max(40).default([]),
+  order: z.array(z.string().min(1)).max(120).default([]),
 });
 
 export type RoomDetailOverride = z.infer<typeof roomDetailOverrideSchema>;
@@ -36,7 +40,8 @@ export function hasRoomOverride(
     !!o &&
     (o.hidden.length > 0 ||
       Object.keys(o.replaced).length > 0 ||
-      o.extras.length > 0)
+      o.extras.length > 0 ||
+      o.order.length > 0)
   );
 }
 
@@ -72,5 +77,14 @@ export function mergeRoomDetailSections(
   const base = template
     .filter((s) => !hidden.has(s.id))
     .map((s) => override.replaced[s.id] ?? s);
-  return override.extras.length ? [...base, ...override.extras] : base;
+  const list = override.extras.length ? [...base, ...override.extras] : base;
+  if (!override.order.length) return list;
+  // Apply the per-room order: ids in `order` first (in that order); any section
+  // not listed (e.g. a template section added after the order was saved) keeps
+  // its relative position at the end.
+  const pos = new Map(override.order.map((id, i) => [id, i]));
+  return list
+    .map((s, i) => ({ s, k: pos.has(s.id) ? pos.get(s.id)! : list.length + i }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.s);
 }

@@ -87,6 +87,9 @@ export function RoomBuilder({
   const [extras, setExtras] = useState<WebsiteSection[]>(
     () => data.override?.extras ?? [],
   );
+  const [order, setOrder] = useState<string[]>(
+    () => data.override?.order ?? [],
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [saving, startSave] = useTransition();
@@ -96,12 +99,14 @@ export function RoomBuilder({
       JSON.stringify({
         hidden: [...new Set(data.override?.hidden ?? [])].sort(),
         extras: data.override?.extras ?? [],
+        order: data.override?.order ?? [],
       }),
     [data.override],
   );
   const current = JSON.stringify({
     hidden: [...hidden].sort(),
     extras,
+    order,
   });
   const dirty = current !== initial;
 
@@ -116,8 +121,9 @@ export function RoomBuilder({
         hidden: [...hidden],
         replaced: {},
         extras,
+        order,
       }),
-    [data.templateSections, hidden, extras],
+    [data.templateSections, hidden, extras, order],
   );
   const previewData = useMemo(
     () => buildRoomPreviewData(merged, page.dataByType, data.room),
@@ -135,6 +141,30 @@ export function RoomBuilder({
     () => merged.filter((s) => s.type !== "room_gallery"),
     [merged],
   );
+
+  // Unified, reorderable editor list: every section (template + extras) in the
+  // room's order. Template sections can be hidden; extras can be edited/removed;
+  // any section can be moved. Ids missing from `order` keep their natural spot.
+  const templateIds = useMemo(
+    () => new Set(data.templateSections.map((s) => s.id)),
+    [data.templateSections],
+  );
+  const orderedAll = useMemo(() => {
+    const all = [...data.templateSections, ...extras];
+    if (!order.length) return all;
+    const byId = new Map(all.map((s) => [s.id, s] as const));
+    const seen = new Set<string>();
+    const out: WebsiteSection[] = [];
+    for (const id of order) {
+      const s = byId.get(id);
+      if (s && !seen.has(id)) {
+        out.push(s);
+        seen.add(id);
+      }
+    }
+    for (const s of all) if (!seen.has(s.id)) out.push(s);
+    return out;
+  }, [data.templateSections, extras, order]);
 
   // Scroll the canvas to a newly-added extra so the host sees it appear (extras
   // append after the template, which can be below the fold on a long room page).
@@ -162,6 +192,8 @@ export function RoomBuilder({
   function addSection(type: SectionType) {
     const section = newSection(type);
     setExtras((prev) => [...prev, section]);
+    // Keep an explicit order in sync so the new extra has a tracked position.
+    setOrder((prev) => (prev.length ? [...prev, section.id] : prev));
     setSelectedId(section.id);
     setLibraryOpen(false);
   }
@@ -172,18 +204,19 @@ export function RoomBuilder({
 
   function removeExtra(id: string) {
     setExtras((prev) => prev.filter((s) => s.id !== id));
+    setOrder((prev) => prev.filter((x) => x !== id));
     if (selectedId === id) setSelectedId(null);
   }
 
-  function moveExtra(id: string, dir: -1 | 1) {
-    setExtras((prev) => {
-      const i = prev.findIndex((s) => s.id === id);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= prev.length) return prev;
-      const next = [...prev];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
+  // Move ANY section (template or extra) up/down. Snapshots the current visual
+  // order into an explicit id list, swaps, and stores it as the per-room order.
+  function moveSection(id: string, dir: -1 | 1) {
+    const ids = orderedAll.map((s) => s.id);
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    setOrder(ids);
   }
 
   function onSave() {
@@ -191,7 +224,7 @@ export function RoomBuilder({
       const res = await saveRoomDetailOverrideAction({
         websiteId: data.websiteId,
         roomId: data.roomId,
-        override: { hidden: [...hidden], replaced: {}, extras },
+        override: { hidden: [...hidden], replaced: {}, extras, order },
       });
       if (!res.ok) {
         toast.error(t("saveError"));
@@ -269,119 +302,134 @@ export function RoomBuilder({
           </div>
           <div className="epanel-b">
             <div className="insp-sec">
-              <div className="isec-t">{t("roomEditTemplateSections")}</div>
+              <div className="isec-t">{t("roomEditSectionsTitle")}</div>
               <p className="text-[11.5px]" style={{ color: "var(--mute)" }}>
-                {t("roomEditTemplateHint")}
+                {t("roomEditReorderHint")}
               </p>
               <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-                {data.templateSections.map((s) => {
+                {orderedAll.map((s, i) => {
+                  const isTemplate = templateIds.has(s.id);
                   const isHidden = hidden.has(s.id);
+                  const isSelected = selectedId === s.id;
                   return (
                     <div
                       key={s.id}
-                      className="flex items-center justify-between rounded-[10px] border border-brand-line bg-white px-3 py-2"
+                      className={`flex items-center gap-1 rounded-[10px] border px-2 py-1.5 ${
+                        isSelected
+                          ? "border-brand-primary"
+                          : "border-brand-line"
+                      } bg-white`}
                       style={{ opacity: isHidden ? 0.55 : 1 }}
                     >
+                      <div className="flex flex-col">
+                        <button
+                          type="button"
+                          disabled={i === 0}
+                          onClick={() => moveSection(s.id, -1)}
+                          className="rounded p-0.5 text-brand-mute hover:bg-brand-light disabled:opacity-30"
+                          aria-label={t("moveUp")}
+                        >
+                          <ArrowUp style={{ width: 12, height: 12 }} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={i === orderedAll.length - 1}
+                          onClick={() => moveSection(s.id, 1)}
+                          className="rounded p-0.5 text-brand-mute hover:bg-brand-light disabled:opacity-30"
+                          aria-label={t("moveDown")}
+                        >
+                          <ArrowDown style={{ width: 12, height: 12 }} />
+                        </button>
+                      </div>
+                      {isTemplate ? (
+                        <span className="flex min-w-0 flex-1 items-center">
+                          <span
+                            className="truncate text-[12.5px] font-medium"
+                            style={{
+                              color: "var(--ink)",
+                              textDecoration: isHidden
+                                ? "line-through"
+                                : "none",
+                            }}
+                          >
+                            {t(`sectionType_${s.type}`)}
+                          </span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(s.id)}
+                          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                        >
+                          <Pencil
+                            style={{
+                              width: 12,
+                              height: 12,
+                              color: "var(--mute)",
+                            }}
+                          />
+                          <span
+                            className="truncate text-[12.5px] font-medium"
+                            style={{ color: "var(--ink)" }}
+                          >
+                            {t(`sectionType_${s.type}`)}
+                          </span>
+                        </button>
+                      )}
                       <span
-                        className="truncate text-[12.5px] font-medium"
-                        style={{
-                          color: "var(--ink)",
-                          textDecoration: isHidden ? "line-through" : "none",
-                        }}
-                      >
-                        {t(`sectionType_${s.type}`)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleHidden(s.id)}
-                        className="rounded p-1 text-brand-mute hover:bg-brand-light"
-                        aria-label={
-                          isHidden ? t("roomEditShow") : t("roomEditHide")
+                        className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                        style={
+                          isTemplate
+                            ? {
+                                background: "var(--line)",
+                                color: "var(--mute)",
+                              }
+                            : {
+                                background: "rgba(16,185,129,.14)",
+                                color: "#0f7a57",
+                              }
                         }
-                        title={isHidden ? t("roomEditShow") : t("roomEditHide")}
                       >
-                        {isHidden ? (
-                          <EyeOff style={{ width: 15, height: 15 }} />
-                        ) : (
-                          <Eye style={{ width: 15, height: 15 }} />
-                        )}
-                      </button>
+                        {isTemplate
+                          ? t("roomEditTagTemplate")
+                          : t("roomEditTagCustom")}
+                      </span>
+                      {isTemplate ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleHidden(s.id)}
+                          className="rounded p-1 text-brand-mute hover:bg-brand-light"
+                          aria-label={
+                            isHidden ? t("roomEditShow") : t("roomEditHide")
+                          }
+                          title={
+                            isHidden ? t("roomEditShow") : t("roomEditHide")
+                          }
+                        >
+                          {isHidden ? (
+                            <EyeOff style={{ width: 14, height: 14 }} />
+                          ) : (
+                            <Eye style={{ width: 14, height: 14 }} />
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => removeExtra(s.id)}
+                          className="rounded p-1 text-brand-mute hover:text-red-600"
+                          aria-label={t("removeItem")}
+                        >
+                          <Trash2 style={{ width: 14, height: 14 }} />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
               </div>
-            </div>
-
-            <div className="insp-sec">
-              <div className="isec-t">{t("roomEditExtras")}</div>
-              {extras.length === 0 ? (
-                <p className="text-[11.5px]" style={{ color: "var(--mute)" }}>
-                  {t("roomEditEmptyExtras")}
-                </p>
-              ) : (
-                <div style={{ display: "grid", gap: 6 }}>
-                  {extras.map((s, i) => (
-                    <div
-                      key={s.id}
-                      className={`flex items-center gap-1.5 rounded-[10px] border px-2.5 py-2 ${
-                        selectedId === s.id
-                          ? "border-brand-primary"
-                          : "border-brand-line"
-                      } bg-white`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(s.id)}
-                        className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-                      >
-                        <Pencil
-                          style={{
-                            width: 13,
-                            height: 13,
-                            color: "var(--mute)",
-                          }}
-                        />
-                        <span
-                          className="truncate text-[12.5px] font-medium"
-                          style={{ color: "var(--ink)" }}
-                        >
-                          {t(`sectionType_${s.type}`)}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={i === 0}
-                        onClick={() => moveExtra(s.id, -1)}
-                        className="rounded p-1 text-brand-mute hover:bg-brand-light disabled:opacity-30"
-                        aria-label={t("moveUp")}
-                      >
-                        <ArrowUp style={{ width: 13, height: 13 }} />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={i === extras.length - 1}
-                        onClick={() => moveExtra(s.id, 1)}
-                        className="rounded p-1 text-brand-mute hover:bg-brand-light disabled:opacity-30"
-                        aria-label={t("moveDown")}
-                      >
-                        <ArrowDown style={{ width: 13, height: 13 }} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeExtra(s.id)}
-                        className="rounded p-1 text-brand-mute hover:text-red-600"
-                        aria-label={t("removeItem")}
-                      >
-                        <Trash2 style={{ width: 13, height: 13 }} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
-                style={{ marginTop: 8, width: "100%" }}
+                style={{ marginTop: 10, width: "100%" }}
                 onClick={() => setLibraryOpen(true)}
               >
                 <Plus style={{ width: 14, height: 14 }} />
@@ -405,6 +453,8 @@ export function RoomBuilder({
                   preview: false,
                   subdomain: "",
                 })}
+                bookHref={data.room?.bookHref ?? undefined}
+                solidNav
               >
                 <RoomDockLayout
                   gallery={
@@ -446,6 +496,7 @@ export function RoomBuilder({
                   header={page.theme.header}
                   footer={page.theme.footer}
                   layout={page.layout}
+                  bookHref={data.room?.bookHref ?? undefined}
                   chromeInert
                 >
                   <RoomDockLayout
