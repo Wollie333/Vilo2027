@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-06-28 (EOD #8) — Website CMS → MVP push (deferred #2): Settings favicon control + editable blog index heading/intro
+
+Two Settings-hub additions.
+
+**Favicon in Settings.** The favicon was uploadable in Brand Studio and already
+rendered into `<head>` (`loadSitePage` → `metadata.ts` `icons.icon`), but wasn't
+reachable from the Settings hub. Added a **Favicon** row to the Branding block
+that reuses the existing `AssetUploader` (slot `"favicon"`) — same direct
+browser→Storage upload + `registerWebsiteBrandAssetAction` persistence as Brand
+Studio, so zero logic duplication; it persists on upload, independent of the Save
+button. The Settings page resolves the current favicon URL via
+`websiteAssetUrl(brand.favicon_path)`. Branding desc updated (favicon no longer
+"Brand-Studio-only").
+
+**Editable blog index heading/intro.** The generic-theme blog listing (`/blog`)
+hard-coded its `<h1>` ("Blog") and intro ("News, stories and local guides") — the
+Safari blog index is section-driven (editable) but generic themes had no way to
+change this text. Added `blogHeading` + `blogIntro` to `websiteSettingsSchema`,
+persisted under `settings.blog` by `saveWebsiteSettingsAction`, surfaced on
+`SiteContext.blog` (read live — cosmetic text, not snapshot-frozen, so edits show
+immediately), and consumed by `site/blog/page.tsx` with the old strings as
+fallbacks. New "Blog" block in the Settings form with the two inputs. i18n keys
+in en.json.
+
+`tsc --noEmit` (whole project) + `next lint` **clean**. **Live-verified** on
+`:3000` as the test host: the Settings page renders HTTP 200 with the new Favicon
+row (Upload / Choose-from-library) in Branding and the new Blog block with both
+inputs (snapshot + screenshot). Recovered one `.next` vendor-chunk corruption
+(the known Windows gremlin) before the clean read.
+
+---
+
 ## 2026-06-28 (EOD #7) — Website CMS → MVP push (deferred #1): Safari fallback finished — data-driven blocks no longer skipped
 
 Completed the Phase 6 fallback. Beyond the pure-render types already covered

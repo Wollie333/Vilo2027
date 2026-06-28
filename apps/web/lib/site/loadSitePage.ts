@@ -86,6 +86,8 @@ export type SiteContext = {
   conversion: SiteConversion;
   /** Host third-party analytics (GA4 + Meta Pixel + consent gate). */
   analytics: SiteAnalyticsSettings;
+  /** Blog index heading + intro (generic-theme `/blog` listing). Blank → defaults. */
+  blog: { heading?: string; intro?: string };
   /** Site width: "full" (edge-to-edge) or "boxed" (centred max-width). */
   layout: "full" | "boxed";
   /** Resolved definition of the pop-up's embedded form, when one is set. */
@@ -164,6 +166,7 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
         conversion?: SiteConversion;
         analytics?: SiteAnalyticsSettings;
         layout?: "full" | "boxed";
+        blog?: { heading?: string; intro?: string };
       } | null;
       published_snapshot: PublishSnapshot | null;
       business: {
@@ -241,6 +244,12 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
   const layout = (snap?.layout ?? site.settings?.layout ?? "full") as
     | "full"
     | "boxed";
+  // Blog index heading/intro — read live (cosmetic text, like the blog posts
+  // themselves; not part of the publish snapshot, so edits show immediately).
+  const blog = (site.settings?.blog ?? {}) as {
+    heading?: string;
+    intro?: string;
+  };
 
   // Resolve the pop-up's embedded form live (its content stays current, like
   // rooms/blog) when one is referenced.
@@ -314,6 +323,7 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
     navigation,
     conversion,
     analytics,
+    blog,
     layout,
     popupForm,
     propertyIds,

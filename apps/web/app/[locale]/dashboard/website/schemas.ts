@@ -534,6 +534,12 @@ export const websiteSettingsSchema = z.object({
   cookieConsentEnabled: z.boolean().default(true),
   cookieConsentMessage: z.string().trim().max(300).default(""),
   privacyPolicyHref: z.string().trim().max(300).default(""),
+  // Blog index config — the heading + intro shown atop the generic-theme blog
+  // listing page (`/blog`). Stored under `settings.blog`. Blank inherits the
+  // built-in defaults ("Blog" / "News, stories and local guides"). The Safari
+  // theme's blog index is section-driven, so these apply to generic themes.
+  blogHeading: z.string().trim().max(80).default(""),
+  blogIntro: z.string().trim().max(200).default(""),
 });
 
 export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;

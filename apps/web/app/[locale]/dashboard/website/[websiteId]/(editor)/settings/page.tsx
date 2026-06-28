@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { listWebsiteFormsAction } from "@/app/[locale]/dashboard/website/actions";
+import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { loadWebsiteEditorData } from "../../loadWebsiteEditorData";
 import { SettingsForm } from "./SettingsForm";
@@ -58,6 +59,11 @@ export default async function WebsiteSettingsPage({
   };
   const consent = analytics.cookieConsent ?? {};
 
+  const blog = (data.settings.blog ?? {}) as {
+    heading?: string;
+    intro?: string;
+  };
+
   return (
     <SettingsForm
       websiteId={websiteId}
@@ -68,6 +74,7 @@ export default async function WebsiteSettingsPage({
       themeHref={`/dashboard/website/${websiteId}/theme`}
       seoHref={`/dashboard/website/${websiteId}/seo`}
       domainHref={`/dashboard/website/${websiteId}/domain`}
+      faviconUrl={websiteAssetUrl(data.brand.favicon_path) || null}
       forms={forms.map((f) => ({ id: f.id, name: f.name }))}
       initial={{
         brandName: data.brand.name ?? "",
@@ -96,6 +103,8 @@ export default async function WebsiteSettingsPage({
         cookieConsentEnabled: consent.enabled !== false,
         cookieConsentMessage: consent.message ?? "",
         privacyPolicyHref: consent.privacyHref ?? "",
+        blogHeading: blog.heading ?? "",
+        blogIntro: blog.intro ?? "",
       }}
     />
   );

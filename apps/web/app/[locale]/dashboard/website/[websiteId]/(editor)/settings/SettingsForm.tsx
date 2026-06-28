@@ -8,6 +8,7 @@ import {
   Loader2,
   MessageCircle,
   Megaphone,
+  Newspaper,
   Paintbrush,
   Palette,
   Rocket,
@@ -29,6 +30,7 @@ import {
   saveWebsiteSettingsAction,
   unpublishWebsiteAction,
 } from "@/app/[locale]/dashboard/website/actions";
+import { AssetUploader } from "@/app/[locale]/dashboard/website/[websiteId]/brand/_components";
 import { modal } from "@/components/ui/modal-host";
 
 type PopupTrigger = "delay" | "scroll" | "exit";
@@ -61,6 +63,8 @@ type SettingsState = {
   cookieConsentEnabled: boolean;
   cookieConsentMessage: string;
   privacyPolicyHref: string;
+  blogHeading: string;
+  blogIntro: string;
 };
 
 // ── Layout primitives (mockup .sblock / .setrow / .sw / .field) ──
@@ -152,6 +156,7 @@ export function SettingsForm({
   themeHref,
   seoHref,
   domainHref,
+  faviconUrl,
   forms,
   initial,
 }: {
@@ -163,6 +168,7 @@ export function SettingsForm({
   themeHref: string;
   seoHref: string;
   domainHref: string;
+  faviconUrl: string | null;
   forms: Array<{ id: string; name: string }>;
   initial: SettingsState;
 }) {
@@ -170,6 +176,9 @@ export function SettingsForm({
   const router = useRouter();
   const localeRouter = useLocaleRouter();
   const [state, setState] = useState<SettingsState>(initial);
+  // Favicon persists independently on upload (like Brand Studio); keep its URL in
+  // local state just to reflect the current image — it isn't part of the Save.
+  const [favicon, setFavicon] = useState<string | null>(faviconUrl);
   const [saving, startSave] = useTransition();
   const [lifecycle, startLifecycle] = useTransition();
 
@@ -218,6 +227,8 @@ export function SettingsForm({
         cookieConsentEnabled: state.cookieConsentEnabled,
         cookieConsentMessage: state.cookieConsentMessage.trim(),
         privacyPolicyHref: state.privacyPolicyHref.trim(),
+        blogHeading: state.blogHeading.trim(),
+        blogIntro: state.blogIntro.trim(),
       });
       if (!res.ok) {
         toast.error(
@@ -351,6 +362,14 @@ export function SettingsForm({
             placeholder={t("settingsTaglinePh")}
           />
         </Setrow>
+        <Setrow title={t("settingsFaviconRow")} desc={t("settingsFaviconDesc")}>
+          <AssetUploader
+            websiteId={websiteId}
+            slot="favicon"
+            url={favicon}
+            onChange={setFavicon}
+          />
+        </Setrow>
         <Setrow title={t("settingsThemeRow")} desc={t("settingsThemeRowDesc")}>
           <Link href={brandHref} className="btn btn-ghost btn-sm">
             <Paintbrush
@@ -367,6 +386,36 @@ export function SettingsForm({
             <Palette style={{ width: 14, height: 14, color: "var(--mute)" }} />
             {t("settingsOpenThemes")}
           </Link>
+        </Setrow>
+      </Sblock>
+
+      {/* BLOG — the /blog index page heading + intro (generic themes) */}
+      <Sblock
+        icon={Newspaper}
+        title={t("settingsBlogTitle")}
+        desc={t("settingsBlogDesc")}
+      >
+        <Setrow title={t("settingsBlogHeadingRow")} col>
+          <input
+            className="field"
+            value={state.blogHeading}
+            onChange={(e) => set("blogHeading", e.target.value)}
+            maxLength={80}
+            placeholder={t("settingsBlogHeadingPh")}
+          />
+        </Setrow>
+        <Setrow
+          title={t("settingsBlogIntroRow")}
+          desc={t("settingsBlogIntroDesc")}
+          col
+        >
+          <input
+            className="field"
+            value={state.blogIntro}
+            onChange={(e) => set("blogIntro", e.target.value)}
+            maxLength={200}
+            placeholder={t("settingsBlogIntroPh")}
+          />
         </Setrow>
       </Sblock>
 

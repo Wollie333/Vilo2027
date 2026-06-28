@@ -140,13 +140,13 @@ export default async function SiteBlogIndexPage({
             }}
             className="text-3xl font-bold tracking-tight md:text-4xl"
           >
-            Blog
+            {ctx.blog.heading?.trim() || "Blog"}
           </h1>
           <p
             style={{ color: "var(--site-mute)" }}
             className="mt-2 text-base md:text-lg"
           >
-            News, stories and local guides
+            {ctx.blog.intro?.trim() || "News, stories and local guides"}
           </p>
 
           {posts.length === 0 ? (

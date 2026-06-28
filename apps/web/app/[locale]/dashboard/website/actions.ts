@@ -2279,6 +2279,8 @@ export async function saveWebsiteSettingsAction(
     cookieConsentEnabled,
     cookieConsentMessage,
     privacyPolicyHref,
+    blogHeading,
+    blogIntro,
   } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
@@ -2348,6 +2350,10 @@ export async function saveWebsiteSettingsAction(
         message: cookieConsentMessage.trim(),
         privacyHref: cleanHref(privacyPolicyHref),
       },
+    },
+    blog: {
+      heading: blogHeading.trim(),
+      intro: blogIntro.trim(),
     },
   };
 
