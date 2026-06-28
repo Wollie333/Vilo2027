@@ -22,6 +22,7 @@ import {
   TurnstileWidget,
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
+import { ThemedDateRange } from "@/components/site/ThemedDateRange";
 
 export type CheckoutRoom = {
   id: string;
@@ -72,10 +73,6 @@ function money(total: number | null, currency: string) {
   } catch {
     return `${currency} ${total}`;
   }
-}
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 /**
@@ -398,30 +395,22 @@ export function SiteCheckoutForm({
         {/* ── Form ── */}
         <Card className="p-6">
           <div className="space-y-6">
-            {/* Dates */}
+            {/* Dates — the same themed calendar as the booking form/dock. */}
             <Group title="Your dates">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Labelled label="Check-in">
-                  <input
-                    type="date"
-                    value={checkIn}
-                    min={todayIso()}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                    style={fieldStyle}
-                    className={inputCls}
-                  />
-                </Labelled>
-                <Labelled label="Check-out">
-                  <input
-                    type="date"
-                    value={checkOut}
-                    min={checkIn || todayIso()}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    style={fieldStyle}
-                    className={inputCls}
-                  />
-                </Labelled>
-              </div>
+              <ThemedDateRange
+                from={checkIn}
+                to={checkOut}
+                onChange={(f, t) => {
+                  setCheckIn(f);
+                  setCheckOut(t);
+                }}
+                accent="var(--site-accent)"
+                ink="var(--site-ink)"
+                mute="var(--site-mute)"
+                line="var(--site-line)"
+                surface="var(--site-surface)"
+                radius="var(--site-radius)"
+              />
             </Group>
 
             {/* What to book */}

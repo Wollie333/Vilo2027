@@ -78,9 +78,10 @@ export default async function SiteBookPage({
     ? await buildSitePreviewPages(ctx)
     : undefined;
 
-  // Theme preview → show the Safari checkout DESIGN (the real booking engine
-  // only runs on the live site), so the host sees the page's look while browsing.
-  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+  // THEME-PICKER preview (browsing a theme via ?theme=safari) → show the Safari
+  // checkout DESIGN only. The real Safari site (no previewThemeSlug) falls through
+  // to the live booking engine below, rendered inside the Safari shell.
+  if (ctx.previewThemeSlug === "safari") {
     return (
       <SafariShell
         brandName={ctx.brand.name}
@@ -236,6 +237,52 @@ export default async function SiteBookPage({
     cancellation = null;
   }
 
+  const checkout = (
+    <SiteCheckoutForm
+      websiteId={ctx.websiteId}
+      propertyId={property.id}
+      propertyName={property.name}
+      currency={property.currency || "ZAR"}
+      maxGuests={property.max_guests ?? 10}
+      basePrice={
+        property.base_price == null ? null : Number(property.base_price)
+      }
+      bookingMode={property.booking_mode ?? "whole_listing"}
+      rooms={rooms}
+      addons={addons}
+      cardAvailable={Boolean(cardPaystack)}
+      eftAvailable={eftAvailable}
+      cancellation={cancellation}
+      initial={{
+        from: isIso(sp?.from) ? sp!.from! : "",
+        to: isIso(sp?.to) ? sp!.to! : "",
+        guests: Math.max(1, Number(sp?.guests) || 2),
+        roomId: sp?.room?.trim() || null,
+        scope: sp?.scope === "whole_listing" ? "whole_listing" : null,
+      }}
+    />
+  );
+
+  // The real Safari site renders the same live checkout, themed by the Safari
+  // shell (the form reads --site-* tokens, which Safari bridges to its palette).
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
+    return (
+      <SafariShell
+        brandName={ctx.brand.name}
+        nav={buildSafariNav(ctx)}
+        bookHref={
+          ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+        }
+        solidNav
+        previewPages={previewPages}
+        analytics={ctx.analytics}
+        interactive={!ctx.preview}
+      >
+        {checkout}
+      </SafariShell>
+    );
+  }
+
   return (
     <SiteThemeRoot theme={ctx.theme}>
       <SiteChrome
@@ -260,29 +307,7 @@ export default async function SiteBookPage({
         }
         previewPages={previewPages}
       >
-        <SiteCheckoutForm
-          websiteId={ctx.websiteId}
-          propertyId={property.id}
-          propertyName={property.name}
-          currency={property.currency || "ZAR"}
-          maxGuests={property.max_guests ?? 10}
-          basePrice={
-            property.base_price == null ? null : Number(property.base_price)
-          }
-          bookingMode={property.booking_mode ?? "whole_listing"}
-          rooms={rooms}
-          addons={addons}
-          cardAvailable={Boolean(cardPaystack)}
-          eftAvailable={eftAvailable}
-          cancellation={cancellation}
-          initial={{
-            from: isIso(sp?.from) ? sp!.from! : "",
-            to: isIso(sp?.to) ? sp!.to! : "",
-            guests: Math.max(1, Number(sp?.guests) || 2),
-            roomId: sp?.room?.trim() || null,
-            scope: sp?.scope === "whole_listing" ? "whole_listing" : null,
-          }}
-        />
+        {checkout}
       </SiteChrome>
     </SiteThemeRoot>
   );
