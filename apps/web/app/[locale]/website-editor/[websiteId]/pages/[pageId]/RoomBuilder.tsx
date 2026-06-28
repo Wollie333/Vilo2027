@@ -240,7 +240,15 @@ export function RoomBuilder({
     : null;
 
   return (
-    <div className="vilo-builder">
+    <div
+      className="vilo-builder"
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       <div className="etop">
         <Link
           href="/dashboard/website"
