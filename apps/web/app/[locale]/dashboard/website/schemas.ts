@@ -10,6 +10,7 @@ import {
   formSettingsSchema,
   FORM_TYPES,
 } from "@/lib/website/forms.schema";
+import { roomDetailOverrideSchema } from "@/lib/website/roomDetailOverride";
 
 // Apply a catalogue theme to a site — `themeId` is a site_themes uuid OR a
 // "preset:<slug>" id for the built-in presets (pre-migration fallback). `fresh`
@@ -381,6 +382,18 @@ export const saveWebsiteRoomsSchema = z.object({
 });
 
 export type SaveWebsiteRoomsInput = z.infer<typeof saveWebsiteRoomsSchema>;
+
+// Per-room detail overrides (the host's optional customization for ONE room,
+// layered over the shared room_detail template). Persists to
+// website_rooms.detail_overrides; empty override is stored as NULL (pure template).
+export const saveRoomDetailOverrideSchema = z.object({
+  websiteId: z.string().uuid(),
+  roomId: z.string().uuid(),
+  override: roomDetailOverrideSchema,
+});
+export type SaveRoomDetailOverrideInput = z.infer<
+  typeof saveRoomDetailOverrideSchema
+>;
 
 // --- Blog (W11) ---
 

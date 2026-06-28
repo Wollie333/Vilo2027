@@ -30,6 +30,7 @@ import {
 } from "@/lib/website/restorePoints";
 import { newSection } from "@/lib/website/sectionDefaults";
 import { roomMediaOverridesSchema } from "@/lib/website/roomMedia";
+import { hasRoomOverride } from "@/lib/website/roomDetailOverride";
 import {
   getThemeRoomDetailSections,
   hasThemeRoomDetailTemplate,
@@ -74,6 +75,7 @@ import {
   deleteSavedSectionSchema,
   savedSectionsSchema,
   saveWebsiteRoomsSchema,
+  saveRoomDetailOverrideSchema,
   createWebsiteFormSchema,
   saveWebsiteFormSchema,
   deleteWebsiteFormSchema,
@@ -101,6 +103,7 @@ import {
   type SavePageSeoInput,
   type SavePagesInput,
   type SaveWebsiteRoomsInput,
+  type SaveRoomDetailOverrideInput,
   type CreateWebsiteFormInput,
   type SaveWebsiteFormInput,
   type DeleteWebsiteFormInput,
@@ -2247,6 +2250,42 @@ export async function setWebsiteLayoutAction(
     .eq("id", websiteId);
   if (error) return { ok: false, error: "save_failed" };
   revalidatePath(`/dashboard/website/${websiteId}/settings`);
+  return { ok: true };
+}
+
+/**
+ * Persist one room's per-room detail overrides (the host's customization layered
+ * over the shared room_detail template). Owner + feature gated; the room must
+ * belong to this website (anti-tamper). An empty override is stored as NULL so a
+ * room that's been reset to the template carries no stale blob.
+ */
+export async function saveRoomDetailOverrideAction(
+  input: SaveRoomDetailOverrideInput,
+): Promise<ActionResult> {
+  const parsed = saveRoomDetailOverrideSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, roomId, override } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  // The room must already be a member of this website (website_rooms row).
+  const { data: row } = await supabase
+    .from("website_rooms")
+    .select("id")
+    .eq("website_id", websiteId)
+    .eq("room_id", roomId)
+    .maybeSingle();
+  if (!row) return { ok: false, error: "not_found" };
+
+  const { error } = await supabase
+    .from("website_rooms")
+    .update({ detail_overrides: hasRoomOverride(override) ? override : null })
+    .eq("id", row.id);
+  if (error) return { ok: false, error: "save_failed" };
   return { ok: true };
 }
 
