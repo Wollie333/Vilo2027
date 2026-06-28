@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import { loadPagesList } from "./loadPagesList";
+import { loadPagesList, loadRoomChildren } from "./loadPagesList";
 import { PagesManager } from "./PagesManager";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +14,9 @@ export default async function WebsitePagesList({
 }) {
   const { websiteId } = await params;
   const supabase = createServerClient();
-  const [pages, siteRes] = await Promise.all([
+  const [pages, rooms, siteRes] = await Promise.all([
     loadPagesList(websiteId),
+    loadRoomChildren(websiteId),
     supabase
       .from("host_websites")
       .select("subdomain")
@@ -33,6 +34,7 @@ export default async function WebsitePagesList({
       websiteId={websiteId}
       subdomain={subdomain}
       initialPages={pages}
+      rooms={rooms}
     />
   );
 }

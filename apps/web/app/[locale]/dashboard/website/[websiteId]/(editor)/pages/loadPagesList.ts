@@ -78,6 +78,34 @@ export type PageListItem = {
   thumbUrl: string | null;
 };
 
+/** A room nested under the room-detail template in the Pages manager. The host
+ *  edits the shared template, then optionally customizes each room (per-room
+ *  overrides) — so the rooms show indented beneath the template, derived live
+ *  from the site's visible rooms (no page-per-room to create or sync). */
+export type RoomChild = { roomId: string; name: string };
+
+/** The site's visible rooms, in display order, for the Pages-manager nesting.
+ *  RLS-scoped (server client) so only the owner's rooms return. */
+export async function loadRoomChildren(
+  websiteId: string,
+): Promise<RoomChild[]> {
+  const supabase = createServerClient();
+  const { data: rows } = await supabase
+    .from("website_rooms")
+    .select("room_id, display_name, sort_order, room:property_rooms ( name )")
+    .eq("website_id", websiteId)
+    .eq("is_visible", true)
+    .order("sort_order", { ascending: true });
+
+  return (rows ?? []).map((r) => {
+    const room = Array.isArray(r.room) ? r.room[0] : r.room;
+    return {
+      roomId: r.room_id,
+      name: (r.display_name as string)?.trim() || room?.name || "Room",
+    };
+  });
+}
+
 /** Owner-scoped list of a website's pages with section counts (W8 Pages tab). */
 export async function loadPagesList(
   websiteId: string,

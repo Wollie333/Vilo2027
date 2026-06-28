@@ -1221,6 +1221,8 @@
     "pageAbout": "About",
     "pageRoomDetail": "Room details",
     "pageTypeRoomTemplate": "Room template",
+    "pageTypeRoomPage": "Room page",
+    "editRoomPage": "Edit room",
     "allPages": "All pages",
     "editingPage": "Editing: {page}",
     "addSection": "Add section",

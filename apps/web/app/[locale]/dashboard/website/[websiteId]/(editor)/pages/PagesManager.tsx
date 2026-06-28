@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  Fragment,
   type MouseEvent as ReactMouseEvent,
   useEffect,
   useRef,
@@ -23,6 +24,7 @@ import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { PendingLink } from "@/components/ui/pending-link";
+import type { RoomChild } from "./loadPagesList";
 import {
   createPageAction,
   deletePageAction,
@@ -59,10 +61,12 @@ export function PagesManager({
   websiteId,
   subdomain,
   initialPages,
+  rooms = [],
 }: {
   websiteId: string;
   subdomain: string;
   initialPages: ManagedPage[];
+  rooms?: RoomChild[];
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -163,17 +167,32 @@ export function PagesManager({
 
         <div style={{ padding: 8 }}>
           {pages.map((p) => (
-            <PageRow
-              key={p.id}
-              websiteId={websiteId}
-              subdomain={subdomain}
-              page={p}
-              title={pageTitle(p)}
-              type={pageType(p)}
-              onDuplicate={() => router.refresh()}
-              onToggleNav={() => toggleNav(p)}
-              onDelete={() => setDeleteId(p.id)}
-            />
+            <Fragment key={p.id}>
+              <PageRow
+                websiteId={websiteId}
+                subdomain={subdomain}
+                page={p}
+                title={pageTitle(p)}
+                type={pageType(p)}
+                onDuplicate={() => router.refresh()}
+                onToggleNav={() => toggleNav(p)}
+                onDelete={() => setDeleteId(p.id)}
+              />
+              {/* The room-detail template renders for every room; the host can
+                  also customize each room — so the rooms nest beneath it, each
+                  opening the builder scoped to that room. */}
+              {p.kind === "room_detail"
+                ? rooms.map((room) => (
+                    <RoomChildRow
+                      key={room.roomId}
+                      websiteId={websiteId}
+                      subdomain={subdomain}
+                      pageId={p.id}
+                      room={room}
+                    />
+                  ))
+                : null}
+            </Fragment>
           ))}
         </div>
       </section>
@@ -219,6 +238,62 @@ export function PagesManager({
         ]}
       />
     </div>
+  );
+}
+
+/** A single room nested under the room-detail template — opens the builder
+ *  scoped to that room (the `?room=` param drives "This room only" editing). */
+function RoomChildRow({
+  websiteId,
+  subdomain,
+  pageId,
+  room,
+}: {
+  websiteId: string;
+  subdomain: string;
+  pageId: string;
+  room: RoomChild;
+}) {
+  const t = useTranslations("website");
+  return (
+    <PendingLink
+      href={`/website-editor/${websiteId}/pages/${pageId}?room=${room.roomId}`}
+      busy={{ title: t("openingEditor"), message: t("openingEditorMsg") }}
+      className="ptr"
+      style={{ gridTemplateColumns: GRID }}
+    >
+      <div
+        className="flex min-w-0 items-center gap-2.5"
+        style={{ paddingLeft: 30 }}
+      >
+        <span style={{ color: "var(--mute)", fontSize: 13 }}>↳</span>
+        <div className="min-w-0">
+          <div
+            className="truncate text-[13px] font-semibold"
+            style={{ color: "var(--ink)" }}
+          >
+            {room.name}
+          </div>
+          <div
+            className="mono truncate text-[11px]"
+            style={{ color: "var(--mute)" }}
+          >
+            {subdomain}/rooms/…
+          </div>
+        </div>
+      </div>
+      <div className="text-[12.5px]" style={{ color: "var(--mute)" }}>
+        {t("pageTypeRoomPage")}
+      </div>
+      <div />
+      <div />
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="btn btn-ghost btn-sm" style={{ height: 32 }}>
+          <Pencil style={{ width: 14, height: 14, color: "var(--mute)" }} />
+          {t("editRoomPage")}
+        </span>
+      </div>
+    </PendingLink>
   );
 }
 
