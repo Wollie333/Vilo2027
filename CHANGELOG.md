@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-06-28 (EOD #7) — Website CMS → MVP push (deferred #1): Safari fallback finished — data-driven blocks no longer skipped
+
+Completed the Phase 6 fallback. Beyond the pure-render types already covered
+(`el_*`, `rich_text`, `video`, `columns`, `flex`), the Safari public site still
+**silently skipped 7 data-driven section types** that the generic renderer
+handles — `logos`, `specials_preview`, `trust`, `booking_search`,
+`availability_calendar`, `room_rates`, `seasonal_pricing` — because
+`renderSafariGenericFallback` only received `{ asset, interactive }`, not the
+live `data` map. A host who added (e.g.) a Specials or Trust band to a Safari
+page saw nothing on the live site.
+
+- **`renderSafariGenericFallback` now takes `{ data, asset, interactive }`** and
+  dispatches the 7 types through their shared generic components, threading the
+  per-section live data via `dataFor(data, section.id, <type>)` (specials,
+  reviews, booking-funnel, rate/seasonal rows) exactly as `SectionRenderer` does.
+  `booking_search` / `availability_calendar` also receive `interactive`. All wrap
+  in the same `SAFARI_ELEMENT_VARS` div so they read on-theme.
+- **`SafariSectionList.render` now passes `data`** into the fallback (was omitted).
+- Every section type the generic renderer covers now renders on the Safari site
+  too — builder === live for the founder's main theme, with nothing dropped.
+
+`pnpm exec tsc --noEmit` and `next lint` both **clean** (repo-wide tsc is now
+green — the parallel `looking-for/*` errors noted earlier are resolved).
+**Verified the render path:** after recovering a `.next` corruption (the known
+Windows dev gremlin), the Safari public site (`/site?site=vilotest&preview=1`)
+SSRs **HTTP 200** with the 7 new imports (incl. two `'use client'` blocks) in the
+bundle — no regression. Functional render of a specific new band needs a Safari
+page that contains one (default home doesn't use them).
+
+---
+
 ## 2026-06-28 (EOD #6) — Website CMS → MVP push (part 4): Safari renders containers + free elements (Phase 6)
 
 Found during verification: the Safari theme's `renderSafariSection` returned

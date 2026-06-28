@@ -27,6 +27,12 @@ import {
 } from "./Elements";
 import { RichTextSection } from "./RichTextSection";
 import { VideoSection } from "./VideoSection";
+import { LogosSection } from "./LogosSection";
+import { SpecialsPreviewSection } from "./SpecialsPreview";
+import { TrustSection } from "./TrustSection";
+import { BookingSearchSection } from "./BookingSearchSection";
+import { AvailabilityCalendarSection } from "./AvailabilityCalendarSection";
+import { RoomRatesSection, SeasonalPricingSection } from "./RatesBlocks";
 
 /**
  * The NenGama Lodge ("safari" theme) home page, broken into per-section,
@@ -1956,8 +1962,9 @@ const SAFARI_ELEMENT_VARS = {
  *  that genuinely have no Safari rendering, so the caller still skips those. */
 function renderSafariGenericFallback(
   section: WebsiteSection,
-  opts: { asset?: SiteAssetResolver; interactive?: boolean },
+  opts: { data?: SiteData; asset?: SiteAssetResolver; interactive?: boolean },
 ): ReactNode | undefined {
+  const { data, asset, interactive } = opts;
   let el: ReactNode;
   switch (section.type) {
     case "el_heading":
@@ -1970,8 +1977,8 @@ function renderSafariGenericFallback(
       el = (
         <ElImageSection
           props={section.props}
-          asset={opts.asset}
-          interactive={opts.interactive}
+          asset={asset}
+          interactive={interactive}
         />
       );
       break;
@@ -1991,10 +1998,66 @@ function renderSafariGenericFallback(
       el = <VideoSection props={section.props} />;
       break;
     case "columns":
-      el = <ColumnsSection props={section.props} asset={opts.asset} />;
+      el = <ColumnsSection props={section.props} asset={asset} />;
       break;
     case "flex":
-      el = <FlexSection props={section.props} asset={opts.asset} />;
+      el = <FlexSection props={section.props} asset={asset} />;
+      break;
+    // Data-dependent sections (no bespoke Safari band) — thread the live data
+    // map so they render real specials / reviews / rooms / rates / availability
+    // on the Safari site instead of being silently skipped.
+    case "logos":
+      el = <LogosSection props={section.props} asset={asset} />;
+      break;
+    case "specials_preview":
+      el = (
+        <SpecialsPreviewSection
+          props={section.props}
+          data={dataFor(data, section.id, "specials_preview")}
+        />
+      );
+      break;
+    case "trust":
+      el = (
+        <TrustSection
+          props={section.props}
+          data={dataFor(data, section.id, "trust")}
+        />
+      );
+      break;
+    case "booking_search":
+      el = (
+        <BookingSearchSection
+          props={section.props}
+          data={dataFor(data, section.id, "booking_search")}
+          interactive={interactive}
+        />
+      );
+      break;
+    case "availability_calendar":
+      el = (
+        <AvailabilityCalendarSection
+          props={section.props}
+          data={dataFor(data, section.id, "availability_calendar")}
+          interactive={interactive}
+        />
+      );
+      break;
+    case "room_rates":
+      el = (
+        <RoomRatesSection
+          props={section.props}
+          data={dataFor(data, section.id, "room_rates")}
+        />
+      );
+      break;
+    case "seasonal_pricing":
+      el = (
+        <SeasonalPricingSection
+          props={section.props}
+          data={dataFor(data, section.id, "seasonal_pricing")}
+        />
+      );
       break;
     default:
       return undefined;
@@ -2178,9 +2241,10 @@ export function SafariSectionList({
       interactive,
     });
     if (safari !== undefined) return safari;
-    // No bespoke Safari band → render free elements + containers via the shared
-    // generic components (themed onto Safari) so builder === live for those too.
-    return renderSafariGenericFallback(s, { asset, interactive });
+    // No bespoke Safari band → render free elements + containers + the
+    // data-driven blocks via the shared generic components (themed onto Safari)
+    // so builder === live for those too.
+    return renderSafariGenericFallback(s, { data, asset, interactive });
   };
   return (
     <>
