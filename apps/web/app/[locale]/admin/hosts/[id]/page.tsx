@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin";
 
 import { ImpersonateButton } from "@/app/[locale]/admin/_components/ImpersonateButton";
+import { HostStaffManager } from "./HostStaffManager";
 import { SuspendHostButton } from "./SuspendHostButton";
 import { VerifyButton } from "./VerifyButton";
 
@@ -38,24 +39,46 @@ export default async function AdminHostDetailPage({
 
   if (!host) notFound();
 
-  const [{ data: profile }, { count: listingsCount }, { data: sub }] =
-    await Promise.all([
-      service
-        .from("user_profiles")
-        .select("email, full_name, phone")
-        .eq("id", host.user_id)
-        .maybeSingle(),
-      service
-        .from("properties")
-        .select("id", { count: "exact", head: true })
-        .eq("host_id", host.id)
-        .is("deleted_at", null),
-      service
-        .from("subscriptions")
-        .select("plan, status, billing_cycle, current_period_end")
-        .eq("host_id", host.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: profile },
+    { count: listingsCount },
+    { data: sub },
+    { data: staffRows },
+  ] = await Promise.all([
+    service
+      .from("user_profiles")
+      .select("email, full_name, phone")
+      .eq("id", host.user_id)
+      .maybeSingle(),
+    service
+      .from("properties")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", host.id)
+      .is("deleted_at", null),
+    service
+      .from("subscriptions")
+      .select("plan, status, billing_cycle, current_period_end")
+      .eq("host_id", host.id)
+      .maybeSingle(),
+    service
+      .from("staff_members")
+      .select(
+        "user_id, user_profiles!staff_members_user_id_fkey(email, full_name)",
+      )
+      .eq("host_id", host.id),
+  ]);
+
+  const staff = (staffRows ?? []).map((r) => {
+    const p = r.user_profiles as {
+      email?: string | null;
+      full_name?: string | null;
+    } | null;
+    return {
+      userId: r.user_id,
+      email: p?.email ?? null,
+      fullName: p?.full_name ?? null,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -188,6 +211,8 @@ export default async function AdminHostDetailPage({
               over the last 90 days.
             </div>
           </section>
+
+          <HostStaffManager hostId={host.id} staff={staff} />
         </div>
 
         <aside className="space-y-6">

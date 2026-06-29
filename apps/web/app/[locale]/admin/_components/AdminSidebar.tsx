@@ -45,6 +45,12 @@ const OPERATIONS: GmailNavItem[] = [
     icon: HomeIcon,
     match: "prefix",
   },
+  {
+    href: "/admin/hosts/staff",
+    label: "Host staff",
+    icon: Users,
+    match: "prefix",
+  },
 ];
 
 const FINANCE: GmailNavItem[] = [
@@ -196,6 +202,7 @@ const PLATFORM: GmailNavItem[] = [
 const NAV_PERM: Record<string, string> = {
   "/admin/users": "users.view",
   "/admin/properties": "listings.edit",
+  "/admin/hosts/staff": "hosts.verify",
   "/admin/products": "subscriptions.edit",
   "/admin/subscriptions/revenue": "payments.view",
   "/admin/payments": "payments.view",

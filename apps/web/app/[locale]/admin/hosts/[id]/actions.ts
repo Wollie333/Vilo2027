@@ -139,3 +139,113 @@ export async function setHostActive(input: {
     };
   }
 }
+
+// ── Host staff (assign existing users as staff to a host) ──────
+// `staff_members` is host-scoped (host_id + user_id). Admin can directly assign
+// an existing Vilo user as staff to a host (host-side, this normally goes via an
+// invite the user accepts; admin assignment is authoritative). Audited.
+const addStaffSchema = z.object({
+  hostId: z.string().uuid(),
+  email: z.string().trim().toLowerCase().email().max(160),
+  reason: z.string().optional(),
+});
+
+export const addHostStaffAction = withAdminAudit<
+  z.infer<typeof addStaffSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "hosts.verify",
+    actionName: "host.staff_add",
+    targetType: "host",
+    getTargetId: (a) => a.hostId,
+  },
+  async (args, service) => {
+    const { data: u } = await service
+      .from("user_profiles")
+      .select("id, deleted_at")
+      .ilike("email", args.email)
+      .maybeSingle();
+    if (!u)
+      throw new Error(
+        "No Vilo user with that email — they need an account first.",
+      );
+    if (u.deleted_at) throw new Error("That user account is deleted.");
+    const { error } = await service
+      .from("staff_members")
+      .insert({ host_id: args.hostId, user_id: u.id });
+    if (error) {
+      if (error.code === "23505")
+        throw new Error("Already a staff member of this host.");
+      throw new Error(error.message);
+    }
+    revalidatePath(`/admin/hosts/${args.hostId}`);
+    return {
+      result: { ok: true },
+      after: { host_id: args.hostId, user_id: u.id },
+    };
+  },
+);
+
+const removeStaffSchema = z.object({
+  hostId: z.string().uuid(),
+  userId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+export const removeHostStaffAction = withAdminAudit<
+  z.infer<typeof removeStaffSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "hosts.verify",
+    actionName: "host.staff_remove",
+    targetType: "host",
+    getTargetId: (a) => a.hostId,
+  },
+  async (args, service) => {
+    const { error } = await service
+      .from("staff_members")
+      .delete()
+      .eq("host_id", args.hostId)
+      .eq("user_id", args.userId);
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin/hosts/${args.hostId}`);
+    return {
+      result: { ok: true },
+      after: { host_id: args.hostId, user_id: args.userId },
+    };
+  },
+);
+
+export async function addHostStaff(input: { hostId: string; email: string }) {
+  const parsed = addStaffSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, error: "Enter a valid email." };
+  try {
+    await addHostStaffAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
+
+export async function removeHostStaff(input: {
+  hostId: string;
+  userId: string;
+}) {
+  const parsed = removeStaffSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Invalid input." };
+  try {
+    await removeHostStaffAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
