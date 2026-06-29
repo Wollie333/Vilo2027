@@ -201,6 +201,25 @@ export const deleteProductAction = withAdminAudit<
   async (args, service) => {
     const parsed = deleteSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid input.");
+
+    // In-use guard: a product referenced by a subscription or an order must not
+    // be hard-deleted (it would orphan those rows). Deactivate it instead.
+    const [{ count: subs }, { count: orders }] = await Promise.all([
+      service
+        .from("subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", parsed.data.id),
+      service
+        .from("product_orders")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", parsed.data.id),
+    ]);
+    if ((subs ?? 0) > 0 || (orders ?? 0) > 0) {
+      throw new Error(
+        `This product is in use (${subs ?? 0} subscription(s), ${orders ?? 0} order(s)). Deactivate it instead of deleting.`,
+      );
+    }
+
     const { error } = await service
       .from("products")
       .delete()

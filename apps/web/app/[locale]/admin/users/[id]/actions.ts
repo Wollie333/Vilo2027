@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { createServerClient } from "@/lib/supabase/server";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
@@ -69,6 +71,56 @@ export const reinstateUserAction = withAdminAudit<
     return { result: { ok: true }, after: data };
   },
 );
+
+// ─── Admin-initiated password reset ───────────────────────────
+// Sends the user the standard Supabase recovery email (same mechanism as the
+// public forgot-password flow). The admin never sees the link. Audited.
+const resetPwSchema = z.object({
+  userId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+export const sendPasswordResetAction = withAdminAudit<
+  z.infer<typeof resetPwSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.password_reset",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+  },
+  async (args, service) => {
+    const { data: prof } = await service
+      .from("user_profiles")
+      .select("email")
+      .eq("id", args.userId)
+      .single();
+    const email = prof?.email;
+    if (!email) throw new Error("This user has no email on file.");
+    const origin = headers().get("origin") ?? "";
+    const supabase = createServerClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${origin}/auth/confirm?next=/reset-password`,
+    });
+    if (error) throw new Error(error.message);
+    return { result: { ok: true }, after: { email } };
+  },
+);
+
+export async function sendPasswordReset(input: { userId: string }) {
+  const parsed = resetPwSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Invalid input." };
+  try {
+    await sendPasswordResetAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
 
 // ─── Edit profile ─────────────────────────────────────────────
 const editSchema = z.object({

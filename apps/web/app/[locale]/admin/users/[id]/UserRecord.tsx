@@ -35,6 +35,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Link } from "@/i18n/navigation";
+import { ImpersonateButton } from "@/app/[locale]/admin/_components/ImpersonateButton";
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 import {
   AdminTable,
@@ -85,6 +86,7 @@ import {
   changeUserRole,
   reinstateUser,
   requestSupportAccess,
+  sendPasswordReset,
   softDeleteUser,
   suspendUser,
   updateUserProfile,
@@ -485,6 +487,12 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                   reason: "Reinstated by admin",
                 }),
                 "User reinstated.",
+              )
+            }
+            onResetPassword={() =>
+              run(
+                sendPasswordReset({ userId: user.id }),
+                "Password reset email sent.",
               )
             }
             pending={pending}
@@ -1060,6 +1068,7 @@ function Dossier({
   onSuspend,
   onDelete,
   onReinstate,
+  onResetPassword,
   pending,
 }: {
   data: UserRecordData;
@@ -1068,6 +1077,7 @@ function Dossier({
   onSuspend: () => void;
   onDelete: () => void;
   onReinstate: () => void;
+  onResetPassword: () => void;
   pending: boolean;
 }) {
   const { user, host } = data;
@@ -1129,17 +1139,22 @@ function Dossier({
               disabled={pending}
             />
           )}
+          <ActBtn
+            icon={KeyRound}
+            label="Reset password"
+            onClick={onResetPassword}
+            disabled={pending}
+          />
           {!user.deleted_at ? (
             <ActBtn icon={Trash2} label="Delete" onClick={onDelete} danger />
           ) : null}
         </div>
         {host ? (
-          <Link
-            href={`/admin/as/${user.id}/dashboard`}
-            className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-3.5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
-          >
-            <ExternalLink className="h-4 w-4" /> View as host
-          </Link>
+          <ImpersonateButton
+            userId={user.id}
+            label="View as host"
+            className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-3.5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+          />
         ) : null}
 
         {sep}

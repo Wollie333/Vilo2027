@@ -5,6 +5,8 @@ import { ArrowLeft, ExternalLink, Star } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin";
 
+import { ImpersonateButton } from "@/app/[locale]/admin/_components/ImpersonateButton";
+import { SuspendHostButton } from "./SuspendHostButton";
 import { VerifyButton } from "./VerifyButton";
 
 export const dynamic = "force-dynamic";
@@ -95,13 +97,13 @@ export default async function AdminHostDetailPage({
             Public page
             <ExternalLink className="h-3 w-3" />
           </Link>
-          <Link
-            href={`/admin/as/${host.user_id}/dashboard`}
-            className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-xs font-medium text-brand-ink hover:bg-brand-light"
-          >
-            View as host
-          </Link>
+          <ImpersonateButton
+            userId={host.user_id}
+            label="View as host"
+            className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-xs font-medium text-brand-ink hover:bg-brand-light disabled:opacity-60"
+          />
           <VerifyButton hostId={host.id} isVerified={host.is_verified} />
+          <SuspendHostButton hostId={host.id} isActive={host.is_active} />
         </div>
       </header>
 

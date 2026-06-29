@@ -28,6 +28,31 @@ emerald `--primary` category/links) so editing a post didn't look like the real
 `#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
 look. (Computed-style readout, no console errors.)
 
+## 2026-06-29 — Admin MVP refinements (batch A): impersonation, host suspend, password reset, product-delete guard
+
+From the admin MVP-readiness audit. The admin area was already largely
+production-grade (two-layer RBAC + full audit logging); these close concrete gaps.
+
+- **Fixed impersonation (#2).** "View as host/user" buttons jumped straight to
+  `/admin/as/<id>` without opening a session, so they always bounced to no-access.
+  New `ImpersonateButton` calls `startImpersonationAction` (collects a required,
+  audited reason) which sets the signed cookie then redirects. Wired on the user
+  record + host detail.
+- **Host suspend/reactivate (#6).** New `setHostActiveAction` (hosts.is_active,
+  reason-gated + audited) + `SuspendHostButton` on the host detail — distinct from
+  the existing user-level suspend.
+- **Admin password reset (#7).** New `sendPasswordResetAction` sends the user the
+  standard Supabase recovery email (same mechanism as public forgot-password);
+  admin never sees the link. "Reset password" button on the user record.
+- **Product-delete in-use guard (#8).** `deleteProductAction` now refuses to
+  hard-delete a product referenced by a subscription or order (deactivate instead)
+  — mirrors the existing plan-delete guard.
+- Note: the middleware `/admin` auth guard (#10) already exists (`/admin` is in
+  `PROTECTED_PREFIXES`); staff/permission checks intentionally stay in the layout.
+
+`tsc` + `next lint` clean. (Live admin verification needs a super-admin login;
+the preview's test-host session was removed in the data wipe.)
+
 ## 2026-06-29 — Website setup wizard: Phase 2 (UI)
 
 The wizard front-end on top of the Phase 1 backend — a multi-step modal that takes
