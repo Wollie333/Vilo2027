@@ -53,6 +53,36 @@ export const createWebsiteSchema = z.object({
 
 export type CreateWebsiteInput = z.infer<typeof createWebsiteSchema>;
 
+// Setup wizard — one-shot create with theme + palette + brand, then auto-publish.
+// Additive to the simple createWebsiteSchema (which the legacy card still uses).
+export const createWebsiteWizardSchema = z.object({
+  businessId: z.string().uuid(),
+  subdomain: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, "too_short")
+    .max(63, "too_long"),
+  siteName: z.string().trim().min(1, "too_short").max(120),
+  /** Theme catalogue id (uuid) or a `preset:<slug>` fallback id. */
+  themeId: z.string().trim().min(1),
+  /** Index into generatePalettes() (0-4); ignored when customAccent is set. */
+  paletteIndex: z.number().int().min(0).max(4).default(0),
+  /** Custom accent hex (#rgb/#rrggbb) — overrides paletteIndex when valid. */
+  customAccent: z
+    .string()
+    .trim()
+    .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/)
+    .optional(),
+  logoPath: z.string().trim().max(400).optional(),
+  contactEmail: z.string().trim().email().max(160).optional().or(z.literal("")),
+  contactPhone: z.string().trim().max(40).optional(),
+});
+
+export type CreateWebsiteWizardInput = z.infer<
+  typeof createWebsiteWizardSchema
+>;
+
 // --- Brand Studio (logos, identity, colours, typography, buttons) ---
 
 export const LOGO_STYLES = ["wordmark", "mark", "icon"] as const;

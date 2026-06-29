@@ -28,6 +28,31 @@ emerald `--primary` category/links) so editing a post didn't look like the real
 `#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
 look. (Computed-style readout, no console errors.)
 
+## 2026-06-29 — Website setup wizard: Phase 1 (backend)
+
+First slice of the website creation wizard (see docs/features/WEBSITE_WIZARD_PLAN.md)
+— purely additive, the existing builder/editors/managers + simple create card are
+untouched. This lands the backend the wizard UI (Phase 2) will drive.
+
+- `lib/site/palettes.ts` — accent-only palette generation. `generatePalettes(base)`
+  returns 5 on-theme accent variations (default/warmer/cooler/bolder/softer) via
+  pure HSL math; `resolvePaletteAccent(base, index, custom?)` resolves the host's
+  choice. The theme keeps its own bg/surface/ink, so results stay readable.
+- `createWebsiteWizardSchema` (theme + paletteIndex/customAccent + name/logo/contact).
+- Extracted `seedWebsiteContent` helper from `createWebsiteAction` (forms + pages +
+  rooms) — **behaviour preserved** for the simple card; the wizard reuses it.
+- `createWebsiteWithWizardAction` — one-shot create: applies the chosen theme
+  (catalogue id → bundle, fallback default) + accent (`theme.colors.accent`), stores
+  brand (name/logo_path/contact), seeds content, then **auto-publishes** via the
+  existing `publishWebsiteAction`. Same ownership/one-per-business/unique-subdomain
+  invariants as the simple create.
+- `_wizard/loadWizardContext.ts` — prefill (business name/logo, suggested subdomain)
+  + active theme catalogue; reuses `resolveBusiness` + `loadActiveThemes`.
+
+`tsc` (0 errors) + `next lint` clean. Palette HSL math verified (exact roundtrip;
+warmer/cooler/bolder/softer all valid, distinct, on-theme). Full action will be
+exercised by the Phase 2 UI (can't create a 2nd site for a business that has one).
+
 ## 2026-06-29 — Blog post settings split into Post | SEO tabs
 
 The post editor's settings rail is now two tabs (mirrors the form inspector's

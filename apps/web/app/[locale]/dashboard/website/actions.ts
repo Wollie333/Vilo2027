@@ -13,8 +13,10 @@ import {
   getThemeBundle,
   loadDefaultTheme,
   resolveThemeBase,
+  type ThemeBundle,
   type ThemePageTemplate,
 } from "@/lib/site/themes.server";
+import { resolvePaletteAccent } from "@/lib/site/palettes";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -64,6 +66,7 @@ import {
   brandStudioSchema,
   connectDomainSchema,
   createWebsiteSchema,
+  createWebsiteWizardSchema,
   resetToDefaultSchema,
   restorePointIdSchema,
   saveRestorePointSchema,
@@ -101,6 +104,7 @@ import {
   type SaveSavedSectionInput,
   type DeleteSavedSectionInput,
   type CreateWebsiteInput,
+  type CreateWebsiteWizardInput,
   type SaveBlogAuthorsInput,
   type SaveBlogCategoriesInput,
   type SaveBlogPostInput,
@@ -534,35 +538,59 @@ export async function createWebsiteAction(
     .single();
   if (insErr || !site) return { ok: false, error: "create_failed" };
 
+  await seedWebsiteContent(supabase, {
+    siteId: site.id,
+    siteName,
+    businessId,
+    theme: defaultTheme,
+  });
+
+  revalidatePath("/dashboard/website");
+  return { ok: true, id: site.id };
+}
+
+/**
+ * Seed a freshly-created website with its starter content — the 4 default forms,
+ * the theme's page templates (or hardcoded starters), and the business's
+ * properties + rooms as the visible channel set. Shared by the simple create
+ * card (createWebsiteAction) and the setup wizard (createWebsiteWithWizardAction)
+ * so both produce an identical working site.
+ */
+async function seedWebsiteContent(
+  supabase: ReturnType<typeof createServerClient>,
+  opts: {
+    siteId: string;
+    siteName: string;
+    businessId: string;
+    theme: ThemeBundle | null;
+  },
+): Promise<void> {
+  const { siteId, siteName, businessId, theme } = opts;
+
   // Seed the 4 default forms (contact / quote / booking / subscribe) so the site
   // is a working site out of the box — the host can drag any into a page via the
   // builder's Form element, or edit them in the Forms manager. Each field gets a
-  // fresh uuid (same as createWebsiteFormAction).
+  // fresh uuid (same as createWebsiteFormAction). is_default → never-delete.
   await supabase.from("website_forms").insert(
     DEFAULT_FORM_SEEDS.map(({ name, template }) => {
       const tpl = FORM_TEMPLATES[template];
       return {
-        website_id: site.id,
+        website_id: siteId,
         name,
         type: tpl.type,
         fields: tpl.fields.map((f) => ({ ...f, id: uuid() })),
         settings: tpl.settings,
-        // The four seeded forms are the building blocks pages/sections rely on —
-        // keep them editable but never-delete (enforced in deleteWebsiteFormAction
-        // + hidden from the Forms manager's row menu).
         is_default: true,
       };
     }),
   );
 
-  // Seed pages: use theme's page_templates if available, else hardcoded starters.
-  const hasTemplates =
-    defaultTheme?.pageTemplates && defaultTheme.pageTemplates.length > 0;
-
-  if (hasTemplates) {
+  // Seed pages: use the theme's page_templates if available, else hardcoded starters.
+  const hasTemplates = theme?.pageTemplates && theme.pageTemplates.length > 0;
+  if (hasTemplates && theme) {
     await supabase.from("website_pages").insert(
-      defaultTheme.pageTemplates.map((tpl) => ({
-        website_id: site.id,
+      theme.pageTemplates.map((tpl) => ({
+        website_id: siteId,
         kind: tpl.kind,
         slug: tpl.slug,
         title: tpl.title === "Home" ? siteName : tpl.title,
@@ -577,7 +605,7 @@ export async function createWebsiteAction(
     // Fallback to hardcoded starters (defensive, should not happen after migration).
     await supabase.from("website_pages").insert([
       {
-        website_id: site.id,
+        website_id: siteId,
         kind: "home",
         slug: "home",
         title: siteName,
@@ -588,7 +616,7 @@ export async function createWebsiteAction(
         published_sections: [],
       },
       {
-        website_id: site.id,
+        website_id: siteId,
         kind: "about",
         slug: "about",
         title: "About",
@@ -611,7 +639,7 @@ export async function createWebsiteAction(
   if (propertyIds.length > 0) {
     await supabase.from("website_properties").insert(
       propertyIds.map((property_id, i) => ({
-        website_id: site.id,
+        website_id: siteId,
         property_id,
         is_visible: true,
         sort_order: i,
@@ -626,7 +654,7 @@ export async function createWebsiteAction(
     if (roomIds.length > 0) {
       await supabase.from("website_rooms").insert(
         roomIds.map((room_id, i) => ({
-          website_id: site.id,
+          website_id: siteId,
           room_id,
           is_visible: true,
           sort_order: i,
@@ -634,6 +662,114 @@ export async function createWebsiteAction(
       );
     }
   }
+}
+
+/**
+ * Setup-wizard create: one shot from "no website" to a LIVE, themed site.
+ * Validates + applies the chosen theme (catalogue id, falling back to default) and
+ * an accent palette (generated variation or custom), stores brand (name/logo/
+ * contact), seeds the same starter content as the simple card, then AUTO-PUBLISHES
+ * (per the wizard's design — host can unpublish later). Additive: the existing
+ * createWebsiteAction + builder are untouched.
+ */
+export async function createWebsiteWithWizardAction(
+  input: CreateWebsiteWizardInput,
+): Promise<CreateResult> {
+  const parsed = createWebsiteWizardSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const {
+    businessId,
+    subdomain,
+    siteName,
+    themeId,
+    paletteIndex,
+    customAccent,
+    logoPath,
+    contactEmail,
+    contactPhone,
+  } = parsed.data;
+
+  const subErr = validateSubdomain(subdomain);
+  if (subErr) return { ok: false, error: subErr };
+
+  const host = await requireHost();
+  if (!host.ok) return host;
+  if (!(await assertWebsiteFeature(host.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+
+  // Ownership + one-site-per-business + globally-unique subdomain (same invariants
+  // as the simple create).
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id, trading_name")
+    .eq("id", businessId)
+    .eq("host_id", host.hostId)
+    .maybeSingle();
+  if (!business) return { ok: false, error: "business_not_found" };
+
+  const { data: existing } = await supabase
+    .from("host_websites")
+    .select("id")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (existing) return { ok: false, error: "already_exists" };
+
+  const { data: taken } = await supabase
+    .from("host_websites")
+    .select("id")
+    .eq("subdomain", subdomain)
+    .maybeSingle();
+  if (taken) return { ok: false, error: "subdomain_taken" };
+
+  // Resolve the chosen theme (catalogue uuid → bundle; fall back to default) and
+  // the accent (palette variation or custom) over the theme's base palette.
+  const bundle =
+    (await getThemeBundle(themeId)) ?? (await loadDefaultTheme()) ?? null;
+  const slug = bundle?.slug ?? "warm";
+  const base = bundle?.base ?? null;
+  const baseAccent = base?.palette?.accent ?? "#0a7d4b";
+  const accent = resolvePaletteAccent(baseAccent, paletteIndex, customAccent);
+
+  const brand: Record<string, unknown> = { name: siteName.trim() };
+  if (logoPath) brand.logo_path = logoPath;
+  if (contactEmail || contactPhone) {
+    brand.contact = {
+      email: contactEmail?.trim() || undefined,
+      phone: contactPhone?.trim() || undefined,
+    };
+  }
+
+  const { data: site, error: insErr } = await supabase
+    .from("host_websites")
+    .insert({
+      business_id: businessId,
+      host_id: host.hostId,
+      subdomain,
+      status: "draft",
+      brand,
+      theme: {
+        preset: slug,
+        ...(base ? { base } : {}),
+        colors: { accent },
+      },
+    })
+    .select("id")
+    .single();
+  if (insErr || !site) return { ok: false, error: "create_failed" };
+
+  await seedWebsiteContent(supabase, {
+    siteId: site.id,
+    siteName: siteName.trim(),
+    businessId,
+    theme: bundle,
+  });
+
+  // Auto-publish — copy draft→published per page + freeze the snapshot + set
+  // status=published. Best-effort: the site is already created, so a publish
+  // hiccup shouldn't fail the wizard (the host can publish from the editor).
+  await publishWebsiteAction(site.id);
 
   revalidatePath("/dashboard/website");
   return { ok: true, id: site.id };
