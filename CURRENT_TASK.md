@@ -2,7 +2,36 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-28 EOD #6 — PER-ROOM EDITING COMPLETE + FORMS CORE shipped; full build PASSES)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 EOD — MVP PUSH + **PRODUCTION LIVE on wielo.co.za**)
+
+**Everything below was committed AND PUSHED to `origin/main` → Vercel production. The app is LIVE on `https://wielo.co.za` (custom domain attached to the `vilo2027` Vercel project; DNS propagated; `/en/login` + `/en/p/beta` serve 200).** Full `pnpm build` PASSED before the push. The HEAD pushed was `1523775b` (its Vercel build was finishing at session end — prior deploy already serving; confirm green in the Vercel dashboard).
+
+**🟢 PROD CONFIG DONE (founder did the dashboard bits this session):**
+- **Vercel env (Production):** `NEXT_PUBLIC_APP_URL=https://wielo.co.za` (was empty — set via both the Vercel CLI here AND the founder in-dashboard; `DOPPLER_ENVIRONMENT` empty = no Doppler override). `NEXT_PUBLIC_ROOT_DOMAIN` NOT set (host micro-sites on subdomains OFF — set it + a `*.wielo.co.za` wildcard domain only if/when hosted host-sites are wanted).
+- **Supabase Auth → URL config:** Site URL `https://wielo.co.za` + redirect allow-list `https://wielo.co.za/**` (so reset / magic-link / **free-beta sign-in** redirects work on the domain). Project ref: `zlcivjgvtyeaszikqleu`.
+- **Vercel CLI** is now installed + authed as `wollie333` (repo linked to `vilo2027`). Use `VERCEL_TELEMETRY_DISABLED=1 vercel …`.
+
+**✅ SHIPPED THIS SESSION (all pushed to prod):**
+1. **Theme-styled builder canvases** — the **form** editor + **blog post** editor canvases now render in the ACTIVE theme (chain `var(--vform-*, var(--site-*, mockup))` like the public render). Blog post settings split into **Post | SEO** tabs.
+2. **Two migrations + wiring** (applied to linked DB + types regen): `website_forms.is_default` (4 default forms seeded + never-delete in Forms manager) · `website_form_submissions.form_id` nullable + `source` + `booking_id` (on-site bookings now logged into the Forms submissions area, source `checkout`, deep-link to booking; viewer has a "Website bookings" filter).
+3. **Website setup wizard** (`_wizard/`) — Basics → Theme → Colours → Build → Done; live theme previews w/ host name/logo; accent-palette generation (`lib/site/palettes.ts`); one-shot `createWebsiteWithWizardAction` (seeds pages/forms/rooms, **auto-publishes**). Entry: `CreateWebsiteButton` on the website portfolio page. **Verified live** end-to-end (created a published Safari site, then cleaned up).
+4. **Admin MVP refinements** (audit-driven, all audited via `withAdminAudit`): fixed **impersonation** ("View as host" now opens a real session) · **host suspend/reactivate** · **admin password reset** · **product-delete in-use guard** · **full staff invite/accept flow** (`/staff-invite` accept page) + **sidebar permission filter** · **host-staff management** (per-host panel on `/admin/hosts/[id]` + global `/admin/hosts/staff`, direct add OR email invite) · **GDPR/POPIA fulfilment** (export → downloadable JSON; deletion = hybrid hard-delete-else-anonymise).
+5. **Payments (Paystack = sole processor for beta):** website checkout already uses the host's own Paystack (Vilo 0%). Added a host **per-website payment-method toggle** (Settings → Booking payment methods, Paystack/EFT) **enforced server-side** in `createSiteBooking`. **Hosts can now store BOTH test + live Paystack keys + a `mode` switch** (migration `20260629120000` reshaped `host_payment_gateways`: `mode` + `test_*`/`live_*` cols; resolver charges by active mode; dedicated Paystack dialog; PayPal untouched on legacy cols).
+6. **Free products skip payment** — `/p/[slug]` price 0 → `fulfilFreeProductBySlug`: passwordless account + host + grant the product's features (subscription `product_id`), R0 order, **magic-link → auto sign-in → dashboard**. Progress modal in `BuyForm`. **Verified live** on `/p/beta` (account+host+active sub created, auto-signed-in), test acct cleaned up.
+
+**⚠️ DB DATA STATE (founder wiped it this session for a clean beta slate):** ALL users + tenant data deleted; **only the super admin remains** = `wollie@manamarketing.co.za` (id `32e8a9de-1390-42a1-9022-45dc89edf364`, role `super_admin`). Platform config kept (plans, plan_features, site_themes, help, amenities, etc.). The **Beta product** (slug `beta`, free, `is_active`+`is_visible`) grants **25/26 features** (PayPal off) with generous limits (5 businesses / 10 listings / 5 staff seats) → beta testers self-serve at `https://wielo.co.za/en/p/beta`.
+
+**🔴 OUTSTANDING (next session):**
+1. **Admin MFA (#1) — DO BEFORE PUBLIC LAUNCH.** Gate is intentionally disabled (`lib/admin/requireAdmin.ts`). The super admin has **0 MFA factors** → re-enabling now = lockout. Path: founder enrols TOTP in account security → then flip the one-line gate. (Deferred this session for that reason.)
+2. **Migrations CI is red (cosmetic):** the `Database Migrations` GitHub Action fails (missing `SUPABASE_DB_URL` + `SUPABASE_ACCESS_TOKEN` repo secrets). All migrations were applied to the linked DB manually, so prod schema IS in sync. To fix: add those two GitHub Actions secrets (I can `gh secret set` them — `gh` is authed as `Wollie333` — if the founder pastes the values: a Supabase PAT + the `postgresql://…@db.zlcivjgvtyeaszikqleu.supabase.co:5432/postgres` URL).
+3. **Live smoke-test on wielo.co.za** now that Supabase auth URLs are set: a real login + a free-beta signup + (with a host's test Paystack connected) a booking charge.
+4. Lower-priority admin polish (not blocking): impersonation *dashboard* still summary tiles; user/host lists cap at 50 (no pager).
+
+**KEY FACTS:** monorepo build gate = `cd apps/web && pnpm build` (NEVER while a dev server holds `.next` on :3000 — stop preview first). A **parallel "looking-for" session** still owns untracked/modified files in the tree (`looking-for/*`, modified `Sidebar.tsx`/`featureGate.ts`/`quotes/*`/`notifications/*`, its `*looking_for*` migrations) — **leave them alone; never commit them.** Push = prod deploy. Supabase project ref `zlcivjgvtyeaszikqleu`. Service-role node scripts: put them INSIDE `apps/web` + run `node --env-file=.env.local <script>.mjs`, then delete.
+
+---
+
+## ▶▶ SAVE POINT (· 2026-06-28 EOD #6 — PER-ROOM EDITING COMPLETE + FORMS CORE shipped; full build PASSES)
 
 **Founder: "continue make it good harden everything afterwards."** Two features advanced + a hardening pass, all `tsc`+lint clean, **full `pnpm build` PASSES app-wide** (the real gate — incl. the parallel looking-for code), **no `console.log`** in any of today's files. Local commits only (NOT pushed). Dev server HEALTHY on **:3000** (fresh, post-build rebuild).
 
