@@ -2,7 +2,23 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #3 — LOOKING FOR FEATURE SHIPPED TO PROD)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #4 — REBRAND Vilo→Wielo + SHORT DOC NUMBERS)
+
+**Founder: "the platform name is Wielo" (display only — NOT the legal name) + "refine the bk/invoice numbers to short unique combos like INV-0001, BK-0001, RCT-0001". Both shipped to prod + verified live.**
+
+**✅ REBRAND Vilo→Wielo (`f1fc3835`, deployed + live):** scripted case-preserving rename across 351 tracked files (~2,950 brand-text replacements) — display name, CSS classes (`.vilo-*`→`.wielo-*`), comments, docs, i18n copy, email templates, brand domains (vilo.co.za→wielo.co.za). **Deliberately PRESERVED** (protected in the script): the **legal company name "Vilo Platform (Pty) Ltd"** (invoicing entity — founder changes it later to the real trading name), DB identifiers (`vilo_*` tables/cols/RPCs), DB values (`"vilo"` channel/source, channel-map keys, `VILO-` ref prefix), the **`@vilo/*` workspace package scope**, infra `vilo2027`, test creds `vilotest`, and the `vilo-invoice` route/module + `ViloBusinessForm`/`ViloTransactionHistory` (no file/route renames). Full `pnpm build` PASSED (745 pages), lint clean (only pre-existing `<img>` warnings).
+- **⚠️ The displayed brand is DB-driven:** `platform_settings.brand_name` (fallback `lib/brand.ts` DEFAULT_BRAND, now "Wielo"). The DB row was "Vilo" → **set to "Wielo" via service-role** (legal `company_legal_name` left = "Vilo Platform (Pty) Ltd"). **Verified live:** wielo.co.za homepage shows 25× "Wielo", 3× "Vilo" (all 3 = the preserved legal name in the footer).
+- **Legal pages** (terms/privacy/cookies) auto-swap "Vilo"→brand at render (`.split("Vilo").join(brand)`) so they already show Wielo. **⚠️ FOLLOW-UP:** help-center articles + other content stored in the DB (from immutable migrations) still literally say "Vilo" — edit via admin UI or write UPDATE migrations if you want them rebranded.
+
+**✅ SHORT GLOBAL DOC NUMBERS (`78cdf4b5` + migration `20260629160000`, applied to linked DB + sequences reset to 0001):** replaced the long `{PREFIX}-{BIZ}-{ID5}-NNNNN` formats with short, **globally-unique** `PREFIX-NNNN` (one sequence per doc type) so the number doubles as a payment reference. **Verified via RPC:** `INV-0001`, `Q-0001`, `CR-0001`, `RF-0001`, `RCT-0001` (+ `BK-0001` via booking trigger). EFT payment reference now = just the booking ref (dropped `VILO-` prefix). Generator functions DROP+CREATEd keeping the `p_business_id` arg (by-name RPC callers), **zero app code changes** (numbers are opaque strings). **⚠️ Trade-off (in the migration header):** numbering is now GLOBAL not per-host → a host's invoices may have gaps (INV-0001, INV-0004…). If VAT per-host sequential is needed later, switch to per-host sequence + composite UNIQUE.
+
+**KEY FACTS:** migration `20260629160000` already applied to linked DB (CI db-migrate no-op'd green). Brand resolution: `platform_settings.brand_name` row = "Wielo". To rename the LEGAL name later: update `platform_settings.company_legal_name` (NOT a code change). Still-untracked stray files left alone: `apps/web/vsub.mjs`, `docs/features/WEBSITE_WIZARD_PLAN.md`.
+
+**▶▶ OPEN:** (1) Founder reported the portal "Looking For" link wasn't showing — diagnosed as a stale cached layout; **hard-refresh (Ctrl+Shift+R)** — awaiting confirm (code is live, route 307s correctly). (2) Optional: rebrand DB-stored help content. (3) Edge function `paystack-webhook` had comment-only Wielo changes (redeploy optional, comments don't affect runtime).
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-29 #3 — LOOKING FOR FEATURE SHIPPED TO PROD)
 
 **Founder report: "on the live url I am not seeing the looking for section in the guest portal." Root cause: the Looking For DB migrations were live but the *app code was never committed* (it sat untracked in the tree for ages). Fixed — the whole feature is now committed + deployed.**
 
