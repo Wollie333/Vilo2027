@@ -12,7 +12,7 @@ import {
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { sendDocumentLinkAction } from "@/app/[locale]/dashboard/documents-actions";
+import { sendPaymentLinkToThreadAction } from "@/app/[locale]/dashboard/documents-actions";
 
 /**
  * Host-facing "Send payment link" surface on a booking's Payments tab. The link
@@ -43,15 +43,17 @@ export function PaymentLinkCard({
   const [copied, setCopied] = useState(false);
   const [sending, startSending] = useTransition();
 
-  // Drop the link into the guest's inbox thread — reuses the same canonical
-  // "share a link in the thread" action the invoice/quote pages use. Account-
-  // less guests (or no thread yet) get a clear nudge to use email / WhatsApp.
+  // Drop a payment CARD into the guest's inbox thread — the action creates the
+  // thread when none exists yet, then posts a booking summary + a Pay button.
+  // Account-less guests still get a clear nudge to use email / WhatsApp.
   function sendToChat() {
     startSending(async () => {
-      const r = await sendDocumentLinkAction({
+      const r = await sendPaymentLinkToThreadAction({
         bookingId,
         url,
-        label: "payment link",
+        reference,
+        listingName,
+        amountLabel,
       });
       if (r.ok) toast.success("Payment link sent to the guest's inbox.");
       else toast.error(r.error);

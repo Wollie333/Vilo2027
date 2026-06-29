@@ -1,6 +1,13 @@
 "use client";
 
-import { Check, CheckCheck, Clock, KeyRound, Paperclip } from "lucide-react";
+import {
+  Check,
+  CheckCheck,
+  Clock,
+  CreditCard,
+  KeyRound,
+  Paperclip,
+} from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { ThreadQuoteCard } from "./ThreadQuoteCard";
@@ -221,6 +228,44 @@ export function ChatMessageWall({
                         />
                       </div>
                     ) : null}
+                  </div>
+                </div>
+              );
+            }
+
+            // Payment link — a pay card: booking summary + a Pay button.
+            if (m.isSystem && m.systemEvent === "payment_link") {
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <div className="mx-auto my-1 max-w-[420px] rounded-card border border-brand-primary/30 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary text-white">
+                        <CreditCard className="h-4 w-4" />
+                      </span>
+                      <span className="font-display text-[14px] font-bold text-brand-ink">
+                        {viewer === "host"
+                          ? "Payment link sent"
+                          : "Payment request"}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[13px] leading-relaxed text-brand-ink">
+                      {m.body}
+                    </p>
+                    {m.attachmentUrl ? (
+                      <a
+                        href={m.attachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        {viewer === "host" ? "Open payment page" : "Pay now"}
+                      </a>
+                    ) : null}
+                    <div className="mt-1.5 text-right font-mono text-[10.5px] text-brand-mute">
+                      {fmtClock(m.createdAt)}
+                    </div>
                   </div>
                 </div>
               );

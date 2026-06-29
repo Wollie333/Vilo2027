@@ -68,7 +68,7 @@ export default async function GuestThreadPage({
   const { data: msgs } = await supabase
     .from("messages")
     .select(
-      "id, sender_id, body, is_system_message, system_event, quote_id, quote_version_no, read_by_host, read_by_guest, created_at",
+      "id, sender_id, body, attachment_url, is_system_message, system_event, quote_id, quote_version_no, read_by_host, read_by_guest, created_at",
     )
     .eq("conversation_id", params.id)
     .order("created_at", { ascending: true });
@@ -77,6 +77,8 @@ export default async function GuestThreadPage({
     id: m.id,
     senderId: m.sender_id,
     body: m.body,
+    attachmentUrl:
+      (m as { attachment_url: string | null }).attachment_url ?? null,
     isSystem: m.is_system_message,
     systemEvent: (m as { system_event: string | null }).system_event ?? null,
     quoteId: (m as { quote_id: string | null }).quote_id ?? null,
