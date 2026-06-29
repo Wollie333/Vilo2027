@@ -152,8 +152,10 @@ export const revokeInviteAction = withAdminAudit<
 );
 
 export async function revokeInvite(input: { inviteId: string }): Promise<Ok> {
+  const parsed = revokeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
   try {
-    await revokeInviteAction(input);
+    await revokeInviteAction(parsed.data);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };
@@ -200,8 +202,10 @@ export async function setStaffActive(input: {
   userId: string;
   isActive: boolean;
 }): Promise<Ok> {
+  const parsed = setActiveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
   try {
-    await setStaffActiveAction(input);
+    await setStaffActiveAction(parsed.data);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };
@@ -248,8 +252,10 @@ export async function changeStaffRole(input: {
   userId: string;
   roleId: string;
 }): Promise<Ok> {
+  const parsed = roleSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
   try {
-    await changeStaffRoleAction(input);
+    await changeStaffRoleAction(parsed.data);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };

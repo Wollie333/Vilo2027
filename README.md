@@ -17,7 +17,7 @@ Vilo gives hosts a professional, branded booking website and a private dashboard
 | Mobile app | Expo (SDK 51+) — scaffolded, screens not yet built |
 | Backend | Supabase (PostgreSQL 15, Auth, Realtime, Storage) |
 | Server logic | **Next.js Server Actions** + API-route workers (the bulk of business logic); Supabase **Edge Functions** (Deno) only where a non-Next runtime is required — `paystack-webhook`, `eft-banking-details`, `report-scheduler`, `track-listing-view`, `external-reviews-sync`, `external-review-reply` |
-| Payments | **Paystack (ZAR)** — live in checkout; **Manual EFT** — live; PayPal — host config only, not yet wired into guest checkout |
+| Payments | **Paystack (ZAR)** — hosts connect their **own** Paystack (test **and** live keys + a mode switch); guest booking + on-site website checkout settle directly to the host (Vilo 0%). Platform billing uses the platform Paystack. **Manual EFT** — live. **Free products skip payment** (auto-provision). PayPal — host config only, not in guest checkout |
 | Email / notifications | Resend + React Email, dispatched via an in-app / email / push notification queue drained by pg_cron (atomic claim — see below) |
 | Calendar sync | RFC 5545 iCal **import** (external feeds → blocked dates) + **export** (public per-listing feed) |
 | Package manager | **pnpm 9** (Node ≥ 20) |
@@ -89,7 +89,7 @@ cd apps/web && pnpm seed:test-site   # idempotent; seeds the linked cloud DB
 
 ## Build status
 
-_Honest, code-level snapshot — **2026-06-28**. Percentages are share of MVP scope **wired in code** (UI → Server Action/RPC → real DB), not "verified in production." Build priority: **Host dashboard → Website CMS → Guest portal → Admin**._
+_Honest, code-level snapshot — **2026-06-29**. Percentages are share of MVP scope **wired in code** (UI → Server Action/RPC → real DB), not "verified in production." Build priority: **Host dashboard → Website CMS → Guest portal → Admin**._
 
 ### Host dashboard — ~85% of MVP scope wired
 **Working (UI + action + DB):** email/password auth & login; host onboarding/setup checklist; **listing editor** (basic, photos→Storage, location, rooms, amenities, pricing, **seasonal pricing**, policies, add-ons, guest access); availability **calendar** + block dates; **bookings** list + detail + full lifecycle (confirm / decline / cancel / check-in / check-out, policy-based refund); **quotes** (create → send → open-tracking → convert to booking); **invoices + credit notes** (+ PDF); **payments** + EFT settle; **host-side refunds**; **coupons**; **host inbox** (realtime); **reviews** + replies; **external reviews** (connect Google Business Profile / Facebook Page via OAuth → sync external reviews into Vilo, host reply, public aggregate rating; daily cron + manual sync; tokens encrypted at rest); **settings** (profile, multi-business banking incl. own Paystack/PayPal credentials, notification prefs); **staff** invites; **help centre**; in-app + email + push **notifications**.
@@ -97,22 +97,25 @@ _Honest, code-level snapshot — **2026-06-28**. Percentages are share of MVP sc
 
 ### Website CMS (host's own site) — substantial, the largest recent lane
 A full per-host website builder with a **frozen publish snapshot** (drafts never leak to the live site):
+- **Setup wizard** — a guided "no website → live, themed site" flow (Basics → Theme → Colours → Build → Done): live theme previews with the host's own name/logo, accent-palette generation, then a one-shot create that seeds pages/forms/rooms and **auto-publishes**. The builders/managers remain for deeper customisation afterward.
+- **Theme-styled builder canvases** — the form-builder and blog-post editor canvases render in the **active theme** (same `--site-*` tokens as the published page), so editing matches the live result.
 - **Curated section system** + a simple in-page **builder** (@dnd-kit) with **free elements** (heading/text/image/button/spacer/divider + columns), a **blank "Section" container** you fill with elements **on the canvas** (add/select/reorder/delete inline), **per-block responsive style** (padding/margin/border/radius/max-width/background/section-height), and inline header/footer/menu editing.
 - **7 professionally-designed, responsive hero layouts** (Spotlight, Split ×2, Full-screen, Minimal, Boxed, Search) with overlay/text-tone/height controls, surfaced as pickable sidebar cards.
 - **Theme-attached designed sections + page templates** (code-defined registry; the Aria flagship theme ships designed sections + Home/About templates).
 - **Searchable add-blocks sidebar**; **site width** toggle (full vs boxed); Brand Studio + Theme gallery.
 - **Pages / Blog / Forms** managers + full-screen editors. The **form builder** mirrors the page builder (2-col palette grid, search, on-canvas field labels + insert-between, drag reorder) with **rich starter templates** (Contact / Booking enquiry / Newsletter / Review seed real fields), a **Styles tab** (per-form accent, field shape/fill/border, button colour + alignment — themed live), per-form spam (Turnstile) toggle, duplicate-a-form, and a **responses** inbox (search + date filter + CSV export); booking forms route to the real quote pipeline.
 - **SEO** (Yoast-style coach + Schema.org JSON-LD + canonical/sitemap); **Domains** (subdomain + custom-domain flow, dormant until ops env set).
-- **Conversion**: WhatsApp click-to-chat, announcement bar, pop-ups, **on-site checkout** (Paystack + EFT), forms → inbox/CRM.
+- **Conversion**: WhatsApp click-to-chat, announcement bar, pop-ups, **on-site checkout** (Paystack + EFT) with a host **per-website payment-method toggle** (enforced server-side), forms → inbox/CRM.
 - **GA4 + Meta Pixel** with a POPIA consent gate; baseline security headers; Cloudflare Turnstile (inert until keys).
 
 ### Guest portal & public site — ~72%
-**Working:** marketing home; **`/explore`** directory (search/filter/sort) + `/deals`; **listing detail**; host public profile `/[handle]`; **booking flow** with server-side re-pricing, capacity + policy checks, coupons; **Paystack checkout + automatic EFT fallback**; success/failed; guest sign-up + account-at-checkout; **My Trips** + Trip Details; cancel + request refund; **reviews**; **public quote** accept/decline; account notification prefs + POPIA deletion request; published **tenant websites** render end-to-end.
+**Working:** marketing home; **`/explore`** directory (search/filter/sort) + `/deals`; **listing detail**; host public profile `/[handle]`; **booking flow** with server-side re-pricing, capacity + policy checks, coupons; **Paystack checkout + automatic EFT fallback**; success/failed; guest sign-up + account-at-checkout; **My Trips** + Trip Details; cancel + request refund; **reviews**; **public quote** accept/decline; **product landing pages** `/p/[slug]` (paid → pay-link; **free → skip payment, auto-provision account + host + features, auto sign-in** — used for beta onboarding); account notification prefs + POPIA deletion request; published **tenant websites** render end-to-end.
 **Not wired:** guest inbox is read-only (no compose); PayPal not offered at guest checkout.
 
-### Admin panel — ~82%
-**Working:** dashboard KPIs; host/user management + verify/suspend; booking + payment (read) management; review moderation; subscriptions (read); **impersonation** (signed cookie, expiry + target, audit-logged); **audit log**; broadcasts + individual notification send; full **help-centre CRUD**; per-action permission gates.
-**Not wired (stubs):** feature-flag-override + platform-settings editors. _(Admin MFA gate intentionally disabled pre-MVP — restore before launch.)_
+### Admin panel — ~92%
+Two-layer RBAC (active `platform_staff` + 24 granular permission keys), every mutation audited.
+**Working:** dashboard KPIs; **products & subscription plans** full CRUD + per-product/plan feature matrix + per-host overrides; payments/Vilo ledger; **user management** (edit/role/suspend/soft-delete/notes/subscription + **admin password reset**); **host management** (verify + **suspend/reactivate**); **host-staff management** (assign users as staff to a host — per-host panel + global list, direct add or email-invite); **platform staff** invite/accept flow + role/activate + **permission-filtered sidebar**; **impersonation** ("view as host" — signed cookie, audited); **GDPR/POPIA fulfilment** (export generates a downloadable JSON; deletion is hybrid hard-delete-or-anonymise); review moderation; broadcasts + notification send; full **help-centre CRUD**; platform settings/amenities/categories.
+_(Admin MFA/AAL2 gate intentionally disabled pre-MVP — restore before launch.)_
 
 ### Platform infrastructure
 **Working:** **notification system** (in-app + email via Resend drain + push queue; per-category prefs, quiet hours, digest) — drains now use an **atomic claim** (`FOR UPDATE SKIP LOCKED` + stale-reclaim) so overlapping cron ticks can't double-send; **calendar sync** — iCal **import** (atomic, non-destructive `import_ical_blocks` RPC; never overwrites a booking/manual block) + token-gated **export** feed; **pg_cron** jobs (booking expiry, auto-cancel, review publish/request, subscription warn/restrict, ranking, queue drains, **external-reviews daily sync** — guarded, no-ops until the worker vault secrets are set); **Paystack webhook** (HMAC-SHA512 verified, idempotent on `provider_reference`); EFT banking-details + report-scheduler (secret-gated) + track-listing-view (validated) Edge Functions; RLS + soft-delete across core tables; immutable audit log.
@@ -128,7 +131,7 @@ Expo project scaffolded; screens not yet built.
 1. **Set production env switches** (inert until set, by design): `ICAL_TOKEN_SECRET` (calendar export), `RESEND_API_KEY` + worker URL/secret (notification send), live Paystack/PayPal keys, `TURNSTILE_*`, `NEXT_PUBLIC_ROOT_DOMAIN` + DNS (tenant subdomains/custom domains), `app.report_scheduler_secret` + `app.settings.*` (report cron), **external-reviews** OAuth app credentials (Google Business Profile / Facebook) + token-encryption key + `external_reviews_worker_url`/`_secret` vault secrets (daily sync stays dormant until set).
 2. **Smoke-test money + email round-trips in production** — a real Paystack booking → webhook confirms → Resend email lands.
 3. **Decide guest↔host messaging scope** — guest inbox is one-way today.
-4. **PayPal** — wire end-to-end (checkout + webhook) or ship Paystack + EFT only.
+4. **PayPal** — Paystack + EFT are the processors for beta (PayPal is host-config only). Wire PayPal end-to-end (checkout + webhook) only if needed later.
 5. **Ship free-plan-only** until subscription billing is wired (feature gates short-circuit open pre-MVP).
 6. **Region / compliance** — confirm Supabase region + POPIA, Resend sending domain, re-enable admin MFA.
 7. **Calendar auto-sync** — build `ical-sync-all` (cron) if hands-off feed refresh is wanted (import is manual today).
