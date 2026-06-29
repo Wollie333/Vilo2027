@@ -16,7 +16,9 @@
   --dark-2: #1e1810;
   --dark-ink: #f3eadb;
   --dark-soft: #a99a7e;
-  --accent: #b26c2e;
+  /* The host's chosen accent (from SiteThemeRoot) drives Safari's accent; falls
+     back to the NenGama orange when unset, so the stock design is unchanged. */
+  --accent: var(--site-accent, #b26c2e);
   --accent-deep: #8c521f;
   --gold: #c2a05c;
   --green: #3c4a35;
@@ -41,7 +43,8 @@
   --site-ink: var(--ink);
   --site-mute: var(--ink-soft);
   --site-line: var(--line);
-  --site-accent: var(--accent);
+  /* Do NOT re-alias --site-accent here — it flows in from SiteThemeRoot (the
+     host's accent) and drives --accent above; re-aliasing self-references it. */
   --site-accent-ink: #fff;
   --site-secondary: var(--green);
   --site-secondary-ink: #fff;

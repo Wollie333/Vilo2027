@@ -134,22 +134,26 @@ export async function SitePageView({
       <>
         <JsonLd graph={jsonLdGraph} />
         {pageMarketing}
-        <SafariSiteView
-          kind={result.page.kind}
-          pageTitle={result.page.title ?? undefined}
-          sections={result.sections}
-          data={result.data}
-          asset={siteAsset}
-          brandName={ctx.brand.name}
-          contactEmail={ctx.brand.contactEmail}
-          contactPhone={ctx.brand.contactPhone}
-          nav={buildSafariNav(ctx, currentPageKey)}
-          bookHref={headerBookHref}
-          previewPages={previewPages}
-          analytics={ctx.analytics}
-          interactive={!ctx.preview}
-          websiteId={ctx.websiteId}
-        />
+        {/* Wrap in SiteThemeRoot so the host's --site-accent reaches the Safari
+            layer (its --accent derives from it); Safari keeps its own bg/ink. */}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SafariSiteView
+            kind={result.page.kind}
+            pageTitle={result.page.title ?? undefined}
+            sections={result.sections}
+            data={result.data}
+            asset={siteAsset}
+            brandName={ctx.brand.name}
+            contactEmail={ctx.brand.contactEmail}
+            contactPhone={ctx.brand.contactPhone}
+            nav={buildSafariNav(ctx, currentPageKey)}
+            bookHref={headerBookHref}
+            previewPages={previewPages}
+            analytics={ctx.analytics}
+            interactive={!ctx.preview}
+            websiteId={ctx.websiteId}
+          />
+        </SiteThemeRoot>
       </>
     );
   }
