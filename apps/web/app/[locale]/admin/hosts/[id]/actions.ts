@@ -1,9 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 
-import { withAdminAudit } from "@/lib/admin";
+import { requireAdmin, withAdminAudit } from "@/lib/admin";
+import { getBrandName } from "@/lib/brand";
+import { sendTransactionalEmail } from "@/lib/email/send";
 
 const verifySchema = z.object({
   hostId: z.string().uuid(),
@@ -241,6 +244,94 @@ export async function removeHostStaff(input: {
   if (!parsed.success) return { ok: false as const, error: "Invalid input." };
   try {
     await removeHostStaffAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
+
+// Admin "invite instead": create a host-scoped staff_invites row + email the
+// existing /staff/accept/<token> link (reuses the host-side acceptInviteAction).
+// role defaults to 'assistant'; admin override skips the plan seat-limit check.
+export const inviteHostStaffAction = withAdminAudit<
+  z.infer<typeof addStaffSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "hosts.verify",
+    actionName: "host.staff_invite",
+    targetType: "host",
+    getTargetId: (a) => a.hostId,
+  },
+  async (args, service) => {
+    const email = args.email;
+    // Already an active staff member of this host?
+    const { data: u } = await service
+      .from("user_profiles")
+      .select("id")
+      .ilike("email", email)
+      .maybeSingle();
+    if (u) {
+      const { data: existing } = await service
+        .from("staff_members")
+        .select("id")
+        .eq("host_id", args.hostId)
+        .eq("user_id", u.id)
+        .maybeSingle();
+      if (existing) throw new Error("Already a staff member of this host.");
+    }
+
+    const actor = await requireAdmin();
+    // Replace any prior pending invite for this email on this host.
+    await service
+      .from("staff_invites")
+      .delete()
+      .eq("host_id", args.hostId)
+      .ilike("email", email)
+      .is("accepted_at", null);
+    const { data: invite, error } = await service
+      .from("staff_invites")
+      .insert({ host_id: args.hostId, email, invited_by: actor.userId })
+      .select("id, token")
+      .single();
+    if (error || !invite) throw new Error(error?.message ?? "Invite failed.");
+
+    const h = headers();
+    const origin =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      h.get("origin") ||
+      `https://${h.get("host") ?? "vilo.site"}`;
+    const brand = await getBrandName();
+    const link = `${origin}/staff/accept/${invite.token}`;
+    await sendTransactionalEmail({
+      to: email,
+      subject: `You've been invited to join a team on ${brand}`,
+      html: `<p>You've been invited to join a host's team on ${brand}.</p>
+<p>Sign in (or create an account) with this email, then accept:</p>
+<p><a href="${link}">${link}</a></p>
+<p>This invite expires in 7 days.</p>`,
+    });
+
+    revalidatePath(`/admin/hosts/${args.hostId}`);
+    return {
+      result: { ok: true },
+      after: { host_id: args.hostId, email, invite_id: invite.id },
+    };
+  },
+);
+
+export async function inviteHostStaff(input: {
+  hostId: string;
+  email: string;
+}) {
+  const parsed = addStaffSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false as const, error: "Enter a valid email." };
+  try {
+    await inviteHostStaffAction(parsed.data);
     return { ok: true as const };
   } catch (e) {
     return {

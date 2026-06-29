@@ -1,11 +1,11 @@
 "use client";
 
-import { Loader2, UserPlus, X } from "lucide-react";
+import { Loader2, Mail, UserPlus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { addHostStaff, removeHostStaff } from "./actions";
+import { addHostStaff, inviteHostStaff, removeHostStaff } from "./actions";
 
 type StaffRow = {
   userId: string;
@@ -99,6 +99,7 @@ export function HostStaffManager({
         <button
           type="button"
           disabled={pending || !email.trim()}
+          title="Assign instantly (no acceptance step)"
           onClick={() => {
             run(addHostStaff({ hostId, email: email.trim() }), "Staff added.");
             setEmail("");
@@ -112,7 +113,26 @@ export function HostStaffManager({
           )}
           Add
         </button>
+        <button
+          type="button"
+          disabled={pending || !email.trim()}
+          title="Email an invite link the user must accept"
+          onClick={() => {
+            run(
+              inviteHostStaff({ hostId, email: email.trim() }),
+              "Invite sent.",
+            );
+            setEmail("");
+          }}
+          className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light disabled:opacity-50"
+        >
+          <Mail className="h-4 w-4" /> Invite
+        </button>
       </div>
+      <p className="mt-1.5 text-[11px] text-brand-mute">
+        <strong>Add</strong> assigns instantly · <strong>Invite</strong> emails
+        a link the user accepts.
+      </p>
     </section>
   );
 }

@@ -35,9 +35,11 @@ to help run their listings/bookings), which previously had no admin oversight
 (host-facing only at `/dashboard/staff`). Distinct from Vilo platform staff.
 
 - **Per-host panel (A)** — `HostStaffManager` on the host detail page
-  (`/admin/hosts/[id]`): lists the host's staff, add a user as staff by email,
-  remove. `addHostStaffAction`/`removeHostStaffAction` (audited, `hosts.verify`);
-  add resolves an existing user by email (must have a Vilo account).
+  (`/admin/hosts/[id]`): lists the host's staff, remove, and **two add paths**:
+  **Add** (direct, instant assignment — `addHostStaffAction`) or **Invite**
+  (emails the existing `/staff/accept/[token]` link the user accepts —
+  `inviteHostStaffAction`). All audited (`hosts.verify`); role defaults to
+  `assistant`; admin add resolves an existing user by email.
 - **Global list (B)** — new `/admin/hosts/staff` page: every host↔staff
   assignment platform-wide, searchable by host or staff, with inline remove and a
   link to each host. New "Host staff" sidebar item (gated `hosts.verify`).
