@@ -8,6 +8,7 @@ import {
   siteBookHref,
 } from "@/lib/site/loadSitePage";
 import { siteSurfaceIsDark, type SiteThemeConfig } from "@/lib/site/themes";
+import { themeSwatches } from "@/lib/site/themeSwatches";
 import type {
   SiteBrand,
   SiteConversion,
@@ -192,6 +193,7 @@ export default async function NavigationSectionEditorPage({
       conversion={conversion}
       chromeLayout={chromeLayout}
       darkChrome={darkChrome}
+      themeSwatches={themeSwatches(site.theme)}
     />
   );
 }

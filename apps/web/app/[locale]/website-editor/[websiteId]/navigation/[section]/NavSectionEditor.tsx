@@ -168,6 +168,7 @@ export function NavSectionEditor({
   conversion = null,
   chromeLayout = "full",
   darkChrome = false,
+  themeSwatches = [],
 }: {
   websiteId: string;
   section: Section;
@@ -189,6 +190,8 @@ export function NavSectionEditor({
   conversion?: SiteConversion | null;
   chromeLayout?: "full" | "boxed";
   darkChrome?: boolean;
+  /** Theme colours (Brand Studio) for the colour pickers' preset swatches. */
+  themeSwatches?: string[];
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -539,6 +542,7 @@ export function NavSectionEditor({
                     setTop={setTop}
                     pages={pages}
                     transparentDefault={isSafari}
+                    swatches={themeSwatches}
                   />
                 ) : (
                   <FooterInspector

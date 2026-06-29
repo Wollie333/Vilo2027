@@ -9,6 +9,7 @@ import type { SiteFooterColumn } from "@/lib/site/types";
 
 import { FooterBuilder } from "./FooterBuilder";
 import type { PageOption } from "./MenuBuilder";
+import { ThemeColorPicker } from "@/components/ui/ThemeColorPicker";
 
 // Shared inspector panels for the header + footer, used by BOTH the standalone
 // nav editor route and the page builder's inline chrome editing (so there's one
@@ -59,44 +60,24 @@ function ColorRow({
   label,
   value,
   fallback = "#000000",
+  swatches = [],
   onChange,
 }: {
   label: string;
   value?: string | null;
   fallback?: string;
+  swatches?: string[];
   onChange: (v: string | undefined) => void;
 }) {
-  const t = useTranslations("website");
   return (
     <Fld label={label}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <input
-          type="color"
-          value={value?.trim() || fallback}
-          onChange={(e) => onChange(e.target.value)}
-          style={{
-            width: 40,
-            height: 30,
-            padding: 0,
-            border: "1px solid var(--line,#e5e7eb)",
-            borderRadius: 6,
-            background: "none",
-          }}
-          aria-label={label}
-        />
-        <span className="text-[12px] text-brand-mute">
-          {value?.trim() || t("navCtaColorDefault")}
-        </span>
-        {value ? (
-          <button
-            type="button"
-            onClick={() => onChange(undefined)}
-            className="ml-auto text-[12px] text-brand-secondary hover:underline"
-          >
-            {t("reset")}
-          </button>
-        ) : null}
-      </div>
+      <ThemeColorPicker
+        value={value ?? undefined}
+        fallback={fallback}
+        swatches={swatches}
+        onChange={(v) => onChange(v)}
+        onReset={() => onChange(undefined)}
+      />
     </Fld>
   );
 }
@@ -107,12 +88,15 @@ export function HeaderInspector({
   setTop,
   pages = [],
   transparentDefault = false,
+  swatches = [],
 }: {
   nav: NavigationConfig;
   setHeader: (p: Partial<NavigationConfig["header"]>) => void;
   setTop: (p: Partial<NavigationConfig["topBar"]>) => void;
   /** In-nav pages, so the Book button can link to a page (or a custom URL). */
   pages?: PageOption[];
+  /** Theme colours (Brand Studio) for the colour pickers' preset swatches. */
+  swatches?: string[];
   /** Theme's natural transparent-over-hero default when the host hasn't chosen
    *  (Safari is transparent by design; generic themes are solid). Drives the
    *  toggle's displayed state so it matches what actually renders. */
@@ -180,35 +164,13 @@ export function HeaderInspector({
                 </select>
               </Fld>
             ) : null}
-            <Fld label={t("navCtaColor")}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="color"
-                  value={nav.header.bookCtaColor?.trim() || "#0f172a"}
-                  onChange={(e) => setHeader({ bookCtaColor: e.target.value })}
-                  style={{
-                    width: 40,
-                    height: 30,
-                    padding: 0,
-                    border: "1px solid var(--line,#e5e7eb)",
-                    borderRadius: 6,
-                    background: "none",
-                  }}
-                />
-                <span className="text-[12px] text-brand-mute">
-                  {nav.header.bookCtaColor?.trim() || t("navCtaColorDefault")}
-                </span>
-                {nav.header.bookCtaColor ? (
-                  <button
-                    type="button"
-                    onClick={() => setHeader({ bookCtaColor: undefined })}
-                    className="ml-auto text-[12px] text-brand-secondary hover:underline"
-                  >
-                    {t("reset")}
-                  </button>
-                ) : null}
-              </div>
-            </Fld>
+            <ColorRow
+              label={t("navCtaColor")}
+              value={nav.header.bookCtaColor}
+              fallback="#0f172a"
+              swatches={swatches}
+              onChange={(v) => setHeader({ bookCtaColor: v })}
+            />
             <p className="mt-1 text-[11.5px] text-brand-mute">
               {t("navBookCtaHint")}
             </p>
@@ -280,6 +242,7 @@ export function HeaderInspector({
               label={t("navScrolledBg")}
               value={nav.header.scrolledBgColor}
               fallback="#181715"
+              swatches={swatches}
               onChange={(v) => setHeader({ scrolledBgColor: v })}
             />
             <p className="mt-1 text-[11.5px] text-brand-mute">
@@ -289,6 +252,7 @@ export function HeaderInspector({
               label={t("navScrolledBorder")}
               value={nav.header.scrolledBorderColor}
               fallback="#e2e2e2"
+              swatches={swatches}
               onChange={(v) => setHeader({ scrolledBorderColor: v })}
             />
           </>
@@ -297,6 +261,7 @@ export function HeaderInspector({
             label={t("navHeaderBg")}
             value={nav.header.bgColor}
             fallback="#ffffff"
+            swatches={swatches}
             onChange={(v) => setHeader({ bgColor: v })}
           />
         )}
