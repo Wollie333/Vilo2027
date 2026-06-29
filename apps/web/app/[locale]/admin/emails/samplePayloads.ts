@@ -41,7 +41,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     checkIn: "Friday, 6 June 2026",
     checkOut: "Sunday, 8 June 2026",
     totalAmount: "R 2,400.00",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     bookingId: "00000000-0000-0000-0000-000000000001",
   },
 
@@ -76,7 +76,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",
     totalAmount: "R 2,400.00",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     bankName: "Standard Bank",
     accountHolder: "Amara Mokoena (Wielo)",
     accountNumberMasked: "•••• 4523",
@@ -89,7 +89,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     guestName: "Lerato",
     listingName: "Sunbird Cottage",
     totalAmount: "R 2,400.00",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     bookingId: "00000000-0000-0000-0000-000000000001",
   },
 
@@ -145,7 +145,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     hostFirstName: "Amara",
     guestName: "Lerato",
     listingName: "Sunbird Cottage",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     checkIn: "6 June 2026",
     totalPaid: "R 2,400.00",
     requestedAmount: "R 2,400.00",
@@ -159,7 +159,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
   refund_approved_guest: {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     refundAmount: "R 1,800.00",
     paymentMethod: "your Visa ending 4242",
     processingNote: "Allow 3–5 business days to appear in your account.",
@@ -169,7 +169,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
   refund_declined_guest: {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     declineReasonLabel: "Outside the cancellation policy window",
     policySummary:
       "Strict policy: no refund within 7 days of check-in. Your request arrived 4 days before check-in.",
@@ -180,7 +180,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
   refund_completed_guest: {
     guestFirstName: "Lerato",
     refundAmount: "R 1,800.00",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     paymentMethod: "your Visa ending 4242",
     processingNote: "Allow 3–5 business days for the funds to appear.",
   },
@@ -189,7 +189,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     hostFirstName: "Amara",
     guestName: "Lerato",
     listingName: "Sunbird Cottage",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     refundAmount: "R 1,200.00",
     adminNote:
       "Booking dates fell during the platform outage on 2026-06-01. Compromise refund applied.",
@@ -199,9 +199,9 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
   eft_refund_sent_guest: {
     guestFirstName: "Lerato",
     refundAmount: "R 1,800.00",
-    bookingReference: "VILO-2026-AB1234",
+    bookingReference: "BK-0001",
     hostNote:
-      "Sent via FNB EFT this morning — reference VILO-2026-AB1234. Sorry again for the trouble.",
+      "Sent via FNB EFT this morning — reference BK-0001. Sorry again for the trouble.",
     processingNote: "EFT transfers typically arrive within 1–2 business days.",
   },
 
