@@ -279,23 +279,26 @@ export function SetupWizard(props: Props) {
         </span>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        {/* ─── Left rail: clickable steps with green checkmarks ─── */}
-        <aside className="lg:sticky lg:top-6 lg:self-start">
-          <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-            <div className="hidden items-center justify-between border-b border-brand-line px-4 py-3 lg:flex">
-              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-                Set up your place
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        {/* ─── Left rail: progress + clickable steps + publish CTA ─── */}
+        <aside className="lg:sticky lg:top-6 lg:space-y-4 lg:self-start">
+          <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Setup progress
               </span>
-              <Link
-                href="/dashboard"
-                title="Exit setup"
-                className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-brand-mute transition hover:text-brand-ink"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" /> Exit
-              </Link>
+              <span className="font-display text-sm font-bold tabular-nums text-brand-primary">
+                {pct}%
+              </span>
             </div>
-            <nav className="flex gap-1 overflow-x-auto p-2 lg:flex-col lg:overflow-visible">
+            <div className="mt-2 h-2 overflow-hidden rounded-pill bg-brand-light">
+              <div
+                className="h-full rounded-pill bg-brand-primary transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+
+            <nav className="mt-4 flex gap-1 overflow-x-auto lg:flex-col lg:gap-0.5 lg:overflow-visible">
               {SECTIONS.map((s, i) => {
                 const reachable = i <= maxReached;
                 const isCurrent = i === current;
@@ -307,16 +310,16 @@ export function SetupWizard(props: Props) {
                     onClick={() => goTo(i)}
                     disabled={!reachable}
                     title={s.label}
-                    className={`flex shrink-0 items-center gap-2.5 rounded-card px-3 py-2.5 text-left transition-colors lg:w-full ${
+                    className={`group flex shrink-0 items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors lg:w-full ${
                       isCurrent
-                        ? "bg-brand-accent/60"
+                        ? "bg-brand-accent"
                         : reachable
                           ? "hover:bg-brand-light"
-                          : "cursor-not-allowed opacity-60"
+                          : "cursor-not-allowed opacity-50"
                     }`}
                   >
                     <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold tabular-nums ${
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold tabular-nums transition-colors ${
                         isDone
                           ? "border-brand-primary bg-brand-primary text-white"
                           : isCurrent
@@ -325,42 +328,57 @@ export function SetupWizard(props: Props) {
                       }`}
                     >
                       {isDone ? (
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                        <Check className="h-3 w-3" strokeWidth={3} />
                       ) : (
                         s.n
                       )}
                     </span>
                     <span
-                      className={`whitespace-nowrap text-[13px] font-semibold lg:whitespace-normal ${
-                        isCurrent || isDone
+                      className={`flex-1 truncate text-[13px] font-medium ${
+                        isCurrent
                           ? "text-brand-ink"
-                          : "text-brand-mute"
+                          : "text-brand-mute group-hover:text-brand-ink"
                       }`}
                     >
                       {s.rail}
                     </span>
-                    {isDone && !isCurrent ? (
-                      <Check className="ml-auto hidden h-4 w-4 text-brand-primary lg:block" />
+                    {s.required && !isDone ? (
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-status-pending"
+                        title="Required"
+                      />
                     ) : null}
                   </button>
                 );
               })}
             </nav>
-            <div className="border-t border-brand-line px-4 py-3">
-              <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-brand-mute">
-                <span>{pct}% complete</span>
-                <span className="tabular-nums">
-                  {doneCount}/{requiredSections.length}
-                </span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-pill bg-brand-line">
-                <div
-                  className="h-full rounded-pill bg-brand-primary transition-all duration-500"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
           </div>
+
+          {/* Publish CTA — always visible in the rail, enabled once every
+              required step is done. (Mobile publishes from the review step.) */}
+          <button
+            type="button"
+            onClick={publish}
+            disabled={!ready || publishing}
+            className={`hidden w-full items-center justify-center gap-2 rounded-card px-4 py-3 text-sm font-semibold transition-all lg:flex ${
+              ready
+                ? "bg-brand-primary text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
+                : "cursor-not-allowed bg-brand-line text-brand-mute"
+            }`}
+          >
+            <Rocket className="h-4 w-4" />
+            {publishing
+              ? "Publishing…"
+              : ready
+                ? "Publish listing"
+                : "Finish required steps"}
+          </button>
+          {!ready ? (
+            <p className="hidden px-1 text-center text-[11px] leading-relaxed text-brand-mute lg:block">
+              Complete the required steps to go live. You can keep editing after
+              publishing.
+            </p>
+          ) : null}
         </aside>
 
         {/* ─── Content column ─── */}
