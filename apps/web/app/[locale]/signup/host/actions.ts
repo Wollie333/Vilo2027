@@ -1,7 +1,7 @@
 "use server";
 
 import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
-import { startProductPurchaseBySlug } from "@/lib/billing/product-checkout";
+import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -150,7 +150,9 @@ export async function startSignupCheckoutAction(
   if (!user?.email) {
     return { ok: false, error: "Your session expired — sign in to continue." };
   }
-  const r = await startProductPurchaseBySlug(slug, user.email);
+  // Goes straight to the Paystack card form when card is available (skips the
+  // redundant /pay/product summary page); falls back to that page for EFT-only.
+  const r = await startProductCheckoutDirect(slug, user.email);
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, url: r.url };
 }

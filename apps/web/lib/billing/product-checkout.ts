@@ -85,6 +85,48 @@ export async function startProductPurchaseBySlug(
   return createProductOrder({ productId: product.id, email, createdBy: null });
 }
 
+// Self-serve subscription checkout that jumps STRAIGHT to the Paystack card form
+// (skipping the /pay/product/[token] summary page) whenever card payment is
+// available for the product. Falls back to the summary page for EFT-only
+// products, or if Paystack init fails / isn't configured — so the user can still
+// pick a method there. Used by the signup wizard's "Continue to payment".
+export async function startProductCheckoutDirect(
+  slug: string,
+  email: string,
+): Promise<CreateOrderResult> {
+  const order = await startProductPurchaseBySlug(slug, email);
+  if (!order.ok) return order;
+
+  // Card available = product offers Paystack AND the platform has it enabled.
+  const admin = createAdminClient();
+  const [{ data: product }, { data: settings }] = await Promise.all([
+    admin
+      .from("products")
+      .select("payment_methods")
+      .eq("slug", slug)
+      .maybeSingle(),
+    admin
+      .from("platform_payment_settings")
+      .select("paystack_enabled")
+      .eq("id", true)
+      .maybeSingle(),
+  ]);
+  const methods: string[] = Array.isArray(product?.payment_methods)
+    ? (product!.payment_methods as string[])
+    : ["paystack"];
+  const cardAvailable =
+    methods.includes("paystack") && !!settings?.paystack_enabled;
+
+  if (cardAvailable) {
+    const pay = await startProductPaystack(order.token);
+    if (pay.ok) {
+      return { ok: true, token: order.token, url: pay.authorizationUrl };
+    }
+    // Init failed — fall through to the summary page (still lets them retry/EFT).
+  }
+  return order;
+}
+
 export type PurchaseResult =
   | { ok: true; url: string; free: boolean }
   | { ok: false; error: string };
