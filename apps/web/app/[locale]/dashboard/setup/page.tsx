@@ -301,8 +301,7 @@ export default async function SetupPage({
           | "business",
         branch_code: b.branch_code as string,
         swift_code: (b.swift_code as string | null) ?? null,
-        reference_format:
-          (b.reference_format as string) ?? "VILO-{booking_ref}",
+        reference_format: (b.reference_format as string) ?? "{booking_ref}",
         is_default: Boolean(b.is_default),
       }))}
       businessDefaults={{
@@ -319,6 +318,10 @@ export default async function SetupPage({
         billing_postcode: (businessDetails?.billing_postcode as string) ?? "",
         billing_country: (businessDetails?.billing_country as string) ?? "ZA",
       }}
+      businessNameSet={Boolean(
+        ((businessDetails?.trading_name as string | null) ?? "").trim() ||
+        ((businessDetails?.legal_name as string | null) ?? "").trim(),
+      )}
       photos={(photos ?? []).map((p) => ({
         id: p.id as string,
         url: p.url as string,

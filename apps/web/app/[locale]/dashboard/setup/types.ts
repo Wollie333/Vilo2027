@@ -1,5 +1,6 @@
 export type SetupStepKey =
   | "profile"
+  | "business"
   | "banking"
   | "listing"
   | "rooms"

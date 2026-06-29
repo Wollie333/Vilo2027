@@ -4,32 +4,29 @@ import {
   type Account,
   BankAccountList,
 } from "@/app/[locale]/dashboard/settings/banking/_components/BankAccountList";
-import { BusinessDetailsForm } from "@/app/[locale]/dashboard/settings/banking/_components/BusinessDetailsForm";
-import type { BusinessDetailsInput } from "@/app/[locale]/dashboard/settings/banking/schemas";
 
-// Setup "Business info" card — renders the SAME canonical components as
-// /dashboard/settings/banking (single source of truth): business details
-// first, then payout accounts. onChanged refreshes the wizard so the rail /
-// completion update after an account is added or changed.
+// Setup "Payment method" step — the payout account(s) where guest payments
+// land, also used on the EFT instructions guests pay into. Renders the SAME
+// canonical BankAccountList as /dashboard/settings/banking (single source of
+// truth). onChanged refreshes the wizard so the rail/completion update after an
+// account is added or changed. Account numbers are encrypted at rest.
 export function StepBanking({
   accounts,
-  businessDefaults,
   onChanged,
   onContinue,
 }: {
   accounts: Account[];
-  businessDefaults: BusinessDetailsInput;
   onChanged: () => void;
   onContinue: () => void;
 }) {
   return (
     <div className="space-y-5">
       <p className="-mt-1 text-sm text-brand-mute">
-        Your business details and payout accounts — used on EFT instructions,
-        invoices and quotes. Account numbers are encrypted at rest.
+        Add the bank account where your payouts land. It&rsquo;s also used on
+        the EFT instructions guests pay into. Account numbers are encrypted at
+        rest.
       </p>
 
-      <BusinessDetailsForm defaults={businessDefaults} onSaved={onChanged} />
       <BankAccountList accounts={accounts} onChanged={onChanged} />
 
       {accounts.length > 0 ? (

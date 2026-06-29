@@ -660,6 +660,7 @@ export async function togglePublishAction(
   // wizard uses, enforced here so no surface (editor/portfolio) can bypass it.
   const [
     { data: hostRow },
+    { data: bizRow },
     hasBankAccount,
     { count: photoCount },
     { count: roomCount },
@@ -670,6 +671,15 @@ export async function togglePublishAction(
       .from("hosts")
       .select("bio, avatar_url, languages_spoken")
       .eq("id", listing.host_id)
+      .maybeSingle(),
+    // The default business must be named (trading or legal) — it's the identity
+    // on invoices, quotes and EFT instructions, and a required setup step.
+    supabase
+      .from("businesses")
+      .select("trading_name, legal_name")
+      .eq("host_id", listing.host_id)
+      .eq("is_default", true)
+      .eq("is_archived", false)
       .maybeSingle(),
     // A listing can't go live without a VALID (default, non-archived) bank
     // account — it's the guaranteed payment fallback (AGENT_RULES.md §4.5/§4.6).
@@ -705,6 +715,9 @@ export async function togglePublishAction(
 
   const completion = computeSetupCompletion({
     host: hostRow ?? null,
+    businessNameSet: Boolean(
+      (bizRow?.trading_name ?? "").trim() || (bizRow?.legal_name ?? "").trim(),
+    ),
     hasBankAccount,
     listing,
     photoCount: photoCount ?? 0,
@@ -715,13 +728,14 @@ export async function togglePublishAction(
 
   const LABELS: Record<string, string> = {
     profile: "your host profile",
-    banking: "banking details",
+    business: "your business name",
+    banking: "a payout bank account",
     listing: "listing photos",
     rooms: "at least one room",
     policies: "a refund policy",
   };
   const missing = (
-    ["profile", "banking", "listing", "rooms", "policies"] as const
+    ["profile", "business", "banking", "listing", "rooms", "policies"] as const
   ).filter((k) => !completion[k]);
   if (missing.length > 0) {
     return {

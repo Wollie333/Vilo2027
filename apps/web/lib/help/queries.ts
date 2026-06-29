@@ -333,6 +333,7 @@ export async function fetchGettingStartedState(
   let setupPhotoCount = 0;
   let setupRoomCount = 0;
   let setupHasCancellation = false;
+  let setupHasHouseRules = false;
   if (hostId) {
     const { data: firstL } = await supabase
       .from("properties")
@@ -379,15 +380,26 @@ export async function fetchGettingStartedState(
       setupPhotoCount = photoCount ?? 0;
       setupRoomCount = roomCount ?? 0;
 
-      // A refund policy assigned listing-wide marks the Policies step done —
-      // mirrors the wizard, which reads property_policies the same way.
-      const { count: cancellationCount } = await supabase
-        .from("property_policies")
-        .select("id", { count: "exact", head: true })
-        .eq("property_id", row.id)
-        .eq("policy_type", "cancellation")
-        .is("room_id", null);
+      // A refund policy AND house rules assigned listing-wide mark the Policies
+      // step done — mirrors the wizard, which reads property_policies the same
+      // way (computeSetupCompletion requires both).
+      const [{ count: cancellationCount }, { count: houseRulesCount }] =
+        await Promise.all([
+          supabase
+            .from("property_policies")
+            .select("id", { count: "exact", head: true })
+            .eq("property_id", row.id)
+            .eq("policy_type", "cancellation")
+            .is("room_id", null),
+          supabase
+            .from("property_policies")
+            .select("id", { count: "exact", head: true })
+            .eq("property_id", row.id)
+            .eq("policy_type", "house_rules")
+            .is("room_id", null),
+        ]);
       setupHasCancellation = (cancellationCount ?? 0) > 0;
+      setupHasHouseRules = (houseRulesCount ?? 0) > 0;
     }
 
     const { data: listings } = await supabase
@@ -432,6 +444,7 @@ export async function fetchGettingStartedState(
     photoCount: setupPhotoCount,
     roomCount: setupRoomCount,
     hasCancellationPolicy: setupHasCancellation,
+    hasHouseRules: setupHasHouseRules,
   });
 
   return {

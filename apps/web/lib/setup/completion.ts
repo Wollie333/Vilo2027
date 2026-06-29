@@ -9,6 +9,7 @@
 
 export type SetupSectionKey =
   | "profile"
+  | "business"
   | "banking"
   | "listing"
   | "rooms"
@@ -21,6 +22,8 @@ export type SetupCompletionInput = {
     avatar_url?: string | null;
     languages_spoken?: string[] | null;
   } | null;
+  /** The host's default business has a trading or legal name set. */
+  businessNameSet?: boolean;
   /** A non-archived EFT bank account exists for the host. */
   hasBankAccount: boolean;
   listing: {
@@ -64,6 +67,10 @@ export function computeSetupCompletion(
     (host?.languages_spoken?.length ?? 0) > 0,
   );
 
+  // Business = the host has named their business (trading/legal name) — the
+  // identity that appears on invoices, quotes and EFT instructions.
+  const business = input.businessNameSet === true;
+
   const banking = input.hasBankAccount;
 
   // Listing details = photos. Pricing & capacity live entirely in Rooms.
@@ -87,6 +94,7 @@ export function computeSetupCompletion(
 
   return {
     profile,
+    business,
     banking,
     listing: listingDone,
     rooms: roomsDone,

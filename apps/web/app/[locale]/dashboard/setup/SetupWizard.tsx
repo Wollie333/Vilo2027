@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   BedDouble,
+  Building2,
   Check,
   CreditCard,
   ExternalLink,
@@ -33,6 +34,7 @@ import type { PolicyCard } from "../policies/PolicyManager";
 import type { PolicyType } from "../policies/schemas";
 import { SetupPreview } from "./SetupPreview";
 import { StepBanking } from "./steps/StepBanking";
+import { StepBusiness } from "./steps/StepBusiness";
 import { StepListing } from "./steps/StepListing";
 import { StepRooms } from "./steps/StepRooms";
 import { StepPolicies } from "./steps/StepPolicies";
@@ -68,17 +70,26 @@ const SECTIONS: SectionMeta[] = [
     help: "Tell guests who they're booking with — a photo and a few honest words go a long way.",
   },
   {
-    key: "banking",
+    key: "business",
     n: 2,
-    label: "Business & payouts",
+    label: "Business name & details",
     rail: "Business",
     required: true,
+    icon: Building2,
+    help: "Your business name and details — shown on invoices, quotes and EFT payment instructions.",
+  },
+  {
+    key: "banking",
+    n: 3,
+    label: "Payment method",
+    rail: "Payment",
+    required: true,
     icon: CreditCard,
-    help: "Your business details and where your payouts land.",
+    help: "The bank account where your payouts land, also used on EFT instructions for guests.",
   },
   {
     key: "listing",
-    n: 3,
+    n: 4,
     label: "Listing details",
     rail: "Listing",
     required: true,
@@ -87,7 +98,7 @@ const SECTIONS: SectionMeta[] = [
   },
   {
     key: "rooms",
-    n: 4,
+    n: 5,
     label: "Rooms & pricing",
     rail: "Rooms",
     required: true,
@@ -96,7 +107,7 @@ const SECTIONS: SectionMeta[] = [
   },
   {
     key: "policies",
-    n: 5,
+    n: 6,
     label: "Policies & house rules",
     rail: "Policies",
     required: true,
@@ -105,7 +116,7 @@ const SECTIONS: SectionMeta[] = [
   },
   {
     key: "review",
-    n: 6,
+    n: 7,
     label: "Preview & publish",
     rail: "Publish",
     required: false,
@@ -122,6 +133,7 @@ type Props = {
   listing: Listing;
   bankAccounts: Account[];
   businessDefaults: BusinessDetailsInput;
+  businessNameSet: boolean;
   photos: Photo[];
   rooms: Room[];
   categoryLeaves: CategoryPickerLeaf[];
@@ -164,6 +176,7 @@ export function SetupWizard(props: Props) {
     () =>
       computeSetupCompletion({
         host,
+        businessNameSet: props.businessNameSet,
         hasBankAccount: bankAccounts.length > 0,
         listing,
         photoCount: photos.length,
@@ -171,7 +184,15 @@ export function SetupWizard(props: Props) {
         hasCancellationPolicy: policyAssignments.cancellation != null,
         hasHouseRules: policyAssignments.house_rules != null,
       }),
-    [host, bankAccounts, listing, photos, rooms, policyAssignments],
+    [
+      host,
+      props.businessNameSet,
+      bankAccounts,
+      listing,
+      photos,
+      rooms,
+      policyAssignments,
+    ],
   );
 
   const requiredSections = SECTIONS.filter((s) => s.required);
@@ -243,189 +264,239 @@ export function SetupWizard(props: Props) {
     });
   }
 
-  const containerMax = isReview ? "max-w-5xl" : "max-w-3xl";
-
   return (
-    <div className={`mx-auto ${containerMax}`}>
-      {/* stepper bar */}
-      <div className="mb-6 overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <Link
-            href="/dashboard"
-            className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light"
-          >
-            <ArrowLeft className="h-3.5 w-3.5 text-brand-mute" /> Exit
-          </Link>
-          <div className="mx-auto hidden items-center gap-1 md:flex">
-            {SECTIONS.map((s, i) => {
-              const reachable = i <= maxReached;
-              const isCurrent = i === current;
-              const isDone = done[s.key] && !isCurrent && s.key !== "review";
-              return (
-                <div key={s.key} className="flex items-center gap-1">
-                  {i > 0 ? (
-                    <span
-                      className={`h-px w-5 ${i <= maxReached ? "bg-brand-primary/40" : "bg-brand-line"}`}
-                    />
-                  ) : null}
+    <div className="mx-auto max-w-6xl">
+      {/* mobile top bar */}
+      <div className="mb-4 flex items-center gap-3 lg:hidden">
+        <Link
+          href="/dashboard"
+          className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 text-brand-mute" /> Exit
+        </Link>
+        <span className="ml-auto text-[12.5px] font-medium tabular-nums text-brand-mute">
+          Step {current + 1} of {SECTIONS.length}
+        </span>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+        {/* ─── Left rail: clickable steps with green checkmarks ─── */}
+        <aside className="lg:sticky lg:top-6 lg:self-start">
+          <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+            <div className="hidden items-center justify-between border-b border-brand-line px-4 py-3 lg:flex">
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                Set up your place
+              </span>
+              <Link
+                href="/dashboard"
+                title="Exit setup"
+                className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-brand-mute transition hover:text-brand-ink"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> Exit
+              </Link>
+            </div>
+            <nav className="flex gap-1 overflow-x-auto p-2 lg:flex-col lg:overflow-visible">
+              {SECTIONS.map((s, i) => {
+                const reachable = i <= maxReached;
+                const isCurrent = i === current;
+                const isDone = done[s.key] && s.key !== "review";
+                return (
                   <button
+                    key={s.key}
                     type="button"
                     onClick={() => goTo(i)}
                     disabled={!reachable}
                     title={s.label}
-                    className={`flex h-7 min-w-7 items-center justify-center rounded-full border text-[11px] font-bold tabular-nums transition-colors ${
+                    className={`flex shrink-0 items-center gap-2.5 rounded-card px-3 py-2.5 text-left transition-colors lg:w-full ${
                       isCurrent
-                        ? "border-brand-primary bg-brand-primary text-white"
-                        : isDone
-                          ? "border-brand-primary/40 bg-brand-accent text-brand-secondary hover:bg-brand-accent/70"
-                          : "border-brand-line bg-white text-brand-mute"
-                    } ${!reachable ? "cursor-not-allowed" : "cursor-pointer"}`}
+                        ? "bg-brand-accent/60"
+                        : reachable
+                          ? "hover:bg-brand-light"
+                          : "cursor-not-allowed opacity-60"
+                    }`}
                   >
-                    {isDone ? (
-                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                    ) : (
-                      s.n
-                    )}
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold tabular-nums ${
+                        isDone
+                          ? "border-brand-primary bg-brand-primary text-white"
+                          : isCurrent
+                            ? "border-brand-primary bg-white text-brand-primary"
+                            : "border-brand-line bg-white text-brand-mute"
+                      }`}
+                    >
+                      {isDone ? (
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                      ) : (
+                        s.n
+                      )}
+                    </span>
+                    <span
+                      className={`whitespace-nowrap text-[13px] font-semibold lg:whitespace-normal ${
+                        isCurrent || isDone
+                          ? "text-brand-ink"
+                          : "text-brand-mute"
+                      }`}
+                    >
+                      {s.rail}
+                    </span>
+                    {isDone && !isCurrent ? (
+                      <Check className="ml-auto hidden h-4 w-4 text-brand-primary lg:block" />
+                    ) : null}
                   </button>
-                </div>
-              );
-            })}
+                );
+              })}
+            </nav>
+            <div className="border-t border-brand-line px-4 py-3">
+              <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-brand-mute">
+                <span>{pct}% complete</span>
+                <span className="tabular-nums">
+                  {doneCount}/{requiredSections.length}
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-pill bg-brand-line">
+                <div
+                  className="h-full rounded-pill bg-brand-primary transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
           </div>
-          <span className="ml-auto text-[12.5px] font-medium tabular-nums text-brand-mute">
-            Step {current + 1} of {SECTIONS.length}
-          </span>
-        </div>
-        <div className="h-1 w-full bg-brand-line">
-          <div
-            className="h-full bg-brand-primary transition-all duration-500"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </div>
+        </aside>
 
-      {/* step heading */}
-      <div className="mb-5">
-        <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
-          <cur.icon className="h-3.5 w-3.5" />{" "}
-          {cur.required ? "Required" : "Final"} step
-        </span>
-        <h1 className="mt-3 font-display text-[26px] font-extrabold leading-tight tracking-tight text-brand-ink md:text-[28px]">
-          {cur.label}
-        </h1>
-        <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-brand-mute">
-          {cur.help}
-        </p>
-      </div>
+        {/* ─── Content column ─── */}
+        <div className="min-w-0">
+          {/* step heading */}
+          <div className="mb-5">
+            <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
+              <cur.icon className="h-3.5 w-3.5" />{" "}
+              {cur.required ? "Required" : "Final"} step
+            </span>
+            <h1 className="mt-3 font-display text-[26px] font-extrabold leading-tight tracking-tight text-brand-ink md:text-[28px]">
+              {cur.label}
+            </h1>
+            <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-brand-mute">
+              {cur.help}
+            </p>
+          </div>
 
-      {/* step body */}
-      {isReview ? (
-        <SetupPreview
-          host={host}
-          profile={profile}
-          listing={listing}
-          photos={photos}
-          rooms={rooms}
-          ready={ready}
-          publishing={publishing}
-          missing={missing.map((m) => ({ key: m.key, label: m.label }))}
-          onPublish={publish}
-          onJump={(key) => {
-            const i = SECTIONS.findIndex((s) => s.key === key);
-            if (i >= 0) {
-              setCurrent(i);
-              setMaxReached((m) => Math.max(m, i));
-            }
-          }}
-        />
-      ) : (
-        <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <div className="p-6 md:p-7">
-            {cur.key === "profile" ? (
-              <StepProfile
-                host={host}
-                profile={profile}
-                emailVerified={props.emailVerified}
-                onSaved={(nextVal) => {
-                  setHost((h) => ({ ...h, ...nextVal.host }));
-                  setProfile((p) => ({ ...p, ...nextVal.profile }));
-                  next();
-                }}
-              />
-            ) : null}
-            {cur.key === "banking" ? (
-              <StepBanking
-                accounts={bankAccounts}
-                businessDefaults={businessDefaults}
-                onChanged={() => refreshWith("Saving your details…")}
-                onContinue={next}
-              />
-            ) : null}
-            {cur.key === "listing" ? (
-              <StepListing
-                listing={listing}
-                photos={photos}
-                categoryLeaves={props.categoryLeaves}
-                amenityGroups={props.amenityGroups}
-                amenities={amenities}
-                onListingChanged={(patch) =>
-                  setListing((l) => ({ ...l, ...patch }))
+          {/* step body */}
+          {isReview ? (
+            <SetupPreview
+              host={host}
+              profile={profile}
+              listing={listing}
+              photos={photos}
+              rooms={rooms}
+              ready={ready}
+              publishing={publishing}
+              missing={missing.map((m) => ({ key: m.key, label: m.label }))}
+              onPublish={publish}
+              onJump={(key) => {
+                const i = SECTIONS.findIndex((s) => s.key === key);
+                if (i >= 0) {
+                  setCurrent(i);
+                  setMaxReached((m) => Math.max(m, i));
                 }
-                onPhotosChanged={(nextVal) => setPhotos(nextVal)}
-                onAmenitiesChanged={(nextVal) => setAmenities(nextVal)}
-                onContinue={next}
-              />
-            ) : null}
-            {cur.key === "rooms" ? (
-              <StepRooms
-                listingId={listing.id}
-                rooms={rooms}
-                onChanged={() => refreshWith("Saving your room…")}
-                onContinue={next}
-              />
-            ) : null}
-            {cur.key === "policies" ? (
-              <StepPolicies
-                listing={listing}
-                policies={policies}
-                assignments={policyAssignments}
-                onChanged={() => refreshWith("Saving your policy…")}
-                onContinue={next}
-              />
+              }}
+            />
+          ) : (
+            <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="p-6 md:p-7">
+                {cur.key === "profile" ? (
+                  <StepProfile
+                    host={host}
+                    profile={profile}
+                    emailVerified={props.emailVerified}
+                    onSaved={(nextVal) => {
+                      setHost((h) => ({ ...h, ...nextVal.host }));
+                      setProfile((p) => ({ ...p, ...nextVal.profile }));
+                      next();
+                    }}
+                  />
+                ) : null}
+                {cur.key === "business" ? (
+                  <StepBusiness
+                    businessDefaults={businessDefaults}
+                    nameSet={props.businessNameSet}
+                    onChanged={() => refreshWith("Saving your business…")}
+                    onContinue={next}
+                  />
+                ) : null}
+                {cur.key === "banking" ? (
+                  <StepBanking
+                    accounts={bankAccounts}
+                    onChanged={() => refreshWith("Saving your payment method…")}
+                    onContinue={next}
+                  />
+                ) : null}
+                {cur.key === "listing" ? (
+                  <StepListing
+                    listing={listing}
+                    photos={photos}
+                    categoryLeaves={props.categoryLeaves}
+                    amenityGroups={props.amenityGroups}
+                    amenities={amenities}
+                    onListingChanged={(patch) =>
+                      setListing((l) => ({ ...l, ...patch }))
+                    }
+                    onPhotosChanged={(nextVal) => setPhotos(nextVal)}
+                    onAmenitiesChanged={(nextVal) => setAmenities(nextVal)}
+                    onContinue={next}
+                  />
+                ) : null}
+                {cur.key === "rooms" ? (
+                  <StepRooms
+                    listingId={listing.id}
+                    rooms={rooms}
+                    onChanged={() => refreshWith("Saving your room…")}
+                    onContinue={next}
+                  />
+                ) : null}
+                {cur.key === "policies" ? (
+                  <StepPolicies
+                    listing={listing}
+                    policies={policies}
+                    assignments={policyAssignments}
+                    onChanged={() => refreshWith("Saving your policy…")}
+                    onContinue={next}
+                  />
+                ) : null}
+              </div>
+            </section>
+          )}
+
+          {/* footer nav — a single global Back (each step owns its own forward
+          "Continue"/"Save & continue" button); the review step adds Publish. */}
+          <div className="mt-6 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={back}
+              disabled={current === 0}
+              className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2.5 text-[13.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </button>
+            {isReview ? (
+              <button
+                type="button"
+                onClick={publish}
+                disabled={publishing}
+                className={`ml-auto inline-flex items-center gap-1.5 rounded-pill px-5 py-2.5 text-[14px] font-semibold text-white transition ${
+                  ready
+                    ? "bg-brand-primary shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
+                    : "cursor-not-allowed bg-brand-mute/60"
+                }`}
+              >
+                <Rocket className="h-4 w-4" />
+                {publishing
+                  ? "Publishing…"
+                  : ready
+                    ? "Publish listing"
+                    : "Finish required steps"}
+              </button>
             ) : null}
           </div>
-        </section>
-      )}
-
-      {/* footer nav — a single global Back (each step owns its own forward
-          "Continue"/"Save & continue" button); the review step adds Publish. */}
-      <div className="mt-6 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={back}
-          disabled={current === 0}
-          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2.5 text-[13.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
-        {isReview ? (
-          <button
-            type="button"
-            onClick={publish}
-            disabled={publishing}
-            className={`ml-auto inline-flex items-center gap-1.5 rounded-pill px-5 py-2.5 text-[14px] font-semibold text-white transition ${
-              ready
-                ? "bg-brand-primary shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
-                : "cursor-not-allowed bg-brand-mute/60"
-            }`}
-          >
-            <Rocket className="h-4 w-4" />
-            {publishing
-              ? "Publishing…"
-              : ready
-                ? "Publish listing"
-                : "Finish required steps"}
-          </button>
-        ) : null}
+        </div>
       </div>
 
       <BusyOverlay show={refreshing} label={busyLabel} />
