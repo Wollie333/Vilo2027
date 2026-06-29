@@ -5,15 +5,35 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { markComplete, markProcessing, rejectRequest } from "./actions";
+import {
+  fulfillDeletion,
+  fulfillExport,
+  markProcessing,
+  rejectRequest,
+} from "./actions";
 
 type Mode = "processing" | "complete" | "reject";
 
+/** Trigger a client-side download of generated export JSON. */
+function downloadJson(filename: string, json: string) {
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function RequestActions({
   requestId,
+  requestType,
   status,
 }: {
   requestId: string;
+  requestType: "export" | "deletion";
   status: string;
 }) {
   const router = useRouter();
@@ -21,26 +41,50 @@ export function RequestActions({
   const [reason, setReason] = useState("");
   const [pending, start] = useTransition();
 
+  const completeLabel =
+    requestType === "export" ? "Fulfil export" : "Fulfil deletion";
+
   function submit() {
     if (reason.trim().length < 5) {
       toast.error("Reason must be at least 5 characters.");
       return;
     }
     start(async () => {
-      const fn =
-        mode === "complete"
-          ? markComplete
-          : mode === "reject"
-            ? rejectRequest
-            : markProcessing;
-      const result = await fn({ requestId, reason: reason.trim() });
+      const input = { requestId, reason: reason.trim() };
+      if (mode === "complete") {
+        if (requestType === "export") {
+          const res = await fulfillExport(input);
+          if (res.ok) {
+            downloadJson(res.filename, res.json);
+            toast.success("Export generated & downloaded.");
+          } else {
+            toast.error(res.error);
+            return;
+          }
+        } else {
+          const res = await fulfillDeletion(input);
+          if (res.ok) {
+            toast.success(
+              res.method === "hard_deleted"
+                ? "User hard-deleted."
+                : "User anonymised (had records).",
+            );
+          } else {
+            toast.error(res.error);
+            return;
+          }
+        }
+        setMode(null);
+        setReason("");
+        router.refresh();
+        return;
+      }
+
+      const fn = mode === "reject" ? rejectRequest : markProcessing;
+      const result = await fn(input);
       if (result.ok) {
         toast.success(
-          mode === "complete"
-            ? "Marked complete."
-            : mode === "reject"
-              ? "Request rejected."
-              : "Marked as processing.",
+          mode === "reject" ? "Request rejected." : "Marked as processing.",
         );
         setMode(null);
         setReason("");
@@ -68,7 +112,7 @@ export function RequestActions({
           onClick={() => setMode("complete")}
           className="rounded bg-status-confirmed px-3 py-1.5 text-xs font-semibold text-white hover:bg-status-confirmed/90"
         >
-          Mark complete
+          {completeLabel}
         </button>
         <button
           type="button"

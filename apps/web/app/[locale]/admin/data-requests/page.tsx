@@ -185,7 +185,11 @@ export default async function AdminDataRequestsPage({
                     </div>
                   </div>
                   {r.status === "pending" || r.status === "processing" ? (
-                    <RequestActions requestId={r.id} status={r.status} />
+                    <RequestActions
+                      requestId={r.id}
+                      requestType={r.request_type}
+                      status={r.status}
+                    />
                   ) : null}
                 </header>
 

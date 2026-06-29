@@ -28,6 +28,23 @@ emerald `--primary` category/links) so editing a post didn't look like the real
 `#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
 look. (Computed-style readout, no console errors.)
 
+## 2026-06-29 — Admin MVP refinements (batch C): GDPR/POPIA request fulfilment (#4)
+
+Data requests previously only flipped status. Now they actually fulfil:
+- **Export** — `fulfillExportAction` gathers the user's data (profile, bookings,
+  reviews, host record; defensive per-section) into JSON, marks the request
+  completed, and the admin UI downloads the file ("Fulfil export").
+- **Deletion (hybrid, per decision)** — `fulfillDeletionAction` tries a clean hard
+  delete first; if RESTRICT FKs block it (bookings/invoices/payments/audit), it
+  falls back to **anonymisation** (scrub name/email/phone/avatar on the profile +
+  auth identity, set deleted_at). This satisfies erasure while preserving
+  accounting/audit integrity and the never-hard-delete guardrail. UI reports which
+  path ran ("hard-deleted" vs "anonymised").
+- `RequestActions` branches the Complete button by request type; both paths are
+  reason-gated + audited.
+
+`tsc` + `next lint` clean.
+
 ## 2026-06-29 — Admin MVP refinements (batch B): staff invite/accept flow + sidebar permission filter
 
 - **Staff management (#5) — full invite + accept flow.** Platform → Staff is now
