@@ -434,6 +434,40 @@ export async function createEnquiry(
     // Notification is best-effort — the enquiry already succeeded.
   }
 
+  // Email the host too (best-effort) so a new quote request reaches them even
+  // when they're not in the dashboard — the in-app + push fired above. Mirrors
+  // the guest acknowledgement below; never blocks the enquiry.
+  try {
+    const { data: hostProfile } = await admin
+      .from("user_profiles")
+      .select("email")
+      .eq("id", hostRow.user_id)
+      .maybeSingle();
+    const hostEmail = hostProfile?.email?.trim();
+    if (hostEmail) {
+      const escHost = (s: string) =>
+        s.replace(
+          /[<>&]/g,
+          (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] ?? c,
+        );
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const inboxLink = appUrl
+        ? `<p><a href="${appUrl}/dashboard/inbox?f=enquiries&c=${conversationId}" style="color:#0d9488;font-weight:600">Open the request in your inbox &rarr;</a></p>`
+        : "";
+      const { getBrandName } = await import("@/lib/brand");
+      const brand = await getBrandName();
+      const { sendTransactionalEmail } = await import("@/lib/email/send");
+      const hostFirst = hostRow.display_name?.trim().split(" ")[0] || "there";
+      await sendTransactionalEmail({
+        to: hostEmail,
+        subject: `New quote request for ${listing.name}`,
+        html: `<p>Hi ${escHost(hostFirst)},</p><p><strong>${escHost(d.guest_name)}</strong> requested a quote for <strong>${escHost(listing.name)}</strong> (${d.check_in} &rarr; ${d.check_out}, ${headcount} guest${headcount === 1 ? "" : "s"}).</p>${inboxLink}<p style="color:#6b7280;font-size:12px">Sent via ${escHost(brand)}</p>`,
+      });
+    }
+  } catch {
+    // Email is best-effort — the enquiry already succeeded.
+  }
+
   // Decide where the guest goes after submitting, and (for a new/unclaimed
   // lead) mint a single magic-link token reused by BOTH the in-app redirect and
   // the email link — generating two would invalidate the first.
