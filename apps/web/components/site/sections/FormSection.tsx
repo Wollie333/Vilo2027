@@ -9,6 +9,7 @@ import {
 import { formStyleVars } from "@/lib/website/formStyle";
 import { siteThankYouHref } from "@/lib/site/thankYouHref";
 import { ThemedDateRange } from "@/components/site/ThemedDateRange";
+import { SiteLoadingOverlay } from "@/components/site/SiteLoadingOverlay";
 import type { FormRenderData, SiteFormDef } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
@@ -540,6 +541,19 @@ export function FormSection({
   // STACKED (default) — centred heading/intro above the form.
   return (
     <SectionShell surface width="narrow">
+      <SiteLoadingOverlay
+        show={status === "sending"}
+        message={
+          form?.settings.goal === "booking"
+            ? "Opening your booking…"
+            : "Sending…"
+        }
+        sub={
+          form?.settings.goal === "booking"
+            ? "Taking you to checkout."
+            : "One moment."
+        }
+      />
       {props.heading ? (
         <SectionHeading className="mb-3">{props.heading}</SectionHeading>
       ) : null}

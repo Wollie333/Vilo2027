@@ -23,6 +23,7 @@ import {
   turnstileEnabled,
 } from "@/components/site/TurnstileWidget";
 import { ThemedDateRange } from "@/components/site/ThemedDateRange";
+import { SiteLoadingOverlay } from "@/components/site/SiteLoadingOverlay";
 
 export type CheckoutRoom = {
   id: string;
@@ -391,6 +392,19 @@ export function SiteCheckoutForm({
 
   return (
     <SectionShell>
+      <SiteLoadingOverlay
+        show={submitting}
+        message={
+          method === "eft"
+            ? "Reserving your stay…"
+            : "Taking you to secure payment…"
+        }
+        sub={
+          method === "eft"
+            ? "Fetching your booking & payment details."
+            : "Please don’t close this page."
+        }
+      />
       <SectionHeading className="mb-2">Book {propertyName}</SectionHeading>
       <Muted className="mb-8 text-center text-base">
         Reserve your stay directly — no booking fees.

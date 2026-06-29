@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ThemedDateRange } from "./ThemedDateRange";
+import { SiteLoadingOverlay } from "./SiteLoadingOverlay";
 
 /**
  * Sticky per-room booking form — a compact card that floats on the right of the
@@ -44,6 +45,7 @@ export function RoomBookingDock({
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [guests, setGuests] = useState(2);
+  const [navigating, setNavigating] = useState(false);
 
   // Deterministic price format (NO Intl): Intl currency formatting differs between
   // the Node SSR and the browser (ICU version + the space/grouping chars it emits),
@@ -83,6 +85,7 @@ export function RoomBookingDock({
     params.set("to", to);
     params.set("guests", String(guests));
     const sep = bookHref.includes("?") ? "&" : "?";
+    setNavigating(true);
     window.location.href = `${bookHref}${sep}${params.toString()}`;
   }
 
@@ -106,6 +109,11 @@ export function RoomBookingDock({
 
   return (
     <aside className="room-book-dock" aria-label="Book this room">
+      <SiteLoadingOverlay
+        show={navigating}
+        message="Opening your booking…"
+        sub="Taking you to checkout."
+      />
       <style>{`
         .room-book-dock{width:100%;}
         .room-book-dock .rbd-card{border:1px solid ${line};border-radius:${radius};background:${surface};padding:18px;box-shadow:0 18px 40px -28px rgba(6,40,28,.45);}
