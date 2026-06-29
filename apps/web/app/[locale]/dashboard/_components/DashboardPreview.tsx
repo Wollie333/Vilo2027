@@ -2,7 +2,7 @@ const DEMO_BOOKINGS = [
   {
     name: "Lerato Dlamini",
     listing: "Sea Point Suite",
-    ref: "VILO-2026-CT4912",
+    ref: "WIELO-2026-CT4912",
     range: "12 Jun → 15 Jun",
     amount: "R 4 200",
     initial: "LD",
@@ -10,7 +10,7 @@ const DEMO_BOOKINGS = [
   {
     name: "Marco Lehmann",
     listing: "Garden Cottage",
-    ref: "VILO-2026-CT4908",
+    ref: "WIELO-2026-CT4908",
     range: "18 Jun → 22 Jun",
     amount: "R 6 800",
     initial: "ML",
@@ -18,7 +18,7 @@ const DEMO_BOOKINGS = [
   {
     name: "Aisha Patel",
     listing: "Sea Point Suite",
-    ref: "VILO-2026-CT4901",
+    ref: "WIELO-2026-CT4901",
     range: "24 Jun → 27 Jun",
     amount: "R 3 950",
     initial: "AP",

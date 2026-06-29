@@ -25,14 +25,14 @@ type Props = {
 export default function EftInstructionsGuest({
   guestFirstName = "there",
   listingName = "your stay",
-  bookingReference = "VILO-XXXX",
+  bookingReference = "WIELO-XXXX",
   totalAmount = "—",
   bankName = "—",
   accountHolder = "—",
   accountNumber = "—",
   branchCode = "—",
   swiftCode = "—",
-  paymentReference = "VILO-XXXX",
+  paymentReference = "WIELO-XXXX",
   bookingId = "",
   deadline = "48 hours from now",
 }: Props) {

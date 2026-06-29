@@ -13,7 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // components/brand/BrandProvider.
 
 export const DEFAULT_BRAND = "Wielo";
-export const DEFAULT_COMPANY_NAME = "Vilo Platform (Pty) Ltd";
+export const DEFAULT_COMPANY_NAME = "Wielo Platform (Pty) Ltd";
 export const DEFAULT_COMPANY_LOCATION = "Cape Town, South Africa";
 
 // Read one platform_settings string value, falling back to a default.

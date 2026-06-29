@@ -82,7 +82,7 @@ export function buildIcalFeed({
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Vilo Platform//Wielo//EN",
+    "PRODID:-//Wielo Platform//Wielo//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapeText(calendarName)}`,

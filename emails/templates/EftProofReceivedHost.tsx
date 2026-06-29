@@ -21,7 +21,7 @@ export default function EftProofReceivedHost({
   guestName = "Your guest",
   listingName = "your listing",
   totalAmount = "—",
-  bookingReference = "VILO-XXXX",
+  bookingReference = "WIELO-XXXX",
   bookingId = "",
 }: Props) {
   return (

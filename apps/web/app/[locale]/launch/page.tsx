@@ -487,7 +487,7 @@ export default async function LaunchPage() {
                       New direct booking
                     </div>
                     <div className="truncate font-mono text-[11px] text-brand-mute">
-                      VILO-2026-AB3471 · 4 nights
+                      WIELO-2026-AB3471 · 4 nights
                     </div>
                   </div>
                 </div>
@@ -1717,7 +1717,7 @@ export default async function LaunchPage() {
           </div>
 
           <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs md:flex-row md:items-center">
-            <div>© 2026 Vilo Platform (Pty) Ltd. Cape Town, South Africa.</div>
+            <div>© 2026 Wielo Platform (Pty) Ltd. Cape Town, South Africa.</div>
             <div className="flex items-center gap-3 font-mono md:ml-auto">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />{" "}

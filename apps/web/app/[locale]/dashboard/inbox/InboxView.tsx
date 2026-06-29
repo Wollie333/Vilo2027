@@ -552,7 +552,7 @@ function DetailsDrawer({
       : "Wielo conversation";
   const refValue =
     context.booking?.reference ??
-    `VILO-${context.conversationId.slice(0, 8).toUpperCase()}`;
+    `WIELO-${context.conversationId.slice(0, 8).toUpperCase()}`;
 
   const listingMeta = context.listing
     ? [

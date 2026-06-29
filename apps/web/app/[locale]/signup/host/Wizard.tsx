@@ -1620,7 +1620,7 @@ function StepWelcome({
   const vat = Math.round((baseAmount - subtotal) * 100) / 100;
   const total = baseAmount;
 
-  // Order reference: VILO-{yyyymmdd}-{first6OfHostId}. Falls back to a
+  // Order reference: WIELO-{yyyymmdd}-{first6OfHostId}. Falls back to a
   // session-stable placeholder while finalize is in flight.
   const today = new Date();
   const yyyymmdd =
@@ -1628,8 +1628,8 @@ function StepWelcome({
     `${String(today.getMonth() + 1).padStart(2, "0")}` +
     `${String(today.getDate()).padStart(2, "0")}`;
   const ref = finalizeResult
-    ? `VILO-${yyyymmdd}-${finalizeResult.host_id.replace(/-/g, "").slice(0, 6).toUpperCase()}`
-    : `VILO-${yyyymmdd}-……`;
+    ? `WIELO-${yyyymmdd}-${finalizeResult.host_id.replace(/-/g, "").slice(0, 6).toUpperCase()}`
+    : `WIELO-${yyyymmdd}-……`;
 
   return (
     <div className="wielo-step-enter relative">

@@ -22,7 +22,7 @@ function applyIdentity(
     body:
       typeof s.body === "string"
         ? s.body
-            .split("Vilo Platform (Pty) Ltd")
+            .split("Wielo Platform (Pty) Ltd")
             .join(companyName)
             .split("Wielo")
             .join(brand)
@@ -43,7 +43,7 @@ const LAST_UPDATED = "2026-05-23";
 const SECTIONS: ReadonlyArray<LegalSectionData> = [
   {
     heading: "1. Introduction",
-    body: "These Terms of Service (“Terms”) govern your access to and use of the Wielo platform, operated by Vilo Platform (Pty) Ltd. By creating an account, listing a property, or making a booking, you agree to these Terms.",
+    body: "These Terms of Service (“Terms”) govern your access to and use of the Wielo platform, operated by Wielo Platform (Pty) Ltd. By creating an account, listing a property, or making a booking, you agree to these Terms.",
   },
   {
     heading: "2. Acceptance and changes",

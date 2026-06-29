@@ -63,7 +63,7 @@ describe("buildIcalFeed (RFC 5545 export)", () => {
     expect(feed.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
     expect(feed.trimEnd().endsWith("END:VCALENDAR")).toBe(true);
     expect(feed).toContain("VERSION:2.0");
-    expect(feed).toContain("PRODID:-//Vilo Platform//Wielo//EN");
+    expect(feed).toContain("PRODID:-//Wielo Platform//Wielo//EN");
     expect(feed.includes("\r\n")).toBe(true);
   });
 

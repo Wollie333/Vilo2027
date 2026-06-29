@@ -29,7 +29,7 @@ export default function BookingConfirmedGuest({
   checkOut = "—",
   nights = 1,
   totalAmount = "—",
-  bookingReference = "VILO-XXXX",
+  bookingReference = "WIELO-XXXX",
   bookingId = "",
   checkInTime = "—",
   address = "Address shared by host",

@@ -72,7 +72,7 @@ const EMPTY_DEFAULTS: BankAccountInput = {
   account_type: "cheque",
   branch_code: "",
   swift_code: "",
-  reference_format: "VILO-{booking_ref}",
+  reference_format: "WIELO-{booking_ref}",
   is_default: false,
 };
 
@@ -346,7 +346,7 @@ export function BankAccountDialog({
                   <FormControl>
                     <Input
                       disabled={pending}
-                      placeholder="VILO-{booking_ref}"
+                      placeholder="WIELO-{booking_ref}"
                       {...field}
                     />
                   </FormControl>

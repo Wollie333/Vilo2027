@@ -7,7 +7,7 @@ import { createContext, useContext } from "react";
 // at the root layout, so client code never queries them. Use:
 //   const brand = useBrandName();        // "Wielo" (or the configured name)
 //   <BrandName />                        // renders the brand name as text
-//   const co = useCompanyName();         // "Vilo Platform (Pty) Ltd"
+//   const co = useCompanyName();         // "Wielo Platform (Pty) Ltd"
 //   const loc = useCompanyLocation();    // "Cape Town, South Africa"
 
 export type Branding = {
@@ -18,7 +18,7 @@ export type Branding = {
 
 const DEFAULTS: Branding = {
   brandName: "Wielo",
-  companyName: "Vilo Platform (Pty) Ltd",
+  companyName: "Wielo Platform (Pty) Ltd",
   companyLocation: "Cape Town, South Africa",
 };
 

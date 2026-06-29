@@ -24,7 +24,7 @@ const HERO_BOOKINGS = [
       "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=80&q=70&auto=format&fit=crop",
     alt: "Karoo Cottage",
     guest: "Anna Mokoena · Karoo Cottage",
-    ref: "VILO-2026-AB3471 · 4 nights",
+    ref: "WIELO-2026-AB3471 · 4 nights",
     status: "confirmed" as const,
   },
   {
@@ -32,7 +32,7 @@ const HERO_BOOKINGS = [
       "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=80&q=70&auto=format&fit=crop",
     alt: "Tide Beach House",
     guest: "Jordan Visser · Tide Beach House",
-    ref: "VILO-2026-CD9210 · 2 nights",
+    ref: "WIELO-2026-CD9210 · 2 nights",
     status: "pending" as const,
   },
   {
@@ -40,7 +40,7 @@ const HERO_BOOKINGS = [
       "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=80&q=70&auto=format&fit=crop",
     alt: "Drakensberg Lodge",
     guest: "Sam Khumalo · Drakensberg Lodge",
-    ref: "VILO-2026-EF5582 · 6 nights",
+    ref: "WIELO-2026-EF5582 · 6 nights",
     status: "confirmed" as const,
   },
 ];

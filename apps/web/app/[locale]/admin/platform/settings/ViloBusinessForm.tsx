@@ -21,7 +21,7 @@ const FIELDS: {
     key: "legal_name",
     label: "Registered company name",
     hint: "The legal entity that issues Wielo invoices.",
-    placeholder: "Vilo Platform (Pty) Ltd",
+    placeholder: "Wielo Platform (Pty) Ltd",
   },
   {
     key: "vat_number",

@@ -23,7 +23,7 @@ function applyIdentity(
     body:
       typeof s.body === "string"
         ? s.body
-            .split("Vilo Platform (Pty) Ltd")
+            .split("Wielo Platform (Pty) Ltd")
             .join(companyName)
             .split("Wielo")
             .join(brand)
@@ -44,7 +44,7 @@ const LAST_UPDATED = "2026-05-23";
 const SECTIONS: ReadonlyArray<LegalSectionData> = [
   {
     heading: "1. Introduction",
-    body: "Vilo Platform (Pty) Ltd (“Wielo”, “we”, “us”) operates a direct-booking platform connecting accommodation hosts in South Africa with guests. This policy explains what personal information we collect, why we collect it, how we use it, and the rights you have under the Protection of Personal Information Act, 2013 (POPIA).",
+    body: "Wielo Platform (Pty) Ltd (“Wielo”, “we”, “us”) operates a direct-booking platform connecting accommodation hosts in South Africa with guests. This policy explains what personal information we collect, why we collect it, how we use it, and the rights you have under the Protection of Personal Information Act, 2013 (POPIA).",
   },
   {
     heading: "2. Information we collect",

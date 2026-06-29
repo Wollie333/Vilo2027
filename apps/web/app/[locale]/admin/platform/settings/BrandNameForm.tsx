@@ -75,14 +75,14 @@ export function BrandingForm({
         </Field>
         <Field
           label="Registered company name"
-          hint="Legal entity in copyright + terms/privacy (e.g. “Vilo Platform (Pty) Ltd”)."
+          hint="Legal entity in copyright + terms/privacy (e.g. “Wielo Platform (Pty) Ltd”)."
         >
           <input
             type="text"
             value={companyName}
             maxLength={120}
             onChange={(e) => setCompanyName(e.target.value)}
-            placeholder="Vilo Platform (Pty) Ltd"
+            placeholder="Wielo Platform (Pty) Ltd"
             className={inputCls}
           />
         </Field>
