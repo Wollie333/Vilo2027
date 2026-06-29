@@ -2,7 +2,21 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #4 — REBRAND Vilo→Wielo + SHORT DOC NUMBERS)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #5 — ONBOARDING WIZARD: publish-bug fix + single left-rail redesign)
+
+**Founder: onboarding wizard refinement — (a) policies load but publish fails, (b) want green checkmarks per done step, (c) consolidate the TWO setup designs (centered vs left-tabs) down to ONE left-tabs design, (d) add business-name + payment-method steps, (e) resume to the right step. Plus design principle: "more, simpler steps with one save button → save → next" over fewer overwhelming ones. All shipped to prod.**
+
+**✅ POLICIES PUBLISH BUG (`0ccc007b`, extended in `aa035cf7`):** ROOT CAUSE — `togglePublishAction` (apps/web/app/[locale]/dashboard/properties/[id]/edit/actions.ts) computed setup completion server-side but **never queried/passed `hasHouseRules`**; `computeSetupCompletion`'s policies predicate requires BOTH cancellation + house_rules, so policies was always false server-side → publish blocked with "still needed: a refund policy" even with both attached. The CLIENT wizard passed hasHouseRules so it looked ready → mismatch. Fixed: query the house_rules `property_policies` count + pass it. Same omission also fixed in the dashboard checklist (`lib/help/queries.ts`) which would have nagged forever.
+
+**✅ SINGLE LEFT-RAIL WIZARD (`aa035cf7`):** the two designs were `dashboard/setup/SetupWizard.tsx` (CENTERED top-stepper — the property setup) and `signup/host/Wizard.tsx` (LEFT-RAIL — host SIGNUP, untouched). Converted the SETUP wizard to a **left rail**: vertical step list, **green checkmark when each step is done**, current highlighted, click-to-jump for reached steps, % progress bar; mobile = horizontal scroll row. Resume-to-first-incomplete preserved (now reflected in the rail). The `/dashboard` OnboardingDashboard checklist hub stays as the entry and links into this wizard (founder's choice).
+
+**✅ SPLIT / NEW STEPS (founder's "simpler steps"):** the heavy "Business & payouts" step split into **2) Business name & details** (new `setup/steps/StepBusiness.tsx` → BusinessDetailsForm) + **3) Payment method** (`StepBanking` now payout-account only). Full order: Profile → Business → Payment → Listing → Rooms → Policies → Preview & publish (7 steps). Added a `business` completion predicate (trading/legal name set) to `lib/setup/completion.ts` — now REQUIRED to publish (enforced in togglePublishAction + shown in the rail). Also dropped the stale `"VILO-{booking_ref}"` EFT fallback in setup/page.tsx.
+
+**KEY FACTS:** completion source of truth = `lib/setup/completion.ts` (`computeSetupCompletion`), consumed by the wizard, the publish gate (togglePublishAction), AND the dashboard checklist (lib/help/queries.ts) — keep all three passing the same inputs (esp. hasHouseRules + businessNameSet). The dashboard checklist's OWN step model (`_components/setupSteps.ts`, SetupStep keys email_verified/profile_completed/etc.) is SEPARATE — don't confuse it with SetupStepKey. **⚠️ Couldn't browser-verify the wizard** (it needs a logged-in host + draft listing; prod DB wiped to super-admin only) — verified via full `pnpm build` (745 pages) + tsc + lint clean. Founder to confirm publish works on their host account after attaching refund policy + house rules.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-29 #4 — REBRAND Vilo→Wielo + SHORT DOC NUMBERS)
 
 **Founder: "the platform name is Wielo" (display only — NOT the legal name) + "refine the bk/invoice numbers to short unique combos like INV-0001, BK-0001, RCT-0001". Both shipped to prod + verified live.**
 
