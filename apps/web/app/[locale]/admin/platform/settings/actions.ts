@@ -10,7 +10,7 @@ import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 // uuid column; platform_settings is keyed by text, so we use a stable uuid).
 const BRANDING_SETTING_ID = "00000000-0000-0000-0000-0000000b5a4d";
 const LEGAL_SETTING_ID = "00000000-0000-0000-0000-0000001e6a1f";
-const VILO_BUSINESS_SETTING_ID = "00000000-0000-0000-0000-0000005b1d00";
+const WIELO_BUSINESS_SETTING_ID = "00000000-0000-0000-0000-0000005b1d00";
 const META_INTEGRATION_ID = "00000000-0000-0000-0000-0000000fb1d0";
 
 const brandingSchema = z.object({
@@ -157,8 +157,8 @@ const wieloBusinessSchema = z.object({
   reason: z.string().optional(),
 });
 
-// Save Wielo's own business identity (platform_settings.vilo_business). Frozen
-// into each Wielo invoice at issue time by the mint_vilo_invoice trigger. Admin
+// Save Wielo's own business identity (platform_settings.wielo_business). Frozen
+// into each Wielo invoice at issue time by the mint_wielo_invoice trigger. Admin
 // only + audited; the country defaults to ZA when left blank.
 export const saveWieloBusinessAction = withAdminAudit<
   z.infer<typeof wieloBusinessSchema>,
@@ -166,9 +166,9 @@ export const saveWieloBusinessAction = withAdminAudit<
 >(
   {
     permissionKey: "platform.settings",
-    actionName: "platform.settings.vilo_business",
+    actionName: "platform.settings.wielo_business",
     targetType: "platform_setting",
-    getTargetId: () => VILO_BUSINESS_SETTING_ID,
+    getTargetId: () => WIELO_BUSINESS_SETTING_ID,
   },
   async (args, service) => {
     const parsed = wieloBusinessSchema.safeParse(args);
@@ -178,7 +178,7 @@ export const saveWieloBusinessAction = withAdminAudit<
     const { reason: _reason, ...value } = parsed.data;
     void _reason;
     const { error } = await service.from("platform_settings").upsert({
-      key: "vilo_business",
+      key: "wielo_business",
       value: { ...value, country: value.country || "ZA" } as never,
       updated_at: new Date().toISOString(),
     });

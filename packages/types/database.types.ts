@@ -9364,104 +9364,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vilo_invoices: {
-        Row: {
-          buyer_snapshot: Json
-          created_at: string
-          currency: string
-          environment: string
-          hosted_token: string
-          id: string
-          invoice_number: string
-          issued_at: string
-          ledger_id: string | null
-          line_items: Json
-          order_id: string | null
-          paid_at: string | null
-          pdf_storage_path: string | null
-          status: string
-          subscription_id: string | null
-          subtotal: number
-          total_amount: number
-          user_id: string | null
-          vat_amount: number
-          vilo_snapshot: Json
-        }
-        Insert: {
-          buyer_snapshot: Json
-          created_at?: string
-          currency?: string
-          environment?: string
-          hosted_token?: string
-          id?: string
-          invoice_number: string
-          issued_at?: string
-          ledger_id?: string | null
-          line_items?: Json
-          order_id?: string | null
-          paid_at?: string | null
-          pdf_storage_path?: string | null
-          status?: string
-          subscription_id?: string | null
-          subtotal?: number
-          total_amount?: number
-          user_id?: string | null
-          vat_amount?: number
-          vilo_snapshot: Json
-        }
-        Update: {
-          buyer_snapshot?: Json
-          created_at?: string
-          currency?: string
-          environment?: string
-          hosted_token?: string
-          id?: string
-          invoice_number?: string
-          issued_at?: string
-          ledger_id?: string | null
-          line_items?: Json
-          order_id?: string | null
-          paid_at?: string | null
-          pdf_storage_path?: string | null
-          status?: string
-          subscription_id?: string | null
-          subtotal?: number
-          total_amount?: number
-          user_id?: string | null
-          vat_amount?: number
-          vilo_snapshot?: Json
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vilo_invoices_ledger_id_fkey"
-            columns: ["ledger_id"]
-            isOneToOne: false
-            referencedRelation: "platform_ledger"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vilo_invoices_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "product_orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vilo_invoices_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vilo_invoices_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       website_analytics_events: {
         Row: {
           country: string | null
@@ -10118,6 +10020,104 @@ export type Database = {
             columns: ["website_id"]
             isOneToOne: false
             referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wielo_invoices: {
+        Row: {
+          buyer_snapshot: Json
+          created_at: string
+          currency: string
+          environment: string
+          hosted_token: string
+          id: string
+          invoice_number: string
+          issued_at: string
+          ledger_id: string | null
+          line_items: Json
+          order_id: string | null
+          paid_at: string | null
+          pdf_storage_path: string | null
+          status: string
+          subscription_id: string | null
+          subtotal: number
+          total_amount: number
+          user_id: string | null
+          vat_amount: number
+          wielo_snapshot: Json
+        }
+        Insert: {
+          buyer_snapshot: Json
+          created_at?: string
+          currency?: string
+          environment?: string
+          hosted_token?: string
+          id?: string
+          invoice_number: string
+          issued_at?: string
+          ledger_id?: string | null
+          line_items?: Json
+          order_id?: string | null
+          paid_at?: string | null
+          pdf_storage_path?: string | null
+          status?: string
+          subscription_id?: string | null
+          subtotal?: number
+          total_amount?: number
+          user_id?: string | null
+          vat_amount?: number
+          wielo_snapshot: Json
+        }
+        Update: {
+          buyer_snapshot?: Json
+          created_at?: string
+          currency?: string
+          environment?: string
+          hosted_token?: string
+          id?: string
+          invoice_number?: string
+          issued_at?: string
+          ledger_id?: string | null
+          line_items?: Json
+          order_id?: string | null
+          paid_at?: string | null
+          pdf_storage_path?: string | null
+          status?: string
+          subscription_id?: string | null
+          subtotal?: number
+          total_amount?: number
+          user_id?: string | null
+          vat_amount?: number
+          wielo_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wielo_invoices_ledger_id_fkey"
+            columns: ["ledger_id"]
+            isOneToOne: false
+            referencedRelation: "platform_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wielo_invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "product_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wielo_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wielo_invoices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -10854,7 +10854,7 @@ export type Database = {
       next_quote_number: { Args: { p_business_id: string }; Returns: string }
       next_receipt_number: { Args: { p_business_id: string }; Returns: string }
       next_refund_number: { Args: { p_business_id: string }; Returns: string }
-      next_vilo_invoice_number: { Args: never; Returns: string }
+      next_wielo_invoice_number: { Args: never; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

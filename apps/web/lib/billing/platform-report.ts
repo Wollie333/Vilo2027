@@ -1,6 +1,6 @@
 import "server-only";
 
-import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/vilo-ledger";
+import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 

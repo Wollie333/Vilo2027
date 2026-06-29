@@ -8,7 +8,7 @@ import {
 import {
   wieloIssuerLines,
   type WieloBusinessProfile,
-} from "@/lib/billing/vilo-invoice";
+} from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -44,9 +44,9 @@ export default async function PublicWieloInvoicePage({
 }) {
   const admin = createAdminClient();
   const { data: invoice } = await admin
-    .from("vilo_invoices")
+    .from("wielo_invoices")
     .select(
-      "invoice_number, status, issued_at, paid_at, subtotal, vat_amount, total_amount, currency, vilo_snapshot, buyer_snapshot, line_items, hosted_token",
+      "invoice_number, status, issued_at, paid_at, subtotal, vat_amount, total_amount, currency, wielo_snapshot, buyer_snapshot, line_items, hosted_token",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -56,7 +56,7 @@ export default async function PublicWieloInvoicePage({
   const brandName = await getBrandName();
   const c = invoice.currency;
   const issuer = wieloIssuerLines(
-    (invoice.vilo_snapshot ?? {}) as Partial<WieloBusinessProfile>,
+    (invoice.wielo_snapshot ?? {}) as Partial<WieloBusinessProfile>,
   );
   const buyer = (invoice.buyer_snapshot ?? {}) as BuyerSnap;
   const lines = (
@@ -109,7 +109,7 @@ export default async function PublicWieloInvoicePage({
         value: formatMoney(invoice.total_amount, c),
       }}
       stamp={isPaid ? "Paid" : null}
-      pdfHref={`/vilo-invoice/${invoice.hosted_token}/pdf`}
+      pdfHref={`/wielo-invoice/${invoice.hosted_token}/pdf`}
       footerTitle={`Thank you for choosing ${brandName}.`}
       footerNote="Keep this invoice for your records."
     />

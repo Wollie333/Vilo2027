@@ -11,9 +11,9 @@ import type { InvoiceBusiness } from "@/lib/pdf/InvoiceDocument";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Wielo's own business identity — the issuer on every Wielo invoice. Stored as a
-// single jsonb `vilo_business` row in platform_settings (admin-managed), mirrors
+// single jsonb `wielo_business` row in platform_settings (admin-managed), mirrors
 // how a host's `businesses` row drives their booking invoices. The invoice
-// snapshot is frozen at issue time by the mint_vilo_invoice trigger; this helper
+// snapshot is frozen at issue time by the mint_wielo_invoice trigger; this helper
 // is for the admin form (current values) + rendering historic snapshots.
 
 export type WieloBusinessProfile = {
@@ -53,7 +53,7 @@ export const getWieloBusinessProfile = cache(
       const { data } = await admin
         .from("platform_settings")
         .select("value")
-        .eq("key", "vilo_business")
+        .eq("key", "wielo_business")
         .maybeSingle();
       if (data?.value && typeof data.value === "object") {
         raw = data.value as Partial<WieloBusinessProfile>;
@@ -69,7 +69,7 @@ export const getWieloBusinessProfile = cache(
   },
 );
 
-// Turn a frozen vilo_snapshot (or the live profile) into the issuer party shown
+// Turn a frozen wielo_snapshot (or the live profile) into the issuer party shown
 // on the FinancialDocument: a name + address/identity lines.
 export function wieloIssuerLines(snap: Partial<WieloBusinessProfile>): {
   name: string;
@@ -93,7 +93,7 @@ export function wieloIssuerLines(snap: Partial<WieloBusinessProfile>): {
   return { name, lines };
 }
 
-// Map a frozen vilo_snapshot to the PDF InvoiceBusiness shape (issuer block).
+// Map a frozen wielo_snapshot to the PDF InvoiceBusiness shape (issuer block).
 export function wieloSnapshotToBusiness(
   snap: Partial<WieloBusinessProfile>,
 ): InvoiceBusiness {

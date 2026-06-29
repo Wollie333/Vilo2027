@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import type { WieloBusinessProfile } from "@/lib/billing/vilo-invoice";
+import type { WieloBusinessProfile } from "@/lib/billing/wielo-invoice";
 
 import { saveWieloBusinessAction } from "./actions";
 
@@ -68,7 +68,7 @@ const FIELDS: {
   },
 ];
 
-export function ViloBusinessForm({
+export function WieloBusinessForm({
   initial,
 }: {
   initial: WieloBusinessProfile;

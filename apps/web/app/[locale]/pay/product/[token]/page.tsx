@@ -78,7 +78,7 @@ export default async function ProductPayPage({
   // figures match the invoice exactly (mirrors the signup last step).
   if (paid) {
     const { data: invoices } = await service
-      .from("vilo_invoices")
+      .from("wielo_invoices")
       .select(
         "invoice_number, issued_at, subtotal, vat_amount, total_amount, currency, hosted_token",
       )

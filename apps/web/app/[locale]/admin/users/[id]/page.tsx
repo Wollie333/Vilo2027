@@ -6,7 +6,7 @@ import {
   getLatestSupportGrant,
 } from "@/lib/admin/supportGrant";
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
-import { fetchWieloLedger } from "@/lib/billing/vilo-ledger";
+import { fetchWieloLedger } from "@/lib/billing/wielo-ledger";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";

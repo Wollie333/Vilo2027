@@ -161,7 +161,7 @@ export function Receipt({ purchase: p }: { purchase: ReceiptPurchase }) {
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {p.invoiceToken ? (
           <a
-            href={`/vilo-invoice/${p.invoiceToken}/pdf`}
+            href={`/wielo-invoice/${p.invoiceToken}/pdf`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center justify-center gap-1.5 rounded-md border border-brand-line bg-white px-4 py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand-light/60"

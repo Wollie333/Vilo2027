@@ -5,7 +5,7 @@ import {
   fetchWieloLedger,
   wieloLedgerStats,
   type WieloTxn,
-} from "@/lib/billing/vilo-ledger";
+} from "@/lib/billing/wielo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";

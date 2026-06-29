@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import {
   wieloSnapshotToBusiness,
   type WieloBusinessProfile,
-} from "@/lib/billing/vilo-invoice";
+} from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
 import { renderInvoicePdf } from "@/lib/pdf/render";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,9 +24,9 @@ export async function GET(
 ) {
   const supabase = createAdminClient();
   const { data: invoice } = await supabase
-    .from("vilo_invoices")
+    .from("wielo_invoices")
     .select(
-      "invoice_number, status, issued_at, currency, subtotal, vat_amount, total_amount, vilo_snapshot, buyer_snapshot, line_items",
+      "invoice_number, status, issued_at, currency, subtotal, vat_amount, total_amount, wielo_snapshot, buyer_snapshot, line_items",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -35,7 +35,7 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const snap = (invoice.vilo_snapshot ?? {}) as Partial<WieloBusinessProfile>;
+  const snap = (invoice.wielo_snapshot ?? {}) as Partial<WieloBusinessProfile>;
   const buyer = (invoice.buyer_snapshot ?? {}) as BuyerSnap;
   const lines = (
     Array.isArray(invoice.line_items) ? invoice.line_items : []

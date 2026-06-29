@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ViloTransactionHistory } from "@/components/finance/ViloTransactionHistory";
+import { WieloTransactionHistory } from "@/components/finance/WieloTransactionHistory";
 
 export const metadata: Metadata = {
   title: "Transaction history · Settings",
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default function PortalTransactionsPage() {
   return (
-    <ViloTransactionHistory
+    <WieloTransactionHistory
       heading="Transaction history"
       description="Your payments to Wielo, with downloadable invoices."
     />

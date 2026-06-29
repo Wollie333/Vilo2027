@@ -5,8 +5,8 @@ import { createServerClient } from "@/lib/supabase/server";
 
 // Wielo platform transaction history for the SIGNED-IN user (host or guest).
 // Single source of truth for both the host settings tab and the guest portal
-// tab. Reads platform_ledger + vilo_invoices, both scoped to auth.uid() by RLS
-// (platform_ledger_own_read / vilo_invoices_own_read) — a user only ever sees
+// tab. Reads platform_ledger + wielo_invoices, both scoped to auth.uid() by RLS
+// (platform_ledger_own_read / wielo_invoices_own_read) — a user only ever sees
 // their own purchases from Wielo, with downloadable invoices.
 
 type LedgerRow = {
@@ -30,7 +30,7 @@ function fmtDate(iso: string): string {
   });
 }
 
-export async function ViloTransactionHistory({
+export async function WieloTransactionHistory({
   heading = "Transaction history",
   description = "Your payments for subscriptions and products, with downloadable invoices.",
 }: {
@@ -47,7 +47,7 @@ export async function ViloTransactionHistory({
       .order("created_at", { ascending: false })
       .limit(200),
     supabase
-      .from("vilo_invoices")
+      .from("wielo_invoices")
       .select("ledger_id, hosted_token, invoice_number")
       .limit(200),
   ]);
@@ -131,7 +131,7 @@ export async function ViloTransactionHistory({
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       {inv ? (
                         <a
-                          href={`/vilo-invoice/${inv.hosted_token}/pdf`}
+                          href={`/wielo-invoice/${inv.hosted_token}/pdf`}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-secondary hover:underline"

@@ -1,5 +1,5 @@
 import { requirePermission } from "@/lib/admin";
-import { getWieloBusinessProfile } from "@/lib/billing/vilo-invoice";
+import { getWieloBusinessProfile } from "@/lib/billing/wielo-invoice";
 import { getBranding } from "@/lib/brand";
 import { getMetaIntegration } from "@/lib/integrations/meta";
 import { getLegalDocuments } from "@/lib/legal";
@@ -7,7 +7,7 @@ import { getLegalDocuments } from "@/lib/legal";
 import { BrandingForm } from "./BrandNameForm";
 import { LegalDocsForm } from "./LegalDocsForm";
 import { MetaPixelForm } from "./MetaPixelForm";
-import { ViloBusinessForm } from "./ViloBusinessForm";
+import { WieloBusinessForm } from "./WieloBusinessForm";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export default async function PlatformSettingsPage() {
         companyLocation={companyLocation}
       />
 
-      <ViloBusinessForm initial={wieloBusiness} />
+      <WieloBusinessForm initial={wieloBusiness} />
 
       <MetaPixelForm
         pixelId={meta.pixelId ?? ""}

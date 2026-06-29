@@ -1,5 +1,5 @@
 import { requirePermission } from "@/lib/admin";
-import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/vilo-ledger";
+import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";

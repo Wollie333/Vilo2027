@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ViloTransactionHistory } from "@/components/finance/ViloTransactionHistory";
+import { WieloTransactionHistory } from "@/components/finance/WieloTransactionHistory";
 
 export const metadata: Metadata = {
   title: "Transaction history · Settings",
@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default function TransactionsPage() {
-  return <ViloTransactionHistory />;
+  return <WieloTransactionHistory />;
 }
