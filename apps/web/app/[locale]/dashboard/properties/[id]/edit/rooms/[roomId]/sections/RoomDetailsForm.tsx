@@ -100,9 +100,12 @@ export const RoomDetailsForm = forwardRef<
     // host types — two-way binding without waiting for a save.
     onDraft?: (patch: Partial<RoomEditorRoom>) => void;
     onCreated?: (id: string) => void;
+    // Hide the in-card Save button — used when a parent (the room modal) drives
+    // saving from its own footer "Next" button via the imperative handle.
+    hideSubmit?: boolean;
   }
 >(function RoomDetailsForm(
-  { listingId, room, mode = "edit", onSaved, onDraft, onCreated },
+  { listingId, room, mode = "edit", onSaved, onDraft, onCreated, hideSubmit },
   ref,
 ) {
   const [pending, start] = useTransition();
@@ -830,21 +833,23 @@ export const RoomDetailsForm = forwardRef<
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              onClick={save}
-              disabled={pending}
-              className="gap-1.5"
-            >
-              <Save className="h-4 w-4" />
-              {pending
-                ? "Saving…"
-                : mode === "create"
-                  ? "Create room"
-                  : "Save room"}
-            </Button>
-          </div>
+          {hideSubmit ? null : (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={save}
+                disabled={pending}
+                className="gap-1.5"
+              >
+                <Save className="h-4 w-4" />
+                {pending
+                  ? "Saving…"
+                  : mode === "create"
+                    ? "Create room"
+                    : "Save room"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

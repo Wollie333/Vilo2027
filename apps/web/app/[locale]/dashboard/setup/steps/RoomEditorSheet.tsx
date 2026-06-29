@@ -8,7 +8,7 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -20,7 +20,10 @@ import {
 import { fetchRoomEditorDataAction } from "../../properties/[id]/edit/actions";
 import type { RoomEditorRoom } from "../../properties/[id]/edit/rooms/[roomId]/RoomEditor";
 import { RoomAmenitiesSection } from "../../properties/[id]/edit/rooms/[roomId]/sections/RoomAmenitiesSection";
-import { RoomDetailsForm } from "../../properties/[id]/edit/rooms/[roomId]/sections/RoomDetailsForm";
+import {
+  RoomDetailsForm,
+  type RoomDetailsFormHandle,
+} from "../../properties/[id]/edit/rooms/[roomId]/sections/RoomDetailsForm";
 import { RoomPhotosSection } from "../../properties/[id]/edit/rooms/[roomId]/sections/RoomPhotosSection";
 
 type StepId = 1 | 2 | 3;
@@ -86,6 +89,8 @@ export function RoomEditorSheet({
   const [amenityKeys, setAmenityKeys] = useState<string[]>([]);
   const [step, setStep] = useState<StepId>(1);
   const [loading, setLoading] = useState(false);
+  const detailsRef = useRef<RoomDetailsFormHandle>(null);
+  const [saving, setSaving] = useState(false);
 
   function loadRoom(id: string) {
     setLoading(true);
@@ -122,6 +127,21 @@ export function RoomEditorSheet({
   }
 
   const stepLabel = STEPS.find((s) => s.id === step)?.label ?? "";
+
+  // Footer "Next": on the Details step, persist via the form's imperative handle
+  // before advancing (create mints the room → step 2; edit saves → step 2).
+  // Photos + amenities save themselves as the host edits, so they just advance.
+  async function handleNext() {
+    if (step === 1) {
+      setSaving(true);
+      const ok = await detailsRef.current?.save();
+      setSaving(false);
+      if (!ok) return;
+      if (room) setStep(2); // create mode advances itself via onCreated
+      return;
+    }
+    if (step === 2) setStep(3);
+  }
 
   return (
     <FormModal
@@ -178,6 +198,8 @@ export function RoomEditorSheet({
         // Step 1, create: same form used to edit. Creating the room unlocks
         // photos + amenities (they attach to a room id) and advances to step 2.
         <RoomDetailsForm
+          ref={detailsRef}
+          hideSubmit
           listingId={listingId}
           mode="create"
           room={BLANK_ROOM}
@@ -189,6 +211,8 @@ export function RoomEditorSheet({
         />
       ) : step === 1 ? (
         <RoomDetailsForm
+          ref={detailsRef}
+          hideSubmit
           listingId={listingId}
           room={room}
           onSaved={(patch) => setRoom((r) => (r ? { ...r, ...patch } : r))}
@@ -214,7 +238,7 @@ export function RoomEditorSheet({
       )}
 
       <FormModalFooter>
-        {room && step > 1 ? (
+        {step > 1 ? (
           <button
             type="button"
             onClick={() => setStep((s) => (s > 1 ? ((s - 1) as StepId) : s))}
@@ -226,25 +250,24 @@ export function RoomEditorSheet({
           <FormModalCancel>Cancel</FormModalCancel>
         )}
 
-        {room ? (
-          step < 3 ? (
-            <button
-              type="button"
-              onClick={() => setStep((s) => (s < 3 ? ((s + 1) as StepId) : s))}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
-            >
-              Next <ArrowRight className="h-4 w-4" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={close}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
-            >
-              <Check className="h-4 w-4" /> Save room
-            </button>
-          )
-        ) : null}
+        {step < 3 ? (
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Next"} <ArrowRight className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={close}
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+          >
+            <Check className="h-4 w-4" /> Save room
+          </button>
+        )}
       </FormModalFooter>
     </FormModal>
   );
