@@ -2,7 +2,24 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 EOD — MVP PUSH + **PRODUCTION LIVE on wielo.co.za**)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #2 — MIGRATIONS CI FIXED + GREEN)
+
+**Focus this session: outstanding item #2 from the save point below — the red `Database Migrations` GitHub Action. DONE + verified green.**
+
+**✅ WHAT HAPPENED:**
+1. **Set the two missing CI secrets** (`gh secret set`, repo `Wollie333/Vilo2027`, `gh` authed as `Wollie333`):
+   - `SUPABASE_ACCESS_TOKEN` = a Supabase PAT the founder generated (`sbp_…2929` — **in the chat transcript, so rotate it from https://supabase.com/dashboard/account/tokens when convenient + update the secret**).
+   - `SUPABASE_DB_URL` = the **Session pooler** string (NOT the direct `db.<ref>` host — that's IPv6-only and GitHub runners are IPv4-only). Exact: `postgresql://postgres.zlcivjgvtyeaszikqleu:<pwd>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres` — host prefix is **`aws-1`** (not `aws-0`), port **5432** (session mode, supports migrations), DB password URL-encoded (`#`→`%23`). Region `eu-central-1` confirmed via the Management API.
+   - `SUPABASE_PROJECT_ID` was already set.
+2. **Diagnosed the *real* second cause of redness** (not just missing secrets): once secrets were in, the job got past the gate + connected fine, then failed with `Remote migration versions not found in local migrations directory` for the **7 looking-for migration versions** — they were applied to the remote DB (in its migration-history table) but their `.sql` files were **untracked**, so a clean CI checkout didn't match remote history.
+3. **Ran the correct fix (founder explicitly authorised overriding "leave looking-for alone" for this):** committed **ONLY the 7 `*looking_for*` migration `.sql` files** (`7fbbb547`) — nothing else from the looking-for tree (its app code, modified files, docs, `vsub.mjs` are STILL untracked + left alone). Pushed to `main`. The push also carried up the previously-unpushed `5138a354` save-point docs commit (docs-only).
+4. **CI is GREEN** — [run 28378585235](https://github.com/Wollie333/Vilo2027/actions/runs/28378585235): secrets gate ✓, run migrations ✓ (no-op — already applied), verify-no-pending ✓, regen types ✓, commit-types ✓ (no diff → bot pushed nothing). `git rev-list HEAD...origin/main` = `0 0` (in sync).
+
+**KEY FACTS for the next migration push:** the `db-migrate.yml` job now auto-applies committed migrations to prod on any push touching `supabase/migrations/**`. `supabase db push --linked` / `--dry-run --db-url '<the pooler url above>'` both report "Remote database is up to date". ⚠️ The 7 looking-for migrations are broken on a *fresh* apply (`update_updated_at_column() does not exist`, per EOD #5) — harmless now (already applied → no-op) but a `db reset` would need them re-ordered first. The looking-for session still owns all its other untracked/modified files — **keep leaving them alone.**
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-29 EOD — MVP PUSH + **PRODUCTION LIVE on wielo.co.za**)
 
 **Everything below was committed AND PUSHED to `origin/main` → Vercel production. The app is LIVE on `https://wielo.co.za` (custom domain attached to the `vilo2027` Vercel project; DNS propagated; `/en/login` + `/en/p/beta` serve 200).** Full `pnpm build` PASSED before the push. The HEAD pushed was `1523775b` (its Vercel build was finishing at session end — prior deploy already serving; confirm green in the Vercel dashboard).
 
@@ -23,7 +40,7 @@
 
 **🔴 OUTSTANDING (next session):**
 1. **Admin MFA (#1) — DO BEFORE PUBLIC LAUNCH.** Gate is intentionally disabled (`lib/admin/requireAdmin.ts`). The super admin has **0 MFA factors** → re-enabling now = lockout. Path: founder enrols TOTP in account security → then flip the one-line gate. (Deferred this session for that reason.)
-2. **Migrations CI is red (cosmetic):** the `Database Migrations` GitHub Action fails (missing `SUPABASE_DB_URL` + `SUPABASE_ACCESS_TOKEN` repo secrets). All migrations were applied to the linked DB manually, so prod schema IS in sync. To fix: add those two GitHub Actions secrets (I can `gh secret set` them — `gh` is authed as `Wollie333` — if the founder pastes the values: a Supabase PAT + the `postgresql://…@db.zlcivjgvtyeaszikqleu.supabase.co:5432/postgres` URL).
+2. ~~**Migrations CI is red (cosmetic):**~~ ✅ **RESOLVED 2026-06-29 #2 — see the top save point.** Secrets set + the 7 looking-for migration files committed → `Database Migrations` job is GREEN.
 3. **Live smoke-test on wielo.co.za** now that Supabase auth URLs are set: a real login + a free-beta signup + (with a host's test Paystack connected) a booking charge.
 4. Lower-priority admin polish (not blocking): impersonation *dashboard* still summary tiles; user/host lists cap at 50 (no pager).
 
