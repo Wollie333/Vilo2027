@@ -261,9 +261,7 @@ export function SetupPreview({
   photos,
   rooms,
   ready,
-  publishing,
   missing,
-  onPublish,
   onJump,
 }: {
   host: Host;
@@ -272,9 +270,7 @@ export function SetupPreview({
   photos: Photo[];
   rooms: Room[];
   ready: boolean;
-  publishing: boolean;
   missing: { key: SetupStepKey; label: string }[];
-  onPublish: () => void;
   onJump: (key: SetupStepKey) => void;
 }) {
   const brandName = useBrandName();
@@ -403,21 +399,6 @@ export function SetupPreview({
               </p>
             )}
           </div>
-        </div>
-        <div className="flex items-center gap-2 md:ml-auto">
-          <button
-            type="button"
-            onClick={onPublish}
-            disabled={!ready || publishing}
-            className={`inline-flex items-center gap-2 rounded px-5 py-2.5 text-sm font-semibold shadow-card transition-all ${
-              ready
-                ? "bg-brand-primary text-white hover:bg-brand-secondary hover:shadow-glow"
-                : "cursor-not-allowed bg-brand-line text-brand-mute"
-            }`}
-          >
-            <Rocket className="h-4 w-4" />{" "}
-            {publishing ? "Publishing…" : "Publish listing"}
-          </button>
         </div>
       </div>
     </div>

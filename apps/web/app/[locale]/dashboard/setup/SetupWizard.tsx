@@ -406,9 +406,7 @@ export function SetupWizard(props: Props) {
               photos={photos}
               rooms={rooms}
               ready={ready}
-              publishing={publishing}
               missing={missing.map((m) => ({ key: m.key, label: m.label }))}
-              onPublish={publish}
               onJump={(key) => {
                 const i = SECTIONS.findIndex((s) => s.key === key);
                 if (i >= 0) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, RotateCcw, ScrollText } from "lucide-react";
+import { CalendarClock, Gavel, RotateCcw, ScrollText } from "lucide-react";
 
 import type { PolicyCard } from "../../policies/PolicyManager";
 import type { PolicyType } from "../../policies/schemas";
@@ -74,6 +74,22 @@ export function StepPolicies({
           type="house_rules"
           policies={policies}
           assignedPolicyId={assignments.house_rules ?? null}
+          onChanged={onChanged}
+        />
+      </PolicySection>
+
+      {/* Terms & conditions — the host's own T&Cs, accepted at checkout
+          alongside Wielo's platform terms. Optional. */}
+      <PolicySection
+        icon={<Gavel className="h-4 w-4" />}
+        title="Terms & conditions"
+        blurb="Your own booking terms, accepted at checkout alongside Wielo's. Optional — pick a preset or write your own."
+      >
+        <PolicyPicker
+          listingId={listing.id}
+          type="booking_terms"
+          policies={policies}
+          assignedPolicyId={assignments.booking_terms ?? null}
           onChanged={onChanged}
         />
       </PolicySection>
