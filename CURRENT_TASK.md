@@ -2,7 +2,19 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #5 — ONBOARDING WIZARD: publish-bug fix + single left-rail redesign)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #6 — WIZARD RAIL matches the ProgressRail design)
+
+**Founder: my #5 left-rail was the wrong LOOK — sent a reference design (`C:\Users\Wollie\Downloads\Setup Flow (standalone).html`, a packed claude.ai artifact). Decoded it (gzip+base64 modules) and matched its `ProgressRail`. Kept step-by-step per founder ("each tab = one step, save → next; NOT one flowing scroll-spy form").**
+
+**✅ RAIL RESTYLE (`52796856`, `apps/web/app/[locale]/dashboard/setup/SetupWizard.tsx`):** the left rail is now the design's ProgressRail — a card with a **"Setup progress · NN%" header**, a **progress bar on top**, the step list (numbered circle → **green check when done**, active = primary outline, **"required" dot** on unfinished required steps), and a full-width **Publish button INSIDE the rail** (disabled until `ready`, with helper text). Grid `lg:grid-cols-[280px_1fr]`. Step-by-step preserved (one step shown; Save & continue → `next()`; rail click → `goTo` for reached steps `i <= maxReached`). Build passes (745 pages).
+- **Design insight:** the mock's far-left FULL-HEIGHT sidebar (`7_mod7`, `h-screen w-64 border-r`) is just a recreation of the **dashboard's own nav** (`dashboard/_components/Sidebar.tsx`), which the real app already renders — so /dashboard/setup is INSIDE the dashboard chrome and the wizard sits to its right. Don't add a second full-height sidebar. The real "tabs on the left" = the ProgressRail card (`8_mod8` in the artifact).
+- **Deliberate deviations from the HTML:** step-by-step (not scroll-spy single page); content shows one step's form (not stacked SectionCards + live preview). If the founder later wants the SectionCard look for the active step, the design's header pattern is: numbered circle/check + Required|Optional pill + "Done" badge.
+
+**⚠️ COULDN'T BROWSER-VERIFY** (3rd time noting): /dashboard/setup needs a logged-in host + draft listing; prod DB wiped to super-admin only → no fixture. Verified via `pnpm build` + reading the decoded design source. Founder to hard-refresh (Ctrl+Shift+R) + confirm vs the design; send a screenshot for pixel tweaks if needed.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-29 #5 — ONBOARDING WIZARD: publish-bug fix + single left-rail redesign)
 
 **Founder: onboarding wizard refinement — (a) policies load but publish fails, (b) want green checkmarks per done step, (c) consolidate the TWO setup designs (centered vs left-tabs) down to ONE left-tabs design, (d) add business-name + payment-method steps, (e) resume to the right step. Plus design principle: "more, simpler steps with one save button → save → next" over fewer overwhelming ones. All shipped to prod.**
 
