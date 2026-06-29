@@ -14,6 +14,7 @@ export function StickyHeader({
   transparent,
   bgColor,
   scrolledBgColor,
+  scrolledBorderColor,
   textColor,
   topOffset = 0,
   children,
@@ -24,6 +25,8 @@ export function StickyHeader({
   bgColor?: string | null;
   /** Background once scrolled (transparent mode); blank → theme ink (dark). */
   scrolledBgColor?: string | null;
+  /** Bottom-border colour of the solid/scrolled bar; blank → theme hairline. */
+  scrolledBorderColor?: string | null;
   /** Header text/menu colour (the host's menu colour). Drives logo + menu so it
    *  stays legible on a custom/transparent background. Blank → sensible default. */
   textColor?: string | null;
@@ -49,7 +52,7 @@ export function StickyHeader({
     const customBg = bgColor?.trim();
     const style: CSSProperties = {
       background: customBg || "var(--site-surface)",
-      borderColor: "var(--site-line)",
+      borderColor: scrolledBorderColor?.trim() || "var(--site-line)",
       ...(topOffset ? { top: topOffset } : null),
     };
     if (text) {
@@ -75,7 +78,9 @@ export function StickyHeader({
           background: scrolled
             ? scrolledBgColor?.trim() || "var(--site-ink)"
             : "transparent",
-          borderColor: scrolled ? "rgba(255,255,255,0.12)" : "transparent",
+          borderColor: scrolled
+            ? scrolledBorderColor?.trim() || "rgba(255,255,255,0.12)"
+            : "transparent",
           "--site-ink": text || "#ffffff",
           "--site-mute": text || "rgba(255,255,255,0.88)",
           ...(topOffset ? { top: `${topOffset}px` } : null),

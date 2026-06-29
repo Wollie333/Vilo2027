@@ -1273,6 +1273,7 @@ export function SiteChrome({
           transparent={transparentOver}
           bgColor={pageBgColor}
           scrolledBgColor={navigation.header?.scrolledBgColor}
+          scrolledBorderColor={navigation.header?.scrolledBorderColor}
           textColor={mergedMenuStyle?.color}
           topOffset={showBar ? 44 : 0}
         >
