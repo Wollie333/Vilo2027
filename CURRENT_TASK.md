@@ -2,7 +2,27 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #2 — MIGRATIONS CI FIXED + GREEN)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #3 — LOOKING FOR FEATURE SHIPPED TO PROD)
+
+**Founder report: "on the live url I am not seeing the looking for section in the guest portal." Root cause: the Looking For DB migrations were live but the *app code was never committed* (it sat untracked in the tree for ages). Fixed — the whole feature is now committed + deployed.**
+
+**✅ SHIPPED (`2bec88fd`, pushed → Vercel prod deploy `il18l0d9f` Ready):** committed the full Looking For feature that was previously untracked:
+- **Guest portal** `/portal/looking-for` (browse, post a request, manage own posts, view quotes) + **"Looking For" sidebar link under Discover** (ungated — every portal user sees it).
+- **Host dashboard** `/dashboard/looking-for` (requests board, respond-with-quote, saved/passed, alerts, my-quotes) + sidebar link + feature gate.
+- **Admin** `/admin/looking-for` (posts moderation + quotas). **Public directory** `/looking-for` (+ detail). **Reports** LookingForStats panel.
+- **Supporting (modified tracked files, all committed):** quotes integration (`looking_for_post_id`), `lib/notifications/registry.ts`+`types.ts` (category + 4 events, mirrors migration `20260628200000`), `lib/products/featureGate.ts`+`features.ts` (`looking_for_access`), `dashboard/layout.tsx`, both sidebars, `BUSINESS_PRINCIPLES.md` (Principle #5), `.gitignore`, `docs/features/LOOKING_FOR_FEATURE.md`, `supabase/dev-seeds/looking_for_test_data.sql`.
+
+**✅ VERIFIED:** full `cd apps/web && pnpm build` PASSED (clean `.next`); all looking-for routes compiled. Live: `/en/looking-for` → **200**; `/en/portal/looking-for` → **307 → /login?next=/portal/looking-for** (route exists, auth-gated — was a 404 before).
+
+**⚠️ CHANGED GUIDANCE — Looking For is NO LONGER "untracked, leave alone."** It is now part of the tracked codebase. The parallel looking-for session's work is merged. Two stray items deliberately NOT committed: `apps/web/vsub.mjs` (stray service-role script — delete if confirmed junk) and `docs/features/WEBSITE_WIZARD_PLAN.md` (my earlier wizard doc, unrelated — commit separately if wanted).
+
+**⚠️ I STOPPED the parallel dev server** (was on :3000, PIDs 14132/29024/25476/28548) to free `.next` for the build. Restart with `cd apps/web && pnpm dev` if needed.
+
+**▶▶ FOLLOW-UPS for Looking For:** (1) **Host-side gate vs pre-MVP policy:** migration `20260628100000` seeded `looking_for_access` = **false on free plan** — contradicts the "every feature open on free for beta" rule (`AGENT_RULES.md` §3.4 / CLAUDE.md). The Beta product may grant it via `product_id` features, but verify a beta host actually sees `/dashboard/looking-for` unlocked; if not, open it on free. (2) Live smoke-test the guest flow (post a request → host responds with a quote). (3) i18n: many labels are inline English — fine for beta.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-29 #2 — MIGRATIONS CI FIXED + GREEN)
 
 **Focus this session: outstanding item #2 from the save point below — the red `Database Migrations` GitHub Action. DONE + verified green.**
 
