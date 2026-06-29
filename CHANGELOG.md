@@ -5,6 +5,65 @@
 
 ---
 
+## 2026-06-29 (EOD #15) — Website booking system: room detail, themed checkout, forms, channels
+
+Long session turning the website CMS into a working, enterprise-grade booking
+system — theme-agnostic by design (the shared foundation for all 5 themes). All
+pushed to `origin/main`.
+
+**Room detail page**
+
+- Listings-style layout (`RoomDockLayout`): full-width gallery on top, content + a
+  STICKY booking dock that sits below the fixed header with a gap
+  (`--vilo-sticky-top`, set per-theme by the shell).
+- Per-room section reorder (one unified list); builder-canvas header matches live.
+- Auto "Things to know" (`room_policies`) + a draggable property-level `policies`
+  section. Forms/sections conform to Safari via a `--site-*` bridge in safari.css.
+
+**Booking flow (enterprise hardening pass)**
+
+- The room dock AND a `booking`-goal form both hand off to the THEMED on-site
+  checkout. The real `SiteCheckoutForm` now runs on the live Safari site (was a
+  mockup); prefills dates from the URL, uses the themed `ThemedDateRange` calendar,
+  server-authoritative price, the host's payment methods.
+- Two distinct logics: goal `booking` → checkout; goal `quote` → draft quote; else
+  enquiry. The "Make a booking" goal is now in the form-editor dropdown.
+- Hardening: server past-date guard; dock caps guests at room max + requires dates;
+  checkout can't submit until available + priced; booking forms error instead of
+  silently degrading; calendar closes on mobile tap.
+- `SiteLoadingOverlay` (themed, portaled) on slow booking actions (reserve/EFT).
+- Host notified (`booking_request_host`) on every website booking.
+- Real sales CHANNEL stored per booking: `vilo` default, `website` for on-site;
+  `airbnb`/`booking`/`expedia`/`lekkerslaap`/`web-referred` ready. Bookings board,
+  detail + channel-mix report show **Website vs Vilo** (both are direct).
+
+**Forms + builders**
+
+- Forms are usable in preview; new-form modal no longer flashes (stays with a
+  loading state through the route change).
+- Canva-style **`ThemeColorPicker`** (Brand Studio colours as circles + custom +
+  hex) wired into the form **Styles** tab AND the **nav-manager** colour controls,
+  fed by the shared `lib/site/themeSwatches.ts`.
+- Header **"Border on scroll"** colour control (Safari + generic themes).
+
+**Thank-you / footer fixes:** correct guest count (was resetting a pre-selected
+room to its min), removed the redundant "flights" button, real de-duplicated footer
+links.
+
+**PENDING — next session:**
+
+- Theme-styled builder canvases (form/page/blog preview in the ACTIVE theme).
+- Auto-place + protect the 4 default forms (never-delete) — needs an `is_default`
+  flag → **migration**.
+- Log website bookings into the CMS **submissions** area — needs
+  `website_form_submissions.form_id` nullable + a `source` column → **migration**.
+  (Both migrations flagged for confirmation before pushing to the linked DB — the
+  parallel `looking-for` migrations are still pending/broken in
+  `supabase/migrations/`.)
+- Roll `ThemeColorPicker` into the page + blog builders (same `themeSwatches`
+  pattern); convert any remaining square swatches to circles.
+- Per-theme checkout/header parity for the other 4 themes as they're built.
+
 ## 2026-06-28 (EOD #14) — Room pages: sticky booking form + room-builder add-scroll
 
 Founder feedback on the per-room editor: (a) "I can see no room" / "adding
