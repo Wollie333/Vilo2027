@@ -184,9 +184,45 @@ export async function createSiteBooking(
   const returnTo = (bookingId: string) =>
     `${return_path}${return_path.includes("?") ? "&" : "?"}b=${bookingId}`;
 
-  return createBookingCore(
+  const result = await createBookingCore(
     body as CreateBookingInput,
     { guestId: identity.guestId, email: guest_email },
     { origin: ctx.origin, returnTo },
   );
+
+  // Notify the host of the new website booking so they can manage it (confirm a
+  // manual EFT, prep the stay…). Best-effort — a notification failure must never
+  // fail the booking or the payment redirect.
+  if (result.ok) {
+    try {
+      const { data: bk } = await admin
+        .from("bookings")
+        .select("host_id")
+        .eq("id", result.bookingId)
+        .maybeSingle();
+      const hostRecordId = (bk as { host_id: string | null } | null)?.host_id;
+      if (hostRecordId) {
+        const { data: host } = await admin
+          .from("hosts")
+          .select("user_id")
+          .eq("id", hostRecordId)
+          .maybeSingle();
+        const userId = (host as { user_id: string | null } | null)?.user_id;
+        if (userId) {
+          const { dispatchEvent } =
+            await import("@/lib/notifications/dispatch");
+          await dispatchEvent({
+            kind: "booking_request_host",
+            recipientUserId: userId,
+            refs: { booking_id: result.bookingId },
+            supabase: admin,
+          });
+        }
+      }
+    } catch {
+      // non-blocking
+    }
+  }
+
+  return result;
 }
