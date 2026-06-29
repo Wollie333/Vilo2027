@@ -17,6 +17,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ThemeColorPicker } from "@/components/ui/ThemeColorPicker";
 import {
   ArrowLeft,
   BedDouble,
@@ -115,6 +116,7 @@ export function FormEditor({
   initialFields,
   initialSettings,
   roomNames = [],
+  themeSwatches = [],
   embedded = false,
   onClose,
 }: {
@@ -127,6 +129,8 @@ export function FormEditor({
   initialSettings: FormSettings;
   /** The host's live visible rooms — what a `rooms` field auto-fills with. */
   roomNames?: string[];
+  /** Theme colours (Brand Studio) for the colour pickers' preset swatches. */
+  themeSwatches?: string[];
   /** When mounted inside the page builder (modal/overlay) rather than its own
    *  route — swaps the "back to forms" link for a Close action. */
   embedded?: boolean;
@@ -510,6 +514,7 @@ export function FormEditor({
                 <FormInspector
                   settings={settings}
                   onPatch={(p) => setSettings((s) => ({ ...s, ...p }))}
+                  swatches={themeSwatches}
                 />
               )}
             </div>
@@ -1033,9 +1038,11 @@ function FieldInspector({
 function FormInspector({
   settings,
   onPatch,
+  swatches,
 }: {
   settings: FormSettings;
   onPatch: (p: Partial<FormSettings>) => void;
+  swatches: string[];
 }) {
   const t = useTranslations("website");
   const [tab, setTab] = useState<"settings" | "styles">("settings");
@@ -1075,7 +1082,7 @@ function FormInspector({
       </div>
 
       {tab === "styles" ? (
-        <FormStyles settings={settings} onPatch={onPatch} />
+        <FormStyles settings={settings} onPatch={onPatch} swatches={swatches} />
       ) : (
         <FormSettingsPanel settings={settings} onPatch={onPatch} />
       )}
@@ -1214,53 +1221,28 @@ function ColorRow({
   label,
   value,
   fallback,
+  swatches,
   onChange,
   onReset,
 }: {
   label: string;
   value: string | undefined;
   fallback: string;
+  swatches: string[];
   onChange: (v: string) => void;
   onReset: () => void;
 }) {
-  const t = useTranslations("website");
   return (
     <div className="fld">
       <div className="fld-row">
         <label style={{ margin: 0 }}>{label}</label>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input
-            type="color"
-            value={value ?? fallback}
-            onChange={(e) => onChange(e.target.value)}
-            style={{
-              width: 34,
-              height: 26,
-              padding: 0,
-              border: "1px solid var(--line)",
-              borderRadius: 7,
-              background: "none",
-              cursor: "pointer",
-            }}
-          />
-          {value ? (
-            <button
-              type="button"
-              title={t("formStyleResetField")}
-              aria-label={t("formStyleResetField")}
-              onClick={onReset}
-              style={{
-                display: "flex",
-                color: "var(--mute)",
-                background: "none",
-                border: 0,
-                cursor: "pointer",
-              }}
-            >
-              <X style={{ width: 14, height: 14 }} />
-            </button>
-          ) : null}
-        </div>
+        <ThemeColorPicker
+          value={value}
+          fallback={fallback}
+          swatches={swatches}
+          onChange={onChange}
+          onReset={onReset}
+        />
       </div>
     </div>
   );
@@ -1272,9 +1254,11 @@ const BTN_ALIGNS = ["left", "center", "right", "full"] as const;
 function FormStyles({
   settings,
   onPatch,
+  swatches,
 }: {
   settings: FormSettings;
   onPatch: (p: Partial<FormSettings>) => void;
+  swatches: string[];
 }) {
   const t = useTranslations("website");
   const s = settings.style ?? {};
@@ -1290,6 +1274,7 @@ function FormStyles({
           label={t("formStyleAccent")}
           value={s.accent}
           fallback="#16A34A"
+          swatches={swatches}
           onChange={(v) => patchStyle({ accent: v })}
           onReset={() => patchStyle({ accent: undefined })}
         />
@@ -1312,6 +1297,7 @@ function FormStyles({
           label={t("formStyleFieldBg")}
           value={s.fieldBg}
           fallback="#FFFFFF"
+          swatches={swatches}
           onChange={(v) => patchStyle({ fieldBg: v })}
           onReset={() => patchStyle({ fieldBg: undefined })}
         />
@@ -1319,6 +1305,7 @@ function FormStyles({
           label={t("formStyleFieldBorder")}
           value={s.fieldBorder}
           fallback="#D8E6DF"
+          swatches={swatches}
           onChange={(v) => patchStyle({ fieldBorder: v })}
           onReset={() => patchStyle({ fieldBorder: undefined })}
         />
@@ -1330,6 +1317,7 @@ function FormStyles({
           label={t("formStyleButtonColor")}
           value={s.buttonBg}
           fallback="#16A34A"
+          swatches={swatches}
           onChange={(v) => patchStyle({ buttonBg: v })}
           onReset={() => patchStyle({ buttonBg: undefined })}
         />

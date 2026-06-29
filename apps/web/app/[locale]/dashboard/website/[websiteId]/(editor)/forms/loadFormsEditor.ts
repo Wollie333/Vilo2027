@@ -3,6 +3,11 @@ import "server-only";
 import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 import {
+  SITE_PRESETS,
+  DEFAULT_PRESET,
+  type SitePresetKey,
+} from "@/lib/site/themes";
+import {
   formFieldsSchema,
   formSettingsSchema,
   type FormField,
@@ -28,7 +33,49 @@ export type FormsEditorData = {
   websiteId: string;
   subdomain: string;
   forms: FormEditorRow[];
+  /** The website's theme colours (Brand Studio) — feeds the colour pickers. */
+  themeSwatches: string[];
 };
+
+/** Build the theme colour swatches for the pickers: the resolved core palette
+ *  (host overrides over the preset) + any saved brand swatches, deduped. */
+function buildThemeSwatches(theme: unknown): string[] {
+  const t = (theme ?? {}) as {
+    preset?: string;
+    colors?: Record<string, string | undefined>;
+    palette?: unknown;
+  };
+  const key = String(t.preset ?? "").replace("preset:", "");
+  const presetKey = (
+    key in SITE_PRESETS ? key : DEFAULT_PRESET
+  ) as SitePresetKey;
+  const pal = SITE_PRESETS[presetKey].palette;
+  const c = t.colors ?? {};
+  const core = [
+    (c.accent || "").trim() || pal.accent,
+    (c.ink || "").trim() || pal.ink,
+    (c.surface || "").trim() || pal.surface,
+    (c.bg || "").trim() || pal.bg,
+    (c.line || "").trim() || pal.line,
+    (c.mute || "").trim() || pal.mute,
+  ];
+  const saved = Array.isArray(t.palette)
+    ? (t.palette as unknown[]).filter((x): x is string => typeof x === "string")
+    : [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of [...core, ...saved]) {
+    const v = (raw || "").trim();
+    if (
+      /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v) &&
+      !seen.has(v.toLowerCase())
+    ) {
+      seen.add(v.toLowerCase());
+      out.push(v);
+    }
+  }
+  return out.slice(0, 14);
+}
 
 /**
  * The website's visible rooms as display names, in builder order — what a
@@ -102,7 +149,7 @@ export async function loadFormsEditor(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("id, subdomain")
+    .select("id, subdomain, theme")
     .eq("id", websiteId)
     .eq("host_id", hostId)
     .is("deleted_at", null)
@@ -177,5 +224,10 @@ export async function loadFormsEditor(
     };
   });
 
-  return { websiteId, subdomain: site.subdomain, forms: parsed };
+  return {
+    websiteId,
+    subdomain: site.subdomain,
+    forms: parsed,
+    themeSwatches: buildThemeSwatches(site.theme),
+  };
 }

@@ -36,6 +36,7 @@ export default async function FullScreenFormEditorPage({
       initialFields={form.fields}
       initialSettings={form.settings}
       roomNames={roomNames}
+      themeSwatches={data.themeSwatches}
     />
   );
 }
