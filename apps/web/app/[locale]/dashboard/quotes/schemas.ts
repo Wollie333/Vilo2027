@@ -91,7 +91,12 @@ export const quoteOrBookingBaseSchema = z
     path: ["rooms"],
   });
 
-export const createQuoteSchema = quoteOrBookingBaseSchema;
+export const createQuoteSchema = quoteOrBookingBaseSchema.and(
+  z.object({
+    /** Looking For post ID to link this quote to a guest request */
+    looking_for_post_id: z.string().uuid().optional(),
+  }),
+);
 export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
 
 export const updateQuoteSchema = quoteOrBookingBaseSchema;

@@ -6,6 +6,7 @@ import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { requireHost as getHostId } from "@/lib/host/current";
 import { isSelfRecipient, SELF_RECIPIENT_ERROR } from "@/lib/host/self";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -271,6 +272,7 @@ export async function createQuoteAction(
       notes: parsed.data.notes || null,
       policy_snapshot: policySnapshot,
       guests_breakdown: parsed.data.guests_breakdown ?? null,
+      looking_for_post_id: parsed.data.looking_for_post_id ?? null,
       status: "draft",
     })
     .select("id, quote_number")
@@ -601,7 +603,7 @@ export async function sendQuoteAction(
   const supabase = createServerClient();
   const { data: current } = await supabase
     .from("quotes")
-    .select("status")
+    .select("status, looking_for_post_id, host_id, thread_id")
     .eq("id", quoteId)
     .maybeSingle();
   if (!current) return { ok: false, error: "Quote not found." };
@@ -620,6 +622,60 @@ export async function sendQuoteAction(
     })
     .eq("id", quoteId);
   if (error) return { ok: false, error: "Could not send the quote." };
+
+  // If this quote is linked to a Looking For post, create/update the response record
+  if (current.looking_for_post_id && current.host_id) {
+    await supabase.from("looking_for_responses").upsert(
+      {
+        post_id: current.looking_for_post_id,
+        host_id: current.host_id,
+        quote_id: quoteId,
+        thread_id: current.thread_id,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+      },
+      { onConflict: "post_id,host_id" },
+    );
+
+    // Record usage for quota tracking
+    const host = await getHostId();
+    if (host.ok) {
+      await supabase.from("looking_for_usage").insert({
+        user_id: host.userId,
+        action: "host_quote",
+        post_id: current.looking_for_post_id,
+      });
+    }
+
+    // Notify the guest about the new quote
+    const { data: postData } = await supabase
+      .from("looking_for_posts")
+      .select("title, guest_id")
+      .eq("id", current.looking_for_post_id)
+      .maybeSingle();
+
+    const { data: hostData } = await supabase
+      .from("hosts")
+      .select("display_name")
+      .eq("id", current.host_id)
+      .maybeSingle();
+
+    if (postData?.guest_id) {
+      await dispatchEvent({
+        kind: "looking_for_quote_received",
+        recipientUserId: postData.guest_id,
+        guestId: postData.guest_id,
+        refs: {
+          post_id: current.looking_for_post_id,
+          quote_id: quoteId,
+          post_title: postData.title ?? undefined,
+          host_display_name: hostData?.display_name ?? undefined,
+        },
+      });
+    }
+
+    revalidatePath("/dashboard/looking-for");
+  }
 
   await advanceConversationStage(supabase, quoteId, "quote_sent", true);
   revalidatePath(`/dashboard/quotes/${quoteId}`);

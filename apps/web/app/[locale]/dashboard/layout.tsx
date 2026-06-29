@@ -72,6 +72,8 @@ export default async function DashboardLayout({
   let guestCount = 0;
   // W15 — gate the Channels → Website sidebar row on the live entitlement.
   let canWebsite = false;
+  // Looking For — gate the Looking For sidebar section on entitlement.
+  let canLookingFor = false;
 
   if (host) {
     const [
@@ -80,6 +82,7 @@ export default async function DashboardLayout({
       { count: unread },
       { data: guestSummary },
       websiteEnabled,
+      lookingForEnabled,
     ] = await Promise.all([
       supabase
         .from("properties")
@@ -97,6 +100,7 @@ export default async function DashboardLayout({
         .gt("unread_host", 0),
       supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
       hostHasFeature(host.id, "website_builder"),
+      hostHasFeature(host.id, "looking_for_access"),
     ]);
     listingCount = count ?? 0;
     plan = subscription?.plan ?? null;
@@ -104,6 +108,7 @@ export default async function DashboardLayout({
     guestCount =
       (guestSummary as { total_count?: number } | null)?.total_count ?? 0;
     canWebsite = websiteEnabled;
+    canLookingFor = lookingForEnabled;
   }
 
   // canHost for the workspace switcher: true if they have a hosts row OR
@@ -165,6 +170,7 @@ export default async function DashboardLayout({
             inboxUnread={inboxUnread}
             guestCount={guestCount}
             canWebsite={canWebsite}
+            canLookingFor={canLookingFor}
           />
         }
         banner={<BroadcastBanner />}

@@ -119,6 +119,18 @@ export type DigestRefs = {
   item_count: number;
 };
 
+export type LookingForRefs = {
+  post_id: string;
+  post_title?: string;
+  quote_id?: string;
+  host_display_name?: string;
+  guest_first_name?: string;
+  location_text?: string;
+  check_in_date?: string;
+  quote_amount?: string;
+  expires_in_days?: number;
+};
+
 // Helpers
 const clip = (s: string, max = 140): string =>
   s.length <= max ? s : `${s.slice(0, max - 1)}…`;
@@ -777,6 +789,96 @@ export const NOTIFICATION_REGISTRY = {
     }),
     dedupeKey: () => null,
   } satisfies EventBuilder<DigestRefs>,
+
+  // ─── Looking For (guest)
+  looking_for_quote_received: {
+    category: "looking_for",
+    feature: "looking_for",
+    severity: "high",
+    emailTemplate: "looking_for_quote_received",
+    refKeys: ["post_id", "quote_id"],
+    push: (r) => ({
+      title: "New quote received!",
+      body: clip(
+        `${r.host_display_name ?? "A host"} sent you a quote${r.post_title ? ` for "${r.post_title}"` : ""}`,
+      ),
+      data: link("/portal/looking-for/[id]/quotes", { id: r.post_id }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "New quote received",
+      body: `${r.host_display_name ?? "A host"} · ${r.post_title ?? "your request"}`,
+      link: `/portal/looking-for/${r.post_id}/quotes`,
+    }),
+    dedupeKey: (r) => `lf_quote:${r.quote_id ?? r.post_id}`,
+  } satisfies EventBuilder<LookingForRefs>,
+
+  looking_for_post_expiring: {
+    category: "looking_for",
+    feature: "looking_for",
+    severity: "default",
+    refKeys: ["post_id"],
+    push: (r) => ({
+      title: "Request expiring soon",
+      body: clip(
+        r.expires_in_days === 1
+          ? `"${r.post_title ?? "Your request"}" expires tomorrow`
+          : `"${r.post_title ?? "Your request"}" expires in ${r.expires_in_days ?? 3} days`,
+      ),
+      data: link("/portal/looking-for/[id]", { id: r.post_id }),
+      sound: null,
+    }),
+    inApp: (r) => ({
+      title: "Request expiring soon",
+      body: `${r.post_title ?? "Your request"} · ${r.expires_in_days ?? 3} days left`,
+      link: `/portal/looking-for/${r.post_id}`,
+    }),
+    dedupeKey: (r) => `lf_expiring:${r.post_id}`,
+  } satisfies EventBuilder<LookingForRefs>,
+
+  // ─── Looking For (host)
+  looking_for_new_post_region: {
+    category: "looking_for",
+    feature: "looking_for",
+    severity: "info",
+    refKeys: ["post_id"],
+    push: (r) => ({
+      title: "New guest request nearby",
+      body: clip(
+        `${r.guest_first_name ?? "A guest"} is looking for ${r.post_title ?? "accommodation"}${r.location_text ? ` in ${r.location_text}` : ""}`,
+      ),
+      data: link("/dashboard/looking-for"),
+      sound: null,
+    }),
+    inApp: (r) => ({
+      title: "New request in your area",
+      body: `${r.guest_first_name ?? "A guest"} · ${r.location_text ?? r.post_title ?? "nearby"}`,
+      link: "/dashboard/looking-for",
+    }),
+    dedupeKey: (r) => `lf_new_post:${r.post_id}`,
+  } satisfies EventBuilder<LookingForRefs>,
+
+  looking_for_quote_viewed: {
+    category: "looking_for",
+    feature: "looking_for",
+    severity: "info",
+    refKeys: ["post_id", "quote_id"],
+    push: (r) => ({
+      title: "Guest viewed your quote",
+      body: clip(
+        `${r.guest_first_name ?? "The guest"} viewed your quote${r.post_title ? ` for "${r.post_title}"` : ""}`,
+      ),
+      data: link("/dashboard/looking-for/my-quotes"),
+      sound: null,
+    }),
+    inApp: (r) => ({
+      title: "Quote viewed",
+      body: `${r.guest_first_name ?? "Guest"} · ${r.post_title ?? "your quote"}`,
+      link: "/dashboard/looking-for/my-quotes",
+    }),
+    dedupeKey: (r) => `lf_viewed:${r.quote_id ?? r.post_id}`,
+  } satisfies EventBuilder<LookingForRefs>,
 } as const;
 
 export type EventKind = keyof typeof NOTIFICATION_REGISTRY;

@@ -1,0 +1,487 @@
+"use server";
+
+import { createServerClient } from "@/lib/supabase/server";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { revalidatePath } from "next/cache";
+
+type CreateRequestInput = {
+  guest_id: string;
+  title: string;
+  description?: string;
+  category: string;
+  check_in_date?: string;
+  check_out_date?: string;
+  adults: number;
+  children: number;
+  infants: number;
+  location_text?: string;
+  location_region?: string;
+  budget_min?: number;
+  budget_max?: number;
+  budget_per?: string;
+  is_urgent: boolean;
+  is_public: boolean;
+  quote_deadline?: string;
+  min_host_rating?: number;
+};
+
+/**
+ * Create a new Looking For post
+ */
+export async function createRequestAction(input: CreateRequestInput) {
+  const supabase = createServerClient();
+
+  // Verify user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || user.id !== input.guest_id) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Check quota
+  const { data: quotaCheck, error: quotaError } = await supabase.rpc(
+    "check_guest_post_quota",
+    { p_user_id: user.id },
+  );
+
+  if (quotaError) {
+    console.error("Quota check failed:", quotaError);
+    // Continue anyway in pre-MVP (quota enforcement can be lenient)
+  } else if (quotaCheck === false) {
+    return {
+      success: false,
+      error: "You've reached your daily post limit. Try again tomorrow.",
+    };
+  }
+
+  // Set expiry (30 days by default)
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30);
+
+  // Create the post
+  const { data: post, error } = await supabase
+    .from("looking_for_posts")
+    .insert({
+      guest_id: input.guest_id,
+      title: input.title,
+      description: input.description || null,
+      category: input.category,
+      check_in_date: input.check_in_date || null,
+      check_out_date: input.check_out_date || null,
+      adults: input.adults,
+      children: input.children,
+      infants: input.infants,
+      location_text: input.location_text || null,
+      location_region: input.location_region || null,
+      budget_min: input.budget_min || null,
+      budget_max: input.budget_max || null,
+      budget_currency: "ZAR",
+      budget_per: input.budget_per || null,
+      is_urgent: input.is_urgent,
+      is_public: input.is_public,
+      status: "active",
+      expires_at: expiresAt.toISOString(),
+      quote_deadline: input.quote_deadline || null,
+      min_host_rating: input.min_host_rating || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Failed to create request:", error);
+    return { success: false, error: error.message };
+  }
+
+  // Record usage for quota tracking
+  await supabase.from("looking_for_usage").insert({
+    user_id: user.id,
+    action: "guest_post",
+    post_id: post.id,
+  });
+
+  revalidatePath("/portal/looking-for");
+  return { success: true, data: { id: post.id } };
+}
+
+/**
+ * Update an existing Looking For post
+ */
+export async function updateRequestAction(
+  postId: string,
+  input: Partial<CreateRequestInput>,
+) {
+  const supabase = createServerClient();
+
+  // Verify user is authenticated
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Verify ownership
+  const { data: existing } = await supabase
+    .from("looking_for_posts")
+    .select("guest_id")
+    .eq("id", postId)
+    .single();
+
+  if (!existing || existing.guest_id !== user.id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  // Update the post
+  const { error } = await supabase
+    .from("looking_for_posts")
+    .update({
+      title: input.title,
+      description: input.description || null,
+      category: input.category,
+      check_in_date: input.check_in_date || null,
+      check_out_date: input.check_out_date || null,
+      adults: input.adults,
+      children: input.children,
+      infants: input.infants,
+      location_text: input.location_text || null,
+      location_region: input.location_region || null,
+      budget_min: input.budget_min || null,
+      budget_max: input.budget_max || null,
+      budget_per: input.budget_per || null,
+      is_urgent: input.is_urgent,
+      is_public: input.is_public,
+      quote_deadline: input.quote_deadline || null,
+      min_host_rating: input.min_host_rating || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", postId);
+
+  if (error) {
+    console.error("Failed to update request:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/portal/looking-for");
+  revalidatePath(`/portal/looking-for/${postId}`);
+  return { success: true };
+}
+
+/**
+ * Delete/cancel a Looking For post
+ */
+export async function cancelRequestAction(postId: string) {
+  const supabase = createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Verify ownership
+  const { data: existing } = await supabase
+    .from("looking_for_posts")
+    .select("guest_id")
+    .eq("id", postId)
+    .single();
+
+  if (!existing || existing.guest_id !== user.id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  // Soft-cancel by changing status
+  const { error } = await supabase
+    .from("looking_for_posts")
+    .update({ status: "cancelled", updated_at: new Date().toISOString() })
+    .eq("id", postId);
+
+  if (error) {
+    console.error("Failed to cancel request:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/portal/looking-for");
+  return { success: true };
+}
+
+/**
+ * Extend post expiry by 7 days
+ */
+export async function extendRequestAction(postId: string) {
+  const supabase = createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Verify ownership
+  const { data: existing } = await supabase
+    .from("looking_for_posts")
+    .select("guest_id, expires_at")
+    .eq("id", postId)
+    .single();
+
+  if (!existing || existing.guest_id !== user.id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  // Extend by 7 days from current expiry or now
+  const currentExpiry = existing.expires_at
+    ? new Date(existing.expires_at)
+    : new Date();
+  currentExpiry.setDate(currentExpiry.getDate() + 7);
+
+  const { error } = await supabase
+    .from("looking_for_posts")
+    .update({
+      expires_at: currentExpiry.toISOString(),
+      status: "active", // Reactivate if it was expired
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", postId);
+
+  if (error) {
+    console.error("Failed to extend request:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/portal/looking-for");
+  revalidatePath(`/portal/looking-for/${postId}`);
+  return { success: true };
+}
+
+/**
+ * Mark a post as fulfilled
+ */
+export async function markFulfilledAction(
+  postId: string,
+  fulfilledVia: "vilo_booking" | "ota" | "direct" | "other",
+  bookingId?: string,
+) {
+  const supabase = createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Verify ownership
+  const { data: existing } = await supabase
+    .from("looking_for_posts")
+    .select("guest_id")
+    .eq("id", postId)
+    .single();
+
+  if (!existing || existing.guest_id !== user.id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  const { error } = await supabase
+    .from("looking_for_posts")
+    .update({
+      status: "fulfilled",
+      fulfilled_via: fulfilledVia,
+      fulfilled_booking_id: bookingId || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", postId);
+
+  if (error) {
+    console.error("Failed to mark fulfilled:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/portal/looking-for");
+  revalidatePath(`/portal/looking-for/${postId}`);
+  return { success: true };
+}
+
+/**
+ * Re-open a fulfilled or cancelled post
+ */
+export async function reopenRequestAction(postId: string) {
+  const supabase = createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Verify ownership and current status
+  const { data: existing } = await supabase
+    .from("looking_for_posts")
+    .select("guest_id, status")
+    .eq("id", postId)
+    .single();
+
+  if (!existing || existing.guest_id !== user.id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  if (existing.status === "active") {
+    return { success: false, error: "Post is already active" };
+  }
+
+  // Set new expiry (30 days from now)
+  const newExpiry = new Date();
+  newExpiry.setDate(newExpiry.getDate() + 30);
+
+  const { error } = await supabase
+    .from("looking_for_posts")
+    .update({
+      status: "active",
+      fulfilled_via: null,
+      fulfilled_booking_id: null,
+      expires_at: newExpiry.toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", postId);
+
+  if (error) {
+    console.error("Failed to reopen request:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/portal/looking-for");
+  revalidatePath(`/portal/looking-for/${postId}`);
+  return { success: true };
+}
+
+/**
+ * Duplicate a post as a new request
+ */
+export async function duplicateRequestAction(postId: string) {
+  const supabase = createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Fetch original post
+  const { data: original, error: fetchError } = await supabase
+    .from("looking_for_posts")
+    .select("*")
+    .eq("id", postId)
+    .eq("guest_id", user.id)
+    .single();
+
+  if (fetchError || !original) {
+    return { success: false, error: "Post not found" };
+  }
+
+  // Create duplicate
+  const result = await createRequestAction({
+    guest_id: user.id,
+    title: original.title,
+    description: original.description,
+    category: original.category,
+    check_in_date: original.check_in_date,
+    check_out_date: original.check_out_date,
+    adults: original.adults,
+    children: original.children,
+    infants: original.infants,
+    location_text: original.location_text,
+    location_region: original.location_region,
+    budget_min: original.budget_min,
+    budget_max: original.budget_max,
+    budget_per: original.budget_per,
+    is_urgent: false, // Don't copy urgent status
+    is_public: original.is_public,
+    quote_deadline: undefined, // Don't copy deadline (user should set new one)
+    min_host_rating: original.min_host_rating,
+  });
+
+  return result;
+}
+
+/**
+ * Mark quotes as viewed and notify hosts (called when guest views quotes page)
+ */
+export async function markQuotesViewedAction(postId: string) {
+  const supabase = createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  // Verify ownership
+  const { data: post } = await supabase
+    .from("looking_for_posts")
+    .select("guest_id, title")
+    .eq("id", postId)
+    .single();
+
+  if (!post || post.guest_id !== user.id) {
+    return { success: false, error: "Not authorized" };
+  }
+
+  // Fetch responses that haven't been viewed yet
+  const { data: unviewedResponses } = await supabase
+    .from("looking_for_responses")
+    .select("id, host_id, quote_id, host:hosts(user_id)")
+    .eq("post_id", postId)
+    .is("viewed_at", null);
+
+  if (!unviewedResponses || unviewedResponses.length === 0) {
+    return { success: true }; // Nothing to update
+  }
+
+  // Mark all as viewed
+  const responseIds = unviewedResponses.map((r) => r.id);
+  await supabase
+    .from("looking_for_responses")
+    .update({ viewed_at: new Date().toISOString(), status: "viewed" })
+    .in("id", responseIds);
+
+  // Get guest name for notification
+  const { data: guestProfile } = await supabase
+    .from("user_profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const guestFirstName = guestProfile?.full_name?.split(" ")[0] ?? null;
+
+  // Notify each host
+  for (const response of unviewedResponses) {
+    const hostData = response.host as unknown as { user_id: string } | null;
+    if (hostData?.user_id) {
+      await dispatchEvent({
+        kind: "looking_for_quote_viewed",
+        recipientUserId: hostData.user_id,
+        hostId: response.host_id,
+        refs: {
+          post_id: postId,
+          quote_id: response.quote_id ?? undefined,
+          post_title: post.title ?? undefined,
+          guest_first_name: guestFirstName ?? undefined,
+        },
+      });
+    }
+  }
+
+  return { success: true };
+}

@@ -44,6 +44,12 @@ export const CANONICAL_PRODUCT_FEATURES: CanonicalFeature[] = [
     scope: "toggle",
   },
   { key: "custom_profile_url", label: "Custom host page URL", scope: "toggle" },
+  // Looking For (guest request marketplace)
+  {
+    key: "looking_for_access",
+    label: "Looking For marketplace",
+    scope: "toggle",
+  },
   // Website channel
   { key: "website_builder", label: "Website builder", scope: "toggle" },
   { key: "website_blog", label: "Website blog", scope: "toggle" },

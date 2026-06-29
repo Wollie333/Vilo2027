@@ -205,3 +205,45 @@ and the platform legally.
    document is generated as part of recording the transaction (same flow, same
    source of truth) — never bolted on afterwards or reconstructed. The ledger and
    its documents are one consistent record.
+
+---
+
+## Principle #5 — One Source of Truth
+
+**Date:** 2026-06-28
+**Status:** Active
+
+### The principle
+
+**Every domain concept has exactly one canonical location** in the codebase — one
+table, one function, one component that owns the authoritative definition. All
+other code reads from or calls that source; it never duplicates the logic.
+
+### Why this matters
+
+Enterprise-grade maintainability and scalability. When pricing logic lives in one
+place, a pricing bug is fixed once. When guest identity resolution has one
+function, account merge works everywhere. Duplication creates drift — two
+implementations slowly diverge until one breaks silently.
+
+### The rules (what must always be true)
+
+1. **One table owns each entity.** Guest identity → `user_profiles`. Host
+   contacts → `host_contacts`. Quotes → `quotes`. Never create a parallel table
+   that stores the same concept differently.
+
+2. **One function owns each calculation.** Pricing → `computeStayPricing()`.
+   Guest key → `gkeyFor()`. Feature check → `hostHasFeature()`. Never inline the
+   same logic elsewhere.
+
+3. **One component owns each UI pattern.** Quote card → `ThreadQuoteCard`.
+   Sidebar → `GmailNav`. Feature lock → `WebsiteLocked`. Copy the pattern, don't
+   rebuild it.
+
+4. **New features extend, not fork.** A new feature that needs quotes uses the
+   `quotes` table with an FK, not a `looking_for_quotes_data` table with copied
+   columns.
+
+5. **Cross-cutting concerns use shared infrastructure.** Notifications, feature
+   gates, audit logs — all flow through the existing pipelines, never parallel
+   ones.

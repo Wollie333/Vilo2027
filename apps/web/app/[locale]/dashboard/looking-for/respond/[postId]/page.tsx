@@ -1,0 +1,354 @@
+import { redirect, notFound } from "next/navigation";
+import { ArrowLeft, Search } from "lucide-react";
+
+import { createServerClient } from "@/lib/supabase/server";
+import { hostHasFeature } from "@/lib/products/featureGate";
+import { Button } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
+import { type QuoteFormListing } from "../../../quotes/QuoteForm";
+import { LookingForLocked } from "../../_components/LookingForLocked";
+import { RespondFormWrapper } from "../../_components/RespondFormWrapper";
+
+interface Props {
+  params: Promise<{ postId: string }>;
+}
+
+export default async function RespondToPostPage({ params }: Props) {
+  const { postId } = await params;
+  const supabase = createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/login?next=/dashboard/looking-for/respond/${postId}`);
+  }
+
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!host) {
+    redirect("/dashboard");
+  }
+
+  const canLookingFor = await hostHasFeature(host.id, "looking_for_access");
+
+  if (!canLookingFor) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" asChild className="gap-1.5">
+            <Link href="/dashboard/looking-for">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Link>
+          </Button>
+        </div>
+        <LookingForLocked />
+      </div>
+    );
+  }
+
+  // Fetch the Looking For post
+  const { data: post, error: postError } = await supabase
+    .from("looking_for_posts")
+    .select(
+      `
+      id,
+      title,
+      description,
+      category,
+      check_in_date,
+      check_out_date,
+      adults,
+      children,
+      infants,
+      location_text,
+      status,
+      is_public,
+      expires_at,
+      guest:user_profiles!guest_id(id, full_name, email, phone)
+    `,
+    )
+    .eq("id", postId)
+    .single();
+
+  if (postError || !post) {
+    notFound();
+  }
+
+  // Check if post is still active
+  const isExpired = post.expires_at && new Date(post.expires_at) < new Date();
+  if (post.status !== "active" || isExpired) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" asChild className="gap-1.5">
+            <Link href="/dashboard/looking-for">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Link>
+          </Button>
+        </div>
+        <div className="rounded-card border border-dashed border-brand-line bg-white p-12 text-center">
+          <h3 className="font-display text-lg font-semibold text-brand-ink">
+            Request no longer active
+          </h3>
+          <p className="mt-2 text-sm text-brand-mute">
+            This request has expired or been fulfilled.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if host has already quoted this post
+  const { data: existingResponse } = await supabase
+    .from("looking_for_responses")
+    .select("id, quote_id")
+    .eq("post_id", postId)
+    .eq("host_id", host.id)
+    .maybeSingle();
+
+  if (existingResponse?.quote_id) {
+    redirect(`/dashboard/quotes/${existingResponse.quote_id}`);
+  }
+
+  // Fetch host's listings for the QuoteForm
+  const { data: listings } = await supabase
+    .from("properties")
+    .select(
+      `
+      id,
+      name,
+      booking_mode,
+      base_price,
+      cleaning_fee,
+      currency,
+      city,
+      max_guests,
+      allow_children,
+      allow_infants,
+      allow_pets,
+      rooms:rooms(
+        id,
+        name,
+        base_price,
+        cleaning_fee,
+        max_guests,
+        base_occupancy,
+        bed_type,
+        allow_children,
+        allow_infants,
+        allow_pets
+      ),
+      addons:property_addons(
+        id,
+        name,
+        pricing_model,
+        unit_price,
+        currency,
+        min_quantity,
+        max_quantity
+      )
+    `,
+    )
+    .eq("host_id", host.id)
+    .is("deleted_at", null)
+    .eq("is_active", true);
+
+  if (!listings || listings.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" asChild className="gap-1.5">
+            <Link href="/dashboard/looking-for">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Link>
+          </Button>
+        </div>
+        <div className="rounded-card border border-dashed border-brand-line bg-white p-12 text-center">
+          <h3 className="font-display text-lg font-semibold text-brand-ink">
+            No listings available
+          </h3>
+          <p className="mt-2 text-sm text-brand-mute">
+            You need at least one active listing to send quotes.
+          </p>
+          <Button asChild className="mt-4">
+            <Link href="/dashboard/listings/new">Create a listing</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const guest = post.guest as unknown as {
+    id: string;
+    full_name: string | null;
+    email: string;
+    phone: string | null;
+  } | null;
+
+  // Fetch host's message templates
+  const { data: templates } = await supabase
+    .from("message_templates")
+    .select("id, title, body")
+    .eq("host_id", host.id)
+    .order("sort_order");
+
+  // Transform listings for QuoteForm
+  const quoteFormListings: QuoteFormListing[] = listings.map((listing) => ({
+    id: listing.id,
+    name: listing.name,
+    booking_mode: listing.booking_mode as
+      | "whole_listing"
+      | "rooms_only"
+      | "flexible",
+    base_price: listing.base_price,
+    cleaning_fee: listing.cleaning_fee,
+    currency: listing.currency ?? "ZAR",
+    city: listing.city,
+    max_guests: listing.max_guests,
+    allowChildren: listing.allow_children,
+    allowInfants: listing.allow_infants,
+    allowPets: listing.allow_pets,
+    rooms: (listing.rooms ?? []).map(
+      (r: {
+        id: string;
+        name: string;
+        base_price: number | null;
+        cleaning_fee: number | null;
+        max_guests: number | null;
+        base_occupancy: number | null;
+        bed_type: string | null;
+        allow_children: boolean;
+        allow_infants: boolean;
+        allow_pets: boolean;
+      }) => ({
+        id: r.id,
+        name: r.name,
+        base_price: r.base_price,
+        cleaning_fee: r.cleaning_fee,
+        max_guests: r.max_guests,
+        base_occupancy: r.base_occupancy,
+        bed_type: r.bed_type,
+        allowChildren: r.allow_children,
+        allowInfants: r.allow_infants,
+        allowPets: r.allow_pets,
+      }),
+    ),
+    addons: (listing.addons ?? []).map(
+      (a: {
+        id: string;
+        name: string;
+        pricing_model: string;
+        unit_price: number;
+        currency: string;
+        min_quantity: number;
+        max_quantity: number | null;
+      }) => ({
+        id: a.id,
+        name: a.name,
+        pricing_model: a.pricing_model,
+        unit_price: a.unit_price,
+        currency: a.currency,
+        min_quantity: a.min_quantity,
+        max_quantity: a.max_quantity,
+      }),
+    ),
+  }));
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" asChild className="gap-1.5">
+          <Link href="/dashboard/looking-for">
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Link>
+        </Button>
+      </div>
+
+      {/* Request summary */}
+      <div className="rounded-card border border-brand-line bg-brand-accent p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
+            <Search className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-brand-mute">Responding to request</p>
+            <h2 className="truncate font-medium text-brand-ink">
+              {post.title}
+            </h2>
+            <p className="mt-1 text-sm text-brand-mute">
+              {post.location_text ?? post.category}
+              {post.check_in_date && (
+                <span>
+                  {" "}
+                  ·{" "}
+                  {new Date(post.check_in_date).toLocaleDateString("en-ZA", {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+              )}
+              {post.check_out_date && (
+                <span>
+                  {" "}
+                  –{" "}
+                  {new Date(post.check_out_date).toLocaleDateString("en-ZA", {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+              )}
+              {post.adults && (
+                <span>
+                  {" "}
+                  · {post.adults +
+                    (post.children ?? 0) +
+                    (post.infants ?? 0)}{" "}
+                  guests
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quote form with pre-filled data and template support */}
+      <RespondFormWrapper
+        listings={quoteFormListings}
+        initial={{
+          guestName: guest?.full_name ?? "",
+          guestEmail: guest?.email ?? "",
+          guestPhone: guest?.phone ?? "",
+          checkIn: post.check_in_date ?? "",
+          checkOut: post.check_out_date ?? "",
+          guestsBreakdown: {
+            adults: post.adults ?? 2,
+            children: post.children ?? 0,
+            infants: post.infants ?? 0,
+          },
+          headcount:
+            (post.adults ?? 2) + (post.children ?? 0) + (post.infants ?? 0),
+          notes: post.description ?? "",
+          lookingForPostId: post.id,
+        }}
+        templates={(templates ?? []).map((t) => ({
+          id: t.id,
+          title: t.title,
+          body: t.body,
+        }))}
+        guestName={guest?.full_name ?? "Guest"}
+      />
+    </div>
+  );
+}

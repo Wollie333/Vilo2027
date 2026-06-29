@@ -27,6 +27,7 @@ const PRE_MVP_OPEN_FEATURES = new Set([
   "website_builder",
   "website_blog",
   "website_custom_domain",
+  "looking_for_access",
 ]);
 
 export const hostHasFeature = cache(async function hostHasFeature(

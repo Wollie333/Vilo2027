@@ -10,6 +10,7 @@ import {
   LogOut,
   Luggage,
   MessageSquare,
+  Search,
   Settings,
   Star,
 } from "lucide-react";
@@ -90,7 +91,15 @@ export function PortalSidebar({
     },
     {
       label: "Discover",
-      items: [{ href: "/portal/browse", label: "Browse stays", icon: Compass }],
+      items: [
+        { href: "/portal/browse", label: "Browse stays", icon: Compass },
+        {
+          href: "/portal/looking-for",
+          label: "Looking For",
+          icon: Search,
+          match: "prefix",
+        },
+      ],
     },
   ];
 

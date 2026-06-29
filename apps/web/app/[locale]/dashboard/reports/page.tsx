@@ -25,6 +25,7 @@ import { GuestDemographics } from "./_components/GuestDemographics";
 import { PopularRooms } from "./_components/PopularRooms";
 import { RefundsCancellations } from "./_components/RefundsCancellations";
 import { ScheduledReportsSection } from "./_components/ScheduledReportsSection";
+import { LookingForStats } from "./_components/LookingForStats";
 
 export const metadata: Metadata = {
   title: "Analytics & Reports",
@@ -168,6 +169,7 @@ export default async function ReportsPage({
     guestDemographicsRes,
     popularRoomsRes,
     refundsCancellationsRes,
+    lookingForStatsRes,
   ] = await Promise.all([
     supabase.rpc("fetch_primary_kpis", {
       p_host_id: host.id,
@@ -237,6 +239,11 @@ export default async function ReportsPage({
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
     }),
+    supabase.rpc("fetch_looking_for_stats", {
+      p_host_id: host.id,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    }),
   ]);
 
   // Log errors for debugging
@@ -274,6 +281,8 @@ export default async function ReportsPage({
       "fetch_refunds_cancellations error:",
       refundsCancellationsRes.error,
     );
+  if (lookingForStatsRes.error)
+    console.error("fetch_looking_for_stats error:", lookingForStatsRes.error);
 
   const kpisError =
     primaryKpisRes.error ||
@@ -417,6 +426,20 @@ export default async function ReportsPage({
     avg_refund_turnaround_days: number;
   } | null;
 
+  const lookingForStats = lookingForStatsRes.data as {
+    posts_viewed: number;
+    quotes_sent: number;
+    quotes_viewed: number;
+    quotes_accepted: number;
+    acceptance_rate: number;
+    view_rate: number;
+    avg_response_hours: number;
+    revenue_from_looking_for: number;
+    regional_breakdown: Array<{ region: string; count: number }>;
+    category_breakdown: Array<{ category: string; count: number }>;
+    trend: Array<{ month: string; quotes_sent: number; accepted: number }>;
+  } | null;
+
   // Fetch scheduled reports (separate from analytics data)
   const { data: scheduledReportsData } = await supabase
     .from("scheduled_reports")
@@ -550,6 +573,9 @@ export default async function ReportsPage({
 
             {/* Secondary Metrics */}
             <SecondaryMetrics data={secondaryMetrics} />
+
+            {/* Looking For Performance */}
+            {lookingForStats && <LookingForStats data={lookingForStats} />}
 
             {/* Revenue Trend + Channel Mix */}
             <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">

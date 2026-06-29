@@ -4,6 +4,8 @@ import {
   BadgePercent,
   BarChart3,
   BedDouble,
+  Bell,
+  Bookmark,
   Cable,
   CalendarCheck,
   Calendar as CalendarIcon,
@@ -15,12 +17,15 @@ import {
   Images,
   LayoutDashboard,
   LifeBuoy,
+  List,
   MessageSquare,
   PackagePlus,
   Receipt,
   RotateCcw,
   RotateCw,
   ScrollText,
+  Search,
+  SendHorizonal,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -138,6 +143,33 @@ const FINANCES: GmailNavItem[] = [
   { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];
 
+// Looking For — guest request marketplace where hosts browse and respond to
+// guest accommodation requests. Follows the same collapsible section pattern
+// as Properties. Feature-gated via looking_for_access.
+const LOOKING_FOR: GmailNavItem[] = [
+  {
+    href: "/dashboard/looking-for",
+    label: "Browse Requests",
+    icon: List,
+    match: "prefix",
+  },
+  {
+    href: "/dashboard/looking-for/my-quotes",
+    label: "My Quotes Sent",
+    icon: SendHorizonal,
+  },
+  {
+    href: "/dashboard/looking-for/saved",
+    label: "Saved Requests",
+    icon: Bookmark,
+  },
+  {
+    href: "/dashboard/looking-for/alerts",
+    label: "Request Alerts",
+    icon: Bell,
+  },
+];
+
 const INSIGHTS: GmailNavItem[] = [
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
   // The affiliate programme lives in the universal portal area (open to every
@@ -174,6 +206,8 @@ export function Sidebar({
   inboxUnread = 0,
   guestCount = 0,
   canWebsite = false,
+  canLookingFor = false,
+  lookingForUnread = 0,
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
@@ -182,6 +216,8 @@ export function Sidebar({
   inboxUnread?: number;
   guestCount?: number;
   canWebsite?: boolean;
+  canLookingFor?: boolean;
+  lookingForUnread?: number;
 }) {
   const planLabel =
     plan === "free"
@@ -216,9 +252,30 @@ export function Sidebar({
       : item,
   );
 
+  // Looking For — show unread badge on "Browse Requests" when new posts in region
+  const lookingForItems = LOOKING_FOR.map((item) =>
+    item.href === "/dashboard/looking-for" && lookingForUnread > 0
+      ? {
+          ...item,
+          badge: { text: String(lookingForUnread), tone: "count" as const },
+        }
+      : item,
+  );
+
   const sections: GmailNavSection[] = [
     { items: dailyItems },
     { label: "Properties", items: PROPERTIES, collapsible: true },
+    // Looking For section — visible when host has access (or show locked state)
+    ...(canLookingFor
+      ? [
+          {
+            label: "Looking For",
+            items: lookingForItems,
+            collapsible: true,
+            icon: Search,
+          } as GmailNavSection,
+        ]
+      : []),
     { label: "Channels", items: channelItems, collapsible: true },
     { label: "Finances", items: FINANCES, collapsible: true },
     { label: "Insights", items: INSIGHTS, collapsible: true },

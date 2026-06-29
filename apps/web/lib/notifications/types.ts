@@ -19,7 +19,8 @@ export type CategoryId =
   | "subscription"
   | "account_security"
   | "admin_broadcasts"
-  | "marketing_tips";
+  | "marketing_tips"
+  | "looking_for";
 
 // Second axis (the `feature` column on notification_events). Lets the
 // admin-side history / audit views group by feature without duplicating
@@ -32,7 +33,8 @@ export type FeatureId =
   | "review"
   | "calendar"
   | "account"
-  | "admin";
+  | "admin"
+  | "looking_for";
 
 // Push payload shape sent to Expo. Mirrors NOTIFICATIONS.md §3.
 export type PushPayload = {

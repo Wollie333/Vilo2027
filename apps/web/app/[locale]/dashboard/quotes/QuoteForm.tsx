@@ -132,6 +132,8 @@ export type QuoteFormInitial = {
   }[];
   catalogAddons?: { addon_id: string; quantity: number }[];
   customAddons?: { label: string; quantity: number; unit_price: number }[];
+  /** Looking For post ID to link this quote to a guest request */
+  lookingForPostId?: string;
 };
 
 function nightsBetween(checkIn: string, checkOut: string): number {
