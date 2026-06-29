@@ -190,7 +190,14 @@ export const changeUserRoleAction = withAdminAudit<
   },
 );
 
-// ─── Soft-delete (never hard-delete) ──────────────────────────
+// ─── Delete user ──────────────────────────────────────────────
+// Admin-initiated account deletion must actually remove the user — not just
+// soft-delete the profile. A soft delete leaves the auth.users row in place,
+// so the email still reads as "already registered" and the person can never
+// sign up again. We mirror the GDPR/self-service flow: purge historical rows,
+// then hard-delete the auth user (cascades the profile + every CASCADE child).
+// If RESTRICT FKs (bookings / invoices / audit) block the cascade, fall back to
+// anonymisation, which still frees the email and de-identifies the account.
 const deleteSchema = z.object({
   userId: z.string().uuid(),
   reason: z.string().min(5).max(500),
@@ -198,11 +205,11 @@ const deleteSchema = z.object({
 
 export const softDeleteUserAction = withAdminAudit<
   z.infer<typeof deleteSchema>,
-  { ok: true }
+  { ok: true; method: "hard_deleted" | "anonymized" }
 >(
   {
     permissionKey: "users.delete",
-    actionName: "user.soft_delete",
+    actionName: "user.delete",
     targetType: "user",
     getTargetId: (a) => a.userId,
     requireReason: true,
@@ -210,16 +217,61 @@ export const softDeleteUserAction = withAdminAudit<
   async (args, service) => {
     if (!deleteSchema.safeParse(args).success)
       throw new Error("Invalid input.");
-    const { error, data } = await service
+
+    // Block deleting a super_admin (would risk locking the platform out).
+    const { data: target } = await service
       .from("user_profiles")
-      .update({ deleted_at: new Date().toISOString(), is_active: false })
+      .select("role")
       .eq("id", args.userId)
-      .select("id, deleted_at")
-      .single();
-    if (error) throw new Error(error.message);
+      .maybeSingle();
+    if ((target?.role as string | undefined) === "super_admin") {
+      throw new Error(
+        "Super admin accounts can't be deleted here — change the role first.",
+      );
+    }
+
+    // Clear historical / RESTRICT-FK rows first so the auth.users →
+    // user_profiles cascade isn't blocked (pre-MVP policy — see migration
+    // 20260531000021). Non-fatal: if it fails, the delete below falls back.
+    await service.rpc("app_purge_user_account", { p_user_id: args.userId });
+
+    // Hard-delete the auth user → frees the email for re-signup and cascades
+    // the profile, notifications, push tokens, etc.
+    const { error: delErr } = await service.auth.admin.deleteUser(args.userId);
+    if (!delErr) {
+      revalidatePath(`/admin/users/${args.userId}`);
+      revalidatePath("/admin/users");
+      return {
+        result: { ok: true, method: "hard_deleted" },
+        after: { user_id: args.userId, method: "hard_deleted" },
+      };
+    }
+
+    // RESTRICT FKs still reference the account — anonymise instead. This still
+    // releases the real email and de-identifies the profile + auth identity.
+    const anonEmail = `deleted+${args.userId}@deleted.invalid`;
+    await service
+      .from("user_profiles")
+      .update({
+        full_name: "Deleted user",
+        email: anonEmail,
+        phone: null,
+        avatar_url: null,
+        is_active: false,
+        deleted_at: new Date().toISOString(),
+      })
+      .eq("id", args.userId);
+    await service.auth.admin.updateUserById(args.userId, {
+      email: anonEmail,
+      user_metadata: {},
+    });
+
     revalidatePath(`/admin/users/${args.userId}`);
     revalidatePath("/admin/users");
-    return { result: { ok: true }, after: data };
+    return {
+      result: { ok: true, method: "anonymized" },
+      after: { user_id: args.userId, method: "anonymized" },
+    };
   },
 );
 
