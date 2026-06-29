@@ -16,7 +16,7 @@ import {
   type ThemeBundle,
   type ThemePageTemplate,
 } from "@/lib/site/themes.server";
-import { resolvePaletteAccent } from "@/lib/site/palettes";
+import { generatePalettes, resolvePaletteAccent } from "@/lib/site/palettes";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -731,6 +731,11 @@ export async function createWebsiteWithWizardAction(
   const base = bundle?.base ?? null;
   const baseAccent = base?.palette?.accent ?? "#0a7d4b";
   const accent = resolvePaletteAccent(baseAccent, paletteIndex, customAccent);
+  // Persist the wizard's accent options as Brand Studio swatches so the host's
+  // chosen palette is reflected (and quick-pickable) when they open Brand Studio.
+  const paletteSwatches = Array.from(
+    new Set([accent, ...generatePalettes(baseAccent).map((p) => p.accent)]),
+  );
 
   const brand: Record<string, unknown> = { name: siteName.trim() };
   if (logoPath) brand.logo_path = logoPath;
@@ -753,6 +758,7 @@ export async function createWebsiteWithWizardAction(
         preset: slug,
         ...(base ? { base } : {}),
         colors: { accent },
+        palette: paletteSwatches,
       },
     })
     .select("id")
