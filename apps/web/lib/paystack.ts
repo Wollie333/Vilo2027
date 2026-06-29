@@ -165,7 +165,9 @@ export async function createPaystackPaymentLink(input: {
     amount: input.amount,
     currency: "ZAR",
     email: input.email,
-    callbackUrl: input.callbackUrl ?? "https://vilo.co.za/pay/thanks",
+    callbackUrl:
+      input.callbackUrl ??
+      `${process.env.NEXT_PUBLIC_APP_URL || "https://wielo.co.za"}/pay/thanks`,
     reference: input.reference,
     statementDescriptor: input.statementDescriptor,
     metadata: input.description
