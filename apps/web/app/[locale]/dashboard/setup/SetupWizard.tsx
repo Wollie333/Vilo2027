@@ -354,31 +354,8 @@ export function SetupWizard(props: Props) {
             </nav>
           </div>
 
-          {/* Publish CTA — always visible in the rail, enabled once every
-              required step is done. (Mobile publishes from the review step.) */}
-          <button
-            type="button"
-            onClick={publish}
-            disabled={!ready || publishing}
-            className={`hidden w-full items-center justify-center gap-2 rounded-card px-4 py-3 text-sm font-semibold transition-all lg:flex ${
-              ready
-                ? "bg-brand-primary text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
-                : "cursor-not-allowed bg-brand-line text-brand-mute"
-            }`}
-          >
-            <Rocket className="h-4 w-4" />
-            {publishing
-              ? "Publishing…"
-              : ready
-                ? "Publish listing"
-                : "Finish required steps"}
-          </button>
-          {!ready ? (
-            <p className="hidden px-1 text-center text-[11px] leading-relaxed text-brand-mute lg:block">
-              Complete the required steps to go live. You can keep editing after
-              publishing.
-            </p>
-          ) : null}
+          {/* Publish happens from the review step's footer Back / Publish pair
+              (all devices) — no duplicate publish control in the rail. */}
         </aside>
 
         {/* ─── Content column ─── */}
