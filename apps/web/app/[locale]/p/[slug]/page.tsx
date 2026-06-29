@@ -79,7 +79,7 @@ export default async function ProductLandingPage({
 
         <div className="mt-6">
           {p.is_active ? (
-            <BuyForm slug={params.slug} />
+            <BuyForm slug={params.slug} free={Number(p.price) === 0} />
           ) : (
             <div className="rounded-md border border-brand-line bg-brand-light/40 px-4 py-3 text-center text-sm text-brand-mute">
               Not available for purchase right now.

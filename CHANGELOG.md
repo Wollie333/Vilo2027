@@ -48,6 +48,26 @@ live for launch without re-entering anything (mirrors `platform_payment_settings
 The host's connected Paystack already powers the website checkout + listings
 (Vilo 0%), so guests pay in whichever mode the host has active. `tsc` + `lint` clean.
 
+## 2026-06-29 — Free products: skip payment, provision the buyer, auto sign-in
+
+A free product (price 0 — e.g. the Beta tester product) no longer sends the buyer
+to a R0 payment step. On `/p/[slug]`:
+
+- `purchaseProductBySlug` branches on price. **Free** → `fulfilFreeProductBySlug`:
+  find-or-create a passwordless account, create a host (features are host-scoped),
+  grant the product's plan/features via the subscription's `product_id` (same
+  `activateMappedPlan` path as a paid activation), record an R0 `product_orders`
+  row, then return a **magic-link** that auto-signs-in and lands on `/dashboard`.
+  **Paid** → the existing order + pay-link flow, unchanged.
+- `BuyForm` shows a **progress modal** on submit ("Setting up your account →
+  Granting your beta access → Signing you in" for free; "Taking you to secure
+  payment" for paid), with free-aware CTA ("Get access" vs "Continue to payment").
+
+**Verified live** on `/p/beta`: entering an email created the account + host,
+activated the subscription with the Beta product (role=host, plan active,
+product_id set), recorded an R0 paid order, and auto-signed-in to the dashboard —
+no payment step. Test account cleaned up. `tsc` + `lint` clean.
+
 ## 2026-06-29 — Harden website checkout: server-side payment-method enforcement
 
 Follow-up to the host payment-method toggles. `createSiteBooking` now enforces the

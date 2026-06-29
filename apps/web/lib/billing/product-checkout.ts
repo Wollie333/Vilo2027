@@ -1,6 +1,8 @@
 import "server-only";
 
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
+import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
+import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -81,6 +83,158 @@ export async function startProductPurchaseBySlug(
     return { ok: false, error: "This product isn't available." };
   }
   return createProductOrder({ productId: product.id, email, createdBy: null });
+}
+
+export type PurchaseResult =
+  | { ok: true; url: string; free: boolean }
+  | { ok: false; error: string };
+
+/**
+ * Public self-serve entry that branches on price: a FREE product provisions the
+ * buyer + returns an auto-sign-in magic link; a paid product creates an order +
+ * pay-link (the existing flow). The standalone product page (/p/[slug]) calls this.
+ */
+export async function purchaseProductBySlug(
+  slug: string,
+  email: string,
+  origin: string,
+): Promise<PurchaseResult> {
+  const admin = createAdminClient();
+  const { data: product } = await admin
+    .from("products")
+    .select("id, price, is_active")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!product || !product.is_active) {
+    return { ok: false, error: "This product isn't available." };
+  }
+  if (Number(product.price) === 0) {
+    const r = await fulfilFreeProductBySlug(slug, email, origin);
+    return r.ok ? { ok: true, url: r.loginUrl, free: true } : r;
+  }
+  const r = await createProductOrder({
+    productId: product.id,
+    email,
+    createdBy: null,
+  });
+  return r.ok ? { ok: true, url: r.url, free: false } : r;
+}
+
+export type FreeFulfilResult =
+  | { ok: true; loginUrl: string }
+  | { ok: false; error: string };
+
+/**
+ * Free product (price 0): provision the buyer instead of charging. Creates a
+ * passwordless account + a host (beta features are host-scoped) if needed, grants
+ * the product's plan/features (via the subscription's product_id), records an R0
+ * order for the books, and returns a magic-link URL that signs them in and lands
+ * on the dashboard. Idempotent for an existing account (re-grants, re-issues link).
+ */
+export async function fulfilFreeProductBySlug(
+  slug: string,
+  email: string,
+  origin: string,
+): Promise<FreeFulfilResult> {
+  const admin = createAdminClient();
+  const { data: product } = await admin
+    .from("products")
+    .select("id, name, price, currency, is_active")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!product || !product.is_active) {
+    return { ok: false, error: "This product isn't available." };
+  }
+  if (Number(product.price) !== 0) {
+    return { ok: false, error: "This product isn't free." };
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const name = cleanEmail.split("@")[0] || "Host";
+
+  // 1) Account — passwordless lead if new (mints a Vilo identity + user_profile).
+  const identity = await findOrCreateLeadIdentity(admin, {
+    email: cleanEmail,
+    name,
+  });
+  if (!identity) {
+    return { ok: false, error: "Couldn't create your account. Try again." };
+  }
+  const userId = identity.guestId;
+
+  // 2) Ensure a host record (features resolve through a host-scoped subscription).
+  const { data: existingHost } = await admin
+    .from("hosts")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!existingHost) {
+    const base = slugify(name) || "host";
+    const { data: taken } = await admin
+      .from("hosts")
+      .select("handle")
+      .ilike("handle", `${base}%`);
+    const handles = new Set(
+      (taken ?? []).map((h) => (h as { handle: string }).handle),
+    );
+    const { error: hErr } = await admin.from("hosts").insert({
+      user_id: userId,
+      handle: uniqueSlug(base, handles),
+      display_name: name,
+    });
+    if (hErr) {
+      return { ok: false, error: "Couldn't set up your host account." };
+    }
+    await admin
+      .from("user_profiles")
+      .update({ role: "host", is_lead: false })
+      .eq("id", userId);
+    const { data: newHost } = await admin
+      .from("hosts")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (newHost?.id) {
+      try {
+        await admin.rpc("ensure_host_default_policies", {
+          p_host_id: newHost.id,
+        });
+      } catch {
+        // best-effort — a missing preset must not block beta access
+      }
+    }
+  }
+
+  // 3) Grant the product's plan/features (same path as a paid activation).
+  await activateMappedPlan(admin, userId, product.id, new Date());
+
+  // 4) Record an R0 order for the books (method left null — it's not a charge).
+  await admin.from("product_orders").insert({
+    product_id: product.id,
+    product_name: product.name,
+    payer_email: cleanEmail,
+    payer_user_id: userId,
+    amount: 0,
+    currency: product.currency,
+    status: "paid",
+    paid_at: new Date().toISOString(),
+    pay_token: token(),
+    created_by: null,
+  });
+
+  // 5) Magic link → auto sign-in → dashboard (no password needed).
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email: cleanEmail,
+    options: { redirectTo: `${origin}/auth/confirm?next=/dashboard` },
+  });
+  const hashed = link?.properties?.hashed_token;
+  if (linkErr || !hashed) {
+    // Account is provisioned; they just need to sign in manually.
+    return { ok: false, error: "You're set up — please sign in to continue." };
+  }
+  const loginUrl = `${origin}/auth/confirm?token_hash=${hashed}&type=magiclink&next=/dashboard`;
+  return { ok: true, loginUrl };
 }
 
 export type PaystackStartResult =
