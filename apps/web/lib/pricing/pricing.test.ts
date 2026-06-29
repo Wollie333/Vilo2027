@@ -15,7 +15,7 @@ import {
 //
 // Calendar anchor (all UTC): 2026-06-04 is a THURSDAY, so within this file
 //   06-04 Thu · 06-05 Fri · 06-06 Sat · 06-07 Sun · 06-08 Mon …
-// Weekend nights are Friday + Saturday (the Vilo definition).
+// Weekend nights are Friday + Saturday (the Wielo definition).
 // ─────────────────────────────────────────────────────────────────────────
 
 function unit(over: Partial<PricingUnit> = {}): PricingUnit {

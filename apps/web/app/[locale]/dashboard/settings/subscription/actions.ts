@@ -169,7 +169,7 @@ type CheckoutResult =
  *  - First paid upgrade with a trial (never trialed) → start the trial, no charge.
  *  - Billing not configured (no platform Paystack key) → state-only switch
  *    (pre-MVP behaviour, lets the founder smoke-test gates).
- *  - Otherwise → start a Paystack checkout on Vilo's platform key; the webhook
+ *  - Otherwise → start a Paystack checkout on Wielo's platform key; the webhook
  *    activates the subscription + completes the ledger row on payment.
  */
 export async function startPlanCheckoutAction(input: {

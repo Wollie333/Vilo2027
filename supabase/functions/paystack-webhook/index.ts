@@ -44,7 +44,7 @@ function matchesSecret(
 }
 
 // Verify against the env key (bookings) OR the admin-configured platform key
-// (subscriptions/products), since Vilo's own merchant key may be set in DB.
+// (subscriptions/products), since Wielo's own merchant key may be set in DB.
 // deno-lint-ignore no-explicit-any
 async function verifySignature(
   rawBody: string,
@@ -121,8 +121,8 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
 
   const supabase = adminClient();
 
-  // ─── Vilo subscription billing branch ──────────────────────────────
-  // Vilo's own revenue (host pays for a plan on the PLATFORM key) is keyed by
+  // ─── Wielo subscription billing branch ──────────────────────────────
+  // Wielo's own revenue (host pays for a plan on the PLATFORM key) is keyed by
   // platform_ledger.provider_reference, NOT payments. Discriminate on the
   // metadata purpose so the booking path below stays byte-identical.
   const purpose = (event.data?.metadata as { purpose?: string } | null)
@@ -285,7 +285,7 @@ async function accrueCommissionByReference(supabase: any, ref: string) {
   }
 }
 
-// ─── Vilo product order handler ───────────────────────────────────────
+// ─── Wielo product order handler ───────────────────────────────────────
 // deno-lint-ignore no-explicit-any
 async function processProductEvent(event: PaystackEvent, supabase: any) {
   if (event.event !== "charge.success") return;
@@ -345,7 +345,7 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   // product_features). `plan` is kept a valid plans.key for legacy reads:
   // derived from the product slug when that slug is a real plan, else the host's
   // current plan is preserved. Mirrors the TS confirm path (activateMappedPlan)
-  // and admin setUserProductAction. Only when the buyer has a Vilo account +
+  // and admin setUserProductAction. Only when the buyer has a Wielo account +
   // host (the buy-first flow sets this at signup instead).
   if (order.payer_user_id && order.product_id) {
     const { data: product } = await supabase
@@ -400,8 +400,8 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   }
 }
 
-// ─── Vilo subscription billing handler ────────────────────────────────
-// Writes the Vilo revenue ledger + activates the host's subscription. Idempotent
+// ─── Wielo subscription billing handler ────────────────────────────────
+// Writes the Wielo revenue ledger + activates the host's subscription. Idempotent
 // on platform_ledger.provider_reference (UNIQUE). Handles both the first checkout
 // (a pending ledger row exists) and auto-renewals (no row yet → insert one).
 function addMonths(d: Date, n: number): string {

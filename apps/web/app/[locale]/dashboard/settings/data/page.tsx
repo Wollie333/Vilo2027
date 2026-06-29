@@ -152,10 +152,10 @@ export default async function SettingsDataPage() {
         </Link>{" "}
         or email{" "}
         <a
-          href="mailto:privacy@viloplatform.com"
+          href="mailto:privacy@wieloplatform.com"
           className="text-brand-primary underline-offset-2 hover:underline"
         >
-          privacy@viloplatform.com
+          privacy@wieloplatform.com
         </a>
         .
       </p>

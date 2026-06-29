@@ -48,11 +48,11 @@ export default async function SupportAccessPage() {
         </div>
         <div>
           <h1 className="font-display text-2xl font-bold text-brand-ink">
-            Vilo support access
+            Wielo support access
           </h1>
           <p className="mt-1 text-sm text-brand-mute">
-            Vilo support can always see your account to help. To make changes to
-            your <span className="font-medium">financial</span> records
+            Wielo support can always see your account to help. To make changes
+            to your <span className="font-medium">financial</span> records
             (bookings, refunds, ledger) they must request your permission here —
             you stay in control.
           </p>
@@ -61,7 +61,7 @@ export default async function SupportAccessPage() {
 
       {rows.length === 0 ? (
         <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center text-sm text-brand-mute">
-          No support-access requests. If Vilo support needs to make a change,
+          No support-access requests. If Wielo support needs to make a change,
           you&apos;ll see the request here.
         </div>
       ) : (

@@ -50,13 +50,13 @@ For each: dashboard → Storage → "New bucket" → name + Public/Private toggl
 
 ---
 
-## 4. Resend + viloplatform.com domain (~30 min)
+## 4. Resend + wieloplatform.com domain (~30 min)
 
 Email delivery is blocked on a verified domain.
 
-1. **Register `viloplatform.com`** at any registrar (Namecheap, Cloudflare, etc.).
+1. **Register `wieloplatform.com`** at any registrar (Namecheap, Cloudflare, etc.).
 2. Sign up at **resend.com** (3,000 free emails/month).
-3. Resend dashboard → Domains → **Add Domain** → `viloplatform.com`.
+3. Resend dashboard → Domains → **Add Domain** → `wieloplatform.com`.
 4. Add the SPF + DKIM + DMARC records Resend gives you to your DNS provider. Wait for verification (usually <10 min).
 5. Generate an API key in Resend → API Keys.
 6. Add `RESEND_API_KEY` to Doppler (production config).
@@ -82,8 +82,8 @@ Email delivery is blocked on a verified domain.
 
 1. Sign up at **sentry.io** (free tier: 5,000 errors/month).
 2. Create two projects:
-   - `vilo-web` (platform: Next.js)
-   - `vilo-mobile` (platform: React Native)
+   - `wielo-web` (platform: Next.js)
+   - `wielo-mobile` (platform: React Native)
 3. Copy the **DSN** for each.
 4. Add to Doppler (staging + production):
    - `NEXT_PUBLIC_SENTRY_DSN` (web DSN)

@@ -42,7 +42,7 @@ export type WebsiteFormSubmitResult =
         // For booking forms: the query string for the on-site checkout
         // (`property=…&room=…&from=…&to=…&guests=…`). FormSection resolves the
         // site-relative `/book` base on the client (tenant vs app-domain) and
-        // sends the guest there — the shared Vilo booking handoff.
+        // sends the guest there — the shared Wielo booking handoff.
         bookingQuery?: string;
       };
     }
@@ -255,7 +255,7 @@ export async function submitWebsiteForm(
   }
 
   // GUEST-ON-EVERY-SUBMIT — every email-bearing entry creates/updates a contact in
-  // the host's CRM (a record Vilo owns + shares with the host), tagged `website`,
+  // the host's CRM (a record Wielo owns + shares with the host), tagged `website`,
   // so the host ALWAYS gets the lead regardless of the newsletter / inbox / booking
   // routing below. emailConsent stays false here (a lead, not a marketing
   // subscriber) — the newsletter / opt-in routes add consent on top.

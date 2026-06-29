@@ -1,4 +1,4 @@
-// Canonical feature catalog for Vilo products — reflects real app usage. The
+// Canonical feature catalog for Wielo products — reflects real app usage. The
 // product editor builds its permission list from this (unioned with whatever a
 // product already has set), so every meaningful capability is configurable.
 //

@@ -54,7 +54,7 @@ export function WebsiteTabs({ websiteId }: { websiteId: string }) {
 
   return (
     <nav
-      className="vilo-cms thin-scroll -mb-px overflow-x-auto border-b"
+      className="wielo-cms thin-scroll -mb-px overflow-x-auto border-b"
       style={{ borderColor: "var(--line)" }}
     >
       <div className="flex min-w-max items-center">

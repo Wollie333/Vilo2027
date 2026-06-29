@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   process.env.NEXT_PUBLIC_APP_URL ??
-  "https://viloplatform.com";
+  "https://wieloplatform.com";
 
 // The stay happened (completed) AND money was collected at some point. A refund
 // issued after a real stay still counts — the guest is entitled to review.

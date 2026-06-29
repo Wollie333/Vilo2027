@@ -12,7 +12,7 @@
 --
 -- You can override the founder email by setting the psql variable :email
 --
---   psql ... -v email=someone@vilo.com -f grant-super-admin.sql
+--   psql ... -v email=someone@wielo.com -f grant-super-admin.sql
 
 \set ON_ERROR_STOP on
 \if :{?email}

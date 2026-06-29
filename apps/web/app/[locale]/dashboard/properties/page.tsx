@@ -54,7 +54,7 @@ const TYPE_LABEL: Record<string, string> = {
   transfer: "Transfer",
 };
 
-const PHOTO_TARGET = 8; // Vilo guideline: 8+ photos before publish.
+const PHOTO_TARGET = 8; // Wielo guideline: 8+ photos before publish.
 
 type StatusFilter = "all" | "published" | "draft" | "paused";
 type SortKey = "newest" | "booked" | "rating" | "price" | "name";
@@ -1217,7 +1217,7 @@ function buildRecommendations(all: Derived[]): Rec[] {
             <span className="text-brand-primary">{l.name}</span>
           </>
         ),
-        body: `Vilo guideline: ${PHOTO_TARGET}+ photos before publish. Listings with ${PHOTO_TARGET}+ photos book far more often.`,
+        body: `Wielo guideline: ${PHOTO_TARGET}+ photos before publish. Listings with ${PHOTO_TARGET}+ photos book far more often.`,
         cta: {
           label: "Upload photos",
           href: `/dashboard/properties/${l.id}/edit`,

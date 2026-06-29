@@ -1,5 +1,5 @@
 import { requirePermission } from "@/lib/admin";
-import { fetchViloLedger, viloLedgerStats } from "@/lib/billing/vilo-ledger";
+import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/vilo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -69,7 +69,7 @@ export default async function AdminRevenuePage({
   }
 
   const [rows, plans, products, { data: subs }] = await Promise.all([
-    fetchViloLedger(service, {
+    fetchWieloLedger(service, {
       limit: 1000,
       userId,
       plan: planFilter || undefined,
@@ -85,7 +85,7 @@ export default async function AdminRevenuePage({
       .select("plan, billing_cycle, status, product_id"),
   ]);
 
-  const stats = viloLedgerStats(rows);
+  const stats = wieloLedgerStats(rows);
 
   // MRR from active, paying subscriptions. Product-first (the current model):
   // read the real price from the linked PRODUCT; fall back to the legacy plan
@@ -118,11 +118,12 @@ export default async function AdminRevenuePage({
     <div className="space-y-6">
       <header>
         <h1 className="font-display text-2xl font-bold text-brand-ink">
-          Vilo revenue ledger
+          Wielo revenue ledger
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          Every transaction between a user and Vilo — product &amp; subscription
-          purchases, refunds, credits and manual adjustments, straight from{" "}
+          Every transaction between a user and Wielo — product &amp;
+          subscription purchases, refunds, credits and manual adjustments,
+          straight from{" "}
           <code className="rounded bg-brand-light px-1 py-0.5 text-[11px]">
             platform_ledger
           </code>
@@ -135,7 +136,7 @@ export default async function AdminRevenuePage({
         <Kpi label="ARR" value={formatZar(Math.round(arr))} />
         <Kpi label="Collected" value={formatZar(Math.round(stats.collected))} />
         <Kpi label="Refunded" value={formatZar(Math.round(stats.refunded))} />
-        <Kpi label="Net to Vilo" value={formatZar(Math.round(stats.net))} />
+        <Kpi label="Net to Wielo" value={formatZar(Math.round(stats.net))} />
         <Kpi label="Paying hosts" value={String(payingHosts)} />
       </section>
 
@@ -146,7 +147,7 @@ export default async function AdminRevenuePage({
         </h2>
         <p className="mb-4 mt-1 text-[13px] text-brand-mute">
           Record a goodwill credit, write-off, off-platform charge or correction
-          against a host&apos;s Vilo account. Audited.
+          against a host&apos;s Wielo account. Audited.
         </p>
         <ManualEntryForm />
       </section>
@@ -264,7 +265,7 @@ export default async function AdminRevenuePage({
           </ul>
         ) : (
           <p className="px-5 py-10 text-center text-sm text-brand-mute">
-            No Vilo transactions yet. Subscription purchases will appear here
+            No Wielo transactions yet. Subscription purchases will appear here
             once live billing is connected; you can also post manual entries
             above.
           </p>

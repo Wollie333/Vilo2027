@@ -25,7 +25,7 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
 
   // Metadata
-  workbook.creator = "Vilo Analytics";
+  workbook.creator = "Wielo Analytics";
   workbook.created = new Date();
   workbook.modified = new Date();
 
@@ -103,11 +103,13 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
     row.getCell(2).value = property.listing_status;
     row.getCell(3).value = property.revenue;
     row.getCell(4).value = property.revenue_prior;
-    row.getCell(5).value = property.revenue_delta !== null ? property.revenue_delta : "N/A";
+    row.getCell(5).value =
+      property.revenue_delta !== null ? property.revenue_delta : "N/A";
     row.getCell(6).value = property.nights_booked;
     row.getCell(7).value = property.occupancy;
     row.getCell(8).value = property.occupancy_prior;
-    row.getCell(9).value = property.occupancy_delta !== null ? property.occupancy_delta : "N/A";
+    row.getCell(9).value =
+      property.occupancy_delta !== null ? property.occupancy_delta : "N/A";
     row.getCell(10).value = property.adr;
     row.getCell(11).value = property.bookings_count;
 

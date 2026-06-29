@@ -88,7 +88,7 @@ export default async function CardPaymentsSettingsPage() {
       </div>
       <p className="-mt-2 text-sm text-brand-mute">
         Connect your own Paystack or PayPal so card payments settle directly
-        into your account — Vilo never touches the money. Gateways are set{" "}
+        into your account — Wielo never touches the money. Gateways are set{" "}
         <strong>per business</strong> (like EFT banking) — a booking charges the
         gateway of its listing&rsquo;s business.
       </p>

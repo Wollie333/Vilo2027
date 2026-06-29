@@ -2,13 +2,13 @@
 
 **Version:** 1.0
 **Last Updated:** May 2026
-**Companion Docs:** `vilo-platform-mvp.md`, `DEVSTACK.md`, `supabase_database.md`
+**Companion Docs:** `wielo-platform-mvp.md`, `DEVSTACK.md`, `supabase_database.md`
 
 ---
 
 ## 1. System Overview
 
-Vilo is a **monorepo** containing a Next.js web app, an Expo React Native mobile app, and a Supabase backend. Web and mobile share a type layer, schema layer, and utility library. The backend is entirely Supabase-managed — no custom server.
+Wielo is a **monorepo** containing a Next.js web app, an Expo React Native mobile app, and a Supabase backend. Web and mobile share a type layer, schema layer, and utility library. The backend is entirely Supabase-managed — no custom server.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -38,7 +38,7 @@ Vilo is a **monorepo** containing a Next.js web app, an Expo React Native mobile
 ## 2. Monorepo Structure
 
 ```
-vilo/
+wielo/
 ├── apps/
 │   ├── web/                    # Next.js 14 web application
 │   └── mobile/                 # Expo React Native application
@@ -73,7 +73,7 @@ apps/web/
 │   │   └── forgot-password/page.tsx
 │   ├── (guest)/                      # Guest-facing public routes
 │   │   ├── explore/
-│   │   │   └── page.tsx              # Vilo Directory search page
+│   │   │   └── page.tsx              # Wielo Directory search page
 │   │   ├── listing/
 │   │   │   └── [id]/
 │   │   │       ├── page.tsx          # Listing detail page

@@ -283,7 +283,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
       <div className="border-b border-brand-line bg-white lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <ViloMark size={28} />
+            <WieloMark size={28} />
             <div className="font-display font-bold text-brand-ink">
               {brandName}
             </div>
@@ -374,12 +374,12 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-dot-grid opacity-30"
       />
-      <span className="vilo-orb vilo-orb-1" aria-hidden />
-      <span className="vilo-orb vilo-orb-2" aria-hidden />
+      <span className="wielo-orb wielo-orb-1" aria-hidden />
+      <span className="wielo-orb wielo-orb-2" aria-hidden />
 
       <div className="relative flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <ViloMark size={36} glow />
+          <WieloMark size={36} glow />
           <div>
             <div className="font-display font-bold leading-none">
               {brandName}
@@ -451,7 +451,7 @@ function Stepper({
   onJump: (i: number) => void;
 }) {
   return (
-    <div className="vilo-hide-sb flex items-center gap-1 overflow-x-auto md:gap-3">
+    <div className="wielo-hide-sb flex items-center gap-1 overflow-x-auto md:gap-3">
       {STEPS.map((s, i) => {
         const done = i < current;
         const active = i === current;
@@ -470,7 +470,7 @@ function Stepper({
                   done
                     ? "bg-brand-primary text-white"
                     : active
-                      ? "vilo-ring-pulse border-2 border-brand-primary bg-white text-brand-primary"
+                      ? "wielo-ring-pulse border-2 border-brand-primary bg-white text-brand-primary"
                       : "border border-brand-line bg-white text-brand-mute"
                 }`}
               >
@@ -528,7 +528,7 @@ function StepAccount({
 }) {
   const brandName = useBrandName();
   return (
-    <div className="vilo-step-enter">
+    <div className="wielo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
         title={`Create your ${brandName} account`}
@@ -692,7 +692,7 @@ function StepAbout({
   }
 
   return (
-    <div className="vilo-step-enter">
+    <div className="wielo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
         title="A bit about you"
@@ -850,7 +850,7 @@ function StepPrefs({
   stepIndex: number;
 }) {
   return (
-    <div className="vilo-step-enter">
+    <div className="wielo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
         title="Where do you want to go?"
@@ -948,7 +948,7 @@ function StepWelcome({
 }) {
   const brandName = useBrandName();
   return (
-    <div className="vilo-step-enter">
+    <div className="wielo-step-enter">
       <div className="inline-flex items-center gap-2 rounded-pill bg-brand-accent px-3 py-1 text-[11px] font-semibold text-brand-secondary">
         <PartyPopper className="h-3.5 w-3.5" />{" "}
         {finalizePending ? "Wrapping up…" : "You're in"}
@@ -980,7 +980,7 @@ function StepWelcome({
             },
             {
               icon: BookOpen,
-              title: "How Vilo works",
+              title: "How Wielo works",
               desc: "A 3-minute primer on booking, payments and reviews.",
               cta: "Read guide",
               href: "/help",
@@ -998,7 +998,7 @@ function StepWelcome({
                 <Icon className="h-5 w-5" />
               </div>
               <div className="font-display text-sm font-semibold text-brand-ink">
-                {t.title.replace("Vilo", brandName)}
+                {t.title.replace("Wielo", brandName)}
               </div>
               <div className="mt-1 text-xs leading-relaxed text-brand-mute">
                 {t.desc}
@@ -1121,7 +1121,7 @@ function StepHeading({
   );
 }
 
-function ViloMark({
+function WieloMark({
   size = 36,
   glow = false,
 }: {
@@ -1129,7 +1129,7 @@ function ViloMark({
   glow?: boolean;
 }) {
   const id = useMemo(
-    () => `vilo-grad-${Math.random().toString(36).slice(2, 8)}`,
+    () => `wielo-grad-${Math.random().toString(36).slice(2, 8)}`,
     [],
   );
   return (

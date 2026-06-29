@@ -1,4 +1,4 @@
-# Vilo Multi-Agent Contract (active)
+# Wielo Multi-Agent Contract (active)
 
 > Implements `~/.claude/plans/validated-hopping-reef.md`, adapted to the **feature-based**
 > split actually in flight. One owner per lane; the Consolidation lane owns merges + DB +
@@ -8,10 +8,10 @@
 
 | Lane | Worktree (folder) | Branch | Owns |
 |---|---|---|---|
-| **Consolidation** (head dev) | `vilo-integration` | `integration` | merges, ALL DB pushes, `gen types`, FF→`main`, this contract |
-| **Specials** | `Vilo 2027` (primary) | `agent-specials` | `dashboard/specials/**`, `special/**`, `specials/**`, `lib/specials/**`, `lib/bookings/persist.ts` |
-| **Website-CMS** | `vilo-website` | `agent-website` | `dashboard/website/**`, `site/**`, `components/site/**`, `lib/site/**`, `lib/website/**` |
-| **Mobile** | `vilo-mobile` | `feat/mobile-app` | `apps/mobile/**` only |
+| **Consolidation** (head dev) | `wielo-integration` | `integration` | merges, ALL DB pushes, `gen types`, FF→`main`, this contract |
+| **Specials** | `Wielo 2027` (primary) | `agent-specials` | `dashboard/specials/**`, `special/**`, `specials/**`, `lib/specials/**`, `lib/bookings/persist.ts` |
+| **Website-CMS** | `wielo-website` | `agent-website` | `dashboard/website/**`, `site/**`, `components/site/**`, `lib/site/**`, `lib/website/**` |
+| **Mobile** | `wielo-mobile` | `feat/mobile-app` | `apps/mobile/**` only |
 
 ## Hard rules (every agent)
 
@@ -42,7 +42,7 @@
 - **Per phase:** build your feature → `cd apps/web && NODE_OPTIONS=--max-old-space-size=6144
   pnpm build` + `pnpm lint` green → commit (explicit paths) on your lane branch → tell the
   head dev "lane X, phase Y ready".
-- **Save point = a completed phase that builds.** The head dev validates in `vilo-integration`,
+- **Save point = a completed phase that builds.** The head dev validates in `wielo-integration`,
   applies any new migrations + regenerates types, then **fast-forwards `main`** and pushes.
 - **Session start:** `git fetch && git rebase origin/main` (or merge) so you have the latest
   consolidated `main` (incl. regenerated types) before coding.

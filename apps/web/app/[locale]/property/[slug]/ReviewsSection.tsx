@@ -45,7 +45,7 @@ const SOURCE_META: Record<
   { label: string; color: string; bgColor: string }
 > = {
   vilo: {
-    label: "Vilo",
+    label: "Wielo",
     color: "text-brand-primary",
     bgColor: "bg-brand-accent",
   },

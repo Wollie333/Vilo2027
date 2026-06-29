@@ -58,7 +58,7 @@ export default async function WebsiteNavigationPage({
   const editBase = `/website-editor/${websiteId}/navigation`;
 
   return (
-    <div className="vilo-cms vilo-nav mx-auto max-w-[1080px] space-y-6">
+    <div className="wielo-cms wielo-nav mx-auto max-w-[1080px] space-y-6">
       <div>
         <h1
           className="font-display text-[20px] font-extrabold"

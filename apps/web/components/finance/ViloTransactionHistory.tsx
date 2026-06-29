@@ -3,11 +3,11 @@ import { Download, ReceiptText } from "lucide-react";
 import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
-// Vilo platform transaction history for the SIGNED-IN user (host or guest).
+// Wielo platform transaction history for the SIGNED-IN user (host or guest).
 // Single source of truth for both the host settings tab and the guest portal
 // tab. Reads platform_ledger + vilo_invoices, both scoped to auth.uid() by RLS
 // (platform_ledger_own_read / vilo_invoices_own_read) — a user only ever sees
-// their own purchases from Vilo, with downloadable invoices.
+// their own purchases from Wielo, with downloadable invoices.
 
 type LedgerRow = {
   id: string;

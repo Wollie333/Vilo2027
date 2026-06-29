@@ -42,7 +42,7 @@ import { CommissionCalculator } from "./_components/CommissionCalculator";
 
 // Founding-launch sales page (host acquisition). Distinct from the guest
 // directory homepage at `/` — this is the long-form pitch that converts a host
-// from "paying the OTA tax" to a founding Vilo subscriber. Mostly static; the
+// from "paying the OTA tax" to a founding Wielo subscriber. Mostly static; the
 // commission calculator is the one interactive island. Brand name resolves live
 // from platform_settings so the copy never goes stale.
 
@@ -56,7 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const CONTACT_EMAIL = "hello@viloplatform.com";
+const CONTACT_EMAIL = "hello@wieloplatform.com";
 
 const STACK = [
   {
@@ -99,7 +99,7 @@ const STACK = [
     icon: BarChart3,
     price: "normally R300/mo",
     title: "Reporting + commission-saved tracker",
-    body: "Occupancy, lifetime guest value, booking rates, website views, outstanding amounts — and a live tally of exactly how much commission Vilo has saved you.",
+    body: "Occupancy, lifetime guest value, booking rates, website views, outstanding amounts — and a live tally of exactly how much commission Wielo has saved you.",
   },
   {
     icon: UserPlus,
@@ -133,10 +133,10 @@ const STEPS = [
 const FAQS = [
   {
     q: "Do I have to leave Airbnb, Booking.com or Lekkeslaap?",
-    a: "No. Most hosts run Vilo alongside the OTAs at first and move guests to direct booking as the savings stack up. Two-way calendar sync prevents double-bookings while you transition.",
+    a: "No. Most hosts run Wielo alongside the OTAs at first and move guests to direct booking as the savings stack up. Two-way calendar sync prevents double-bookings while you transition.",
   },
   {
-    q: "How does Vilo make money if there's no commission?",
+    q: "How does Wielo make money if there's no commission?",
     a: "Subscriptions only. One flat fee, and you keep 100% of every booking. Guest money goes straight from the guest to your Paystack or PayPal account — we never touch it.",
   },
   {
@@ -145,11 +145,11 @@ const FAQS = [
   },
   {
     q: "Is it safe to pay annually for a new platform?",
-    a: "That's exactly what the 90-day money-back guarantee is for. Run Vilo through real bookings for three months — if it hasn't earned its keep, you get every rand back, no questions.",
+    a: "That's exactly what the 90-day money-back guarantee is for. Run Wielo through real bookings for three months — if it hasn't earned its keep, you get every rand back, no questions.",
   },
   {
     q: "Why isn't there a free directory listing?",
-    a: "Because a directory only works if guests trust it. The Vilo Directory is members-only and verified on purpose — no ghost listings, no abandoned accounts. That exclusivity is what makes a listing worth having.",
+    a: "Because a directory only works if guests trust it. The Wielo Directory is members-only and verified on purpose — no ghost listings, no abandoned accounts. That exclusivity is what makes a listing worth having.",
   },
   {
     q: "What payment methods can my guests use?",
@@ -168,7 +168,7 @@ const FAQS = [
 const COMPARISON_ROWS = [
   {
     label: "Booking commission",
-    vilo: "0%",
+    wielo: "0%",
     airbnb: "~15%",
     booking: "~15–22%",
     lekke: "15% + VAT",
@@ -176,7 +176,7 @@ const COMPARISON_ROWS = [
   },
   {
     label: "Own the guest relationship",
-    vilo: true,
+    wielo: true,
     airbnb: false,
     booking: false,
     lekke: false,
@@ -184,7 +184,7 @@ const COMPARISON_ROWS = [
   },
   {
     label: "Branded booking website",
-    vilo: true,
+    wielo: true,
     airbnb: false,
     booking: false,
     lekke: false,
@@ -192,7 +192,7 @@ const COMPARISON_ROWS = [
   },
   {
     label: "Calendar sync (anti double-booking)",
-    vilo: true,
+    wielo: true,
     airbnb: true,
     booking: true,
     lekke: true,
@@ -200,7 +200,7 @@ const COMPARISON_ROWS = [
   },
   {
     label: "Guest CRM",
-    vilo: true,
+    wielo: true,
     airbnb: false,
     booking: false,
     lekke: false,
@@ -208,7 +208,7 @@ const COMPARISON_ROWS = [
   },
   {
     label: "Full accounting ledger",
-    vilo: true,
+    wielo: true,
     airbnb: false,
     booking: false,
     lekke: false,
@@ -216,7 +216,7 @@ const COMPARISON_ROWS = [
   },
   {
     label: "Paystack, PayPal & EFT",
-    vilo: true,
+    wielo: true,
     airbnb: "card only",
     booking: "card only",
     lekke: "limited",
@@ -224,7 +224,7 @@ const COMPARISON_ROWS = [
   },
   {
     label: "Unified inbox",
-    vilo: true,
+    wielo: true,
     airbnb: "in-app only",
     booking: "in-app only",
     lekke: "in-app only",
@@ -262,15 +262,15 @@ const PAGE_CSS = `
     background-size: 8px 1px; background-repeat: repeat-x;
   }
   @media (max-width: 767px) { .step-line::after { display:none; } }
-  .vilo-range { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; height: 28px; }
-  .vilo-range:focus { outline: none; }
-  .vilo-range::-webkit-slider-runnable-track { height: 8px; border-radius: 9999px; background: linear-gradient(to right, #10B981 0 var(--val,30%), #D1FAE5 var(--val,30%) 100%); }
-  .vilo-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 9999px; background: #ffffff; border: 2px solid #10B981; margin-top: -6px; }
-  .vilo-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(16,185,129,0.15); }
-  .vilo-range::-moz-range-track { height: 8px; border-radius: 9999px; background: #D1FAE5; }
-  .vilo-range::-moz-range-progress { height: 8px; border-radius: 9999px; background: #10B981; }
-  .vilo-range::-moz-range-thumb { width: 20px; height: 20px; border-radius: 9999px; border: 2px solid #10B981; background: #ffffff; }
-  .vilo-range:focus::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(16,185,129,0.15); }
+  .wielo-range { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; height: 28px; }
+  .wielo-range:focus { outline: none; }
+  .wielo-range::-webkit-slider-runnable-track { height: 8px; border-radius: 9999px; background: linear-gradient(to right, #10B981 0 var(--val,30%), #D1FAE5 var(--val,30%) 100%); }
+  .wielo-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 9999px; background: #ffffff; border: 2px solid #10B981; margin-top: -6px; }
+  .wielo-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(16,185,129,0.15); }
+  .wielo-range::-moz-range-track { height: 8px; border-radius: 9999px; background: #D1FAE5; }
+  .wielo-range::-moz-range-progress { height: 8px; border-radius: 9999px; background: #10B981; }
+  .wielo-range::-moz-range-thumb { width: 20px; height: 20px; border-radius: 9999px; border: 2px solid #10B981; background: #ffffff; }
+  .wielo-range:focus::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(16,185,129,0.15); }
   @media (prefers-reduced-motion: no-preference) {
     .rise { animation: launch-rise .6s cubic-bezier(.16,1,.3,1) both; }
     @keyframes launch-rise { from { transform: translateY(14px); } to { transform: translateY(0); } }
@@ -1205,7 +1205,7 @@ export default async function LaunchPage() {
                       {row.label}
                     </td>
                     <td className="px-5 py-4 font-semibold text-brand-primary">
-                      <Cmp value={row.vilo} />
+                      <Cmp value={row.wielo} />
                     </td>
                     <td className="px-5 py-4 font-medium text-brand-dark">
                       <Cmp value={row.airbnb} />
@@ -1476,7 +1476,7 @@ export default async function LaunchPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              "Founding host quote — dropped an OTA, Vilo paid for itself in X days, finally owns guest emails.",
+              "Founding host quote — dropped an OTA, Wielo paid for itself in X days, finally owns guest emails.",
               "Founding host quote — the unified inbox and accounting saved hours every week.",
               "Founding host quote — took their first international direct booking via PayPal.",
             ].map((quote, i) => (

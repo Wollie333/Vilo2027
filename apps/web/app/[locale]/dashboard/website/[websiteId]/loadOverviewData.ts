@@ -165,7 +165,7 @@ export async function loadOverviewData(
     };
   });
 
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
   const domainStatus = (domainRow.data?.domain_status as string) ?? "none";
   const isLive = site.status === "published";
   const customActive = Boolean(site.customDomain) && domainStatus === "active";

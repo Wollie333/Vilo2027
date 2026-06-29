@@ -1,8 +1,8 @@
-# Vilo
+# Wielo
 
 **Direct-booking management for accommodation hosts and experience operators in South Africa.**
 
-Vilo gives hosts a professional, branded booking website and a private dashboard to manage listings, bookings, calendars, payments, quotes, invoices, guest communication and reviews — all in one place. Zero booking commission, flat subscription only. Guests discover and book hosts directly via the Vilo Directory, a host's shareable profile, or the host's own published website.
+Wielo gives hosts a professional, branded booking website and a private dashboard to manage listings, bookings, calendars, payments, quotes, invoices, guest communication and reviews — all in one place. Zero booking commission, flat subscription only. Guests discover and book hosts directly via the Wielo Directory, a host's shareable profile, or the host's own published website.
 
 > **Status:** pre-MVP, under active build. **No real users / no production data yet** — every table is treated as empty (see the pre-MVP data policy in [`CLAUDE.md`](./CLAUDE.md)). Live dev deploy: https://vilo2027.vercel.app
 > See **[Build status](#build-status)** for an honest, code-level breakdown of what works today.
@@ -17,7 +17,7 @@ Vilo gives hosts a professional, branded booking website and a private dashboard
 | Mobile app | Expo (SDK 51+) — scaffolded, screens not yet built |
 | Backend | Supabase (PostgreSQL 15, Auth, Realtime, Storage) |
 | Server logic | **Next.js Server Actions** + API-route workers (the bulk of business logic); Supabase **Edge Functions** (Deno) only where a non-Next runtime is required — `paystack-webhook`, `eft-banking-details`, `report-scheduler`, `track-listing-view`, `external-reviews-sync`, `external-review-reply` |
-| Payments | **Paystack (ZAR)** — hosts connect their **own** Paystack (test **and** live keys + a mode switch); guest booking + on-site website checkout settle directly to the host (Vilo 0%). Platform billing uses the platform Paystack. **Manual EFT** — live. **Free products skip payment** (auto-provision). PayPal — host config only, not in guest checkout |
+| Payments | **Paystack (ZAR)** — hosts connect their **own** Paystack (test **and** live keys + a mode switch); guest booking + on-site website checkout settle directly to the host (Wielo 0%). Platform billing uses the platform Paystack. **Manual EFT** — live. **Free products skip payment** (auto-provision). PayPal — host config only, not in guest checkout |
 | Email / notifications | Resend + React Email, dispatched via an in-app / email / push notification queue drained by pg_cron (atomic claim — see below) |
 | Calendar sync | RFC 5545 iCal **import** (external feeds → blocked dates) + **export** (public per-listing feed) |
 | Package manager | **pnpm 9** (Node ≥ 20) |
@@ -28,7 +28,7 @@ Vilo gives hosts a professional, branded booking website and a private dashboard
 ## Project structure
 
 ```
-vilo/
+wielo/
 ├── apps/
 │   ├── web/          # Next.js 14 web app (host dashboard, guest portal, admin, public + tenant sites)
 │   └── mobile/       # Expo app — scaffolded, not yet built
@@ -92,7 +92,7 @@ cd apps/web && pnpm seed:test-site   # idempotent; seeds the linked cloud DB
 _Honest, code-level snapshot — **2026-06-29**. Percentages are share of MVP scope **wired in code** (UI → Server Action/RPC → real DB), not "verified in production." Build priority: **Host dashboard → Website CMS → Guest portal → Admin**._
 
 ### Host dashboard — ~85% of MVP scope wired
-**Working (UI + action + DB):** email/password auth & login; host onboarding/setup checklist; **listing editor** (basic, photos→Storage, location, rooms, amenities, pricing, **seasonal pricing**, policies, add-ons, guest access); availability **calendar** + block dates; **bookings** list + detail + full lifecycle (confirm / decline / cancel / check-in / check-out, policy-based refund); **quotes** (create → send → open-tracking → convert to booking); **invoices + credit notes** (+ PDF); **payments** + EFT settle; **host-side refunds**; **coupons**; **host inbox** (realtime); **reviews** + replies; **external reviews** (connect Google Business Profile / Facebook Page via OAuth → sync external reviews into Vilo, host reply, public aggregate rating; daily cron + manual sync; tokens encrypted at rest); **settings** (profile, multi-business banking incl. own Paystack/PayPal credentials, notification prefs); **staff** invites; **help centre**; in-app + email + push **notifications**.
+**Working (UI + action + DB):** email/password auth & login; host onboarding/setup checklist; **listing editor** (basic, photos→Storage, location, rooms, amenities, pricing, **seasonal pricing**, policies, add-ons, guest access); availability **calendar** + block dates; **bookings** list + detail + full lifecycle (confirm / decline / cancel / check-in / check-out, policy-based refund); **quotes** (create → send → open-tracking → convert to booking); **invoices + credit notes** (+ PDF); **payments** + EFT settle; **host-side refunds**; **coupons**; **host inbox** (realtime); **reviews** + replies; **external reviews** (connect Google Business Profile / Facebook Page via OAuth → sync external reviews into Wielo, host reply, public aggregate rating; daily cron + manual sync; tokens encrypted at rest); **settings** (profile, multi-business banking incl. own Paystack/PayPal credentials, notification prefs); **staff** invites; **help centre**; in-app + email + push **notifications**.
 **Partial:** subscription page (plan **state machine only — no real billing calls yet**); data export/deletion (UI + soft-delete; fulfilment partial). Reports/analytics dashboards render but report-generation is a placeholder.
 
 ### Website CMS (host's own site) — substantial, the largest recent lane
@@ -114,7 +114,7 @@ A full per-host website builder with a **frozen publish snapshot** (drafts never
 
 ### Admin panel — ~92%
 Two-layer RBAC (active `platform_staff` + 24 granular permission keys), every mutation audited.
-**Working:** dashboard KPIs; **products & subscription plans** full CRUD + per-product/plan feature matrix + per-host overrides; payments/Vilo ledger; **user management** (edit/role/suspend/soft-delete/notes/subscription + **admin password reset**); **host management** (verify + **suspend/reactivate**); **host-staff management** (assign users as staff to a host — per-host panel + global list, direct add or email-invite); **platform staff** invite/accept flow + role/activate + **permission-filtered sidebar**; **impersonation** ("view as host" — signed cookie, audited); **GDPR/POPIA fulfilment** (export generates a downloadable JSON; deletion is hybrid hard-delete-or-anonymise); review moderation; broadcasts + notification send; full **help-centre CRUD**; platform settings/amenities/categories.
+**Working:** dashboard KPIs; **products & subscription plans** full CRUD + per-product/plan feature matrix + per-host overrides; payments/Wielo ledger; **user management** (edit/role/suspend/soft-delete/notes/subscription + **admin password reset**); **host management** (verify + **suspend/reactivate**); **host-staff management** (assign users as staff to a host — per-host panel + global list, direct add or email-invite); **platform staff** invite/accept flow + role/activate + **permission-filtered sidebar**; **impersonation** ("view as host" — signed cookie, audited); **GDPR/POPIA fulfilment** (export generates a downloadable JSON; deletion is hybrid hard-delete-or-anonymise); review moderation; broadcasts + notification send; full **help-centre CRUD**; platform settings/amenities/categories.
 _(Admin MFA/AAL2 gate intentionally disabled pre-MVP — restore before launch.)_
 
 ### Platform infrastructure

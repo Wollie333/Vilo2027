@@ -471,7 +471,7 @@ export async function removeHostLogoAction(): Promise<ActionResult> {
 
 // ─── Payment gateways (host's own Paystack / PayPal) ──────────────
 // Each host connects their OWN gateway credentials so booking payments settle
-// directly into their account (Vilo takes 0%). Secrets are encrypted at rest
+// directly into their account (Wielo takes 0%). Secrets are encrypted at rest
 // (PAYMENT_CIPHER_KEY) and never returned to the client. New secrets are
 // validated live against the gateway before we store them.
 

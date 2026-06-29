@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * Vilo notification modal — the one canonical popup shell.
+ * Wielo notification modal — the one canonical popup shell.
  *
  * One shell, six intents. Every dialog is the same `max-w-sm` card with an
  * identical icon chip, type scale and footer; only the icon, its tint and the
  * buttons change. This is the design-system "Notification modals" component
- * (see `Vilo Design System.html` → Notification modals, and DESIGN_SYSTEM.md).
+ * (see `Wielo Design System.html` → Notification modals, and DESIGN_SYSTEM.md).
  *
  * Two ways to use it:
  *  1. Declarative — render `<Modal open … />` for modals tied to local state.

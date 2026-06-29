@@ -47,7 +47,7 @@ export async function FinalCTA() {
                 method="get"
               >
                 <div className="flex shrink-0 items-center pl-3 pr-1 font-mono text-sm text-brand-mute">
-                  vilo.com/
+                  wielo.com/
                 </div>
                 <input
                   type="text"

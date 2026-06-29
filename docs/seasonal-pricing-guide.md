@@ -2,25 +2,25 @@
 
 *Audience: hosts · Reading time: ~8 min · Category: Listings & pricing*
 
-Vilo prices every booking the same way, every time, in a fixed order. Once you
+Wielo prices every booking the same way, every time, in a fixed order. Once you
 know the order, you can predict every cent a guest will pay — and so can they.
 There are no hidden multipliers and no success fee.
 
-This guide explains the **Vilo Pricing Stack**, how **seasonal rules** work
-(including the difference between a *set price* and a *percentage*), how Vilo
+This guide explains the **Wielo Pricing Stack**, how **seasonal rules** work
+(including the difference between a *set price* and a *percentage*), how Wielo
 decides which rule wins when two overlap, and walks through four real examples
 with Rand figures.
 
 ---
 
-## The Vilo Pricing Stack
+## The Wielo Pricing Stack
 
 Every booking is priced in **5 fixed stages, in this order**. Each stage takes
 the result of the one before it.
 
 ### 1. Nightly rate
 
-For **each night** of the stay, Vilo picks exactly **one** rate, in this order:
+For **each night** of the stay, Wielo picks exactly **one** rate, in this order:
 
 1. **A Seasonal rule** — if an active seasonal rule covers that night, it wins.
 2. **Your Weekend rate** — if no season covers the night and it's a weekend
@@ -57,7 +57,7 @@ nights, never the cleaning fee or an add-on.
 
 ### 5. Total
 
-The sum of everything above. **Vilo charges no success fee and no commission** —
+The sum of everything above. **Wielo charges no success fee and no commission** —
 the total the guest sees is the total you keep, minus only the payment
 provider's processing fee.
 
@@ -102,7 +102,7 @@ A seasonal rule has five parts (plus one optional one):
 
 ## The 3 golden rules for overlaps
 
-When two seasonal rules could apply to the same night, Vilo decides
+When two seasonal rules could apply to the same night, Wielo decides
 deterministically:
 
 1. **More specific wins** — a **room** rule beats a **whole-place** rule, *for
@@ -125,7 +125,7 @@ multipliers. It keeps the price predictable.
 
 ## Guardrails
 
-Vilo protects you (and your guests) from impossible prices:
+Wielo protects you (and your guests) from impossible prices:
 
 - A **set price must be greater than 0**.
 - A **percentage is clamped** so a night can never drop below R0 — you cannot go
@@ -136,7 +136,7 @@ Vilo protects you (and your guests) from impossible prices:
 
 ## Four worked examples
 
-All figures below come straight from Vilo's passing test suite, so they're exact.
+All figures below come straight from Wielo's passing test suite, so they're exact.
 
 ### 1. Festive +50%, whole 3-room guesthouse
 
@@ -208,7 +208,7 @@ uplift no longer applies on top.
 
 ## In one sentence
 
-Vilo picks **one** nightly rate per night (season → weekend → base), adjusts it
+Wielo picks **one** nightly rate per night (season → weekend → base), adjusts it
 for occupancy, applies your stay discounts to the nights subtotal, adds cleaning
 and add-ons (never discounted), and shows the guest a labelled, per-night
 breakdown so the price you preview is exactly the price they pay.

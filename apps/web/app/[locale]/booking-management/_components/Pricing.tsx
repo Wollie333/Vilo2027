@@ -121,7 +121,7 @@ export function Pricing({ products }: { products: CatalogProduct[] }) {
                     {p.bullets.map((b, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-                        <span>{b.replace(/Vilo/g, brandName)}</span>
+                        <span>{b.replace(/Wielo/g, brandName)}</span>
                       </li>
                     ))}
                   </ul>

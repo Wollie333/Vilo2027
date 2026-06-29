@@ -225,7 +225,7 @@ export type GuestRatingRow = {
 };
 
 export type ReputationData = {
-  /** Guest has a Vilo account id (only then is rating possible). */
+  /** Guest has a Wielo account id (only then is rating possible). */
   hasAccount: boolean;
   /** This host has a completed/no-show stay with the guest. */
   canRate: boolean;
@@ -1917,16 +1917,16 @@ function ReputationPanel({
   const [rateOpen, setRateOpen] = useState(false);
   const [pending, start] = useTransition();
 
-  // Only registered guests (a Vilo account) are rateable.
+  // Only registered guests (a Wielo account) are rateable.
   if (!reputation.hasAccount || !guestId) {
     return (
       <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
         <ShieldCheck className="mx-auto h-6 w-6 text-brand-mute/50" />
         <p className="mt-2 text-[13px] font-semibold text-brand-ink">
-          No Vilo account yet
+          No Wielo account yet
         </p>
         <p className="mx-auto mt-1 max-w-sm text-[12.5px] text-brand-mute">
-          Guest ratings attach to a guest&rsquo;s Vilo account. This contact
+          Guest ratings attach to a guest&rsquo;s Wielo account. This contact
           booked by email only, so there&rsquo;s nothing to rate yet.
         </p>
       </div>
@@ -1988,7 +1988,7 @@ function ReputationPanel({
             </div>
           </div>
           <p className="max-w-[260px] text-[11.5px] leading-relaxed text-brand-mute">
-            Host-only &amp; shared across Vilo. {guestName} never sees this.
+            Host-only &amp; shared across Wielo. {guestName} never sees this.
           </p>
         </div>
         {dimAverages.length > 0 ? (
@@ -2180,7 +2180,7 @@ function RateGuestModal({
       onOpenChange={onOpenChange}
       size="md"
       title={initial ? "Edit your rating" : `Rate ${guestName}`}
-      description="Host-only and shared with other Vilo hosts. The guest never sees this."
+      description="Host-only and shared with other Wielo hosts. The guest never sees this."
     >
       <form
         id="rate-guest-form"

@@ -10,7 +10,7 @@ export type CalStatus =
   | "completed"
   | "cancelled";
 
-// Vilo is direct-booking: "channel" = booking origin (not an OTA).
+// Wielo is direct-booking: "channel" = booking origin (not an OTA).
 export type CalOrigin = "direct" | "manual" | "quote";
 
 export type CalListing = {

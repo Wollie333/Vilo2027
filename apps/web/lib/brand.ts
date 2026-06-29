@@ -12,7 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // values from <BrandProvider> (fed by the root layout) — see
 // components/brand/BrandProvider.
 
-export const DEFAULT_BRAND = "Vilo";
+export const DEFAULT_BRAND = "Wielo";
 export const DEFAULT_COMPANY_NAME = "Vilo Platform (Pty) Ltd";
 export const DEFAULT_COMPANY_LOCATION = "Cape Town, South Africa";
 

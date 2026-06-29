@@ -12,7 +12,7 @@ const schema = z.object({
 
 type Result = { ok: true } | { ok: false; error: string };
 
-// The HOST approves/declines/revokes a Vilo support-access request on their own
+// The HOST approves/declines/revokes a Wielo support-access request on their own
 // account. RLS scopes the update to the host's own grant rows. Approving opens a
 // 72-hour edit window for the admin.
 export async function respondSupportAccessAction(input: {

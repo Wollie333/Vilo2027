@@ -1,5 +1,5 @@
 import { requirePermission } from "@/lib/admin";
-import { getViloBusinessProfile } from "@/lib/billing/vilo-invoice";
+import { getWieloBusinessProfile } from "@/lib/billing/vilo-invoice";
 import { getBranding } from "@/lib/brand";
 import { getMetaIntegration } from "@/lib/integrations/meta";
 import { getLegalDocuments } from "@/lib/legal";
@@ -16,12 +16,12 @@ export default async function PlatformSettingsPage() {
   const [
     { brandName, companyName, companyLocation },
     legal,
-    viloBusiness,
+    wieloBusiness,
     meta,
   ] = await Promise.all([
     getBranding(),
     getLegalDocuments(),
-    getViloBusinessProfile(),
+    getWieloBusinessProfile(),
     getMetaIntegration(),
   ]);
 
@@ -42,7 +42,7 @@ export default async function PlatformSettingsPage() {
         companyLocation={companyLocation}
       />
 
-      <ViloBusinessForm initial={viloBusiness} />
+      <ViloBusinessForm initial={wieloBusiness} />
 
       <MetaPixelForm
         pixelId={meta.pixelId ?? ""}

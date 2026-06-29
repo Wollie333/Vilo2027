@@ -12,7 +12,7 @@ export default function PortalTransactionsPage() {
   return (
     <ViloTransactionHistory
       heading="Transaction history"
-      description="Your payments to Vilo, with downloadable invoices."
+      description="Your payments to Wielo, with downloadable invoices."
     />
   );
 }

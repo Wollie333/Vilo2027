@@ -13,7 +13,7 @@ import { ThemeColorPicker } from "@/components/ui/ThemeColorPicker";
 
 // Shared inspector panels for the header + footer, used by BOTH the standalone
 // nav editor route and the page builder's inline chrome editing (so there's one
-// implementation, no divergence). `.fld`/`.sw`/`.insp-sec` are `.vilo-builder`
+// implementation, no divergence). `.fld`/`.sw`/`.insp-sec` are `.wielo-builder`
 // scoped, so these render in either full-screen editor.
 
 export function Fld({

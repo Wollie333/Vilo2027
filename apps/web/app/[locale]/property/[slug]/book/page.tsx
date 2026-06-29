@@ -377,7 +377,7 @@ export default async function BookingPage({
         note: note?.note ?? null,
       }
     : null;
-  // The host's own property Terms & Conditions (accepted alongside Vilo's
+  // The host's own property Terms & Conditions (accepted alongside Wielo's
   // platform terms; snapshotted onto the booking by snapshot_booking_policies).
   const checkoutBookingTerms = policySummary.booking_terms
     ? {

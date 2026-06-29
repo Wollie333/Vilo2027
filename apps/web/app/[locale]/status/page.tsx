@@ -102,7 +102,7 @@ export default async function StatusPage() {
             <div className="flex items-center justify-between gap-4 py-3">
               <dt className="text-brand-mute">Tailwind</dt>
               <dd className="text-right">
-                3.4 — Vilo Design System tokens loaded
+                3.4 — Wielo Design System tokens loaded
               </dd>
             </div>
             <div className="flex items-center justify-between gap-4 py-3">

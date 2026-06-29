@@ -197,7 +197,7 @@ function FeaturedTrip({ trip }: { trip: Trip }) {
 
           {/* Countdown */}
           <div className="mt-1 flex items-center gap-3 md:mt-4">
-            <div className="vilo-ring-pulse flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-pill bg-brand-primary leading-none text-white shadow-glow">
+            <div className="wielo-ring-pulse flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-pill bg-brand-primary leading-none text-white shadow-glow">
               <span className="num font-display text-lg font-extrabold">
                 {dToGo != null ? Math.max(0, dToGo) : "–"}
               </span>
@@ -568,13 +568,13 @@ export function TripsClient({
 
       {/* Featured */}
       {featured && tab === "upcoming" && (
-        <div className="vilo-step-enter mt-6">
+        <div className="wielo-step-enter mt-6">
           <FeaturedTrip trip={featured} />
         </div>
       )}
 
       {/* Tabs */}
-      <div className="vilo-hide-sb mt-8 flex items-center gap-1 overflow-x-auto border-b border-brand-line">
+      <div className="wielo-hide-sb mt-8 flex items-center gap-1 overflow-x-auto border-b border-brand-line">
         {TABS.map((t) => {
           const active = tab === t.key;
           return (
@@ -606,7 +606,7 @@ export function TripsClient({
 
       {/* Grid */}
       {list.length > 0 ? (
-        <div className="vilo-step-enter mt-6 grid gap-5 sm:grid-cols-2">
+        <div className="wielo-step-enter mt-6 grid gap-5 sm:grid-cols-2">
           {list.map((t) => (
             <TripCard key={t.id} trip={t} />
           ))}

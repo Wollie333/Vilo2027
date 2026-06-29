@@ -1,6 +1,6 @@
 # Payments Feature Page Specification
 
-> **Purpose:** Comprehensive brief for Claude Design to build a conversion-focused feature sales page for Vilo's Payments system.
+> **Purpose:** Comprehensive brief for Claude Design to build a conversion-focused feature sales page for Wielo's Payments system.
 > **URL:** `/features/payments`
 
 ---
@@ -9,11 +9,11 @@
 
 | Field | Content |
 |-------|---------|
-| **Page Title** | Payment Collection for SA Accommodation Hosts | Vilo |
+| **Page Title** | Payment Collection for SA Accommodation Hosts | Wielo |
 | **Meta Description** | Accept card payments, PayPal, and EFT with zero platform fees on bookings. Deposits, balance payments, automated receipts, and full refund management — built for South African hosts. |
 | **Target Keywords** | accommodation payment processing, guest payments South Africa, deposit payment system, direct booking payments, EFT payment accommodation, PayPal accommodation |
 | **URL Slug** | `/features/payments` |
-| **OG Title** | Get Paid Directly — Zero Platform Fees on Bookings — Vilo Payments |
+| **OG Title** | Get Paid Directly — Zero Platform Fees on Bookings — Wielo Payments |
 | **OG Description** | Accept cards, PayPal, and EFT with funds settling directly to your account. Deposits, balance payments, receipts, and refunds — all in one place. |
 
 ---
@@ -47,7 +47,7 @@ Split-view mockup:
 
 ### Pain Points
 
-| Pain Point | Emotional Hook | Before Vilo |
+| Pain Point | Emotional Hook | Before Wielo |
 |------------|---------------|-------------|
 | **OTA payment lock-in** | "Airbnb holds your money for weeks" | Cash flow delays; can't access your own revenue |
 | **Platform commissions** | "15%+ gone before you see a Rand" | Margins eaten by middlemen on every booking |
@@ -57,7 +57,7 @@ Split-view mockup:
 | **Refund nightmares** | "Just give me my money back" | No process; arguments and confusion |
 
 ### Emotional Summary
-"Getting paid should be the easiest part of hosting. Instead, most hosts deal with delayed settlements, confusing fees, and manual reconciliation. Vilo puts you back in control — your payments, your accounts, your cash flow."
+"Getting paid should be the easiest part of hosting. Instead, most hosts deal with delayed settlements, confusing fees, and manual reconciliation. Wielo puts you back in control — your payments, your accounts, your cash flow."
 
 ---
 
@@ -68,7 +68,7 @@ Split-view mockup:
 
 ### Transformation Narrative
 
-| Before Vilo | After Vilo |
+| Before Wielo | After Wielo |
 |-------------|-----------|
 | OTA holds funds for weeks | Direct settlement to your bank account |
 | 15%+ platform commission | Zero platform fee on booking payments |
@@ -78,7 +78,7 @@ Split-view mockup:
 | No refund process | Full refund workflow with approval |
 
 ### Key Differentiators
-1. **Zero Platform Commission:** Vilo takes 0% of booking payments — funds go directly to you
+1. **Zero Platform Commission:** Wielo takes 0% of booking payments — funds go directly to you
 2. **Multi-Method Flexibility:** Cards (Paystack), international (PayPal), local transfers (EFT) — guest chooses
 3. **Deposit + Balance:** Collect deposits upfront, balance before check-in — your terms
 4. **Professional Receipts:** Auto-numbered receipts with your branding, downloadable as PDF
@@ -92,7 +92,7 @@ Split-view mockup:
 |--------|--------|
 | **What it does** | Card payments settle directly to your Paystack account; PayPal to your PayPal; EFT to your bank |
 | **Why it matters** | No platform middleman; you control your cash flow |
-| **Visual suggestion** | Flow diagram: Guest → Paystack → Your Bank (with "Vilo takes R 0" badge) |
+| **Visual suggestion** | Flow diagram: Guest → Paystack → Your Bank (with "Wielo takes R 0" badge) |
 | **Lucide icon** | `Landmark` |
 
 ### Sub-Feature 2: Card Payments (Paystack)
@@ -226,7 +226,7 @@ Flow diagram: `Quote Accepted` → `Payment Page` → `Method Selection` → `Se
 > — *Lodge Manager, Greater Kruger*
 
 **Boutique B&B (Cape Town):**
-> "International guests love PayPal. We added it in 5 minutes and our overseas bookings jumped 20% the first month. No commission to Vilo — just the normal PayPal fees."
+> "International guests love PayPal. We added it in 5 minutes and our overseas bookings jumped 20% the first month. No commission to Wielo — just the normal PayPal fees."
 > — *B&B Owner, Cape Town*
 
 **Self-Catering (Plettenberg Bay):**
@@ -243,9 +243,9 @@ Flow diagram: `Quote Accepted` → `Payment Page` → `Method Selection` → `Se
 ## 8. Comparison Section
 
 ### Section Header
-"Why Hosts Choose Vilo Payments"
+"Why Hosts Choose Wielo Payments"
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | OTA holds funds for weeks | Direct settlement to your account |
 | 15%+ platform commission | Zero platform fee on bookings |
@@ -260,8 +260,8 @@ Flow diagram: `Quote Accepted` → `Payment Page` → `Method Selection` → `Se
 
 ## 9. FAQ Section
 
-### Q: Does Vilo take a commission on payments?
-**A:** No. Vilo takes 0% of booking payments. Funds settle directly to your Paystack, PayPal, or bank account. You only pay the payment provider's standard fees (e.g., Paystack's 2.9%).
+### Q: Does Wielo take a commission on payments?
+**A:** No. Wielo takes 0% of booking payments. Funds settle directly to your Paystack, PayPal, or bank account. You only pay the payment provider's standard fees (e.g., Paystack's 2.9%).
 
 ### Q: How long until I get paid?
 **A:** Card payments via Paystack typically settle within 24-48 hours. PayPal settlements follow their standard timeline. EFT is instant once you mark it complete.
@@ -273,16 +273,16 @@ Flow diagram: `Quote Accepted` → `Payment Page` → `Method Selection` → `Se
 **A:** Overpayments automatically post to the guest's store credit. They can apply it to future bookings. No money gets lost.
 
 ### Q: How do refunds work?
-**A:** Guests request refunds, you approve or decline from your dashboard. Card refunds process automatically via Paystack. EFT refunds you handle manually (with tracking in Vilo).
+**A:** Guests request refunds, you approve or decline from your dashboard. Card refunds process automatically via Paystack. EFT refunds you handle manually (with tracking in Wielo).
 
 ### Q: Can I accept international payments?
 **A:** Yes. Connect your PayPal account and international guests can pay in USD. Automatic FX conversion displays the ZAR equivalent.
 
 ### Q: Do I need a Paystack account?
-**A:** Yes, for card payments. Sign up at Paystack (free, 5-minute setup), then connect it in Vilo settings. EFT works without Paystack.
+**A:** Yes, for card payments. Sign up at Paystack (free, 5-minute setup), then connect it in Wielo settings. EFT works without Paystack.
 
 ### Q: Are payment details secure?
-**A:** Yes. All credentials are encrypted at rest (AES-256-GCM). Webhook signatures are verified before any database updates. Guest card details never touch Vilo servers — they go directly to Paystack/PayPal.
+**A:** Yes. All credentials are encrypted at rest (AES-256-GCM). Webhook signatures are verified before any database updates. Guest card details never touch Wielo servers — they go directly to Paystack/PayPal.
 
 ---
 
@@ -303,7 +303,7 @@ Flow diagram: `Quote Accepted` → `Payment Page` → `Method Selection` → `Se
 - "Zero platform commission on bookings"
 
 ### Closing Statement
-"Your bookings, your payments, your cash flow. Vilo connects the dots — you keep the money."
+"Your bookings, your payments, your cash flow. Wielo connects the dots — you keep the money."
 
 ---
 
@@ -448,5 +448,5 @@ Link to related features within the page:
 ### Avoid
 - Making payment security sound complicated
 - Discussing specific Paystack/PayPal fee structures (refer to providers)
-- Implying Vilo processes payments (we don't — providers do)
+- Implying Wielo processes payments (we don't — providers do)
 - Making promises about settlement times (varies by provider)

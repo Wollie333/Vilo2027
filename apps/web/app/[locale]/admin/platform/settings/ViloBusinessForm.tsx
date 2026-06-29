@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import type { ViloBusinessProfile } from "@/lib/billing/vilo-invoice";
+import type { WieloBusinessProfile } from "@/lib/billing/vilo-invoice";
 
-import { saveViloBusinessAction } from "./actions";
+import { saveWieloBusinessAction } from "./actions";
 
-type Field = keyof ViloBusinessProfile;
+type Field = keyof WieloBusinessProfile;
 
 const FIELDS: {
   key: Field;
@@ -20,7 +20,7 @@ const FIELDS: {
   {
     key: "legal_name",
     label: "Registered company name",
-    hint: "The legal entity that issues Vilo invoices.",
+    hint: "The legal entity that issues Wielo invoices.",
     placeholder: "Vilo Platform (Pty) Ltd",
   },
   {
@@ -64,17 +64,17 @@ const FIELDS: {
     key: "email",
     label: "Billing email",
     hint: "Shown on the invoice for billing queries.",
-    placeholder: "billing@vilo.co.za",
+    placeholder: "billing@wielo.co.za",
   },
 ];
 
 export function ViloBusinessForm({
   initial,
 }: {
-  initial: ViloBusinessProfile;
+  initial: WieloBusinessProfile;
 }) {
   const router = useRouter();
-  const [values, setValues] = useState<ViloBusinessProfile>(initial);
+  const [values, setValues] = useState<WieloBusinessProfile>(initial);
   const [pending, start] = useTransition();
 
   const dirty = (Object.keys(values) as Field[]).some(
@@ -89,7 +89,7 @@ export function ViloBusinessForm({
     if (pending || !dirty) return;
     start(async () => {
       try {
-        await saveViloBusinessAction({
+        await saveWieloBusinessAction({
           legal_name: values.legal_name.trim(),
           vat_number: values.vat_number.trim(),
           company_reg_number: values.company_reg_number.trim(),
@@ -101,7 +101,7 @@ export function ViloBusinessForm({
           email: values.email.trim(),
           logo_path: values.logo_path.trim(),
         });
-        toast.success("Vilo business details saved");
+        toast.success("Wielo business details saved");
         router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not save.");
@@ -114,11 +114,11 @@ export function ViloBusinessForm({
       <div className="flex items-center gap-2">
         <Building2 className="h-4 w-4 text-brand-primary" />
         <h2 className="font-display text-base font-bold text-brand-ink">
-          Vilo business details
+          Wielo business details
         </h2>
       </div>
       <p className="mt-1 text-sm text-brand-mute">
-        The issuer on every invoice Vilo sends for subscriptions and products —
+        The issuer on every invoice Wielo sends for subscriptions and products —
         the platform equivalent of a host&apos;s business details. Frozen onto
         each invoice at the moment it&apos;s issued.
       </p>

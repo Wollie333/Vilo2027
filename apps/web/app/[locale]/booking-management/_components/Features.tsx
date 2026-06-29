@@ -26,7 +26,7 @@ const FEATURES: Feature[] = [
       <>
         Your own URL —{" "}
         <span className="font-mono text-xs text-brand-dark">
-          viloplatform.com/your-handle
+          wieloplatform.com/your-handle
         </span>
         . Photos, policies, instant book toggle.
       </>

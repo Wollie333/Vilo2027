@@ -1,7 +1,7 @@
 # Website CMS — Hosting & host routing
 
 How tenant micro-sites (the per-business Website CMS) are served on
-`<sub>.vilo.site` and custom domains, and the ops one-time setup. Part of the
+`<sub>.wielo.site` and custom domains, and the ops one-time setup. Part of the
 Website CMS build (plan `~/.claude/plans/ok-it-has-come-spicy-snail.md` §3).
 
 ## How a request is routed
@@ -11,7 +11,7 @@ Website CMS build (plan `~/.claude/plans/ok-it-has-come-spicy-snail.md` §3).
 
 ```
 host = Host header (port + case normalised)
-root = NEXT_PUBLIC_ROOT_DOMAIN          # e.g. vilo.site — the feature switch
+root = NEXT_PUBLIC_ROOT_DOMAIN          # e.g. wielo.site — the feature switch
 
 classifyHost →
   "app"  for: no root configured · localhost / 127.0.0.1 · *.vercel.app ·
@@ -25,7 +25,7 @@ classifyHost →
   it is covered by an automated test (`lib/site/host.test.ts`) asserting every
   app hostname classifies as `app`.
 - **Tenant host** → rewrite the path to `/<defaultLocale>/site<pathname>` and set
-  the `x-vilo-site-host` header to the ref. The tenant branch does **not** run
+  the `x-wielo-site-host` header to the ref. The tenant branch does **not** run
   next-intl and does **not** refresh the Supabase session — **no cookies are ever
   set on a tenant host**. The public site loader (`lib/site/loadSitePage.ts`)
   reads that header, resolves the website by subdomain/custom-domain via the
@@ -46,21 +46,21 @@ existing context — the micro-site is a marketing shell only.
 
 Enforced in `lib/site/host.ts` (`RESERVED_SUBDOMAINS`) AND at claim time:
 `app, www, api, admin, mail, smtp, ftp, ns1, ns2, staging, dev, blog, help,
-docs, status, assets, cdn, static, vilo` + the locale codes (`en, af, fr, de, pt`).
+docs, status, assets, cdn, static, wielo` + the locale codes (`en, af, fr, de, pt`).
 
 ## One-time ops setup
 
-1. **Env** — set `NEXT_PUBLIC_ROOT_DOMAIN=vilo.site` (Vercel: all environments,
+1. **Env** — set `NEXT_PUBLIC_ROOT_DOMAIN=wielo.site` (Vercel: all environments,
    and `.env.local` for dev). This is the on-switch; until it's set, host routing
    is a no-op and nothing changes.
-2. **Wildcard DNS** — add a DNS record `*.vilo.site` → Vercel
+2. **Wildcard DNS** — add a DNS record `*.wielo.site` → Vercel
    (`CNAME *  cname.vercel-dns.com`, or the apex `A 76.76.21.21` + a wildcard
-   `CNAME`). Also keep `vilo.site` / `www` / `app` pointed at the app.
-3. **Vercel project domains** — add `vilo.site` and the wildcard `*.vilo.site` to
+   `CNAME`). Also keep `wielo.site` / `www` / `app` pointed at the app.
+3. **Vercel project domains** — add `wielo.site` and the wildcard `*.wielo.site` to
    the project (wildcard TLS is issued automatically). Confirm the plan supports
    wildcard + the expected custom-domain volume/rate limits (fallback: Cloudflare
    for SaaS).
-4. **Local dev** — `NEXT_PUBLIC_ROOT_DOMAIN=vilo.site` and browse
+4. **Local dev** — `NEXT_PUBLIC_ROOT_DOMAIN=wielo.site` and browse
    `http://<sub>.localhost:3000` (modern browsers resolve `*.localhost` to
    loopback automatically).
 

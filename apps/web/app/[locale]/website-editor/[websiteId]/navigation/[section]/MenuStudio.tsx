@@ -985,7 +985,7 @@ export function MenuStudio({
               data={homeData}
             />
           ) : (
-            <div className="vilo-nav">
+            <div className="wielo-nav">
               <NavHeaderPreview
                 nav={nav}
                 brandName={brandName}

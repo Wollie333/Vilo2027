@@ -11,8 +11,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // deduped by email, and only status='ok' guests are emailed. Every message
 // carries a one-click unsubscribe footer + List-Unsubscribe header (POPIA).
 
-const FROM = process.env.EMAIL_FROM_ADDRESS ?? "Vilo <onboarding@resend.dev>";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vilo.co.za";
+const FROM = process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://wielo.co.za";
 
 // Extract the bare address from a "Name <addr>" or "addr" FROM string.
 function fromAddress(): string {

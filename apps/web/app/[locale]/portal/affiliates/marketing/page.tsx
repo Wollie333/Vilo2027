@@ -35,7 +35,7 @@ export default async function AffiliateMarketingPage() {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://vilo.co.za";
+    "https://wielo.co.za";
   const referralLink = `${baseUrl}/r/${account.slug}`;
 
   return (

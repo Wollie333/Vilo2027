@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const ref = resolveSiteRef({
-    host: request.headers.get("x-vilo-site-host"),
+    host: request.headers.get("x-wielo-site-host"),
     siteParam: url.searchParams.get("site"),
   });
   if (!ref) return new Response("Not found", { status: 404 });

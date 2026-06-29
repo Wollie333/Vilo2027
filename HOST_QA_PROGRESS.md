@@ -17,8 +17,8 @@ each works **100%** before moving to the next, fixing broken code on the spot.
 ## Demo data / login
 - **Seed command:** from `apps/web` → `pnpm seed:demo` (idempotent, safe to re-run)
 - **Script:** `apps/web/scripts/seed-demo.mjs` (Cloud, service-role key from `.env.local`)
-- **Host login:** `host@vilodemo.com` / `ViloDemo123!`
-- **Guest login:** `guest@vilodemo.com` / `ViloDemo123!`
+- **Host login:** `host@wielodemo.com` / `WieloDemo123!`
+- **Guest login:** `guest@wielodemo.com` / `WieloDemo123!`
 - **Seeded:** 2 listings (Seaview Cottage = whole_listing; The Vines = flexible/rooms),
   2 rooms, 2 add-ons, seasonal pricing, 5 bookings (pending/confirmed/completed/
   cancelled/rooms), 4 payments, 1 pending refund request, 3 auto-invoices,
@@ -58,7 +58,7 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   with per-section Edit buttons + confetti on publish. Earlier: avatar-hang fix (StepProfile).
 - [⚠️] 2. Host profile — lives at `/dashboard/settings` (`/dashboard/settings/host` is a redirect).
   Code audited: RHF+Zod, server-action-only mutations, RLS-scoped host update, no `any` ✅.
-  Fixed: (a) leftover `viloplatform.com` handle hint → relative public path (`1bfe568`);
+  Fixed: (a) leftover `wieloplatform.com` handle hint → relative public path (`1bfe568`);
   (b) avatar size limit mismatch 8MB client vs 5MB server → aligned to 4MB both sides, under
   the Vercel Server-Action body cap (`8194853`). **Founder live-check pending.**
 - [⚠️] 3. Banking details — `/dashboard/settings/banking`. Code audited CLEAN, no changes:
@@ -258,7 +258,7 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   documented items. (1) Refund email resolver now reads `refund_requests` (was a
   non-existent `refunds` table) with requested/approved amount mapping. (2)
   Refund approve/decline aligned to RLS (`pending`/`failed`); dropped the moot
-  `escalated` branch — **clarified: Vilo never holds funds (direct host↔guest
+  `escalated` branch — **clarified: Wielo never holds funds (direct host↔guest
   payments/refunds), so platform escalation/adjudication is meaningless.** Fuller
   escalation removal (guest-escalate flow, admin dispute queue,
   `refund_escalated_admin` email, refunds page.tsx tab, status enum) is a tracked
@@ -291,7 +291,7 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - **2026-06-04** — Feature #1 wrap-up: the `feat/setup-wizard-rework` branch was already
   fully merged into `main` (0 commits ahead), so the stale remote branch was deleted — no
   merge needed, nothing reverted. Audited feature #2 (Host profile, at `/dashboard/settings`):
-  code is sound; fixed two concrete issues in small commits — the `viloplatform.com` handle
+  code is sound; fixed two concrete issues in small commits — the `wieloplatform.com` handle
   hint (`1bfe568`) and the 8MB-client/5MB-server avatar limit mismatch → 4MB both sides under
   the Vercel body cap (`8194853`). Then audited #3 Banking — clean, no changes needed (secrets
   encrypted + server-only, all 12 actions auth-gated, logo resizes client-side before upload).

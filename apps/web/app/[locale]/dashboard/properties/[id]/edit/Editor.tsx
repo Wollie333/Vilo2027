@@ -234,7 +234,7 @@ const PANEL_META: Record<TabKey, { title: string; desc: string }> = {
   },
   channels: {
     title: "Channels",
-    desc: "Where this property is published — the Vilo directory and your website.",
+    desc: "Where this property is published — the Wielo directory and your website.",
   },
   danger: {
     title: "Danger zone",

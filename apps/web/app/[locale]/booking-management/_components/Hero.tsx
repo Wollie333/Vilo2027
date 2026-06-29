@@ -132,7 +132,7 @@ export async function Hero() {
             method="get"
           >
             <div className="flex shrink-0 items-center pl-3 pr-1 font-mono text-sm text-brand-mute">
-              viloplatform.com/
+              wieloplatform.com/
             </div>
             <input
               type="text"
@@ -211,7 +211,7 @@ export async function Hero() {
               <div className="ml-4 flex h-6 max-w-[260px] flex-1 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3">
                 <Lock className="h-3 w-3 text-brand-mute" />
                 <span className="truncate font-mono text-[11px] text-brand-mute">
-                  viloplatform.com/dashboard
+                  wieloplatform.com/dashboard
                 </span>
               </div>
             </div>

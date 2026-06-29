@@ -15,7 +15,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * The binding is keyed on the USER (user_profiles.id), not the host, because
  * commission accrual matches platform_ledger.user_id. This survives the
  * guest→host transition: a referred guest who later becomes a host and pays for
- * a Vilo product still earns their referrer commission.
+ * a Wielo product still earns their referrer commission.
  *
  * Binding is best-effort: it MUST NEVER throw into a signup flow. UNIQUE
  * (referred_user_id) makes it idempotent — a second attempt is a silent no-op.

@@ -161,7 +161,7 @@ export default async function WebsiteOverviewPage({
         : "perfGradePoor";
 
   return (
-    <div className="vilo-cms space-y-9">
+    <div className="wielo-cms space-y-9">
       {/* ── Portfolio: all websites ──────────────────────────── */}
       <section>
         <div className="flex items-center justify-between gap-3">

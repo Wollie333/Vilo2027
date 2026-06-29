@@ -124,10 +124,10 @@ function channelMeta(
     case "other":
       return { mark: "O", color: "#6366F1", name: "Other" };
     // A booking made on the host's own website (still a direct booking, just a
-    // different channel than the Vilo app — kept distinct for reporting).
+    // different channel than the Wielo app — kept distinct for reporting).
     case "website":
       return { mark: "W", color: "#0EA5E9", name: "Website" };
-    // A guest referred from the host's own (non-Vilo) site.
+    // A guest referred from the host's own (non-Wielo) site.
     case "web-referred":
       return { mark: "R", color: "#7C3AED", name: "Web referral" };
     default:
@@ -135,8 +135,8 @@ function channelMeta(
         return { mark: "M", color: "#064E3B", name: "Manual" };
       if (origin === "quote_converted")
         return { mark: "Q", color: "#6366F1", name: "From quote" };
-      // Direct via the Vilo app/directory (both website + this are "direct").
-      return { mark: "V", color: "#10B981", name: "Vilo" };
+      // Direct via the Wielo app/directory (both website + this are "direct").
+      return { mark: "V", color: "#10B981", name: "Wielo" };
   }
 }
 
@@ -348,7 +348,7 @@ function csvExport(rows: BookingRow[]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `vilo-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `wielo-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -1142,7 +1142,7 @@ function BookingDrawer({
             <div className="flex h-14 shrink-0 items-center border-b border-brand-line px-5">
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
-                  Vilo booking
+                  Wielo booking
                 </div>
                 <div className="mt-0.5 font-mono text-[11px] text-brand-ink">
                   {row.reference}

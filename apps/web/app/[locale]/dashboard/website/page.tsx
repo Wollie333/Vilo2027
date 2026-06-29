@@ -186,7 +186,7 @@ function ManageRow({
   manageLabel: string;
   statusLabel: string;
 }) {
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 p-5">
       <div className="min-w-0">

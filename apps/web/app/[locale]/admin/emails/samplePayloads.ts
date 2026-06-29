@@ -78,7 +78,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     totalAmount: "R 2,400.00",
     bookingReference: "VILO-2026-AB1234",
     bankName: "Standard Bank",
-    accountHolder: "Amara Mokoena (Vilo)",
+    accountHolder: "Amara Mokoena (Wielo)",
     accountNumberMasked: "•••• 4523",
     branchCode: "051001",
     expiresAt: "Sunday, 8 June 2026 at 14:00",
@@ -97,7 +97,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",
     hostName: "Amara",
-    reviewUrl: "https://viloplatform.com/review/abc/xyz",
+    reviewUrl: "https://wieloplatform.com/review/abc/xyz",
   },
 
   new_review_host: {
@@ -138,7 +138,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
 
   account_suspended: {
     hostFirstName: "Amara",
-    supportEmail: "support@viloplatform.com",
+    supportEmail: "support@wieloplatform.com",
   },
 
   refund_request_host: {
@@ -174,7 +174,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     policySummary:
       "Strict policy: no refund within 7 days of check-in. Your request arrived 4 days before check-in.",
     bookingId: "00000000-0000-0000-0000-000000000001",
-    supportEmail: "support@viloplatform.com",
+    supportEmail: "support@wieloplatform.com",
   },
 
   refund_completed_guest: {
@@ -193,7 +193,7 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     refundAmount: "R 1,200.00",
     adminNote:
       "Booking dates fell during the platform outage on 2026-06-01. Compromise refund applied.",
-    supportEmail: "support@viloplatform.com",
+    supportEmail: "support@wieloplatform.com",
   },
 
   eft_refund_sent_guest: {

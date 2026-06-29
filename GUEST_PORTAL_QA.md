@@ -14,7 +14,7 @@ invariants below before it's marked clean.
   (see memory "dashboard query gotchas").
 - All confirms/destructive prompts go through the canonical `modal` /
   `FormModal` — never `window.confirm`.
-- Dynamic brand name (`getBrandName` / `<BrandName>`) — no hardcoded "Vilo"/"VILO".
+- Dynamic brand name (`getBrandName` / `<BrandName>`) — no hardcoded "Wielo"/"WIELO".
 - A published `help_articles` row (audience `guest`/`both`) per feature.
 - No placeholder/static data; mobile-first.
 
@@ -39,7 +39,7 @@ invariants below before it's marked clean.
 
 ## Known follow-ups (out of this pass)
 - The public token quote page `/q/[id]/[token]` now renders the dynamic brand
-  name (no hardcoded "VILO").
+  name (no hardcoded "WIELO").
 - Portal sidebar now has a **Notifications** entry (Bell icon) with a live
   unread badge, linking to `/portal/notifications` — also reachable from the
   Settings → Notifications tab.

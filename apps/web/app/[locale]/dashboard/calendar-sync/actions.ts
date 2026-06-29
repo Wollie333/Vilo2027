@@ -144,7 +144,7 @@ export async function syncIcalFeedAction(input: {
     const res = await fetch(feed.url, {
       // 30s timeout via AbortController
       signal: AbortSignal.timeout(30_000),
-      headers: { "User-Agent": "Vilo-CalendarSync/1.0" },
+      headers: { "User-Agent": "Wielo-CalendarSync/1.0" },
       cache: "no-store",
     });
     if (!res.ok) throw new Error(`Upstream returned ${res.status}`);
@@ -194,7 +194,7 @@ export async function syncIcalFeedAction(input: {
     return { ok: false, error: `Couldn't write blocks: ${rpcError.message}` };
   }
 
-  // Rows this feed actually blocks (dates already held by a real Vilo block are
+  // Rows this feed actually blocks (dates already held by a real Wielo block are
   // skipped by DO NOTHING and not counted).
   const importedCount = typeof inserted === "number" ? inserted : dates.length;
   await admin

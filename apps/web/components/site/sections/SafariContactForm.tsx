@@ -19,7 +19,7 @@ type ContactFormProps = Extract<
  * the host inbox, then redirects to the themed enquiry thank-you page so the
  * Safari form completes the same conversion-goal loop as the generic `form`
  * block. In the builder canvas / preview (`interactive=false`) it renders but
- * does not submit. Styling stays scoped to `.vilo-safari` (the `.contact-grid`/
+ * does not submit. Styling stays scoped to `.wielo-safari` (the `.contact-grid`/
  * `.detail-card`/`.field` classes ported into safari.css).
  */
 export function SafariContactForm({

@@ -43,7 +43,7 @@ export default function BroadcastCritical({
         </Section>
       ) : null}
       <Text style={{ marginTop: 32, color: "#888", fontSize: 12 }}>
-        This is a platform-wide announcement from the Vilo team.
+        This is a platform-wide announcement from the Wielo team.
       </Text>
     </Layout>
   );

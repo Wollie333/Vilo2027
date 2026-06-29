@@ -8,10 +8,10 @@ type Item = {
 const ITEMS: Item[] = [
   {
     q: "Do I have to leave Airbnb or Booking.com?",
-    a: "No — most hosts run Vilo alongside the OTAs at first, and migrate guests over to direct booking as the savings stack up. Two-way iCal sync prevents double-bookings.",
+    a: "No — most hosts run Wielo alongside the OTAs at first, and migrate guests over to direct booking as the savings stack up. Two-way iCal sync prevents double-bookings.",
   },
   {
-    q: "How does Vilo make money if there's no commission?",
+    q: "How does Wielo make money if there's no commission?",
     a: "Subscriptions only. Pick a plan, pay a flat monthly fee, keep 100% of every booking. We never see a cent of guest money — it goes directly from the guest to your Paystack or PayPal account.",
   },
   {
@@ -20,7 +20,7 @@ const ITEMS: Item[] = [
   },
   {
     q: "Is there really a free tier?",
-    a: "Yes. List one property in the Vilo Directory at no cost. You won't get the dashboard, inbox or direct-booking page — those are the paid tools — but you'll get discovery for free.",
+    a: "Yes. List one property in the Wielo Directory at no cost. You won't get the dashboard, inbox or direct-booking page — those are the paid tools — but you'll get discovery for free.",
   },
   {
     q: "Can I bring my team in?",
@@ -48,10 +48,10 @@ export async function FAQ() {
             <p className="mt-5 leading-relaxed text-brand-mute">
               Can&rsquo;t find what you&rsquo;re looking for? Email{" "}
               <a
-                href="mailto:hello@viloplatform.com"
+                href="mailto:hello@wieloplatform.com"
                 className="text-brand-primary underline underline-offset-2"
               >
-                hello@viloplatform.com
+                hello@wieloplatform.com
               </a>{" "}
               — a real person replies in under an hour.
             </p>
@@ -62,14 +62,14 @@ export async function FAQ() {
               <details key={item.q} className="group py-5">
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-6">
                   <span className="font-display text-base font-semibold text-brand-dark md:text-lg">
-                    {item.q.replace("Vilo", brandName)}
+                    {item.q.replace("Wielo", brandName)}
                   </span>
                   <span className="acc-icon mt-1 text-2xl leading-none text-brand-primary">
                     +
                   </span>
                 </summary>
                 <p className="mt-3 max-w-prose leading-relaxed text-brand-mute">
-                  {item.a.replace("Vilo", brandName)}
+                  {item.a.replace("Wielo", brandName)}
                 </p>
               </details>
             ))}

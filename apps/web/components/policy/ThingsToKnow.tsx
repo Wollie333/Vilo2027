@@ -251,7 +251,7 @@ export async function ThingsToKnow({
         </Card>
       </div>
 
-      {/* ── Platform legal (Vilo-authored) ── */}
+      {/* ── Platform legal (Wielo-authored) ── */}
       <p className="text-xs leading-relaxed text-brand-mute">
         {t.rich("legal", {
           terms: (chunks) => (

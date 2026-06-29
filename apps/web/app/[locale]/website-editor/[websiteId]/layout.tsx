@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * Owner + feature gate for the full-screen editors (mirrors the dashboard
  * `[websiteId]/layout`). Renders no chrome — each editor page owns its
- * full-viewport `.vilo-builder` frame.
+ * full-viewport `.wielo-builder` frame.
  */
 export default async function FullScreenEditorWebsiteLayout({
   children,

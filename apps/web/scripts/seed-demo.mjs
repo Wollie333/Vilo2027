@@ -32,10 +32,10 @@ const admin = createClient(URL, SERVICE_KEY, {
 });
 
 // ── Demo login credentials ──────────────────────────────────────────────
-const HOST_EMAIL = "host@vilodemo.com";
-const HOST_PASSWORD = "ViloDemo123!";
-const GUEST_EMAIL = "guest@vilodemo.com";
-const GUEST_PASSWORD = "ViloDemo123!";
+const HOST_EMAIL = "host@wielodemo.com";
+const HOST_PASSWORD = "WieloDemo123!";
+const GUEST_EMAIL = "guest@wielodemo.com";
+const GUEST_PASSWORD = "WieloDemo123!";
 
 // ── Fixed UUIDs (v4-shaped) so re-runs upsert instead of duplicate ───────
 const HOST_ID = "0a111111-1111-4111-8111-111111111111";
@@ -164,7 +164,7 @@ async function main() {
     {
       id: HOST_ID,
       user_id: HOST_UID,
-      handle: "vilo-demo-host",
+      handle: "wielo-demo-host",
       display_name: "Cape Coast Retreats",
       bio: "Family-run stays along the Cape coast. Warm welcomes, sea views, and great coffee.",
       avatar_url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200",
@@ -711,10 +711,10 @@ async function main() {
   // Extra reviewers → completed bookings on LISTING_B → published reviews
   // with per-category sub-ratings + trip_type + helpful counts.
   const REVIEWERS = [
-    { uid: null, email: "nomvula@vilodemo.com", name: "Nomvula Khumalo", bId: "0a777777-7777-4777-8777-7777777777b6", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb6", inDate: "2026-02-10", outDate: "2026-02-13", rating: 5, trip: "couples", helpful: 14, body: "The vineyard views at sunrise are unreal. Thandi left us a bottle of estate red and the warmest welcome. We didn't want to leave." },
-    { uid: null, email: "jacobus@vilodemo.com", name: "Jacobus Visser", bId: "0a777777-7777-4777-8777-7777777777b7", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb7", inDate: "2026-03-05", outDate: "2026-03-10", rating: 5, trip: "friends", helpful: 22, body: "Booked the whole house for a wine weekend with friends. Spotless, quiet, and a 5-minute drive to the best tasting rooms. Faultless." },
-    { uid: null, email: "ayanda@vilodemo.com", name: "Ayanda Radebe", bId: "0a777777-7777-4777-8777-7777777777b8", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb8", inDate: "2026-03-20", outDate: "2026-03-22", rating: 5, trip: "family", helpful: 31, body: "Took my parents for their anniversary. The breakfast each morning was a highlight and the host organised a quiet table at Tokara for us." },
-    { uid: null, email: "sven@vilodemo.com", name: "Sven Petersen", bId: "0a777777-7777-4777-8777-7777777777b9", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb9", inDate: "2026-04-02", outDate: "2026-04-06", rating: 4, trip: "solo", helpful: 8, body: "Came to write for a few days and got very little done — too distracted by the gardens. Comfortable bed, great coffee. Road in is bumpy." },
+    { uid: null, email: "nomvula@wielodemo.com", name: "Nomvula Khumalo", bId: "0a777777-7777-4777-8777-7777777777b6", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb6", inDate: "2026-02-10", outDate: "2026-02-13", rating: 5, trip: "couples", helpful: 14, body: "The vineyard views at sunrise are unreal. Thandi left us a bottle of estate red and the warmest welcome. We didn't want to leave." },
+    { uid: null, email: "jacobus@wielodemo.com", name: "Jacobus Visser", bId: "0a777777-7777-4777-8777-7777777777b7", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb7", inDate: "2026-03-05", outDate: "2026-03-10", rating: 5, trip: "friends", helpful: 22, body: "Booked the whole house for a wine weekend with friends. Spotless, quiet, and a 5-minute drive to the best tasting rooms. Faultless." },
+    { uid: null, email: "ayanda@wielodemo.com", name: "Ayanda Radebe", bId: "0a777777-7777-4777-8777-7777777777b8", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb8", inDate: "2026-03-20", outDate: "2026-03-22", rating: 5, trip: "family", helpful: 31, body: "Took my parents for their anniversary. The breakfast each morning was a highlight and the host organised a quiet table at Tokara for us." },
+    { uid: null, email: "sven@wielodemo.com", name: "Sven Petersen", bId: "0a777777-7777-4777-8777-7777777777b9", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb9", inDate: "2026-04-02", outDate: "2026-04-06", rating: 4, trip: "solo", helpful: 8, body: "Came to write for a few days and got very little done — too distracted by the gardens. Comfortable bed, great coffee. Road in is bumpy." },
   ];
   const subRatings = (r) => ({
     rating_cleanliness: 5,
@@ -725,7 +725,7 @@ async function main() {
     rating_value: r >= 5 ? 5 : 4,
   });
   for (const rv of REVIEWERS) {
-    const u = await ensureAuthUser(rv.email, "ViloDemo123!");
+    const u = await ensureAuthUser(rv.email, "WieloDemo123!");
     rv.uid = u.id;
     await up("user_profiles", [
       { id: rv.uid, role: "guest", full_name: rv.name, email: rv.email },

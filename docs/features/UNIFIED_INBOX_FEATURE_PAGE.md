@@ -10,7 +10,7 @@
 ## 1. Page Meta & SEO
 
 ```yaml
-title: "Unified Inbox for Accommodation Hosts — Vilo"
+title: "Unified Inbox for Accommodation Hosts — Wielo"
 meta_description: "One inbox for every guest conversation. Real-time messaging, quote cards, payment links, and read receipts — all in one WhatsApp-style interface. Built for SA hosts."
 url_slug: /features/inbox
 keywords:
@@ -19,7 +19,7 @@ keywords:
   - guesthouse inbox management
   - hospitality CRM south africa
   - unified messaging for hosts
-og_title: "Unified Inbox — Every Guest, One Place | Vilo"
+og_title: "Unified Inbox — Every Guest, One Place | Wielo"
 og_description: "Real-time guest messaging with quote cards, payment links, and read receipts. Never miss a booking enquiry again."
 og_image: "/images/features/inbox-og.jpg"
 ```
@@ -41,7 +41,7 @@ Option C: "The inbox that turns enquiries into bookings."
 ### Subheadline
 
 ```
-"Vilo's unified inbox brings every guest message into one real-time feed — with quote cards, payment links, read receipts, and instant notifications. No more scattered conversations. No more missed bookings."
+"Wielo's unified inbox brings every guest message into one real-time feed — with quote cards, payment links, read receipts, and instant notifications. No more scattered conversations. No more missed bookings."
 ```
 
 ### Hero CTA
@@ -107,7 +107,7 @@ Headline: "Your guest conversations are everywhere except where you need them."
    Cost: Guests feel like a number, not a person. Repeat business suffers.
 ```
 
-### "Before Vilo" Scenario
+### "Before Wielo" Scenario
 
 ```
 "A guest sends an enquiry via your website at 6pm. You see it the next morning — buried under 47 WhatsApp messages. By then, they've booked somewhere else. You'll never know you lost them. This happens more than you think."
@@ -120,7 +120,7 @@ Headline: "Your guest conversations are everywhere except where you need them."
 ### Section Header
 
 ```
-Eyebrow: "The Vilo way"
+Eyebrow: "The Wielo way"
 Headline: "One inbox. Every guest. Real-time."
 ```
 
@@ -160,8 +160,8 @@ visual: "Split-screen inbox: conversation list on left, active thread on right, 
 ```yaml
 icon: Zap
 headline: "Messages arrive the moment they're sent"
-description: "Vilo uses real-time channels, not email polling. When a guest sends a message, it appears in your inbox instantly — with a push notification to your phone. Respond while they're still looking at their screen."
-visual: "Phone mockup showing push notification: 'Sarah Mitchell: That sounds perfect! When should...' with Vilo app icon"
+description: "Wielo uses real-time channels, not email polling. When a guest sends a message, it appears in your inbox instantly — with a push notification to your phone. Respond while they're still looking at their screen."
+visual: "Phone mockup showing push notification: 'Sarah Mitchell: That sounds perfect! When should...' with Wielo app icon"
 ```
 
 ### Sub-Feature 3: Read Receipts (WhatsApp-Style)
@@ -287,7 +287,7 @@ Step 4: Guest accepts — Booking created, payment link sent, all in the same th
 Step 1: Receive message — Push notification or email alerts guest to new message
   Visual: Guest's phone with notification
 
-Step 2: Open portal — Guest views conversation in their Vilo portal (no login if via link)
+Step 2: Open portal — Guest views conversation in their Wielo portal (no login if via link)
   Visual: Clean mobile inbox view
 
 Step 3: Reply instantly — Guest types response, host sees it in real-time
@@ -312,7 +312,7 @@ Headline: "One inbox changed everything"
 
 ```
 Testimonial 1:
-  Quote: "I used to check four different apps every morning. Now I check Vilo once. All my enquiries, all my guests, all in one place. I've probably saved an hour a day."
+  Quote: "I used to check four different apps every morning. Now I check Wielo once. All my enquiries, all my guests, all in one place. I've probably saved an hour a day."
   Name: "[Name]"
   Property: "Guesthouse · Franschhoek"
 
@@ -340,7 +340,7 @@ Scenario 3: A Cape Town apartment owner manages 3 listings. Multi-listing filter
 ### Stats (placeholder)
 
 ```
-Stat 1: [X] messages sent through Vilo inboxes
+Stat 1: [X] messages sent through Wielo inboxes
 Stat 2: [X] seconds average response time for hosts using templates
 Stat 3: [X]% quote acceptance rate increase with read receipts
 ```
@@ -353,12 +353,12 @@ Stat 3: [X]% quote acceptance rate increase with read receipts
 
 ```
 Eyebrow: "Side by side"
-Headline: "Scattered messages vs. Vilo Inbox"
+Headline: "Scattered messages vs. Wielo Inbox"
 ```
 
 ### Comparison Table
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | Check WhatsApp, email, Airbnb, Booking.com separately | One inbox for every conversation |
 | No idea if guest read your message | WhatsApp-style read receipts |
@@ -377,9 +377,9 @@ Headline: "Scattered messages vs. Vilo Inbox"
 
 ```
 Q: Does this replace WhatsApp?
-A: It can. All guest conversations happen inside Vilo — you can send your inbox link to guests instead of your WhatsApp number. Many hosts use both initially, then shift guests to Vilo over time.
+A: It can. All guest conversations happen inside Wielo — you can send your inbox link to guests instead of your WhatsApp number. Many hosts use both initially, then shift guests to Wielo over time.
 
-Q: How do guests message me if they don't have a Vilo account?
+Q: How do guests message me if they don't have a Wielo account?
 A: Guests can reply directly from email notifications or your website contact form. If they request a quote, an account is created for them automatically (no password required initially).
 
 Q: Do I get notified instantly?
@@ -395,7 +395,7 @@ Q: Can I send attachments?
 A: Yes. Images and PDFs can be attached to messages. Perfect for sharing directions, menus, or brochures.
 
 Q: What about messages from OTA platforms?
-A: Vilo's inbox handles direct messages only. OTA messages (Airbnb, Booking.com) stay in their platforms — but once you convert a guest to direct booking, all future communication is in Vilo.
+A: Wielo's inbox handles direct messages only. OTA messages (Airbnb, Booking.com) stay in their platforms — but once you convert a guest to direct booking, all future communication is in Wielo.
 
 Q: How do quick-reply templates work?
 A: Create templates with placeholders like {{guest_name}} and {{check_in}}. When you use a template, these fill automatically with the guest's details. One tap to insert, Enter to send.
@@ -460,7 +460,7 @@ Trust elements:
 
 2. PROBLEM SECTION (light background)
    - Pain points as icon + text cards
-   - "Before Vilo" scenario as callout
+   - "Before Wielo" scenario as callout
 
 3. SOLUTION OVERVIEW (white background)
    - Transformation statement

@@ -362,7 +362,7 @@ export function PostEditor({
 
   return (
     <div
-      className={`vilo-builder${preview ? "previewing" : ""}`}
+      className={`wielo-builder${preview ? "previewing" : ""}`}
       style={{
         height: "100vh",
         display: "flex",

@@ -300,7 +300,7 @@ function DayCell({
     return (
       <a
         href={href}
-        data-vilo-book
+        data-wielo-book
         title="Available"
         style={{
           background: "var(--site-surface)",

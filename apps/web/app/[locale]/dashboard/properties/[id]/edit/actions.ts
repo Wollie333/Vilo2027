@@ -641,7 +641,7 @@ export async function togglePublishAction(
   if (!(await hostHasFeature(listing.host_id, "directory_listing"))) {
     return {
       ok: false,
-      error: "Listing in the Vilo directory isn't available on your plan.",
+      error: "Listing in the Wielo directory isn't available on your plan.",
     };
   }
 

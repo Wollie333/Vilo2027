@@ -1,4 +1,4 @@
-# Vilo pricing — the single source of truth
+# Wielo pricing — the single source of truth
 
 **Everything a stay costs is computed by one function: `priceStay()` in
 `engine.ts`.** If you ever need to change how money is calculated, change it

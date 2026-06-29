@@ -96,9 +96,9 @@ import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SiteChrome, type ChromeTarget } from "@/components/site/SiteChrome";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
-// Safari theme styles, scoped to `.vilo-safari`. Loaded in the editor bundle so
+// Safari theme styles, scoped to `.wielo-safari`. Loaded in the editor bundle so
 // the canvas can render the bespoke NenGama design when Safari is active (it
-// never leaks: every rule is under .vilo-safari). Public site loads it via
+// never leaks: every rule is under .wielo-safari). Public site loads it via
 // SafariShell.
 import "@/components/site/safari/safari.css";
 import type { SiteThemeConfig } from "@/lib/site/themes";
@@ -850,7 +850,7 @@ export function PageBuilder({
 
   return (
     <div
-      className="vilo-builder"
+      className="wielo-builder"
       style={{
         height: "100vh",
         display: "flex",

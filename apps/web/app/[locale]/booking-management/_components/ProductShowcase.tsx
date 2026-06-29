@@ -35,7 +35,7 @@ const TRUST_POINTS = [
   {
     icon: Search,
     iconClass: "text-brand-primary",
-    title: "Vilo Directory",
+    title: "Wielo Directory",
     body: "Get listed for free in our public directory — extra discovery, no fees.",
   },
 ] as const;
@@ -166,7 +166,7 @@ export async function ProductShowcase() {
                   <div className="mb-1.5 flex items-center gap-2">
                     <Icon className={`h-4 w-4 ${iconClass}`} />
                     <div className="text-sm font-semibold text-brand-dark">
-                      {title.replace("Vilo", brandName)}
+                      {title.replace("Wielo", brandName)}
                     </div>
                   </div>
                   <p className="text-xs leading-relaxed text-brand-mute">

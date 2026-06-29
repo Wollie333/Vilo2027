@@ -1,4 +1,4 @@
-// Small at-a-glance indicator of which Paystack key pair Vilo is charging with.
+// Small at-a-glance indicator of which Paystack key pair Wielo is charging with.
 // Reused on the Products hub and the Payment settings header.
 export function PaystackModeBadge({
   enabled,

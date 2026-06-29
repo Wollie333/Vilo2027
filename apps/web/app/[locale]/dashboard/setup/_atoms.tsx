@@ -1,7 +1,7 @@
 "use client";
 
 // Shared setup-wizard form atoms — the polished field/select/stepper/toggle/
-// pick-card primitives used across every step card. Styling matches the Vilo
+// pick-card primitives used across every step card. Styling matches the Wielo
 // "Setup Flow" design (focus-ring inputs, brand pick-cards).
 
 import { Check, ChevronDown, Minus, Pencil, Plus } from "lucide-react";

@@ -15,7 +15,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vilo.co.za";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://wielo.co.za";
 const PAGE_SIZE = 24;
 
 export async function generateMetadata({
@@ -143,7 +143,7 @@ export default async function CategoryLandingPage({
       {/* Intro markdown */}
       {category.intro_markdown ? (
         <section className="mx-auto max-w-3xl px-5 pt-10 lg:px-8 lg:pt-14">
-          <div className="prose-vilo space-y-4">
+          <div className="prose-wielo space-y-4">
             {splitParagraphs(category.intro_markdown).map((para, i) => (
               <p
                 key={i}

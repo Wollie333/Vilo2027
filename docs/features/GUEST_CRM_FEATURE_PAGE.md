@@ -10,7 +10,7 @@
 ## 1. Page Meta & SEO
 
 ```yaml
-title: "Guest CRM for Accommodation Hosts — Vilo"
+title: "Guest CRM for Accommodation Hosts — Wielo"
 meta_description: "Build your guest database. Track booking history, lifetime value, and preferences. Tag VIPs. Send targeted emails. Your guests, yours forever. Built for SA hosts."
 url_slug: /features/guest-crm
 keywords:
@@ -19,7 +19,7 @@ keywords:
   - guesthouse guest database
   - B&B customer tracking
   - lodge guest relationships
-og_title: "Guest CRM — Own Your Guest Relationships | Vilo"
+og_title: "Guest CRM — Own Your Guest Relationships | Wielo"
 og_description: "Track every guest, their booking history, lifetime value, and preferences. Tag, segment, and communicate directly. Your list, forever."
 og_image: "/images/features/guest-crm-og.jpg"
 ```
@@ -41,7 +41,7 @@ Option C: "Know your guests. Keep your guests."
 ### Subheadline
 
 ```
-"Vilo builds your guest database automatically — from every booking, enquiry, and quote. Track lifetime value, tag VIPs, see who's returning, and communicate directly. No OTA can take this list from you."
+"Wielo builds your guest database automatically — from every booking, enquiry, and quote. Track lifetime value, tag VIPs, see who's returning, and communicate directly. No OTA can take this list from you."
 ```
 
 ### Hero CTA
@@ -101,7 +101,7 @@ Headline: "The OTAs have your guests. You just rent access to them."
    Cost: You can't optimize what you can't measure.
 ```
 
-### "Before Vilo" Scenario
+### "Before Wielo" Scenario
 
 ```
 "A guest stayed three years in a row. You remember their face, but not their name. They message asking about December availability. You have no record of their past stays, their preferences, or what they paid. You start from scratch — like a stranger. They feel it. They don't come back."
@@ -114,7 +114,7 @@ Headline: "The OTAs have your guests. You just rent access to them."
 ### Section Header
 
 ```
-Eyebrow: "The Vilo way"
+Eyebrow: "The Wielo way"
 Headline: "Your guests. Your data. Your relationship to keep."
 ```
 
@@ -199,7 +199,7 @@ visual: "Notes tab with timeline: 'Celebrating 25th anniversary — owner approv
 ```yaml
 icon: Users
 headline: "Track who travels together"
-description: "When guests book as a group, Vilo links their profiles. See who's travelled with whom. Know when a returning guest's partner has also stayed before. Relationships matter — Vilo remembers them."
+description: "When guests book as a group, Wielo links their profiles. See who's travelled with whom. Know when a returning guest's partner has also stayed before. Relationships matter — Wielo remembers them."
 visual: "Relationships tab: 'Travelled with: Sarah Mitchell (wife) on 3 bookings, John Mitchell Jr. (son) on 1 booking'"
 ```
 
@@ -299,7 +299,7 @@ Headline: "Finally, guests that belong to you"
 
 ```
 Testimonial 1:
-  Quote: "I didn't realize how many returning guests I had until I saw it in Vilo. 38% of my bookings are repeats — and I wasn't doing anything special for them. Now I do."
+  Quote: "I didn't realize how many returning guests I had until I saw it in Wielo. 38% of my bookings are repeats — and I wasn't doing anything special for them. Now I do."
   Name: "[Name]"
   Property: "Guesthouse · Stellenbosch"
 
@@ -309,7 +309,7 @@ Testimonial 2:
   Property: "Lodge · Hoedspruit"
 
 Testimonial 3:
-  Quote: "I exported my guest list after six months on Vilo. 400+ contacts. That's 400 people I can email directly about my December special — no commission."
+  Quote: "I exported my guest list after six months on Wielo. 400+ contacts. That's 400 people I can email directly about my December special — no commission."
   Name: "[Name]"
   Property: "Self-catering · Knysna"
 ```
@@ -321,7 +321,7 @@ Scenario 1: A Winelands guesthouse tags corporate guests and sends them quarterl
 
 Scenario 2: A Kruger lodge filters by "stayed in Honeymoon Suite" and sends anniversary emails. Direct re-bookings increase.
 
-Scenario 3: A Cape Town host exports their guest list and imports it to Mailchimp for a seasonal newsletter. Vilo data, used anywhere.
+Scenario 3: A Cape Town host exports their guest list and imports it to Mailchimp for a seasonal newsletter. Wielo data, used anywhere.
 ```
 
 ### Stats (placeholder)
@@ -340,12 +340,12 @@ Stat 3: R[X] total lifetime value tracked across all hosts
 
 ```
 Eyebrow: "Side by side"
-Headline: "OTA guest access vs. Vilo Guest CRM"
+Headline: "OTA guest access vs. Wielo Guest CRM"
 ```
 
 ### Comparison Table
 
-| OTAs | With Vilo |
+| OTAs | With Wielo |
 |------|-----------|
 | Guest data locked in their platform | Your data, exportable anytime |
 | Can't email past guests directly | Direct communication built in |
@@ -385,7 +385,7 @@ Q: What happens if I block a guest?
 A: Blocked guests are excluded from broadcasts and flagged in your directory. Blocking doesn't prevent them from booking — it's a visibility/communication block.
 
 Q: Does this replace a full CRM like HubSpot?
-A: For most hosts, yes. Vilo covers contact management, history tracking, notes, tags, and email communication. If you need advanced marketing automation, you can export to other tools.
+A: For most hosts, yes. Wielo covers contact management, history tracking, notes, tags, and email communication. If you need advanced marketing automation, you can export to other tools.
 ```
 
 ---
@@ -447,7 +447,7 @@ Trust elements:
 
 2. PROBLEM SECTION (light background)
    - Pain points as numbered cards
-   - "Before Vilo" scenario as callout
+   - "Before Wielo" scenario as callout
 
 3. SOLUTION OVERVIEW (white background)
    - Transformation statement
@@ -469,7 +469,7 @@ Trust elements:
    - Stats bar
 
 7. COMPARISON TABLE (light background)
-   - OTAs vs Vilo format
+   - OTAs vs Wielo format
 
 8. FAQ (white background)
    - Accordion style

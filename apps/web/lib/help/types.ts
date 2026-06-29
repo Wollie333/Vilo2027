@@ -167,7 +167,7 @@ export type HelpCommunityThread = {
 export const HELP_CONTACT_DEFAULTS: HelpContactSettings = {
   live_chat_online: false,
   callback_enabled: false,
-  support_email: "hello@viloplatform.com",
+  support_email: "hello@wieloplatform.com",
   median_response_minutes: 4,
   community_member_count: 0,
 };

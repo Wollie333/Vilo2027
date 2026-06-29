@@ -13,7 +13,7 @@ export function StepDone({
 }) {
   const t = useTranslations("website");
   const router = useRouter();
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">

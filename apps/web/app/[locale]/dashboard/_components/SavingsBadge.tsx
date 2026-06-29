@@ -12,7 +12,7 @@ import { Modal } from "@/components/ui/modal";
 import { formatMoney } from "@/lib/format";
 
 /**
- * Header "$" badge → "Vilo has saved you R X so far" modal. Sits to the left of
+ * Header "$" badge → "Wielo has saved you R X so far" modal. Sits to the left of
  * the direct-booking-link icon. The figure is fetched lazily on click (server
  * action) so it never costs anything on a normal dashboard navigation.
  */
@@ -42,8 +42,8 @@ export function SavingsBadge() {
         type="button"
         onClick={handleClick}
         disabled={loading}
-        title="See how much Vilo has saved you"
-        aria-label="See how much Vilo has saved you in commission"
+        title="See how much Wielo has saved you"
+        aria-label="See how much Wielo has saved you in commission"
         className="inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink transition-colors hover:bg-brand-light disabled:opacity-50"
       >
         <DollarSign className="h-4 w-4" />
@@ -54,7 +54,7 @@ export function SavingsBadge() {
         onOpenChange={setOpen}
         intent="success"
         icon={DollarSign}
-        title="Vilo has saved you"
+        title="Wielo has saved you"
         description={
           summary && summary.savedSoFar > 0 ? (
             <span className="block">
@@ -70,7 +70,7 @@ export function SavingsBadge() {
               </span>
             </span>
           ) : (
-            "Once you take direct bookings through Vilo, this is where you'll see the commission you've kept versus the big OTAs."
+            "Once you take direct bookings through Wielo, this is where you'll see the commission you've kept versus the big OTAs."
           )
         }
         actions={

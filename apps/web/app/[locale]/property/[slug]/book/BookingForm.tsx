@@ -251,7 +251,7 @@ export function BookingForm({
     note: string | null;
   } | null;
   // The host's own property Terms & Conditions (resolver: listing-wide → host
-  // default). Accepted at checkout ALONGSIDE Vilo's platform terms + snapshotted
+  // default). Accepted at checkout ALONGSIDE Wielo's platform terms + snapshotted
   // onto the booking. Null when the host has none.
   bookingTerms: { name: string; bodyHtml: string | null } | null;
   instantBooking: boolean;

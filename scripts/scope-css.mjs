@@ -109,6 +109,6 @@ for (const nm of kfNames) {
   outCss = outCss.replace(new RegExp(`\\b${nm}\\b`, "g"), `${slug}-${nm}`);
 }
 
-const header = `/* AUTO-GENERATED from a Vilo mockup stylesheet — scoped under ${WRAP}.\n   Source: ${src.split(/[\\/]/).pop()}. Do not edit by hand; regenerate via scripts/scope-css.mjs. */\n`;
+const header = `/* AUTO-GENERATED from a Wielo mockup stylesheet — scoped under ${WRAP}.\n   Source: ${src.split(/[\\/]/).pop()}. Do not edit by hand; regenerate via scripts/scope-css.mjs. */\n`;
 fs.writeFileSync(out, header + outCss + "\n");
 console.log(`wrote ${out} (${kfNames.length} keyframe(s) namespaced)`);

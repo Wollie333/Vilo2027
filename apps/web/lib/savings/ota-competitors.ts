@@ -1,7 +1,7 @@
 /**
  * Single source of truth for the host-savings / commission-comparison feature.
  *
- * Vilo takes 0% booking commission — that's the whole pitch. These are the
+ * Wielo takes 0% booking commission — that's the whole pitch. These are the
  * rates the big OTAs would have skimmed off the same direct-booking revenue,
  * so a host can see what each competitor would have cost them.
  *
@@ -23,7 +23,7 @@ export interface OtaCompetitor {
 }
 
 /**
- * Headline rate for the "Vilo has saved you R X" figure. Kept at 15% to match
+ * Headline rate for the "Wielo has saved you R X" figure. Kept at 15% to match
  * the platform-wide commission-saved stat (fetch_platform_commission_saved) so
  * every savings number across the app agrees.
  */

@@ -88,7 +88,7 @@ const LEGAL_KEY: Record<"booking_terms" | "privacy", string> = {
   privacy: "legal_privacy",
 };
 
-// Publish a platform-wide legal document (Vilo-authored). Sanitises the HTML and
+// Publish a platform-wide legal document (Wielo-authored). Sanitises the HTML and
 // bumps the version only when the text actually changes, so booking acceptance
 // records (bookings.accepted_*_version) stay meaningful. Admin-only + audited.
 export const saveLegalDocAction = withAdminAudit<
@@ -142,8 +142,8 @@ export const saveLegalDocAction = withAdminAudit<
   },
 );
 
-// ─── Vilo business details (issuer on every Vilo invoice) ──────────
-const viloBusinessSchema = z.object({
+// ─── Wielo business details (issuer on every Wielo invoice) ──────────
+const wieloBusinessSchema = z.object({
   legal_name: z.string().trim().max(160),
   vat_number: z.string().trim().max(40),
   company_reg_number: z.string().trim().max(60),
@@ -157,11 +157,11 @@ const viloBusinessSchema = z.object({
   reason: z.string().optional(),
 });
 
-// Save Vilo's own business identity (platform_settings.vilo_business). Frozen
-// into each Vilo invoice at issue time by the mint_vilo_invoice trigger. Admin
+// Save Wielo's own business identity (platform_settings.vilo_business). Frozen
+// into each Wielo invoice at issue time by the mint_vilo_invoice trigger. Admin
 // only + audited; the country defaults to ZA when left blank.
-export const saveViloBusinessAction = withAdminAudit<
-  z.infer<typeof viloBusinessSchema>,
+export const saveWieloBusinessAction = withAdminAudit<
+  z.infer<typeof wieloBusinessSchema>,
   { ok: true }
 >(
   {
@@ -171,7 +171,7 @@ export const saveViloBusinessAction = withAdminAudit<
     getTargetId: () => VILO_BUSINESS_SETTING_ID,
   },
   async (args, service) => {
-    const parsed = viloBusinessSchema.safeParse(args);
+    const parsed = wieloBusinessSchema.safeParse(args);
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
     }

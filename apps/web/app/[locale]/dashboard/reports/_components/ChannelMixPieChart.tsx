@@ -22,7 +22,7 @@ interface ChannelMixPieChartProps {
 
 // Channel colors matching brand palette
 const CHANNEL_COLORS: Record<string, string> = {
-  direct: "#10B981", // Vilo-app direct (brand green)
+  direct: "#10B981", // Wielo-app direct (brand green)
   vilo: "#10B981",
   website: "#0EA5E9", // host's own website (sky)
   "web-referred": "#7C3AED",
@@ -193,8 +193,8 @@ function formatChannelName(channel: string): string {
   const formatted = channel.toLowerCase();
 
   const nameMap: Record<string, string> = {
-    direct: "Vilo",
-    vilo: "Vilo",
+    direct: "Wielo",
+    vilo: "Wielo",
     website: "Website",
     "web-referred": "Web referral",
     airbnb: "Airbnb",

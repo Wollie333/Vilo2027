@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Book direct",
 };
 
-// A host's permanent, shareable DIRECT-BOOKING link: vilo.../book/{handle}.
+// A host's permanent, shareable DIRECT-BOOKING link: wielo.../book/{handle}.
 // It drops the guest straight into checkout, skipping the listing detail page.
 //  • one published listing  → redirect to /property/{slug}/book
 //  • several                → a tiny "pick where to stay" page, each going to /book

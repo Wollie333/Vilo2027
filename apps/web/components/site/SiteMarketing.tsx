@@ -14,7 +14,7 @@ import type { SiteAnalyticsSettings } from "@/lib/site/types";
 // false) nothing is injected and no choice is persisted — so previews never
 // pollute the host's real analytics.
 
-const CONSENT_KEY = "vilo-cookie-consent"; // "accepted" | "declined"
+const CONSENT_KEY = "wielo-cookie-consent"; // "accepted" | "declined"
 
 type FbqFn = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void;

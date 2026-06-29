@@ -114,7 +114,7 @@ node --env-file=.env.local scripts/seed-analytics.mjs
 ```
 
 This creates:
-- 1 demo host account (`host@vilodemo.com` / `ViloDemo123!`)
+- 1 demo host account (`host@wielodemo.com` / `WieloDemo123!`)
 - 2 demo listings
 - 100 listing view events (past 90 days)
 - 50+ bookings with realistic distributions

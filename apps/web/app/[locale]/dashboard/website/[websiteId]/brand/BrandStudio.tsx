@@ -40,7 +40,7 @@ import {
 type Device = "desktop" | "mobile";
 type PageTab = { key: string; label: string; path: string };
 
-const ROOT_DOMAIN = "vilo.site";
+const ROOT_DOMAIN = "wielo.site";
 
 export function BrandStudio({
   websiteId,
@@ -76,7 +76,7 @@ export function BrandStudio({
   const post = useCallback(() => {
     iframeRef.current?.contentWindow?.postMessage(
       {
-        source: "vilo-brand-studio",
+        source: "wielo-brand-studio",
         theme: studioThemeConfig(state),
         brand: studioBrand(state, fallbackName),
         page,
@@ -101,7 +101,7 @@ export function BrandStudio({
         pages?: PageTab[];
         page?: string;
       };
-      if (d?.source === "vilo-brand-preview") {
+      if (d?.source === "wielo-brand-preview") {
         if (d.type === "ready") {
           if (d.pages?.length) setTabs(d.pages);
           post();

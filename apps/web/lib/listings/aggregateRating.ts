@@ -1,5 +1,5 @@
 /**
- * Aggregate rating calculation across Vilo internal reviews and external
+ * Aggregate rating calculation across Wielo internal reviews and external
  * review sources (Google, Facebook, Trustpilot).
  */
 
@@ -22,7 +22,7 @@ export type AggregatedRating = {
 };
 
 const SOURCE_LABELS: Record<ReviewSource, string> = {
-  vilo: "Vilo",
+  vilo: "Wielo",
   google: "Google",
   facebook: "Facebook",
   trustpilot: "Trustpilot",
@@ -69,7 +69,7 @@ export function aggregateRating(
 
 /**
  * Formats the aggregated rating for display as a tooltip.
- * e.g. "4.72 from 42 reviews (32 Vilo, 8 Google, 2 Facebook)"
+ * e.g. "4.72 from 42 reviews (32 Wielo, 8 Google, 2 Facebook)"
  */
 export function formatAggregatedRatingTooltip(
   rating: AggregatedRating,

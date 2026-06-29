@@ -118,7 +118,7 @@ export function FormSection({
       };
       if (result.ok) {
         const s = form.settings;
-        // Booking form → hand off to the themed on-site checkout (the shared Vilo
+        // Booking form → hand off to the themed on-site checkout (the shared Wielo
         // booking flow). The server returns the checkout query; we resolve the
         // site-relative `/book` base on the client so it works on both the tenant
         // domain (root) and the app-domain `…/site` testing affordance.

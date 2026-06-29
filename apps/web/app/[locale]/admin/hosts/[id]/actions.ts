@@ -145,7 +145,7 @@ export async function setHostActive(input: {
 
 // ── Host staff (assign existing users as staff to a host) ──────
 // `staff_members` is host-scoped (host_id + user_id). Admin can directly assign
-// an existing Vilo user as staff to a host (host-side, this normally goes via an
+// an existing Wielo user as staff to a host (host-side, this normally goes via an
 // invite the user accepts; admin assignment is authoritative). Audited.
 const addStaffSchema = z.object({
   hostId: z.string().uuid(),
@@ -171,7 +171,7 @@ export const addHostStaffAction = withAdminAudit<
       .maybeSingle();
     if (!u)
       throw new Error(
-        "No Vilo user with that email — they need an account first.",
+        "No Wielo user with that email — they need an account first.",
       );
     if (u.deleted_at) throw new Error("That user account is deleted.");
     const { error } = await service
@@ -303,7 +303,7 @@ export const inviteHostStaffAction = withAdminAudit<
     const origin =
       process.env.NEXT_PUBLIC_APP_URL ||
       h.get("origin") ||
-      `https://${h.get("host") ?? "vilo.site"}`;
+      `https://${h.get("host") ?? "wielo.site"}`;
     const brand = await getBrandName();
     const link = `${origin}/staff/accept/${invite.token}`;
     await sendTransactionalEmail({

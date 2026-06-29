@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Last Updated:** May 2026
-**Companion Docs:** `vilo-platform-mvp.md`, `ARCHITECTURE.md`, `ENV_VARS.md`
+**Companion Docs:** `wielo-platform-mvp.md`, `ARCHITECTURE.md`, `ENV_VARS.md`
 
 ---
 
@@ -97,8 +97,8 @@ brew install dopplerhq/cli/doppler       # macOS
 
 ```bash
 # Clone
-git clone git@github.com:your-org/vilo.git
-cd vilo
+git clone git@github.com:your-org/wielo.git
+cd wielo
 
 # Install all dependencies (monorepo root)
 pnpm install
@@ -196,7 +196,7 @@ Run this after every schema migration. Commit the updated types file.
 ## 3. Monorepo Structure
 
 ```
-vilo/
+wielo/
 ├── apps/
 │   ├── web/              # Next.js 14 web app
 │   └── mobile/           # Expo React Native app

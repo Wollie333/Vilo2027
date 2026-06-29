@@ -10,13 +10,13 @@ import {
 import type { InvoiceBusiness } from "@/lib/pdf/InvoiceDocument";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Vilo's own business identity — the issuer on every Vilo invoice. Stored as a
+// Wielo's own business identity — the issuer on every Wielo invoice. Stored as a
 // single jsonb `vilo_business` row in platform_settings (admin-managed), mirrors
 // how a host's `businesses` row drives their booking invoices. The invoice
 // snapshot is frozen at issue time by the mint_vilo_invoice trigger; this helper
 // is for the admin form (current values) + rendering historic snapshots.
 
-export type ViloBusinessProfile = {
+export type WieloBusinessProfile = {
   legal_name: string;
   vat_number: string;
   company_reg_number: string;
@@ -29,7 +29,7 @@ export type ViloBusinessProfile = {
   logo_path: string;
 };
 
-const EMPTY: ViloBusinessProfile = {
+const EMPTY: WieloBusinessProfile = {
   legal_name: "",
   vat_number: "",
   company_reg_number: "",
@@ -42,12 +42,12 @@ const EMPTY: ViloBusinessProfile = {
   logo_path: "",
 };
 
-// Read the saved Vilo business details (admin form values). Missing keys fall
+// Read the saved Wielo business details (admin form values). Missing keys fall
 // back to empty strings; the legal name falls back to the registered company
 // name so invoices always show an issuer.
-export const getViloBusinessProfile = cache(
-  async (): Promise<ViloBusinessProfile> => {
-    let raw: Partial<ViloBusinessProfile> = {};
+export const getWieloBusinessProfile = cache(
+  async (): Promise<WieloBusinessProfile> => {
+    let raw: Partial<WieloBusinessProfile> = {};
     try {
       const admin = createAdminClient();
       const { data } = await admin
@@ -56,7 +56,7 @@ export const getViloBusinessProfile = cache(
         .eq("key", "vilo_business")
         .maybeSingle();
       if (data?.value && typeof data.value === "object") {
-        raw = data.value as Partial<ViloBusinessProfile>;
+        raw = data.value as Partial<WieloBusinessProfile>;
       }
     } catch {
       /* fall back to empty + brand defaults below */
@@ -71,7 +71,7 @@ export const getViloBusinessProfile = cache(
 
 // Turn a frozen vilo_snapshot (or the live profile) into the issuer party shown
 // on the FinancialDocument: a name + address/identity lines.
-export function viloIssuerLines(snap: Partial<ViloBusinessProfile>): {
+export function wieloIssuerLines(snap: Partial<WieloBusinessProfile>): {
   name: string;
   lines: string[];
 } {
@@ -94,8 +94,8 @@ export function viloIssuerLines(snap: Partial<ViloBusinessProfile>): {
 }
 
 // Map a frozen vilo_snapshot to the PDF InvoiceBusiness shape (issuer block).
-export function viloSnapshotToBusiness(
-  snap: Partial<ViloBusinessProfile>,
+export function wieloSnapshotToBusiness(
+  snap: Partial<WieloBusinessProfile>,
 ): InvoiceBusiness {
   const address = [
     snap.address_line1,

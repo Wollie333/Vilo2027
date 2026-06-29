@@ -45,7 +45,7 @@ type Props = {
 const DARK_GRADIENT =
   "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)";
 
-// Illustrative inputs for the commission-math slide. The Vilo cost is pulled
+// Illustrative inputs for the commission-math slide. The Wielo cost is pulled
 // from the real cheapest paid plan; the example booking volume + marketplace
 // rate are clearly labelled assumptions on the slide itself.
 const EXAMPLE_VOLUME = 40000;
@@ -355,9 +355,9 @@ function CommissionSlide({
   plans: CatalogProduct[];
   t: T;
 }) {
-  const viloCost = cheapestPaid(plans);
+  const wieloCost = cheapestPaid(plans);
   const otaCost = EXAMPLE_VOLUME * OTA_RATE;
-  const monthlySaving = Math.max(0, otaCost - viloCost);
+  const monthlySaving = Math.max(0, otaCost - wieloCost);
   const yearlySaving = monthlySaving * 12;
   const ratePct = `${Math.round(OTA_RATE * 100)}%`;
   return (
@@ -385,10 +385,10 @@ function CommissionSlide({
         </div>
         <div className="rounded-card border border-brand-primary/40 bg-brand-primary/10 p-6 ring-1 ring-brand-primary/30">
           <div className="text-sm text-brand-accent/70">
-            {t("mViloName", { brand })}
+            {t("mWieloName", { brand })}
           </div>
           <div className="mt-2 font-display text-4xl font-bold text-brand-primary">
-            {rand(viloCost)}
+            {rand(wieloCost)}
           </div>
           <div className="mt-1 text-xs text-brand-accent/50">
             {t("mPerMonth")}
@@ -536,7 +536,7 @@ function DiscoverSlide({ brand, t }: { brand: string; t: T }) {
         >
           <div className="mt-6 inline-flex items-center gap-2 rounded-[10px] border border-white/15 bg-black/20 px-3 py-2 text-[13px] backdrop-blur">
             <Globe className="h-4 w-4 text-brand-primary" />
-            <span className="font-mono text-brand-accent/70">vilo.co.za/</span>
+            <span className="font-mono text-brand-accent/70">wielo.co.za/</span>
             <span className="font-mono font-semibold text-white">
               your-page
             </span>

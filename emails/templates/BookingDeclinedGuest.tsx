@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   guestFirstName?: string;
@@ -49,7 +49,7 @@ export default function BookingDeclinedGuest({
 
       <Text>Other places might fit your dates — explore the directory:</Text>
 
-      <Button href={`${APP_URL}/explore`}>Browse Vilo</Button>
+      <Button href={`${APP_URL}/explore`}>Browse Wielo</Button>
     </Layout>
   );
 }

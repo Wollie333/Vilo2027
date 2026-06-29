@@ -16,7 +16,7 @@ const BRAND_PRIMARY = "#1B4D3E";
 const BRAND_LIGHT = "#FAFDF9";
 const BRAND_DARK = "#0D2B21";
 const MUTED = "#6B7280";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   /** Renders in the email client preview pane. Keep under 90 chars. */
@@ -33,10 +33,10 @@ export default function Layout({ preview, children }: Props) {
         <Container style={styles.container}>
           <Section style={styles.header}>
             <Img
-              src={`${APP_URL}/email/vilo-logo.png`}
+              src={`${APP_URL}/email/wielo-logo.png`}
               width="96"
               height="32"
-              alt="Vilo"
+              alt="Wielo"
               style={styles.logo}
             />
           </Section>
@@ -47,11 +47,11 @@ export default function Layout({ preview, children }: Props) {
 
           <Section style={styles.footer}>
             <Text style={styles.footerText}>
-              Vilo — direct-booking management for accommodation hosts.
+              Wielo — direct-booking management for accommodation hosts.
             </Text>
             <Text style={styles.footerText}>
               <Link href={APP_URL} style={styles.footerLink}>
-                viloplatform.com
+                wieloplatform.com
               </Link>
               {" · "}
               <Link
@@ -62,7 +62,7 @@ export default function Layout({ preview, children }: Props) {
               </Link>
             </Text>
             <Text style={styles.legal}>
-              You received this email because you have a Vilo account.
+              You received this email because you have a Wielo account.
             </Text>
           </Section>
         </Container>

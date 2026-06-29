@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Status:** Final Draft  
 **Last Updated:** May 2026  
-**Purpose:** Define every user's end-to-end journey through the Vilo platform — from first discovery through every feature — so the development team has a precise, shared understanding of how each user type interacts with the system.
+**Purpose:** Define every user's end-to-end journey through the Wielo platform — from first discovery through every feature — so the development team has a precise, shared understanding of how each user type interacts with the system.
 
 ---
 
@@ -26,19 +26,19 @@ Each journey follows this structure:
 
 | ID | Name | Role | Tier | Description |
 |---|---|---|---|---|
-| U1 | **Amara** | Guest | Free (no subscription) | First-time traveller discovering Vilo via Google |
+| U1 | **Amara** | Guest | Free (no subscription) | First-time traveller discovering Wielo via Google |
 | U2 | **David** | Host | Free Tier | B&B owner who just signed up, no paid plan yet |
 | U3 | **Lerato** | Host | Pro Plan | Established guesthouse owner with 3 listings |
 | U4 | **Sipho** | Staff | N/A (works for Lerato) | Lerato's front desk manager |
 | U5 | **Nina** | Host | Business Plan | Lodge operator with multiple properties and experiences |
-| U6 | **James** | Super Admin | N/A | Vilo internal team member |
+| U6 | **James** | Super Admin | N/A | Wielo internal team member |
 
 ---
 
 ## Table of Contents
 
 ### Guest Journeys (Amara — U1)
-- JG-01: Discovering Vilo & Browsing the Directory
+- JG-01: Discovering Wielo & Browsing the Directory
 - JG-02: Viewing a Listing Detail Page
 - JG-03: Creating a Guest Account
 - JG-04: Making a Booking (Instant Book — Paystack)
@@ -112,11 +112,11 @@ Each journey follows this structure:
 
 ---
 
-## JG-01 — Discovering Vilo & Browsing the Directory
+## JG-01 — Discovering Wielo & Browsing the Directory
 
 **User:** Amara (Guest, not yet registered)  
-**Feature:** Vilo Directory — Public Search & Discovery  
-**Entry Point:** Google search → lands on `viloplatform.com/explore`  
+**Feature:** Wielo Directory — Public Search & Discovery  
+**Entry Point:** Google search → lands on `wieloplatform.com/explore`  
 **Preconditions:** None. No account required.
 
 ### Journey
@@ -209,7 +209,7 @@ Each journey follows this structure:
 
 **Step 6 — Viewing Host Profile Snippet**
 - A host card shows: avatar, name, member since, response rate, "View full profile" link.
-- Clicking navigates to `viloplatform.com/[handle]`.
+- Clicking navigates to `wieloplatform.com/[handle]`.
 
 **Step 7 — Initiating a Booking**
 - Amara clicks "Book Now".
@@ -247,7 +247,7 @@ Each journey follows this structure:
 
 **Step 3 — Email Verification**
 - Amara clicks the link in her email.
-- She is redirected to `viloplatform.com/auth/callback?token=...`.
+- She is redirected to `wieloplatform.com/auth/callback?token=...`.
 - The token is exchanged for a session via Supabase Auth.
 - Her account is now `email_confirmed = true`.
 - She is redirected back to the listing she was on, with her dates still in session storage.
@@ -345,7 +345,7 @@ Each journey follows this structure:
   - Booking reference number
   - Property name, dates, total paid
   - "View Booking" and "Message Host" CTAs
-- Amara receives a confirmation email from `noreply@viloplatform.com`.
+- Amara receives a confirmation email from `noreply@wieloplatform.com`.
 
 **Exit State:** Booking `status = CONFIRMED`, payment `status = completed`, dates blocked, conversation thread created, both parties notified.  
 **Edge Cases:**
@@ -459,7 +459,7 @@ Each journey follows this structure:
 
 **Step 4 — Uploading Proof of Payment**
 - Amara makes the bank transfer in her banking app.
-- She returns to Vilo and opens her booking (`/bookings/[id]`).
+- She returns to Wielo and opens her booking (`/bookings/[id]`).
 - She sees a "Upload Proof of Payment" section.
 - She uploads a PDF or image of her bank confirmation slip.
 - `POST /functions/v1/eft-proof-upload` stores the file in Supabase Storage at `eft-proofs/[booking_id]/[filename]`.
@@ -582,7 +582,7 @@ Each journey follows this structure:
 **Step 1 — Review Request Email**
 - 24 hours after `check_out` date, `pg_cron` identifies completed bookings without a review.
 - Email sent to Amara: "How was your stay at Featherstone Guesthouse? Share your experience."
-- Email contains a direct link: `viloplatform.com/review/[booking_id]/[token]`.
+- Email contains a direct link: `wieloplatform.com/review/[booking_id]/[token]`.
 
 **Step 2 — Review Form**
 - Amara clicks the link and lands on the review form.
@@ -663,7 +663,7 @@ Each journey follows this structure:
 
 **User:** David (Host, Free Tier)  
 **Feature:** Host Sign-Up, Onboarding Wizard, Free Account Creation  
-**Entry Point:** `viloplatform.com/signup/host`  
+**Entry Point:** `wieloplatform.com/signup/host`  
 **Preconditions:** None.
 
 ### Journey
@@ -707,7 +707,7 @@ Each journey follows this structure:
 - `hosts` row created with handle auto-generated from property name: `davids-bb`.
 
 **Step 7 — Welcome Screen**
-- "Welcome to Vilo, David! Your profile is live at viloplatform.com/davids-bb"
+- "Welcome to Wielo, David! Your profile is live at wieloplatform.com/davids-bb"
 - CTAs: "Complete your listing", "Preview your profile", "Explore the dashboard".
 - Dashboard loads with a setup checklist (progress bar):
   - ✅ Account created
@@ -756,8 +756,8 @@ Each journey follows this structure:
 **Step 4 — Publish Listing**
 - David clicks "Publish Listing".
 - `listings.is_published` → `true`.
-- The listing now appears in the Vilo Directory.
-- David's profile at `viloplatform.com/davids-bb` now shows the listing.
+- The listing now appears in the Wielo Directory.
+- David's profile at `wieloplatform.com/davids-bb` now shows the listing.
 - Listing ranking score is calculated and inserted into `listing_rankings`.
 
 **Exit State:** Listing published, appears in directory. Enquiry-only mode (no direct payments).
@@ -789,8 +789,8 @@ Each journey follows this structure:
 - David sees a prompt: "Want to convert this enquiry to a confirmed booking? Upgrade to Basic."
 
 **Step 4 — Off-Platform Booking (Limitation)**
-- On Free tier, David cannot process payments through Vilo.
-- He can share his bank details manually in the chat, but this is outside Vilo's payment system.
+- On Free tier, David cannot process payments through Wielo.
+- He can share his bank details manually in the chat, but this is outside Wielo's payment system.
 - This limitation is intentional — it is the core incentive to upgrade.
 
 ---
@@ -853,7 +853,7 @@ Each journey follows this structure:
 
 **User:** Lerato (Host, Pro Plan)  
 **Feature:** Host Sign-Up with immediate Pro subscription  
-**Entry Point:** `viloplatform.com/signup/host`  
+**Entry Point:** `wieloplatform.com/signup/host`  
 
 ### Journey
 
@@ -1346,7 +1346,7 @@ Steps follow JH-06 but with experience-specific fields:
 - She enters Sipho's email address and clicks "Send Invite".
 - `POST /functions/v1/invite-staff` fires:
   - A staff invite record is created (with a unique token, expiry 7 days).
-  - Email sent to Sipho: "Lerato has invited you to manage Featherstone Guesthouse on Vilo."
+  - Email sent to Sipho: "Lerato has invited you to manage Featherstone Guesthouse on Wielo."
 
 **Step 2 — Staff Accepts (see JS-01)**
 
@@ -1407,7 +1407,7 @@ Steps follow JH-06 but with experience-specific fields:
 **Step 2 — Custom Handle**
 - Lerato changes her handle from `lerato-guesthouse` to `featherstone-guesthouse`.
 - System checks availability: `hosts.handle` must be unique.
-- Handle updated. Her URL is now `viloplatform.com/featherstone-guesthouse`.
+- Handle updated. Her URL is now `wieloplatform.com/featherstone-guesthouse`.
 - Old URL redirects to new URL (301 redirect handled by Next.js middleware).
 
 **Step 3 — Preview Profile**
@@ -1501,7 +1501,7 @@ Steps follow JH-06 but with experience-specific fields:
 **Step 2 — Generate & Download**
 - She clicks "Export CSV".
 - Edge Function generates the CSV from bookings data (only Nina's listings, enforced by RLS).
-- File downloads automatically: `vilo-bookings-2026.csv`.
+- File downloads automatically: `wielo-bookings-2026.csv`.
 - CSV columns: Booking Ref, Guest Name, Listing, Check-in, Check-out, Guests, Amount, Currency, Payment Method, Status, Created At.
 
 **Exit State:** CSV file on Nina's device.  
@@ -1523,12 +1523,12 @@ Steps follow JH-06 but with experience-specific fields:
 ### Journey
 
 **Step 1 — Email Received**
-- Sipho receives: "Lerato has invited you to join Featherstone Guesthouse on Vilo as a team member."
-- Email contains a "Accept Invitation" button linking to: `viloplatform.com/invite/[token]`.
+- Sipho receives: "Lerato has invited you to join Featherstone Guesthouse on Wielo as a team member."
+- Email contains a "Accept Invitation" button linking to: `wieloplatform.com/invite/[token]`.
 
 **Step 2 — Landing on Invite Page**
 - Sipho clicks the link.
-- If he has an existing Vilo account (as a guest): he's prompted to log in, then the invite is linked to his existing account.
+- If he has an existing Wielo account (as a guest): he's prompted to log in, then the invite is linked to his existing account.
 - If he's new: a simplified sign-up form (name, password only — email is pre-filled from the invite).
 
 **Step 3 — Account Created / Linked**
@@ -1754,7 +1754,7 @@ Already covered in JH-04.
 
 **User:** James (Super Admin)  
 **Feature:** Admin Authentication  
-**Entry Point:** `admin.viloplatform.com`  
+**Entry Point:** `admin.wieloplatform.com`  
 
 ### Journey
 
@@ -1789,7 +1789,7 @@ Already covered in JH-04.
 - Reason field (required): "Multiple guest complaints — under investigation."
 - Confirm: `hosts.is_active` → `false`.
 - All Lerato's listings unpublished from directory immediately.
-- Lerato's login still works but she sees a banner: "Your account has been suspended. Contact support@viloplatform.com."
+- Lerato's login still works but she sees a banner: "Your account has been suspended. Contact support@wieloplatform.com."
 - Any pending bookings are flagged for admin review (guests notified separately).
 - `admin_audit_log` entry created: `{ action: 'suspend_account', target_id: lerato_host_id, payload: { reason: '...' } }`.
 
@@ -1970,7 +1970,7 @@ Already covered in JH-04.
 **Step 1 — Initiate Impersonation**
 - James is on a support call with David who cannot see his listings.
 - James opens David's account and clicks "Impersonate User".
-- Warning modal: "You are about to view Vilo as David. All actions you take will be as David. This session is being recorded."
+- Warning modal: "You are about to view Wielo as David. All actions you take will be as David. This session is being recorded."
 - James clicks "Confirm".
 
 **Step 2 — Impersonation Session**
@@ -2060,7 +2060,7 @@ Already covered in JH-04.
 
 ## Planned Journey Additions (v1.1 — Refund Manager & Policy Manager)
 
-The following journeys correspond to features added in `vilo-platform-mvp.md` v1.2 and are scheduled for the next customer journey document revision. Until then, refer to the MVP spec sections 6.9 and 6.10 for full flow detail.
+The following journeys correspond to features added in `wielo-platform-mvp.md` v1.2 and are scheduled for the next customer journey document revision. Until then, refer to the MVP spec sections 6.9 and 6.10 for full flow detail.
 
 | Journey ID | User | Feature | Entry Point |
 |---|---|---|---|
@@ -2126,4 +2126,4 @@ The following table summarises all system events, what triggers them, and what f
 
 ---
 
-*This document is a living specification. All journeys should be reviewed and updated when features change. Reference alongside `vilo-platform-mvp.md` (v1.2), `supabase_database.md` (v1.1), and `DevStack.md` (v1.0).*
+*This document is a living specification. All journeys should be reviewed and updated when features change. Reference alongside `wielo-platform-mvp.md` (v1.2), `supabase_database.md` (v1.1), and `DevStack.md` (v1.0).*

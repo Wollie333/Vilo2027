@@ -124,7 +124,7 @@ export async function SetupSidePanel({
             </div>
             <p className="mt-0.5 text-[12px] leading-relaxed text-brand-mute">
               <span className="font-mono text-brand-ink">
-                viloplatform.com/{handle}
+                wieloplatform.com/{handle}
               </span>{" "}
               is yours. Change it from Settings before you publish.
             </p>

@@ -7,9 +7,9 @@
  *
  * Direct-host payments: every call accepts an optional `secretKey`. When the
  * host has connected their OWN Paystack account we pass their decrypted secret
- * so funds settle directly to them (Vilo takes 0%). When omitted we fall back
+ * so funds settle directly to them (Wielo takes 0%). When omitted we fall back
  * to the platform `PAYSTACK_SECRET_KEY` env var — that path is reserved for
- * Vilo's own subscription billing.
+ * Wielo's own subscription billing.
  */
 
 const PAYSTACK_BASE = "https://api.paystack.co";

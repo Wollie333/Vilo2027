@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import {
-  viloSnapshotToBusiness,
-  type ViloBusinessProfile,
+  wieloSnapshotToBusiness,
+  type WieloBusinessProfile,
 } from "@/lib/billing/vilo-invoice";
 import { getBrandName } from "@/lib/brand";
 import { renderInvoicePdf } from "@/lib/pdf/render";
@@ -35,7 +35,7 @@ export async function GET(
     return new NextResponse("Not found", { status: 404 });
   }
 
-  const snap = (invoice.vilo_snapshot ?? {}) as Partial<ViloBusinessProfile>;
+  const snap = (invoice.vilo_snapshot ?? {}) as Partial<WieloBusinessProfile>;
   const buyer = (invoice.buyer_snapshot ?? {}) as BuyerSnap;
   const lines = (
     Array.isArray(invoice.line_items) ? invoice.line_items : []
@@ -51,7 +51,7 @@ export async function GET(
       email: snap.email ?? null,
       phone: null,
       banking: null,
-      business: viloSnapshotToBusiness(snap),
+      business: wieloSnapshotToBusiness(snap),
     },
     guest: {
       name: buyer.name ?? null,

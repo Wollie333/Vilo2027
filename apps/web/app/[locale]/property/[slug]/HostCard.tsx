@@ -86,7 +86,7 @@ export async function HostCard({
               {displayName}
             </div>
             <div className="font-mono text-xs text-brand-mute">
-              viloplatform.com/{handle}
+              wieloplatform.com/{handle}
             </div>
           </div>
           <div className="mt-5 grid grid-cols-3 divide-x divide-brand-line border-y border-brand-line py-3 text-center">

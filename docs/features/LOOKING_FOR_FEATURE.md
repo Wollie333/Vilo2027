@@ -1,4 +1,4 @@
-# Vilo — "Looking For" Feature Specification
+# Wielo — "Looking For" Feature Specification
 
 **Version:** 5.0  
 **Status:** Draft  
@@ -37,9 +37,9 @@
 
 ## 1. Feature Overview
 
-**"Looking For"** is a demand-side marketplace layer on top of the existing Vilo directory. It allows guests to publicly post accommodation or experience requests (e.g., "Looking for a lodge for 4 adults near Kruger, first week of August, budget R3 000/night"), and allows hosts to browse those posts and respond with a formal quote using Vilo's existing internal quote/messaging system.
+**"Looking For"** is a demand-side marketplace layer on top of the existing Wielo directory. It allows guests to publicly post accommodation or experience requests (e.g., "Looking for a lodge for 4 adults near Kruger, first week of August, budget R3 000/night"), and allows hosts to browse those posts and respond with a formal quote using Wielo's existing internal quote/messaging system.
 
-### How It Fits Into Vilo
+### How It Fits Into Wielo
 
 ```
 PUBLIC DIRECTORY
@@ -89,7 +89,7 @@ Guest receives quote in their inbox
 | G2 | As a guest, I want to specify my travel dates, group size, location preference, category, and budget when posting my request. |
 | G3 | As a guest, I want to see how many quotes I have left to post this month based on my plan. |
 | G4 | As a guest, I want to manage (edit, deactivate, delete) my "Looking For" posts from my profile. |
-| G5 | As a guest, I want to receive quotes from hosts in my Vilo inbox in response to my post. |
+| G5 | As a guest, I want to receive quotes from hosts in my Wielo inbox in response to my post. |
 | G6 | As a guest, I want my post to expire automatically after my travel dates have passed. |
 
 ### Host Stories
@@ -405,7 +405,7 @@ When a host clicks **"Send Quote"** on a request:
 3. **On send:**
    - Quote is created via existing quote system
    - A `looking_for_quotes` record is created linking `post_id` ↔ `host_id` ↔ `quote_id`
-   - Guest receives the quote in their Vilo inbox
+   - Guest receives the quote in their Wielo inbox
    - Usage is logged to `looking_for_usage`
    - `quote_count` on the post is incremented
    - Host's card for that post updates to show "Quoted ✓"
@@ -431,7 +431,7 @@ A subtle quota widget shown at the top of the "Looking For" dashboard section:
 /looking-for
 ```
 
-This is a **public-facing page** accessible to anyone (logged in or not), living inside the existing Vilo public directory.
+This is a **public-facing page** accessible to anyone (logged in or not), living inside the existing Wielo public directory.
 
 ### 7.2 Page Layout
 
@@ -482,7 +482,7 @@ When a **logged-in host** views the "Looking For" section (either in their dashb
 
 ### 8.2 Implementation
 
-1. **Host property coordinates** are stored on their listing record (`lat`, `lng` — already in Vilo's schema).
+1. **Host property coordinates** are stored on their listing record (`lat`, `lng` — already in Wielo's schema).
 2. **Guest request location** stores `location_lat` and `location_lng` (optional precise coords) and always stores `location_region` (province/region string) as a fallback.
 3. Sorting uses **PostGIS** (already available in Supabase/PostgreSQL) with a `ST_Distance` calculation:
 
@@ -719,7 +719,7 @@ All via Supabase PostgREST or RPC functions:
 
 ## 15. Code Reuse & Existing Infrastructure
 
-This section is **critical for the Claude Code implementation**. The "Looking For" feature must reuse existing Vilo components and services wherever possible. No new parallel systems should be built when an existing one already covers the need.
+This section is **critical for the Claude Code implementation**. The "Looking For" feature must reuse existing Wielo components and services wherever possible. No new parallel systems should be built when an existing one already covers the need.
 
 ### 15.1 Existing Systems to Reuse — Do Not Rebuild
 
@@ -737,7 +737,7 @@ This section is **critical for the Claude Code implementation**. The "Looking Fo
 
 ### 15.2 Guest Record Auto-Creation Principle
 
-This is an **existing business rule in Vilo** that must be honoured inside this feature:
+This is an **existing business rule in Wielo** that must be honoured inside this feature:
 
 > **When a host quotes any guest — from any entry point — a guest record must be created or updated in that host's guest CRM if one does not already exist.**
 
@@ -749,7 +749,7 @@ Host clicks "Send Quote" on a Looking For post
   ├── Does guest already exist in this host's guest_records?
   │     ├── YES → Attach existing guest record to the quote (existing logic)
   │     └── NO  → Auto-create guest record using:
-  │                 - Guest display name (from their Vilo profile)
+  │                 - Guest display name (from their Wielo profile)
   │                 - Guest email (from auth record, visible post-quote-send)
   │                 - Source tagged as: "Looking For — [Post Title]"
   │                 - Created_via: 'looking_for'
@@ -819,7 +819,7 @@ This means the negotiation cycle is: **Quote sent → Guest replies in inbox →
 
 - **"New post in region"** notifications are **batched** — hosts receive at most one push per hour even if multiple posts appear in their region. In-app badge updates in real-time.
 - **First quote received** triggers email; subsequent quotes on the same post do NOT send email (only in-app + push) to prevent inbox flooding.
-- All email templates extend the **existing Vilo email template system** (Resend + existing branded layout). New templates are additions, not replacements.
+- All email templates extend the **existing Wielo email template system** (Resend + existing branded layout). New templates are additions, not replacements.
 - All push notifications use the **existing Expo Push notification service** — no new push infrastructure.
 
 ---
@@ -828,7 +828,7 @@ This means the negotiation cycle is: **Quote sent → Guest replies in inbox →
 
 > **Note:** Features G1–G10, H1–H8, and P1 (§17.1–§17.3) were confirmed in a prior revision. Section §17.4 below adds 8 additional confirmed enhancements based on real-world usage review.
 
-All 21 enhancements below are **confirmed for inclusion** in the "Looking For" feature. They are ordered Guest Side → Host Side → Shared/Platform. Each reuses existing Vilo infrastructure and requires no new external dependencies.
+All 21 enhancements below are **confirmed for inclusion** in the "Looking For" feature. They are ordered Guest Side → Host Side → Shared/Platform. Each reuses existing Wielo infrastructure and requires no new external dependencies.
 
 ---
 
@@ -869,13 +869,13 @@ When a guest has received 2 or more quotes on a single post, a **"Compare Quotes
 - UI: Modal or slide-over panel. Reuses existing quote display components.
 
 #### G7 — Request Fulfilled Source Attribution
-When a guest marks their post as **"Fulfilled,"** a single follow-up prompt appears: *"Great! Did you book through Vilo?"* — Yes / No / Not yet. If Yes: link to their booking record. If No: quick dropdown — OTA / Direct with host / Other.
-*Benefit: Closes the analytics loop for admin (LF → Vilo booking conversion rate). Shows guests the value of booking direct.*
+When a guest marks their post as **"Fulfilled,"** a single follow-up prompt appears: *"Great! Did you book through Wielo?"* — Yes / No / Not yet. If Yes: link to their booking record. If No: quick dropdown — OTA / Direct with host / Other.
+*Benefit: Closes the analytics loop for admin (LF → Wielo booking conversion rate). Shows guests the value of booking direct.*
 - DB: Add `fulfilled_via TEXT` (`'vilo_booking'` | `'ota'` | `'direct'` | `'other'` | `null`) and `fulfilled_booking_id UUID` (nullable FK to `bookings`) to `looking_for_posts`.
 
 #### G8 — Share Post Link
 Each "Looking For" post has a public URL: `/looking-for/[id]`. A **"Share"** button on the post card (in My Requests and on the public directory) triggers the native share sheet on mobile or copies the link on desktop. The link includes Open Graph meta tags so it renders a rich preview card on WhatsApp and social media.
-*Benefit: Guest can amplify their request beyond Vilo's existing host base by sharing on their own channels.*
+*Benefit: Guest can amplify their request beyond Wielo's existing host base by sharing on their own channels.*
 - Implementation: Route already exists. Share button is a single component. OG tags are meta tag additions to the page `<head>`.
 
 #### G9 — Minimum Host Rating Filter
@@ -1000,12 +1000,12 @@ The following 8 features address gaps identified through real-world usage analys
 
 **The problem:** A host browsing requests has no way to know if a guest is a serious traveller or a tyre-kicker. A request with no profile photo and no booking history gets ignored.
 
-**What it does:** Guests who have at least one completed booking on Vilo receive a **"Verified Guest" badge** displayed on their post card and post detail page. The badge is calculated automatically from the guest's booking history — no manual process.
+**What it does:** Guests who have at least one completed booking on Wielo receive a **"Verified Guest" badge** displayed on their post card and post detail page. The badge is calculated automatically from the guest's booking history — no manual process.
 
 **Benefit:** Hosts prioritise verified requests, knowing the guest has a track record of completing bookings. Unverified guests are still visible but hosts can filter them out.
 
 - DB: Add `is_verified_guest BOOLEAN` as a computed/cached field on `profiles`, updated by a trigger when a booking reaches `COMPLETED` status. Or calculate inline in the RPC from `bookings` count.
-- Display: A small tick-shield icon on the post card alongside the guest's name. Tooltip: *"This guest has completed X bookings on Vilo."*
+- Display: A small tick-shield icon on the post card alongside the guest's name. Tooltip: *"This guest has completed X bookings on Wielo."*
 - Filter: Add "Verified guests only" as an optional toggle in the host browse filter bar.
 
 ---
@@ -1469,7 +1469,7 @@ LOOKING FOR — QUOTA CONFIGURATION
   │ Business │ [30]      │ [200]       │ [∞]        │
   └──────────┴───────────┴─────────────┴────────────┘
 
-  [Save Changes]    Last updated: Jun 28, 2026 by admin@vilo.com
+  [Save Changes]    Last updated: Jun 28, 2026 by admin@wielo.com
 ```
 
 - Blank cell = unlimited.
@@ -1501,7 +1501,7 @@ Route: `/admin/looking-for/analytics`
 | Quota hits (users who hit their limit) | Chart — signals upgrade candidates |
 | Posts by region | Bar chart |
 | Posts by category | Pie chart |
-| LF posts → Vilo booking conversion rate | % (from `fulfilled_via_vilo` flag) |
+| LF posts → Wielo booking conversion rate | % (from `fulfilled_via_vilo` flag) |
 | Daily activity (posts + quotes) | Line chart, last 30 days |
 
 All charts use the **existing admin analytics chart components** — no new charting library.

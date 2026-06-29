@@ -51,9 +51,9 @@ export default async function ReviewSubmissionPage({
           email, get in touch at{" "}
           <a
             className="text-brand-primary underline-offset-2 hover:underline"
-            href="mailto:hello@viloplatform.com"
+            href="mailto:hello@wieloplatform.com"
           >
-            hello@viloplatform.com
+            hello@wieloplatform.com
           </a>
           .
         </p>
@@ -86,9 +86,9 @@ export default async function ReviewSubmissionPage({
           contact{" "}
           <a
             className="text-brand-primary underline-offset-2 hover:underline"
-            href="mailto:hello@viloplatform.com"
+            href="mailto:hello@wieloplatform.com"
           >
-            hello@viloplatform.com
+            hello@wieloplatform.com
           </a>
           .
         </p>

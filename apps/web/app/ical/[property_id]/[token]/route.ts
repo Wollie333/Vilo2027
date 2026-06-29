@@ -78,7 +78,7 @@ export async function GET(
     startDate: s.startDate,
     endDate: s.endDate,
     summary: s.summary,
-    uid: `vilo-blocked-${listingId}-${s.uidSuffix}`,
+    uid: `wielo-blocked-${listingId}-${s.uidSuffix}`,
   }));
 
   const body = buildIcalFeed({

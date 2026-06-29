@@ -4,9 +4,9 @@ import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 
 /**
- * Listing breadcrumb: Vilo › Country › Province › City › Listing.
+ * Listing breadcrumb: Wielo › Country › Province › City › Listing.
  * Region segments are plain labels (no destination pages yet); only the
- * Vilo root links home. Matches the design's breadcrumb row.
+ * Wielo root links home. Matches the design's breadcrumb row.
  */
 export async function Breadcrumb({
   country,

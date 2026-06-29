@@ -3,7 +3,7 @@
 **Version:** 1.1  
 **Status:** Final Draft  
 **Last Updated:** May 2026  
-**Companion Documents:** `vilo-platform-mvp.md` (v1.2), `customer_journey.md` (v1.0)
+**Companion Documents:** `wielo-platform-mvp.md` (v1.2), `customer_journey.md` (v1.0)
 **Changelog v1.1:** Added Domain 10 — Refund Manager, Domain 11 — Policy Manager. Updated schema overview, index strategy, RLS, functions, triggers, cron jobs, storage, and migration list.  
 **Database:** PostgreSQL 15 via Supabase  
 **Extensions Required:** `uuid-ossp`, `pgcrypto`, `pg_trgm`, `postgis`, `pg_cron`
@@ -242,7 +242,7 @@ CREATE INDEX idx_hosts_deleted     ON hosts(deleted_at) WHERE deleted_at IS NOT 
 
 ALTER TABLE hosts ENABLE ROW LEVEL SECURITY;
 
-COMMENT ON COLUMN hosts.handle IS 'URL slug. Regex: ^[a-z0-9-]+$. Used in viloplatform.com/[handle]';
+COMMENT ON COLUMN hosts.handle IS 'URL slug. Regex: ^[a-z0-9-]+$. Used in wieloplatform.com/[handle]';
 COMMENT ON COLUMN hosts.banking_details IS
   'Encrypted jsonb: { bank_name, account_holder, account_number, branch_code, reference_format }';
 COMMENT ON COLUMN hosts.is_verified IS 'Manually awarded by super admin after identity verification.';
@@ -2329,7 +2329,7 @@ ON CONFLICT (key) DO NOTHING;
 -- PLAN FEATURES — FREE
 -- ============================================================
 INSERT INTO plan_features (plan, feature_key, is_enabled, limit_value, description) VALUES
-('free','directory_listing',   true,  null,'Appear in Vilo Directory'),
+('free','directory_listing',   true,  null,'Appear in Wielo Directory'),
 ('free','directory_priority',  false, null,'Boosted directory placement'),
 ('free','direct_booking',      false, null,'Full booking flow'),
 ('free','enquiry_only',        true,  null,'Enquiry flow only'),
@@ -2354,7 +2354,7 @@ ON CONFLICT (plan, feature_key) DO NOTHING;
 -- PLAN FEATURES — BASIC
 -- ============================================================
 INSERT INTO plan_features (plan, feature_key, is_enabled, limit_value, description) VALUES
-('basic','directory_listing',   true,  null,'Appear in Vilo Directory'),
+('basic','directory_listing',   true,  null,'Appear in Wielo Directory'),
 ('basic','directory_priority',  false, null,'Boosted directory placement'),
 ('basic','direct_booking',      true,  null,'Full booking flow'),
 ('basic','enquiry_only',        true,  null,'Enquiry flow'),
@@ -2379,7 +2379,7 @@ ON CONFLICT (plan, feature_key) DO NOTHING;
 -- PLAN FEATURES — PRO
 -- ============================================================
 INSERT INTO plan_features (plan, feature_key, is_enabled, limit_value, description) VALUES
-('pro','directory_listing',   true,  null,'Appear in Vilo Directory'),
+('pro','directory_listing',   true,  null,'Appear in Wielo Directory'),
 ('pro','directory_priority',  true,  null,'Priority directory placement'),
 ('pro','direct_booking',      true,  null,'Full booking flow'),
 ('pro','enquiry_only',        true,  null,'Enquiry flow'),
@@ -2404,7 +2404,7 @@ ON CONFLICT (plan, feature_key) DO NOTHING;
 -- PLAN FEATURES — BUSINESS
 -- ============================================================
 INSERT INTO plan_features (plan, feature_key, is_enabled, limit_value, description) VALUES
-('business','directory_listing',   true,  null,'Appear in Vilo Directory'),
+('business','directory_listing',   true,  null,'Appear in Wielo Directory'),
 ('business','directory_priority',  true,  null,'Top directory placement'),
 ('business','direct_booking',      true,  null,'Full booking flow'),
 ('business','enquiry_only',        true,  null,'Enquiry flow'),
@@ -3766,4 +3766,4 @@ Required Vault secrets per env: `push_worker_url`, `digest_worker_url`, `broadca
 
 ---
 
-*This document is the single source of truth for the Vilo database architecture. All schema changes must be reflected here before implementation. Reference alongside `vilo-platform-mvp.md` (v1.2) and `customer_journey.md` (v1.0).*
+*This document is the single source of truth for the Wielo database architecture. All schema changes must be reflected here before implementation. Reference alongside `wielo-platform-mvp.md` (v1.2) and `customer_journey.md` (v1.0).*

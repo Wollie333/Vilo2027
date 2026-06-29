@@ -1,6 +1,6 @@
-/* AUTO-GENERATED from a Vilo mockup stylesheet — scoped under .vilo-builder.
+/* AUTO-GENERATED from a Wielo mockup stylesheet — scoped under .wielo-builder.
    Source: builder.css. Do not edit by hand; regenerate via scripts/scope-css.mjs. */
-.vilo-builder {
+.wielo-builder {
   --primary: #10b981;
   --secondary: #064e3b;
   --accent: #d1fae5;
@@ -13,41 +13,41 @@
   --amber: #f59e0b;
   --indigo: #6366f1;
 }
-.vilo-builder * {
+.wielo-builder * {
   box-sizing: border-box;
 }
-.vilo-builder {
+.wielo-builder {
   font-family: "Inter", system-ui, sans-serif;
   color: var(--ink);
   background: #e8eeea;
   -webkit-font-smoothing: antialiased;
 }
-.vilo-builder .font-display {
+.wielo-builder .font-display {
   font-family: "Plus Jakarta Sans", sans-serif;
 }
-.vilo-builder .mono {
+.wielo-builder .mono {
   font-family: "JetBrains Mono", monospace;
 }
-.vilo-builder .num {
+.wielo-builder .num {
   font-feature-settings: "tnum" 1;
 }
-.vilo-builder button {
+.wielo-builder button {
   font-family: inherit;
 }
-.vilo-builder .thin::-webkit-scrollbar {
+.wielo-builder .thin::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-.vilo-builder .thin::-webkit-scrollbar-thumb {
+.wielo-builder .thin::-webkit-scrollbar-thumb {
   background: #cbddd2;
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-.vilo-builder .thin::-webkit-scrollbar-track {
+.wielo-builder .thin::-webkit-scrollbar-track {
   background: transparent;
 }
-.vilo-builder .etop {
+.wielo-builder .etop {
   height: 56px;
   display: flex;
   align-items: center;
@@ -58,7 +58,7 @@
   flex-shrink: 0;
   z-index: 30;
 }
-.vilo-builder .eback {
+.wielo-builder .eback {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -74,16 +74,16 @@
   text-decoration: none;
   transition: background 0.12s;
 }
-.vilo-builder .eback:hover {
+.wielo-builder .eback:hover {
   background: var(--soft);
 }
-.vilo-builder .epage {
+.wielo-builder .epage {
   display: flex;
   align-items: center;
   gap: 9px;
   min-width: 0;
 }
-.vilo-builder .epage .pico {
+.wielo-builder .epage .pico {
   height: 30px;
   width: 30px;
   border-radius: 8px;
@@ -94,19 +94,19 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.vilo-builder .epage .ptit {
+.wielo-builder .epage .ptit {
   font-family: "Plus Jakarta Sans";
   font-weight: 700;
   font-size: 14.5px;
   color: var(--ink);
   line-height: 1.05;
 }
-.vilo-builder .epage .psub {
+.wielo-builder .epage .psub {
   font-size: 11.5px;
   color: var(--mute);
   font-family: "JetBrains Mono";
 }
-.vilo-builder .iconbtn {
+.wielo-builder .iconbtn {
   height: 36px;
   width: 36px;
   border-radius: 9px;
@@ -121,19 +121,19 @@
     background 0.12s,
     color 0.12s;
 }
-.vilo-builder .iconbtn:hover {
+.wielo-builder .iconbtn:hover {
   background: var(--soft);
   color: var(--ink);
 }
-.vilo-builder .iconbtn:disabled {
+.wielo-builder .iconbtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-.vilo-builder .iconbtn.on {
+.wielo-builder .iconbtn.on {
   background: #d1fae5;
   color: #064e3b;
 }
-.vilo-builder .seg {
+.wielo-builder .seg {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -142,7 +142,7 @@
   background: #f1f6f3;
   border: 1px solid var(--line);
 }
-.vilo-builder .seg button {
+.wielo-builder .seg button {
   height: 30px;
   width: 34px;
   border-radius: 8px;
@@ -157,17 +157,17 @@
     background 0.12s,
     color 0.12s;
 }
-.vilo-builder .seg button.on {
+.wielo-builder .seg button.on {
   background: #fff;
   color: #064e3b;
   box-shadow: 0 1px 2px rgba(6, 78, 59, 0.12);
 }
-.vilo-builder .seg button:disabled {
+.wielo-builder .seg button:disabled {
   opacity: 0.35;
   cursor: default;
   pointer-events: none;
 }
-.vilo-builder .btn {
+.wielo-builder .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -185,54 +185,54 @@
   white-space: nowrap;
   text-decoration: none;
 }
-.vilo-builder .btn-primary {
+.wielo-builder .btn-primary {
   background: #10b981;
   color: #fff;
   box-shadow: 0 8px 18px -8px rgba(16, 185, 129, 0.6);
 }
-.vilo-builder .btn-primary:hover {
+.wielo-builder .btn-primary:hover {
   background: #064e3b;
 }
-.vilo-builder .btn-ghost {
+.wielo-builder .btn-ghost {
   background: #fff;
   border-color: var(--line);
   color: var(--ink);
 }
-.vilo-builder .btn-ghost:hover {
+.wielo-builder .btn-ghost:hover {
   background: var(--soft);
 }
-.vilo-builder .btn-dark {
+.wielo-builder .btn-dark {
   background: #0a1510;
   color: #fff;
 }
-.vilo-builder .btn-dark:hover {
+.wielo-builder .btn-dark:hover {
   background: #052e1f;
 }
-.vilo-builder .btn-sm {
+.wielo-builder .btn-sm {
   height: 32px;
   padding: 0 11px;
   font-size: 12.5px;
   border-radius: 9px;
 }
-.vilo-builder .savedot {
+.wielo-builder .savedot {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
   color: var(--mute);
 }
-.vilo-builder .savedot i {
+.wielo-builder .savedot i {
   width: 7px;
   height: 7px;
   border-radius: 9999px;
   background: #10b981;
 }
-.vilo-builder .ebody {
+.wielo-builder .ebody {
   flex: 1;
   display: flex;
   min-height: 0;
 }
-.vilo-builder .epanel {
+.wielo-builder .epanel {
   width: 284px;
   flex-shrink: 0;
   background: #fff;
@@ -240,13 +240,13 @@
   flex-direction: column;
   min-height: 0;
 }
-.vilo-builder .epanel.l {
+.wielo-builder .epanel.l {
   border-right: 1px solid var(--line);
 }
-.vilo-builder .epanel.r {
+.wielo-builder .epanel.r {
   border-left: 1px solid var(--line);
 }
-.vilo-builder .epanel-h {
+.wielo-builder .epanel-h {
   height: 46px;
   display: flex;
   align-items: center;
@@ -255,14 +255,14 @@
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
-.vilo-builder .epanel-h h3 {
+.wielo-builder .epanel-h h3 {
   font-family: "Plus Jakarta Sans";
   font-weight: 700;
   font-size: 13px;
   color: var(--ink);
   margin: 0;
 }
-.vilo-builder .epanel-b {
+.wielo-builder .epanel-b {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
@@ -270,14 +270,14 @@
 /* The right inspector panel is narrow (~284px). Force every field grid to a
    single column so controls stack vertically instead of running side-by-side
    off the edge (covers grid-cols-2 / grid-cols-3 / sm:grid-cols-2 etc.). */
-.vilo-builder .epanel.r [class*="grid-cols-"] {
+.wielo-builder .epanel.r [class*="grid-cols-"] {
   grid-template-columns: 1fr !important;
 }
-.vilo-builder .pal-search-wrap {
+.wielo-builder .pal-search-wrap {
   position: relative;
   padding: 12px 14px 4px;
 }
-.vilo-builder .pal-search-ic {
+.wielo-builder .pal-search-ic {
   position: absolute;
   left: 24px;
   top: 50%;
@@ -285,7 +285,7 @@
   color: var(--mute);
   pointer-events: none;
 }
-.vilo-builder .pal-search {
+.wielo-builder .pal-search {
   width: 100%;
   height: 34px;
   padding: 0 28px 0 30px;
@@ -296,11 +296,11 @@
   color: var(--ink);
   outline: none;
 }
-.vilo-builder .pal-search:focus {
+.wielo-builder .pal-search:focus {
   border-color: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
-.vilo-builder .pal-search-x {
+.wielo-builder .pal-search-x {
   position: absolute;
   right: 22px;
   top: 50%;
@@ -311,10 +311,10 @@
   color: var(--mute);
   cursor: pointer;
 }
-.vilo-builder .pal-search-x:hover {
+.wielo-builder .pal-search-x:hover {
   color: var(--ink);
 }
-.vilo-builder .pal-cat {
+.wielo-builder .pal-cat {
   padding: 14px 16px 6px;
   font-size: 10.5px;
   font-weight: 800;
@@ -322,13 +322,13 @@
   text-transform: uppercase;
   color: var(--mute);
 }
-.vilo-builder .pal-grid {
+.wielo-builder .pal-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   padding: 0 14px 12px;
 }
-.vilo-builder .pal-item {
+.wielo-builder .pal-item {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -344,15 +344,15 @@
     transform 0.1s;
   user-select: none;
 }
-.vilo-builder .pal-item:hover {
+.wielo-builder .pal-item:hover {
   border-color: #bfe6d2;
   box-shadow: 0 8px 20px -14px rgba(6, 78, 59, 0.4);
   transform: translateY(-1px);
 }
-.vilo-builder .pal-item:active {
+.wielo-builder .pal-item:active {
   cursor: grabbing;
 }
-.vilo-builder .pal-item .pi-ic {
+.wielo-builder .pal-item .pi-ic {
   height: 30px;
   width: 30px;
   border-radius: 8px;
@@ -362,31 +362,31 @@
   align-items: center;
   justify-content: center;
 }
-.vilo-builder .pal-item .pi-nm {
+.wielo-builder .pal-item .pi-nm {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink);
   line-height: 1.15;
 }
-.vilo-builder .pal-list .pal-item {
+.wielo-builder .pal-list .pal-item {
   flex-direction: row;
   align-items: center;
   gap: 11px;
   width: 100%;
 }
-.vilo-builder .pal-list {
+.wielo-builder .pal-list {
   display: flex;
   flex-direction: column;
   gap: 7px;
   padding: 0 14px 12px;
 }
-.vilo-builder .ol {
+.wielo-builder .ol {
   display: flex;
   flex-direction: column;
   gap: 3px;
   padding: 10px;
 }
-.vilo-builder .ol-item {
+.wielo-builder .ol-item {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -396,20 +396,20 @@
   border: 1px solid transparent;
   transition: background 0.12s;
 }
-.vilo-builder .ol-item:hover {
+.wielo-builder .ol-item:hover {
   background: #fafcfb;
 }
-.vilo-builder .ol-item.sel {
+.wielo-builder .ol-item.sel {
   background: #d1fae5;
   border-color: #a7e3c6;
 }
-.vilo-builder .ol-item .ol-grip {
+.wielo-builder .ol-item .ol-grip {
   color: #9db4a8;
   cursor: grab;
   display: flex;
   flex-shrink: 0;
 }
-.vilo-builder .ol-item .ol-ic {
+.wielo-builder .ol-item .ol-ic {
   height: 26px;
   width: 26px;
   border-radius: 7px;
@@ -420,10 +420,10 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.vilo-builder .ol-item.sel .ol-ic {
+.wielo-builder .ol-item.sel .ol-ic {
   background: #fff;
 }
-.vilo-builder .ol-item .ol-nm {
+.wielo-builder .ol-item .ol-nm {
   flex: 1;
   font-size: 12.5px;
   font-weight: 600;
@@ -432,30 +432,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.vilo-builder .ol-item .ol-eye {
+.wielo-builder .ol-item .ol-eye {
   color: #9db4a8;
   display: flex;
   opacity: 0;
   transition: opacity 0.12s;
 }
-.vilo-builder .ol-item:hover .ol-eye {
+.wielo-builder .ol-item:hover .ol-eye {
   opacity: 1;
 }
-.vilo-builder .ol-item.hidden {
+.wielo-builder .ol-item.hidden {
   opacity: 0.5;
 }
-.vilo-builder .ol-drop {
+.wielo-builder .ol-drop {
   height: 3px;
   border-radius: 3px;
   background: #10b981;
   margin: 0 9px;
 }
-.vilo-builder .insp-empty {
+.wielo-builder .insp-empty {
   padding: 40px 22px;
   text-align: center;
   color: var(--mute);
 }
-.vilo-builder .insp-empty .ie-ic {
+.wielo-builder .insp-empty .ie-ic {
   height: 48px;
   width: 48px;
   border-radius: 13px;
@@ -466,11 +466,11 @@
   justify-content: center;
   margin: 0 auto 12px;
 }
-.vilo-builder .insp-sec {
+.wielo-builder .insp-sec {
   border-bottom: 1px solid var(--line);
   padding: 14px 16px;
 }
-.vilo-builder .insp-sec .isec-t {
+.wielo-builder .insp-sec .isec-t {
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.07em;
@@ -478,30 +478,30 @@
   color: var(--mute);
   margin-bottom: 11px;
 }
-.vilo-builder .fld {
+.wielo-builder .fld {
   margin-bottom: 12px;
 }
-.vilo-builder .fld:last-child {
+.wielo-builder .fld:last-child {
   margin-bottom: 0;
 }
-.vilo-builder .fld > label {
+.wielo-builder .fld > label {
   display: block;
   font-size: 11.5px;
   font-weight: 600;
   color: #3a5a4e;
   margin-bottom: 5px;
 }
-.vilo-builder .fld .fld-hint {
+.wielo-builder .fld .fld-hint {
   display: block;
   margin-top: 5px;
   font-size: 11px;
   line-height: 1.45;
   color: var(--mute);
 }
-.vilo-builder .fld input[type="text"],
-.vilo-builder .fld input[type="email"],
-.vilo-builder .fld textarea,
-.vilo-builder .fld select {
+.wielo-builder .fld input[type="text"],
+.wielo-builder .fld input[type="email"],
+.wielo-builder .fld textarea,
+.wielo-builder .fld select {
   width: 100%;
   padding: 9px 11px;
   border: 1px solid var(--line);
@@ -514,25 +514,25 @@
     border-color 0.12s,
     box-shadow 0.12s;
 }
-.vilo-builder .fld input:focus,
-.vilo-builder .fld textarea:focus,
-.vilo-builder .fld select:focus {
+.wielo-builder .fld input:focus,
+.wielo-builder .fld textarea:focus,
+.wielo-builder .fld select:focus {
   outline: none;
   border-color: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
-.vilo-builder .fld textarea {
+.wielo-builder .fld textarea {
   resize: vertical;
   min-height: 64px;
   line-height: 1.5;
 }
-.vilo-builder .fld-row {
+.wielo-builder .fld-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
-.vilo-builder .sw {
+.wielo-builder .sw {
   position: relative;
   width: 38px;
   height: 22px;
@@ -544,7 +544,7 @@
   border: 0;
   padding: 0;
 }
-.vilo-builder .sw::after {
+.wielo-builder .sw::after {
   content: "";
   position: absolute;
   top: 2px;
@@ -556,18 +556,18 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s;
 }
-.vilo-builder .sw.on {
+.wielo-builder .sw.on {
   background: #10b981;
 }
-.vilo-builder .sw.on::after {
+.wielo-builder .sw.on::after {
   transform: translateX(16px);
 }
-.vilo-builder .choice {
+.wielo-builder .choice {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
-.vilo-builder .choice button {
+.wielo-builder .choice button {
   flex: 1;
   min-width: 56px;
   padding: 8px;
@@ -580,12 +580,12 @@
   cursor: pointer;
   transition: all 0.12s;
 }
-.vilo-builder .choice button.on {
+.wielo-builder .choice button.on {
   border-color: #10b981;
   background: #f0fdf4;
   color: #064e3b;
 }
-.vilo-builder .imgpick {
+.wielo-builder .imgpick {
   height: 84px;
   border-radius: 10px;
   border: 1px solid var(--line);
@@ -594,12 +594,12 @@
   cursor: pointer;
   background: #f2fbf6;
 }
-.vilo-builder .imgpick img {
+.wielo-builder .imgpick img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.vilo-builder .imgpick .ip-ov {
+.wielo-builder .imgpick .ip-ov {
   position: absolute;
   inset: 0;
   display: flex;
@@ -613,14 +613,14 @@
   opacity: 0;
   transition: opacity 0.12s;
 }
-.vilo-builder .imgpick:hover .ip-ov {
+.wielo-builder .imgpick:hover .ip-ov {
   opacity: 1;
 }
-.vilo-builder .swatches {
+.wielo-builder .swatches {
   display: flex;
   gap: 7px;
 }
-.vilo-builder .swatches button {
+.wielo-builder .swatches button {
   width: 26px;
   height: 26px;
   border-radius: 8px;
@@ -628,10 +628,10 @@
   box-shadow: 0 0 0 1px var(--line);
   cursor: pointer;
 }
-.vilo-builder .swatches button.on {
+.wielo-builder .swatches button.on {
   box-shadow: 0 0 0 2px #10b981;
 }
-.vilo-builder .canvas-wrap {
+.wielo-builder .canvas-wrap {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
@@ -640,7 +640,7 @@
   justify-content: center;
   padding: 26px 20px 120px;
 }
-.vilo-builder .device {
+.wielo-builder .device {
   width: 100%;
   max-width: 1080px;
   background: #fff;
@@ -654,21 +654,21 @@
   container-type: inline-size;
 }
 /* Click-to-select hover affordance for the inline header/footer chrome. */
-.vilo-builder .vilo-chrome-edit:hover {
+.wielo-builder .wielo-chrome-edit:hover {
   outline-color: rgba(16, 185, 129, 0.5) !important;
 }
-.vilo-builder .vilo-chrome-edit:hover .vilo-chrome-label {
+.wielo-builder .wielo-chrome-edit:hover .wielo-chrome-label {
   opacity: 1 !important;
 }
 /* Selected "Site parts" palette item (header/footer). */
-.vilo-builder .pal-item.sel {
+.wielo-builder .pal-item.sel {
   border-color: #10b981;
   box-shadow: 0 0 0 1px #10b981;
 }
-.vilo-builder .device.tablet {
+.wielo-builder .device.tablet {
   max-width: 744px;
 }
-.vilo-builder .device.mobile {
+.wielo-builder .device.mobile {
   max-width: 380px;
 }
 /* Nav/menu builder canvas (`.nav-canvas`): the device is a flex item whose
@@ -679,15 +679,15 @@
    the real simulated width — so the @container collapse + per-device styles
    actually preview the real screen size. Applies to BOTH chromes: Safari
    collapses via @container in safari.css; the generic chrome collapses via the
-   `vilo-cq-*` @container rules below. */
-.vilo-builder .canvas-wrap.thin .nav-canvas.device {
+   `wielo-cq-*` @container rules below. */
+.wielo-builder .canvas-wrap.thin .nav-canvas.device {
   min-width: 0;
 }
-.vilo-builder .canvas-wrap.thin .nav-canvas.device.tablet {
+.wielo-builder .canvas-wrap.thin .nav-canvas.device.tablet {
   width: 744px;
   max-width: 100%;
 }
-.vilo-builder .canvas-wrap.thin .nav-canvas.device.mobile {
+.wielo-builder .canvas-wrap.thin .nav-canvas.device.mobile {
   width: 380px;
   max-width: 100%;
 }
@@ -695,67 +695,67 @@
 /* Generic (non-Safari) nav canvas: the chrome's desktop/mobile band split + menu
    collapse + Book-button visibility are Tailwind viewport utilities (@media), so
    in the canvas they read the REAL (large) viewport and always show the desktop
-   menu. The chrome carries paired `vilo-cq-*` markers; here we re-toggle them via
+   menu. The chrome carries paired `wielo-cq-*` markers; here we re-toggle them via
    @container against the SIMULATED device width (the `.nav-canvas.device` frame is
    a size container), so the canvas collapses to the ☰ at the right screen size —
-   exactly as @media does on the live site. Scoped to `.vilo-builder .nav-canvas`
+   exactly as @media does on the live site. Scoped to `.wielo-builder .nav-canvas`
    so it's inert on the live site (the Tailwind @media utilities still drive it
    there) and on the page builder. `!important` beats the Tailwind utilities,
    which still fire at the real viewport inside the canvas.
    Defaults below = narrow (container < 768): mobile band, ☰, no desktop book. */
-.vilo-builder .nav-canvas .vilo-cq-d {
+.wielo-builder .nav-canvas .wielo-cq-d {
   display: none !important;
 }
-.vilo-builder .nav-canvas .vilo-cq-m {
+.wielo-builder .nav-canvas .wielo-cq-m {
   display: block !important;
 }
-.vilo-builder .nav-canvas .vilo-cq-full-md,
-.vilo-builder .nav-canvas .vilo-cq-full-lg,
-.vilo-builder .nav-canvas .vilo-cq-book-md,
-.vilo-builder .nav-canvas .vilo-cq-book-lg {
+.wielo-builder .nav-canvas .wielo-cq-full-md,
+.wielo-builder .nav-canvas .wielo-cq-full-lg,
+.wielo-builder .nav-canvas .wielo-cq-book-md,
+.wielo-builder .nav-canvas .wielo-cq-book-lg {
   display: none !important;
 }
-.vilo-builder .nav-canvas .vilo-cq-burg-md,
-.vilo-builder .nav-canvas .vilo-cq-burg-lg {
+.wielo-builder .nav-canvas .wielo-cq-burg-md,
+.wielo-builder .nav-canvas .wielo-cq-burg-lg {
   display: block !important;
 }
 @container (min-width: 768px) {
-  .vilo-builder .nav-canvas .vilo-cq-d {
+  .wielo-builder .nav-canvas .wielo-cq-d {
     display: block !important;
   }
-  .vilo-builder .nav-canvas .vilo-cq-m {
+  .wielo-builder .nav-canvas .wielo-cq-m {
     display: none !important;
   }
-  .vilo-builder .nav-canvas .vilo-cq-full-md {
+  .wielo-builder .nav-canvas .wielo-cq-full-md {
     display: flex !important;
   }
-  .vilo-builder .nav-canvas .vilo-cq-book-md {
+  .wielo-builder .nav-canvas .wielo-cq-book-md {
     display: inline-flex !important;
   }
-  .vilo-builder .nav-canvas .vilo-cq-burg-md {
+  .wielo-builder .nav-canvas .wielo-cq-burg-md {
     display: none !important;
   }
 }
 @container (min-width: 1024px) {
-  .vilo-builder .nav-canvas .vilo-cq-full-lg {
+  .wielo-builder .nav-canvas .wielo-cq-full-lg {
     display: flex !important;
   }
-  .vilo-builder .nav-canvas .vilo-cq-book-lg {
+  .wielo-builder .nav-canvas .wielo-cq-book-lg {
     display: inline-flex !important;
   }
-  .vilo-builder .nav-canvas .vilo-cq-burg-lg {
+  .wielo-builder .nav-canvas .wielo-cq-burg-lg {
     display: none !important;
   }
 }
-.vilo-builder .pg {
+.wielo-builder .pg {
   font-size: 15px;
   line-height: 1.6;
 }
-.vilo-builder .bk {
+.wielo-builder .bk {
   position: relative;
   outline: 0;
 }
-.vilo-builder .bk::after {
+.wielo-builder .bk::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -765,16 +765,16 @@
   z-index: 4;
   border-radius: 2px;
 }
-.vilo-builder .bk:hover::after {
+.wielo-builder .bk:hover::after {
   border-color: rgba(16, 185, 129, 0.4);
 }
-.vilo-builder .bk.sel::after {
+.wielo-builder .bk.sel::after {
   border-color: #10b981;
 }
-.vilo-builder .bk.dragging {
+.wielo-builder .bk.dragging {
   opacity: 0.45;
 }
-.vilo-builder .bk-label {
+.wielo-builder .bk-label {
   position: absolute;
   top: 0;
   left: 0;
@@ -791,11 +791,11 @@
   z-index: 6;
   white-space: nowrap;
 }
-.vilo-builder .bk.sel > .bk-label,
-.vilo-builder .bk:hover > .bk-label {
+.wielo-builder .bk.sel > .bk-label,
+.wielo-builder .bk:hover > .bk-label {
   display: flex;
 }
-.vilo-builder .bk-label .bl-grip {
+.wielo-builder .bk-label .bl-grip {
   cursor: grab;
   display: flex;
   opacity: 0.85;
@@ -803,21 +803,21 @@
 /* On a bespoke-theme canvas, tint the block selection chrome with the THEME's
    accent (Safari = ochre) instead of the generic builder emerald, so the
    selection outline/label doesn't clash with the design. `--accent` resolves
-   from the scoped theme (.vilo-safari) the blocks live inside. */
-.vilo-builder .vilo-safari .bk:hover::after {
+   from the scoped theme (.wielo-safari) the blocks live inside. */
+.wielo-builder .wielo-safari .bk:hover::after {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
-.vilo-builder .vilo-safari .bk.sel::after {
+.wielo-builder .wielo-safari .bk.sel::after {
   border-color: var(--accent);
 }
-.vilo-builder .vilo-safari .bk-label {
+.wielo-builder .wielo-safari .bk-label {
   background: var(--accent);
 }
 /* In the builder canvas the Safari nav + announcement bar render IN FLOW (not
    fixed-to-viewport) so they sit at the top of the page and can be clicked to
    select. On the live site they stay fixed (this override is builder-scoped). */
-.vilo-builder .vilo-safari .nav,
-.vilo-builder .vilo-safari .safari-topbar {
+.wielo-builder .wielo-safari .nav,
+.wielo-builder .wielo-safari .safari-topbar {
   position: relative;
   top: auto;
   left: auto;
@@ -830,20 +830,20 @@
    Position HONOURS the host's "keep visible on scroll" toggle: sticky ON → the
    bar sticks (negative margin lets it overlap the hero like the live fixed bar);
    sticky OFF (`.nav-static`) → it scrolls away with the content. */
-.vilo-builder .nav-scroll-preview .vilo-safari {
+.wielo-builder .nav-scroll-preview .wielo-safari {
   position: relative;
   height: 600px;
   overflow-x: hidden;
   overflow-y: auto;
 }
-.vilo-builder .nav-scroll-preview .vilo-safari .nav {
+.wielo-builder .nav-scroll-preview .wielo-safari .nav {
   position: sticky;
   top: 0;
   margin-bottom: -90px;
   z-index: 60;
 }
 /* "Keep visible on scroll" OFF → the header scrolls away with the page. */
-.vilo-builder .nav-scroll-preview .vilo-safari .nav.nav-static {
+.wielo-builder .nav-scroll-preview .wielo-safari .nav.nav-static {
   position: relative;
   margin-bottom: 0;
 }
@@ -852,14 +852,14 @@
    scroll viewport instead so it overlays ONLY the device frame — sticky keeps it
    in view as the host scrolls + styles it. Builder-scoped; the live site keeps
    position:fixed. */
-.vilo-builder .nav-scroll-preview .vilo-safari .mnav {
+.wielo-builder .nav-scroll-preview .wielo-safari .mnav {
   position: sticky;
   top: 0;
   height: 600px;
   margin-bottom: -600px;
   z-index: 120;
 }
-.vilo-builder .bk-tools {
+.wielo-builder .bk-tools {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -873,11 +873,11 @@
   box-shadow: 0 8px 22px -10px rgba(6, 78, 59, 0.4);
   z-index: 6;
 }
-.vilo-builder .bk.sel > .bk-tools,
-.vilo-builder .bk:hover > .bk-tools {
+.wielo-builder .bk.sel > .bk-tools,
+.wielo-builder .bk:hover > .bk-tools {
   display: flex;
 }
-.vilo-builder .bk-tools button {
+.wielo-builder .bk-tools button {
   height: 28px;
   width: 28px;
   border-radius: 6px;
@@ -892,26 +892,26 @@
     background 0.12s,
     color 0.12s;
 }
-.vilo-builder .bk-tools button:hover {
+.wielo-builder .bk-tools button:hover {
   background: var(--soft);
   color: #064e3b;
 }
-.vilo-builder .bk-tools button.del:hover {
+.wielo-builder .bk-tools button.del:hover {
   background: #fef2f2;
   color: #ef4444;
 }
-.vilo-builder .bk-tools .sepr {
+.wielo-builder .bk-tools .sepr {
   width: 1px;
   height: 18px;
   background: var(--line);
   margin: 0 1px;
 }
-.vilo-builder .bk-insert {
+.wielo-builder .bk-insert {
   position: relative;
   height: 0;
   z-index: 7;
 }
-.vilo-builder .bk-insert .ins-line {
+.wielo-builder .bk-insert .ins-line {
   position: absolute;
   left: 0;
   right: 0;
@@ -922,7 +922,7 @@
   transition: transform 0.14s;
   transform-origin: center;
 }
-.vilo-builder .bk-insert .ins-btn {
+.wielo-builder .bk-insert .ins-btn {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -943,14 +943,14 @@
     transform 0.14s;
   box-shadow: 0 4px 12px -3px rgba(16, 185, 129, 0.7);
 }
-.vilo-builder .bk-insert:hover .ins-line {
+.wielo-builder .bk-insert:hover .ins-line {
   transform: scaleX(1);
 }
-.vilo-builder .bk-insert:hover .ins-btn {
+.wielo-builder .bk-insert:hover .ins-btn {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
-.vilo-builder .drop-line {
+.wielo-builder .drop-line {
   height: 3px;
   background: #10b981;
   border-radius: 3px;
@@ -959,10 +959,10 @@
 }
 
 /* ── "Section" container canvas (flex) — on-canvas element placement ── */
-.vilo-builder .cc-wrap {
+.wielo-builder .cc-wrap {
   padding: 24px;
 }
-.vilo-builder .cc-block {
+.wielo-builder .cc-block {
   position: relative;
   outline: 1px dashed transparent;
   outline-offset: 2px;
@@ -970,13 +970,13 @@
   cursor: pointer;
   transition: outline-color 0.1s;
 }
-.vilo-builder .cc-block:hover {
+.wielo-builder .cc-block:hover {
   outline-color: rgba(16, 185, 129, 0.5);
 }
-.vilo-builder .cc-block.sel {
+.wielo-builder .cc-block.sel {
   outline: 2px solid #10b981;
 }
-.vilo-builder .cc-block-label {
+.wielo-builder .cc-block-label {
   position: absolute;
   top: 0;
   left: 0;
@@ -991,11 +991,11 @@
   z-index: 6;
   white-space: nowrap;
 }
-.vilo-builder .cc-block:hover > .cc-block-label,
-.vilo-builder .cc-block.sel > .cc-block-label {
+.wielo-builder .cc-block:hover > .cc-block-label,
+.wielo-builder .cc-block.sel > .cc-block-label {
   display: block;
 }
-.vilo-builder .cc-block-tools {
+.wielo-builder .cc-block-tools {
   position: absolute;
   top: 4px;
   right: 4px;
@@ -1009,11 +1009,11 @@
   box-shadow: 0 8px 20px -10px rgba(6, 78, 59, 0.4);
   z-index: 6;
 }
-.vilo-builder .cc-block:hover > .cc-block-tools,
-.vilo-builder .cc-block.sel > .cc-block-tools {
+.wielo-builder .cc-block:hover > .cc-block-tools,
+.wielo-builder .cc-block.sel > .cc-block-tools {
   display: flex;
 }
-.vilo-builder .cc-block-tools button {
+.wielo-builder .cc-block-tools button {
   height: 24px;
   width: 24px;
   border-radius: 6px;
@@ -1025,19 +1025,19 @@
   border: 0;
   cursor: pointer;
 }
-.vilo-builder .cc-block-tools button:hover {
+.wielo-builder .cc-block-tools button:hover {
   background: var(--soft);
   color: #064e3b;
 }
-.vilo-builder .cc-block-tools button.del:hover {
+.wielo-builder .cc-block-tools button.del:hover {
   background: #fef2f2;
   color: #ef4444;
 }
-.vilo-builder .cc-block-tools button:disabled {
+.wielo-builder .cc-block-tools button:disabled {
   opacity: 0.3;
   cursor: default;
 }
-.vilo-builder .cc-ph {
+.wielo-builder .cc-ph {
   padding: 14px 16px;
   border: 1px dashed var(--line);
   border-radius: 8px;
@@ -1045,19 +1045,19 @@
   font-size: 12.5px;
   text-align: center;
 }
-.vilo-builder .cc-empty {
+.wielo-builder .cc-empty {
   margin: 16px;
   padding: 28px;
   border: 1.5px dashed var(--line);
   border-radius: 12px;
   text-align: center;
 }
-.vilo-builder .cc-empty-t {
+.wielo-builder .cc-empty-t {
   color: var(--mute);
   font-size: 13px;
   margin-bottom: 14px;
 }
-.vilo-builder .cc-add {
+.wielo-builder .cc-add {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1065,19 +1065,19 @@
   gap: 7px;
   margin-top: 14px;
 }
-.vilo-builder .cc-wrap > .cc-add {
+.wielo-builder .cc-wrap > .cc-add {
   padding-top: 16px;
   margin-top: 18px;
   border-top: 1px dashed var(--line);
 }
-.vilo-builder .cc-add-label {
+.wielo-builder .cc-add-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--mute);
 }
-.vilo-builder .cc-add-btn {
+.wielo-builder .cc-add-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1094,17 +1094,17 @@
     border-color 0.12s,
     background 0.12s;
 }
-.vilo-builder .cc-add-btn:hover {
+.wielo-builder .cc-add-btn:hover {
   border-color: #10b981;
   background: var(--soft);
   color: #064e3b;
 }
-.vilo-builder .canvas-empty {
+.wielo-builder .canvas-empty {
   padding: 80px 30px;
   text-align: center;
   color: var(--mute);
 }
-.vilo-builder .canvas-empty .ce-ic {
+.wielo-builder .canvas-empty .ce-ic {
   height: 56px;
   width: 56px;
   border-radius: 15px;
@@ -1115,28 +1115,28 @@
   justify-content: center;
   margin: 0 auto 14px;
 }
-.vilo-builder [data-edit] {
+.wielo-builder [data-edit] {
   outline: 0;
   cursor: text;
   border-radius: 3px;
   transition: box-shadow 0.1s;
 }
-.vilo-builder [data-edit]:hover {
+.wielo-builder [data-edit]:hover {
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.18);
 }
-.vilo-builder [data-edit]:focus {
+.wielo-builder [data-edit]:focus {
   box-shadow: 0 0 0 2px #10b981;
   background: rgba(255, 255, 255, 0.04);
 }
-.vilo-builder .pg .wrap {
+.wielo-builder .pg .wrap {
   max-width: 920px;
   margin: 0 auto;
   padding: 0 40px;
 }
-.vilo-builder .device.mobile .pg .wrap {
+.wielo-builder .device.mobile .pg .wrap {
   padding: 0 22px;
 }
-.vilo-builder .pg .eyebrow {
+.wielo-builder .pg .eyebrow {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -1145,7 +1145,7 @@
   display: inline-block;
   margin-bottom: 14px;
 }
-.vilo-builder .pg h1 {
+.wielo-builder .pg h1 {
   font-family: "Plus Jakarta Sans";
   font-weight: 800;
   font-size: 42px;
@@ -1154,7 +1154,7 @@
   margin: 0;
   color: #fff;
 }
-.vilo-builder .pg h2 {
+.wielo-builder .pg h2 {
   font-family: "Plus Jakarta Sans";
   font-weight: 800;
   font-size: 30px;
@@ -1163,31 +1163,31 @@
   margin: 0;
   color: var(--ink);
 }
-.vilo-builder .pg .sec {
+.wielo-builder .pg .sec {
   padding: 54px 0;
 }
-.vilo-builder .pg .sec.sm {
+.wielo-builder .pg .sec.sm {
   padding: 40px 0;
 }
-.vilo-builder .pg .soft {
+.wielo-builder .pg .soft {
   background: #f2fbf6;
 }
-.vilo-builder .pg .sec-head {
+.wielo-builder .pg .sec-head {
   max-width: 560px;
   margin-bottom: 30px;
 }
-.vilo-builder .pg .sec-head.center {
+.wielo-builder .pg .sec-head.center {
   margin-left: auto;
   margin-right: auto;
   text-align: center;
 }
-.vilo-builder .pg .lead {
+.wielo-builder .pg .lead {
   font-size: 16px;
   color: var(--mute);
   margin-top: 14px;
   line-height: 1.6;
 }
-.vilo-builder .pg .pbtn {
+.wielo-builder .pg .pbtn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1200,20 +1200,20 @@
   color: #fff;
   cursor: pointer;
 }
-.vilo-builder .pg .pbtn.light {
+.wielo-builder .pg .pbtn.light {
   background: #fff;
   color: #064e3b;
 }
-.vilo-builder .pg .pbtn.ghost {
+.wielo-builder .pg .pbtn.ghost {
   background: transparent;
   color: #fff;
   box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.5);
 }
-.vilo-builder .pg .pbtn.dark {
+.wielo-builder .pg .pbtn.dark {
   background: #06231a;
   color: #fff;
 }
-.vilo-builder .bk-hero .hero-inner {
+.wielo-builder .bk-hero .hero-inner {
   position: relative;
   min-height: 380px;
   display: flex;
@@ -1222,7 +1222,7 @@
   background-size: cover;
   background-position: center;
 }
-.vilo-builder .bk-hero .hero-inner::before {
+.wielo-builder .bk-hero .hero-inner::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1232,55 +1232,55 @@
     rgba(3, 20, 13, 0.74)
   );
 }
-.vilo-builder .bk-hero .hero-c {
+.wielo-builder .bk-hero .hero-c {
   position: relative;
   max-width: 560px;
 }
-.vilo-builder .bk-hero .eyebrow {
+.wielo-builder .bk-hero .eyebrow {
   color: #9eebc6;
 }
-.vilo-builder .bk-hero .hero-sub {
+.wielo-builder .bk-hero .hero-sub {
   color: rgba(255, 255, 255, 0.9);
   font-size: 16px;
   margin: 16px 0 24px;
   line-height: 1.55;
 }
-.vilo-builder .bk-hero .hero-cta {
+.wielo-builder .bk-hero .hero-cta {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
 }
-.vilo-builder .bk-hero.center .hero-inner {
+.wielo-builder .bk-hero.center .hero-inner {
   align-items: center;
   justify-content: center;
   text-align: center;
 }
-.vilo-builder .bk-hero.center .hero-cta {
+.wielo-builder .bk-hero.center .hero-cta {
   justify-content: center;
 }
-.vilo-builder .device.mobile .bk-hero .hero-inner {
+.wielo-builder .device.mobile .bk-hero .hero-inner {
   padding: 30px 22px;
   min-height: 440px;
 }
-.vilo-builder .device.mobile .pg h1 {
+.wielo-builder .device.mobile .pg h1 {
   font-size: 32px;
 }
-.vilo-builder .bk-feat .fg {
+.wielo-builder .bk-feat .fg {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
-.vilo-builder .device.tablet .bk-feat .fg,
-.vilo-builder .device.mobile .bk-feat .fg {
+.wielo-builder .device.tablet .bk-feat .fg,
+.wielo-builder .device.mobile .bk-feat .fg {
   grid-template-columns: 1fr;
 }
-.vilo-builder .bk-feat .fc {
+.wielo-builder .bk-feat .fc {
   padding: 22px;
   border: 1px solid var(--line);
   border-radius: 15px;
   background: #fff;
 }
-.vilo-builder .bk-feat .fc .fi {
+.wielo-builder .bk-feat .fc .fi {
   height: 40px;
   width: 40px;
   border-radius: 11px;
@@ -1291,43 +1291,43 @@
   justify-content: center;
   margin-bottom: 14px;
 }
-.vilo-builder .bk-feat .fc h3 {
+.wielo-builder .bk-feat .fc h3 {
   font-family: "Plus Jakarta Sans";
   font-weight: 700;
   font-size: 17px;
   color: var(--ink);
   margin: 0 0 6px;
 }
-.vilo-builder .bk-feat .fc p {
+.wielo-builder .bk-feat .fc p {
   font-size: 13.5px;
   color: var(--mute);
   margin: 0;
   line-height: 1.55;
 }
-.vilo-builder .bk-rooms .rg {
+.wielo-builder .bk-rooms .rg {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
-.vilo-builder .device.tablet .bk-rooms .rg {
+.wielo-builder .device.tablet .bk-rooms .rg {
   grid-template-columns: repeat(2, 1fr);
 }
-.vilo-builder .device.mobile .bk-rooms .rg {
+.wielo-builder .device.mobile .bk-rooms .rg {
   grid-template-columns: 1fr;
 }
-.vilo-builder .bk-rooms .rc {
+.wielo-builder .bk-rooms .rc {
   border: 1px solid var(--line);
   border-radius: 15px;
   overflow: hidden;
   background: #fff;
 }
-.vilo-builder .bk-rooms .rc .rc-img {
+.wielo-builder .bk-rooms .rc .rc-img {
   height: 150px;
   background-size: cover;
   background-position: center;
   position: relative;
 }
-.vilo-builder .bk-rooms .rc .rc-tag {
+.wielo-builder .bk-rooms .rc .rc-tag {
   position: absolute;
   top: 10px;
   left: 10px;
@@ -1338,52 +1338,52 @@
   padding: 4px 9px;
   border-radius: 9999px;
 }
-.vilo-builder .bk-rooms .rc .rc-b {
+.wielo-builder .bk-rooms .rc .rc-b {
   padding: 14px 15px;
 }
-.vilo-builder .bk-rooms .rc h3 {
+.wielo-builder .bk-rooms .rc h3 {
   font-family: "Plus Jakarta Sans";
   font-weight: 700;
   font-size: 16px;
   margin: 0 0 4px;
   color: var(--ink);
 }
-.vilo-builder .bk-rooms .rc .rc-meta {
+.wielo-builder .bk-rooms .rc .rc-meta {
   font-size: 12.5px;
   color: var(--mute);
 }
-.vilo-builder .bk-rooms .rc .rc-price {
+.wielo-builder .bk-rooms .rc .rc-price {
   margin-top: 10px;
   font-family: "Plus Jakarta Sans";
   font-weight: 800;
   color: var(--ink);
 }
-.vilo-builder .bk-rooms .rc .rc-price small {
+.wielo-builder .bk-rooms .rc .rc-price small {
   font-weight: 500;
   color: var(--mute);
   font-size: 12px;
 }
-.vilo-builder .bk-room .rd {
+.wielo-builder .bk-room .rd {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   gap: 30px;
   align-items: center;
 }
-.vilo-builder .device.mobile .bk-room .rd {
+.wielo-builder .device.mobile .bk-room .rd {
   grid-template-columns: 1fr;
 }
-.vilo-builder .bk-room .rd-img {
+.wielo-builder .bk-room .rd-img {
   height: 300px;
   border-radius: 16px;
   background-size: cover;
   background-position: center;
 }
-.vilo-builder .bk-room .rd .stars {
+.wielo-builder .bk-room .rd .stars {
   color: #f59e0b;
   letter-spacing: 2px;
   font-size: 13px;
 }
-.vilo-builder .bk-room .rd ul {
+.wielo-builder .bk-room .rd ul {
   list-style: none;
   padding: 0;
   margin: 16px 0 0;
@@ -1391,80 +1391,80 @@
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-.vilo-builder .bk-room .rd ul li {
+.wielo-builder .bk-room .rd ul li {
   font-size: 13px;
   color: var(--mute);
   display: flex;
   align-items: center;
   gap: 7px;
 }
-.vilo-builder .bk-gallery .gg {
+.wielo-builder .bk-gallery .gg {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-auto-rows: 96px;
   gap: 10px;
 }
-.vilo-builder .device.mobile .bk-gallery .gg {
+.wielo-builder .device.mobile .bk-gallery .gg {
   grid-template-columns: repeat(2, 1fr);
 }
-.vilo-builder .bk-gallery .gg .gi {
+.wielo-builder .bk-gallery .gg .gi {
   border-radius: 11px;
   background-size: cover;
   background-position: center;
 }
-.vilo-builder .bk-gallery .gg .gi.big {
+.wielo-builder .bk-gallery .gg .gi.big {
   grid-column: span 2;
   grid-row: span 2;
 }
-.vilo-builder .bk-rev .rh {
+.wielo-builder .bk-rev .rh {
   text-align: center;
   margin-bottom: 26px;
 }
-.vilo-builder .bk-rev .rh .big {
+.wielo-builder .bk-rev .rh .big {
   font-family: "Plus Jakarta Sans";
   font-weight: 800;
   font-size: 40px;
   color: var(--ink);
   line-height: 1;
 }
-.vilo-builder .bk-rev .rh .stars {
+.wielo-builder .bk-rev .rh .stars {
   color: #f59e0b;
   letter-spacing: 3px;
   font-size: 16px;
   margin-top: 6px;
 }
-.vilo-builder .bk-rev .rgd {
+.wielo-builder .bk-rev .rgd {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
-.vilo-builder .device.mobile .bk-rev .rgd,
-.vilo-builder .device.tablet .bk-rev .rgd {
+.wielo-builder .device.mobile .bk-rev .rgd,
+.wielo-builder .device.tablet .bk-rev .rgd {
   grid-template-columns: 1fr;
 }
-.vilo-builder .bk-rev .rv {
+.wielo-builder .bk-rev .rv {
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: 15px;
   background: #fff;
 }
-.vilo-builder .bk-rev .rv .stars {
+.wielo-builder .bk-rev .rv .stars {
   color: #f59e0b;
   letter-spacing: 2px;
   font-size: 12px;
 }
-.vilo-builder .bk-rev .rv p {
+.wielo-builder .bk-rev .rv p {
   font-size: 13.5px;
   color: var(--ink);
   line-height: 1.6;
   margin: 10px 0 14px;
 }
-.vilo-builder .bk-rev .rv .who {
+.wielo-builder .bk-rev .rv .who {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.vilo-builder .bk-rev .rv .av {
+.wielo-builder .bk-rev .rv .av {
   height: 34px;
   width: 34px;
   border-radius: 9999px;
@@ -1477,16 +1477,16 @@
   font-size: 12px;
   font-family: "Plus Jakarta Sans";
 }
-.vilo-builder .bk-rev .rv .nm {
+.wielo-builder .bk-rev .rv .nm {
   font-size: 13px;
   font-weight: 700;
   color: var(--ink);
 }
-.vilo-builder .bk-rev .rv .dt {
+.wielo-builder .bk-rev .rv .dt {
   font-size: 11.5px;
   color: var(--mute);
 }
-.vilo-builder .bk-book .bw {
+.wielo-builder .bk-book .bw {
   background: #06231a;
   border-radius: 18px;
   padding: 30px;
@@ -1495,16 +1495,16 @@
   gap: 24px;
   align-items: center;
 }
-.vilo-builder .device.mobile .bk-book .bw {
+.wielo-builder .device.mobile .bk-book .bw {
   grid-template-columns: 1fr;
 }
-.vilo-builder .bk-book .bw h2 {
+.wielo-builder .bk-book .bw h2 {
   color: #fff;
 }
-.vilo-builder .bk-book .bw .lead {
+.wielo-builder .bk-book .bw .lead {
   color: rgba(255, 255, 255, 0.7);
 }
-.vilo-builder .bk-book .bform {
+.wielo-builder .bk-book .bform {
   display: flex;
   gap: 10px;
   background: #fff;
@@ -1512,27 +1512,27 @@
   padding: 10px;
   flex-wrap: wrap;
 }
-.vilo-builder .bk-book .bfield {
+.wielo-builder .bk-book .bfield {
   padding: 6px 12px;
   border-right: 1px solid var(--line);
 }
-.vilo-builder .bk-book .bfield:last-of-type {
+.wielo-builder .bk-book .bfield:last-of-type {
   border-right: 0;
 }
-.vilo-builder .bk-book .bfield .bl {
+.wielo-builder .bk-book .bfield .bl {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--mute);
 }
-.vilo-builder .bk-book .bfield .bv {
+.wielo-builder .bk-book .bfield .bv {
   font-size: 14px;
   font-weight: 700;
   color: var(--ink);
   font-family: "Plus Jakarta Sans";
 }
-.vilo-builder .bk-book .zero {
+.wielo-builder .bk-book .zero {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1544,7 +1544,7 @@
   border-radius: 9999px;
   margin-bottom: 14px;
 }
-.vilo-builder .bk-map .loc {
+.wielo-builder .bk-map .loc {
   display: grid;
   grid-template-columns: 1fr 1.2fr;
   gap: 0;
@@ -1552,22 +1552,22 @@
   border-radius: 16px;
   overflow: hidden;
 }
-.vilo-builder .device.mobile .bk-map .loc {
+.wielo-builder .device.mobile .bk-map .loc {
   grid-template-columns: 1fr;
 }
-.vilo-builder .bk-map .loc-info {
+.wielo-builder .bk-map .loc-info {
   padding: 30px;
 }
-.vilo-builder .bk-map .loc-info h2 {
+.wielo-builder .bk-map .loc-info h2 {
   margin-bottom: 14px;
 }
-.vilo-builder .bk-map .loc-info p {
+.wielo-builder .bk-map .loc-info p {
   font-size: 14px;
   color: var(--mute);
   line-height: 1.6;
   margin-bottom: 8px;
 }
-.vilo-builder .bk-map .loc-map {
+.wielo-builder .bk-map .loc-map {
   min-height: 240px;
   background: #dceae0;
   background-image:
@@ -1576,48 +1576,48 @@
   background-size: 28px 28px;
   position: relative;
 }
-.vilo-builder .bk-map .loc-map .pin {
+.wielo-builder .bk-map .loc-map .pin {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -100%);
   color: #10b981;
 }
-.vilo-builder .bk-about .ab {
+.wielo-builder .bk-about .ab {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 34px;
   align-items: center;
 }
-.vilo-builder .device.mobile .bk-about .ab {
+.wielo-builder .device.mobile .bk-about .ab {
   grid-template-columns: 1fr;
 }
-.vilo-builder .bk-about .ab-img {
+.wielo-builder .bk-about .ab-img {
   height: 300px;
   border-radius: 16px;
   background-size: cover;
   background-position: center;
 }
-.vilo-builder .bk-about .ab p {
+.wielo-builder .bk-about .ab p {
   font-size: 15px;
   color: var(--mute);
   line-height: 1.7;
   margin-top: 14px;
 }
-.vilo-builder .bk-news .nb {
+.wielo-builder .bk-news .nb {
   background: #f2fbf6;
   border: 1px solid #d7eee2;
   border-radius: 18px;
   padding: 36px;
   text-align: center;
 }
-.vilo-builder .bk-news .nform {
+.wielo-builder .bk-news .nform {
   display: flex;
   gap: 10px;
   max-width: 420px;
   margin: 18px auto 0;
 }
-.vilo-builder .bk-news .nform input {
+.wielo-builder .bk-news .nform input {
   flex: 1;
   height: 46px;
   border: 1px solid var(--line);
@@ -1626,11 +1626,11 @@
   font-size: 14px;
   font-family: inherit;
 }
-.vilo-builder .bk-faq .fq {
+.wielo-builder .bk-faq .fq {
   max-width: 680px;
   margin: 0 auto;
 }
-.vilo-builder .bk-faq .fq-i {
+.wielo-builder .bk-faq .fq-i {
   border-bottom: 1px solid var(--line);
   padding: 18px 0;
   display: flex;
@@ -1638,46 +1638,46 @@
   gap: 16px;
   align-items: flex-start;
 }
-.vilo-builder .bk-faq .fq-i h3 {
+.wielo-builder .bk-faq .fq-i h3 {
   font-family: "Plus Jakarta Sans";
   font-weight: 700;
   font-size: 16px;
   color: var(--ink);
   margin: 0;
 }
-.vilo-builder .bk-faq .fq-i p {
+.wielo-builder .bk-faq .fq-i p {
   font-size: 13.5px;
   color: var(--mute);
   margin: 8px 0 0;
   line-height: 1.6;
 }
-.vilo-builder .bk-faq .fq-i .qi {
+.wielo-builder .bk-faq .fq-i .qi {
   color: var(--primary);
   flex-shrink: 0;
   margin-top: 2px;
 }
-.vilo-builder .bk-footer .ft {
+.wielo-builder .bk-footer .ft {
   background: #0a1510;
   color: rgba(255, 255, 255, 0.62);
   padding: 42px 40px 26px;
 }
-.vilo-builder .bk-footer .ft-top {
+.wielo-builder .bk-footer .ft-top {
   display: grid;
   grid-template-columns: 1.6fr 1fr 1fr;
   gap: 30px;
   padding-bottom: 26px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-.vilo-builder .device.mobile .bk-footer .ft-top {
+.wielo-builder .device.mobile .bk-footer .ft-top {
   grid-template-columns: 1fr;
 }
-.vilo-builder .bk-footer .brand {
+.wielo-builder .bk-footer .brand {
   display: flex;
   align-items: center;
   gap: 10px;
   color: #fff;
 }
-.vilo-builder .bk-footer .bm {
+.wielo-builder .bk-footer .bm {
   height: 32px;
   width: 32px;
   border-radius: 9px;
@@ -1689,13 +1689,13 @@
   font-weight: 800;
   font-family: "Plus Jakarta Sans";
 }
-.vilo-builder .bk-footer .bn {
+.wielo-builder .bk-footer .bn {
   font-family: "Plus Jakarta Sans";
   font-weight: 700;
   font-size: 16px;
   color: #fff;
 }
-.vilo-builder .bk-footer .fh {
+.wielo-builder .bk-footer .fh {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1703,19 +1703,19 @@
   color: #fff;
   margin-bottom: 12px;
 }
-.vilo-builder .bk-footer .fcol a {
+.wielo-builder .bk-footer .fcol a {
   display: block;
   font-size: 13.5px;
   color: rgba(255, 255, 255, 0.6);
   margin-bottom: 8px;
 }
-.vilo-builder .bk-footer .ft-bot {
+.wielo-builder .bk-footer .ft-bot {
   display: flex;
   justify-content: space-between;
   padding-top: 18px;
   font-size: 12px;
 }
-.vilo-builder .toast {
+.wielo-builder .toast {
   position: fixed;
   bottom: 22px;
   left: 50%;
@@ -1737,11 +1737,11 @@
   align-items: center;
   gap: 9px;
 }
-.vilo-builder .toast.show {
+.wielo-builder .toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
-.vilo-builder .scrim {
+.wielo-builder .scrim {
   position: fixed;
   inset: 0;
   background: rgba(5, 46, 31, 0.3);
@@ -1750,11 +1750,11 @@
   transition: opacity 0.2s;
   z-index: 40;
 }
-.vilo-builder .scrim.show {
+.wielo-builder .scrim.show {
   opacity: 1;
   pointer-events: auto;
 }
-.vilo-builder .sheet {
+.wielo-builder .sheet {
   position: fixed;
   top: 0;
   right: 0;
@@ -1769,19 +1769,19 @@
   display: flex;
   flex-direction: column;
 }
-.vilo-builder .sheet.show {
+.wielo-builder .sheet.show {
   transform: translateX(0);
 }
-.vilo-builder .sheet.left {
+.wielo-builder .sheet.left {
   left: 0;
   right: auto;
   transform: translateX(-100%);
   box-shadow: 20px 0 60px -24px rgba(6, 78, 59, 0.4);
 }
-.vilo-builder .sheet.left.show {
+.wielo-builder .sheet.left.show {
   transform: translateX(0);
 }
-.vilo-builder .modal-scrim {
+.wielo-builder .modal-scrim {
   position: fixed;
   inset: 0;
   background: rgba(5, 46, 31, 0.4);
@@ -1794,11 +1794,11 @@
   justify-content: center;
   padding: 24px;
 }
-.vilo-builder .modal-scrim.show {
+.wielo-builder .modal-scrim.show {
   opacity: 1;
   pointer-events: auto;
 }
-.vilo-builder .modal {
+.wielo-builder .modal {
   width: 640px;
   max-width: 100%;
   max-height: 86vh;
@@ -1811,13 +1811,13 @@
   transform: scale(0.96);
   transition: transform 0.2s;
 }
-.vilo-builder .modal-scrim.show .modal {
+.wielo-builder .modal-scrim.show .modal {
   transform: scale(1);
 }
-.vilo-builder [hidden] {
+.wielo-builder [hidden] {
   display: none !important;
 }
-@keyframes vilo-builder-fadeUp {
+@keyframes wielo-builder-fadeUp {
   from {
     transform: translateY(7px);
     opacity: 0.5;
@@ -1828,7 +1828,7 @@
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .vilo-builder .fade {
-    animation: vilo-builder-fadeUp 0.24s ease both;
+  .wielo-builder .fade {
+    animation: wielo-builder-fadeUp 0.24s ease both;
   }
 }

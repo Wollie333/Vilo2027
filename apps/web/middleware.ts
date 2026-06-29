@@ -17,8 +17,8 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ─── Host classifier runs FIRST ──────────────────────────────
-  // Tenant micro-sites (<sub>.vilo.site / custom domains) are rewritten into the
-  // public site routes and given the x-vilo-site-host header. They do NOT run
+  // Tenant micro-sites (<sub>.wielo.site / custom domains) are rewritten into the
+  // public site routes and given the x-wielo-site-host header. They do NOT run
   // next-intl and do NOT refresh the Supabase session — no cookies are ever set
   // on a tenant host. App hosts fall through to the UNCHANGED pipeline below.
   // Fail-safe: with no NEXT_PUBLIC_ROOT_DOMAIN, classifyHost() always returns
@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
   );
   if (host.kind === "site") {
     const headers = new Headers(request.headers);
-    headers.set("x-vilo-site-host", host.ref);
+    headers.set("x-wielo-site-host", host.ref);
     // Global route-handler trees (api workers, auth, ical, unsubscribe, quote,
     // /r) are NOT part of the per-site page tree — rewriting them into
     // /<locale>/site/* would 404. Let them reach their real handlers, just tagged

@@ -13,7 +13,7 @@
 The Reviews MVP only built **guest → listing** reviews. It missed the reverse:
 **host → guest** ratings, so a host can warn other hosts what to expect. This is a
 **shared reputation network** — unlike every other host-private table, a host's
-rating of a guest is readable by *all* hosts (keyed on the guest's global Vilo
+rating of a guest is readable by *all* hosts (keyed on the guest's global Wielo
 identity), while each host can only add/edit their own. The aggregate star sits on
 the guest's record and informs hosting decisions.
 
@@ -28,10 +28,10 @@ Decisions locked with the founder:
 - **Eligibility:** a host may rate a guest only after a **completed stay** (also
   allow `no_show`, since a no-show is high-value signal). Enforced in the action.
 
-Keying is on `guest_id` (`user_profiles.id`) — the global Vilo identity
-(BUSINESS_PRINCIPLES Principle #1; accounts are minted via `ensureViloGuestIdentity`).
+Keying is on `guest_id` (`user_profiles.id`) — the global Wielo identity
+(BUSINESS_PRINCIPLES Principle #1; accounts are minted via `ensureWieloGuestIdentity`).
 Email-only/OTA guests with no account (`gkey` = `e_…`) are not rateable — the tab
-shows a graceful "no Vilo account yet" empty state.
+shows a graceful "no Wielo account yet" empty state.
 
 ## Plan
 
@@ -101,7 +101,7 @@ After resolving `guestId` (already done via `gkeyFor`), when `guestId` is non-nu
   (compute on read — low volume, no denormalisation needed).
 - Compute `canRate` via the eligibility helper.
 - Pass all of the above into `GuestRecord`. When `guestId` is null, pass a flag so
-  the tab renders the "no Vilo account yet" state.
+  the tab renders the "no Wielo account yet" state.
 
 ### 4. UI — new tab + panel
 In `[gkey]/GuestRecord.tsx`:
@@ -184,7 +184,7 @@ project's pre-MVP policy.
    aggregate reflects both; B can add their own but cannot edit A's.
 4. A guest with no completed stay under host A shows the button disabled with the
    "after a completed stay" hint. An `e_…` (no-account) guest shows the
-   "no Vilo account yet" state.
+   "no Wielo account yet" state.
 5. RLS check via service-role sweep: a guest token gets **zero** rows from
    `guest_ratings`; a non-host user gets zero; a host gets all rows for the guest.
 6. `cd apps/web && pnpm build && pnpm lint` — zero errors/warnings; no `console.log`.

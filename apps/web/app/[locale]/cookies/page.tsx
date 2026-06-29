@@ -15,7 +15,7 @@ function applyBrand(
   return sections.map((s) => ({
     ...s,
     body:
-      typeof s.body === "string" ? s.body.split("Vilo").join(brand) : s.body,
+      typeof s.body === "string" ? s.body.split("Wielo").join(brand) : s.body,
   }));
 }
 
@@ -44,7 +44,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "4. Third parties",
-    body: "Payment providers (Paystack, PayPal) may set their own cookies on payment pages. Their use of cookies is governed by their own policies. Vilo does not use third-party advertising or behavioural-targeting cookies.",
+    body: "Payment providers (Paystack, PayPal) may set their own cookies on payment pages. Their use of cookies is governed by their own policies. Wielo does not use third-party advertising or behavioural-targeting cookies.",
   },
   {
     heading: "5. Your choices",
@@ -56,7 +56,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "7. Contact",
-    body: "For questions about how we use cookies, contact privacy@viloplatform.com.",
+    body: "For questions about how we use cookies, contact privacy@wieloplatform.com.",
   },
 ];
 

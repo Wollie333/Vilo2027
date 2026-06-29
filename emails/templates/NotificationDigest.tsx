@@ -30,7 +30,7 @@ export default function NotificationDigest({
 
   return (
     <Layout
-      preview={`Your ${cadenceLabel} Vilo digest — ${totalItems} updates`}
+      preview={`Your ${cadenceLabel} Wielo digest — ${totalItems} updates`}
     >
       <Heading>Your {cadenceLabel} digest</Heading>
       <Text>Hi {recipient_first_name},</Text>

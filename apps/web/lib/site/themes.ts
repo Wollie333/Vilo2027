@@ -1,6 +1,6 @@
 // Static theme presets for hosted micro-sites.
 //
-// A site themes itself independently of the Vilo dashboard via a scoped set of
+// A site themes itself independently of the Wielo dashboard via a scoped set of
 // `--site-*` CSS variables (injected by <SiteThemeRoot>). Section components and
 // chrome read ONLY these vars — never the app's `brand-*` tokens — so each
 // tenant site can look completely different without leaking into the app.

@@ -179,7 +179,7 @@ export function BroadcastForm() {
                 id="link_url"
                 type="url"
                 {...form.register("link_url")}
-                placeholder="https://status.vilo.app"
+                placeholder="https://status.wielo.app"
               />
             </div>
             <div>

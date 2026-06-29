@@ -10,7 +10,7 @@
 ## 1. Page Meta & SEO
 
 ```yaml
-title: "Accounting & Invoicing for Accommodation Hosts — Vilo"
+title: "Accounting & Invoicing for Accommodation Hosts — Wielo"
 meta_description: "Auto-generated invoices, payment tracking, credit notes, and receipts. Your books done as you go. VAT-compliant. Built for SA accommodation hosts."
 url_slug: /features/accounting
 keywords:
@@ -19,7 +19,7 @@ keywords:
   - lodge bookkeeping system
   - hospitality financial management
   - B&B invoice generator
-og_title: "Full Accounting Ledger — Your Books, Done | Vilo"
+og_title: "Full Accounting Ledger — Your Books, Done | Wielo"
 og_description: "Invoices, receipts, credit notes, and payment tracking — all automatic. VAT-compliant accounting built for SA hosts."
 og_image: "/images/features/accounting-og.jpg"
 ```
@@ -33,7 +33,7 @@ og_image: "/images/features/accounting-og.jpg"
 ```
 Option A: "Your books. Done as you go."
 Option B: "Invoices, receipts, and your ledger — all automatic."
-Option C: "Stop dreading month-end. Vilo does your books."
+Option C: "Stop dreading month-end. Wielo does your books."
 ```
 
 **Recommended:** Option A — simple, powerful promise, addresses ongoing pain.
@@ -41,7 +41,7 @@ Option C: "Stop dreading month-end. Vilo does your books."
 ### Subheadline
 
 ```
-"Vilo generates professional invoices the moment a booking confirms, tracks every payment, issues receipts automatically, and keeps a running ledger of what every guest owes. VAT-compliant, PDF-ready, and one less thing you need to think about."
+"Wielo generates professional invoices the moment a booking confirms, tracks every payment, issues receipts automatically, and keeps a running ledger of what every guest owes. VAT-compliant, PDF-ready, and one less thing you need to think about."
 ```
 
 ### Hero CTA
@@ -103,7 +103,7 @@ Headline: "You didn't start hosting to become an accountant."
    Cost: Time wasted. Amateur impression.
 ```
 
-### "Before Vilo" Scenario
+### "Before Wielo" Scenario
 
 ```
 "It's the 28th of the month. Your accountant is waiting for your records. You have a folder of Word invoices — some numbered, some not. A WhatsApp thread with deposit confirmations. A bank statement you haven't reconciled. You promise yourself you'll be more organized next month. You've been saying that for a year."
@@ -116,7 +116,7 @@ Headline: "You didn't start hosting to become an accountant."
 ### Section Header
 
 ```
-Eyebrow: "The Vilo way"
+Eyebrow: "The Wielo way"
 Headline: "Accounting that happens without you thinking about it."
 ```
 
@@ -147,7 +147,7 @@ Headline: "Accounting that happens without you thinking about it."
 ```yaml
 icon: FileText
 headline: "Invoices appear the moment bookings confirm"
-description: "When a guest's booking is confirmed, Vilo automatically creates a professional invoice. Line items for accommodation, cleaning, add-ons — all pulled from the booking. Numbered sequentially (INV2026-0001, INV2026-0002...). Ready to send or download as PDF."
+description: "When a guest's booking is confirmed, Wielo automatically creates a professional invoice. Line items for accommodation, cleaning, add-ons — all pulled from the booking. Numbered sequentially (INV2026-0001, INV2026-0002...). Ready to send or download as PDF."
 visual: "Booking confirmation → Invoice auto-created notification → Invoice preview with line items"
 ```
 
@@ -165,7 +165,7 @@ visual: "Invoice PDF showing: host logo + business details, guest info, line ite
 ```yaml
 icon: Receipt
 headline: "VAT handled correctly — automatically"
-description: "If you're VAT-registered, enter your VAT number once. Vilo calculates VAT on every booking, shows the breakdown on invoices, and labels them 'Tax Invoice'. Not registered? Invoices show the total without VAT. Either way, it's correct."
+description: "If you're VAT-registered, enter your VAT number once. Wielo calculates VAT on every booking, shows the breakdown on invoices, and labels them 'Tax Invoice'. Not registered? Invoices show the total without VAT. Either way, it's correct."
 visual: "Invoice showing: Subtotal R3,000 / VAT (15%) R450 / Total R3,450 — with 'Tax Invoice' header"
 ```
 
@@ -174,7 +174,7 @@ visual: "Invoice showing: Subtotal R3,000 / VAT (15%) R450 / Total R3,450 — wi
 ```yaml
 icon: Wallet
 headline: "Every payment tracked in one ledger"
-description: "Vilo maintains a running ledger of all transactions: deposits, balance payments, card payments, EFT confirmations, refunds, credits. Filter by guest, booking, or date range. See what's been collected, what's outstanding, and who owes what."
+description: "Wielo maintains a running ledger of all transactions: deposits, balance payments, card payments, EFT confirmations, refunds, credits. Filter by guest, booking, or date range. See what's been collected, what's outstanding, and who owes what."
 visual: "Ledger table: Date, Guest, Type (Deposit/Balance/Refund), Amount, Running Balance — with filter dropdowns"
 ```
 
@@ -219,7 +219,7 @@ visual: "Payment recorded: R5,000 on R4,500 booking → Store credit: R500 toast
 ```yaml
 icon: Layers
 headline: "Add charges after the original invoice"
-description: "Guest adds breakfast? Late checkout fee? Vilo creates a supplementary add-on invoice linked to the same booking. Each invoice has its own number and PDF. The booking's total updates, and the ledger reflects the new balance."
+description: "Guest adds breakfast? Late checkout fee? Wielo creates a supplementary add-on invoice linked to the same booking. Each invoice has its own number and PDF. The booking's total updates, and the ledger reflects the new balance."
 visual: "Booking with 2 invoices: 'Accommodation Invoice' + 'Add-on Invoice' — each with separate number and amount"
 ```
 
@@ -229,7 +229,7 @@ visual: "Booking with 2 invoices: 'Accommodation Invoice' + 'Add-on Invoice' —
 icon: Link
 headline: "Share invoices and receipts with a secure link"
 description: "Every invoice and receipt has a unique hosted URL. Share it with guests or their companies for expense claims. No login required — just a secure token link that shows the document."
-visual: "URL bar showing 'viloplatform.com/invoice/abc123...' with invoice view loading"
+visual: "URL bar showing 'wieloplatform.com/invoice/abc123...' with invoice view loading"
 ```
 
 ### Sub-Feature 11: Accounting Period Close
@@ -310,7 +310,7 @@ Testimonial 2:
   Property: "Self-catering · Cape Town"
 
 Testimonial 3:
-  Quote: "My corporate guests need proper tax invoices. Vilo does them automatically with our VAT number and everything. Professional and effortless."
+  Quote: "My corporate guests need proper tax invoices. Wielo does them automatically with our VAT number and everything. Professional and effortless."
   Name: "[Name]"
   Property: "Lodge · Pretoria"
 ```
@@ -341,12 +341,12 @@ Stat 3: 100% — VAT compliance for registered hosts
 
 ```
 Eyebrow: "Side by side"
-Headline: "Manual bookkeeping vs. Vilo Accounting"
+Headline: "Manual bookkeeping vs. Wielo Accounting"
 ```
 
 ### Comparison Table
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | Create invoices manually in Word/Excel | Invoices auto-generate on booking confirmation |
 | Track payments in a spreadsheet | Running ledger with automatic balance calculation |
@@ -371,7 +371,7 @@ Q: What if I'm not VAT-registered?
 A: No problem. Invoices show the total without VAT breakdown. The moment you add a VAT number to your business profile, future invoices will include VAT automatically.
 
 Q: How do I track EFT payments?
-A: When a guest pays via bank transfer, you record the payment manually in Vilo. A receipt is auto-generated, and the ledger updates. Card payments via Paystack/PayPal are tracked automatically.
+A: When a guest pays via bank transfer, you record the payment manually in Wielo. A receipt is auto-generated, and the ledger updates. Card payments via Paystack/PayPal are tracked automatically.
 
 Q: What's a credit note?
 A: A credit note reduces an invoice. If you need to adjust a guest's balance — discount, partial refund, error correction — you issue a credit note. It links to the original invoice and posts to their store credit.
@@ -448,7 +448,7 @@ Trust elements:
 
 2. PROBLEM SECTION (light background)
    - Pain points as numbered cards
-   - "Before Vilo" scenario as callout
+   - "Before Wielo" scenario as callout
 
 3. SOLUTION OVERVIEW (white background)
    - Transformation statement

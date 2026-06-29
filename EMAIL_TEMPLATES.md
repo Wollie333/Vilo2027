@@ -2,8 +2,8 @@
 
 **Version:** 1.0
 **Last Updated:** May 2026
-**Sending domain:** `noreply@viloplatform.com`
-**From name:** `Vilo`
+**Sending domain:** `noreply@wieloplatform.com`
+**From name:** `Wielo`
 **Built with:** React Email + Resend SDK
 **Template files:** `emails/` directory
 **Preview:** `npx email dev`
@@ -12,7 +12,7 @@
 
 ## Voice & Tone
 
-Vilo emails are **warm and personal**. Every email should feel like it came from a person who genuinely cares — not a system sending a notification.
+Wielo emails are **warm and personal**. Every email should feel like it came from a person who genuinely cares — not a system sending a notification.
 
 - Always use first names: `Hi Amara,` not `Hi there,` or `Dear Guest,`
 - Write as if you're talking to a friend who happens to be a traveller or a small business owner
@@ -22,7 +22,7 @@ Vilo emails are **warm and personal**. Every email should feel like it came from
 - One clear primary action per email — don't bury it
 - Emojis: one per email where it adds genuine warmth — confirmations (🎉), welcome (🌿), check-in (🏡). Never on cancellations, payment failures, or suspensions.
 - Never say "we are pleased to inform you", "please be advised", or "as per our records"
-- Sign off with warmth: `— The Vilo team` on transactional emails, nothing on urgent/bad-news emails
+- Sign off with warmth: `— The Wielo team` on transactional emails, nothing on urgent/bad-news emails
 
 **Examples of the voice difference:**
 
@@ -39,12 +39,12 @@ Vilo emails are **warm and personal**. Every email should feel like it came from
 
 All templates extend a base layout component (`emails/layout/BaseEmail.tsx`):
 
-**Header:** Vilo logo (SVG inline), brand green `#1B4D3E`
+**Header:** Wielo logo (SVG inline), brand green `#1B4D3E`
 **Footer:**
-- `viloplatform.com`
-- `Sent by Vilo · noreply@viloplatform.com`
+- `wieloplatform.com`
+- `Sent by Wielo · noreply@wieloplatform.com`
 - Unsubscribe link (where legally required — transactional emails are exempt but include it for marketing-adjacent emails)
-- Address: `Vilo · South Africa`
+- Address: `Wielo · South Africa`
 
 **Typography:**
 - Font: Inter (web-safe fallback: Arial, sans-serif)
@@ -440,7 +440,7 @@ type BaseEmailProps = {
 **Edge Function:** `invite-staff`
 **Phase:** 3
 
-**Subject:** `{{host_name}} has invited you to manage {{property_name}} on Vilo`
+**Subject:** `{{host_name}} has invited you to manage {{property_name}} on Wielo`
 
 **Props:**
 ```typescript
@@ -455,7 +455,7 @@ type BaseEmailProps = {
 
 **Body:**
 - Greeting: `Hi{{invitee_name ? ` ${invitee_name}` : ''}},`
-- `**{{host_name}}** has invited you to join the team at **{{property_name}}** on Vilo.`
+- `**{{host_name}}** has invited you to join the team at **{{property_name}}** on Wielo.`
 - What you'll be able to do: manage bookings, handle guest messages, manage the calendar
 - Primary CTA button: **Accept invitation** → `{{invite_url}}`
 - `This invitation expires in {{expires_at}}.`
@@ -473,7 +473,7 @@ type BaseEmailProps = {
 **Edge Function:** `webhooks/paystack` / `webhooks/paypal`
 **Phase:** 3
 
-**Subject:** `Welcome to Vilo {{plan_name}}! 🌿`
+**Subject:** `Welcome to Wielo {{plan_name}}! 🌿`
 
 **Props:**
 ```typescript
@@ -491,7 +491,7 @@ type BaseEmailProps = {
 
 **Body:**
 - Greeting: `Hi {{host_name}},`
-- `Welcome to the team, {{host_name}}! You're officially on **Vilo {{plan_name}}** — let's help you fill that calendar. 🌿`
+- `Welcome to the team, {{host_name}}! You're officially on **Wielo {{plan_name}}** — let's help you fill that calendar. 🌿`
 - If trial: `Your 14-day free trial runs until {{trial_ends_at}}. You won't be charged until then.`
 - Key features unlocked (short bullet list from `key_features`)
 - Billing: `Your {{billing_cycle}} subscription of {{price}} will renew on {{next_billing_date}}.`
@@ -505,7 +505,7 @@ type BaseEmailProps = {
 **Edge Function:** `send-email` (via notification queue)
 **Phase:** 3
 
-**Subject:** `Your Vilo {{plan_name}} subscription renews in 7 days`
+**Subject:** `Your Wielo {{plan_name}} subscription renews in 7 days`
 
 **Props:**
 ```typescript
@@ -520,7 +520,7 @@ type BaseEmailProps = {
 
 **Body:**
 - Greeting: `Hi {{host_name}},`
-- `Your Vilo {{plan_name}} subscription will automatically renew on {{renewal_date}} for {{price}}.`
+- `Your Wielo {{plan_name}} subscription will automatically renew on {{renewal_date}} for {{price}}.`
 - `No action needed — we'll charge your saved payment method.`
 - `Want to make changes?`
 - Primary CTA button: **Manage subscription** → `{{billing_url}}`
@@ -533,7 +533,7 @@ type BaseEmailProps = {
 **Edge Function:** `webhooks/paystack` / `webhooks/paypal`
 **Phase:** 3
 
-**Subject:** `Action required: Your Vilo payment failed`
+**Subject:** `Action required: Your Wielo payment failed`
 
 **Props:**
 ```typescript
@@ -548,7 +548,7 @@ type BaseEmailProps = {
 
 **Body:**
 - Greeting: `Hi {{host_name}},`
-- `Hi {{host_name}}, we had trouble processing your Vilo {{plan_name}} payment of {{amount}}.`
+- `Hi {{host_name}}, we had trouble processing your Wielo {{plan_name}} payment of {{amount}}.`
 - `No panic — your account stays fully active until {{grace_period_ends_at}}. That gives you a bit of time to sort it.`
 - `Just update your payment method and everything will keep running smoothly.`
 - Primary CTA button: **Update payment method** → `{{billing_url}}`
@@ -561,7 +561,7 @@ type BaseEmailProps = {
 **Edge Function:** `send-email` (via notification queue)
 **Phase:** 3
 
-**Subject:** `Your Vilo account has been restricted`
+**Subject:** `Your Wielo account has been restricted`
 
 **Props:**
 ```typescript
@@ -574,7 +574,7 @@ type BaseEmailProps = {
 
 **Body:**
 - Greeting: `Hi {{host_name}},`
-- `Hi {{host_name}}, your Vilo {{plan_name}} subscription has lapsed and some features are currently on hold.`
+- `Hi {{host_name}}, your Wielo {{plan_name}} subscription has lapsed and some features are currently on hold.`
 - What this means:
   - Your listings are still in the directory, but guests can only send enquiries (no direct bookings)
   - Your dashboard remains accessible
@@ -593,19 +593,19 @@ type BaseEmailProps = {
 **Edge Function:** Admin action via `admin-suspend` Edge Function
 **Phase:** 4
 
-**Subject:** `Your Vilo account has been suspended`
+**Subject:** `Your Wielo account has been suspended`
 
 **Props:**
 ```typescript
 {
   host_name: string;
-  support_email: string;       // "support@viloplatform.com"
+  support_email: string;       // "support@wieloplatform.com"
 }
 ```
 
 **Body:**
 - Greeting: `Hi {{host_name}},`
-- `Your Vilo account has been temporarily suspended following a review by our team.`
+- `Your Wielo account has been temporarily suspended following a review by our team.`
 - `Your listings have been removed from the directory while the suspension is in place.`
 - `If you believe this is an error or would like more information, please contact us at {{support_email}}.`
 - No CTA button (don't link to dashboard — account is suspended)
@@ -832,7 +832,7 @@ These are configured directly in the Supabase Auth dashboard under Email Templat
 **Trigger:** User signs up with email + password
 **Where to configure:** Supabase Dashboard → Auth → Email Templates → Confirm signup
 
-**Subject:** `Confirm your Vilo account`
+**Subject:** `Confirm your Wielo account`
 
 **Tone:** Friendly but brief. One action.
 
@@ -840,15 +840,15 @@ These are configured directly in the Supabase Auth dashboard under Email Templat
 ```
 Hi there,
 
-Thanks for signing up for Vilo. Click the link below to verify your email address.
+Thanks for signing up for Wielo. Click the link below to verify your email address.
 
 [Confirm email address] ← link to {{ .ConfirmationURL }}
 
 This link expires in 24 hours.
 
-If you didn't create a Vilo account, you can safely ignore this email.
+If you didn't create a Wielo account, you can safely ignore this email.
 
-— The Vilo team
+— The Wielo team
 ```
 
 ---
@@ -857,13 +857,13 @@ If you didn't create a Vilo account, you can safely ignore this email.
 **Trigger:** User requests a password reset
 **Where to configure:** Supabase Dashboard → Auth → Email Templates → Reset password
 
-**Subject:** `Reset your Vilo password`
+**Subject:** `Reset your Wielo password`
 
 **Body (plain text base):**
 ```
 Hi there,
 
-We received a request to reset your Vilo password.
+We received a request to reset your Wielo password.
 
 [Reset password] ← link to {{ .ConfirmationURL }}
 
@@ -871,7 +871,7 @@ This link expires in 1 hour.
 
 If you didn't request a password reset, you can safely ignore this email.
 
-— The Vilo team
+— The Wielo team
 ```
 
 ---
@@ -926,7 +926,7 @@ import { BookingConfirmedGuestEmail } from '../../emails/booking/BookingConfirme
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 await resend.emails.send({
-  from:    'Vilo <noreply@viloplatform.com>',
+  from:    'Wielo <noreply@wieloplatform.com>',
   to:      guest.email,
   subject: `You're all set! Booking confirmed at ${listingName} 🎉`,
   react:   BookingConfirmedGuestEmail({

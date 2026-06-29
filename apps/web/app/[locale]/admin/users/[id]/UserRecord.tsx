@@ -264,7 +264,7 @@ export type UserRecordData = {
     expiresAt: string | null;
     requestedBy: string | null;
   }[];
-  viloLedger: {
+  wieloLedger: {
     id: string;
     type: string;
     status: string;
@@ -517,7 +517,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             ) : null}
             {tab === "listings" ? <ListingsPanel data={data} /> : null}
 
-            {/* Finance — subscription/products, Vilo + booking ledger, affiliate */}
+            {/* Finance — subscription/products, Wielo + booking ledger, affiliate */}
             {tab === "finance" ? (
               <div className="space-y-10">
                 {host ? (
@@ -1084,7 +1084,7 @@ function Dossier({
   const sep = <div className="h-px bg-brand-line" />;
   const eyebrow =
     "text-[10.5px] font-bold uppercase tracking-[0.1em] text-brand-mute";
-  const paidToVilo = data.viloLedger
+  const paidToWielo = data.wieloLedger
     .filter((t) => t.status === "completed" && t.amount > 0)
     .reduce((s, t) => s + t.amount, 0);
 
@@ -1224,8 +1224,8 @@ function Dossier({
               value={String(data.counts.bookingsAsGuest)}
             />
             <DStat
-              label="Paid to Vilo"
-              value={formatMoney(paidToVilo, "ZAR")}
+              label="Paid to Wielo"
+              value={formatMoney(paidToWielo, "ZAR")}
             />
             {host ? (
               <DStat label="Listings" value={String(data.counts.listings)} />
@@ -1786,11 +1786,11 @@ function LedgerPanel({
       ) : null}
       <Section
         icon={CreditCard}
-        title="Vilo account (them → Vilo)"
-        count={data.viloLedger.length}
-        empty="No payments to Vilo yet."
+        title="Wielo account (them → Wielo)"
+        count={data.wieloLedger.length}
+        empty="No payments to Wielo yet."
       >
-        {data.viloLedger.map((t) => (
+        {data.wieloLedger.map((t) => (
           <RowLink
             key={t.id}
             primary={`${t.type[0].toUpperCase()}${t.type.slice(1)}`}
@@ -2973,7 +2973,7 @@ function ReferralsPanel({ data }: { data: UserRecordData }) {
         <Gift className="mx-auto h-6 w-6 text-brand-line" />
         <p className="mt-3 text-[13px] text-brand-mute">
           This user isn&apos;t an affiliate yet. When they refer others, the
-          people they bring to Vilo will appear here.
+          people they bring to Wielo will appear here.
         </p>
       </div>
     );
@@ -3097,7 +3097,7 @@ function ReferralsPanel({ data }: { data: UserRecordData }) {
           columns={columns}
           rows={filtered}
           getKey={(r) => r.id}
-          empty="No referrals yet. People this affiliate brings to Vilo appear here."
+          empty="No referrals yet. People this affiliate brings to Wielo appear here."
           toolbar={
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex h-9 min-w-[200px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
@@ -3355,7 +3355,7 @@ function ActivityPanel({ data }: { data: UserRecordData }) {
       id: `au-${a.id}`,
       tone: "edit",
       what: humanizeAuditAction(a.action, a.targetType),
-      who: a.actor ?? "Vilo staff",
+      who: a.actor ?? "Wielo staff",
       detail: a.impersonating ? "while acting as this user" : "staff action",
       date: a.created_at,
     });
@@ -3374,7 +3374,7 @@ function ActivityPanel({ data }: { data: UserRecordData }) {
       id: `sg-req-${g.id}`,
       tone: "support",
       what: "Requested edit access",
-      who: g.requestedBy ?? "Vilo support",
+      who: g.requestedBy ?? "Wielo support",
       detail: g.reason ? `“${g.reason}”` : "awaiting host approval",
       date: g.requestedAt,
     });

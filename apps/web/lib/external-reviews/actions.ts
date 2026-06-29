@@ -469,7 +469,7 @@ export async function toggleExternalReviewFeaturedAction(
 }
 
 /**
- * Map an external review to a Vilo property.
+ * Map an external review to a Wielo property.
  */
 export async function mapExternalReviewToPropertyAction(
   reviewId: string,

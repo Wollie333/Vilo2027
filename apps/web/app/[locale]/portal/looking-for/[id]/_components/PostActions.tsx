@@ -186,7 +186,7 @@ export function PostActions({ postId, status }: PostActionsProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="vilo_booking">
-                  Booked through Vilo
+                  Booked through Wielo
                 </SelectItem>
                 <SelectItem value="ota">
                   Booked on another platform (Airbnb, Booking.com, etc.)

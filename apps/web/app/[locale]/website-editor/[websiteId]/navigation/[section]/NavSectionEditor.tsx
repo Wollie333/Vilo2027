@@ -281,7 +281,7 @@ export function NavSectionEditor({
 
   return (
     <div
-      className="vilo-builder"
+      className="wielo-builder"
       style={{
         height: "100vh",
         display: "flex",
@@ -513,7 +513,7 @@ export function NavSectionEditor({
                     data={homeData}
                   />
                 ) : (
-                  <div className="vilo-nav">
+                  <div className="wielo-nav">
                     {section === "footer" ? (
                       <NavFooterPreview nav={nav} brandName={brandName} />
                     ) : (

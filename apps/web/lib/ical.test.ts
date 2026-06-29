@@ -48,7 +48,7 @@ describe("listing feed tokens", () => {
 
 describe("buildIcalFeed (RFC 5545 export)", () => {
   const feed = buildIcalFeed({
-    calendarName: "Vilo — Olive Grove",
+    calendarName: "Wielo — Olive Grove",
     events: [
       {
         startDate: "2099-06-12",
@@ -63,20 +63,20 @@ describe("buildIcalFeed (RFC 5545 export)", () => {
     expect(feed.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
     expect(feed.trimEnd().endsWith("END:VCALENDAR")).toBe(true);
     expect(feed).toContain("VERSION:2.0");
-    expect(feed).toContain("PRODID:-//Vilo Platform//Vilo//EN");
+    expect(feed).toContain("PRODID:-//Vilo Platform//Wielo//EN");
     expect(feed.includes("\r\n")).toBe(true);
   });
 
   it("emits compact all-day DTSTART/DTEND (end exclusive)", () => {
     expect(feed).toContain("DTSTART;VALUE=DATE:20990612");
     expect(feed).toContain("DTEND;VALUE=DATE:20990615");
-    expect(feed).toContain("UID:abc-123@viloplatform.com");
+    expect(feed).toContain("UID:abc-123@wieloplatform.com");
     expect(feed).toContain("SUMMARY:Booked");
   });
 
   it("never leaks guest PII — summary is exactly what we pass", () => {
     // Generic summaries only; the export builder has no access to guest data.
-    expect(feed).not.toMatch(/@(?!viloplatform)/); // no guest emails
+    expect(feed).not.toMatch(/@(?!wieloplatform)/); // no guest emails
     expect(feed.match(/SUMMARY:/g)).toHaveLength(1);
   });
 

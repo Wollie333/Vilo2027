@@ -464,7 +464,7 @@ export async function exportGuestsAction(
     ].join(","),
   );
   const csv = [header.join(","), ...lines].join("\n");
-  return { ok: true, data: { csv, filename: "vilo-guests.csv" } };
+  return { ok: true, data: { csv, filename: "wielo-guests.csv" } };
 }
 
 // ── Bulk mailer — broadcast (POPIA-safe, monthly-capped, build-only) ────
@@ -603,7 +603,7 @@ export async function broadcastStatusAction(): Promise<
 
 // ── Guest reputation (host → guest rating, cross-host) ──────────────────
 // Internal, host-only. One living review per host per guest, keyed on the
-// guest's Vilo account id. Eligibility (a completed/no-show stay) is enforced
+// guest's Wielo account id. Eligibility (a completed/no-show stay) is enforced
 // here AND in RLS (own-row write). No notifications — guests never see it.
 export async function upsertGuestRatingAction(
   guestId: string,

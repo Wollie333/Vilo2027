@@ -19,7 +19,7 @@ export async function generateMetadata({
   const sp = await searchParams;
   const h = await headers();
   return siteMetadata({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
     pathSlug: slug ?? [],
     preview: sp?.preview === "1",
@@ -39,7 +39,7 @@ export default async function SiteSlugPage({
   const sp = await searchParams;
   const h = await headers();
   const ref = resolveSiteRef({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
   });
   if (!ref) notFound();

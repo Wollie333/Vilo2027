@@ -279,8 +279,8 @@ export default async function EditQuotePage({
             </h1>
             <p className="mt-1 max-w-xl text-sm text-brand-mute">
               {firstName} asked for a price — review what they want, then build
-              and send the quote. When they accept and pay, Vilo turns it into a
-              confirmed booking automatically.
+              and send the quote. When they accept and pay, Wielo turns it into
+              a confirmed booking automatically.
             </p>
           </>
         ) : (

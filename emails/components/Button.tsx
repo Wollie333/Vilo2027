@@ -6,7 +6,7 @@ const PRIMARY_HOVER = "#0D2B21";
 
 /**
  * Branded primary button. Wraps @react-email's Button so every template
- * gets the same Vilo emerald + 10px radius treatment without copy-pasting
+ * gets the same Wielo emerald + 10px radius treatment without copy-pasting
  * 8 lines of style.
  */
 export default function Button({

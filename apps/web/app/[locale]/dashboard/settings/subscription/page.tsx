@@ -104,8 +104,8 @@ export default async function SettingsSubscriptionPage() {
         .order("created_at", { ascending: false })
         .limit(10),
       getPlans(),
-      // The host's own Vilo billing rows (own-row RLS). Shows what they've paid
-      // Vilo for their subscription/services.
+      // The host's own Wielo billing rows (own-row RLS). Shows what they've paid
+      // Wielo for their subscription/services.
       supabase
         .from("platform_ledger")
         .select("id, type, status, amount, currency, reason, created_at")
@@ -275,7 +275,7 @@ export default async function SettingsSubscriptionPage() {
         </div>
       </section>
 
-      {/* ─── Vilo billing history ────────────────────────────────── */}
+      {/* ─── Wielo billing history ────────────────────────────────── */}
       {billingRaw && billingRaw.length > 0 ? (
         <section>
           <h2 className="mb-3 font-display text-base font-bold text-brand-ink">
@@ -319,10 +319,10 @@ export default async function SettingsSubscriptionPage() {
       <p className="text-[12px] text-brand-mute">
         Need a custom arrangement? Email{" "}
         <a
-          href="mailto:hello@viloplatform.com"
+          href="mailto:hello@wieloplatform.com"
           className="text-brand-primary underline-offset-2 hover:underline"
         >
-          hello@viloplatform.com
+          hello@wieloplatform.com
         </a>
         .
       </p>

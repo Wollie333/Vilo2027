@@ -546,10 +546,10 @@ function DetailsDrawer({
   context: ThreadContext;
 }) {
   const refLabel = context.booking
-    ? "Vilo booking"
+    ? "Wielo booking"
     : context.isEnquiry
-      ? "Vilo enquiry"
-      : "Vilo conversation";
+      ? "Wielo enquiry"
+      : "Wielo conversation";
   const refValue =
     context.booking?.reference ??
     `VILO-${context.conversationId.slice(0, 8).toUpperCase()}`;
@@ -703,7 +703,7 @@ function DetailsDrawer({
                 </a>
               ) : null}
               <span className="inline-flex items-center gap-1">
-                <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" /> Vilo
+                <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" /> Wielo
                 direct
               </span>
             </div>

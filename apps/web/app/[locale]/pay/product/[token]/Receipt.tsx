@@ -6,9 +6,9 @@ import { useEffect } from "react";
 import { Link } from "@/i18n/navigation";
 import { firePurchase } from "@/lib/analytics/purchase";
 
-// Post-payment thank-you one-pager for a Vilo product/subscription purchase —
+// Post-payment thank-you one-pager for a Wielo product/subscription purchase —
 // mirrors the signup last step (StepWelcome) receipt. Dynamic values come from
-// the issued Vilo invoice so what the buyer sees matches their invoice exactly.
+// the issued Wielo invoice so what the buyer sees matches their invoice exactly.
 
 export type ReceiptPurchase = {
   brandName: string;

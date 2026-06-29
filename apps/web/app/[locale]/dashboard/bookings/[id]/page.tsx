@@ -132,7 +132,7 @@ function channelOf(
     case "quote_converted":
       return { label: "From quote", mark: "Q", bg: "#6366F1" };
     default:
-      return { label: "Vilo direct", mark: "V", bg: "#10B981" };
+      return { label: "Wielo direct", mark: "V", bg: "#10B981" };
   }
 }
 

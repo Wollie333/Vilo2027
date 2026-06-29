@@ -104,7 +104,7 @@ export function LoginForm({
         </div>
 
         <div className="w-full max-w-[440px] py-10 lg:py-0">
-          <div className="vilo-fade-up">
+          <div className="wielo-fade-up">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-primary">
               Welcome back
             </div>
@@ -117,14 +117,14 @@ export function LoginForm({
           </div>
 
           {justRegistered ? (
-            <div className="vilo-fade-up vilo-delay-1 mt-5 rounded border border-brand-line bg-brand-accent/60 px-4 py-3 text-sm text-brand-ink">
+            <div className="wielo-fade-up wielo-delay-1 mt-5 rounded border border-brand-line bg-brand-accent/60 px-4 py-3 text-sm text-brand-ink">
               Check your inbox to verify your email, then sign in below.
             </div>
           ) : null}
 
           <form
             onSubmit={handleSubmit}
-            className="vilo-fade-up vilo-delay-2 mt-7 space-y-3.5"
+            className="wielo-fade-up wielo-delay-2 mt-7 space-y-3.5"
             noValidate
           >
             <div>
@@ -310,7 +310,7 @@ export function LoginForm({
             </div>
           </form>
 
-          <div className="vilo-fade-up vilo-delay-3 mt-7 border-t border-brand-line pt-6 text-center text-[13px] text-brand-mute">
+          <div className="wielo-fade-up wielo-delay-3 mt-7 border-t border-brand-line pt-6 text-center text-[13px] text-brand-mute">
             New to <BrandName />?
             <Link
               href="/signup"
@@ -320,7 +320,7 @@ export function LoginForm({
             </Link>
           </div>
 
-          <div className="vilo-fade-up vilo-delay-3 mt-6 flex items-center justify-center gap-5 text-[10.5px] text-brand-mute">
+          <div className="wielo-fade-up wielo-delay-3 mt-6 flex items-center justify-center gap-5 text-[10.5px] text-brand-mute">
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-brand-primary" /> 256-bit
               TLS
@@ -367,14 +367,14 @@ function Showcase() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-dot-grid opacity-25"
       />
-      <span className="vilo-orb vilo-orb-1" aria-hidden />
-      <span className="vilo-orb vilo-orb-2" aria-hidden />
-      <span className="vilo-orb vilo-orb-3" aria-hidden />
+      <span className="wielo-orb wielo-orb-1" aria-hidden />
+      <span className="wielo-orb wielo-orb-2" aria-hidden />
+      <span className="wielo-orb wielo-orb-3" aria-hidden />
 
       <div className="relative flex items-center justify-between">
         <Link href="/" className="group flex items-center gap-2.5">
           <svg
-            className="vilo-logo-pulse h-10 w-10 rounded-md"
+            className="wielo-logo-pulse h-10 w-10 rounded-md"
             viewBox="0 0 100 100"
             fill="none"
             aria-hidden="true"

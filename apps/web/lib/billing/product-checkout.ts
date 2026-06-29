@@ -6,7 +6,7 @@ import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Vilo product checkout — mirrors the host booking pay-link, but for Vilo's own
+// Wielo product checkout — mirrors the host booking pay-link, but for Wielo's own
 // products. The admin generates an order + tokenised pay-link; the user pays via
 // Paystack (platform key) or EFT.
 
@@ -39,7 +39,7 @@ export async function createProductOrder(input: {
     return { ok: false, error: "Product not found or inactive." };
   }
 
-  // Link to an existing Vilo account if the email matches one.
+  // Link to an existing Wielo account if the email matches one.
   const { data: payer } = await admin
     .from("user_profiles")
     .select("id")
@@ -152,7 +152,7 @@ export async function fulfilFreeProductBySlug(
   const cleanEmail = email.trim().toLowerCase();
   const name = cleanEmail.split("@")[0] || "Host";
 
-  // 1) Account — passwordless lead if new (mints a Vilo identity + user_profile).
+  // 1) Account — passwordless lead if new (mints a Wielo identity + user_profile).
   const identity = await findOrCreateLeadIdentity(admin, {
     email: cleanEmail,
     name,

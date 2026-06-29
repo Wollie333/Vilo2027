@@ -1,4 +1,4 @@
-# Vilo — Track 5 Current Task
+# Wielo — Track 5 Current Task
 
 > ⚠️ **Reset this file at the start of every Track 5 session.**
 > Track 5 = Legal & Marketing Polish. See `PHASE_PLAN.md` §Parallel Execution Tracks → Track 5 for owned paths.
@@ -16,7 +16,7 @@ Three static legal pages (Server Components, no data fetching) styled per the ca
 
 **Spec reference:**
 - `PHASE_PLAN.md` §Phase 5 — Legal & Compliance
-- `Vilo Design System.html` (canonical UX/UI source per `feedback_design_system_source` memory)
+- `Wielo Design System.html` (canonical UX/UI source per `feedback_design_system_source` memory)
 
 ---
 

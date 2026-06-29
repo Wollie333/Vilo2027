@@ -1,4 +1,4 @@
-# Theme Contract — how every theme plugs into the Vilo Website CMS
+# Theme Contract — how every theme plugs into the Wielo Website CMS
 
 > **Why this exists.** Safari (NenGama Lodge) is the **reference theme**. Everything
 > the CMS and the builders do is designed so a *new* theme is "scope the design,
@@ -43,7 +43,7 @@ A theme that needs a fully custom look (like Safari) implements only:
    + menu setting in the contract table below.
 2. **A shell + nav + footer render** — the `SafariShell` / `SafariNav` pattern:
    consume the nav model, honour every setting, scoped under a single theme root
-   class (`.vilo-safari`).
+   class (`.wielo-safari`).
 3. **Section bands + a `renderXxxSection` dispatcher** — the `SafariSections`
    pattern: one component per section `type`, dispatched by type, bound to live
    data (rooms/posts/reviews/forms), with stock fallbacks. Wire it into
@@ -110,13 +110,13 @@ shared** — a new theme inherits them by rendering the shared `FormSection` /
 
 **The end goal of the Website CMS (founder, 2026-06-27, "the most important aspect"):**
 a designer hands over a raw theme — `*.html` pages + `*.css` + `*.js` — and we
-**conform it to this contract** so it becomes a fully functional Vilo theme
+**conform it to this contract** so it becomes a fully functional Wielo theme
 (editable in the builders, data-bound, forms→inbox, analytics, publishable). The
 whole point of the layering + the contract above is to make that conformance a
 **mechanical slot-filling exercise**, not bespoke engineering each time.
 
 **Conformance workflow (what "conform an uploaded design" means, step by step):**
-1. **Scope the CSS.** Wrap every selector under one theme root `.vilo-<t>`
+1. **Scope the CSS.** Wrap every selector under one theme root `.wielo-<t>`
    (or compile it scoped). Port any page-level `<style>` blocks too. Nothing leaks.
 2. **Kill / replace the JS.** Theme JS is almost always nav toggles / sliders /
    scroll effects → re-implement with our React behaviour (the `<T>Nav` scroll/

@@ -114,7 +114,7 @@ export function PagesManager({
   const deleting = deleteId ? pages.find((p) => p.id === deleteId) : null;
 
   return (
-    <div className="vilo-cms mx-auto max-w-[1180px]">
+    <div className="wielo-cms mx-auto max-w-[1180px]">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2.5">
           <h1

@@ -16,7 +16,7 @@ export async function generateMetadata({
   const sp = await searchParams;
   const h = await headers();
   return siteMetadata({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
     pathSlug: [],
     preview: sp?.preview === "1",
@@ -25,7 +25,7 @@ export async function generateMetadata({
 
 // Tenant site home. The W5 middleware rewrites a tenant request to
 // /<locale>/site (locale = the business default_language) and sets the
-// x-vilo-site-host header. Testable now via /<locale>/site?site=<subdomain>.
+// x-wielo-site-host header. Testable now via /<locale>/site?site=<subdomain>.
 //
 // Mounted under [locale] (not a standalone (site) group) because the app's
 // only root layout lives at [locale]/layout.tsx; a second route-group root
@@ -44,7 +44,7 @@ export default async function SiteHomePage({
   const sp = await searchParams;
   const h = await headers();
   const ref = resolveSiteRef({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
   });
   if (!ref) notFound();

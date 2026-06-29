@@ -110,7 +110,7 @@ function SpecialCardView({
         <div className="mt-4 flex items-center justify-end pt-2">
           <a
             href={s.bookHref}
-            data-vilo-book
+            data-wielo-book
             style={{
               background: "var(--site-btn-primary-bg)",
               color: "var(--site-btn-primary-color)",

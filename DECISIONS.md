@@ -3,20 +3,20 @@
 **Version:** 1.0
 **Last Updated:** May 2026
 
-> **⚖️ LEGAL TODO (OPEN — before launch, 2026-06-11):** Vilo is a direct-booking
+> **⚖️ LEGAL TODO (OPEN — before launch, 2026-06-11):** Wielo is a direct-booking
 > *platform*, not a payment processor or escrow. Hosts & guests transact
 > **directly** — card runs on the **host's own** Paystack/PayPal (AGENT_RULES
 > §4.7/§4.8), EFT/SWIFT goes straight to the host's bank, and **refunds are
-> issued by the host directly**. Vilo never holds, routes, or controls the money.
+> issued by the host directly**. Wielo never holds, routes, or controls the money.
 > The **Terms of Use** (+ checkout/host-onboarding consent) MUST state that all
 > payments & refunds are handled directly between host and guest, **outside
-> Vilo's control**, and that Vilo is **not liable** for disputes, non-delivery,
+> Wielo's control**, and that Wielo is **not liable** for disputes, non-delivery,
 > chargebacks, or refunds — each party accepts that risk. **Get it legally
 > reviewed** — this is the core liability shield for the direct-payment model.
 > Surface a short "paid directly to the host" line on `/pay/[token]` + checkout.
 > Add a matching pre-launch line to `SECURITY_CHECKLIST.md`.
 
-This file records every significant technical decision made for the Vilo platform — what was chosen, what was considered, and why. When an agent suggests changing something, check here first. If there's an ADR for it, the decision is locked unless explicitly reopened.
+This file records every significant technical decision made for the Wielo platform — what was chosen, what was considered, and why. When an agent suggests changing something, check here first. If there's an ADR for it, the decision is locked unless explicitly reopened.
 
 **Format:** Each ADR has a status — `Accepted` (locked), `Superseded` (replaced by a later ADR), or `Proposed` (still being decided).
 
@@ -135,7 +135,7 @@ This file records every significant technical decision made for the Vilo platfor
 - Full ownership — components live in the repo, no upstream version lock-in
 - Fully accessible (Radix UI primitives beneath)
 - Completely unstyled by default — Tailwind tokens apply cleanly
-- Easy to customise for Vilo's brand without fighting library defaults
+- Easy to customise for Wielo's brand without fighting library defaults
 
 **Rejected alternatives:**
 - MUI / Ant Design / Chakra: heavy, opinionated styling that fights Tailwind
@@ -258,7 +258,7 @@ This file records every significant technical decision made for the Vilo platfor
 **Reasons:**
 - Cleaner React integration via `react-map-gl` — first-class hooks and components
 - More affordable at MVP scale — free tier covers early traffic
-- Better visual customisation to match Vilo's brand colours
+- Better visual customisation to match Wielo's brand colours
 - `react-map-gl` abstracts the Mapbox API cleanly for RSC-compatible usage
 
 **Rejected alternatives:**
@@ -278,7 +278,7 @@ This file records every significant technical decision made for the Vilo platfor
 
 **Reasons:**
 - No token to provision/rotate/secure, and nothing to break when it's missing — the old Mapbox picker was gated behind `NEXT_PUBLIC_MAPBOX_TOKEN` and silently hidden when unset, leaving listings without coordinates.
-- Zero map cost at any scale; Vilo is SA-only so OSM coverage is ample.
+- Zero map cost at any scale; Wielo is SA-only so OSM coverage is ample.
 - `leaflet` was already a dependency (guest listing map), so this removed a provider rather than adding one.
 - Photon is purpose-built for as-you-type autocomplete (a better fit than Mapbox's geocoder), and both it and Nominatim are free and keyless.
 
@@ -422,7 +422,7 @@ scoped by URL param. Auth cookies are never swapped.
 **Reasons:**
 
 - **Same-domain route group, not a subdomain.** The product spec called for
-  `admin.viloplatform.com`, but a second Next.js app doubles deploys, env
+  `admin.wieloplatform.com`, but a second Next.js app doubles deploys, env
   vars, and CI. The subdomain can be added later via a Vercel rewrite with
   no code change. One app, one deploy pipeline, until volume justifies the split.
 - **Role-based RBAC with a permission catalog**, not per-permission RBAC
@@ -515,7 +515,7 @@ admin permissions); AGENT_RULES.md §6.4–6.8.
 - The route handler must stay idempotent. `notification_queue.sent_at`/`failed_at` mutate per row inside the loop; if Vercel kills the request mid-batch the next tick picks up the unmarked rows. Don't introduce app-level batching state.
 - The bearer check uses constant-time comparison. Any future header-auth additions to this route must do the same — never compare tokens with `===`.
 - If a future requirement forces a Deno runtime (e.g. moving off Vercel), the worker stays Node-by-default; the migration path is "introduce a parallel Deno function and dual-write the queue tick," not "rewrite the only worker as Deno on day one."
-- `EMAIL_FROM_ADDRESS` falls back to `Vilo <onboarding@resend.dev>` so pre-domain-verification dev work doesn't 500. Production must override to a verified domain — `noreply@viloplatform.com` per spec.
+- `EMAIL_FROM_ADDRESS` falls back to `Wielo <onboarding@resend.dev>` so pre-domain-verification dev work doesn't 500. Production must override to a verified domain — `noreply@wieloplatform.com` per spec.
 
 Related: ADR-007 (React Email choice — preserved); `NOTIFICATIONS.md` §6 (push dispatch will follow the same pattern — Node route, pg_cron caller); `EMAIL_TEMPLATES.md` §"Calling templates from Edge Functions" (now superseded by this ADR — keep the doc snippet but cross-link here).
 
@@ -553,7 +553,7 @@ Re-evaluate at the pre-launch security checklist.
 
 **Problem:**
 
-Vilo had **three independent pricing implementations that had drifted apart**,
+Wielo had **three independent pricing implementations that had drifted apart**,
 and the one that actually charged guests was wrong:
 
 | Where | Seasonal? | Weekend? | Used for |
@@ -566,7 +566,7 @@ The authoritative booking path computed the nightly cost as `base × nights` wit
 **no per-night seasonal or weekend resolution**. So a host could configure a
 December peak rate (and see it in the preview), but it **never reached the
 charged total** — guests silently paid base rate. This is a revenue-correctness
-defect, not a cosmetic one. Vilo's whole promise is a financially exact
+defect, not a cosmetic one. Wielo's whole promise is a financially exact
 direct-booking experience with no success fee, so the maths must be provably
 correct.
 
@@ -577,7 +577,7 @@ correct.
   **server booking action** (authoritative recalculation), the **client
   estimate** on the listing/booking pages, and the **host seasonal preview**.
   Preview, checkout, and invoice can no longer disagree.
-- **The 5-stage Vilo Pricing Stack**, applied in fixed order:
+- **The 5-stage Wielo Pricing Stack**, applied in fixed order:
   (1) nightly rate — per night pick exactly one of *seasonal → weekend → base*;
   (2) occupancy adjustment; (3) stay discounts (whole-place combo, then
   length-of-stay; % off the nights subtotal only); (4) fees & extras (cleaning
@@ -640,19 +640,19 @@ entry for 2026-06-01; `feedback — ship over block` (the documented deviation).
 
 ---
 
-## ADR-021 — Vilo-owned guest identity: passwordless mint at every entry point
+## ADR-021 — Wielo-owned guest identity: passwordless mint at every entry point
 **Status:** Accepted
 **Date:** 2026-06-10
 
 **Business principle:** This ADR is the technical implementation of
-`BUSINESS_PRINCIPLES.md` → **Principle #1 — Vilo owns all guest identity**. Read
+`BUSINESS_PRINCIPLES.md` → **Principle #1 — Wielo owns all guest identity**. Read
 that first for the strategic *why*; this ADR covers the *how*.
 
 **Decision:**
 
-Every guest entry point mints (or reuses) a single global Vilo guest account,
+Every guest entry point mints (or reuses) a single global Wielo guest account,
 keyed on email, via **one canonical server helper** —
-`apps/web/lib/identity/ensureViloGuestIdentity.ts`:
+`apps/web/lib/identity/ensureWieloGuestIdentity.ts`:
 
 - Normalise email (`trim().toLowerCase()` — matches the `lower(email)` convention
   used by `gkey` and `host_contacts`).
@@ -690,11 +690,11 @@ keyed on email, via **one canonical server helper** —
 
 **Constraint:**
 
-- Never create guest identity by any path other than `ensureViloGuestIdentity`.
+- Never create guest identity by any path other than `ensureWieloGuestIdentity`.
 - Account minting needs the auth admin API, so it lives in the **TS action
   layer**, not in SQL triggers. The `_materialize_booking_party` trigger keeps
   materialising `host_contacts` / `guest_relationships`; the action mints the
-  Vilo accounts around it.
+  Wielo accounts around it.
 - Never let signup dead-end a returning passwordless guest.
 
 Related: `BUSINESS_PRINCIPLES.md` Principle #1; plan
@@ -709,7 +709,7 @@ Related: `BUSINESS_PRINCIPLES.md` Principle #1; plan
 **Date:** 2026-06-20
 
 **Decision:** The enterprise Website-CMS build-out skips **Phase 5 — Minutes-to-Launch
-(AI Site Generator)** entirely. Vilo will ship **no AI website-generation ability**:
+(AI Site Generator)** entirely. Wielo will ship **no AI website-generation ability**:
 no `buildSiteBrief()` + generation engine, no onboarding "generate my site" wizard,
 no inline rewrite/SEO-suggest/translate assist. The lane proceeds from Phase 4
 (Forms & Leads, complete) straight to **Phase 6 — Conversion & Booking**.

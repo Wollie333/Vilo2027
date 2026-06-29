@@ -174,7 +174,7 @@ export default async function AffiliateOverviewPage() {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://vilo.co.za";
+    "https://wielo.co.za";
 
   const columns: AdminColumn<ReferredRow>[] = [
     {
@@ -292,7 +292,7 @@ export default async function AffiliateOverviewPage() {
           <ol className="mt-3 space-y-3 text-[12.5px] text-brand-ink">
             {[
               "Share your link with hosts and property owners.",
-              "They sign up and start a Vilo subscription.",
+              "They sign up and start a Wielo subscription.",
               "You earn recurring commission for as long as they stay.",
             ].map((step, i) => (
               <li key={i} className="flex gap-3">

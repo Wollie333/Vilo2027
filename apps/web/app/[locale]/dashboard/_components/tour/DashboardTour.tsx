@@ -130,7 +130,7 @@ export function DashboardTour() {
       {/* dim + spotlight cutout — clicking the dark area skips the tour */}
       <svg className="absolute inset-0 h-full w-full" onClick={close}>
         <defs>
-          <mask id="vilo-tour-mask">
+          <mask id="wielo-tour-mask">
             <rect width="100%" height="100%" fill="white" />
             {rect ? (
               <rect
@@ -148,7 +148,7 @@ export function DashboardTour() {
           width="100%"
           height="100%"
           fill="rgba(6,30,20,0.55)"
-          mask="url(#vilo-tour-mask)"
+          mask="url(#wielo-tour-mask)"
         />
       </svg>
 

@@ -21,7 +21,7 @@ export function SiteLoadingOverlay({
   message: string;
   sub?: string;
 }) {
-  // Portal to <body> so no themed ancestor (e.g. .vilo-safari's overflow:clip) can
+  // Portal to <body> so no themed ancestor (e.g. .wielo-safari's overflow:clip) can
   // crop the overlay. `mounted` keeps it client-only (createPortal needs document).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -31,7 +31,7 @@ export function SiteLoadingOverlay({
       role="status"
       aria-live="assertive"
       aria-busy="true"
-      className="vilo-site-loading"
+      className="wielo-site-loading"
       style={{
         position: "fixed",
         inset: 0,
@@ -45,7 +45,7 @@ export function SiteLoadingOverlay({
         WebkitBackdropFilter: "blur(3px)",
       }}
     >
-      <style>{`@keyframes vilo-site-spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`@keyframes wielo-site-spin{to{transform:rotate(360deg)}}`}</style>
       <div
         style={{
           width: "min(360px, 100%)",
@@ -67,7 +67,7 @@ export function SiteLoadingOverlay({
             borderRadius: "50%",
             border: "3px solid var(--site-line, #e6e6e6)",
             borderTopColor: "var(--site-accent, #0a7d4b)",
-            animation: "vilo-site-spin 0.8s linear infinite",
+            animation: "wielo-site-spin 0.8s linear infinite",
           }}
         />
         <p style={{ margin: "16px 0 0", fontSize: 16, fontWeight: 700 }}>

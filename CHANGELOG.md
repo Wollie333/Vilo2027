@@ -46,7 +46,7 @@ live for launch without re-entering anything (mirrors `platform_payment_settings
   set; "test connection" pings the active mode.
 
 The host's connected Paystack already powers the website checkout + listings
-(Vilo 0%), so guests pay in whichever mode the host has active. `tsc` + `lint` clean.
+(Wielo 0%), so guests pay in whichever mode the host has active. `tsc` + `lint` clean.
 
 ## 2026-06-29 — Free products: skip payment, provision the buyer, auto sign-in
 
@@ -84,7 +84,7 @@ method hidden in the UI. `tsc` + `lint` clean.
 Paystack-via-website was already wired: the on-site checkout (`SiteCheckoutForm` +
 `site/book/page.tsx`) resolves the host's own connected Paystack
 (`getHostPaystackForBusiness`) and offers Paystack + EFT — guests pay through the
-host's Paystack (Vilo 0%). Added the host control to enable/disable each method.
+host's Paystack (Wielo 0%). Added the host control to enable/disable each method.
 
 - `websiteSettingsSchema`: `payPaystackEnabled` + `payEftEnabled` (default true),
   saved under `host_websites.settings.payments`.
@@ -101,7 +101,7 @@ enforcement in `/api/site-booking` is a hardening follow-up. `tsc` + `lint` clea
 
 Added an admin surface for **host staff** (`staff_members` — users a host assigns
 to help run their listings/bookings), which previously had no admin oversight
-(host-facing only at `/dashboard/staff`). Distinct from Vilo platform staff.
+(host-facing only at `/dashboard/staff`). Distinct from Wielo platform staff.
 
 - **Per-host panel (A)** — `HostStaffManager` on the host detail page
   (`/admin/hosts/[id]`): lists the host's staff, remove, and **two add paths**:
@@ -327,7 +327,7 @@ pushed to `origin/main`.
 
 - Listings-style layout (`RoomDockLayout`): full-width gallery on top, content + a
   STICKY booking dock that sits below the fixed header with a gap
-  (`--vilo-sticky-top`, set per-theme by the shell).
+  (`--wielo-sticky-top`, set per-theme by the shell).
 - Per-room section reorder (one unified list); builder-canvas header matches live.
 - Auto "Things to know" (`room_policies`) + a draggable property-level `policies`
   section. Forms/sections conform to Safari via a `--site-*` bridge in safari.css.
@@ -347,7 +347,7 @@ pushed to `origin/main`.
 - Host notified (`booking_request_host`) on every website booking.
 - Real sales CHANNEL stored per booking: `vilo` default, `website` for on-site;
   `airbnb`/`booking`/`expedia`/`lekkerslaap`/`web-referred` ready. Bookings board,
-  detail + channel-mix report show **Website vs Vilo** (both are direct).
+  detail + channel-mix report show **Website vs Wielo** (both are direct).
 
 **Forms + builders**
 
@@ -434,7 +434,7 @@ Two slices of the forms epic (#8).
 - **Guest-contact on EVERY submit (`submitWebsiteForm.ts`).** Contacts were created
   only selectively (newsletter / marketing-opt-in / inbox-routed). Now every
   email-bearing submission upserts a contact in the host's CRM (`host_contacts`,
-  owned by Vilo + shared with the host), tagged `website`, `email_consent=false`
+  owned by Wielo + shared with the host), tagged `website`, `email_consent=false`
   (a lead, not a subscriber) — so the host ALWAYS gets the lead regardless of
   routing. Consolidated the duplicated host-lookup + blocked-check into one
   `canContact` gate reused by the newsletter / marketing-opt-in routes (which now
@@ -503,7 +503,7 @@ parity with a section's own `visibility`. A host can now hide a child on mobile
 Scope note: this delivers the **hide/show** dimension of per-device overrides
 (the most common need, and exact parity with sections). Full per-device
 *re-styling* (different align/size/colour per breakpoint) would need the
-duplicate-render machinery that is currently Safari-only (`.vilo-rdup-*`) — left
+duplicate-render machinery that is currently Safari-only (`.wielo-rdup-*`) — left
 as a follow-on.
 
 `tsc --noEmit` (whole project) + `next lint` **clean**. **Live-verified** on
@@ -790,13 +790,13 @@ showed the desktop menu on the Tablet/Mobile tabs. Now the canvas resizes + the
 chrome collapses at the SIMULATED width, exactly as Safari does. Approach mirrors
 Safari but keeps the live site untouched:
 - `SiteChrome.tsx` — kept every Tailwind utility (still drives the live site) and
-  added paired `vilo-cq-*` markers: `vilo-cq-d` / `vilo-cq-m` on the header +
-  footer desktop/mobile band split, `vilo-cq-full-{md,lg}` / `vilo-cq-burg-{md,lg}`
-  on the inline menu + ☰, `vilo-cq-book-{md,lg}` on the Book button. Suffix from
+  added paired `wielo-cq-*` markers: `wielo-cq-d` / `wielo-cq-m` on the header +
+  footer desktop/mobile band split, `wielo-cq-full-{md,lg}` / `wielo-cq-burg-{md,lg}`
+  on the inline menu + ☰, `wielo-cq-book-{md,lg}` on the Book button. Suffix from
   the new `cqBreak(collapse)` helper (`tablet`→`lg`, else `md`).
 - `builder.css` — re-scoped the frame-resize from `.nav-scroll-preview` to
   `.nav-canvas` (now applies to BOTH chromes) and added `@container` rules under
-  `.vilo-builder .nav-canvas` that re-toggle the `vilo-cq-*` markers at the
+  `.wielo-builder .nav-canvas` that re-toggle the `wielo-cq-*` markers at the
   simulated device width (`!important` beats Tailwind's @media, which still fires
   at the real viewport inside the canvas). Builder + nav-canvas scoped → inert on
   the live site and on the page builder.
@@ -936,7 +936,7 @@ per-page · two-state colours · reset-to-default — every future theme must co
 
 **Per-link styling now works on every theme**, not just Safari — completes the
 responsive-menu epic. `SiteChrome` gained a `menuItemStyleCss` (scoped to
-`.vilo-hmenu a.mi-<id>`) mirroring the Safari generator (desktop + tablet
+`.wielo-hmenu a.mi-<id>`) mirroring the Safari generator (desktop + tablet
 `@media`; builder `previewDevice` renders the active device's merged layer flat),
 the `MenuLink` gets the `mi-<id>` class, and `SiteChromeCanvas`/the editors thread
 `previewDevice`. Verified by flipping the test site to `classic`: a per-link
@@ -1060,7 +1060,7 @@ hero ("Your headline here").
   viewport so the host can scroll the real page + watch the sticky menu behave.
   Off-theme (non-Safari) keeps the existing generic header preview unchanged.
 - Verified live: the menu canvas shows the real home page (8 sections, real
-  footer "Powered by Vilo"); renaming a link instantly updated the canvas nav;
+  footer "Powered by Wielo"); renaming a link instantly updated the canvas nav;
   the viewport scrolls the real page with a sticky header. 131 vitest + tsc +
   lint green.
 
@@ -1245,7 +1245,7 @@ the REAL theme chrome, live-bound to the config being edited:
   newsletter, and the menu shows the real nav. Off-theme falls back to the generic
   preview. Loader now passes `theme` + a resolved `SiteBrand` (logo/socials/tagline).
 - Because the canvas is built from `navConfig` state, edits reflect INSTANTLY; the
-  manager's `.vilo-builder` root already un-fixes the nav (builder.css).
+  manager's `.wielo-builder` root already un-fixes the nav (builder.css).
 
 Verified live in the managers (logged-in builder): header shows real chrome + hero;
 footer shows Explore/Visit + newsletter; menu Style-tab colour change flipped the
@@ -1582,10 +1582,10 @@ pages." Generalised the per-device system from hero-only specific fields to a
   edit still flows through). Plus the "hide on this screen" toggle.
 - **Render:** `SafariSectionList` renders a section once per screen size when it
   has an override (each with its merged props, laptop⊃desktop, mobile⊃laptop),
-  wrapped in `.vilo-rdup-{desktop,laptop,mobile}` (`display:contents`) that the
+  wrapped in `.wielo-rdup-{desktop,laptop,mobile}` (`display:contents`) that the
   responsive CSS shows for its range — Desktop >1024, Laptop 641–1024, Mobile
   ≤640 — via both `@media` (live) and `@container` (builder frames). Sections with
-  only a hide flag still use the lightweight single-render `.vilo-rwrap`.
+  only a hide flag still use the lightweight single-render `.wielo-rwrap`.
 - Reverted the hero's bespoke per-device code (RText/rimg/`hero--l/m-*`) — the
   generic merge covers text/image/alignment. Kept `cta_stack` as a real hero prop
   ("stack buttons") so it's editable on desktop AND per-device like everything
@@ -1645,7 +1645,7 @@ and added a real responsive override system:
 - **Data:** additive optional `responsive: { laptop?, mobile? }` on `sectionBase`
   (`{ hidden?, image_path? }` each) — no migration.
 - **Rendering:** `SafariSectionList` wraps each section in a `display:contents`
-  `.vilo-rwrap` that collapses to `display:none` at the laptop (≤1024px) / mobile
+  `.wielo-rwrap` that collapses to `display:none` at the laptop (≤1024px) / mobile
   (≤640px) breakpoint when hidden. The hero renders all three images (with
   fall-back srcs) and swaps them per device. Driven by BOTH `@media` (live site)
   AND `@container` (the builder's device frames are size containers) — same dual
@@ -1685,7 +1685,7 @@ should only show settings that actually do something for the active theme").
 
 Re the "green glow behind the CTA": it's the builder's selected-block outline
 (emerald `#10b981`), already re-tinted to the Safari ochre accent in pt.1
-(`builder.css` `.vilo-builder .vilo-safari .bk.sel::after`). If it still shows
+(`builder.css` `.wielo-builder .wielo-safari .bk.sel::after`). If it still shows
 green, the builder tab is serving stale CSS — a hard reload picks up the ochre.
 tsc + lint + 131 vitest green.
 
@@ -1782,7 +1782,7 @@ extras when `preset === "safari"`. New i18n keys (en) for all fields.
 **Builder selection chrome themed.** The selected-block outline/label used the
 generic builder emerald (`#10b981`), which clashed with the warm Safari canvas
 (the "greenish hue" the founder spotted — it's builder UI, not the published
-design). On a `.vilo-safari` canvas it now tints with the theme accent (ochre)
+design). On a `.wielo-safari` canvas it now tints with the theme accent (ochre)
 via `builder.css`.
 
 Patched the vilotest home draft to match (align left, 2 CTAs, stats, badge) so
@@ -2021,7 +2021,7 @@ the published design.
   generic block for anything without a Safari variant. One renderer, both
   surfaces — so builder and live site match by construction.
 - **Safari-aware builder canvas** — `PageBuilder` now branches: when the active
-  theme is `safari`, the canvas renders inside the scoped `.vilo-safari` frame
+  theme is `safari`, the canvas renders inside the scoped `.wielo-safari` frame
   (+ the theme fonts) and each block renders Safari-styled and selectable;
   otherwise the generic chrome as before. `safari.css` is loaded in the editor
   bundle only (scoped, never leaks).
@@ -2093,7 +2093,7 @@ pending a browser session (founder's dev server holds :3000).
   / `faq-item` / `pm` / `sent-msg` — none of which existed in `safari.css`, so
   the form/details grid, the map placeholder and the FAQ accordion all fell back
   to unstyled defaults. Ported the whole block into `safari.css` (scoped under
-  `.vilo-safari`), verbatim to the mockup. Browser-verified: two-column grid at
+  `.wielo-safari`), verbatim to the mockup. Browser-verified: two-column grid at
   desktop (1.3fr/1fr) collapsing to one column ≤860px, the striped map
   placeholder with the glowing ochre pin + location tag, and the FAQ accordion
   with the plus→cross toggle on the open item.
@@ -2127,7 +2127,7 @@ tsc + lint green.
 
 ## 2026-06-26 — One preview bar for every theme (SSOT) + checkout + lightbox
 
-- **Single source of truth for theme previews.** Extracted the Vilo preview bar
+- **Single source of truth for theme previews.** Extracted the Wielo preview bar
   + link interceptor into shared, theme-agnostic components
   (`components/site/SitePreviewBar` + `SitePreviewLinks` + `site-preview.css`),
   and wired them into BOTH the Safari shell AND the standard chrome
@@ -2177,10 +2177,10 @@ tsc + lint green.
 
 ---
 
-## 2026-06-26 — Safari theme: Vilo preview bar + navigate to every page
+## 2026-06-26 — Safari theme: Wielo preview bar + navigate to every page
 
-- **Vilo preview bar** (like the WordPress admin bar) — pinned above the header
-  while previewing a theme: the Vilo mark + "Previewing Safari" and a row of
+- **Wielo preview bar** (like the WordPress admin bar) — pinned above the header
+  while previewing a theme: the Wielo mark + "Previewing Safari" and a row of
   links to EVERY page of the design. `SafariPreviewBar` + scoped CSS; the fixed
   header drops to `top:44px` and content is padded under the bar. Only rendered
   in preview (no `previewPages` on a live site → no bar).
@@ -2220,8 +2220,8 @@ tsc + lint green.
 
 Extended the bespoke Safari render layer to **all page types** — the whole site
 now matches the NenGama Lodge design, not just the home page:
-- Shared `SafariShell` (scoped `.vilo-safari` root + theme fonts + scroll-aware
-  nav + the NenGama footer with newsletter + "Powered by Vilo"). `SafariNav` got
+- Shared `SafariShell` (scoped `.wielo-safari` root + theme fonts + scroll-aware
+  nav + the NenGama footer with newsletter + "Powered by Wielo"). `SafariNav` got
   a `forceSolid` mode for pages with no dark hero (checkout) so the bar stays
   readable; the shell pads the top accordingly.
 - `SafariSiteView` is now a dispatcher: by `loadSitePage` page `kind` it renders
@@ -2254,7 +2254,7 @@ The Safari theme now renders the **home page exactly** like the supplied NenGama
 Lodge design, not just the shared CMS sections in safari colours. Built as a
 self-contained, fully-scoped render layer (zero risk to other themes):
 - `components/site/safari/safari.css` — the NenGama 421-line stylesheet ported
-  and scoped under `.vilo-safari` (every selector prefixed; other data-theme/font
+  and scoped under `.wielo-safari` (every selector prefixed; other data-theme/font
   variants dropped). Tokens, nav, hero, split/intro + stat-badge, suite cards,
   experiences, gallery mosaic, reviews, location, CTA band, footer, responsive.
 - `SafariSiteView.tsx` (server) — emits the exact NenGama markup, content driven
@@ -2670,33 +2670,33 @@ tsc + lint green.
 ## 2026-06-25 — Fix (re-applied): menu styling class — array join
 
 The previous commit's one-character space fix **did not persist** through the
-commit (the committed `SiteChrome.tsx` still had `"vilo-hmenu"` with no space), so
-`class="vilo-hmenuhidden…"` was still shipping and menu styling — including **hover
+commit (the committed `SiteChrome.tsx` still had `"wielo-hmenu"` with no space), so
+`class="wielo-hmenuhidden…"` was still shipping and menu styling — including **hover
 colour** — still didn't apply on the live site.
 
 Re-applied robustly: the nav class is now built with
-`[styled ? "vilo-hmenu" : "", className].filter(Boolean).join(" ")` instead of a
+`[styled ? "wielo-hmenu" : "", className].filter(Boolean).join(" ")` instead of a
 fragile trailing-space template literal. Confirmed in the committed file (`git
 show HEAD`) and verified live across **all four** Style settings — link colour,
-hover colour, font weight, UPPERCASE all apply on the front (`nav.vilo-hmenu`
-present, links match `.vilo-hmenu a`, hover rule targets them) and in the middle
+hover colour, font weight, UPPERCASE all apply on the front (`nav.wielo-hmenu`
+present, links match `.wielo-hmenu a`, hover rule targets them) and in the middle
 builder preview. vilotest reset to defaults + republished. tsc green.
 
 ---
 
 ## 2026-06-25 — Fix: menu styling never applied on the live site (class typo)
 
-**Root cause:** in `SiteChrome.MenuNav`, `` `${styled ? "vilo-hmenu" : ""}${className}` ``
+**Root cause:** in `SiteChrome.MenuNav`, `` `${styled ? "wielo-hmenu" : ""}${className}` ``
 concatenated the style hook and the layout classes with **no space**, rendering
-`class="vilo-hmenuhidden lg:flex…"`. So the `.vilo-hmenu` selector matched nothing
+`class="wielo-hmenuhidden lg:flex…"`. So the `.wielo-hmenu` selector matched nothing
 and the scoped menu style (`menuStyleCss`) — link colour, **hover colour**, weight,
 UPPERCASE — never applied on the published/preview site. (This was also the real
 cause of the earlier "Style tab doesn't reflect on the front"; the previous check
 only confirmed the CSS was *emitted*, not *applied*.)
 
-**Fix:** add the missing space (`"vilo-hmenu "`). Verified live: `nav.vilo-hmenu`
-now exists, menu links match `.vilo-hmenu a`, the base colour applies, and the
-hover rule `.vilo-hmenu a:hover{color:…}` targets the links.
+**Fix:** add the missing space (`"wielo-hmenu "`). Verified live: `nav.wielo-hmenu`
+now exists, menu links match `.wielo-hmenu a`, the base colour applies, and the
+hover rule `.wielo-hmenu a:hover{color:…}` targets the links.
 
 Also: the builder preview (`NavHeaderPreview`) now reflects **hover colour** too,
 via a scoped `.nvhm-pv .nv-mi:hover` rule (with `!important`, since the base colour
@@ -2722,7 +2722,7 @@ Two fixes to the navigation builder:
    live header preview) rendered menu items with fixed `.nv-mi` CSS and ignored
    `nav.menuStyle` entirely. It now applies the host's link colour, font weight,
    and UPPERCASE to the preview items, matching the live header. (The front-end
-   already applied `menuStyle` via the scoped `.vilo-hmenu` style — it just needs
+   already applied `menuStyle` via the scoped `.wielo-hmenu` style — it just needs
    a Publish to go live; verified: red/uppercase published correctly, then
    reverted.)
 2. **Auto-rooms tabs weren't visible in the tree.** When "Auto-list rooms" is on,
@@ -2877,7 +2877,7 @@ labelled group (a clean mega-menu column, no fragile flyouts); the mobile drawer
 nests them in its accordion.
 
 **Menu styling** — `navigation.menuStyle` (`color`, `hoverColor`, `weight`,
-`uppercase`). Applied to the header menu via a scoped `.vilo-hmenu` `<style>`
+`uppercase`). Applied to the header menu via a scoped `.wielo-hmenu` `<style>`
 (handles base + hover); defaults reproduce the current look.
 
 (`MenuBuilder` is still used for inline chrome editing in the page builder — left
@@ -3655,7 +3655,7 @@ are flagged for separate careful work rather than changed blind.
   session for any posted id. Now rejects self-impersonation, a non-existent
   target, and another active staff member (separation of duties).
 - **Admin financials/PII over-exposed to low-privilege staff** — the `/admin`
-  overview (Vilo revenue/MRR + audit log) and the GDPR `/admin/data-requests`
+  overview (Wielo revenue/MRR + audit log) and the GDPR `/admin/data-requests`
   page were gated only on staff membership. Overview now renders financial +
   audit sections behind `hasPermission("payments.view")`/`"audit.view"`
   (non-throwing, so the landing still works for all staff); data-requests now
@@ -4079,7 +4079,7 @@ Makes the full-screen header/menu/footer editors visually match the page builder
 - **`NavSectionEditor`** — the bespoke gray canvas is replaced with the shared
   `.canvas-wrap` + `.device` frame (same centred white device card on the same
   canvas), and the toolbar gains the page builder's desktop/tablet/phone device
-  toggle (`.seg`). The live `.vilo-nav` preview now renders inside the device
+  toggle (`.seg`). The live `.wielo-nav` preview now renders inside the device
   frame, so switching devices previews the header/footer at each width. No data
   or behaviour change (still saves via `saveNavigationAction`). tsc + lint green.
 
@@ -4231,7 +4231,7 @@ JSONB list — no element tree, no migration).
 
 Rebuilds the Website Overview tab to the `Website CMS C.html` mockup — a multi-site
 **portfolio grid** above the existing **real** first-party analytics, restyled to the
-premium `.vilo-cms` system. No fake data: the booking-funnel strip and revenue/leads
+premium `.wielo-cms` system. No fake data: the booking-funnel strip and revenue/leads
 KPIs from the mockup are **omitted** (not tracked); the right-hand KPI rail surfaces
 honest metrics instead (Booking clicks · Conversion rate · Pages / visit).
 
@@ -4263,7 +4263,7 @@ Rebuilds the Settings tab to the `Website Settings.html` mockup's `.sblock`/`.se
 layout — but with **only real controls** (no fake toggles for unbuilt features).
 
 ### Changed
-- **`SettingsForm`** — restyled into the mockup's premium settings shell (`.vilo-cms`
+- **`SettingsForm`** — restyled into the mockup's premium settings shell (`.wielo-cms`
   `.wrap-set` + `.sblock` cards of `.setrow`s with `.sw` switches + `.field` inputs):
   - **Branding** → "Open Brand Studio" link.
   - **Enquiries / WhatsApp / Announcement / Pop-up** — the existing, working conversion
@@ -4299,7 +4299,7 @@ Completes the Forms feature: a full-screen builder true to `Form Editor.html`.
   click-to-select; a submit-button preview), and an **inspector** (per-field label /
   placeholder / help / required / width / options editor, or form settings when nothing
   is selected). Full-screen **Preview** mode. Saves via `saveWebsiteFormAction`.
-- **`form-editor.css`** — the form-document + field-block styles, scoped `.vilo-builder`,
+- **`form-editor.css`** — the form-document + field-block styles, scoped `.wielo-builder`,
   loaded in the editor route tree.
 - +57 i18n keys (10 field-type names + the editor labels).
 
@@ -4353,7 +4353,7 @@ Two fixes against the real mockup files (`Page Builder A.html`, `Pages Manager.h
   into the top bar; added a full-screen **Preview** mode (with Exit). Inspector unchanged.
 
 ### Pages manager — true to `Pages Manager.html`
-- **`PagesManager`** rebuilt to the mockup `.ptr` table inside `.vilo-cms`: title + count,
+- **`PagesManager`** rebuilt to the mockup `.ptr` table inside `.wielo-cms`: title + count,
   "New page", and a `.card` table — Page (thumb + title + path) · Type · Status (`.tag`) ·
   Sections · Actions (Edit + a "⋯" dropdown: duplicate / nav visibility / delete). The page
   template modal (title + template) is preserved.
@@ -4380,7 +4380,7 @@ dnd-kit, Pages first, then fold in nav.
 Key finding: the section builder was already feature-complete (dnd-kit reorder,
 live theme/brand preview via `SectionRenderer`/`SiteChrome`/`SiteThemeRoot`,
 per-type `SectionEditor` inspector, `SectionLibrary` palette, autosave). This slice
-**re-houses that logic** into the `.vilo-builder` mockup shell — no new data model.
+**re-houses that logic** into the `.wielo-builder` mockup shell — no new data model.
 
 ### Added
 - **`website-editor/[websiteId]/pages/[pageId]/`** (`page.tsx` + `PageBuilder.tsx`)
@@ -4421,7 +4421,7 @@ each "Edit" opens a dedicated full-screen editor (canvas preview + inspector).
 ### Added
 - **`website-editor/[websiteId]/navigation/[section]/`** — one parameterised
   full-screen editor for `header` | `menu` | `footer`. `NavSectionEditor` holds the
-  full nav state, renders a live `.vilo-nav` preview in the canvas and a `.vilo-builder`
+  full nav state, renders a live `.wielo-nav` preview in the canvas and a `.wielo-builder`
   inspector for the section: Header (CTA + behaviour + announcement bar), Menu (reuses
   `MenuBuilder`), Footer (powered-by/copyright + `FooterBuilder`). Saves via the
   existing `saveNavigationAction`. `nav.css` now loads in the editor route tree.
@@ -4445,12 +4445,12 @@ editing form stays below, anchored from the cards' "Edit" buttons.
 
 ### Added
 - **`navigation/NavPreviews.tsx`** — lightweight live previews built from the real
-  navigation config + brand, themed with the scoped `.vilo-nav` chrome (nav.css):
+  navigation config + brand, themed with the scoped `.wielo-nav` chrome (nav.css):
   `NavHeaderPreview` (announce + bar + menu + CTA), `NavMenuPills`, `NavFooterPreview`.
 - +10 `website` i18n keys.
 
 ### Changed
-- **`navigation/page.tsx`** — now a `.vilo-cms .vilo-nav` manager: a Header card
+- **`navigation/page.tsx`** — now a `.wielo-cms .wielo-nav` manager: a Header card
   (with Sticky/CTA/Announcement chips + preview), a Main-menu card (menu pills), and
   a Footer card (footer preview). "Edit" buttons jump to the existing
   `NavigationForm` rendered below, which keeps all editing working unchanged.
@@ -4471,11 +4471,11 @@ reads as a finished page. Non-breaking — same controls, emerald look.
 ### Changed
 - **`(editor)/layout.tsx`** — the header is now the mockup subheader: a `.siteswitch`
   site button (name + domain → back to the all-sites portfolio), a status `.tag`,
-  and right-aligned Visit + Publish. Wrapped in `.vilo-cms`.
+  and right-aligned Visit + Publish. Wrapped in `.wielo-cms`.
 - **`WebsiteTabs`** — restyled to the emerald `.ctab` tab bar (active underline),
-  scoped `.vilo-cms`. Same navigation logic + loading state.
+  scoped `.wielo-cms`. Same navigation logic + loading state.
 - **`PublishBar`** — buttons restyled to `.btn`/`.btn-primary`/`.btn-ghost`; status
-  dot/label kept. Wrapped in `.vilo-cms`.
+  dot/label kept. Wrapped in `.wielo-cms`.
 
 tsc + lint green.
 
@@ -4511,7 +4511,7 @@ reuses the existing site-level SEO storage + `saveSeoAction`, and adds a real
 **per-page SEO table** read from each page's `seo_overrides`.
 
 ### Added
-- `cms-extra.css`: SEO-tab styles scoped `.vilo-cms` — `.cc` char counters,
+- `cms-extra.css`: SEO-tab styles scoped `.wielo-cms` — `.cc` char counters,
   `.gprev` Google preview, `.ogprev` social card, the `.imgpick` share-image
   picker, the `.seorow` per-page table, `.score`, `.checkpill`.
 - **`seo/page.tsx`** now loads `website_pages` (kind/title/slug/`seo_overrides`)
@@ -4524,7 +4524,7 @@ reuses the existing site-level SEO storage + `saveSeoAction`, and adds a real
   (share image via the media library + Open-Graph preview), **Page-by-page SEO**
   (table with per-page Title/Description checks + Good/Fair/Missing score, linking
   to the page), and Indexing (allow-search-engines toggle, sitemap on/off, GSC
-  verification). Wrapped in `.vilo-cms`; reuses `saveSeoAction`.
+  verification). Wrapped in `.wielo-cms`; reuses `saveSeoAction`.
 - **`seo/page.tsx`** full-width; the form owns its header.
 
 ### Notes
@@ -4541,7 +4541,7 @@ shared settings-page primitives the SEO + Settings tabs will reuse. A clean,
 non-breaking restyle — the domain backend (subdomain, custom-domain connect, DNS,
 SSL, canonical) is fully wired and unchanged.
 
-### Added — `cms-extra.css` (scoped `.vilo-cms`)
+### Added — `cms-extra.css` (scoped `.wielo-cms`)
 - Shared **settings-page primitives**: `.wrap-set`, `.sblock` / `.sblock-h`,
   `.setrow` (+`.col`/`.lbl`/`.ctl`), `.field` (+`.mono`/textarea/select/`.field-w`),
   `.lblrow`, and the 40 px settings `.sw` toggle — the classes the Domain/SEO/
@@ -4553,7 +4553,7 @@ SSL, canonical) is fully wired and unchanged.
   (subdomain hero w/ Live + SSL-secured tags, inline edit), Connect-a-custom-domain
   card (input + Connect, gated on Vercel config; DNS records table with copy; SSL
   status), and a Forwarding & HTTPS card (Force HTTPS shown always-on; apex/www
-  primary-host choice). Wrapped in `.vilo-cms`; reuses every existing action
+  primary-host choice). Wrapped in `.wielo-cms`; reuses every existing action
   (`saveSubdomain`/`connect`/`refresh`/`remove`/`setCanonical`).
 - **`domain/page.tsx`** — full-width; DomainManager owns its header.
 - +24 `website` i18n keys (`domPrimaryTitle`, `domForwardingTitle`, …).
@@ -4583,7 +4583,7 @@ Form editors later.
 - **`website-editor/[websiteId]/blog/[postId]/{page,loadBlogPost,PostEditor}.tsx`**
   — the editor route, moved here from under `(editor)`.
 - **`website-editor/blog-editor.css`** — the document + SERP/preview styles the
-  mockup keeps inline, scoped `.vilo-builder` (incl. `.tag` pills, since
+  mockup keeps inline, scoped `.wielo-builder` (incl. `.tag` pills, since
   `builder.css` has none; body typography also targets the Tiptap `.ProseMirror`).
 
 ### Changed
@@ -4613,7 +4613,7 @@ Form editors later.
 
 Rebuilds the Blog tab to the `Blog Manager.html` mockup — a posts table with a
 status filter and a New-post template modal — wired to the existing blog data and
-actions. First screen to adopt the `.vilo-cms` design system.
+actions. First screen to adopt the `.wielo-cms` design system.
 
 ### Changed
 - **`blog/BlogManager.tsx`** — rebuilt from a stacked list into the mockup table:
@@ -4621,7 +4621,7 @@ actions. First screen to adopt the `.vilo-cms` design system.
   Drafts / Scheduled), New-post button, and a `.card` table (Post w/ cover thumb +
   author + slug · Category chip · Status tag · Published date · Edit + ⋯ menu).
   The ⋯ menu carries Feature/Unfeature + Delete (preserves the old actions). Wrapped
-  in `.vilo-cms`. Wired to `createBlogPostAction` / `deleteBlogPostAction` /
+  in `.wielo-cms`. Wired to `createBlogPostAction` / `deleteBlogPostAction` /
   `setBlogFeaturedAction`.
 - **New-post modal** — 6 template cards (mockup copy); each seeds a blank draft and
   opens the post editor (template content-seeding is a later enhancement).
@@ -4636,7 +4636,7 @@ actions. First screen to adopt the `.vilo-cms` design system.
 ### Added
 - **`apps/web/app/[locale]/dashboard/website/cms-extra.css`** — the manager
   page-level classes the mockups keep inline (`.ptr`, `.pthumb`, `.eseg`, `.tpl`,
-  `.modal`, `.stat`), hand-authored + scoped `.vilo-cms`; shared by the later
+  `.modal`, `.stat`), hand-authored + scoped `.wielo-cms`; shared by the later
   Forms/Pages managers. Imported in the website layout.
 - 16 `website` i18n keys (`blogCol*`, `blogPublishedCount`, `blogManageCats`,
   `blogNewModalSub`, date labels, …).
@@ -4662,24 +4662,24 @@ foundation only — **no screen changes yet, zero visual change**.
   resets), namespaces `@keyframes` (so the two files can't clash on `fadeUp`),
   and passes `@media`/`@font-face` through correctly.
 - **`apps/web/app/[locale]/dashboard/website/cms.css`** — generated from the
-  mockups' `cms-dash.css`, scoped under **`.vilo-cms`** (dashboard tab pages:
+  mockups' `cms-dash.css`, scoped under **`.wielo-cms`** (dashboard tab pages:
   buttons, tags, cards, KPIs, funnel, page/site cards, tab bar, toast…).
 - **`apps/web/app/[locale]/dashboard/website/builder.css`** — generated from
-  `builder.css`, scoped under **`.vilo-builder`** (full-screen editor chrome +
+  `builder.css`, scoped under **`.wielo-builder`** (full-screen editor chrome +
   inspector fields + the `.bk-*` canvas block previews with `.device` responsive
   rules).
 - **`apps/web/app/[locale]/dashboard/website/nav.css`** — generated from the
-  mockups' `nav.css`, scoped under **`.vilo-nav`** (header/menu/footer live-preview
-  chrome + the menu-tree manager rows; usable inside either a `.vilo-cms` tab or a
-  `.vilo-builder` editor).
+  mockups' `nav.css`, scoped under **`.wielo-nav`** (header/menu/footer live-preview
+  chrome + the menu-tree manager rows; usable inside either a `.wielo-cms` tab or a
+  `.wielo-builder` editor).
 - **`app/[locale]/dashboard/website/layout.tsx`** — imports all three stylesheets
   for the `/dashboard/website` subtree. CSS-only; returns children unchanged.
 
 ### Notes
 - The app's existing `brand-*` tokens already match the mockup emerald palette
   and all three fonts (Inter / Plus Jakarta Sans / JetBrains Mono) are already
-  loaded — so the mockups are Vilo's own brand, expressed more boldly.
-- Rules are **inert** until a screen adds `.vilo-cms` / `.vilo-builder` to its
+  loaded — so the mockups are Wielo's own brand, expressed more boldly.
+- Rules are **inert** until a screen adds `.wielo-cms` / `.wielo-builder` to its
   root, which each subsequent phase will do as it's rebuilt. tsc + lint green.
 
 ---
@@ -4878,7 +4878,7 @@ never trusted on money). NO DB migration, NO AI. Completes Phase 6 (a+b+c).
   ctx.bookBasePath` through `loadSiteContext` / `SitePageView` / the site routes.
 - **middleware fix:** on a tenant host, global route-handler trees (`/api`,
   auth, ical, …) now pass through to their real handlers (tagged with
-  `x-vilo-site-host`) instead of being rewritten into `/<locale>/site/*` where
+  `x-wielo-site-host`) instead of being rewritten into `/<locale>/site/*` where
   they'd 404. This also fixes the existing `/api/website-*` form/funnel endpoints
   for real tenant domains (previously only exercised via the app-domain `?site=`
   path, so the bug was latent). App-host routing unchanged (host tests 10/10).
@@ -5069,7 +5069,7 @@ override). This session closed the real gaps.
 
 ### Decision
 - **Phase 5 (Minutes-to-Launch / AI Site Generator) deferred indefinitely** (founder)
-  — `DECISIONS.md` ADR-022. Vilo ships **no AI website-generation ability**: no
+  — `DECISIONS.md` ADR-022. Wielo ships **no AI website-generation ability**: no
   brief+engine, no generate-my-site wizard, no inline AI assist, no `ANTHROPIC_API_KEY`,
   no new dependency. Hosts build sites with the curated section system + templates
   from Phases 0–4. The lane now proceeds Phase 4 → **Phase 6 (Conversion & Booking)**.
@@ -5301,7 +5301,7 @@ no schema change, no type regen.
   under the `listings` category (idempotent on slug, `ON CONFLICT DO UPDATE`,
   category falls back to the first existing category). Covers what a Special is,
   building one (fixed vs flexible dates, go-live/book-by/quantity), the two pricing
-  modes (flat package vs per-night) + the savings badge, visibility channels (Vilo
+  modes (flat package vs per-night) + the savings badge, visibility channels (Wielo
   directory + own website section), how a booking redeems/releases a unit, and the
   per-special performance report.
 
@@ -5561,7 +5561,7 @@ unchanged. Plan: `~/.claude/plans/ok-so-i-need-tender-sphinx.md`.
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 4: Domain tab
 
 ### Added
-- **Editable subdomain** — rename the free Vilo address with validation
+- **Editable subdomain** — rename the free Wielo address with validation
   (reserved + global uniqueness) via new `saveSubdomainAction`.
 - **Connection stepper** — 4-step visual progress (domain added → DNS detected →
   DNS verified → SSL issued) mirroring `domain_status`/`ssl_status`.
@@ -5667,7 +5667,7 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
 - **`/api/site-track`** beacon route — derives device/country/session server-side,
   best-effort insert, always 204 (never breaks a page load).
 - **`<SiteAnalytics>`** client beacon — fires a pageview on mount and a
-  `booking_click` via event delegation on `[data-vilo-book]` anchors (header CTA +
+  `booking_click` via event delegation on `[data-wielo-book]` anchors (header CTA +
   room cards). Mounted by `SiteChrome` only on public render (never in preview).
 - **`lib/website/analytics.ts → loadWebsiteAnalytics()`** — aggregates visitors,
   pageviews, booking-click conversion, pages/visit, vs-previous deltas, daily trend,
@@ -5707,7 +5707,7 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
 ### Added (W12 — Channels)
 - **Channels tab** on the property editor (`properties/[id]/edit`). Two
   independent publication switches for the same Property:
-  - **Vilo Directory** → reuses the existing `togglePublishAction`
+  - **Wielo Directory** → reuses the existing `togglePublishAction`
     (`properties.is_published`); state is lifted so the tab switch and the
     editor header's publish toggle stay in sync.
   - **Your website** → new `setWebsiteChannelAction` upserts `is_visible` on the
@@ -5736,7 +5736,7 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
 
 ### Added (W13 — Custom domain + SSL)
 - **Domain tab** (now live in `WebsiteTabs`) → `[websiteId]/domain`. Shows the
-  free `<sub>.vilo.site` address plus a connect-your-own-domain flow with
+  free `<sub>.wielo.site` address plus a connect-your-own-domain flow with
   status + SSL pills, a copyable DNS-records table, Refresh + Disconnect, and a
   domain-events activity log. **Inert until the founder wires the Vercel
   secrets** (`vercelConfigured()` → false disables connect + explains why).
@@ -5992,8 +5992,8 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
   **Fail-safe:** with no `NEXT_PUBLIC_ROOT_DOMAIN`, everything classifies as app,
   so app routing can never regress — the feature is opt-in by env.
 - `middleware.ts`: the host classifier runs **first**. Tenant hosts
-  (`<sub>.vilo.site` / custom domains) → rewrite to `/<defaultLocale>/site<path>`
-  + `x-vilo-site-host` header, with **no next-intl and no session refresh** (never
+  (`<sub>.wielo.site` / custom domains) → rewrite to `/<defaultLocale>/site<path>`
+  + `x-wielo-site-host` header, with **no next-intl and no session refresh** (never
   set cookies on a tenant host). App hosts → the existing pipeline, **unchanged**.
   `sitemap.xml` + `robots.txt` added to the matcher so they rewrite on tenant
   hosts and pass through (no i18n redirect) on app hosts.
@@ -6014,7 +6014,7 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
 ### Added
 - **Published tenant micro-sites now render** (plan §8.4). `lib/site/loadSitePage.ts`
   — service-role data assembly (no `next/headers`, so verify scripts can call it):
-  `resolveSiteRef` (`?site` test param or `x-vilo-site-host` header), `loadSiteContext`
+  `resolveSiteRef` (`?site` test param or `x-wielo-site-host` header), `loadSiteContext`
   (resolve by subdomain/custom-domain; brand/theme/nav from live columns;
   published-only unless `preview`), `loadSitePage` (page by path; published-vs-draft
   sections; auto-populate data for gallery/rooms/location/reviews/blog across the
@@ -6279,14 +6279,14 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
 ### Changed
 - Collapsed the user-record tab strip into logical groups: **Overview · Bookings ·
   Listings · Finance · Business & catalogue · Reviews & guests · Activity &
-  notes** (5 for non-host guests). Finance stacks subscription/products + Vilo &
+  notes** (5 for non-host guests). Finance stacks subscription/products + Wielo &
   booking ledger + affiliate/referrals; Business & catalogue stacks businesses +
   add-ons/policies + website; Reviews & guests stacks reviews + relationships;
   Activity & notes stacks the audit trail + data requests + internal notes, each
   under a labelled `GroupSection` divider. Old deep-links (`?tab=ledger`,
   `?tab=catalog`, …) still resolve via a `TAB_ALIASES` map.
 
-## 2026-06-17 — Reconcile the admin Vilo revenue ledger
+## 2026-06-17 — Reconcile the admin Wielo revenue ledger
 
 ### Changed
 - **MRR/ARR now reflect the real product model.** Active subscriptions price off
@@ -6355,7 +6355,7 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
 - **Test/live tag on subscription revenue.** Subscription checkout + webhook
   renewals now tag `platform_ledger.environment` from the active Paystack key, so
   test-key purchases stay out of live KPIs (matches the product flow).
-- **Unified admin user-record dossier** (products & subscription, Vilo account
+- **Unified admin user-record dossier** (products & subscription, Wielo account
   ledger, referrals/commission, business details) reading real DB data; documented
   **BUSINESS_PRINCIPLES #4** (every transaction is assigned to a business and
   backed by a financial document).
@@ -6417,7 +6417,7 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
 
 ---
 
-## 2026-06-16 — Vilo product payments → reporting, thank-you page, invoices, Meta Pixel, test mode
+## 2026-06-16 — Wielo product payments → reporting, thank-you page, invoices, Meta Pixel, test mode
 
 ### Built
 - **Reliable product settlement.** Product/subscription purchases now settle on
@@ -6426,10 +6426,10 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
   ledger. Webhook stays an idempotent backstop.
 - **Rich thank-you one-pager** for product purchases (StepWelcome-style receipt:
   product, invoice number, VAT split, download invoice, CTA).
-- **Auto-issued Vilo invoices.** A DB trigger mints a `vilo_invoices` row on every
-  completed `platform_ledger` charge (products, subscriptions, manual) — Vilo is
+- **Auto-issued Wielo invoices.** A DB trigger mints a `vilo_invoices` row on every
+  completed `platform_ledger` charge (products, subscriptions, manual) — Wielo is
   the issuer. Public `/vilo-invoice/[token]` page + PDF reuse the host invoice
-  renderer. Admin → Platform settings has a **Vilo business details** form.
+  renderer. Admin → Platform settings has a **Wielo business details** form.
 - **User Transaction history tab** (Settings) listing own purchases + invoice
   downloads (RLS-scoped).
 - **Admin-managed Meta Pixel** (Platform settings): paste pixel id + enable; a
@@ -6454,18 +6454,18 @@ own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
 ### Notes
 - `paystack-webhook` redeployed. Set the **test** webhook URL in the Paystack
   dashboard for the webhook backstop to fire in test mode (confirm-on-return works
-  regardless). Fill Vilo business details in Admin → Platform settings so invoices
-  show the issuer; VAT (15%) only splits when a Vilo VAT number is set.
+  regardless). Fill Wielo business details in Admin → Platform settings so invoices
+  show the issuer; VAT (15%) only splits when a Wielo VAT number is set.
 - Conversions API: storage + toggle + `eventID` are in place; the server post is
   not wired yet (intentional).
 
 ### Commits
 - `migration(billing): test/live env tag + vilo_invoices + platform_integrations`
 - `fix(billing): settle product orders on return from Paystack`
-- `feat(billing): auto-issued Vilo invoices + admin business details`
+- `feat(billing): auto-issued Wielo invoices + admin business details`
 - `feat(billing): rich post-payment thank-you one-pager for products`
 - `feat(analytics): admin-managed Meta Pixel + shared Purchase event`
-- `feat(admin): test/live/all filter on Vilo revenue`
+- `feat(admin): test/live/all filter on Wielo revenue`
 - `feat(settings): user Transaction history tab with invoice downloads`
 
 ---
@@ -6499,7 +6499,7 @@ Copy this template and fill it in at the end of every session:
 ## 2026-06-16 — Affiliate programme (Phases 1–8) — branch `feat/affiliate-program`
 
 ### Built
-- **Enterprise affiliate programme for Vilo's own products**, open to ANY user
+- **Enterprise affiliate programme for Wielo's own products**, open to ANY user
   (a guest account is the only prerequisite — identity is `user_profiles.id`,
   not the host). Mounted at `/portal/affiliates` (universal authenticated area)
   with a cross-workspace discovery link from the host dashboard sidebar.
@@ -6591,7 +6591,7 @@ Copy this template and fill it in at the end of every session:
   segments: All/Guests/Hosts/Staff/Suspended; Listings: All/Published/Draft/
   Featured.
 - Nav cleanup: removed **App-wide ledger** (renamed/repointed **Ledger** → the
-  Vilo user↔Vilo transactions ledger).
+  Wielo user↔Wielo transactions ledger).
 
 ### Commit
 - `style(admin): users/listings KPI strip + segment tabs; ledger nav`
@@ -6607,7 +6607,7 @@ Copy this template and fill it in at the end of every session:
 - Each product gets a **standalone page** `/p/[slug]` (shareable to prospects):
   shows price/trial/bullets and lets them buy → checkout. Link shown in the editor.
 - Sidebar: removed **Subscriptions** (consolidated into Products) and **Bookings**
-  (not needed); added a direct **Revenue** entry (Vilo ledger).
+  (not needed); added a direct **Revenue** entry (Wielo ledger).
 
 ### Migrations
 - `20260615000007_products_hub.sql`
@@ -6619,7 +6619,7 @@ Copy this template and fill it in at the end of every session:
 
 ### Built
 - `product_orders` + tokenised **pay-links** — mirrors the host booking pay-link
-  for Vilo products. From a product, "Generate a pay-link" for a user's email →
+  for Wielo products. From a product, "Generate a pay-link" for a user's email →
   copy/send. Public `/pay/product/[token]` page: pay by **Paystack** (platform
   key) or see **EFT** bank details (per the product's accepted methods + platform
   payment settings).
@@ -6632,7 +6632,7 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `feat(admin): product pay-links + public checkout (paystack/eft)`
 
-## 2026-06-15 — Super-Admin — Vilo payment settings (Paystack + EFT) + per-product methods — branch `main`
+## 2026-06-15 — Super-Admin — Wielo payment settings (Paystack + EFT) + per-product methods — branch `main`
 
 ### Built
 - `platform_payment_settings` (singleton, service-role only): admin-managed
@@ -6649,9 +6649,9 @@ Copy this template and fill it in at the end of every session:
 - `20260615000005_platform_payment_settings.sql`
 
 ### Commit
-- `feat(admin): vilo payment settings (paystack + eft) + per-product methods`
+- `feat(admin): wielo payment settings (paystack + eft) + per-product methods`
 
-## 2026-06-15 — Super-Admin — Product Manager (Products + Vilo ledger reframe, Phase A) — branch `main`
+## 2026-06-15 — Super-Admin — Product Manager (Products + Wielo ledger reframe, Phase A) — branch `main`
 
 ### Built
 - `products` + `product_features` tables (and `platform_ledger.product_id`).
@@ -6665,7 +6665,7 @@ Copy this template and fill it in at the end of every session:
 - `20260615000004_products.sql`
 
 ### Notes
-- Phase A (catalog). Phase B = the Vilo quotes/invoices/credit-notes/refunds/
+- Phase A (catalog). Phase B = the Wielo quotes/invoices/credit-notes/refunds/
   payments ledger keyed to products + product checkout/pay-links.
 
 ### Commit
@@ -6717,7 +6717,7 @@ Copy this template and fill it in at the end of every session:
 
 ### Built
 - `admin_support_grants` table — host-approved, time-boxed (72h) permission for
-  Vilo support to edit a host's records. Financial tabs on the user record stay
+  Wielo support to edit a host's records. Financial tabs on the user record stay
   **read-only** until a grant is active.
 - Admin: `requestSupportAccessAction` (in-app request + host notification) +
   a "Request edit access" dialog on the user record's Ledger/Bookings tabs, with
@@ -6738,7 +6738,7 @@ Copy this template and fill it in at the end of every session:
 ## 2026-06-15 — Super-Admin — Paid platform services (P1.2) — branch `main`
 
 ### Built
-- New `platform_services` table — Vilo's own paid add-ons sold to hosts
+- New `platform_services` table — Wielo's own paid add-ons sold to hosts
   (one-time or recurring). Admin **Services** tab + CRUD
   (`/admin/subscriptions/services` + `[id]` editor): name, description, billing
   type, price, cycle, active, sort. Audited; purchases land in `platform_ledger`
@@ -6767,7 +6767,7 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `feat(admin): control-centre overview + host-style tables`
 
-## 2026-06-14 — Super-Admin — Two ledgers: app-wide + Vilo revenue (filters) — branch `main`
+## 2026-06-14 — Super-Admin — Two ledgers: app-wide + Wielo revenue (filters) — branch `main`
 
 ### Built
 - **App-wide ledger** (`/admin/ledger`, new Finance nav item) — a view-only,
@@ -6775,27 +6775,27 @@ Copy this template and fill it in at the end of every session:
   (host ↔ guest money) for owner oversight. KPI band (collected / refunded / net
   processed) + filters by user email, status, and (deep-linkable) listing. Host
   table style (AdminTable).
-- **Vilo revenue ledger** now has matching **filters** — by user email, plan,
+- **Wielo revenue ledger** now has matching **filters** — by user email, plan,
   type (charge/refund/credit/adjustment) and status.
 
 ### Notes
-- Two distinct ledgers, as intended: **Vilo ledger** = Vilo's own revenue
-  (subscriptions/services); **App-wide ledger** = all user/booking money Vilo
+- Two distinct ledgers, as intended: **Wielo ledger** = Wielo's own revenue
+  (subscriptions/services); **App-wide ledger** = all user/booking money Wielo
   never holds. Embeds verified live; full `next build` compiles clean.
 
 ### Commit
-- `feat(admin): app-wide ledger + vilo ledger filters`
+- `feat(admin): app-wide ledger + wielo ledger filters`
 
 ## 2026-06-14 — Super-Admin — Unified Users hub + Guest-Record-style user record — branch `main`
 
 ### Built
 - **One Users hub** — removed the separate "Hosts" sidebar item; `/admin/users`
-  is now the single home for every Vilo user (hosts + guests + staff), with role
+  is now the single home for every Wielo user (hosts + guests + staff), with role
   pills + filter by name/type. Host pages still exist at their routes.
 - Rebuilt `/admin/users/[id]` to mirror the **host Guest Record** design (sticky
   dossier + working column + RecordTabs), customised for super-admin management.
   Tabs: Overview, Subscription, Bookings (as guest + as host), **Ledger**
-  (their booking ledger via the shared `LedgerList` + their Vilo account),
+  (their booking ledger via the shared `LedgerList` + their Wielo account),
   Listings, Business, Reviews (written + received), Relationships (travelled-with),
   **Referrals** (placeholder for the coming referral graph), Support (data/privacy
   requests), Activity log, Notes, Audit.
@@ -6816,10 +6816,10 @@ Copy this template and fill it in at the end of every session:
 ## 2026-06-14 — Super-Admin — Business reporting dashboard (P4.2) — branch `main`
 
 ### Built
-- New `/admin/reporting` (+ Finance sidebar entry): Vilo-as-a-business overview —
+- New `/admin/reporting` (+ Finance sidebar entry): Wielo-as-a-business overview —
   **Revenue** (MRR, ARR, all-time collected, paying hosts, trials, churned),
   **Growth** (total users, hosts, guests, new in 30 days), **Platform volume**
-  (GMV processed + revenue-booking count, clearly flagged as host↔guest money Vilo
+  (GMV processed + revenue-booking count, clearly flagged as host↔guest money Wielo
   never holds), and live **plan distribution**.
 
 ### Notes
@@ -6830,15 +6830,15 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `feat(admin): business reporting dashboard (P4.2)`
 
-## 2026-06-14 — Super-Admin — Vilo User Record + direct-edit (P3.1–P3.3) — branch `main`
+## 2026-06-14 — Super-Admin — Wielo User Record + direct-edit (P3.1–P3.3) — branch `main`
 
 ### Built
-- Redesigned `/admin/users/[id]` into a role-adaptive **Vilo User Record** (mirrors
+- Redesigned `/admin/users/[id]` into a role-adaptive **Wielo User Record** (mirrors
   the host Guest Record): identity header + badges (role, suspended, deleted,
   passwordless), stat band, and tabs — **Overview, Activity, Finances,
   Subscription** (hosts), **Notes, Audit**.
 - **Finances tab**: a host's booking ledger KPIs (reusing `fetchHostTransactions`
-  + `txnStats`, not forked) **and** their Vilo account (what they've paid Vilo,
+  + `txnStats`, not forked) **and** their Wielo account (what they've paid Wielo,
   from `platform_ledger`).
 - **Direct-edit powers** (all audited): edit profile, change role, suspend/
   reinstate, **soft-delete** (never hard-delete), and internal admin notes —
@@ -6857,13 +6857,13 @@ Copy this template and fill it in at the end of every session:
   permission seed verified against the live DB. `tsc` + eslint green.
 
 ### Commit
-- `feat(admin): vilo user record + direct-edit (P3.1-P3.3)`
+- `feat(admin): wielo user record + direct-edit (P3.1-P3.3)`
 
-## 2026-06-14 — Super-Admin — Live host billing on Vilo's platform Paystack (P1.5) — branch `main`
+## 2026-06-14 — Super-Admin — Live host billing on Wielo's platform Paystack (P1.5) — branch `main`
 
 ### Built
 - `lib/billing/platform-billing.ts` — `startSubscriptionCheckout` charges a host
-  for a paid plan on **Vilo's platform Paystack key** (never the host's own key;
+  for a paid plan on **Wielo's platform Paystack key** (never the host's own key;
   booking rails untouched). Inserts a pending `platform_ledger` row keyed by the
   reference (idempotency) and returns the Paystack URL.
 - `startPlanCheckoutAction` — decides server-side: first trial → start trial (no
@@ -6881,20 +6881,20 @@ Copy this template and fill it in at the end of every session:
 ### Notes
 - **Capability-gated on the platform `PAYSTACK_SECRET_KEY`** — everything is built
   and inert until the founder adds the key (then it goes live with no code change).
-- Deferred: Vilo→host VAT invoice generation (P1.6) + native Paystack recurring
+- Deferred: Wielo→host VAT invoice generation (P1.6) + native Paystack recurring
   Subscriptions/dunning cron (next increment). `tsc` + eslint green.
 
 ### Commit
 - `feat(admin): live host subscription billing (P1.5)`
 
-## 2026-06-14 — Super-Admin — Vilo revenue ledger (Pillar 2 / P2.1–P2.3) — branch `main`
+## 2026-06-14 — Super-Admin — Wielo revenue ledger (Pillar 2 / P2.1–P2.3) — branch `main`
 
 ### Built
-- New `platform_ledger` table — every **user→Vilo** transaction (subscription
+- New `platform_ledger` table — every **user→Wielo** transaction (subscription
   charges, services, refunds, manual adjustments). Signed amounts; idempotent on
   `provider_reference`; own-row RLS read for hosts; admin/webhook write via service
   role. **Not** the booking ledger (host↔guest stays untouched).
-- `lib/billing/vilo-ledger.ts` read model — `fetchViloLedger` + `viloLedgerStats`
+- `lib/billing/vilo-ledger.ts` read model — `fetchWieloLedger` + `wieloLedgerStats`
   (collected/refunded/credits/net/pending), mirroring the host ledger engine.
 - Admin **Revenue** tab + page (`/admin/subscriptions/revenue`): KPI band (MRR,
   ARR, Collected, Refunded, Net, paying hosts) + transaction list + a **manual
@@ -6912,7 +6912,7 @@ Copy this template and fill it in at the end of every session:
   Embed + tables verified against the live DB. `tsc` + eslint green.
 
 ### Commit
-- `feat(admin): Vilo revenue ledger (P2.1-P2.3)`
+- `feat(admin): Wielo revenue ledger (P2.1-P2.3)`
 
 ## 2026-06-14 — Super-Admin — Admin plan editor + console tabs (P1.7, part 1) — branch `main`
 
@@ -7035,7 +7035,7 @@ Copy this template and fill it in at the end of every session:
 ## 2026-06-14 — Refunds — Remove refund escalation (direct-payment model) — branch `main`
 
 ### Removed
-- **The entire refund "escalation / platform adjudication" concept.** Vilo never
+- **The entire refund "escalation / platform adjudication" concept.** Wielo never
   holds or routes funds — bookings and refunds settle directly between host and
   guest — so a platform escalation step is meaningless.
 - DB (`20260614000001_remove_refund_escalation.sql`): unscheduled the
@@ -7051,7 +7051,7 @@ Copy this template and fill it in at the end of every session:
 
 ### Changed
 - Guest refund copy ("escalate to support afterwards") and the host
-  refund-request email ("respond within 72h or it's escalated to Vilo") now say
+  refund-request email ("respond within 72h or it's escalated to Wielo") now say
   refunds are arranged directly between host and guest — no platform middleman.
 
 ### Notes
@@ -7061,7 +7061,7 @@ Copy this template and fill it in at the end of every session:
 - `pnpm build` + lint + tsc green.
 
 ### Commit
-- `refactor(refunds): remove refund escalation (Vilo holds no funds)`
+- `refactor(refunds): remove refund escalation (Wielo holds no funds)`
 
 ---
 
@@ -7111,7 +7111,7 @@ Copy this template and fill it in at the end of every session:
 
 ### Built
 - **Host → guest ratings**, the mirror of guest→listing reviews. A new **Reputation** tab on the Guest Record shows a cross-host aggregate (overall + 5 dimensions: Payments, Communication, Cleanliness, House rules & respect, Integrity), the host's own editable review, and other hosts' reviews (anonymised "A verified host").
-- **`guest_ratings`** table — one living review per host per guest (`UNIQUE(host_id, guest_id)`), keyed on the guest's Vilo account id. **Cross-host RLS:** any active host may READ every host's rating of a guest (shared reputation network); each host may only INSERT/UPDATE/DELETE its own row. **No guest policy** → guests never see it; no notifications.
+- **`guest_ratings`** table — one living review per host per guest (`UNIQUE(host_id, guest_id)`), keyed on the guest's Wielo account id. **Cross-host RLS:** any active host may READ every host's rating of a guest (shared reputation network); each host may only INSERT/UPDATE/DELETE its own row. **No guest policy** → guests never see it; no notifications.
 - **Rate-a-guest modal** (`FormModal` + `CategoryStars`) — overall star (required) + summary + optional per-dimension scores with short notes. Eligibility gated to a **completed** or **no-show** stay, enforced in `hostCanRateGuest` (shared by page + action) AND in RLS.
 - Help article `how-guest-ratings-work` (audience `host`).
 
@@ -7123,7 +7123,7 @@ Copy this template and fill it in at the end of every session:
 - `20260613000021_help_guest_ratings.sql`
 
 ### Notes
-- Email-only / OTA guests (no `u_` account) aren't rateable — the tab shows a "no Vilo account yet" state.
+- Email-only / OTA guests (no `u_` account) aren't rateable — the tab shows a "no Wielo account yet" state.
 - **Verify (founder, needs 2 host accounts + 1 shared guest with a completed stay):** host A rates → host B sees it under "Other hosts" and the aggregate reflects both; B can add but not edit A's; a guest token reads **zero** `guest_ratings` rows (RLS).
 - Followed the existing Guest Record convention of inline English copy (the whole record is not yet i18n-wired); a guests-dashboard i18n sweep is a separate task. No feature gate added — it's open to all hosts (pre-MVP "open on free").
 
@@ -7687,7 +7687,7 @@ Copy this template and fill it in at the end of every session:
 - 🔴 **Every new booking's policy snapshot was failing** (`min(uuid) does not exist`). The Phase-1 snapshot rewrite derived a single-room booking's room via `min(room_id)`, but room_id is uuid and Postgres has no `min(uuid)` — the function threw at plan time, and since the booking-create call is best-effort the booking got NO cancellation snapshot → 0% refund. Pre-existing bookings were unaffected. Fixed by counting then selecting the lone room id (`20260610180006`), plus a heal-backfill. Caught by `verify-policy-resolver.mjs`.
 
 ### Changed
-- **Booking terms + privacy (POPIA) are now platform-wide, Vilo-authored** — not per-host policies (founder decision):
+- **Booking terms + privacy (POPIA) are now platform-wide, Wielo-authored** — not per-host policies (founder decision):
   - Removed both types from the host Policies UI (`POLICY_TYPES`, the "Terms & privacy" filter bucket, the create menu, the library query). Existing per-host legal policies retired (soft-deleted) and their listing assignments removed (`20260610180004`).
   - Resolver + snapshot + public summary scoped to the three host-controlled types (cancellation, check-in/out, house rules). `ensure_host_legal_presets` is now a no-op.
   - New `platform_settings` keys `legal_booking_terms` / `legal_privacy` hold a versioned `{html, version}` blob; `bookings.accepted_terms_version` / `accepted_privacy_version` record what each guest accepted.
@@ -7777,15 +7777,15 @@ Copy this template and fill it in at the end of every session:
 ## 2026-06-10 — Strategy — foundational business principles + guest-identity ownership — branch `main`
 
 ### Built
-- `BUSINESS_PRINCIPLES.md` (repo root) — new canonical home for Vilo's foundational *business/strategy* principles, distinct from technical ADRs. Wired into `CLAUDE.md` → "Read These First" (as #4, after `AGENT_RULES.md`) so it loads every session.
-- **Principle #1 — Vilo owns all guest identity**: every guest entry point (direct signup, booking, added/party guest, quote request) mints a free, global, passwordless Vilo guest account keyed on email; email is mandatory (no name-only guests); returning guests claim by setting a password; history follows them across all hosts in one portal; shared-not-gatekept with hosts; minting ≠ marketing consent.
-- `DECISIONS.md` → **ADR-021** — the technical counterpart: one canonical `ensureViloGuestIdentity` helper, mint passwordless at every entry, email required server-side, signup/login claim-detection. Cross-linked to Principle #1.
+- `BUSINESS_PRINCIPLES.md` (repo root) — new canonical home for Wielo's foundational *business/strategy* principles, distinct from technical ADRs. Wired into `CLAUDE.md` → "Read These First" (as #4, after `AGENT_RULES.md`) so it loads every session.
+- **Principle #1 — Wielo owns all guest identity**: every guest entry point (direct signup, booking, added/party guest, quote request) mints a free, global, passwordless Wielo guest account keyed on email; email is mandatory (no name-only guests); returning guests claim by setting a password; history follows them across all hosts in one portal; shared-not-gatekept with hosts; minting ≠ marketing consent.
+- `DECISIONS.md` → **ADR-021** — the technical counterpart: one canonical `ensureWieloGuestIdentity` helper, mint passwordless at every entry, email required server-side, signup/login claim-detection. Cross-linked to Principle #1.
 
 ### Changed
 - `CLAUDE.md` read-order list renumbered to insert `BUSINESS_PRINCIPLES.md`.
 
 ### Notes
-- This session is **doc + roadmap only**. The identity-spine implementation (extract `ensureViloGuestIdentity`, wire into manual booking / added-guest / checkout, signup claim-detection, make email required everywhere) is captured as a phased roadmap in plan `ok-here-now-lies-greedy-sunbeam.md` and ADR-021 — to be built in later chunked commits.
+- This session is **doc + roadmap only**. The identity-spine implementation (extract `ensureWieloGuestIdentity`, wire into manual booking / added-guest / checkout, signup claim-detection, make email required everywhere) is captured as a phased roadmap in plan `ok-here-now-lies-greedy-sunbeam.md` and ADR-021 — to be built in later chunked commits.
 - ~70% of the machinery already exists (the passwordless-lead pattern in `create-enquiry.ts:184-217`, `is_lead`, `gkey`, `/claim`). The work is making it universal, not net-new.
 - Founder-directed architecture; not a violation of the pre-MVP feature freeze.
 
@@ -8050,9 +8050,9 @@ Copy this template and fill it in at the end of every session:
 - `lib/savings/getHostSavings.ts` (server) + `dashboard/_actions/savings.ts`
   (`fetchMySavingsSummary` server action).
 - Header **"$" badge** (`SavingsBadge`) left of the booking-link icon → canonical
-  `Modal` reading "Vilo has saved you R X so far" (lazy-fetched on click).
+  `Modal` reading "Wielo has saved you R X so far" (lazy-fetched on click).
 - **Reports → Your savings vs OTAs** sub-page (`/dashboard/reports/savings`):
-  dark hero with total saved + a comparison table (Vilo at 0% vs each OTA).
+  dark hero with total saved + a comparison table (Wielo at 0% vs each OTA).
 - Help Centre article `savings-vs-otas` (category `payments`).
 
 ### Changed
@@ -8542,9 +8542,9 @@ Copy this template and fill it in at the end of every session:
 
 ### Notes
 - No `database.types.ts` regen — function-only change, no table/column reshape.
-- Activity-timeline "Manual booking" vs "Vilo direct" is driven correctly by
-  `bookings.origin` (`guest_request` → "Vilo direct"); 0007 is `guest_request`,
-  so it now reads "Vilo direct". No code change needed there.
+- Activity-timeline "Manual booking" vs "Wielo direct" is driven correctly by
+  `bookings.origin` (`guest_request` → "Wielo direct"); 0007 is `guest_request`,
+  so it now reads "Wielo direct". No code change needed there.
 
 ---
 
@@ -8970,7 +8970,7 @@ Copy this template and fill it in at the end of every session:
 ### Changed
 - Request-a-quote now session-aware: a signed-in guest no longer re-enters name/email/phone and is routed straight to their portal inbox thread (anonymous lead + magic-link path unchanged).
 - Relocated the orphaned `/account/*` routes into the portal (notification preferences, data/privacy, and the notifications inbox → `/portal/notifications`); deleted the `/account` tree. Portal sidebar gained a Quotes link and "Browse stays" now points at `/portal/browse`.
-- Public token quote page `/q/[id]/[token]` renders the dynamic brand name (no hardcoded "VILO").
+- Public token quote page `/q/[id]/[token]` renders the dynamic brand name (no hardcoded "WIELO").
 
 ### Migrations
 - `20260604000004_quotes_guest_read.sql` — guest SELECT RLS on quotes/quote_rooms/quote_addons (`guest_id = auth.uid()`).
@@ -8988,7 +8988,7 @@ Copy this template and fill it in at the end of every session:
 ## 2026-06-04 — Brand: full dynamic brand-name sweep (marketing, app UI, metadata) — branch `main`
 
 ### Changed
-- Completed the dynamic-brand tail: every remaining user-facing hardcoded "Vilo" across the app now renders the configurable brand name. Server components/route metadata use `getBrandName()` (static `metadata` → `generateMetadata`); client components use `useBrandName()`/`<BrandName />`. Covers the marketing site (`booking-management/*`, about/contact/cookies/terms/privacy, home `_components/*`), auth + signup flows, admin chrome, dashboard copy, listing/booking/quote/portal surfaces, and ~15 metadata descriptions. ~88 files.
+- Completed the dynamic-brand tail: every remaining user-facing hardcoded "Wielo" across the app now renders the configurable brand name. Server components/route metadata use `getBrandName()` (static `metadata` → `generateMetadata`); client components use `useBrandName()`/`<BrandName />`. Covers the marketing site (`booking-management/*`, about/contact/cookies/terms/privacy, home `_components/*`), auth + signup flows, admin chrome, dashboard copy, listing/booking/quote/portal surfaces, and ~15 metadata descriptions. ~88 files.
 
 ### Notes
 - Purely additive — only brand strings swapped, no logic/layout changes. Deliberately left non-brand-display occurrences: code comments, the brand infra files, `samplePayloads.ts` (test data), the calendar-sync `User-Agent` header, the `EMAIL_FROM_ADDRESS` env fallback, `globals.css`, opaque order-reference prefixes, and example domains. **The dynamic-brand work is now complete** end-to-end (emails, PDFs, notifications, tab titles, app chrome, marketing, metadata). `pnpm build` (105 pages) + `pnpm lint` green.
@@ -9002,7 +9002,7 @@ Copy this template and fill it in at the end of every session:
 
 ### Changed
 - **Money consistency:** normalised the three remaining non-canonical inline formatters to `formatMoney` (a deliberate display fix — they previously rendered `R 1500` / `R1,500` / `R 1,500` instead of the canonical `R 1 500`): the `quote_sent` inbox message body (`quotes/actions.ts`), `SuitabilityChips`, and a `book/BookingForm` add-on line. **The formatMoney migration is now fully complete** — every amount in the app renders through one helper.
-- **Brand:** the public hosted `/invoice/[token]` and `/credit-note/[token]` pages no longer hardcode the brand — the header initial + footer now render the configurable brand name via `getBrandName()`, and the placeholder `viloplatform.com` domain was dropped (consistent with the PDF footers).
+- **Brand:** the public hosted `/invoice/[token]` and `/credit-note/[token]` pages no longer hardcode the brand — the header initial + footer now render the configurable brand name via `getBrandName()`, and the placeholder `wieloplatform.com` domain was dropped (consistent with the PDF footers).
 
 ### Notes
 - No new features (feature freeze for MVP). `pnpm build` + `pnpm lint` green. Remaining brand tail: help/marketing copy strings + a few metadata `description` strings (catalogued in the brand memory note).
@@ -9110,11 +9110,11 @@ Copy this template and fill it in at the end of every session:
 ## 2026-06-04 — Brand: dynamic brand name in push / in-app notifications — branch `main`
 
 ### Changed
-- **Push + in-app notification copy** now uses the configurable platform brand name instead of a hardcoded "Vilo". `dispatchEvent` injects a `brand_name` (resolved via `getBrandName()`, caller value wins, safe fallback) into the refs passed to the `push`/`inApp` builders — the same payload-injection approach `drain.ts` uses for email subjects. Four builders updated: `refund_admin_override_host`, `subscription_expiring`, `subscription_failed`, `subscription_restricted`.
+- **Push + in-app notification copy** now uses the configurable platform brand name instead of a hardcoded "Wielo". `dispatchEvent` injects a `brand_name` (resolved via `getBrandName()`, caller value wins, safe fallback) into the refs passed to the `push`/`inApp` builders — the same payload-injection approach `drain.ts` uses for email subjects. Four builders updated: `refund_admin_override_host`, `subscription_expiring`, `subscription_failed`, `subscription_restricted`.
 - Raw refs are still what gets persisted to `notification_queue` / in-app payloads; the brand string is only baked into the rendered title/body at dispatch time (same as before).
 
 ### Notes
-- `brand_name?` added to `RefundRefs` + `SubscriptionRefs`. No schema change. **Remaining dynamic-brand tail:** some help/marketing strings ("How Vilo works", "Vilo Directory"), several metadata `description` strings, and `viloplatform.com` references. `pnpm build` + `pnpm lint` green.
+- `brand_name?` added to `RefundRefs` + `SubscriptionRefs`. No schema change. **Remaining dynamic-brand tail:** some help/marketing strings ("How Wielo works", "Wielo Directory"), several metadata `description` strings, and `wieloplatform.com` references. `pnpm build` + `pnpm lint` green.
 
 ### Commit
 - _pending_
@@ -9124,8 +9124,8 @@ Copy this template and fill it in at the end of every session:
 ## 2026-06-04 — Brand: dynamic brand name in financial PDFs — branch `main`
 
 ### Changed
-- **Quote / Invoice / Credit-note PDFs** now render the configurable platform brand name instead of a hardcoded "Vilo". `DocHeader` takes a `brandName` prop (used for the "Powered by …" tagline and the host-name fallback), and each document's footer reads "Generated by {brandName}". The three `*/pdf/route.ts` render routes plus `dashboard/invoices/actions.ts` resolve it via `getBrandName()` (from `lib/brand.ts`) and pass it into the props.
-- Dropped the hardcoded `viloplatform.com` from the PDF footers — there's no configurable domain setting, so a placeholder domain beside a custom brand would have been wrong. Footer is now `Generated by {brandName} · Reference {number}`.
+- **Quote / Invoice / Credit-note PDFs** now render the configurable platform brand name instead of a hardcoded "Wielo". `DocHeader` takes a `brandName` prop (used for the "Powered by …" tagline and the host-name fallback), and each document's footer reads "Generated by {brandName}". The three `*/pdf/route.ts` render routes plus `dashboard/invoices/actions.ts` resolve it via `getBrandName()` (from `lib/brand.ts`) and pass it into the props.
+- Dropped the hardcoded `wieloplatform.com` from the PDF footers — there's no configurable domain setting, so a placeholder domain beside a custom brand would have been wrong. Footer is now `Generated by {brandName} · Reference {number}`.
 
 ### Notes
 - Continues the dynamic-brand tail documented in the brand memory. **Still hardcoded:** push/in-app notification bodies (`lib/notifications/registry.ts` — next batch), some help/marketing strings, and metadata `description` strings. `pnpm build` + `pnpm lint` green.
@@ -9139,7 +9139,7 @@ Copy this template and fill it in at the end of every session:
 
 ### Built (the two previously-deferred items)
 - **Assign-to-staff (E):** assign an inbox thread to the host or a `staff_members` teammate (`assignConversationAction` + an assignee dropdown in the thread pane; `conversations.assigned_to`). Picker only shows when the host has staff.
-- **Quiet-hours auto-reply (G):** new `hosts.enquiry_auto_reply` (set on Settings → Notifications via `AwayAutoReplyCard`/`setEnquiryAutoReplyAction`). When an enquiry arrives during the host's notification quiet hours (`user_notification_settings`), Vilo posts the message into the thread automatically.
+- **Quiet-hours auto-reply (G):** new `hosts.enquiry_auto_reply` (set on Settings → Notifications via `AwayAutoReplyCard`/`setEnquiryAutoReplyAction`). When an enquiry arrives during the host's notification quiet hours (`user_notification_settings`), Wielo posts the message into the thread automatically.
 
 ### Fixed
 - **Request-a-quote modal silently failed.** The honeypot field was declared as `z.string().max(0)`, so browser autofill of a field named "company" failed Zod validation and blocked the submit before the intended silent-drop ran. Honeypot is now permissive in the schema (renamed `hp`, neutral input name, autocomplete off) — real guests submit reliably; bots that fill it are still dropped. Verified the full enquiry write path end-to-end against the live DB.
@@ -9306,7 +9306,7 @@ Copy this template and fill it in at the end of every session:
 ### Notes
 - Honest adaptations vs the mock: real host stats instead of "<1h / 187 reviews",
   an "Open in Maps" deep link instead of a live map embed, payout shown as the full
-  total (Vilo 0% commission) rather than an invented fee, and graceful empty/withheld
+  total (Wielo 0% commission) rather than an invented fee, and graceful empty/withheld
   states (local-picks card hidden when empty; access secrets gated by date). Local
   picks are text-only for now (image upload can be added later — they render a
   category tile when no image).
@@ -9386,7 +9386,7 @@ stacked on top of it.
 ### Built
 - **Per-host payment gateways (0% commission):** hosts connect their OWN
   Paystack and PayPal credentials so booking payments settle directly into
-  their accounts — Vilo only ever charges a subscription. New
+  their accounts — Wielo only ever charges a subscription. New
   `host_payment_gateways` table (one row per host+gateway), secrets encrypted
   at rest with a dedicated `PAYMENT_CIPHER_KEY` (AES-256-GCM,
   `lib/crypto/payments.ts`) and never returned to the client (UI shows
@@ -9404,7 +9404,7 @@ stacked on top of it.
 - **FX conversion** (`lib/fx.ts`): ZAR→USD daily-cached rate (`fx_rates` table)
   from a free no-key API (open.er-api.com) with admin manual-override support.
 - **Gateway primitives:** `lib/paystack.ts` now accepts a per-host secret +
-  statement descriptor (env key retained as fallback for Vilo subscription
+  statement descriptor (env key retained as fallback for Wielo subscription
   billing); new `lib/paypal.ts` (token/validate/createOrder/capture).
 
 ### Changed
@@ -9545,7 +9545,7 @@ stacked on top of it.
   credit-note detail pages.
 - **Quote send flows (Phase 4):** the quote "Share with guest" panel now sends via
   **WhatsApp** (wa.me deep link, SA numbers normalised), **Email** (mailto from the
-  host's own client), **Vilo inbox** (`shareQuoteToInboxAction` posts into an
+  host's own client), **Wielo inbox** (`shareQuoteToInboxAction` posts into an
   existing host↔guest thread), and **Copy link**.
 - **Tests + help (Phase 5):** `pnpm test:flows` extended with Journey G
   (refund completion auto-mints a linked credit note) and Journey H (invoice
@@ -9859,7 +9859,7 @@ stacked on top of it.
 ### Notes
 - Sidebar/top chrome unchanged — the existing `PortalSidebar` already mirrors
   the mock. Reused existing tokens/animations (`shadow-glow`, `rounded-card`,
-  `vilo-ring-pulse`, `vilo-step-enter`, `vilo-hide-sb`); no globals.css edits.
+  `wielo-ring-pulse`, `wielo-step-enter`, `wielo-hide-sb`); no globals.css edits.
 - Trip detail still links to `/my-trips/[id]`; "Leave a review" to
   `/review/[bookingId]`. `pnpm build` + `pnpm lint` pass.
 
@@ -10010,7 +10010,7 @@ stacked on top of it.
   mark/price/rate/check-in time/guests); month nav + listing switcher.
 
 ### Data mapping
-- "Channel" → booking **origin** (Direct / Manual / From-quote), since Vilo is
+- "Channel" → booking **origin** (Direct / Manual / From-quote), since Wielo is
   direct-booking. External **iCal** blocks render as a distinct hatch + source
   label — future-proofed (`reason` like `ical:airbnb`); no rows until the iCal
   import Edge Function ships.
@@ -10183,7 +10183,7 @@ stacked on top of it.
   "Confirm and pay" design: 3-step progress stepper (Review → Payment → Confirmation),
   sectioned cards (Your rooms, Your trip with check-in/out tiles + guests, styled add-ons,
   Payment method, cancellation policy), a branded sticky price-summary sidebar with the
-  full breakdown + "Vilo service fee FREE", and a mobile sticky reserve bar. All existing
+  full breakdown + "Wielo service fee FREE", and a mobile sticky reserve bar. All existing
   pricing / add-on / per-room / scope logic preserved; payment still goes through Paystack's
   hosted checkout (no raw card entry).
 - **Guest account at checkout** — anonymous visitors can now reach the accommodation
@@ -10251,7 +10251,7 @@ stacked on top of it.
   (bank account, policy viewer, listing settings, seasonal-price rule) to `<FormModal>`.
   Side/bottom **sheets** intentionally left as sheets (separate design-system pattern).
 - Design system: new **Notification modals** section (+ action/form-modal example +
-  nav link) in `Vilo Design System.html`, mirrored to `apps/web/public/DESIGN_SYSTEM.HTML`.
+  nav link) in `Wielo Design System.html`, mirrored to `apps/web/public/DESIGN_SYSTEM.HTML`.
   New hard rule in `DESIGN_SYSTEM.md`: no raw `Dialog`/`AlertDialog`/`window.confirm` —
   every popup uses the modal shell.
 
@@ -10746,7 +10746,7 @@ preview every template and send a test through Resend.
   finishes its detail page.
 - **Resend domain is still `onboarding@resend.dev`.** Test sends from the
   admin page will deliver but Gmail flags them. Promote to verified
-  `vilo.co.za` / `viloplatform.com` before launch (existing follow-up).
+  `wielo.co.za` / `wieloplatform.com` before launch (existing follow-up).
 - Test-send uses `RESEND_API_KEY` from server env, same key the queue
   worker uses — no new env var.
 
@@ -10754,7 +10754,7 @@ preview every template and send a test through Resend.
 
 ## 2026-05-25 — Experiences end-to-end (host + guest) + dashboard fixes
 
-Vilo's pitch is "accommodation hosts AND experience operators". The schema
+Wielo's pitch is "accommodation hosts AND experience operators". The schema
 supported `listing_type='experience'` from day one but no surface — host
 editor, guest detail page, guest booking flow — actually handled them. A
 host could only create a stay; a guest could never see or book an
@@ -10945,7 +10945,7 @@ ship as a Next.js Route Handler rather than a Deno Edge Function.
   - `email_worker_url` → `00fc2803-c9c3-430b-9ae7-21e9af699081`
   - `email_worker_secret` → `f26e7be5-641a-400d-8787-f1a4ba65cd62`
 - **Vercel** (Production + Preview): `RESEND_API_KEY`,
-  `EMAIL_FROM_ADDRESS` (= `Vilo <onboarding@resend.dev>`),
+  `EMAIL_FROM_ADDRESS` (= `Wielo <onboarding@resend.dev>`),
   `EMAIL_WORKER_SECRET`. Manual paste — `prd → Vercel Production`
   Doppler sync is blocked by the free plan.
 
@@ -10956,8 +10956,8 @@ ship as a Next.js Route Handler rather than a Deno Edge Function.
   from Vault.
 
 ### Notes
-- **Sender** is `Vilo <onboarding@resend.dev>` until the production
-  domain (`viloplatform.com` per spec, or `vilo.co.za` per founder
+- **Sender** is `Wielo <onboarding@resend.dev>` until the production
+  domain (`wieloplatform.com` per spec, or `wielo.co.za` per founder
   domain) verifies in Resend. Until then deliverability is best-effort
   — gmail flags it. Promote to a verified domain before launch.
 - **pg_cron tick** runs every minute. If queue empty, no HTTP call
@@ -11210,7 +11210,7 @@ of every wave.
 - **Audit log viewer at `/admin/audit`** — filters by admin, action,
   target_type, since; 50-per-page pagination; highlights `permission_denied`
   rows in red.
-- **Vilo staff management at `/admin/platform/staff`** — lists active staff
+- **Wielo staff management at `/admin/platform/staff`** — lists active staff
   + pending invites + the available role catalog (Phase E will add invite UI).
 - **View-only impersonation** (`/admin/as/[userId]/...`) — read-only parallel
   route tree using service-role with explicit user-id scoping. **Does not
@@ -11396,7 +11396,7 @@ of every wave.
 - **Docker image pipeline** — `apps/web/Dockerfile` (multi-stage pnpm
   monorepo build using Next.js standalone output) + `.dockerignore` +
   new `.github/workflows/docker-build.yml` pushing
-  `ghcr.io/wollie333/vilo-web:latest` and `:sha-<short>` to GitHub
+  `ghcr.io/wollie333/wielo-web:latest` and `:sha-<short>` to GitHub
   Container Registry on every push to `main` touching web/packages.
   Uses `GITHUB_TOKEN` (auto-provided) for registry auth and GHA cache
   for layer reuse. Pulled from Docker Hub after repeated PAT auth
@@ -11620,7 +11620,7 @@ of every wave.
   - `/invoice/[token]/pdf` — public token-gated invoice PDF.
 - **PDF templates** (`apps/web/lib/pdf/`) — branded `InvoiceDocument`
   and `QuoteDocument` (`@react-pdf/renderer`), shared stylesheet,
-  Vilo emerald header with status pill.
+  Wielo emerald header with status pill.
 - **Calendar** (`/dashboard/calendar`) — renders `quote_pending`
   holds in a third visual state (amber dashed border vs solid green
   for booked vs muted gray for manual block). Legend updated.
@@ -11859,7 +11859,7 @@ of every wave.
   (24h post-checkout), 48h auto-publish, inline reply, flag for
   moderation.
 - **`/dashboard/help`** — real content, not a stub. "Email a real person"
-  card pointing to `hello@viloplatform.com`, plus shortcuts to
+  card pointing to `hello@wieloplatform.com`, plus shortcuts to
   `/booking-management`, `#pricing`, `#faq`, and `/change-log`.
 - **`apps/web/app/dashboard/_components/ComingSoon.tsx`** — reusable
   honest-stub component (icon + tagline + "Coming in Phase X" + bullets
@@ -11999,7 +11999,7 @@ of every wave.
   zero warnings.
 
 ### Deferred
-- iCal **import** (Vilo pulling Airbnb/Booking blocked dates) — needs
+- iCal **import** (Wielo pulling Airbnb/Booking blocked dates) — needs
   the `ical_feeds` table + a 15-minute cron + per-feed parse error
   handling. Bigger slice.
 - Per-listing token rotation UI — needs `ical_feeds`.
@@ -12020,7 +12020,7 @@ of every wave.
   which updates `user_profiles` via the user-bound client (RLS
   `users_update_own`).
 - **`HostForm`** (Client) — `display_name` + optional `bio` + optional
-  `website_url`. Subtitle shows the live `viloplatform.com/{handle}`,
+  `website_url`. Subtitle shows the live `wieloplatform.com/{handle}`,
   Verified pill if applicable, and a "View public" external link to
   `/{handle}`. Saves via `saveHostAction` which updates `hosts` via the
   user-bound client (RLS `host_manage_own`).
@@ -12122,7 +12122,7 @@ of every wave.
 
 ### Built
 - **`apps/web/app/[handle]/page.tsx`** — top-level dynamic route at
-  `viloplatform.com/{handle}`. Fetches the host via RLS
+  `wieloplatform.com/{handle}`. Fetches the host via RLS
   `public_read_active_hosts` (only `is_active=true` + `deleted_at IS
   NULL`), then their published listings + each listing&rsquo;s hero photo.
   Reuses guest chrome (`SiteHeader` + `SiteFooter`). 404 via `notFound()`
@@ -12134,14 +12134,14 @@ of every wave.
   can&rsquo;t shadow real routes. Belt-and-braces — Next.js prefers
   static segments anyway, and the DB CHECK on `handle` enforces format.
 - **Header card** — large circular avatar (initials fallback), display
-  name, verified badge, `viloplatform.com/{handle}` mono URL, rating +
+  name, verified badge, `wieloplatform.com/{handle}` mono URL, rating +
   review count, listing count, bio. Sits on a dot-grid background.
 - **Listings grid** — same card shape as `/dashboard/listings` but
   guest-facing: hero photo, hover zoom, name, type + city, base price.
   Each card links to `/listing/{slug}`.
 
 ### Notes
-- **`generateMetadata`** — title `${display_name} · Vilo` + bio for the
+- **`generateMetadata`** — title `${display_name} · Wielo` + bio for the
   share preview.
 - **No new packages, no migrations.** Uses the existing RLS path.
 - **`pnpm --filter web build`** passes — 26 routes, `/[handle]` at
@@ -12296,7 +12296,7 @@ of every wave.
   6. Stashes Paystack's returned reference on the payment row for
      idempotency. Rolls back booking + payment on any init failure so
      retry works.
-  7. `redirect(authorization_url)` — guest leaves Vilo for Paystack.
+  7. `redirect(authorization_url)` — guest leaves Wielo for Paystack.
 - **`apps/web/lib/paystack.ts`** — thin server-side wrappers for
   `/transaction/initialize` and `/transaction/verify`. Converts ZAR Rand
   amounts to kobo (×100) only at the Paystack boundary per
@@ -12388,7 +12388,7 @@ of every wave.
   shown when dates picked). "Reserve" links to
   `/listing/[slug]/book?from=…&to=…&guests=…` (next-slice route, currently
   404s). Disabled state until dates valid.
-- **`generateMetadata`** — title `{name} · {city, province} · Vilo` +
+- **`generateMetadata`** — title `{name} · {city, province} · Wielo` +
   description from listing body for SEO + share previews.
 
 ### Changed
@@ -12461,10 +12461,10 @@ of every wave.
 - **`apps/web/app/dashboard/page.tsx`** — stripped its own auth check + the
   wrapper `<main>` (layout owns both now). Reformatted as a sequence of
   sections that drop straight into the layout&rsquo;s content slot: welcome
-  strip (host first name + handle, or "Welcome to Vilo" for un-onboarded),
+  strip (host first name + handle, or "Welcome to Wielo" for un-onboarded),
   onboarding banner (unchanged behavior), listings card (now with a "See all"
   link to `/dashboard/listings`), empty-state card for hosts with zero
-  listings. Removed the old "Signed in" pill + redundant "Welcome to Vilo"
+  listings. Removed the old "Signed in" pill + redundant "Welcome to Wielo"
   header (the layout handles identity at the topbar).
 - **`apps/web/app/dashboard/listings/[id]/edit/page.tsx`** — removed the
   duplicate "← Dashboard" header strip and the `<main>` wrapper. The Sidebar
@@ -12654,7 +12654,7 @@ of every wave.
 - **`apps/web/app/dashboard/page.tsx`** — now reads the user&rsquo;s hosts
   row and the 5 newest listings. If no hosts row, renders a "Finish setting
   up your host profile" banner linking to `/signup/host`. If hosts row
-  exists, shows the Vilo handle and a Published/Draft listing list.
+  exists, shows the Wielo handle and a Published/Draft listing list.
 - **`apps/web/app/booking-management/_components/SiteHeader.tsx`** — V logo
   now links to `/` so users can return to the directory home from the host
   marketing page. Tiny chore, separate commit (`3a86926`).
@@ -12711,7 +12711,7 @@ of every wave.
   · `RecentReviews` (3 review cards with rating, body, avatar, 4.83 stat)
   · `AppNewsletter` (newsletter capture + iOS/Android download tiles) ·
   `HostCTA` (dark-emerald section linking to `/booking-management` — two
-  CTAs: "List your property" deep-linked to `#cta`, "See how Vilo works") ·
+  CTAs: "List your property" deep-linked to `#cta`, "See how Wielo works") ·
   `SiteFooter` (4 link columns: Explore / Guests / Hosts / Company; social
   SVGs; "All systems operational" links to `/change-log`).
 - **Three Client Components only** — `SiteHeader` (scroll listener for
@@ -12765,19 +12765,19 @@ of every wave.
 
 ### Built
 - **`/booking-management`** — full marketing page translating the canonical
-  emerald design at `Vilo Home Page (2).html`. 13 sections in order:
+  emerald design at `Wielo Home Page (2).html`. 13 sections in order:
   `SiteHeader` (sticky nav with gradient-SVG V logo) · `Hero` (split layout
   with URL grabber form, social-proof avatars, and a stacked mockup column
   containing a browser dashboard, a floating mobile inbox card, and a
   "commission saved" stat tile) · `TrustMarquee` (auto-scrolling brand strip)
   · `ValueProp` + interactive `EarningsCalculator` (range slider that
-  computes Airbnb 18% / Booking 22% / Vilo flat R499 net amounts and the
+  computes Airbnb 18% / Booking 22% / Wielo flat R499 net amounts and the
   annual savings vs Airbnb) · `Features` (6 cards) · `HowItWorks` (4 steps
   with dashed connectors) · `ProductShowcase` (iPhone-frame mockup of a
-  Vilo listing detail) · `DirectoryStrip` (4 verified-host cards) ·
+  Wielo listing detail) · `DirectoryStrip` (4 verified-host cards) ·
   `Pricing` (3-tier with `Monthly | Annual SAVE 20%` toggle and Free-tier
   strip) · `Testimonials` (1 dark featured + 2 white) · `Comparison`
-  (Vilo vs Airbnb vs Booking.com vs DIY table) · `FAQ` (6 native
+  (Wielo vs Airbnb vs Booking.com vs DIY table) · `FAQ` (6 native
   `<details>` accordion items) · `FinalCTA` (claim-your-URL form on the
   primary-emerald section) · `PageFooter` (dark-emerald, 4 link columns,
   social SVGs, status dot linking to /change-log).
@@ -12791,13 +12791,13 @@ of every wave.
 - **`apps/web/app/globals.css`** — added a `@layer components` block with
   the design's custom CSS: `marquee-track` keyframes, `details[open]
   .acc-icon` rotation, `.step-line::after` dashed connector,
-  `.vilo-range` slider track/thumb styling (WebKit + Mozilla), `.dotgrid`
+  `.wielo-range` slider track/thumb styling (WebKit + Mozilla), `.dotgrid`
   utility (22px variant of the existing 18px `.bg-dot-grid`), `.ribbon`,
   `.avatar`, `.chrome-dot`, `.num-display`, `.brand-gradient`.
 
 ### Notes
 - **Palette is the canonical emerald `brand-*` set** — no new tokens needed.
-  The earlier forest+amber design (`Vilo Home Page.html` / `(1).html`) was
+  The earlier forest+amber design (`Wielo Home Page.html` / `(1).html`) was
   superseded by the (2) revision which uses our existing tokens exactly.
 - **Two Client Components only** — `EarningsCalculator` (controlled range +
   text input) and `Pricing` (billing toggle). Everything else is a Server
@@ -12931,7 +12931,7 @@ of every wave.
   `registerAction`, `signOutAction`. All re-validate input with Zod server-side, call
   the `@supabase/ssr` server client, map Supabase error messages to user-friendly
   toasts, then `redirect()` on success.
-- **Shared `(auth)` layout** — centered card on the brand dot-grid background, Vilo
+- **Shared `(auth)` layout** — centered card on the brand dot-grid background, Wielo
   logo mark in the header, "Back to site" link.
 - **Sonner `<Toaster richColors position="top-center" />`** wired into the root
   `apps/web/app/layout.tsx` so any Client Component can `toast.error` / `toast.success`
@@ -12981,8 +12981,8 @@ of every wave.
 
 ### Built
 - `apps/web/app/page.tsx` rewritten as a real marketing homepage. Composed from co-located server components under `apps/web/app/_components/home/`: `SiteHeader`, `Hero`, `Features`, `HowItWorks`, `Pricing`, `SiteFooter`, plus a shared `VLogo` SVG.
-- Sections: sticky nav · split hero with dual CTA · feature grid (3 host + 3 guest + 2 universal) · two-column how-it-works (hosts + guests, 3 steps each) · 3-tier pricing pulled verbatim from `vilo-platform-mvp.md` §6.6B (Basic R299 / Pro R599 / Business R1,199) · dark-emerald site footer with status dot.
-- All sections are server components, all classes use canonical Vilo Design System tokens (brand-primary/secondary/dark/accent/line/mute, rounded-card, shadow-glow, dot-grid, font-display). Lucide icons via existing `lucide-react` dep.
+- Sections: sticky nav · split hero with dual CTA · feature grid (3 host + 3 guest + 2 universal) · two-column how-it-works (hosts + guests, 3 steps each) · 3-tier pricing pulled verbatim from `wielo-platform-mvp.md` §6.6B (Basic R299 / Pro R599 / Business R1,199) · dark-emerald site footer with status dot.
+- All sections are server components, all classes use canonical Wielo Design System tokens (brand-primary/secondary/dark/accent/line/mute, rounded-card, shadow-glow, dot-grid, font-display). Lucide icons via existing `lucide-react` dep.
 
 ### Changed
 - Old dev-status content (Supabase auth health check + stack readout) moved from `/` to a new `/status` route at `apps/web/app/status/page.tsx`. Same readout, same brand styling, but off the public front door. Footer + status-dot link to it.
@@ -13026,8 +13026,8 @@ of every wave.
 - Supabase keys are the newer `sb_publishable_` / `sb_secret_` format (replacements for legacy `anon`/`service_role` JWTs). They work transparently with `@supabase/supabase-js` ≥2.43.x — no SDK bump required.
 - Only **one** Supabase project exists. The plan originally called for production + staging; staging deferred to a future session.
 - An earlier Vilo2027 project (ref `ddexrmfuqtvmumgvzqxz`, West EU / Ireland) was created and deleted by the user when neither it nor a re-attempt offered `af-south-1`. Both attempts confirmed `af-south-1` is not currently available for this Supabase account.
-- `viloplatform.com` domain ownership and Resend / Doppler / Vercel / EAS / Sentry / PostHog / Mapbox / Paystack / PayPal accounts are NOT set up yet — placeholders remain in `.env.local`.
-- `supabase_database.md`, `vilo-platform-mvp.md`, and `customer_journey.md` are still missing from the repo. The Phase 0 Database section is blocked until at least `supabase_database.md` is added.
+- `wieloplatform.com` domain ownership and Resend / Doppler / Vercel / EAS / Sentry / PostHog / Mapbox / Paystack / PayPal accounts are NOT set up yet — placeholders remain in `.env.local`.
+- `supabase_database.md`, `wielo-platform-mvp.md`, and `customer_journey.md` are still missing from the repo. The Phase 0 Database section is blocked until at least `supabase_database.md` is added.
 
 ### Commits
 - `chore: initial commit with project documentation` — 2ec4dd9
@@ -13038,7 +13038,7 @@ of every wave.
 ## 2026-05-22 — Phase 0 — Specs added: product, schema, customer journey
 
 ### Built
-- `vilo-platform-mvp.md` (85 KB) added — full v1.2 product spec with 10 core modules including Refund Manager (6.9) and Policy Manager (6.10).
+- `wielo-platform-mvp.md` (85 KB) added — full v1.2 product spec with 10 core modules including Refund Manager (6.9) and Policy Manager (6.10).
 - `supabase_database.md` (137 KB) added — complete DB architecture: 11 domains, RLS, functions, triggers, pg_cron, Realtime, Storage, seed data, migration strategy. Requires extensions `uuid-ossp`, `pgcrypto`, `pg_trgm`, `postgis`, `pg_cron`.
 - `customer_journey.md` (86 KB) added — 6 personas across ~50 end-to-end journeys (guest, host free/pro/business, staff, admin, subscriptions).
 
@@ -13049,15 +13049,15 @@ of every wave.
 ### Notes
 - Phase 0 Database section is now **unblocked** — migrations 000000 → 000017 and the v1.1 migration set (20260502000000 → 20260502000017) can be applied in a future session.
 - `RULES.md` §2 and `AGENT_RULES.md` §2 ("read `supabase_database.md` before any DB-related work") can now be satisfied.
-- Active blockers remaining: Supabase region migration to `af-south-1` (see ADR-015), `viloplatform.com` domain ownership not confirmed.
+- Active blockers remaining: Supabase region migration to `af-south-1` (see ADR-015), `wieloplatform.com` domain ownership not confirmed.
 
 ## 2026-05-22 — Phase 0 — Monorepo scaffold + Next.js web app
 
 ### Built
 - pnpm monorepo: root `package.json` (private), `pnpm-workspace.yaml` declaring `apps/*` + `packages/*`, `turbo.json` with build/dev/lint/type-check tasks, `tsconfig.base.json` for shared TS strict settings.
 - `apps/web` — Next.js 14.2.35 App Router, TypeScript strict, Tailwind 3.4, no `src/` dir, `@/*` import alias. `tsconfig.json` extends the root base.
-- Brand-token Tailwind config (`apps/web/tailwind.config.ts`): Vilo primary/secondary/accent/dark/light per `DESIGN_SYSTEM.md` §2 + status palette, custom border-radius (DEFAULT 10px, card 16px, pill, sm), Inter (sans) + Plus Jakarta Sans (display) via CSS variables, shadcn semantic tokens layered on top.
-- `apps/web/app/globals.css` — shadcn-style HSL CSS variables tuned to Vilo brand (background = brand.light, foreground = brand.dark, primary = brand.primary).
+- Brand-token Tailwind config (`apps/web/tailwind.config.ts`): Wielo primary/secondary/accent/dark/light per `DESIGN_SYSTEM.md` §2 + status palette, custom border-radius (DEFAULT 10px, card 16px, pill, sm), Inter (sans) + Plus Jakarta Sans (display) via CSS variables, shadcn semantic tokens layered on top.
+- `apps/web/app/globals.css` — shadcn-style HSL CSS variables tuned to Wielo brand (background = brand.light, foreground = brand.dark, primary = brand.primary).
 - `next/font/google` wiring in `apps/web/app/layout.tsx` for Inter + Plus Jakarta Sans (zero layout shift, auto self-hosted).
 - shadcn/ui configuration: `components.json` + `lib/utils.ts` (cn helper). Component installs (`pnpm dlx shadcn@latest add ...`) can proceed in any future session.
 - Supabase SSR wiring per `ARCHITECTURE.md` §7:
@@ -13115,7 +13115,7 @@ of every wave.
 - EAS account + `eas init` for `apps/mobile`
 - Sentry projects (web + mobile)
 - PostHog project
-- Resend account + `viloplatform.com` domain verification (domain itself not yet registered)
+- Resend account + `wieloplatform.com` domain verification (domain itself not yet registered)
 - 6 Supabase Storage buckets
 
 ### Still TODO (autonomous in next session)
@@ -13133,16 +13133,16 @@ of every wave.
 ## 2026-05-23 — Phase 0 — Mobile + shadcn + tooling + emails scaffolded
 
 ### Built
-- **`apps/mobile`** scaffolded with Expo SDK 56 (newer than DEVSTACK's 51+ — modern stack, React Native 0.85, Expo Router pre-configured). Includes `src/app/` file-based routing, `eas.json` (development/preview/production profiles), `app.json` branded as Vilo, `.env.local` with `EXPO_PUBLIC_*` Supabase vars, and `src/lib/supabase.ts` using Expo SecureStore as the auth-storage adapter per `ARCHITECTURE.md` §7. Deps: `@supabase/supabase-js`, `expo-secure-store`, `react-native-url-polyfill`, `@tanstack/react-query`, `zustand`.
+- **`apps/mobile`** scaffolded with Expo SDK 56 (newer than DEVSTACK's 51+ — modern stack, React Native 0.85, Expo Router pre-configured). Includes `src/app/` file-based routing, `eas.json` (development/preview/production profiles), `app.json` branded as Wielo, `.env.local` with `EXPO_PUBLIC_*` Supabase vars, and `src/lib/supabase.ts` using Expo SecureStore as the auth-storage adapter per `ARCHITECTURE.md` §7. Deps: `@supabase/supabase-js`, `expo-secure-store`, `react-native-url-polyfill`, `@tanstack/react-query`, `zustand`.
 - **18 shadcn/ui components** installed in `apps/web/components/ui/` per `DESIGN_SYSTEM.md`: button, input, card, label, badge, skeleton, form, dialog, sonner, separator, avatar, alert, tabs, select, checkbox, textarea, dropdown-menu, sheet. Pulled in `react-hook-form`, `zod`, `@hookform/resolvers`, `sonner`, `next-themes`, and the relevant `@radix-ui/*` primitives as transitive deps.
 - **Code quality tooling** at workspace root:
   - Prettier 3.8 + `prettier-plugin-tailwindcss` with `.prettierrc.json` (double quotes, trailing comma all, 80-col).
   - `.prettierignore` excluding generated files (lockfile, `database.types.ts`, migrations, `.next`, `.expo`, etc.).
   - Husky 9 with `.husky/pre-commit` running `lint-staged` and `.husky/commit-msg` running `commitlint --edit`.
-  - `commitlint.config.js` extending `@commitlint/config-conventional` with Vilo's allowed types (feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert, wip, migration).
+  - `commitlint.config.js` extending `@commitlint/config-conventional` with Wielo's allowed types (feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert, wip, migration).
   - Root `package.json` scripts: `format`, `format:check`, `prepare`; `lint-staged` config for `*.{ts,tsx,js,jsx}` and `*.{json,md,yml,yaml,css}`.
 - **`@vilo/emails` workspace package** at `emails/` with React Email setup:
-  - `components/Layout.tsx` — brand-styled shared layout (Vilo green/cream, Inter font, header + content + footer with email-preferences link).
+  - `components/Layout.tsx` — brand-styled shared layout (Wielo green/cream, Inter font, header + content + footer with email-preferences link).
   - `templates/WelcomeHost.tsx` — first of the 26 templates from `EMAIL_TEMPLATES.md` (host onboarding welcome).
   - `package.json` with `email dev`/`build`/`export` scripts.
   - `.gitignore` for `.react-email/` build output.
@@ -13185,7 +13185,7 @@ Everything I can do without external account access is done. Remaining items in 
 - EAS account + `eas init` for `apps/mobile`
 - Sentry projects (web + mobile)
 - PostHog project
-- Resend account + `viloplatform.com` domain verification (domain itself not yet registered)
+- Resend account + `wieloplatform.com` domain verification (domain itself not yet registered)
 - 6 Supabase Storage buckets (`listing-photos`, `host-avatars`, `host-covers`, `eft-proofs`, `message-attachments`, `refund-requests`)
 
 ### Commits
@@ -13197,7 +13197,7 @@ Everything I can do without external account access is done. Remaining items in 
 ## 2026-05-23 — Phase 0 — Canonical design system adopted
 
 ### Built
-- `Vilo Design System.html` (3914 lines, 290 KB) added at the repo root as the **canonical** source of truth for all Vilo UX/UI work. Replaces the inline token specs in earlier `DESIGN_SYSTEM.md` and `tailwind.config.ts` drafts.
+- `Wielo Design System.html` (3914 lines, 290 KB) added at the repo root as the **canonical** source of truth for all Wielo UX/UI work. Replaces the inline token specs in earlier `DESIGN_SYSTEM.md` and `tailwind.config.ts` drafts.
 - `apps/web/public/DESIGN_SYSTEM.HTML` — static mirror published via Next.js, accessible at https://vilo2027.vercel.app/DESIGN_SYSTEM.HTML.
 
 ### Changed
@@ -13214,7 +13214,7 @@ Everything I can do without external account access is done. Remaining items in 
 - `DESIGN_SYSTEM.md` slimmed from a full token spec to a short pointer at the canonical HTML, with a quick-reference cheatsheet of utility names and the hard rules.
 
 ### Decisions
-- **HTML is canonical.** When `DESIGN_SYSTEM.md` and `Vilo Design System.html` conflict, the HTML wins. Reasoning saved in memory `feedback_design_system_source.md`.
+- **HTML is canonical.** When `DESIGN_SYSTEM.md` and `Wielo Design System.html` conflict, the HTML wins. Reasoning saved in memory `feedback_design_system_source.md`.
 - Old primary `#1B4D3E` (a darker forest green) and amber secondary `#F4A836` from the previous Tailwind config are retired. The new palette is emerald-led, matching the canonical HTML and the live homepage hero.
 
 ### Notes

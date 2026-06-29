@@ -309,7 +309,7 @@ export function SiteButton({
     <a
       href={href}
       style={style}
-      {...(track ? { "data-vilo-book": "" } : {})}
+      {...(track ? { "data-wielo-book": "" } : {})}
       className={`inline-flex items-center justify-center font-semibold transition-opacity hover:opacity-90 ${BTN_SIZE[size]}`}
     >
       {children}

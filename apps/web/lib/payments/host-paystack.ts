@@ -13,9 +13,9 @@ export type HostPaystack = {
  * own connected Paystack account (an enabled `host_payment_gateways` row).
  *
  * Direct-host model: a guest's card payment settles to the HOST's Paystack
- * account (Vilo takes 0%), so the booking flow must initialise + verify the
+ * account (Wielo takes 0%), so the booking flow must initialise + verify the
  * transaction with the host's decrypted secret — never the platform
- * `PAYSTACK_SECRET_KEY`, which is reserved for Vilo's own subscription billing.
+ * `PAYSTACK_SECRET_KEY`, which is reserved for Wielo's own subscription billing.
  * Because of this, host card payments are confirmed by the success-page
  * `verifyTransaction` (with the host key), not by the platform webhook.
  *

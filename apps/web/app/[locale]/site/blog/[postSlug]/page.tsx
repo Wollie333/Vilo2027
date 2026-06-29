@@ -36,7 +36,7 @@ export async function generateMetadata({
   const sp = await searchParams;
   const h = await headers();
   return siteMetadata({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
     postSlug,
     preview: sp?.preview === "1",
@@ -54,7 +54,7 @@ export default async function SiteBlogPostPage({
   const sp = await searchParams;
   const h = await headers();
   const ref = resolveSiteRef({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
   });
   if (!ref) notFound();
@@ -126,7 +126,7 @@ export default async function SiteBlogPostPage({
   // Structured data (BlogPosting) — public render only.
   let jsonLdGraph: Record<string, unknown>[] = [];
   if (!ctx.preview) {
-    const host = h.get("x-vilo-site-host") || h.get("host") || "";
+    const host = h.get("x-wielo-site-host") || h.get("host") || "";
     if (host) {
       const scheme =
         host.startsWith("localhost") || host.startsWith("127.")

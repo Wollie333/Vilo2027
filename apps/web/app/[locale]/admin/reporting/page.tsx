@@ -50,11 +50,11 @@ export default async function AdminReportingPage({
               Business reporting
             </div>
             <h1 className="mt-1 font-display text-2xl font-bold lg:text-3xl">
-              Vilo at a glance
+              Wielo at a glance
             </h1>
             <p className="mt-1 max-w-xl text-[13px] text-white/70">
               Recurring revenue, growth and retention — the numbers that show
-              how Vilo is performing as a business.
+              how Wielo is performing as a business.
             </p>
           </div>
           <a
@@ -190,8 +190,8 @@ export default async function AdminReportingPage({
         </div>
         <p className="mt-3 text-[11px] text-brand-mute">
           GMV = booking value flowing host↔guest
-          (confirmed/checked-in/completed). Vilo never holds this — it&apos;s a
-          platform-scale metric, not Vilo income.
+          (confirmed/checked-in/completed). Wielo never holds this — it&apos;s a
+          platform-scale metric, not Wielo income.
         </p>
       </section>
     </div>

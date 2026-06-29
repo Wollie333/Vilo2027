@@ -30,13 +30,13 @@ export function RevenueAreaChart({
     <div className="rounded-card border border-brand-line bg-white p-5 shadow-card lg:col-span-2 lg:p-6">
       <div className="mb-5">
         <div className="text-[11px] font-medium uppercase tracking-wide text-brand-mute">
-          Vilo revenue collected
+          Wielo revenue collected
         </div>
         <h3 className="mt-1 font-display text-lg font-bold text-brand-ink">
           R {compact(total)} over 12 months
         </h3>
         <div className="mt-0.5 text-xs text-brand-mute">
-          Completed user→Vilo charges (subscriptions + products), by month.
+          Completed user→Wielo charges (subscriptions + products), by month.
         </div>
       </div>
       <ResponsiveContainer width="100%" height={240}>
@@ -45,7 +45,7 @@ export function RevenueAreaChart({
           margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
         >
           <defs>
-            <linearGradient id="viloRev" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="wieloRev" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
               <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
             </linearGradient>
@@ -88,7 +88,7 @@ export function RevenueAreaChart({
             dataKey="revenue"
             stroke="#10B981"
             strokeWidth={2.5}
-            fill="url(#viloRev)"
+            fill="url(#wieloRev)"
             dot={false}
             activeDot={{
               r: 5,

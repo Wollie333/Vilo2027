@@ -35,7 +35,7 @@ export default async function EditorTabsLayout({
   ]);
   if (!data) notFound();
 
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
   const name = data.brand.name?.trim() || data.businessName || data.subdomain;
   const glyph = (name[0] || "·").toUpperCase();
   const statusTone =
@@ -47,7 +47,7 @@ export default async function EditorTabsLayout({
 
   return (
     <div className="space-y-5">
-      <div className="vilo-cms">
+      <div className="wielo-cms">
         <div className="flex flex-wrap items-center gap-3">
           {/* Site switcher → back to the portfolio of all sites */}
           <Link href="/dashboard/website" className="siteswitch">

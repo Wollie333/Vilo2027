@@ -696,7 +696,7 @@ export function ImagesSection({ state, merge }: SectionProps) {
         <div className="flex justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://picsum.photos/seed/vilo-imgstyle/480/320"
+            src="https://picsum.photos/seed/wielo-imgstyle/480/320"
             alt=""
             style={siteImageStyle}
             className="h-28 w-44 object-cover"

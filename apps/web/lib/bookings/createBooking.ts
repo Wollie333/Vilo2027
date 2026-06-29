@@ -135,7 +135,7 @@ export type BookingPaymentCtx = {
   origin: string;
   returnTo: (bookingId: string) => string;
   /** Sales channel this booking came through — stored for reporting. Defaults to
-   *  "vilo" (the Vilo app/directory). The on-site checkout passes "website";
+   *  "vilo" (the Wielo app/directory). The on-site checkout passes "website";
    *  OTA/iCal imports set their own (airbnb, lekkerslaap, web-referred, …). */
   channel?: string;
 };

@@ -28,7 +28,7 @@ export default async function SignupChoicePage() {
 
       <main className="relative flex min-w-0 items-stretch justify-center bg-brand-light/50 p-6 lg:items-center lg:p-10 xl:p-12">
         <div className="w-full max-w-[520px] py-10 lg:py-0">
-          <div className="vilo-fade-up">
+          <div className="wielo-fade-up">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-primary">
               Get started
             </div>
@@ -40,7 +40,7 @@ export default async function SignupChoicePage() {
             </p>
           </div>
 
-          <div className="vilo-fade-up vilo-delay-1 mt-7 space-y-3">
+          <div className="wielo-fade-up wielo-delay-1 mt-7 space-y-3">
             <ChoiceCard
               href="/signup/guest"
               icon={<Luggage className="h-6 w-6" />}
@@ -57,7 +57,7 @@ export default async function SignupChoicePage() {
             />
           </div>
 
-          <div className="vilo-fade-up vilo-delay-2 mt-7 border-t border-brand-line pt-6 text-center text-[13px] text-brand-mute">
+          <div className="wielo-fade-up wielo-delay-2 mt-7 border-t border-brand-line pt-6 text-center text-[13px] text-brand-mute">
             Already have an account?
             <Link
               href="/login"
@@ -67,7 +67,7 @@ export default async function SignupChoicePage() {
             </Link>
           </div>
 
-          <div className="vilo-fade-up vilo-delay-3 mt-6 flex items-center justify-center gap-5 text-[10.5px] text-brand-mute">
+          <div className="wielo-fade-up wielo-delay-3 mt-6 flex items-center justify-center gap-5 text-[10.5px] text-brand-mute">
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-brand-primary" /> 256-bit
               TLS
@@ -128,14 +128,14 @@ async function Showcase() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-dot-grid opacity-25"
       />
-      <span className="vilo-orb vilo-orb-1" aria-hidden />
-      <span className="vilo-orb vilo-orb-2" aria-hidden />
-      <span className="vilo-orb vilo-orb-3" aria-hidden />
+      <span className="wielo-orb wielo-orb-1" aria-hidden />
+      <span className="wielo-orb wielo-orb-2" aria-hidden />
+      <span className="wielo-orb wielo-orb-3" aria-hidden />
 
       <div className="relative flex items-center justify-between">
         <Link href="/" className="group flex items-center gap-2.5">
           <svg
-            className="vilo-logo-pulse h-10 w-10 rounded-md"
+            className="wielo-logo-pulse h-10 w-10 rounded-md"
             viewBox="0 0 100 100"
             fill="none"
             aria-hidden="true"

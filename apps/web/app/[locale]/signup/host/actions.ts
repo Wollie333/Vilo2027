@@ -312,7 +312,7 @@ export async function finalizeOnboardingAction(
   }
 
   // 3b. If they paid for a product before signing up, link that paid order to
-  //     the new account so the purchase shows in their billing / the Vilo
+  //     the new account so the purchase shows in their billing / the Wielo
   //     ledger. If the product maps to a subscription plan (slug === plan key),
   //     start them on that plan instead of Free. Non-blocking.
   let resolvedPlan: "free" | "basic" | "pro" | "business" = "free";

@@ -215,8 +215,8 @@ export async function createSiteBooking(
   const result = await createBookingCore(
     body as CreateBookingInput,
     { guestId: identity.guestId, email: guest_email },
-    // channel="website" → a booking through the host's own Vilo website (still a
-    // direct booking, distinct from the Vilo app/directory for reporting).
+    // channel="website" → a booking through the host's own Wielo website (still a
+    // direct booking, distinct from the Wielo app/directory for reporting).
     { origin: ctx.origin, returnTo, channel: "website" },
   );
 

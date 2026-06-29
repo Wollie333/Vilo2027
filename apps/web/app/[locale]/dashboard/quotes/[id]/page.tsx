@@ -257,7 +257,7 @@ export default async function QuoteDetailPage({
   const daysLeft =
     validMs != null ? Math.ceil((validMs - now) / 86_400_000) : null;
 
-  // Payout: Vilo takes 0% commission — the host keeps the full quote total.
+  // Payout: Wielo takes 0% commission — the host keeps the full quote total.
   // (Gateway processing fees, if any, are deducted by the host's own provider.)
   const payout = Number(quote.total_amount);
 

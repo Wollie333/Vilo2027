@@ -154,7 +154,7 @@ export async function suggestNearbyPlacesAction(
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": "Vilo/1.0 (listing nearby-places suggester)",
+        "User-Agent": "Wielo/1.0 (listing nearby-places suggester)",
       },
       body: `data=${encodeURIComponent(buildOverpassQuery(lat, lng))}`,
       signal: controller.signal,

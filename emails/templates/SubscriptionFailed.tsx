@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   hostFirstName?: string;
@@ -22,12 +22,12 @@ export default function SubscriptionFailed({
 }: Props) {
   return (
     <Layout
-      preview={`We couldn't process your Vilo ${planName} payment of ${amount}.`}
+      preview={`We couldn't process your Wielo ${planName} payment of ${amount}.`}
     >
       <Heading>Your payment didn't go through</Heading>
       <Text>Hi {hostFirstName},</Text>
       <Text>
-        We had trouble processing your Vilo <strong>{planName}</strong> payment
+        We had trouble processing your Wielo <strong>{planName}</strong> payment
         of <strong>{amount}</strong>.
       </Text>
       <Text>

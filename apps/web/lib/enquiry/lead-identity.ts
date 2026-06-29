@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
 
-// The ONE find-or-create path for the Vilo guest account behind a public
+// The ONE find-or-create path for the Wielo guest account behind a public
 // enquiry email (BUSINESS_PRINCIPLES #1 — every entry mints a guest identity).
 // Shared by BOTH public entry points that mint a lead: the listing quote enquiry
 // (lib/enquiry/create-enquiry.ts) and the website contact-form enquiry
@@ -45,7 +45,7 @@ export async function findOrCreateLeadIdentity(
       is_lead: true,
     })
     .eq("id", guestId);
-  // A newly-minted lead is a new Vilo account — attribute it to a referring
+  // A newly-minted lead is a new Wielo account — attribute it to a referring
   // affiliate if a vilo_ref cookie is present on this request.
   await bindAffiliateReferral(guestId);
 

@@ -24,7 +24,7 @@ function applyIdentity(
         ? s.body
             .split("Vilo Platform (Pty) Ltd")
             .join(companyName)
-            .split("Vilo")
+            .split("Wielo")
             .join(brand)
         : s.body,
   }));
@@ -43,7 +43,7 @@ const LAST_UPDATED = "2026-05-23";
 const SECTIONS: ReadonlyArray<LegalSectionData> = [
   {
     heading: "1. Introduction",
-    body: "These Terms of Service (“Terms”) govern your access to and use of the Vilo platform, operated by Vilo Platform (Pty) Ltd. By creating an account, listing a property, or making a booking, you agree to these Terms.",
+    body: "These Terms of Service (“Terms”) govern your access to and use of the Wielo platform, operated by Vilo Platform (Pty) Ltd. By creating an account, listing a property, or making a booking, you agree to these Terms.",
   },
   {
     heading: "2. Acceptance and changes",
@@ -63,11 +63,11 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "6. Bookings and payments",
-    body: "Vilo facilitates direct bookings between guests and hosts. Payments are processed by Paystack, PayPal, or via manual EFT (bank transfer). All amounts displayed are in South African Rand unless otherwise stated. Hosts pay a flat monthly subscription fee — Vilo does not take a per-booking commission.",
+    body: "Wielo facilitates direct bookings between guests and hosts. Payments are processed by Paystack, PayPal, or via manual EFT (bank transfer). All amounts displayed are in South African Rand unless otherwise stated. Hosts pay a flat monthly subscription fee — Wielo does not take a per-booking commission.",
   },
   {
     heading: "7. Cancellations and refunds",
-    body: "Each listing displays a cancellation policy chosen by the host. Refunds, where due, are calculated against that policy and processed via the original payment method. Disputes that cannot be resolved between guest and host may be escalated to Vilo for review.",
+    body: "Each listing displays a cancellation policy chosen by the host. Refunds, where due, are calculated against that policy and processed via the original payment method. Disputes that cannot be resolved between guest and host may be escalated to Wielo for review.",
   },
   {
     heading: "8. Subscriptions",
@@ -75,7 +75,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "9. Intellectual property",
-    body: "Vilo and its licensors retain all rights in the platform’s software, design, and brand assets. You retain rights in the listing content you upload, but grant Vilo a worldwide, non-exclusive, royalty-free licence to host and display that content for the purpose of operating the platform.",
+    body: "Wielo and its licensors retain all rights in the platform’s software, design, and brand assets. You retain rights in the listing content you upload, but grant Wielo a worldwide, non-exclusive, royalty-free licence to host and display that content for the purpose of operating the platform.",
   },
   {
     heading: "10. Prohibited conduct",
@@ -87,7 +87,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "12. Disclaimers and liability",
-    body: "The platform is provided “as is”. Vilo is not party to the agreement between host and guest and is not liable for the condition, legality, or safety of any listing. To the maximum extent permitted by law, Vilo’s liability is limited to fees you have paid to Vilo in the 12 months preceding the claim.",
+    body: "The platform is provided “as is”. Wielo is not party to the agreement between host and guest and is not liable for the condition, legality, or safety of any listing. To the maximum extent permitted by law, Wielo’s liability is limited to fees you have paid to Wielo in the 12 months preceding the claim.",
   },
   {
     heading: "13. Governing law and disputes",
@@ -95,7 +95,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "14. Contact",
-    body: "For questions about these Terms, contact legal@viloplatform.com.",
+    body: "For questions about these Terms, contact legal@wieloplatform.com.",
   },
 ];
 
@@ -105,7 +105,7 @@ export default async function TermsPage() {
     getBrandName(),
     getLegalDocument("booking_terms"),
   ]);
-  // When Vilo has published custom terms (Admin → Platform settings → Legal),
+  // When Wielo has published custom terms (Admin → Platform settings → Legal),
   // render that; otherwise fall back to the built-in structural draft.
   return (
     <LegalPage

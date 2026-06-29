@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   hostFirstName?: string;
@@ -22,12 +22,12 @@ export default function SubscriptionExpiring({
 }: Props) {
   return (
     <Layout
-      preview={`Your Vilo ${planName} subscription renews on ${renewalDate}.`}
+      preview={`Your Wielo ${planName} subscription renews on ${renewalDate}.`}
     >
       <Heading>Heads up — your renewal is coming</Heading>
       <Text>Hi {hostFirstName},</Text>
       <Text>
-        Your Vilo <strong>{planName}</strong> subscription will renew on{" "}
+        Your Wielo <strong>{planName}</strong> subscription will renew on{" "}
         <strong>{renewalDate}</strong> for <strong>{price}</strong>.
       </Text>
       <Text>

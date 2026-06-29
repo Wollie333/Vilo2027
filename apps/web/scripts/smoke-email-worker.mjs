@@ -55,7 +55,7 @@ const payload = hostId
   : {
       guestFirstName: "Wollie",
       listingName: "Smoke Test Cabin",
-      hostName: "Vilo",
+      hostName: "Wielo",
       checkIn: "2026-06-01",
       checkOut: "2026-06-03",
       nights: 2,

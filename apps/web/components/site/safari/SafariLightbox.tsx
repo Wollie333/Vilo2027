@@ -18,7 +18,7 @@ export function SafariLightbox() {
   useEffect(() => {
     const els = Array.from(
       document.querySelectorAll<HTMLImageElement>(
-        ".vilo-safari .suite-hero img, .vilo-safari .gallery img, .vilo-safari .frame-img img, .vilo-safari [data-lb-src]",
+        ".wielo-safari .suite-hero img, .wielo-safari .gallery img, .wielo-safari .frame-img img, .wielo-safari [data-lb-src]",
       ),
     ).filter(
       // Skip images inside a hidden per-device duplicate (display:none → no box),
@@ -38,7 +38,7 @@ export function SafariLightbox() {
 
     // Fill the room gallery's "N photos" indicator.
     document
-      .querySelectorAll<HTMLElement>(".vilo-safari [data-lb-count]")
+      .querySelectorAll<HTMLElement>(".wielo-safari [data-lb-count]")
       .forEach((el) => {
         el.textContent = `${list.length} photo${list.length === 1 ? "" : "s"}`;
       });

@@ -405,7 +405,7 @@ export async function fetchGettingStartedState(
       meta:
         publishedCount > 0
           ? `${publishedCount} listing${publishedCount === 1 ? "" : "s"} live`
-          : "Share viloplatform.com/your-handle",
+          : "Share wieloplatform.com/your-handle",
     };
 
     if (listingIds.length > 0) {

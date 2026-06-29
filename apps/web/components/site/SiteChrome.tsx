@@ -108,7 +108,7 @@ export function ChromeEditWrap({
         outlineOffset: -2,
         transition: "outline-color .12s",
       }}
-      className="vilo-chrome-edit"
+      className="wielo-chrome-edit"
     >
       <span
         style={{
@@ -125,7 +125,7 @@ export function ChromeEditWrap({
           letterSpacing: ".02em",
           opacity: selected ? 1 : 0,
         }}
-        className="vilo-chrome-label"
+        className="wielo-chrome-label"
       >
         {label}
       </span>
@@ -273,7 +273,7 @@ function BookCta({
   return (
     <a
       href={href}
-      data-vilo-book
+      data-wielo-book
       style={style}
       className="shrink-0 px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
     >
@@ -408,7 +408,7 @@ function MenuLink({
   item: SiteMenuItem;
   className?: string;
   preview?: PreviewCtx;
-  /** Omit the inline colour so the styled-menu scoped CSS (.vilo-hmenu) wins. */
+  /** Omit the inline colour so the styled-menu scoped CSS (.wielo-hmenu) wins. */
   unstyled?: boolean;
 }) {
   const isExternal = item.href.startsWith("http");
@@ -432,7 +432,7 @@ function MenuLink({
  * JS. A top item's dropdown lists its sub-items; a sub-item that itself has
  * children renders as a labelled group with its sub-sub links beneath (a clean
  * mega-menu column, no fragile flyouts). When `styled`, the nav carries the
- * `.vilo-hmenu` class so the host's menu style (colour/weight/uppercase + hover)
+ * `.wielo-hmenu` class so the host's menu style (colour/weight/uppercase + hover)
  * applies via a scoped <style>, and links omit their inline colour.
  */
 function MenuNav({
@@ -449,7 +449,7 @@ function MenuNav({
   if (menu.length === 0) return null;
   return (
     <nav
-      className={[styled ? "vilo-hmenu" : "", className]
+      className={[styled ? "wielo-hmenu" : "", className]
         .filter(Boolean)
         .join(" ")}
     >
@@ -527,7 +527,7 @@ const MENU_WEIGHT: Record<string, number> = {
   bold: 700,
 };
 
-/** Scoped CSS for the styled header menu (.vilo-hmenu) from the host's menuStyle. */
+/** Scoped CSS for the styled header menu (.wielo-hmenu) from the host's menuStyle. */
 function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
   const color = style?.color?.trim() || "var(--site-mute)";
   const hover = style?.hoverColor?.trim() || "var(--site-ink)";
@@ -535,9 +535,9 @@ function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
   const transform = style?.uppercase ? "uppercase" : "none";
   const spacing = style?.uppercase ? "0.05em" : "normal";
   return (
-    `.vilo-hmenu a,.vilo-hmenu button{color:${color};font-weight:${weight};` +
+    `.wielo-hmenu a,.wielo-hmenu button{color:${color};font-weight:${weight};` +
     `text-transform:${transform};letter-spacing:${spacing}}` +
-    `.vilo-hmenu a:hover,.vilo-hmenu button:hover{color:${hover};opacity:1}`
+    `.wielo-hmenu a:hover,.wielo-hmenu button:hover{color:${hover};opacity:1}`
   );
 }
 
@@ -555,7 +555,7 @@ function menuItemDecls(s: MenuItemStyleLayer): string {
 }
 
 /**
- * Per-LINK scoped CSS for the generic header menu (`.vilo-hmenu a.mi-<id>`).
+ * Per-LINK scoped CSS for the generic header menu (`.wielo-hmenu a.mi-<id>`).
  * Each styled link gets the desktop layer (+ a tablet @media on the live site);
  * in the builder `previewDevice` renders the active device's merged layer flat so
  * the canvas reflects the chosen screen size at once. Mirrors the Safari version.
@@ -569,7 +569,7 @@ function menuItemStyleCss(
     for (const it of items) {
       const st = it.style;
       if (it.id && st) {
-        const sel = `.vilo-hmenu a.mi-${it.id},.vilo-hmenu button.mi-${it.id}`;
+        const sel = `.wielo-hmenu a.mi-${it.id},.wielo-hmenu button.mi-${it.id}`;
         const desktop: MenuItemStyleLayer = {
           color: st.color,
           hoverColor: st.hoverColor,
@@ -589,7 +589,7 @@ function menuItemStyleCss(
         if (decls) rules.push(`${sel}{${decls}}`);
         if (layer.hoverColor?.trim())
           rules.push(
-            `.vilo-hmenu a.mi-${it.id}:hover{color:${layer.hoverColor.trim()}}`,
+            `.wielo-hmenu a.mi-${it.id}:hover{color:${layer.hoverColor.trim()}}`,
           );
         if (!previewDevice && st.tablet) {
           const tDecls = menuItemDecls(st.tablet);
@@ -648,7 +648,7 @@ function HeaderMenu({
     <>
       <MenuNav
         menu={menu}
-        className={`${fullShow} vilo-cq-full-${bp} ${navClassName}`}
+        className={`${fullShow} wielo-cq-full-${bp} ${navClassName}`}
         preview={preview}
         styled
       />
@@ -658,7 +658,7 @@ function HeaderMenu({
         bookLabel={bookLabel}
         dark={dark}
         burger={burger}
-        className={`${burgerShow} vilo-cq-burg-${bp}`}
+        className={`${burgerShow} wielo-cq-burg-${bp}`}
       />
     </>
   );
@@ -667,9 +667,9 @@ function HeaderMenu({
 /**
  * The collapse breakpoint as a container-query suffix. The live site collapses
  * the inline menu via Tailwind viewport utilities (`md`/`lg`); the nav-builder
- * canvas re-toggles the paired `vilo-cq-*-{md,lg}` markers via @container at the
+ * canvas re-toggles the paired `wielo-cq-*-{md,lg}` markers via @container at the
  * SIMULATED device width (see builder.css "generic nav canvas"). Inert on the
- * live site — the marker rules are scoped to `.vilo-builder .nav-canvas`.
+ * live site — the marker rules are scoped to `.wielo-builder .nav-canvas`.
  */
 function cqBreak(collapse: MenuCollapse): "md" | "lg" {
   return collapse === "tablet" ? "lg" : "md";
@@ -682,8 +682,8 @@ function cqBreak(collapse: MenuCollapse): "md" | "lg" {
  */
 function bookVisibilityClass(collapse: MenuCollapse): string {
   if (collapse === "never") return "inline-flex";
-  if (collapse === "tablet") return "hidden lg:inline-flex vilo-cq-book-lg";
-  return "hidden md:inline-flex vilo-cq-book-md";
+  if (collapse === "tablet") return "hidden lg:inline-flex wielo-cq-book-lg";
+  return "hidden md:inline-flex wielo-cq-book-md";
 }
 
 function ContactLinks({ brand }: { brand: SiteBrand }) {
@@ -830,13 +830,13 @@ function HeaderInner({
     oneLogo(resolveLogo(previewDevice))
   ) : (
     <>
-      <span className="vilo-lg-rd vilo-lg-dt">
+      <span className="wielo-lg-rd wielo-lg-dt">
         {oneLogo(resolveLogo("desktop"))}
       </span>
-      <span className="vilo-lg-rd vilo-lg-tb">
+      <span className="wielo-lg-rd wielo-lg-tb">
         {oneLogo(resolveLogo("tablet"))}
       </span>
-      <span className="vilo-lg-rd vilo-lg-mb">
+      <span className="wielo-lg-rd wielo-lg-mb">
         {oneLogo(resolveLogo("phone"))}
       </span>
     </>
@@ -1148,7 +1148,7 @@ export function SiteChrome({
   editable?: ChromeEditable;
   /** Embedded preview (e.g. the nav-manager card iframe): hide the preview banner. */
   hideBanner?: boolean;
-  /** Theme-preview page navigator (the shared Vilo bar). Present only in preview. */
+  /** Theme-preview page navigator (the shared Wielo bar). Present only in preview. */
   previewPages?: SitePreviewPage[];
   /** Page builder: render the header/footer non-interactive (context only). */
   chromeInert?: boolean;
@@ -1200,16 +1200,16 @@ export function SiteChrome({
   const logoRdCss =
     (navigation.header?.logoTablet || navigation.header?.logoMobile) &&
     !previewDevice
-      ? ".vilo-lg-tb,.vilo-lg-mb{display:none}.vilo-lg-dt{display:contents}" +
-        "@media (max-width:1024px){.vilo-lg-dt{display:none}.vilo-lg-tb{display:contents}}" +
-        "@media (max-width:640px){.vilo-lg-tb{display:none}.vilo-lg-mb{display:contents}}"
+      ? ".wielo-lg-tb,.wielo-lg-mb{display:none}.wielo-lg-dt{display:contents}" +
+        "@media (max-width:1024px){.wielo-lg-dt{display:none}.wielo-lg-tb{display:contents}}" +
+        "@media (max-width:640px){.wielo-lg-tb{display:none}.wielo-lg-mb{display:contents}}"
       : "";
   // Transparent-over-hero and a top bar can't coexist (the fixed header would
   // overlay the top bar) — the top bar wins.
   const transparentOver = pageTransparent && !topBar?.enabled;
   const headerDark = transparentOver || darkChrome;
   const boxed = layout === "boxed";
-  // The shared Vilo theme-preview bar (single source of truth across all themes).
+  // The shared Wielo theme-preview bar (single source of truth across all themes).
   const showBar = Boolean(
     preview && !hideBanner && previewPages && previewPages.length,
   );
@@ -1227,7 +1227,7 @@ export function SiteChrome({
     // Total fixed-bar offset (preview bar + top bar + sticky header) so sticky
     // in-content elements — e.g. the room booking dock — sit BELOW the header
     // with a gap instead of scrolling behind it. Mirrors SafariShell.
-    "--vilo-sticky-top": `${
+    "--wielo-sticky-top": `${
       (showBar ? 44 : 0) + (topBar?.enabled ? 38 : 0) + (sticky ? 96 : 28)
     }px`,
   } as CSSProperties;
@@ -1277,7 +1277,7 @@ export function SiteChrome({
           textColor={mergedMenuStyle?.color}
           topOffset={showBar ? 44 : 0}
         >
-          <div className="vilo-cq-d hidden md:block">
+          <div className="wielo-cq-d hidden md:block">
             <HeaderInner
               variant={navigation.header?.layout ?? header.desktop}
               brand={brand}
@@ -1298,7 +1298,7 @@ export function SiteChrome({
               burger={navigation.header?.burger}
             />
           </div>
-          <div className="vilo-cq-m md:hidden">
+          <div className="wielo-cq-m md:hidden">
             <HeaderInner
               variant={header.mobile}
               brand={brand}
@@ -1346,7 +1346,7 @@ export function SiteChrome({
             />
           ) : (
             <>
-              <div className="vilo-cq-d hidden md:block">
+              <div className="wielo-cq-d hidden md:block">
                 <FooterInner
                   variant={footer.desktop}
                   brand={brand}
@@ -1354,7 +1354,7 @@ export function SiteChrome({
                   preview={preview}
                 />
               </div>
-              <div className="vilo-cq-m md:hidden">
+              <div className="wielo-cq-m md:hidden">
                 <FooterInner
                   variant={footer.mobile}
                   brand={brand}
@@ -1373,7 +1373,7 @@ export function SiteChrome({
                 style={{ color: "var(--site-mute)" }}
                 className="mx-auto w-full max-w-5xl px-5 py-3 text-center text-[11px]"
               >
-                Powered by Vilo
+                Powered by Wielo
               </p>
             </div>
           ) : null}

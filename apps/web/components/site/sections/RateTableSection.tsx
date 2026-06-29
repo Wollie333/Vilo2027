@@ -133,7 +133,7 @@ function RateTableRow({ row, cta }: { row: RateRow; cta: string }) {
       <td className="px-4 py-4 text-right">
         <a
           href={row.bookHref}
-          data-vilo-book
+          data-wielo-book
           style={{
             background: "var(--site-btn-primary-bg)",
             color: "var(--site-btn-primary-color)",

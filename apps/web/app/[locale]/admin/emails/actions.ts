@@ -71,7 +71,7 @@ const sendTestInner = withAdminAudit<SendTestArgs, { id: string | null }>(
     if (!apiKey) throw new Error("RESEND_API_KEY is not set");
 
     const from =
-      process.env.EMAIL_FROM_ADDRESS ?? "Vilo <onboarding@resend.dev>";
+      process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
     const resend = new Resend(apiKey);
 
     const { data, error } = await resend.emails.send({

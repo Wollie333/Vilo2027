@@ -43,9 +43,9 @@ export default async function AdminProductsPage() {
             Product manager
           </h1>
           <p className="mt-1 text-[13px] text-brand-mute">
-            Everything Vilo sells — subscriptions and once-off products. Set
+            Everything Wielo sells — subscriptions and once-off products. Set
             price, duration, feature permissions and affiliate payout. Sales
-            land in the Vilo ledger.
+            land in the Wielo ledger.
           </p>
         </div>
         <div className="flex items-center gap-2">

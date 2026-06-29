@@ -1,20 +1,20 @@
 # Feature Page Specification Template
 
-> **Purpose:** This template provides Claude Design with everything needed to build a conversion-focused, SEO-optimized feature sales page for Vilo. Copy this file and fill in the placeholders for each new feature page.
+> **Purpose:** This template provides Claude Design with everything needed to build a conversion-focused, SEO-optimized feature sales page for Wielo. Copy this file and fill in the placeholders for each new feature page.
 
 ---
 
 ## 1. Page Meta & SEO
 
 ```yaml
-title: "[Feature Name] — Vilo"
+title: "[Feature Name] — Wielo"
 meta_description: "[150-160 chars describing the feature benefit for SA accommodation hosts]"
 url_slug: /features/[feature-name]
 keywords:
   - [primary keyword]
   - [secondary keyword]
   - [long-tail keyword]
-og_title: "[Feature Name] for South African Hosts | Vilo"
+og_title: "[Feature Name] for South African Hosts | Wielo"
 og_description: "[Same as meta description or shorter variant]"
 og_image: "/images/features/[feature-name]-og.jpg"
 ```
@@ -84,7 +84,7 @@ For each pain point:
    Cost: [...]
 ```
 
-### "Before Vilo" Scenario
+### "Before Wielo" Scenario
 Write a short narrative (3-4 sentences) describing a typical host struggling without this feature. Use second person ("you").
 
 ```
@@ -97,7 +97,7 @@ Write a short narrative (3-4 sentences) describing a typical host struggling wit
 
 ### Section Header
 ```
-Eyebrow: [e.g., "The Vilo way"]
+Eyebrow: [e.g., "The Wielo way"]
 Headline: [Solution-focused headline showing transformation]
 ```
 
@@ -109,7 +109,7 @@ One powerful sentence showing the before → after shift.
 ```
 
 ### Key Differentiators (3-4)
-What makes Vilo's approach unique vs. manual processes or other tools?
+What makes Wielo's approach unique vs. manual processes or other tools?
 
 ```
 1. [Differentiator + why it matters]
@@ -198,7 +198,7 @@ Headline: "[Comparison headline]"
 ```
 
 ### Comparison Table
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | [Pain point] | [Solution] |
 | [Pain point] | [Solution] |

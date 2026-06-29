@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const FROM = process.env.EMAIL_FROM_ADDRESS ?? "Vilo <onboarding@resend.dev>";
+const FROM = process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
 
 /**
  * Send a one-off transactional email directly via Resend (outside the

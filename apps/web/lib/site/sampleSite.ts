@@ -15,7 +15,8 @@ import {
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
 
-const IMG = (seed: string) => `https://picsum.photos/seed/vilo-${seed}/900/700`;
+const IMG = (seed: string) =>
+  `https://picsum.photos/seed/wielo-${seed}/900/700`;
 
 // Demo fillers for the Brand Studio preview when the host's real site has no
 // rooms / photos yet — so they can still design the brand against content.

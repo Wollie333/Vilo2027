@@ -62,14 +62,14 @@ export function BrandingForm({
       <div className="mt-4 space-y-4">
         <Field
           label="Brand name"
-          hint="Shown in nav, page titles, emails (e.g. “Vilo”)."
+          hint="Shown in nav, page titles, emails (e.g. “Wielo”)."
         >
           <input
             type="text"
             value={brandName}
             maxLength={40}
             onChange={(e) => setBrandName(e.target.value)}
-            placeholder="Vilo"
+            placeholder="Wielo"
             className={inputCls}
           />
         </Field>

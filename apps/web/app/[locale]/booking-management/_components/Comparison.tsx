@@ -9,7 +9,7 @@ type Cell =
 
 type Row = {
   feature: string;
-  vilo: Cell;
+  wielo: Cell;
   airbnb: Cell;
   booking: Cell;
   diy: Cell;
@@ -19,49 +19,49 @@ type Row = {
 const ROWS: Row[] = [
   {
     feature: "Booking commission",
-    vilo: { kind: "text", text: "0%", tone: "primary" },
+    wielo: { kind: "text", text: "0%", tone: "primary" },
     airbnb: { kind: "text", text: "15–18%", tone: "dark" },
     booking: { kind: "text", text: "15–22%", tone: "dark" },
     diy: { kind: "text", text: "0%", tone: "mute" },
   },
   {
     feature: "Own the guest relationship",
-    vilo: { kind: "check" },
+    wielo: { kind: "check" },
     airbnb: { kind: "x" },
     booking: { kind: "x" },
     diy: { kind: "check" },
   },
   {
     feature: "Unified inbox",
-    vilo: { kind: "check" },
+    wielo: { kind: "check" },
     airbnb: { kind: "text", text: "in-app only", tone: "mute" },
     booking: { kind: "text", text: "in-app only", tone: "mute" },
     diy: { kind: "x" },
   },
   {
     feature: "iCal calendar sync",
-    vilo: { kind: "check" },
+    wielo: { kind: "check" },
     airbnb: { kind: "check" },
     booking: { kind: "check" },
     diy: { kind: "text", text: "DIY", tone: "mute" },
   },
   {
     feature: "Paystack, PayPal & EFT",
-    vilo: { kind: "check" },
+    wielo: { kind: "check" },
     airbnb: { kind: "text", text: "card only", tone: "mute" },
     booking: { kind: "text", text: "card only", tone: "mute" },
     diy: { kind: "text", text: "DIY", tone: "mute" },
   },
   {
     feature: "Refund & policy manager",
-    vilo: { kind: "check" },
+    wielo: { kind: "check" },
     airbnb: { kind: "check" },
     booking: { kind: "check" },
     diy: { kind: "x" },
   },
   {
     feature: "Monthly cost (5 listings)",
-    vilo: { kind: "text", text: "R 499", tone: "primary" },
+    wielo: { kind: "text", text: "R 499", tone: "primary" },
     airbnb: { kind: "text", text: "~R 11 700", tone: "mute" },
     booking: { kind: "text", text: "~R 14 300", tone: "mute" },
     diy: { kind: "text", text: "R 2 000+", tone: "mute" },
@@ -134,7 +134,7 @@ export async function Comparison() {
                   <td
                     className={`px-5 py-4 ${row.emphasized ? "num-display font-display text-base font-bold text-brand-primary" : ""}`}
                   >
-                    <CellView cell={row.vilo} />
+                    <CellView cell={row.wielo} />
                   </td>
                   <td
                     className={`px-5 py-4 ${row.emphasized ? "num-display font-display font-medium text-brand-mute" : ""}`}

@@ -496,7 +496,7 @@ export function RoomEditor({
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="text-[12.5px] font-semibold text-brand-ink">
-                    Vilo direct
+                    Wielo direct
                   </div>
                   <div className="truncate text-[10.5px] text-brand-mute">
                     {publicRoomPath ?? "Publish the listing to share"}

@@ -55,7 +55,7 @@ export type PayableBooking = {
  * separate; everything that pays an existing booking funnels through here.
  *
  * Behaviour:
- *  - Card settles on the HOST's own Paystack account (Vilo takes 0%); the
+ *  - Card settles on the HOST's own Paystack account (Wielo takes 0%); the
  *    platform key is never used for a booking. No usable host card rail (or a
  *    gateway outage) falls back to manual EFT, mirroring createBookingAction.
  *  - "full" pays the OUTSTANDING balance (total − already-paid), so a part-paid

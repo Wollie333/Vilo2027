@@ -45,7 +45,7 @@ export type InvoiceProps = {
     email: string | null;
     phone: string | null;
   };
-  /** Booking stay summary. Omit/null for non-stay invoices (e.g. Vilo products). */
+  /** Booking stay summary. Omit/null for non-stay invoices (e.g. Wielo products). */
   stay?: {
     listingName: string | null;
     checkIn: string | null;

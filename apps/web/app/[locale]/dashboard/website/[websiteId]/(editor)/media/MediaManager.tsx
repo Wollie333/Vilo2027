@@ -69,7 +69,7 @@ export function MediaManager({
   const [view, setView] = useState<View>("library");
 
   return (
-    <div className="vilo-cms mx-auto max-w-[1180px]">
+    <div className="wielo-cms mx-auto max-w-[1180px]">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h1
           className="font-display text-[20px] font-extrabold"

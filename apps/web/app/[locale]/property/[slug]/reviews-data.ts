@@ -58,7 +58,7 @@ export type ReviewsData = {
   reviews: PublicReview[];
   /** External reviews mapped to this listing (from Google, Facebook, Trustpilot). */
   externalReviews: ExternalReview[];
-  /** Aggregated rating across Vilo + external sources. */
+  /** Aggregated rating across Wielo + external sources. */
   aggregated: AggregatedRating;
 };
 

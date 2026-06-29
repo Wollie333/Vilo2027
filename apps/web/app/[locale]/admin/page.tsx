@@ -17,7 +17,7 @@ import { AdminKpiCard } from "./_components/AdminKpiCard";
 export const dynamic = "force-dynamic";
 
 // The admin Overview is the founder's daily SaaS control centre: it answers
-// "how is Vilo-the-business doing and what needs me today" — not host-level
+// "how is Wielo-the-business doing and what needs me today" — not host-level
 // booking operations (those live on each host's own dashboard). Headline KPIs
 // come straight from buildPlatformReport (the single source of truth shared
 // with /admin/reporting + the PDF export) so the numbers can never drift.
@@ -56,7 +56,7 @@ export default async function AdminOverviewPage() {
     .filter((s) => s.status === "past_due" || s.status === "restricted")
     .reduce((a, s) => a + s.count, 0);
 
-  // Vilo's own SaaS revenue health — what the subscription business runs on.
+  // Wielo's own SaaS revenue health — what the subscription business runs on.
   const revenueKpis = [
     {
       label: "MRR",
@@ -89,7 +89,7 @@ export default async function AdminOverviewPage() {
       href: "/admin/reporting",
     },
     {
-      label: "Vilo collected",
+      label: "Wielo collected",
       value: formatZar(k.collectedAllTime),
       sub: `${formatZar(k.collectedPeriod)} last 30d`,
       href: "/admin/subscriptions/revenue",
@@ -134,7 +134,7 @@ export default async function AdminOverviewPage() {
   ];
   const needsAttention = attention.filter((a) => a.count > 0);
 
-  // The /admin landing is every staff member's home, but Vilo financials + the
+  // The /admin landing is every staff member's home, but Wielo financials + the
   // audit log are not for every role. Gate those sections (non-throwing, so the
   // landing still renders the task counts for all staff). "Needs attention" stays
   // visible to everyone.
@@ -150,7 +150,7 @@ export default async function AdminOverviewPage() {
           Control Centre
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          How Vilo-the-business is doing today. Deep charts live in{" "}
+          How Wielo-the-business is doing today. Deep charts live in{" "}
           <Link
             href="/admin/reporting"
             className="text-brand-primary hover:underline"
@@ -162,7 +162,7 @@ export default async function AdminOverviewPage() {
       </header>
 
       {/* SaaS revenue health — gated on payments.view so lower-privilege staff
-          don't see Vilo financials. */}
+          don't see Wielo financials. */}
       {canFinancials && (
         <section>
           <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
@@ -330,10 +330,10 @@ export default async function AdminOverviewPage() {
         </section>
       )}
 
-      {/* Marketplace context — host↔guest money, NOT Vilo revenue. Kept as a
+      {/* Marketplace context — host↔guest money, NOT Wielo revenue. Kept as a
           quiet footnote so SaaS metrics above stay unambiguous. */}
       <p className="text-[11.5px] text-brand-mute">
-        Marketplace throughput (booking value flowing host↔guest, not Vilo
+        Marketplace throughput (booking value flowing host↔guest, not Wielo
         revenue):{" "}
         <span className="font-semibold text-brand-ink">{formatZar(k.gmv)}</span>{" "}
         across {k.bookingCount.toLocaleString()} bookings.

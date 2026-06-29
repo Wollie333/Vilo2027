@@ -1,6 +1,6 @@
 # Team Management Feature Page Specification
 
-> **Purpose:** Comprehensive brief for Claude Design to build a conversion-focused feature sales page for Vilo's Team Management.
+> **Purpose:** Comprehensive brief for Claude Design to build a conversion-focused feature sales page for Wielo's Team Management.
 > **URL:** `/features/team`
 
 ---
@@ -9,11 +9,11 @@
 
 | Field | Content |
 |-------|---------|
-| **Page Title** | Team Management for SA Accommodation Hosts | Vilo |
+| **Page Title** | Team Management for SA Accommodation Hosts | Wielo |
 | **Meta Description** | Delegate tasks to co-hosts, assistants, and cleaners with role-based access. Invite team members, control permissions, and scale your accommodation business without losing control. |
 | **Target Keywords** | property management team, co-host software, staff management accommodation, delegate booking management, cleaner access calendar, South Africa accommodation |
 | **URL Slug** | `/features/team` |
-| **OG Title** | Scale Your Team Without Losing Control — Vilo Team Management |
+| **OG Title** | Scale Your Team Without Losing Control — Wielo Team Management |
 | **OG Description** | Role-based access for co-hosts, assistants, and cleaners. Invite team, control permissions, and keep full oversight of your accommodation business. |
 
 ---
@@ -47,7 +47,7 @@ Split-view mockup:
 
 ### Pain Points
 
-| Pain Point | Emotional Hook | Before Vilo |
+| Pain Point | Emotional Hook | Before Wielo |
 |------------|---------------|-------------|
 | **Doing everything yourself** | "You're the host, cleaner, accountant, and night manager" | Burnout, missed messages, slow responses |
 | **Sharing your main login** | "Everyone knows your password — scary" | Security nightmare; can't revoke access cleanly |
@@ -57,7 +57,7 @@ Split-view mockup:
 | **Onboarding friction** | "Just talk to John to get access" | No formal process; knowledge lost when people leave |
 
 ### Emotional Summary
-"Growing your accommodation business means bringing in help. But without proper team tools, you're either doing everything yourself or handing over the keys to the kingdom. Vilo gives you a third option: delegated access with full oversight."
+"Growing your accommodation business means bringing in help. But without proper team tools, you're either doing everything yourself or handing over the keys to the kingdom. Wielo gives you a third option: delegated access with full oversight."
 
 ---
 
@@ -68,7 +68,7 @@ Split-view mockup:
 
 ### Transformation Narrative
 
-| Before Vilo | After Vilo |
+| Before Wielo | After Wielo |
 |-------------|-----------|
 | Sharing your password | Unique logins per team member |
 | All-or-nothing access | Three role levels with tailored permissions |
@@ -244,9 +244,9 @@ Flow diagram: `Host Invites` → `Email Sent` → `Member Clicks` → `Account C
 ## 8. Comparison Section
 
 ### Section Header
-"Why Hosts Choose Vilo Team Management"
+"Why Hosts Choose Wielo Team Management"
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | Share your password | Unique login per team member |
 | All-or-nothing access | Three role levels with tailored permissions |
@@ -276,7 +276,7 @@ Flow diagram: `Host Invites` → `Email Sent` → `Member Clicks` → `Account C
 **A:** Co-Host has full operational access (bookings, listings, calendar, inbox). Assistant can only manage bookings and inbox — they can't edit listings or access financials.
 
 ### Q: Do team members get their own login?
-**A:** Yes. Each team member creates their own Vilo account (or uses an existing one). No password sharing required.
+**A:** Yes. Each team member creates their own Wielo account (or uses an existing one). No password sharing required.
 
 ### Q: How long are invitations valid?
 **A:** 7 days. You can resend (generates a new link) or cancel anytime from the pending invites section.

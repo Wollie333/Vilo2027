@@ -133,10 +133,10 @@ export default async function AboutPage() {
                 Questions, partnerships, or you want to be one of the first
                 hosts? Mail{" "}
                 <a
-                  href="mailto:hello@viloplatform.com"
+                  href="mailto:hello@wieloplatform.com"
                   className="text-brand-primary underline-offset-2 hover:underline"
                 >
-                  hello@viloplatform.com
+                  hello@wieloplatform.com
                 </a>{" "}
                 — replies within one working day.
               </p>

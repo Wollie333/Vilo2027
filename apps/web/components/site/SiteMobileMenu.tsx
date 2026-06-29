@@ -204,7 +204,7 @@ export function SiteMobileMenu({
               >
                 <a
                   href={bookHref}
-                  data-vilo-book
+                  data-wielo-book
                   onClick={() => setOpen(false)}
                   style={{
                     background: "var(--site-btn-primary-bg)",

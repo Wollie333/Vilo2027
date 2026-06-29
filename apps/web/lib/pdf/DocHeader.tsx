@@ -12,7 +12,7 @@ import { styles } from "./styles";
 export function DocHeader({
   logoUrl,
   businessName,
-  brandName = "Vilo",
+  brandName = "Wielo",
   tagline,
 }: {
   logoUrl?: string | null;

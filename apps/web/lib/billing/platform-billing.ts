@@ -4,7 +4,7 @@ import { initializeTransaction } from "@/lib/paystack";
 import { getPlan } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Vilo's OWN subscription billing — charges hosts on the PLATFORM Paystack key
+// Wielo's OWN subscription billing — charges hosts on the PLATFORM Paystack key
 // (never the host's own key; that's for booking money). Booking rails are
 // untouched. Capability-gated: when PAYSTACK_SECRET_KEY (platform) is unset,
 // billing is considered "not configured" and callers fall back to the pre-MVP
@@ -125,7 +125,7 @@ export async function startSubscriptionCheckout(input: {
         // Carried so the webhook tags auto-renewal ledger rows correctly.
         environment,
       },
-      // Admin-configured platform key (Vilo's own revenue).
+      // Admin-configured platform key (Wielo's own revenue).
       secretKey,
     });
     return { ok: true, authorizationUrl: res.authorization_url, reference };

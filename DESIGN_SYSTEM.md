@@ -1,18 +1,18 @@
 # Vilo Platform — Design System
 
-**Status:** Canonical source moved to `Vilo Design System.html` (repo root).
+**Status:** Canonical source moved to `Wielo Design System.html` (repo root).
 **Last Updated:** 2026-05-23
 
 ---
 
 ## Canonical reference
 
-**The only source of truth for Vilo's visual system is `Vilo Design System.html` at the repo root.**
+**The only source of truth for Wielo's visual system is `Wielo Design System.html` at the repo root.**
 
 Open it locally:
 
 ```
-C:\Users\Wollie\Desktop\Vilo 2027\Vilo Design System.html
+C:\Users\Wollie\Desktop\Wielo 2027\Wielo Design System.html
 ```
 
 Or on the live web deploy:
@@ -106,8 +106,8 @@ These are enforced by code review — the HTML has the full "Do & Don't" section
 
 ## Updating the design system
 
-1. Edit `Vilo Design System.html` at the repo root.
+1. Edit `Wielo Design System.html` at the repo root.
 2. Mirror any token changes into `apps/web/tailwind.config.ts` and `apps/web/app/globals.css`.
-3. The published copy at `apps/web/public/DESIGN_SYSTEM.HTML` is a static mirror — `cp "Vilo Design System.html" "apps/web/public/DESIGN_SYSTEM.HTML"` keeps it in sync.
+3. The published copy at `apps/web/public/DESIGN_SYSTEM.HTML` is a static mirror — `cp "Wielo Design System.html" "apps/web/public/DESIGN_SYSTEM.HTML"` keeps it in sync.
 4. Update this cheatsheet only if a token name or rule changes.
 5. Commit all changes in one commit so the source, the Tailwind theme, the live styles, and the published HTML stay in lockstep.

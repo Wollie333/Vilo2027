@@ -122,7 +122,7 @@ export function DomainManager({ data }: { data: DomainData }) {
   }
 
   return (
-    <div className="vilo-cms wrap-set">
+    <div className="wielo-cms wrap-set">
       <div className="mb-5">
         <h1
           className="font-display text-[20px] font-extrabold"

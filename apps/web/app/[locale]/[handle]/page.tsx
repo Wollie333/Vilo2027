@@ -406,7 +406,7 @@ export default async function HostProfilePage({
                     </div>
                   ) : null}
                   <div className="mt-1 font-mono text-xs text-brand-mute">
-                    viloplatform.com/{host.handle}
+                    wieloplatform.com/{host.handle}
                   </div>
 
                   {host.is_verified || hostExtra.is_superhost ? (

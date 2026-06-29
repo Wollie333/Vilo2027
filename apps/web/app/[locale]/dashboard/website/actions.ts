@@ -3051,7 +3051,7 @@ export async function getWebsiteFormForEditorAction(
   if (!form) return { ok: false, error: "not_found" };
 
   const roomNames = await loadWebsiteRoomNames(websiteId);
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
   return {
     ok: true,
     form: {

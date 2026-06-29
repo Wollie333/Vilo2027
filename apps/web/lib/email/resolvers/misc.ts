@@ -221,7 +221,7 @@ const accountSuspendedResolver: EmailResolver = async (refs, ctx) => {
   const host = await loadHostUser(ctx.supabase, hostId);
   return {
     hostFirstName: firstName(host?.user_full_name ?? host?.display_name),
-    supportEmail: "support@viloplatform.com",
+    supportEmail: "support@wieloplatform.com",
   };
 };
 

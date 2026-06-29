@@ -33,7 +33,7 @@ export function BrandPreviewCanvas({ preview }: { preview: BrandPreview }) {
     function onMsg(e: MessageEvent) {
       if (e.origin !== window.location.origin) return;
       const d = e.data as { source?: string } & Partial<Override>;
-      if (d?.source === "vilo-brand-studio" && d.theme && d.brand) {
+      if (d?.source === "wielo-brand-studio" && d.theme && d.brand) {
         setOverride({ theme: d.theme, brand: d.brand, page: d.page ?? "home" });
       }
     }
@@ -41,7 +41,7 @@ export function BrandPreviewCanvas({ preview }: { preview: BrandPreview }) {
     // Announce readiness + the page list so the studio can render its tabs.
     window.parent?.postMessage(
       {
-        source: "vilo-brand-preview",
+        source: "wielo-brand-preview",
         type: "ready",
         pages: preview.pages.map((p) => ({
           key: p.key,
@@ -78,7 +78,7 @@ export function BrandPreviewCanvas({ preview }: { preview: BrandPreview }) {
         if (targetPage) {
           window.parent?.postMessage(
             {
-              source: "vilo-brand-preview",
+              source: "wielo-brand-preview",
               type: "navigate",
               page: targetPage,
             },

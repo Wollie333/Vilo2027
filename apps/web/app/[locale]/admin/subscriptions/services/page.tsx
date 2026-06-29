@@ -28,8 +28,8 @@ export default async function AdminServicesPage() {
             Paid services
           </h1>
           <p className="mt-1 text-[13px] text-brand-mute">
-            Vilo&apos;s own paid add-ons sold to hosts (e.g. premium support,
-            priority placement). Purchases land in the Vilo revenue ledger.
+            Wielo&apos;s own paid add-ons sold to hosts (e.g. premium support,
+            priority placement). Purchases land in the Wielo revenue ledger.
           </p>
         </div>
         <Link
@@ -76,7 +76,7 @@ export default async function AdminServicesPage() {
         ))}
         {(services ?? []).length === 0 ? (
           <div className="col-span-full rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center text-sm text-brand-mute">
-            No services yet. Create one to start selling Vilo add-ons to hosts.
+            No services yet. Create one to start selling Wielo add-ons to hosts.
           </div>
         ) : null}
       </div>

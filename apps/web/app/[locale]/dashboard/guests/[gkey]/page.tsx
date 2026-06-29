@@ -607,7 +607,7 @@ export default async function GuestRecordPage({
   }
 
   // ── Reputation (host → guest ratings, cross-host) ───────────────────────
-  // Only registered guests (a Vilo account id) are rateable; email-only/OTA
+  // Only registered guests (a Wielo account id) are rateable; email-only/OTA
   // contacts render a "no account yet" state. RLS lets this host read EVERY
   // host's rating of the guest (shared reputation), but write only its own.
   const DIMS = [

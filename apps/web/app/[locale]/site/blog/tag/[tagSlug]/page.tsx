@@ -24,7 +24,7 @@ export async function generateMetadata({
   const sp = await searchParams;
   const h = await headers();
   const meta = await siteMetadata({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
     pathSlug: ["blog"],
     preview: sp?.preview === "1",
@@ -45,7 +45,7 @@ export default async function SiteBlogTagPage({
   const sp = await searchParams;
   const h = await headers();
   const ref = resolveSiteRef({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
   });
   if (!ref) notFound();

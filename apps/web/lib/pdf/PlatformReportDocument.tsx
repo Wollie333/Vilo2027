@@ -105,7 +105,7 @@ export function PlatformReportDocument({
         ) : null}
 
         <Text style={footer}>
-          {brandName} · Vilo records only money paid to {brandName}{" "}
+          {brandName} · Wielo records only money paid to {brandName}{" "}
           (subscriptions + products). GMV is host↔guest booking value flowing
           directly between parties — {brandName} never holds it.
         </Text>

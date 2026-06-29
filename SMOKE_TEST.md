@@ -3,8 +3,8 @@
 Covers everything built/changed this session. Tick each box; note anything off.
 
 ## Logins
-- **Host:** `host@vilodemo.com` / `ViloDemo123!`
-- **Guest:** `guest@vilodemo.com` / `ViloDemo123!`
+- **Host:** `host@wielodemo.com` / `WieloDemo123!`
+- **Guest:** `guest@wielodemo.com` / `WieloDemo123!`
 - Re-seed if data looks off: from `apps/web` → `pnpm seed:demo`
 - ⚠️ Some tests need **a host with 2 businesses** and/or **a completed booking** —
   noted inline. If the demo host has only one business, use the account that owns
@@ -30,7 +30,7 @@ Path: **Dashboard → Guests → open a guest → Reputation tab**
   **"Rate this guest"** enabled.
 - [ ] Open a guest **without** a completed stay → button disabled, "Available after
   a completed stay."
-- [ ] Open an **email-only** guest (no Vilo account) → "No Vilo account yet" state.
+- [ ] Open an **email-only** guest (no Wielo account) → "No Wielo account yet" state.
 - [ ] Click **Rate this guest** → modal: overall star (required) + summary + the 5
   dimensions (Payments, Communication, Cleanliness, House rules, Integrity) with
   optional notes. Submit → your review appears at top with **Edit / Delete**.

@@ -1,6 +1,6 @@
 # Review Manager Feature Page Specification
 
-> **Purpose:** Comprehensive brief for Claude Design to build a conversion-focused feature sales page for Vilo's Review Manager.
+> **Purpose:** Comprehensive brief for Claude Design to build a conversion-focused feature sales page for Wielo's Review Manager.
 > **URL:** `/features/review-manager`
 
 ---
@@ -9,11 +9,11 @@
 
 | Field | Content |
 |-------|---------|
-| **Page Title** | Review Manager for SA Accommodation Hosts | Vilo |
+| **Page Title** | Review Manager for SA Accommodation Hosts | Wielo |
 | **Meta Description** | Collect, manage, and showcase guest reviews that build trust and boost direct bookings. Automated requests, photo reviews, host responses, and moderation — all in one place. |
 | **Target Keywords** | guest review system, accommodation reviews, review management software, collect guest reviews, review automation, South Africa accommodation |
 | **URL Slug** | `/features/review-manager` |
-| **OG Title** | Build Trust with Every Stay — Vilo Review Manager |
+| **OG Title** | Build Trust with Every Stay — Wielo Review Manager |
 | **OG Description** | Automated review collection, photo-rich testimonials, and reputation management designed for SA accommodation hosts. |
 
 ---
@@ -46,7 +46,7 @@ Split-screen mockup:
 
 ### Pain Points
 
-| Pain Point | Emotional Hook | Before Vilo |
+| Pain Point | Emotional Hook | Before Wielo |
 |------------|---------------|-------------|
 | **Forgetting to ask for reviews** | "Checkout chaos means no follow-up" | Guests leave, life moves on, review opportunity lost forever |
 | **Low review response rates** | "You asked once, they forgot twice" | Guests mean to review but never get around to it |
@@ -67,7 +67,7 @@ Split-screen mockup:
 
 ### Transformation Narrative
 
-| Before Vilo | After Vilo |
+| Before Wielo | After Wielo |
 |-------------|-----------|
 | Manually emailing guests days later | Automatic request 5 minutes after checkout |
 | Guests need to create accounts | One-click submission, no login required |
@@ -239,7 +239,7 @@ Horizontal timeline with icons:
 > — *Self-Catering Host, Cape Town*
 
 ### Trust Indicators
-- "Average 73% review response rate for Vilo hosts"
+- "Average 73% review response rate for Wielo hosts"
 - "Reviews collected within 24 hours of checkout"
 - "Photo reviews convert 2.4× better than text-only"
 
@@ -248,9 +248,9 @@ Horizontal timeline with icons:
 ## 8. Comparison Section
 
 ### Section Header
-"Why Hosts Switch to Vilo Reviews"
+"Why Hosts Switch to Wielo Reviews"
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | Remember to email guests manually | Automatic request 5 minutes after checkout |
 | Guests need to create accounts | One-tap review, no login required |
@@ -308,7 +308,7 @@ Horizontal timeline with icons:
 - "Set up in under 10 minutes"
 
 ### Closing Statement
-"Your happy guests are your best marketing team. Let Vilo make sure their voices are heard — automatically."
+"Your happy guests are your best marketing team. Let Wielo make sure their voices are heard — automatically."
 
 ---
 

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const siteParam = url.searchParams.get("site");
   const h = await headers();
   const ref = resolveSiteRef({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam,
   });
 
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     .limit(50);
 
   // Build the site URL (for absolute links)
-  const hostHeader = h.get("x-vilo-site-host") ?? h.get("host") ?? ref;
+  const hostHeader = h.get("x-wielo-site-host") ?? h.get("host") ?? ref;
   const protocol = hostHeader.includes("localhost") ? "http" : "https";
   const siteUrl = `${protocol}://${hostHeader}`;
 

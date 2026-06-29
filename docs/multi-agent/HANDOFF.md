@@ -1,8 +1,8 @@
 # Dev-Environment Handoff — resume on the new PC (2026-06-19)
 
-Snapshot for moving the Vilo dev environment to a faster PC. Everything below is in
+Snapshot for moving the Wielo dev environment to a faster PC. Everything below is in
 the GitHub repo (`git pull` brings it). **Claude's memory does NOT travel via git** —
-copy `C:\Users\Wollie\.claude\projects\C--Users-Wollie-Desktop-Vilo-2027\memory\`
+copy `C:\Users\Wollie\.claude\projects\C--Users-Wollie-Desktop-Wielo-2027\memory\`
 to the same path on the new PC if you want the assistant's recalled context; otherwise
 this file is the source of truth.
 
@@ -51,9 +51,9 @@ paths; `packages/types/database.types.ts` is read-only in agent lanes.
 2. `git fetch --all`; check out branches you need (`git switch agent-specials`, etc.).
 3. Recreate worktrees (optional but recommended — mirrors this setup):
    ```
-   git worktree add worktrees/vilo-website  agent-website
-   git worktree add worktrees/vilo-integration integration
-   git worktree add ../vilo-mobile feat/mobile-app
+   git worktree add worktrees/wielo-website  agent-website
+   git worktree add worktrees/wielo-integration integration
+   git worktree add ../wielo-mobile feat/mobile-app
    ```
 4. `pnpm install` at the root (and in each worktree you'll build in — `CI=true pnpm install`
    if a relocated worktree has dead symlinks).

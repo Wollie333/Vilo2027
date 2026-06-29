@@ -164,7 +164,7 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
               Still stuck?
             </div>
             <p className="mt-2 text-sm text-white/80">
-              Email a human at hello@viloplatform.com or jump on live chat from
+              Email a human at hello@wieloplatform.com or jump on live chat from
               the help home.
             </p>
             <Link

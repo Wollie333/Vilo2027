@@ -11,14 +11,14 @@ type Props = {
 
 export default function AccountSuspended({
   hostFirstName = "there",
-  supportEmail = "support@viloplatform.com",
+  supportEmail = "support@wieloplatform.com",
 }: Props) {
   return (
-    <Layout preview="Your Vilo account has been suspended following a review.">
+    <Layout preview="Your Wielo account has been suspended following a review.">
       <Heading>Your account has been suspended</Heading>
       <Text>Hi {hostFirstName},</Text>
       <Text>
-        Your Vilo account has been temporarily suspended following a review by
+        Your Wielo account has been temporarily suspended following a review by
         our team. Your listings have been removed from the directory while the
         suspension is in place.
       </Text>

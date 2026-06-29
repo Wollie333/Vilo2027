@@ -166,7 +166,7 @@ export default async function PublicHelpArticlePage({
                 Still stuck?
               </div>
               <p className="mt-2 text-sm text-white/80">
-                Email a human at hello@viloplatform.com or open a chat from the
+                Email a human at hello@wieloplatform.com or open a chat from the
                 help home.
               </p>
               <Link

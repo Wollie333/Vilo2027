@@ -119,7 +119,7 @@ it('throws on any invalid transition')
 ```typescript
 it('fetches a valid iCal feed and inserts blocked_dates for future events')
 it('removes blocked_dates rows when events disappear from the feed on re-sync')
-it('does not remove blocked_dates rows from Vilo bookings or manual blocks')
+it('does not remove blocked_dates rows from Wielo bookings or manual blocks')
 it('rejects a URL pointing to a private IP range (SSRF protection)')
 it('rejects a response that is not valid iCal format')
 it('caps imports at 500 events and does not error on overflow')

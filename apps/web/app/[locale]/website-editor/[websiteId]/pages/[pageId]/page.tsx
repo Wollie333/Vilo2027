@@ -46,7 +46,7 @@ export default async function FullScreenPageBuilder({
           ? t("pageRoomDetail")
           : data.page.title || data.page.slug;
 
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
 
   return (
     <PageBuilder

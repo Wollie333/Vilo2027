@@ -21,7 +21,7 @@ const db = createClient(url, key, { auth: { persistSession: false } });
 const HOST_ID = "0a111111-1111-4111-8111-111111111111";
 const LISTING_A = "0a222222-2222-4222-8222-222222222221"; // whole_listing
 const LISTING_B = "0a222222-2222-4222-8222-222222222222"; // rooms / flexible
-const GUEST_EMAIL = "guest@vilodemo.com";
+const GUEST_EMAIL = "guest@wielodemo.com";
 
 // ── tiny test runner ──
 let passed = 0;

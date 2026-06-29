@@ -1,10 +1,10 @@
 import "server-only";
 
-import { fetchViloLedger, viloLedgerStats } from "@/lib/billing/vilo-ledger";
+import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/vilo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Enterprise reporting model for Vilo-as-a-business. One server-side builder
+// Enterprise reporting model for Wielo-as-a-business. One server-side builder
 // returns every headline KPI plus the monthly time-series the dashboard charts
 // and the PDF export both render — single source of truth for both.
 
@@ -15,7 +15,7 @@ const REVENUE_BOOKING_STATUSES = ["confirmed", "checked_in", "completed"];
 export type MonthlyPoint = {
   month: string; // ISO first-of-month
   label: string; // e.g. "Jan"
-  revenue: number; // Vilo revenue collected that month
+  revenue: number; // Wielo revenue collected that month
   signups: number; // total signups that month
   hosts: number; // host signups that month
   guests: number; // guest signups that month
@@ -111,7 +111,7 @@ export async function buildPlatformReport(
   const [
     plans,
     { data: subs },
-    viloRows,
+    wieloRows,
     { data: profiles },
     { data: bookingRows },
     { count: activeListings },
@@ -120,7 +120,7 @@ export async function buildPlatformReport(
     service.from("subscriptions").select("plan, billing_cycle, status"),
     // Live revenue only — Paystack test-key transactions never count toward
     // business KPIs (the admin Payments tab has a Test filter to inspect them).
-    fetchViloLedger(service, { limit: 10_000, environment: "live" }),
+    fetchWieloLedger(service, { limit: 10_000, environment: "live" }),
     service
       .from("user_profiles")
       .select("role, created_at")
@@ -166,7 +166,7 @@ export async function buildPlatformReport(
     }
   }
   const arr = mrr * 12;
-  const stats = viloLedgerStats(viloRows);
+  const stats = wieloLedgerStats(wieloRows);
   const totalSubs = (subs ?? []).length;
   const churnRate = totalSubs > 0 ? (churned / totalSubs) * 100 : 0;
   const trialConversion =
@@ -212,8 +212,8 @@ export async function buildPlatformReport(
     const d = new Date(iso);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
-  // Vilo revenue collected per month (completed charges).
-  for (const r of viloRows) {
+  // Wielo revenue collected per month (completed charges).
+  for (const r of wieloRows) {
     if (r.status !== "completed" || r.type !== "charge") continue;
     const idx = monthIndex.get(keyOf(r.date));
     if (idx != null) months[idx].revenue += r.amount;
@@ -242,7 +242,7 @@ export async function buildPlatformReport(
     .sort((a, b) => b.count - a.count);
 
   // Period-scoped collected (charges within the range).
-  const collectedPeriod = viloRows
+  const collectedPeriod = wieloRows
     .filter(
       (r) =>
         r.status === "completed" &&

@@ -33,7 +33,7 @@ const ASSETS = [
     category: "banner",
     title: "Leaderboard — Zero booking fees",
     description: "728 × 90 · PNG",
-    file_url: banner(728, 90, "Vilo — Zero booking fees"),
+    file_url: banner(728, 90, "Wielo — Zero booking fees"),
     mime_type: "image/png",
     width: 728,
     height: 90,
@@ -54,7 +54,7 @@ const ASSETS = [
     title: "A better way to run your guesthouse",
     body: `Hi there,
 
-If you're still paying commission on every booking, take a look at Vilo. It's a complete platform for hosts — calendar, guest inbox, direct payments — with zero booking fees, ever.
+If you're still paying commission on every booking, take a look at Wielo. It's a complete platform for hosts — calendar, guest inbox, direct payments — with zero booking fees, ever.
 
 Start a free trial here:
 {link}
@@ -67,7 +67,7 @@ Happy hosting`,
     title: "Keep 100% of what your guests pay",
     body: `Hello,
 
-Quick one — I've been recommending Vilo to fellow hosts. Your payout always equals exactly what the guest pays. No service fee, no commission.
+Quick one — I've been recommending Wielo to fellow hosts. Your payout always equals exactly what the guest pays. No service fee, no commission.
 
 See how it works:
 {link}`,
@@ -76,34 +76,34 @@ See how it works:
   {
     category: "social",
     title: "Instagram caption",
-    body: `Stop giving away your earnings to booking sites 💸 Vilo lets you take direct bookings with ZERO commission. Your payout = exactly what your guest pays. 👉 {link} #directbooking #guesthouse`,
+    body: `Stop giving away your earnings to booking sites 💸 Wielo lets you take direct bookings with ZERO commission. Your payout = exactly what your guest pays. 👉 {link} #directbooking #guesthouse`,
     sort_order: 0,
   },
   {
     category: "social",
     title: "WhatsApp message",
-    body: `Hey! If you run a place, you'll want this — Vilo charges hosts zero booking fees. Free trial: {link}`,
+    body: `Hey! If you run a place, you'll want this — Wielo charges hosts zero booking fees. Free trial: {link}`,
     sort_order: 1,
   },
   {
     category: "prompt",
     title: "Facebook post generator",
-    body: `Write a warm, 80-word Facebook post for South African guesthouse owners recommending Vilo — a direct-booking platform with zero booking fees. End with the link {link}`,
+    body: `Write a warm, 80-word Facebook post for South African guesthouse owners recommending Wielo — a direct-booking platform with zero booking fees. End with the link {link}`,
     sort_order: 0,
   },
   {
     category: "video",
-    title: "Vilo in 90 seconds",
+    title: "Wielo in 90 seconds",
     description: "Short explainer — share with your link.",
     link_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    body: `Watch how Vilo works, then start a free trial: {link}`,
+    body: `Watch how Wielo works, then start a free trial: {link}`,
     sort_order: 0,
   },
   {
     category: "blog",
     title: "Why direct bookings beat the OTAs",
     description: "Guide to share with hosts.",
-    link_url: "https://vilo.co.za/blog/direct-bookings",
+    link_url: "https://wielo.co.za/blog/direct-bookings",
     body: `A short read on keeping 100% of your booking revenue. Share it with your link: {link}`,
     sort_order: 0,
   },

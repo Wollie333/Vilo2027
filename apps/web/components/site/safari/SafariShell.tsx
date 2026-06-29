@@ -13,7 +13,7 @@ import { SafariNav, type SafariNavLink } from "./SafariNav";
 
 import "./safari.css";
 
-// Shared Safari chrome: the scoped `.vilo-safari` root, theme fonts, the
+// Shared Safari chrome: the scoped `.wielo-safari` root, theme fonts, the
 // scroll-aware nav and the NenGama footer. Every Safari page renders its content
 // inside this so the frame is identical across the site.
 
@@ -121,7 +121,7 @@ export function SafariShell({
   bookHref?: string | null;
   /** For pages with no dark hero behind the nav (checkout): solid bar + top pad. */
   solidNav?: boolean;
-  /** When previewing a theme: the page navigator for the Vilo preview bar. */
+  /** When previewing a theme: the page navigator for the Wielo preview bar. */
   previewPages?: SitePreviewPage[];
   /** Host third-party analytics (GA4 + Meta Pixel + consent gate). Injected on
    *  the live site only (interactive); never in the builder/preview. */
@@ -173,7 +173,7 @@ export function SafariShell({
     ? 0
     : headerPad + (bar ? 44 : 0) + (showTopBar ? 38 : 0);
   const rootCls = [
-    "vilo-safari",
+    "wielo-safari",
     bar ? "pre" : "",
     showTopBar ? "has-topbar" : "",
   ]
@@ -188,7 +188,7 @@ export function SafariShell({
       // the fixed header with a gap instead of scrolling behind it.
       style={
         {
-          "--vilo-sticky-top": `${topPad + 20}px`,
+          "--wielo-sticky-top": `${topPad + 20}px`,
         } as CSSProperties
       }
     >
@@ -308,7 +308,7 @@ export function SafariShell({
             <div className="footer-bottom">
               <span>{copyright}</span>
               {foot.showPoweredBy ? (
-                <span className="foot-vilo">
+                <span className="foot-wielo">
                   <svg width="15" height="15" viewBox="0 0 100 100" fill="none">
                     <rect width="100" height="100" rx="24" fill="#10B981" />
                     <path
@@ -316,7 +316,7 @@ export function SafariShell({
                       fill="#fff"
                     />
                   </svg>
-                  Powered by Vilo · 0% booking fees
+                  Powered by Wielo · 0% booking fees
                 </span>
               ) : null}
               {foot.socials.length > 0 ? (

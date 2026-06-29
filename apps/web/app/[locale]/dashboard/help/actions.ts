@@ -71,7 +71,7 @@ export async function submitArticleSuggestion(input: {
     return {
       ok: false,
       error:
-        "Sign in to submit a suggestion, or email it to hello@viloplatform.com.",
+        "Sign in to submit a suggestion, or email it to hello@wieloplatform.com.",
     };
   }
 

@@ -9,7 +9,7 @@ import { HeaderMenuToggle } from "./SidebarToggle";
  * Unified full-width top bar shared by the host dashboard, guest portal and
  * super-admin areas. Layout matches the "Classic shell" design:
  *
- *   [☰ menu] [logo · Vilo] ……… [ centered search ] ……… [ actions · avatar ]
+ *   [☰ menu] [logo · Wielo] ……… [ centered search ] ……… [ actions · avatar ]
  *
  * The three areas pass their own `search` and `actions` slots (entity search,
  * notification bell, primary CTA, avatar menu) but every pixel of the frame is

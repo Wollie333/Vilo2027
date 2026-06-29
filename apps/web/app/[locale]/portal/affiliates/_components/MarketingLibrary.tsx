@@ -100,7 +100,7 @@ export function MarketingLibrary({
   return (
     <div className="space-y-9">
       <p className="max-w-2xl text-[13.5px] leading-relaxed text-brand-mute">
-        Ready-made assets from the Vilo team. Your affiliate link is already
+        Ready-made assets from the Wielo team. Your affiliate link is already
         baked into every template — copy, paste, and you&apos;re marketing.
       </p>
 

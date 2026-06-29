@@ -4,7 +4,7 @@
 **Status:** Draft  
 **Last Updated:** May 2026  
 **Changelog v1.2:** Added Module 6.9 Refund Manager and Module 6.10 Policy Manager.
-**Changelog v1.1:** Added Vilo Directory (Section 6.8), Free Account Tier, and Granular Feature Permissions system (Section 3 expanded, Section 6.7 expanded).
+**Changelog v1.1:** Added Wielo Directory (Section 6.8), Free Account Tier, and Granular Feature Permissions system (Section 3 expanded, Section 6.7 expanded).
 
 ---
 
@@ -23,7 +23,7 @@
    - 6.5 Reviews & Reputation
    - 6.6 Payments & Subscriptions
    - 6.7 Super-Admin Panel
-   - 6.8 Vilo Directory (Public Discovery Layer)
+   - 6.8 Wielo Directory (Public Discovery Layer)
    - 6.9 Refund Manager
    - 6.10 Policy Manager
 7. [Database Schema (Supabase)](#7-database-schema-supabase)
@@ -39,11 +39,11 @@
 
 ## 1. Product Overview
 
-**Vilo** is a direct-booking management platform for accommodation hosts and experience operators. It gives hosts a professional, branded profile page and a private dashboard to manage listings, bookings, guest inquiries, reviews, and payments — all from one place, on web and mobile.
+**Wielo** is a direct-booking management platform for accommodation hosts and experience operators. It gives hosts a professional, branded profile page and a private dashboard to manage listings, bookings, guest inquiries, reviews, and payments — all from one place, on web and mobile.
 
 ### Core Value Proposition
 
-| Pain Point | Vilo Solution |
+| Pain Point | Wielo Solution |
 |---|---|
 | OTAs charge 15–25% commission per booking | Zero booking fees, ever. Flat subscription only. |
 | No central place to manage reviews | Unified review dashboard across all channels |
@@ -87,7 +87,7 @@ Hybrid — **React web app** (Next.js) + **React Native mobile app** sharing the
 | **Guest** | A member of the public viewing a host's profile and making/managing bookings. No subscription required. |
 | **Host** | A paying subscriber who manages one or more listings (accommodations or experiences). Has a dashboard, inbox, booking calendar, and public profile. |
 | **Staff** | Added by a Host. Can manage bookings and inbox but cannot change billing or delete listings. |
-| **Super Admin** | Vilo internal team. Full platform access — user management, billing oversight, content moderation, analytics. |
+| **Super Admin** | Wielo internal team. Full platform access — user management, billing oversight, content moderation, analytics. |
 
 ### 3.2 Permission Matrix
 
@@ -268,7 +268,7 @@ CREATE POLICY "staff_bookings_read" ON bookings
 
 #### Public Profile Page
 
-Every host gets a unique URL: `viloplatform.com/[handle]`
+Every host gets a unique URL: `wieloplatform.com/[handle]`
 
 The public profile displays:
 - Host/property name, cover photo, avatar, bio
@@ -528,7 +528,7 @@ subscriptions (
 
 ### 6.7 Super-Admin Panel
 
-Accessible at `admin.viloplatform.com` (separate Next.js route group with role guard).
+Accessible at `admin.wieloplatform.com` (separate Next.js route group with role guard).
 
 #### Features
 
@@ -833,7 +833,7 @@ RESEND_API_KEY=
 
 # App
 NEXT_PUBLIC_APP_URL=
-NEXT_PUBLIC_APP_NAME=Vilo
+NEXT_PUBLIC_APP_NAME=Wielo
 ```
 
 ---
@@ -936,7 +936,7 @@ Triggered by Edge Functions via Expo Push API for:
 
 ### 11.2 Email Templates (via Resend)
 
-All emails are sent from `noreply@viloplatform.com` and use branded HTML templates managed in the Supabase Edge Function email dispatcher:
+All emails are sent from `noreply@wieloplatform.com` and use branded HTML templates managed in the Supabase Edge Function email dispatcher:
 
 - `booking-confirmation-host`
 - `booking-confirmation-guest`
@@ -1084,7 +1084,7 @@ All emails are sent from `noreply@viloplatform.com` and use branded HTML templat
 
 ### Account Tiers
 
-Vilo now supports a **Free Tier** in addition to paid plans. Every host can sign up for free and appear in the Vilo Directory. Features are unlocked progressively based on their subscription plan. Super Admin controls which features are available per tier from the admin panel.
+Wielo now supports a **Free Tier** in addition to paid plans. Every host can sign up for free and appear in the Wielo Directory. Features are unlocked progressively based on their subscription plan. Super Admin controls which features are available per tier from the admin panel.
 
 | Tier | Cost | Directory Listing | Bookings | Inbox | Reviews | Payments | Listings Limit | Staff Seats |
 |---|---|---|---|---|---|---|---|---|
@@ -1115,7 +1115,7 @@ plan_features (
 
 | Feature Key | Description | Free | Basic | Pro | Business |
 |---|---|---|---|---|---|
-| `directory_listing` | Appear in Vilo Directory | ✅ | ✅ | ✅ | ✅ |
+| `directory_listing` | Appear in Wielo Directory | ✅ | ✅ | ✅ | ✅ |
 | `directory_priority` | Boosted placement in directory search | ❌ | ❌ | ✅ | ✅ |
 | `direct_booking` | Guests can complete a full booking | ❌ | ✅ | ✅ | ✅ |
 | `enquiry_only` | Guests can send enquiries only | ✅ | ✅ | ✅ | ✅ |
@@ -1170,13 +1170,13 @@ When a free-tier host tries to access a locked feature, the UI shows an inline u
 
 ---
 
-## 6.8 Vilo Directory (Public Discovery Layer)
+## 6.8 Wielo Directory (Public Discovery Layer)
 
 ### Overview
 
-The **Vilo Directory** is a public-facing search and discovery layer — the Booking.com-style front door of the platform. Every host with an active account (including Free tier) gets a listing in the directory automatically. Guests can search, filter, and book directly from the directory without needing to know a host's profile URL in advance.
+The **Wielo Directory** is a public-facing search and discovery layer — the Booking.com-style front door of the platform. Every host with an active account (including Free tier) gets a listing in the directory automatically. Guests can search, filter, and book directly from the directory without needing to know a host's profile URL in advance.
 
-The directory is accessible at `viloplatform.com/explore` (web) and the **Explore** tab on mobile.
+The directory is accessible at `wieloplatform.com/explore` (web) and the **Explore** tab on mobile.
 
 ---
 
@@ -1255,7 +1255,7 @@ Super Admin can adjust weighting coefficients from the admin panel without a cod
 ### 6.8.4 Listing Detail Page (from Directory)
 
 When a guest clicks a card in the directory, they land on the listing detail page at:
-`viloplatform.com/listing/[listing-id]`
+`wieloplatform.com/listing/[listing-id]`
 
 This page shows:
 - Full photo gallery (lightbox)
@@ -1272,7 +1272,7 @@ This page shows:
 
 ### 6.8.5 Host Profile Page (from Directory)
 
-`viloplatform.com/[handle]` — the host's full public profile showing:
+`wieloplatform.com/[handle]` — the host's full public profile showing:
 - All active listings (both accommodation + experiences)
 - About the host
 - Aggregate reviews
@@ -1466,7 +1466,7 @@ admin_audit_log (
 
 ### ✅ Added to MVP Scope
 
-- Vilo Directory public search page (`/explore`)
+- Wielo Directory public search page (`/explore`)
 - Full-text + geo search with filters and sorting
 - Directory listing cards and listing detail pages
 - Map view (web + mobile)
@@ -1514,7 +1514,7 @@ The Refund Manager gives hosts full visibility and control over refund requests.
 
 ### 6.9.1 Overview & Design Philosophy
 
-Refunds on Vilo work differently from OTAs. Because Vilo charges no booking commission and hosts receive payments directly, refund authority sits with the host — not the platform. The platform provides the tooling, the audit trail, and the guardrails. The host makes the call.
+Refunds on Wielo work differently from OTAs. Because Wielo charges no booking commission and hosts receive payments directly, refund authority sits with the host — not the platform. The platform provides the tooling, the audit trail, and the guardrails. The host makes the call.
 
 **Three refund pathways:**
 
@@ -1768,7 +1768,7 @@ If refund amount = 0 per policy, no refund is issued automatically. Guest can st
 
 ### 6.9.8 Admin Refund Escalation
 
-If a guest disputes a host's refund decline, they can escalate to Vilo admin. This creates an admin escalation case.
+If a guest disputes a host's refund decline, they can escalate to Wielo admin. This creates an admin escalation case.
 
 **Escalation trigger:** Guest clicks "Dispute this decision" on a declined refund.
 
@@ -2136,7 +2136,7 @@ A simple text policy (POPIA/GDPR compliant) that explains how the host handles g
 
 **Default template (editable):**
 
-> "By making a booking through Vilo, you consent to [Property Name] storing your contact details (name, email, phone) for the purpose of managing your booking and communicating with you about your stay. Your details will not be shared with third parties and will be deleted within 12 months of your last stay. You may request deletion of your data at any time by emailing [host_email]."
+> "By making a booking through Wielo, you consent to [Property Name] storing your contact details (name, email, phone) for the purpose of managing your booking and communicating with you about your stay. Your details will not be shared with third parties and will be deleted within 12 months of your last stay. You may request deletion of your data at any time by emailing [host_email]."
 
 Hosts can customise this text using the Tiptap editor.
 
@@ -2170,7 +2170,7 @@ In the listing editor (Section 6.2), a dedicated "Policies" tab shows:
 |---|---|---|
 | Cancellation Policy | Standard Moderate (v2) | Change |
 | Booking Terms | Garden Cottage House Rules (v1) | Change / Edit |
-| Privacy Policy | Default Vilo Template (v1) | Change / Edit |
+| Privacy Policy | Default Wielo Template (v1) | Change / Edit |
 
 Clicking "Change" opens a picker showing all policies of that type from the host's library.
 

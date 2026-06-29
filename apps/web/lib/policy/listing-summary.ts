@@ -31,7 +31,7 @@ export type ListingPolicySummary = {
   check_in_out?: PolicyContent;
   house_rules?: PolicyContent;
   // The host's own property Terms & Conditions (resolver: room → listing-wide →
-  // host default). Surfaced at checkout alongside Vilo's platform terms.
+  // host default). Surfaced at checkout alongside Wielo's platform terms.
   booking_terms?: PolicyContent;
 };
 

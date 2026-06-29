@@ -6,7 +6,7 @@ import {
   getLatestSupportGrant,
 } from "@/lib/admin/supportGrant";
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
-import { fetchViloLedger } from "@/lib/billing/vilo-ledger";
+import { fetchWieloLedger } from "@/lib/billing/vilo-ledger";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
@@ -49,7 +49,7 @@ export default async function AdminUserDetailPage({
     { count: bookingsAsGuestCount },
     { count: refundsCount },
     subResult,
-    viloRows,
+    wieloRows,
     bookingsAsGuestRes,
     relationshipBundle,
     { data: dataReqRows },
@@ -73,7 +73,7 @@ export default async function AdminUserDetailPage({
           .eq("host_id", host.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    fetchViloLedger(service, { userId: user.id, limit: 100 }),
+    fetchWieloLedger(service, { userId: user.id, limit: 100 }),
     service
       .from("bookings")
       .select(
@@ -470,7 +470,7 @@ export default async function AdminUserDetailPage({
       isRecommended: p.isRecommended,
       bullets: p.bullets,
     })),
-    viloLedger: viloRows.map((t) => ({
+    wieloLedger: wieloRows.map((t) => ({
       id: t.id,
       type: t.type,
       status: t.status,

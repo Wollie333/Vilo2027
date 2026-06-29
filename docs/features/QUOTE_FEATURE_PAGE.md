@@ -10,7 +10,7 @@
 ## 1. Page Meta & SEO
 
 ```yaml
-title: "Professional Quotes for Accommodation Hosts — Vilo"
+title: "Professional Quotes for Accommodation Hosts — Wielo"
 meta_description: "Send branded quotes in seconds. Auto-pricing from your live rates, calendar protection while you negotiate, and one-click conversion to booking. Built for SA hosts."
 url_slug: /features/quotes
 keywords:
@@ -19,7 +19,7 @@ keywords:
   - lodge booking quotes south africa
   - B&B quote generator
   - hospitality proposal software
-og_title: "Professional Quotes — Win More Bookings | Vilo"
+og_title: "Professional Quotes — Win More Bookings | Wielo"
 og_description: "Send branded, accurate quotes in seconds. Track when guests open them. Convert to bookings with one click."
 og_image: "/images/features/quotes-og.jpg"
 ```
@@ -41,7 +41,7 @@ Option C: "Stop losing guests to slow, messy quotes."
 ### Subheadline
 
 ```
-"Vilo's quote builder pulls your live rates, protects your calendar, and gives guests a professional PDF they can accept in one tap — no login required."
+"Wielo's quote builder pulls your live rates, protects your calendar, and gives guests a professional PDF they can accept in one tap — no login required."
 ```
 
 ### Hero CTA
@@ -107,7 +107,7 @@ Headline: "Every hour without a quote is a booking walking out the door."
    Cost: You don't know when to follow up — or if you even should.
 ```
 
-### "Before Vilo" Scenario
+### "Before Wielo" Scenario
 
 ```
 "You get a WhatsApp enquiry at 9pm. You're exhausted, so you jot down a price on your phone — no breakdown, no terms, no branding. The guest says 'thanks, I'll think about it' and disappears. A week later, you see them post photos from a competitor's property. You'll never know if a proper quote would have won it."
@@ -120,7 +120,7 @@ Headline: "Every hour without a quote is a booking walking out the door."
 ### Section Header
 
 ```
-Eyebrow: "The Vilo way"
+Eyebrow: "The Wielo way"
 Headline: "Professional quotes that convert — built into your booking system."
 ```
 
@@ -133,7 +133,7 @@ Headline: "Professional quotes that convert — built into your booking system."
 ### Key Differentiators
 
 ```
-1. Auto-priced from your live rates — Vilo pulls your nightly prices, seasonal adjustments, cleaning fees, and occupancy rules automatically. No calculator. No spreadsheet. No mistakes.
+1. Auto-priced from your live rates — Wielo pulls your nightly prices, seasonal adjustments, cleaning fees, and occupancy rules automatically. No calculator. No spreadsheet. No mistakes.
 
 2. Calendar protection built in — The moment you send a quote, those dates are soft-held on your calendar. No more double-bookings while you wait for a response.
 
@@ -151,7 +151,7 @@ Headline: "Professional quotes that convert — built into your booking system."
 ```yaml
 icon: Calculator
 headline: "Accurate prices, every time — calculated automatically"
-description: "Vilo pulls your nightly rates, seasonal pricing rules, weekend premiums, occupancy discounts, and cleaning fees the moment you select dates. You verify and send. No manual calculations. No forgetting the cleaning fee. No quoting last year's prices by mistake."
+description: "Wielo pulls your nightly rates, seasonal pricing rules, weekend premiums, occupancy discounts, and cleaning fees the moment you select dates. You verify and send. No manual calculations. No forgetting the cleaning fee. No quoting last year's prices by mistake."
 visual: "Animation showing date selection → price fields auto-populating with breakdown (Base: R1,200 × 3 nights, Weekend premium: R200, Cleaning: R150, Total: R3,950)"
 ```
 
@@ -169,7 +169,7 @@ visual: "Side-by-side comparison: LEFT showing itemised quote (3 nights @ R1,200
 ```yaml
 icon: CalendarCheck
 headline: "Your dates are protected while you negotiate"
-description: "The moment you send a quote, Vilo soft-blocks those dates on your calendar. Other guests see them as tentatively unavailable. If the quote is declined or expires, the hold clears automatically. No more double-bookings during the back-and-forth."
+description: "The moment you send a quote, Wielo soft-blocks those dates on your calendar. Other guests see them as tentatively unavailable. If the quote is declined or expires, the hold clears automatically. No more double-bookings during the back-and-forth."
 visual: "Calendar view showing dates marked with 'Quote pending' badge, tooltip explaining 'Held for Sarah Mitchell until 20 Nov'"
 ```
 
@@ -178,7 +178,7 @@ visual: "Calendar view showing dates marked with 'Quote pending' badge, tooltip 
 ```yaml
 icon: History
 headline: "Every edit, every version — nothing lost"
-description: "Guest asks for a discount? Different dates? Extra night? Edit the quote, and Vilo snapshots the previous version automatically. Full audit trail of what was offered, when, and what changed. When it comes time to confirm, everyone knows exactly what was agreed."
+description: "Guest asks for a discount? Different dates? Extra night? Edit the quote, and Wielo snapshots the previous version automatically. Full audit trail of what was offered, when, and what changed. When it comes time to confirm, everyone knows exactly what was agreed."
 visual: "Version history panel showing: v1 (Original, 15 Nov), v2 (Added discount, 16 Nov), v3 (Changed dates, 17 Nov) with 'View' buttons"
 ```
 
@@ -223,7 +223,7 @@ visual: "Add-ons section showing: Breakfast (2 guests × 3 days) R450, Airport t
 ```yaml
 icon: Eye
 headline: "Know when they've seen it"
-description: "Vilo tracks when the guest opens your quote — and what device they used. Opened on mobile at 2pm? They're probably browsing from work. Opened three times and still no response? They're comparing options. Now you know when to follow up, and when to hold back."
+description: "Wielo tracks when the guest opens your quote — and what device they used. Opened on mobile at 2pm? They're probably browsing from work. Opened three times and still no response? They're comparing options. Now you know when to follow up, and when to hold back."
 visual: "Analytics card showing: 'Viewed 3 times · Last opened: Today, 2:34pm · Device: Mobile'"
 ```
 
@@ -250,7 +250,7 @@ visual: "Inbox thread showing message bubbles interspersed with quote event card
 ```yaml
 icon: CheckCircle
 headline: "Accepted quote becomes a booking — automatically"
-description: "When the guest clicks 'Accept', Vilo creates the booking instantly. Guest details, dates, pricing, deposit terms — all transferred. No re-keying. No copy-paste errors. The booking appears in your calendar, the guest gets a confirmation, and you're ready to collect payment."
+description: "When the guest clicks 'Accept', Wielo creates the booking instantly. Guest details, dates, pricing, deposit terms — all transferred. No re-keying. No copy-paste errors. The booking appears in your calendar, the guest gets a confirmation, and you're ready to collect payment."
 visual: "Flow diagram: Quote Accepted → Booking Created (auto) → Payment Request Sent → Booking Confirmed"
 ```
 
@@ -271,7 +271,7 @@ Headline: "From enquiry to booking — in four steps."
 Step 1: Create — Enter guest details, select dates and rooms. Takes 30 seconds.
   Visual: Form with guest name, email, date picker, room selector
 
-Step 2: Price — Vilo auto-calculates from your live rates. Add discounts or extras if needed.
+Step 2: Price — Wielo auto-calculates from your live rates. Add discounts or extras if needed.
   Visual: Pricing breakdown with edit option, discount field, add-on selector
 
 Step 3: Send — One click. Guest receives email with PDF and accept link. Dates are held.
@@ -313,7 +313,7 @@ Animation: Steps reveal on scroll with subtle rise animation
 
 ```
 Eyebrow: "From real hosts"
-Headline: "What hosts say about Vilo Quotes"
+Headline: "What hosts say about Wielo Quotes"
 ```
 
 ### Testimonial Placeholders
@@ -361,12 +361,12 @@ Stat 3: [X] minutes average time to create and send
 
 ```
 Eyebrow: "Side by side"
-Headline: "Quoting without Vilo vs. with Vilo"
+Headline: "Quoting without Wielo vs. with Wielo"
 ```
 
 ### Comparison Table
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | Copy-paste a Word doc or type prices into WhatsApp | Branded PDF generated in seconds |
 | Manually calculate rates, extras, cleaning fee | Auto-priced from your live availability |
@@ -384,17 +384,17 @@ Headline: "Quoting without Vilo vs. with Vilo"
 ### Questions & Answers
 
 ```
-Q: Does Vilo Quotes use my existing rates?
-A: Yes. Vilo pulls from your nightly rates, seasonal pricing rules, weekend premiums, and occupancy settings automatically. If you've set up your pricing in Vilo, quotes calculate correctly without any extra work.
+Q: Does Wielo Quotes use my existing rates?
+A: Yes. Wielo pulls from your nightly rates, seasonal pricing rules, weekend premiums, and occupancy settings automatically. If you've set up your pricing in Wielo, quotes calculate correctly without any extra work.
 
 Q: Can I offer discounts?
 A: Absolutely. Add a percentage or fixed-amount discount to any quote. You can include an optional reason ('returning guest', 'anniversary special') that appears on the PDF.
 
 Q: What if the guest wants changes after I send the quote?
-A: Edit and re-send. Vilo automatically saves the previous version, so you have a full history of what was offered. The guest always sees the latest version.
+A: Edit and re-send. Wielo automatically saves the previous version, so you have a full history of what was offered. The guest always sees the latest version.
 
 Q: How do I know if the guest has seen my quote?
-A: Vilo tracks when the quote is opened and from what device. You'll see this in the quote details — 'Viewed 2 times · Last opened: Today, 3:15pm · Mobile'. No more wondering.
+A: Wielo tracks when the quote is opened and from what device. You'll see this in the quote details — 'Viewed 2 times · Last opened: Today, 3:15pm · Mobile'. No more wondering.
 
 Q: What happens when they accept?
 A: One click from the guest creates a booking automatically. Their details, dates, and pricing transfer over. If you've set deposit terms, a payment request goes out. You can also manually convert a quote if the guest accepted via WhatsApp or phone.
@@ -426,7 +426,7 @@ Secondary CTA: "Claim your founding spot" → /signup/host
 Trust elements:
   - No card required
   - 90-day money-back guarantee
-  - Quotes included in every Vilo plan
+  - Quotes included in every Wielo plan
 ```
 
 ---
@@ -467,7 +467,7 @@ Trust elements:
 
 2. PROBLEM SECTION (light background)
    - Pain points as cards with icons
-   - "Before Vilo" narrative as highlighted callout
+   - "Before Wielo" narrative as highlighted callout
 
 3. SOLUTION OVERVIEW (white background)
    - Transformation statement prominent

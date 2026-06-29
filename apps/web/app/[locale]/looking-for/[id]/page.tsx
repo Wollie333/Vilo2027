@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!post) {
     return {
-      title: "Request Not Found | Vilo",
+      title: "Request Not Found | Wielo",
     };
   }
 
@@ -62,13 +62,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : `Looking for ${post.category}${post.location_region ? ` in ${post.location_region}` : ""}${post.adults ? ` for ${post.adults} guests` : ""}`;
 
   return {
-    title: `${post.title} | Looking For | Vilo`,
+    title: `${post.title} | Looking For | Wielo`,
     description,
     openGraph: {
       title: post.title,
       description,
       type: "article",
-      siteName: "Vilo",
+      siteName: "Wielo",
     },
     twitter: {
       card: "summary",

@@ -241,7 +241,7 @@ export function RoomBuilder({
 
   return (
     <div
-      className="vilo-builder"
+      className="wielo-builder"
       style={{
         height: "100vh",
         display: "flex",

@@ -1,11 +1,11 @@
 /* Website-CMS manager page primitives — the classes the mockups keep in each
    page's inline <style> (identical across the Blog / Forms / Pages managers).
-   Hand-authored (not generated) and scoped under .vilo-cms so they live with the
+   Hand-authored (not generated) and scoped under .wielo-cms so they live with the
    rest of the emerald system. Grid column templates differ per table, so .ptr
    carries everything EXCEPT grid-template-columns — each table sets that inline. */
 
 /* ---------- row "⋯" dropdown menu (Pages manager) ---------- */
-.vilo-cms .rm-item {
+.wielo-cms .rm-item {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -20,43 +20,43 @@
   text-align: left;
   transition: background 0.12s;
 }
-.vilo-cms .rm-item:hover {
+.wielo-cms .rm-item:hover {
   background: var(--soft);
 }
-.vilo-cms .rm-item svg {
+.wielo-cms .rm-item svg {
   color: var(--mute);
 }
-.vilo-cms .rm-danger {
+.wielo-cms .rm-danger {
   color: #ef4444;
 }
-.vilo-cms .rm-danger:hover {
+.wielo-cms .rm-danger:hover {
   background: #fef2f2;
 }
-.vilo-cms .rm-danger svg {
+.wielo-cms .rm-danger svg {
   color: #ef4444;
 }
 
 /* ---------- settings danger zone ---------- */
-.vilo-cms .danger {
+.wielo-cms .danger {
   border: 1px solid #f6d9d9;
   border-radius: 16px;
   background: #fff;
   overflow: hidden;
 }
-.vilo-cms .danger .setrow {
+.wielo-cms .danger .setrow {
   border-color: #fbe7e7;
 }
-.vilo-cms .btn-danger {
+.wielo-cms .btn-danger {
   background: #fff;
   border: 1px solid #f2c2c2;
   color: #b91c1c;
 }
-.vilo-cms .btn-danger:hover {
+.wielo-cms .btn-danger:hover {
   background: #fef2f2;
 }
 
 /* ---------- table row (manager lists) ---------- */
-.vilo-cms .ptr {
+.wielo-cms .ptr {
   display: grid;
   align-items: center;
   gap: 14px;
@@ -68,13 +68,13 @@
   cursor: pointer;
   text-decoration: none;
 }
-.vilo-cms .ptr:hover {
+.wielo-cms .ptr:hover {
   background: #fafcfb;
   box-shadow: 0 1px 0 var(--line);
 }
 
 /* ---------- row thumbnail ---------- */
-.vilo-cms .pthumb {
+.wielo-cms .pthumb {
   height: 48px;
   width: 68px;
   border-radius: 8px;
@@ -84,18 +84,18 @@
   background: #f4f8f5;
   position: relative;
 }
-.vilo-cms .pthumb img {
+.wielo-cms .pthumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.vilo-cms .pthumb .tb {
+.wielo-cms .pthumb .tb {
   height: 8px;
   background: #fff;
   border-bottom: 1px solid #eaf2ec;
 }
-.vilo-cms .pthumb .ph {
+.wielo-cms .pthumb .ph {
   position: absolute;
   inset: 8px 0 0;
   background: repeating-linear-gradient(
@@ -106,7 +106,7 @@
 }
 
 /* ---------- form row thumbnail ---------- */
-.vilo-cms .fthumb {
+.wielo-cms .fthumb {
   height: 48px;
   width: 68px;
   border-radius: 8px;
@@ -119,16 +119,16 @@
   gap: 5px;
   padding: 0 10px;
 }
-.vilo-cms .fthumb i {
+.wielo-cms .fthumb i {
   display: block;
   height: 5px;
   border-radius: 3px;
   background: #cde7d8;
 }
-.vilo-cms .fthumb i.s {
+.wielo-cms .fthumb i.s {
   width: 62%;
 }
-.vilo-cms .fthumb i.fbtn {
+.wielo-cms .fthumb i.fbtn {
   height: 8px;
   width: 40%;
   background: #10b981;
@@ -136,7 +136,7 @@
 }
 
 /* ---------- segmented filter ---------- */
-.vilo-cms .eseg {
+.wielo-cms .eseg {
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -145,7 +145,7 @@
   background: #f1f6f3;
   border: 1px solid var(--line);
 }
-.vilo-cms .eseg button {
+.wielo-cms .eseg button {
   height: 28px;
   padding: 0 11px;
   border-radius: 7px;
@@ -156,14 +156,14 @@
   border: 0;
   cursor: pointer;
 }
-.vilo-cms .eseg button.on {
+.wielo-cms .eseg button.on {
   background: #fff;
   color: #064e3b;
   box-shadow: 0 1px 2px rgba(6, 78, 59, 0.12);
 }
 
 /* ---------- template card (new-post / new-form modals) ---------- */
-.vilo-cms .tpl {
+.wielo-cms .tpl {
   border: 1px solid var(--line);
   border-radius: 13px;
   overflow: hidden;
@@ -177,12 +177,12 @@
   display: block;
   width: 100%;
 }
-.vilo-cms .tpl:hover {
+.wielo-cms .tpl:hover {
   border-color: #bfe6d2;
   box-shadow: 0 14px 30px -18px rgba(6, 78, 59, 0.4);
   transform: translateY(-2px);
 }
-.vilo-cms .tpl .tp-img {
+.wielo-cms .tpl .tp-img {
   height: 96px;
   background: #f2fbf6;
   border-bottom: 1px solid var(--line);
@@ -191,12 +191,12 @@
   justify-content: center;
   color: #10b981;
 }
-.vilo-cms .tpl .tp-b {
+.wielo-cms .tpl .tp-b {
   padding: 11px 13px;
 }
 
 /* ---------- modal ---------- */
-.vilo-cms .modal-scrim {
+.wielo-cms .modal-scrim {
   position: fixed;
   inset: 0;
   background: rgba(5, 46, 31, 0.4);
@@ -207,7 +207,7 @@
   justify-content: center;
   padding: 24px;
 }
-.vilo-cms .modal {
+.wielo-cms .modal {
   width: 720px;
   max-width: 100%;
   max-height: 86vh;
@@ -218,19 +218,19 @@
 }
 
 /* ---------- settings-page primitives (Domain / SEO / Settings tabs) ---------- */
-.vilo-cms .wrap-set {
+.wielo-cms .wrap-set {
   max-width: 980px;
 }
-.vilo-cms .sblock {
+.wielo-cms .sblock {
   margin-bottom: 24px;
 }
-.vilo-cms .sblock-h {
+.wielo-cms .sblock-h {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 13px;
 }
-.vilo-cms .sblock-h .si {
+.wielo-cms .sblock-h .si {
   height: 36px;
   width: 36px;
   border-radius: 10px;
@@ -241,56 +241,56 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.vilo-cms .sblock-h h2 {
+.wielo-cms .sblock-h h2 {
   font-family: "Plus Jakarta Sans";
   font-weight: 800;
   font-size: 16.5px;
   color: var(--ink);
   line-height: 1.1;
 }
-.vilo-cms .sblock-h p {
+.wielo-cms .sblock-h p {
   font-size: 12.5px;
   color: var(--mute);
   margin-top: 3px;
   line-height: 1.45;
 }
-.vilo-cms .setrow {
+.wielo-cms .setrow {
   display: flex;
   align-items: flex-start;
   gap: 18px;
   padding: 16px 18px;
   border-bottom: 1px solid var(--line);
 }
-.vilo-cms .setrow:last-child {
+.wielo-cms .setrow:last-child {
   border-bottom: 0;
 }
-.vilo-cms .setrow.col {
+.wielo-cms .setrow.col {
   display: block;
 }
-.vilo-cms .setrow .lbl {
+.wielo-cms .setrow .lbl {
   flex: 1;
   min-width: 0;
 }
-.vilo-cms .setrow .lbl b {
+.wielo-cms .setrow .lbl b {
   font-size: 13.5px;
   font-weight: 600;
   color: var(--ink);
   display: block;
 }
-.vilo-cms .setrow .lbl span {
+.wielo-cms .setrow .lbl span {
   font-size: 12px;
   color: var(--mute);
   display: block;
   margin-top: 3px;
   line-height: 1.5;
 }
-.vilo-cms .setrow .ctl {
+.wielo-cms .setrow .ctl {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 9px;
 }
-.vilo-cms .field {
+.wielo-cms .field {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--line);
@@ -303,39 +303,39 @@
     border-color 0.12s,
     box-shadow 0.12s;
 }
-.vilo-cms .field:focus {
+.wielo-cms .field:focus {
   outline: none;
   border-color: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
-.vilo-cms .field.mono {
+.wielo-cms .field.mono {
   font-family: "JetBrains Mono";
   font-size: 12.5px;
 }
-.vilo-cms textarea.field {
+.wielo-cms textarea.field {
   resize: vertical;
   min-height: 72px;
   line-height: 1.55;
 }
-.vilo-cms select.field {
+.wielo-cms select.field {
   cursor: pointer;
 }
-.vilo-cms .field-w {
+.wielo-cms .field-w {
   width: 230px;
   max-width: 100%;
 }
-.vilo-cms .lblrow {
+.wielo-cms .lblrow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
 }
-.vilo-cms .lblrow label {
+.wielo-cms .lblrow label {
   font-size: 11.5px;
   font-weight: 600;
   color: #3a5a4e;
 }
-.vilo-cms .sw {
+.wielo-cms .sw {
   position: relative;
   width: 40px;
   height: 23px;
@@ -347,7 +347,7 @@
   padding: 0;
   flex-shrink: 0;
 }
-.vilo-cms .sw::after {
+.wielo-cms .sw::after {
   content: "";
   position: absolute;
   top: 2px;
@@ -359,22 +359,22 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: transform 0.15s;
 }
-.vilo-cms .sw.on {
+.wielo-cms .sw.on {
   background: #10b981;
 }
-.vilo-cms .sw.on::after {
+.wielo-cms .sw.on::after {
   transform: translateX(17px);
 }
 
 /* ---------- domain tab ---------- */
-.vilo-cms .domhero {
+.wielo-cms .domhero {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 20px 18px;
   border-bottom: 1px solid var(--line);
 }
-.vilo-cms .domhero .dg {
+.wielo-cms .domhero .dg {
   height: 48px;
   width: 48px;
   border-radius: 13px;
@@ -387,22 +387,22 @@
   font-size: 19px;
   flex-shrink: 0;
 }
-.vilo-cms .dns {
+.wielo-cms .dns {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
   margin-top: 4px;
 }
-.vilo-cms .dns .dh,
-.vilo-cms .dns .dr {
+.wielo-cms .dns .dh,
+.wielo-cms .dns .dr {
   display: grid;
   grid-template-columns: 62px 1.1fr 1.6fr 54px 30px;
   gap: 12px;
   padding: 10px 14px;
   align-items: center;
 }
-.vilo-cms .dns .dh {
+.wielo-cms .dns .dh {
   background: #fafcfb;
   border-bottom: 1px solid var(--line);
   font-weight: 700;
@@ -411,16 +411,16 @@
   font-size: 10px;
   letter-spacing: 0.06em;
 }
-.vilo-cms .dns .dr {
+.wielo-cms .dns .dr {
   border-bottom: 1px solid #f0f5f2;
   font-family: "JetBrains Mono";
   font-size: 12px;
   color: var(--ink);
 }
-.vilo-cms .dns .dr:last-child {
+.wielo-cms .dns .dr:last-child {
   border-bottom: 0;
 }
-.vilo-cms .dns .dr .cp {
+.wielo-cms .dns .dr .cp {
   height: 26px;
   width: 26px;
   border-radius: 7px;
@@ -432,35 +432,35 @@
   justify-content: center;
   cursor: pointer;
 }
-.vilo-cms .dns .dr .cp:hover {
+.wielo-cms .dns .dr .cp:hover {
   color: #064e3b;
   background: var(--soft);
 }
 
 /* ---------- SEO tab ---------- */
-.vilo-cms .cc {
+.wielo-cms .cc {
   font-family: "JetBrains Mono";
   font-size: 11px;
   color: var(--mute);
 }
-.vilo-cms .cc.warn {
+.wielo-cms .cc.warn {
   color: #b45309;
 }
-.vilo-cms .gprev {
+.wielo-cms .gprev {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 15px 17px;
   background: #fff;
   max-width: 600px;
 }
-.vilo-cms .gprev .gu {
+.wielo-cms .gprev .gu {
   display: flex;
   align-items: center;
   gap: 7px;
   font-size: 12px;
   color: #202124;
 }
-.vilo-cms .gprev .gu .fav {
+.wielo-cms .gprev .gu .fav {
   height: 18px;
   width: 18px;
   border-radius: 9999px;
@@ -469,32 +469,32 @@
   align-items: center;
   justify-content: center;
 }
-.vilo-cms .gprev .gu .gp {
+.wielo-cms .gprev .gu .gp {
   font-family: "JetBrains Mono";
   font-size: 11.5px;
   color: #5f6368;
 }
-.vilo-cms .gprev .gt {
+.wielo-cms .gprev .gt {
   color: #1a0dab;
   font-size: 19px;
   line-height: 1.3;
   margin-top: 6px;
   font-weight: 400;
 }
-.vilo-cms .gprev .gd {
+.wielo-cms .gprev .gd {
   color: #4d5156;
   font-size: 13px;
   margin-top: 3px;
   line-height: 1.5;
 }
-.vilo-cms .ogprev {
+.wielo-cms .ogprev {
   border: 1px solid var(--line);
   border-radius: 13px;
   overflow: hidden;
   max-width: 480px;
   background: #fff;
 }
-.vilo-cms .ogprev .ogimg {
+.wielo-cms .ogprev .ogimg {
   height: 170px;
   background: repeating-linear-gradient(
     135deg,
@@ -509,30 +509,30 @@
   justify-content: center;
   color: #8fb6a2;
 }
-.vilo-cms .ogprev .ogb {
+.wielo-cms .ogprev .ogb {
   padding: 11px 14px;
   border-top: 1px solid var(--line);
 }
-.vilo-cms .ogprev .ogu {
+.wielo-cms .ogprev .ogu {
   font-family: "JetBrains Mono";
   font-size: 11px;
   color: #65676b;
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
-.vilo-cms .ogprev .ogt {
+.wielo-cms .ogprev .ogt {
   font-size: 14.5px;
   font-weight: 700;
   color: #1c1e21;
   margin-top: 3px;
 }
-.vilo-cms .ogprev .ogd {
+.wielo-cms .ogprev .ogd {
   font-size: 12.5px;
   color: #65676b;
   margin-top: 2px;
   line-height: 1.4;
 }
-.vilo-cms .imgpick {
+.wielo-cms .imgpick {
   height: 150px;
   border-radius: 12px;
   border: 1px solid var(--line);
@@ -549,12 +549,12 @@
   justify-content: center;
   color: #8fb6a2;
 }
-.vilo-cms .imgpick img {
+.wielo-cms .imgpick img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.vilo-cms .imgpick .ip-ov {
+.wielo-cms .imgpick .ip-ov {
   position: absolute;
   inset: 0;
   display: flex;
@@ -568,10 +568,10 @@
   opacity: 0;
   transition: opacity 0.12s;
 }
-.vilo-cms .imgpick:hover .ip-ov {
+.wielo-cms .imgpick:hover .ip-ov {
   opacity: 1;
 }
-.vilo-cms .seorow {
+.wielo-cms .seorow {
   display: grid;
   grid-template-columns: 1fr 88px 96px 70px 30px;
   gap: 14px;
@@ -580,27 +580,27 @@
   border-radius: 11px;
   text-decoration: none;
 }
-.vilo-cms .seorow.head {
+.wielo-cms .seorow.head {
   background: #fafcfb;
   border-bottom: 1px solid var(--line);
   border-radius: 0;
 }
-.vilo-cms .seorow:hover:not(.head) {
+.wielo-cms .seorow:hover:not(.head) {
   background: #fafcfb;
 }
-.vilo-cms .score {
+.wielo-cms .score {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   font-size: 12px;
   font-weight: 700;
 }
-.vilo-cms .score .sd {
+.wielo-cms .score .sd {
   height: 8px;
   width: 8px;
   border-radius: 9999px;
 }
-.vilo-cms .checkpill {
+.wielo-cms .checkpill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -609,7 +609,7 @@
 }
 
 /* ---------- forms manager stat tiles ---------- */
-.vilo-cms .stat {
+.wielo-cms .stat {
   flex: 1;
   min-width: 150px;
   border: 1px solid var(--line);
@@ -617,14 +617,14 @@
   background: #fff;
   padding: 14px 16px;
 }
-.vilo-cms .stat .sv {
+.wielo-cms .stat .sv {
   font-family: "Plus Jakarta Sans";
   font-weight: 800;
   font-size: 23px;
   color: var(--ink);
   line-height: 1;
 }
-.vilo-cms .stat .sl {
+.wielo-cms .stat .sl {
   font-size: 12px;
   color: var(--mute);
   margin-top: 5px;

@@ -292,7 +292,7 @@ export function SettingsForm({
   }
 
   return (
-    <div className="vilo-cms wrap-set mx-auto">
+    <div className="wielo-cms wrap-set mx-auto">
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <div>
           <h1

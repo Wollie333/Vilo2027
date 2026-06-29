@@ -1,7 +1,7 @@
 /* Form-editor document + field-block styles (from Form Editor.html), scoped
-   under .vilo-builder so they live with the rest of the builder design system.
+   under .wielo-builder so they live with the rest of the builder design system.
    Hand-authored to match the mockup; --ink/--mute/--line/--soft come from
-   builder.css (.vilo-builder). */
+   builder.css (.wielo-builder). */
 
 /* The canvas reflects the ACTIVE theme: the form-wrap carries the site's
    `--site-*` vars (set inline from buildSiteVars), and the form preview reads
@@ -10,7 +10,7 @@
    the emerald mockup. The mockup hex stays as the final fallback (theme absent).
    Editor chrome (selection/hover/tools/labels) stays emerald — it's builder UI,
    not form content. */
-.vilo-builder .form-wrap {
+.wielo-builder .form-wrap {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
@@ -19,7 +19,7 @@
   justify-content: center;
   padding: 26px 20px 120px;
 }
-.vilo-builder .form-doc {
+.wielo-builder .form-doc {
   width: 100%;
   max-width: 680px;
   background: var(--site-surface, #fff);
@@ -28,14 +28,14 @@
   align-self: flex-start;
   overflow: hidden;
 }
-.vilo-builder .fd-accent {
+.wielo-builder .fd-accent {
   height: 6px;
   background: var(--vform-accent, var(--site-accent, #10b981));
 }
-.vilo-builder .fd-head {
+.wielo-builder .fd-head {
   padding: 30px 38px 4px;
 }
-.vilo-builder .fd-title {
+.wielo-builder .fd-title {
   font-family: var(--site-font-heading, "Plus Jakarta Sans", sans-serif);
   font-weight: 800;
   font-size: 27px;
@@ -48,7 +48,7 @@
   background: none;
   padding: 0;
 }
-.vilo-builder .fd-desc {
+.wielo-builder .fd-desc {
   font-size: 14.5px;
   line-height: 1.6;
   color: var(--site-mute, var(--mute));
@@ -61,16 +61,16 @@
   font-family: inherit;
   padding: 0;
 }
-.vilo-builder .fd-body {
+.wielo-builder .fd-body {
   padding: 20px 38px 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
 }
-.vilo-builder .fd-foot {
+.wielo-builder .fd-foot {
   padding: 6px 38px 34px;
 }
-.vilo-builder .fd-submit {
+.wielo-builder .fd-submit {
   height: 48px;
   border-radius: var(--vform-radius, var(--site-btn-primary-radius, 11px));
   background: var(--vform-btn-bg, var(--site-btn-primary-bg, #10b981));
@@ -86,7 +86,7 @@
 }
 
 /* field block */
-.vilo-builder .ff {
+.wielo-builder .ff {
   position: relative;
   width: 100%;
   outline: 0;
@@ -98,36 +98,36 @@
     background 0.12s;
   cursor: pointer;
 }
-.vilo-builder .ff.half {
+.wielo-builder .ff.half {
   width: calc(50% - 9px);
 }
-.vilo-builder .ff:hover {
+.wielo-builder .ff:hover {
   border-color: rgba(16, 185, 129, 0.4);
   background: #fbfefc;
 }
-.vilo-builder .ff.sel {
+.wielo-builder .ff.sel {
   border-color: #10b981;
   background: #f7fdfa;
 }
-.vilo-builder .flabel {
+.wielo-builder .flabel {
   display: block;
   font-size: 13px;
   font-weight: 600;
   color: var(--site-ink, var(--ink));
   margin-bottom: 7px;
 }
-.vilo-builder .ff.req .flabel::after {
+.wielo-builder .ff.req .flabel::after {
   content: " *";
   color: #ef4444;
   font-weight: 700;
 }
-.vilo-builder .fhelp {
+.wielo-builder .fhelp {
   font-size: 11.5px;
   color: var(--site-mute, var(--mute));
   margin: 6px 0 0;
   line-height: 1.45;
 }
-.vilo-builder .finput {
+.wielo-builder .finput {
   height: 44px;
   border: 1px solid var(--vform-field-border, var(--site-line, var(--line)));
   border-radius: var(--vform-radius, var(--site-radius, 10px));
@@ -138,46 +138,46 @@
   font-size: 13.5px;
   color: var(--site-mute, #9db4a8);
 }
-.vilo-builder .finput.area {
+.wielo-builder .finput.area {
   height: 84px;
   align-items: flex-start;
   padding-top: 11px;
 }
-.vilo-builder .finput.sel-in {
+.wielo-builder .finput.sel-in {
   justify-content: space-between;
 }
-.vilo-builder .frow2 {
+.wielo-builder .frow2 {
   display: flex;
   gap: 10px;
 }
-.vilo-builder .frow2 > .finput {
+.wielo-builder .frow2 > .finput {
   flex: 1;
 }
-.vilo-builder .fopts {
+.wielo-builder .fopts {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.vilo-builder .fopt {
+.wielo-builder .fopt {
   display: flex;
   align-items: center;
   gap: 9px;
   font-size: 13.5px;
   color: var(--site-ink, var(--ink));
 }
-.vilo-builder .fopt .mk {
+.wielo-builder .fopt .mk {
   width: 18px;
   height: 18px;
   border: 1.5px solid var(--vform-accent, var(--site-accent, #c3dbce));
   flex-shrink: 0;
 }
-.vilo-builder .fopt .mk.r {
+.wielo-builder .fopt .mk.r {
   border-radius: 9999px;
 }
-.vilo-builder .fopt .mk.c {
+.wielo-builder .fopt .mk.c {
   border-radius: 5px;
 }
-.vilo-builder .fstep {
+.wielo-builder .fstep {
   display: flex;
   align-items: center;
   border: 1px solid var(--vform-field-border, var(--site-line, var(--line)));
@@ -186,14 +186,14 @@
   height: 44px;
   overflow: hidden;
 }
-.vilo-builder .fstep span {
+.wielo-builder .fstep span {
   flex: 1;
   text-align: center;
   font-size: 13.5px;
   color: var(--site-ink, var(--ink));
   font-weight: 600;
 }
-.vilo-builder .fstep b {
+.wielo-builder .fstep b {
   width: 42px;
   height: 100%;
   display: flex;
@@ -202,23 +202,23 @@
   color: var(--mute);
   background: #f7fbf9;
 }
-.vilo-builder .fheading {
+.wielo-builder .fheading {
   font-family: var(--site-font-heading, "Plus Jakarta Sans", sans-serif);
   font-weight: 800;
   font-size: 18px;
   color: var(--site-ink, var(--ink));
 }
-.vilo-builder .ftext {
+.wielo-builder .ftext {
   font-size: 13.5px;
   color: var(--site-mute, var(--mute));
   line-height: 1.6;
 }
-.vilo-builder .fdiv {
+.wielo-builder .fdiv {
   height: 1px;
   background: var(--site-line, var(--line));
 }
 /* Field type tag (with drag grip) — mirrors the page builder's .bk-label. */
-.vilo-builder .ff-label {
+.wielo-builder .ff-label {
   position: absolute;
   top: 0;
   left: 0;
@@ -235,20 +235,20 @@
   z-index: 6;
   white-space: nowrap;
 }
-.vilo-builder .ff:hover > .ff-label,
-.vilo-builder .ff.sel > .ff-label {
+.wielo-builder .ff:hover > .ff-label,
+.wielo-builder .ff.sel > .ff-label {
   display: flex;
 }
-.vilo-builder .ff-label .fl-grip {
+.wielo-builder .ff-label .fl-grip {
   cursor: grab;
   display: flex;
   opacity: 0.85;
 }
-.vilo-builder .ff-label .fl-grip:active {
+.wielo-builder .ff-label .fl-grip:active {
   cursor: grabbing;
 }
 /* Insert-above affordance — mirrors the page builder's .bk-insert button. */
-.vilo-builder .ff-insert {
+.wielo-builder .ff-insert {
   position: absolute;
   top: 0;
   left: 50%;
@@ -269,11 +269,11 @@
     opacity 0.12s,
     transform 0.12s;
 }
-.vilo-builder .ff:hover > .ff-insert {
+.wielo-builder .ff:hover > .ff-insert {
   display: flex;
   transform: translate(-50%, -50%) scale(1);
 }
-.vilo-builder .ff-tools {
+.wielo-builder .ff-tools {
   position: absolute;
   top: 7px;
   right: 7px;
@@ -287,11 +287,11 @@
   box-shadow: 0 8px 20px -10px rgba(6, 78, 59, 0.4);
   z-index: 5;
 }
-.vilo-builder .ff:hover > .ff-tools,
-.vilo-builder .ff.sel > .ff-tools {
+.wielo-builder .ff:hover > .ff-tools,
+.wielo-builder .ff.sel > .ff-tools {
   display: flex;
 }
-.vilo-builder .ff-tools button {
+.wielo-builder .ff-tools button {
   height: 26px;
   width: 26px;
   border-radius: 6px;
@@ -303,26 +303,26 @@
   border: 0;
   cursor: pointer;
 }
-.vilo-builder .ff-tools button:hover {
+.wielo-builder .ff-tools button:hover {
   background: var(--soft);
   color: #064e3b;
 }
-.vilo-builder .ff-tools button.del:hover {
+.wielo-builder .ff-tools button.del:hover {
   background: #fef2f2;
   color: #ef4444;
 }
 
 /* options editor (inspector) */
-.vilo-builder .optrow {
+.wielo-builder .optrow {
   display: flex;
   align-items: center;
   gap: 7px;
   margin-bottom: 7px;
 }
-.vilo-builder .optrow input {
+.wielo-builder .optrow input {
   flex: 1;
 }
-.vilo-builder .optrow button {
+.wielo-builder .optrow button {
   height: 30px;
   width: 30px;
   border-radius: 8px;
@@ -335,11 +335,11 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-.vilo-builder .optrow button:hover {
+.wielo-builder .optrow button:hover {
   color: #ef4444;
   background: #fef2f2;
 }
-.vilo-builder .addopt {
+.wielo-builder .addopt {
   display: inline-flex;
   align-items: center;
   gap: 6px;

@@ -63,7 +63,7 @@ export function HelpHero({
       <div className="mx-auto max-w-[940px] text-center">
         <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/90 ring-1 ring-white/15 backdrop-blur">
           <LifeBuoy className="h-3.5 w-3.5" />
-          Vilo Help Center
+          Wielo Help Center
         </div>
         <h1 className="mt-5 font-display text-[28px] font-extrabold leading-[1.08] tracking-tight sm:text-4xl lg:text-[46px]">
           {greeting ? (

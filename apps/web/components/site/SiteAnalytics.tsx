@@ -43,11 +43,11 @@ export function SiteAnalytics({ websiteId }: { websiteId: string }) {
     send("pageview");
 
     // Booking-click via event delegation: any anchor/button marked
-    // `data-vilo-book` (header CTA, room cards, CTA bands) counts as a
+    // `data-wielo-book` (header CTA, room cards, CTA bands) counts as a
     // conversion intent, so we can show real booking-click conversion.
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest("[data-vilo-book]")) send("booking_click");
+      if (target?.closest("[data-wielo-book]")) send("booking_click");
     };
     document.addEventListener("click", onClick, { capture: true });
     return () => document.removeEventListener("click", onClick, true);

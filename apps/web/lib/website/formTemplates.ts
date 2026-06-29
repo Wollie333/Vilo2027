@@ -53,7 +53,7 @@ export const FORM_TEMPLATES: Record<string, FormTemplate> = {
   },
 
   // Booking → a dates+room form that hands off to the themed on-site checkout
-  // (the shared Vilo booking flow). The contact is captured on submit, then the
+  // (the shared Wielo booking flow). The contact is captured on submit, then the
   // guest is sent to /book to confirm availability, price & pay.
   booking: {
     type: "contact",

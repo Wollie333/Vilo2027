@@ -17,7 +17,7 @@ export function StepBasics({
   onNext: () => void;
 }) {
   const t = useTranslations("website");
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
   const logoUrl = websiteAssetUrl(state.logoPath ?? undefined);
   const canNext =
     state.siteName.trim().length > 0 && state.subdomain.length >= 3;

@@ -1,4 +1,4 @@
-# The Ledger Spine — Vilo's financial foundation
+# The Ledger Spine — Wielo's financial foundation
 
 > **Read this before touching anything money-related.** The ledger is the core
 > of the app. Listings/rooms, bookings/add-ons, guests/CRM are all **layers on

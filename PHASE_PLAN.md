@@ -11,7 +11,7 @@
 
 ## Parallel Execution Tracks
 
-**Purpose:** Allow multiple Claude Code agents to work on Vilo at the same time without colliding on files or duplicating work. Each track owns a **disjoint set of file paths**; agents must stay strictly inside their track's owned paths.
+**Purpose:** Allow multiple Claude Code agents to work on Wielo at the same time without colliding on files or duplicating work. Each track owns a **disjoint set of file paths**; agents must stay strictly inside their track's owned paths.
 
 > **Before any agent picks up work from this phase plan, it must first identify which track it belongs to and confirm the scope is inside that track's owned paths.** If the task crosses tracks, stop and ask the user.
 
@@ -104,7 +104,7 @@ Guest-facing surface. Lives in a separate URL space from Track 1's `/dashboard`.
 - `supabase/functions/pricing-preview/`
 - `apps/web/app/_components/directory/` (new sub-folder for directory-only components)
 
-**Owns in phase plan:** Phase 2 Vilo Directory · Listing Detail Page · Host Public Profile Page.
+**Owns in phase plan:** Phase 2 Wielo Directory · Listing Detail Page · Host Public Profile Page.
 
 **Next step:** Scaffold `/explore` UI with mock data and write the `directory-search` Edge Function shell. Swap mocks for real data once Track 1 ships the listing editor.
 
@@ -184,7 +184,7 @@ Never silently edit another track's owned paths.
 ### Next.js Web App
 - ✅ Bootstrap with `create-next-app` (TypeScript, Tailwind, App Router)
 - ✅ Install web dependencies (core set — Leaflet/Tiptap/etc. installed when first needed)
-- ✅ Configure `tailwind.config.ts` with Vilo brand tokens
+- ✅ Configure `tailwind.config.ts` with Wielo brand tokens
 - ✅ Initialise shadcn/ui (`components.json` + `lib/utils.ts` written; component installs ongoing)
 - ✅ Add shadcn/ui components — 18 installed (button, input, card, label, badge, skeleton, form, dialog, sonner, separator, avatar, alert, tabs, select, checkbox, textarea, dropdown-menu, sheet)
 - ✅ Set up TypeScript path aliases (`@/*`)
@@ -215,9 +215,9 @@ Never silently edit another track's owned paths.
 - ✅ Verify first deployment to Vercel succeeds — live at https://vilo2027.vercel.app/
 
 ### Email
-- 🕑 Set up Resend account + verify `viloplatform.com` domain — **deferred**, domain not yet registered. Supabase Auth's built-in email templates handle verification + password reset for Phase 1. Wire Resend when the first branded transactional email (booking confirmation, welcome) is built.
+- 🕑 Set up Resend account + verify `wieloplatform.com` domain — **deferred**, domain not yet registered. Supabase Auth's built-in email templates handle verification + password reset for Phase 1. Wire Resend when the first branded transactional email (booking confirmation, welcome) is built.
 - ✅ Create `emails/` directory with React Email setup (as `@vilo/emails` workspace package)
-- ✅ Create email layout component (`emails/components/Layout.tsx` with Vilo brand colours + Inter font)
+- ✅ Create email layout component (`emails/components/Layout.tsx` with Wielo brand colours + Inter font)
 - ⬜ Verify preview server works (`pnpm --filter @vilo/emails dev`) — requires user verification
 - ✅ Sample template scaffolded: `emails/templates/WelcomeHost.tsx` (one of 26 from `EMAIL_TEMPLATES.md`)
 
@@ -273,7 +273,7 @@ Never silently edit another track's owned paths.
 **Goal:** Guests can find, view, and book listings. Payments processed.
 **Weeks:** 4–6
 
-### Vilo Directory
+### Wielo Directory
 - ⬜ `/explore` search page (full-text + filters + sort)
 - ⬜ Directory listing card component
 - ⬜ Map view (web: Leaflet + OpenStreetMap, keyless)
@@ -296,7 +296,7 @@ Never silently edit another track's owned paths.
 - ⬜ Map with approximate location
 
 ### Host Public Profile Page
-- ⬜ `viloplatform.com/[handle]` — all published listings, bio, reviews
+- ⬜ `wieloplatform.com/[handle]` — all published listings, bio, reviews
 - ⬜ Handle redirect (old → new on handle change)
 
 ### Booking Flow

@@ -363,8 +363,8 @@ export const requestSupportAccessAction = withAdminAudit<
     await service.from("in_app_notifications").insert({
       user_id: host.user_id,
       kind: "support_access_request",
-      title: "Vilo support requested access",
-      body: "Vilo support has asked to make changes to your account. Review and approve or decline.",
+      title: "Wielo support requested access",
+      body: "Wielo support has asked to make changes to your account. Review and approve or decline.",
       link: "/dashboard/support-access",
       payload: { grant_id: grant.id },
     });

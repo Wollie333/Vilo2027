@@ -17,7 +17,7 @@ function appOrigin(): string {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     h.get("origin") ||
-    `https://${h.get("host") ?? "vilo.site"}`
+    `https://${h.get("host") ?? "wielo.site"}`
   );
 }
 

@@ -2,7 +2,7 @@ import { Button, Heading, Text } from "@react-email/components";
 import * as React from "react";
 import Layout from "../components/Layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   firstName: string;
@@ -11,13 +11,13 @@ type Props = {
 export default function WelcomeHost({ firstName = "there" }: Props) {
   return (
     <Layout
-      preview={`Welcome to Vilo, ${firstName}. Let's get your first listing live.`}
+      preview={`Welcome to Wielo, ${firstName}. Let's get your first listing live.`}
     >
       <Heading style={{ fontSize: 24, color: "#1B4D3E", margin: "0 0 16px" }}>
-        Welcome to Vilo, {firstName} 👋
+        Welcome to Wielo, {firstName} 👋
       </Heading>
       <Text>
-        We're excited to have you running your direct-booking business on Vilo.
+        We're excited to have you running your direct-booking business on Wielo.
         You can create your first listing, set your availability, and start
         accepting bookings — all from one dashboard.
       </Text>

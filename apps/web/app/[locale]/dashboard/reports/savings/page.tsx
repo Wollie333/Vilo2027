@@ -81,13 +81,13 @@ export default async function SavingsReportPage() {
                   {since ? ` since ${since}` : ""} by taking{" "}
                   {savings.booking_count}{" "}
                   {savings.booking_count === 1 ? "booking" : "bookings"}{" "}
-                  directly through Vilo — money a typical OTA at{" "}
+                  directly through Wielo — money a typical OTA at{" "}
                   {Math.round(HEADLINE_OTA_RATE * 100)}% commission would have
                   taken off the top.
                 </>
               ) : (
                 <>
-                  Once you take direct bookings through Vilo, this is where
+                  Once you take direct bookings through Wielo, this is where
                   you&apos;ll see exactly how much commission you&apos;ve kept
                   versus each major OTA.
                 </>
@@ -111,7 +111,7 @@ export default async function SavingsReportPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-brand-primary" />
-                0% commission on Vilo
+                0% commission on Wielo
               </div>
             </div>
           </div>
@@ -145,10 +145,10 @@ export default async function SavingsReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {/* Vilo — the contrast row */}
+                {/* Wielo — the contrast row */}
                 <tr className="border-b border-brand-line bg-brand-accent/40">
                   <td className="py-3 pr-4">
-                    <div className="font-semibold text-brand-ink">Vilo</div>
+                    <div className="font-semibold text-brand-ink">Wielo</div>
                     <div className="text-xs text-brand-mute">
                       Direct bookings — what you actually use
                     </div>

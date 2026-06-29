@@ -269,7 +269,7 @@ export function ProductEditor({
           Accepted payment methods
         </h2>
         <p className="text-[12px] text-brand-mute">
-          How a user can pay Vilo for this product. Configure keys/bank details
+          How a user can pay Wielo for this product. Configure keys/bank details
           in Payment settings.
         </p>
         <div className="flex flex-wrap gap-4">
@@ -669,7 +669,7 @@ function PayLinkBox({ productId }: { productId: string }) {
       </h2>
       <p className="text-[12px] text-brand-mute">
         Create a payment link for a user to buy this product, then send it to
-        them. They pay Vilo via the accepted methods above.
+        them. They pay Wielo via the accepted methods above.
       </p>
       <div className="flex flex-wrap items-end gap-2">
         <label className="block flex-1 space-y-1.5">

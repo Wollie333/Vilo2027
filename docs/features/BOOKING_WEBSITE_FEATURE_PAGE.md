@@ -10,7 +10,7 @@
 ## 1. Page Meta & SEO
 
 ```yaml
-title: "Your Own Booking Website — Vilo"
+title: "Your Own Booking Website — Wielo"
 meta_description: "Get a professional booking website with instant book, photo gallery, and real-time availability. No developer needed. Keep 100% of every booking. Built for SA hosts."
 url_slug: /features/booking-website
 keywords:
@@ -19,7 +19,7 @@ keywords:
   - direct booking website
   - lodge booking page
   - vacation rental website builder
-og_title: "Your Own Booking Website — No Developer Needed | Vilo"
+og_title: "Your Own Booking Website — No Developer Needed | Wielo"
 og_description: "Professional booking pages with instant book, photo galleries, and 0% commission. Get your custom URL and start taking direct bookings today."
 og_image: "/images/features/booking-website-og.jpg"
 ```
@@ -41,7 +41,7 @@ Option C: "Stop renting space on someone else's platform."
 ### Subheadline
 
 ```
-"Vilo gives you a fully branded booking website with instant book, beautiful photo galleries, and real-time availability — no developer, no agency invoice, no commission on bookings. Just your custom URL and guests who pay you directly."
+"Wielo gives you a fully branded booking website with instant book, beautiful photo galleries, and real-time availability — no developer, no agency invoice, no commission on bookings. Just your custom URL and guests who pay you directly."
 ```
 
 ### Hero CTA
@@ -55,7 +55,7 @@ Secondary: "See a live example" → [link to demo property page]
 
 ```
 Browser mockup showing a property detail page:
-- URL bar: "viloplatform.com/featherstone-lodge"
+- URL bar: "wieloplatform.com/featherstone-lodge"
 - Hero photo gallery (full-width image + grid of 4)
 - Property name, location badge, instant book badge
 - Sticky reserve panel on right: "From R1,200 / night" + calendar + "Reserve" button
@@ -106,7 +106,7 @@ Headline: "Building your own booking site costs a fortune. Not having one costs 
    Cost: Bookings fall through. Cash flow suffers.
 ```
 
-### "Before Vilo" Scenario
+### "Before Wielo" Scenario
 
 ```
 "You send potential guests to your Instagram. They DM asking about availability. You check your calendar, reply hours later. By then, they've found somewhere else with an 'Instant Book' button. You'll never know how many bookings you've lost to friction."
@@ -119,7 +119,7 @@ Headline: "Building your own booking site costs a fortune. Not having one costs 
 ### Section Header
 
 ```
-Eyebrow: "The Vilo way"
+Eyebrow: "The Wielo way"
 Headline: "A professional booking website — in 20 minutes, not 2 months."
 ```
 
@@ -138,7 +138,7 @@ Headline: "A professional booking website — in 20 minutes, not 2 months."
 
 3. Real-time availability — Your calendar updates instantly. No stale dates. No embarrassing double-enquiries.
 
-4. Zero commission — Guests pay you directly via Paystack or PayPal. Vilo never touches your booking revenue.
+4. Zero commission — Guests pay you directly via Paystack or PayPal. Wielo never touches your booking revenue.
 ```
 
 ---
@@ -150,8 +150,8 @@ Headline: "A professional booking website — in 20 minutes, not 2 months."
 ```yaml
 icon: Globe
 headline: "Your own booking address — professional and memorable"
-description: "Get a clean URL like viloplatform.com/your-name or viloplatform.com/property/your-lodge. Share it everywhere — Instagram bio, business cards, email signatures. One link that takes guests straight to booking."
-visual: "Browser address bar showing 'viloplatform.com/featherstone-lodge' with property page loading"
+description: "Get a clean URL like wieloplatform.com/your-name or wieloplatform.com/property/your-lodge. Share it everywhere — Instagram bio, business cards, email signatures. One link that takes guests straight to booking."
+visual: "Browser address bar showing 'wieloplatform.com/featherstone-lodge' with property page loading"
 ```
 
 ### Sub-Feature 2: Photo Gallery & Lightbox
@@ -177,7 +177,7 @@ visual: "Reserve panel with 'Instant Book' badge, guest clicking 'Reserve' butto
 ```yaml
 icon: CalendarDays
 headline: "Your availability — always accurate, always live"
-description: "Guests see exactly which dates are available. Blocked dates from Vilo bookings, iCal imports, and manual holds all show instantly. No more 'let me check my calendar' — they check it themselves."
+description: "Guests see exactly which dates are available. Blocked dates from Wielo bookings, iCal imports, and manual holds all show instantly. No more 'let me check my calendar' — they check it themselves."
 visual: "Two-month calendar with available dates in white, blocked dates crossed out, selected range highlighted in green"
 ```
 
@@ -311,7 +311,7 @@ Headline: "Finally, a website that works as hard as you do"
 
 ```
 Testimonial 1:
-  Quote: "I spent R25,000 on a website three years ago. It never worked properly and I still couldn't take bookings. Vilo gave me something better in an afternoon — for a fraction of the cost."
+  Quote: "I spent R25,000 on a website three years ago. It never worked properly and I still couldn't take bookings. Wielo gave me something better in an afternoon — for a fraction of the cost."
   Name: "[Name]"
   Property: "Guesthouse · Franschhoek"
 
@@ -329,7 +329,7 @@ Testimonial 3:
 ### Use Case Scenarios
 
 ```
-Scenario 1: A Stellenbosch wine estate puts their Vilo link in their Instagram bio. 40% of bookings now come direct from social media — zero commission.
+Scenario 1: A Stellenbosch wine estate puts their Wielo link in their Instagram bio. 40% of bookings now come direct from social media — zero commission.
 
 Scenario 2: A Drakensberg lodge uses room selection to let guests choose between Mountain View and Garden Suites. Average booking value increased 15% from room upgrades.
 
@@ -339,7 +339,7 @@ Scenario 3: A Cape Town apartment owner enables Instant Book. Response time drop
 ### Stats (placeholder)
 
 ```
-Stat 1: [X] properties live on Vilo
+Stat 1: [X] properties live on Wielo
 Stat 2: [X]% average booking conversion for instant-book properties
 Stat 3: R[X] average commission saved per founding host this year
 ```
@@ -352,12 +352,12 @@ Stat 3: R[X] average commission saved per founding host this year
 
 ```
 Eyebrow: "Side by side"
-Headline: "DIY websites vs. Vilo booking pages"
+Headline: "DIY websites vs. Wielo booking pages"
 ```
 
 ### Comparison Table
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | R30,000+ for a custom website | Professional booking page included |
 | Weeks of back-and-forth with developers | Live in 20 minutes |
@@ -379,16 +379,16 @@ Q: Do I need technical skills to set this up?
 A: None. If you can fill in a form and upload photos, you can launch your booking page. Most hosts are live in under 20 minutes.
 
 Q: Can I use my own domain name?
-A: Your Vilo pages live at viloplatform.com/your-handle. Custom domain support (yourname.com) is on the roadmap.
+A: Your Wielo pages live at wieloplatform.com/your-handle. Custom domain support (yourname.com) is on the roadmap.
 
 Q: How do guests pay?
-A: Via Paystack (cards + instant EFT) or PayPal. You can also enable manual bank transfer with proof-of-payment upload. Guests pay you directly — Vilo never holds your money.
+A: Via Paystack (cards + instant EFT) or PayPal. You can also enable manual bank transfer with proof-of-payment upload. Guests pay you directly — Wielo never holds your money.
 
 Q: What if I have multiple rooms or properties?
 A: Add as many rooms and properties as you need. Each room can have its own photos, beds, and pricing. Guests can book individual rooms or the whole property.
 
 Q: Can I control which dates are available?
-A: Yes. Your Vilo calendar syncs with your bookings automatically. You can also manually block dates and import blocks from external calendars (Airbnb, Booking.com) via iCal.
+A: Yes. Your Wielo calendar syncs with your bookings automatically. You can also manually block dates and import blocks from external calendars (Airbnb, Booking.com) via iCal.
 
 Q: What's the difference between Instant Book and Request to Book?
 A: Instant Book lets guests confirm and pay immediately. Request to Book sends you an enquiry first — you review and approve before they pay. You control which mode to use.
@@ -457,7 +457,7 @@ Trust elements:
 
 2. PROBLEM SECTION (light background)
    - Pain points as numbered cards
-   - "Before Vilo" scenario as callout
+   - "Before Wielo" scenario as callout
 
 3. SOLUTION OVERVIEW (white background)
    - Transformation statement

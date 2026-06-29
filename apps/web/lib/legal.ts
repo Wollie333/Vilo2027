@@ -2,7 +2,7 @@ import { cache } from "react";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Booking terms + privacy (POPIA) are platform-wide, Vilo-authored documents —
+// Booking terms + privacy (POPIA) are platform-wide, Wielo-authored documents —
 // NOT per-host policies. They live in platform_settings under these keys as a
 // versioned jsonb blob: { html: string|null, version: number, updated_at }.
 //

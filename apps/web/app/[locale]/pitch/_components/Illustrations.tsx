@@ -79,7 +79,7 @@ function Kpi({
 export function DashboardPreview() {
   const bars = [38, 52, 44, 67, 59, 80, 72, 90];
   return (
-    <Frame title="app.vilo.co.za/dashboard">
+    <Frame title="app.wielo.co.za/dashboard">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="Revenue (mo)" value="R 84,200" delta="+18%" />
         <Kpi label="Bookings" value="27" delta="+6" />
@@ -163,7 +163,7 @@ export function LedgerPreview() {
     },
   ];
   return (
-    <Frame title="app.vilo.co.za/dashboard/finances">
+    <Frame title="app.wielo.co.za/dashboard/finances">
       <div className="overflow-hidden rounded-card border border-brand-line">
         <table className="w-full text-[12px]">
           <thead>
@@ -223,7 +223,7 @@ export function LedgerPreview() {
 
 export function InboxPreview() {
   return (
-    <Frame title="app.vilo.co.za/dashboard/inbox">
+    <Frame title="app.wielo.co.za/dashboard/inbox">
       <div className="rounded-card bg-[#E6EFE9] p-3">
         <div className="flex justify-center pb-2">
           <span className="rounded-lg bg-[#DCEAE0] px-3 py-1 text-[10.5px] font-semibold uppercase tracking-wide text-[#3F6155]">
@@ -273,7 +273,7 @@ export function CalendarPreview() {
   const booked = new Set([6, 7, 8, 13, 14, 20, 21, 22, 27]);
   const blocked = new Set([16, 17]);
   return (
-    <Frame title="app.vilo.co.za/dashboard/calendar">
+    <Frame title="app.wielo.co.za/dashboard/calendar">
       <div className="overflow-hidden rounded-card border border-brand-line">
         <div className="grid grid-cols-7 border-b border-brand-line bg-brand-light/60">
           {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
@@ -345,7 +345,7 @@ export function CalendarPreview() {
 
 export function ListingCardPreview() {
   return (
-    <Frame title="vilo.co.za/explore">
+    <Frame title="wielo.co.za/explore">
       <div className="grid grid-cols-2 gap-3">
         {[
           { name: "Karoo Stone Cottage", loc: "Prince Albert", price: "1,450" },
@@ -429,7 +429,7 @@ export function ReviewsPreview() {
     },
   ];
   return (
-    <Frame title="vilo.co.za/your-page">
+    <Frame title="wielo.co.za/your-page">
       <div className="space-y-3">
         {reviews.map((r) => (
           <article
@@ -453,7 +453,7 @@ export function ReviewsPreview() {
                   <div className="shrink-0 text-right">
                     <StarRow />
                     <div className="mt-0.5 text-[9.5px] text-brand-mute">
-                      via Vilo direct
+                      via Wielo direct
                     </div>
                   </div>
                 </div>
@@ -473,7 +473,7 @@ export function ReviewsPreview() {
 
 export function BookingCardPreview() {
   return (
-    <Frame title="app.vilo.co.za/dashboard/bookings">
+    <Frame title="app.wielo.co.za/dashboard/bookings">
       <div className="rounded-card border border-brand-line bg-white p-3.5 shadow-card">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">

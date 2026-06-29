@@ -27,19 +27,19 @@ const CONTACTS: Array<{
   {
     label: "Support",
     description: "Help with your account, booking, payment, or listing.",
-    email: "hello@viloplatform.com",
+    email: "hello@wieloplatform.com",
     icon: MessageSquare,
   },
   {
     label: "Privacy / POPIA",
     description: "Data subject requests, deletion, anything privacy.",
-    email: "privacy@viloplatform.com",
+    email: "privacy@wieloplatform.com",
     icon: Building2,
   },
   {
     label: "Press & partnerships",
     description: "Brand collabs, journalists, integration partners.",
-    email: "hello@viloplatform.com",
+    email: "hello@wieloplatform.com",
     icon: Mail,
   },
 ];

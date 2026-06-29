@@ -250,7 +250,7 @@ export type SiteConversion = {
 /**
  * Host-supplied third-party analytics for a tenant site, stored under
  * `host_websites.settings.analytics` and frozen into the publish snapshot. The
- * IDs belong to the HOST's own GA4 / Meta accounts — Vilo only injects the
+ * IDs belong to the HOST's own GA4 / Meta accounts — Wielo only injects the
  * scripts on the public site. Because these set cookies, a POPIA consent gate
  * (`cookieConsent`) defaults to ON: the pixels load only after the visitor
  * accepts.

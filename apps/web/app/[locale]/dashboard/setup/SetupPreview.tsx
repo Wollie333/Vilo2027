@@ -328,7 +328,7 @@ export function SetupPreview({
           <div className="mx-auto flex w-full max-w-md items-center gap-2 rounded-pill border border-brand-line bg-white px-3 py-1 text-[11px] text-brand-mute">
             <Lock className="h-3 w-3 text-brand-primary" />
             <span className="truncate font-mono">
-              viloplatform.com/{host.handle}/{slug}
+              wieloplatform.com/{host.handle}/{slug}
             </span>
             <span className="ml-auto rounded-pill bg-brand-light px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-brand-mute">
               Preview

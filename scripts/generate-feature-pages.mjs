@@ -59,7 +59,7 @@ const FEATURES = [
     fileName: "DIRECT_BOOKING_FEATURE_PAGE",
     featureName: "Direct Booking",
     urlSlug: "direct-booking",
-    title: "Direct Booking for Accommodation Hosts — Vilo",
+    title: "Direct Booking for Accommodation Hosts — Wielo",
     metaDescription:
       "Your own branded booking page with live availability, instant book, and zero commission. Built for SA guesthouses, B&Bs and lodges.",
     keywords: [
@@ -69,7 +69,7 @@ const FEATURES = [
       "commission-free bookings",
       "accommodation checkout",
     ],
-    ogTitle: "Direct Booking — Keep Every Rand | Vilo",
+    ogTitle: "Direct Booking — Keep Every Rand | Wielo",
     ogDescription:
       "Share a branded link. Guests book and pay directly. No OTA commission, ever.",
     heroHeadlines: [
@@ -79,7 +79,7 @@ const FEATURES = [
     ],
     heroRecommended: "Option A",
     subheadline:
-      "Vilo gives every host a shareable booking link with live availability, server-side pricing, and Paystack or EFT checkout — the same engine that powers your directory listing and website.",
+      "Wielo gives every host a shareable booking link with live availability, server-side pricing, and Paystack or EFT checkout — the same engine that powers your directory listing and website.",
     heroVisualSecondary: "See a sample booking page",
     heroVisual:
       "Split view: LEFT — host dashboard showing published property with Instant Book toggle ON and shareable /book/{handle} link copied. RIGHT — mobile guest checkout with date picker, room selector, policy preview, and Pay Now button. Floating badge: '0% commission'.",
@@ -115,7 +115,7 @@ const FEATURES = [
     ],
     beforeScenario:
       "A returning guest emails asking to book the same cottage as last year. You reply with dates and a price, they say 'great, how do I pay?' — and you send a PayFast link or bank details in plain text. They hesitate, open Booking.com 'just to check', and book somewhere else because it felt easier. You'll never know.",
-    solutionEyebrow: "The Vilo way",
+    solutionEyebrow: "The Wielo way",
     solutionHeadline:
       "One booking engine. Every channel. Zero commission.",
     transformation:
@@ -127,7 +127,7 @@ const FEATURES = [
       "Same engine powers directory, website, and direct links — one calendar, one ledger, one inbox.",
     ],
     subFeatures: [
-      { icon: "Link", headline: "Shareable host handle", description: "Every host gets a permanent /book/{handle} URL. Share on Instagram, email signatures, WhatsApp — guests land on your branded picker or go straight to checkout.", visual: "Copy-link button with handle vilo.co.za/book/winelands-retreat highlighted" },
+      { icon: "Link", headline: "Shareable host handle", description: "Every host gets a permanent /book/{handle} URL. Share on Instagram, email signatures, WhatsApp — guests land on your branded picker or go straight to checkout.", visual: "Copy-link button with handle wielo.co.za/book/winelands-retreat highlighted" },
       { icon: "Home", headline: "Property listing pages", description: "Rich listing pages with photos, policies, reviews, and room breakdown. Published to directory and/or your website from one editor.", visual: "Property page hero with gallery, rating stars, and Book Now CTA" },
       { icon: "Zap", headline: "Instant Book toggle", description: "Turn Instant Book on when you're ready for self-serve confirmations. Turn it off to route enquiries through inbox and quotes instead.", visual: "Toggle switch labelled Instant Book with helper text explaining approval mode" },
       { icon: "BedDouble", headline: "Flexible booking modes", description: "Whole-place, rooms-only, or flexible — configure how guests select accommodation. Multi-room guesthouses and single cottages both supported.", visual: "Mode selector showing whole_listing vs rooms_only with room cards below" },
@@ -153,14 +153,14 @@ const FEATURES = [
       { title: "Pay + confirm", body: "Paystack card/instant EFT or manual EFT with proof upload. Confirmation email sent.", visual: "Payment success screen with booking reference" },
     ],
     testimonials: [
-      { quote: "We put our Vilo link in our Instagram bio and stopped paying commission on half our bookings within the first season.", name: "[Name]", property: "Winelands Guesthouse · Franschhoek" },
+      { quote: "We put our Wielo link in our Instagram bio and stopped paying commission on half our bookings within the first season.", name: "[Name]", property: "Winelands Guesthouse · Franschhoek" },
       { quote: "Instant Book was scary at first — but the policies are frozen at booking time, so we're protected. Direct bookings now outnumber Airbnb.", name: "[Name]", property: "Self-catering · Plettenberg Bay" },
       { quote: "Guests used to ask 'how do I pay?' and disappear. Now they book and pay in one flow on their phone.", name: "[Name]", property: "Safari Lodge · Hoedspruit" },
     ],
     scenarios: [
       "A Franschhoek B&B shares their handle link in every booking confirmation email — repeat guests book direct next year.",
       "A Cape Town apartment host runs Instant Book for weekday stays and enquiry-only for peak December.",
-      "A Kruger lodge embeds checkout on their Vilo website — enquiries from Google land in the same inbox as direct bookings.",
+      "A Kruger lodge embeds checkout on their Wielo website — enquiries from Google land in the same inbox as direct bookings.",
     ],
     stats: ["[X] direct bookings processed", "[X]% of founding hosts share a booking link", "[X] min average setup to first publish"],
     comparisonRows: [
@@ -174,19 +174,19 @@ const FEATURES = [
       ["No policy snapshot at booking time", "Policies frozen on booking — disputes resolved by snapshot"],
     ],
     faqs: [
-      { q: "Do guests need a Vilo account to book?", a: "No. Checkout works without an account. Guests can optionally create one afterward to manage their trip in the guest portal." },
+      { q: "Do guests need a Wielo account to book?", a: "No. Checkout works without an account. Guests can optionally create one afterward to manage their trip in the guest portal." },
       { q: "What URL do I share?", a: "Your permanent /book/{handle} link for multi-property hosts, or /property/{slug}/book for a single listing direct checkout." },
       { q: "Can I require approval before confirming?", a: "Yes. Turn off Instant Book and enquiries flow through your inbox and quote builder instead." },
       { q: "Are prices tamper-proof?", a: "Yes. Totals are recalculated server-side on every checkout step — guests cannot edit prices in the browser." },
       { q: "What must I configure before publishing?", a: "Photos, at least one room, banking details, and a refund policy. The Channels tab shows your checklist." },
-      { q: "Does Vilo take a cut of bookings?", a: "No booking commission ever. Paystack processing fees apply separately on card payments." },
+      { q: "Does Wielo take a cut of bookings?", a: "No booking commission ever. Paystack processing fees apply separately on card payments." },
       { q: "What payment methods can guests use?", a: "Paystack (card and instant EFT) and manual EFT with proof upload. Same methods on pay-by-link pages." },
       { q: "Can I offer weekly or monthly discounts?", a: "Yes — configure whole-property, weekly (7+ nights), and monthly (28+ nights) discounts on your listing." },
     ],
     finalCtaEyebrow: "Ready to book direct?",
     finalCtaHeadline: "Your next guest deserves a link that actually converts.",
     finalCtaBody: "See how much OTA commission is costing your business. Take the 2-minute scorecard — free, no card required.",
-    trustElement: "Direct booking included in every Vilo plan",
+    trustElement: "Direct booking included in every Wielo plan",
     layoutClusters: ["Discovery & Links (1-2)", "Booking modes (3-4)", "Trust & pricing (5-7)", "Checkout & confirm (8-10)"],
     heroLayoutVisual: "host publish screen + mobile guest checkout composite",
   },
@@ -194,12 +194,12 @@ const FEATURES = [
     fileName: "CALENDAR_SYNC_FEATURE_PAGE",
     featureName: "Calendar Sync",
     urlSlug: "calendar-sync",
-    title: "Calendar Sync & Booking Engine — Vilo",
+    title: "Calendar Sync & Booking Engine — Wielo",
     metaDescription:
-      "Two-way iCal sync with Airbnb and Booking.com. One calendar, zero double-bookings. Block dates, start bookings, and export Vilo reservations automatically.",
+      "Two-way iCal sync with Airbnb and Booking.com. One calendar, zero double-bookings. Block dates, start bookings, and export Wielo reservations automatically.",
     keywords: ["ical calendar sync accommodation", "airbnb booking.com sync south africa", "double booking prevention", "host availability calendar"],
-    ogTitle: "Calendar Sync — End Double-Bookings | Vilo",
-    ogDescription: "Import OTA blocks. Export Vilo bookings. One calendar for every channel.",
+    ogTitle: "Calendar Sync — End Double-Bookings | Wielo",
+    ogDescription: "Import OTA blocks. Export Wielo bookings. One calendar for every channel.",
     heroHeadlines: [
       'Option A: "One calendar. Every channel. Zero double-bookings."',
       'Option B: "Sync Airbnb, Booking.com, and direct — automatically."',
@@ -207,7 +207,7 @@ const FEATURES = [
     ],
     heroRecommended: "Option A",
     subheadline:
-      "Vilo's calendar sync imports blocks from your OTAs, exports your direct bookings back out, and gives you one interactive calendar to block dates and start new bookings — with scheduled re-sync every 15 minutes.",
+      "Wielo's calendar sync imports blocks from your OTAs, exports your direct bookings back out, and gives you one interactive calendar to block dates and start new bookings — with scheduled re-sync every 15 minutes.",
     heroVisualSecondary: "See sync in action",
     heroVisual:
       "Split view: LEFT — Calendar sync dashboard with Airbnb import feed showing 'Synced 3 min ago' and export URL with copy button. RIGHT — Host calendar with colour-coded blocks: direct booking (green), iCal import (orange), manual block (grey). Tooltip: 'Held via Airbnb import'.",
@@ -222,24 +222,24 @@ const FEATURES = [
     ],
     beforeScenario:
       "December peak season. You take a WhatsApp booking for the 24th–27th, jot it in a notebook, and forget to close Airbnb. Christmas morning, two families arrive with confirmations. One leaves in tears. One leaves a one-star review. You spend the holiday refunding and apologising — and wondering how many near-misses you didn't notice.",
-    solutionEyebrow: "The Vilo way",
+    solutionEyebrow: "The Wielo way",
     solutionHeadline: "Two-way sync that keeps every channel honest.",
     transformation:
-      "Go from five separate calendars and a prayer to one dashboard where OTA blocks flow in, Vilo bookings flow out, and you block or book without opening another tab.",
+      "Go from five separate calendars and a prayer to one dashboard where OTA blocks flow in, Wielo bookings flow out, and you block or book without opening another tab.",
     differentiators: [
-      "Two-way iCal — import OTA blocks in, export Vilo bookings out (guest PII stripped from export).",
+      "Two-way iCal — import OTA blocks in, export Wielo bookings out (guest PII stripped from export).",
       "Non-destructive import — only iCal-sourced blocks are managed per feed; manual blocks stay untouched.",
       "Scheduled re-sync every 15 minutes plus manual sync on demand.",
       "Start bookings and block date ranges directly from the calendar — no context switching.",
     ],
     subFeatures: [
-      { icon: "Download", headline: "iCal import feeds", description: "Paste your Airbnb or Booking.com export URL. Vilo pulls blocked dates on a schedule and shows feed status and errors.", visual: "Import feed list with Airbnb preset label and last synced timestamp" },
-      { icon: "Upload", headline: "iCal export per listing", description: "Copy your Vilo export URL into each OTA. Confirmed direct bookings appear as blocked dates on external calendars automatically.", visual: "Export URL field with 'Paste into Airbnb' instruction callout" },
+      { icon: "Download", headline: "iCal import feeds", description: "Paste your Airbnb or Booking.com export URL. Wielo pulls blocked dates on a schedule and shows feed status and errors.", visual: "Import feed list with Airbnb preset label and last synced timestamp" },
+      { icon: "Upload", headline: "iCal export per listing", description: "Copy your Wielo export URL into each OTA. Confirmed direct bookings appear as blocked dates on external calendars automatically.", visual: "Export URL field with 'Paste into Airbnb' instruction callout" },
       { icon: "RotateCw", headline: "Manual sync on demand", description: "Don't wait for the scheduler — hit Sync now when you've just updated an OTA calendar and need immediate consistency.", visual: "Sync now button with spinner animation state" },
-      { icon: "AlertTriangle", headline: "Feed status + errors", description: "Broken feed URL? Vilo shows error status and last error message. Fix the URL; blocks from that feed clear on remove.", visual: "Feed row in error state with expandable error detail" },
+      { icon: "AlertTriangle", headline: "Feed status + errors", description: "Broken feed URL? Wielo shows error status and last error message. Fix the URL; blocks from that feed clear on remove.", visual: "Feed row in error state with expandable error detail" },
       { icon: "Calendar", headline: "Interactive host calendar", description: "Month and week views across properties. See bookings, blocks, and imports in one place.", visual: "Multi-property calendar grid with legend" },
       { icon: "Lock", headline: "Single-night block/open", description: "Click a date to block or unblock. Maintenance, owner use, or hold while negotiating — one click.", visual: "Date cell context menu with Block date action" },
-      { icon: "CalendarRange", headline: "Date-range blocks", description: "Block a run of dates in one action. Applies across your Vilo calendar and exports to connected OTAs.", visual: "Range selection highlight spanning Fri–Mon" },
+      { icon: "CalendarRange", headline: "Date-range blocks", description: "Block a run of dates in one action. Applies across your Wielo calendar and exports to connected OTAs.", visual: "Range selection highlight spanning Fri–Mon" },
       { icon: "CalendarPlus", headline: "Start booking from calendar", description: "Click Book on an open date to launch the new-booking wizard pre-filled with that check-in.", visual: "Book action opening new booking modal with date pre-selected" },
       { icon: "ShieldCheck", headline: "Anti double-booking validation", description: "Checkout and manual bookings validate against bookings, manual blocks, and all active iCal imports.", visual: "Validation error: 'Dates unavailable — blocked via Airbnb import'" },
       { icon: "Clock", headline: "Scheduled 15-min re-sync", description: "Background job re-imports feeds every 15 minutes. Set and forget — with manual override when you need it.", visual: "Scheduler badge: 'Next sync in 12 min'" },
@@ -249,30 +249,30 @@ const FEATURES = [
     howItWorksEyebrow: "Simple workflow",
     howItWorksHeadline: "Sync every channel in four steps.",
     hostSteps: [
-      { title: "Copy export URL", body: "From Calendar sync, copy your Vilo export link per listing.", visual: "Export URL with copy button" },
+      { title: "Copy export URL", body: "From Calendar sync, copy your Wielo export link per listing.", visual: "Export URL with copy button" },
       { title: "Paste into OTAs", body: "Add the export URL in Airbnb/Booking.com calendar import settings.", visual: "Airbnb calendar import settings screenshot mockup" },
-      { title: "Add import feeds", body: "Paste each OTA export URL into Vilo with the matching preset.", visual: "Add import feed form" },
-      { title: "Manage from one place", body: "Block, book, and sync — Vilo keeps everything aligned.", visual: "Unified calendar with mixed block types" },
+      { title: "Add import feeds", body: "Paste each OTA export URL into Wielo with the matching preset.", visual: "Add import feed form" },
+      { title: "Manage from one place", body: "Block, book, and sync — Wielo keeps everything aligned.", visual: "Unified calendar with mixed block types" },
     ],
     guestSteps: [
       { title: "See open dates", body: "Listing and checkout only show genuinely available nights.", visual: "Date picker with imports respected" },
       { title: "Select dates", body: "Server validates against all sources before payment.", visual: "Checkout proceeding on valid dates" },
-      { title: "Booking confirms", body: "Dates block on Vilo calendar and export to OTAs.", visual: "New booking block appearing on calendar" },
+      { title: "Booking confirms", body: "Dates block on Wielo calendar and export to OTAs.", visual: "New booking block appearing on calendar" },
       { title: "Cancellation releases", body: "Cancelled dates free up per policy flow and re-export.", visual: "Block removed after cancellation" },
     ],
     testimonials: [
-      { quote: "We had one double-booking in five years before Vilo. Haven't had one since we turned on iCal sync.", name: "[Name]", property: "Guesthouse · Knysna" },
-      { quote: "I used to spend Sunday nights updating three extranets. Now I block once in Vilo and it propagates.", name: "[Name]", property: "Self-catering · Stellenbosch" },
-      { quote: "The error status saved us — our Booking.com feed URL changed and Vilo flagged it before we sold those dates.", name: "[Name]", property: "Lodge · Hazyview" },
+      { quote: "We had one double-booking in five years before Wielo. Haven't had one since we turned on iCal sync.", name: "[Name]", property: "Guesthouse · Knysna" },
+      { quote: "I used to spend Sunday nights updating three extranets. Now I block once in Wielo and it propagates.", name: "[Name]", property: "Self-catering · Stellenbosch" },
+      { quote: "The error status saved us — our Booking.com feed URL changed and Wielo flagged it before we sold those dates.", name: "[Name]", property: "Lodge · Hazyview" },
     ],
     scenarios: [
-      "A multi-room guesthouse syncs each room's Airbnb calendar separately while exporting Vilo direct bookings back.",
-      "A host blocks two weeks for renovations in Vilo; export closes those dates on Booking.com within the next sync cycle.",
+      "A multi-room guesthouse syncs each room's Airbnb calendar separately while exporting Wielo direct bookings back.",
+      "A host blocks two weeks for renovations in Wielo; export closes those dates on Booking.com within the next sync cycle.",
       "Peak-season lodge runs manual sync after every OTA promotion goes live — instant consistency without waiting 15 minutes.",
     ],
     stats: ["[X] iCal feeds synced daily", "[X] double-bookings prevented", "15 min automatic re-sync interval"],
     comparisonRows: [
-      ["Update 3+ OTA extranets manually", "One block in Vilo exports everywhere"],
+      ["Update 3+ OTA extranets manually", "One block in Wielo exports everywhere"],
       ["Spreadsheet 'availability' out of date by Tuesday", "Live calendar with scheduled import"],
       ["Discover clash at check-in", "Checkout rejects unavailable dates upfront"],
       ["No visibility when a feed breaks", "Feed error status + last error message"],
@@ -294,7 +294,7 @@ const FEATURES = [
     finalCtaEyebrow: "Ready for one calendar?",
     finalCtaHeadline: "Your next peak season deserves sync that actually works.",
     finalCtaBody: "Take the 2-minute scorecard and see where double-booking risk is costing you.",
-    trustElement: "Calendar sync included in every Vilo plan",
+    trustElement: "Calendar sync included in every Wielo plan",
     layoutClusters: ["Import & export (1-4)", "Calendar actions (5-8)", "Protection & automation (9-12)"],
     heroLayoutVisual: "sync dashboard + multi-colour calendar composite",
   },
@@ -388,7 +388,7 @@ Headline: "${f.problemHeadline}"
 ${painBlock}
 \`\`\`
 
-### "Before Vilo" Scenario
+### "Before Wielo" Scenario
 
 \`\`\`
 "${f.beforeScenario}"
@@ -457,7 +457,7 @@ Animation: Steps reveal on scroll with subtle rise animation
 
 \`\`\`
 Eyebrow: "From real hosts"
-Headline: "What hosts say about Vilo ${f.featureName}"
+Headline: "What hosts say about Wielo ${f.featureName}"
 \`\`\`
 
 ### Testimonial Placeholders
@@ -486,12 +486,12 @@ ${statsBlock}
 
 \`\`\`
 Eyebrow: "Side by side"
-Headline: "${f.featureName} without Vilo vs. with Vilo"
+Headline: "${f.featureName} without Wielo vs. with Wielo"
 \`\`\`
 
 ### Comparison Table
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 ${compareBlock}
 

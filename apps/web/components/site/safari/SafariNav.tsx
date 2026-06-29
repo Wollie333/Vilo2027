@@ -60,15 +60,15 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
   if (style.uppercase) type.push("text-transform:uppercase");
   if (type.length)
     rules.push(
-      `.vilo-safari .nav-links a,.vilo-safari .mnav-links a{${type.join(";")}}`,
+      `.wielo-safari .nav-links a,.wielo-safari .mnav-links a{${type.join(";")}}`,
     );
   if (color)
     rules.push(
-      `.vilo-safari .nav-links a,.vilo-safari .mnav-links a{color:${color};opacity:1}`,
+      `.wielo-safari .nav-links a,.wielo-safari .mnav-links a{color:${color};opacity:1}`,
     );
   if (hover)
     rules.push(
-      `.vilo-safari .nav-links a:hover,.vilo-safari .mnav-links a:hover{color:${hover};opacity:1}`,
+      `.wielo-safari .nav-links a:hover,.wielo-safari .mnav-links a:hover{color:${hover};opacity:1}`,
     );
   // Scrolled-state colour — when the transparent bar turns solid on scroll (or on
   // an always-solid page), the inline links take this colour instead of the
@@ -78,15 +78,15 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
   const scrolledHover = style.scrolledHoverColor?.trim() || scrolledColor;
   if (scrolledColor)
     rules.push(
-      `.vilo-safari .nav.solid .nav-links a{color:${scrolledColor};opacity:1}`,
+      `.wielo-safari .nav.solid .nav-links a{color:${scrolledColor};opacity:1}`,
     );
   if (scrolledHover)
     rules.push(
-      `.vilo-safari .nav.solid .nav-links a:hover{color:${scrolledHover};opacity:1}`,
+      `.wielo-safari .nav.solid .nav-links a:hover{color:${scrolledHover};opacity:1}`,
     );
   // Horizontal spacing between top-level links (Layout → item spacing).
   if (typeof style.itemGap === "number")
-    rules.push(`.vilo-safari .nav-links{gap:${style.itemGap}px}`);
+    rules.push(`.wielo-safari .nav-links{gap:${style.itemGap}px}`);
   // Sub-menu (dropdown) styling — desktop dropdown panel + items, and the mobile
   // drawer's nested links, so nested links are styled separately from the top.
   const subColor = style.submenuColor?.trim();
@@ -94,19 +94,19 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
   const subBg = style.submenuBg?.trim();
   if (subBg)
     rules.push(
-      `.vilo-safari .nav-dd-menu{background:${subBg};border-color:${subBg}}`,
+      `.wielo-safari .nav-dd-menu{background:${subBg};border-color:${subBg}}`,
     );
   if (subColor)
     rules.push(
-      `.vilo-safari .nav-dd-menu a,.vilo-safari .mnav-sub a{color:${subColor}}`,
+      `.wielo-safari .nav-dd-menu a,.wielo-safari .mnav-sub a{color:${subColor}}`,
     );
   if (subHover)
     rules.push(
-      `.vilo-safari .nav-dd-menu a:hover,.vilo-safari .mnav-sub a:hover{color:${subHover}}`,
+      `.wielo-safari .nav-dd-menu a:hover,.wielo-safari .mnav-sub a:hover{color:${subHover}}`,
     );
   // Desktop top-level link size (inline menu only — the drawer has its own size).
   if (typeof style.fontSize === "number")
-    rules.push(`.vilo-safari .nav-links a{font-size:${style.fontSize}px}`);
+    rules.push(`.wielo-safari .nav-links a{font-size:${style.fontSize}px}`);
 
   // ── Tablet override — the inline menu at tablet widths (≤1024px). Only the
   //    fields the host changed for tablet; everything else inherits desktop. ──
@@ -119,10 +119,10 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
     if (tb.uppercase !== undefined)
       tr.push(`text-transform:${tb.uppercase ? "uppercase" : "none"}`);
     const parts: string[] = [];
-    if (tr.length) parts.push(`.vilo-safari .nav-links a{${tr.join(";")}}`);
+    if (tr.length) parts.push(`.wielo-safari .nav-links a{${tr.join(";")}}`);
     if (tb.hoverColor?.trim())
       parts.push(
-        `.vilo-safari .nav-links a:hover{color:${tb.hoverColor.trim()}}`,
+        `.wielo-safari .nav-links a:hover{color:${tb.hoverColor.trim()}}`,
       );
     if (parts.length)
       rules.push(`@media (max-width:1024px){${parts.join("")}}`);
@@ -133,17 +133,17 @@ function menuStyleCss(style?: SiteMenuStyle | null): string {
   const mb = style.mobile;
   if (mb) {
     if (mb.overlayBg?.trim())
-      rules.push(`.vilo-safari .mnav{background:${mb.overlayBg.trim()}}`);
+      rules.push(`.wielo-safari .mnav{background:${mb.overlayBg.trim()}}`);
     const mr: string[] = [];
     if (mb.color?.trim()) mr.push(`color:${mb.color.trim()}`);
     if (typeof mb.fontSize === "number") mr.push(`font-size:${mb.fontSize}px`);
     if (mb.weight) mr.push(`font-weight:${WEIGHT[mb.weight]}`);
     if (mb.uppercase !== undefined)
       mr.push(`text-transform:${mb.uppercase ? "uppercase" : "none"}`);
-    if (mr.length) rules.push(`.vilo-safari .mnav-links a{${mr.join(";")}}`);
+    if (mr.length) rules.push(`.wielo-safari .mnav-links a{${mr.join(";")}}`);
     if (mb.hoverColor?.trim())
       rules.push(
-        `.vilo-safari .mnav-links a:hover{color:${mb.hoverColor.trim()}}`,
+        `.wielo-safari .mnav-links a:hover{color:${mb.hoverColor.trim()}}`,
       );
   }
   return rules.join("");
@@ -184,8 +184,8 @@ function menuItemStyleCss(
       const st = l.style;
       if (l.id && st) {
         const id = l.id;
-        const inlineSel = `.vilo-safari .nav-links a.mi-${id},.vilo-safari .nav-dd-menu a.mi-${id}`;
-        const drawerSel = `.vilo-safari .mnav-links a.mi-${id},.vilo-safari .mnav-sub a.mi-${id},.vilo-safari .mnav-parent.mi-${id}`;
+        const inlineSel = `.wielo-safari .nav-links a.mi-${id},.wielo-safari .nav-dd-menu a.mi-${id}`;
+        const drawerSel = `.wielo-safari .mnav-links a.mi-${id},.wielo-safari .mnav-sub a.mi-${id},.wielo-safari .mnav-parent.mi-${id}`;
         const desktop: MenuItemStyleLayer = {
           color: st.color,
           hoverColor: st.hoverColor,
@@ -206,7 +206,7 @@ function menuItemStyleCss(
         const inlineHover = inlineLayer.hoverColor?.trim();
         if (inlineHover)
           rules.push(
-            `.vilo-safari .nav-links a.mi-${id}:hover,.vilo-safari .nav-dd-menu a.mi-${id}:hover{color:${inlineHover}}`,
+            `.wielo-safari .nav-links a.mi-${id}:hover,.wielo-safari .nav-dd-menu a.mi-${id}:hover{color:${inlineHover}}`,
           );
         if (!previewDevice && st.tablet) {
           const tDecls = itemLayerDecls(st.tablet);
@@ -220,7 +220,7 @@ function menuItemStyleCss(
         const drawerHover = drawerLayer.hoverColor?.trim();
         if (drawerHover)
           rules.push(
-            `.vilo-safari .mnav-links a.mi-${id}:hover,.vilo-safari .mnav-sub a.mi-${id}:hover{color:${drawerHover}}`,
+            `.wielo-safari .mnav-links a.mi-${id}:hover,.wielo-safari .mnav-sub a.mi-${id}:hover{color:${drawerHover}}`,
           );
       }
       if (l.children?.length) walk(l.children);
@@ -390,7 +390,7 @@ export function SafariNav({
   // design's solid-bar `.btn-on-dark:hover` would otherwise override the inline
   // colour). Covers the header + drawer book buttons.
   const bookCss = bookColor?.trim()
-    ? `.vilo-safari .nav-book-custom,.vilo-safari .nav-book-custom:hover{background:${bookColor.trim()}!important;border-color:${bookColor.trim()}!important;color:#fff!important}`
+    ? `.wielo-safari .nav-book-custom,.wielo-safari .nav-book-custom:hover{background:${bookColor.trim()}!important;border-color:${bookColor.trim()}!important;color:#fff!important}`
     : "";
   const styleCss =
     menuStyleCss(menuStyle) + menuItemStyleCss(links, previewDevice) + bookCss;
@@ -505,10 +505,10 @@ export function SafariNav({
   // lays out inside `.brand` as if rendered directly).
   const logoRdCss =
     hasLogoOverride && !previewDevice
-      ? ".vilo-safari .brand-rd-tb,.vilo-safari .brand-rd-mb{display:none}" +
-        ".vilo-safari .brand-rd-dt{display:contents}" +
-        "@media (max-width:1024px){.vilo-safari .brand-rd-dt{display:none}.vilo-safari .brand-rd-tb{display:contents}}" +
-        "@media (max-width:640px){.vilo-safari .brand-rd-tb{display:none}.vilo-safari .brand-rd-mb{display:contents}}"
+      ? ".wielo-safari .brand-rd-tb,.wielo-safari .brand-rd-mb{display:none}" +
+        ".wielo-safari .brand-rd-dt{display:contents}" +
+        "@media (max-width:1024px){.wielo-safari .brand-rd-dt{display:none}.wielo-safari .brand-rd-tb{display:contents}}" +
+        "@media (max-width:640px){.wielo-safari .brand-rd-tb{display:none}.wielo-safari .brand-rd-mb{display:contents}}"
       : "";
 
   return (

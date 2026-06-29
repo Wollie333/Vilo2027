@@ -118,7 +118,7 @@ export function EarningsCalculator() {
           value={revenue}
           onChange={handleSliderChange}
           aria-label="Monthly revenue slider"
-          className="vilo-range block w-full"
+          className="wielo-range block w-full"
           style={{ "--val": `${calc.pct}%` } as React.CSSProperties}
         />
 
@@ -158,7 +158,7 @@ export function EarningsCalculator() {
 
         <div className="relative rounded-card border-2 border-brand-primary bg-brand-accent/60 p-4">
           <span className="absolute right-2 top-2 rounded-pill bg-brand-primary px-1.5 py-0.5 text-[9px] font-bold text-white">
-            VILO
+            WIELO
           </span>
           <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-primary">
             Flat R 499/mo

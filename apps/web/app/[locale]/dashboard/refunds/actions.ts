@@ -100,7 +100,7 @@ export async function approveRefundAction(input: {
   if (!refund || refund.host_id !== host.hostId) {
     return { ok: false, error: "Refund not found." };
   }
-  // Vilo never holds funds — refunds are host→guest directly, so there's no
+  // Wielo never holds funds — refunds are host→guest directly, so there's no
   // platform "escalated" state to act on. Allow pending + failed (a prior
   // attempt to retry), matching the host_action_refunds RLS policy.
   if (refund.status !== "pending" && refund.status !== "failed") {

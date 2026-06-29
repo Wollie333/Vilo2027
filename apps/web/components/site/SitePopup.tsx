@@ -44,7 +44,7 @@ export function SitePopup({
   const heading = popup?.heading?.trim() ?? "";
   const body = popup?.body?.trim() ?? "";
   const frequency = popup?.frequency ?? "once";
-  const storageKey = `vilo-popup:${`${heading}|${body}`.slice(0, 80)}`;
+  const storageKey = `wielo-popup:${`${heading}|${body}`.slice(0, 80)}`;
 
   const [open, setOpen] = useState(false);
 

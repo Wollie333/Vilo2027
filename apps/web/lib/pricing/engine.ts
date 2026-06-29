@@ -1,10 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────
-// Vilo canonical pricing engine — the SINGLE source of truth for what a stay
+// Wielo canonical pricing engine — the SINGLE source of truth for what a stay
 // costs. Every surface (the authoritative server booking action, the client
 // checkout estimate, the host seasonal preview) calls priceStay() so the
 // quoted price, the charged price, and the preview can never disagree.
 //
-// The Vilo Pricing Stack (fixed, documented order):
+// The Wielo Pricing Stack (fixed, documented order):
 //   1. Nightly rate  — per night pick ONE: seasonal rule → weekend rate → base.
 //   2. Occupancy     — pricing_mode scales that rate by guest count.
 //   3. Stay discounts— whole-place combo, then length-of-stay (% off base only).
@@ -24,7 +24,7 @@ import { round2 } from "@/lib/format";
 import { applyStayDiscounts, type StayDiscount } from "./discounts";
 import { occupancyNightly, type RoomPricing } from "./occupancy";
 
-/** Friday + Saturday nights — the canonical Vilo "weekend" (DOW 5,6, UTC). */
+/** Friday + Saturday nights — the canonical Wielo "weekend" (DOW 5,6, UTC). */
 export const VILO_WEEKEND_DAYS = [5, 6] as const;
 
 export type SeasonalAdjustmentType = "absolute" | "percent";

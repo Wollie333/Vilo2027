@@ -7,7 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 // OUTSIDE /dashboard so they escape the dashboard shell (sidebar + header) and
 // fill the viewport exactly like the mockups. This root only enforces an
 // authenticated session and loads the builder design system; the per-website
-// owner + feature gate lives in [websiteId]/layout. The emerald `.vilo-builder`
+// owner + feature gate lives in [websiteId]/layout. The emerald `.wielo-builder`
 // styles are scoped, so importing them here is inert until a page opts in.
 import "../dashboard/website/builder.css";
 import "../dashboard/website/nav.css";

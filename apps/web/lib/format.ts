@@ -1,4 +1,4 @@
-// Canonical display formatters. Vilo stores amounts in full Rand units, and the
+// Canonical display formatters. Wielo stores amounts in full Rand units, and the
 // app is ZAR-first, so money renders as "R 1 500" (space-grouped, no decimals).
 // A non-ZAR amount keeps its ISO code as a prefix ("USD 1 500").
 //

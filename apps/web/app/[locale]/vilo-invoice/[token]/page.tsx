@@ -6,8 +6,8 @@ import {
   type DocLine,
 } from "@/components/finance/FinancialDocument";
 import {
-  viloIssuerLines,
-  type ViloBusinessProfile,
+  wieloIssuerLines,
+  type WieloBusinessProfile,
 } from "@/lib/billing/vilo-invoice";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
@@ -37,7 +37,7 @@ function fmtDate(iso: string | null): string {
   }).format(new Date(iso));
 }
 
-export default async function PublicViloInvoicePage({
+export default async function PublicWieloInvoicePage({
   params,
 }: {
   params: { token: string };
@@ -55,8 +55,8 @@ export default async function PublicViloInvoicePage({
 
   const brandName = await getBrandName();
   const c = invoice.currency;
-  const issuer = viloIssuerLines(
-    (invoice.vilo_snapshot ?? {}) as Partial<ViloBusinessProfile>,
+  const issuer = wieloIssuerLines(
+    (invoice.vilo_snapshot ?? {}) as Partial<WieloBusinessProfile>,
   );
   const buyer = (invoice.buyer_snapshot ?? {}) as BuyerSnap;
   const lines = (

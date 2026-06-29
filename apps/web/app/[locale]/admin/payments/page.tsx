@@ -2,9 +2,9 @@ import { Search } from "lucide-react";
 
 import { getBrandName } from "@/lib/brand";
 import {
-  fetchViloLedger,
-  viloLedgerStats,
-  type ViloTxn,
+  fetchWieloLedger,
+  wieloLedgerStats,
+  type WieloTxn,
 } from "@/lib/billing/vilo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { formatMoney } from "@/lib/format";
@@ -40,10 +40,10 @@ function isEnv(v: string | undefined): v is (typeof ENVS)[number] {
   return ENVS.includes((v ?? "") as (typeof ENVS)[number]);
 }
 
-// The admin Payments tab is every payment USERS make to Vilo for Vilo products
+// The admin Payments tab is every payment USERS make to Wielo for Wielo products
 // (subscriptions + service products) — i.e. the platform_ledger, read through
-// the shared fetchViloLedger SSOT. It is NOT host↔guest booking money (that is
-// the host's own ledger, never Vilo revenue).
+// the shared fetchWieloLedger SSOT. It is NOT host↔guest booking money (that is
+// the host's own ledger, never Wielo revenue).
 export default async function AdminPaymentsPage({
   searchParams,
 }: {
@@ -65,7 +65,7 @@ export default async function AdminPaymentsPage({
 
   const service = createAdminClient();
   const [all, plans] = await Promise.all([
-    fetchViloLedger(service, { limit: 10_000 }),
+    fetchWieloLedger(service, { limit: 10_000 }),
     getAllPlans(),
   ]);
   const planName = new Map(plans.map((p) => [p.key, p.name]));
@@ -76,7 +76,7 @@ export default async function AdminPaymentsPage({
     env === "all" ? all : all.filter((r) => r.environment === env);
 
   // KPIs reflect the whole (env-scoped) ledger, independent of the other filters.
-  const stats = viloLedgerStats(envScoped);
+  const stats = wieloLedgerStats(envScoped);
 
   let filtered = envScoped;
   if (status !== "all") filtered = filtered.filter((r) => r.status === status);
@@ -91,7 +91,7 @@ export default async function AdminPaymentsPage({
   const total = filtered.length;
   const list = filtered.slice(0, PAGE_SIZE);
 
-  const productLabel = (r: ViloTxn): string => {
+  const productLabel = (r: WieloTxn): string => {
     if (r.plan)
       return `${planName.get(r.plan) ?? r.plan}${
         r.billingCycle ? ` · ${r.billingCycle}` : ""
@@ -99,7 +99,7 @@ export default async function AdminPaymentsPage({
     return r.reason ?? "—";
   };
 
-  const columns: AdminColumn<ViloTxn>[] = [
+  const columns: AdminColumn<WieloTxn>[] = [
     {
       header: "Amount",
       cell: (r) => (
@@ -163,7 +163,7 @@ export default async function AdminPaymentsPage({
       ? [
           {
             header: "Env",
-            cell: (r: ViloTxn) =>
+            cell: (r: WieloTxn) =>
               r.environment === "test" ? (
                 <span className="inline-flex items-center rounded-pill border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
                   Test
@@ -185,7 +185,7 @@ export default async function AdminPaymentsPage({
         <p className="mt-1 text-[13px] text-brand-mute">
           Every payment users make to {brandName} for subscriptions and add-on
           products. Host↔guest booking money lives on each host&rsquo;s own
-          dashboard — it is never Vilo revenue.
+          dashboard — it is never Wielo revenue.
         </p>
         {env === "test" ? (
           <p className="mt-2 inline-flex items-center gap-1.5 rounded-pill border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">

@@ -75,7 +75,7 @@ export function PublishBar({
       : t("allPublished");
 
   return (
-    <div className="vilo-cms flex items-center gap-2.5">
+    <div className="wielo-cms flex items-center gap-2.5">
       <span
         className="hidden items-center gap-1.5 text-[12px] font-medium md:inline-flex"
         style={{

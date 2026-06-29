@@ -24,7 +24,7 @@ export default async function FullScreenFormEditorPage({
   // builder so the host sees the real list instead of editing placeholders.
   const roomNames = await loadWebsiteRoomNames(websiteId);
 
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
 
   return (
     <FormEditor

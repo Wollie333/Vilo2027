@@ -946,7 +946,7 @@ export function AddonEditor({
                   <span>
                     Your payout always equals what the guest pays —{" "}
                     <span className="font-semibold">
-                      Vilo never charges hosts a fee.
+                      Wielo never charges hosts a fee.
                     </span>
                   </span>
                 </div>

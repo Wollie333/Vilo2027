@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 // The host-managed, separately-assignable policy kinds. `booking_terms` is the
-// host's own property Terms & Conditions (accepted at checkout ALONGSIDE Vilo's
-// platform Terms). `privacy` is NOT here — it stays platform-wide, Vilo-authored
+// host's own property Terms & Conditions (accepted at checkout ALONGSIDE Wielo's
+// platform Terms). `privacy` is NOT here — it stays platform-wide, Wielo-authored
 // (see platform_settings.legal_* and /admin/platform/settings).
 export const POLICY_TYPES = [
   { value: "cancellation" as const, label: "Refund terms" },

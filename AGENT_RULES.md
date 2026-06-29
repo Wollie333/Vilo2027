@@ -54,7 +54,7 @@ supabase gen types typescript --local > packages/types/database.types.ts
 ```
 
 ### 2.5 Never hard-delete blocked dates imported from external iCal feeds
-When a calendar sync removes dates from an external feed (e.g. a booking was cancelled on Airbnb), delete only the `blocked_dates` rows where `source = 'ical'` AND `ical_feed_id` matches. Never bulk-delete all blocked dates for a listing — manual blocks and Vilo bookings must be preserved.
+When a calendar sync removes dates from an external feed (e.g. a booking was cancelled on Airbnb), delete only the `blocked_dates` rows where `source = 'ical'` AND `ical_feed_id` matches. Never bulk-delete all blocked dates for a listing — manual blocks and Wielo bookings must be preserved.
 
 ### 2.6 iCal export tokens are per-listing secrets
 Each listing has a unique `ical_export_token` in the `ical_feeds` table. This token is part of the public feed URL. Rotating the token breaks any external calendar that has already subscribed. Only rotate on explicit host request. Never log or expose this token in error messages.
@@ -136,7 +136,7 @@ If a card gateway (Paystack / PayPal) fails or isn't usable at payment time, the
 If the ledger is missing something a feature needs, **extend `ledger.ts` itself** (add a function there) so it stays the one place — do not compute booking balances inline in an action, page, webhook, or trigger. Any new pay path (guest checkout, signed-in pay, the `/pay/[token]` link, host manual entry) must funnel its money state through this module.
 
 ### 4.8 Guest booking payments charge the HOST's own gateway, never the platform key
-A guest paying for a booking (card) must settle to the **host's** connected Paystack account so funds reach the host directly (Vilo takes 0%). Use the single source of truth `getHostPaystack(hostId)` in `apps/web/lib/payments/host-paystack.ts` to load + decrypt the host's secret, and pass it to **both** `initializeTransaction` and `verifyTransaction`. The platform `PAYSTACK_SECRET_KEY` is reserved exclusively for Vilo's own subscription billing — never use it to charge a booking. Because host-account transactions can't be confirmed by the platform webhook, the **success/return page `verifyTransaction` (with the host key) is the authoritative confirmation** for direct-host card payments. No usable host card rail → fall back to EFT per §4.6. All "pay an existing booking" flows must funnel through `startBookingPayment` in `apps/web/lib/payments/pay-booking.ts`.
+A guest paying for a booking (card) must settle to the **host's** connected Paystack account so funds reach the host directly (Wielo takes 0%). Use the single source of truth `getHostPaystack(hostId)` in `apps/web/lib/payments/host-paystack.ts` to load + decrypt the host's secret, and pass it to **both** `initializeTransaction` and `verifyTransaction`. The platform `PAYSTACK_SECRET_KEY` is reserved exclusively for Wielo's own subscription billing — never use it to charge a booking. Because host-account transactions can't be confirmed by the platform webhook, the **success/return page `verifyTransaction` (with the host key) is the authoritative confirmation** for direct-host card payments. No usable host card rail → fall back to EFT per §4.6. All "pay an existing booking" flows must funnel through `startBookingPayment` in `apps/web/lib/payments/pay-booking.ts`.
 
 ---
 
@@ -162,7 +162,7 @@ Record `started_at` and `ended_at`. Tag all actions during impersonation with bo
 ### 6.3 platform_settings changes take effect immediately
 No cache. Test in staging before production.
 
-### 6.4 Super admin & Vilo staff RBAC — capability checks via DB, not code
+### 6.4 Super admin & Wielo staff RBAC — capability checks via DB, not code
 The control centre (`/admin`) is gated by the `platform_staff` table — never
 by hardcoded role checks in app code. Always call `has_admin_permission(key)`
 (RPC) via `requirePermission()` from `apps/web/lib/admin/`. The permission
@@ -331,8 +331,8 @@ You can squash later with `git rebase -i`. **Uncommitted changes are not safe** 
 When the user asks for a feature that will span 20+ files, touch shared infra (sidebars, migrations, generated types, RBAC, audit-log schemas, layout files), or take more than an hour, **proactively suggest running in an isolated worktree**:
 
 ```bash
-git worktree add ../vilo-feature-help feat/help-center
-cd ../vilo-feature-help
+git worktree add ../wielo-feature-help feat/help-center
+cd ../wielo-feature-help
 # do the work here; merge to main when ready
 ```
 

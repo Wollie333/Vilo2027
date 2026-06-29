@@ -2394,13 +2394,13 @@ export function SafariSectionList({
           const mobProps = hasOverrideProps(mob);
 
           // No per-device CONTENT override → render once. A per-device HIDE still
-          // works via the lightweight `.vilo-rwrap` wrapper (display:contents →
+          // works via the lightweight `.wielo-rwrap` wrapper (display:contents →
           // none at the breakpoint), so we avoid duplicating the section's markup.
           if (!lapProps && !mobProps) {
             const el = render(s);
             if (el === undefined) return null;
             const cls = [
-              "vilo-rwrap",
+              "wielo-rwrap",
               lap?.hidden ? "rh-laptop" : "",
               mob?.hidden ? "rh-mobile" : "",
             ]
@@ -2434,12 +2434,12 @@ export function SafariSectionList({
             : render(withProps(s, mobileProps));
           return (
             <Fragment key={s.id}>
-              <div className="vilo-rdup vilo-rdup-desktop">{desktopEl}</div>
+              <div className="wielo-rdup wielo-rdup-desktop">{desktopEl}</div>
               {laptopEl ? (
-                <div className="vilo-rdup vilo-rdup-laptop">{laptopEl}</div>
+                <div className="wielo-rdup wielo-rdup-laptop">{laptopEl}</div>
               ) : null}
               {mobileEl ? (
-                <div className="vilo-rdup vilo-rdup-mobile">{mobileEl}</div>
+                <div className="wielo-rdup wielo-rdup-mobile">{mobileEl}</div>
               ) : null}
             </Fragment>
           );

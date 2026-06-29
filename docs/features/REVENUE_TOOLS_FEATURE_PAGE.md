@@ -10,7 +10,7 @@
 ## 1. Page Meta & SEO
 
 ```yaml
-title: "Revenue Tools for Accommodation Hosts — Vilo"
+title: "Revenue Tools for Accommodation Hosts — Wielo"
 meta_description: "Seasonal pricing, add-on upsells, coupon codes, and smart discounts. Maximize revenue on every booking. Built for SA accommodation hosts."
 url_slug: /features/revenue-tools
 keywords:
@@ -19,7 +19,7 @@ keywords:
   - seasonal pricing tool
   - hospitality upselling
   - B&B coupon codes
-og_title: "Revenue Tools — Maximize Every Booking | Vilo"
+og_title: "Revenue Tools — Maximize Every Booking | Wielo"
 og_description: "Seasonal pricing, add-on upsells, and coupon codes. Control your rates. Increase your revenue. No commission."
 og_image: "/images/features/revenue-tools-og.jpg"
 ```
@@ -41,7 +41,7 @@ Option C: "Stop leaving money on the table."
 ### Subheadline
 
 ```
-"Vilo gives you the pricing tools that big hotels use — seasonal rates, weekend premiums, add-on upsells, and coupon codes. Set them once, and they work automatically on every booking. No manual calculations. No missed opportunities."
+"Wielo gives you the pricing tools that big hotels use — seasonal rates, weekend premiums, add-on upsells, and coupon codes. Set them once, and they work automatically on every booking. No manual calculations. No missed opportunities."
 ```
 
 ### Hero CTA
@@ -108,7 +108,7 @@ Headline: "You're charging the same rate in December as you are in February."
    Cost: You're not capturing the premium guests are willing to pay.
 ```
 
-### "Before Vilo" Scenario
+### "Before Wielo" Scenario
 
 ```
 "It's December. Your property is fully booked. You're thrilled — until you realize you're charging your February rates. Every guest this month could have paid 30% more, and they would have. You didn't have a way to set seasonal pricing. You lost thousands."
@@ -121,7 +121,7 @@ Headline: "You're charging the same rate in December as you are in February."
 ### Section Header
 
 ```
-Eyebrow: "The Vilo way"
+Eyebrow: "The Wielo way"
 Headline: "Pricing that works as hard as you do."
 ```
 
@@ -179,7 +179,7 @@ visual: "Checkout add-ons section: 'Breakfast R150/person/day · Airport Transfe
 ```yaml
 icon: DollarSign
 headline: "Five pricing models for any extra"
-description: "Price add-ons the way that makes sense: flat per stay, per night, per guest, per guest per night, or per couple. A 3-night stay for 4 guests calculates differently for a per-stay breakfast vs. a per-guest activity. Vilo handles it."
+description: "Price add-ons the way that makes sense: flat per stay, per night, per guest, per guest per night, or per couple. A 3-night stay for 4 guests calculates differently for a per-stay breakfast vs. a per-guest activity. Wielo handles it."
 visual: "Add-on editor showing pricing model dropdown: per_stay, per_night, per_guest, per_guest_per_night, per_couple"
 ```
 
@@ -215,7 +215,7 @@ visual: "Discount settings: 'Weekly (7+ nights): 5% · Monthly (28+ nights): 15%
 ```yaml
 icon: Users
 headline: "Charge by guest count when it makes sense"
-description: "Some rooms scale by headcount. Vilo supports per-person pricing, per-room-plus-extra-guests, and flat per-room rates. The occupancy model you choose drives automatic calculation at checkout."
+description: "Some rooms scale by headcount. Wielo supports per-person pricing, per-room-plus-extra-guests, and flat per-room rates. The occupancy model you choose drives automatic calculation at checkout."
 visual: "Room pricing: 'R500/person/night' or 'R1,500/night + R300/extra guest' — with guest count slider"
 ```
 
@@ -263,7 +263,7 @@ visual: "Split view: Pricing settings on left, live preview on right showing 'De
 
 ```
 Eyebrow: "Set once, work forever"
-Headline: "Configure your pricing. Let Vilo do the math."
+Headline: "Configure your pricing. Let Wielo do the math."
 ```
 
 ### Setup Journey
@@ -318,7 +318,7 @@ Testimonial 1:
   Property: "Self-catering · Plettenberg Bay"
 
 Testimonial 2:
-  Quote: "The add-on feature alone pays for Vilo. Airport transfers, breakfast, late checkout — guests add them without me asking. R6,000 extra revenue last month."
+  Quote: "The add-on feature alone pays for Wielo. Airport transfers, breakfast, late checkout — guests add them without me asking. R6,000 extra revenue last month."
   Name: "[Name]"
   Property: "Guesthouse · Cape Town"
 
@@ -354,12 +354,12 @@ Stat 3: [X] coupon codes redeemed to date
 
 ```
 Eyebrow: "Side by side"
-Headline: "Flat pricing vs. Vilo Revenue Tools"
+Headline: "Flat pricing vs. Wielo Revenue Tools"
 ```
 
 ### Comparison Table
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | Same rate year-round | Seasonal pricing adjusts automatically |
 | No way to upsell extras | Add-ons at checkout increase revenue |
@@ -461,7 +461,7 @@ Trust elements:
 
 2. PROBLEM SECTION (light background)
    - Pain points as numbered cards
-   - "Before Vilo" scenario as callout
+   - "Before Wielo" scenario as callout
 
 3. SOLUTION OVERVIEW (white background)
    - Transformation statement

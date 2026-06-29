@@ -9,14 +9,14 @@
 
 ## 1. Overview
 
-Booking Sync prevents double bookings by keeping the Vilo availability calendar in sync with external booking platforms (Airbnb, Booking.com, VRBO, Expedia, direct website calendar tools, etc.).
+Booking Sync prevents double bookings by keeping the Wielo availability calendar in sync with external booking platforms (Airbnb, Booking.com, VRBO, Expedia, direct website calendar tools, etc.).
 
 It works in both directions:
 
 | Direction | What it does |
 |---|---|
-| **Import (inbound)** | Host adds an external feed URL. Vilo fetches it every 15 minutes and blocks any dates that have confirmed bookings on the external platform. |
-| **Export (outbound)** | Vilo generates a unique iCal feed URL for each listing. Host copies this URL into their external platform's calendar import setting. External platforms fetch it and block those dates on their side. |
+| **Import (inbound)** | Host adds an external feed URL. Wielo fetches it every 15 minutes and blocks any dates that have confirmed bookings on the external platform. |
+| **Export (outbound)** | Wielo generates a unique iCal feed URL for each listing. Host copies this URL into their external platform's calendar import setting. External platforms fetch it and block those dates on their side. |
 
 The standard used is **RFC 5545 iCalendar** (`.ics` format) — the universal format used by Airbnb, Booking.com, Google Calendar, Apple Calendar, Outlook, and virtually every other calendar tool.
 
@@ -26,11 +26,11 @@ The standard used is **RFC 5545 iCalendar** (`.ics` format) — the universal fo
 
 **Conflict prevention, not conflict resolution.** The system blocks dates proactively — not retroactively after a double booking has already happened.
 
-**Non-destructive syncing.** Importing an external feed only creates `blocked_dates` rows with `source = 'ical'`. It never touches manual blocks or Vilo booking blocks. Removing dates from an external feed only removes the rows that feed created.
+**Non-destructive syncing.** Importing an external feed only creates `blocked_dates` rows with `source = 'ical'`. It never touches manual blocks or Wielo booking blocks. Removing dates from an external feed only removes the rows that feed created.
 
-**Visible sync status.** Hosts always know when their feeds were last synced, how many dates were imported, and whether any feed has an error. The calendar UI makes iCal-sourced blocks visually distinct from manual blocks and Vilo bookings.
+**Visible sync status.** Hosts always know when their feeds were last synced, how many dates were imported, and whether any feed has an error. The calendar UI makes iCal-sourced blocks visually distinct from manual blocks and Wielo bookings.
 
-**No guest data exported.** The outbound iCal feed only exports date ranges and a generic summary ("Booking via Vilo"). No guest names, contact details, or payment information is included.
+**No guest data exported.** The outbound iCal feed only exports date ranges and a generic summary ("Booking via Wielo"). No guest names, contact details, or payment information is included.
 
 ---
 
@@ -109,7 +109,7 @@ CREATE INDEX idx_blocked_dates_ical_feed ON blocked_dates(ical_feed_id)
   WHERE ical_feed_id IS NOT NULL;
 
 COMMENT ON COLUMN blocked_dates.source IS
-  'manual = host manually blocked | booking = Vilo booking | ical = imported from external feed';
+  'manual = host manually blocked | booking = Wielo booking | ical = imported from external feed';
 COMMENT ON COLUMN blocked_dates.ical_feed_id IS
   'Only set when source = ical. FK to ical_feeds. Cascade deletes clean up on feed removal.';
 ```
@@ -159,27 +159,27 @@ CREATE POLICY "admin_full_access" ON ical_feeds
 ```
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Vilo//ViloCalendar//EN
-CALNAME:Vilo - [Listing Name]
+PRODID:-//Wielo//WieloCalendar//EN
+CALNAME:Wielo - [Listing Name]
 REFRESH-INTERVAL;VALUE=DURATION:PT15M
-X-WR-CALNAME:Vilo - [Listing Name]
+X-WR-CALNAME:Wielo - [Listing Name]
 
 BEGIN:VEVENT
 DTSTART;VALUE=DATE:20260612
 DTEND;VALUE=DATE:20260615
-SUMMARY:Booking via Vilo
-UID:[booking_id]@viloplatform.com
+SUMMARY:Booking via Wielo
+UID:[booking_id]@wieloplatform.com
 END:VEVENT
 
 END:VCALENDAR
 ```
 
 **Rules:**
-- `SUMMARY` must be generic: `"Booking via Vilo"` — never include guest name, email, or any PII
+- `SUMMARY` must be generic: `"Booking via Wielo"` — never include guest name, email, or any PII
 - `DTEND` is exclusive (RFC 5545 convention) — check-out date is the day after the last night
 - Only export bookings within next 24 months
 - `Content-Type: text/calendar; charset=utf-8`
-- `Content-Disposition: attachment; filename="vilo-[listing_handle].ics"`
+- `Content-Disposition: attachment; filename="wielo-[listing_handle].ics"`
 
 ---
 
@@ -209,7 +209,7 @@ END:VCALENDAR
 9. Begin transaction:
    a. DELETE FROM blocked_dates WHERE ical_feed_id = feed_id AND source = 'ical'
    b. INSERT INTO blocked_dates for each new date (source='ical', ical_feed_id=feed_id)
-      — ON CONFLICT (listing_id, date) DO NOTHING  (Vilo booking or manual block takes priority)
+      — ON CONFLICT (listing_id, date) DO NOTHING  (Wielo booking or manual block takes priority)
    c. UPDATE ical_feeds SET last_synced_at=now(), status='active', last_error=null,
       imported_count=[count inserted]
 10. Commit
@@ -286,12 +286,12 @@ Or accessible from the listing editor: **Calendar tab → External Sync section*
 ### 8.1 Export Section (Outbound)
 
 ```
-Your Vilo iCal Feed
+Your Wielo iCal Feed
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Copy this URL and paste it into your external calendar
 (Airbnb, Booking.com, Google Calendar, etc.)
 
-[https://viloplatform.com/ical/abc123.../token123....ics] [Copy]
+[https://wieloplatform.com/ical/abc123.../token123....ics] [Copy]
 
 Last updated: Just now
 Includes: 4 upcoming confirmed bookings
@@ -349,7 +349,7 @@ In the host availability calendar:
 
 | Block type | Colour | Tooltip |
 |---|---|---|
-| Vilo booking | Brand green `#1B4D3E` | "Booking: [guest name] · [reference]" |
+| Wielo booking | Brand green `#1B4D3E` | "Booking: [guest name] · [reference]" |
 | Manual block | Slate `#94A3B8` | "Manually blocked" |
 | iCal import | Amber `#F59E0B` | "Blocked via [feed label] · Synced [X] min ago" |
 
@@ -388,7 +388,7 @@ if (isPrivateUrl(feedUrl)) {
 - The export URL is public but self-authenticating via the token
 
 ### Data Privacy
-- Outbound feeds contain only `DTSTART`, `DTEND`, `SUMMARY: Booking via Vilo`, and a non-guessable `UID`
+- Outbound feeds contain only `DTSTART`, `DTEND`, `SUMMARY: Booking via Wielo`, and a non-guessable `UID`
 - No guest name, email, phone, or payment data is ever included in the iCal export
 
 ---
@@ -442,9 +442,9 @@ ON CONFLICT (plan, feature_key) DO UPDATE
 | Feed sync error (first occurrence) | ✅ | Dashboard alert banner on Calendar page |
 | Feed sync error (persists 1+ hour) | ✅ | Push notification + dashboard banner |
 | Feed sync recovered after error | ✅ | Dashboard: error banner dismissed |
-| iCal block conflicts with existing Vilo booking | ✅ | Dashboard alert — requires manual review |
+| iCal block conflicts with existing Wielo booking | ✅ | Dashboard alert — requires manual review |
 
-**Conflict alert (rare edge case):** If `ical-import` tries to block a date that already has a confirmed Vilo booking, the iCal block is skipped (ON CONFLICT DO NOTHING) but a conflict record is logged and the host receives a dashboard warning: "External calendar conflict detected on [date]. A Vilo booking already exists. Please check your [Airbnb] calendar manually."
+**Conflict alert (rare edge case):** If `ical-import` tries to block a date that already has a confirmed Wielo booking, the iCal block is skipped (ON CONFLICT DO NOTHING) but a conflict record is logged and the host receives a dashboard warning: "External calendar conflict detected on [date]. A Wielo booking already exists. Please check your [Airbnb] calendar manually."
 
 ---
 
@@ -468,17 +468,17 @@ ON CONFLICT (plan, feature_key) DO UPDATE
 
 ### Airbnb
 1. In Airbnb: `Listing → Availability → Sync calendars → Export calendar` → copy URL
-2. Paste into Vilo: `Calendar → Sync → Add calendar feed → URL field`
-3. In Airbnb: `Sync calendars → Import calendar → paste Vilo export URL`
+2. Paste into Wielo: `Calendar → Sync → Add calendar feed → URL field`
+3. In Airbnb: `Sync calendars → Import calendar → paste Wielo export URL`
 
 ### Booking.com
 1. In Booking.com: `Property → Calendar → iCal → Export iCal URL` → copy URL
-2. Paste into Vilo: same as above
-3. In Booking.com: `iCal → Import iCal → paste Vilo export URL`
+2. Paste into Wielo: same as above
+3. In Booking.com: `iCal → Import iCal → paste Wielo export URL`
 
 ### Google Calendar / Apple Calendar
-- Subscribe to the Vilo export URL as a read-only external calendar
-- Useful for hosts who want to see Vilo bookings alongside personal calendars
+- Subscribe to the Wielo export URL as a read-only external calendar
+- Useful for hosts who want to see Wielo bookings alongside personal calendars
 
 ---
 

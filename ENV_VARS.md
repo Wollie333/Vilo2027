@@ -43,16 +43,16 @@ This file documents every environment variable used across the platform, what it
 ## Website CMS (hosted micro-sites)
 
 ### `NEXT_PUBLIC_ROOT_DOMAIN`
-The apex domain tenant micro-sites hang off of — e.g. `vilo.site`. **This single
+The apex domain tenant micro-sites hang off of — e.g. `wielo.site`. **This single
 var is the feature switch for host-based site routing.** When unset, the
 middleware classifies EVERY request as the app (host routing is a no-op), so the
 platform behaves exactly as before. When set:
-- `vilo.site`, `www.vilo.site`, `app.vilo.site`, `localhost`, `*.vercel.app` and
+- `wielo.site`, `www.wielo.site`, `app.wielo.site`, `localhost`, `*.vercel.app` and
   every reserved subdomain stay on the app.
-- `<sub>.vilo.site` (non-reserved) and any connected custom domain are rewritten
-  into the public site routes (`/<locale>/site/…`) with an `x-vilo-site-host`
+- `<sub>.wielo.site` (non-reserved) and any connected custom domain are rewritten
+  into the public site routes (`/<locale>/site/…`) with an `x-wielo-site-host`
   header. See `WEBSITE_HOSTING.md`.
-- Local dev: set it (e.g. `vilo.site`) and visit `<sub>.localhost:3000`.
+- Local dev: set it (e.g. `wielo.site`) and visit `<sub>.localhost:3000`.
 
 ### `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID`
 Server-only credentials for the custom-domain connect + verification flow
@@ -191,7 +191,7 @@ rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 
 ### `EMAIL_FROM_ADDRESS`
 - **What:** The "from" address for all transactional emails
-- **Value:** `Vilo <onboarding@resend.dev>` (dev / pre-domain) → `Vilo <noreply@viloplatform.com>` once the sending domain verifies in Resend
+- **Value:** `Wielo <onboarding@resend.dev>` (dev / pre-domain) → `Wielo <noreply@wieloplatform.com>` once the sending domain verifies in Resend
 - **Used in:** Next.js Route Handler (`/api/email-worker`) — see `DECISIONS.md` 2026-05-25 entry for why the worker is a Next.js route, not an Edge Function
 - **Environments:** All
 
@@ -255,13 +255,13 @@ rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 
 ### `NEXT_PUBLIC_APP_URL`
 - **What:** The full base URL of the web app (used for generating links in emails, callbacks)
-- **Format:** `https://viloplatform.com` (production) | `https://staging.viloplatform.com` | `http://localhost:3000`
+- **Format:** `https://wieloplatform.com` (production) | `https://staging.wieloplatform.com` | `http://localhost:3000`
 - **Used in:** Web, Edge Functions (for email links, OAuth redirects)
 - **Environments:** All
 
 ### `NEXT_PUBLIC_APP_NAME`
 - **What:** The product name used in UI and emails
-- **Value:** `Vilo`
+- **Value:** `Wielo`
 - **Environments:** All
 
 ---
@@ -379,11 +379,11 @@ NEXT_PUBLIC_PAYPAL_ENV=sandbox
 
 # ─── Email ──────────────────────────────────────────────
 RESEND_API_KEY=re_XXXXXXXXXXXXXXXXXXXX
-EMAIL_FROM_ADDRESS=noreply@viloplatform.com
+EMAIL_FROM_ADDRESS=noreply@wieloplatform.com
 
 # ─── App ────────────────────────────────────────────────
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME=Vilo
+NEXT_PUBLIC_APP_NAME=Wielo
 
 # ─── Maps: keyless (Leaflet + OpenStreetMap + Photon/Nominatim) ─
 

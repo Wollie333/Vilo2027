@@ -5,7 +5,7 @@ import "server-only";
  *
  * Direct-host payments: every call takes the host's OWN PayPal app credentials
  * (client id + secret) and environment, so orders are created and captured on
- * the host's account and funds settle directly to them (Vilo takes 0%). PayPal
+ * the host's account and funds settle directly to them (Wielo takes 0%). PayPal
  * is the "international" option — charged in USD (SA hosts can't hold a ZAR
  * PayPal balance), with the USD amount derived from the ZAR base via lib/fx.ts.
  */

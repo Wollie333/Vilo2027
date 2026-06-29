@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 
 // The "commission leak" calculator from the launch page. Drag the slider (or
-// type) your monthly bookings revenue and it shows what each OTA skims vs Vilo's
+// type) your monthly bookings revenue and it shows what each OTA skims vs Wielo's
 // flat R0. Pure client maths — no data fetch. Benchmarks: Lekkeslaap 15% + VAT,
 // Booking.com / Airbnb 15%. Annual leak is benchmarked on Lekkeslaap (the SA
 // headline rate).
@@ -77,7 +77,7 @@ export function CommissionCalculator() {
           value={revenue}
           aria-label="Monthly revenue slider"
           onChange={(e) => setRaw(groupZA(Number(e.target.value)))}
-          className="vilo-range block w-full"
+          className="wielo-range block w-full"
           style={{ ["--val" as string]: `${pct}%` }}
         />
         <div className="mt-1 flex justify-between font-mono text-[10px] text-brand-mute">
@@ -125,10 +125,10 @@ export function CommissionCalculator() {
         </div>
         <div className="relative rounded-card border-2 border-brand-primary bg-brand-accent/60 p-4">
           <span className="absolute right-2 top-2 rounded-pill bg-brand-primary px-1.5 py-0.5 text-[9px] font-bold text-white">
-            VILO
+            WIELO
           </span>
           <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-primary">
-            On Vilo
+            On Wielo
           </div>
           <div className="num-display mt-2 font-display text-xl font-bold text-brand-primary">
             R0

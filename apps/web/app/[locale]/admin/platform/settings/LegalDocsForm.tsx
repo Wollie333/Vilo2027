@@ -28,7 +28,7 @@ export function LegalDocsForm({
         kind="booking_terms"
         icon={<Gavel className="h-4 w-4 text-brand-primary" />}
         title="Booking terms & conditions"
-        hint="Platform-wide, Vilo-authored. Hosts cannot edit this — it applies to every booking on the platform and is shown at checkout and on /terms. Leave empty to use the built-in default copy."
+        hint="Platform-wide, Wielo-authored. Hosts cannot edit this — it applies to every booking on the platform and is shown at checkout and on /terms. Leave empty to use the built-in default copy."
         initialHtml={bookingTermsHtml ?? ""}
         version={bookingTermsVersion}
       />
@@ -36,7 +36,7 @@ export function LegalDocsForm({
         kind="privacy"
         icon={<ShieldCheck className="h-4 w-4 text-brand-primary" />}
         title="Privacy notice (POPIA)"
-        hint="Platform-wide, Vilo-authored. Shown on /privacy and linked at checkout. Leave empty to use the built-in default copy."
+        hint="Platform-wide, Wielo-authored. Shown on /privacy and linked at checkout. Leave empty to use the built-in default copy."
         initialHtml={privacyHtml ?? ""}
         version={privacyVersion}
       />

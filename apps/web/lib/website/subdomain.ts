@@ -1,7 +1,7 @@
 import { RESERVED_SUBDOMAINS } from "@/lib/site/host";
 
 // Subdomain derivation + validation for the Website CMS. A subdomain is a single
-// DNS label used at <subdomain>.vilo.site, so it must be lowercase, 3–63 chars,
+// DNS label used at <subdomain>.wielo.site, so it must be lowercase, 3–63 chars,
 // alphanumeric + internal hyphens, and not a reserved label (enforced here AND in
 // the middleware host classifier — same RESERVED_SUBDOMAINS set).
 

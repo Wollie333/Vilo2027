@@ -44,7 +44,7 @@ const ICONS: Record<NextActionIcon, LucideIcon> = {
   plus: Plus,
 };
 
-// Tone palette mirrors the Vilo design mock (Guest Record v2). Inline so the
+// Tone palette mirrors the Wielo design mock (Guest Record v2). Inline so the
 // exact brand greens/ambers survive Tailwind's JIT purge without arbitrary-value
 // sprawl across the file.
 const TONES: Record<

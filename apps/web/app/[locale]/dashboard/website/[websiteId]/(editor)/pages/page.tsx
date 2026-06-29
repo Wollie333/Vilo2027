@@ -26,7 +26,7 @@ export default async function WebsitePagesList({
   if (!pages) notFound();
 
   const subdomain = `${siteRes.data?.subdomain ?? ""}.${
-    process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site"
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site"
   }`;
 
   return (

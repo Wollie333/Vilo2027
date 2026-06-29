@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   hostFirstName?: string;
@@ -24,14 +24,14 @@ export default function SubscriptionWelcome({
 }: Props) {
   return (
     <Layout
-      preview={`Welcome to Vilo ${planName} — everything you need to run direct bookings.`}
+      preview={`Welcome to Wielo ${planName} — everything you need to run direct bookings.`}
     >
-      <Heading>Welcome to Vilo {planName}</Heading>
+      <Heading>Welcome to Wielo {planName}</Heading>
       <Text>Hi {hostFirstName},</Text>
       <Text>
         {isTrial
-          ? `You're on a 14-day trial of Vilo ${planName}.`
-          : `You're now on Vilo ${planName}.`}{" "}
+          ? `You're on a 14-day trial of Wielo ${planName}.`
+          : `You're now on Wielo ${planName}.`}{" "}
         Every {planName} feature is unlocked across your dashboard right now.
       </Text>
 

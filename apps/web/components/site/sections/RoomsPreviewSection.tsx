@@ -129,7 +129,7 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
             href={room.detailHref ?? room.bookHref}
             // Room card now opens the room's detail page (where booking happens),
             // so it's not a booking_click — only flag the book deep-link fallback.
-            {...(room.detailHref ? {} : { "data-vilo-book": "" })}
+            {...(room.detailHref ? {} : { "data-wielo-book": "" })}
             style={{
               background: "var(--site-btn-primary-bg)",
               color: "var(--site-btn-primary-color)",

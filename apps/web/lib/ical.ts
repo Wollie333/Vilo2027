@@ -82,7 +82,7 @@ export function buildIcalFeed({
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Vilo Platform//Vilo//EN",
+    "PRODID:-//Vilo Platform//Wielo//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapeText(calendarName)}`,
@@ -92,7 +92,7 @@ export function buildIcalFeed({
   for (const ev of events) {
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${ev.uid}@viloplatform.com`,
+      `UID:${ev.uid}@wieloplatform.com`,
       `DTSTAMP:${now}`,
       `SUMMARY:${escapeText(ev.summary)}`,
       `DTSTART;VALUE=DATE:${isoDateToCompact(ev.startDate)}`,
@@ -109,7 +109,7 @@ export function buildIcalFeed({
 
 /**
  * Collapse consecutive single-day blocked-date rows into multi-day spans.
- * Vilo writes one row per day in `blocked_dates`; most calendar consumers
+ * Wielo writes one row per day in `blocked_dates`; most calendar consumers
  * (Airbnb, Booking.com, Apple Calendar) read multi-day VEVENTs better than
  * one VEVENT per night.
  *

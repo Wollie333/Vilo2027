@@ -50,7 +50,7 @@ export default async function AdminPaymentSettingsPage() {
       <header>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-display text-2xl font-bold text-brand-ink">
-            Vilo payment settings
+            Wielo payment settings
           </h1>
           <PaystackModeBadge
             enabled={initial.paystackEnabled}
@@ -58,7 +58,7 @@ export default async function AdminPaymentSettingsPage() {
           />
         </div>
         <p className="mt-1 text-[13px] text-brand-mute">
-          How Vilo collects money for its products — its own Paystack account
+          How Wielo collects money for its products — its own Paystack account
           (cards) and manual EFT. Each product chooses which of these it
           accepts.
         </p>

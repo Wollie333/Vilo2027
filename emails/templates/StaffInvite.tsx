@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   inviteeFirstName?: string | null;
@@ -25,13 +25,13 @@ export default function StaffInvite({
   const greeting = inviteeFirstName ? `Hi ${inviteeFirstName},` : "Hi there,";
   return (
     <Layout
-      preview={`${hostName} invited you to help manage ${propertyName} on Vilo.`}
+      preview={`${hostName} invited you to help manage ${propertyName} on Wielo.`}
     >
-      <Heading>You've been invited to Vilo</Heading>
+      <Heading>You've been invited to Wielo</Heading>
       <Text>{greeting}</Text>
       <Text>
         <strong>{hostName}</strong> has invited you to join the team at{" "}
-        <strong>{propertyName}</strong> on Vilo. You'll be able to manage
+        <strong>{propertyName}</strong> on Wielo. You'll be able to manage
         bookings, handle guest messages, and keep the calendar up to date.
       </Text>
 

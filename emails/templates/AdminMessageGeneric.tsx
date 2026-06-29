@@ -12,7 +12,7 @@ type Props = {
 };
 
 export default function AdminMessageGeneric({
-  title = "Message from Vilo",
+  title = "Message from Wielo",
   body = "",
   link_url,
   link_label,
@@ -43,7 +43,7 @@ export default function AdminMessageGeneric({
         </Section>
       ) : null}
       <Text style={{ marginTop: 32, color: "#888", fontSize: 12 }}>
-        Sent directly by the Vilo team.
+        Sent directly by the Wielo team.
       </Text>
     </Layout>
   );

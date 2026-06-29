@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   hostFirstName?: string;
@@ -33,7 +33,7 @@ export default function BookingCancelledHost({
       ? `${guestName} cancelled`
       : cancelledBy === "host"
         ? "You cancelled"
-        : "Vilo cancelled automatically";
+        : "Wielo cancelled automatically";
 
   return (
     <Layout preview={`${guestName} cancelled their stay at ${listingName}.`}>

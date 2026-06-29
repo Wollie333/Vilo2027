@@ -162,7 +162,7 @@ const SIDE_RAIL: Record<
     body: "You keep 100% of what guests pay. We charge one flat subscription — no commission on bookings, ever.",
     proof: {
       quote:
-        "I cancelled my Airbnb listing 6 months ago. Booking direct via Vilo means I keep R3 200 a month I used to lose to fees.",
+        "I cancelled my Airbnb listing 6 months ago. Booking direct via Wielo means I keep R3 200 a month I used to lose to fees.",
       name: "Lerato M.",
       role: "Featherstone Guesthouse · Knysna",
       initials: "LM",
@@ -186,7 +186,7 @@ const SIDE_RAIL: Record<
   welcome: {
     eyebrow: "You're live",
     title: "Time to take direct bookings.",
-    body: "Share your profile URL with past guests, on Instagram and on your website. Every booking lands straight in your Vilo inbox.",
+    body: "Share your profile URL with past guests, on Instagram and on your website. Every booking lands straight in your Wielo inbox.",
   },
 };
 
@@ -538,7 +538,7 @@ export function Wizard({
       <div className="border-b border-brand-line bg-white lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <ViloMark size={28} />
+            <WieloMark size={28} />
             <div className="font-display font-bold text-brand-ink">
               {brandName}
             </div>
@@ -635,7 +635,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
       />
       <div className="relative flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <ViloMark size={36} glow />
+          <WieloMark size={36} glow />
           <div>
             <div className="font-display font-bold leading-none">
               {brandName}
@@ -659,7 +659,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
           {c.title}
         </h3>
         <p className="mt-4 max-w-sm text-sm leading-relaxed text-emerald-100/75 lg:text-[15px]">
-          {c.body.replace("Vilo", brandName)}
+          {c.body.replace("Wielo", brandName)}
         </p>
 
         {c.proof ? (
@@ -670,7 +670,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
               ))}
             </div>
             <p className="text-sm leading-relaxed text-emerald-50/90">
-              &ldquo;{c.proof.quote.replace("Vilo", brandName)}&rdquo;
+              &ldquo;{c.proof.quote.replace("Wielo", brandName)}&rdquo;
             </p>
             <div className="mt-4 flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-brand-accent/40 text-[10px] font-semibold text-brand-secondary">
@@ -731,7 +731,7 @@ function Stepper({
   onJump: (i: number) => void;
 }) {
   return (
-    <div className="vilo-hide-sb flex items-center gap-1 overflow-x-auto md:gap-3">
+    <div className="wielo-hide-sb flex items-center gap-1 overflow-x-auto md:gap-3">
       {STEPS.map((s, i) => {
         const done = i < current;
         const active = i === current;
@@ -750,7 +750,7 @@ function Stepper({
                   done
                     ? "bg-brand-primary text-white"
                     : active
-                      ? "vilo-ring-pulse border-2 border-brand-primary bg-white text-brand-primary"
+                      ? "wielo-ring-pulse border-2 border-brand-primary bg-white text-brand-primary"
                       : "border border-brand-line bg-white text-brand-mute"
                 }`}
               >
@@ -813,7 +813,7 @@ function StepAccount({
     toast.info("Email signup is the only option during the MVP build.");
   }
   return (
-    <div className="vilo-step-enter">
+    <div className="wielo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
         title="Create your host account"
@@ -1037,7 +1037,7 @@ function StepAbout({
   }
 
   return (
-    <div className="vilo-step-enter">
+    <div className="wielo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
         title="A bit about you"
@@ -1204,7 +1204,7 @@ function StepListing({
   }>;
 }) {
   return (
-    <div className="vilo-step-enter">
+    <div className="wielo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
         title="Tell us about your first listing"
@@ -1382,7 +1382,7 @@ function StepPlan({
   // step to a confirmation instead of the plan picker.
   if (purchasedProductName) {
     return (
-      <div className="vilo-step-enter">
+      <div className="wielo-step-enter">
         <StepHeading
           stepIndex={stepIndex}
           title="You're all set — subscription active"
@@ -1426,7 +1426,7 @@ function StepPlan({
   // No products configured → simple Free fallback.
   if (products.length === 0) {
     return (
-      <div className="vilo-step-enter">
+      <div className="wielo-step-enter">
         <StepHeading
           stepIndex={stepIndex}
           title="You're on the Free plan"
@@ -1456,7 +1456,7 @@ function StepPlan({
     "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
 
   return (
-    <div className="vilo-step-enter">
+    <div className="wielo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
         title="Choose your plan"
@@ -1529,7 +1529,7 @@ function StepPlan({
                   >
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
                     <span className="leading-snug">
-                      {f.replace(/Vilo/g, brandName)}
+                      {f.replace(/Wielo/g, brandName)}
                     </span>
                   </li>
                 ))}
@@ -1578,7 +1578,7 @@ function Confetti() {
       {pieces.map((p, i) => (
         <span
           key={i}
-          className="vilo-confetti-piece"
+          className="wielo-confetti-piece"
           style={
             {
               left: `${p.left}%`,
@@ -1632,7 +1632,7 @@ function StepWelcome({
     : `VILO-${yyyymmdd}-……`;
 
   return (
-    <div className="vilo-step-enter relative">
+    <div className="wielo-step-enter relative">
       <Confetti />
 
       <div className="relative">
@@ -1715,7 +1715,7 @@ function StepWelcome({
                   className="flex items-start gap-2 text-xs text-brand-mute"
                 >
                   <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
-                  <span>{f.replace("Vilo", brandName)}</span>
+                  <span>{f.replace("Wielo", brandName)}</span>
                 </li>
               ))}
             </ul>
@@ -1902,7 +1902,7 @@ function StepHeading({
 
 // ─── Inline logo ──────────────────────────────────────────────────
 
-function ViloMark({
+function WieloMark({
   size = 36,
   glow = false,
 }: {
@@ -1910,7 +1910,7 @@ function ViloMark({
   glow?: boolean;
 }) {
   const id = useMemo(
-    () => `vilo-grad-${Math.random().toString(36).slice(2, 8)}`,
+    () => `wielo-grad-${Math.random().toString(36).slice(2, 8)}`,
     [],
   );
   return (

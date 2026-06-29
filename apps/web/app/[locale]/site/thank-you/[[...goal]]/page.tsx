@@ -89,7 +89,7 @@ export default async function SiteFormThankYouPage({
   const sp = await searchParams;
   const h = await headers();
   const ref = resolveSiteRef({
-    host: h.get("x-vilo-site-host"),
+    host: h.get("x-wielo-site-host"),
     siteParam: sp?.site,
   });
   if (!ref) notFound();

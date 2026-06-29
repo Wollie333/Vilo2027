@@ -49,10 +49,10 @@ export default async function PortalDataSettingsPage() {
       <p className="text-[12px] text-brand-mute">
         Need a data export, or have a privacy question? Email{" "}
         <a
-          href="mailto:privacy@viloplatform.com"
+          href="mailto:privacy@wieloplatform.com"
           className="text-brand-primary underline-offset-2 hover:underline"
         >
-          privacy@viloplatform.com
+          privacy@wieloplatform.com
         </a>{" "}
         and we&rsquo;ll respond within 30 days.
       </p>

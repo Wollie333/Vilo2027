@@ -5,7 +5,7 @@ import Button from "../components/Button";
 import Heading from "../components/Heading";
 import Layout from "../components/Layout";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://viloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
 
 type Props = {
   guestFirstName?: string;
@@ -91,7 +91,7 @@ export default function BookingConfirmedGuest({
 
       <Text style={{ marginTop: 20, fontSize: 13, color: "#6B7280" }}>
         Need to change something? Reply to this email or message {hostName}{" "}
-        through your Vilo inbox.
+        through your Wielo inbox.
       </Text>
     </Layout>
   );

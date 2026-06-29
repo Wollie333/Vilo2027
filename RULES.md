@@ -1,4 +1,4 @@
-# Vilo — General Rules & Best Practices
+# Wielo — General Rules & Best Practices
 
 **Version:** 1.0
 **Last Updated:** May 2026
@@ -302,7 +302,7 @@ counterpart to §9 for language.
   create a new namespace only for a genuinely new surface.
 - **Dynamic values via ICU**, never string concatenation:
   `t("greeting", { name })` with `"Hi {name}"`. Feed the brand in as a value
-  (`{brand}`) — never hardcode "Vilo" (see the dynamic-brand rule).
+  (`{brand}`) — never hardcode "Wielo" (see the dynamic-brand rule).
 - **English is the source of truth.** Only `en.json` must be complete; other
   locales fall back to English and are filled later through the admin
   Translations portal (export keys → AI-translate the JSON → import → native

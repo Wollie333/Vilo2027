@@ -58,7 +58,7 @@ export const PLANS = [
     features: [
       "Public profile + 1 listing",
       "Inbox (10 active threads)",
-      "Listed in Vilo Directory",
+      "Listed in Wielo Directory",
       "No direct payments",
     ],
   },

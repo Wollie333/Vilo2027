@@ -62,8 +62,8 @@ export function ChannelsTab({
       {/* ── Directory channel ── */}
       <ChannelCard
         icon={<Compass className="h-5 w-5" />}
-        title="Vilo Directory"
-        description="The public Vilo directory listing at /property/your-place — discoverable, bookable directly."
+        title="Wielo Directory"
+        description="The public Wielo directory listing at /property/your-place — discoverable, bookable directly."
         on={isPublished}
         pending={publishPending}
         onToggle={onToggleDirectory}
@@ -80,7 +80,7 @@ export function ChannelsTab({
           </Link>
         ) : (
           <p className="text-[12.5px] text-brand-mute">
-            Turn this on to list the property on the Vilo directory. Setup must
+            Turn this on to list the property on the Wielo directory. Setup must
             be complete (photos, a room, banking and a refund policy).
           </p>
         )}
@@ -90,7 +90,7 @@ export function ChannelsTab({
       <ChannelCard
         icon={<Globe className="h-5 w-5" />}
         title="Your website"
-        description="Show this property on your business's own branded Vilo website."
+        description="Show this property on your business's own branded Wielo website."
         on={onWebsite}
         pending={websitePending}
         onToggle={toggleWebsite}

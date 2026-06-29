@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Vilo action/form modal — the larger sibling of the notification <Modal />.
+ * Wielo action/form modal — the larger sibling of the notification <Modal />.
  *
  * Same backdrop, card chrome, motion and brand styling, but with a header
  * (title + optional subtitle + close affordance), a scrollable body slot for

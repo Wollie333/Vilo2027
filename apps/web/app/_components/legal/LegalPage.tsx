@@ -22,7 +22,7 @@ export function LegalPage({
   title: string;
   lastUpdated: string;
   sections?: ReadonlyArray<LegalSectionData>;
-  // When set, this Vilo-published HTML is rendered instead of the static
+  // When set, this Wielo-published HTML is rendered instead of the static
   // sections, and the draft notice is suppressed (it's the real document).
   bodyHtml?: string | null;
 }) {

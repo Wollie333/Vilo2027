@@ -2,22 +2,22 @@ import "server-only";
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 
-// The Vilo revenue ledger read model — every user→Vilo transaction. Mirrors the
+// The Wielo revenue ledger read model — every user→Wielo transaction. Mirrors the
 // host booking ledger (lib/finance/transactions.ts) but scoped to money paid to
-// Vilo (subscriptions, services, refunds, manual adjustments).
+// Wielo (subscriptions, services, refunds, manual adjustments).
 
-export type ViloTxnType = "charge" | "refund" | "credit" | "adjustment";
-export type ViloTxnStatus = "pending" | "completed" | "failed";
-export type ViloEnvironment = "test" | "live";
+export type WieloTxnType = "charge" | "refund" | "credit" | "adjustment";
+export type WieloTxnStatus = "pending" | "completed" | "failed";
+export type WieloEnvironment = "test" | "live";
 
-export type ViloTxn = {
+export type WieloTxn = {
   id: string;
   date: string;
-  type: ViloTxnType;
-  status: ViloTxnStatus;
+  type: WieloTxnType;
+  status: WieloTxnStatus;
   amount: number; // signed
   currency: string;
-  environment: ViloEnvironment;
+  environment: WieloEnvironment;
   vatAmount: number | null;
   plan: string | null;
   billingCycle: string | null;
@@ -31,19 +31,19 @@ export type ViloTxn = {
   hostHandle: string | null;
 };
 
-export type ViloLedgerFilter = {
+export type WieloLedgerFilter = {
   userId?: string;
   hostId?: string;
   plan?: string;
-  type?: ViloTxnType;
-  status?: ViloTxnStatus;
-  environment?: ViloEnvironment; // omit = both
+  type?: WieloTxnType;
+  status?: WieloTxnStatus;
+  environment?: WieloEnvironment; // omit = both
   since?: string; // ISO
   until?: string; // ISO
   limit?: number;
 };
 
-export type ViloLedgerStats = {
+export type WieloLedgerStats = {
   collected: number; // completed charges in
   refunded: number; // completed refunds out (positive magnitude)
   credits: number; // completed credits out (positive magnitude)
@@ -54,10 +54,10 @@ export type ViloLedgerStats = {
 
 type Db = ReturnType<typeof createAdminClient>;
 
-export async function fetchViloLedger(
+export async function fetchWieloLedger(
   admin: Db,
-  filter: ViloLedgerFilter = {},
-): Promise<ViloTxn[]> {
+  filter: WieloLedgerFilter = {},
+): Promise<WieloTxn[]> {
   let q = admin
     .from("platform_ledger")
     .select(
@@ -79,7 +79,7 @@ export async function fetchViloLedger(
   if (filter.until) q = q.lte("created_at", filter.until);
 
   const { data, error } = await q;
-  if (error) throw new Error(`fetchViloLedger: ${error.message}`);
+  if (error) throw new Error(`fetchWieloLedger: ${error.message}`);
 
   return (data ?? []).map((r) => {
     const payer = Array.isArray(r.payer) ? r.payer[0] : r.payer;
@@ -87,13 +87,13 @@ export async function fetchViloLedger(
     return {
       id: r.id,
       date: r.created_at,
-      type: r.type as ViloTxnType,
-      status: r.status as ViloTxnStatus,
+      type: r.type as WieloTxnType,
+      status: r.status as WieloTxnStatus,
       amount: Number(r.amount),
       currency: r.currency,
       environment: (r.environment === "test"
         ? "test"
-        : "live") as ViloEnvironment,
+        : "live") as WieloEnvironment,
       vatAmount: r.vat_amount != null ? Number(r.vat_amount) : null,
       plan: r.plan,
       billingCycle: r.billing_cycle,
@@ -109,7 +109,7 @@ export async function fetchViloLedger(
   });
 }
 
-export function viloLedgerStats(rows: ViloTxn[]): ViloLedgerStats {
+export function wieloLedgerStats(rows: WieloTxn[]): WieloLedgerStats {
   let collected = 0;
   let refunded = 0;
   let credits = 0;

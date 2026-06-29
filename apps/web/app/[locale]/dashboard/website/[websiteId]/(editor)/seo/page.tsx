@@ -43,7 +43,7 @@ export default async function WebsiteSeoPage({
     <SeoForm
       websiteId={websiteId}
       fallbackTitle={data.brand.name ?? data.subdomain}
-      previewHost={`${data.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site"}`}
+      previewHost={`${data.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site"}`}
       pages={pages}
       initial={{
         title: data.seo.title ?? "",

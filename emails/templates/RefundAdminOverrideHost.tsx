@@ -21,7 +21,7 @@ export default function RefundAdminOverrideHost({
   bookingReference = "—",
   refundAmount = "—",
   adminNote = "",
-  supportEmail = "support@viloplatform.com",
+  supportEmail = "support@wieloplatform.com",
 }: Props) {
   return (
     <Layout
@@ -31,7 +31,7 @@ export default function RefundAdminOverrideHost({
       <Text>Hi {hostFirstName},</Text>
       <Text>
         Following a review of the refund dispute for booking{" "}
-        <strong>{bookingReference}</strong> ({listingName}), the Vilo team has
+        <strong>{bookingReference}</strong> ({listingName}), the Wielo team has
         issued a refund of <strong>{refundAmount}</strong> to {guestName}.
       </Text>
 

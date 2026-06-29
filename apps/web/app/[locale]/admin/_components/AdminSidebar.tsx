@@ -36,7 +36,7 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 const OPERATIONS: GmailNavItem[] = [
   { href: "/admin", label: "Overview", icon: Gauge, match: "exact" },
-  // One unified Users hub — every Vilo user (hosts + guests + staff). The old
+  // One unified Users hub — every Wielo user (hosts + guests + staff). The old
   // separate "Hosts" tab is gone; filter by type inside Users instead.
   { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
   {
@@ -61,7 +61,7 @@ const FINANCE: GmailNavItem[] = [
     match: "prefix",
   },
   {
-    // The Vilo ledger — every transaction between users and Vilo.
+    // The Wielo ledger — every transaction between users and Wielo.
     href: "/admin/subscriptions/revenue",
     label: "Ledger",
     icon: Wallet,

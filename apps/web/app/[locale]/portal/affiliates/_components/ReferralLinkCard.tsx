@@ -34,7 +34,7 @@ export function ReferralLinkCard({
 
   const link = `${baseUrl}/r/${slug}`;
   const display = link.replace(/^https?:\/\//, "");
-  const shareText = `Run your place on Vilo — direct bookings, zero booking fees. Sign up: ${link}`;
+  const shareText = `Run your place on Wielo — direct bookings, zero booking fees. Sign up: ${link}`;
   const waHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
   const mailHref = `mailto:?subject=${encodeURIComponent(
     "A better way to run your guesthouse",

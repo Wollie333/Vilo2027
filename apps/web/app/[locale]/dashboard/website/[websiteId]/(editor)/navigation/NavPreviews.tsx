@@ -12,7 +12,7 @@ function isCollapsed(collapse: string, device: PreviewDevice): boolean {
 }
 
 // Lightweight live previews for the Navigation manager cards, themed with the
-// scoped `.vilo-nav` chrome (nav.css). Built from the site's real navigation
+// scoped `.wielo-nav` chrome (nav.css). Built from the site's real navigation
 // config + brand — a stylised mini-frame, not the full public header/footer.
 
 function mark(name: string) {
@@ -250,7 +250,7 @@ export function NavFooterPreview({
       <div className="nv-foot-bot">
         <span>{nav.footer.copyright?.trim() || `© ${brandName}`}</span>
         {nav.footer.showPoweredBy !== false ? (
-          <span>Powered by Vilo</span>
+          <span>Powered by Wielo</span>
         ) : null}
       </div>
     </div>

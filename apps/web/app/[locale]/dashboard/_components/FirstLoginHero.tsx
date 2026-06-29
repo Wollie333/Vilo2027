@@ -11,7 +11,7 @@ type Props = {
   steps: SetupStep[];
 };
 
-// First-login hero, modeled on the "Welcome to Vilo, Thandi." card in the
+// First-login hero, modeled on the "Welcome to Wielo, Thandi." card in the
 // design — gradient left side with the greeting + handle pill + CTAs,
 // dark right side with a progress ring and the four most-prominent step
 // chips. The full 6-row checklist lives below in SetupChecklist.
@@ -67,7 +67,7 @@ export async function FirstLoginHero({ firstName, handle, steps }: Props) {
             <div className="mt-5 inline-flex items-center gap-2 rounded-[10px] border border-white/15 bg-black/20 px-3 py-2 text-[12px] backdrop-blur">
               <Link2 className="h-3.5 w-3.5 text-brand-primary" />
               <span className="font-mono text-brand-accent/70">
-                viloplatform.com/
+                wieloplatform.com/
               </span>
               <span className="font-mono font-semibold text-white">
                 {handle}

@@ -2,8 +2,8 @@
 //
 // The middleware runs on EVERY request and is the single guard protecting the
 // whole app. This module decides — from the Host header alone — whether a request
-// belongs to the app (vilo.site / app.vilo.site / localhost / *.vercel.app /
-// reserved subdomains) or to a tenant micro-site (<sub>.vilo.site or a connected
+// belongs to the app (wielo.site / app.wielo.site / localhost / *.vercel.app /
+// reserved subdomains) or to a tenant micro-site (<sub>.wielo.site or a connected
 // custom domain). It is deliberately FAIL-SAFE: with no NEXT_PUBLIC_ROOT_DOMAIN
 // configured, EVERYTHING classifies as "app", so the feature is opt-in by env and
 // the app's existing routing can never regress.

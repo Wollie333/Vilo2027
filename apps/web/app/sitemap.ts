@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vilo.co.za";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://wielo.co.za";
 
 export const dynamic = "force-dynamic";
 

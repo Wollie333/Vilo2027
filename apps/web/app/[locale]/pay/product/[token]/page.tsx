@@ -61,7 +61,7 @@ export default async function ProductPayPage({
   const showEft = methods.includes("eft") && settings?.eft_enabled;
   const paid = order.status === "paid";
 
-  // Does this buyer already have a Vilo account? If not, after paying they go
+  // Does this buyer already have a Wielo account? If not, after paying they go
   // straight into the signup flow to complete their account (the toolkit step is
   // locked to this purchase).
   let hasAccount = !!order.payer_user_id;
@@ -74,7 +74,7 @@ export default async function ProductPayPage({
     hasAccount = !!existing;
   }
 
-  // Paid → the rich thank-you one-pager, driven by the issued Vilo invoice so the
+  // Paid → the rich thank-you one-pager, driven by the issued Wielo invoice so the
   // figures match the invoice exactly (mirrors the signup last step).
   if (paid) {
     const { data: invoices } = await service
@@ -113,7 +113,7 @@ export default async function ProductPayPage({
     <div className="mx-auto max-w-md px-4 py-12">
       <div className="rounded-card border border-brand-line bg-white p-6 shadow-card">
         <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-          Pay Vilo
+          Pay Wielo
         </div>
         <h1 className="mt-1 font-display text-xl font-bold text-brand-ink">
           {order.product_name}
@@ -141,7 +141,7 @@ export default async function ProductPayPage({
                 />
               </dl>
               <p className="mt-2 text-[11px] text-brand-mute">
-                Once paid, email proof to Vilo and we&apos;ll confirm your
+                Once paid, email proof to Wielo and we&apos;ll confirm your
                 order.
               </p>
             </div>
@@ -150,7 +150,7 @@ export default async function ProductPayPage({
           {!showPaystack && !showEft ? (
             <p className="text-sm text-brand-mute">
               No payment method is available for this product yet. Please
-              contact Vilo.
+              contact Wielo.
             </p>
           ) : null}
         </div>

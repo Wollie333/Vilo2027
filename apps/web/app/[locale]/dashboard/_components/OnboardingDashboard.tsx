@@ -90,7 +90,7 @@ export function OnboardingDashboard({
               <div className="mt-5 inline-flex items-center gap-2 rounded-pill border border-brand-line bg-brand-light px-3.5 py-2 text-[12.5px]">
                 <LinkIcon className="h-3.5 w-3.5 text-brand-primary" />
                 <span className="font-mono text-brand-mute">
-                  viloplatform.com/
+                  wieloplatform.com/
                 </span>
                 <span className="font-mono font-semibold text-brand-ink">
                   {handle}

@@ -74,7 +74,7 @@ export async function SitePageView({
   let jsonLdGraph: Record<string, unknown>[] = [];
   if (!ctx.preview) {
     const h = await headers();
-    const host = h.get("x-vilo-site-host") || h.get("host") || "";
+    const host = h.get("x-wielo-site-host") || h.get("host") || "";
     if (host) {
       const scheme =
         host.startsWith("localhost") || host.startsWith("127.")

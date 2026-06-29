@@ -202,7 +202,7 @@ export async function deleteAccountAction(input: {
     return {
       ok: false,
       error:
-        "We hit a snag clearing your historical records. Try again or email privacy@viloplatform.com.",
+        "We hit a snag clearing your historical records. Try again or email privacy@wieloplatform.com.",
     };
   }
 
@@ -213,7 +213,7 @@ export async function deleteAccountAction(input: {
     return {
       ok: false,
       error:
-        "Could not finalise account deletion. Some records may still reference your account — email privacy@viloplatform.com.",
+        "Could not finalise account deletion. Some records may still reference your account — email privacy@wieloplatform.com.",
     };
   }
 

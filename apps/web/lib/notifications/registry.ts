@@ -488,7 +488,7 @@ export const NOTIFICATION_REGISTRY = {
     inApp: (r) => ({
       title: "Refund override applied",
       body:
-        r.listing_name ?? `${r.brand_name ?? "Vilo"} support issued a refund.`,
+        r.listing_name ?? `${r.brand_name ?? "Wielo"} support issued a refund.`,
       link: `/dashboard/payments/refunds/${r.refund_id ?? r.booking_id}`,
     }),
     dedupeKey: (r) => `refund_override:${r.refund_id ?? r.booking_id}`,
@@ -565,7 +565,7 @@ export const NOTIFICATION_REGISTRY = {
     push: (r) => ({
       title: "Subscription renews soon",
       body: clip(
-        `Your ${r.brand_name ?? "Vilo"} ${r.plan_name ?? ""} plan renews on ${r.renewal_date ?? "soon"}.`,
+        `Your ${r.brand_name ?? "Wielo"} ${r.plan_name ?? ""} plan renews on ${r.renewal_date ?? "soon"}.`,
       ),
       data: link("/dashboard/settings/subscription"),
       sound: null,
@@ -587,7 +587,7 @@ export const NOTIFICATION_REGISTRY = {
     push: (r) => ({
       title: "Payment failed",
       body: clip(
-        `We couldn't charge your ${r.brand_name ?? "Vilo"} ${r.plan_name ?? ""} subscription.`,
+        `We couldn't charge your ${r.brand_name ?? "Wielo"} ${r.plan_name ?? ""} subscription.`,
       ),
       data: link("/dashboard/settings/subscription"),
       sound: "default",
@@ -609,7 +609,7 @@ export const NOTIFICATION_REGISTRY = {
     refKeys: ["subscription_id"],
     push: (r) => ({
       title: "Account restricted",
-      body: `Your ${r.brand_name ?? "Vilo"} subscription has lapsed. Reactivate to restore access.`,
+      body: `Your ${r.brand_name ?? "Wielo"} subscription has lapsed. Reactivate to restore access.`,
       data: link("/dashboard/settings/subscription"),
       sound: "default",
       priority: "high",

@@ -1,6 +1,6 @@
 # Vilo Platform
 
-You are working on **Vilo** — a direct-booking management platform for accommodation hosts and experience operators in South Africa. Hosts manage listings, bookings, calendars, payments, policies, and guest communication. Guests discover and book directly without a marketplace commission.
+You are working on **Wielo** — a direct-booking management platform for accommodation hosts and experience operators in South Africa. Hosts manage listings, bookings, calendars, payments, policies, and guest communication. Guests discover and book directly without a marketplace commission.
 
 ---
 
@@ -11,7 +11,7 @@ At the start of every session, read in this order:
 1. `CURRENT_TASK.md` — what this session builds (scope contract — do not work outside it)
 2. `RULES.md` — general good practice rules for every session
 3. `AGENT_RULES.md` — non-negotiable platform-specific guardrails
-4. `BUSINESS_PRINCIPLES.md` — foundational strategic rules (what Vilo is; always true)
+4. `BUSINESS_PRINCIPLES.md` — foundational strategic rules (what Wielo is; always true)
 5. `CONVENTIONS.md` — how code is written
 6. `ARCHITECTURE.md` — folder structure and data flow
 7. `DEVSTACK.md` — locked versions and dev environment setup
@@ -30,7 +30,7 @@ Read these for their specific domain:
 - `CI_CD.md` — GitHub Actions workflow files and deployment order
 
 Read these when working in a specific domain:
-- `vilo-platform-mvp.md` — full product spec with all modules and subscription tiers
+- `wielo-platform-mvp.md` — full product spec with all modules and subscription tiers
 - `supabase_database.md` — complete DB schema, RLS policies, triggers, cron jobs, seed data
 - `customer_journey.md` — every user flow mapped in detail
 
@@ -110,7 +110,7 @@ Read these when working in a specific domain:
 ## Monorepo Structure
 
 ```
-vilo/
+wielo/
 ├── apps/
 │   ├── web/               # Next.js 14 web app
 │   └── mobile/            # Expo React Native app

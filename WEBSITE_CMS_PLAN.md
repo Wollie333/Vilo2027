@@ -1,6 +1,6 @@
-# Vilo Website CMS — Build Plan
+# Wielo Website CMS — Build Plan
 
-> The build contract for turning Vilo's website feature into a full-fledged,
+> The build contract for turning Wielo's website feature into a full-fledged,
 > easy-to-use, enterprise-grade CMS for accommodation hosts — designed so a host
 > can launch a real, conversion-ready website in **minutes**, cheaply.
 >
@@ -14,7 +14,7 @@
 A modern, simple, beautiful website CMS that:
 - Lets a host stand up a complete accommodation website in minutes (AI-assisted).
 - Drives **direct bookings + enquiries** by integrating deeply with the existing
-  Vilo booking engine, inbox, and accounting — no marketplace commission.
+  Wielo booking engine, inbox, and accounting — no marketplace commission.
 - Is cost-effective, fast (Core Web Vitals), SEO-excellent, and POPIA-compliant.
 - Feels enterprise-grade but stays genuinely easy for a non-technical host.
 
@@ -302,8 +302,8 @@ confirms nothing local-only remains (worktree status was clean — no uncommitte
 ---
 
 ### Phase 9 — Guest Experience Extensions
-1. **Pre-arrival guest portal** — personalised page per booking (wifi, check-in steps, directions, upsells). *Uniquely possible because Vilo owns the booking.*
-2. **Buy-a-domain in-app** — purchase a domain through Vilo (not just connect).
+1. **Pre-arrival guest portal** — personalised page per booking (wifi, check-in steps, directions, upsells). *Uniquely possible because Wielo owns the booking.*
+2. **Buy-a-domain in-app** — purchase a domain through Wielo (not just connect).
 3. **QR code generator** — for site/booking, to print in rooms.
 4. **Review collection flow** — request → display → respond.
 5. **PWA / add-to-home-screen** for the guest site; **multi-currency display**.

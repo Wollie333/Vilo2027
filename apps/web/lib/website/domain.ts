@@ -45,7 +45,7 @@ export function validateDomain(input: string): string | null {
   if (!DOMAIN_RE.test(d)) return "domainInvalid";
 
   const root = (
-    process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site"
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site"
   ).toLowerCase();
   if (d === root || d.endsWith(`.${root}`)) return "domainIsRoot";
 

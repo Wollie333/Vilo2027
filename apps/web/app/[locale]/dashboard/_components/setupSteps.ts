@@ -78,7 +78,7 @@ export function buildSetupSteps(state: GettingStartedState): SetupStep[] {
       key: "listing_published",
       title: "Publish your booking page",
       description:
-        "Share viloplatform.com/your-handle anywhere — Instagram bio, WhatsApp, email signature.",
+        "Share wieloplatform.com/your-handle anywhere — Instagram bio, WhatsApp, email signature.",
       meta: state.listing_published.meta,
       done: state.listing_published.done,
       href: "/dashboard/setup?step=review",

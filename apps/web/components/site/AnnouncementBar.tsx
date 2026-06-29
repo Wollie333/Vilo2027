@@ -25,7 +25,7 @@ export function AnnouncementBar({
   const linkLabel = announcement?.linkLabel?.trim();
   const linkHref = announcement?.linkHref?.trim();
   // Stable per-message key so a new message re-appears after a prior dismissal.
-  const storageKey = `vilo-ann:${(text ?? "").slice(0, 64)}`;
+  const storageKey = `wielo-ann:${(text ?? "").slice(0, 64)}`;
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {

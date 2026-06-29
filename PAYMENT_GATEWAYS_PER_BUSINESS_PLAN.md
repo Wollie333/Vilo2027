@@ -30,7 +30,7 @@ Target: Business 1 = listing 1 = eft1 + paystack1 + paypal1; Business 2 = listin
 - **Settings UI** is host-level ("these apply across all your businesses") —
   `settings/banking` PaymentGatewaysSection/Dialog.
 - **MUST NOT CHANGE:** the platform Paystack key (`PAYSTACK_SECRET_KEY`) used only
-  for Vilo's own subscription billing, and the `paystack-webhook` (platform-only).
+  for Wielo's own subscription billing, and the `paystack-webhook` (platform-only).
   Host booking payments already charge the host's own key (AGENT_RULES §4.7/§4.8).
 - **Precedent to mirror:** `eft_banking_details.business_id` + `getHostParty(…, businessId)`
   resolving banking per business (default-business fallback).

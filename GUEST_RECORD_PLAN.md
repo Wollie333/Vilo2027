@@ -38,7 +38,7 @@ A CRM-style way for hosts to manage everyone who books or enquires:
 - **Dynamic data only** — never hardcode the mockups' sample values. Where the design shows something we
   don't store (e.g. "Needs: baby cot"), derive from a real field (`bookings.special_requests`) or omit.
 - **Modal system** (`Modal`/`FormModal`) for Add guest / Add tag / Block / Export — never `window.confirm`.
-- **Brand name** via `<BrandName>` / `useBrandName()` — never hardcode "Vilo".
+- **Brand name** via `<BrandName>` / `useBrandName()` — never hardcode "Wielo".
 - **Help Centre article** required (seed `help_articles` migration).
 - **Not feature-gated** (core host tool; pre-MVP everything is open anyway).
 - **Mutations → Server Actions.** **Every query scopes `host_id`** (RLS + explicit filter; pin the FK on

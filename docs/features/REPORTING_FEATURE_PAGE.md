@@ -1,6 +1,6 @@
 # Reporting & Analytics Feature Page Specification
 
-> **Purpose:** Comprehensive brief for Claude Design to build a conversion-focused feature sales page for Vilo's Reporting & Analytics.
+> **Purpose:** Comprehensive brief for Claude Design to build a conversion-focused feature sales page for Wielo's Reporting & Analytics.
 > **URL:** `/features/reporting`
 
 ---
@@ -9,11 +9,11 @@
 
 | Field | Content |
 |-------|---------|
-| **Page Title** | Reporting & Analytics for SA Accommodation Hosts | Vilo |
+| **Page Title** | Reporting & Analytics for SA Accommodation Hosts | Wielo |
 | **Meta Description** | Understand your accommodation business with real-time KPIs, revenue trends, occupancy tracking, and exportable reports. Built for South African hosts who want data-driven decisions. |
 | **Target Keywords** | accommodation analytics, hospitality reporting, revenue dashboard, occupancy tracking, property management reports, South Africa accommodation |
 | **URL Slug** | `/features/reporting` |
-| **OG Title** | Data-Driven Decisions for Your Accommodation Business — Vilo Reporting |
+| **OG Title** | Data-Driven Decisions for Your Accommodation Business — Wielo Reporting |
 | **OG Description** | Real-time KPIs, revenue trends, channel mix analysis, and scheduled reports — all designed for SA accommodation hosts. |
 
 ---
@@ -48,7 +48,7 @@ Dashboard mockup showing:
 
 ### Pain Points
 
-| Pain Point | Emotional Hook | Before Vilo |
+| Pain Point | Emotional Hook | Before Wielo |
 |------------|---------------|-------------|
 | **No revenue visibility** | "How much did you actually make last month?" | Spreadsheets, receipts, bank statements — never a clear answer |
 | **Unknown occupancy rate** | "Are you full? Half-full? No idea?" | Counting bookings manually; missing the big picture |
@@ -58,7 +58,7 @@ Dashboard mockup showing:
 | **No early warnings** | "Cancellations creeping up? Wouldn't know." | Problems only visible when revenue already lost |
 
 ### Emotional Summary
-"Most accommodation hosts are excellent at hospitality but flying blind on their numbers. Vilo gives you the dashboard you wish you'd always had — without the enterprise software price tag or complexity."
+"Most accommodation hosts are excellent at hospitality but flying blind on their numbers. Wielo gives you the dashboard you wish you'd always had — without the enterprise software price tag or complexity."
 
 ---
 
@@ -69,7 +69,7 @@ Dashboard mockup showing:
 
 ### Transformation Narrative
 
-| Before Vilo | After Vilo |
+| Before Wielo | After Wielo |
 |-------------|-----------|
 | Scattered spreadsheets | One real-time dashboard |
 | Manual revenue tracking | Automatic KPI calculations |
@@ -197,7 +197,7 @@ Dashboard mockup showing:
 | Step | Action | Detail |
 |------|--------|--------|
 | 1 | Bookings happen | Direct bookings, iCal imports, manual entries all count |
-| 2 | Data aggregates | Vilo automatically calculates KPIs, trends, and comparisons |
+| 2 | Data aggregates | Wielo automatically calculates KPIs, trends, and comparisons |
 | 3 | Open dashboard | Visit Reports page to see real-time analytics |
 | 4 | Filter & drill down | Select date range, property, channel, or region |
 | 5 | Compare periods | Toggle "vs prior period" to see growth/decline |
@@ -216,7 +216,7 @@ Flow diagram: `Bookings` → `Auto-calculation` → `Dashboard` → `Filter` →
 ### Testimonial Placeholders
 
 **Safari Lodge (Limpopo):**
-> "Before Vilo, I had no idea Airbnb was costing me 18% more than direct bookings. Now I see the channel mix and I've shifted my marketing budget. Direct is up 35% in three months."
+> "Before Wielo, I had no idea Airbnb was costing me 18% more than direct bookings. Now I see the channel mix and I've shifted my marketing budget. Direct is up 35% in three months."
 > — *Lodge Owner, Limpopo*
 
 **Boutique Guesthouse (Stellenbosch):**
@@ -228,7 +228,7 @@ Flow diagram: `Bookings` → `Auto-calculation` → `Dashboard` → `Filter` →
 > — *Self-Catering Owner, Durban*
 
 ### Trust Indicators
-- "R 12M+ in bookings analyzed monthly across Vilo hosts"
+- "R 12M+ in bookings analyzed monthly across Wielo hosts"
 - "Average host saves 4 hours per month on reporting"
 - "89% of hosts discover optimization opportunities in their first week"
 
@@ -237,9 +237,9 @@ Flow diagram: `Bookings` → `Auto-calculation` → `Dashboard` → `Filter` →
 ## 8. Comparison Section
 
 ### Section Header
-"Why Hosts Switch to Vilo Analytics"
+"Why Hosts Switch to Wielo Analytics"
 
-| Without Vilo | With Vilo |
+| Without Wielo | With Wielo |
 |--------------|-----------|
 | Multiple spreadsheets and tools | One unified dashboard |
 | Manual calculations | Automatic KPIs and trends |
@@ -247,7 +247,7 @@ Flow diagram: `Bookings` → `Auto-calculation` → `Dashboard` → `Filter` →
 | Guessing at channel performance | Visual channel mix breakdown |
 | Hours building reports | One-click CSV, PDF, or Excel |
 | No scheduled insights | Automated reports to your inbox |
-| Enterprise pricing | Included with your Vilo plan |
+| Enterprise pricing | Included with your Wielo plan |
 | Generic hospitality metrics | SA-specific: Rand, provinces, local seasons |
 
 ---
@@ -255,7 +255,7 @@ Flow diagram: `Bookings` → `Auto-calculation` → `Dashboard` → `Filter` →
 ## 9. FAQ Section
 
 ### Q: How far back does reporting go?
-**A:** From your first booking in Vilo. All historical data is preserved and included in analytics. There's no limit on date ranges.
+**A:** From your first booking in Wielo. All historical data is preserved and included in analytics. There's no limit on date ranges.
 
 ### Q: Can I see analytics for a single property?
 **A:** Yes. Use the "Listing" filter to scope all reports to a single property. Great for comparing property performance or sharing reports with property owners.
@@ -276,7 +276,7 @@ Flow diagram: `Bookings` → `Auto-calculation` → `Dashboard` → `Filter` →
 **A:** It calculates how much you've saved by booking direct instead of through OTAs. Based on standard OTA commission rates (15%+), it shows the tangible value of your direct booking strategy.
 
 ### Q: Can I compare this year to last year?
-**A:** Yes. The "vs prior period" toggle shows automatic period comparison. Select any date range and Vilo calculates the equivalent prior period automatically.
+**A:** Yes. The "vs prior period" toggle shows automatic period comparison. Select any date range and Wielo calculates the equivalent prior period automatically.
 
 ---
 
@@ -297,7 +297,7 @@ Flow diagram: `Bookings` → `Auto-calculation` → `Dashboard` → `Filter` →
 - "Full analytics on every plan"
 
 ### Closing Statement
-"Stop guessing. Start knowing. Your bookings already hold the answers — Vilo just makes them visible."
+"Stop guessing. Start knowing. Your bookings already hold the answers — Wielo just makes them visible."
 
 ---
 

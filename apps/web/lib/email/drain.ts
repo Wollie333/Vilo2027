@@ -8,7 +8,7 @@ import { EMAIL_REGISTRY, type EmailRegistryEntry } from "./registry";
 import { RESOLVERS } from "./resolvers";
 
 const FROM_ADDRESS =
-  process.env.EMAIL_FROM_ADDRESS ?? "Vilo <onboarding@resend.dev>";
+  process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
 
 const BATCH_SIZE = 50;
 
@@ -44,7 +44,7 @@ export async function drainEmailQueue(): Promise<DrainResult> {
   const resend = new Resend(apiKey);
   const supabase = createAdminClient();
   // Brand name is injected into every email payload so subjects/templates can
-  // use the configured name (falling back to "Vilo") instead of hardcoding it.
+  // use the configured name (falling back to "Wielo") instead of hardcoding it.
   const brandName = await getBrandName();
 
   // Atomically CLAIM a batch (stamps claimed_at via FOR UPDATE SKIP LOCKED) so

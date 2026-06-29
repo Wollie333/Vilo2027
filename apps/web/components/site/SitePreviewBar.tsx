@@ -5,7 +5,7 @@ import { SitePreviewLinks } from "./SitePreviewLinks";
 import "./site-preview.css";
 
 /**
- * Single source of truth for the theme-preview bar — a small Vilo bar pinned
+ * Single source of truth for the theme-preview bar — a small Wielo bar pinned
  * above the site while a host is PREVIEWING a theme (like the WordPress admin
  * bar). It signals "you're previewing" AND is a full page navigator: every page
  * of the design, including ones not in the site menu (a sample room detail,

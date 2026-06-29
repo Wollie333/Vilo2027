@@ -32,7 +32,7 @@ export function CreateWebsiteCard({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
 
   function onChange(v: string) {
     // Live-sanitise to a DNS-safe label as the host types.

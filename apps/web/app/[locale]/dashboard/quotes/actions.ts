@@ -1152,7 +1152,7 @@ export async function searchGuestsAction(
 
 // Post the quote link into an existing host↔guest conversation. Conversations
 // are created by the booking/enquiry flow — we only write into one that already
-// exists (matched on the guest's Vilo account). Account-less guests get a clear
+// exists (matched on the guest's Wielo account). Account-less guests get a clear
 // error so the host falls back to WhatsApp / email.
 export async function shareQuoteToInboxAction(
   quoteId: string,

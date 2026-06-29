@@ -265,7 +265,7 @@ export function CategoryEditor({
             <input
               value={state.canonicalUrl}
               onChange={(e) => update("canonicalUrl", e.target.value)}
-              placeholder="https://viloplatform.com/c/villa"
+              placeholder="https://wieloplatform.com/c/villa"
               className="input"
             />
           </Field>

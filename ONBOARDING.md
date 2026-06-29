@@ -64,8 +64,8 @@ doppler --version
 ## 3. Clone and Install
 
 ```bash
-git clone git@github.com:your-org/vilo.git
-cd vilo
+git clone git@github.com:your-org/wielo.git
+cd wielo
 pnpm install
 ```
 
@@ -79,8 +79,8 @@ All environment variables are managed in Doppler — not `.env` files committed 
 # Authenticate with Doppler
 doppler login
 
-# Link this repo to the Vilo project (dev config)
-doppler setup --project vilo --config dev
+# Link this repo to the Wielo project (dev config)
+doppler setup --project wielo --config dev
 ```
 
 After setup, run commands prefixed with `doppler run --`:
@@ -168,7 +168,7 @@ supabase functions serve booking-create --env-file .env.local
 
 Run through this checklist after setup:
 
-- [ ] `http://localhost:3000` loads the Vilo homepage
+- [ ] `http://localhost:3000` loads the Wielo homepage
 - [ ] `http://localhost:54323` opens Supabase Studio with the correct schema
 - [ ] You can create a test account at `http://localhost:3000/register`
 - [ ] Email verification link arrives at `http://localhost:54324` (Inbucket)
@@ -181,8 +181,8 @@ Run through this checklist after setup:
 
 Read these docs before writing a single line of code. In order:
 
-1. `README.md` — what Vilo is
-2. `vilo-platform-mvp.md` — full product spec
+1. `README.md` — what Wielo is
+2. `wielo-platform-mvp.md` — full product spec
 3. `CLAUDE.md` — the AI coding workflow and absolute rules
 4. `ARCHITECTURE.md` — folder structure and data flow
 5. `CONVENTIONS.md` — how code is written
@@ -227,7 +227,7 @@ Follow `CONVENTIONS.md` and `AGENT_RULES.md`. When using Claude Code:
 
 ```bash
 # Start a session from the project root
-cd ~/vilo
+cd ~/wielo
 supabase status   # confirm Supabase is running
 cat CURRENT_TASK.md
 claude            # start Claude Code session
@@ -345,7 +345,7 @@ Update `NEXT_PUBLIC_SUPABASE_URL` in `.env.local` to `http://192.168.x.x:54321` 
 - Read the relevant `.md` file first — most questions are answered there
 - Check `DECISIONS.md` before proposing a different approach to something already decided
 - Check `CHANGELOG.md` to understand what was recently built and any notes from previous sessions
-- For questions about the product spec, refer to `vilo-platform-mvp.md` or `customer_journey.md`
+- For questions about the product spec, refer to `wielo-platform-mvp.md` or `customer_journey.md`
 
 ---
 

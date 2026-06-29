@@ -73,7 +73,7 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
             onChange={(e) => set("paystackEnabled", e.target.checked)}
             className="rounded border-brand-line"
           />
-          Paystack (cards) for Vilo
+          Paystack (cards) for Wielo
         </label>
 
         {/* Active mode — which key pair checkouts use */}

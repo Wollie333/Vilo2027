@@ -281,7 +281,7 @@ export async function sendPushNotification(payload: PushPayload): Promise<void> 
 ```typescript
 {
   title: 'Subscription renews in 7 days',
-  body: `Your Vilo ${planName} plan renews on ${formatDate(renewalDate)} for ${formattedPrice}.`,
+  body: `Your Wielo ${planName} plan renews on ${formatDate(renewalDate)} for ${formattedPrice}.`,
   data: { screen: '/dashboard/settings/subscription' },
   sound: null,
   priority: 'default',
@@ -292,7 +292,7 @@ export async function sendPushNotification(payload: PushPayload): Promise<void> 
 ```typescript
 {
   title: 'Payment failed',
-  body: `We couldn't charge your Vilo ${planName} subscription. Please update your payment method.`,
+  body: `We couldn't charge your Wielo ${planName} subscription. Please update your payment method.`,
   data: { screen: '/dashboard/settings/subscription' },
   sound: 'default',
   priority: 'high',
@@ -303,7 +303,7 @@ export async function sendPushNotification(payload: PushPayload): Promise<void> 
 ```typescript
 {
   title: 'Account restricted',
-  body: 'Your Vilo subscription has lapsed. Reactivate to restore full access.',
+  body: 'Your Wielo subscription has lapsed. Reactivate to restore full access.',
   data: { screen: '/dashboard/settings/subscription' },
   sound: 'default',
   priority: 'high',

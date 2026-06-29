@@ -145,7 +145,7 @@ textarea[aria-invalid="true"]:focus {
     background-size: 18px 18px;
   }
 
-  /* ── Booking-management page utilities (per Vilo Home Page (2).html) ── */
+  /* ── Booking-management page utilities (per Wielo Home Page (2).html) ── */
 
   .dotgrid {
     background-image: radial-gradient(
@@ -245,7 +245,7 @@ textarea[aria-invalid="true"]:focus {
   }
 
   /* Branded checkbox — used in the bookings table (per Bookings Page.html) */
-  input[type="checkbox"].vilo-check {
+  input[type="checkbox"].wielo-check {
     appearance: none;
     width: 16px;
     height: 16px;
@@ -257,10 +257,10 @@ textarea[aria-invalid="true"]:focus {
       border-color 120ms,
       background 120ms;
   }
-  input[type="checkbox"].vilo-check:hover {
+  input[type="checkbox"].wielo-check:hover {
     border-color: #10b981;
   }
-  input[type="checkbox"].vilo-check:checked {
+  input[type="checkbox"].wielo-check:checked {
     background: #10b981;
     border-color: #10b981;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12l5 5 9-11'/></svg>");
@@ -425,17 +425,17 @@ section[id^="sec-"] {
   }
 
   /* Earnings calculator range slider — emerald track + thumb */
-  .vilo-range {
+  .wielo-range {
     -webkit-appearance: none;
     appearance: none;
     background: transparent;
     cursor: pointer;
     height: 28px;
   }
-  .vilo-range:focus {
+  .wielo-range:focus {
     outline: none;
   }
-  .vilo-range::-webkit-slider-runnable-track {
+  .wielo-range::-webkit-slider-runnable-track {
     height: 8px;
     border-radius: 9999px;
     background: linear-gradient(
@@ -444,7 +444,7 @@ section[id^="sec-"] {
       #d1fae5 var(--val, 30%) 100%
     );
   }
-  .vilo-range::-webkit-slider-thumb {
+  .wielo-range::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 20px;
@@ -454,27 +454,27 @@ section[id^="sec-"] {
     border: 2px solid #10b981;
     margin-top: -6px;
   }
-  .vilo-range:focus::-webkit-slider-thumb {
+  .wielo-range:focus::-webkit-slider-thumb {
     box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
   }
-  .vilo-range::-moz-range-track {
+  .wielo-range::-moz-range-track {
     height: 8px;
     border-radius: 9999px;
     background: #d1fae5;
   }
-  .vilo-range::-moz-range-progress {
+  .wielo-range::-moz-range-progress {
     height: 8px;
     border-radius: 9999px;
     background: #10b981;
   }
-  .vilo-range::-moz-range-thumb {
+  .wielo-range::-moz-range-thumb {
     width: 20px;
     height: 20px;
     border-radius: 9999px;
     border: 2px solid #10b981;
     background: #ffffff;
   }
-  .vilo-range:focus::-moz-range-thumb {
+  .wielo-range:focus::-moz-range-thumb {
     box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
   }
   .calc-input {
@@ -487,7 +487,7 @@ section[id^="sec-"] {
 }
 
 /* ─── Onboarding wizard animations ───────────────────────────── */
-@keyframes vilo-step-enter {
+@keyframes wielo-step-enter {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -497,11 +497,11 @@ section[id^="sec-"] {
     transform: translateY(0);
   }
 }
-.vilo-step-enter {
-  animation: vilo-step-enter 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+.wielo-step-enter {
+  animation: wielo-step-enter 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-@keyframes vilo-ring-pulse {
+@keyframes wielo-ring-pulse {
   0%,
   100% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35);
@@ -510,11 +510,11 @@ section[id^="sec-"] {
     box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
   }
 }
-.vilo-ring-pulse {
-  animation: vilo-ring-pulse 2.2s ease-out infinite;
+.wielo-ring-pulse {
+  animation: wielo-ring-pulse 2.2s ease-out infinite;
 }
 
-@keyframes vilo-confetti-fall {
+@keyframes wielo-confetti-fall {
   0% {
     transform: translate3d(0, -20vh, 0) rotate(0deg);
     opacity: 0;
@@ -527,26 +527,27 @@ section[id^="sec-"] {
     opacity: 1;
   }
 }
-.vilo-confetti-piece {
+.wielo-confetti-piece {
   position: absolute;
   top: 0;
   width: 8px;
   height: 14px;
   border-radius: 2px;
   will-change: transform, opacity;
-  animation: vilo-confetti-fall var(--d) cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  animation: wielo-confetti-fall var(--d) cubic-bezier(0.2, 0.7, 0.2, 1)
+    forwards;
   animation-delay: var(--delay);
 }
 
-.vilo-hide-sb::-webkit-scrollbar {
+.wielo-hide-sb::-webkit-scrollbar {
   display: none;
 }
-.vilo-hide-sb {
+.wielo-hide-sb {
   scrollbar-width: none;
 }
 
 /* ─── Auth / login animations ────────────────────────────────── */
-@keyframes vilo-fade-up {
+@keyframes wielo-fade-up {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -556,20 +557,20 @@ section[id^="sec-"] {
     transform: translateY(0);
   }
 }
-.vilo-fade-up {
-  animation: vilo-fade-up 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+.wielo-fade-up {
+  animation: wielo-fade-up 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
-.vilo-delay-1 {
+.wielo-delay-1 {
   animation-delay: 0.05s;
 }
-.vilo-delay-2 {
+.wielo-delay-2 {
   animation-delay: 0.12s;
 }
-.vilo-delay-3 {
+.wielo-delay-3 {
   animation-delay: 0.2s;
 }
 
-@keyframes vilo-orb-drift-1 {
+@keyframes wielo-orb-drift-1 {
   0%,
   100% {
     transform: translate(0, 0) scale(1);
@@ -578,7 +579,7 @@ section[id^="sec-"] {
     transform: translate(40px, -30px) scale(1.1);
   }
 }
-@keyframes vilo-orb-drift-2 {
+@keyframes wielo-orb-drift-2 {
   0%,
   100% {
     transform: translate(0, 0) scale(1);
@@ -587,38 +588,38 @@ section[id^="sec-"] {
     transform: translate(-30px, 40px) scale(1.15);
   }
 }
-.vilo-orb {
+.wielo-orb {
   position: absolute;
   border-radius: 9999px;
   filter: blur(60px);
   pointer-events: none;
 }
-.vilo-orb-1 {
+.wielo-orb-1 {
   width: 380px;
   height: 380px;
   background: rgba(16, 185, 129, 0.32);
   top: -80px;
   left: -100px;
-  animation: vilo-orb-drift-1 12s ease-in-out infinite;
+  animation: wielo-orb-drift-1 12s ease-in-out infinite;
 }
-.vilo-orb-2 {
+.wielo-orb-2 {
   width: 300px;
   height: 300px;
   background: rgba(6, 78, 59, 0.55);
   bottom: -60px;
   right: -80px;
-  animation: vilo-orb-drift-2 14s ease-in-out infinite;
+  animation: wielo-orb-drift-2 14s ease-in-out infinite;
 }
-.vilo-orb-3 {
+.wielo-orb-3 {
   width: 220px;
   height: 220px;
   background: rgba(16, 185, 129, 0.18);
   top: 40%;
   right: -40px;
-  animation: vilo-orb-drift-1 16s ease-in-out infinite;
+  animation: wielo-orb-drift-1 16s ease-in-out infinite;
 }
 
-@keyframes vilo-logo-pulse {
+@keyframes wielo-logo-pulse {
   0%,
   100% {
     filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0.6));
@@ -627,8 +628,8 @@ section[id^="sec-"] {
     filter: drop-shadow(0 0 18px rgba(16, 185, 129, 0.6));
   }
 }
-.vilo-logo-pulse {
-  animation: vilo-logo-pulse 3.5s ease-in-out infinite;
+.wielo-logo-pulse {
+  animation: wielo-logo-pulse 3.5s ease-in-out infinite;
 }
 
 /* ── Onboarding setup wizard ─────────────────────────────────── */
