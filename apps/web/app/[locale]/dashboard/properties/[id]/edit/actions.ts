@@ -664,6 +664,7 @@ export async function togglePublishAction(
     { count: photoCount },
     { count: roomCount },
     { count: cancelCount },
+    { count: houseRulesCount },
   ] = await Promise.all([
     supabase
       .from("hosts")
@@ -690,6 +691,16 @@ export async function togglePublishAction(
       .eq("property_id", listingId)
       .eq("policy_type", "cancellation")
       .is("room_id", null),
+    // House rules must ALSO be assigned listing-wide — computeSetupCompletion
+    // requires both. Previously this count was missing, so hasHouseRules was
+    // always undefined → the policies step never completed server-side and
+    // publishing was blocked even when both policies were attached.
+    supabase
+      .from("property_policies")
+      .select("id", { count: "exact", head: true })
+      .eq("property_id", listingId)
+      .eq("policy_type", "house_rules")
+      .is("room_id", null),
   ]);
 
   const completion = computeSetupCompletion({
@@ -699,6 +710,7 @@ export async function togglePublishAction(
     photoCount: photoCount ?? 0,
     roomCount: roomCount ?? 0,
     hasCancellationPolicy: (cancelCount ?? 0) > 0,
+    hasHouseRules: (houseRulesCount ?? 0) > 0,
   });
 
   const LABELS: Record<string, string> = {
