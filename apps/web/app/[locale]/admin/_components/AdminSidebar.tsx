@@ -190,38 +190,70 @@ const PLATFORM: GmailNavItem[] = [
   },
 ];
 
+// Nav item → the admin permission key required to USE its page. Only real keys
+// (admin_permissions); items absent here are always shown. super_admin holds
+// every key, so it sees the full rail; narrower roles only see what they can open.
+const NAV_PERM: Record<string, string> = {
+  "/admin/users": "users.view",
+  "/admin/properties": "listings.edit",
+  "/admin/products": "subscriptions.edit",
+  "/admin/subscriptions/revenue": "payments.view",
+  "/admin/payments": "payments.view",
+  "/admin/affiliates": "payments.view",
+  "/admin/reporting": "payments.view",
+  "/admin/reviews": "reviews.moderate",
+  "/admin/data-requests": "users.view",
+  "/admin/platform/settings": "platform.settings",
+  "/admin/platform/features": "platform.features",
+  "/admin/platform/categories": "platform.settings",
+  "/admin/platform/deal-categories": "platform.settings",
+  "/admin/platform/amenities": "platform.settings",
+  "/admin/platform/staff": "platform.staff",
+  "/admin/audit": "audit.view",
+};
+
 export function AdminSidebar({
   role,
   email,
   canHost = false,
   hostDisplayName = null,
   hostBlurb = null,
+  permissions = [],
 }: {
   role: string;
   email: string;
   canHost?: boolean;
   hostDisplayName?: string | null;
   hostBlurb?: string | null;
+  /** The signed-in staff member's permission keys — narrows the rail by role. */
+  permissions?: string[];
 }) {
+  const permSet = new Set(permissions);
+  const vis = (items: GmailNavItem[]) =>
+    items.filter((i) => {
+      const p = i.href ? NAV_PERM[i.href] : undefined;
+      return !p || permSet.has(p);
+    });
+
   const sections: GmailNavSection[] = [
-    { items: OPERATIONS },
-    { label: "Finance", items: FINANCE },
-    { label: "Moderation", items: MODERATION },
+    { items: vis(OPERATIONS) },
+    { label: "Finance", items: vis(FINANCE) },
+    { label: "Moderation", items: vis(MODERATION) },
     // The two long groups collapse by default so the rail isn't overwhelming —
     // they auto-open when you're inside them.
     {
       label: "Help centre",
-      items: SUPPORT,
+      items: vis(SUPPORT),
       collapsible: true,
       defaultOpen: false,
     },
     {
       label: "Platform",
-      items: PLATFORM,
+      items: vis(PLATFORM),
       collapsible: true,
       defaultOpen: false,
     },
-  ];
+  ].filter((s) => s.items.length > 0);
 
   const footer: GmailNavItem[] = [
     { href: "/dashboard", label: "Back to host dashboard", icon: Activity },

@@ -2,6 +2,8 @@ import { requirePermission } from "@/lib/admin";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { StaffManager } from "./StaffManager";
+
 export const dynamic = "force-dynamic";
 
 export default async function PlatformStaffPage() {
@@ -36,117 +38,34 @@ export default async function PlatformStaffPage() {
           {brandName} staff
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          Invite teammates, assign roles, deactivate access. MFA enrolment is
-          required before a staff row activates — Phase E ships the full invite
-          UI.
+          Invite teammates, assign roles, and deactivate access. Invitees accept
+          via an emailed link and sign in with the invited email.
         </p>
       </header>
 
-      <section>
-        <h2 className="mb-3 font-display text-base font-semibold text-brand-ink">
-          Active staff
-        </h2>
-        <div className="overflow-hidden rounded-card border border-brand-line bg-white">
-          <table className="w-full text-[13px]">
-            <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
-              <tr>
-                <th className="px-4 py-2.5">Email</th>
-                <th className="px-4 py-2.5">Role</th>
-                <th className="px-4 py-2.5">Status</th>
-                <th className="px-4 py-2.5">Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(staff ?? []).map((s) => {
-                const profile = s.user_profiles as {
-                  email?: string | null;
-                  full_name?: string | null;
-                } | null;
-                return (
-                  <tr
-                    key={s.user_id}
-                    className="border-b border-brand-line last:border-0"
-                  >
-                    <td className="px-4 py-2.5 font-medium text-brand-ink">
-                      {profile?.email ?? s.user_id.slice(0, 8)}
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-[12px] text-brand-mute">
-                      {s.role_id}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      {s.is_active ? (
-                        <span className="rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[11px] font-semibold text-status-confirmed">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="rounded-pill bg-brand-mute/15 px-2 py-0.5 text-[11px] font-semibold text-brand-mute">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-brand-mute">
-                      {s.accepted_at
-                        ? new Date(s.accepted_at).toLocaleDateString("en-ZA", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })
-                        : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-              {(staff ?? []).length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-4 py-6 text-center text-brand-mute"
-                  >
-                    No staff members yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {(invites ?? []).length > 0 ? (
-        <section>
-          <h2 className="mb-3 font-display text-base font-semibold text-brand-ink">
-            Pending invites
-          </h2>
-          <div className="overflow-hidden rounded-card border border-brand-line bg-white">
-            <table className="w-full text-[13px]">
-              <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
-                <tr>
-                  <th className="px-4 py-2.5">Email</th>
-                  <th className="px-4 py-2.5">Role</th>
-                  <th className="px-4 py-2.5">Expires</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(invites ?? []).map((inv) => (
-                  <tr
-                    key={inv.id}
-                    className="border-b border-brand-line last:border-0"
-                  >
-                    <td className="px-4 py-2.5 font-medium text-brand-ink">
-                      {inv.email}
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-[12px] text-brand-mute">
-                      {inv.role_id}
-                    </td>
-                    <td className="px-4 py-2.5 text-brand-mute">
-                      {new Date(inv.expires_at).toLocaleString("en-ZA")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
+      <StaffManager
+        staff={(staff ?? []).map((s) => {
+          const profile = s.user_profiles as {
+            email?: string | null;
+            full_name?: string | null;
+          } | null;
+          return {
+            user_id: s.user_id,
+            role_id: s.role_id,
+            is_active: s.is_active,
+            accepted_at: s.accepted_at,
+            email: profile?.email ?? null,
+            full_name: profile?.full_name ?? null,
+          };
+        })}
+        invites={(invites ?? []).map((inv) => ({
+          id: inv.id,
+          email: inv.email,
+          role_id: inv.role_id,
+          expires_at: inv.expires_at,
+        }))}
+        roles={(roles ?? []).map((r) => ({ id: r.id, name: r.name }))}
+      />
 
       <section>
         <h2 className="mb-3 font-display text-base font-semibold text-brand-ink">

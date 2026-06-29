@@ -10,6 +10,7 @@ import {
   readImpersonationCookie,
   requireAdmin,
 } from "@/lib/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { AdminSidebar } from "./_components/AdminSidebar";
@@ -84,6 +85,14 @@ export default async function AdminLayout({
     ? `${listingCount} ${listingCount === 1 ? "listing" : "listings"}`
     : null;
 
+  // The staff member's permission keys (service-role read — admin_role_permissions
+  // is super-admin-only under RLS) → the sidebar only shows what their role can open.
+  const { data: permRows } = await createAdminClient()
+    .from("admin_role_permissions")
+    .select("permission_key")
+    .eq("role_id", admin.roleId);
+  const permissions = (permRows ?? []).map((r) => r.permission_key as string);
+
   return (
     <ClassicShellFrame
       header={
@@ -113,6 +122,7 @@ export default async function AdminLayout({
           canHost={canHost}
           hostDisplayName={hostRow?.display_name ?? null}
           hostBlurb={hostBlurb}
+          permissions={permissions}
         />
       }
       banner={

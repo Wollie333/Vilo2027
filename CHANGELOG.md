@@ -28,6 +28,28 @@ emerald `--primary` category/links) so editing a post didn't look like the real
 `#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
 look. (Computed-style readout, no console errors.)
 
+## 2026-06-29 — Admin MVP refinements (batch B): staff invite/accept flow + sidebar permission filter
+
+- **Staff management (#5) — full invite + accept flow.** Platform → Staff is now
+  interactive (`StaffManager`): invite a teammate by email + role (emails a 72h
+  accept link via `sendTransactionalEmail`), change a member's role, and
+  activate/deactivate — all reason-aware + audited (`platform.staff`). New public
+  accept page `/staff-invite?token=…` (outside `/admin` so a new teammate can
+  reach it): validates the token/expiry, requires sign-in with the invited email,
+  then inserts the `platform_staff` row + marks the invite used. Lockout guard:
+  can't demote/deactivate the last active super_admin. Replaces the old read-only
+  "Phase E" placeholder.
+- **Sidebar permission filter (#11).** The admin rail now hides sections a role
+  can't open: the layout loads the staff member's `admin_role_permissions`
+  (service-role read) and `AdminSidebar` filters each nav item by an href→key map
+  (real keys only; unmapped items always show). super_admin holds every key so it
+  sees the full rail; narrower roles (now creatable via #5) see only their areas.
+
+`tsc` + `next lint` clean. (Admin UI live-verification needs a super-admin login;
+the test-host preview session was removed in the wipe.) The invite email needs
+`RESEND_API_KEY` set to actually send (best-effort; the accept link also works if
+copied manually from the pending-invites list).
+
 ## 2026-06-29 — Admin MVP refinements (batch A): impersonation, host suspend, password reset, product-delete guard
 
 From the admin MVP-readiness audit. The admin area was already largely
