@@ -285,6 +285,12 @@ export function HeaderInspector({
             <p className="mt-1 text-[11.5px] text-brand-mute">
               {t("navScrolledBgHint")}
             </p>
+            <ColorRow
+              label={t("navScrolledBorder")}
+              value={nav.header.scrolledBorderColor}
+              fallback="#e2e2e2"
+              onChange={(v) => setHeader({ scrolledBorderColor: v })}
+            />
           </>
         ) : (
           <ColorRow

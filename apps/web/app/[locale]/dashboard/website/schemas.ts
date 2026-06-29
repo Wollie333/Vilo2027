@@ -781,6 +781,9 @@ export const navigationSchema = z.object({
       // Background once the page is scrolled when transparentOverHero is on (the
       // transparent bar fades to this). Blank → theme ink (dark).
       scrolledBgColor: z.string().trim().max(40).optional(),
+      // Bottom-border colour of the header once it's solid/scrolled. Blank → the
+      // theme's default hairline.
+      scrolledBorderColor: z.string().trim().max(40).optional(),
       // When the full menu collapses to a ☰ button: on phones only ("mobile"),
       // on tablets too ("tablet"), or never (always show the full inline menu).
       menuCollapse: z.enum(["mobile", "tablet", "never"]).default("mobile"),

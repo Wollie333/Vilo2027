@@ -256,6 +256,7 @@ export function SafariNav({
   sticky = true,
   bgColor,
   scrolledBgColor,
+  scrolledBorderColor,
   menuCollapse = "mobile",
   logoStyle,
   logoTablet,
@@ -291,6 +292,8 @@ export function SafariNav({
   bgColor?: string | null;
   /** Background the transparent bar fades to on scroll. Blank → Safari paper. */
   scrolledBgColor?: string | null;
+  /** Bottom-border colour of the solid/scrolled bar. Blank → theme hairline. */
+  scrolledBorderColor?: string | null;
   /** Breakpoint at which the inline menu collapses to the ☰ drawer. */
   menuCollapse?: "mobile" | "tablet" | "never";
   /** Logo lockup style (Elements): wordmark/icon/mark; unset = design default. */
@@ -364,14 +367,24 @@ export function SafariNav({
     : scrolled
       ? scrolledBgColor?.trim()
       : "";
+  // Host's solid/scrolled bottom-border colour (overrides the theme hairline on
+  // the solid bar). Only meaningful while the bar is solid (the .nav.solid border).
+  const customBorder =
+    forceSolid || scrolled ? scrolledBorderColor?.trim() : "";
   // A custom bar colour also sets a readable text colour (brand + menu + burger
   // inherit it); the host's explicit menu colour, if any, still wins for links.
-  const headerStyle = customBg
-    ? {
-        background: customBg,
-        color: isDarkColor(customBg) ? "#fff" : "var(--ink)",
-      }
-    : undefined;
+  const headerStyle =
+    customBg || customBorder
+      ? {
+          ...(customBg
+            ? {
+                background: customBg,
+                color: isDarkColor(customBg) ? "#fff" : "var(--ink)",
+              }
+            : {}),
+          ...(customBorder ? { borderBottomColor: customBorder } : {}),
+        }
+      : undefined;
 
   // The host's book-button colour as a scoped rule so it also wins on HOVER (the
   // design's solid-bar `.btn-on-dark:hover` would otherwise override the inline

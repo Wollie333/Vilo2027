@@ -55,6 +55,8 @@ export type SafariNavData = {
   bgColor?: string | null;
   /** Background the transparent bar fades to on scroll. Blank → Safari paper. */
   scrolledBgColor?: string | null;
+  /** Bottom-border colour of the solid/scrolled bar. Blank → theme hairline. */
+  scrolledBorderColor?: string | null;
   /** When the inline menu collapses to the ☰ drawer (header behaviour). */
   menuCollapse: "mobile" | "tablet" | "never";
   /** Logo lockup style (Elements): wordmark = name only, icon = mark only,
@@ -249,6 +251,7 @@ export function buildSafariNav(
       override?.transparentOverHero ?? header.transparentOverHero !== false,
     bgColor: override?.bgColor ?? header.bgColor,
     scrolledBgColor: header.scrolledBgColor,
+    scrolledBorderColor: header.scrolledBorderColor,
     menuCollapse: header.menuCollapse ?? "mobile",
     logoStyle: header.logoStyle,
     menuStyle,

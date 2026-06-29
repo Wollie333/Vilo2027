@@ -245,6 +245,7 @@ export function SafariShell({
           sticky={headerFixed}
           bgColor={nav.bgColor}
           scrolledBgColor={nav.scrolledBgColor}
+          scrolledBorderColor={nav.scrolledBorderColor}
           menuCollapse={nav.menuCollapse}
           logoStyle={nav.logoStyle}
           logoTablet={nav.logoTablet}

@@ -167,6 +167,8 @@ export type SiteNavigation = {
     bgColor?: string | null;
     /** Background once scrolled (transparent mode); blank → theme ink. */
     scrolledBgColor?: string | null;
+    /** Header bottom-border colour once solid/scrolled; blank → theme hairline. */
+    scrolledBorderColor?: string | null;
     /** Mobile ☰ icon design. */
     burger?: {
       color?: string;
