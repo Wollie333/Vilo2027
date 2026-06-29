@@ -558,6 +558,12 @@ export const websiteSettingsSchema = z.object({
     .email("invalid_email")
     .or(z.literal(""))
     .default(""),
+  // On-site booking payment methods the host accepts on their website checkout.
+  // Default ON — the method still only shows when the host has the capability
+  // (a connected Paystack gateway / valid EFT details). Stored under
+  // `settings.payments`. Lets a host hide a method without disconnecting it.
+  payPaystackEnabled: z.boolean().default(true),
+  payEftEnabled: z.boolean().default(true),
   // Conversion chrome (Phase 6A slice 2): floating WhatsApp button + a
   // dismissible announcement bar. Stored under `settings.conversion`.
   whatsappEnabled: z.boolean().default(false),

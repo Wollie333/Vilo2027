@@ -2462,6 +2462,8 @@ export async function saveWebsiteSettingsAction(
     brandTagline,
     enquiryEmailEnabled,
     enquiryEmailTo,
+    payPaystackEnabled,
+    payEftEnabled,
     whatsappEnabled,
     whatsappNumber,
     whatsappMessage,
@@ -2521,6 +2523,10 @@ export async function saveWebsiteSettingsAction(
     enquiry: {
       emailEnabled: enquiryEmailEnabled,
       emailTo: enquiryEmailTo.trim().toLowerCase(),
+    },
+    payments: {
+      paystack: payPaystackEnabled,
+      eft: payEftEnabled,
     },
     conversion: {
       whatsapp: {

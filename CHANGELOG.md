@@ -28,6 +28,24 @@ emerald `--primary` category/links) so editing a post didn't look like the real
 `#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
 look. (Computed-style readout, no console errors.)
 
+## 2026-06-29 — Website booking: host toggle for payment methods (Paystack / EFT)
+
+Paystack-via-website was already wired: the on-site checkout (`SiteCheckoutForm` +
+`site/book/page.tsx`) resolves the host's own connected Paystack
+(`getHostPaystackForBusiness`) and offers Paystack + EFT — guests pay through the
+host's Paystack (Vilo 0%). Added the host control to enable/disable each method.
+
+- `websiteSettingsSchema`: `payPaystackEnabled` + `payEftEnabled` (default true),
+  saved under `host_websites.settings.payments`.
+- Website **Settings tab** → new "Booking payment methods" section (two toggles).
+- Checkout now gates each method by the toggle AND the host's capability:
+  `cardAvailable = hasPaystackGateway && payments.paystack !== false`;
+  `eftAvailable = hasEft && payments.eft !== false`. Default-on preserves prior
+  behaviour (a method shows when set up).
+
+Note: this is UI-level gating (which methods the guest sees). Server-side
+enforcement in `/api/site-booking` is a hardening follow-up. `tsc` + `lint` clean.
+
 ## 2026-06-29 — Admin: manage host staff (per-host panel + global list)
 
 Added an admin surface for **host staff** (`staff_members` — users a host assigns

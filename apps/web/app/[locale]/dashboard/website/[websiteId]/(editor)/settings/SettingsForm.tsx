@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bell,
   Check,
+  CreditCard,
   Loader2,
   MessageCircle,
   Megaphone,
@@ -41,6 +42,8 @@ type SettingsState = {
   brandTagline: string;
   enquiryEmailEnabled: boolean;
   enquiryEmailTo: string;
+  payPaystackEnabled: boolean;
+  payEftEnabled: boolean;
   whatsappEnabled: boolean;
   whatsappNumber: string;
   whatsappMessage: string;
@@ -205,6 +208,8 @@ export function SettingsForm({
         brandTagline: state.brandTagline.trim(),
         enquiryEmailEnabled: state.enquiryEmailEnabled,
         enquiryEmailTo: emailTo,
+        payPaystackEnabled: state.payPaystackEnabled,
+        payEftEnabled: state.payEftEnabled,
         whatsappEnabled: state.whatsappEnabled,
         whatsappNumber,
         whatsappMessage: state.whatsappMessage.trim(),
@@ -443,6 +448,29 @@ export function SettingsForm({
             />
           </Setrow>
         ) : null}
+      </Sblock>
+
+      {/* BOOKING PAYMENTS */}
+      <Sblock
+        icon={CreditCard}
+        title={t("settingsPaymentsTitle")}
+        desc={t("settingsPaymentsDesc")}
+      >
+        <Setrow
+          title={t("settingsPayPaystack")}
+          desc={t("settingsPayPaystackHint")}
+        >
+          <Sw
+            on={state.payPaystackEnabled}
+            onChange={(v) => set("payPaystackEnabled", v)}
+          />
+        </Setrow>
+        <Setrow title={t("settingsPayEft")} desc={t("settingsPayEftHint")}>
+          <Sw
+            on={state.payEftEnabled}
+            onChange={(v) => set("payEftEnabled", v)}
+          />
+        </Setrow>
       </Sblock>
 
       {/* WHATSAPP */}

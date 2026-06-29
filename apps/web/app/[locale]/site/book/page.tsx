@@ -215,13 +215,27 @@ export default async function SiteBookPage({
   );
 
   // Payment rails — card when the host has connected Paystack, EFT when a valid
-  // default account exists. Both resolved server-side.
-  const [cardPaystack, eftAvailable] = await Promise.all([
+  // default account exists. Both resolved server-side, THEN gated by the host's
+  // per-website toggles (Settings → Booking payment methods; default on).
+  const [cardPaystack, eftHasAccount, siteRow] = await Promise.all([
     property.business_id
       ? getHostPaystackForBusiness(property.business_id)
       : Promise.resolve(null),
     hostHasValidEft(property.host_id),
+    admin
+      .from("host_websites")
+      .select("settings")
+      .eq("id", ctx.websiteId)
+      .maybeSingle(),
   ]);
+  const pay =
+    (
+      siteRow.data?.settings as {
+        payments?: { paystack?: boolean; eft?: boolean };
+      } | null
+    )?.payments ?? {};
+  const cardAvailable = Boolean(cardPaystack) && pay.paystack !== false;
+  const eftAvailable = eftHasAccount && pay.eft !== false;
 
   // Cancellation note (best-effort) via the policy resolver RPC.
   let cancellation: { title: string; note: string } | null = null;
@@ -250,7 +264,7 @@ export default async function SiteBookPage({
       bookingMode={property.booking_mode ?? "whole_listing"}
       rooms={rooms}
       addons={addons}
-      cardAvailable={Boolean(cardPaystack)}
+      cardAvailable={cardAvailable}
       eftAvailable={eftAvailable}
       cancellation={cancellation}
       initial={{

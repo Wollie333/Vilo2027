@@ -64,6 +64,11 @@ export default async function WebsiteSettingsPage({
     intro?: string;
   };
 
+  const payments = (data.settings.payments ?? {}) as {
+    paystack?: boolean;
+    eft?: boolean;
+  };
+
   return (
     <SettingsForm
       websiteId={websiteId}
@@ -81,6 +86,8 @@ export default async function WebsiteSettingsPage({
         brandTagline: data.brand.tagline ?? "",
         enquiryEmailEnabled: enquiry.emailEnabled === true,
         enquiryEmailTo: enquiry.emailTo ?? "",
+        payPaystackEnabled: payments.paystack !== false,
+        payEftEnabled: payments.eft !== false,
         whatsappEnabled: wa.enabled === true,
         whatsappNumber: wa.number ?? "",
         whatsappMessage: wa.message ?? "",
