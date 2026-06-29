@@ -10,8 +10,6 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { SiteFooter } from "@/app/_components/home/SiteFooter";
-import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { getBrandName } from "@/lib/brand";
 import { getHostParty } from "@/lib/finance/doc-party";
 import { formatMoney, round2 } from "@/lib/format";
@@ -162,9 +160,9 @@ export default async function PayPage({
   const hostInitial = hostName.trim().charAt(0).toUpperCase() || "H";
 
   return (
+    // Standalone payment page — no Wielo directory header/footer, just the
+    // booking + payment details.
     <div className="min-h-screen bg-white text-brand-ink">
-      <SiteHeader />
-
       <main className="mx-auto max-w-xl px-5 py-10 lg:py-14">
         <header className="text-center">
           <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
@@ -343,8 +341,6 @@ export default async function PayPage({
           adds a booking fee.
         </p>
       </main>
-
-      <SiteFooter />
     </div>
   );
 }
