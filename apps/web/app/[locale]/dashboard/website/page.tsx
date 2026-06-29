@@ -5,10 +5,11 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { hostHasFeature } from "@/lib/products/featureGate";
+import { loadActiveThemes } from "@/lib/site/themes.server";
 import { createServerClient } from "@/lib/supabase/server";
 import { deriveSubdomain } from "@/lib/website/subdomain";
 
-import { CreateWebsiteCard } from "./_components/CreateWebsiteCard";
+import { CreateWebsiteButton } from "./_components/CreateWebsiteButton";
 import { WebsiteLocked } from "./_components/WebsiteLocked";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("metaTitle") };
 }
 
-type Biz = { id: string; trading_name: string | null };
+type Biz = {
+  id: string;
+  trading_name: string | null;
+  logo_path: string | null;
+};
 type Site = {
   id: string;
   business_id: string;
@@ -46,7 +51,7 @@ export default async function WebsiteLandingPage() {
     hostHasFeature(host.id, "website_builder"),
     supabase
       .from("businesses")
-      .select("id, trading_name")
+      .select("id, trading_name, logo_path")
       .eq("host_id", host.id)
       .eq("is_archived", false)
       .order("is_default", { ascending: false }),
@@ -83,6 +88,10 @@ export default async function WebsiteLandingPage() {
     if (only) redirect(`/dashboard/website/${only.id}`);
   }
 
+  // Theme catalogue for the setup wizard (only needed when a create affordance shows).
+  const needsCreate = businesses.some((b) => !siteByBusiness.has(b.id));
+  const themes = needsCreate ? await loadActiveThemes() : [];
+
   return (
     <div className="space-y-6">
       <WebsiteHero title={t("heading")} subtitle={t("subheading")} />
@@ -111,10 +120,12 @@ export default async function WebsiteLandingPage() {
                     statusLabel={t(badgeKey(site.status))}
                   />
                 ) : (
-                  <CreateWebsiteCard
+                  <CreateWebsiteButton
                     businessId={biz.id}
                     businessName={name}
                     defaultSubdomain={deriveSubdomain(name)}
+                    logoPath={biz.logo_path}
+                    themes={themes}
                   />
                 )}
               </div>

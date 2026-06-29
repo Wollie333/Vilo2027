@@ -28,6 +28,32 @@ emerald `--primary` category/links) so editing a post didn't look like the real
 `#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
 look. (Computed-style readout, no console errors.)
 
+## 2026-06-29 — Website setup wizard: Phase 2 (UI)
+
+The wizard front-end on top of the Phase 1 backend — a multi-step modal that takes
+a host from "no website" to a live, themed site. Additive: the builder/editors and
+the legacy create card/action are untouched.
+
+- `_wizard/WebsiteWizard.tsx` — modal shell (full-screen on mobile, max-w-3xl
+  desktop), progress dots, step routing, runs `createWebsiteWithWizardAction`,
+  maps error codes, non-dismissible while building.
+- Steps: **Basics** (name/subdomain/contact, logo prefilled) → **Theme** (gallery of
+  live `WizardThemePreview`s rendered with the host's own name/logo) → **Colors**
+  (5 accent palettes + custom picker, live preview) → **Building** (animated, calls
+  the action, error+retry) → **Done** (live URL + Connect-domain / Continue-to-editor).
+- `WizardThemePreview.tsx` — a real mini-site themed via `buildSiteVars` (header +
+  hero + room cards), so picking a theme/colour previews the host's actual site.
+- `CreateWebsiteButton.tsx` replaces `CreateWebsiteCard` on the website portfolio
+  page (which now loads the theme catalogue + passes per-business logo).
+- 30+ `wizard*` i18n keys.
+
+`tsc` (0 errors) + `next lint` clean. **Verified live end-to-end** (seeded a
+throwaway no-site business): Basics prefilled → Theme previews render with the
+host name → Colors palette select changed the live accent (#2F5D4F → #1c5b48) →
+**Create produced a published site** (status=published, theme=aria, accent=#1c5b48,
+brand name, 7 pages all published, 4 default forms, snapshot built). Test
+site + business cleaned up afterwards.
+
 ## 2026-06-29 — Website setup wizard: Phase 1 (backend)
 
 First slice of the website creation wizard (see docs/features/WEBSITE_WIZARD_PLAN.md)
