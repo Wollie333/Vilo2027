@@ -26,7 +26,9 @@ import {
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
 import { LocationPicker } from "@/components/location/LocationPicker";
+import { composePhone, splitDialCode } from "@/lib/phone/dialCodes";
 import { combineName, splitName } from "@/lib/profile/name";
 
 import {
@@ -73,6 +75,9 @@ type WizardData = {
   terms: boolean;
   // about
   phone: string;
+  // ISO-3166 alpha-2 of the phone's country code (the +27 picker). Stored phone
+  // is composed as "+{dial} {national}" at submit time.
+  phoneCountry: string;
   country: string;
   bio: string;
   languages: string[];
@@ -121,7 +126,8 @@ function initialData(prefilled: Prefilled): WizardData {
     password: "",
     showPassword: false,
     terms: prefilled.email !== null, // returning user → terms already accepted at first signup
-    phone: prefilled.phone ?? "",
+    phone: splitDialCode(prefilled.phone).national,
+    phoneCountry: splitDialCode(prefilled.phone).iso2,
     country: prefilled.country ?? "South Africa",
     bio: prefilled.bio ?? "",
     languages:
@@ -402,7 +408,7 @@ export function Wizard({
     startFinalize(async () => {
       const result = await finalizeOnboardingAction({
         full_name: data.fullName,
-        phone: data.phone,
+        phone: composePhone(data.phoneCountry, data.phone),
         country: data.country,
         bio: data.bio,
         languages: data.languages,
@@ -1105,9 +1111,10 @@ function StepAbout({
             error={errors.phone}
           >
             <div className="flex">
-              <span className="inline-flex items-center rounded-l border border-r-0 border-brand-line bg-brand-light/60 px-3 font-mono text-sm text-brand-mute">
-                +27
-              </span>
+              <CountryDialCodeSelect
+                iso2={data.phoneCountry}
+                onChange={(iso2) => patch({ phoneCountry: iso2 })}
+              />
               <TextInput
                 value={data.phone}
                 onChange={(e) => patch({ phone: e.target.value })}

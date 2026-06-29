@@ -24,6 +24,8 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
+import { composePhone, DEFAULT_COUNTRY } from "@/lib/phone/dialCodes";
 import { combineName } from "@/lib/profile/name";
 
 import {
@@ -58,6 +60,8 @@ type WizardData = {
   showPassword: boolean;
   terms: boolean;
   phone: string;
+  // ISO-3166 alpha-2 of the phone's country code (the +27 picker).
+  phoneCountry: string;
   country: string;
   bio: string;
   languages: string[];
@@ -76,6 +80,7 @@ function initialData(prefilledEmail: string | null): WizardData {
     showPassword: false,
     terms: false,
     phone: "",
+    phoneCountry: DEFAULT_COUNTRY,
     country: "South Africa",
     bio: "",
     languages: ["English"],
@@ -209,7 +214,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
     startFinalize(async () => {
       const result = await finalizeGuestOnboardingAction({
         full_name: data.fullName,
-        phone: data.phone,
+        phone: composePhone(data.phoneCountry, data.phone),
         country: data.country,
         bio: data.bio,
         languages: data.languages,
@@ -761,9 +766,10 @@ function StepAbout({
             error={errors.phone}
           >
             <div className="flex">
-              <span className="inline-flex items-center rounded-l border border-r-0 border-brand-line bg-brand-light/60 px-3 font-mono text-sm text-brand-mute">
-                +27
-              </span>
+              <CountryDialCodeSelect
+                iso2={data.phoneCountry}
+                onChange={(iso2) => patch({ phoneCountry: iso2 })}
+              />
               <TextInput
                 value={data.phone}
                 onChange={(e) => patch({ phone: e.target.value })}
