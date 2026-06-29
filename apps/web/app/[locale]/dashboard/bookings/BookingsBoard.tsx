@@ -119,12 +119,17 @@ function channelMeta(
       return { mark: "B", color: "#003580", name: "Booking.com" };
     case "expedia":
       return { mark: "E", color: "#00355F", name: "Expedia" };
+    case "lekkerslaap":
+      return { mark: "L", color: "#E11D48", name: "LekkerSlaap" };
     case "other":
       return { mark: "O", color: "#6366F1", name: "Other" };
     // A booking made on the host's own website (still a direct booking, just a
     // different channel than the Vilo app — kept distinct for reporting).
     case "website":
       return { mark: "W", color: "#0EA5E9", name: "Website" };
+    // A guest referred from the host's own (non-Vilo) site.
+    case "web-referred":
+      return { mark: "R", color: "#7C3AED", name: "Web referral" };
     default:
       if (origin === "host_manual")
         return { mark: "M", color: "#064E3B", name: "Manual" };

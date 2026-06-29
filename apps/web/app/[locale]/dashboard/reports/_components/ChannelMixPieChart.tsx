@@ -25,6 +25,8 @@ const CHANNEL_COLORS: Record<string, string> = {
   direct: "#10B981", // Vilo-app direct (brand green)
   vilo: "#10B981",
   website: "#0EA5E9", // host's own website (sky)
+  "web-referred": "#7C3AED",
+  lekkerslaap: "#E11D48",
   airbnb: "#FF5A5F", // Airbnb brand red
   booking: "#003580", // Booking.com brand blue
   "booking.com": "#003580",
@@ -194,10 +196,12 @@ function formatChannelName(channel: string): string {
     direct: "Vilo",
     vilo: "Vilo",
     website: "Website",
+    "web-referred": "Web referral",
     airbnb: "Airbnb",
     booking: "Booking.com",
     "booking.com": "Booking.com",
     expedia: "Expedia",
+    lekkerslaap: "LekkerSlaap",
     other: "Other",
   };
 

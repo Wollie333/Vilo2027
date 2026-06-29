@@ -109,9 +109,23 @@ function channelOf(
   mark: string;
   bg: string;
 } {
-  // A website booking is direct, but via the host's own site — label it distinctly.
-  if (channel === "website")
-    return { label: "Website", mark: "W", bg: "#0EA5E9" };
+  // Real sales channel first (set on the booking); fall back to the entry origin.
+  switch (channel) {
+    case "website":
+      return { label: "Website", mark: "W", bg: "#0EA5E9" };
+    case "web-referred":
+      return { label: "Web referral", mark: "R", bg: "#7C3AED" };
+    case "airbnb":
+      return { label: "Airbnb", mark: "A", bg: "#FF5A5F" };
+    case "booking":
+      return { label: "Booking.com", mark: "B", bg: "#003580" };
+    case "expedia":
+      return { label: "Expedia", mark: "E", bg: "#00355F" };
+    case "lekkerslaap":
+      return { label: "LekkerSlaap", mark: "L", bg: "#E11D48" };
+    case "other":
+      return { label: "Other", mark: "O", bg: "#6366F1" };
+  }
   switch (origin) {
     case "host_manual":
       return { label: "Manual booking", mark: "M", bg: "#064E3B" };

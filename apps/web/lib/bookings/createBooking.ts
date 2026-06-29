@@ -134,6 +134,10 @@ export type BookingActor = { guestId: string; email: string };
 export type BookingPaymentCtx = {
   origin: string;
   returnTo: (bookingId: string) => string;
+  /** Sales channel this booking came through — stored for reporting. Defaults to
+   *  "vilo" (the Vilo app/directory). The on-site checkout passes "website";
+   *  OTA/iCal imports set their own (airbnb, lekkerslaap, web-referred, …). */
+  channel?: string;
 };
 
 export type CreateBookingCoreResult =
@@ -770,6 +774,7 @@ export async function createBookingCore(
       payment_method: d.payment_method,
       status: isEft ? "pending_eft" : "pending",
       payment_status: "pending",
+      channel: ctx.channel ?? "vilo",
       scope: d.scope,
       guest_name: d.guest_name ?? null,
       guest_email: d.guest_email ?? actor.email,
