@@ -190,6 +190,20 @@ export async function createSiteBooking(
     { origin: ctx.origin, returnTo },
   );
 
+  if (result.ok) {
+    // Tag the channel so reporting separates WEBSITE bookings from Vilo-app
+    // direct bookings — both are "direct", but a website booking came through the
+    // host's own site. Best-effort; the channel defaults to the app/"Vilo" label.
+    try {
+      await admin
+        .from("bookings")
+        .update({ channel: "website" })
+        .eq("id", result.bookingId);
+    } catch {
+      // non-blocking
+    }
+  }
+
   // Notify the host of the new website booking so they can manage it (confirm a
   // manual EFT, prep the stay…). Best-effort — a notification failure must never
   // fail the booking or the payment redirect.

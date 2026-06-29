@@ -101,11 +101,17 @@ function statusMeta(status: string): {
   }
 }
 
-function channelOf(origin: string): {
+function channelOf(
+  origin: string,
+  channel: string | null,
+): {
   label: string;
   mark: string;
   bg: string;
 } {
+  // A website booking is direct, but via the host's own site — label it distinctly.
+  if (channel === "website")
+    return { label: "Website", mark: "W", bg: "#0EA5E9" };
   switch (origin) {
     case "host_manual":
       return { label: "Manual booking", mark: "M", bg: "#064E3B" };
@@ -133,7 +139,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
+      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -417,7 +423,7 @@ export default async function BookingDetailPage({
   const currency = booking.currency;
   const status = booking.status;
   const meta = statusMeta(status);
-  const channel = channelOf(booking.origin);
+  const channel = channelOf(booking.origin, booking.channel);
 
   // Occupancy.
   const gb = (booking.guests_breakdown ?? null) as Record<

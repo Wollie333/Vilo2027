@@ -121,12 +121,17 @@ function channelMeta(
       return { mark: "E", color: "#00355F", name: "Expedia" };
     case "other":
       return { mark: "O", color: "#6366F1", name: "Other" };
+    // A booking made on the host's own website (still a direct booking, just a
+    // different channel than the Vilo app — kept distinct for reporting).
+    case "website":
+      return { mark: "W", color: "#0EA5E9", name: "Website" };
     default:
       if (origin === "host_manual")
         return { mark: "M", color: "#064E3B", name: "Manual" };
       if (origin === "quote_converted")
         return { mark: "Q", color: "#6366F1", name: "From quote" };
-      return { mark: "V", color: "#10B981", name: "Direct" };
+      // Direct via the Vilo app/directory (both website + this are "direct").
+      return { mark: "V", color: "#10B981", name: "Vilo" };
   }
 }
 
