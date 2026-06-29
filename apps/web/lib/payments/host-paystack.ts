@@ -28,15 +28,21 @@ export type HostPaystack = {
  */
 function paystackFromRow(
   row: {
-    secret_cipher: string | null;
+    mode: string | null;
+    test_secret_cipher: string | null;
+    live_secret_cipher: string | null;
     statement_descriptor: string | null;
     is_enabled: boolean | null;
   } | null,
 ): HostPaystack | null {
-  if (!row || !row.is_enabled || !row.secret_cipher) return null;
+  if (!row || !row.is_enabled) return null;
+  // The active mode (test/live) picks which key actually charges guests.
+  const cipher =
+    row.mode === "live" ? row.live_secret_cipher : row.test_secret_cipher;
+  if (!cipher) return null;
   try {
     return {
-      secretKey: decryptSecret(row.secret_cipher),
+      secretKey: decryptSecret(cipher),
       statementDescriptor: row.statement_descriptor ?? null,
     };
   } catch {
@@ -58,7 +64,9 @@ export async function getHostPaystackForBusiness(
   const supabase = createAdminClient();
   const { data: row } = await supabase
     .from("host_payment_gateways")
-    .select("secret_cipher, statement_descriptor, is_enabled")
+    .select(
+      "mode, test_secret_cipher, live_secret_cipher, statement_descriptor, is_enabled",
+    )
     .eq("business_id", businessId)
     .eq("gateway", "paystack")
     .maybeSingle();

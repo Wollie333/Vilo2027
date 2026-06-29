@@ -38,11 +38,11 @@ export default async function CardPaymentsSettingsPage() {
     .maybeSingle();
   if (!host) redirect("/dashboard/settings");
 
-  // Never select secret_cipher — it must not reach the client.
+  // Never select any *_secret_cipher — it must not reach the client.
   const { data: gatewayRows } = await supabase
     .from("host_payment_gateways")
     .select(
-      "business_id, gateway, environment, public_identifier, secret_last4, statement_descriptor, is_enabled, last_validated_at",
+      "business_id, gateway, environment, public_identifier, secret_last4, statement_descriptor, is_enabled, last_validated_at, mode, test_public_identifier, test_secret_last4, live_public_identifier, live_secret_last4",
     )
     .eq("host_id", host.id);
 
@@ -50,11 +50,16 @@ export default async function CardPaymentsSettingsPage() {
     business_id: row.business_id as string,
     gateway: row.gateway as PaymentGateway,
     environment: row.environment as "test" | "live",
-    public_identifier: row.public_identifier,
-    secret_last4: row.secret_last4,
+    public_identifier: row.public_identifier ?? "",
+    secret_last4: row.secret_last4 ?? "",
     statement_descriptor: row.statement_descriptor,
     is_enabled: row.is_enabled,
     last_validated_at: row.last_validated_at,
+    mode: (row.mode as "test" | "live" | null) ?? "test",
+    test_public_identifier: row.test_public_identifier,
+    test_secret_last4: row.test_secret_last4,
+    live_public_identifier: row.live_public_identifier,
+    live_secret_last4: row.live_secret_last4,
   }));
 
   // The host's businesses — gateways are connected per business.

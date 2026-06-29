@@ -29,8 +29,10 @@ import {
   businessDetailsSchema,
   defaultCurrencySchema,
   paymentGatewaySchema,
+  paystackGatewaySchema,
   paymentLinkSchema,
   resolveBankName,
+  type PaystackGatewayInput,
   type BankAccountInput,
   type BusinessDetailsInput,
   type DefaultCurrencyInput,
@@ -593,6 +595,106 @@ export async function savePaymentGatewayAction(
   return { ok: true };
 }
 
+/**
+ * Save a host's Paystack with BOTH test + live keys + an active mode. Each newly-
+ * supplied secret is validated live against Paystack; blank secrets keep what's
+ * stored (so a host can update one rail without re-entering the other). The active
+ * mode must have a working secret (new or already stored).
+ */
+export async function savePaystackGatewayAction(
+  input: PaystackGatewayInput,
+): Promise<ActionResult> {
+  const parsed = paystackGatewaySchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { ok: false, error: first?.message ?? "Please check the form." };
+  }
+  const d = parsed.data;
+
+  const host = await resolveHost();
+  if (!host.ok) return host;
+  if (!(await assertFeatureEnabled(host.hostId))) {
+    return { ok: false, error: GATEWAY_PLAN_MSG };
+  }
+
+  const supabase = createServerClient();
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", d.business_id)
+    .eq("host_id", host.hostId)
+    .maybeSingle();
+  if (!biz) return { ok: false, error: "That business isn't yours." };
+
+  const { data: existing } = await supabase
+    .from("host_payment_gateways")
+    .select("id, test_secret_cipher, live_secret_cipher")
+    .eq("business_id", d.business_id)
+    .eq("gateway", "paystack")
+    .maybeSingle();
+
+  // Validate each newly-supplied secret live (reject bad keys before storing).
+  if (d.test_secret) {
+    const r = await validatePaystackSecret(d.test_secret);
+    if (!r.valid)
+      return { ok: false, error: "Paystack rejected the TEST secret key." };
+  }
+  if (d.live_secret) {
+    const r = await validatePaystackSecret(d.live_secret);
+    if (!r.valid)
+      return { ok: false, error: "Paystack rejected the LIVE secret key." };
+  }
+
+  const willHaveTest =
+    Boolean(d.test_secret) || Boolean(existing?.test_secret_cipher);
+  const willHaveLive =
+    Boolean(d.live_secret) || Boolean(existing?.live_secret_cipher);
+  if (d.mode === "test" && !willHaveTest)
+    return {
+      ok: false,
+      error: "Add your Paystack TEST secret key to use test mode.",
+    };
+  if (d.mode === "live" && !willHaveLive)
+    return {
+      ok: false,
+      error: "Add your Paystack LIVE secret key to use live mode.",
+    };
+
+  const row: Record<string, unknown> = {
+    host_id: host.hostId,
+    business_id: d.business_id,
+    gateway: "paystack",
+    mode: d.mode,
+    is_enabled: d.is_enabled,
+    statement_descriptor: d.statement_descriptor || null,
+    last_validated_at: new Date().toISOString(),
+  };
+  if (d.test_public_identifier)
+    row.test_public_identifier = d.test_public_identifier;
+  if (d.test_secret) {
+    row.test_secret_cipher = encryptSecret(d.test_secret);
+    row.test_secret_last4 = secretLast4(d.test_secret);
+  }
+  if (d.live_public_identifier)
+    row.live_public_identifier = d.live_public_identifier;
+  if (d.live_secret) {
+    row.live_secret_cipher = encryptSecret(d.live_secret);
+    row.live_secret_last4 = secretLast4(d.live_secret);
+  }
+
+  const res = existing
+    ? await supabase
+        .from("host_payment_gateways")
+        .update(row)
+        .eq("id", existing.id)
+        .eq("host_id", host.hostId)
+    : await supabase.from("host_payment_gateways").insert(row);
+  if (res.error) return { ok: false, error: "Could not save Paystack." };
+
+  revalidatePath("/dashboard/settings/banking");
+  return { ok: true };
+}
+
 export async function togglePaymentGatewayAction(
   businessId: string,
   gateway: PaymentGateway,
@@ -626,23 +728,34 @@ export async function testPaymentGatewayAction(
   const supabase = createServerClient();
   const { data: row } = await supabase
     .from("host_payment_gateways")
-    .select("id, secret_cipher, public_identifier, environment")
+    .select(
+      "id, secret_cipher, public_identifier, environment, mode, test_secret_cipher, live_secret_cipher",
+    )
     .eq("host_id", host.hostId)
     .eq("business_id", businessId)
     .eq("gateway", gateway)
     .maybeSingle();
-  if (!row?.secret_cipher) {
+  if (!row) {
     return { ok: false, error: "No credentials saved for this gateway yet." };
   }
 
-  let secret: string;
-  try {
-    secret = decryptSecret(row.secret_cipher);
-  } catch {
-    return { ok: false, error: "Stored secret couldn't be read." };
-  }
-
   if (gateway === "paystack") {
+    // Test the ACTIVE mode's key.
+    const activeMode = (row.mode as "test" | "live" | null) ?? "test";
+    const cipher =
+      activeMode === "live" ? row.live_secret_cipher : row.test_secret_cipher;
+    if (!cipher) {
+      return {
+        ok: false,
+        error: `No ${activeMode} secret key saved yet.`,
+      };
+    }
+    let secret: string;
+    try {
+      secret = decryptSecret(cipher);
+    } catch {
+      return { ok: false, error: "Stored secret couldn't be read." };
+    }
     const r = await validatePaystackSecret(secret);
     if (!r.valid) {
       return { ok: false, error: "Paystack didn't accept the saved key." };
@@ -651,7 +764,17 @@ export async function testPaymentGatewayAction(
       .from("host_payment_gateways")
       .update({ last_validated_at: new Date().toISOString() })
       .eq("id", row.id);
-    return { ok: true, mode: r.environment };
+    return { ok: true, mode: activeMode };
+  }
+
+  if (!row.secret_cipher) {
+    return { ok: false, error: "No credentials saved for this gateway yet." };
+  }
+  let secret: string;
+  try {
+    secret = decryptSecret(row.secret_cipher);
+  } catch {
+    return { ok: false, error: "Stored secret couldn't be read." };
   }
 
   const okPaypal = await validatePayPalCredentials({

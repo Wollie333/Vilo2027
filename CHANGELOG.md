@@ -28,6 +28,26 @@ emerald `--primary` category/links) so editing a post didn't look like the real
 `#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
 look. (Computed-style readout, no console errors.)
 
+## 2026-06-29 — Hosts: connect Paystack with BOTH test + live keys + a mode switch
+
+Hosts can now store their own Paystack **test and live** keys together and flip the
+active `mode` — so they can test payments on their website/listings now and go
+live for launch without re-entering anything (mirrors `platform_payment_settings`).
+
+- Migration `20260629120000_host_paystack_test_live_keys.sql`: `host_payment_gateways`
+  gains `mode` + `test_*`/`live_*` (public_identifier/secret_cipher/secret_last4);
+  legacy single-key columns made nullable (PayPal still uses them). Types regen'd.
+- `host-paystack.ts` resolver charges with the **active mode's** key.
+- `paystackGatewaySchema` + `savePaystackGatewayAction`: validates each supplied
+  key live against Paystack, prefix-checks each slot (sk_test_/sk_live_/pk_*),
+  encrypts both, enforces the active mode has a key. Blank secret = keep stored.
+- Banking dialog split: dedicated **Paystack** form (Test keys + Live keys +
+  Active mode); **PayPal** unchanged. Gateway card shows mode + which rails are
+  set; "test connection" pings the active mode.
+
+The host's connected Paystack already powers the website checkout + listings
+(Vilo 0%), so guests pay in whichever mode the host has active. `tsc` + `lint` clean.
+
 ## 2026-06-29 — Website booking: host toggle for payment methods (Paystack / EFT)
 
 Paystack-via-website was already wired: the on-site checkout (`SiteCheckoutForm` +

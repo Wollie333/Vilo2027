@@ -200,6 +200,58 @@ export const paymentGatewaySchema = z
   });
 export type PaymentGatewayInput = z.infer<typeof paymentGatewaySchema>;
 
+// Paystack with BOTH test + live keys stored + an active `mode`. Secrets blank on
+// edit = "keep stored". Prefix checks ensure each slot gets the right key.
+const optStr = z.string().trim().max(400).optional().or(z.literal(""));
+export const paystackGatewaySchema = z
+  .object({
+    business_id: z.string().uuid("Pick a business."),
+    mode: z.enum(["test", "live"]),
+    test_public_identifier: optStr,
+    test_secret: optStr,
+    live_public_identifier: optStr,
+    live_secret: optStr,
+    statement_descriptor: z
+      .string()
+      .trim()
+      .max(22, "Keep it under 22 characters — banks truncate longer.")
+      .regex(DESCRIPTOR_RE, "Letters, numbers and spaces only.")
+      .optional()
+      .or(z.literal("")),
+    is_enabled: z.boolean(),
+  })
+  .superRefine((v, ctx) => {
+    const check = (
+      val: string | undefined,
+      path: string,
+      prefix: string,
+      label: string,
+    ) => {
+      if (val && !val.startsWith(prefix)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [path],
+          message: `${label} must start with ${prefix}`,
+        });
+      }
+    };
+    check(
+      v.test_public_identifier,
+      "test_public_identifier",
+      "pk_test_",
+      "Test public key",
+    );
+    check(v.test_secret, "test_secret", "sk_test_", "Test secret key");
+    check(
+      v.live_public_identifier,
+      "live_public_identifier",
+      "pk_live_",
+      "Live public key",
+    );
+    check(v.live_secret, "live_secret", "sk_live_", "Live secret key");
+  });
+export type PaystackGatewayInput = z.infer<typeof paystackGatewaySchema>;
+
 export const defaultCurrencySchema = z.object({
   default_currency: z.enum(CURRENCIES),
 });

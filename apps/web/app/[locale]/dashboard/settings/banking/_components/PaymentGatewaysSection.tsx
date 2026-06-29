@@ -227,25 +227,48 @@ export function PaymentGatewaysSection({
                       ) : (
                         <Badge variant="outline">Not connected</Badge>
                       )}
-                      {view ? (
-                        <Badge
-                          variant="outline"
-                          className={`uppercase ${
-                            view.environment === "live"
-                              ? "border-emerald-300 text-emerald-700"
-                              : "border-amber-300 text-amber-700"
-                          }`}
-                        >
-                          {view.environment === "live" ? "Live" : "Test"}
-                        </Badge>
-                      ) : null}
+                      {view
+                        ? (() => {
+                            const live =
+                              g === "paystack"
+                                ? view.mode === "live"
+                                : view.environment === "live";
+                            return (
+                              <Badge
+                                variant="outline"
+                                className={`uppercase ${
+                                  live
+                                    ? "border-emerald-300 text-emerald-700"
+                                    : "border-amber-300 text-amber-700"
+                                }`}
+                              >
+                                {live ? "Live" : "Test"}
+                              </Badge>
+                            );
+                          })()
+                        : null}
                     </div>
                     {view ? (
                       <p className="mt-0.5 text-sm text-brand-ink">
                         Secret{" "}
                         <span className="font-mono">
-                          ••••{view.secret_last4}
+                          ••••
+                          {g === "paystack"
+                            ? ((view.mode === "live"
+                                ? view.live_secret_last4
+                                : view.test_secret_last4) ?? "----")
+                            : view.secret_last4}
                         </span>
+                        {g === "paystack" ? (
+                          <>
+                            {" "}
+                            ·{" "}
+                            <span className="text-brand-mute">
+                              test {view.test_secret_last4 ? "✓" : "—"} · live{" "}
+                              {view.live_secret_last4 ? "✓" : "—"}
+                            </span>
+                          </>
+                        ) : null}
                         {view.statement_descriptor ? (
                           <>
                             {" "}

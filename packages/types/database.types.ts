@@ -3641,10 +3641,17 @@ export type Database = {
           id: string
           is_enabled: boolean
           last_validated_at: string | null
-          public_identifier: string
-          secret_cipher: string
-          secret_last4: string
+          live_public_identifier: string | null
+          live_secret_cipher: string | null
+          live_secret_last4: string | null
+          mode: string
+          public_identifier: string | null
+          secret_cipher: string | null
+          secret_last4: string | null
           statement_descriptor: string | null
+          test_public_identifier: string | null
+          test_secret_cipher: string | null
+          test_secret_last4: string | null
           updated_at: string
         }
         Insert: {
@@ -3656,10 +3663,17 @@ export type Database = {
           id?: string
           is_enabled?: boolean
           last_validated_at?: string | null
-          public_identifier: string
-          secret_cipher: string
-          secret_last4: string
+          live_public_identifier?: string | null
+          live_secret_cipher?: string | null
+          live_secret_last4?: string | null
+          mode?: string
+          public_identifier?: string | null
+          secret_cipher?: string | null
+          secret_last4?: string | null
           statement_descriptor?: string | null
+          test_public_identifier?: string | null
+          test_secret_cipher?: string | null
+          test_secret_last4?: string | null
           updated_at?: string
         }
         Update: {
@@ -3671,10 +3685,17 @@ export type Database = {
           id?: string
           is_enabled?: boolean
           last_validated_at?: string | null
-          public_identifier?: string
-          secret_cipher?: string
-          secret_last4?: string
+          live_public_identifier?: string | null
+          live_secret_cipher?: string | null
+          live_secret_last4?: string | null
+          mode?: string
+          public_identifier?: string | null
+          secret_cipher?: string | null
+          secret_last4?: string | null
           statement_descriptor?: string | null
+          test_public_identifier?: string | null
+          test_secret_cipher?: string | null
+          test_secret_last4?: string | null
           updated_at?: string
         }
         Relationships: [
