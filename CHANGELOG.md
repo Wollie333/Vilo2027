@@ -5,6 +5,104 @@
 
 ---
 
+## 2026-06-29 — Blog-post editor canvas previews the ACTIVE theme
+
+Same treatment as the form canvas, for the blog single-post editor. The
+`.post-doc` was hardcoded to the mockup (white card, Plus Jakarta Sans title,
+emerald `--primary` category/links) so editing a post didn't look like the real
+`/blog/[slug]` template.
+
+- `loadBlogPost` now selects `theme` + returns `themeVars = buildSiteVars(theme)`;
+  the post route threads it to `PostEditor`, which sets it on the canvas
+  `.post-wrap`.
+- `blog-editor.css` mockup fallbacks now chain through the theme
+  (`var(--site-*, <mockup>)`), matching what the public single-post page renders:
+  backdrop `--site-bg`, card `--site-surface`, title/headings
+  `--site-font-heading` + `--site-ink`, body `--site-font-body` + `--site-ink`,
+  category/links/blockquote/avatar `--site-accent`, dividers `--site-line`.
+  Editor chrome (status pills, cover overlay, chips, SEO preview, RTE toolbar)
+  unchanged. Theme absent ⇒ mockup defaults (back-compat).
+
+`tsc` + `next lint` clean. **Verified live** (vilotest = Safari): canvas sand
+`#F4EDE0`, card `#FBF6EC`, title Cormorant Garamond `#221A11`, category
+`#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
+look. (Computed-style readout, no console errors.)
+
+## 2026-06-29 — Wire the new schema: default-form protection + bookings in submissions
+
+Code for the two migrations above (they were schema-only).
+
+**Default forms never-delete (`is_default`)**
+- `createWebsiteAction` seeds the 4 default forms with `is_default: true`.
+- `deleteWebsiteFormAction` refuses a default form (returns `default_form`) —
+  server-side guard.
+- `loadFormsEditor` returns `isDefault`; the Forms manager row menu hides Delete
+  for default forms (`canDelete` on `RowMenu`). Host can still edit/duplicate them.
+
+**Website bookings logged into the Forms submissions area**
+- `createSiteBooking` (the on-site checkout) now writes a best-effort
+  `website_form_submissions` row on success: `form_id = null`,
+  `source = 'checkout'`, `booking_id = <new booking>`, `data` = a readable
+  summary (name/email/phone/dates/guests). Non-blocking — never fails the booking.
+- `loadFormResponses` selects `source` + `booking_id` and types `formId` nullable.
+- `ResponsesManager`: a "Website bookings" filter; booking rows labelled
+  "Website booking" with a **Booking** badge and a **View booking** deep-link
+  (`/dashboard/bookings/<id>`); CSV export disabled unless a real form is picked;
+  all `formById.get(formId)` paths null-safe. New en.json keys.
+
+`tsc` (0 errors) + `next lint` clean. **Verified live** (vilotest): responses
+page renders; seeded a `source='checkout'`, `form_id=null` row with a real
+`booking_id` → it showed as "Website booking" with the Booking badge and summary,
+then cleaned up. The null-`form_id` insert succeeding confirms the migration.
+
+## 2026-06-29 (migrations) — Default-form flag + bookings-into-submissions schema
+
+Both EOD #15 PENDING migrations, written + **applied to the linked cloud DB**
+(`supabase db push --linked` — remote was fully in sync first; the parallel
+`looking-for` migrations are now all applied, so the old blocker is gone) +
+types regenerated (`supabase gen types --linked`). `tsc` clean (0 errors).
+
+- `20260629100000_website_forms_is_default.sql` — adds
+  `website_forms.is_default boolean NOT NULL DEFAULT false` to flag the four
+  forms seeded on site creation so the dashboard can keep them editable but
+  never-delete (and auto-place them). Bespoke host forms are false.
+- `20260629110000_website_form_submissions_source.sql` — lets a submission row
+  represent an on-site booking that has no form behind it: `form_id` is now
+  NULLABLE; adds `source text NOT NULL DEFAULT 'form' CHECK (form|dock|checkout)`
+  and `booking_id uuid REFERENCES bookings ON DELETE SET NULL` (+ index). Lets
+  the room booking dock + on-site checkout log into the Forms submissions area.
+
+**NOT yet wired (code, next step):** seed `is_default = true` on the four
+default forms + enforce never-delete in the Forms manager; write a
+`source='dock'/'checkout'` submission row (with `booking_id`) when a website
+booking is created; surface these in the submissions viewer.
+
+## 2026-06-29 — Form-builder canvas previews the ACTIVE theme (was the emerald mockup)
+
+First of the EOD #15 PENDING items. The form-editor canvas (`.form-doc`) was
+hardcoded to the mockup look — emerald `#10b981` accent/submit + Plus Jakarta
+Sans — and only changed when a host set per-form `--vform-*` overrides; it never
+reflected the site's theme, so the preview didn't match the published page.
+
+- `loadFormsEditor` now also returns `themeVars` = `buildSiteVars(site.theme)`
+  (the full `--site-*` map). The form route + the embedded page-builder overlay
+  (`getWebsiteFormForEditorAction` → `SectionEditor`) thread it to `FormEditor`,
+  which sets it on the canvas `.form-wrap`.
+- `form-editor.css` mockup fallbacks now chain through the theme:
+  `var(--vform-*, var(--site-*, <mockup>))` — the SAME chain the public
+  `FormSection` uses. Themed: backdrop (`--site-bg`), card (`--site-surface`),
+  accent bar + submit (`--site-accent`/`--site-btn-primary-*`), field
+  borders/radius/fill, labels/headings (`--site-ink`), option marks, fonts
+  (`--site-font-heading`). Editor chrome (selection/hover/tools/labels) stays
+  emerald — it's builder UI, not form content.
+- Theme absent ⇒ the canvas keeps its mockup defaults (back-compat).
+
+`tsc` + `next lint` clean. **Verified live** (vilotest = Safari theme): canvas
+backdrop sand `#F4EDE0`, card `#FBF6EC`, accent/submit terracotta `#B26C2E`,
+field borders `#DBCFB8` (`--site-line`), labels `#221A11` (`--site-ink`), marks
+`#B26C2E`, heading font Cormorant Garamond — i.e. the real published look, not
+the emerald mockup. (Computed-style readout; `preview_screenshot` timed out.)
+
 ## 2026-06-29 (EOD #15) — Website booking system: room detail, themed checkout, forms, channels
 
 Long session turning the website CMS into a working, enterprise-grade booking

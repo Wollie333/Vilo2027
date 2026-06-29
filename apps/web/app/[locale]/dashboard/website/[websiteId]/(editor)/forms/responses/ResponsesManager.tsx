@@ -72,7 +72,11 @@ export function ResponsesManager({
     const fromMs = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
     const toMs = toDate ? new Date(`${toDate}T23:59:59.999`).getTime() : null;
     return submissions.filter((s) => {
-      if (formFilter !== "all" && s.formId !== formFilter) return false;
+      if (formFilter === "bookings") {
+        if (s.source === "form") return false;
+      } else if (formFilter !== "all" && s.formId !== formFilter) {
+        return false;
+      }
       if (statusFilter === "active") {
         if (s.status !== "new" && s.status !== "read") return false;
       } else if (statusFilter === "archived") {
@@ -84,7 +88,7 @@ export function ResponsesManager({
         if (toMs !== null && ms > toMs) return false;
       }
       if (q) {
-        const form = formById.get(s.formId);
+        const form = s.formId ? formById.get(s.formId) : undefined;
         const hay = [form?.name ?? "", ...Object.values(s.data)]
           .join(" ")
           .toLowerCase();
@@ -127,14 +131,17 @@ export function ResponsesManager({
     if (next && s.status === "new") patchStatus(s.id, "read");
   }
 
-  /** Human label for a field id, falling back to the raw key. */
-  function labelFor(formId: string, key: string): string {
-    const f = formById.get(formId)?.fields.find((fl) => fl.id === key);
+  /** Human label for a field id, falling back to the raw key (booking rows store
+   *  readable keys directly, so the fallback is the display label). */
+  function labelFor(formId: string | null, key: string): string {
+    const f = formId
+      ? formById.get(formId)?.fields.find((fl) => fl.id === key)
+      : undefined;
     return f?.label ?? key;
   }
 
   function summaryOf(s: FormSubmissionRow): string {
-    const form = formById.get(s.formId);
+    const form = s.formId ? formById.get(s.formId) : undefined;
     const order = form?.fields.map((f) => f.id) ?? Object.keys(s.data);
     const parts = order
       .map((k) => s.data[k])
@@ -184,6 +191,7 @@ export function ResponsesManager({
           aria-label={t("responsesFilterForm")}
         >
           <option value="all">{t("responsesAllForms")}</option>
+          <option value="bookings">{t("responsesBookingsFilter")}</option>
           {forms.map((f) => (
             <option key={f.id} value={f.id}>
               {f.name}
@@ -235,9 +243,9 @@ export function ResponsesManager({
         <button
           type="button"
           onClick={exportCsv}
-          disabled={formFilter === "all" || visible.length === 0}
+          disabled={!formById.has(formFilter) || visible.length === 0}
           title={
-            formFilter === "all" ? t("responsesExportPickForm") : undefined
+            !formById.has(formFilter) ? t("responsesExportPickForm") : undefined
           }
           className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light disabled:opacity-40"
         >
@@ -255,8 +263,14 @@ export function ResponsesManager({
         <ul className="space-y-2">
           {visible.map((s) => {
             const open = expanded === s.id;
-            const form = formById.get(s.formId);
+            const form = s.formId ? formById.get(s.formId) : undefined;
             const isNew = s.status === "new";
+            // Booking rows (dock/checkout) have no form — label them so the host
+            // can tell a website booking apart from a form lead.
+            const sourceLabel =
+              s.source !== "form"
+                ? t("responsesWebsiteBooking")
+                : (form?.name ?? t("responsesUnknownForm"));
             return (
               <li
                 key={s.id}
@@ -283,10 +297,14 @@ export function ResponsesManager({
                       {summaryOf(s)}
                     </span>
                     <span className="block text-[12px] text-brand-mute">
-                      {form?.name ?? t("responsesUnknownForm")} ·{" "}
-                      {new Date(s.createdAt).toLocaleString()}
+                      {sourceLabel} · {new Date(s.createdAt).toLocaleString()}
                     </span>
                   </span>
+                  {s.source !== "form" ? (
+                    <span className="shrink-0 rounded-full bg-brand-primary/10 px-2 py-0.5 text-[11px] font-semibold text-brand-primary">
+                      {t("responsesBookingTag")}
+                    </span>
+                  ) : null}
                   {s.status === "archived" ? (
                     <span className="shrink-0 rounded-full bg-brand-light px-2 py-0.5 text-[11px] font-semibold text-brand-mute">
                       {t("responsesStatusArchivedTag")}
@@ -324,6 +342,15 @@ export function ResponsesManager({
                     </dl>
 
                     <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-brand-line pt-3">
+                      {s.bookingId ? (
+                        <Link
+                          href={`/dashboard/bookings/${s.bookingId}`}
+                          className="inline-flex items-center gap-1.5 rounded-[8px] border border-brand-line px-2.5 py-1.5 text-[12.5px] font-medium text-brand-ink transition-colors hover:bg-brand-light"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          {t("responsesViewBooking")}
+                        </Link>
+                      ) : null}
                       {s.conversationId ? (
                         <Link
                           href={`/dashboard/inbox?f=enquiries&c=${s.conversationId}`}

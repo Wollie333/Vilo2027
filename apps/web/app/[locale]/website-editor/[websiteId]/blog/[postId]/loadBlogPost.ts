@@ -1,7 +1,10 @@
 import "server-only";
 
+import type { CSSProperties } from "react";
+
 import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
+import { buildSiteVars, type SiteThemeConfig } from "@/lib/site/themes";
 
 export type BlogAuthorRow = {
   id: string;
@@ -17,6 +20,9 @@ export type BlogPostEditorData = {
   authors: BlogAuthorRow[];
   /** Every tag name on this site — autocomplete suggestions for the tag input. */
   allTags: string[];
+  /** The active theme's `--site-*` CSS vars — applied to the editor canvas so the
+   *  post preview matches the real single-post template (same chain it uses). */
+  themeVars: CSSProperties;
   post: {
     id: string;
     title: string;
@@ -55,7 +61,7 @@ export async function loadBlogPost(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("id, subdomain")
+    .select("id, subdomain, theme")
     .eq("id", websiteId)
     .eq("host_id", hostId)
     .is("deleted_at", null)
@@ -128,6 +134,7 @@ export async function loadBlogPost(
       bio: a.bio ?? "",
     })),
     allTags: (allTagRows ?? []).map((t) => t.name),
+    themeVars: buildSiteVars(site.theme as SiteThemeConfig | null),
     post: {
       id: post.id,
       title: post.title,

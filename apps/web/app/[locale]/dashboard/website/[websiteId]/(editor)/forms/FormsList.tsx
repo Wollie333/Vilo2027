@@ -355,6 +355,7 @@ function FormRow({
         <RowMenu
           websiteId={websiteId}
           duplicating={duplicating}
+          canDelete={!form.isDefault}
           onDelete={onDelete}
           onDuplicate={onDuplicate}
         />
@@ -366,11 +367,14 @@ function FormRow({
 function RowMenu({
   websiteId,
   duplicating,
+  canDelete,
   onDelete,
   onDuplicate,
 }: {
   websiteId: string;
   duplicating: boolean;
+  /** False for default forms — they're never-delete. */
+  canDelete: boolean;
   onDelete: () => void;
   onDuplicate: () => void;
 }) {
@@ -446,14 +450,16 @@ function RowMenu({
             )}
             {t("duplicateForm")}
           </button>
-          <button
-            type="button"
-            className="rm-item rm-danger"
-            onClick={stop(onDelete)}
-          >
-            <Trash2 style={{ width: 15, height: 15 }} />
-            {t("deleteForm")}
-          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              className="rm-item rm-danger"
+              onClick={stop(onDelete)}
+            >
+              <Trash2 style={{ width: 15, height: 15 }} />
+              {t("deleteForm")}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

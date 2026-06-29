@@ -1,8 +1,11 @@
 import "server-only";
 
+import type { CSSProperties } from "react";
+
 import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 import { themeSwatches } from "@/lib/site/themeSwatches";
+import { buildSiteVars, type SiteThemeConfig } from "@/lib/site/themes";
 import {
   formFieldsSchema,
   formSettingsSchema,
@@ -17,6 +20,8 @@ export type FormEditorRow = {
   type: FormType;
   fields: FormField[];
   settings: FormSettings;
+  /** A seeded default form (contact/quote/booking/newsletter) — never-delete. */
+  isDefault: boolean;
   submissionCount: number;
   // Derived tracking (no per-form status column — see below).
   status: "live" | "draft";
@@ -31,6 +36,9 @@ export type FormsEditorData = {
   forms: FormEditorRow[];
   /** The website's theme colours (Brand Studio) — feeds the colour pickers. */
   themeSwatches: string[];
+  /** The active theme's `--site-*` CSS vars — set on the builder canvas so the
+   *  form preview reflects the real theme (same chain the public render uses). */
+  themeVars: CSSProperties;
 };
 
 /**
@@ -115,7 +123,7 @@ export async function loadFormsEditor(
   const [{ data: formRows }, { data: pageRows }] = await Promise.all([
     supabase
       .from("website_forms")
-      .select("id, name, type, fields, settings")
+      .select("id, name, type, fields, settings, is_default")
       .eq("website_id", websiteId)
       .is("deleted_at", null)
       .order("created_at", { ascending: true }),
@@ -172,6 +180,7 @@ export async function loadFormsEditor(
       type: f.type as FormType,
       fields: fields.success ? fields.data : [],
       settings: settings.success ? settings.data : formSettingsSchema.parse({}),
+      isDefault: f.is_default ?? false,
       submissionCount: total.get(f.id) ?? 0,
       status: publishedOn.length > 0 ? "live" : "draft",
       embedLabels: embedPages.map(pageLabel),
@@ -185,5 +194,6 @@ export async function loadFormsEditor(
     subdomain: site.subdomain,
     forms: parsed,
     themeSwatches: themeSwatches(site.theme),
+    themeVars: buildSiteVars(site.theme as SiteThemeConfig | null),
   };
 }

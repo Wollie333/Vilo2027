@@ -1,5 +1,7 @@
 "use server";
 
+import type { CSSProperties } from "react";
+
 import { revalidatePath } from "next/cache";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -545,6 +547,10 @@ export async function createWebsiteAction(
         type: tpl.type,
         fields: tpl.fields.map((f) => ({ ...f, id: uuid() })),
         settings: tpl.settings,
+        // The four seeded forms are the building blocks pages/sections rely on —
+        // keep them editable but never-delete (enforced in deleteWebsiteFormAction
+        // + hidden from the Forms manager's row menu).
+        is_default: true,
       };
     }),
   );
@@ -2888,6 +2894,7 @@ export async function getWebsiteFormForEditorAction(
       };
       subdomain: string;
       roomNames: string[];
+      themeVars: CSSProperties;
     }
   | { ok: false; error: string }
 > {
@@ -2913,6 +2920,7 @@ export async function getWebsiteFormForEditorAction(
     },
     subdomain: `${data.subdomain}.${root}`,
     roomNames,
+    themeVars: data.themeVars,
   };
 }
 
@@ -2952,6 +2960,19 @@ export async function deleteWebsiteFormAction(
     return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
+
+  // Default forms are never-delete — the host can edit them, but they back the
+  // auto-placed sections, so removing one would break the site. (The UI hides
+  // delete for these; this is the server-side guard.)
+  const { data: existing } = await supabase
+    .from("website_forms")
+    .select("is_default")
+    .eq("id", formId)
+    .eq("website_id", websiteId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existing?.is_default) return { ok: false, error: "default_form" };
+
   const { error } = await supabase
     .from("website_forms")
     .update({ deleted_at: new Date().toISOString() })

@@ -3,11 +3,18 @@
    Hand-authored to match the mockup; --ink/--mute/--line/--soft come from
    builder.css (.vilo-builder). */
 
+/* The canvas reflects the ACTIVE theme: the form-wrap carries the site's
+   `--site-*` vars (set inline from buildSiteVars), and the form preview reads
+   them via the SAME `var(--vform-*, var(--site-*, <mockup>))` chain the public
+   FormSection uses — so unstyled forms look like the real published page, not
+   the emerald mockup. The mockup hex stays as the final fallback (theme absent).
+   Editor chrome (selection/hover/tools/labels) stays emerald — it's builder UI,
+   not form content. */
 .vilo-builder .form-wrap {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  background: #e8eeea;
+  background: var(--site-bg, #e8eeea);
   display: flex;
   justify-content: center;
   padding: 26px 20px 120px;
@@ -15,7 +22,7 @@
 .vilo-builder .form-doc {
   width: 100%;
   max-width: 680px;
-  background: #fff;
+  background: var(--site-surface, #fff);
   border-radius: 16px;
   box-shadow: 0 24px 60px -30px rgba(6, 78, 59, 0.5);
   align-self: flex-start;
@@ -23,18 +30,18 @@
 }
 .vilo-builder .fd-accent {
   height: 6px;
-  background: #10b981;
+  background: var(--vform-accent, var(--site-accent, #10b981));
 }
 .vilo-builder .fd-head {
   padding: 30px 38px 4px;
 }
 .vilo-builder .fd-title {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: var(--site-font-heading, "Plus Jakarta Sans", sans-serif);
   font-weight: 800;
   font-size: 27px;
   letter-spacing: -0.02em;
   line-height: 1.12;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
   outline: 0;
   width: 100%;
   border: 0;
@@ -44,7 +51,7 @@
 .vilo-builder .fd-desc {
   font-size: 14.5px;
   line-height: 1.6;
-  color: var(--mute);
+  color: var(--site-mute, var(--mute));
   margin: 9px 0 0;
   outline: 0;
   width: 100%;
@@ -65,9 +72,9 @@
 }
 .vilo-builder .fd-submit {
   height: 48px;
-  border-radius: var(--vform-radius, 11px);
-  background: var(--vform-btn-bg, #10b981);
-  color: var(--vform-btn-fg, #fff);
+  border-radius: var(--vform-radius, var(--site-btn-primary-radius, 11px));
+  background: var(--vform-btn-bg, var(--site-btn-primary-bg, #10b981));
+  color: var(--vform-btn-fg, var(--site-btn-primary-color, #fff));
   font-size: 14.5px;
   font-weight: 700;
   display: inline-flex;
@@ -75,7 +82,7 @@
   justify-content: center;
   gap: 8px;
   padding: 0 26px;
-  box-shadow: 0 10px 22px -10px rgba(16, 185, 129, 0.7);
+  box-shadow: 0 10px 22px -12px rgba(0, 0, 0, 0.35);
 }
 
 /* field block */
@@ -106,7 +113,7 @@
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
   margin-bottom: 7px;
 }
 .vilo-builder .ff.req .flabel::after {
@@ -116,20 +123,20 @@
 }
 .vilo-builder .fhelp {
   font-size: 11.5px;
-  color: var(--mute);
+  color: var(--site-mute, var(--mute));
   margin: 6px 0 0;
   line-height: 1.45;
 }
 .vilo-builder .finput {
   height: 44px;
-  border: 1px solid var(--vform-field-border, var(--line));
-  border-radius: var(--vform-radius, 10px);
-  background: var(--vform-field-bg, #fff);
+  border: 1px solid var(--vform-field-border, var(--site-line, var(--line)));
+  border-radius: var(--vform-radius, var(--site-radius, 10px));
+  background: var(--vform-field-bg, var(--site-surface, #fff));
   display: flex;
   align-items: center;
   padding: 0 13px;
   font-size: 13.5px;
-  color: #9db4a8;
+  color: var(--site-mute, #9db4a8);
 }
 .vilo-builder .finput.area {
   height: 84px;
@@ -156,12 +163,12 @@
   align-items: center;
   gap: 9px;
   font-size: 13.5px;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
 }
 .vilo-builder .fopt .mk {
   width: 18px;
   height: 18px;
-  border: 1.5px solid var(--vform-accent, #c3dbce);
+  border: 1.5px solid var(--vform-accent, var(--site-accent, #c3dbce));
   flex-shrink: 0;
 }
 .vilo-builder .fopt .mk.r {
@@ -173,8 +180,8 @@
 .vilo-builder .fstep {
   display: flex;
   align-items: center;
-  border: 1px solid var(--vform-field-border, var(--line));
-  border-radius: var(--vform-radius, 10px);
+  border: 1px solid var(--vform-field-border, var(--site-line, var(--line)));
+  border-radius: var(--vform-radius, var(--site-radius, 10px));
   width: 140px;
   height: 44px;
   overflow: hidden;
@@ -183,7 +190,7 @@
   flex: 1;
   text-align: center;
   font-size: 13.5px;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
   font-weight: 600;
 }
 .vilo-builder .fstep b {
@@ -196,19 +203,19 @@
   background: #f7fbf9;
 }
 .vilo-builder .fheading {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: var(--site-font-heading, "Plus Jakarta Sans", sans-serif);
   font-weight: 800;
   font-size: 18px;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
 }
 .vilo-builder .ftext {
   font-size: 13.5px;
-  color: var(--mute);
+  color: var(--site-mute, var(--mute));
   line-height: 1.6;
 }
 .vilo-builder .fdiv {
   height: 1px;
-  background: var(--line);
+  background: var(--site-line, var(--line));
 }
 /* Field type tag (with drag grip) — mirrors the page builder's .bk-label. */
 .vilo-builder .ff-label {

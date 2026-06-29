@@ -117,6 +117,7 @@ export function FormEditor({
   initialSettings,
   roomNames = [],
   themeSwatches = [],
+  themeVars,
   embedded = false,
   onClose,
 }: {
@@ -131,6 +132,10 @@ export function FormEditor({
   roomNames?: string[];
   /** Theme colours (Brand Studio) for the colour pickers' preset swatches. */
   themeSwatches?: string[];
+  /** The active theme's `--site-*` CSS vars — applied to the canvas so the form
+   *  preview reflects the real theme (same fallback chain as the public render).
+   *  Absent (embedded/legacy) ⇒ the canvas keeps its mockup defaults. */
+  themeVars?: CSSProperties;
   /** When mounted inside the page builder (modal/overlay) rather than its own
    *  route — swaps the "back to forms" link for a Close action. */
   embedded?: boolean;
@@ -400,8 +405,9 @@ export function FormEditor({
           </aside>
         ) : null}
 
-        {/* canvas */}
-        <div className="form-wrap thin">
+        {/* canvas — themeVars set the active theme's --site-* so the preview
+            matches the published page; per-form --vform-* overrides win. */}
+        <div className="form-wrap thin" style={themeVars}>
           <div className="form-doc" style={formStyleVars(settings.style)}>
             <div className="fd-accent" />
             <div className="fd-head">

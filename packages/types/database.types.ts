@@ -4195,6 +4195,572 @@ export type Database = {
           },
         ]
       }
+      looking_for_alerts: {
+        Row: {
+          category: string | null
+          check_in_from: string | null
+          check_in_to: string | null
+          created_at: string
+          host_id: string
+          id: string
+          is_active: boolean
+          last_matched_at: string | null
+          last_notified_at: string | null
+          location_region: string | null
+          match_count: number
+          max_budget: number | null
+          max_guests: number | null
+          min_budget: number | null
+          min_guests: number | null
+          name: string | null
+        }
+        Insert: {
+          category?: string | null
+          check_in_from?: string | null
+          check_in_to?: string | null
+          created_at?: string
+          host_id: string
+          id?: string
+          is_active?: boolean
+          last_matched_at?: string | null
+          last_notified_at?: string | null
+          location_region?: string | null
+          match_count?: number
+          max_budget?: number | null
+          max_guests?: number | null
+          min_budget?: number | null
+          min_guests?: number | null
+          name?: string | null
+        }
+        Update: {
+          category?: string | null
+          check_in_from?: string | null
+          check_in_to?: string | null
+          created_at?: string
+          host_id?: string
+          id?: string
+          is_active?: boolean
+          last_matched_at?: string | null
+          last_notified_at?: string | null
+          location_region?: string | null
+          match_count?: number
+          max_budget?: number | null
+          max_guests?: number | null
+          min_budget?: number | null
+          min_guests?: number | null
+          name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_alerts_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_bookmarks: {
+        Row: {
+          host_id: string
+          id: string
+          post_id: string
+          saved_at: string
+        }
+        Insert: {
+          host_id: string
+          id?: string
+          post_id: string
+          saved_at?: string
+        }
+        Update: {
+          host_id?: string
+          id?: string
+          post_id?: string
+          saved_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_bookmarks_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_bookmarks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_expiry_notifications: {
+        Row: {
+          days_before: number
+          id: string
+          post_id: string
+          sent_at: string | null
+        }
+        Insert: {
+          days_before: number
+          id?: string
+          post_id: string
+          sent_at?: string | null
+        }
+        Update: {
+          days_before?: number
+          id?: string
+          post_id?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_expiry_notifications_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_passes: {
+        Row: {
+          host_id: string
+          id: string
+          passed_at: string
+          post_id: string
+          reason: string | null
+        }
+        Insert: {
+          host_id: string
+          id?: string
+          passed_at?: string
+          post_id: string
+          reason?: string | null
+        }
+        Update: {
+          host_id?: string
+          id?: string
+          passed_at?: string
+          post_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_passes_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_passes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_post_targets: {
+        Row: {
+          created_at: string
+          host_id: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          host_id: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          host_id?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_post_targets_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_post_targets_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_post_views: {
+        Row: {
+          host_id: string
+          id: string
+          post_id: string
+          viewed_at: string
+        }
+        Insert: {
+          host_id: string
+          id?: string
+          post_id: string
+          viewed_at?: string
+        }
+        Update: {
+          host_id?: string
+          id?: string
+          post_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_post_views_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_post_views_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_posts: {
+        Row: {
+          adults: number
+          budget_currency: string
+          budget_max: number | null
+          budget_min: number | null
+          budget_per: string | null
+          category: string
+          check_in_date: string | null
+          check_out_date: string | null
+          children: number
+          created_at: string
+          description: string | null
+          event_type: string | null
+          expires_at: string | null
+          extension_count: number
+          fulfilled_booking_id: string | null
+          fulfilled_via: string | null
+          guest_id: string
+          id: string
+          infants: number
+          is_all_in_quote: boolean | null
+          is_public: boolean
+          is_urgent: boolean
+          location_lat: number | null
+          location_lng: number | null
+          location_region: string | null
+          location_text: string | null
+          min_host_rating: number | null
+          quote_count: number
+          quote_deadline: string | null
+          reopen_count: number
+          status: string
+          sub_category: string | null
+          title: string
+          total_headcount: number | null
+          updated_at: string
+          urgent_until: string | null
+          vendor_needs: string[] | null
+          view_count: number
+        }
+        Insert: {
+          adults?: number
+          budget_currency?: string
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_per?: string | null
+          category?: string
+          check_in_date?: string | null
+          check_out_date?: string | null
+          children?: number
+          created_at?: string
+          description?: string | null
+          event_type?: string | null
+          expires_at?: string | null
+          extension_count?: number
+          fulfilled_booking_id?: string | null
+          fulfilled_via?: string | null
+          guest_id: string
+          id?: string
+          infants?: number
+          is_all_in_quote?: boolean | null
+          is_public?: boolean
+          is_urgent?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          location_region?: string | null
+          location_text?: string | null
+          min_host_rating?: number | null
+          quote_count?: number
+          quote_deadline?: string | null
+          reopen_count?: number
+          status?: string
+          sub_category?: string | null
+          title: string
+          total_headcount?: number | null
+          updated_at?: string
+          urgent_until?: string | null
+          vendor_needs?: string[] | null
+          view_count?: number
+        }
+        Update: {
+          adults?: number
+          budget_currency?: string
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_per?: string | null
+          category?: string
+          check_in_date?: string | null
+          check_out_date?: string | null
+          children?: number
+          created_at?: string
+          description?: string | null
+          event_type?: string | null
+          expires_at?: string | null
+          extension_count?: number
+          fulfilled_booking_id?: string | null
+          fulfilled_via?: string | null
+          guest_id?: string
+          id?: string
+          infants?: number
+          is_all_in_quote?: boolean | null
+          is_public?: boolean
+          is_urgent?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          location_region?: string | null
+          location_text?: string | null
+          min_host_rating?: number | null
+          quote_count?: number
+          quote_deadline?: string | null
+          reopen_count?: number
+          status?: string
+          sub_category?: string | null
+          title?: string
+          total_headcount?: number | null
+          updated_at?: string
+          urgent_until?: string | null
+          vendor_needs?: string[] | null
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_posts_fulfilled_booking_id_fkey"
+            columns: ["fulfilled_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_posts_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_quotas: {
+        Row: {
+          guest_extensions_per_month: number | null
+          guest_posts_per_day: number | null
+          guest_posts_per_month: number | null
+          guest_posts_per_year: number | null
+          host_quotes_per_day: number | null
+          host_quotes_per_month: number | null
+          host_quotes_per_year: number | null
+          id: string
+          plan_id: string
+          public_quote_count_cap: number | null
+          quote_expiry_days: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          guest_extensions_per_month?: number | null
+          guest_posts_per_day?: number | null
+          guest_posts_per_month?: number | null
+          guest_posts_per_year?: number | null
+          host_quotes_per_day?: number | null
+          host_quotes_per_month?: number | null
+          host_quotes_per_year?: number | null
+          id?: string
+          plan_id: string
+          public_quote_count_cap?: number | null
+          quote_expiry_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          guest_extensions_per_month?: number | null
+          guest_posts_per_day?: number | null
+          guest_posts_per_month?: number | null
+          guest_posts_per_year?: number | null
+          host_quotes_per_day?: number | null
+          host_quotes_per_month?: number | null
+          host_quotes_per_year?: number | null
+          id?: string
+          plan_id?: string
+          public_quote_count_cap?: number | null
+          quote_expiry_days?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_quotas_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_region_digest_queue: {
+        Row: {
+          id: string
+          post_count: number
+          processed_at: string | null
+          queued_at: string | null
+          region: string
+          sample_post_ids: string[]
+        }
+        Insert: {
+          id?: string
+          post_count?: number
+          processed_at?: string | null
+          queued_at?: string | null
+          region: string
+          sample_post_ids?: string[]
+        }
+        Update: {
+          id?: string
+          post_count?: number
+          processed_at?: string | null
+          queued_at?: string | null
+          region?: string
+          sample_post_ids?: string[]
+        }
+        Relationships: []
+      }
+      looking_for_responses: {
+        Row: {
+          expires_at: string | null
+          host_id: string
+          id: string
+          post_id: string
+          quote_id: string | null
+          sent_at: string
+          status: string
+          thread_id: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          expires_at?: string | null
+          host_id: string
+          id?: string
+          post_id: string
+          quote_id?: string | null
+          sent_at?: string
+          status?: string
+          thread_id?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          expires_at?: string | null
+          host_id?: string
+          id?: string
+          post_id?: string
+          quote_id?: string | null
+          sent_at?: string
+          status?: string
+          thread_id?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_responses_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_responses_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_responses_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_responses_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_usage: {
+        Row: {
+          action: string
+          id: string
+          occurred_at: string
+          post_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          occurred_at?: string
+          post_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          occurred_at?: string
+          post_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_usage_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_assets: {
         Row: {
           body: string | null
@@ -7093,6 +7659,7 @@ export type Database = {
           headcount: number
           host_id: string
           id: string
+          looking_for_post_id: string | null
           notes: string | null
           policy_snapshot: Json | null
           previous_status: string | null
@@ -7139,6 +7706,7 @@ export type Database = {
           headcount?: number
           host_id: string
           id?: string
+          looking_for_post_id?: string | null
           notes?: string | null
           policy_snapshot?: Json | null
           previous_status?: string | null
@@ -7185,6 +7753,7 @@ export type Database = {
           headcount?: number
           host_id?: string
           id?: string
+          looking_for_post_id?: string | null
           notes?: string | null
           policy_snapshot?: Json | null
           previous_status?: string | null
@@ -7233,6 +7802,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_looking_for_post_id_fkey"
+            columns: ["looking_for_post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -9163,33 +9739,46 @@ export type Database = {
       }
       website_form_submissions: {
         Row: {
+          booking_id: string | null
           conversation_id: string | null
           created_at: string
           data: Json
-          form_id: string
+          form_id: string | null
           id: string
+          source: string
           status: string
           website_id: string
         }
         Insert: {
+          booking_id?: string | null
           conversation_id?: string | null
           created_at?: string
           data?: Json
-          form_id: string
+          form_id?: string | null
           id?: string
+          source?: string
           status?: string
           website_id: string
         }
         Update: {
+          booking_id?: string | null
           conversation_id?: string | null
           created_at?: string
           data?: Json
-          form_id?: string
+          form_id?: string | null
           id?: string
+          source?: string
           status?: string
           website_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "website_form_submissions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "website_form_submissions_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -9219,6 +9808,7 @@ export type Database = {
           deleted_at: string | null
           fields: Json
           id: string
+          is_default: boolean
           name: string
           settings: Json
           type: string
@@ -9230,6 +9820,7 @@ export type Database = {
           deleted_at?: string | null
           fields?: Json
           id?: string
+          is_default?: boolean
           name: string
           settings?: Json
           type?: string
@@ -9241,6 +9832,7 @@ export type Database = {
           deleted_at?: string | null
           fields?: Json
           id?: string
+          is_default?: boolean
           name?: string
           settings?: Json
           type?: string
@@ -9772,6 +10364,10 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_looking_for_match_score: {
+        Args: { p_host_id: string; p_post_id: string }
+        Returns: Json
+      }
       calculate_policy_refund_amount: {
         Args: { p_booking_id: string; p_cancelled_at?: string }
         Returns: Json
@@ -9781,6 +10377,12 @@ export type Database = {
         Args: { p_feature_key: string; p_host_id: string }
         Returns: Json
       }
+      check_guest_post_quota: { Args: { p_user_id: string }; Returns: Json }
+      check_host_availability_for_dates: {
+        Args: { p_check_in: string; p_check_out: string; p_host_id: string }
+        Returns: Json
+      }
+      check_host_quote_quota: { Args: { p_host_id: string }; Returns: Json }
       claim_email_queue_batch: {
         Args: { p_limit: number; p_stale_seconds?: number }
         Returns: {
@@ -9965,6 +10567,10 @@ export type Database = {
       }
       fetch_host_guests_summary: { Args: { p_host_id: string }; Returns: Json }
       fetch_host_savings: { Args: { p_host_id: string }; Returns: Json }
+      fetch_looking_for_stats: {
+        Args: { p_end_date?: string; p_host_id: string; p_start_date?: string }
+        Returns: Json
+      }
       fetch_platform_commission_saved: { Args: never; Returns: number }
       fetch_popular_rooms: {
         Args: {

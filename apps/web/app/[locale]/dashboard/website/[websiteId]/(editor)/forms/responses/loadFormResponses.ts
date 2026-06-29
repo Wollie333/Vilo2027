@@ -15,12 +15,19 @@ export type ResponseFormMeta = {
   fields: FormField[];
 };
 
+export type SubmissionSource = "form" | "dock" | "checkout";
+
 export type FormSubmissionRow = {
   id: string;
-  formId: string;
+  /** Null for on-site bookings (dock/checkout) — they have no source form. */
+  formId: string | null;
   data: Record<string, string>;
   status: "new" | "read" | "archived" | "spam";
   conversationId: string | null;
+  /** Where the entry came from: a form submission, or an on-site booking. */
+  source: SubmissionSource;
+  /** The booking this entry created, for dock/checkout sources. */
+  bookingId: string | null;
   createdAt: string;
 };
 
@@ -61,7 +68,9 @@ export async function loadFormResponses(
       .order("created_at", { ascending: true }),
     supabase
       .from("website_form_submissions")
-      .select("id, form_id, data, status, conversation_id, created_at")
+      .select(
+        "id, form_id, data, status, conversation_id, source, booking_id, created_at",
+      )
       .eq("website_id", websiteId)
       .order("created_at", { ascending: false })
       .limit(1000),
@@ -83,6 +92,8 @@ export async function loadFormResponses(
     data: (s.data ?? {}) as Record<string, string>,
     status: s.status as FormSubmissionRow["status"],
     conversationId: s.conversation_id,
+    source: (s.source as SubmissionSource) ?? "form",
+    bookingId: s.booking_id,
     createdAt: s.created_at,
   }));
 

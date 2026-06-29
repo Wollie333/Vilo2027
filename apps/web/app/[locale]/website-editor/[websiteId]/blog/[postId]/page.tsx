@@ -22,6 +22,7 @@ export default async function FullScreenBlogPostPage({
       authors={data.authors}
       allTags={data.allTags}
       initialPost={data.post}
+      themeVars={data.themeVars}
     />
   );
 }

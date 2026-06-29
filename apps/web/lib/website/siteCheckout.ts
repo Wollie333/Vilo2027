@@ -224,6 +224,50 @@ export async function createSiteBooking(
     } catch {
       // non-blocking
     }
+
+    // Log the booking into the Forms submissions area so the host sees website
+    // bookings alongside form leads (source 'checkout', form_id null, linked to
+    // the booking via booking_id). Best-effort — never fail the booking.
+    try {
+      const summary = z
+        .object({
+          check_in: z.string().optional(),
+          check_out: z.string().optional(),
+          room_guests: z.array(z.object({ guests: z.number() })).optional(),
+          guests_breakdown: z
+            .object({
+              adults: z.number().optional(),
+              children: z.number().optional(),
+            })
+            .optional(),
+        })
+        .partial()
+        .safeParse(body);
+      const sd = summary.success ? summary.data : {};
+      const guests =
+        sd.room_guests?.reduce((n, r) => n + (r.guests ?? 0), 0) ||
+        0 ||
+        (sd.guests_breakdown?.adults ?? 0) +
+          (sd.guests_breakdown?.children ?? 0);
+      const data: Record<string, string> = {
+        Name: guest_name,
+        Email: guest_email,
+      };
+      if (extra.data.guest_phone) data.Phone = extra.data.guest_phone;
+      if (sd.check_in && sd.check_out)
+        data.Dates = `${sd.check_in} → ${sd.check_out}`;
+      if (guests > 0) data.Guests = String(guests);
+      await admin.from("website_form_submissions").insert({
+        website_id,
+        form_id: null,
+        source: "checkout",
+        booking_id: result.bookingId,
+        data,
+        status: "new",
+      });
+    } catch {
+      // non-blocking
+    }
   }
 
   return result;

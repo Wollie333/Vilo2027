@@ -13,7 +13,14 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type CSSProperties,
+} from "react";
 import { toast } from "sonner";
 
 import { Link } from "@/i18n/navigation";
@@ -131,6 +138,7 @@ export function PostEditor({
   authors,
   allTags,
   initialPost,
+  themeVars,
 }: {
   websiteId: string;
   subdomain: string;
@@ -138,6 +146,9 @@ export function PostEditor({
   authors: BlogAuthorRow[];
   allTags: string[];
   initialPost: Post;
+  /** Active theme's `--site-*` vars — set on the canvas so the post preview
+   *  matches the real single-post template (same fallback chain). */
+  themeVars?: CSSProperties;
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -424,8 +435,9 @@ export function PostEditor({
       </header>
 
       <div className="ebody">
-        {/* document */}
-        <div className="post-wrap thin">
+        {/* document — themeVars set the active theme's --site-* so the preview
+            matches the published single-post template. */}
+        <div className="post-wrap thin" style={themeVars}>
           <article className="post-doc">
             <div
               className={`post-cover${coverUrl ? "" : "empty"}`}

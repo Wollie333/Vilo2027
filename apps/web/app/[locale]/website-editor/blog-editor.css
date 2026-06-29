@@ -46,12 +46,18 @@
   background: #0ea5e9;
 }
 
-/* ---------- document ---------- */
+/* ---------- document ----------
+   The canvas reflects the ACTIVE theme: the post-wrap carries the site's
+   `--site-*` vars (set inline from buildSiteVars), and the post preview reads
+   them — so editing a post looks like the real single-post template, not the
+   emerald mockup. The mockup hex stays as the final fallback (theme absent).
+   Editor chrome (status pills, cover overlay, chips, SEO preview, toolbar)
+   stays as-is — it's builder UI, not post content. */
 .vilo-builder .post-wrap {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  background: #e8eeea;
+  background: var(--site-bg, #e8eeea);
   display: flex;
   justify-content: center;
   padding: 26px 20px 120px;
@@ -59,7 +65,7 @@
 .vilo-builder .post-doc {
   width: 100%;
   max-width: 768px;
-  background: #fff;
+  background: var(--site-surface, #fff);
   border-radius: 16px;
   box-shadow: 0 24px 60px -30px rgba(6, 78, 59, 0.5);
   overflow: hidden;
@@ -71,7 +77,7 @@
   background-position: center;
   position: relative;
   cursor: pointer;
-  background-color: #dceae0;
+  background-color: var(--site-line, #dceae0);
 }
 .vilo-builder .post-cover .cv-ov {
   position: absolute;
@@ -99,7 +105,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--primary);
+  color: var(--site-accent, var(--primary));
   display: inline-block;
 }
 .vilo-builder .post-title {
@@ -108,12 +114,12 @@
   border: 0;
   outline: 0;
   resize: none;
-  font-family: "Plus Jakarta Sans";
+  font-family: var(--site-font-heading, "Plus Jakarta Sans");
   font-weight: 800;
   font-size: 40px;
   letter-spacing: -0.025em;
   line-height: 1.1;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
   margin: 14px 0 0;
   background: transparent;
 }
@@ -129,9 +135,9 @@
   resize: none;
   font-size: 19px;
   line-height: 1.55;
-  color: var(--mute);
+  color: var(--site-mute, var(--mute));
   margin: 16px 0 0;
-  font-family: "Spectral", Georgia, serif;
+  font-family: var(--site-font-body, "Spectral", Georgia, serif);
   background: transparent;
 }
 .vilo-builder .post-meta {
@@ -140,13 +146,13 @@
   gap: 11px;
   margin: 22px 0 8px;
   padding-bottom: 22px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--site-line, var(--line));
 }
 .vilo-builder .post-meta .pav {
   height: 38px;
   width: 38px;
   border-radius: 9999px;
-  background: #064e3b;
+  background: var(--site-accent, #064e3b);
   color: #fff;
   display: flex;
   align-items: center;
@@ -164,11 +170,11 @@
 .vilo-builder .post-meta .pn {
   font-size: 13.5px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
 }
 .vilo-builder .post-meta .pd {
   font-size: 12.5px;
-  color: var(--mute);
+  color: var(--site-mute, var(--mute));
 }
 
 /* ---------- rich body (mockup `.post-body` + Tiptap content) ---------- */
@@ -187,9 +193,10 @@
   padding: 0 !important;
   max-height: none !important;
   min-height: 240px;
+  font-family: var(--site-font-body, inherit);
   font-size: 17.5px;
   line-height: 1.78;
-  color: #243b32;
+  color: var(--site-ink, #243b32);
   outline: 0;
 }
 .vilo-builder .post-body-wrap .ProseMirror:focus {
@@ -199,28 +206,28 @@
   margin: 0 0 20px;
 }
 .vilo-builder .post-body-wrap .ProseMirror h2 {
-  font-family: "Plus Jakarta Sans";
+  font-family: var(--site-font-heading, "Plus Jakarta Sans");
   font-weight: 800;
   font-size: 25px;
   letter-spacing: -0.02em;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
   margin: 34px 0 14px;
 }
 .vilo-builder .post-body-wrap .ProseMirror h3 {
-  font-family: "Plus Jakarta Sans";
+  font-family: var(--site-font-heading, "Plus Jakarta Sans");
   font-weight: 700;
   font-size: 20px;
-  color: var(--ink);
+  color: var(--site-ink, var(--ink));
   margin: 26px 0 10px;
 }
 .vilo-builder .post-body-wrap .ProseMirror blockquote {
   margin: 24px 0;
   padding: 6px 0 6px 22px;
-  border-left: 3px solid var(--primary);
-  font-family: "Spectral", serif;
+  border-left: 3px solid var(--site-accent, var(--primary));
+  font-family: var(--site-font-body, "Spectral", serif);
   font-size: 21px;
   line-height: 1.5;
-  color: var(--secondary);
+  color: var(--site-ink, var(--secondary));
 }
 .vilo-builder .post-body-wrap .ProseMirror ul,
 .vilo-builder .post-body-wrap .ProseMirror ol {
@@ -236,7 +243,7 @@
   width: 100%;
 }
 .vilo-builder .post-body-wrap .ProseMirror a {
-  color: var(--primary);
+  color: var(--site-accent, var(--primary));
   text-decoration: underline;
   text-underline-offset: 2px;
 }

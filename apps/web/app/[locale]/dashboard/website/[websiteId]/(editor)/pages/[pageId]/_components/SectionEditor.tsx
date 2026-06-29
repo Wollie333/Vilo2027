@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import { useTranslations } from "next-intl";
@@ -2910,6 +2910,7 @@ function FormFieldsEditor({
     settings: FormSettings;
     subdomain: string;
     roomNames: string[];
+    themeVars: CSSProperties;
   } | null>(null);
   const [openingEditor, setOpeningEditor] = useState(false);
 
@@ -2946,6 +2947,7 @@ function FormFieldsEditor({
       settings: res.form.settings,
       subdomain: res.subdomain,
       roomNames: res.roomNames,
+      themeVars: res.themeVars,
     });
   }
 
@@ -2987,6 +2989,7 @@ function FormFieldsEditor({
                 initialFields={editing.fields}
                 initialSettings={editing.settings}
                 roomNames={editing.roomNames}
+                themeVars={editing.themeVars}
                 embedded
                 onClose={() => setEditing(null)}
               />
