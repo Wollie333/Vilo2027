@@ -155,6 +155,8 @@ export function PostEditor({
 
   const [post, setPost] = useState<Post>(initialPost);
   const [savedSlug, setSavedSlug] = useState(initialPost.slug);
+  // Settings rail tabs (mirrors the form inspector's Settings|Styles tabs).
+  const [settingsTab, setSettingsTab] = useState<"post" | "seo">("post");
   const [saving, startSave] = useTransition();
   const [preview, setPreview] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
@@ -511,215 +513,260 @@ export function PostEditor({
             <h3>{t("blogSettingsTitle")}</h3>
           </div>
           <div className="epanel-b thin">
-            <div className="insp-sec">
-              <div className="isec-t">{t("blogStatus")}</div>
-              <div className="fld">
-                <div className="choice">
-                  {STATUSES.map((s) => (
-                    <button
-                      key={s.key}
-                      type="button"
-                      className={post.status === s.key ? "on" : ""}
-                      onClick={() => patch({ status: s.key })}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {post.status === "scheduled" ? (
-                <div className="fld">
-                  <label>{t("blogScheduleFor")}</label>
-                  <input
-                    type="datetime-local"
-                    value={isoToLocalInput(post.publishAt)}
-                    onChange={(e) =>
-                      patch({
-                        publishAt: e.target.value
-                          ? new Date(e.target.value).toISOString()
-                          : "",
-                      })
-                    }
-                  />
-                </div>
-              ) : null}
-              <div className="fld">
-                <div className="fld-row">
-                  <label style={{ margin: 0 }}>{t("blogFeature")}</label>
-                  <button
-                    type="button"
-                    className={`sw${post.featured ? "on" : ""}`}
-                    onClick={() => patch({ featured: !post.featured })}
-                    aria-pressed={post.featured}
-                  />
-                </div>
-              </div>
+            <div
+              role="tablist"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                margin: "0 0 12px",
+              }}
+              className="overflow-hidden rounded-[10px] border border-brand-line"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={settingsTab === "post"}
+                onClick={() => setSettingsTab("post")}
+                className={`px-2 py-1.5 text-[12.5px] font-semibold transition ${
+                  settingsTab === "post"
+                    ? "bg-brand-light text-brand-secondary"
+                    : "bg-white text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {t("blogTabPost")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={settingsTab === "seo"}
+                onClick={() => setSettingsTab("seo")}
+                className={`px-2 py-1.5 text-[12.5px] font-semibold transition ${
+                  settingsTab === "seo"
+                    ? "bg-brand-light text-brand-secondary"
+                    : "bg-white text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {t("blogTabSeo")}
+              </button>
             </div>
 
-            <div className="insp-sec">
-              <div className="isec-t">{t("blogOrganise")}</div>
-              <div className="fld">
-                <label>{t("blogCategory")}</label>
-                <select
-                  value={post.categoryId}
-                  onChange={(e) => patch({ categoryId: e.target.value })}
-                >
-                  <option value="">{t("blogNoCategory")}</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="fld">
-                <label>{t("blogTags")}</label>
-                {post.tags.length > 0 ? (
-                  <div className="chiprow" style={{ marginBottom: 7 }}>
-                    {post.tags.map((tag, i) => (
-                      <span className="chip-t" key={tag}>
-                        {tag}
+            {settingsTab === "post" ? (
+              <>
+                <div className="insp-sec">
+                  <div className="isec-t">{t("blogStatus")}</div>
+                  <div className="fld">
+                    <div className="choice">
+                      {STATUSES.map((s) => (
                         <button
+                          key={s.key}
                           type="button"
-                          onClick={() => removeTag(i)}
-                          aria-label={`Remove ${tag}`}
+                          className={post.status === s.key ? "on" : ""}
+                          onClick={() => patch({ status: s.key })}
                         >
-                          <X style={{ width: 12, height: 12 }} />
+                          {s.label}
                         </button>
-                      </span>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                ) : null}
-                <input
-                  type="text"
-                  list="post-tag-suggestions"
-                  value={tagDraft}
-                  placeholder={t("blogAddTag")}
-                  onChange={(e) => setTagDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === ",") {
-                      e.preventDefault();
-                      addTag(tagDraft);
-                    } else if (
-                      e.key === "Backspace" &&
-                      !tagDraft &&
-                      post.tags.length > 0
-                    ) {
-                      removeTag(post.tags.length - 1);
-                    }
-                  }}
-                  onBlur={() => addTag(tagDraft)}
-                />
-                <datalist id="post-tag-suggestions">
-                  {allTags.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
-              </div>
-              <div className="fld">
-                <label>{t("blogAuthor")}</label>
-                <select
-                  value={post.authorId}
-                  onChange={(e) => patch({ authorId: e.target.value })}
-                >
-                  <option value="">{t("blogNoAuthor")}</option>
-                  {authors.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="insp-sec">
-              <div className="isec-t">{t("blogFeaturedImage")}</div>
-              <div className="imgpick" onClick={pickCover}>
-                {coverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={coverUrl} alt="" />
-                ) : null}
-                <div className="ip-ov">
-                  <ImagePlus style={{ width: 16, height: 16 }} />
-                  {t("blogReplace")}
+                  {post.status === "scheduled" ? (
+                    <div className="fld">
+                      <label>{t("blogScheduleFor")}</label>
+                      <input
+                        type="datetime-local"
+                        value={isoToLocalInput(post.publishAt)}
+                        onChange={(e) =>
+                          patch({
+                            publishAt: e.target.value
+                              ? new Date(e.target.value).toISOString()
+                              : "",
+                          })
+                        }
+                      />
+                    </div>
+                  ) : null}
+                  <div className="fld">
+                    <div className="fld-row">
+                      <label style={{ margin: 0 }}>{t("blogFeature")}</label>
+                      <button
+                        type="button"
+                        className={`sw${post.featured ? "on" : ""}`}
+                        onClick={() => patch({ featured: !post.featured })}
+                        aria-pressed={post.featured}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="insp-sec">
-              <div className="isec-t">{t("blogLinkSeo")}</div>
-              <div className="fld">
-                <label>{t("blogSlug")}</label>
-                <input
-                  type="text"
-                  value={post.slug}
-                  placeholder={slugPlaceholder}
-                  maxLength={80}
-                  onChange={(e) => patch({ slug: e.target.value })}
-                />
-              </div>
-              <div className="fld">
-                <label>{t("blogSeoMetaTitle")}</label>
-                <input
-                  type="text"
-                  value={post.seoTitle}
-                  placeholder={post.title}
-                  maxLength={70}
-                  onChange={(e) => patch({ seoTitle: e.target.value })}
-                />
-              </div>
-              <div className="fld">
-                <label>{t("blogSeoMetaDesc")}</label>
-                <textarea
-                  value={post.seoDescription}
-                  maxLength={200}
-                  onChange={(e) => patch({ seoDescription: e.target.value })}
-                />
-              </div>
-              <div className="seo-prev">
-                <div className="su">
-                  {subdomain}/blog/{savedSlug || slugPlaceholder}
+                <div className="insp-sec">
+                  <div className="isec-t">{t("blogOrganise")}</div>
+                  <div className="fld">
+                    <label>{t("blogCategory")}</label>
+                    <select
+                      value={post.categoryId}
+                      onChange={(e) => patch({ categoryId: e.target.value })}
+                    >
+                      <option value="">{t("blogNoCategory")}</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="fld">
+                    <label>{t("blogTags")}</label>
+                    {post.tags.length > 0 ? (
+                      <div className="chiprow" style={{ marginBottom: 7 }}>
+                        {post.tags.map((tag, i) => (
+                          <span className="chip-t" key={tag}>
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => removeTag(i)}
+                              aria-label={`Remove ${tag}`}
+                            >
+                              <X style={{ width: 12, height: 12 }} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    <input
+                      type="text"
+                      list="post-tag-suggestions"
+                      value={tagDraft}
+                      placeholder={t("blogAddTag")}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          addTag(tagDraft);
+                        } else if (
+                          e.key === "Backspace" &&
+                          !tagDraft &&
+                          post.tags.length > 0
+                        ) {
+                          removeTag(post.tags.length - 1);
+                        }
+                      }}
+                      onBlur={() => addTag(tagDraft)}
+                    />
+                    <datalist id="post-tag-suggestions">
+                      {allTags.map((s) => (
+                        <option key={s} value={s} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div className="fld">
+                    <label>{t("blogAuthor")}</label>
+                    <select
+                      value={post.authorId}
+                      onChange={(e) => patch({ authorId: e.target.value })}
+                    >
+                      <option value="">{t("blogNoAuthor")}</option>
+                      {authors.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div className="st">{seoTitle}</div>
-                <div className="sd">
-                  {seoDesc || t("blogSeoDescPlaceholder")}
-                </div>
-              </div>
-            </div>
 
-            <div className="insp-sec">
-              <div className="isec-t">{t("blogMarketingTitle")}</div>
-              <div className="fld">
-                <label>{t("blogPixelEvent")}</label>
-                <select
-                  value={post.pixelEvent}
-                  onChange={(e) => patch({ pixelEvent: e.target.value })}
-                >
-                  {PAGE_PIXEL_EVENTS.map((ev) => (
-                    <option key={ev} value={ev}>
-                      {ev === "none" ? t("blogPixelEventNone") : ev}
-                    </option>
-                  ))}
-                </select>
-                <span className="fld-hint">{t("blogPixelEventHint")}</span>
-              </div>
-              <div className="fld">
-                <label>{t("blogHeadCode")}</label>
-                <textarea
-                  value={post.headCode}
-                  maxLength={4000}
-                  rows={4}
-                  spellCheck={false}
-                  placeholder="<meta ... />"
-                  style={{
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: 12,
-                  }}
-                  onChange={(e) => patch({ headCode: e.target.value })}
-                />
-                <span className="fld-hint">{t("blogHeadCodeHint")}</span>
-              </div>
-            </div>
+                <div className="insp-sec">
+                  <div className="isec-t">{t("blogFeaturedImage")}</div>
+                  <div className="imgpick" onClick={pickCover}>
+                    {coverUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={coverUrl} alt="" />
+                    ) : null}
+                    <div className="ip-ov">
+                      <ImagePlus style={{ width: 16, height: 16 }} />
+                      {t("blogReplace")}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="insp-sec">
+                  <div className="isec-t">{t("blogLinkSeo")}</div>
+                  <div className="fld">
+                    <label>{t("blogSlug")}</label>
+                    <input
+                      type="text"
+                      value={post.slug}
+                      placeholder={slugPlaceholder}
+                      maxLength={80}
+                      onChange={(e) => patch({ slug: e.target.value })}
+                    />
+                  </div>
+                  <div className="fld">
+                    <label>{t("blogSeoMetaTitle")}</label>
+                    <input
+                      type="text"
+                      value={post.seoTitle}
+                      placeholder={post.title}
+                      maxLength={70}
+                      onChange={(e) => patch({ seoTitle: e.target.value })}
+                    />
+                  </div>
+                  <div className="fld">
+                    <label>{t("blogSeoMetaDesc")}</label>
+                    <textarea
+                      value={post.seoDescription}
+                      maxLength={200}
+                      onChange={(e) =>
+                        patch({ seoDescription: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="seo-prev">
+                    <div className="su">
+                      {subdomain}/blog/{savedSlug || slugPlaceholder}
+                    </div>
+                    <div className="st">{seoTitle}</div>
+                    <div className="sd">
+                      {seoDesc || t("blogSeoDescPlaceholder")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="insp-sec">
+                  <div className="isec-t">{t("blogMarketingTitle")}</div>
+                  <div className="fld">
+                    <label>{t("blogPixelEvent")}</label>
+                    <select
+                      value={post.pixelEvent}
+                      onChange={(e) => patch({ pixelEvent: e.target.value })}
+                    >
+                      {PAGE_PIXEL_EVENTS.map((ev) => (
+                        <option key={ev} value={ev}>
+                          {ev === "none" ? t("blogPixelEventNone") : ev}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="fld-hint">{t("blogPixelEventHint")}</span>
+                  </div>
+                  <div className="fld">
+                    <label>{t("blogHeadCode")}</label>
+                    <textarea
+                      value={post.headCode}
+                      maxLength={4000}
+                      rows={4}
+                      spellCheck={false}
+                      placeholder="<meta ... />"
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: 12,
+                      }}
+                      onChange={(e) => patch({ headCode: e.target.value })}
+                    />
+                    <span className="fld-hint">{t("blogHeadCodeHint")}</span>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="insp-sec">
               <button

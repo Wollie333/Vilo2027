@@ -28,6 +28,18 @@ emerald `--primary` category/links) so editing a post didn't look like the real
 `#B26C2E`, body theme font, meta divider `#DBCFB8` — i.e. the real single-post
 look. (Computed-style readout, no console errors.)
 
+## 2026-06-29 — Blog post settings split into Post | SEO tabs
+
+The post editor's settings rail is now two tabs (mirrors the form inspector's
+Settings|Styles convention — `role=tablist`, brand-styled segmented control):
+- **Post**: Status/schedule/feature, Organise (category/tags/author), Featured image.
+- **SEO**: Link & SEO (slug, meta title/desc, SERP preview), Marketing (pixel, head code).
+- Delete stays always-visible below the tabs.
+
+No behaviour change to the fields themselves — pure reorganisation. `tsc` +
+`next lint` clean. **Verified live**: Post tab shows Status/Organise/Featured;
+SEO tab shows Link & SEO/Marketing; switching toggles correctly.
+
 ## 2026-06-29 — Wire the new schema: default-form protection + bookings in submissions
 
 Code for the two migrations above (they were schema-only).
