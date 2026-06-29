@@ -48,6 +48,17 @@ live for launch without re-entering anything (mirrors `platform_payment_settings
 The host's connected Paystack already powers the website checkout + listings
 (Vilo 0%), so guests pay in whichever mode the host has active. `tsc` + `lint` clean.
 
+## 2026-06-29 — Harden website checkout: server-side payment-method enforcement
+
+Follow-up to the host payment-method toggles. `createSiteBooking` now enforces the
+website's `settings.payments` server-side: a `payment_method` of `paystack`/`eft`
+is rejected if the host disabled that method (default-on, so only an explicitly
+disabled rail is blocked). Closes the gap where a crafted request could pay via a
+method hidden in the UI. `tsc` + `lint` clean.
+
+(Also: activated the founder's free "Beta" product — it was saved as a draft
+[is_active=false, is_visible=false], which is why `/p/beta` 404'd; now live.)
+
 ## 2026-06-29 — Website booking: host toggle for payment methods (Paystack / EFT)
 
 Paystack-via-website was already wired: the on-site checkout (`SiteCheckoutForm` +

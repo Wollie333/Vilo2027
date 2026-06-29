@@ -172,6 +172,34 @@ export async function createSiteBooking(
     return { ok: false, error: "That property isn't bookable on this site." };
   }
 
+  // Server-side enforcement of the host's per-website payment-method toggles
+  // (Settings → Booking payment methods). The checkout UI hides disabled methods;
+  // this rejects a crafted request that tries to use a hidden rail. Default-on:
+  // a method is only blocked when the host explicitly disabled it.
+  const method = (body as { payment_method?: unknown }).payment_method;
+  if (method === "paystack" || method === "eft") {
+    const { data: site } = await admin
+      .from("host_websites")
+      .select("settings")
+      .eq("id", website_id)
+      .maybeSingle();
+    const payCfg =
+      (
+        site?.settings as {
+          payments?: { paystack?: boolean; eft?: boolean };
+        } | null
+      )?.payments ?? {};
+    if (method === "paystack" && payCfg.paystack === false) {
+      return {
+        ok: false,
+        error: "Card payment isn't available for this site.",
+      };
+    }
+    if (method === "eft" && payCfg.eft === false) {
+      return { ok: false, error: "EFT isn't available for this site." };
+    }
+  }
+
   const identity = await findOrCreateLeadIdentity(admin, {
     email: guest_email,
     name: guest_name,
