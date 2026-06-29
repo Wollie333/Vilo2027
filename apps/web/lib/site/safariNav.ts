@@ -190,7 +190,8 @@ export function buildSafariNav(
           .filter((l) => l.label?.trim())
           .map((l) => ({ label: l.label, href: navHref(l.href, preview) })),
       }))
-    : // Default: "Explore" (the menu) + "Visit" (reserve / getting here).
+    : // Default: "Explore" (the real menu pages) + "Visit" (real reserve/contact
+      // links — no invented placeholders that all point to the same page).
       [
         { heading: "Explore", links: links.slice(0, 5) },
         {
@@ -200,12 +201,9 @@ export function buildSafariNav(
               ? [{ label: "Reserve a suite", href: roomsHref }]
               : []),
             ...(contactHref
-              ? [
-                  { label: "Getting here", href: contactHref },
-                  { label: "Transfers", href: contactHref },
-                ]
+              ? [{ label: "Contact us", href: contactHref }]
               : []),
-          ],
+          ].filter((l, i, a) => a.findIndex((x) => x.href === l.href) === i),
         },
       ];
 

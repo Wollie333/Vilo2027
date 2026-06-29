@@ -84,7 +84,6 @@ export function SafariThankYouContent({
   eyebrow,
   headingText,
   homeHref = "/",
-  contactHref = "/contact",
   roomsHref,
 }: SafariThankYouProps) {
   const copy = COPY[state];
@@ -307,11 +306,7 @@ export function SafariThankYouContent({
             <a href={homeHref} className="btn btn-primary btn-lg">
               <span>Back to home</span>
             </a>
-            {isBooking ? (
-              <a href={contactHref} className="btn btn-ghost btn-lg">
-                <span>Send our team your flights</span>
-              </a>
-            ) : roomsHref ? (
+            {roomsHref ? (
               <a href={roomsHref} className="btn btn-ghost btn-lg">
                 <span>Browse the suites</span>
               </a>

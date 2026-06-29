@@ -126,11 +126,16 @@ export function SiteCheckoutForm({
     initial.scope ?? (canRooms ? "rooms" : "whole_listing"),
   );
 
-  // Per-room selected guest counts (rooms scope).
+  // Per-room selected guest counts (rooms scope). Seed the pre-selected room with
+  // the guest count carried from the dock/URL (clamped to the room's min/max), so
+  // a "2 guests" choice on the room page isn't silently reset to the minimum.
   const [roomGuests, setRoomGuests] = useState<Record<string, number>>(() => {
     if (initial.roomId) {
       const r = rooms.find((x) => x.id === initial.roomId);
-      if (r) return { [r.id]: Math.max(1, r.minGuests) };
+      if (r) {
+        const want = initial.guests || r.minGuests || 1;
+        return { [r.id]: Math.min(r.maxGuests, Math.max(r.minGuests, want)) };
+      }
     }
     return {};
   });
