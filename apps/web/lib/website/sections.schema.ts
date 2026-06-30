@@ -39,6 +39,9 @@ export const SECTION_TYPES = [
   "contact_form",
   "form",
   "specials_preview",
+  // Add-ons / extras the host offers (breakfast, transfers, activities) — auto-
+  // pulled from the addons catalogue scoped to this site's properties.
+  "addons_preview",
   "amenities",
   // Property-level "Things to know" — auto-pulled from the site's primary
   // property (NOT room-scoped; resolved by type like amenities/reviews).
@@ -83,6 +86,7 @@ export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
   "reviews",
   "blog_preview",
   "specials_preview",
+  "addons_preview",
   // `form` pulls its definition (fields/settings) live from website_forms, so
   // editing the form in the Forms tab updates the rendered section instantly.
   "form",
@@ -391,6 +395,17 @@ const blogPreviewProps = z.object({
 // time (see lib/site/loadSitePage.ts assembleSiteDataByType). Props are config
 // only — never duplicates special data, so the section is never stale.
 const specialsPreviewProps = z.object({
+  heading,
+  layout: gridLayout,
+  max: z.number().int().min(1).max(60).default(6),
+  ctaLabel: z.string().max(60).optional(),
+});
+
+// Auto-populate: reads the host's active add-ons available on this site's
+// properties at render time (see lib/site/loadSitePage.ts assembleSiteDataByType).
+// Props are config only — never duplicates add-on data, so the section is never
+// stale. `cta` here is optional: add-ons are showcased, then selected at checkout.
+const addonsPreviewProps = z.object({
   heading,
   layout: gridLayout,
   max: z.number().int().min(1).max(60).default(6),
@@ -979,6 +994,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("specials_preview"),
     props: specialsPreviewProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("addons_preview"),
+    props: addonsPreviewProps,
   }),
   z.object({
     ...sectionBase,

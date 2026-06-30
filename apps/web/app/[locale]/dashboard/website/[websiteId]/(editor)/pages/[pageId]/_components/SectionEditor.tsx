@@ -1909,6 +1909,44 @@ function SectionFields({
       );
     }
 
+    case "addons_preview": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SelectField
+              label={t("fldLayout")}
+              value={(p.layout ?? "grid") as Layout}
+              options={layoutOptions}
+              onChange={(v) => set({ layout: v })}
+            />
+            <NumberField
+              label={t("fldMax")}
+              value={p.max}
+              min={1}
+              max={60}
+              onChange={(v) => set({ max: v })}
+            />
+          </div>
+          <TextField
+            label={t("fldAddonsCtaLabel")}
+            value={p.ctaLabel ?? ""}
+            onChange={(v) => set({ ctaLabel: v })}
+            maxLength={60}
+          />
+          <LiveNote>{t("liveAddons")}</LiveNote>
+        </div>
+      );
+    }
+
     case "amenities": {
       const p = section.props;
       const set = (patch: Partial<typeof p>) =>

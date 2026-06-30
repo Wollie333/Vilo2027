@@ -400,6 +400,19 @@ export type SpecialCard = {
 };
 export type SpecialsPreviewData = { specials: SpecialCard[] };
 
+export type AddonCard = {
+  id: string;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  /** per_stay | per_night | per_guest | per_guest_per_night | per_couple. */
+  pricingModel: string;
+  price?: number | null;
+  currency?: string | null;
+  required?: boolean;
+};
+export type AddonsPreviewData = { addons: AddonCard[] };
+
 /** A host-built form's public-render definition (resolved live from website_forms). */
 export type SiteFormDef = {
   id: string;
@@ -470,6 +483,7 @@ export type SiteDataByType = {
   reviews: ReviewsData;
   blog_preview: BlogPreviewData;
   specials_preview: SpecialsPreviewData;
+  addons_preview: AddonsPreviewData;
   form: FormRenderData;
   // The trust section is free-form (badges in props) but takes an OPTIONAL live
   // review aggregate (average + count) — reuses the reviews shape.

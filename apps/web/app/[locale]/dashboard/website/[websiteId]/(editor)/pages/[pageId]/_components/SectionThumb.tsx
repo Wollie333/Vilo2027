@@ -104,6 +104,7 @@ export function SectionThumb({ type }: { type: SectionType }) {
       );
     case "rooms_preview":
     case "specials_preview":
+    case "addons_preview":
     case "blog_preview":
       return (
         <Frame>

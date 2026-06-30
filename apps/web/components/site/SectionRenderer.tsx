@@ -25,6 +25,7 @@ import { HostBioSection } from "./sections/HostBioSection";
 import { ValuesSection } from "./sections/ValuesSection";
 import { BlogPreviewSection } from "./sections/BlogPreviewSection";
 import { SpecialsPreviewSection } from "./sections/SpecialsPreview";
+import { AddonsPreviewSection } from "./sections/AddonsPreview";
 import { RichTextSection } from "./sections/RichTextSection";
 import { FaqSection } from "./sections/FaqSection";
 import { ContactFormSection } from "./sections/ContactFormSection";
@@ -244,6 +245,13 @@ function SectionSwitch({
         <SpecialsPreviewSection
           props={section.props}
           data={dataFor(data, section.id, "specials_preview")}
+        />
+      );
+    case "addons_preview":
+      return (
+        <AddonsPreviewSection
+          props={section.props}
+          data={dataFor(data, section.id, "addons_preview")}
         />
       );
     case "rich_text":

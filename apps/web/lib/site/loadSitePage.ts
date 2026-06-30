@@ -64,6 +64,7 @@ import type {
   SiteNavigation,
   SnapshotRoom,
   SpecialCard,
+  AddonCard,
   SiteFormDef,
 } from "./types";
 
@@ -794,6 +795,91 @@ async function loadSpecialsPreview(
   return { specials: mapped.map((m) => m.card) };
 }
 
+const SUPA_STORAGE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "") ?? "";
+
+/** Resolve an `addon-images` storage path to its public URL (the bucket is
+ *  public). Absolute URLs / data URIs pass through. */
+function addonImageUrl(path?: string | null): string | null {
+  if (!path) return null;
+  if (/^(https?:\/\/|data:)/.test(path)) return path;
+  return SUPA_STORAGE_URL
+    ? `${SUPA_STORAGE_URL}/storage/v1/object/public/addon-images/${path}`
+    : null;
+}
+
+type AddonPreviewRow = {
+  addon:
+    | {
+        id: string;
+        name: string;
+        description: string | null;
+        image_path: string | null;
+        pricing_model: string;
+        unit_price: number | string | null;
+        currency: string | null;
+        is_required: boolean | null;
+        is_active: boolean | null;
+        sort_order: number | null;
+      }
+    | Array<{
+        id: string;
+        name: string;
+        description: string | null;
+        image_path: string | null;
+        pricing_model: string;
+        unit_price: number | string | null;
+        currency: string | null;
+        is_required: boolean | null;
+        is_active: boolean | null;
+        sort_order: number | null;
+      }>
+    | null;
+};
+
+/**
+ * The host's active add-ons available on this site's properties → AddonCard[].
+ * Scoped via `listing_addons` (which properties offer each add-on), deduped by
+ * add-on (an add-on attached to several properties/rooms shows once), in the
+ * host's catalogue sort order. Display-only — checkout always re-prices.
+ */
+async function loadAddonsPreview(
+  sb: Sb,
+  ctx: SiteContext,
+): Promise<SiteDataByType["addons_preview"]> {
+  if (!ctx.propertyIds.length) return { addons: [] };
+  const { data } = await sb
+    .from("listing_addons")
+    .select(
+      "addon:addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, is_required, is_active, sort_order )",
+    )
+    .in("listing_id", ctx.propertyIds);
+
+  const rows = (data ?? []) as unknown as AddonPreviewRow[];
+  const seen = new Set<string>();
+  const cards: Array<{ card: AddonCard; order: number }> = [];
+  for (const r of rows) {
+    const a = Array.isArray(r.addon) ? r.addon[0] : r.addon;
+    if (!a || !a.is_active || seen.has(a.id)) continue;
+    seen.add(a.id);
+    cards.push({
+      order: a.sort_order ?? 0,
+      card: {
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        imageUrl: addonImageUrl(a.image_path),
+        pricingModel: a.pricing_model,
+        price: a.unit_price == null ? null : Number(a.unit_price),
+        currency: a.currency,
+        required: !!a.is_required,
+      },
+    });
+  }
+  cards.sort((x, y) => x.order - y.order);
+  return { addons: cards.map((c) => c.card) };
+}
+
 /**
  * Build the SiteData map — one query batch per auto-populate section type present.
  * Resolves the live data once per TYPE (via {@link assembleSiteDataByType}) then
@@ -847,6 +933,13 @@ async function assembleSectionData(
           data[s.id] = {
             type: "specials_preview",
             data: byType.specials_preview,
+          };
+        break;
+      case "addons_preview":
+        if (byType.addons_preview)
+          data[s.id] = {
+            type: "addons_preview",
+            data: byType.addons_preview,
           };
         break;
       case "form":
@@ -1207,6 +1300,12 @@ export async function assembleSiteDataByType(
   // property-id guard that the other sections rely on.
   if (types.has("specials_preview")) {
     out.specials_preview = await loadSpecialsPreview(sb, ctx);
+  }
+
+  // ADD-ONS — scoped to the site's properties (listing_addons). Self-guards on an
+  // empty property set, so it's safe to resolve here alongside specials.
+  if (types.has("addons_preview")) {
+    out.addons_preview = await loadAddonsPreview(sb, ctx);
   }
 
   // FORMS — website-scoped (not property-scoped), so resolve before the guard.

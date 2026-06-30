@@ -27,6 +27,7 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
       "gallery",
       "rooms_preview",
       "specials_preview",
+      "addons_preview",
       "pricing",
       "video",
       "logos",

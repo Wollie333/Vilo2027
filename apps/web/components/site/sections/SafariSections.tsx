@@ -30,6 +30,7 @@ import { RichTextSection } from "./RichTextSection";
 import { VideoSection } from "./VideoSection";
 import { LogosSection } from "./LogosSection";
 import { SpecialsPreviewSection } from "./SpecialsPreview";
+import { AddonsPreviewSection } from "./AddonsPreview";
 import { TrustSection } from "./TrustSection";
 import { BookingSearchSection } from "./BookingSearchSection";
 import { AvailabilityCalendarSection } from "./AvailabilityCalendarSection";
@@ -2137,6 +2138,14 @@ function renderSafariGenericFallback(
         <SpecialsPreviewSection
           props={section.props}
           data={dataFor(data, section.id, "specials_preview")}
+        />
+      );
+      break;
+    case "addons_preview":
+      el = (
+        <AddonsPreviewSection
+          props={section.props}
+          data={dataFor(data, section.id, "addons_preview")}
         />
       );
       break;

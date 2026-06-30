@@ -141,6 +141,7 @@ describe("themeSections registry", () => {
         "room_overview",
         "room_amenities",
         "room_rate",
+        "room_policies",
       ]);
     });
 

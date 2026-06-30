@@ -253,6 +253,14 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: { heading: "Current specials", layout: "grid", max: 6 },
       };
+    case "addons_preview":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { heading: "Add-ons & extras", layout: "grid", max: 6 },
+      };
     case "amenities":
       return {
         id,
