@@ -2,6 +2,22 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶ OCEANS VIEW THEME CONVERSION — COMPLETE + LIVE-VERIFIED (· 2026-06-30 #4, DONE)
+
+**Founder's 3rd pre-designed theme ("Ocean Lodge") converted into the CMS — slug `oceansview`, a bright Mediterranean beach-resort look (white + sand, aqua `#12A5B5`, coral `#FF6B57`, navy dark sections, Bricolage Grotesque + Manrope, rounded `lg`). All 5 slices shipped, tsc + lint clean, full `pnpm build` PASSES, live-verified end-to-end on the vilotest fixture. Now THREE active themes (Safari default · Sabela · Oceans View). Playbook held a 2nd time in one session.**
+
+**✅ SHIPPED (commits `9ed78ba3`→`d20a1f8f`):**
+- **O17** (`9ed78ba3`): migration `20260630140000_add_oceansview_theme` (Lagoon base + page_templates, applied to linked DB) + `themeSections.ts` registration. Scoped CSS `components/site/oceansview/oceansview.css` (`.wielo-theme`→`.wielo-oceansview`, root-body fix applied). Led the `grotesk` FONT_STACK with Bricolage Grotesque + Manrope.
+- **O18** (`8b21e657`): `OceansViewSections.tsx` + `OceansViewContactForm` + SectionRenderer wiring. Ported contact/room-detail/FAQ/checkout rules from the design's per-page inline `<style>` blocks into the scoped CSS.
+- **O19** (`b1725410`): `OceansViewShell` + `OceansViewNav` + footer; reuse `buildSafariNav`; nav states `.nav.float.over` (transparent white over hero) → `.nav.solid.over` (frosted, ink) → `.nav.solid` (checkout). Loads Bricolage + Manrope.
+- **O20** (`d20a1f8f`): branched all site routes; `OceansViewSiteView`/`OceansViewArticleContent`/`OceansViewThankYouContent`. `scripts/seed-oceansview-qa.mjs` seeds the vilotest fixture; live-verified every page 200 + white bg `#FFFFFF` + ink `#0E2C3A` + coral button + Bricolage 102px/800 headings + transparent-over-hero nav + navy reviews band, no console errors.
+
+**▶ TEST FIXTURE:** `node --env-file=.env.local scripts/seed-oceansview-qa.mjs` from `apps/web` re-points vilotest (`host@vilotest.com` / `ViloTest123!`) to Oceans View. Live at `http://localhost:3000/site?site=vilotest`. To switch the fixture back: `seed-sabela-qa.mjs` or `seed-safari-qa.mjs`.
+
+**▶▶ REMAINING (deferred, same as the other themes):** 3 alt palettes (Lagoon/Riviera/Sea Glass) host-switchable via a Brand-Studio/wizard palette picker that writes `theme.base.palette` (the `[data-theme]` CSS blocks are overridden by SiteThemeRoot's inline `--site-*`).
+
+---
+
 ## ▶▶ SABELA LODGE THEME CONVERSION — COMPLETE + LIVE-VERIFIED (· 2026-06-30 #3, DONE)
 
 **Founder's 2nd pre-designed theme ("Lodge Theme") converted into the CMS — slug `sabela`, dark-first editorial safari lodge (Ebony `#14120D` / gold `#C9A24A`, Cormorant Garamond + Inter). All 5 slices shipped, tsc + lint clean, full `pnpm build` PASSES, live-verified end-to-end on the vilotest fixture. Safari stays the default; Sabela is active + selectable. This proved the theme-productionization-playbook repeatable.**

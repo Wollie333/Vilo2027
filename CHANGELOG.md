@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-06-30 (#4) — Oceans View theme converted onto the standard foundation (live-verified)
+
+Founder's third pre-designed theme ("Ocean Lodge") converted into the CMS — slug
+`oceansview`, a bright Mediterranean beach-resort look (white + sand, aqua
+`#12A5B5`, coral `#FF6B57`, navy dark sections, Bricolage Grotesque + Manrope,
+rounded `lg`). Second run of the playbook in a session; the process held. Shipped
+in five slices, each tsc + lint clean; full `pnpm build` PASSES.
+
+- **O17 — register/activate.** Migration `20260630140000_add_oceansview_theme`
+  adds the `oceansview` `site_themes` row (Lagoon base + standard page_templates,
+  applied to linked DB) + registered in `themeSections.ts`. Ported the design
+  `theme.css` to a scoped `.wielo-oceansview` layer. Led the `grotesk` font stack
+  with Bricolage Grotesque + Manrope (backward-compatible — generic themes fall
+  back to system sans; only a theme shell that loads the web fonts gets them).
+- **O18 — render layer.** `components/site/oceansview/OceansViewSections.tsx`
+  (`renderOceansViewSection` + `OceansViewSectionList`) — one band per section
+  type in the beach-resort markup, bound to live data; `OceansViewContactForm`.
+  Wired into `SectionRenderer`. Ported the contact/room-detail/FAQ/checkout rules
+  the design kept in per-page inline `<style>` blocks into the scoped CSS.
+- **O19 — chrome.** `OceansViewShell` + `OceansViewNav` + footer, reusing the
+  theme-agnostic `buildSafariNav` model. Nav states: transparent white over the
+  hero (`.nav.float.over`) → frosted solid with ink text on scroll
+  (`.nav.solid.over`), solid from the top on the checkout. Loads Bricolage
+  Grotesque + Manrope.
+- **O20 — mount + verify.** Branched all site routes to the Oceans View layer
+  (+ `OceansViewSiteView`, `OceansViewArticleContent`, `OceansViewThankYouContent`).
+  **Live-verified** via `scripts/seed-oceansview-qa.mjs` on the vilotest fixture:
+  every marketing page + room detail + checkout + thank-you renders the layer at
+  HTTP 200; confirmed the white `#FFFFFF` ground, `#0E2C3A` ink, coral `#FF6B57`
+  book button, Bricolage Grotesque headings (102px/800), transparent-over-hero
+  nav, and the navy reviews band, with no console errors. (The `.wielo-theme body`
+  → `.wielo-<slug>` root-CSS fix from the Sabela round was applied proactively
+  during the port, so the light ground painted first try.)
+- **3 alt palettes (Lagoon/Riviera/Sea Glass)** are in the scoped CSS via
+  `[data-theme]` but overridden by SiteThemeRoot's inline `--site-*` — switching is
+  the same Brand-Studio/wizard palette-picker concern, deferred.
+
+---
+
 ## 2026-06-30 (#3) — Sabela Lodge theme converted onto the standard foundation (live-verified)
 
 Founder handed over their 2nd pre-designed theme ("Lodge Theme") to convert into
