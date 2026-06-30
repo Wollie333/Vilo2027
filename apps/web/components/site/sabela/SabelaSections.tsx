@@ -10,6 +10,7 @@ import {
   type RoomDetail,
   type RoomPolicies,
   type RateTableData,
+  type SpecialsPreviewData,
   type SiteAssetResolver,
   type SiteData,
 } from "@/lib/site/types";
@@ -39,6 +40,7 @@ import {
   SeasonalPricingSection,
 } from "../sections/RatesBlocks";
 import { SabelaContactForm } from "./SabelaContactForm";
+import { SabelaSearchResults } from "./SabelaSearchResults";
 
 /**
  * The Sabela Lodge ("sabela" theme) bands — the SAME flat sections the builder
@@ -1816,6 +1818,100 @@ export function SabelaRateTable({
   );
 }
 
+/* ── SPECIALS (.special-card) ───────────────────────────────────────── */
+const STOCK_SABELA_SPECIALS = [
+  {
+    badge: "Stay 4, pay 3",
+    left: "3 suites left",
+    title: "The long-rains escape",
+    desc: "Four nights for the price of three through the green season, when the bush is at its most dramatic and the newborns arrive.",
+    now: "R37,500",
+    was: "R50,000",
+    save: "Save 25%",
+    img: IMG.suite1,
+  },
+  {
+    badge: "Exclusive use",
+    left: "Whole lodge",
+    title: "Take the whole camp",
+    desc: "The eight suites, the team and the reserve, all to your party — for a milestone, a family gathering or a quiet reset.",
+    now: "On request",
+    was: "",
+    save: "",
+    img: IMG.suite2,
+  },
+  {
+    badge: "Midweek",
+    left: "Sun–Thu",
+    title: "Midweek in the bush",
+    desc: "Arrive Sunday to Thursday for a quieter camp and a softer rate, with all meals and twice-daily drives included.",
+    now: "R6,500",
+    was: "R7,500",
+    save: "Save 13%",
+    img: IMG.suite3,
+  },
+];
+
+export function SabelaSpecials({ data }: { data?: SpecialsPreviewData }) {
+  const real = data?.specials ?? [];
+  const cards = real.length
+    ? real.map((s) => ({
+        badge: s.badge || "Special",
+        left:
+          s.remaining != null && s.remaining > 0 ? `${s.remaining} left` : "",
+        title: s.title,
+        desc: s.description || "",
+        now:
+          rand(s.price, s.currency) +
+          (s.priceMode === "per_night" ? " / night" : ""),
+        was: s.wasPrice != null ? rand(s.wasPrice, s.currency) : "",
+        save:
+          s.savingsPct != null
+            ? `Save ${s.savingsPct}%`
+            : s.savingsAmount != null
+              ? `Save ${rand(s.savingsAmount, s.currency)}`
+              : "",
+        img: s.imageUrl || IMG.suite1,
+        href: s.bookHref,
+      }))
+    : STOCK_SABELA_SPECIALS.map((s) => ({ ...s, href: "#book" }));
+
+  return (
+    <section
+      className="section"
+      data-section="specials_preview"
+      data-live="true"
+    >
+      <div className="wrap">
+        <div className="specials-grid">
+          {cards.map((s, i) => (
+            <article key={s.title + i} className="special-card">
+              <div className="sp-img">
+                {s.badge ? <span className="sp-badge">{s.badge}</span> : null}
+                {s.left ? <span className="sp-left">{s.left}</span> : null}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={s.img} alt={s.title} />
+              </div>
+              <div className="sp-body">
+                <h3>{s.title}</h3>
+                {s.desc ? <p className="sp-desc">{s.desc}</p> : null}
+                <div className="sp-price">
+                  {s.now ? <span className="sp-now">{s.now}</span> : null}
+                  {s.was ? <span className="sp-was">{s.was}</span> : null}
+                  {s.save ? <span className="sp-save">{s.save}</span> : null}
+                </div>
+                <a href={s.href} className="btn btn-primary btn-block">
+                  <span>Book this offer</span>
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ── GENERIC FALLBACK ───────────────────────────────────────────────── */
 /** Render free elements + containers + data-driven blocks that have no bespoke
  *  Sabela band, via the shared generic components. No `--site-*` bridge needed:
@@ -2006,6 +2102,17 @@ export function renderSabelaSection(
         <SabelaBlogPreview
           props={section.props}
           data={dataFor(data, section.id, "blog_preview")}
+        />
+      );
+    case "specials_preview":
+      return (
+        <SabelaSpecials data={dataFor(data, section.id, "specials_preview")} />
+      );
+    case "search_results":
+      return (
+        <SabelaSearchResults
+          data={dataFor(data, section.id, "search_results")}
+          interactive={interactive}
         />
       );
     case "room_gallery":
