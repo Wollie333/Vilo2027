@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SabelaShell } from "@/components/site/sabela/SabelaShell";
+import { OceansViewShell } from "@/components/site/oceansview/OceansViewShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import { SafariBookingContent } from "@/components/site/safari/pages/SafariBookingContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
@@ -125,6 +126,41 @@ export default async function SiteBookPage({
             </div>
           </section>
         </SabelaShell>
+      </SiteThemeRoot>
+    );
+  }
+  // Theme-picker preview of the Oceans View checkout chrome.
+  if (ctx.previewThemeSlug === "oceansview") {
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <OceansViewShell
+          brandName={ctx.brand.name}
+          nav={buildSafariNav(ctx)}
+          bookHref={
+            ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+          }
+          solidNav
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          <section
+            className="section"
+            data-section="intro"
+            style={{ paddingTop: 120 }}
+          >
+            <div className="wrap wrap-read" style={{ textAlign: "center" }}>
+              <span className="tag">Checkout</span>
+              <h1 className="lg" style={{ marginTop: 12 }}>
+                Complete your booking
+              </h1>
+              <p className="muted" style={{ marginTop: 16 }}>
+                You are almost there. On your live site this is the secure
+                checkout, with your rooms, add-ons and payment options.
+              </p>
+            </div>
+          </section>
+        </OceansViewShell>
       </SiteThemeRoot>
     );
   }
@@ -358,6 +394,26 @@ export default async function SiteBookPage({
         >
           {checkout}
         </SabelaShell>
+      </SiteThemeRoot>
+    );
+  }
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "oceansview") {
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <OceansViewShell
+          brandName={ctx.brand.name}
+          nav={buildSafariNav(ctx)}
+          bookHref={
+            ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+          }
+          solidNav
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          {checkout}
+        </OceansViewShell>
       </SiteThemeRoot>
     );
   }

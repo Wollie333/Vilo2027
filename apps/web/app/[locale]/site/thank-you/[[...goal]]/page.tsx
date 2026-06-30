@@ -6,6 +6,8 @@ import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SafariThankYouContent } from "@/components/site/safari/pages/SafariThankYouContent";
 import { SabelaShell } from "@/components/site/sabela/SabelaShell";
 import { SabelaThankYouContent } from "@/components/site/sabela/SabelaThankYouContent";
+import { OceansViewShell } from "@/components/site/oceansview/OceansViewShell";
+import { OceansViewThankYouContent } from "@/components/site/oceansview/OceansViewThankYouContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import {
   SectionShell,
@@ -194,6 +196,40 @@ export default async function SiteFormThankYouPage({
             roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
           />
         </SabelaShell>
+      </SiteThemeRoot>
+    );
+  }
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "oceansview") {
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
+    const bookHref =
+      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <OceansViewShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          bookHref={bookHref}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
+          <OceansViewThankYouContent
+            state="form"
+            firstName={firstName}
+            eyebrow={goalCopy.eyebrow}
+            headingText={heading}
+            message={message}
+            homeHref={
+              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+              navLinks[0]?.href
+            }
+            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
+            roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
+          />
+        </OceansViewShell>
       </SiteThemeRoot>
     );
   }

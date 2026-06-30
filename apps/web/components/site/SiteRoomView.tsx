@@ -18,6 +18,11 @@ import { SafariShell } from "./safari/SafariShell";
 import { SafariSectionList, type SafariCtx } from "./sections/SafariSections";
 import { SabelaShell } from "./sabela/SabelaShell";
 import { SabelaSectionList, type SabelaCtx } from "./sabela/SabelaSections";
+import { OceansViewShell } from "./oceansview/OceansViewShell";
+import {
+  OceansViewSectionList,
+  type OceansViewCtx,
+} from "./oceansview/OceansViewSections";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
@@ -189,6 +194,64 @@ export async function SiteRoomView({
               />
             </RoomDockLayout>
           </SabelaShell>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "oceansview") {
+    const ovCtx: OceansViewCtx = {
+      brandName: ctx.brand.name,
+      contactEmail: ctx.brand.contactEmail,
+      contactPhone: ctx.brand.contactPhone,
+      homeHref:
+        ctx.nav.find((l) => /^home$/i.test(l.label))?.href || ctx.nav[0]?.href,
+      roomsHref: roomsHref || undefined,
+      contactHref: ctx.nav.find((l) => /contact/i.test(l.label))?.href,
+      reserveHref: headerBookHref || room.bookHref,
+    };
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        <SiteThemeRoot theme={ctx.theme}>
+          <OceansViewShell
+            brandName={ctx.brand.name}
+            nav={buildSafariNav(ctx)}
+            bookHref={headerBookHref}
+            solidNav
+            previewPages={previewPages}
+            analytics={ctx.analytics}
+            interactive={!ctx.preview}
+          >
+            <RoomDockLayout
+              gallery={
+                <OceansViewSectionList
+                  sections={gallerySections}
+                  data={data}
+                  asset={siteAsset}
+                  ctx={ovCtx}
+                />
+              }
+              dock={
+                <RoomBookingDock
+                  roomName={room.name}
+                  price={room.price}
+                  currency={room.currency}
+                  bookHref={room.bookHref}
+                  maxGuests={room.maxGuests}
+                  interactive
+                />
+              }
+            >
+              <OceansViewSectionList
+                sections={contentSections}
+                data={data}
+                asset={siteAsset}
+                ctx={ovCtx}
+                interactive
+              />
+            </RoomDockLayout>
+          </OceansViewShell>
         </SiteThemeRoot>
       </>
     );

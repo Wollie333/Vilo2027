@@ -19,6 +19,7 @@ import { JsonLd } from "./JsonLd";
 import { PageHeadCode } from "./PageHeadCode";
 import { SafariSiteView } from "./safari/SafariSiteView";
 import { SabelaSiteView } from "./sabela/SabelaSiteView";
+import { OceansViewSiteView } from "./oceansview/OceansViewSiteView";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
@@ -167,6 +168,32 @@ export async function SitePageView({
             (which declares the same tokens under .wielo-sabela). */}
         <SiteThemeRoot theme={ctx.theme}>
           <SabelaSiteView
+            kind={result.page.kind}
+            pageTitle={result.page.title ?? undefined}
+            sections={result.sections}
+            data={result.data}
+            asset={siteAsset}
+            brandName={ctx.brand.name}
+            contactEmail={ctx.brand.contactEmail}
+            contactPhone={ctx.brand.contactPhone}
+            nav={buildSafariNav(ctx, currentPageKey)}
+            bookHref={headerBookHref}
+            previewPages={previewPages}
+            analytics={ctx.analytics}
+            interactive={!ctx.preview}
+            websiteId={ctx.websiteId}
+          />
+        </SiteThemeRoot>
+      </>
+    );
+  }
+  if (activeThemeSlug === "oceansview") {
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <OceansViewSiteView
             kind={result.page.kind}
             pageTitle={result.page.title ?? undefined}
             sections={result.sections}

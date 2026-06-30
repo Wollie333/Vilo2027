@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SabelaShell } from "@/components/site/sabela/SabelaShell";
+import { OceansViewShell } from "@/components/site/oceansview/OceansViewShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import {
   SafariSectionList,
@@ -13,6 +14,10 @@ import {
   SabelaSectionList,
   type SabelaCtx,
 } from "@/components/site/sabela/SabelaSections";
+import {
+  OceansViewSectionList,
+  type OceansViewCtx,
+} from "@/components/site/oceansview/OceansViewSections";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -154,6 +159,48 @@ export default async function SiteBlogIndexPage({
             ctx={sabelaCtx}
           />
         </SabelaShell>
+      </SiteThemeRoot>
+    );
+  }
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "oceansview") {
+    const result = await loadSitePage(ctx, ["blog"]);
+    const sections = result?.sections ?? [];
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
+    const roomsHref =
+      navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#rooms";
+    const bookHref =
+      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+    const ovCtx: OceansViewCtx = {
+      brandName: ctx.brand.name,
+      contactEmail: ctx.brand.contactEmail,
+      contactPhone: ctx.brand.contactPhone,
+      homeHref:
+        navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+        navLinks[0]?.href,
+      roomsHref,
+      aboutHref: navLinks.find((l) => /about|story/i.test(l.label))?.href,
+      contactHref: navLinks.find((l) => /contact/i.test(l.label))?.href,
+      reserveHref: bookHref || roomsHref,
+    };
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <OceansViewShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          bookHref={bookHref}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          <OceansViewSectionList
+            sections={sections}
+            data={result?.data}
+            asset={siteAsset}
+            ctx={ovCtx}
+          />
+        </OceansViewShell>
       </SiteThemeRoot>
     );
   }

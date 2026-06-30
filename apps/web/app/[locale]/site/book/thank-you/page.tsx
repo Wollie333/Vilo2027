@@ -6,6 +6,8 @@ import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SafariThankYouContent } from "@/components/site/safari/pages/SafariThankYouContent";
 import { SabelaShell } from "@/components/site/sabela/SabelaShell";
 import { SabelaThankYouContent } from "@/components/site/sabela/SabelaThankYouContent";
+import { OceansViewShell } from "@/components/site/oceansview/OceansViewShell";
+import { OceansViewThankYouContent } from "@/components/site/oceansview/OceansViewThankYouContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import {
   SectionShell,
@@ -262,6 +264,53 @@ export default async function SiteThankYouPage({
             contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
           />
         </SabelaShell>
+      </SiteThemeRoot>
+    );
+  }
+
+  if (ctx.theme.preset === "oceansview") {
+    const nights =
+      booking.check_in && booking.check_out
+        ? Math.max(
+            1,
+            Math.round(
+              (new Date(booking.check_out).getTime() -
+                new Date(booking.check_in).getTime()) /
+                86_400_000,
+            ),
+          )
+        : null;
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <OceansViewShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          analytics={ctx.analytics}
+          interactive
+        >
+          <FirePurchase purchase={purchase} />
+          <OceansViewThankYouContent
+            state={
+              isConfirmed ? "confirmed" : isEftPending ? "eft" : "processing"
+            }
+            firstName={booking.guest_name?.split(/\s+/)[0] ?? null}
+            reference={booking.reference}
+            checkIn={booking.check_in}
+            checkOut={booking.check_out}
+            guests={booking.guests_count}
+            nights={nights}
+            total={total == null ? null : money(total, currency)}
+            eft={eft}
+            homeHref={
+              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+              navLinks[0]?.href
+            }
+            roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
+            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
+          />
+        </OceansViewShell>
       </SiteThemeRoot>
     );
   }
