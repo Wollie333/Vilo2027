@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-06-30 (#5) — Theme preview fidelity + per-page bespoke sections + domain chip
+
+Founder feedback after the Oceans View conversion: previewing a theme showed
+the host's own pages tinted with the theme (not the theme's design); the preview
+bar didn't list all pages; and the data-driven sections weren't pixel-matching
+the provided designs. Plus: a domain-copy control in the editor header.
+
+- **Theme preview shows the theme's design** (`loadSitePage`): in preview mode it
+  loads the previewed theme's own `page_templates` (+ default spines via
+  `mergeStandardPages`) for each kind and derives the nav from them — so preview
+  renders the actual theme composition, not the host's pages. Live rooms data
+  stays the host's. All themes.
+- **Preview bar lists the FULL page set** (`buildSitePreviewPages`): Home · About ·
+  Rooms · Contact · Journal · Specials · Experiences · Gallery · Search results ·
+  Room detail · Article · Checkout · Thank you — each renders in the theme.
+- **Per-page design fidelity:**
+  - **Oceans View** — bespoke specials (`.spcard`), experiences as image cards
+    (`.exps`, via image-bearing highlights), the home availability bar
+    (`.availbar`, new booking_search on the home template) and search results
+    (`.availbar` + `.sr-card`). Two migrations added the experiences page + the
+    home availbar to the theme.
+  - **Sabela** — bespoke specials (`.special-card`) + search results (`.sr-bar` +
+    `.sr-card`). Its home uses feature tiles (no availbar/experience-cards in the
+    design), so unchanged.
+  - **Safari** — the NenGama design ships no specials/search/availability pages,
+    so those render themed-generic (nothing to match).
+- **Domain chip in the editor header** (`DomainBar`): left of the Preview button,
+  shows the site's public domain (custom domain when connected, else the
+  subdomain); click copies the live URL (toast) and opens the live site.
+
+All `tsc` + `lint` clean; full build passed; pushed to prod.
+
+---
+
 ## 2026-06-30 (#4) — Oceans View theme converted onto the standard foundation (live-verified)
 
 Founder's third pre-designed theme ("Ocean Lodge") converted into the CMS — slug
