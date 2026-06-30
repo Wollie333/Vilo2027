@@ -2328,3 +2328,355 @@
     min-width: 0;
   }
 }
+
+/* ============================================================
+   Page-specific bands ported from the design's per-page <style>
+   blocks (Contact / Room / Booking) — scoped to .wielo-oceansview.
+   ============================================================ */
+
+/* ---------- Contact: form grid · details card · map · FAQ ---------- */
+.wielo-oceansview .cgrid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: clamp(34px, 5vw, 64px);
+  align-items: start;
+}
+.wielo-oceansview .dcard {
+  background: var(--site-surface);
+  border: 1px solid var(--site-line);
+  border-radius: var(--site-radius-lg);
+  padding: 30px;
+  box-shadow: 0 24px 50px -34px rgba(10, 34, 48, 0.3);
+}
+.wielo-oceansview .drow {
+  display: flex;
+  gap: 15px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--site-line);
+}
+.wielo-oceansview .drow:last-child {
+  border-bottom: none;
+}
+.wielo-oceansview .drow .ic {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--site-tint);
+  color: var(--site-accent-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wielo-oceansview .drow .t {
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+.wielo-oceansview .drow .d {
+  font-size: 14px;
+  color: var(--site-mute);
+  margin-top: 3px;
+}
+.wielo-oceansview .mapph {
+  position: relative;
+  height: clamp(300px, 40vw, 440px);
+  border-radius: var(--site-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--site-line);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--site-soft),
+    var(--site-soft) 14px,
+    var(--site-soft-2) 14px,
+    var(--site-soft-2) 28px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wielo-oceansview .mappin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--site-secondary);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--site-secondary) 22%, transparent),
+    0 0 0 18px color-mix(in srgb, var(--site-secondary) 10%, transparent);
+}
+.wielo-oceansview .maptag {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  background: var(--site-surface);
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--site-mute);
+}
+.wielo-oceansview .faq {
+  border-top: 1px solid var(--site-line);
+  padding: 22px 0;
+}
+.wielo-oceansview .faq summary {
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 1.3rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+}
+.wielo-oceansview .faq summary::-webkit-details-marker {
+  display: none;
+}
+.wielo-oceansview .faq .pm {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--site-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.3s,
+    background 0.3s,
+    color 0.3s;
+}
+.wielo-oceansview .faq[open] .pm {
+  transform: rotate(45deg);
+  background: var(--site-accent);
+  color: #fff;
+}
+.wielo-oceansview .faq p {
+  margin-top: 14px;
+  color: var(--site-mute);
+  max-width: 64ch;
+}
+@media (max-width: 860px) {
+  .wielo-oceansview .cgrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Room detail: gallery · layout · specs · booking card ---------- */
+.wielo-oceansview .rgal {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
+  height: clamp(420px, 60vh, 600px);
+  padding-top: 84px;
+}
+.wielo-oceansview .rgal .g {
+  overflow: hidden;
+  border-radius: var(--site-radius-img);
+  position: relative;
+}
+.wielo-oceansview .rgal .g img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.3, 1);
+  cursor: zoom-in;
+}
+.wielo-oceansview .rgal .g:hover img {
+  transform: scale(1.05);
+}
+.wielo-oceansview .rgal .g.main {
+  grid-row: span 2;
+}
+.wielo-oceansview .rlayout {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: clamp(36px, 5vw, 68px);
+  align-items: start;
+}
+.wielo-oceansview .specs {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+  padding: 24px 0;
+  border-top: 1px solid var(--site-line);
+  border-bottom: 1px solid var(--site-line);
+  margin: 30px 0;
+}
+.wielo-oceansview .spec b {
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--site-ink);
+  line-height: 1;
+  display: block;
+}
+.wielo-oceansview .spec span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--site-mute);
+  margin-top: 4px;
+  display: block;
+}
+.wielo-oceansview .bkcard {
+  background: var(--site-surface);
+  border: 1px solid var(--site-line);
+  border-radius: var(--site-radius-lg);
+  padding: 26px;
+  position: sticky;
+  top: 100px;
+  box-shadow: 0 30px 60px -32px rgba(10, 34, 48, 0.36);
+}
+.wielo-oceansview .bkrate {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--site-line);
+  margin-bottom: 18px;
+}
+.wielo-oceansview .bkrate .amt {
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+.wielo-oceansview .bkgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 860px) {
+  .wielo-oceansview .rgal {
+    grid-template-columns: 1fr 1fr;
+    height: auto;
+    grid-auto-rows: 170px;
+  }
+  .wielo-oceansview .rgal .g.main {
+    grid-column: span 2;
+    grid-row: span 1;
+    height: 230px;
+  }
+  .wielo-oceansview .rlayout {
+    grid-template-columns: 1fr;
+  }
+  .wielo-oceansview .bkcard {
+    position: static;
+  }
+}
+
+/* ---------- Checkout (Booking): steps · add-ons · qty ---------- */
+.wielo-oceansview .checkout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: clamp(34px, 5vw, 64px);
+  align-items: start;
+}
+.wielo-oceansview .step {
+  margin-bottom: 40px;
+}
+.wielo-oceansview .step-h {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 22px;
+}
+.wielo-oceansview .step-n {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--site-tint);
+  color: var(--site-accent-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--site-font-heading);
+  font-weight: 800;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.wielo-oceansview .step-h h2 {
+  font-size: 1.5rem;
+}
+.wielo-oceansview .paynote {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--site-mute);
+}
+.wielo-oceansview .addons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wielo-oceansview .addon {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--site-line);
+  border-radius: var(--site-radius-sm);
+  padding: 12px;
+}
+.wielo-oceansview .addon img {
+  width: 76px;
+  height: 62px;
+  border-radius: var(--site-radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.wielo-oceansview .addon .ab {
+  flex: 1;
+  min-width: 0;
+}
+.wielo-oceansview .addon .ab .nm {
+  font-weight: 700;
+  font-size: 15px;
+}
+.wielo-oceansview .addon .ab .ds {
+  font-size: 13px;
+  color: var(--site-mute);
+  line-height: 1.45;
+}
+.wielo-oceansview .addon .ap {
+  font-weight: 700;
+  font-size: 14.5px;
+  white-space: nowrap;
+  font-family: var(--site-font-heading);
+}
+.wielo-oceansview .qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.wielo-oceansview .qty button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: none;
+  color: var(--site-ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 999px;
+}
+.wielo-oceansview .qty button:hover {
+  background: var(--site-soft);
+}
+.wielo-oceansview .qty span {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+@media (max-width: 860px) {
+  .wielo-oceansview .checkout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -61,6 +61,7 @@ import {
 import { ColumnsSection, FlexSection } from "./sections/ColumnsSection";
 import { renderSafariSection, type SafariCtx } from "./sections/SafariSections";
 import { renderSabelaSection } from "./sabela/SabelaSections";
+import { renderOceansViewSection } from "./oceansview/OceansViewSections";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -192,6 +193,17 @@ function SectionSwitch({
       interactive,
     });
     if (sabela !== undefined) return sabela;
+  }
+  if (themeVariant === "oceansview") {
+    // OceansViewCtx is structurally identical to SafariCtx — reuse the ctx.
+    const ov = renderOceansViewSection(section, {
+      data,
+      asset,
+      ctx: safariCtx,
+      websiteId,
+      interactive,
+    });
+    if (ov !== undefined) return ov;
   }
   switch (section.type) {
     case "hero":
