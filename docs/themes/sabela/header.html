@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="savanna" data-font="editorial" data-radius="sharp" data-hero="full">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Header / nav states — Sabela / Wielo theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  /* This is a STATIC reference of the header in each state. In a live site the
+     nav is sticky, swaps transparent→solid on scroll, the dropdown opens on
+     hover/focus and the burger opens the mobile drawer — all host-wired. Here
+     each state is frozen with small inline overrides so they show side by side. */
+  body{padding:clamp(20px,4vw,48px)}
+  .demo{max-width:1100px;margin:0 auto}
+  .demo h1{font-size:clamp(2rem,4vw,2.8rem);margin-bottom:6px}
+  .demo .cap{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute);margin:38px 0 12px}
+  .frame{border:1px solid var(--site-line);border-radius:var(--site-radius-lg);overflow:hidden}
+  .hero-demo{position:relative}
+  .hero-demo .bg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1516426122078-c23e76319801?w=1600&q=80') center/cover}
+  .hero-demo .ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,6,4,.30),rgba(5,4,2,.62))}
+  .hero-demo .copy{position:relative;padding:64px 32px 72px;color:#fff}
+  .hero-demo .copy h2{color:#fff;font-size:2rem}
+</style>
+</head>
+<body>
+<div class="demo">
+  <h1>Header &amp; navigation</h1>
+  <p class="muted">Wordmark + primary menu with dropdown, a Book-now CTA, an optional announcement bar, and two background states. Mobile collapses to a drawer.</p>
+
+  <!-- ANNOUNCEMENT / TOP BAR (optional, sits above the header) -->
+  <div class="cap">Announcement bar (optional)</div>
+  <div class="frame">
+    <div class="topbar">Open for the 2026 green season · save up to 25% — <a href="Lodge Theme - Specials.html">see offers</a></div>
+  </div>
+
+  <!-- STATE A — transparent over a dark hero (light text) -->
+  <div class="cap">State A · transparent over hero (light text)</div>
+  <div class="frame hero-demo">
+    <div class="bg"></div><div class="ov"></div>
+    <header class="nav over-hero" style="position:relative">
+      <div class="wrap nav-in">
+        <a href="#" class="brand"><span class="brand-mark">S</span><span class="brand-name">Sabela<small>Greater Kruger · Private Reserve</small></span></a>
+        <nav class="nav-links">
+          <a href="#" class="nav-link active">Home</a>
+          <a href="#" class="nav-link">Suites</a>
+          <a href="#" class="nav-link caret">Experiences <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
+          <a href="#" class="nav-link">The Lodge</a>
+          <a href="#" class="nav-link">Contact</a>
+        </nav>
+        <div class="nav-right">
+          <a href="#" class="btn btn-primary btn-sm">Book now</a>
+          <button class="nav-burger" aria-label="Menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        </div>
+      </div>
+    </header>
+    <div class="copy"><h2>Light text, no background</h2></div>
+  </div>
+
+  <!-- STATE B — solid / scrolled (dark text on surface) -->
+  <div class="cap">State B · solid / scrolled (dark text on surface)</div>
+  <div class="frame">
+    <header class="nav scrolled" style="position:relative">
+      <div class="wrap nav-in">
+        <a href="#" class="brand"><span class="brand-mark">S</span><span class="brand-name">Sabela<small>Greater Kruger · Private Reserve</small></span></a>
+        <nav class="nav-links">
+          <a href="#" class="nav-link active">Home</a>
+          <a href="#" class="nav-link">Suites</a>
+          <!-- dropdown forced open here to show the sub-menu; live it opens on hover/focus -->
+          <div class="has-sub">
+            <a href="#" class="nav-link caret">Experiences <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
+            <div class="nav-sub" style="opacity:1;visibility:visible;transform:translateX(-50%)">
+              <a href="#">Experiences</a><a href="#">Gallery</a><a href="#">Specials</a>
+            </div>
+          </div>
+          <a href="#" class="nav-link">The Lodge</a>
+          <a href="#" class="nav-link">Contact</a>
+        </nav>
+        <div class="nav-right">
+          <a href="#" class="btn btn-primary btn-sm">Book now</a>
+          <button class="nav-burger" aria-label="Menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        </div>
+      </div>
+    </header>
+    <div style="padding:60px 32px;color:var(--site-mute)">Page content scrolls beneath the solid header.</div>
+  </div>
+
+  <!-- MOBILE DRAWER -->
+  <div class="cap">Mobile drawer (burger → full-screen menu)</div>
+  <div class="frame" style="max-width:380px">
+    <div class="mnav open" style="position:relative;inset:auto;height:520px;transform:none">
+      <div class="nav-in" style="height:auto"><a href="#" class="brand"><span class="brand-mark">S</span><span class="brand-name">Sabela</span></a><button class="nav-burger mnav-close" aria-label="Close" style="display:flex;margin-left:auto"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <div class="mnav-links"><a href="#">Home</a><a href="#">Suites</a><a href="#">Experiences</a><a href="#">Gallery</a><a href="#">Specials</a><a href="#">The Lodge</a><a href="#">Contact</a></div>
+      <a href="#" class="btn btn-primary btn-lg btn-block" style="margin-top:auto">Book now</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

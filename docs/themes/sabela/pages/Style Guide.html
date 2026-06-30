@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="ebony" data-font="editorial" data-radius="sharp" data-hero="full">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Style guide &amp; swatches — Sabela / Wielo theme</title>
+<meta name="description" content="The Sabela theme base: palette swatches, accent options, fonts, radii and components." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .sg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:clamp(32px,4vw,48px)}
+  .sg-card{border:1px solid var(--site-line);border-radius:var(--site-radius-lg);overflow:hidden;background:var(--site-surface)}
+  .sg-h{padding:15px 18px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--site-line)}
+  .sg-h .nm{font-family:var(--site-font-heading);font-weight:800;font-size:1.25rem;color:var(--site-ink)}
+  .sg-h .tag{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute)}
+  .sw-row{display:grid;grid-template-columns:repeat(7,1fr)}
+  .sw{display:flex;flex-direction:column}
+  .sw .c{height:60px}
+  .sw .l{font-size:7.5px;text-align:center;padding:6px 1px;color:var(--site-mute);font-family:'JetBrains Mono',monospace;line-height:1.35;border-right:1px solid var(--site-line)}
+  .sw:last-child .l{border-right:0}
+  .sg-acc{padding:14px 18px;display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--site-line)}
+  .sg-acc .cap{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute)}
+  .sg-acc .row{display:flex;gap:8px}
+  .sg-acc .ac{width:28px;height:28px;border-radius:9999px;box-shadow:0 0 0 1px rgba(128,128,128,.3)}
+  .sg-block{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:clamp(28px,3vw,40px)}
+  .sg-tile{border:1px solid var(--site-line);border-radius:var(--site-radius-lg);padding:26px;background:var(--site-surface)}
+  .sg-tile .cap{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--site-mute);margin-bottom:14px}
+  .sg-radii{display:flex;gap:14px;align-items:flex-end}
+  .sg-radii .rb{flex:1;text-align:center}
+  .sg-radii .rb .box{height:64px;background:var(--site-tint);border:1.5px solid var(--site-accent)}
+  .sg-radii .rb .t{font-size:12px;color:var(--site-mute);margin-top:8px}
+  @media(max-width:820px){.sg-grid,.sg-block{grid-template-columns:1fr}}
+</style>
+<script>
+window.VILO_TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"ebony","font":"editorial","radius":"sharp","accent":null,"hero":"full"}/*EDITMODE-END*/;
+(function(){try{var d=window.VILO_TWEAK_DEFAULTS||{},s={};try{s=JSON.parse(localStorage.getItem('viloLodgeTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s),r=document.documentElement;
+if(t.theme)r.setAttribute('data-theme',t.theme);if(t.font)r.setAttribute('data-font',t.font);if(t.radius)r.setAttribute('data-radius',t.radius);if(t.accent)r.style.setProperty('--site-accent',t.accent);}catch(e){}})();
+</script>
+</head>
+<body>
+
+<header class="nav" data-screen-label="Lodge Style guide">
+  <div class="wrap nav-in">
+    <a href="Lodge Theme - Home.html" class="brand"><span class="brand-mark">S</span><span class="brand-name">Sabela<small>Theme · style guide</small></span></a>
+    <nav class="nav-links">
+      <a href="Lodge Theme - Home.html" class="nav-link">Home</a>
+      <a href="Lodge Theme - Suites.html" class="nav-link">Suites</a>
+      <a href="Lodge Theme - Experiences.html" class="nav-link">Experiences</a>
+      <a href="Lodge Theme - About.html" class="nav-link">The Lodge</a>
+      <a href="Lodge Theme - Contact.html" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-right">
+      <a href="Lodge Theme - Suites.html" class="btn btn-primary btn-sm">Plan your safari</a>
+      <button class="nav-burger" aria-label="Menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<section class="page-head" style="padding-bottom:clamp(8px,2vw,18px)">
+  <div class="wrap-narrow">
+    <span class="eyebrow center">Theme base</span>
+    <h1>Swatches &amp; style guide</h1>
+    <p class="lead mx-auto">The three palettes, accent options, fonts and radii that drive the whole theme. Switch between them live from the Tweaks panel — every page re-skins from these tokens.</p>
+  </div>
+</section>
+
+<!-- PALETTE SWATCHES — the three shipped themes, shown together -->
+<section class="section" style="padding-top:clamp(28px,3vw,44px)">
+  <div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Palettes</span><h2>Three palettes, one structure</h2></div>
+    <div class="sg-grid">
+
+      <div class="sg-card">
+        <div class="sg-h"><span class="nm">Ebony</span><span class="tag">Default · dark</span></div>
+        <div class="sw-row">
+          <div class="sw"><div class="c" style="background:#14120D"></div><div class="l">bg<br>14120D</div></div>
+          <div class="sw"><div class="c" style="background:#1C1913"></div><div class="l">surface<br>1C1913</div></div>
+          <div class="sw"><div class="c" style="background:#F1EADB"></div><div class="l">ink<br>F1EADB</div></div>
+          <div class="sw"><div class="c" style="background:#A99B7F"></div><div class="l">mute<br>A99B7F</div></div>
+          <div class="sw"><div class="c" style="background:#2B2618"></div><div class="l">line<br>2B2618</div></div>
+          <div class="sw"><div class="c" style="background:#C9A24A"></div><div class="l">accent<br>C9A24A</div></div>
+          <div class="sw"><div class="c" style="background:#15120B"></div><div class="l">on-acc<br>15120B</div></div>
+        </div>
+        <div class="sg-acc"><span class="cap">Accent options</span><div class="row"><span class="ac" style="background:#C9A24A"></span><span class="ac" style="background:#BFA06B"></span><span class="ac" style="background:#A88A52"></span><span class="ac" style="background:#9FA98C"></span><span class="ac" style="background:#C58A5A"></span></div></div>
+      </div>
+
+      <div class="sg-card">
+        <div class="sg-h"><span class="nm">Savanna</span><span class="tag">Warm · light</span></div>
+        <div class="sw-row">
+          <div class="sw"><div class="c" style="background:#F8F3EA"></div><div class="l">bg<br>F8F3EA</div></div>
+          <div class="sw"><div class="c" style="background:#FFFFFF"></div><div class="l">surface<br>FFFFFF</div></div>
+          <div class="sw"><div class="c" style="background:#2B2114"></div><div class="l">ink<br>2B2114</div></div>
+          <div class="sw"><div class="c" style="background:#8A7558"></div><div class="l">mute<br>8A7558</div></div>
+          <div class="sw"><div class="c" style="background:#E6DCC8"></div><div class="l">line<br>E6DCC8</div></div>
+          <div class="sw"><div class="c" style="background:#B0793C"></div><div class="l">accent<br>B0793C</div></div>
+          <div class="sw"><div class="c" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6DCC8"></div><div class="l">on-acc<br>FFFFFF</div></div>
+        </div>
+        <div class="sg-acc"><span class="cap">Accent options</span><div class="row"><span class="ac" style="background:#B0793C"></span><span class="ac" style="background:#A8632F"></span><span class="ac" style="background:#8C7A4A"></span><span class="ac" style="background:#7E8C55"></span><span class="ac" style="background:#9A5B3F"></span></div></div>
+      </div>
+
+      <div class="sg-card">
+        <div class="sg-h"><span class="nm">Stone</span><span class="tag">Cool · light</span></div>
+        <div class="sw-row">
+          <div class="sw"><div class="c" style="background:#F6F5F1"></div><div class="l">bg<br>F6F5F1</div></div>
+          <div class="sw"><div class="c" style="background:#FFFFFF"></div><div class="l">surface<br>FFFFFF</div></div>
+          <div class="sw"><div class="c" style="background:#26271F"></div><div class="l">ink<br>26271F</div></div>
+          <div class="sw"><div class="c" style="background:#7C7E70"></div><div class="l">mute<br>7C7E70</div></div>
+          <div class="sw"><div class="c" style="background:#E1E0D6"></div><div class="l">line<br>E1E0D6</div></div>
+          <div class="sw"><div class="c" style="background:#6E7B5E"></div><div class="l">accent<br>6E7B5E</div></div>
+          <div class="sw"><div class="c" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #E1E0D6"></div><div class="l">on-acc<br>FFFFFF</div></div>
+        </div>
+        <div class="sg-acc"><span class="cap">Accent options</span><div class="row"><span class="ac" style="background:#6E7B5E"></span><span class="ac" style="background:#7E7250"></span><span class="ac" style="background:#5E6B72"></span><span class="ac" style="background:#9A7B4E"></span><span class="ac" style="background:#566154"></span></div></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- TYPE + RADIUS -->
+<section class="section-sm soft-bg">
+  <div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Type &amp; shape</span><h2>Fonts and corners</h2></div>
+    <div class="sg-block">
+      <div class="sg-tile"><div class="cap">Editorial · default</div><div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:2.4rem;line-height:1.05;color:var(--site-ink)">Where the wild keeps its secrets</div><p class="muted" style="margin-top:10px;font-size:13.5px">Cormorant Garamond + Inter</p></div>
+      <div class="sg-tile"><div class="cap">Modern</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:2.1rem;letter-spacing:-.02em;line-height:1.05;color:var(--site-ink)">Where the wild keeps its secrets</div><p class="muted" style="margin-top:10px;font-size:13.5px">Plus Jakarta Sans + Inter</p></div>
+      <div class="sg-tile"><div class="cap">Grotesk</div><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:2.1rem;letter-spacing:-.02em;line-height:1.05;color:var(--site-ink)">Where the wild keeps its secrets</div><p class="muted" style="margin-top:10px;font-size:13.5px">Space Grotesk + Inter</p></div>
+    </div>
+    <div class="sg-tile" style="margin-top:22px">
+      <div class="cap">Radius · sharp / soft / round</div>
+      <div class="sg-radii">
+        <div class="rb"><div class="box" style="border-radius:4px"></div><div class="t">Sharp · 4px</div></div>
+        <div class="rb"><div class="box" style="border-radius:16px"></div><div class="t">Soft · 16px</div></div>
+        <div class="rb"><div class="box" style="border-radius:24px"></div><div class="t">Round · 24px</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPONENTS -->
+<section class="section-sm">
+  <div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Components</span><h2>Buttons, tags &amp; badges</h2></div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:32px">
+      <a class="btn btn-primary">Primary</a>
+      <a class="btn btn-ghost">Ghost / secondary</a>
+      <a class="btn btn-light">Light</a>
+      <span class="chip">Chip · amenity</span>
+      <span class="rating-inline"><span class="stars">★★★★★</span><span class="muted">4.99</span></span>
+      <span class="zero-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>0% booking fees</span>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-bottom" style="border:0;padding-top:0">
+      <span>© 2026 Sabela Private Game Lodge · theme style guide</span>
+      <span class="foot-vilo"><svg width="16" height="16" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#C9A24A"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% host fees</span>
+    </div>
+  </div>
+</footer>
+
+<div class="mnav">
+  <div class="nav-in" style="height:auto"><a href="Lodge Theme - Home.html" class="brand"><span class="brand-mark">S</span><span class="brand-name">Sabela</span></a><button class="nav-burger mnav-close" aria-label="Close" style="display:flex;margin-left:auto"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="mnav-links"><a href="Lodge Theme - Home.html">Home</a><a href="Lodge Theme - Suites.html">Suites</a><a href="Lodge Theme - Experiences.html">Experiences</a><a href="Lodge Theme - About.html">The Lodge</a><a href="Lodge Theme - Contact.html">Contact</a></div>
+  <a href="Lodge Theme - Suites.html" class="btn btn-primary btn-lg btn-block" style="margin-top:auto">Plan your safari</a>
+</div>
+
+<script src="site-lodge.js"></script>
+</body>
+</html>

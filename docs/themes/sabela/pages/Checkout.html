@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="ebony" data-font="editorial" data-radius="sharp" data-hero="full">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Complete your booking — Sabela Private Game Lodge</title>
+<meta name="description" content="Secure direct booking with Sabela. No booking fees — the rate you see is the rate you pay." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .co-steps{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:30px}
+  .co-step{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:var(--site-mute)}
+  .co-step.on{color:var(--site-ink)}
+  .co-step .n{width:24px;height:24px;border-radius:9999px;background:var(--site-soft-2);color:var(--site-mute);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:1px solid var(--site-line)}
+  .co-step.on .n{background:var(--site-accent);color:var(--site-accent-ink);border-color:var(--site-accent)}
+  .co-line{width:26px;height:1.5px;background:var(--site-line)}
+  .co-grid{display:grid;grid-template-columns:1fr 400px;gap:clamp(28px,4vw,48px);align-items:start}
+  .co-card{background:var(--site-surface);border:1px solid var(--site-line);border-radius:var(--site-radius-lg);padding:clamp(22px,2.5vw,30px);margin-bottom:22px}
+  .co-card h2{font-size:1.35rem;margin-bottom:18px}
+  .pay-tabs{display:flex;gap:12px;margin-bottom:20px}
+  .pay-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;height:54px;border:1.5px solid var(--site-line);border-radius:var(--site-radius-sm);font-weight:600;font-size:14.5px;color:var(--site-mute);cursor:pointer;background:var(--site-surface);transition:.12s}
+  .pay-tab.on{border-color:var(--site-accent);background:var(--site-soft);color:var(--site-ink);box-shadow:0 0 0 3px var(--site-ring)}
+  .summary-room{display:flex;gap:14px;align-items:center;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--site-line)}
+  .summary-room img{width:78px;height:62px;border-radius:var(--site-radius-sm);object-fit:cover;flex-shrink:0}
+  .addons{display:flex;flex-direction:column;gap:12px}
+  .addon{display:flex;gap:14px;align-items:center;border:1px solid var(--site-line);border-radius:var(--site-radius-sm);padding:12px}
+  .addon img{width:74px;height:60px;border-radius:var(--site-radius-sm);object-fit:cover;flex-shrink:0}
+  .addon .ad-b{flex:1;min-width:0}
+  .addon .ad-b .nm{font-weight:600;font-size:15px}
+  .addon .ad-b .ds{font-size:13px;color:var(--site-mute);line-height:1.45}
+  .addon .ad-p{font-weight:600;font-size:14.5px;white-space:nowrap}
+  .qty{display:inline-flex;align-items:center;border:1px solid var(--site-line);border-radius:9999px;flex-shrink:0}
+  .qty button{width:32px;height:32px;border:0;background:none;color:var(--site-ink);font-size:18px;line-height:1;cursor:pointer;border-radius:9999px}
+  .qty button:hover{background:var(--site-soft)}
+  .qty span{min-width:22px;text-align:center;font-weight:600;font-size:14px}
+  .guest-rows{display:flex;flex-direction:column;gap:12px}
+  .coupon{display:flex;gap:8px}
+  .coupon input{flex:1;height:48px;padding:0 14px;border:1.5px solid var(--site-line);border-radius:var(--site-radius-sm);background:var(--site-surface);font-family:var(--site-font-body);font-size:14px;color:var(--site-ink);outline:none}
+  @media(max-width:680px){.addon{flex-wrap:wrap}.addon .ad-b{flex-basis:60%}}
+  @media(max-width:1000px){.co-grid{grid-template-columns:1fr}.book-widget.sticky{position:static}}
+</style>
+<script>
+window.VILO_TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"ebony","font":"editorial","radius":"sharp","accent":null,"hero":"full"}/*EDITMODE-END*/;
+(function(){try{var d=window.VILO_TWEAK_DEFAULTS||{},s={};try{s=JSON.parse(localStorage.getItem('viloLodgeTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s),r=document.documentElement;
+if(t.theme)r.setAttribute('data-theme',t.theme);if(t.font)r.setAttribute('data-font',t.font);if(t.radius)r.setAttribute('data-radius',t.radius);if(t.accent)r.style.setProperty('--site-accent',t.accent);}catch(e){}})();
+function payTab(el){document.querySelectorAll('.pay-tab').forEach(function(t){t.classList.remove('on')});el.classList.add('on');}
+function qty(btn,d){var s=btn.parentNode.querySelector('span');var n=Math.max(0,(+s.textContent)+d);s.textContent=n;}
+function addGuest(btn){var box=btn.previousElementSibling;var r=box.firstElementChild.cloneNode(true);var lbl=r.querySelector('label');if(lbl)lbl.childNodes[0].textContent='Guest '+(box.children.length+2)+' — full name';r.querySelectorAll('input').forEach(function(i){i.value='';});box.appendChild(r);}
+</script>
+</head>
+<body>
+
+<header class="nav" data-screen-label="Lodge Checkout">
+  <div class="wrap nav-in">
+    <a href="Lodge Theme - Home.html" class="brand"><span class="brand-mark">S</span><span class="brand-name">Sabela<small>Greater Kruger · Private Reserve</small></span></a>
+    <div class="nav-right" style="margin-left:auto">
+      <span class="zero-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Secure direct booking</span>
+    </div>
+  </div>
+</header>
+
+<section style="padding-top:calc(78px + clamp(28px,4vw,48px));padding-bottom:clamp(64px,8vw,110px)" data-section="checkout">
+  <div class="wrap" style="max-width:1140px">
+    <div class="co-steps">
+      <div class="co-step on"><span class="n"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></span>Choose dates</div>
+      <span class="co-line"></span>
+      <div class="co-step on"><span class="n">2</span>Your details</div>
+      <span class="co-line"></span>
+      <div class="co-step"><span class="n">3</span>Confirmed</div>
+    </div>
+
+    <h1 style="font-size:clamp(2rem,3.6vw,2.9rem);margin-bottom:clamp(24px,3vw,34px)">Complete your booking</h1>
+
+    <div class="co-grid">
+      <form onsubmit="window.location.href='Lodge Theme - Thank You.html';return false">
+        <div class="co-card">
+          <h2>Your stay</h2>
+          <div class="bw-fields">
+            <div class="bw-row">
+              <div class="bw-field"><label>Arrive</label><input type="date" value="2026-08-14" /></div>
+              <div class="bw-field"><label>Depart</label><input type="date" value="2026-08-17" /></div>
+            </div>
+            <div class="bw-field full"><label>Guests</label><select><option>2 guests</option><option>1 guest</option></select></div>
+          </div>
+        </div>
+
+        <div class="co-card">
+          <h2>Guest details</h2>
+          <div class="field-row">
+            <div class="field"><label>First name</label><input placeholder="James" /></div>
+            <div class="field"><label>Last name</label><input placeholder="Whitfield" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Email</label><input type="email" placeholder="james@email.com" /></div>
+            <div class="field"><label>Mobile</label><input type="tel" class="num" placeholder="+44 7700 900000" /></div>
+          </div>
+          <div class="field" style="margin-bottom:0"><label>Arrival &amp; requests <span class="muted" style="font-weight:400">(optional)</span></label><textarea rows="3" placeholder="Flight details, dietary needs, celebrating something…"></textarea></div>
+        </div>
+
+        <div class="co-card" data-section="addons_preview" data-live="true">
+          <!-- empty: "No add-ons offered yet" — hide this card when the host has none -->
+          <h2>Enhance your stay</h2>
+          <div class="addons">
+            <div class="addon">
+              <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&q=80" alt="Private bush breakfast" />
+              <div class="ad-b"><div class="nm">Private bush breakfast</div><div class="ds">A table set in the riverbed at sunrise, just for the two of you.</div></div>
+              <div class="ad-p">R950 <span class="muted" style="font-weight:400;font-size:12px">/ guest</span></div>
+              <div class="qty"><button type="button" onclick="qty(this,-1)">−</button><span>0</span><button type="button" onclick="qty(this,1)">+</button></div>
+            </div>
+            <div class="addon">
+              <img src="https://images.unsplash.com/photo-1540206395-68808572332f?w=200&q=80" alt="Sundowner spa treatment" />
+              <div class="ad-b"><div class="nm">Bush spa treatment</div><div class="ds">A 60-minute massage on your private deck after the afternoon drive.</div></div>
+              <div class="ad-p">R1,400 <span class="muted" style="font-weight:400;font-size:12px">/ guest</span></div>
+              <div class="qty"><button type="button" onclick="qty(this,-1)">−</button><span>0</span><button type="button" onclick="qty(this,1)">+</button></div>
+            </div>
+            <div class="addon">
+              <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=200&q=80" alt="Private guided walk" />
+              <div class="ad-b"><div class="nm">Private guided bush walk</div><div class="ds">A dawn tracking walk with a senior guide, away from the vehicles.</div></div>
+              <div class="ad-p">R1,800 <span class="muted" style="font-weight:400;font-size:12px">/ stay</span></div>
+              <div class="qty"><button type="button" onclick="qty(this,-1)">−</button><span>0</span><button type="button" onclick="qty(this,1)">+</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="co-card">
+          <h2>Who else is coming?</h2>
+          <p class="muted" style="font-size:13px;margin:-8px 0 16px">So we can set the right number of places at the table and seats on the vehicle.</p>
+          <div class="guest-rows">
+            <div class="field-row" style="margin-bottom:0"><div class="field" style="margin-bottom:0"><label>Guest 2 — full name</label><input placeholder="Eleanor Whitfield" /></div><div class="field" style="margin-bottom:0"><label>Dietary / notes <span class="muted" style="font-weight:400">(optional)</span></label><input placeholder="Vegetarian" /></div></div>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" style="margin-top:14px" onclick="addGuest(this)">+ Add another guest</button>
+        </div>
+
+        <div class="co-card" style="margin-bottom:0">
+          <h2>Payment</h2>
+          <div class="pay-tabs">
+            <button type="button" class="pay-tab on" onclick="payTab(this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Card</button>
+            <button type="button" class="pay-tab" onclick="payTab(this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v10H3z"/><path d="M3 11h18"/></svg>Bank transfer</button>
+          </div>
+          <div class="field"><label>Card number</label><input class="num" placeholder="1234 5678 9012 3456" /></div>
+          <div class="field-row">
+            <div class="field"><label>Expiry</label><input class="num" placeholder="MM / YY" /></div>
+            <div class="field"><label>CVV</label><input class="num" placeholder="123" /></div>
+          </div>
+          <p class="muted" style="font-size:13px;margin:2px 0 14px">A 30% deposit secures your booking today; the balance is due 45 days before arrival.</p>
+          <button class="btn btn-primary btn-lg btn-block" type="submit">Confirm &amp; pay deposit · R22,770</button>
+          <p class="bw-note" style="margin-top:14px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Encrypted &amp; secure · no booking fee is ever added</p>
+        </div>
+      </form>
+
+      <aside class="book-widget sticky">
+        <div class="summary-room">
+          <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=200&q=80" alt="River Suite" />
+          <div><div style="font-family:var(--site-font-heading);font-weight:700;font-size:1.15rem">River Suite</div><div class="muted" style="font-size:13px">All-inclusive · 2 guests</div><div class="rating-inline" style="font-size:12.5px;margin-top:4px"><span class="stars">★★★★★</span><span class="muted">4.99</span></div></div>
+        </div>
+        <div class="bw-line" style="margin-bottom:8px"><span>14–17 Aug 2026</span><span style="color:var(--site-ink);font-weight:600">3 nights</span></div>
+        <div class="field" style="margin:0 0 4px"><label>Coupon code</label><div class="coupon"><input placeholder="Enter code" /><button type="button" class="btn btn-ghost btn-sm">Apply</button></div></div>
+        <div class="bw-summary" style="margin-top:8px">
+          <div class="bw-line"><span>R12,500 pp × 2 × 3 nights</span><span>R75,000</span></div>
+          <div class="bw-line"><span>Conservation levy</span><span>R900</span></div>
+          <div class="bw-line total"><span>Total</span><span>R75,900</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;background:var(--site-soft);border:1px solid var(--site-line);border-radius:var(--site-radius-sm);padding:12px 14px;font-size:12.5px;color:var(--site-ink)">
+          <span class="zero-badge" style="padding:5px 9px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>0% fees</span>
+          Booked direct with the lodge — no platform fees, ever.
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<footer class="footer" style="padding:40px 0 32px">
+  <div class="wrap">
+    <div class="footer-bottom" style="padding-top:0;border:0">
+      <span>© 2026 Sabela Private Game Lodge. All rights reserved.</span>
+      <span class="foot-vilo"><svg width="16" height="16" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#C9A24A"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% host fees</span>
+    </div>
+  </div>
+</footer>
+
+<script src="site-lodge.js"></script>
+</body>
+</html>
