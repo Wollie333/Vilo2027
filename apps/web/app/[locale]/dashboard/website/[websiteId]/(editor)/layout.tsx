@@ -7,6 +7,7 @@ import { getTranslations } from "next-intl/server";
 import { loadWebsiteEditorData } from "../loadWebsiteEditorData";
 import { PublishBar } from "../_components/PublishBar";
 import { WebsiteTabs } from "../_components/WebsiteTabs";
+import { DomainBar } from "../_components/DomainBar";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,11 @@ export default async function EditorTabsLayout({
           </span>
 
           <div className="ml-auto flex items-center gap-2">
+            <DomainBar
+              subdomain={data.subdomain}
+              customDomain={data.customDomain}
+              root={root}
+            />
             <Link
               href={`/site?site=${data.subdomain}&preview=1`}
               target="_blank"
