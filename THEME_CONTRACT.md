@@ -155,6 +155,62 @@ Until that tooling exists, conformance is **this document, executed by hand per
 theme** — which is already far faster than designing from scratch, because every
 non-styling concern is shared.
 
+## ★ The canonical page set every theme MUST ship (2026-06-30)
+
+> **Why this exists.** A theme is *a blueprint of existing sections* + *a scoped
+> render layer* — never new page infrastructure. This is the fixed list of pages
+> every theme ships, so converting an uploaded design is "map its pages onto this
+> list and fill each page's `sections[]`". The blueprint lives in
+> `site_themes.page_templates` (jsonb) — same shape as the Safari migration
+> `20260625050000_add_safari_theme.sql`. The seeder is `seedWebsiteContent()` in
+> `app/[locale]/dashboard/website/actions.ts` (uses `theme.pageTemplates`, else a
+> hardcoded starter fallback).
+
+Pages fall into **two classes**. **Class 1 (marketing)** varies section
+content/order per design and appears in the nav. **Class 2 (system templates)**
+keeps a *fixed section spine* (so the booking engine binds reliably), never
+appears in nav, and is edit-only in the Page Manager — but still renders in the
+theme's scoped CSS. Data-bound sections are **bold**; they auto-hide when the host
+has no data (e.g. no specials → the Specials block renders nothing).
+
+### Class 1 — Marketing pages (host-editable, in nav)
+
+| Page | `kind` | Req? | Section spine (data-bound in **bold**) |
+| --- | --- | --- | --- |
+| **Home** | `home` | required | hero · *(optional inline `booking_search`)* · intro · highlights · **rooms_preview** · **specials_preview** · **gallery** · **reviews**/**trust** · **location** · cta |
+| **About** | `about` | required | hero · intro · host_bio · highlights · **gallery** |
+| **Rooms / Suites** | `rooms` | required | intro · **rooms_preview** · **amenities** · **rate_table** (or pricing) · cta |
+| **Specials** | `specials` | required | intro · **specials_preview** (full grid) · cta |
+| **Experiences** | `experiences` | required | hero/intro · highlights · **gallery** · cta *(activities/things-to-do; premium lodge staple)* |
+| **Gallery** | `gallery` | required | intro · **gallery** (full grid / masonry) · cta |
+| **Contact** | `contact` | required | intro · **form** *(the modern `form` element — NOT legacy `contact_form`)* · **location** · faq |
+| **Journal / Blog** | `blog` | **optional** | intro · **blog_preview** *(theme MAY include; not required)* |
+
+### Class 2 — System templates (auto-driven, edit-only, NOT in nav)
+
+| Template | `kind` | Spine | Notes |
+| --- | --- | --- | --- |
+| **Search Results** | `search_results` | bound **`booking_search`** (pre-filled from query) · **results list** (matched rooms: price/availability → Book) · empty-state · cross-sell **specials_preview** | `booking_search` routes HERE, then Results → Checkout. |
+| **Room Detail** | `room_detail` | **room_gallery** · **room_overview** · **room_amenities** · **room_rate** (Book) · **room_policies** · cross-sell **rooms_preview** | Per-room override layer (`website_rooms.detail_overrides`). |
+| **Checkout** | `checkout` | themed booking flow: dates · rooms · **add-ons** · guests · coupon · contact · payment, + **theme-scoped modals** (T&Cs, date picker, progress) | Shares `createBookingCore`/`priceBooking` with the app. |
+| **Thank-you** | `thank-you` | confirmation · booking summary · next-steps (per conversion goal) | — |
+
+### The conversion rule (what makes a new theme mechanical)
+
+A theme's `page_templates` MUST contain entries for **all required Class 1 pages**
+(7: home/about/rooms/specials/experiences/gallery/contact) **+ all Class 2
+templates** (4: search_results/room_detail/checkout/thank-you). Blog is optional.
+For each page, map the design's visual blocks onto our section `type`s and emit
+them as the page's `sections[]`. Marketing pages may reorder/add any shared
+section; system templates keep their spine so data binding holds. If a design has
+a block we have no `type` for, **add a shared section type** (schema + inspector +
+generic render + Safari band) — a layer-1/2 add every theme inherits, never a
+theme-private hack (see the north-star workflow above).
+
+System pages are NOT shown in the website nav (`show_in_nav: false`) and surface in
+the Page Manager's **"System templates"** group (edit-only, no delete); Class 1
+pages surface under **"Site pages"** (reorderable, nav-toggle, add/delete custom).
+
 ## Rule of thumb when building
 
 Before adding a nav/header/menu/section capability, ask **"which layer?"**:
