@@ -18,6 +18,7 @@ import { SafariShell } from "./safari/SafariShell";
 import { SafariSectionList, type SafariCtx } from "./sections/SafariSections";
 import { SabelaShell } from "./sabela/SabelaShell";
 import { SabelaSectionList, type SabelaCtx } from "./sabela/SabelaSections";
+import { SabelaBookingDock } from "./sabela/SabelaBookingDock";
 import { OceansViewShell } from "./oceansview/OceansViewShell";
 import {
   OceansViewSectionList,
@@ -153,6 +154,21 @@ export async function SiteRoomView({
       contactHref: ctx.nav.find((l) => /contact/i.test(l.label))?.href,
       reserveHref: headerBookHref || room.bookHref,
     };
+    // Room-detail composition matching the design (Suite.html): the .rd-gallery
+    // full-width, then a 2-column .rd-grid — the room content on the left, the
+    // sticky .book-widget dock on the right. room_rate is the dock (dropped here).
+    const sabBody = contentSections.filter((s) =>
+      ["room_overview", "room_amenities", "room_policies"].includes(s.type),
+    );
+    const sabBelow = contentSections.filter(
+      (s) =>
+        ![
+          "room_overview",
+          "room_amenities",
+          "room_policies",
+          "room_rate",
+        ].includes(s.type),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -166,34 +182,41 @@ export async function SiteRoomView({
             analytics={ctx.analytics}
             interactive={!ctx.preview}
           >
-            <RoomDockLayout
-              gallery={
-                <SabelaSectionList
-                  sections={gallerySections}
-                  data={data}
-                  asset={siteAsset}
-                  ctx={sabelaCtx}
-                />
-              }
-              dock={
-                <RoomBookingDock
-                  roomName={room.name}
-                  price={room.price}
-                  currency={room.currency}
-                  bookHref={room.bookHref}
-                  maxGuests={room.maxGuests}
-                  interactive
-                />
-              }
-            >
-              <SabelaSectionList
-                sections={contentSections}
-                data={data}
-                asset={siteAsset}
-                ctx={sabelaCtx}
-                interactive
-              />
-            </RoomDockLayout>
+            <SabelaSectionList
+              sections={gallerySections}
+              data={data}
+              asset={siteAsset}
+              ctx={sabelaCtx}
+            />
+            <section className="section" style={{ paddingTop: 0 }}>
+              <div className="wrap">
+                <div className="rd-grid">
+                  <div>
+                    <SabelaSectionList
+                      sections={sabBody}
+                      data={data}
+                      asset={siteAsset}
+                      ctx={sabelaCtx}
+                      interactive
+                    />
+                  </div>
+                  <SabelaBookingDock
+                    price={room.price}
+                    currency={room.currency}
+                    bookHref={room.bookHref}
+                    maxGuests={room.maxGuests}
+                    interactive
+                  />
+                </div>
+              </div>
+            </section>
+            <SabelaSectionList
+              sections={sabBelow}
+              data={data}
+              asset={siteAsset}
+              ctx={sabelaCtx}
+              interactive
+            />
           </SabelaShell>
         </SiteThemeRoot>
       </>

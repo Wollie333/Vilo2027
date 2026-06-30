@@ -1486,66 +1486,39 @@ export function SabelaRoomOverview({
     );
   const title = props.heading?.trim() || data.name;
   const facts = props.show_facts !== false ? data.facts : [];
-  const price =
-    props.show_price !== false ? rand(data.price, data.currency) : "";
+  // Content-only (the left column of the room-detail .rd-grid). SiteRoomView
+  // composes the gallery + this content + the sticky .book-widget dock.
   return (
-    <section className="section" data-section="room_overview" data-live="true">
-      <div className="wrap">
-        <div className="crumb">
-          <a href="../rooms">Suites</a>
-          <span>·</span>
-          <span>{data.name}</span>
-        </div>
-        <h1 style={{ marginTop: 14, fontSize: "clamp(2.2rem,4vw,3.6rem)" }}>
-          {title}
-        </h1>
-        <div className="rd-grid">
-          <div>
-            {facts.length ? (
-              <div
-                className="rr-meta"
-                style={{ marginTop: 4, marginBottom: 8 }}
-              >
-                {facts.map((f, i) => (
-                  <span key={f + i} className="chip">
-                    {f}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            <div className="rd-sec">
-              <h2>The suite</h2>
-              {data.description ? (
-                <p style={{ whiteSpace: "pre-line" }}>{data.description}</p>
-              ) : (
-                <p>
-                  A quiet, design-led suite opening onto the reserve, with space
-                  to slow right down between drives.
-                </p>
-              )}
-            </div>
-          </div>
-          <aside className="book-widget sticky">
-            {price ? (
-              <div className="bw-price">
-                <span className="price">{price}</span>
-                <span className="muted"> / night</span>
-              </div>
-            ) : null}
-            <p className="muted" style={{ fontSize: 13, marginBottom: 16 }}>
-              Full-board, including twice-daily game drives.
-            </p>
-            <a
-              href={data.bookHref}
-              className="btn btn-primary btn-block btn-lg"
-            >
-              <span>Check availability</span>
-            </a>
-            <div className="bw-note">{CHECK_ICON} Book direct · 0% fees</div>
-          </aside>
-        </div>
+    <div data-section="room_overview" data-live="true">
+      <div className="crumb">
+        <a href="../rooms">Suites</a>
+        <span>·</span>
+        <span>{data.name}</span>
       </div>
-    </section>
+      <h1 style={{ marginTop: 14, fontSize: "clamp(2.2rem,4vw,3.4rem)" }}>
+        {title}
+      </h1>
+      {facts.length ? (
+        <div className="rr-meta" style={{ marginTop: 14, marginBottom: 4 }}>
+          {facts.map((f, i) => (
+            <span key={f + i} className="chip">
+              {f}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className="rd-sec" style={{ borderTop: 0, paddingTop: 20 }}>
+        <h2>The suite</h2>
+        {data.description ? (
+          <p style={{ whiteSpace: "pre-line" }}>{data.description}</p>
+        ) : (
+          <p>
+            A quiet, design-led suite opening onto the reserve, with space to
+            slow right down between drives.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1559,29 +1532,24 @@ export function SabelaRoomAmenities({
   const amenities = data?.amenities ?? [];
   if (!amenities.length)
     return <SabelaRoomPlaceholder label="This room's amenities appear here." />;
+  // .rd-sec content block in the room-detail left column.
   return (
-    <section className="section soft-bg" data-section="room_amenities">
-      <div className="wrap">
-        <h2 style={{ fontSize: "1.7rem", marginBottom: 4 }}>
-          {props.heading || "In the suite"}
-        </h2>
-        <div
-          className="amenities"
-          style={
-            props.variant === "list"
-              ? { gridTemplateColumns: "1fr" }
-              : undefined
-          }
-        >
-          {amenities.map((a, i) => (
-            <div key={a.label + i} className="amenity">
-              {CHECK_ICON}
-              {a.label}
-            </div>
-          ))}
-        </div>
+    <div className="rd-sec" data-section="room_amenities">
+      <h2>{props.heading || "In the suite"}</h2>
+      <div
+        className="amenities"
+        style={
+          props.variant === "list" ? { gridTemplateColumns: "1fr" } : undefined
+        }
+      >
+        {amenities.map((a, i) => (
+          <div key={a.label + i} className="amenity">
+            {CHECK_ICON}
+            {a.label}
+          </div>
+        ))}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -1651,9 +1619,12 @@ export function SabelaRoomRate({
 function SabelaPolicyView({
   heading,
   policies,
+  inline = false,
 }: {
   heading?: string;
   policies: RoomPolicies;
+  /** Room-detail column: render as a .rd-sec block (not a full-width section). */
+  inline?: boolean;
 }) {
   const p = policies;
   const items: { label: string; value: string }[] = [];
@@ -1674,52 +1645,56 @@ function SabelaPolicyView({
     textTransform: "uppercase",
     letterSpacing: ".08em",
   };
-  return (
+  const body = (
+    <>
+      <h2>{heading || "Things to know"}</h2>
+      <div
+        style={{
+          marginTop: 18,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+          gap: "20px 32px",
+        }}
+      >
+        {items.map((it, i) => (
+          <div
+            key={i}
+            style={{ borderTop: "1px solid var(--site-line)", paddingTop: 14 }}
+          >
+            <div className="muted" style={labelStyle}>
+              {it.label}
+            </div>
+            <div style={{ marginTop: 4, fontSize: 15 }}>{it.value}</div>
+          </div>
+        ))}
+      </div>
+      {p.houseRules ? (
+        <div
+          style={{
+            marginTop: 22,
+            borderTop: "1px solid var(--site-line)",
+            paddingTop: 14,
+          }}
+        >
+          <div className="muted" style={labelStyle}>
+            House rules
+          </div>
+          <p style={{ marginTop: 6, fontSize: 15, whiteSpace: "pre-line" }}>
+            {p.houseRules}
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+  return inline ? (
+    <div className="rd-sec" data-section="room_policies">
+      {body}
+    </div>
+  ) : (
     <section className="section-sm" data-section="room_policies">
       <div className="wrap wrap-narrow">
         <span className="eyebrow">Good to know</span>
-        <h2 style={{ marginTop: 14, fontSize: "clamp(1.8rem,3.4vw,2.6rem)" }}>
-          {heading || "Things to know"}
-        </h2>
-        <div
-          style={{
-            marginTop: 28,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-            gap: "24px 40px",
-          }}
-        >
-          {items.map((it, i) => (
-            <div
-              key={i}
-              style={{
-                borderTop: "1px solid var(--site-line)",
-                paddingTop: 14,
-              }}
-            >
-              <div className="muted" style={labelStyle}>
-                {it.label}
-              </div>
-              <div style={{ marginTop: 4, fontSize: 15 }}>{it.value}</div>
-            </div>
-          ))}
-        </div>
-        {p.houseRules ? (
-          <div
-            style={{
-              marginTop: 28,
-              borderTop: "1px solid var(--site-line)",
-              paddingTop: 14,
-            }}
-          >
-            <div className="muted" style={labelStyle}>
-              House rules
-            </div>
-            <p style={{ marginTop: 6, fontSize: 15, whiteSpace: "pre-line" }}>
-              {p.houseRules}
-            </p>
-          </div>
-        ) : null}
+        {body}
       </div>
     </section>
   );
@@ -1737,7 +1712,7 @@ export function SabelaRoomPolicies({
     return (
       <SabelaRoomPlaceholder label="This room's cancellation policy and house rules appear here." />
     );
-  return <SabelaPolicyView heading={props.heading} policies={p} />;
+  return <SabelaPolicyView heading={props.heading} policies={p} inline />;
 }
 
 export function SabelaPolicies({
