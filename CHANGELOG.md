@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-30 (#6) — Room-detail templates reworked to each theme's design
+
+Founder: the live room-detail pages looked nothing like the provided designs.
+Root cause: all three themes rendered the room page via the generic
+`RoomDockLayout` + `RoomBookingDock`, AND each theme's `room_overview` ALSO drew
+its own booking card — fragmented, with two booking widgets and full-width bands
+instead of the design's 2-column layout.
+
+Reworked all three to their own designed layout — gallery full-width, then a
+2-column grid (room content left, a SINGLE sticky themed booking card right),
+reviews/CTA full-width below. `room_overview`/`room_amenities`/`room_policies`
+are now content blocks; `room_rate` is the booking dock (dropped from the body):
+- **Oceans View** — `.rgal` + `.rlayout` + new `OceansViewBookingDock` (`.bkcard`).
+- **Sabela** — `.rd-gallery` + `.rd-grid` + new `SabelaBookingDock` (`.book-widget`).
+- **Safari** — `.suite-hero` + `.room-layout` + new `SafariBookingDock` (`.bk-card`).
+
+Each dock is interactive (dates + guests → server-priced checkout). Verified live
+on all three: single booking card, correct 2-column structure, no generic dock.
+The generic `RoomDockLayout`/`RoomBookingDock` remain for non-themed sites.
+
+---
+
 ## 2026-06-30 (#5) — Theme preview fidelity + per-page bespoke sections + domain chip
 
 Founder feedback after the Oceans View conversion: previewing a theme showed
