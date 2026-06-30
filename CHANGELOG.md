@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-06-30 (#8) — Top loading bar adopts the theme accent on host sites
+
+The global top navigation-loading stripe (`NextTopLoader`) was hardcoded brand
+green (`#10B981`) — correct for the Wielo app, wrong on a host's themed site.
+Made its colour `var(--wielo-toploader, #10B981)` and set that var to the theme
+accent on `:root` from `SiteThemeRoot`. Also wrapped the Safari room/blog/
+checkout/thank-you routes in `SiteThemeRoot` (they rendered `SafariShell`
+directly), so every page of every theme sets the bar to its accent. Wielo pages
+never render `SiteThemeRoot`, so they keep green. Verified: oceansview `#12A5B5`,
+safari `#B26C2E`, sabela `#C9A24A`, wielo login green.
+
+---
+
 ## 2026-06-30 (#7) — Every theme ships the same page set
 
 Founder: Safari was missing pages vs the other themes. All themes' `page_templates`
