@@ -855,7 +855,7 @@ type AddonPreviewRow = {
 
 /**
  * The host's active add-ons available on this site's properties → AddonCard[].
- * Scoped via `listing_addons` (which properties offer each add-on), deduped by
+ * Scoped via `property_addons` (which properties offer each add-on), deduped by
  * add-on (an add-on attached to several properties/rooms shows once), in the
  * host's catalogue sort order. Display-only — checkout always re-prices.
  */
@@ -865,11 +865,11 @@ async function loadAddonsPreview(
 ): Promise<SiteDataByType["addons_preview"]> {
   if (!ctx.propertyIds.length) return { addons: [] };
   const { data } = await sb
-    .from("listing_addons")
+    .from("property_addons")
     .select(
       "addon:addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, is_required, is_active, sort_order )",
     )
-    .in("listing_id", ctx.propertyIds);
+    .in("property_id", ctx.propertyIds);
 
   const rows = (data ?? []) as unknown as AddonPreviewRow[];
   const seen = new Set<string>();

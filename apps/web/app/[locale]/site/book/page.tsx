@@ -151,6 +151,8 @@ export default async function SiteBookPage({
   type AddonDef = {
     id: string;
     name: string;
+    description: string | null;
+    image_path: string | null;
     pricing_model: string;
     unit_price: number;
     currency: string;
@@ -170,7 +172,7 @@ export default async function SiteBookPage({
   const { data: addonRows } = await admin
     .from("property_addons")
     .select(
-      "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active )",
+      "addon_id, room_id, unit_price_override, addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active )",
     )
     .eq("property_id", propertyId);
 
@@ -198,10 +200,21 @@ export default async function SiteBookPage({
       else if (cur.rooms) cur.rooms.add(raw.room_id);
     }
   }
+  const supaUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "") ?? "";
+  const addonImageUrl = (path: string | null): string | null => {
+    if (!path) return null;
+    if (/^(https?:\/\/|data:)/.test(path)) return path;
+    return supaUrl
+      ? `${supaUrl}/storage/v1/object/public/addon-images/${path}`
+      : null;
+  };
   const addons: CheckoutAddon[] = [...addonAgg.values()].map(
     ({ def, effective, rooms }) => ({
       id: def.id,
       name: def.name,
+      description: def.description,
+      imageUrl: addonImageUrl(def.image_path),
       pricingModel: def.pricing_model as PricingModel,
       unitPrice: effective,
       currency: def.currency || property.currency || "ZAR",

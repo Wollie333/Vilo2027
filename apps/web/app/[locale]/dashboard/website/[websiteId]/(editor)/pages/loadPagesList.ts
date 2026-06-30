@@ -65,6 +65,46 @@ async function ensureRoomDetailPage(
   });
 }
 
+/**
+ * Ensure the website has its `search_results` system template (THEME_CONTRACT.md
+ * Class 2). New sites get it from the standard page set on create; this backfills
+ * it for sites made before the feature, so it appears in the Pages manager's
+ * System-templates group and is reachable at /search-results. Idempotent.
+ */
+async function ensureSearchResultsPage(
+  supabase: SupabaseClient,
+  websiteId: string,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("website_id", websiteId)
+    .eq("kind", "search_results")
+    .maybeSingle();
+  if (existing) return;
+
+  await supabase.from("website_pages").insert({
+    website_id: websiteId,
+    kind: "search_results",
+    slug: "search-results",
+    title: "Search results",
+    show_in_nav: false,
+    nav_order: 905,
+    draft_sections: [
+      {
+        id: crypto.randomUUID(),
+        type: "search_results",
+        enabled: true,
+        props: {
+          heading: "Available stays",
+          body: "Choose your dates to see what’s open — book direct for the best rate.",
+        },
+      },
+    ],
+    published_sections: [],
+  });
+}
+
 export type PageListItem = {
   id: string;
   kind: string;
@@ -124,6 +164,7 @@ export async function loadPagesList(
   if (!site) return null;
 
   await ensureRoomDetailPage(supabase, websiteId, site.theme?.preset ?? null);
+  await ensureSearchResultsPage(supabase, websiteId);
 
   const { data: rows } = await supabase
     .from("website_pages")

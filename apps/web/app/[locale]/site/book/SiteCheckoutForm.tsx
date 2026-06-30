@@ -39,6 +39,8 @@ export type CheckoutRoom = {
 export type CheckoutAddon = {
   id: string;
   name: string;
+  description?: string | null;
+  imageUrl?: string | null;
   pricingModel: PricingModel;
   unitPrice: number;
   currency: string;
@@ -152,6 +154,11 @@ export function SiteCheckoutForm({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [requests, setRequests] = useState("");
+  // Party manifest — details for the OTHER guests (the primary contact above is
+  // guest #1). Optional; only names that are filled are submitted.
+  const [party, setParty] = useState<
+    { name: string; email: string; phone: string }[]
+  >([]);
 
   const [addonQty, setAddonQty] = useState<Record<string, number>>({});
   const [coupon, setCoupon] = useState("");
@@ -313,6 +320,25 @@ export function SiteCheckoutForm({
     });
   }
 
+  // Party manifest: one slot per additional guest beyond the primary contact.
+  const partySlots = Math.max(0, guests - 1);
+  function updateParty(i: number, patch: Partial<(typeof party)[number]>) {
+    setParty((prev) => {
+      const next = [...prev];
+      while (next.length <= i) next.push({ name: "", email: "", phone: "" });
+      next[i] = { ...next[i], ...patch };
+      return next;
+    });
+  }
+  const additionalGuests = party
+    .slice(0, partySlots)
+    .map((g) => ({
+      name: g.name.trim(),
+      email: g.email.trim() || undefined,
+      phone: g.phone.trim() || undefined,
+    }))
+    .filter((g) => g.name.length > 0);
+
   const formInvalid =
     !canQuote ||
     // Don't let the guest pay until the stay is confirmed available AND priced —
@@ -365,6 +391,7 @@ export function SiteCheckoutForm({
           guest_email: email.trim(),
           guest_phone: phone.trim() || undefined,
           special_requests: requests.trim() || undefined,
+          additional_guests: additionalGuests,
           policy_acknowledged: true,
           return_path: returnPath,
           ts: tsToken,
@@ -561,72 +588,106 @@ export function SiteCheckoutForm({
               </div>
             </Group>
 
-            {/* Add-ons */}
+            {/* Add-ons — rich cards (image, description, price, qty stepper) */}
             {visibleAddons.length > 0 ? (
               <Group title="Add extras">
-                <div className="space-y-2">
+                <div className="grid gap-2.5 sm:grid-cols-2">
                   {visibleAddons.map((a) => {
                     const on = a.isRequired || (addonQty[a.id] ?? 0) > 0;
                     return (
                       <div
                         key={a.id}
                         style={{
-                          borderColor: "var(--site-line)",
+                          borderColor: on
+                            ? "var(--site-accent)"
+                            : "var(--site-line)",
                           borderRadius: "var(--site-radius)",
                         }}
-                        className="flex items-center justify-between gap-3 border p-3"
+                        className="flex flex-col border p-3 transition"
                       >
-                        <label className="flex flex-1 items-center gap-2.5">
-                          <input
-                            type="checkbox"
-                            checked={on}
-                            disabled={a.isRequired}
-                            onChange={() => toggleAddon(a)}
-                            className="h-4 w-4"
-                          />
-                          <span>
-                            <span
-                              style={{ color: "var(--site-ink)" }}
-                              className="text-sm font-medium"
-                            >
-                              {a.name}
-                              {a.isRequired ? (
+                        <div className="flex items-start gap-3">
+                          {a.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={a.imageUrl}
+                              alt=""
+                              style={{ borderRadius: "var(--site-radius)" }}
+                              className="h-14 w-14 shrink-0 object-cover"
+                            />
+                          ) : null}
+                          <label className="flex flex-1 cursor-pointer items-start gap-2.5">
+                            <input
+                              type="checkbox"
+                              checked={on}
+                              disabled={a.isRequired}
+                              onChange={() => toggleAddon(a)}
+                              className="mt-0.5 h-4 w-4"
+                            />
+                            <span className="min-w-0">
+                              <span
+                                style={{ color: "var(--site-ink)" }}
+                                className="block text-sm font-semibold"
+                              >
+                                {a.name}
+                                {a.isRequired ? (
+                                  <span
+                                    style={{ color: "var(--site-mute)" }}
+                                    className="ml-1.5 text-xs font-normal"
+                                  >
+                                    (included)
+                                  </span>
+                                ) : null}
+                              </span>
+                              {a.description ? (
                                 <span
                                   style={{ color: "var(--site-mute)" }}
-                                  className="ml-1.5 text-xs font-normal"
+                                  className="mt-0.5 line-clamp-2 block text-xs leading-snug"
                                 >
-                                  (included)
+                                  {a.description}
                                 </span>
                               ) : null}
+                              <span
+                                style={{ color: "var(--site-ink)" }}
+                                className="mt-1 block text-xs font-medium"
+                              >
+                                {money(a.unitPrice, a.currency)}{" "}
+                                <span
+                                  style={{ color: "var(--site-mute)" }}
+                                  className="font-normal"
+                                >
+                                  {PRICING_LABEL[a.pricingModel]}
+                                </span>
+                              </span>
                             </span>
+                          </label>
+                        </div>
+                        {on && !a.isRequired && a.allowCustom ? (
+                          <div className="mt-2 flex items-center justify-end gap-2">
                             <span
                               style={{ color: "var(--site-mute)" }}
-                              className="ml-2 text-xs"
+                              className="text-xs"
                             >
-                              {money(a.unitPrice, a.currency)}{" "}
-                              {PRICING_LABEL[a.pricingModel]}
+                              Qty
                             </span>
-                          </span>
-                        </label>
-                        {on && !a.isRequired && a.allowCustom ? (
-                          <input
-                            type="number"
-                            min={Math.max(1, a.minQuantity)}
-                            max={a.maxQuantity ?? undefined}
-                            value={addonQty[a.id] ?? a.minQuantity}
-                            onChange={(e) =>
-                              setAddonQty((p) => ({
-                                ...p,
-                                [a.id]: Math.max(
-                                  1,
-                                  Number(e.target.value) || 1,
-                                ),
-                              }))
-                            }
-                            style={fieldStyle}
-                            className="w-16 border px-2 py-1.5 text-sm outline-none"
-                            aria-label={`Quantity for ${a.name}`}
-                          />
+                            <input
+                              type="number"
+                              min={Math.max(1, a.minQuantity)}
+                              max={a.maxQuantity ?? undefined}
+                              value={addonQty[a.id] ?? a.minQuantity}
+                              onChange={(e) =>
+                                setAddonQty((p) => ({
+                                  ...p,
+                                  [a.id]: Math.max(
+                                    1,
+                                    Number(e.target.value) || 1,
+                                  ),
+                                }))
+                              }
+                              style={fieldStyle}
+                              className="w-16 border px-2 py-1.5 text-sm outline-none"
+                              aria-label={`Quantity for ${a.name}`}
+                            />
+                          </div>
                         ) : null}
                       </div>
                     );
@@ -677,6 +738,49 @@ export function SiteCheckoutForm({
                 </Labelled>
               </div>
             </Group>
+
+            {/* Party manifest — optional details for the other guests */}
+            {partySlots > 0 ? (
+              <Group title="Who else is coming? (optional)">
+                <div className="space-y-3">
+                  {Array.from({ length: partySlots }).map((_, i) => (
+                    <div key={i} className="grid gap-3 sm:grid-cols-3">
+                      <input
+                        value={party[i]?.name ?? ""}
+                        onChange={(e) =>
+                          updateParty(i, { name: e.target.value })
+                        }
+                        placeholder={`Guest ${i + 2} name`}
+                        style={fieldStyle}
+                        className={inputCls}
+                        aria-label={`Guest ${i + 2} name`}
+                      />
+                      <input
+                        type="email"
+                        value={party[i]?.email ?? ""}
+                        onChange={(e) =>
+                          updateParty(i, { email: e.target.value })
+                        }
+                        placeholder="Email (optional)"
+                        style={fieldStyle}
+                        className={inputCls}
+                        aria-label={`Guest ${i + 2} email`}
+                      />
+                      <input
+                        value={party[i]?.phone ?? ""}
+                        onChange={(e) =>
+                          updateParty(i, { phone: e.target.value })
+                        }
+                        placeholder="Phone (optional)"
+                        style={fieldStyle}
+                        className={inputCls}
+                        aria-label={`Guest ${i + 2} phone`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </Group>
+            ) : null}
           </div>
         </Card>
 
