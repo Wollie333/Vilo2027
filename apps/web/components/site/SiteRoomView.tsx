@@ -16,6 +16,8 @@ import { RoomBookingDock } from "./RoomBookingDock";
 import { RoomDockLayout } from "./RoomDockLayout";
 import { SafariShell } from "./safari/SafariShell";
 import { SafariSectionList, type SafariCtx } from "./sections/SafariSections";
+import { SabelaShell } from "./sabela/SabelaShell";
+import { SabelaSectionList, type SabelaCtx } from "./sabela/SabelaSections";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
@@ -130,6 +132,64 @@ export async function SiteRoomView({
             />
           </RoomDockLayout>
         </SafariShell>
+      </>
+    );
+  }
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "sabela") {
+    const sabelaCtx: SabelaCtx = {
+      brandName: ctx.brand.name,
+      contactEmail: ctx.brand.contactEmail,
+      contactPhone: ctx.brand.contactPhone,
+      homeHref:
+        ctx.nav.find((l) => /^home$/i.test(l.label))?.href || ctx.nav[0]?.href,
+      roomsHref: roomsHref || undefined,
+      contactHref: ctx.nav.find((l) => /contact/i.test(l.label))?.href,
+      reserveHref: headerBookHref || room.bookHref,
+    };
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        <SiteThemeRoot theme={ctx.theme}>
+          <SabelaShell
+            brandName={ctx.brand.name}
+            nav={buildSafariNav(ctx)}
+            bookHref={headerBookHref}
+            solidNav
+            previewPages={previewPages}
+            analytics={ctx.analytics}
+            interactive={!ctx.preview}
+          >
+            <RoomDockLayout
+              gallery={
+                <SabelaSectionList
+                  sections={gallerySections}
+                  data={data}
+                  asset={siteAsset}
+                  ctx={sabelaCtx}
+                />
+              }
+              dock={
+                <RoomBookingDock
+                  roomName={room.name}
+                  price={room.price}
+                  currency={room.currency}
+                  bookHref={room.bookHref}
+                  maxGuests={room.maxGuests}
+                  interactive
+                />
+              }
+            >
+              <SabelaSectionList
+                sections={contentSections}
+                data={data}
+                asset={siteAsset}
+                ctx={sabelaCtx}
+                interactive
+              />
+            </RoomDockLayout>
+          </SabelaShell>
+        </SiteThemeRoot>
       </>
     );
   }

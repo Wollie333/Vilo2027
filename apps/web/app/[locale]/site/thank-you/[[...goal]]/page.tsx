@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { SafariShell } from "@/components/site/safari/SafariShell";
 import { SafariThankYouContent } from "@/components/site/safari/pages/SafariThankYouContent";
+import { SabelaShell } from "@/components/site/sabela/SabelaShell";
+import { SabelaThankYouContent } from "@/components/site/sabela/SabelaThankYouContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import {
   SectionShell,
@@ -159,6 +161,40 @@ export default async function SiteFormThankYouPage({
           roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
         />
       </SafariShell>
+    );
+  }
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "sabela") {
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
+    const bookHref =
+      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <SabelaShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          bookHref={bookHref}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
+          <SabelaThankYouContent
+            state="form"
+            firstName={firstName}
+            eyebrow={goalCopy.eyebrow}
+            headingText={heading}
+            message={message}
+            homeHref={
+              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+              navLinks[0]?.href
+            }
+            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
+            roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
+          />
+        </SabelaShell>
+      </SiteThemeRoot>
     );
   }
 

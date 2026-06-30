@@ -18,6 +18,7 @@ import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
 import { PageHeadCode } from "./PageHeadCode";
 import { SafariSiteView } from "./safari/SafariSiteView";
+import { SabelaSiteView } from "./sabela/SabelaSiteView";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
@@ -138,6 +139,34 @@ export async function SitePageView({
             layer (its --accent derives from it); Safari keeps its own bg/ink. */}
         <SiteThemeRoot theme={ctx.theme}>
           <SafariSiteView
+            kind={result.page.kind}
+            pageTitle={result.page.title ?? undefined}
+            sections={result.sections}
+            data={result.data}
+            asset={siteAsset}
+            brandName={ctx.brand.name}
+            contactEmail={ctx.brand.contactEmail}
+            contactPhone={ctx.brand.contactPhone}
+            nav={buildSafariNav(ctx, currentPageKey)}
+            bookHref={headerBookHref}
+            previewPages={previewPages}
+            analytics={ctx.analytics}
+            interactive={!ctx.preview}
+            websiteId={ctx.websiteId}
+          />
+        </SiteThemeRoot>
+      </>
+    );
+  }
+  if (activeThemeSlug === "sabela") {
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        {/* Wrap in SiteThemeRoot so the host's --site-* reach the Sabela layer
+            (which declares the same tokens under .wielo-sabela). */}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SabelaSiteView
             kind={result.page.kind}
             pageTitle={result.page.title ?? undefined}
             sections={result.sections}

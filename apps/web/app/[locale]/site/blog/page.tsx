@@ -3,11 +3,16 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SabelaShell } from "@/components/site/sabela/SabelaShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import {
   SafariSectionList,
   type SafariCtx,
 } from "@/components/site/sections/SafariSections";
+import {
+  SabelaSectionList,
+  type SabelaCtx,
+} from "@/components/site/sabela/SabelaSections";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -108,6 +113,48 @@ export default async function SiteBlogIndexPage({
           ctx={safariCtx}
         />
       </SafariShell>
+    );
+  }
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "sabela") {
+    const result = await loadSitePage(ctx, ["blog"]);
+    const sections = result?.sections ?? [];
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
+    const roomsHref =
+      navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#rooms";
+    const bookHref =
+      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+    const sabelaCtx: SabelaCtx = {
+      brandName: ctx.brand.name,
+      contactEmail: ctx.brand.contactEmail,
+      contactPhone: ctx.brand.contactPhone,
+      homeHref:
+        navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+        navLinks[0]?.href,
+      roomsHref,
+      aboutHref: navLinks.find((l) => /about|story/i.test(l.label))?.href,
+      contactHref: navLinks.find((l) => /contact/i.test(l.label))?.href,
+      reserveHref: bookHref || roomsHref,
+    };
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <SabelaShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          bookHref={bookHref}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          <SabelaSectionList
+            sections={sections}
+            data={result?.data}
+            asset={siteAsset}
+            ctx={sabelaCtx}
+          />
+        </SabelaShell>
+      </SiteThemeRoot>
     );
   }
 

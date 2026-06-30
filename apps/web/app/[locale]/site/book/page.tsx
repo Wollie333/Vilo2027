@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SabelaShell } from "@/components/site/sabela/SabelaShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import { SafariBookingContent } from "@/components/site/safari/pages/SafariBookingContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
@@ -96,6 +97,35 @@ export default async function SiteBookPage({
       >
         <SafariBookingContent />
       </SafariShell>
+    );
+  }
+  // Theme-picker preview of the Sabela checkout chrome (no live booking context).
+  if (ctx.previewThemeSlug === "sabela") {
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <SabelaShell
+          brandName={ctx.brand.name}
+          nav={buildSafariNav(ctx)}
+          bookHref={
+            ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+          }
+          solidNav
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          <section className="section" data-section="intro">
+            <div className="wrap wrap-narrow" style={{ textAlign: "center" }}>
+              <span className="eyebrow center no-rule">Checkout</span>
+              <h1 style={{ marginTop: 14 }}>Complete your booking</h1>
+              <p className="muted" style={{ marginTop: 16 }}>
+                You are almost there. On your live site this is the secure
+                checkout, with your rooms, add-ons and payment options.
+              </p>
+            </div>
+          </section>
+        </SabelaShell>
+      </SiteThemeRoot>
     );
   }
 
@@ -307,6 +337,28 @@ export default async function SiteBookPage({
       >
         {checkout}
       </SafariShell>
+    );
+  }
+
+  // The real Sabela site renders the same live checkout, themed by the Sabela
+  // shell (the form reads --site-* tokens, declared under .wielo-sabela).
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "sabela") {
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <SabelaShell
+          brandName={ctx.brand.name}
+          nav={buildSafariNav(ctx)}
+          bookHref={
+            ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+          }
+          solidNav
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          {checkout}
+        </SabelaShell>
+      </SiteThemeRoot>
     );
   }
 

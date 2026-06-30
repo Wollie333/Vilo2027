@@ -6,8 +6,10 @@ import { JsonLd } from "@/components/site/JsonLd";
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { PageHeadCode } from "@/components/site/PageHeadCode";
 import { SafariShell } from "@/components/site/safari/SafariShell";
+import { SabelaShell } from "@/components/site/sabela/SabelaShell";
 import { buildSafariNav } from "@/lib/site/safariNav";
 import { SafariArticleContent } from "@/components/site/safari/pages/SafariArticleContent";
+import { SabelaArticleContent } from "@/components/site/sabela/SabelaArticleContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -120,6 +122,42 @@ export default async function SiteBlogPostPage({
           }}
         />
       </SafariShell>
+    );
+  }
+
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "sabela") {
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <SabelaShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          {marketing}
+          <SabelaArticleContent
+            post={{
+              title: post.title,
+              bodyHtml: post.bodyHtml,
+              coverUrl: post.coverUrl,
+              date: post.date,
+              authorName: post.authorName,
+              excerpt: post.excerpt,
+            }}
+            links={{
+              home:
+                navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+                navLinks[0]?.href,
+              journal: navLinks.find((l) => /journal|blog/i.test(l.label))
+                ?.href,
+              rooms: navLinks.find((l) => /suite|room/i.test(l.label))?.href,
+            }}
+          />
+        </SabelaShell>
+      </SiteThemeRoot>
     );
   }
 
