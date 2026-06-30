@@ -10,6 +10,7 @@ import {
   type RoomDetail,
   type RoomPolicies,
   type RateTableData,
+  type SpecialsPreviewData,
   type SiteAssetResolver,
   type SiteData,
 } from "@/lib/site/types";
@@ -1139,6 +1140,103 @@ export function OceansViewPricing({ props }: { props: P<"pricing"> }) {
   );
 }
 
+/* ── SPECIALS ───────────────────────────────────────────────────────── */
+const STOCK_SPECIALS = [
+  {
+    badge: "Stay 4, pay 3",
+    left: "4 rooms left",
+    title: "The long weekend",
+    desc: "Book four nights or more on a single stay and the fourth is on the house — any room, any season.",
+    now: "R11,700",
+    was: "R15,600",
+    save: "1 night free",
+    img: IMG.room1,
+  },
+  {
+    badge: "Sun–Thu",
+    left: "Any room",
+    title: "Midweek by the sea",
+    desc: "Arrive Sunday to Thursday and take 15% off the nightly rate, with a slow checkout until 2pm.",
+    now: "R5,780",
+    was: "R6,800",
+    save: "Save 15%",
+    img: IMG.room2,
+  },
+  {
+    badge: "Last minute",
+    left: "2 dates left",
+    title: "Within-7-days rate",
+    desc: "Plans came together late? Take 20% off any available room for arrivals inside the next week.",
+    now: "R10,800",
+    was: "R13,500",
+    save: "Save 20%",
+    img: IMG.room3,
+  },
+];
+
+export function OceansViewSpecials({ data }: { data?: SpecialsPreviewData }) {
+  const real = data?.specials ?? [];
+  const cards = real.length
+    ? real.map((s) => {
+        const now = rand(s.price, s.currency);
+        const was = s.wasPrice != null ? rand(s.wasPrice, s.currency) : "";
+        const save =
+          s.savingsPct != null
+            ? `Save ${s.savingsPct}%`
+            : s.savingsAmount != null
+              ? `Save ${rand(s.savingsAmount, s.currency)}`
+              : "";
+        return {
+          badge: s.badge || "Special",
+          left:
+            s.remaining != null && s.remaining > 0 ? `${s.remaining} left` : "",
+          title: s.title,
+          desc: s.description || "",
+          now: now + (s.priceMode === "per_night" ? " /night" : ""),
+          was,
+          save,
+          img: s.imageUrl || IMG.room1,
+          href: s.bookHref,
+        };
+      })
+    : STOCK_SPECIALS.map((s) => ({ ...s, href: "#book" }));
+
+  return (
+    <section
+      className="section"
+      data-section="specials_preview"
+      data-live="true"
+    >
+      <div className="wrap">
+        <div className="spx">
+          {cards.map((s, i) => (
+            <article key={s.title + i} className="spcard">
+              <div className="spi">
+                {s.badge ? <span className="sp-badge">{s.badge}</span> : null}
+                {s.left ? <span className="sp-left">{s.left}</span> : null}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={s.img} alt={s.title} />
+              </div>
+              <div className="spb">
+                <h3>{s.title}</h3>
+                {s.desc ? <p className="spd">{s.desc}</p> : null}
+                <div className="sp-px">
+                  {s.now ? <span className="sp-now">{s.now}</span> : null}
+                  {s.was ? <span className="sp-was">{s.was}</span> : null}
+                  {s.save ? <span className="sp-save">{s.save}</span> : null}
+                </div>
+                <a href={s.href} className="btn btn-primary btn-block">
+                  <span>Book this offer</span>
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ── BLOG PREVIEW ───────────────────────────────────────────────────── */
 export function OceansViewBlogPreview({
   props,
@@ -1863,6 +1961,12 @@ export function renderOceansViewSection(
         <OceansViewBlogPreview
           props={section.props}
           data={dataFor(data, section.id, "blog_preview")}
+        />
+      );
+    case "specials_preview":
+      return (
+        <OceansViewSpecials
+          data={dataFor(data, section.id, "specials_preview")}
         />
       );
     case "room_gallery":
