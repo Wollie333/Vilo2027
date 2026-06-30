@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-30 (#2) — Safari is the sole theme + live-verified end-to-end
+
+Founder: make Safari 100% working before adding more themes, and remove every
+other theme so only Safari remains.
+
+- **Safari = sole platform theme.** Migration `20260630120000_keep_only_safari_theme`
+  deletes all non-safari `site_themes` rows and makes Safari the active default
+  (applied to linked DB). Purged ~1540 lines of dead theme builders from
+  `lib/website/themeSections.ts` (Aria/Classic/Modern/Coastal/Warm/Minimal/
+  Nightfall) + their registry entries; `ACTIVE_THEME_SLUGS = ['safari']`.
+- **Deferred checkout polish completed:** rich add-on cards (photo/description/
+  qty stepper), party manifest (additional guests → `additional_guests`), and a
+  `search_results` page backfill for existing sites (`ensureSearchResultsPage`).
+  Fixed a real bug: the `addons_preview` loader queried the pre-R2 `listing_addons`
+  → corrected to `property_addons`/`property_id`.
+- **Live-verified** with a host fixture (`scripts/seed-test-site.mjs` +
+  `scripts/seed-safari-qa.mjs`): all 8 Safari marketing pages render and appear in
+  the nav; specials cards, search form, room detail, and the checkout (rich
+  add-ons + party manifest + the theme-scoped `SiteThemeModal` terms in Safari's
+  own styling) confirmed via HTTP 200 + screenshots. tsc + lint + 133 vitest green;
+  the fixture is left in place for founder testing (`host@vilotest.com`).
+
 ## 2026-06-30 — Website CMS: standardised theme foundation + booking-site features
 
 Drove the Website CMS toward a premium, standardised accommodation-site builder so

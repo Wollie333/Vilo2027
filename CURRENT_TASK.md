@@ -2,7 +2,24 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-30 — WEBSITE CMS: standardised theme foundation + booking-site features)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-30 #2 — SAFARI = SOLE THEME + LIVE-VERIFIED 100%)
+
+**Founder: "make Safari 100% working before adding more themes" + "remove the other themes completely — only Safari."** Both done.
+
+**✅ SAFARI IS THE SOLE PLATFORM THEME (commit `011da221`):** migration `20260630120000_keep_only_safari_theme` deletes all non-safari `site_themes` rows + makes Safari the active default (applied to linked DB). Removed ~1540 lines of dead theme code from `lib/website/themeSections.ts` (Aria/Classic/Modern/Coastal/Warm/Minimal/Nightfall builders + their preset/template/room-detail registry entries); `ACTIVE_THEME_SLUGS = ['safari']`. tsc + lint + 133 vitest green.
+
+**✅ LIVE-VERIFIED end-to-end (finally got a host fixture):** ran `scripts/seed-test-site.mjs` (host `host@vilotest.com` / `ViloTest123!`, "Olive Grove Guesthouse", 1 property + 3 rooms + reviews) + new `scripts/seed-safari-qa.mjs` (re-points the site to Safari with the FULL standard page set + 2 specials + 3 add-ons). Drove a FRESH dev server (had to clear the stale `.next` vendor-chunks gremlin first — stop :3000 server, `rm -rf apps/web/.next`, `preview_start web`). **Confirmed (HTTP 200 + Safari layer + screenshots):**
+- All 8 marketing pages render in Safari + ALL in the nav (Home·About·Suites·Contact·Journal·**Specials·Experiences·Gallery**).
+- **Specials** page → auto-pulled specials cards (Safari-styled intro band). **Search-results** → live search form. **Room detail** → 200.
+- **Checkout** (Safari): rich **add-on cards** (photo/desc/price/qty — Breakfast hamper / game drive / transfer), **party manifest** ("Who else is coming? · Guest 2…"), payment methods, and the **themed terms modal** (`SiteThemeModal` → "Moderate cancellation" in Safari cream + ochre, NOT app styling — the key proof the modal inherits `--site-*`).
+
+**▶ TEST FIXTURE LEFT IN PLACE (usable):** the founder can log in at `host@vilotest.com` / `ViloTest123!` and view the live Safari site at `http://localhost:3000/en/site?site=vilotest` (or its subdomain `vilotest`). Re-run `node --env-file=.env.local scripts/seed-safari-qa.mjs` from `apps/web` to refresh. To remove the fixture later: delete by the `0b…` UUID namespace.
+
+**▶▶ NEXT:** convert the founder's OTHER pre-designed themes onto this standard foundation (now proven repeatable) — needs the design files (`*.html`+`*.css`). Deferred-but-minor: auto-add new standard pages to a theme's nav menu on seed (currently the menu auto-derives from show_in_nav pages, which already works — verified all 8 show).
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-30 — WEBSITE CMS: standardised theme foundation + booking-site features)
 
 **Founder directive: make the Website CMS "super easy and strategically effective" — a premium accommodation site builder, on a STANDARDISED theme foundation so the founder's already-designed themes convert fast. Worked an 8-slice plan in logical order; every slice tsc+lint+vitest clean, full `pnpm build` PASSES, 143 vitest green, each pushed to prod (`main`).**
 
