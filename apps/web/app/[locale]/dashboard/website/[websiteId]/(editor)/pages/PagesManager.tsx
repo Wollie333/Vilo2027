@@ -54,6 +54,17 @@ export type ManagedPage = {
   thumbUrl: string | null;
 };
 
+// System templates (THEME_CONTRACT.md Class 2): auto-driven, edit-only, never in
+// nav, never deletable — they're load-bearing for the booking flow. Everything
+// else is a normal "Site page" the host fully controls.
+const SYSTEM_KINDS = new Set([
+  "room_detail",
+  "checkout",
+  "thank-you",
+  "search_results",
+]);
+const isSystemPage = (p: ManagedPage) => SYSTEM_KINDS.has(p.kind);
+
 // Pages mockup grid: Page · Type · Status · Sections · Actions.
 const GRID = "minmax(0,1fr) 120px 110px 120px 96px";
 
@@ -79,13 +90,22 @@ export function PagesManager({
     if (p.kind === "home") return t("pageHome");
     if (p.kind === "about") return t("pageAbout");
     if (p.kind === "room_detail") return t("pageRoomDetail");
+    if (p.kind === "checkout") return t("pageCheckout");
+    if (p.kind === "thank-you") return t("pageThankYou");
+    if (p.kind === "search_results") return t("pageSearchResults");
     return p.title || p.slug;
   }
   function pageType(p: ManagedPage) {
     if (p.kind === "home") return t("pageTypeLanding");
     if (p.kind === "room_detail") return t("pageTypeRoomTemplate");
+    if (p.kind === "checkout") return t("pageTypeCheckout");
+    if (p.kind === "thank-you") return t("pageTypeThankYou");
+    if (p.kind === "search_results") return t("pageTypeSearchResults");
     return t("pageTypeStandard");
   }
+
+  const sitePages = pages.filter((p) => !isSystemPage(p));
+  const systemPages = pages.filter(isSystemPage);
 
   function toggleNav(p: ManagedPage) {
     const next = pages.map((x) =>
@@ -113,6 +133,83 @@ export function PagesManager({
 
   const deleting = deleteId ? pages.find((p) => p.id === deleteId) : null;
 
+  function renderTable(
+    heading: string,
+    list: ManagedPage[],
+    systemSection = false,
+  ) {
+    return (
+      <section
+        style={{
+          border: "1px solid var(--line)",
+          borderRadius: 16,
+          background: "#fff",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          className="flex items-center gap-2 px-4 pb-1 pt-3.5"
+          style={{ color: "var(--ink)" }}
+        >
+          <span className="font-display text-[14px] font-bold">{heading}</span>
+          <span className="tag">{list.length}</span>
+        </div>
+        <div
+          className="ptr"
+          style={{
+            gridTemplateColumns: GRID,
+            cursor: "default",
+            paddingTop: 11,
+            paddingBottom: 11,
+            background: "#FAFCFB",
+            borderBottom: "1px solid var(--line)",
+            borderTop: "1px solid var(--line)",
+          }}
+        >
+          <div className="smallcaps">{t("pagesColPage")}</div>
+          <div className="smallcaps">{t("pagesColType")}</div>
+          <div className="smallcaps">{t("pagesColStatus")}</div>
+          <div className="smallcaps">{t("pagesColSections")}</div>
+          <div className="smallcaps" style={{ textAlign: "right" }}>
+            {t("pagesColActions")}
+          </div>
+        </div>
+
+        <div style={{ padding: 8 }}>
+          {list.map((p) => (
+            <Fragment key={p.id}>
+              <PageRow
+                websiteId={websiteId}
+                subdomain={subdomain}
+                page={p}
+                title={pageTitle(p)}
+                type={pageType(p)}
+                system={systemSection}
+                onDuplicate={() => router.refresh()}
+                onToggleNav={() => toggleNav(p)}
+                onDelete={() => setDeleteId(p.id)}
+              />
+              {/* The room-detail template renders for every room; the host can
+                  also customize each room — so the rooms nest beneath it, each
+                  opening the builder scoped to that room. */}
+              {p.kind === "room_detail"
+                ? rooms.map((room) => (
+                    <RoomChildRow
+                      key={room.roomId}
+                      websiteId={websiteId}
+                      subdomain={subdomain}
+                      pageId={p.id}
+                      room={room}
+                    />
+                  ))
+                : null}
+            </Fragment>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <div className="wielo-cms mx-auto max-w-[1180px]">
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -137,65 +234,16 @@ export function PagesManager({
         </div>
       </div>
 
-      <section
-        style={{
-          border: "1px solid var(--line)",
-          borderRadius: 16,
-          background: "#fff",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          className="ptr"
-          style={{
-            gridTemplateColumns: GRID,
-            cursor: "default",
-            paddingTop: 11,
-            paddingBottom: 11,
-            background: "#FAFCFB",
-            borderBottom: "1px solid var(--line)",
-          }}
-        >
-          <div className="smallcaps">{t("pagesColPage")}</div>
-          <div className="smallcaps">{t("pagesColType")}</div>
-          <div className="smallcaps">{t("pagesColStatus")}</div>
-          <div className="smallcaps">{t("pagesColSections")}</div>
-          <div className="smallcaps" style={{ textAlign: "right" }}>
-            {t("pagesColActions")}
-          </div>
-        </div>
+      {renderTable(t("pagesSiteHeading"), sitePages)}
 
-        <div style={{ padding: 8 }}>
-          {pages.map((p) => (
-            <Fragment key={p.id}>
-              <PageRow
-                websiteId={websiteId}
-                subdomain={subdomain}
-                page={p}
-                title={pageTitle(p)}
-                type={pageType(p)}
-                onDuplicate={() => router.refresh()}
-                onToggleNav={() => toggleNav(p)}
-                onDelete={() => setDeleteId(p.id)}
-              />
-              {/* The room-detail template renders for every room; the host can
-                  also customize each room — so the rooms nest beneath it, each
-                  opening the builder scoped to that room. */}
-              {p.kind === "room_detail"
-                ? rooms.map((room) => (
-                    <RoomChildRow
-                      key={room.roomId}
-                      websiteId={websiteId}
-                      subdomain={subdomain}
-                      pageId={p.id}
-                      room={room}
-                    />
-                  ))
-                : null}
-            </Fragment>
-          ))}
+      {systemPages.length > 0 ? (
+        <div className="mt-6">
+          {renderTable(t("pagesSystemHeading"), systemPages, true)}
+          <p className="mt-2 text-[12px]" style={{ color: "var(--mute)" }}>
+            {t("pagesSystemNote")}
+          </p>
         </div>
-      </section>
+      ) : null}
 
       <AddPageModal
         open={addOpen}
@@ -303,6 +351,7 @@ function PageRow({
   page,
   title,
   type,
+  system,
   onDuplicate,
   onToggleNav,
   onDelete,
@@ -312,6 +361,8 @@ function PageRow({
   page: ManagedPage;
   title: string;
   type: string;
+  /** Rendered in the System-templates section → edit-only (no dup/nav/delete). */
+  system: boolean;
   onDuplicate: () => void;
   onToggleNav: () => void;
   onDelete: () => void;
@@ -320,9 +371,12 @@ function PageRow({
   const router = useRouter();
   const [dup, startDup] = useTransition();
   const live = page.publishedCount > 0;
-  const system = page.kind === "room_detail";
   const path =
-    page.kind === "home" ? "/" : system ? "/rooms/…" : `/${page.slug}`;
+    page.kind === "home"
+      ? "/"
+      : page.kind === "room_detail"
+        ? "/rooms/…"
+        : `/${page.slug}`;
 
   function onDuplicateClick() {
     startDup(async () => {
@@ -373,8 +427,12 @@ function PageRow({
         </div>
       </div>
 
-      <div className="text-[12.5px]" style={{ color: "var(--mute)" }}>
+      <div
+        className="flex items-center gap-1.5 text-[12.5px]"
+        style={{ color: "var(--mute)" }}
+      >
         {type}
+        {system ? <span className="tag">{t("pageSystemBadge")}</span> : null}
       </div>
 
       <div>
