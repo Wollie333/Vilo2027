@@ -39,6 +39,18 @@ import {
 } from "@/lib/website/forms.schema";
 import type { SiteThemeConfig } from "./themes";
 import { resolveThemeBase, resolveThemePageTemplates } from "./themes.server";
+import { mergeStandardPages } from "@/lib/website/standardPages";
+
+/**
+ * The full canonical page set a theme presents in PREVIEW: the theme's own
+ * designed templates, plus default spines for any required/system page it omits
+ * (specials/experiences/gallery/search-results). So the gallery preview can show
+ * AND render every associated page design, not just the theme's hand-authored ones.
+ */
+async function resolveThemePreviewPages(slug: string, siteName: string) {
+  const templates = await resolveThemePageTemplates(slug);
+  return mergeStandardPages(templates, siteName);
+}
 import type {
   BlogCard,
   BookableProperty,
@@ -312,7 +324,10 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
   // the host's existing pages. Live booking data (propertyIds/rooms) stays the
   // host's, so the preview shows real rooms in the theme design.
   if (previewThemeSlug) {
-    const templates = await resolveThemePageTemplates(previewThemeSlug);
+    const templates = await resolveThemePreviewPages(
+      previewThemeSlug,
+      brand.name,
+    );
     const navTemplates = templates
       .filter((t) => t.show_in_nav)
       .sort((a, b) => a.nav_order - b.nav_order);
@@ -534,7 +549,10 @@ const loadSitePageCached = cache(async function loadSitePageInner(
   // actual theme design. Falls through to the host's pages for any kind the theme
   // doesn't ship a template for (e.g. custom pages).
   if (ctx.previewThemeSlug) {
-    const templates = await resolveThemePageTemplates(ctx.previewThemeSlug);
+    const templates = await resolveThemePreviewPages(
+      ctx.previewThemeSlug,
+      ctx.brand.name,
+    );
     const tpl = templates.find((t) =>
       isHome ? t.kind === "home" : t.slug === slug || t.kind === slug,
     );
@@ -2141,10 +2159,26 @@ export type SitePreviewPage = { label: string; href: string };
 export async function buildSitePreviewPages(
   ctx: SiteContext,
 ): Promise<SitePreviewPage[]> {
-  const pages: SitePreviewPage[] = ctx.nav.map((n) => ({
-    label: n.label,
-    href: n.href,
-  }));
+  // When previewing a theme, list the theme's FULL canonical page set (its own
+  // designed pages + default spines for any it omits — specials/experiences/
+  // gallery/search-results) so every associated page design is reachable. On a
+  // host's own site, list its real nav pages.
+  let pages: SitePreviewPage[];
+  if (ctx.previewThemeSlug) {
+    const templates = await resolveThemePreviewPages(
+      ctx.previewThemeSlug,
+      ctx.brand.name,
+    );
+    pages = templates
+      .filter((t) => t.kind !== "checkout" && t.kind !== "thank-you")
+      .sort((a, b) => (a.nav_order ?? 0) - (b.nav_order ?? 0))
+      .map((t) => ({
+        label: t.nav_label?.trim() || t.title?.trim() || t.slug,
+        href: pageHref(t.kind, t.slug),
+      }));
+  } else {
+    pages = ctx.nav.map((n) => ({ label: n.label, href: n.href }));
+  }
   const [rooms, posts] = await Promise.all([
     roomMenuLinks(ctx),
     loadSiteBlogIndex(ctx).catch(() => []),
