@@ -41,6 +41,7 @@ import {
 } from "../sections/RatesBlocks";
 import { OceansViewContactForm } from "./OceansViewContactForm";
 import { OceansViewBookingSearch } from "./OceansViewBookingSearch";
+import { OceansViewSearchResults } from "./OceansViewSearchResults";
 
 /**
  * The Oceans View ("oceansview" theme) bands — the SAME flat sections the
@@ -2021,6 +2022,13 @@ export function renderOceansViewSection(
       return (
         <OceansViewBookingSearch
           data={dataFor(data, section.id, "booking_search")}
+          interactive={interactive}
+        />
+      );
+    case "search_results":
+      return (
+        <OceansViewSearchResults
+          data={dataFor(data, section.id, "search_results")}
           interactive={interactive}
         />
       );
