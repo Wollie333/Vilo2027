@@ -60,6 +60,7 @@ import {
 } from "./sections/Elements";
 import { ColumnsSection, FlexSection } from "./sections/ColumnsSection";
 import { renderSafariSection, type SafariCtx } from "./sections/SafariSections";
+import { renderSabelaSection } from "./sabela/SabelaSections";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -180,6 +181,17 @@ function SectionSwitch({
       interactive,
     });
     if (safari !== undefined) return safari;
+  }
+  if (themeVariant === "sabela") {
+    // SabelaCtx is structurally identical to SafariCtx — reuse the same ctx.
+    const sabela = renderSabelaSection(section, {
+      data,
+      asset,
+      ctx: safariCtx,
+      websiteId,
+      interactive,
+    });
+    if (sabela !== undefined) return sabela;
   }
   switch (section.type) {
     case "hero":

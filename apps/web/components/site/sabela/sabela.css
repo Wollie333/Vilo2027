@@ -2408,3 +2408,161 @@
   background: var(--site-surface, #1c1913);
   color: var(--site-ink, #f1eadb);
 }
+
+/* ---------- FAQ (accordion) — ported from the design's Contact page ---------- */
+.wielo-sabela .faq {
+  margin-top: 28px;
+  border-top: 1px solid var(--site-line, #2b2618);
+}
+.wielo-sabela .faq-item {
+  border-bottom: 1px solid var(--site-line, #2b2618);
+}
+.wielo-sabela .faq-item summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0;
+  font-family: var(--site-font-heading, "Cormorant Garamond", serif);
+  font-weight: var(--site-weight-heading, 600);
+  font-size: 1.25rem;
+  color: var(--site-ink, #f1eadb);
+}
+.wielo-sabela .faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.wielo-sabela .faq-ic {
+  width: 18px;
+  height: 18px;
+  position: relative;
+  flex-shrink: 0;
+}
+.wielo-sabela .faq-ic::before,
+.wielo-sabela .faq-ic::after {
+  content: "";
+  position: absolute;
+  background: var(--site-accent, #c9a24a);
+  border-radius: 2px;
+  transition: transform 0.2s;
+}
+.wielo-sabela .faq-ic::before {
+  top: 8px;
+  left: 0;
+  width: 18px;
+  height: 2px;
+}
+.wielo-sabela .faq-ic::after {
+  top: 0;
+  left: 8px;
+  width: 2px;
+  height: 18px;
+}
+.wielo-sabela .faq-item[open] .faq-ic::after {
+  transform: scaleY(0);
+}
+.wielo-sabela .faq-a {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  padding: 0 0 22px;
+  max-width: 62ch;
+}
+
+/* ---------- Amenities (grid + inline) — ported from the design's Suite page ---------- */
+.wielo-sabela .amenities {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+  margin-top: 24px;
+}
+.wielo-sabela .amenities.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+.wielo-sabela .amenity {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 15.5px;
+  color: var(--site-ink, #f1eadb);
+}
+.wielo-sabela .amenity i,
+.wielo-sabela .amenity svg {
+  color: var(--site-accent, #c9a24a);
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .wielo-sabela .amenities {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Room detail bands — ported from the design's Suite page ---------- */
+.wielo-sabela .rd-gallery {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  height: clamp(340px, 46vw, 540px);
+  margin-top: 18px;
+}
+.wielo-sabela .rd-gallery .g {
+  overflow: hidden;
+  border-radius: var(--site-radius, 4px);
+}
+.wielo-sabela .rd-gallery .g:first-child {
+  grid-row: span 2;
+}
+.wielo-sabela .rd-gallery .g img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s;
+}
+.wielo-sabela .rd-gallery .g:hover img {
+  transform: scale(1.05);
+}
+.wielo-sabela .rd-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: clamp(32px, 4vw, 64px);
+  align-items: start;
+  margin-top: clamp(40px, 5vw, 60px);
+}
+.wielo-sabela .rd-sec {
+  padding: clamp(28px, 3vw, 40px) 0;
+  border-top: 1px solid var(--site-line, #2b2618);
+}
+.wielo-sabela .rd-sec h2 {
+  font-size: 1.7rem;
+  margin-bottom: 14px;
+}
+.wielo-sabela .rd-sec p {
+  color: var(--site-mute, #a99b7f);
+  font-size: 1.08rem;
+  line-height: 1.75;
+  max-width: 60ch;
+}
+@media (max-width: 1000px) {
+  .wielo-sabela .rd-grid {
+    grid-template-columns: 1fr;
+  }
+  .wielo-sabela .book-widget.sticky {
+    position: static;
+  }
+  .wielo-sabela .rd-gallery {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    height: auto;
+  }
+  .wielo-sabela .rd-gallery .g:first-child {
+    grid-column: span 2;
+    aspect-ratio: 16/10;
+  }
+  .wielo-sabela .rd-gallery .g {
+    aspect-ratio: 4/3;
+  }
+}
