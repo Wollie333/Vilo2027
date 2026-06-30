@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   geocodeByPlaceId,
+  geoConfigured,
   placesAutocomplete,
   reverseGeocode,
 } from "@/lib/geo/google";
@@ -32,6 +33,11 @@ export async function GET(req: Request) {
   }
   const { searchParams } = new URL(req.url);
   const op = searchParams.get("op");
+  // Diagnostic: is GOOGLE_MAPS_API_KEY present in this runtime? Returns only a
+  // boolean — never the key — so it's safe to hit in production.
+  if (op === "health") {
+    return NextResponse.json({ configured: geoConfigured() });
+  }
   try {
     if (op === "autocomplete") {
       const q = searchParams.get("q") ?? "";
