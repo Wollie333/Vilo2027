@@ -211,6 +211,30 @@ System pages are NOT shown in the website nav (`show_in_nav: false`) and surface
 the Page Manager's **"System templates"** group (edit-only, no delete); Class 1
 pages surface under **"Site pages"** (reorderable, nav-toggle, add/delete custom).
 
+## Shared layer additions (2026-06-30) — every theme inherits these
+
+These landed in the shared layers (schema + generic render + Safari band), so a
+new theme gets them for free; a bespoke theme's `render<T>Section` should dispatch
+them (or fall through to the generic fallback, which already handles them):
+
+- **`addons_preview` section** — auto-pulls the host's active add-ons (scoped to
+  the site's properties via `listing_addons`) as cards. The add-ons content
+  surface for marketing pages. Data: `loadAddonsPreview` → `AddonsPreviewData`.
+- **`search_results` section + system page** — a self-contained search form that
+  quotes every bookable property live (`/api/website-quote`) and lists matches.
+  Seeded as the `search_results` **system template** (Class 2). `booking_search`
+  links here on multi-property sites (`BookingFunnelData.searchHref`).
+- **`SiteThemeModal`** (`components/site/SiteThemeModal.tsx`) — THE way to render
+  a booking-flow modal (T&Cs, date picker, progress). It renders INLINE so it
+  inherits `--site-*` from `SiteThemeRoot`. **Never use the app's Radix
+  `PolicyDialog`/portal-to-`<body>` on a site** — it escapes the theme and renders
+  in the app's brand styling. The on-site checkout's terms modal is the reference.
+- **`mergeStandardPages`** (`lib/website/standardPages.ts`) — guarantees the
+  required page set. A theme's blueprint only needs the pages it wants to
+  art-direct; every required marketing page + the system templates it omits are
+  filled with a default spine that still renders in the theme's scoped CSS. **A new
+  theme therefore does NOT re-list the whole page set** — it overrides by `kind`.
+
 ## Rule of thumb when building
 
 Before adding a nav/header/menu/section capability, ask **"which layer?"**:

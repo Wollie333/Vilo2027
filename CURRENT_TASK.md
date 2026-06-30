@@ -2,7 +2,29 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-29 #6 — WIZARD RAIL matches the ProgressRail design)
+## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-30 — WEBSITE CMS: standardised theme foundation + booking-site features)
+
+**Founder directive: make the Website CMS "super easy and strategically effective" — a premium accommodation site builder, on a STANDARDISED theme foundation so the founder's already-designed themes convert fast. Worked an 8-slice plan in logical order; every slice tsc+lint+vitest clean, full `pnpm build` PASSES, 143 vitest green, each pushed to prod (`main`).**
+
+**Big reframe from a 3-subagent survey: MOST of what the founder described already existed** — `specials_preview`/`booking_search`/`availability_calendar`/`reviews`/`policies` sections, on-site checkout (add-ons + coupons + theme-scoped, shares `createBookingCore`/`priceBooking` with the app), page kinds for checkout/thank-you/room_detail. So the work was **seed/wire/standardise**, not build-from-zero. The authoritative page-set standard now lives in **`THEME_CONTRACT.md`** ("The canonical page set every theme MUST ship" + "Shared layer additions (2026-06-30)").
+
+**✅ SHIPPED (commits `13a21c4f`→`d6e9a142`, all pushed):**
+1. **Page-set standard + new kinds** (`13a21c4f`) — THEME_CONTRACT.md Class 1 (Home/Rooms/Specials/Experiences/Gallery/About/Contact; Blog optional) + Class 2 system templates (search_results/room_detail/checkout/thank-you). Migration `20260630000000` adds `experiences`/`gallery`/`search_results` to `website_pages.kind` (APPLIED to linked DB).
+2. **Standard page set guaranteed** (`b7179d83`) — `lib/website/standardPages.ts` `mergeStandardPages()`: a theme's own pages win by `kind`, any required page it omits is filled with a default spine (renders in the theme's scoped CSS). Wired into `seedWebsiteContent` + `applyThemeAction`; dropped the old home+about-only fallback. **So Safari/Aria/future themes all seed Specials/Experiences/Gallery without per-theme SQL.**
+3. **Add-ons website section** (`cddc8fb6`) — new `addons_preview` auto-section (pulls host add-ons via `listing_addons` scoped to the site's properties). The one missing auto-content surface.
+4. **Theme-scoped booking modal** (`0fa159e7`) — `components/site/SiteThemeModal.tsx` (renders INLINE so it inherits `--site-*`; the fix for "modals must look like the website, not the app"). Wired into checkout: themed T&Cs modal + payment explainer.
+5. **Search-results system template** (`e57ce7f9`) — new `search_results` section + seeded system page: a self-contained search form that quotes every bookable property live (`/api/website-quote`) and lists matches. `booking_search` now links here on multi-property sites (new `siteSearchHref`).
+6. **Page Manager two-category split** (`d6e9a142`) — "Site pages" vs "System templates" (checkout/thank-you/room_detail/search_results: edit-only, no delete, "Auto" badge).
+
+**✅ ACCENT-COLOUR ISSUE (founder's flagged "onboarding accent not applied") — VERIFIED NOT A CODE BUG.** Traced the full chain: wizard `paletteIndex`/`customAccent` → `resolvePaletteAccent` → stored `host_websites.theme.colors.accent` → `buildSiteVars` emits `--site-accent` → snapshot preserves it. **Locked with 7 unit tests** (`lib/site/palettes.test.ts`) proving choice→render. The prod DB was wiped (super-admin only) so the founder's report predates current code. **NOTE:** bespoke themes (Safari) only map `--site-accent`→`--accent` and keep their own deep/gold/green tones BY DESIGN, so an accent change is partial there — that may be the perceived "not applied". **Founder: re-test on a fresh site; if still wrong, send a screenshot.**
+
+**KEY FACTS:** the standardised theme foundation = **blueprint of existing sections + a scoped render layer** (Safari is the reference); `THEME_CONTRACT.md` is the SSOT (page set + chrome contract + conformance workflow + shared-section catalogue). New shared sections this session: `addons_preview`, `search_results` (both have generic + Safari-fallback renders). New shared pattern: `SiteThemeModal` for all booking modals (NEVER Radix-portal-to-body on a site). **⚠️ Could NOT browser-verify** the CMS flows live (needs a logged-in host + draft listing + bookable property; prod DB wiped) — verified via full `pnpm build` PASS + tsc + lint + 143 vitest. Stray untracked files still left alone: `apps/web/vsub.mjs`, `docs/features/WEBSITE_WIZARD_PLAN.md` (do NOT `git add -A`).
+
+**▶▶ NEXT (deliberately deferred polish — not blocking):** (a) checkout UX parity remnants — rich add-on cards (photo/desc/stepper), party manifest (additional guests); (b) lazily seed a `search_results` page for EXISTING sites (new sites get it via `mergeStandardPages`; existing ones don't until re-applied); (c) live QA pass once a host fixture exists; (d) convert the founder's other pre-designed themes using the now-standard foundation.
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-29 #6 — WIZARD RAIL matches the ProgressRail design)
 
 **Founder: my #5 left-rail was the wrong LOOK — sent a reference design (`C:\Users\Wollie\Downloads\Setup Flow (standalone).html`, a packed claude.ai artifact). Decoded it (gzip+base64 modules) and matched its `ProgressRail`. Kept step-by-step per founder ("each tab = one step, save → next; NOT one flowing scroll-spy form").**
 

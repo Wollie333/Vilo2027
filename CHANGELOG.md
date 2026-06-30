@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-06-30 — Website CMS: standardised theme foundation + booking-site features
+
+Drove the Website CMS toward a premium, standardised accommodation-site builder so
+the founder's pre-designed themes convert fast. A 3-subagent survey found most of
+the described capability already existed (booking funnel, on-site checkout with
+add-ons/coupons, data-driven sections), so the work was seed/wire/standardise. All
+slices tsc + lint clean, full `pnpm build` passes, **143 vitest green**, each pushed.
+
+- **Theme page-set standard** → `THEME_CONTRACT.md` ("The canonical page set every
+  theme MUST ship": Class 1 marketing pages — Home/Rooms/Specials/Experiences/
+  Gallery/About/Contact, Blog optional — + Class 2 system templates —
+  search_results/room_detail/checkout/thank-you). Migration `20260630000000` adds
+  `experiences`/`gallery`/`search_results` page kinds (applied to linked DB).
+- **`lib/website/standardPages.ts` `mergeStandardPages()`** — guarantees the required
+  page set on every theme: the theme's own pages win by `kind`; omitted required
+  pages get a default section spine that renders in the theme's scoped CSS. Wired
+  into `seedWebsiteContent` + `applyThemeAction` (replaces the home+about stub).
+- **`addons_preview` section** — auto-pulls the host's active add-ons (via
+  `listing_addons`, scoped to the site's properties) as cards. Generic + Safari
+  renders, builder palette/inspector, i18n. The missing auto-content surface.
+- **`SiteThemeModal`** — an INLINE modal that inherits `--site-*` from
+  `SiteThemeRoot`, so booking modals render in the website's theme (not the app's
+  brand styling — the Radix-portal-to-`<body>` problem). Wired into the on-site
+  checkout: themed booking-terms modal + a payment-method explainer.
+- **`search_results` system template** — a self-contained search form that quotes
+  every bookable property live (`/api/website-quote`) and lists the matches with
+  deep-links to checkout. Seeded as a Class-2 system page; `booking_search` links
+  here on multi-property sites (new `siteSearchHref` + `BookingFunnelData.searchHref`).
+- **Page Manager two-category split** — "Site pages" vs "System templates"
+  (checkout/thank-you/room_detail/search_results): edit-only, no rename/hide/delete,
+  "Auto" badge + explainer.
+- **Accent-colour issue (founder-flagged)** — traced the full wizard→render chain
+  and proved it correct; locked it with 7 unit tests (`lib/site/palettes.test.ts`).
+  Not a code bug (prod DB was wiped, so the report predates current code); bespoke
+  themes honour `--site-accent` partially by design. Re-test on a fresh site.
+
 ## 2026-06-29 — Blog-post editor canvas previews the ACTIVE theme
 
 Same treatment as the form canvas, for the blog single-post editor. The
