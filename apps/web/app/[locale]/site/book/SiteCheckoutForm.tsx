@@ -24,6 +24,7 @@ import {
 } from "@/components/site/TurnstileWidget";
 import { ThemedDateRange } from "@/components/site/ThemedDateRange";
 import { SiteLoadingOverlay } from "@/components/site/SiteLoadingOverlay";
+import { SiteThemeModal } from "@/components/site/SiteThemeModal";
 
 export type CheckoutRoom = {
   id: string;
@@ -159,6 +160,7 @@ export function SiteCheckoutForm({
     cardAvailable ? "paystack" : "eft",
   );
   const [ack, setAck] = useState(false);
+  const [policyOpen, setPolicyOpen] = useState(false);
   const [tsToken, setTsToken] = useState<string | null>(null);
   const [tsNonce, setTsNonce] = useState(0);
 
@@ -771,6 +773,15 @@ export function SiteCheckoutForm({
                     sub="Pay by manual EFT"
                   />
                 ) : null}
+                {/* Method explainer (mirrors the app's checkout) */}
+                <p
+                  style={{ color: "var(--site-mute)" }}
+                  className="px-1 text-xs"
+                >
+                  {method === "eft"
+                    ? "We’ll reserve your stay and email the bank details to complete your transfer."
+                    : "You’ll finish securely on the card-payment page, then return here."}
+                </p>
               </div>
             ) : (
               <p className="mt-5 text-sm text-red-600">
@@ -792,11 +803,19 @@ export function SiteCheckoutForm({
                     <strong style={{ color: "var(--site-ink)" }}>
                       {cancellation.title}.
                     </strong>{" "}
-                    {cancellation.note} I accept the booking policies.
+                    I accept the booking and cancellation policies.
                   </>
                 ) : (
                   "I accept the booking and cancellation policies."
-                )}
+                )}{" "}
+                <button
+                  type="button"
+                  onClick={() => setPolicyOpen(true)}
+                  style={{ color: "var(--site-accent)" }}
+                  className="font-semibold underline underline-offset-2"
+                >
+                  View terms
+                </button>
               </span>
             </label>
 
@@ -829,6 +848,40 @@ export function SiteCheckoutForm({
           </Card>
         </div>
       </div>
+
+      {/* Theme-scoped booking terms — a SiteThemeModal so it renders in THIS
+          site's theme (not the app's styling). */}
+      <SiteThemeModal
+        open={policyOpen}
+        onClose={() => setPolicyOpen(false)}
+        title={cancellation?.title ?? "Booking & cancellation terms"}
+        footer={
+          <button
+            type="button"
+            onClick={() => {
+              setAck(true);
+              setPolicyOpen(false);
+            }}
+            style={{
+              background: "var(--site-btn-primary-bg)",
+              color: "var(--site-btn-primary-color)",
+              border: "var(--site-btn-primary-border)",
+              borderRadius: "var(--site-btn-primary-radius)",
+            }}
+            className="inline-flex w-full items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+          >
+            Accept &amp; close
+          </button>
+        }
+      >
+        {cancellation?.note ? (
+          <p style={{ color: "var(--site-ink)" }}>{cancellation.note}</p>
+        ) : null}
+        <p style={{ color: "var(--site-mute)" }} className="mt-3">
+          By continuing you agree to the host’s booking and cancellation
+          policies. Your final price is confirmed before payment.
+        </p>
+      </SiteThemeModal>
     </SectionShell>
   );
 }
