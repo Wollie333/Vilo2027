@@ -174,6 +174,31 @@ export async function loadDefaultTheme(): Promise<ThemeBundle | null> {
 }
 
 /**
+ * Resolve a theme's designed page templates by slug — the demo composition the
+ * theme ships (home/about/rooms/contact/blog/...). Used by the theme-gallery
+ * full-site PREVIEW so "preview" shows the theme's actual design, not the host's
+ * own pages tinted with the theme. Returns [] if the catalogue is unavailable.
+ */
+export async function resolveThemePageTemplates(
+  slug: string,
+): Promise<ThemePageTemplate[]> {
+  try {
+    const sb = createAdminClient() as unknown as SupabaseClient;
+    const { data, error } = await sb
+      .from("site_themes")
+      .select("page_templates")
+      .eq("slug", slug)
+      .is("deleted_at", null)
+      .maybeSingle();
+    const row = data as { page_templates?: ThemePageTemplate[] | null } | null;
+    if (!error && Array.isArray(row?.page_templates)) return row.page_templates;
+  } catch {
+    // fall through
+  }
+  return [];
+}
+
+/**
  * Resolve a theme's visual base by slug — the authoritative source for what gets
  * stored on save (so we never trust a client-sent base). Falls back to the
  * built-in preset of the same slug when the catalogue is unavailable.

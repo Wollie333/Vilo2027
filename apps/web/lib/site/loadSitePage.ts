@@ -38,7 +38,7 @@ import {
   type FormType,
 } from "@/lib/website/forms.schema";
 import type { SiteThemeConfig } from "./themes";
-import { resolveThemeBase } from "./themes.server";
+import { resolveThemeBase, resolveThemePageTemplates } from "./themes.server";
 import type {
   BlogCard,
   BookableProperty,
@@ -307,6 +307,23 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
     publishedPropertyOverrides = null;
   }
 
+  // Theme-gallery preview: the nav reflects the PREVIEWED theme's own pages (its
+  // demo composition), so the preview's menu matches the pages being shown — not
+  // the host's existing pages. Live booking data (propertyIds/rooms) stays the
+  // host's, so the preview shows real rooms in the theme design.
+  if (previewThemeSlug) {
+    const templates = await resolveThemePageTemplates(previewThemeSlug);
+    const navTemplates = templates
+      .filter((t) => t.show_in_nav)
+      .sort((a, b) => a.nav_order - b.nav_order);
+    if (navTemplates.length > 0) {
+      nav = navTemplates.map((t) => ({
+        label: t.nav_label?.trim() || t.title?.trim() || t.slug,
+        href: pageHref(t.kind, t.slug),
+      }));
+    }
+  }
+
   const locale = site.business?.default_language || "en";
   // On-site booking links are relative to the site root. On a real tenant host
   // that's "" (e.g. /book); when the site is rendered via the app-domain
@@ -510,6 +527,33 @@ const loadSitePageCached = cache(async function loadSitePageInner(
 ): Promise<SitePageResult | null> {
   const sb = createAdminClient();
   const isHome = slug.length === 0;
+
+  // Theme-gallery full-site PREVIEW: when browsing a theme via `?theme=<slug>`,
+  // render that theme's OWN designed page templates (its demo composition) rather
+  // than the host's stored pages tinted with the theme — so "preview" shows the
+  // actual theme design. Falls through to the host's pages for any kind the theme
+  // doesn't ship a template for (e.g. custom pages).
+  if (ctx.previewThemeSlug) {
+    const templates = await resolveThemePageTemplates(ctx.previewThemeSlug);
+    const tpl = templates.find((t) =>
+      isHome ? t.kind === "home" : t.slug === slug || t.kind === slug,
+    );
+    if (tpl) {
+      const sections = sanitiseSectionsHtml(parseSectionsLoose(tpl.sections));
+      const data = await assembleSectionData(sb, ctx, sections);
+      return {
+        page: {
+          id: `preview-${ctx.previewThemeSlug}-${tpl.kind}`,
+          kind: tpl.kind,
+          slug: tpl.slug,
+          title: tpl.title ?? null,
+          seoOverrides: {},
+        },
+        sections,
+        data,
+      };
+    }
+  }
 
   let query = sb
     .from("website_pages")
