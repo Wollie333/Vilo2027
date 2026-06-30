@@ -1456,7 +1456,8 @@ export function OceansViewRoomGallery({
   const three = images.slice(0, 3);
   return (
     <section className="wrap" data-section="room_gallery" data-live="true">
-      <div className="rgal">
+      {/* The shell already pads for the solid nav, so drop the design's 84px. */}
+      <div className="rgal" style={{ paddingTop: 18 }}>
         {three.map((im, i) => (
           <div key={im.url + i} className={i === 0 ? "g main" : "g"}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1481,71 +1482,37 @@ export function OceansViewRoomOverview({
     );
   const title = props.heading?.trim() || data.name;
   const facts = props.show_facts !== false ? data.facts : [];
-  const price =
-    props.show_price !== false ? rand(data.price, data.currency) : "";
+  // Content-only (the left column of the room-detail .rlayout). SiteRoomView
+  // composes the gallery + this content + the sticky booking dock.
   return (
-    <section
-      className="section"
-      data-section="room_overview"
-      data-live="true"
-      style={{ paddingTop: "clamp(44px,6vw,64px)" }}
-    >
-      <div className="wrap">
-        <div className="rlayout">
-          <div>
-            {data.facts?.[0] ? (
-              <span className="tag">{data.facts[0]}</span>
-            ) : null}
-            <h1 className="xl" style={{ marginTop: 10 }}>
-              {title}
-            </h1>
-            {facts.length ? (
-              <div className="specs">
-                {facts.slice(0, 4).map((f, i) => (
-                  <div key={f + i} className="spec">
-                    <b>{f.split(/\s+/)[0]}</b>
-                    <span>{f.split(/\s+/).slice(1).join(" ") || " "}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {data.description ? (
-              <p
-                className="lead"
-                style={{ whiteSpace: "pre-line", maxWidth: "60ch" }}
-              >
-                {data.description}
-              </p>
-            ) : (
-              <p className="lead" style={{ maxWidth: "60ch" }}>
-                A bright room facing the water, with space to slow down between
-                swims.
-              </p>
-            )}
-          </div>
-          <aside className="bkcard">
-            {price ? (
-              <div className="bkrate">
-                <span className="amt">{price}</span>
-                <span className="muted"> / night</span>
-              </div>
-            ) : null}
-            <p className="muted" style={{ fontSize: 13, marginBottom: 16 }}>
-              Includes breakfast, pool &amp; beach access.
-            </p>
-            <a href={data.bookHref} className="btn btn-coral btn-lg btn-block">
-              <span>Check availability</span>
-            </a>
-            <div
-              className="nofee"
-              style={{ justifyContent: "center", marginTop: 14 }}
-            >
-              {CHECK} Book direct · 0% fees
+    <div data-section="room_overview" data-live="true">
+      {data.facts?.[0] ? <span className="tag">{data.facts[0]}</span> : null}
+      <h1 className="xl" style={{ marginTop: 10 }}>
+        {title}
+      </h1>
+      {facts.length ? (
+        <div className="specs">
+          {facts.slice(0, 4).map((f, i) => (
+            <div key={f + i} className="spec">
+              <b>{f.split(/\s+/)[0]}</b>
+              <span>{f.split(/\s+/).slice(1).join(" ") || " "}</span>
             </div>
-          </aside>
+          ))}
         </div>
-      </div>
-    </section>
+      ) : null}
+      {data.description ? (
+        <p
+          className="lead"
+          style={{ whiteSpace: "pre-line", maxWidth: "60ch" }}
+        >
+          {data.description}
+        </p>
+      ) : (
+        <p className="lead" style={{ maxWidth: "60ch" }}>
+          A bright room facing the water, with space to slow down between swims.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -1561,27 +1528,28 @@ export function OceansViewRoomAmenities({
     return (
       <OceansViewRoomPlaceholder label="This room's amenities appear here." />
     );
+  // Content block in the room-detail left column.
   return (
-    <section className="section sand" data-section="room_amenities">
-      <div className="wrap">
-        <h2 className="lg">{props.heading || "In this room"}</h2>
-        <div
-          className="amen"
-          style={
-            props.variant === "list"
-              ? { gridTemplateColumns: "1fr", marginTop: 24 }
-              : { marginTop: 24 }
-          }
-        >
-          {amenities.map((a, i) => (
-            <div key={a.label + i} className="a">
-              {CHECK}
-              {a.label}
-            </div>
-          ))}
-        </div>
+    <div data-section="room_amenities" style={{ marginTop: 44 }}>
+      <h2 className="lg" style={{ fontSize: "clamp(1.6rem,3vw,2.3rem)" }}>
+        {props.heading || "In this room"}
+      </h2>
+      <div
+        className="amen"
+        style={
+          props.variant === "list"
+            ? { gridTemplateColumns: "1fr", marginTop: 22 }
+            : { marginTop: 22 }
+        }
+      >
+        {amenities.map((a, i) => (
+          <div key={a.label + i} className="a">
+            {CHECK}
+            {a.label}
+          </div>
+        ))}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -1652,9 +1620,12 @@ export function OceansViewRoomRate({
 function OceansViewPolicyView({
   heading,
   policies,
+  inline = false,
 }: {
   heading?: string;
   policies: RoomPolicies;
+  /** Room-detail column: render as a soft box (not a full-width section). */
+  inline?: boolean;
 }) {
   const p = policies;
   const items: { label: string; value: string }[] = [];
@@ -1675,53 +1646,62 @@ function OceansViewPolicyView({
     textTransform: "uppercase",
     letterSpacing: ".08em",
   };
-  return (
-    <section className="section-sm" data-section="room_policies">
-      <div className="wrap wrap-read">
-        <span className="tag">Good to know</span>
-        <h2 className="lg" style={{ marginTop: 12 }}>
-          {heading || "Things to know"}
-        </h2>
-        <div
-          style={{
-            marginTop: 26,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-            gap: "24px 40px",
-          }}
-        >
-          {items.map((it, i) => (
-            <div
-              key={i}
-              style={{
-                borderTop: "1px solid var(--site-line)",
-                paddingTop: 14,
-              }}
-            >
-              <div className="muted" style={labelStyle}>
-                {it.label}
-              </div>
-              <div style={{ marginTop: 4, fontSize: 15 }}>{it.value}</div>
-            </div>
-          ))}
-        </div>
-        {p.houseRules ? (
+  const body = (
+    <>
+      <h3 style={{ fontSize: "1.4rem" }}>{heading || "Good to know"}</h3>
+      <div
+        style={{
+          marginTop: 18,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+          gap: "20px 32px",
+        }}
+      >
+        {items.map((it, i) => (
           <div
-            style={{
-              marginTop: 26,
-              borderTop: "1px solid var(--site-line)",
-              paddingTop: 14,
-            }}
+            key={i}
+            style={{ borderTop: "1px solid var(--site-line)", paddingTop: 14 }}
           >
             <div className="muted" style={labelStyle}>
-              House rules
+              {it.label}
             </div>
-            <p style={{ marginTop: 6, fontSize: 15, whiteSpace: "pre-line" }}>
-              {p.houseRules}
-            </p>
+            <div style={{ marginTop: 4, fontSize: 15 }}>{it.value}</div>
           </div>
-        ) : null}
+        ))}
       </div>
+      {p.houseRules ? (
+        <div
+          style={{
+            marginTop: 22,
+            borderTop: "1px solid var(--site-line)",
+            paddingTop: 14,
+          }}
+        >
+          <div className="muted" style={labelStyle}>
+            House rules
+          </div>
+          <p style={{ marginTop: 6, fontSize: 15, whiteSpace: "pre-line" }}>
+            {p.houseRules}
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+  return inline ? (
+    <div
+      data-section="room_policies"
+      style={{
+        marginTop: 44,
+        padding: 28,
+        background: "var(--site-soft)",
+        borderRadius: "var(--site-radius-lg)",
+      }}
+    >
+      {body}
+    </div>
+  ) : (
+    <section className="section-sm" data-section="room_policies">
+      <div className="wrap wrap-read">{body}</div>
     </section>
   );
 }
@@ -1738,7 +1718,7 @@ export function OceansViewRoomPolicies({
     return (
       <OceansViewRoomPlaceholder label="This room's cancellation policy and house rules appear here." />
     );
-  return <OceansViewPolicyView heading={props.heading} policies={p} />;
+  return <OceansViewPolicyView heading={props.heading} policies={p} inline />;
 }
 
 export function OceansViewPolicies({

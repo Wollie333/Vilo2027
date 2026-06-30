@@ -23,6 +23,7 @@ import {
   OceansViewSectionList,
   type OceansViewCtx,
 } from "./oceansview/OceansViewSections";
+import { OceansViewBookingDock } from "./oceansview/OceansViewBookingDock";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
@@ -210,6 +211,23 @@ export async function SiteRoomView({
       contactHref: ctx.nav.find((l) => /contact/i.test(l.label))?.href,
       reserveHref: headerBookHref || room.bookHref,
     };
+    // Room-detail composition matching the design (Room.html): the .rgal gallery
+    // full-width, then a 2-column .rlayout — the room content (overview/amenities/
+    // policies) on the left, the sticky .bkcard booking dock on the right — then
+    // any reviews/CTA full-width below. room_rate is the dock, so it's dropped
+    // from the body.
+    const ovBody = contentSections.filter((s) =>
+      ["room_overview", "room_amenities", "room_policies"].includes(s.type),
+    );
+    const ovBelow = contentSections.filter(
+      (s) =>
+        ![
+          "room_overview",
+          "room_amenities",
+          "room_policies",
+          "room_rate",
+        ].includes(s.type),
+    );
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
@@ -223,34 +241,41 @@ export async function SiteRoomView({
             analytics={ctx.analytics}
             interactive={!ctx.preview}
           >
-            <RoomDockLayout
-              gallery={
-                <OceansViewSectionList
-                  sections={gallerySections}
-                  data={data}
-                  asset={siteAsset}
-                  ctx={ovCtx}
-                />
-              }
-              dock={
-                <RoomBookingDock
-                  roomName={room.name}
-                  price={room.price}
-                  currency={room.currency}
-                  bookHref={room.bookHref}
-                  maxGuests={room.maxGuests}
-                  interactive
-                />
-              }
-            >
-              <OceansViewSectionList
-                sections={contentSections}
-                data={data}
-                asset={siteAsset}
-                ctx={ovCtx}
-                interactive
-              />
-            </RoomDockLayout>
+            <OceansViewSectionList
+              sections={gallerySections}
+              data={data}
+              asset={siteAsset}
+              ctx={ovCtx}
+            />
+            <section className="section" style={{ paddingTop: 0 }}>
+              <div className="wrap">
+                <div className="rlayout">
+                  <div>
+                    <OceansViewSectionList
+                      sections={ovBody}
+                      data={data}
+                      asset={siteAsset}
+                      ctx={ovCtx}
+                      interactive
+                    />
+                  </div>
+                  <OceansViewBookingDock
+                    price={room.price}
+                    currency={room.currency}
+                    bookHref={room.bookHref}
+                    maxGuests={room.maxGuests}
+                    interactive
+                  />
+                </div>
+              </div>
+            </section>
+            <OceansViewSectionList
+              sections={ovBelow}
+              data={data}
+              asset={siteAsset}
+              ctx={ovCtx}
+              interactive
+            />
           </OceansViewShell>
         </SiteThemeRoot>
       </>
