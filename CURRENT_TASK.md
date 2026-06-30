@@ -2,6 +2,29 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶ SAVE POINT — THREE THEMES COMPLETE + FULLY REFINED (· 2026-06-30 #8, DONE — START NEW SESSION HERE)
+
+**Everything below is committed AND pushed to `origin/main` → Vercel prod. Tree in sync (`0 0`). All `tsc` + `lint` clean; full `pnpm build` PASSES. The two stray untracked files (`apps/web/vsub.mjs`, `docs/features/WEBSITE_WIZARD_PLAN.md`) are deliberately LEFT ALONE — never `git add -A`.**
+
+**STATE: THREE active, fully-designed website themes — Safari (default) · Sabela Lodge · Oceans View — each matching the founder's provided design end-to-end, live-verified on the `vilotest` fixture (`host@vilotest.com` / `ViloTest123!`). Latest deploy commit `55333511`.**
+
+**What shipped this session (newest first, all pushed):**
+- **Top loading bar adopts the theme accent** (`55333511`/`9edf6344`/`5ace44a0`): global `NextTopLoader` is now `var(--wielo-toploader, #10B981)`; `SiteThemeRoot` sets that var to the theme accent on `:root` (Wielo app keeps green). Wrapped the Safari room/blog/checkout/thank-you routes in `SiteThemeRoot` (they rendered the shell directly) so EVERY page of EVERY theme sets it. Verified safari `#B26C2E` · sabela `#C9A24A` · oceansview `#12A5B5` · wielo login green.
+- **Every theme ships the same page set** (`f5798e4b`): migration `20260630160000` adds designed Specials + Experiences + Gallery pages to all three themes (was only generic spines). Seed scripts skip kinds already in the blueprint (no dupes). All themes now: home·about·rooms·contact·blog·specials·experiences·gallery·search-results·checkout·thank-you.
+- **Room-detail reworked to each theme's design** (`2aa3b206`/`98ca4430`/`7c3c5dde`): was the generic `RoomDockLayout` + `RoomBookingDock` (+ a 2nd dock inside room_overview). Now each is gallery + the theme's 2-col grid (content | ONE sticky themed booking card) + reviews/CTA below — OceansView `.rlayout`/`.bkcard`, Sabela `.rd-grid`/`.book-widget`, Safari `.room-layout`/`.bk-card`. New per-theme `*BookingDock` (interactive). room_overview/amenities/policies are content blocks; room_rate = the dock.
+- **Per-page design fidelity** (`f70e0794`…`9080a79f`, `f9c6efb6`): bespoke renders so each page matches its design — OceansView specials `.spcard`, experiences `.exps` image cards, home availability bar `.availbar`, search results `.sr-card`; Sabela specials `.special-card` + search `.sr-card`. (Safari ships no specials/search/availbar design — the NenGama design covered home/about/rooms/contact/journal only — so those stay themed-generic.)
+- **Domain copy chip** (`37b2c593`): `DomainBar` left of the editor Preview button — shows the public domain, click copies the live URL + opens the live site.
+- **Theme preview fixes** (`9fb4a401`/`dfad59b1`): preview now renders the PREVIEWED theme's own `page_templates` (+ `mergeStandardPages` spines) — not the host's pages tinted — and the preview bar lists the FULL page set.
+- **(Earlier this session) Oceans View theme converted** end-to-end (slices below) — the 3rd theme, mirroring the Sabela process.
+
+**▶ TEST FIXTURE:** re-point `vilotest` to a theme with `node --env-file=.env.local scripts/seed-{safari,sabela,oceansview}-qa.mjs` (from `apps/web`). Live at `http://localhost:3000/site?site=vilotest` (locale-stripped). Or preview ANY theme on any site via `?theme=<slug>&preview=1` (now renders that theme's real design). Migrations `…140000/150000/151000/160000` applied to the linked DB.
+
+**▶▶ DEFERRED (not blocking, carry forward):** (1) the 3 alt palettes per theme (Sabela Ebony/Savanna/Stone · OceansView Lagoon/Riviera/Sea Glass · etc.) host-switchable — they're in each scoped CSS via `[data-theme]` but `SiteThemeRoot` emits inline `--site-*` that override them, so switching must write `theme.base.palette` (a Brand-Studio/wizard palette-picker addition), NOT a data-attr. (2) If the founder wants Safari specials/search/availbar pixel-exact, they must supply a Safari design for those pages. (3) `font:"elegant"`/`"grotesk"` emit a system-ish body inline (overrides the Inter/Manrope fallback) — headings are correct; swap to an explicit body stack if exact body match is wanted.
+
+**KEY REFERENCE for the NEXT theme:** the playbook is proven 3× (memory [[theme-productionization-playbook]]). Slices: register (themeSections.ts + migration) → render layer (`*Sections.tsx` mirror) → chrome (`*Shell`/`*Nav` reuse `buildSafariNav`) → mount (route branches, ALWAYS wrap in `SiteThemeRoot`) → seed + live-verify. Watch-outs learned: per-page inline `<style>` rules don't come with the shared CSS port; `.wielo-theme body` rules must become `.wielo-<slug>` (root is a div); room detail = gallery + 2-col(content | ONE themed dock), never the generic RoomDockLayout; every route must wrap in `SiteThemeRoot` (for `--site-*` + the toploader accent).
+
+---
+
 ## ▶▶ OCEANS VIEW THEME CONVERSION — COMPLETE + LIVE-VERIFIED (· 2026-06-30 #4, DONE)
 
 **Founder's 3rd pre-designed theme ("Ocean Lodge") converted into the CMS — slug `oceansview`, a bright Mediterranean beach-resort look (white + sand, aqua `#12A5B5`, coral `#FF6B57`, navy dark sections, Bricolage Grotesque + Manrope, rounded `lg`). All 5 slices shipped, tsc + lint clean, full `pnpm build` PASSES, live-verified end-to-end on the vilotest fixture. Now THREE active themes (Safari default · Sabela · Oceans View). Playbook held a 2nd time in one session.**
