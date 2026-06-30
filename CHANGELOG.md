@@ -5,6 +5,48 @@
 
 ---
 
+## 2026-06-30 (#3) — Sabela Lodge theme converted onto the standard foundation (live-verified)
+
+Founder handed over their 2nd pre-designed theme ("Lodge Theme") to convert into
+the CMS — slug `sabela`, dark-first editorial safari lodge (Ebony `#14120D` /
+gold `#C9A24A`, Cormorant Garamond + Inter). First real run of the
+theme-productionization playbook on the standardised foundation. Shipped in five
+slices, each tsc + lint clean; full `pnpm build` PASSES.
+
+- **Slice 17 — register + activate.** Migration `20260630130000_add_sabela_theme`
+  adds the `sabela` `site_themes` row (Ebony base + full standard page_templates),
+  `is_active=true`, `is_default=false` (applied to linked DB). Registered `sabela`
+  in `lib/website/themeSections.ts` (factory + presets + templates + room-detail +
+  `ACTIVE_THEME_SLUGS`), so the builder offers it and it activates.
+- **Slice 18 — render layer.** `components/site/sabela/SabelaSections.tsx`:
+  `renderSabelaSection` + `SabelaSectionList` mirroring SafariSections, one band
+  per section type in the Sabela markup, bound to live data (suites/reviews/
+  gallery/blog/room-detail). Generic fallback reuses the shared components with NO
+  `--site-*` bridge (sabela.css declares the tokens). `SabelaContactForm` ports the
+  enquiry→thank-you loop. Wired into `SectionRenderer` (`themeVariant === "sabela"`).
+  Ported the FAQ/amenities/room-detail CSS the foundation port omitted (they lived
+  in per-page inline `<style>` blocks, not the shared design CSS).
+- **Slice 19 — chrome.** `SabelaShell` + `SabelaNav` + footer, reusing the
+  theme-agnostic `buildSafariNav` model. Two header states (transparent over the
+  dark hero via root `data-hero="full"`, solid `.scrolled` on scroll); loads
+  Cormorant Garamond + Inter.
+- **Slice 20 — mount + verify.** Branched `SitePageView`, `SiteRoomView`, blog
+  index + post, checkout, and both thank-you routes to the Sabela layer
+  (+ `SabelaSiteView`, `SabelaArticleContent`, `SabelaThankYouContent`).
+  **Live-verified** via `scripts/seed-sabela-qa.mjs` on the vilotest fixture: all
+  marketing pages + room detail + checkout + search-results + thank-you render
+  the Sabela layer at HTTP 200; confirmed the ebony `#14120D` ground, `#F1EADB`
+  ink, gold `#C9A24A` buttons, Cormorant headings, and real host room data.
+- **Fix:** the ported CSS targeted `.wielo-sabela body` (the design was
+  `<html class=wielo-theme><body>`), but in-app `.wielo-sabela` is a `<div>` with
+  no `<body>` inside, so the background/ink/font never applied → retargeted to
+  `.wielo-sabela`. **3 alt palettes (Ebony/Savanna/Stone)** are defined in
+  sabela.css via `[data-theme]`, but `SiteThemeRoot` emits inline `--site-*` that
+  override them — switching is a Brand-Studio/wizard palette-picker concern
+  (write `theme.base.palette`), deferred.
+
+---
+
 ## 2026-06-30 (#2) — Safari is the sole theme + live-verified end-to-end
 
 Founder: make Safari 100% working before adding more themes, and remove every
