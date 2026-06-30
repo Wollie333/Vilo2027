@@ -497,16 +497,63 @@ export function OceansViewIntro({
   );
 }
 
-/* ── HIGHLIGHTS (icon tiles) ────────────────────────────────────────── */
-export function OceansViewHighlights({ props }: { props: P<"highlights"> }) {
-  const items =
+/* ── HIGHLIGHTS (icon tiles OR image experience cards) ──────────────── */
+export function OceansViewHighlights({
+  props,
+  asset,
+}: {
+  props: P<"highlights">;
+  asset?: SiteAssetResolver;
+}) {
+  const raw =
     props.items && props.items.length
-      ? props.items.map((it, i) => ({
-          icon: it.icon,
-          title: it.title || STOCK_TILES[i]?.title || "",
-          body: it.body || STOCK_TILES[i]?.body || "",
-        }))
-      : STOCK_TILES.map((t) => ({ icon: undefined, ...t }));
+      ? props.items
+      : STOCK_TILES.map((t) => ({
+          ...t,
+          icon: undefined,
+          image_path: undefined,
+        }));
+  // When the items carry images, render the design's big IMAGE experience cards
+  // (.exps) — the Experiences page; otherwise the icon tiles (the home band).
+  const hasImages = raw.some((it) => it.image_path?.trim());
+
+  if (hasImages) {
+    const cards = raw.map((it, i) => ({
+      title: it.title || STOCK_TILES[i]?.title || "",
+      body: it.body || STOCK_TILES[i]?.body || "",
+      img: img(it.image_path, asset, STOCK_GALLERY[i % STOCK_GALLERY.length]),
+    }));
+    return (
+      <section className="section sand" data-section="highlights">
+        <div className="wrap">
+          <div className="sec-head center">
+            {props.eyebrow ? (
+              <span className="tag">{props.eyebrow}</span>
+            ) : null}
+            <h2 className="lg">{props.heading || "Things to do"}</h2>
+          </div>
+          <div className="exps">
+            {cards.map((e, i) => (
+              <div key={e.title + i} className="exp">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={e.img} alt={e.title} />
+                <div className="exp-b">
+                  <h3>{e.title}</h3>
+                  {e.body ? <p>{e.body}</p> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const items = raw.map((it, i) => ({
+    icon: it.icon,
+    title: it.title || STOCK_TILES[i]?.title || "",
+    body: it.body || STOCK_TILES[i]?.body || "",
+  }));
   return (
     <section className="section sand" data-section="highlights">
       <div className="wrap">
@@ -1893,7 +1940,7 @@ export function renderOceansViewSection(
     case "intro":
       return <OceansViewIntro props={section.props} asset={asset} ctx={ctx} />;
     case "highlights":
-      return <OceansViewHighlights props={section.props} />;
+      return <OceansViewHighlights props={section.props} asset={asset} />;
     case "rooms_preview":
       return (
         <OceansViewRooms
