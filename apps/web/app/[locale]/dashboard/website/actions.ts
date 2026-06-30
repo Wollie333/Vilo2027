@@ -17,6 +17,10 @@ import {
   type ThemePageTemplate,
 } from "@/lib/site/themes.server";
 import { generatePalettes, resolvePaletteAccent } from "@/lib/site/palettes";
+import {
+  mergeStandardPages,
+  standardPageTemplates,
+} from "@/lib/website/standardPages";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -166,110 +170,6 @@ export type CreateResult =
 
 const uuid = () => crypto.randomUUID();
 
-// Starter content for a freshly created site — a sensible home + about so the
-// owner sees a real page immediately. Auto-populate sections (rooms/reviews/
-// location) carry config only and fill from the linked properties at render.
-function starterHomeSections(siteName: string) {
-  return [
-    {
-      id: uuid(),
-      type: "hero",
-      enabled: true,
-      props: {
-        headline: siteName,
-        subheadline: "Book your stay with us directly.",
-        align: "center",
-      },
-    },
-    {
-      id: uuid(),
-      type: "intro",
-      enabled: true,
-      props: {
-        heading: "Welcome",
-        body: "Tell guests what makes your place special — the setting, the welcome, the little touches they’ll remember.",
-      },
-    },
-    {
-      id: uuid(),
-      type: "rooms_preview",
-      enabled: true,
-      props: { heading: "Rooms & rates", max: 6 },
-    },
-    {
-      id: uuid(),
-      type: "reviews",
-      enabled: true,
-      props: { heading: "What guests say", max: 6 },
-    },
-    {
-      id: uuid(),
-      type: "location",
-      enabled: true,
-      props: { heading: "Where you’ll be", show_map: true },
-    },
-    {
-      id: uuid(),
-      type: "cta",
-      enabled: true,
-      props: {
-        heading: "Ready to book?",
-        body: "Reserve your dates directly — no booking fees.",
-        button_label: "Check availability",
-        button_href: "#rooms",
-      },
-    },
-  ];
-}
-
-function starterAboutSections(siteName: string) {
-  return [
-    {
-      id: uuid(),
-      type: "intro",
-      enabled: true,
-      props: {
-        heading: `About ${siteName}`,
-        body: "Share your story — who you are, why you host, and what guests can expect.",
-      },
-    },
-    {
-      id: uuid(),
-      type: "host_bio",
-      enabled: true,
-      props: {
-        heading: "Your host",
-        body: "A few warm lines about you and your team.",
-      },
-    },
-  ];
-}
-
-/** Default Home + About templates — used for the built-in presets and as a
- * fallback when a catalogue theme ships no page templates. */
-function builtinThemeTemplates(siteName: string): ThemePageTemplate[] {
-  return [
-    {
-      kind: "home",
-      slug: "home",
-      title: siteName,
-      nav_label: "Home",
-      nav_order: 0,
-      show_in_nav: true,
-      sections: starterHomeSections(siteName),
-    },
-    {
-      kind: "about",
-      slug: "about",
-      title: "About",
-      nav_label: "About",
-      nav_order: 1,
-      show_in_nav: true,
-      sections: starterAboutSections(siteName),
-    },
-  ];
-}
-
 /**
  * Apply a catalogue theme to a site: load the theme's design + pages. This
  * RESETS the site to the theme — `host_websites.theme` becomes the theme base
@@ -312,15 +212,15 @@ export async function applyThemeAction(
   if (themeId.startsWith("preset:")) {
     slug = themeId.slice("preset:".length);
     base = await resolveThemeBase(slug);
-    templates = builtinThemeTemplates(siteName);
+    templates = standardPageTemplates(siteName);
   } else {
     const bundle = await getThemeBundle(themeId);
     if (!bundle) return { ok: false, error: "theme_not_found" };
     slug = bundle.slug;
     base = bundle.base;
-    templates = bundle.pageTemplates.length
-      ? bundle.pageTemplates
-      : builtinThemeTemplates(siteName);
+    // Theme's own pages win by kind; any required standard page it omits
+    // (e.g. Specials/Experiences/Gallery) is filled with a default spine.
+    templates = mergeStandardPages(bundle.pageTemplates, siteName);
   }
 
   // A theme is only activatable if it ships a designed room-detail template —
@@ -585,49 +485,25 @@ async function seedWebsiteContent(
     }),
   );
 
-  // Seed pages: use the theme's page_templates if available, else hardcoded starters.
-  const hasTemplates = theme?.pageTemplates && theme.pageTemplates.length > 0;
-  if (hasTemplates && theme) {
-    await supabase.from("website_pages").insert(
-      theme.pageTemplates.map((tpl) => ({
-        website_id: siteId,
-        kind: tpl.kind,
-        slug: tpl.slug,
-        title: tpl.title === "Home" ? siteName : tpl.title,
-        nav_label: tpl.nav_label,
-        nav_order: tpl.nav_order,
-        show_in_nav: tpl.show_in_nav,
-        draft_sections: tpl.sections,
-        published_sections: [],
-      })),
-    );
-  } else {
-    // Fallback to hardcoded starters (defensive, should not happen after migration).
-    await supabase.from("website_pages").insert([
-      {
-        website_id: siteId,
-        kind: "home",
-        slug: "home",
-        title: siteName,
-        nav_label: "Home",
-        nav_order: 0,
-        show_in_nav: true,
-        draft_sections: starterHomeSections(siteName),
-        published_sections: [],
-      },
-      {
-        website_id: siteId,
-        kind: "about",
-        slug: "about",
-        title: "About",
-        nav_label: "About",
-        nav_order: 1,
-        show_in_nav: true,
-        draft_sections: starterAboutSections(siteName),
-        published_sections: [],
-      },
-    ]);
-  }
+  // Seed pages from the theme's page_templates, guaranteeing the required
+  // standard page set (THEME_CONTRACT.md): the theme's own pages win by kind, and
+  // any required page it omits (Specials/Experiences/Gallery/etc.) is filled with
+  // a default spine that still renders in the theme's scoped CSS. An empty
+  // blueprint yields the full standard set.
+  const templates = mergeStandardPages(theme?.pageTemplates ?? [], siteName);
+  await supabase.from("website_pages").insert(
+    templates.map((tpl) => ({
+      website_id: siteId,
+      kind: tpl.kind,
+      slug: tpl.slug,
+      title: tpl.title === "Home" ? siteName : tpl.title,
+      nav_label: tpl.nav_label,
+      nav_order: tpl.nav_order,
+      show_in_nav: tpl.show_in_nav,
+      draft_sections: tpl.sections,
+      published_sections: [],
+    })),
+  );
 
   // Sync the business's properties + rooms as the initial (visible) channel set.
   const { data: props } = await supabase
