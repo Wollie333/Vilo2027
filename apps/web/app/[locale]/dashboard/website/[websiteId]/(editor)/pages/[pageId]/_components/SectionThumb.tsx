@@ -279,6 +279,7 @@ export function SectionThumb({ type }: { type: SectionType }) {
         </Frame>
       );
     case "booking_search":
+    case "search_results":
       return (
         <Frame>
           <div className="flex flex-1 flex-col justify-center gap-1.5">

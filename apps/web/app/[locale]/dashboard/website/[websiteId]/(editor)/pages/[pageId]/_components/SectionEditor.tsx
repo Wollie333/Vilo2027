@@ -2206,6 +2206,30 @@ function SectionFields({
       );
     }
 
+    case "search_results": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextArea
+            label={t("fldBody")}
+            value={p.body ?? ""}
+            onChange={(v) => set({ body: v })}
+            maxLength={600}
+            rows={2}
+          />
+          <LiveNote>{t("liveSearchResults")}</LiveNote>
+        </div>
+      );
+    }
+
     case "availability_calendar": {
       const p = section.props;
       const set = (patch: Partial<typeof p>) =>

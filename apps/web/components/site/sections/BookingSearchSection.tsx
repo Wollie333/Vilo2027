@@ -242,6 +242,21 @@ export function BookingSearchSection({
 
           <QuoteResult state={state} />
 
+          {/* Multi-property sites: jump to the full results page for these dates. */}
+          {state.kind === "result" &&
+          choices.length > 1 &&
+          data?.searchHref &&
+          checkIn &&
+          checkOut ? (
+            <a
+              href={`${data.searchHref}${data.searchHref.includes("?") ? "&" : "?"}from=${checkIn}&to=${checkOut}&guests=${guests}`}
+              style={{ color: "var(--site-accent)" }}
+              className="block text-center text-sm font-semibold underline underline-offset-2"
+            >
+              See all available stays
+            </a>
+          ) : null}
+
           {!interactive ? (
             <p style={{ color: "var(--site-mute)" }} className="text-xs">
               This search is live on your published site.

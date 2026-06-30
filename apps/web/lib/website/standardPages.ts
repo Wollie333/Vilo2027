@@ -163,6 +163,15 @@ function contactSpine(): Section[] {
   ];
 }
 
+function searchResultsSpine(): Section[] {
+  return [
+    s("search_results", {
+      heading: "Available stays",
+      body: "Choose your dates to see what’s open — book direct for the best rate.",
+    }),
+  ];
+}
+
 /** One required Class-1 page in the canonical set. `build` returns its default
  * section spine, used only when the active theme's blueprint omits this kind. */
 type StandardPageDef = {
@@ -238,18 +247,40 @@ export const REQUIRED_STANDARD_PAGES: StandardPageDef[] = [
   },
 ];
 
-/** The full set of required pages as ThemePageTemplates — used as the fallback
- * when a theme ships NO blueprint at all (replaces the old home+about stub). */
-export function standardPageTemplates(siteName: string): ThemePageTemplate[] {
-  return REQUIRED_STANDARD_PAGES.map((p) => ({
+/** System templates every theme must also ship (THEME_CONTRACT.md Class 2). These
+ * are NOT shown in the nav and are edit-only in the Page Manager. Checkout +
+ * thank-you + room_detail are seeded by the theme blueprint / lazily; search_results
+ * is new, so it's guaranteed here. */
+export const SYSTEM_STANDARD_PAGES: StandardPageDef[] = [
+  {
+    kind: "search_results",
+    slug: "search-results",
+    title: "Search results",
+    nav_label: "Search results",
+    order: 900,
+    build: searchResultsSpine,
+  },
+];
+
+function toTemplate(p: StandardPageDef, siteName: string, inNav: boolean) {
+  return {
     kind: p.kind,
     slug: p.slug,
     title: p.kind === "home" ? siteName : p.title,
     nav_label: p.nav_label,
     nav_order: p.order,
-    show_in_nav: true,
+    show_in_nav: inNav,
     sections: p.build(siteName),
-  }));
+  };
+}
+
+/** The full set of required marketing pages + system templates as
+ * ThemePageTemplates — used as the fallback when a theme ships NO blueprint. */
+export function standardPageTemplates(siteName: string): ThemePageTemplate[] {
+  return [
+    ...REQUIRED_STANDARD_PAGES.map((p) => toTemplate(p, siteName, true)),
+    ...SYSTEM_STANDARD_PAGES.map((p) => toTemplate(p, siteName, false)),
+  ];
 }
 
 /**
@@ -271,7 +302,9 @@ export function mergeStandardPages(
     0,
   );
 
-  const missing = REQUIRED_STANDARD_PAGES.filter((p) => !haveKinds.has(p.kind))
+  const missingNav = REQUIRED_STANDARD_PAGES.filter(
+    (p) => !haveKinds.has(p.kind),
+  )
     .sort((a, b) => a.order - b.order)
     .map((p, i) => ({
       kind: p.kind,
@@ -283,5 +316,10 @@ export function mergeStandardPages(
       sections: p.build(siteName),
     }));
 
-  return [...themePages, ...missing];
+  // Guarantee the system templates too (e.g. search_results) — never in nav.
+  const missingSystem = SYSTEM_STANDARD_PAGES.filter(
+    (p) => !haveKinds.has(p.kind),
+  ).map((p) => toTemplate(p, siteName, false));
+
+  return [...themePages, ...missingNav, ...missingSystem];
 }

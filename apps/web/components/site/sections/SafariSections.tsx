@@ -33,6 +33,7 @@ import { SpecialsPreviewSection } from "./SpecialsPreview";
 import { AddonsPreviewSection } from "./AddonsPreview";
 import { TrustSection } from "./TrustSection";
 import { BookingSearchSection } from "./BookingSearchSection";
+import { SearchResultsSection } from "./SearchResultsSection";
 import { AvailabilityCalendarSection } from "./AvailabilityCalendarSection";
 import { RoomRatesSection, SeasonalPricingSection } from "./RatesBlocks";
 
@@ -2162,6 +2163,15 @@ function renderSafariGenericFallback(
         <BookingSearchSection
           props={section.props}
           data={dataFor(data, section.id, "booking_search")}
+          interactive={interactive}
+        />
+      );
+      break;
+    case "search_results":
+      el = (
+        <SearchResultsSection
+          props={section.props}
+          data={dataFor(data, section.id, "search_results")}
           interactive={interactive}
         />
       );

@@ -621,6 +621,22 @@ export function siteRoomHref(
   return `${ctx.bookBasePath}/rooms/${encodeURIComponent(slug)}${q ? `?${q}` : ""}`;
 }
 
+/**
+ * Link to the system search-results page (`/search-results`), relative to the
+ * site root (keeps the guest on the host's own domain); carries `?site=` on the
+ * app-domain ?site= affordance and `&preview=1` when previewing. The search
+ * widget appends `&from=&to=&guests=` client-side at search time.
+ */
+export function siteSearchHref(
+  ctx: Pick<SiteContext, "bookBasePath" | "subdomain" | "preview">,
+): string {
+  const qs = new URLSearchParams();
+  if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
+  if (ctx.preview) qs.set("preview", "1");
+  const q = qs.toString();
+  return `${ctx.bookBasePath}/search-results${q ? `?${q}` : ""}`;
+}
+
 /** Humanise an enum value ("sea_view" → "Sea view"). */
 function humaniseEnum(v: string | null | undefined): string | null {
   if (!v) return null;
@@ -959,6 +975,13 @@ async function assembleSectionData(
             data: byType.booking_search,
           };
         break;
+      case "search_results":
+        if (byType.search_results)
+          data[s.id] = {
+            type: "search_results",
+            data: byType.search_results,
+          };
+        break;
       case "availability_calendar":
         if (byType.availability_calendar)
           data[s.id] = {
@@ -1060,7 +1083,12 @@ async function loadBookableProperties(
   ctx: SiteContext,
 ): Promise<SiteDataByType["booking_search"]> {
   const ids = ctx.propertyIds;
-  if (ids.length === 0) return { websiteId: ctx.websiteId, properties: [] };
+  if (ids.length === 0)
+    return {
+      websiteId: ctx.websiteId,
+      properties: [],
+      searchHref: siteSearchHref(ctx),
+    };
   const { data } = await sb
     .from("properties")
     .select("id, slug, name, currency, min_nights, max_guests")
@@ -1091,7 +1119,11 @@ async function loadBookableProperties(
       bookBase: siteBookHref(ctx, { propertyId: p.id }),
     });
   }
-  return { websiteId: ctx.websiteId, properties };
+  return {
+    websiteId: ctx.websiteId,
+    properties,
+    searchHref: siteSearchHref(ctx),
+  };
 }
 
 /**
@@ -1316,9 +1348,14 @@ export async function assembleSiteDataByType(
   // BOOKING FUNNEL — search + calendar share the bookable-property set; the rate
   // table reads website_rooms. Resolve before the property-id guard so the
   // widgets always carry the website id (they render even with no properties).
-  if (types.has("booking_search") || types.has("availability_calendar")) {
+  if (
+    types.has("booking_search") ||
+    types.has("availability_calendar") ||
+    types.has("search_results")
+  ) {
     const funnel = await loadBookableProperties(sb, ctx);
     if (types.has("booking_search")) out.booking_search = funnel;
+    if (types.has("search_results")) out.search_results = funnel;
     if (types.has("availability_calendar")) out.availability_calendar = funnel;
   }
   if (types.has("rate_table")) {

@@ -445,6 +445,9 @@ export type BookableProperty = {
 export type BookingFunnelData = {
   websiteId: string;
   properties: BookableProperty[];
+  /** Absolute path to the system search-results page (booking_search links here
+   *  when the site has more than one bookable property). */
+  searchHref?: string;
 };
 
 /** One row of the live rate table (display-only — booking re-prices server-side). */
@@ -496,6 +499,9 @@ export type SiteDataByType = {
   // Booking funnel — search + calendar share the bookable-property set; the
   // rate table reads live nightly rates. Pricing/availability resolve live.
   booking_search: BookingFunnelData;
+  // Search-results template — reuses the bookable-property set; each is quoted
+  // live client-side via /api/website-quote.
+  search_results: BookingFunnelData;
   availability_calendar: BookingFunnelData;
   rate_table: RateTableData;
   // Editable rates blocks (default source = "auto"): room_rates reuses the live

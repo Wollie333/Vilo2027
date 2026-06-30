@@ -338,6 +338,17 @@ export function newSection(type: SectionType): WebsiteSection {
           body: "Choose your dates and see live availability and pricing.",
         },
       };
+    case "search_results":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Available stays",
+          body: "Here’s what’s open for your dates.",
+        },
+      };
     case "availability_calendar":
       return {
         id,

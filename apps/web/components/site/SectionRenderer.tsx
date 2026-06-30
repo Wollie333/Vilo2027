@@ -35,6 +35,7 @@ import { PricingSection } from "./sections/PricingSection";
 import { VideoSection } from "./sections/VideoSection";
 import { TrustSection } from "./sections/TrustSection";
 import { BookingSearchSection } from "./sections/BookingSearchSection";
+import { SearchResultsSection } from "./sections/SearchResultsSection";
 import { AvailabilityCalendarSection } from "./sections/AvailabilityCalendarSection";
 import { RateTableSection } from "./sections/RateTableSection";
 import {
@@ -300,6 +301,14 @@ function SectionSwitch({
         <BookingSearchSection
           props={section.props}
           data={dataFor(data, section.id, "booking_search")}
+          interactive={interactive}
+        />
+      );
+    case "search_results":
+      return (
+        <SearchResultsSection
+          props={section.props}
+          data={dataFor(data, section.id, "search_results")}
           interactive={interactive}
         />
       );

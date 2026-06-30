@@ -242,6 +242,7 @@ const ICONS: Record<SectionType, LucideIcon> = {
   video: Video,
   trust: ShieldCheck,
   booking_search: Search,
+  search_results: Search,
   availability_calendar: CalendarDays,
   rate_table: Table,
   room_rates: BadgeDollarSign,

@@ -50,6 +50,9 @@ export const SECTION_TYPES = [
   "video",
   "trust",
   "booking_search",
+  // Search-results template (system page): a search form + a list of available
+  // properties for the chosen dates, each deep-linking into checkout.
+  "search_results",
   "availability_calendar",
   "rate_table",
   // Editable rates blocks (manual content — no live pricing dependency).
@@ -93,6 +96,7 @@ export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
   // Phase 6B booking funnel — all three read the business's live properties /
   // rooms / availability at render (never duplicate engine data, never stale).
   "booking_search",
+  "search_results",
   "availability_calendar",
   "rate_table",
 ]);
@@ -553,6 +557,14 @@ const bookingSearchProps = z.object({
   body: z.string().max(600).optional(),
   property_id: z.string().uuid().optional(),
   ctaLabel: z.string().max(60).optional(),
+});
+
+// Search-results template: a search form + a list of available properties for
+// the chosen dates. Reads the bookable-property set (same data as booking_search)
+// and quotes each live; props are display-only.
+const searchResultsProps = z.object({
+  heading,
+  body: z.string().max(600).optional(),
 });
 
 // Month calendar of live availability for one property (booked/blocked dates
@@ -1017,6 +1029,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("booking_search"),
     props: bookingSearchProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("search_results"),
+    props: searchResultsProps,
   }),
   z.object({
     ...sectionBase,
