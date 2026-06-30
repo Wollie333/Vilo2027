@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-30 (#9) — Marmalade House theme (4th active theme)
+
+Converted the founder's 4th pre-designed theme — **Marmalade House**, a warm
+photographic guesthouse look (butter-cream `#F4ECDB` + marmalade `#C8702E`, a
+floating pill nav, full-bleed photo heroes with an overlapping white postcard,
+and tilted/taped postcard cards). Followed the productionization playbook:
+register (migration `20260630170000` with the Marmalade base + full canonical
+page set, applied to the linked DB; `themeSections.ts` presets/templates/room-
+detail; `ACTIVE_THEME_SLUGS += marmalade`) → render layer + chrome
+(`components/site/marmalade/*` — Shell/Nav/Sections/views/dock/search/forms +
+scoped `marmalade.css`, all keyed to the SHARED component class vocabulary so
+only the CSS differs) → mount (SectionRenderer + SitePageView/SiteRoomView +
+blog/book/thank-you routes branch on `"marmalade"`, wrapped in `SiteThemeRoot`).
+Added a new **`homely`** font key (Gloock display / Karla body) to `themes.ts`
+`FONT_STACKS` + `SITE_FONTS` schema + Brand Studio picker + `font_homely` label.
+Seed `scripts/seed-marmalade-qa.mjs` re-points the vilotest fixture. **THE
+PLATFORM NOW HAS FOUR ACTIVE THEMES (Safari · Sabela · Oceans View · Marmalade).**
+Live-verified on vilotest (`host@vilotest.com`): all 11 pages 200, postcard hero
++ pill nav + Gloock headings + marmalade accent, room postcards + room-detail
+gallery/2-col/dock, no console errors. tsc + lint clean, 133 vitest green. Pushed
+to prod (`fa7e9c3d`). Note: the floating pill is tightest with many flat top-level
+links + a long brand — the host curates this via the menu builder (the design
+groups under an "Explore" dropdown).
+
+---
+
 ## 2026-06-30 (#8) — Top loading bar adopts the theme accent on host sites
 
 The global top navigation-loading stripe (`NextTopLoader`) was hardcoded brand

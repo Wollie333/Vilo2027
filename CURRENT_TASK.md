@@ -2,7 +2,19 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — THREE THEMES COMPLETE + FULLY REFINED (· 2026-06-30 #8, DONE — START NEW SESSION HERE)
+## ▶▶ SAVE POINT — FOUR THEMES COMPLETE (· 2026-06-30 #9, DONE — START NEW SESSION HERE)
+
+**Marmalade House — the founder's 4th pre-designed theme — converted + live-verified, pushed to `origin/main` (commit `fa7e9c3d`). Slug `marmalade`: a warm photographic guesthouse look (butter-cream `#F4ECDB` + marmalade `#C8702E`, a floating PILL nav, full-bleed photo heroes with an overlapping white POSTCARD card, tilted/taped postcard cards; Gloock display + Karla body). FOUR active themes now: Safari (default) · Sabela · Oceans View · Marmalade.**
+
+**What shipped (playbook held a 4th time):** migration `20260630170000_add_marmalade_theme` (Marmalade base + full canonical page set, applied to linked DB) · `themeSections.ts` (marmalade presets/templates/room-detail + `ACTIVE_THEME_SLUGS`) · new shared **`homely` font key** (Gloock/Karla) in `lib/site/themes.ts FONT_STACKS` + `dashboard/website/schemas.ts SITE_FONTS` + Brand Studio picker + `messages/en.json font_homely` · `components/site/marmalade/*` (Shell/Nav/Sections/SiteView/Article/ThankYou/ContactForm/BookingDock/BookingSearch/SearchResults + scoped `marmalade.css`) · branches in SectionRenderer + SitePageView + SiteRoomView + blog/blog-post/book/book-thank-you/goal-thank-you routes (all wrapped in `SiteThemeRoot`) · `scripts/seed-marmalade-qa.mjs`.
+
+**KEY INSIGHT (cemented):** the component TSX layer is design-AGNOSTIC — it emits a fixed CLASS VOCABULARY; the LOOK is 100% the scoped CSS. So a new theme = **copy the oceansview components, `sed`-rename `OceansView→Marmalade` + `.wielo-oceansview→.wielo-marmalade`, then author the scoped CSS for that same vocabulary.** Watch-out: the floating pill is tightest with many flat top-level nav links + a long brand (host curates via the menu builder / "Explore" dropdown — not a bug).
+
+**▶ TEST FIXTURE:** `node --env-file=.env.local scripts/seed-marmalade-qa.mjs` from `apps/web` re-points vilotest (`host@vilotest.com` / `ViloTest123!`) to Marmalade. Live at `http://localhost:3000/site?site=vilotest` (locale-stripped). **Live-verified:** all 11 pages 200, postcard hero + pill nav + Gloock headings + marmalade accent + room postcards + room-detail (rgal/rlayout/bkcard), no console errors. tsc + lint clean, 133 vitest green. Deferred (same as other themes): 3 alt palettes (Marmalade/Damson/Sage) host-switchable via `theme.base.palette`.
+
+---
+
+## ▶▶ SAVE POINT — THREE THEMES COMPLETE + FULLY REFINED (· 2026-06-30 #8, DONE)
 
 **Everything below is committed AND pushed to `origin/main` → Vercel prod. Tree in sync (`0 0`). All `tsc` + `lint` clean; full `pnpm build` PASSES. The two stray untracked files (`apps/web/vsub.mjs`, `docs/features/WEBSITE_WIZARD_PLAN.md`) are deliberately LEFT ALONE — never `git add -A`.**
 
