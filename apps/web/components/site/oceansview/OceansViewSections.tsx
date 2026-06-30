@@ -40,6 +40,7 @@ import {
   SeasonalPricingSection,
 } from "../sections/RatesBlocks";
 import { OceansViewContactForm } from "./OceansViewContactForm";
+import { OceansViewBookingSearch } from "./OceansViewBookingSearch";
 
 /**
  * The Oceans View ("oceansview" theme) bands — the SAME flat sections the
@@ -2014,6 +2015,13 @@ export function renderOceansViewSection(
       return (
         <OceansViewSpecials
           data={dataFor(data, section.id, "specials_preview")}
+        />
+      );
+    case "booking_search":
+      return (
+        <OceansViewBookingSearch
+          data={dataFor(data, section.id, "booking_search")}
+          interactive={interactive}
         />
       );
     case "room_gallery":
