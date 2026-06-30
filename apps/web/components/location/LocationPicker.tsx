@@ -5,19 +5,17 @@ import "leaflet/dist/leaflet.css";
 import { Loader2, MapPin, Search } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
-// Keyless OpenStreetMap location picker — no API token, no paid service.
-// Type-ahead search uses Photon (komoot's free OSM geocoder, built for
-// autocomplete); the interactive map is Leaflet on OSM tiles (already a repo
-// dependency, see app/property/[slug]/LocationMap). Three ways to set the pin:
-//   1. Type an address → suggestions appear → pick one (fills every field).
+// Address picker backed by Google (Places Autocomplete + Geocoding) through our
+// own /api/geo server proxy — the API key stays server-side. The interactive map
+// is Leaflet on OSM tiles (free, no token). Three ways to set the pin:
+//   1. Type an address → Google suggestions appear → pick one (fills every field).
 //   2. Click the map → drops the pin and reverse-geocodes the address.
 //   3. Drag the pin → same as a click at the new spot.
-// Only when the host PICKS a suggestion do the fields + coordinates fill — just
-// like Google. The latitude/longitude flow up via onSelect so "Suggest nearby
-// places" has coordinates to work with.
+// latitude/longitude flow up via onSelect so "Suggest nearby places" has
+// coordinates to work with.
 
-// Only lat/lng are guaranteed; the geocoder may not return every address part,
-// so the rest are optional and the parent only overwrites a field when present.
+// Only lat/lng are guaranteed; a result may omit some address parts, so the rest
+// are optional and the parent only overwrites a field when present.
 export type LocationSelection = {
   latitude: number;
   longitude: number;
@@ -28,111 +26,11 @@ export type LocationSelection = {
   postal_code?: string;
 };
 
-type PhotonProps = {
-  name?: string;
-  housenumber?: string;
-  street?: string;
-  city?: string;
-  locality?: string;
-  district?: string;
-  county?: string;
-  state?: string;
-  postcode?: string;
-  countrycode?: string;
-  osm_key?: string;
-  osm_id?: number;
-  osm_type?: string;
-};
-type PhotonFeature = {
-  geometry: { coordinates: [number, number] }; // [lon, lat]
-  properties: PhotonProps;
-};
-
-// Photon returns SA provinces under `state` already matching our labels.
-const SA_PROVINCES = new Set([
-  "Eastern Cape",
-  "Free State",
-  "Gauteng",
-  "KwaZulu-Natal",
-  "Limpopo",
-  "Mpumalanga",
-  "Northern Cape",
-  "North West",
-  "Western Cape",
-]);
-
-const PHOTON = "https://photon.komoot.io";
-// South Africa bounding box (minLon,minLat,maxLon,maxLat) — keeps suggestions
-// local so half-typed queries surface SA places, not lookalikes abroad.
-const SA_BBOX = "16.3,-35.0,33.1,-22.0";
-
-// In South Africa, OSM/Photon routinely returns the administrative area in the
-// `city` slot — e.g. searching "Sabie" yields city="Thaba Chweu Local
-// Municipality", county="…District Municipality" — while the real town sits in
-// `name` (for a place node). Nobody searches by municipality, so we keep the
-// municipality out of the town field and expose it separately.
-function isMunicipality(s?: string | null): boolean {
-  return !!s && /municipalit|metropolitan/i.test(s);
-}
-
-// The town/city to show. For a place node (osm_key="place") the settlement name
-// is in `name`; for an address the real town is usually `city`. We skip any
-// municipality string and the ward-style `district` ("…Ward 10").
-function townOf(p: PhotonProps): string | undefined {
-  const isPlace = p.osm_key === "place";
-  const candidates = [
-    isPlace ? p.name : undefined,
-    p.city,
-    p.locality,
-    p.county,
-  ];
-  return candidates.find((c) => !!c && !isMunicipality(c)) ?? undefined;
-}
-
-function municipalityOf(p: PhotonProps): string | undefined {
-  return (
-    [p.city, p.county, p.district].find((x) => isMunicipality(x)) ?? undefined
-  );
-}
-
-function flatten(f: PhotonFeature): LocationSelection {
-  const p = f.properties;
-  const [lng, lat] = f.geometry.coordinates;
-  const isPlace = p.osm_key === "place";
-  const street = [p.housenumber, p.street].filter(Boolean).join(" ").trim();
-  const city = townOf(p);
-  const municipality = municipalityOf(p);
-  const province = p.state && SA_PROVINCES.has(p.state) ? p.state : undefined;
-  // Street line = the actual street only. For a place node (a town/suburb pick)
-  // there's no street, and the `name` IS the town — never push that into line 1.
-  // A non-place POI with no street (e.g. a guesthouse) still uses its name.
-  const line1 =
-    street || (!isPlace && p.name && p.name !== city ? p.name : undefined);
-  return {
-    latitude: lat,
-    longitude: lng,
-    address_line1: line1,
-    city,
-    municipality,
-    province,
-    postal_code: p.postcode || undefined,
-  };
-}
-
-// Two-line label, Google-style: a bold primary line + a muted secondary line.
-function label(p: PhotonProps): { main: string; secondary: string } {
-  const street = [p.housenumber, p.street].filter(Boolean).join(" ").trim();
-  const city = townOf(p) ?? "";
-  const main = p.name || street || city || p.state || "Location";
-  const seen = new Set([main]);
-  const secondary = [street, city, p.state, p.postcode]
-    .filter((x): x is string => !!x && !seen.has(x) && (seen.add(x), true))
-    .join(", ");
-  return { main, secondary };
-}
+type Suggestion = { placeId: string; main: string; secondary: string };
+type GeoAddress = Partial<LocationSelection>;
 
 // Inline SVG pin as a Leaflet divIcon — avoids Leaflet's broken default marker
-// image assets (they 404 under bundlers) and keeps the picker keyless/asset-free.
+// image assets (they 404 under bundlers) and keeps the map asset-free.
 function pinIcon(L: typeof import("leaflet")) {
   return L.divIcon({
     className: "",
@@ -155,7 +53,7 @@ export function LocationPicker({
   onSelect: (s: LocationSelection) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<PhotonFeature[]>([]);
+  const [results, setResults] = useState<Suggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -168,7 +66,6 @@ export function LocationPicker({
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markerRef = useRef<import("leaflet").Marker | null>(null);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
-  // Latest props for the init effect + search bias, without re-running effects.
   const coordsRef = useRef({ lat: latitude, lng: longitude });
   coordsRef.current = { lat: latitude, lng: longitude };
   // Set when the next coord change should fly the map to it (a search pick), as
@@ -176,22 +73,21 @@ export function LocationPicker({
   const recenterRef = useRef(false);
   const mapId = useId();
 
-  // Reverse-geocode a clicked/dragged point, then push it up. Coords always
-  // flow up even if the lookup fails, so the map stays the source of truth.
+  function emit(addr: GeoAddress, lat: number, lng: number) {
+    onSelect({ ...addr, latitude: lat, longitude: lng });
+  }
+
+  // Reverse-geocode a clicked/dragged point, then push it up. Coords always flow
+  // up even if the lookup fails, so the map stays the source of truth.
   async function emitFromPoint(lat: number, lng: number) {
     onSelect({ latitude: lat, longitude: lng });
     try {
-      const url = new URL(`${PHOTON}/reverse`);
-      url.searchParams.set("lat", String(lat));
-      url.searchParams.set("lon", String(lng));
-      url.searchParams.set("lang", "en");
-      const res = await fetch(url.toString(), {
+      const res = await fetch(`/api/geo?op=reverse&lat=${lat}&lng=${lng}`, {
         headers: { Accept: "application/json" },
       });
       if (!res.ok) return;
-      const data = (await res.json()) as { features?: PhotonFeature[] };
-      const f = data.features?.[0];
-      if (f) onSelect(flatten(f));
+      const data = (await res.json()) as { address?: GeoAddress };
+      if (data.address) emit(data.address, lat, lng);
     } catch {
       // Offline / rate-limited — the raw coords are already set, that's fine.
     }
@@ -265,8 +161,6 @@ export function LocationPicker({
       });
       markerRef.current = m;
     }
-    // Fly to the pin after a search pick (or whenever it would be off-screen);
-    // leave the view alone for local clicks/drags so the map doesn't jump.
     if (recenterRef.current) {
       map.setView(pos, Math.max(map.getZoom(), 16));
       recenterRef.current = false;
@@ -276,7 +170,7 @@ export function LocationPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latitude, longitude]);
 
-  // ── Debounced type-ahead search (Photon) — fires 220ms after a keystroke. ──
+  // ── Debounced type-ahead (Google Places via /api/geo) — 220ms after a key. ──
   useEffect(() => {
     if (justPickedRef.current) {
       justPickedRef.current = false;
@@ -293,28 +187,19 @@ export function LocationPicker({
       abortRef.current = controller;
       setIsSearching(true);
       try {
-        const url = new URL(`${PHOTON}/api`);
-        url.searchParams.set("q", query.trim());
-        url.searchParams.set("limit", "6");
-        url.searchParams.set("lang", "en");
-        url.searchParams.set("bbox", SA_BBOX);
-        // Bias toward the existing pin so nearby matches rank first.
-        if (coordsRef.current.lat != null && coordsRef.current.lng != null) {
-          url.searchParams.set("lat", String(coordsRef.current.lat));
-          url.searchParams.set("lon", String(coordsRef.current.lng));
-        }
-        const res = await fetch(url.toString(), {
-          headers: { Accept: "application/json" },
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error(`Photon ${res.status}`);
-        const data = (await res.json()) as { features?: PhotonFeature[] };
-        const feats = (data.features ?? []).filter(
-          (f) => f.geometry?.coordinates,
+        const res = await fetch(
+          `/api/geo?op=autocomplete&q=${encodeURIComponent(query.trim())}`,
+          {
+            headers: { Accept: "application/json" },
+            signal: controller.signal,
+          },
         );
-        setResults(feats);
+        if (!res.ok) throw new Error(`geo ${res.status}`);
+        const data = (await res.json()) as { suggestions?: Suggestion[] };
+        const list = data.suggestions ?? [];
+        setResults(list);
         setActiveIdx(-1);
-        setShowResults(feats.length > 0);
+        setShowResults(list.length > 0);
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           setResults([]);
@@ -327,14 +212,31 @@ export function LocationPicker({
     return () => clearTimeout(handle);
   }, [query]);
 
-  function handlePick(f: PhotonFeature) {
-    recenterRef.current = true; // fly the map to the chosen place
-    justPickedRef.current = true; // and don't re-search the text we set below
-    onSelect(flatten(f));
-    setQuery(label(f.properties).main);
+  async function handlePick(s: Suggestion) {
+    justPickedRef.current = true; // don't re-search the text we set below
+    setQuery([s.main, s.secondary].filter(Boolean).join(", "));
     setResults([]);
     setShowResults(false);
     setActiveIdx(-1);
+    setIsSearching(true);
+    try {
+      const res = await fetch(
+        `/api/geo?op=place&id=${encodeURIComponent(s.placeId)}`,
+        {
+          headers: { Accept: "application/json" },
+        },
+      );
+      const data = (await res.json()) as { address?: GeoAddress };
+      const a = data.address ?? {};
+      if (a.latitude != null && a.longitude != null) {
+        recenterRef.current = true; // fly the map to the chosen place
+        emit(a, a.latitude, a.longitude);
+      }
+    } catch {
+      // Leave the typed text; the host can click the map to set a pin.
+    } finally {
+      setIsSearching(false);
+    }
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -347,7 +249,7 @@ export function LocationPicker({
       setActiveIdx((i) => (i <= 0 ? results.length - 1 : i - 1));
     } else if (e.key === "Enter" && activeIdx >= 0) {
       e.preventDefault();
-      handlePick(results[activeIdx]);
+      void handlePick(results[activeIdx]);
     } else if (e.key === "Escape") {
       setShowResults(false);
     }
@@ -382,22 +284,21 @@ export function LocationPicker({
           <ul
             id={`${mapId}-listbox`}
             role="listbox"
-            // z above Leaflet's panes/controls (which go up to z-index 1000),
-            // or the autocomplete suggestions render hidden behind the map.
+            // z above Leaflet's panes/controls (z-index up to 1000), or the
+            // suggestions render hidden behind the map.
             className="absolute left-0 right-0 top-full z-[1100] mt-1 max-h-72 overflow-y-auto rounded border border-brand-line bg-white py-1 shadow-lift"
           >
-            {results.map((f, i) => {
-              const { main, secondary } = label(f.properties);
+            {results.map((s, i) => {
               const active = i === activeIdx;
               return (
-                <li key={`${f.properties.osm_type}${f.properties.osm_id}-${i}`}>
+                <li key={`${s.placeId}-${i}`}>
                   <button
                     type="button"
                     role="option"
                     aria-selected={active}
                     onMouseDown={(e) => e.preventDefault()}
                     onMouseEnter={() => setActiveIdx(i)}
-                    onClick={() => handlePick(f)}
+                    onClick={() => void handlePick(s)}
                     className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors ${
                       active ? "bg-brand-light" : "hover:bg-brand-light"
                     }`}
@@ -405,11 +306,11 @@ export function LocationPicker({
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-mute" />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-brand-ink">
-                        {main}
+                        {s.main}
                       </span>
-                      {secondary ? (
-                        <span className="block truncate text-[12px] text-brand-mute">
-                          {secondary}
+                      {s.secondary ? (
+                        <span className="block truncate text-xs text-brand-mute">
+                          {s.secondary}
                         </span>
                       ) : null}
                     </span>

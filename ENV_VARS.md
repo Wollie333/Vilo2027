@@ -37,6 +37,7 @@ This file documents every environment variable used across the platform, what it
 | `VERCEL_TEAM_ID` | Server only | — | ✅ | Custom domains |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | ✅ | — | — | Website CMS (bot-hardening) |
 | `TURNSTILE_SECRET_KEY` | Server only | — | — | Website CMS (bot-hardening) |
+| `GOOGLE_MAPS_API_KEY` | Server only | — | ✅ | Address picker (`/api/geo` → Google Places + Geocoding). Enable **Places API (New)** + **Geocoding API** on the key. Without it the picker still loads but returns no suggestions. |
 
 ---
 
