@@ -78,12 +78,14 @@ export default async function RootLayout({
       <body className="font-sans antialiased">
         {/* Instant top-bar feedback on EVERY navigation (link click, router
             push, back/forward) so a click never feels dead while the next
-            route loads. Brand green; spinner off — the bar alone reads clean.
+            route loads. Brand green on the Wielo app; on a host's themed site
+            it adopts the theme accent (SiteThemeRoot sets --wielo-toploader on
+            :root). Spinner off — the bar alone reads clean.
             See RULES.md → "Every action gives feedback". */}
         <NextTopLoader
-          color="#10B981"
+          color="var(--wielo-toploader, #10B981)"
           height={3}
-          shadow="0 0 8px #10B981,0 0 4px #10B981"
+          shadow="0 0 8px var(--wielo-toploader, #10B981),0 0 4px var(--wielo-toploader, #10B981)"
           showSpinner={false}
           crawlSpeed={180}
           speed={220}

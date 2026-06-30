@@ -19,10 +19,18 @@ export function SiteThemeRoot({
   children: ReactNode;
   className?: string;
 }) {
+  const vars = buildSiteVars(theme);
+  // The global top-loading bar (NextTopLoader, in the root layout) is brand green
+  // by default — correct for the Wielo app. On a HOST's themed site, point it at
+  // the theme's accent by setting --wielo-toploader on :root (the bar lives at the
+  // <body> level, outside this div). Wielo pages never render SiteThemeRoot, so
+  // they keep the green fallback.
+  const accent =
+    (vars as Record<string, string | undefined>)["--site-accent"] || undefined;
   return (
     <div
       style={{
-        ...buildSiteVars(theme),
+        ...vars,
         background: "var(--site-bg)",
         color: "var(--site-ink)",
         fontFamily: "var(--site-font-body)",
@@ -33,6 +41,7 @@ export function SiteThemeRoot({
       }}
       className={className}
     >
+      {accent ? <style>{`:root{--wielo-toploader:${accent}}`}</style> : null}
       {children}
     </div>
   );
