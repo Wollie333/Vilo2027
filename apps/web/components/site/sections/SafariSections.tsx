@@ -1543,62 +1543,36 @@ export function SafariRoomOverview({
     );
   const title = props.heading?.trim() || data.name;
   const facts = props.show_facts !== false ? data.facts : [];
-  const price =
-    props.show_price !== false ? roomPrice(data.price, data.currency) : "";
+  // Content-only (the left column of the room-detail .room-layout). SiteRoomView
+  // composes the gallery + this content + the sticky .bk-card booking dock.
   return (
-    <section className="section" style={{ paddingTop: "clamp(48px,6vw,72px)" }}>
-      <div className="wrap">
-        <span className="eyebrow no-rule">The suite</span>
-        <h1
-          className="display"
-          style={{ marginTop: 16, fontSize: "clamp(2.4rem,5vw,4rem)" }}
+    <div data-section="room_overview" data-live="true">
+      <span className="eyebrow no-rule">The suite</span>
+      <h1
+        className="display"
+        style={{ marginTop: 16, fontSize: "clamp(2.2rem,4.4vw,3.6rem)" }}
+      >
+        {title}
+      </h1>
+      {facts.length ? (
+        <div className="spec-row" style={{ marginTop: 24 }}>
+          {facts.slice(0, 4).map((f, i) => (
+            <div key={f + i} className="spec">
+              <b>{f.split(/\s+/)[0]}</b>
+              <span>{f.split(/\s+/).slice(1).join(" ") || " "}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {data.description ? (
+        <p
+          className="lead"
+          style={{ marginTop: 26, maxWidth: "62ch", whiteSpace: "pre-line" }}
         >
-          {title}
-        </h1>
-        {facts.length ? (
-          <div
-            style={{
-              marginTop: 22,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 10,
-            }}
-          >
-            {facts.map((f, i) => (
-              <span
-                key={f + i}
-                style={{
-                  border: "1px solid var(--line)",
-                  borderRadius: 999,
-                  padding: "7px 16px",
-                  fontSize: 13,
-                  color: "var(--ink-soft)",
-                }}
-              >
-                {f}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {data.description ? (
-          <p
-            className="lead"
-            style={{ marginTop: 26, maxWidth: "62ch", whiteSpace: "pre-line" }}
-          >
-            {data.description}
-          </p>
-        ) : null}
-        {price ? (
-          <p className="muted" style={{ marginTop: 22 }}>
-            From{" "}
-            <b style={{ color: "var(--gold)", fontFamily: "var(--serif)" }}>
-              {price}
-            </b>{" "}
-            / night
-          </p>
-        ) : null}
-      </div>
-    </section>
+          {data.description}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -1612,47 +1586,45 @@ export function SafariRoomAmenities({
   const amenities = data?.amenities ?? [];
   if (!amenities.length)
     return <SafariRoomPlaceholder label="This room's amenities appear here." />;
+  // Content block in the room-detail left column.
   return (
-    <section className="section bg-2">
-      <div className="wrap">
-        <span className="eyebrow">In the suite</span>
-        <h2
-          className="display"
-          style={{ marginTop: 18, fontSize: "clamp(1.8rem,3.4vw,2.6rem)" }}
-        >
-          {props.heading || "Everything, thought of"}
-        </h2>
-        <div
-          className="amenity-grid"
-          style={{
-            marginTop: 28,
-            gridTemplateColumns:
-              props.variant === "list"
-                ? "1fr"
-                : "repeat(auto-fit,minmax(220px,1fr))",
-          }}
-        >
-          {amenities.map((a, i) => (
-            <div key={a.label + i} className="amenity">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-              {a.label}
-            </div>
-          ))}
-        </div>
+    <div data-section="room_amenities" style={{ marginTop: 48 }}>
+      <h2
+        className="display"
+        style={{ fontSize: "clamp(1.7rem,3.2vw,2.3rem)" }}
+      >
+        {props.heading || "Everything, thought of"}
+      </h2>
+      <div
+        className="amenity-grid"
+        style={{
+          marginTop: 22,
+          gridTemplateColumns:
+            props.variant === "list"
+              ? "1fr"
+              : "repeat(auto-fit,minmax(200px,1fr))",
+        }}
+      >
+        {amenities.map((a, i) => (
+          <div key={a.label + i} className="amenity">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+            {a.label}
+          </div>
+        ))}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -1724,10 +1696,13 @@ export function SafariPolicyView({
   heading,
   variant,
   policies,
+  inline = false,
 }: {
   heading?: string;
   variant: "grid" | "list";
   policies: RoomPolicies;
+  /** Room-detail column: render as a block (not a full-width section). */
+  inline?: boolean;
 }) {
   const p = policies;
   const items: { label: string; value: string }[] = [];
@@ -1748,53 +1723,62 @@ export function SafariPolicyView({
     textTransform: "uppercase",
     letterSpacing: ".08em",
   };
-  return (
+  const body = (
+    <>
+      <h2
+        className="display"
+        style={{ fontSize: "clamp(1.7rem,3.2vw,2.3rem)" }}
+      >
+        {heading || "Things to know"}
+      </h2>
+      <div
+        style={{
+          marginTop: 20,
+          display: "grid",
+          gridTemplateColumns:
+            variant === "list" ? "1fr" : "repeat(auto-fit,minmax(200px,1fr))",
+          gap: "20px 36px",
+        }}
+      >
+        {items.map((it, i) => (
+          <div
+            key={i}
+            style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}
+          >
+            <div className="muted" style={labelStyle}>
+              {it.label}
+            </div>
+            <div style={{ marginTop: 4, fontSize: 15 }}>{it.value}</div>
+          </div>
+        ))}
+      </div>
+      {p.houseRules ? (
+        <div
+          style={{
+            marginTop: 22,
+            borderTop: "1px solid var(--line)",
+            paddingTop: 14,
+          }}
+        >
+          <div className="muted" style={labelStyle}>
+            House rules
+          </div>
+          <p style={{ marginTop: 6, fontSize: 15, whiteSpace: "pre-line" }}>
+            {p.houseRules}
+          </p>
+        </div>
+      ) : null}
+    </>
+  );
+  return inline ? (
+    <div data-section="room_policies" style={{ marginTop: 48 }}>
+      {body}
+    </div>
+  ) : (
     <section className="section-sm">
       <div className="wrap-narrow">
         <span className="eyebrow">Good to know</span>
-        <h2
-          className="display"
-          style={{ marginTop: 18, fontSize: "clamp(1.8rem,3.4vw,2.6rem)" }}
-        >
-          {heading || "Things to know"}
-        </h2>
-        <div
-          style={{
-            marginTop: 28,
-            display: "grid",
-            gridTemplateColumns:
-              variant === "list" ? "1fr" : "repeat(auto-fit,minmax(220px,1fr))",
-            gap: "24px 40px",
-          }}
-        >
-          {items.map((it, i) => (
-            <div
-              key={i}
-              style={{ borderTop: "1px solid var(--line)", paddingTop: 14 }}
-            >
-              <div className="muted" style={labelStyle}>
-                {it.label}
-              </div>
-              <div style={{ marginTop: 4, fontSize: 15 }}>{it.value}</div>
-            </div>
-          ))}
-        </div>
-        {p.houseRules ? (
-          <div
-            style={{
-              marginTop: 28,
-              borderTop: "1px solid var(--line)",
-              paddingTop: 14,
-            }}
-          >
-            <div className="muted" style={labelStyle}>
-              House rules
-            </div>
-            <p style={{ marginTop: 6, fontSize: 15, whiteSpace: "pre-line" }}>
-              {p.houseRules}
-            </p>
-          </div>
-        ) : null}
+        {body}
       </div>
     </section>
   );
@@ -1817,6 +1801,7 @@ export function SafariRoomPolicies({
       heading={props.heading}
       variant={props.variant}
       policies={p}
+      inline
     />
   );
 }
