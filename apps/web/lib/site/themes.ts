@@ -101,10 +101,12 @@ const FONT_STACKS: Record<SiteFont, { heading: string; body: string }> = {
     body: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   },
   grotesk: {
-    // Geometric, slightly characterful sans (system fonts, no web-font load).
+    // Bold grotesque display + a clean geometric body. Leads with the web fonts
+    // a theme shell may load (Bricolage Grotesque / Manrope — e.g. Oceans View),
+    // falling back to characterful system sans on themes that don't load them.
     heading:
-      '"Trebuchet MS", "Avenir Next", "Segoe UI", Verdana, system-ui, sans-serif',
-    body: '"Segoe UI", "Avenir Next", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif',
+      '"Bricolage Grotesque", "Archivo", "Trebuchet MS", "Avenir Next", "Segoe UI", Verdana, system-ui, sans-serif',
+    body: '"Manrope", "Segoe UI", "Avenir Next", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif',
   },
   editorial: {
     // Classic editorial serif for both heading and body.

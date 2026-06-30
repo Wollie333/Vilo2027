@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="lagoon" data-font="grotesk" data-shape="rounded">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ocean Room — Oceans View, Camps Bay</title>
+<meta name="description" content="The Ocean Room at Oceans View — a light, breezy sea-view room with a private balcony over the sand. From R3,900/night, book direct." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700;800&family=Archivo:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .rgal{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:12px;height:clamp(420px,60vh,600px);padding-top:84px}
+  .rgal .g{overflow:hidden;border-radius:var(--site-radius-img);position:relative}
+  .rgal .g img{width:100%;height:100%;object-fit:cover;transition:transform 1s cubic-bezier(.2,.8,.3,1);cursor:zoom-in}
+  .rgal .g:hover img{transform:scale(1.05)}
+  .rgal .g.main{grid-row:span 2}
+  .rlayout{display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(36px,5vw,68px);align-items:start}
+  .specs{display:flex;gap:30px;flex-wrap:wrap;padding:24px 0;border-top:1px solid var(--site-line);border-bottom:1px solid var(--site-line);margin:30px 0}
+  .spec b{font-family:var(--site-font-heading);font-weight:800;font-size:1.5rem;color:var(--site-ink);line-height:1;display:block}
+  .spec span{font-size:12px;font-weight:600;color:var(--site-mute);margin-top:4px;display:block}
+  .bkcard{background:var(--site-surface);border:1px solid var(--site-line);border-radius:var(--site-radius-lg);padding:26px;position:sticky;top:100px;box-shadow:0 30px 60px -32px rgba(10,34,48,.36)}
+  .bkrate{display:flex;align-items:baseline;gap:8px;padding-bottom:18px;border-bottom:1px solid var(--site-line);margin-bottom:18px}
+  .bkrate .amt{font-family:var(--site-font-heading);font-weight:800;font-size:2.4rem;line-height:1}
+  .bkgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .lightbox{position:fixed;inset:0;z-index:90;background:rgba(8,28,40,.92);display:none;align-items:center;justify-content:center;padding:38px;cursor:zoom-out}
+  .lightbox.open{display:flex}.lightbox img{max-width:92vw;max-height:88vh;object-fit:contain;border-radius:var(--site-radius-img)}
+  @media(max-width:860px){.rgal{grid-template-columns:1fr 1fr;height:auto;grid-auto-rows:170px}.rgal .g.main{grid-column:span 2;grid-row:span 1;height:230px}.rlayout{grid-template-columns:1fr}.bkcard{position:static}}
+</style>
+<script>
+document.documentElement.classList.add('js');
+window.OV_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"lagoon","font":"grotesk","shape":"rounded"}/*EDITMODE-END*/;
+try{var d=window.OV_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('ovTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);var r=document.documentElement;r.setAttribute('data-theme',t.theme);r.setAttribute('data-font',t.font);r.setAttribute('data-shape',t.shape);}catch(e){}
+</script>
+</head>
+<body>
+
+<!-- NAV -->
+<header class="nav solid" data-screen-label="Room detail">
+  <div class="wrap nav-in">
+    <a href="Home.html" class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13c2-2.6 4-2.6 6 0s4 2.6 6 0 4-2.6 6 0"/><path d="M2 18c2-2.6 4-2.6 6 0s4 2.6 6 0 4-2.6 6 0" opacity=".5"/></svg></span><span class="brand-name">Oceans View<small>Camps Bay · Cape Town</small></span></a>
+    <nav class="nav-links">
+      <a href="Home.html" class="nav-link">Home</a>
+      <a href="Rooms.html" class="nav-link active">Rooms</a>
+      <a href="Home.html#experiences" class="nav-link">Experiences</a>
+      <a href="Journal.html" class="nav-link">Journal</a>
+      <a href="About.html" class="nav-link">About</a>
+      <a href="Contact.html" class="nav-link">Contact</a>
+    </nav>
+    <div class="nav-right"><a href="Booking.html?room=Ocean&rate=3900" class="btn btn-coral btn-sm">Book a stay</a><button class="nav-burger" data-burger aria-label="Open menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
+  </div>
+</header>
+
+<!-- GALLERY -->
+<section class="wrap" data-section="room_gallery" data-live="true">
+  <!-- empty: the room's own photos drive this mosaic + lightbox; one placeholder shows if none -->
+  <div class="rgal">
+    <div class="g main"><img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1400&q=80" data-lb="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=2000&q=80" alt="Ocean Room with sea view" /></div>
+    <div class="g"><img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=900&q=80" data-lb="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=1600&q=80" alt="Bedroom" /></div>
+    <div class="g"><img src="https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=900&q=80" data-lb="https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=1600&q=80" alt="Bathroom" /></div>
+  </div>
+</section>
+
+<!-- TITLE + BOOKING -->
+<section class="section" style="padding-top:clamp(44px,5vw,64px)" data-section="room_overview" data-live="true">
+  <div class="wrap">
+    <div class="rlayout">
+      <div>
+        <div class="reveal">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><span class="tag">Sea-view room</span><span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--site-mute)"><span class="stars">★★★★★</span> 4.9 · 410 stays</span></div>
+          <h1 class="xl" style="margin-top:14px;font-size:clamp(2.4rem,5vw,4rem)">Ocean Room</h1>
+          <p class="lead" style="margin-top:18px">Light, breezy and built entirely around the view. A king bed dressed in crisp linen, a private balcony that hangs over the sand, and floor-to-ceiling glass that opens to the sound of the surf.</p>
+          <div class="specs">
+            <div class="spec"><b>2</b><span>Guests</span></div>
+            <div class="spec"><b>1</b><span>King bed</span></div>
+            <div class="spec"><b>36 m²</b><span>Room &amp; balcony</span></div>
+            <div class="spec"><b>180°</b><span>Sea view</span></div>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:14px">
+          <h2 class="lg" style="font-size:clamp(1.6rem,3vw,2.3rem)">Made for slow mornings</h2>
+          <p class="muted" style="margin-top:16px;max-width:60ch">Wake with the light, throw open the doors, and take your coffee on the balcony as the bay comes alive below. Inside: a deep rain shower, a marble vanity, and the kind of bed you have to be talked out of. Housekeeping twice daily, turndown each evening, and the beach a barefoot minute away.</p>
+        </div>
+
+        <div class="reveal" style="margin-top:36px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="frame ar-32"><img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=900&q=80" data-lb="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1600&q=80" alt="The balcony view" /></div>
+          <div class="frame ar-32"><img src="https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=900&q=80" data-lb="https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=1600&q=80" alt="The water below" /></div>
+        </div>
+
+        <div class="reveal" style="margin-top:44px" data-section="room_amenities">
+          <h2 class="lg" style="font-size:clamp(1.6rem,3vw,2.3rem)">In the room</h2>
+          <div class="amen" style="margin-top:22px">
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Private sea-view balcony</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16M2 8h18l2-4"/></svg>King bed &amp; premium linen</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13"/></svg>Air-conditioning &amp; fan</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 6.5 3.5a1 1 0 0 0-1.4 0L3.5 5.1a1 1 0 0 0 0 1.4L6 9"/><path d="M3 21l6-6"/></svg>Rain shower &amp; marble bath</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5l8 4 8-4v14l-8-4z"/></svg>Minibar &amp; Nespresso</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-9"/></svg>Smart TV &amp; fast Wi-Fi</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Twice-daily housekeeping</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13c2-2.6 4-2.6 6 0s4 2.6 6 0 4-2.6 6 0"/></svg>Beach, pool &amp; spa access</div>
+          </div>
+        </div>
+
+        <div class="reveal" style="margin-top:44px;padding:28px;background:var(--site-soft);border-radius:var(--site-radius-lg)" data-section="room_policies">
+          <h3 style="font-size:1.4rem">Your rate includes</h3>
+          <div class="amen" style="margin-top:18px">
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Breakfast for two, daily</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Beach, pool &amp; gym</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>Wi-Fi &amp; secure parking</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>No booking fees</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOOKING CARD -->
+      <aside>
+        <div class="bkcard" data-booking data-rate="3900" data-section="room_rate" data-live="true">
+          <div class="bkrate"><span class="amt">R3,900</span><span class="muted">/ night</span></div>
+          <div class="bkgrid">
+            <div class="field" style="margin-bottom:12px"><label>Check in</label><input type="date" name="checkin" value="2026-07-10" /></div>
+            <div class="field" style="margin-bottom:12px"><label>Check out</label><input type="date" name="checkout" value="2026-07-13" /></div>
+          </div>
+          <div class="field" style="margin-bottom:16px"><label>Guests</label><select name="guests"><option value="1">1 guest</option><option value="2" selected>2 guests</option></select></div>
+          <div class="sline" style="border-top:1px solid var(--site-line);padding-top:14px"><span data-ratenights>R3,900 × 3 nights</span><b data-sub>R11,700</b></div>
+          <div class="sline"><span>Taxes &amp; service</span><b>Included</b></div>
+          <div class="stotal" style="margin-top:2px"><span class="l">Total</span><span class="amt" data-total>R11,700</span></div>
+          <div class="nofee"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span><span data-nights>3 nights</span> · no booking fees, ever</span></div>
+          <a href="Booking.html?room=Ocean&rate=3900" class="btn btn-coral btn-lg btn-block" style="margin-top:20px">Reserve this room</a>
+          <p class="muted center" style="font-size:12.5px;margin-top:12px">Free cancellation up to 48 hours before arrival</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- OTHER ROOMS -->
+<section class="section sand" data-section="rooms_preview" data-live="true">
+  <!-- empty: "More rooms will appear here once you add them." -->
+  <div class="wrap">
+    <div class="sec-head reveal" style="display:flex;justify-content:space-between;align-items:flex-end;max-width:none;gap:24px;flex-wrap:wrap"><div><span class="tag">Also available</span><h2 class="lg" style="margin-top:16px">The other rooms</h2></div><a href="Rooms.html" class="alink">All rooms <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+    <div class="rooms" style="grid-template-columns:1fr 1fr">
+      <a href="Room.html" class="room reveal"><div class="room-img"><span class="room-price">R6,800<small>/night</small></span><img src="https://images.unsplash.com/photo-1582610116397-edb318620f90?w=900&q=80" alt="Lagoon Suite" /></div><div class="room-body"><h3>Lagoon Suite</h3><div class="room-feat"><span class="chip">Sleeps 3</span><span class="chip">Plunge pool</span></div><p>A suite with a separate lounge and a private plunge pool on the terrace.</p><div class="room-foot"><span class="alink">View suite <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div></div></a>
+      <a href="Room.html" class="room reveal" data-d="1"><div class="room-img"><span class="room-price">R13,500<small>/night</small></span><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=900&q=80" alt="Beach Penthouse" /></div><div class="room-body"><h3>Beach Penthouse</h3><div class="room-feat"><span class="chip">Sleeps 4</span><span class="chip">Rooftop pool</span></div><p>The whole top floor, with a wraparound rooftop terrace and pool.</p><div class="room-foot"><span class="alink">View penthouse <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div></div></a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div><a href="Home.html" class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13c2-2.6 4-2.6 6 0s4 2.6 6 0 4-2.6 6 0"/><path d="M2 18c2-2.6 4-2.6 6 0s4 2.6 6 0 4-2.6 6 0" opacity=".5"/></svg></span><span class="brand-name">Oceans View</span></a><p class="foot-blurb">A bright beachfront resort on the sand at Camps Bay, Cape Town. Sea-view rooms, three pools, a spa, and a slower way to do summer.</p></div>
+      <div><div class="foot-h">Explore</div><div class="foot-col"><a href="Rooms.html">Rooms &amp; rates</a><a href="Home.html#experiences">The resort</a><a href="Journal.html">Journal</a><a href="About.html">About us</a><a href="Contact.html">Contact</a></div></div>
+      <div><div class="foot-h">Stay</div><div class="foot-col"><a href="Booking.html">Book a stay</a><a href="Contact.html">Getting here</a><a href="Contact.html">Transfers</a><a href="Contact.html">FAQ</a></div></div>
+      <div><div class="foot-h">The good stuff, by email</div><p class="foot-blurb" style="margin-top:0">Open dates, seasonal offers and the occasional recipe from the kitchen. No spam.</p><form class="foot-news" onsubmit="return false"><input type="email" placeholder="you@email.com" aria-label="Email" /><button class="btn btn-coral btn-sm" type="submit">Join</button></form></div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Oceans View · Camps Bay, Cape Town</span>
+      <span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span>
+      <div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a><a href="#" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a></div>
+    </div>
+  </div>
+</footer>
+
+<!-- MOBILE NAV -->
+<div class="mnav">
+  <div class="mnav-top"><a href="Home.html" class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13c2-2.6 4-2.6 6 0s4 2.6 6 0 4-2.6 6 0"/></svg></span><span class="brand-name" style="color:var(--site-navy-ink)">Oceans View</span></a><button class="nav-burger" data-mclose aria-label="Close menu" style="display:block;color:var(--site-navy-ink)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <nav class="mnav-links"><a href="Home.html">Home</a><a href="Rooms.html">Rooms</a><a href="Home.html#experiences">Experiences</a><a href="Journal.html">Journal</a><a href="About.html">About</a><a href="Contact.html">Contact</a></nav>
+  <a href="Booking.html?room=Ocean&rate=3900" class="btn btn-coral btn-lg btn-block">Book a stay</a>
+</div>
+
+<div class="lightbox" data-lightbox><img src="" alt="Room photo enlarged" /></div>
+<script src="oceansview.js"></script>
+<script src="oceansview-tweaks.js"></script>
+</body>
+</html>

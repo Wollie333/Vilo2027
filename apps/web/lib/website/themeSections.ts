@@ -741,6 +741,380 @@ const SABELA_TEMPLATES: ThemeTemplate[] = [
   },
 ];
 
+// ── Oceans View — bright Mediterranean beach resort (white/sand, aqua, coral)
+// The founder's third theme. Voice: sunny, easy, barefoot luxury on the bay.
+// Light-first (white ground); dark bands come from the design's navy sections,
+// supplied by the scoped .wielo-oceansview layer (no per-section tone needed).
+const oceansview = {
+  heroFull: () =>
+    build("hero", (s) => {
+      s.props.headline = "Wake up to the ocean";
+      s.props.subheadline =
+        "A bright beachfront resort where the Atlantic starts at your door — sea-view rooms, three pools, a spa, and tables that watch the sun go down.";
+      s.props.cta_label = "Book a room";
+      s.props.cta_href = "#book";
+      s.props.cta2_label = "Explore the resort";
+      s.props.cta2_href = "/about";
+      s.props.stats = [
+        { value: "32", label: "Sea-view rooms" },
+        { value: "3", label: "Pools" },
+        { value: "4.9 ★★★★★", label: "900+ stays" },
+      ];
+      s.props.align = "left";
+      s.props.variant = "fullscreen";
+      s.props.overlay = "medium";
+      s.props.textTone = "light";
+      s.props.height = "tall";
+    }),
+  heroSplit: () =>
+    build("hero", (s) => {
+      s.props.headline = "A family, and a stretch of sand";
+      s.props.subheadline =
+        "Three generations on this beach, and one simple idea: a place by the sea where everything is taken care of.";
+      s.props.cta_label = "See the rooms";
+      s.props.cta_href = "#rooms";
+      s.props.align = "left";
+      s.props.variant = "split_right";
+      s.props.height = "medium";
+    }),
+  story: () =>
+    build("intro", (s) => {
+      s.props.eyebrow = "Barefoot luxury";
+      s.props.heading = "Barefoot luxury, on the bay";
+      s.props.body =
+        "Days here run on ocean time — a swim before breakfast, long lunches in the shade, the slow gold of the afternoon, and the sound of the surf to fall asleep to.\n\nReplace this with your own story: the beach, the welcome, and why guests come back every summer.";
+      s.props.variant = "lead";
+    }),
+  // ── About-page blocks ──
+  aboutHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "About";
+      s.props.headline = "A family, and a stretch of sand";
+      s.props.subheadline =
+        "Three generations on this beach, and one simple idea: a place by the sea where everything is taken care of and nothing is rushed.";
+    }),
+  aboutStory: () =>
+    build("intro", (s) => {
+      s.props.eyebrow = "Our story";
+      s.props.heading = "It started with the view";
+      s.props.body =
+        "Tell guests who you are and why you host: the beach, the welcome, and why people come back every summer. A paragraph or two is plenty.";
+      s.props.badge_value = "40";
+      s.props.badge_label = "Years on the bay";
+      s.props.variant = "lead";
+    }),
+  aboutStats: () =>
+    build("stats", (s) => {
+      s.props.items = [
+        { value: "40", label: "Years on the bay" },
+        { value: "32", label: "Sea-view rooms" },
+        { value: "3", label: "Pools" },
+        { value: "0%", label: "Booking fees" },
+      ];
+    }),
+  aboutHost: () =>
+    build("host_bio", (s) => {
+      s.props.heading = "Your hosts";
+      s.props.name = "The Marais family";
+      s.props.body =
+        "A few warm lines about the people who will welcome you to the bay, and what they love most about life by the sea.";
+    }),
+  aboutValues: () =>
+    build("values", (s) => {
+      s.props.heading = "What we stand for";
+      s.props.items = [
+        {
+          title: "The sea comes first",
+          body: "We keep the bay clean and the beach wild, with regular clean-ups and gentle building.",
+        },
+        {
+          title: "Honest pricing",
+          body: "One fair rate, booked direct. No agents, no booking fees, no surprises at checkout.",
+        },
+        {
+          title: "People of the bay",
+          body: "Our team grew up on this coast — their warmth and know-how are the real luxury.",
+        },
+      ];
+    }),
+  experiences: () =>
+    build("highlights", (s) => {
+      s.props.heading = "Everything taken care of";
+      s.props.variant = "grid";
+      s.props.items = [
+        {
+          icon: "Waves",
+          title: "Three pools & the sea",
+          body: "Two heated pools, a lap pool and a private path straight onto the sand.",
+        },
+        {
+          icon: "Utensils",
+          title: "Tables by the water",
+          body: "Sea-to-table menus and sundowners with the best view on the bay.",
+        },
+        {
+          icon: "Sparkles",
+          title: "Spa & wellness",
+          body: "Ocean-air treatments, a sauna, and morning yoga on the deck.",
+        },
+      ];
+    }),
+  rooms: () =>
+    build("rooms_preview", (s) => {
+      s.props.heading = "Rooms that face the water";
+    }),
+  // ── Rooms-page blocks ──
+  roomsHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Rooms & suites";
+      s.props.headline = "Rooms & suites by the sea";
+      s.props.subheadline =
+        "Every room looks out to the water, each one a little different. Choose the one that fits your stay.";
+    }),
+  roomsIncluded: () =>
+    build("amenities", (s) => {
+      s.props.variant = "inline";
+      s.props.items = [
+        { label: "Sea view" },
+        { label: "Breakfast included" },
+        { label: "Pool & beach access" },
+        { label: "0% booking fees" },
+      ];
+    }),
+  roomsShowcase: () =>
+    build("rooms_preview", (s) => {
+      s.props.display = "showcase";
+      s.props.heading = "Where you will stay";
+    }),
+  gallery: () =>
+    build("gallery", (s) => {
+      s.props.heading = "Postcards from the bay";
+    }),
+  reviews: () =>
+    build("reviews", (s) => {
+      s.props.heading = "The reviews say it best";
+      s.props.variant = "grid";
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "Right on the bay";
+      s.props.variant = "split";
+    }),
+  ctaBanner: () =>
+    build("cta", (s) => {
+      s.props.heading = "Your room by the sea is waiting";
+      s.props.body =
+        "Book direct for the best rate and a free upgrade when we can — we will take care of the rest.";
+      s.props.button_label = "Book a room";
+      s.props.button_href = "#book";
+      s.props.variant = "banner";
+    }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Send a message";
+      s.props.body = "We usually reply within a few hours.";
+      s.props.variant = "split";
+    }),
+  // ── Contact-page blocks ──
+  contactHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Contact";
+      s.props.headline = "Say hello";
+      s.props.subheadline =
+        "Tell us your dates and what you are hoping for. A real person on the bay replies within a day.";
+    }),
+  contactMap: () =>
+    build("map", (s) => {
+      s.props.heading = "Find us";
+      s.props.address = "On the beachfront · Camps Bay, Cape Town";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Good to know";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "How do we get there?",
+          a: "We are a short drive from the city, right on the beachfront. Full directions follow your booking.",
+        },
+        {
+          q: "Is there parking?",
+          a: "Yes — free secure parking for every room, plus easy drop-off at the door.",
+        },
+        {
+          q: "What is included?",
+          a: "Rates include breakfast, pool and beach access. Replace this with your own inclusions.",
+        },
+      ];
+    }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "At the resort";
+      s.props.items = [
+        { icon: "🏊", label: "Three pools" },
+        { icon: "🏖️", label: "Private beach" },
+        { icon: "🍳", label: "Breakfast included" },
+        { icon: "💆", label: "Spa & sauna" },
+        { icon: "🍷", label: "Beach bar" },
+        { icon: "📶", label: "Fast Wi-Fi" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Rates";
+      s.props.items = [
+        {
+          label: "Sea-view room",
+          price: "R2 950",
+          note: "per night, incl. breakfast",
+        },
+        {
+          label: "Ocean suite",
+          price: "R4 500",
+          note: "per night, incl. breakfast",
+        },
+      ];
+      s.props.footnote =
+        "Rates are indicative and include breakfast — your final price is confirmed at booking.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "From the journal";
+    }),
+  // ── Journal-page blocks ──
+  journalHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "The journal";
+      s.props.headline = "The journal";
+      s.props.subheadline =
+        "Notes from the bay — sea-to-table recipes, what to do nearby, and life on the coast.";
+    }),
+  journalPosts: () =>
+    build("blog_preview", (s) => {
+      s.props.display = "journal";
+      s.props.heading = "Latest from the journal";
+      s.props.max = 9;
+    }),
+  newsletterCta: () =>
+    build("cta", (s) => {
+      s.props.newsletter = true;
+      s.props.heading = "The bay, in your inbox";
+      s.props.body =
+        "Open dates, recipes and the occasional secret spot — once a season, never more.";
+      s.props.button_label = "Subscribe";
+      s.props.button_href = "#";
+    }),
+};
+
+const OCEANSVIEW_PRESETS: ThemeSectionPreset[] = [
+  {
+    key: "oceansview_hero_full",
+    label: "Hero — fullscreen",
+    make: oceansview.heroFull,
+  },
+  {
+    key: "oceansview_hero_split",
+    label: "Hero — split",
+    make: oceansview.heroSplit,
+  },
+  { key: "oceansview_story", label: "Story", make: oceansview.story },
+  {
+    key: "oceansview_experiences",
+    label: "Experiences",
+    make: oceansview.experiences,
+  },
+  { key: "oceansview_gallery", label: "Gallery", make: oceansview.gallery },
+  { key: "oceansview_reviews", label: "Reviews", make: oceansview.reviews },
+  { key: "oceansview_location", label: "Location", make: oceansview.location },
+  { key: "oceansview_cta", label: "Booking CTA", make: oceansview.ctaBanner },
+  {
+    key: "oceansview_contact_form",
+    label: "Contact form",
+    make: oceansview.contactForm,
+  },
+  { key: "oceansview_faq", label: "FAQ", make: oceansview.faq },
+  {
+    key: "oceansview_amenities",
+    label: "At the resort",
+    make: oceansview.amenities,
+  },
+  { key: "oceansview_pricing", label: "Rates", make: oceansview.pricing },
+  { key: "oceansview_blog", label: "Journal", make: oceansview.blog },
+];
+
+const OCEANSVIEW_TEMPLATES: ThemeTemplate[] = [
+  {
+    key: "oceansview_home",
+    label: "Home",
+    description:
+      "Fullscreen hero, the story, what's on offer, rooms, gallery, reviews, location and a booking CTA.",
+    make: () => [
+      oceansview.heroFull(),
+      oceansview.story(),
+      oceansview.experiences(),
+      oceansview.rooms(),
+      oceansview.gallery(),
+      oceansview.reviews(),
+      oceansview.location(),
+      oceansview.ctaBanner(),
+    ],
+  },
+  {
+    key: "oceansview_about",
+    label: "About",
+    description:
+      "Page-header banner, your story, the stats band, your hosts, your values and a CTA.",
+    make: () => [
+      oceansview.aboutHero(),
+      oceansview.aboutStory(),
+      oceansview.aboutStats(),
+      oceansview.aboutHost(),
+      oceansview.aboutValues(),
+      oceansview.ctaBanner(),
+    ],
+  },
+  {
+    key: "oceansview_rooms",
+    label: "Rooms",
+    description:
+      "Page-header banner, what's included, your rooms as full-width showcases, rates and a CTA.",
+    make: () => [
+      oceansview.roomsHero(),
+      oceansview.roomsIncluded(),
+      oceansview.roomsShowcase(),
+      oceansview.pricing(),
+      oceansview.ctaBanner(),
+    ],
+  },
+  {
+    key: "oceansview_journal",
+    label: "Journal",
+    description:
+      "Page-header banner, your posts (featured + grid) and a newsletter sign-up.",
+    make: () => [
+      oceansview.journalHero(),
+      oceansview.journalPosts(),
+      oceansview.newsletterCta(),
+    ],
+  },
+  {
+    key: "oceansview_contact",
+    label: "Contact",
+    description:
+      "Page-header banner, message form + details, a map and the good-to-know FAQ.",
+    make: () => [
+      oceansview.contactHero(),
+      oceansview.contactForm(),
+      oceansview.contactMap(),
+      oceansview.faq(),
+    ],
+  },
+];
+
 const SAFARI_PRESETS: ThemeSectionPreset[] = [
   {
     key: "safari_hero_full",
@@ -838,10 +1212,12 @@ const SAFARI_TEMPLATES: ThemeTemplate[] = [
 const PRESETS: Record<string, ThemeSectionPreset[]> = {
   safari: SAFARI_PRESETS,
   sabela: SABELA_PRESETS,
+  oceansview: OCEANSVIEW_PRESETS,
 };
 const TEMPLATES: Record<string, ThemeTemplate[]> = {
   safari: SAFARI_TEMPLATES,
   sabela: SABELA_TEMPLATES,
+  oceansview: OCEANSVIEW_TEMPLATES,
 };
 
 // Themes currently ACTIVE in the system. Their designed building blocks (section
@@ -850,7 +1226,7 @@ const TEMPLATES: Record<string, ThemeTemplate[]> = {
 // platform theme (site_themes holds only the Safari row; see migration
 // 20260630120000_keep_only_safari_theme). A site stuck on a removed theme simply
 // gets no theme blocks.
-const ACTIVE_THEME_SLUGS = new Set<string>(["safari", "sabela"]);
+const ACTIVE_THEME_SLUGS = new Set<string>(["safari", "sabela", "oceansview"]);
 
 /** Designed section presets for the slug — only when that theme is active. */
 export function getThemeSectionPresets(
@@ -897,6 +1273,15 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.policies(),
     sabela.reviews(),
     sabela.ctaBanner(),
+  ],
+  oceansview: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    roomDetail.policies(),
+    oceansview.reviews(),
+    oceansview.ctaBanner(),
   ],
 };
 
