@@ -184,7 +184,7 @@
 .wielo-sabela {
   scroll-behavior: smooth;
 }
-.wielo-sabela body {
+.wielo-sabela {
   margin: 0;
   font-family: var(--site-font-body, "Inter", system-ui, sans-serif);
   background: var(--site-bg, #14120d);
@@ -1998,7 +1998,7 @@
   }
 }
 @media (max-width: 680px) {
-  .wielo-sabela body {
+  .wielo-sabela {
     font-size: 16px;
   }
   .wielo-sabela .wrap,
