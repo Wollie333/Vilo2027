@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-06-30 (#7) — Every theme ships the same page set
+
+Founder: Safari was missing pages vs the other themes. All themes' `page_templates`
+only carried home/about/rooms/contact/blog/checkout/thank-you — Specials,
+Experiences and Gallery were filled only by generic spines (and Oceans View had a
+designed Experiences page the others lacked). Migration
+`20260630160000_theme_specials_experiences_gallery` adds designed Specials +
+Experiences + Gallery pages to every theme (theme-appropriate sections: specials
+cards, image/icon experiences, mosaic gallery), idempotent per kind, applied to
+the linked DB. Seed scripts now skip kinds the blueprint already ships (no dupes).
+All three themes now present: home · about · rooms · contact · blog · specials ·
+experiences · gallery · (+ search-results · checkout · thank-you).
+
+---
+
 ## 2026-06-30 (#6) — Room-detail templates reworked to each theme's design
 
 Founder: the live room-detail pages looked nothing like the provided designs.
