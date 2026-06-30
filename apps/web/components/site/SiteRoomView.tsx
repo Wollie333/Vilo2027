@@ -117,54 +117,56 @@ export async function SiteRoomView({
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
-        <SafariShell
-          brandName={ctx.brand.name}
-          nav={buildSafariNav(ctx)}
-          bookHref={headerBookHref}
-          solidNav
-          previewPages={previewPages}
-          analytics={ctx.analytics}
-          interactive={!ctx.preview}
-        >
-          <SafariSectionList
-            sections={gallerySections}
-            data={data}
-            asset={siteAsset}
-            ctx={safariCtx}
-          />
-          <section
-            className="section"
-            style={{ paddingTop: "clamp(28px,4vw,44px)" }}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SafariShell
+            brandName={ctx.brand.name}
+            nav={buildSafariNav(ctx)}
+            bookHref={headerBookHref}
+            solidNav
+            previewPages={previewPages}
+            analytics={ctx.analytics}
+            interactive={!ctx.preview}
           >
-            <div className="wrap">
-              <div className="room-layout">
-                <div>
-                  <SafariSectionList
-                    sections={safBody}
-                    data={data}
-                    asset={siteAsset}
-                    ctx={safariCtx}
+            <SafariSectionList
+              sections={gallerySections}
+              data={data}
+              asset={siteAsset}
+              ctx={safariCtx}
+            />
+            <section
+              className="section"
+              style={{ paddingTop: "clamp(28px,4vw,44px)" }}
+            >
+              <div className="wrap">
+                <div className="room-layout">
+                  <div>
+                    <SafariSectionList
+                      sections={safBody}
+                      data={data}
+                      asset={siteAsset}
+                      ctx={safariCtx}
+                      interactive
+                    />
+                  </div>
+                  <SafariBookingDock
+                    price={room.price}
+                    currency={room.currency}
+                    bookHref={room.bookHref}
+                    maxGuests={room.maxGuests}
                     interactive
                   />
                 </div>
-                <SafariBookingDock
-                  price={room.price}
-                  currency={room.currency}
-                  bookHref={room.bookHref}
-                  maxGuests={room.maxGuests}
-                  interactive
-                />
               </div>
-            </div>
-          </section>
-          <SafariSectionList
-            sections={safBelow}
-            data={data}
-            asset={siteAsset}
-            ctx={safariCtx}
-            interactive
-          />
-        </SafariShell>
+            </section>
+            <SafariSectionList
+              sections={safBelow}
+              data={data}
+              asset={siteAsset}
+              ctx={safariCtx}
+              interactive
+            />
+          </SafariShell>
+        </SiteThemeRoot>
       </>
     );
   }

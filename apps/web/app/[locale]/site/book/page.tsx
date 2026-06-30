@@ -85,19 +85,21 @@ export default async function SiteBookPage({
   // to the live booking engine below, rendered inside the Safari shell.
   if (ctx.previewThemeSlug === "safari") {
     return (
-      <SafariShell
-        brandName={ctx.brand.name}
-        nav={buildSafariNav(ctx)}
-        bookHref={
-          ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
-        }
-        solidNav
-        previewPages={previewPages}
-        analytics={ctx.analytics}
-        interactive={!ctx.preview}
-      >
-        <SafariBookingContent />
-      </SafariShell>
+      <SiteThemeRoot theme={ctx.theme}>
+        <SafariShell
+          brandName={ctx.brand.name}
+          nav={buildSafariNav(ctx)}
+          bookHref={
+            ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+          }
+          solidNav
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          <SafariBookingContent />
+        </SafariShell>
+      </SiteThemeRoot>
     );
   }
   // Theme-picker preview of the Sabela checkout chrome (no live booking context).
@@ -360,19 +362,21 @@ export default async function SiteBookPage({
   // shell (the form reads --site-* tokens, which Safari bridges to its palette).
   if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
     return (
-      <SafariShell
-        brandName={ctx.brand.name}
-        nav={buildSafariNav(ctx)}
-        bookHref={
-          ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
-        }
-        solidNav
-        previewPages={previewPages}
-        analytics={ctx.analytics}
-        interactive={!ctx.preview}
-      >
-        {checkout}
-      </SafariShell>
+      <SiteThemeRoot theme={ctx.theme}>
+        <SafariShell
+          brandName={ctx.brand.name}
+          nav={buildSafariNav(ctx)}
+          bookHref={
+            ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+          }
+          solidNav
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          {checkout}
+        </SafariShell>
+      </SiteThemeRoot>
     );
   }
 

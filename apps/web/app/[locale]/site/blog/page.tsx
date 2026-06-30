@@ -103,21 +103,23 @@ export default async function SiteBlogIndexPage({
       reserveHref: bookHref || roomsHref,
     };
     return (
-      <SafariShell
-        brandName={ctx.brand.name}
-        nav={nav}
-        bookHref={bookHref}
-        previewPages={previewPages}
-        analytics={ctx.analytics}
-        interactive={!ctx.preview}
-      >
-        <SafariSectionList
-          sections={sections}
-          data={result?.data}
-          asset={siteAsset}
-          ctx={safariCtx}
-        />
-      </SafariShell>
+      <SiteThemeRoot theme={ctx.theme}>
+        <SafariShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          bookHref={bookHref}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          <SafariSectionList
+            sections={sections}
+            data={result?.data}
+            asset={siteAsset}
+            ctx={safariCtx}
+          />
+        </SafariShell>
+      </SiteThemeRoot>
     );
   }
 

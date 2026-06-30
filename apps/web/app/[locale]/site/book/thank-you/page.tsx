@@ -192,32 +192,34 @@ export default async function SiteThankYouPage({
     const nav = buildSafariNav(ctx);
     const navLinks = nav.links;
     return (
-      <SafariShell
-        brandName={ctx.brand.name}
-        nav={nav}
-        analytics={ctx.analytics}
-        interactive
-      >
-        <FirePurchase purchase={purchase} />
-        <SafariThankYouContent
-          state={
-            isConfirmed ? "confirmed" : isEftPending ? "eft" : "processing"
-          }
-          firstName={booking.guest_name?.split(/\s+/)[0] ?? null}
-          reference={booking.reference}
-          checkIn={booking.check_in}
-          checkOut={booking.check_out}
-          guests={booking.guests_count}
-          nights={nights}
-          total={total == null ? null : money(total, currency)}
-          eft={eft}
-          homeHref={
-            navLinks.find((l) => /^home$/i.test(l.label))?.href ||
-            navLinks[0]?.href
-          }
-          contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
-        />
-      </SafariShell>
+      <SiteThemeRoot theme={ctx.theme}>
+        <SafariShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          analytics={ctx.analytics}
+          interactive
+        >
+          <FirePurchase purchase={purchase} />
+          <SafariThankYouContent
+            state={
+              isConfirmed ? "confirmed" : isEftPending ? "eft" : "processing"
+            }
+            firstName={booking.guest_name?.split(/\s+/)[0] ?? null}
+            reference={booking.reference}
+            checkIn={booking.check_in}
+            checkOut={booking.check_out}
+            guests={booking.guests_count}
+            nights={nights}
+            total={total == null ? null : money(total, currency)}
+            eft={eft}
+            homeHref={
+              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+              navLinks[0]?.href
+            }
+            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
+          />
+        </SafariShell>
+      </SiteThemeRoot>
     );
   }
 

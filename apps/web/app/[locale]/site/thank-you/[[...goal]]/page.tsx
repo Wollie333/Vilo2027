@@ -140,29 +140,31 @@ export default async function SiteFormThankYouPage({
     const bookHref =
       ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
     return (
-      <SafariShell
-        brandName={ctx.brand.name}
-        nav={nav}
-        bookHref={bookHref}
-        previewPages={previewPages}
-        analytics={ctx.analytics}
-        interactive={!ctx.preview}
-      >
-        {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
-        <SafariThankYouContent
-          state="form"
-          firstName={firstName}
-          eyebrow={goalCopy.eyebrow}
-          headingText={heading}
-          message={message}
-          homeHref={
-            navLinks.find((l) => /^home$/i.test(l.label))?.href ||
-            navLinks[0]?.href
-          }
-          contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
-          roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
-        />
-      </SafariShell>
+      <SiteThemeRoot theme={ctx.theme}>
+        <SafariShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          bookHref={bookHref}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
+          <SafariThankYouContent
+            state="form"
+            firstName={firstName}
+            eyebrow={goalCopy.eyebrow}
+            headingText={heading}
+            message={message}
+            homeHref={
+              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+              navLinks[0]?.href
+            }
+            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
+            roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
+          />
+        </SafariShell>
+      </SiteThemeRoot>
     );
   }
 

@@ -98,32 +98,35 @@ export default async function SiteBlogPostPage({
     const nav = buildSafariNav(ctx);
     const navLinks = nav.links;
     return (
-      <SafariShell
-        brandName={ctx.brand.name}
-        nav={nav}
-        previewPages={previewPages}
-        analytics={ctx.analytics}
-        interactive={!ctx.preview}
-      >
-        {marketing}
-        <SafariArticleContent
-          post={{
-            title: post.title,
-            bodyHtml: post.bodyHtml,
-            coverUrl: post.coverUrl,
-            date: post.date,
-            authorName: post.authorName,
-            excerpt: post.excerpt,
-          }}
-          links={{
-            home:
-              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
-              navLinks[0]?.href,
-            journal: navLinks.find((l) => /journal|blog/i.test(l.label))?.href,
-            rooms: navLinks.find((l) => /suite|room/i.test(l.label))?.href,
-          }}
-        />
-      </SafariShell>
+      <SiteThemeRoot theme={ctx.theme}>
+        <SafariShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          {marketing}
+          <SafariArticleContent
+            post={{
+              title: post.title,
+              bodyHtml: post.bodyHtml,
+              coverUrl: post.coverUrl,
+              date: post.date,
+              authorName: post.authorName,
+              excerpt: post.excerpt,
+            }}
+            links={{
+              home:
+                navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+                navLinks[0]?.href,
+              journal: navLinks.find((l) => /journal|blog/i.test(l.label))
+                ?.href,
+              rooms: navLinks.find((l) => /suite|room/i.test(l.label))?.href,
+            }}
+          />
+        </SafariShell>
+      </SiteThemeRoot>
     );
   }
 
