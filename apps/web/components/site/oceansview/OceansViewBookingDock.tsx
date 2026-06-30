@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { SiteLoadingOverlay } from "../SiteLoadingOverlay";
+import { ThemedDateRange } from "../ThemedDateRange";
 
 /** Thousands-spaced integer (no Intl — hydration-safe). 12500 → "12 500". */
 function groupThousands(n: number): string {
@@ -82,26 +83,21 @@ export function OceansViewBookingDock({
           <span className="amt">Enquire</span>
         )}
       </div>
-      <div className="bkgrid">
-        <div className="field" style={{ marginBottom: 12 }}>
-          <label>Check in</label>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            disabled={!interactive}
-          />
-        </div>
-        <div className="field" style={{ marginBottom: 12 }}>
-          <label>Check out</label>
-          <input
-            type="date"
-            value={to}
-            min={from || undefined}
-            onChange={(e) => setTo(e.target.value)}
-            disabled={!interactive}
-          />
-        </div>
+      <div style={{ marginBottom: 12 }}>
+        <ThemedDateRange
+          from={from}
+          to={to}
+          onChange={(f, t) => {
+            setFrom(f);
+            setTo(t);
+          }}
+          accent="var(--site-accent)"
+          ink="var(--site-ink)"
+          mute="var(--site-mute)"
+          line="var(--site-line)"
+          surface="var(--site-surface)"
+          radius="var(--site-radius-sm, var(--site-radius, 10px))"
+        />
       </div>
       <div className="field" style={{ marginBottom: 16 }}>
         <label>Guests</label>

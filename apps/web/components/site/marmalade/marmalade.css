@@ -1585,13 +1585,15 @@
 }
 .wielo-marmalade .availbar-in {
   display: grid;
-  grid-template-columns: repeat(3, 1fr) auto;
+  grid-template-columns: 1.6fr 1fr auto;
   gap: 0;
   align-items: stretch;
   background: var(--site-surface, #fff);
   border-radius: var(--site-radius, 16px);
-  overflow: hidden;
   box-shadow: 0 30px 60px -34px rgba(44, 38, 32, 0.45);
+}
+.wielo-marmalade .ab-dates {
+  justify-content: center;
 }
 .wielo-marmalade .ab-field {
   padding: 18px 22px;

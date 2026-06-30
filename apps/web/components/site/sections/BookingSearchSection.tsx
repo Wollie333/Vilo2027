@@ -6,6 +6,7 @@ import type { BookingFunnelData, BookableProperty } from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
+import { ThemedDateRange } from "../ThemedDateRange";
 
 type Props = Extract<WebsiteSection, { type: "booking_search" }>["props"];
 
@@ -40,10 +41,6 @@ function money(total: number, currency: string) {
   } catch {
     return `${currency} ${total}`;
   }
-}
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 /**
@@ -180,31 +177,22 @@ export function BookingSearchSection({
             </Labelled>
           ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Labelled label="Check-in">
-              <input
-                type="date"
-                value={checkIn}
-                min={todayIso()}
-                onChange={(e) => {
-                  setCheckIn(e.target.value);
+          <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+            <Labelled label="Dates">
+              <ThemedDateRange
+                from={checkIn}
+                to={checkOut}
+                onChange={(f, t) => {
+                  setCheckIn(f);
+                  setCheckOut(t);
                   setState({ kind: "idle" });
                 }}
-                style={fieldStyle}
-                className={inputCls}
-              />
-            </Labelled>
-            <Labelled label="Check-out">
-              <input
-                type="date"
-                value={checkOut}
-                min={checkIn || todayIso()}
-                onChange={(e) => {
-                  setCheckOut(e.target.value);
-                  setState({ kind: "idle" });
-                }}
-                style={fieldStyle}
-                className={inputCls}
+                accent="var(--site-accent, var(--accent, #0a7d4b))"
+                ink="var(--site-ink, var(--ink, #16241d))"
+                mute="var(--site-mute, var(--ink-soft, #6b7a72))"
+                line="var(--site-line, var(--line, #e3e8e5))"
+                surface="var(--site-surface, var(--bg-2, #fff))"
+                radius="var(--site-radius, 10px)"
               />
             </Labelled>
             <Labelled label="Guests">

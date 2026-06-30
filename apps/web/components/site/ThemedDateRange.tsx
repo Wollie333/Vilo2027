@@ -53,6 +53,8 @@ export function ThemedDateRange({
   radius = "10px",
   labelIn = "Check-in",
   labelOut = "Check-out",
+  bare = false,
+  align = "left",
 }: {
   from: string;
   to: string;
@@ -65,6 +67,11 @@ export function ThemedDateRange({
   radius?: string;
   labelIn?: string;
   labelOut?: string;
+  /** Borderless / transparent trigger that blends into a host cell (e.g. the
+   *  availability bar), instead of the default bordered "boxed" button. */
+  bare?: boolean;
+  /** Which edge the popover anchors to (use "right" near the right edge). */
+  align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState(() => {
@@ -160,10 +167,10 @@ export function ThemedDateRange({
           gap: 12,
           width: "100%",
           textAlign: "left",
-          border: `1px solid ${line}`,
-          borderRadius: radius,
-          background: "#fff",
-          padding: "10px 12px",
+          border: bare ? "none" : `1px solid ${line}`,
+          borderRadius: bare ? 0 : radius,
+          background: bare ? "transparent" : "#fff",
+          padding: bare ? 0 : "10px 12px",
           cursor: "pointer",
         }}
       >
@@ -177,7 +184,7 @@ export function ThemedDateRange({
             position: "absolute",
             zIndex: 50,
             top: "calc(100% + 8px)",
-            left: 0,
+            ...(align === "right" ? { right: 0 } : { left: 0 }),
             width: 300,
             maxWidth: "92vw",
             background: surface,

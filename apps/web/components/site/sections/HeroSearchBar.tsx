@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { ThemedDateRange } from "../ThemedDateRange";
+
 // Inline search bar for the "Search" hero. Collects check-in / check-out /
 // guests and, on the live site, deep-links into the booking flow at `href`
 // (the hero's CTA link, default /explore) with from/to/guests query params —
@@ -47,40 +49,22 @@ export function HeroSearchBar({
         backdropFilter: onDark ? "blur(6px)" : undefined,
       }}
     >
-      <label className="flex-1 text-left">
-        <span
-          className="mb-1 block text-[11px] font-semibold"
-          style={{
-            color: onDark ? "rgba(255,255,255,0.9)" : "var(--site-mute)",
+      <div className="flex-1">
+        <ThemedDateRange
+          from={from}
+          to={to}
+          onChange={(f, t) => {
+            setFrom(f);
+            setTo(t);
           }}
-        >
-          Check-in
-        </span>
-        <input
-          type="date"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          className="w-full px-3 py-2.5 text-sm outline-none"
-          style={fieldStyle}
+          accent="var(--site-accent)"
+          ink="var(--site-ink)"
+          mute="var(--site-mute)"
+          line="var(--site-line)"
+          surface="var(--site-surface)"
+          radius="12px"
         />
-      </label>
-      <label className="flex-1 text-left">
-        <span
-          className="mb-1 block text-[11px] font-semibold"
-          style={{
-            color: onDark ? "rgba(255,255,255,0.9)" : "var(--site-mute)",
-          }}
-        >
-          Check-out
-        </span>
-        <input
-          type="date"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          className="w-full px-3 py-2.5 text-sm outline-none"
-          style={fieldStyle}
-        />
-      </label>
+      </div>
       <label className="w-full text-left sm:w-24">
         <span
           className="mb-1 block text-[11px] font-semibold"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { SiteLoadingOverlay } from "../SiteLoadingOverlay";
+import { ThemedDateRange } from "../ThemedDateRange";
 
 /** Thousands-spaced integer (no Intl — hydration-safe). 12500 → "12 500". */
 function groupThousands(n: number): string {
@@ -87,26 +88,21 @@ export function SabelaBookingDock({
         )}
       </div>
       <div className="bw-fields">
-        <div className="bw-row">
-          <div className="bw-field">
-            <label>Check in</label>
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              disabled={!interactive}
-            />
-          </div>
-          <div className="bw-field">
-            <label>Check out</label>
-            <input
-              type="date"
-              value={to}
-              min={from || undefined}
-              onChange={(e) => setTo(e.target.value)}
-              disabled={!interactive}
-            />
-          </div>
+        <div className="bw-row" style={{ display: "block" }}>
+          <ThemedDateRange
+            from={from}
+            to={to}
+            onChange={(f, t) => {
+              setFrom(f);
+              setTo(t);
+            }}
+            accent="var(--site-accent)"
+            ink="var(--site-ink)"
+            mute="var(--site-mute)"
+            line="var(--site-line)"
+            surface="var(--site-surface)"
+            radius="var(--site-radius-sm, var(--site-radius, 8px))"
+          />
         </div>
         <div className="bw-field full">
           <label>Guests</label>

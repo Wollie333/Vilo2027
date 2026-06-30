@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { BookableProperty, BookingFunnelData } from "@/lib/site/types";
 
+import { ThemedDateRange } from "../ThemedDateRange";
+
 type Match = {
   property: BookableProperty;
   available: boolean;
@@ -30,10 +32,6 @@ function money(total: number, currency: string) {
     return `${currency} ${total}`;
   }
 }
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 /**
  * The Sabela search-results page (the design's `.sr-bar` + `.sr-list` /
  * `.sr-card`). Self-contained search (dates + guests, pre-filled from the URL)
@@ -140,22 +138,24 @@ export function SabelaSearchResults({
             void runSearch();
           }}
         >
-          <div className="bw-field" style={{ borderBottom: 0 }}>
-            <label>Check in</label>
-            <input
-              type="date"
-              min={todayIso()}
-              value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
-            />
-          </div>
-          <div className="bw-field" style={{ borderBottom: 0 }}>
-            <label>Check out</label>
-            <input
-              type="date"
-              min={checkIn || todayIso()}
-              value={checkOut}
-              onChange={(e) => setCheckOut(e.target.value)}
+          <div
+            className="bw-field"
+            style={{ borderBottom: 0, justifyContent: "center" }}
+          >
+            <ThemedDateRange
+              from={checkIn}
+              to={checkOut}
+              onChange={(f, t) => {
+                setCheckIn(f);
+                setCheckOut(t);
+              }}
+              accent="var(--site-accent)"
+              ink="var(--site-ink)"
+              mute="var(--site-mute)"
+              line="var(--site-line)"
+              surface="var(--site-surface)"
+              radius="var(--site-radius-sm, var(--site-radius, 8px))"
+              bare
             />
           </div>
           <div className="bw-field" style={{ borderBottom: 0 }}>

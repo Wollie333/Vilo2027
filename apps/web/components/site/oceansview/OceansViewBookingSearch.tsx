@@ -4,6 +4,8 @@ import { useMemo, useState, type FormEvent } from "react";
 
 import type { BookingFunnelData } from "@/lib/site/types";
 
+import { ThemedDateRange } from "../ThemedDateRange";
+
 const SEARCH_ICON = (
   <svg
     width="18"
@@ -20,10 +22,6 @@ const SEARCH_ICON = (
     <path d="m21 21-4.3-4.3" />
   </svg>
 );
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 /**
  * The Oceans View availability bar (the design's `.availbar` under the hero).
@@ -73,24 +71,21 @@ export function OceansViewBookingSearch({
     >
       <div className="wrap">
         <form className="availbar-in" onSubmit={onSubmit}>
-          <div className="ab-field">
-            <label>Check in</label>
-            <input
-              type="date"
-              name="checkin"
-              min={todayIso()}
-              value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
-            />
-          </div>
-          <div className="ab-field">
-            <label>Check out</label>
-            <input
-              type="date"
-              name="checkout"
-              min={checkIn || todayIso()}
-              value={checkOut}
-              onChange={(e) => setCheckOut(e.target.value)}
+          <div className="ab-field ab-dates">
+            <ThemedDateRange
+              from={checkIn}
+              to={checkOut}
+              onChange={(f, t) => {
+                setCheckIn(f);
+                setCheckOut(t);
+              }}
+              accent="var(--site-accent)"
+              ink="var(--site-ink)"
+              mute="var(--site-mute)"
+              line="var(--site-line)"
+              surface="var(--site-surface)"
+              radius="var(--site-radius-sm, var(--site-radius, 10px))"
+              bare
             />
           </div>
           <div className="ab-field">

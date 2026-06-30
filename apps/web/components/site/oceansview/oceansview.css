@@ -625,11 +625,13 @@
   border-radius: var(--site-radius-lg, 22px);
   box-shadow: 0 30px 70px -30px rgba(10, 34, 48, 0.4);
   display: grid;
-  grid-template-columns: repeat(3, 1fr) auto;
+  grid-template-columns: 1.6fr 1fr auto;
   gap: 0;
   align-items: stretch;
-  overflow: hidden;
   border: 1px solid var(--site-line, #e9e1d1);
+}
+.wielo-oceansview .ab-dates {
+  justify-content: center;
 }
 .wielo-oceansview .ab-field {
   display: flex;
