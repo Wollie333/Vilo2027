@@ -20,6 +20,7 @@ Wielo gives hosts a professional, branded booking website and a private dashboar
 | Payments | **Paystack (ZAR)** — hosts connect their **own** Paystack (test **and** live keys + a mode switch); guest booking + on-site website checkout settle directly to the host (Wielo 0%). Platform billing uses the platform Paystack. **Manual EFT** — live. **Free products skip payment** (auto-provision). PayPal — host config only, not in guest checkout |
 | Email / notifications | Resend + React Email, dispatched via an in-app / email / push notification queue drained by pg_cron (atomic claim — see below) |
 | Calendar sync | RFC 5545 iCal **import** (external feeds → blocked dates) + **export** (public per-listing feed) |
+| Maps / addresses | **Google Places (New) Autocomplete + Geocoding** via a server proxy (`/api/geo`, key never exposed); Leaflet on OSM tiles for the interactive map pin |
 | Package manager | **pnpm 9** (Node ≥ 20) |
 | Hosting | Vercel (web) |
 
@@ -89,10 +90,10 @@ cd apps/web && pnpm seed:test-site   # idempotent; seeds the linked cloud DB
 
 ## Build status
 
-_Honest, code-level snapshot — **2026-06-29**. Percentages are share of MVP scope **wired in code** (UI → Server Action/RPC → real DB), not "verified in production." Build priority: **Host dashboard → Website CMS → Guest portal → Admin**._
+_Honest, code-level snapshot — **2026-06-30**. Percentages are share of MVP scope **wired in code** (UI → Server Action/RPC → real DB), not "verified in production." Build priority: **Host dashboard → Website CMS → Guest portal → Admin**._
 
 ### Host dashboard — ~85% of MVP scope wired
-**Working (UI + action + DB):** email/password auth & login; host onboarding/setup checklist; **listing editor** (basic, photos→Storage, location, rooms, amenities, pricing, **seasonal pricing**, policies, add-ons, guest access); availability **calendar** + block dates; **bookings** list + detail + full lifecycle (confirm / decline / cancel / check-in / check-out, policy-based refund); **quotes** (create → send → open-tracking → convert to booking); **invoices + credit notes** (+ PDF); **payments** + EFT settle; **host-side refunds**; **coupons**; **host inbox** (realtime, incl. sending a booking **payment link as a pay card** into the guest thread — creates the thread if none exists yet); **reviews** + replies; **external reviews** (connect Google Business Profile / Facebook Page via OAuth → sync external reviews into Wielo, host reply, public aggregate rating; daily cron + manual sync; tokens encrypted at rest); **settings** (profile, multi-business banking incl. own Paystack/PayPal credentials, notification prefs); **staff** invites; **help centre**; in-app + email + push **notifications**.
+**Working (UI + action + DB):** email/password auth & login; host onboarding/setup checklist; **listing editor** (basic, photos→Storage, **Google Places address autocomplete + map pin**, rooms, amenities, pricing, **seasonal pricing**, policies, add-ons, guest access); availability **calendar** + block dates; **bookings** list + detail + full lifecycle (confirm / decline / cancel / check-in / check-out, policy-based refund); **quotes** (create → send → open-tracking → convert to booking); **invoices + credit notes** (+ PDF); **payments** + EFT settle; **host-side refunds**; **coupons**; **host inbox** (realtime, incl. sending a booking **payment link as a pay card** into the guest thread — creates the thread if none exists yet); **reviews** + replies; **external reviews** (connect Google Business Profile / Facebook Page via OAuth → sync external reviews into Wielo, host reply, public aggregate rating; daily cron + manual sync; tokens encrypted at rest); **settings** (profile, multi-business banking incl. own Paystack/PayPal credentials, notification prefs); **staff** invites; **help centre**; in-app + email + push **notifications**.
 **Partial:** subscription page (plan **state machine only — no real billing calls yet**); data export/deletion (UI + soft-delete; fulfilment partial). Reports/analytics dashboards render but report-generation is a placeholder.
 
 ### Website CMS (host's own site) — substantial, the largest recent lane
@@ -128,7 +129,7 @@ Expo project scaffolded; screens not yet built.
 
 ## Known gaps to MVP (recommended launch path)
 
-1. **Set production env switches** (inert until set, by design): `ICAL_TOKEN_SECRET` (calendar export), `RESEND_API_KEY` + worker URL/secret (notification send), live Paystack/PayPal keys, `TURNSTILE_*`, `NEXT_PUBLIC_ROOT_DOMAIN` + DNS for **per-host custom domains** (tenant **subdomains** on `*.wielo.co.za` are **live**), `app.report_scheduler_secret` + `app.settings.*` (report cron), **external-reviews** OAuth app credentials (Google Business Profile / Facebook) + token-encryption key + `external_reviews_worker_url`/`_secret` vault secrets (daily sync stays dormant until set).
+1. **Set production env switches** (inert until set, by design): `ICAL_TOKEN_SECRET` (calendar export), `RESEND_API_KEY` + worker URL/secret (notification send), live Paystack/PayPal keys, `TURNSTILE_*`, `GOOGLE_MAPS_API_KEY` (address autocomplete via `/api/geo` — Places API New + Geocoding; **live**), `NEXT_PUBLIC_ROOT_DOMAIN` + DNS for **per-host custom domains** (tenant **subdomains** on `*.wielo.co.za` are **live**), `app.report_scheduler_secret` + `app.settings.*` (report cron), **external-reviews** OAuth app credentials (Google Business Profile / Facebook) + token-encryption key + `external_reviews_worker_url`/`_secret` vault secrets (daily sync stays dormant until set).
 2. **Smoke-test money + email round-trips in production** — a real Paystack booking → webhook confirms → Resend email lands.
 3. **Decide guest↔host messaging scope** — guest inbox is one-way today.
 4. **PayPal** — Paystack + EFT are the processors for beta (PayPal is host-config only). Wire PayPal end-to-end (checkout + webhook) only if needed later.
