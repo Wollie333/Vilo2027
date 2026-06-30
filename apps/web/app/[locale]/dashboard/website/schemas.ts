@@ -116,6 +116,7 @@ export const SITE_FONTS = [
   "elegant",
   "grotesk",
   "editorial",
+  "homely",
 ] as const;
 export const SITE_RADII = ["none", "sm", "md", "lg", "xl"] as const;
 export const SITE_PRESET_NAMES = ["warm", "coastal"] as const;

@@ -26,6 +26,12 @@ import {
   type OceansViewCtx,
 } from "./oceansview/OceansViewSections";
 import { OceansViewBookingDock } from "./oceansview/OceansViewBookingDock";
+import { MarmaladeShell } from "./marmalade/MarmaladeShell";
+import {
+  MarmaladeSectionList,
+  type MarmaladeCtx,
+} from "./marmalade/MarmaladeSections";
+import { MarmaladeBookingDock } from "./marmalade/MarmaladeBookingDock";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
@@ -328,6 +334,86 @@ export async function SiteRoomView({
               interactive
             />
           </OceansViewShell>
+        </SiteThemeRoot>
+      </>
+    );
+  }
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "marmalade") {
+    const mmCtx: MarmaladeCtx = {
+      brandName: ctx.brand.name,
+      contactEmail: ctx.brand.contactEmail,
+      contactPhone: ctx.brand.contactPhone,
+      homeHref:
+        ctx.nav.find((l) => /^home$/i.test(l.label))?.href || ctx.nav[0]?.href,
+      roomsHref: roomsHref || undefined,
+      contactHref: ctx.nav.find((l) => /contact/i.test(l.label))?.href,
+      reserveHref: headerBookHref || room.bookHref,
+    };
+    // Room-detail composition matching the design (Room.html): the .rgal gallery
+    // full-width, then a 2-column .rlayout — room content on the left, the sticky
+    // .bkcard dock on the right — then reviews/CTA full-width. room_rate is the
+    // dock, so it's dropped from the body.
+    const mmBody = contentSections.filter((s) =>
+      ["room_overview", "room_amenities", "room_policies"].includes(s.type),
+    );
+    const mmBelow = contentSections.filter(
+      (s) =>
+        ![
+          "room_overview",
+          "room_amenities",
+          "room_policies",
+          "room_rate",
+        ].includes(s.type),
+    );
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        <SiteThemeRoot theme={ctx.theme}>
+          <MarmaladeShell
+            brandName={ctx.brand.name}
+            nav={buildSafariNav(ctx)}
+            bookHref={headerBookHref}
+            solidNav
+            previewPages={previewPages}
+            analytics={ctx.analytics}
+            interactive={!ctx.preview}
+          >
+            <MarmaladeSectionList
+              sections={gallerySections}
+              data={data}
+              asset={siteAsset}
+              ctx={mmCtx}
+            />
+            <section className="section" style={{ paddingTop: 0 }}>
+              <div className="wrap">
+                <div className="rlayout">
+                  <div>
+                    <MarmaladeSectionList
+                      sections={mmBody}
+                      data={data}
+                      asset={siteAsset}
+                      ctx={mmCtx}
+                      interactive
+                    />
+                  </div>
+                  <MarmaladeBookingDock
+                    price={room.price}
+                    currency={room.currency}
+                    bookHref={room.bookHref}
+                    maxGuests={room.maxGuests}
+                    interactive
+                  />
+                </div>
+              </div>
+            </section>
+            <MarmaladeSectionList
+              sections={mmBelow}
+              data={data}
+              asset={siteAsset}
+              ctx={mmCtx}
+              interactive
+            />
+          </MarmaladeShell>
         </SiteThemeRoot>
       </>
     );

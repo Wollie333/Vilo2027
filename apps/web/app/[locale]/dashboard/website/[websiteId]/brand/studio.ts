@@ -193,7 +193,14 @@ export type StudioState = {
   footer: SiteFooterConfig;
 };
 
-const FONTS: SiteFont[] = ["sans", "serif", "elegant", "grotesk", "editorial"];
+const FONTS: SiteFont[] = [
+  "sans",
+  "serif",
+  "elegant",
+  "grotesk",
+  "editorial",
+  "homely",
+];
 const RADII: SiteRadius[] = ["none", "sm", "md", "lg", "xl"];
 
 const asSlug = (v: unknown): string =>

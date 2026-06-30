@@ -1115,6 +1115,388 @@ const OCEANSVIEW_TEMPLATES: ThemeTemplate[] = [
   },
 ];
 
+// ── Marmalade House — warm photographic guesthouse (postcard album)
+// The founder's fourth theme. Voice: homely, unhurried, Karoo guesthouse —
+// figs, breakfast, a restored parsonage. Light, butter-cream ground; the
+// scoped .wielo-marmalade layer carries the tilted postcards + pill nav.
+const marmalade = {
+  heroFull: () =>
+    build("hero", (s) => {
+      s.props.eyebrow = "A guesthouse in the Karoo";
+      s.props.headline = "A little house that feeds you well.";
+      s.props.subheadline =
+        "Five sunny rooms in a restored 1873 parsonage, a garden full of figs, and a breakfast worth setting an alarm for.";
+      s.props.cta_label = "See the rooms";
+      s.props.cta_href = "#rooms";
+      s.props.cta2_label = "Meet the house";
+      s.props.cta2_href = "/about";
+      s.props.stats = [
+        { value: "1873", label: "The old parsonage" },
+        { value: "5", label: "Rooms, all different" },
+        { value: "4.97", label: "From 240 stays" },
+      ];
+      s.props.align = "center";
+      s.props.variant = "fullscreen";
+      s.props.overlay = "medium";
+      s.props.textTone = "light";
+      s.props.height = "tall";
+    }),
+  heroSplit: () =>
+    build("hero", (s) => {
+      s.props.headline = "A house with stories";
+      s.props.subheadline =
+        "We didn't set out to run a guesthouse. We set out to save an old house — and couldn't bear to keep it to ourselves.";
+      s.props.cta_label = "See the rooms";
+      s.props.cta_href = "#rooms";
+      s.props.align = "left";
+      s.props.variant = "split_right";
+      s.props.height = "medium";
+    }),
+  story: () =>
+    build("intro", (s) => {
+      s.props.eyebrow = "Welcome in";
+      s.props.heading = "It's less a hotel, more a home with spare rooms.";
+      s.props.body =
+        "We're a five-room guesthouse in the old parsonage on Church Street — pressed ceilings, deep baths, a long table, and a garden the kitchen raids every morning.\n\nThere's no front desk, no piped music, and no fee for booking straight with us. Just a key, a cup of tea on arrival, and whichever room suits you best.";
+      s.props.variant = "lead";
+    }),
+  // ── About-page blocks ──
+  aboutHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "The House";
+      s.props.headline = "A house with stories";
+      s.props.subheadline =
+        "We didn't set out to run a guesthouse. We set out to save an old house — and couldn't bear to keep it to ourselves.";
+    }),
+  aboutStory: () =>
+    build("intro", (s) => {
+      s.props.eyebrow = "Your hosts";
+      s.props.heading = "Hannah & Pieter, and a very old kitchen";
+      s.props.body =
+        "We found the parsonage in 2019 — pressed ceilings sagging, a fig tree gone wild, and a kitchen built for feeding a congregation. We've been feeding people in it ever since.";
+      s.props.badge_value = "1873";
+      s.props.badge_label = "The old parsonage";
+      s.props.variant = "lead";
+    }),
+  aboutStats: () =>
+    build("stats", (s) => {
+      s.props.items = [
+        { value: "1873", label: "The old parsonage" },
+        { value: "5", label: "Rooms, all different" },
+        { value: "2", label: "Hens (and Biscuit)" },
+        { value: "4.97", label: "From 240 stays" },
+      ];
+    }),
+  aboutHost: () =>
+    build("host_bio", (s) => {
+      s.props.heading = "Your hosts";
+      s.props.name = "Hannah & Pieter";
+      s.props.body =
+        "Hannah cooks; Pieter pours the coffee and knows every walk in the Swartberg. Between us we keep five rooms, a garden, two hens and a dog called Biscuit. It's just us — which is rather the point.";
+    }),
+  aboutValues: () =>
+    build("values", (s) => {
+      s.props.heading = "Four house rules we keep";
+      s.props.items = [
+        {
+          title: "Breakfast comes first",
+          body: "Made from scratch, from the garden where we can. The heart of the house, not an add-on.",
+        },
+        {
+          title: "Stay small",
+          body: "Five rooms is exactly enough to know your name and still get the bread out on time.",
+        },
+        {
+          title: "Gentle on the village",
+          body: "Solar where we can, water we're careful with, everything bought down the road.",
+        },
+        {
+          title: "Honest pricing",
+          body: "Book direct and pay what you see. No agents, no surcharges, no fee at checkout.",
+        },
+      ];
+    }),
+  experiences: () =>
+    build("highlights", (s) => {
+      s.props.heading = "Small house, big mornings";
+      s.props.variant = "grid";
+      s.props.items = [
+        {
+          title: "Breakfast in the garden",
+          body: "Fig jam, fresh bread and eggs from the hens out back, under the vine until ten.",
+        },
+        {
+          title: "Five rooms, all different",
+          body: "Each one named, each its own colour and quirk. The Fig Room is everyone's favourite.",
+        },
+        {
+          title: "The village & the stars",
+          body: "A two-minute amble to dinner, and a Karoo sky that does the rest after dark.",
+        },
+      ];
+    }),
+  rooms: () =>
+    build("rooms_preview", (s) => {
+      s.props.heading = "Pick a room, any room";
+    }),
+  // ── Rooms-page blocks ──
+  roomsHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Rooms";
+      s.props.headline = "Five rooms, no two alike";
+      s.props.subheadline =
+        "Each one named, each its own colour and quirk — and every one with breakfast, the garden, and a key that's yours for the stay.";
+    }),
+  roomsIncluded: () =>
+    build("amenities", (s) => {
+      s.props.variant = "inline";
+      s.props.items = [
+        { label: "Breakfast included" },
+        { label: "Garden & stoep" },
+        { label: "Free Wi-Fi & parking" },
+        { label: "0% booking fees" },
+      ];
+    }),
+  roomsShowcase: () =>
+    build("rooms_preview", (s) => {
+      s.props.display = "showcase";
+      s.props.heading = "Where you'll sleep";
+    }),
+  gallery: () =>
+    build("gallery", (s) => {
+      s.props.heading = "The house, in snapshots";
+    }),
+  reviews: () =>
+    build("reviews", (s) => {
+      s.props.heading = "What people write home";
+      s.props.variant = "grid";
+    }),
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "34 Church Street, Prince Albert";
+      s.props.variant = "split";
+    }),
+  ctaBanner: () =>
+    build("cta", (s) => {
+      s.props.heading = "Come stay a night or three";
+      s.props.body =
+        "Booked direct with the house — the price you see is the price you pay, with breakfast and 0% booking fees.";
+      s.props.button_label = "Check availability";
+      s.props.button_href = "#rooms";
+      s.props.variant = "banner";
+    }),
+  contactForm: () =>
+    build("contact_form", (s) => {
+      s.props.heading = "Tell us about your stay";
+      s.props.body = "A real person at the house replies within a day.";
+      s.props.variant = "split";
+    }),
+  // ── Contact-page blocks ──
+  contactHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "Contact";
+      s.props.headline = "Drop us a line";
+      s.props.subheadline =
+        "Booking, a special request, or just a question — a real person at the house replies within a day.";
+    }),
+  contactMap: () =>
+    build("map", (s) => {
+      s.props.heading = "Finding us";
+      s.props.address = "34 Church Street · Prince Albert, Karoo";
+    }),
+  faq: () =>
+    build("faq", (s) => {
+      s.props.heading = "Frequently asked";
+      s.props.variant = "accordion";
+      s.props.items = [
+        {
+          q: "Check-in & check-out?",
+          a: "Check-in from 2pm, check-out by 10am. Arriving early or leaving late? Tell us — we'll mind your bags and the garden's always open to you.",
+        },
+        {
+          q: "Is breakfast included?",
+          a: "Always. A proper made-from-scratch breakfast under the vine, 7 to 10, from the garden where we can. Dietary things are no trouble — just tell us.",
+        },
+        {
+          q: "Cancellation policy?",
+          a: "Free cancellation up to 48 hours before arrival on every direct booking, with a full refund. Because you book straight with us, there's nothing layered on top.",
+        },
+      ];
+    }),
+  amenities: () =>
+    build("amenities", (s) => {
+      s.props.heading = "In the house";
+      s.props.items = [
+        { icon: "☕", label: "Breakfast included" },
+        { icon: "🌿", label: "Fig garden & stoep" },
+        { icon: "🛁", label: "Deep baths" },
+        { icon: "📶", label: "Fast Wi-Fi" },
+        { icon: "🚗", label: "Free parking" },
+        { icon: "⭐", label: "Karoo skies" },
+      ];
+    }),
+  pricing: () =>
+    build("pricing", (s) => {
+      s.props.heading = "Rates & seasons";
+      s.props.items = [
+        {
+          label: "The Little Room",
+          price: "R980",
+          note: "per night, sleeps 1 · incl. breakfast",
+        },
+        {
+          label: "The Fig Room",
+          price: "R1,450",
+          note: "per night, sleeps 2 · incl. breakfast",
+        },
+        {
+          label: "The Stoep Suite",
+          price: "R2,300",
+          note: "per night, sleeps 4 · incl. breakfast",
+        },
+      ];
+      s.props.footnote =
+        "Every rate includes breakfast and all taxes — exactly what you pay when you book direct.";
+    }),
+  blog: () =>
+    build("blog_preview", (s) => {
+      s.props.heading = "From the journal";
+    }),
+  // ── Journal-page blocks ──
+  journalHero: () =>
+    build("hero", (s) => {
+      s.props.compact = true;
+      s.props.eyebrow = "The journal";
+      s.props.headline = "Notes from the kitchen";
+      s.props.subheadline =
+        "Recipes, the garden, the village and the odd strong opinion — little stories from our corner of the Karoo.";
+    }),
+  journalPosts: () =>
+    build("blog_preview", (s) => {
+      s.props.display = "journal";
+      s.props.heading = "From the journal";
+      s.props.max = 9;
+    }),
+  newsletterCta: () =>
+    build("cta", (s) => {
+      s.props.newsletter = true;
+      s.props.heading = "Notes from the kitchen";
+      s.props.body =
+        "Open dates, the odd recipe, and when the figs are ripe. Once a month, never more.";
+      s.props.button_label = "Join";
+      s.props.button_href = "#";
+    }),
+};
+
+const MARMALADE_PRESETS: ThemeSectionPreset[] = [
+  {
+    key: "marmalade_hero_full",
+    label: "Hero — postcard",
+    make: marmalade.heroFull,
+  },
+  {
+    key: "marmalade_hero_split",
+    label: "Hero — split",
+    make: marmalade.heroSplit,
+  },
+  { key: "marmalade_story", label: "Story", make: marmalade.story },
+  {
+    key: "marmalade_experiences",
+    label: "Highlights",
+    make: marmalade.experiences,
+  },
+  { key: "marmalade_gallery", label: "Gallery", make: marmalade.gallery },
+  { key: "marmalade_reviews", label: "Reviews", make: marmalade.reviews },
+  { key: "marmalade_location", label: "Location", make: marmalade.location },
+  { key: "marmalade_cta", label: "Booking CTA", make: marmalade.ctaBanner },
+  {
+    key: "marmalade_contact_form",
+    label: "Contact form",
+    make: marmalade.contactForm,
+  },
+  { key: "marmalade_faq", label: "FAQ", make: marmalade.faq },
+  {
+    key: "marmalade_amenities",
+    label: "In the house",
+    make: marmalade.amenities,
+  },
+  { key: "marmalade_pricing", label: "Rates", make: marmalade.pricing },
+  { key: "marmalade_blog", label: "Journal", make: marmalade.blog },
+];
+
+const MARMALADE_TEMPLATES: ThemeTemplate[] = [
+  {
+    key: "marmalade_home",
+    label: "Home",
+    description:
+      "Postcard hero, the welcome, the rooms, small mornings, the gallery, reviews, location and a booking CTA.",
+    make: () => [
+      marmalade.heroFull(),
+      marmalade.story(),
+      marmalade.rooms(),
+      marmalade.experiences(),
+      marmalade.gallery(),
+      marmalade.reviews(),
+      marmalade.location(),
+      marmalade.ctaBanner(),
+    ],
+  },
+  {
+    key: "marmalade_about",
+    label: "About",
+    description:
+      "Postcard page-head, your story, the stats band, your hosts, the house rules, gallery and a CTA.",
+    make: () => [
+      marmalade.aboutHero(),
+      marmalade.aboutStory(),
+      marmalade.aboutStats(),
+      marmalade.aboutHost(),
+      marmalade.aboutValues(),
+      marmalade.gallery(),
+      marmalade.ctaBanner(),
+    ],
+  },
+  {
+    key: "marmalade_rooms",
+    label: "Rooms",
+    description:
+      "Postcard page-head, what's included, your rooms as postcards, rates and a CTA.",
+    make: () => [
+      marmalade.roomsHero(),
+      marmalade.roomsIncluded(),
+      marmalade.roomsShowcase(),
+      marmalade.pricing(),
+      marmalade.ctaBanner(),
+    ],
+  },
+  {
+    key: "marmalade_journal",
+    label: "Journal",
+    description:
+      "Postcard page-head, your posts (featured + grid) and a newsletter sign-up.",
+    make: () => [
+      marmalade.journalHero(),
+      marmalade.journalPosts(),
+      marmalade.newsletterCta(),
+    ],
+  },
+  {
+    key: "marmalade_contact",
+    label: "Contact",
+    description:
+      "Page-head, message form + details, a map and the good-to-know FAQ.",
+    make: () => [
+      marmalade.contactHero(),
+      marmalade.contactForm(),
+      marmalade.contactMap(),
+      marmalade.faq(),
+    ],
+  },
+];
+
 const SAFARI_PRESETS: ThemeSectionPreset[] = [
   {
     key: "safari_hero_full",
@@ -1213,11 +1595,13 @@ const PRESETS: Record<string, ThemeSectionPreset[]> = {
   safari: SAFARI_PRESETS,
   sabela: SABELA_PRESETS,
   oceansview: OCEANSVIEW_PRESETS,
+  marmalade: MARMALADE_PRESETS,
 };
 const TEMPLATES: Record<string, ThemeTemplate[]> = {
   safari: SAFARI_TEMPLATES,
   sabela: SABELA_TEMPLATES,
   oceansview: OCEANSVIEW_TEMPLATES,
+  marmalade: MARMALADE_TEMPLATES,
 };
 
 // Themes currently ACTIVE in the system. Their designed building blocks (section
@@ -1226,7 +1610,12 @@ const TEMPLATES: Record<string, ThemeTemplate[]> = {
 // platform theme (site_themes holds only the Safari row; see migration
 // 20260630120000_keep_only_safari_theme). A site stuck on a removed theme simply
 // gets no theme blocks.
-const ACTIVE_THEME_SLUGS = new Set<string>(["safari", "sabela", "oceansview"]);
+const ACTIVE_THEME_SLUGS = new Set<string>([
+  "safari",
+  "sabela",
+  "oceansview",
+  "marmalade",
+]);
 
 /** Designed section presets for the slug — only when that theme is active. */
 export function getThemeSectionPresets(
@@ -1282,6 +1671,15 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.policies(),
     oceansview.reviews(),
     oceansview.ctaBanner(),
+  ],
+  marmalade: () => [
+    roomDetail.gallery(),
+    roomDetail.overview(),
+    roomDetail.amenities(),
+    roomDetail.rate(),
+    roomDetail.policies(),
+    marmalade.reviews(),
+    marmalade.ctaBanner(),
   ],
 };
 

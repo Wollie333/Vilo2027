@@ -62,6 +62,7 @@ import { ColumnsSection, FlexSection } from "./sections/ColumnsSection";
 import { renderSafariSection, type SafariCtx } from "./sections/SafariSections";
 import { renderSabelaSection } from "./sabela/SabelaSections";
 import { renderOceansViewSection } from "./oceansview/OceansViewSections";
+import { renderMarmaladeSection } from "./marmalade/MarmaladeSections";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -204,6 +205,17 @@ function SectionSwitch({
       interactive,
     });
     if (ov !== undefined) return ov;
+  }
+  if (themeVariant === "marmalade") {
+    // MarmaladeCtx is structurally identical to SafariCtx — reuse the ctx.
+    const mm = renderMarmaladeSection(section, {
+      data,
+      asset,
+      ctx: safariCtx,
+      websiteId,
+      interactive,
+    });
+    if (mm !== undefined) return mm;
   }
   switch (section.type) {
     case "hero":

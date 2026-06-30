@@ -71,7 +71,14 @@ export type SectionProps = {
   fallbackName: string;
 };
 
-const FONTS: SiteFont[] = ["sans", "serif", "elegant", "grotesk", "editorial"];
+const FONTS: SiteFont[] = [
+  "sans",
+  "serif",
+  "elegant",
+  "grotesk",
+  "editorial",
+  "homely",
+];
 
 const FONT_SAMPLE: Record<SiteFont, string> = {
   sans: 'ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif',
@@ -79,6 +86,7 @@ const FONT_SAMPLE: Record<SiteFont, string> = {
   elegant: '"Cormorant Garamond", Georgia, ui-serif, serif',
   grotesk: '"Trebuchet MS", "Avenir Next", "Segoe UI", Verdana, sans-serif',
   editorial: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif',
+  homely: '"Gloock", "Playfair Display", Georgia, ui-serif, serif',
 };
 
 // ── Identity ──────────────────────────────────────────────

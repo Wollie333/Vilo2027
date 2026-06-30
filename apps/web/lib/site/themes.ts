@@ -9,7 +9,13 @@
 // module resolves that config into a palette + font stack + radius and emits the
 // CSS-variable object. Pure data — safe to import in server or client.
 
-export type SiteFont = "sans" | "serif" | "elegant" | "grotesk" | "editorial";
+export type SiteFont =
+  | "sans"
+  | "serif"
+  | "elegant"
+  | "grotesk"
+  | "editorial"
+  | "homely";
 export type SiteRadius = "none" | "sm" | "md" | "lg" | "xl";
 
 export type SitePalette = {
@@ -113,6 +119,14 @@ const FONT_STACKS: Record<SiteFont, { heading: string; body: string }> = {
     heading:
       '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", ui-serif, serif',
     body: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, ui-serif, serif',
+  },
+  homely: {
+    // Chunky display serif over a warm humanist sans — the "guesthouse postcard"
+    // look. Leads with the web fonts the theme shell loads (Gloock / Karla —
+    // e.g. Marmalade House), falling back to characterful serif/sans elsewhere.
+    heading:
+      '"Gloock", "Playfair Display", Georgia, Cambria, "Times New Roman", ui-serif, serif',
+    body: '"Karla", "Segoe UI", "Avenir Next", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif',
   },
 };
 

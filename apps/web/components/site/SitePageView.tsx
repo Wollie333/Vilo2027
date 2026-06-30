@@ -20,6 +20,7 @@ import { PageHeadCode } from "./PageHeadCode";
 import { SafariSiteView } from "./safari/SafariSiteView";
 import { SabelaSiteView } from "./sabela/SabelaSiteView";
 import { OceansViewSiteView } from "./oceansview/OceansViewSiteView";
+import { MarmaladeSiteView } from "./marmalade/MarmaladeSiteView";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
@@ -194,6 +195,32 @@ export async function SitePageView({
         {pageMarketing}
         <SiteThemeRoot theme={ctx.theme}>
           <OceansViewSiteView
+            kind={result.page.kind}
+            pageTitle={result.page.title ?? undefined}
+            sections={result.sections}
+            data={result.data}
+            asset={siteAsset}
+            brandName={ctx.brand.name}
+            contactEmail={ctx.brand.contactEmail}
+            contactPhone={ctx.brand.contactPhone}
+            nav={buildSafariNav(ctx, currentPageKey)}
+            bookHref={headerBookHref}
+            previewPages={previewPages}
+            analytics={ctx.analytics}
+            interactive={!ctx.preview}
+            websiteId={ctx.websiteId}
+          />
+        </SiteThemeRoot>
+      </>
+    );
+  }
+  if (activeThemeSlug === "marmalade") {
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <MarmaladeSiteView
             kind={result.page.kind}
             pageTitle={result.page.title ?? undefined}
             sections={result.sections}

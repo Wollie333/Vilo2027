@@ -18,6 +18,11 @@ import {
   OceansViewSectionList,
   type OceansViewCtx,
 } from "@/components/site/oceansview/OceansViewSections";
+import { MarmaladeShell } from "@/components/site/marmalade/MarmaladeShell";
+import {
+  MarmaladeSectionList,
+  type MarmaladeCtx,
+} from "@/components/site/marmalade/MarmaladeSections";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -203,6 +208,47 @@ export default async function SiteBlogIndexPage({
             ctx={ovCtx}
           />
         </OceansViewShell>
+      </SiteThemeRoot>
+    );
+  }
+  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "marmalade") {
+    const result = await loadSitePage(ctx, ["blog"]);
+    const sections = result?.sections ?? [];
+    const nav = buildSafariNav(ctx);
+    const navLinks = nav.links;
+    const roomsHref =
+      navLinks.find((l) => /suite|room/i.test(l.label))?.href || "#rooms";
+    const bookHref =
+      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+    const mmCtx: MarmaladeCtx = {
+      brandName: ctx.brand.name,
+      contactEmail: ctx.brand.contactEmail,
+      contactPhone: ctx.brand.contactPhone,
+      homeHref:
+        navLinks.find((l) => /^home$/i.test(l.label))?.href ||
+        navLinks[0]?.href,
+      roomsHref,
+      aboutHref: navLinks.find((l) => /about|story|house/i.test(l.label))?.href,
+      contactHref: navLinks.find((l) => /contact/i.test(l.label))?.href,
+      reserveHref: bookHref || roomsHref,
+    };
+    return (
+      <SiteThemeRoot theme={ctx.theme}>
+        <MarmaladeShell
+          brandName={ctx.brand.name}
+          nav={nav}
+          bookHref={bookHref}
+          previewPages={previewPages}
+          analytics={ctx.analytics}
+          interactive={!ctx.preview}
+        >
+          <MarmaladeSectionList
+            sections={sections}
+            data={result?.data}
+            asset={siteAsset}
+            ctx={mmCtx}
+          />
+        </MarmaladeShell>
       </SiteThemeRoot>
     );
   }
