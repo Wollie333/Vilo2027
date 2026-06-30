@@ -41,6 +41,15 @@ in five slices, each tsc + lint clean; full `pnpm build` PASSES.
 - **3 alt palettes (Lagoon/Riviera/Sea Glass)** are in the scoped CSS via
   `[data-theme]` but overridden by SiteThemeRoot's inline `--site-*` — switching is
   the same Brand-Studio/wizard palette-picker concern, deferred.
+- **Follow-up fix — theme PREVIEW now shows the theme's own design.** The
+  founder reported previewing Oceans View showed "safari layouts with white and
+  blue". Root cause: the gallery full-site preview (`?theme=<slug>&preview=1`)
+  swapped only the theme COLOURS but still rendered the host's existing pages.
+  Fixed `loadSitePage`: in preview it now loads the previewed theme's own
+  `page_templates` (its demo composition) per kind + derives the nav from those
+  pages, so preview shows the actual theme design (live rooms data stays the
+  host's). Benefits every theme's preview. Verified: previewing oceansview on a
+  Safari-stored site renders the Ocean Lodge home ("Wake up to the ocean").
 
 ---
 
