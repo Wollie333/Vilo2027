@@ -91,8 +91,11 @@ async function main() {
     draft_sections: tpl.sections ?? [],
     published_sections: tpl.sections ?? [],
   }));
-  const add = (kind, slug, title, nav_label, nav_order, show_in_nav, sections) =>
+  const haveKinds = new Set(blueprint.map((t) => t.kind));
+  const add = (kind, slug, title, nav_label, nav_order, show_in_nav, sections) => {
+    if (haveKinds.has(kind)) return;
     rows.push({ website_id: WEBSITE_ID, kind, slug, title, nav_label, nav_order, show_in_nav, draft_sections: sections, published_sections: sections });
+  };
   add("specials", "specials", "Specials", "Specials", 5, true, SPECIALS_SECTIONS);
   add("experiences", "experiences", "Experiences", "Experiences", 6, true, EXPERIENCES_SECTIONS);
   add("gallery", "gallery", "Gallery", "Gallery", 7, true, GALLERY_SECTIONS);
