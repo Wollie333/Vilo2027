@@ -69,7 +69,7 @@ export async function loadActiveThemes(): Promise<ThemeOption[]> {
       )
       .eq("is_active", true)
       // Every active theme is offered (default first via sort_order). The
-      // catalogue is curated in site_themes — currently Aria + Safari.
+      // catalogue is curated in site_themes — currently Safari only.
       .is("deleted_at", null)
       .order("sort_order", { ascending: true });
 

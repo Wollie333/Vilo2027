@@ -13,7 +13,7 @@ import {
 // `getThemeTemplates`/`getThemeSectionPresets` gate on this set (the legacy themes
 // were removed from the catalogue), so only these return blocks. Keep in sync with
 // ACTIVE_THEME_SLUGS in themeSections.ts (and the active site_themes rows).
-const THEME_SLUGS = ["aria", "safari"] as const;
+const THEME_SLUGS = ["safari"] as const;
 
 describe("themeSections registry", () => {
   for (const slug of THEME_SLUGS) {
@@ -98,8 +98,7 @@ describe("themeSections registry", () => {
   });
 
   it("labels the sidebar group from the slug", () => {
-    expect(themeGroupLabel("aria")).toBe("Aria");
-    expect(themeGroupLabel("nightfall")).toBe("Nightfall");
+    expect(themeGroupLabel("safari")).toBe("Safari");
     expect(themeGroupLabel(null)).toBe("Theme");
   });
 
@@ -128,8 +127,8 @@ describe("themeSections registry", () => {
     }
 
     it("gives every built section a fresh id each call", () => {
-      const a = getThemeRoomDetailSections("aria");
-      const b = getThemeRoomDetailSections("aria");
+      const a = getThemeRoomDetailSections("safari");
+      const b = getThemeRoomDetailSections("safari");
       const ids = [...a, ...b].map((s) => s.id);
       expect(new Set(ids).size).toBe(ids.length);
     });
