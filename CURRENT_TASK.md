@@ -2,7 +2,25 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — RESUME HERE (· 2026-06-30 #2 — SAFARI = SOLE THEME + LIVE-VERIFIED 100%)
+## ▶▶ ACTIVE — SABELA LODGE THEME CONVERSION (· 2026-06-30 #3, IN PROGRESS)
+
+**Founder handed over their 2nd theme ("Lodge Theme.zip") to convert into the CMS — confirmed slug `sabela`, ship all 3 palettes, Safari stays default.** This is the first real test of the standardised foundation. It's a Safari-sized build (theme-productionization-playbook); working it in slices.
+
+**THEME = "Sabela Lodge"** — dark-first editorial safari (Ebony bg `#14120D` / gold accent `#C9A24A`, Cormorant Garamond + Inter, sharp `sm` radius). 3 palettes: **Ebony** (default) · Savanna (warm light) · Stone (cool light) via `data-theme`. Alt fonts via `data-font`, radii via `data-radius`. The design is HIGH QUALITY + brief-compliant: all 14 pages annotated with `data-section="<type>"` + `data-live="true"`, styling in one scoped token-driven CSS.
+
+**✅ SLICE 16 (foundation) — DONE (commit `f6a9240d`):** design source-of-truth imported to **`docs/themes/sabela/`** (base.md + 14 pages + header/footer + theme.source.css). Render CSS scoped at **`apps/web/components/site/sabela/sabela.css`** (`.wielo-theme`→`.wielo-sabela`, 380 selectors). Theme.css extends `--site-*` with theme tokens (`--site-soft`, `--site-foot*`, `--site-cta*`, `--site-hero-overlay`, `--site-radius-lg/-sm`) — all with fallbacks.
+
+**▶▶ REMAINING SLICES (resume here):**
+- **17 — migration + blueprint:** add the `sabela` `site_themes` row (base = Ebony palette/Cormorant+Inter/sharp + `page_templates` blueprint built by carving each `docs/themes/sabela/pages/*.html` into our section JSON). `is_active=true`, `is_default=false`. Apply to linked DB. Also register `sabela` in `themeSections.ts` (ACTIVE_THEME_SLUGS + PRESETS + TEMPLATES + ROOM_DETAIL) so the builder offers it + it activates.
+- **18 — render layer:** `components/site/sabela/SabelaSections.tsx` — `renderSabelaSection(section, ctx)` dispatcher, ONE band per section type matching the design's markup (read each band's HTML in `docs/themes/sabela/pages/`), bound to live data; wire into `SectionRenderer`/`SectionSwitch` `themeVariant === "sabela"` branch (mirror `SafariSections.tsx`). Sections to cover: hero·intro·highlights·stats·gallery·rooms_preview·reviews·location·cta·host_bio·values·specials_preview·addons_preview·booking_search·search_results·blog_preview·faq·form·rich_text·room_gallery/overview/amenities/rate/policies·checkout. Generic fallback for the rest.
+- **19 — chrome:** `SabelaShell` + `SabelaNav` + footer honouring the header/menu settings contract (THEME_CONTRACT.md table) — mirror `SafariShell`/`SafariNav`/`safariNav.ts`. Header has 2 states (transparent-over-hero light + solid dark on scroll).
+- **20 — mount + verify:** branch `SitePageView`/`SiteRoomView`/blog/`book`/`thank-you` to Sabela when `activeThemeSlug === "sabela"` (mirror the safari checks). Then seed a Sabela site on the vilotest fixture (extend `scripts/seed-safari-qa.mjs` → a `seed-sabela-qa.mjs`, or add a `THEME=sabela` switch), drive every page + checkout live, fix until 100%. Finally wire the 3 palettes as host-switchable (`data-theme` on the Sabela root from a stored palette choice — note: SiteThemeRoot emits inline `--site-*` which would OVERRIDE a `data-theme` CSS block, so palettes are best applied by writing the chosen palette into `theme.base.palette` rather than a data-attr; decide at slice 20).
+
+**KEY REFERENCE:** Safari is the working reference for EVERY slice (`components/site/safari/`, `lib/site/safariNav.ts`, the `safari` entries in `themeSections.ts`/`SectionRenderer.tsx`/`loadSitePage.ts` route branches). `THEME_CONTRACT.md` = the contract. The Sabela design pages are the markup spec (`docs/themes/sabela/pages/`).
+
+---
+
+## ▶▶ PRIOR SAVE POINT (· 2026-06-30 #2 — SAFARI = SOLE THEME + LIVE-VERIFIED 100%)
 
 **Founder: "make Safari 100% working before adding more themes" + "remove the other themes completely — only Safari."** Both done.
 
