@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import {
-  diagAutocomplete,
   geocodeByPlaceId,
   geoConfigured,
   placesAutocomplete,
@@ -38,11 +37,6 @@ export async function GET(req: Request) {
   // boolean — never the key — so it's safe to hit in production.
   if (op === "health") {
     return NextResponse.json({ configured: geoConfigured() });
-  }
-  if (op === "diag") {
-    return NextResponse.json(
-      await diagAutocomplete(searchParams.get("q") || "Sabie Mpumalanga"),
-    );
   }
   try {
     if (op === "autocomplete") {

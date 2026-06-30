@@ -29,58 +29,6 @@ export function geoConfigured(): boolean {
   return !!KEY;
 }
 
-// Diagnostic: run a test autocomplete and report Google's HTTP status + error
-// message (never the key). Lets us see WHY a deployment gets no results — e.g. a
-// key application restriction blocking the server's IP, or a disabled API.
-export async function diagAutocomplete(input: string): Promise<{
-  keyPresent: boolean;
-  status: number;
-  count: number;
-  error?: string;
-}> {
-  if (!KEY) return { keyPresent: false, status: 0, count: 0 };
-  try {
-    const res = await fetch(
-      "https://places.googleapis.com/v1/places:autocomplete",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": KEY },
-        body: JSON.stringify({
-          input,
-          includedRegionCodes: ["za"],
-          regionCode: "ZA",
-        }),
-      },
-    );
-    const text = await res.text();
-    let count = 0;
-    let error: string | undefined;
-    try {
-      const j = JSON.parse(text) as {
-        suggestions?: unknown[];
-        error?: { message?: string; status?: string };
-      };
-      count = (j.suggestions ?? []).length;
-      error = j.error?.message ?? j.error?.status;
-    } catch {
-      /* non-JSON body */
-    }
-    return {
-      keyPresent: true,
-      status: res.status,
-      count,
-      error: error ?? (res.ok ? undefined : text.slice(0, 300)),
-    };
-  } catch (e) {
-    return {
-      keyPresent: true,
-      status: -1,
-      count: 0,
-      error: e instanceof Error ? e.message : String(e),
-    };
-  }
-}
-
 // ── Autocomplete (Places API New), biased + restricted to South Africa ──
 export async function placesAutocomplete(
   input: string,
