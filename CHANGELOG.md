@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3d-2b: inspector device bar + per-device overrides + revert (live-verified)
+
+Completes the inspector (Phase 3d).
+
+- **`lib/website/pageDocOps.ts`** (+1 test) — `updateResponsive(id, device, {props?,space?,hidden?})`
+  merges into `node.responsive[device]`; a `null` value deletes a key (revert), `hidden:false` clears,
+  and now-empty layers are pruned.
+- **`BuilderShell.tsx`** — an inspector **device bar** (desktop/tablet/mobile, synced to the canvas
+  device). On tablet/mobile the Content controls + Advanced spacing read/write the **device override
+  layer** (falling back to base for display); a **Hide-on-device** toggle; per-field
+  **revert-to-default** (base → registry default / 0; device → delete the override). Refactored
+  `Control` + `SpaceBox` to resolved-value + revert.
+- **`components/site/v2/PageDocRenderer.tsx`** — merges `node.responsive[device]` props/space at render
+  so the previewed device actually shows overrides (base/desktop untouched).
+- **`builder-chrome.css`** — scoped `.devbar` styles.
+- **Live-verified**: base revert resets the heading to the registry default; on Mobile a heading
+  override renders on the mobile-width canvas with a revert icon, while the Desktop base stays
+  "Three suites, one horizon" untouched. **162 vitest**, tsc + lint + `pnpm build` green.
+  Deferred: content controls for composite blueprint blocks (hero/intro…). Next: Phase 3e (undo/redo +
+  autosave + preview + publish).
+
 ## 2026-07-01 — Builder V2 Phase 3d-2a: inspector Style + Advanced tabs (live-verified)
 
 - **`lib/website/pageDocOps.ts`** (+1 test) — `updateNode(id, patch)` shallow-merges node-level

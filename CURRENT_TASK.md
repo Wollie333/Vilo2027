@@ -155,13 +155,21 @@ vilotest (`host@vilotest.com`) + a save point.
   seg, CSS id/class) write via `updateNode`, live. Node-level → works for ALL kinds incl composites.
   Live-verified: tone default→accent recolours band (`#221A11`→`#B26C2E`); padding-top 0→120 live.
   161 vitest, green.
-- **NEXT — Phase 3d-2b:** the **device bar** (desktop/tablet/mobile) at the top of the inspector,
-  writing per-device `responsive[device]` prop/space/hidden overrides (Content + Advanced controls read/
-  write the active device's layer, falling back to base), and per-field **revert-to-default** (`.revert`
-  icon, resets to the registry/base value). Also CONSIDER giving composite blocks (hero/intro/cta/
-  host_bio/stats/faq/values) registry `content` controls so their copy is editable (currently a stub).
-  Then **Phase 3e**: undo/redo (history stack) + autosave + Preview toggle + Publish (persist the PageDoc
-  through a server action). **Bespoke theme dirs delete at CUTOVER (Phase 6).**
+- **Phase 3d-2b — device bar + per-device overrides + revert (DONE + LIVE-VERIFIED, 2026-07-01, commit
+  `f00618c5`). PHASE 3d COMPLETE.** `pageDocOps.updateResponsive(id, device, {props?,space?,hidden?})`
+  (+test; null deletes a key = revert, empty layers pruned). Inspector **device bar** (desktop/tablet/
+  mobile, synced to canvas device): on tablet/mobile the Content + spacing controls read/write the
+  `responsive[device]` layer (fallback base); Hide-on-device toggle; per-field **revert-to-default**
+  (base→registry default/0; device→delete override). **`PageDocRenderer` now merges `responsive[device]`
+  props/space at render** so the previewed device shows overrides (base untouched). Live-verified end to
+  end. 162 vitest, green.
+- **NEXT — Phase 3e (persist + history):** undo/redo (a `doc` history stack — snapshot on each mutation,
+  ⌘Z/⌘⇧Z + the topbar buttons), autosave (debounced), the **Preview** toggle (hide chrome / render the
+  bare page), and **Publish** — persist the PageDoc to `website_pages.draft_sections`/`published_sections`
+  via a server action (the route currently loads a theme blueprint read-only; wire real websiteId/pageId).
+  Also still deferred: **content controls for composite blocks** (hero/intro/cta/host_bio/stats/faq/values —
+  give them registry `content` entries or a generic prop editor). **Bespoke theme dirs delete at CUTOVER
+  (Phase 6).**
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
