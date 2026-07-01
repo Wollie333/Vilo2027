@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 2 slice 3: themes → PageDoc blueprints (live-verified)
+
+Converted the four themes' designed pages into Builder V2 `PageDoc` blueprints and proved
+all four render **distinct** through the ONE token-driven renderer — the core Phase-2 thesis.
+
+- **Renderable vs library vocabulary split** (`lib/website/pageDoc.schema.ts`): a stored
+  PageDoc widget may hold ANY renderable type (the composite marketing blocks — `hero`,
+  `intro`, `cta`, `host_bio`, `stats`, … — a theme blueprint is built from), so the
+  widget-node `type` now validates against `RENDERABLE_WIDGET_TYPES` (every legacy section
+  type ∪ the 5 new widget types). The drag-library registry stays the curated `WIDGET_TYPES`
+  subset. Added `RenderableWidgetType` + `isRenderableWidgetType`.
+- **Flat → PageDoc converter** (`lib/website/blueprints.ts`): `flatSectionsToPageDoc` wraps
+  each designed flat `WebsiteSection` into a full-bleed `section → column(12) → widget`
+  (tone on the section node paints the band; `variant`/`display` on the widget node). The
+  composite keeps rendering its own designed band via `GenericSection` — zero per-theme code.
+- **Per-theme blueprints** (`lib/website/themeSections.ts`): `getThemeTemplatePageDoc(slug,key)`
+  + `getThemeBlueprints(slug)` build blueprints from the existing theme templates.
+- **Dev preview** (`app/[locale]/builder-preview/page.tsx`): `?theme=<slug>&page=<key>`
+  resolves the theme's real tokens (`resolveThemeBase`) and renders the converted blueprint
+  through `PageDocRenderer` inside `SiteThemeRoot`, with a theme/page switcher.
+- **Live-verified** all four home blueprints read distinct from the single renderer:
+  safari `#F4EDE0`/`#221A11` · sabela `#14120D`/`#F1EADB` · oceansview `#FFF`/`#0E2C3A` ·
+  marmalade `#F4ECDB`/`#2C2620` — each with its own designed copy + accent + display font;
+  page-switching (e.g. safari About) selects a different blueprint. Zero SSR/console errors.
+- `lib/website/blueprints.test.ts` (8 tests). tsc + lint clean; **149 vitest green** (was 141);
+  `pnpm build` passes. Additive/parallel — legacy public render still ships; bespoke theme dir
+  deletion stays at cutover (Phase 6).
+
 ## 2026-07-01 — Builder V2: plan + Phase 0 contracts (page-builder redesign kickoff)
 
 Kicked off **Builder V2** — a complete redesign of the website page builder into a

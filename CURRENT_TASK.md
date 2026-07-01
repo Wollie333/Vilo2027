@@ -63,11 +63,33 @@ vilotest (`host@vilotest.com`) + a save point.
   - Auto-populate with NO `SiteData` degrades gracefully (heading + empty state, no crash).
   - Process note: a two-step edit briefly logged `foldVariant is not defined` via HMR — stale; use
     `preview_logs` (server) not `preview_console_logs` to get real SSR error messages.
-- **NEXT — Phase 2 remaining:** (a) feed real `SiteData` so rooms/reviews/gallery render populated
-  (data assembly is Phase-5 territory — may just verify the empty states here and defer); (b) leaf
-  polish for column context (generic components are full-width bands — may need `bare` variants);
-  (c) **convert the 4 themes to token sets + `PageDoc` blueprints** (the big remaining piece).
-  **DELETION of the 4 bespoke theme dirs stays at CUTOVER (Phase 6)** — prod still renders legacy.
+- **Phase 2 slice 3 (DONE + LIVE-VERIFIED, 2026-07-01, commit `efd50ed8`):** the big piece (c) —
+  **themes → `PageDoc` blueprints**, all four proven distinct from the ONE token renderer.
+  - **Vocabulary split** in `pageDoc.schema.ts`: widget-node `type` now validates against
+    `RENDERABLE_WIDGET_TYPES` (= all `SECTION_TYPES` ∪ the 5 `NEW_WIDGET_TYPES`) so a blueprint's
+    composite blocks (`hero`/`intro`/`cta`/`host_bio`/`stats`/…) round-trip; the DRAG-LIBRARY /
+    registry stays the curated `WIDGET_TYPES` subset. Added `RenderableWidgetType` +
+    `isRenderableWidgetType`. Key insight: composites are theme-agnostic blocks with variants
+    (plan §3.3), rendered by `GenericSection` — NOT decomposed into primitives.
+  - **`lib/website/blueprints.ts`** — `flatSectionsToPageDoc` wraps each designed flat section into
+    a FULL-BLEED `section → column(12) → widget` (maxw 2000 + zero padding so the composite keeps
+    its own band); tone → section node, `variant`/`display` → widget node. Mechanical, 1:1, faithful.
+  - **`themeSections.ts`** — `getThemeTemplatePageDoc(slug,key)` + `getThemeBlueprints(slug)` from the
+    existing `ThemeTemplates`. **Token set = each theme's `base`** (already resolved by `SiteThemeRoot`).
+  - **`builder-preview` route** — `?theme=<slug>&page=<key>` renders the real converted blueprint via
+    `PageDocRenderer` inside `SiteThemeRoot` (real tokens via `resolveThemeBase`) + a theme/page switcher.
+  - **LIVE-VERIFIED** all 4 home blueprints distinct: safari `#F4EDE0`/`#221A11` · sabela
+    `#14120D`/`#F1EADB` · oceansview `#FFF`/`#0E2C3A` · marmalade `#F4ECDB`/`#2C2620`, each with its own
+    copy + accent + display font; safari About page-switch renders a different blueprint; 0 SSR/console
+    errors. `blueprints.test.ts` (8). tsc + lint clean; **149 vitest**; `pnpm build` passes.
+    (Hit the known stale-`.next` `foldVariant` HMR ghost again — cleared `.next` + restarted, see
+    [[next-stale-vendor-chunks]].) NOTE: hero photo BANDS render empty (no image binding yet) — that's
+    the Phase-5 live-data deferral, not a bug.
+- **NEXT — Phase 2 remaining:** (a) feed real `SiteData` so rooms/reviews/gallery/hero-images render
+  populated (Phase-5 territory — empty states verified graceful, defer binding); (b) leaf polish for
+  column context (generic components are full-width bands — may need `bare` variants when a widget sits
+  in a <12 column). Then **Phase 3 — the pixel-perfect builder shell**. **DELETION of the 4 bespoke
+  theme dirs stays at CUTOVER (Phase 6)** — prod still renders legacy.
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
