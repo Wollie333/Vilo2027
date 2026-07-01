@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-30 (#10) — Themed date-range picker on every theme's booking flows
+
+Guests were seeing the **native browser calendar** (OS-styled) when picking dates
+on the themed sites — it didn't match the theme. The app already had a custom
+`ThemedDateRange` calendar popover that reads the active theme's `--site-*`
+tokens, but it was only wired into the shared checkout + contact form. Swapped the
+native `<input type="date">` range pickers for `ThemedDateRange` across every
+theme's bespoke booking components, so the date selector now matches the theme's
+colour + design everywhere. Added a `bare` variant (borderless — blends into the
+availability bar's seamless cells) and an `align` prop (popover edge) to
+`ThemedDateRange`. Touched: all four booking docks (Safari/Sabela/OceansView/
+Marmalade); the availability bars + search-results forms (Marmalade/OceansView
+bare cell + 3-col grid reflow, `overflow:hidden` dropped so the popover escapes
+the bar; Sabela search); and the shared `BookingSearchSection` /
+`SearchResultsSection` / `HeroSearchBar` (covers Safari + the generic fallback).
+Live-verified on Marmalade (`vilotest`): the home availbar + room-detail dock show
+the themed calendar with **zero native date inputs**; the popover opens in the
+theme surface with the accent on selected days. tsc + lint clean, 133 vitest
+green. Pushed to prod (`52c3bbfc`). Deliberately left native: the contact form's
+single optional "approx. arrival" date (`ThemedDateRange` is range-only).
+
+---
+
 ## 2026-06-30 (#9) — Marmalade House theme (4th active theme)
 
 Converted the founder's 4th pre-designed theme — **Marmalade House**, a warm

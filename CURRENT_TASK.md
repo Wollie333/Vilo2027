@@ -2,7 +2,15 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — FOUR THEMES COMPLETE (· 2026-06-30 #9, DONE — START NEW SESSION HERE)
+## ▶▶ SAVE POINT — FOUR THEMES + THEMED DATE PICKERS (· 2026-06-30 #10, DONE — START NEW SESSION HERE)
+
+**All committed AND pushed to `origin/main` → Vercel prod. Tree in sync. `tsc` + `lint` clean; 133 vitest green. The two stray untracked files (`apps/web/vsub.mjs`, `docs/features/WEBSITE_WIZARD_PLAN.md`) are deliberately LEFT ALONE — never `git add -A`. Latest deploy commit `52c3bbfc`.**
+
+**▶ THEMED DATE PICKERS (· #10, commit `52c3bbfc`):** the date selectors on the themed booking flows were rendering the NATIVE browser calendar (OS-styled, off-theme). Swapped every native `<input type="date">` range picker for the existing `components/site/ThemedDateRange.tsx` custom calendar popover, which reads the active theme's `--site-*` tokens → every date selector now matches the theme's colour + design. Added a `bare` variant (borderless, blends into the availability bar's seamless cells) + an `align` prop to `ThemedDateRange`. Changed: all 4 booking docks (`*BookingDock`); the availbars + search forms (Marmalade/OceansView `*BookingSearch` + `*SearchResults` → one `bare` `.ab-dates` cell, `.availbar-in` grid reflowed to `1.6fr 1fr auto`, `overflow:hidden` dropped so the popover escapes; Sabela `*SearchResults`); the shared `sections/BookingSearchSection` + `SearchResultsSection` + `HeroSearchBar` (cover Safari + generic). Checkout (`SiteCheckoutForm`) + `FormSection` already used it. Live-verified on Marmalade: 0 native date inputs on home availbar + room-detail dock; themed popover with accent on selected days. LEFT native (by design): the contact form's single optional "approx. arrival" date (ThemedDateRange is range-only).
+
+---
+
+## ▶▶ SAVE POINT — FOUR THEMES COMPLETE (· 2026-06-30 #9, DONE)
 
 **Marmalade House — the founder's 4th pre-designed theme — converted + live-verified, pushed to `origin/main` (commit `fa7e9c3d`). Slug `marmalade`: a warm photographic guesthouse look (butter-cream `#F4ECDB` + marmalade `#C8702E`, a floating PILL nav, full-bleed photo heroes with an overlapping white POSTCARD card, tilted/taped postcard cards; Gloock display + Karla body). FOUR active themes now: Safari (default) · Sabela · Oceans View · Marmalade.**
 
