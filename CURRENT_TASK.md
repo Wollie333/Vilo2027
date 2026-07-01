@@ -113,11 +113,22 @@ vilotest (`host@vilotest.com`) + a save point.
   the section render stays server-side). Live-verified: chrome pixel-faithful, device toggle resizes
   stage (1180/768/380 + dev-label), panel-mode switch works, Safari blueprint renders in stage, 0
   errors. tsc+lint+build green. Fixed a doc-switcher label wrap (`white-space:nowrap` on `.tb-page`).
-- **NEXT — Phase 3b:** widget library drag-drop + the Navigator tree panel (wire the real `PageDoc`
-  into a client store; drop widgets onto columns with drop-lines; the section-structure modal). Then
-  3c canvas (badges + selection + reorder) · 3d inspector (Content/Style/Advanced + device bar +
-  per-field revert) · 3e undo/redo + autosave + preview + publish. **Bespoke theme dirs delete at
-  CUTOVER (Phase 6)** — prod still renders legacy.
+- **Phase 3b — Navigator tree + bi-directional selection (DONE + LIVE-VERIFIED, 2026-07-01, commit
+  `ba03ab94`):** `PageDocRenderer` now emits `data-node-id`/`data-node-kind` on section/column/widget
+  wrappers (additive, inert on the public site). `BuilderShell` renders the real **Navigator tree**
+  from the PageDoc (`Section N` / `Column · span` / widget registry-label+snippet, per-kind icons,
+  collapse) and holds a `selectedId` that drives **bi-directional selection**: nav row → outline +
+  reveal the canvas node (section pink `#E8618C` / column purple `#9333EA` / widget blue `#2563EB`);
+  canvas node → highlight the nav row; empty-canvas click deselects. Doc JSON passed client-side via
+  `page.tsx`. Scoped nav + selection CSS added. Live-verified (24 rows ↔ 24 nodes, both directions,
+  deselect, 0 errors); 149 vitest, tsc+lint+build green. **Used `.filter(Boolean).join(" ")` for the
+  nav-row class to dodge the [[commit-formatter-strips-className-space]] bug.**
+- **NEXT — Phase 3c (canvas interactivity):** per-node hover/badges (grip · up/down · duplicate ·
+  delete), drag-drop from the Widgets library onto columns with drop-lines, node reorder, the
+  section-structure modal (`[12]`/`[6,6]`/`[4,4,4]`/`[8,4]`/`[4,8]`/`[3,3,3,3]`), and the client
+  PageDoc mutation store (insert/move/delete/duplicate/add-section) — currently the doc is read-only.
+  Then 3d inspector (Content/Style/Advanced + device bar + per-field revert) · 3e undo/redo + autosave
+  + preview + publish. **Bespoke theme dirs delete at CUTOVER (Phase 6)** — prod still renders legacy.
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.

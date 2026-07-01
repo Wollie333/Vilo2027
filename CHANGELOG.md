@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3b: Navigator tree + bi-directional selection (live-verified)
+
+- **`components/site/v2/PageDocRenderer.tsx`** — emit `data-node-id` + `data-node-kind`
+  (section/column/widget) on each node wrapper. Additive + inert on the public site; lets the
+  builder target/outline canvas nodes.
+- **`app/[locale]/builder/BuilderShell.tsx`** — the real **Navigator tree** rendered from the
+  PageDoc (labels `Section N` / `Column · {span}` / widget registry-label + text snippet; per-kind
+  lucide icons; per-node collapse). A `selectedId` state drives **bi-directional selection**: click a
+  nav row → the matching canvas node gets a coloured outline (section pink / column purple / widget
+  blue) + scrolls into view; click a canvas node → its nav row highlights; empty-canvas click
+  deselects. The PageDoc JSON is passed to the client shell; `page.tsx` supplies it.
+- **`builder-chrome.css`** — scoped Navigator styles + per-kind selection-outline rules.
+- **Live-verified** on `?theme=safari`: 24 nav rows ↔ 24 stage nodes; nav→canvas + canvas→nav both
+  outline the right node in the right colour; empty click deselects; 0 console errors. 149 vitest,
+  tsc + lint + `pnpm build` green. (Used a `.filter(Boolean).join(" ")` class build to dodge the
+  commit-formatter leading-space bug from 3a.) Drag-drop + structure modal = 3c.
+
 ## 2026-07-01 — Builder V2 Phase 3a: standalone builder shell chrome (live-verified)
 
 Began Phase 3 (the pixel-perfect builder shell) with **3a — chrome**. New standalone,
