@@ -141,6 +141,16 @@ function demoDoc() {
   s5.kids[1].kids.push(w("el_room_card", {}, "clean"));
   doc.root.kids.push(s5);
 
+  // 6 — composite Wielo blocks INSIDE columns (content + sidebar). Proves the
+  // full-width band leaves stay contained in a <12 column (no bleed / gutter
+  // doubling) — the column-context check for Phase 2 leaf polish.
+  const s6 = newSection([8, 4], { tone: "muted", valign: "flex-start" });
+  s6.kids[0].kids.push(
+    w("gallery", { heading: "The gallery", max: 6 }, "grid"),
+  );
+  s6.kids[1].kids.push(w("reviews", { heading: "Kind words", max: 3 }, "list"));
+  doc.root.kids.push(s6);
+
   return doc;
 }
 

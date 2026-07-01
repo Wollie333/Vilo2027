@@ -85,11 +85,22 @@ vilotest (`host@vilotest.com`) + a save point.
     (Hit the known stale-`.next` `foldVariant` HMR ghost again — cleared `.next` + restarted, see
     [[next-stale-vendor-chunks]].) NOTE: hero photo BANDS render empty (no image binding yet) — that's
     the Phase-5 live-data deferral, not a bug.
-- **NEXT — Phase 2 remaining:** (a) feed real `SiteData` so rooms/reviews/gallery/hero-images render
-  populated (Phase-5 territory — empty states verified graceful, defer binding); (b) leaf polish for
-  column context (generic components are full-width bands — may need `bare` variants when a widget sits
-  in a <12 column). Then **Phase 3 — the pixel-perfect builder shell**. **DELETION of the 4 bespoke
-  theme dirs stays at CUTOVER (Phase 6)** — prod still renders legacy.
+- **Phase 2 slice 4 — column-context leaf check (DONE + LIVE-VERIFIED, 2026-07-01):** investigated (b)
+  "generic components are full-width bands — may need bare variants." **Verdict: NOT a bug — no fix
+  needed now.** Added a content+sidebar diagnostic to the `builder-preview` demo (`gallery` in an 8-col
+  beside `reviews` in a 4-col, + the existing `[6,6]` room cards and `[6,6]`/`[4,4,4]` element bands).
+  Live result: EVERY leaf type — element primitives (`ElBlock`), the 5 new leaves, room cards, AND the
+  composite Wielo bands — stays fully CONTAINED within its column: no bleed, no gutter-doubling, no
+  layout break. `ElBlock`'s `max-w-5xl` just collapses to the column width; composites show their
+  centered empty-state heading inside the column. Only nuance: composites center their content even in
+  a narrow sidebar column — a per-widget ALIGNMENT/bare refinement that belongs in the **Phase-3
+  inspector**, not a speculative variant system now (least-code rule). tsc + lint + console clean.
+- **NEXT — Phase 2 is substantively COMPLETE** (token render collapse proven + 4 themes → blueprints +
+  column context verified). Remaining tie-offs are DEFERRED by design: (a) live `SiteData` binding
+  (rooms/reviews/gallery/hero images) → **Phase 5**; (b) per-widget align/bare in narrow columns →
+  **Phase 3 inspector**. **→ Begin Phase 3 — the pixel-perfect builder shell** (sub-phase per the plan:
+  3a chrome · 3b library+navigator · 3c canvas · 3d inspector · 3e undo/redo+autosave+preview+publish).
+  **DELETION of the 4 bespoke theme dirs stays at CUTOVER (Phase 6)** — prod still renders legacy.
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
