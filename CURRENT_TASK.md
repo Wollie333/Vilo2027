@@ -141,13 +141,21 @@ vilotest (`host@vilotest.com`) + a save point.
   Live-verified: library Heading → col1 above hero (24→25); grip-move it → col3 (col1 2→1, col3 1→2).
   159 vitest, green. **PHASE 3c COMPLETE** (chrome 3a · navigator+selection 3b · mutable store+badge+
   structure modal 3c-1 · drag-drop 3c-2).
-- **NEXT — Phase 3d (the inspector):** when a node is selected, the Settings panel shows its editor:
-  **Content** tab driven by the widget registry's `content` controls (text/textarea/select/seg/range/
-  toggle/align/color/hint) + **Style** (tone, background, block style) + **Advanced** (spacing box,
-  visibility, cssId/class), a **device bar** (desktop/tablet/mobile) writing per-device `responsive`
-  overrides, and per-field **revert-to-default**. Writes flow through the same `setDoc` store (add
-  `updateNodeProps`/`updateNode` ops). Then 3e undo/redo + autosave + preview + publish. **Bespoke
-  theme dirs delete at CUTOVER (Phase 6).**
+- **Phase 3d-1 — inspector Content tab (DONE + LIVE-VERIFIED, 2026-07-01, commit `aeb25c70`):**
+  selecting a node auto-opens the Settings panel as an **Inspector**. `pageDocOps.updateNodeProps`
+  (+test) merges a prop patch immutably. Content/Style/Advanced tab bar; the **Content** tab renders
+  the widget registry's `content` controls (text/textarea/select/seg/align/color/range/toggle/hint)
+  bound to `node.props`, editing patches the doc LIVE (canvas updates as you type). Panel header shows
+  the node label. Scoped inspector control CSS ported. Live-verified: Rooms Grid → Heading + Rooms-shown
+  controls; edit heading → canvas updates. 160 vitest, green. **Style/Advanced are stubs; composite
+  blueprint blocks (hero/intro — not in the registry) show a "no controls yet" stub.**
+- **NEXT — Phase 3d-2:** the **Style** tab (tone select, background, block style) + **Advanced** tab
+  (spacing box `.box4` for margin/padding, device visibility, cssId/cssClass), a **device bar**
+  (desktop/tablet/mobile) writing per-device `responsive` prop/space overrides, and per-field
+  **revert-to-default** (`.revert`). Add `updateNode` (node-level fields: tone/bg/span/space/visibility)
+  to `pageDocOps`. CONSIDER giving composite blocks (hero/intro/cta/host_bio/stats/faq/values) their own
+  registry `content` controls so they're editable too (currently stubbed). Then 3e undo/redo + autosave
+  + preview + publish. **Bespoke theme dirs delete at CUTOVER (Phase 6).**
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.

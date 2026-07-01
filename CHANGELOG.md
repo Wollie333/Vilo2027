@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3d-1: inspector Content tab, live prop editing (live-verified)
+
+- **`lib/website/pageDocOps.ts`** (+1 test) — `updateNodeProps(id, patch)` merges into a node's
+  `props` immutably (no-op for prop-less section/column nodes).
+- **`BuilderShell.tsx`** — selecting a node auto-opens the **Settings panel as an Inspector**. A
+  Content/Style/Advanced tab bar; the **Content** tab renders the selected widget's registry
+  `content` controls (text / textarea / select / seg / align / color / range / toggle / hint) bound
+  to `node.props`; editing patches the doc live via `updateNodeProps` and the canvas updates **as you
+  type**. Panel header shows the node's label. Style + Advanced are 3d-2 stubs; composite blueprint
+  blocks (hero/intro — no registry def) show a stub.
+- **`builder-chrome.css`** — scoped inspector control styles (tabs, `.inp`, `.seg`, `.rng`, `.tog`…).
+- **Live-verified**: select Rooms Grid → Content shows Heading + "Rooms shown"; typing a new heading
+  updates the canvas rooms block live; tab switch to Style shows the stub. **160 vitest**, tsc + lint +
+  `pnpm build` green. Next: 3d-2 (Style/Advanced tabs, device bar, per-field revert).
+
 ## 2026-07-01 — Builder V2 Phase 3c-2: drag-drop + drop-lines (live-verified)
 
 - **`lib/website/pageDocOps.ts`** (+3 tests) — `insertWidget` (new widget into a column before an
