@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3c-1: mutable PageDoc store + node ops + structure modal (live-verified)
+
+The canvas is now **client-rendered from a mutable doc store** (was a static server node), so
+structural edits reflect live.
+
+- **`lib/website/pageDocOps.ts`** (+ 7 tests) — pure, immutable tree ops: `findNode` / `moveNode`
+  (clamped) / `removeNode` / `duplicateNode` (fresh ids via `reidNode`) / `addSection` (via
+  `newSection`). Each returns a new deep-cloned doc.
+- **`BuilderShell.tsx`** — holds the PageDoc in state; renders the canvas itself via
+  `SiteThemeRoot` + `PageDocRenderer` (device-aware — verified `PageDocRenderer` works inside a
+  client boundary). A **selected-node floating badge** (move up/down · duplicate · delete;
+  per-kind colour; edge-disabled move) is positioned over the node and synced to canvas scroll.
+  **Add section** opens the **structure-picker modal** (12 / 6-6 / 4-4-4 / 8-4 / 4-8 / 3-3-3-3).
+  Navigator + selection + badge all re-sync on every mutation.
+- **`page.tsx`** — passes `themeBase` + `initialDoc` (canvas render moved client-side).
+- **`builder-chrome.css`** — scoped badge, add-section, and structure-modal styles.
+- **Live-verified**: add a section → 8→9 sections (canvas + Navigator); duplicate → 9→10; delete →
+  10→9 + deselect; move Section 1 down → page reorders + selection follows. 0 console errors.
+  **156 vitest** (was 149), tsc + lint + `pnpm build` green. Drag-drop from the library + drop-lines
+  = the next slice (3c-2).
+
 ## 2026-07-01 — Builder V2 Phase 3b: Navigator tree + bi-directional selection (live-verified)
 
 - **`components/site/v2/PageDocRenderer.tsx`** — emit `data-node-id` + `data-node-kind`

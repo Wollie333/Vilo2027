@@ -123,12 +123,20 @@ vilotest (`host@vilotest.com`) + a save point.
   `page.tsx`. Scoped nav + selection CSS added. Live-verified (24 rows ↔ 24 nodes, both directions,
   deselect, 0 errors); 149 vitest, tsc+lint+build green. **Used `.filter(Boolean).join(" ")` for the
   nav-row class to dodge the [[commit-formatter-strips-className-space]] bug.**
-- **NEXT — Phase 3c (canvas interactivity):** per-node hover/badges (grip · up/down · duplicate ·
-  delete), drag-drop from the Widgets library onto columns with drop-lines, node reorder, the
-  section-structure modal (`[12]`/`[6,6]`/`[4,4,4]`/`[8,4]`/`[4,8]`/`[3,3,3,3]`), and the client
-  PageDoc mutation store (insert/move/delete/duplicate/add-section) — currently the doc is read-only.
-  Then 3d inspector (Content/Style/Advanced + device bar + per-field revert) · 3e undo/redo + autosave
-  + preview + publish. **Bespoke theme dirs delete at CUTOVER (Phase 6)** — prod still renders legacy.
+- **Phase 3c-1 — mutable store + node ops + structure modal (DONE + LIVE-VERIFIED, 2026-07-01, commit
+  `91268b3f`):** the canvas is now CLIENT-rendered from a mutable doc store (was a static server node).
+  `lib/website/pageDocOps.ts` (+7 tests) = pure immutable `findNode/moveNode/removeNode/duplicateNode/
+  addSection`. `BuilderShell` holds the PageDoc in state, renders via `SiteThemeRoot`+`PageDocRenderer`
+  (device-aware; **confirmed `PageDocRenderer` renders fine inside a client boundary**). Selected-node
+  floating **badge** (move up/down · duplicate · delete; per-kind colour; edge-disable) positioned over
+  the node + scroll-synced. **Add section** → structure-picker modal (12/6-6/4-4-4/8-4/4-8/3-3-3-3).
+  `page.tsx` now passes `themeBase`+`initialDoc`. Live-verified add/duplicate/delete/move all update
+  canvas + navigator + badge; 156 vitest, tsc+lint+build green.
+- **NEXT — Phase 3c-2 (drag-drop):** drag a widget from the library grid onto a column with
+  **drop-lines** (insert-position indicator), and drag existing nodes to reorder between columns/
+  sections. Add per-node HOVER outlines/badges on the canvas (not just on select). Likely @dnd-kit or
+  HTML5 DnD. Then 3d inspector (Content/Style/Advanced + device bar + per-field revert) · 3e undo/redo
+  + autosave + preview + publish. **Bespoke theme dirs delete at CUTOVER (Phase 6).**
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
