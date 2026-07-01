@@ -22,10 +22,23 @@ render collapse (delete 4 theme dirs) → 3 pixel-perfect builder shell → 4 su
 vilotest (`host@vilotest.com`) + a save point.
 
 **Progress:**
-- **Phase 0 (in progress, 2026-07-01):** plan + widget-registry contract written; reversed the
-  "NO freeform" decision in `WEBSITE_CMS_PLAN.md` §2 + table + cross-cutting; added the Builder V2
-  ADR to `DECISIONS.md`; flagged `THEME_CONTRACT.md` layer-3 supersession; memory + this anchor set.
-  Remaining P0: none blocking — proceed to Phase 1.
+- **Phase 0 (DONE, 2026-07-01, commit `c72094e9`):** plan + widget-registry contract written;
+  reversed the "NO freeform" decision in `WEBSITE_CMS_PLAN.md` §2 + table + cross-cutting; added the
+  Builder V2 ADR to `DECISIONS.md`; flagged `THEME_CONTRACT.md` layer-3 supersession; memory + anchor.
+- **Phase 1 core (DONE, 2026-07-01, commits `b1788ed9` + `bb62ecf0`):** all additive, parallel-build,
+  nothing legacy touched. `lib/website/pageDoc.schema.ts` (nested root→section→column→widget Zod +
+  `isPageDoc`/`parsePageDocLoose`, reuses `SECTION_TONES`+`blockStyleSchema`); `lib/website/widgets/`
+  = `newTypes.schema.ts` (5 new types' Zod props, brand-safe), `registry.ts` (THE widget SSOT —
+  group/label/icon/variants/dataKey/defaults/content-controls; defaults use existing token vocab),
+  `factories.ts` (newWidget/newColumn/newSection/newPageDoc/reidNode), `registry.test.ts` (8 tests).
+  tsc clean; **141 vitest green** (was 133). **No DB migration** (JSONB reshape is content-only).
+  ROLLED INTO PHASE 2: emitting each theme's canonical pages as `PageDoc` blueprints (needs the
+  token render + theme→blueprint conversion), and per-widget write-validation via the registry
+  (widget `props` is a loose record for now).
+- **NEXT — Phase 2 (token-driven render collapse):** one `WidgetRenderer` reading `--site-*`; each
+  block one shared component with variants; convert the 4 themes to token sets + `PageDoc`
+  blueprints; delete `components/site/{safari,sabela,oceansview,marmalade}/`; live-verify all four
+  still read distinct on the vilotest fixture. Biggest/riskiest phase — its own focused session.
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
