@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Menu,
   ChevronDown,
@@ -19,6 +25,12 @@ import {
   Upload,
   ListTree,
   Search,
+  ArrowUp,
+  ArrowDown,
+  Copy,
+  Trash2,
+  Plus,
+  X,
   // widget-library glyphs (registry `icon` names)
   Heading,
   Type,
@@ -49,6 +61,26 @@ import type {
   ColumnNode,
   WidgetNode,
 } from "@/lib/website/pageDoc.schema";
+import {
+  findNode,
+  moveNode,
+  removeNode,
+  duplicateNode,
+  addSection,
+} from "@/lib/website/pageDocOps";
+import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
+import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
+import type { SitePreset } from "@/lib/site/themes";
+
+// Section-structure layouts offered by the "Add section" modal.
+const STRUCTURES: { key: string; label: string; spans: number[] }[] = [
+  { key: "12", label: "1 column", spans: [12] },
+  { key: "6-6", label: "2 columns", spans: [6, 6] },
+  { key: "4-4-4", label: "3 columns", spans: [4, 4, 4] },
+  { key: "8-4", label: "2/3 + 1/3", spans: [8, 4] },
+  { key: "4-8", label: "1/3 + 2/3", spans: [4, 8] },
+  { key: "3-3-3-3", label: "4 columns", spans: [3, 3, 3, 3] },
+];
 
 // Builder V2 — Phase 3a chrome shell (client).
 //
@@ -110,21 +142,32 @@ function WieloMark() {
 export function BuilderShell({
   docName,
   themeLabel,
-  doc,
-  stage,
+  themeBase,
+  initialDoc,
 }: {
   docName: string;
   themeLabel: string;
-  doc: PageDoc;
-  stage: ReactNode;
+  themeBase: SitePreset;
+  initialDoc: PageDoc;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [doc, setDoc] = useState<PageDoc>(initialDoc);
+  const [structureOpen, setStructureOpen] = useState(false);
+  const [badge, setBadge] = useState<{
+    top: number;
+    left: number;
+    kind: string;
+  } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Selection → outline + reveal the matching (server-rendered) canvas node.
+  const selected = selectedId ? findNode(doc, selectedId) : null;
+
+  // Selection → outline the matching canvas node. Re-runs on doc changes so the
+  // outline follows the node after a mutation.
   useEffect(() => {
     const stageEl = stageRef.current;
     if (!stageEl) return;
@@ -132,12 +175,44 @@ export function BuilderShell({
       .querySelectorAll(".wb-node-sel")
       .forEach((e) => e.classList.remove("wb-node-sel"));
     if (!selectedId) return;
-    const el = stageEl.querySelector(`[data-node-id="${selectedId}"]`);
-    if (el) {
-      el.classList.add("wb-node-sel");
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    stageEl
+      .querySelector(`[data-node-id="${selectedId}"]`)
+      ?.classList.add("wb-node-sel");
+  }, [selectedId, doc]);
+
+  // Position the floating badge over the selected node (top-left corner), synced
+  // to canvas scroll. Cleared when nothing is selected / the node is gone.
+  const placeBadge = useCallback(() => {
+    const wrap = canvasRef.current;
+    const node = selectedId
+      ? stageRef.current?.querySelector<HTMLElement>(
+          `[data-node-id="${selectedId}"]`,
+        )
+      : null;
+    if (!wrap || !node) {
+      setBadge(null);
+      return;
     }
+    const nr = node.getBoundingClientRect();
+    const wr = wrap.getBoundingClientRect();
+    setBadge({
+      top: nr.top - wr.top + wrap.scrollTop,
+      left: nr.left - wr.left + wrap.scrollLeft,
+      kind: node.dataset.nodeKind ?? "widget",
+    });
   }, [selectedId]);
+
+  useLayoutEffect(() => {
+    placeBadge();
+  }, [placeBadge, doc, device]);
+
+  useEffect(() => {
+    const wrap = canvasRef.current;
+    if (!wrap) return;
+    const onScroll = () => placeBadge();
+    wrap.addEventListener("scroll", onScroll, { passive: true });
+    return () => wrap.removeEventListener("scroll", onScroll);
+  }, [placeBadge]);
 
   // Click a canvas node → select the innermost node; empty click → deselect.
   const onCanvasClick = (e: React.MouseEvent) => {
@@ -145,6 +220,33 @@ export function BuilderShell({
       "[data-node-id]",
     );
     setSelectedId(node?.dataset.nodeId ?? null);
+  };
+
+  // ── structural mutations ──
+  const canMove = (dir: -1 | 1): boolean => {
+    if (!selected) return false;
+    const j = selected.index + dir;
+    return j >= 0 && j < selected.siblings.length;
+  };
+  const doMove = (dir: -1 | 1) => {
+    if (selectedId) setDoc((d) => moveNode(d, selectedId, dir));
+  };
+  const doDelete = () => {
+    if (!selectedId) return;
+    setDoc((d) => removeNode(d, selectedId));
+    setSelectedId(null);
+  };
+  const doDuplicate = () => {
+    if (!selectedId) return;
+    const { doc: next, newId } = duplicateNode(doc, selectedId);
+    setDoc(next);
+    if (newId) setSelectedId(newId);
+  };
+  const doAddSection = (spans: number[]) => {
+    const { doc: next, newId } = addSection(doc, spans);
+    setDoc(next);
+    setSelectedId(newId);
+    setStructureOpen(false);
   };
 
   return (
@@ -300,10 +402,57 @@ export function BuilderShell({
           </aside>
 
           {/* CANVAS */}
-          <main className="canvas-wrap" onClick={onCanvasClick}>
+          <main className="canvas-wrap" ref={canvasRef} onClick={onCanvasClick}>
             <div className={`stage ${device}`} ref={stageRef}>
-              {stage}
+              <SiteThemeRoot theme={{ base: themeBase }}>
+                <PageDocRenderer doc={doc} device={device} />
+              </SiteThemeRoot>
+              <button
+                className="add-sec"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setStructureOpen(true);
+                }}
+              >
+                <Plus size={17} strokeWidth={2} /> Add section
+              </button>
             </div>
+
+            {badge && selected && (
+              <div
+                className={badgeClass(badge.kind)}
+                style={{ top: badge.top, left: badge.left }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="nb-lbl">
+                  {nodeMeta(selected.node as AnyNode).label}
+                </span>
+                <button
+                  title="Move up"
+                  type="button"
+                  onClick={() => doMove(-1)}
+                  disabled={!canMove(-1)}
+                >
+                  <ArrowUp size={14} strokeWidth={2} />
+                </button>
+                <button
+                  title="Move down"
+                  type="button"
+                  onClick={() => doMove(1)}
+                  disabled={!canMove(1)}
+                >
+                  <ArrowDown size={14} strokeWidth={2} />
+                </button>
+                <button title="Duplicate" type="button" onClick={doDuplicate}>
+                  <Copy size={14} strokeWidth={2} />
+                </button>
+                <button title="Delete" type="button" onClick={doDelete}>
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
+              </div>
+            )}
+
             <div className="dev-label">
               {device === "tablet"
                 ? "768 px"
@@ -315,8 +464,51 @@ export function BuilderShell({
           </main>
         </div>
       </div>
+
+      {/* structure picker */}
+      <div className={structureOpen ? "scrim show" : "scrim"}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="tb-ico"
+            type="button"
+            style={{ float: "right", color: "var(--mute)" }}
+            onClick={() => setStructureOpen(false)}
+            title="Close"
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+          <h3>Choose a structure</h3>
+          <p>Pick a column layout for your new section.</p>
+          <div className="layouts">
+            {STRUCTURES.map((s) => (
+              <div
+                className="layout"
+                key={s.key}
+                onClick={() => doAddSection(s.spans)}
+              >
+                <div className="cols">
+                  {s.spans.map((span, i) => (
+                    <i key={i} style={{ flex: span }} />
+                  ))}
+                </div>
+                <span>{s.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
+}
+
+function badgeClass(kind: string): string {
+  return [
+    "node-badge",
+    kind === "section" && "k-section",
+    kind === "column" && "k-column",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function WidgetLibrary({
