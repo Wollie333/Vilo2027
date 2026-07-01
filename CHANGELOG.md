@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 4a: topbar affordances + Tweaks FAB
+
+First slice of Phase 4 (sub-feature overlays). All shell-local — no external features, no DB —
+so it's fully additive and green. Makes the builder chrome interactive + pixel-complete.
+
+- **`builder-chrome.css`** — ported the prototype's dropdown / tweaks / toast / dark-chrome styles
+  (skipped in the 3a port because unused then), every selector scoped under `.wb`: `.tb-doc-menu`
+  (document switcher), `.tb-menu` (publish + templates dropdowns, `.left` variant), `.tweaks` /
+  `.tweaks-fab`, `.swatches`/`.sw`, `.toasts`/`.toast`, `.wb.dark-chrome` + `.wb.editing-part`.
+- **`BuilderShell.tsx`** —
+  - **Document switcher** dropdown (Page active; Header/Footer shown with a "Soon" tag → toast
+    pointing to the coming Theme overlay; the `navigation` JSONB stays SSOT so those wire to 4d/4e).
+  - **Templates** dropdown — lists the theme's blueprint pages (new `templates` prop); picking one
+    replaces the canvas with that starter (undoable via `setDoc`). Empty-state hint in real-page mode.
+  - **Publish split-button** menu — Save draft (immediate `saveBuilderDocAction`) / Publish now
+    (`publishBuilderDocAction`); both toast; demo mode toasts "Open a real page to…".
+  - **Tweaks FAB** — builder chrome theming via CSS vars on the `.wb` root: chrome (emerald/light/
+    dark → `dark-chrome` class), accent (`--primary`), panel density (`--panel-w`). Self-contained.
+  - **Toasts** — lightweight auto-dismissing toast stack for all the above feedback.
+  - Single outside-click effect closes any open topbar menu.
+- **`page.tsx`** — demo branch passes `templates` = the theme blueprints (`{key,label,doc}`).
+- **Live-verified** on `?theme=marmalade`: doc menu opens (Page on, Header/Footer "Soon"); Templates
+  swaps the canvas Home→About; Tweaks applies dark chrome + purple accent + compact density live;
+  Publish menu shows Save draft / Publish now with the demo toast; 0 console errors. tsc + lint clean,
+  162 vitest green, `pnpm build` passes.
+
 ## 2026-07-01 — Builder V2 Phase 3e-2b: public v:2 PageDoc render path — PHASE 3 COMPLETE
 
 Closes the persist→render loop: a stored Builder V2 PageDoc now renders live on the public site.

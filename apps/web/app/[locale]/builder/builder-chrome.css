@@ -1062,3 +1062,312 @@
   outline: none !important;
   cursor: auto;
 }
+.wb.previewing .tweaks-fab,
+.wb.previewing .tweaks {
+  display: none;
+}
+
+/* ============================================================
+   Phase 4a — topbar dropdowns, Tweaks FAB, toasts, chrome themes
+   Ported from the prototype builder.css (verbatim values), scoped
+   under `.wb`. These were skipped in the 3a port (unused then).
+   ============================================================ */
+
+/* ---------- document switcher menu ---------- */
+.wb .tb-doc {
+  position: relative;
+  display: flex;
+}
+.wb .tb-doc-menu {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 0;
+  width: 250px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-3);
+  padding: 6px;
+  z-index: 60;
+  display: none;
+}
+.wb .tb-doc-menu.show {
+  display: block;
+}
+.wb .tb-doc-menu .dm-h {
+  font-family: var(--jak);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+  padding: 8px 10px 6px;
+}
+.wb .tb-doc-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--ink);
+  transition: 0.12s;
+}
+.wb .tb-doc-menu button:hover {
+  background: var(--light);
+}
+.wb .tb-doc-menu button.on {
+  background: var(--accent);
+}
+.wb .tb-doc-menu button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.wb .tb-doc-menu button .di {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--light);
+  color: var(--secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wb .tb-doc-menu button.on .di {
+  background: #fff;
+  color: var(--primary);
+}
+.wb .tb-doc-menu button .dmt b {
+  font-family: var(--jak);
+  font-size: 13px;
+  font-weight: 700;
+  display: block;
+  line-height: 1.1;
+}
+.wb .tb-doc-menu button .dmt small {
+  font-size: 11px;
+  color: var(--mute);
+}
+.wb .tb-doc-menu .soon {
+  margin-left: auto;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mute);
+  background: var(--light);
+  border-radius: 999px;
+  padding: 3px 7px;
+}
+
+/* ---------- generic topbar dropdown (publish / templates) ---------- */
+.wb .tb-templates {
+  position: relative;
+  display: flex;
+}
+.wb .tb-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 250px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-3);
+  padding: 6px;
+  z-index: 60;
+  display: none;
+}
+.wb .tb-menu.show {
+  display: block;
+}
+.wb .tb-menu.left {
+  right: auto;
+  left: 0;
+}
+.wb .tb-menu button {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 11px;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--ink);
+  transition: 0.12s;
+}
+.wb .tb-menu button:hover {
+  background: var(--light);
+}
+.wb .tb-menu button .mi {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wb .tb-menu button b {
+  font-family: var(--jak);
+  font-size: 13px;
+  font-weight: 700;
+  display: block;
+  line-height: 1.1;
+}
+.wb .tb-menu button small {
+  font-size: 11px;
+  color: var(--mute);
+  display: block;
+  margin-top: 2px;
+}
+.wb .tb-menu .tm-empty {
+  padding: 12px 12px 14px;
+  font-size: 12px;
+  color: var(--mute);
+  line-height: 1.5;
+}
+
+/* editing-part accent: tint the topbar when in a template document */
+.wb.editing-part .topbar {
+  background: #0b3a2c;
+}
+
+/* ---------- TWEAKS ---------- */
+.wb .tweaks {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 70;
+  width: 248px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--shadow-3);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  transform: translateY(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.25s;
+}
+.wb .tweaks.show {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+.wb .tweaks-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--line);
+}
+.wb .tweaks-h b {
+  font-family: var(--jak);
+  font-size: 14px;
+  flex: 1;
+}
+.wb .tweaks-b {
+  padding: 14px 15px;
+}
+.wb .tw-l {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 0 0 8px;
+}
+.wb .tw-row + .tw-l {
+  margin-top: 16px;
+}
+.wb .tweaks-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 69;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--secondary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-3);
+  transition: 0.2s;
+}
+.wb .tweaks-fab:hover {
+  transform: scale(1.06);
+  background: var(--primary);
+}
+.wb .swatches {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.wb .sw {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: 0.12s;
+  position: relative;
+}
+.wb .sw:hover {
+  transform: scale(1.1);
+}
+.wb .sw.on {
+  box-shadow:
+    0 0 0 2px var(--panel),
+    0 0 0 4px var(--primary);
+}
+
+/* ---------- TOASTS ---------- */
+.wb .toasts {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.wb .toast {
+  background: var(--secondary);
+  color: #fff;
+  padding: 11px 16px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-3);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* ---------- DARK CHROME variant ---------- */
+.wb.dark-chrome {
+  --panel: #161e29;
+  --line: #28323f;
+  --line-2: #323d4c;
+  --ink: #e6edf3;
+  --mute: #8595a5;
+  --light: #1c2530;
+  --accent: #1e3a2e;
+  --sidebar: #11181f;
+}
+.wb.dark-chrome .widget span,
+.wb.dark-chrome .nav-row,
+.wb.dark-chrome .ctl-l label,
+.wb.dark-chrome .tab.on {
+  color: #e6edf3;
+}
+.wb.dark-chrome .stage {
+  box-shadow: 0 24px 60px -22px rgba(0, 0, 0, 0.6);
+}

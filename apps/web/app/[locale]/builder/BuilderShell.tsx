@@ -34,6 +34,12 @@ import {
   Plus,
   X,
   GripVertical,
+  SlidersHorizontal,
+  Save,
+  FileText,
+  PanelTop,
+  PanelBottom,
+  Check,
   // widget-library glyphs (registry `icon` names)
   Heading,
   Type,
@@ -156,6 +162,22 @@ function WieloMark() {
   );
 }
 
+// Chrome-theme CSS-var overrides applied to the `.wb` root (Tweaks FAB).
+const CHROME_VARS: Record<string, Record<string, string>> = {
+  emerald: {
+    "--secondary": "#064E3B",
+    "--sidebar": "#EEF4F0",
+    "--canvas": "#DCE7E1",
+  },
+  light: {
+    "--secondary": "#1F2937",
+    "--sidebar": "#F8FAFC",
+    "--canvas": "#E5E9EF",
+  },
+  dark: { "--secondary": "#0F1720", "--canvas": "#1A2230" },
+};
+const ACCENTS = ["#10B981", "#0EA5E9", "#8B5CF6", "#F59E0B"];
+
 export function BuilderShell({
   docName,
   themeLabel,
@@ -163,6 +185,7 @@ export function BuilderShell({
   initialDoc,
   websiteId,
   pageId,
+  templates = [],
 }: {
   docName: string;
   themeLabel: string;
@@ -171,6 +194,8 @@ export function BuilderShell({
   /** When both are present the builder persists (autosave + publish) to this page. */
   websiteId?: string;
   pageId?: string;
+  /** Wired-in starter layouts (theme blueprints) offered by the Templates menu. */
+  templates?: { key: string; label: string; doc: PageDoc }[];
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
@@ -185,6 +210,34 @@ export function BuilderShell({
   } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // ── Phase 4a: topbar menus, Tweaks FAB, toasts ──
+  const [docMenuOpen, setDocMenuOpen] = useState(false);
+  const [tplMenuOpen, setTplMenuOpen] = useState(false);
+  const [pubMenuOpen, setPubMenuOpen] = useState(false);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [chrome, setChrome] = useState<"emerald" | "light" | "dark">("emerald");
+  const [accent, setAccent] = useState(ACCENTS[0]);
+  const [density, setDensity] = useState<"roomy" | "compact">("roomy");
+  const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([]);
+  const toastIdRef = useRef(0);
+  const toast = useCallback((msg: string) => {
+    const id = ++toastIdRef.current;
+    setToasts((t) => [...t, { id, msg }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2600);
+  }, []);
+
+  // Close any open topbar menu on an outside click.
+  useEffect(() => {
+    if (!docMenuOpen && !tplMenuOpen && !pubMenuOpen) return;
+    const close = () => {
+      setDocMenuOpen(false);
+      setTplMenuOpen(false);
+      setPubMenuOpen(false);
+    };
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [docMenuOpen, tplMenuOpen, pubMenuOpen]);
 
   // ── doc history (undo/redo) ──
   // The doc lives in a bounded past→present→future stack; every mutation goes
@@ -248,12 +301,41 @@ export function BuilderShell({
   }, [doc, persists, websiteId, pageId]);
 
   const doPublish = useCallback(async () => {
-    if (!persists || !websiteId || !pageId) return;
+    setPubMenuOpen(false);
+    if (!persists || !websiteId || !pageId) {
+      toast("Open a real page to publish");
+      return;
+    }
     setPublishState("publishing");
     const res = await publishBuilderDocAction({ websiteId, pageId });
     setPublishState(res.ok ? "done" : "error");
+    toast(res.ok ? "Published to your site" : "Publish failed");
     if (res.ok) setTimeout(() => setPublishState("idle"), 2500);
-  }, [persists, websiteId, pageId]);
+  }, [persists, websiteId, pageId, toast]);
+
+  // Save-draft (Publish menu) — an immediate write of the working doc.
+  const doSaveDraft = useCallback(async () => {
+    setPubMenuOpen(false);
+    if (!persists || !websiteId || !pageId) {
+      toast("Open a real page to save");
+      return;
+    }
+    setSaveState("saving");
+    const res = await saveBuilderDocAction({ websiteId, pageId, doc });
+    setSaveState(res.ok ? "saved" : "error");
+    toast(res.ok ? "Draft saved" : "Save failed");
+  }, [persists, websiteId, pageId, doc, toast]);
+
+  // Templates menu — load a wired-in starter layout (undoable).
+  const loadTemplate = useCallback(
+    (t: { label: string; doc: PageDoc }) => {
+      setTplMenuOpen(false);
+      setDoc(t.doc);
+      setSelectedId(null);
+      toast(`Loaded “${t.label}” layout`);
+    },
+    [setDoc, toast],
+  );
 
   const statusLabel = !persists
     ? "· demo (not saved)"
@@ -542,8 +624,21 @@ export function BuilderShell({
     .filter(Boolean)
     .join(" ");
 
+  const rootClass = [
+    "wb",
+    previewing && "previewing",
+    chrome === "dark" && "dark-chrome",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const rootStyle = {
+    ...CHROME_VARS[chrome],
+    "--primary": accent,
+    "--panel-w": density === "compact" ? "290px" : "332px",
+  } as React.CSSProperties;
+
   return (
-    <div className={previewing ? "wb previewing" : "wb"}>
+    <div className={rootClass} style={rootStyle}>
       <div className="app">
         {/* ===== TOPBAR ===== */}
         <header className="topbar">
@@ -557,18 +652,117 @@ export function BuilderShell({
             Wielo
           </div>
           <div className="tb-div" />
-          <button className="tb-page" title="Switch document" type="button">
-            <span className="dot" />
-            {docName}
-            <span className="docsub">{statusLabel}</span>
-            <ChevronDown size={13} strokeWidth={2.2} style={{ opacity: 0.7 }} />
-          </button>
+          <div className="tb-doc">
+            <button
+              className={docMenuOpen ? "tb-page open" : "tb-page"}
+              title="Switch document"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setTplMenuOpen(false);
+                setPubMenuOpen(false);
+                setDocMenuOpen((o) => !o);
+              }}
+            >
+              <span className="dot" />
+              {docName}
+              <span className="docsub">{statusLabel}</span>
+              <ChevronDown
+                size={13}
+                strokeWidth={2.2}
+                style={{ opacity: 0.7 }}
+              />
+            </button>
+            <div className={docMenuOpen ? "tb-doc-menu show" : "tb-doc-menu"}>
+              <div className="dm-h">Editing</div>
+              <button type="button" className="on">
+                <span className="di">
+                  <FileText size={16} strokeWidth={1.8} />
+                </span>
+                <span className="dmt">
+                  <b>Page</b>
+                  <small>{docName}</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDocMenuOpen(false);
+                  toast("Header opens in the Theme overlay (coming next)");
+                }}
+              >
+                <span className="di">
+                  <PanelTop size={16} strokeWidth={1.8} />
+                </span>
+                <span className="dmt">
+                  <b>Header</b>
+                  <small>Site-wide template</small>
+                </span>
+                <span className="soon">Soon</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDocMenuOpen(false);
+                  toast("Footer opens in the Theme overlay (coming next)");
+                }}
+              >
+                <span className="di">
+                  <PanelBottom size={16} strokeWidth={1.8} />
+                </span>
+                <span className="dmt">
+                  <b>Footer</b>
+                  <small>Site-wide template</small>
+                </span>
+                <span className="soon">Soon</span>
+              </button>
+            </div>
+          </div>
           <div className="tb-div" />
-          <button className="tb-tpl-btn" title="Templates" type="button">
-            <LayoutGrid size={15} strokeWidth={1.9} />
-            Templates
-            <ChevronDown size={13} strokeWidth={2.2} />
-          </button>
+          <div className="tb-templates">
+            <button
+              className="tb-tpl-btn"
+              title="Wired-in starter layouts"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDocMenuOpen(false);
+                setPubMenuOpen(false);
+                setTplMenuOpen((o) => !o);
+              }}
+            >
+              <LayoutGrid size={15} strokeWidth={1.9} />
+              Templates
+              <ChevronDown size={13} strokeWidth={2.2} />
+            </button>
+            <div
+              className={tplMenuOpen ? "tb-menu left show" : "tb-menu left"}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {templates.length === 0 ? (
+                <div className="tm-empty">
+                  No starter layouts for this page. Templates appear when
+                  editing a themed blueprint page.
+                </div>
+              ) : (
+                templates.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => loadTemplate(t)}
+                  >
+                    <span className="mi">
+                      <LayoutGrid size={16} strokeWidth={1.8} />
+                    </span>
+                    <span>
+                      <b>{t.label}</b>
+                      <small>Replace the canvas with this starter</small>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
 
           <div className="tb-spacer" />
 
@@ -657,9 +851,42 @@ export function BuilderShell({
                   ? "Published ✓"
                   : "Publish"}
             </button>
-            <button className="tb-caret" title="Publish options" type="button">
+            <button
+              className="tb-caret"
+              title="Publish options"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDocMenuOpen(false);
+                setTplMenuOpen(false);
+                setPubMenuOpen((o) => !o);
+              }}
+            >
               <ChevronDown size={14} strokeWidth={2.2} />
             </button>
+            <div
+              className={pubMenuOpen ? "tb-menu show" : "tb-menu"}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button type="button" onClick={doSaveDraft}>
+                <span className="mi">
+                  <Save size={16} strokeWidth={1.9} />
+                </span>
+                <span>
+                  <b>Save draft</b>
+                  <small>Keep working privately</small>
+                </span>
+              </button>
+              <button type="button" onClick={doPublish}>
+                <span className="mi">
+                  <Upload size={16} strokeWidth={1.9} />
+                </span>
+                <span>
+                  <b>Publish now</b>
+                  <small>Push changes live to your site</small>
+                </span>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -870,6 +1097,84 @@ export function BuilderShell({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Tweaks FAB — builder chrome theming (self-contained) */}
+      {!tweaksOpen && (
+        <button
+          className="tweaks-fab"
+          type="button"
+          title="Tweaks"
+          onClick={() => setTweaksOpen(true)}
+        >
+          <SlidersHorizontal size={22} strokeWidth={1.8} />
+        </button>
+      )}
+      <div className={tweaksOpen ? "tweaks show" : "tweaks"}>
+        <div className="tweaks-h">
+          <SlidersHorizontal size={17} strokeWidth={1.9} color="#10B981" />
+          <b>Tweaks</b>
+          <button
+            className="tb-ico"
+            type="button"
+            style={{ width: 28, height: 28, color: "var(--mute)" }}
+            onClick={() => setTweaksOpen(false)}
+            title="Close"
+          >
+            <X size={16} strokeWidth={2} />
+          </button>
+        </div>
+        <div className="tweaks-b">
+          <p className="tw-l">Builder chrome</p>
+          <div className="seg tw-row">
+            {(["emerald", "light", "dark"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={chrome === v ? "on" : undefined}
+                onClick={() => setChrome(v)}
+              >
+                {v[0].toUpperCase() + v.slice(1)}
+              </button>
+            ))}
+          </div>
+          <p className="tw-l">Accent</p>
+          <div className="swatches tw-row" style={{ gap: 8 }}>
+            {ACCENTS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={accent === v ? "sw on" : "sw"}
+                style={{ background: v }}
+                onClick={() => setAccent(v)}
+                aria-label={`Accent ${v}`}
+              />
+            ))}
+          </div>
+          <p className="tw-l">Panel density</p>
+          <div className="seg tw-row">
+            {(["roomy", "compact"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={density === v ? "on" : undefined}
+                onClick={() => setDensity(v)}
+              >
+                {v[0].toUpperCase() + v.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Toasts */}
+      <div className="toasts">
+        {toasts.map((t) => (
+          <div className="toast" key={t.id}>
+            <Check size={15} strokeWidth={2.4} color="#10B981" />
+            {t.msg}
+          </div>
+        ))}
       </div>
     </div>
   );

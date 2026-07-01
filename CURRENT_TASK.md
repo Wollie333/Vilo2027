@@ -186,7 +186,20 @@ vilotest (`host@vilotest.com`) + a save point.
   inside the generic `SiteChrome` (bypasses bespoke per-theme layers = intended cutover behaviour);
   tokens via `SiteThemeRoot`. Live-verified on `vilotest` preview: token render + accent band + REAL
   rooms via data-from-leaves. 162 vitest, green. Fixture restored via `seed-safari-qa`.
-- **NEXT — Phase 4 (sub-feature overlays):** reskin **Brand Studio**, the **Nav/Menu builder**
+- **Phase 4a — topbar affordances + Tweaks FAB (DONE + LIVE-VERIFIED, 2026-07-01):** first Phase-4
+  slice, all shell-local (no external features, no DB). Ported the prototype's dropdown/tweaks/toast/
+  dark-chrome CSS (skipped in the 3a port) into `builder-chrome.css`, every selector scoped `.wb`.
+  `BuilderShell`: **document switcher** dropdown (Page active; Header/Footer carry a "Soon" tag +
+  toast → they wire to the Theme/Nav overlays in 4d/4e, `navigation` JSONB stays SSOT); **Templates**
+  dropdown (new `templates` prop = theme blueprints; pick → replace canvas with that starter,
+  undoable; empty-state hint in real-page mode); **Publish split menu** (Save draft = immediate
+  `saveBuilderDocAction` · Publish now = `publishBuilderDocAction`; demo toasts "Open a real page…");
+  **Tweaks FAB** (chrome emerald/light/dark→`dark-chrome`, accent→`--primary`, density→`--panel-w`,
+  all CSS vars on the `.wb` root); **toasts**; one outside-click effect closes any menu. `page.tsx`
+  demo branch passes the blueprints as `templates`. Live-verified on `?theme=marmalade` (doc menu,
+  Templates Home→About swap, Tweaks dark+purple+compact live, Publish menu + demo toast, 0 console
+  errors). tsc + lint clean, 162 vitest, `pnpm build` green.
+- **NEXT — Phase 4 remaining (sub-feature overlays):** reskin **Brand Studio**, the **Nav/Menu builder**
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

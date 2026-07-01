@@ -117,6 +117,11 @@ export default async function BuilderPage({
       themeLabel={themeName(slug)}
       theme={{ base }}
       initialDoc={chosen?.doc ?? newPageDoc()}
+      templates={blueprints.map((b) => ({
+        key: b.key,
+        label: b.label,
+        doc: b.doc,
+      }))}
     />
   );
 }
