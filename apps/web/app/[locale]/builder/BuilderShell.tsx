@@ -167,7 +167,7 @@ export function BuilderShell({
   const [mode, setMode] = useState<PanelMode>("widgets");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [doc, setDoc] = useState<PageDoc>(initialDoc);
+  const [previewing, setPreviewing] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
   const [badge, setBadge] = useState<{
     top: number;
@@ -176,6 +176,43 @@ export function BuilderShell({
   } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // ── doc history (undo/redo) ──
+  // The doc lives in a bounded past→present→future stack; every mutation goes
+  // through `setDoc` (which pushes a new present + drops the redo tail). Named
+  // `setDoc` so all existing mutation call-sites work unchanged.
+  const [history, setHistory] = useState<{ stack: PageDoc[]; pos: number }>(
+    () => ({ stack: [initialDoc], pos: 0 }),
+  );
+  const doc = history.stack[history.pos];
+  const setDoc = useCallback((next: PageDoc | ((d: PageDoc) => PageDoc)) => {
+    setHistory((h) => {
+      const cur = h.stack[h.pos];
+      const nd =
+        typeof next === "function"
+          ? (next as (d: PageDoc) => PageDoc)(cur)
+          : next;
+      if (nd === cur) return h; // op returned the same doc → no history entry
+      const trimmed = h.stack.slice(0, h.pos + 1);
+      trimmed.push(nd);
+      const capped =
+        trimmed.length > 60 ? trimmed.slice(trimmed.length - 60) : trimmed;
+      return { stack: capped, pos: capped.length - 1 };
+    });
+  }, []);
+  const canUndo = history.pos > 0;
+  const canRedo = history.pos < history.stack.length - 1;
+  const undo = useCallback(
+    () => setHistory((h) => (h.pos > 0 ? { ...h, pos: h.pos - 1 } : h)),
+    [],
+  );
+  const redo = useCallback(
+    () =>
+      setHistory((h) =>
+        h.pos < h.stack.length - 1 ? { ...h, pos: h.pos + 1 } : h,
+      ),
+    [],
+  );
 
   const selected = selectedId ? findNode(doc, selectedId) : null;
 
@@ -227,6 +264,26 @@ export function BuilderShell({
     return () => wrap.removeEventListener("scroll", onScroll);
   }, [placeBadge]);
 
+  // Undo/redo keyboard shortcuts — skipped while typing in a field so native
+  // input undo still works there.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
+  const togglePreview = () => {
+    setPreviewing((p) => !p);
+    setSelectedId(null);
+  };
+
   // Select a node and open its inspector (Settings). Null just deselects.
   const selectNode = useCallback((id: string | null) => {
     setSelectedId(id);
@@ -247,7 +304,7 @@ export function BuilderShell({
       if (selectedId)
         setDoc((d) => updateNodeProps(d, selectedId, { [key]: value }));
     },
-    [selectedId],
+    [selectedId, setDoc],
   );
 
   // Inspector → patch node-level fields (Style / Advanced) live.
@@ -255,7 +312,7 @@ export function BuilderShell({
     (patch: Record<string, unknown>) => {
       if (selectedId) setDoc((d) => updateNode(d, selectedId, patch));
     },
-    [selectedId],
+    [selectedId, setDoc],
   );
 
   // Inspector device bar → write a per-device override layer (tablet / mobile).
@@ -264,7 +321,7 @@ export function BuilderShell({
       if (selectedId && device !== "desktop")
         setDoc((d) => updateResponsive(d, selectedId, device, patch));
     },
-    [selectedId, device],
+    [selectedId, device, setDoc],
   );
 
   // ── structural mutations ──
@@ -435,7 +492,7 @@ export function BuilderShell({
     .join(" ");
 
   return (
-    <div className="wb">
+    <div className={previewing ? "wb previewing" : "wb"}>
       <div className="app">
         {/* ===== TOPBAR ===== */}
         <header className="topbar">
@@ -478,13 +535,33 @@ export function BuilderShell({
             ))}
           </div>
           <div className="tb-div" />
-          <button className="tb-ico" title="Undo" type="button" disabled>
+          <button
+            className="tb-ico"
+            title="Undo (Ctrl+Z)"
+            type="button"
+            onClick={undo}
+            disabled={!canUndo}
+          >
             <Undo2 size={18} strokeWidth={1.9} />
           </button>
-          <button className="tb-ico" title="Redo" type="button" disabled>
+          <button
+            className="tb-ico"
+            title="Redo (Ctrl+Shift+Z)"
+            type="button"
+            onClick={redo}
+            disabled={!canRedo}
+          >
             <Redo2 size={18} strokeWidth={1.9} />
           </button>
-          <button className="tb-ico" title="Reset page" type="button">
+          <button
+            className="tb-ico"
+            title="Reset to the starter layout"
+            type="button"
+            onClick={() => {
+              setDoc(initialDoc);
+              setSelectedId(null);
+            }}
+          >
             <RotateCcw size={18} strokeWidth={1.9} />
           </button>
           <button
@@ -502,9 +579,13 @@ export function BuilderShell({
             <Settings size={18} strokeWidth={1.9} />
           </button>
           <div className="tb-div" />
-          <button className="tb-btn ghost" type="button">
+          <button
+            className="tb-btn ghost"
+            type="button"
+            onClick={togglePreview}
+          >
             <Eye size={16} strokeWidth={1.9} />
-            Preview
+            {previewing ? "Exit preview" : "Preview"}
           </button>
           <div className="tb-publish">
             <button className="tb-btn solid" type="button">

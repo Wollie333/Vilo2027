@@ -1040,3 +1040,25 @@
 .wb .stage.mobile ~ .dev-label {
   opacity: 1;
 }
+
+/* ---------- PREVIEW MODE (Phase 3e) ---------- */
+.wb.previewing .panel {
+  display: none;
+}
+.wb.previewing .canvas-wrap {
+  padding: 0;
+}
+.wb.previewing .stage {
+  border-radius: 0;
+  box-shadow: none;
+}
+/* Strip every editor affordance so it reads like the live site. */
+.wb.previewing .add-sec,
+.wb.previewing .node-badge,
+.wb.previewing .dropline-abs {
+  display: none;
+}
+.wb.previewing .stage [data-node-id] {
+  outline: none !important;
+  cursor: auto;
+}
