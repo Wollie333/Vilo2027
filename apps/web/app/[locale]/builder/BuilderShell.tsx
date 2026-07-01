@@ -79,6 +79,7 @@ import {
   moveNodeInto,
   updateNodeProps,
   updateNode,
+  updateResponsive,
 } from "@/lib/website/pageDocOps";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
@@ -255,6 +256,15 @@ export function BuilderShell({
       if (selectedId) setDoc((d) => updateNode(d, selectedId, patch));
     },
     [selectedId],
+  );
+
+  // Inspector device bar → write a per-device override layer (tablet / mobile).
+  const patchResp = useCallback(
+    (patch: RespPatch) => {
+      if (selectedId && device !== "desktop")
+        setDoc((d) => updateResponsive(d, selectedId, device, patch));
+    },
+    [selectedId, device],
   );
 
   // ── structural mutations ──
@@ -552,8 +562,11 @@ export function BuilderShell({
                 (selected ? (
                   <Inspector
                     node={selected.node as AnyNode}
+                    device={device}
+                    onDevice={setDevice}
                     onPatch={patchProps}
                     onPatchNode={patchNode}
+                    onPatchResp={patchResp}
                   />
                 ) : (
                   <PanelPlaceholder
@@ -912,16 +925,56 @@ type InspectorTab = (typeof INSPECTOR_TABS)[number];
 
 function Inspector({
   node,
+  device,
+  onDevice,
   onPatch,
   onPatchNode,
+  onPatchResp,
 }: {
   node: AnyNode;
+  device: Device;
+  onDevice: (d: Device) => void;
   onPatch: (key: string, value: unknown) => void;
   onPatchNode: (patch: Record<string, unknown>) => void;
+  onPatchResp: (patch: RespPatch) => void;
 }) {
   const [tab, setTab] = useState<InspectorTab>("content");
   const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
   const props = ("props" in node ? node.props : {}) as Record<string, unknown>;
+  const n = node as unknown as NodeFields;
+
+  const isDev = device !== "desktop"; // editing a per-device override layer
+  const resp = n.responsive?.[device];
+  const defaults = (def?.defaults ?? {}) as Record<string, unknown>;
+  const space = n.space ?? {};
+
+  // Content props — resolve/read/write against base (desktop) or the device layer.
+  const propVal = (k: string) =>
+    isDev && resp?.props && k in resp.props ? resp.props[k] : props[k];
+  const propOver = (k: string) =>
+    isDev
+      ? !!(resp?.props && k in resp.props)
+      : props[k] !== undefined && props[k] !== defaults[k];
+  const setProp = (k: string, v: unknown) =>
+    isDev ? onPatchResp({ props: { [k]: v } }) : onPatch(k, v);
+  const revertProp = (k: string) =>
+    isDev ? onPatchResp({ props: { [k]: null } }) : onPatch(k, defaults[k]);
+
+  // Spacing — same layered resolution (base node.space vs device layer).
+  const spaceVal = (k: string) =>
+    isDev && resp?.space && k in resp.space
+      ? (resp.space[k] as number)
+      : (space[k] ?? 0);
+  const spaceOver = (k: string) =>
+    isDev ? !!(resp?.space && k in resp.space) : (space[k] ?? 0) !== 0;
+  const setSpace = (k: string, v: number) =>
+    isDev
+      ? onPatchResp({ space: { [k]: v } })
+      : onPatchNode({ space: { ...space, [k]: v } });
+  const revertSpace = (k: string) =>
+    isDev
+      ? onPatchResp({ space: { [k]: null } })
+      : onPatchNode({ space: { ...space, [k]: 0 } });
 
   return (
     <>
@@ -937,12 +990,47 @@ function Inspector({
           </button>
         ))}
       </div>
+
+      <div className="devbar">
+        <span className="devbar-l">Editing</span>
+        <div className="seg">
+          {DEVICES.map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              title={label}
+              className={device === key ? "on" : undefined}
+              onClick={() => onDevice(key)}
+            >
+              <Icon size={14} strokeWidth={1.8} />
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="tabpane">
+        {isDev && (
+          <div className="hint" style={{ marginTop: 12 }}>
+            Editing <b>{device}</b> overrides — cleared fields inherit desktop.
+          </div>
+        )}
+
         {tab === "content" &&
           (def?.content ? (
-            def.content.map((ctl, i) => (
-              <Control key={i} ctl={ctl} props={props} onPatch={onPatch} />
-            ))
+            def.content.map((ctl, i) =>
+              ctl.kind === "hint" ? (
+                <Control key={i} ctl={ctl} />
+              ) : (
+                <Control
+                  key={i}
+                  ctl={ctl}
+                  value={propVal(ctl.key)}
+                  overridden={propOver(ctl.key)}
+                  onChange={(v) => setProp(ctl.key, v)}
+                  onRevert={() => revertProp(ctl.key)}
+                />
+              ),
+            )
           ) : (
             <div className="insp-stub">
               This block’s copy comes from the theme blueprint — no content
@@ -950,9 +1038,86 @@ function Inspector({
               controls for composite blocks land in a later slice.
             </div>
           ))}
-        {tab === "style" && <StylePane node={node} onPatchNode={onPatchNode} />}
+
+        {tab === "style" && (
+          <>
+            <SegRow
+              label="Colour tone"
+              value={n.tone ?? "default"}
+              options={TONE_OPTS}
+              onChange={(v) =>
+                onPatchNode({ tone: v === "default" ? undefined : v })
+              }
+            />
+            {node.type === "section" && (
+              <TextRow
+                label="Background"
+                value={n.bg}
+                placeholder="var(--site-surface) or #FBF4E6"
+                onChange={(v) => onPatchNode({ bg: v.trim() || undefined })}
+              />
+            )}
+            <div className="hint">
+              Tone + background apply to every device. Per-device layout
+              (spacing, hide) lives in the Advanced tab.
+            </div>
+          </>
+        )}
+
         {tab === "advanced" && (
-          <AdvancedPane node={node} onPatchNode={onPatchNode} />
+          <>
+            <SpaceBox
+              label="Padding"
+              keys={["pt", "pr", "pb", "pl"]}
+              labels={["T", "R", "B", "L"]}
+              get={spaceVal}
+              isOver={spaceOver}
+              onSet={setSpace}
+              onRevert={revertSpace}
+            />
+            <SpaceBox
+              label="Margin"
+              keys={["mt", "mb"]}
+              labels={["T", "B"]}
+              two
+              get={spaceVal}
+              isOver={spaceOver}
+              onSet={setSpace}
+              onRevert={revertSpace}
+            />
+            {isDev ? (
+              <div className="ctl">
+                <div className="togrow">
+                  <label>Hidden on {device}</label>
+                  <div
+                    className={resp?.hidden ? "tog on" : "tog"}
+                    onClick={() => onPatchResp({ hidden: !resp?.hidden })}
+                  />
+                </div>
+              </div>
+            ) : (
+              <SegRow
+                label="Visible on"
+                value={n.visibility ?? "all"}
+                options={VIS_OPTS}
+                onChange={(v) =>
+                  onPatchNode({ visibility: v === "all" ? undefined : v })
+                }
+              />
+            )}
+            <TextRow
+              label="CSS ID"
+              value={n.cssId}
+              placeholder="my-section"
+              onChange={(v) => onPatchNode({ cssId: v.trim() || undefined })}
+            />
+            <TextRow
+              label="CSS class"
+              value={n.cssClass}
+              placeholder="promo dark"
+              onChange={(v) => onPatchNode({ cssClass: v.trim() || undefined })}
+            />
+          </>
         )}
       </div>
     </>
@@ -971,6 +1136,16 @@ const VIS_OPTS: [string, string][] = [
   ["mobile", "Mobile"],
 ];
 
+type RespLayer = {
+  props?: Record<string, unknown>;
+  space?: Record<string, unknown>;
+  hidden?: boolean;
+};
+type RespPatch = {
+  props?: Record<string, unknown>;
+  space?: Record<string, unknown>;
+  hidden?: boolean;
+};
 type NodeFields = {
   tone?: string;
   bg?: string;
@@ -978,8 +1153,17 @@ type NodeFields = {
   cssId?: string;
   cssClass?: string;
   space?: Record<string, number>;
+  responsive?: Record<string, RespLayer>;
   type: string;
 };
+
+function RevertBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button className="revert" type="button" title="Reset" onClick={onClick}>
+      <RotateCcw size={13} strokeWidth={2} />
+    </button>
+  );
+}
 
 function SegRow({
   label,
@@ -1039,64 +1223,38 @@ function TextRow({
   );
 }
 
-function StylePane({
-  node,
-  onPatchNode,
-}: {
-  node: AnyNode;
-  onPatchNode: (patch: Record<string, unknown>) => void;
-}) {
-  const n = node as unknown as NodeFields;
-  return (
-    <>
-      <SegRow
-        label="Colour tone"
-        value={n.tone ?? "default"}
-        options={TONE_OPTS}
-        onChange={(v) => onPatchNode({ tone: v === "default" ? undefined : v })}
-      />
-      {node.type === "section" && (
-        <TextRow
-          label="Background"
-          value={n.bg}
-          placeholder="var(--site-surface) or #FBF4E6"
-          onChange={(v) => onPatchNode({ bg: v.trim() || undefined })}
-        />
-      )}
-      <div className="hint">
-        Tone recolours the block from the theme palette; Background overrides it
-        with a specific colour (sections).
-      </div>
-    </>
-  );
-}
-
 function SpaceBox({
   label,
   keys,
   labels,
-  space,
   two,
+  get,
+  isOver,
   onSet,
+  onRevert,
 }: {
   label: string;
   keys: string[];
   labels: string[];
-  space: Record<string, number>;
   two?: boolean;
+  get: (k: string) => number;
+  isOver: (k: string) => boolean;
   onSet: (k: string, v: number) => void;
+  onRevert: (k: string) => void;
 }) {
+  const anyOver = keys.some(isOver);
   return (
     <div className="ctl">
       <div className="ctl-l">
         <label>{label}</label>
+        {anyOver && <RevertBtn onClick={() => keys.forEach(onRevert)} />}
       </div>
       <div className={two ? "box4 box2" : "box4"}>
         {keys.map((k, i) => (
           <div className="f" key={k}>
             <input
               inputMode="numeric"
-              value={space[k] ?? 0}
+              value={get(k)}
               onChange={(e) => {
                 const v = e.target.value === "" ? 0 : Number(e.target.value);
                 if (!Number.isNaN(v)) onSet(k, v);
@@ -1107,58 +1265,6 @@ function SpaceBox({
         ))}
       </div>
     </div>
-  );
-}
-
-function AdvancedPane({
-  node,
-  onPatchNode,
-}: {
-  node: AnyNode;
-  onPatchNode: (patch: Record<string, unknown>) => void;
-}) {
-  const n = node as unknown as NodeFields;
-  const space = n.space ?? {};
-  const setSpace = (k: string, v: number) =>
-    onPatchNode({ space: { ...space, [k]: v } });
-  return (
-    <>
-      <SpaceBox
-        label="Padding"
-        keys={["pt", "pr", "pb", "pl"]}
-        labels={["T", "R", "B", "L"]}
-        space={space}
-        onSet={setSpace}
-      />
-      <SpaceBox
-        label="Margin"
-        keys={["mt", "mb"]}
-        labels={["T", "B"]}
-        space={space}
-        two
-        onSet={setSpace}
-      />
-      <SegRow
-        label="Visible on"
-        value={n.visibility ?? "all"}
-        options={VIS_OPTS}
-        onChange={(v) =>
-          onPatchNode({ visibility: v === "all" ? undefined : v })
-        }
-      />
-      <TextRow
-        label="CSS ID"
-        value={n.cssId}
-        placeholder="my-section"
-        onChange={(v) => onPatchNode({ cssId: v.trim() || undefined })}
-      />
-      <TextRow
-        label="CSS class"
-        value={n.cssClass}
-        placeholder="promo dark"
-        onChange={(v) => onPatchNode({ cssClass: v.trim() || undefined })}
-      />
-    </>
   );
 }
 
@@ -1179,20 +1285,25 @@ const ALIGN_OPTS: [string, string][] = [
 
 function Control({
   ctl,
-  props,
-  onPatch,
+  value,
+  overridden,
+  onChange,
+  onRevert,
 }: {
   ctl: WidgetControl;
-  props: Record<string, unknown>;
-  onPatch: (key: string, value: unknown) => void;
+  value?: unknown;
+  overridden?: boolean;
+  onChange?: (value: unknown) => void;
+  onRevert?: () => void;
 }) {
   if (ctl.kind === "hint") return <div className="hint">{ctl.text}</div>;
+  const set = onChange ?? (() => {});
 
-  const val = props[ctl.key];
   const label = (
     <div className="ctl-l">
       <label>{ctl.label}</label>
-      {ctl.kind === "range" && <span className="val">{num(val)}</span>}
+      {ctl.kind === "range" && <span className="val">{num(value)}</span>}
+      {overridden && onRevert && <RevertBtn onClick={onRevert} />}
     </div>
   );
 
@@ -1203,9 +1314,9 @@ function Control({
           {label}
           <input
             className="inp"
-            value={str(val)}
+            value={str(value)}
             placeholder={ctl.placeholder}
-            onChange={(e) => onPatch(ctl.key, e.target.value)}
+            onChange={(e) => set(e.target.value)}
           />
         </div>
       );
@@ -1215,8 +1326,8 @@ function Control({
           {label}
           <textarea
             className="inp"
-            value={str(val)}
-            onChange={(e) => onPatch(ctl.key, e.target.value)}
+            value={str(value)}
+            onChange={(e) => set(e.target.value)}
           />
         </div>
       );
@@ -1226,8 +1337,8 @@ function Control({
           {label}
           <select
             className="inp"
-            value={str(val)}
-            onChange={(e) => onPatch(ctl.key, e.target.value)}
+            value={str(value)}
+            onChange={(e) => set(e.target.value)}
           >
             {ctl.options.map(([v, l]) => (
               <option key={v} value={v}>
@@ -1248,8 +1359,8 @@ function Control({
               <button
                 key={v}
                 type="button"
-                className={str(val) === v ? "on" : undefined}
-                onClick={() => onPatch(ctl.key, v)}
+                className={str(value) === v ? "on" : undefined}
+                onClick={() => set(v)}
               >
                 {l}
               </button>
@@ -1267,8 +1378,8 @@ function Control({
               <button
                 key={v}
                 type="button"
-                className={str(val) === v ? "on" : undefined}
-                onClick={() => onPatch(ctl.key, v)}
+                className={str(value) === v ? "on" : undefined}
+                onClick={() => set(v)}
               >
                 {l}
               </button>
@@ -1286,8 +1397,8 @@ function Control({
             min={ctl.min}
             max={ctl.max}
             step={ctl.step ?? 1}
-            value={num(val)}
-            onChange={(e) => onPatch(ctl.key, Number(e.target.value))}
+            value={num(value)}
+            onChange={(e) => set(Number(e.target.value))}
           />
         </div>
       );
@@ -1297,8 +1408,8 @@ function Control({
           <div className="togrow">
             <label>{ctl.label}</label>
             <div
-              className={val ? "tog on" : "tog"}
-              onClick={() => onPatch(ctl.key, !val)}
+              className={value ? "tog on" : "tog"}
+              onClick={() => set(!value)}
             />
           </div>
           {ctl.hint && <div className="hint">{ctl.hint}</div>}

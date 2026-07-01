@@ -132,6 +132,67 @@ export function updateNode(
   return next;
 }
 
+/**
+ * Merge a per-device override patch into `node.responsive[device]` (immutable).
+ * `patch.props` / `patch.space` are shallow-merged, and a value of `null` DELETES
+ * that key (revert to base). `patch.hidden` toggles the device-hide flag
+ * (`false`/absent removes it). No-op for a missing node. Powers the inspector's
+ * device bar (Phase 3d-2b).
+ */
+export function updateResponsive(
+  doc: PageDoc,
+  id: string,
+  device: "tablet" | "mobile",
+  patch: {
+    props?: Record<string, unknown>;
+    space?: Record<string, unknown>;
+    hidden?: boolean;
+  },
+): PageDoc {
+  const next = clone(doc);
+  const found = findIn(next.root.kids as TreeNode[], id);
+  if (!found) return doc;
+  const node = found.node as TreeNode & {
+    responsive?: Record<
+      string,
+      {
+        props?: Record<string, unknown>;
+        space?: Record<string, unknown>;
+        hidden?: boolean;
+      }
+    >;
+  };
+  const responsive = { ...(node.responsive ?? {}) };
+  const layer = { ...(responsive[device] ?? {}) };
+
+  const mergeDrop = (
+    base: Record<string, unknown> | undefined,
+    incoming: Record<string, unknown>,
+  ) => {
+    const out = { ...(base ?? {}) };
+    for (const [k, v] of Object.entries(incoming)) {
+      if (v === null) delete out[k];
+      else out[k] = v;
+    }
+    return out;
+  };
+
+  if (patch.props) layer.props = mergeDrop(layer.props, patch.props);
+  if (patch.space) layer.space = mergeDrop(layer.space, patch.space);
+  if ("hidden" in patch) {
+    if (patch.hidden) layer.hidden = true;
+    else delete layer.hidden;
+  }
+
+  // Drop now-empty sub-objects + the layer itself so the doc stays tidy.
+  if (layer.props && Object.keys(layer.props).length === 0) delete layer.props;
+  if (layer.space && Object.keys(layer.space).length === 0) delete layer.space;
+  if (Object.keys(layer).length === 0) delete responsive[device];
+  else responsive[device] = layer;
+  node.responsive = responsive;
+  return next;
+}
+
 /** The column with `columnId` (only if it IS a column node). */
 function column(next: PageDoc, columnId: string): TreeNode | null {
   const hit = findIn(next.root.kids as TreeNode[], columnId);

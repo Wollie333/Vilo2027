@@ -10,6 +10,7 @@ import {
   moveNodeInto,
   updateNodeProps,
   updateNode,
+  updateResponsive,
 } from "./pageDocOps";
 import { newPageDoc, newSection, newWidget } from "./widgets/factories";
 import { pageDocSchema } from "./pageDoc.schema";
@@ -143,6 +144,43 @@ describe("pageDocOps", () => {
     ).toBeUndefined();
     // missing node → same reference
     expect(updateNode(doc, "nope", { tone: "dark" })).toBe(doc);
+  });
+
+  it("updateResponsive sets device overrides, then null/false reverts them", () => {
+    const doc = sampleDoc();
+    const withOv = updateResponsive(doc, "wA", "mobile", {
+      props: { align: "center" },
+      space: { pt: 8 },
+      hidden: true,
+    });
+    const r1 = (
+      findNode(withOv, "wA")?.node as { responsive?: Record<string, unknown> }
+    ).responsive?.mobile as {
+      props?: Record<string, unknown>;
+      space?: Record<string, unknown>;
+      hidden?: boolean;
+    };
+    expect(r1.props?.align).toBe("center");
+    expect(r1.space?.pt).toBe(8);
+    expect(r1.hidden).toBe(true);
+    // revert: null deletes the key, hidden:false clears; empty layer is dropped
+    const cleared = updateResponsive(withOv, "wA", "mobile", {
+      props: { align: null },
+      space: { pt: null },
+      hidden: false,
+    });
+    const r2 = (
+      findNode(cleared, "wA")?.node as { responsive?: Record<string, unknown> }
+    ).responsive;
+    expect(r2?.mobile).toBeUndefined();
+    // base is never touched by device overrides
+    expect(
+      (
+        findNode(withOv, "wA")?.node as unknown as {
+          props: Record<string, unknown>;
+        }
+      ).props.align,
+    ).not.toBe("center");
   });
 
   it("every op yields a schema-valid PageDoc", () => {

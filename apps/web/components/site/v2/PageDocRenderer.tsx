@@ -106,9 +106,36 @@ function hiddenOnDevice(
   return false;
 }
 
+// Per-device override layer (tablet/mobile). The builder writes props/space into
+// `node.responsive[device]`; when a device is being previewed we merge that layer
+// so the override actually renders (base/desktop is untouched).
+function respLayer(
+  node: {
+    responsive?: {
+      tablet?: { props?: Record<string, unknown>; space?: Partial<BoxSpace> };
+      mobile?: { props?: Record<string, unknown>; space?: Partial<BoxSpace> };
+    };
+  },
+  device: Device | undefined,
+): { props?: Record<string, unknown>; space?: Partial<BoxSpace> } | undefined {
+  if (device === "tablet" || device === "mobile") {
+    return node.responsive?.[device];
+  }
+  return undefined;
+}
+
+function mergedSpace(
+  node: { space?: Partial<BoxSpace> },
+  layer: { space?: Partial<BoxSpace> } | undefined,
+): Partial<BoxSpace> | undefined {
+  if (!layer?.space) return node.space;
+  return { ...(node.space ?? {}), ...layer.space };
+}
+
 // ── section ───────────────────────────────────────────────────
 function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
   if (hiddenOnDevice(node, ctx.device)) return null;
+  const layer = respLayer(node, ctx.device);
 
   const stackOn =
     node.stack &&
@@ -126,7 +153,7 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
   const { background: toneBg, ...toneVars } = tone ?? {};
 
   const outer: CSSProperties = {
-    ...spaceStyle(node.space, SECTION_DEFAULT),
+    ...spaceStyle(mergedSpace(node, layer), SECTION_DEFAULT),
     ...(node.borderB ? { borderBottom: node.borderB } : {}),
     background: node.bg ?? toneBg,
   };
@@ -166,7 +193,7 @@ function renderColumn(node: ColumnNode, ctx: RenderCtx): ReactNode {
     gap: node.gap ?? 0,
     justifyContent: node.justify ?? "flex-start",
     alignItems: node.align ?? (dir === "row" ? "center" : "stretch"),
-    ...spaceStyle(node.space, ZERO),
+    ...spaceStyle(mergedSpace(node, respLayer(node, ctx.device)), ZERO),
   };
   return (
     <div
@@ -185,15 +212,20 @@ function renderColumn(node: ColumnNode, ctx: RenderCtx): ReactNode {
 // ── widget ────────────────────────────────────────────────────
 function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
   if (hiddenOnDevice(node, ctx.device)) return null;
+  const layer = respLayer(node, ctx.device);
+  // Merge the device layer's prop overrides so the previewed device shows them.
+  const effNode: WidgetNode = layer?.props
+    ? { ...node, props: { ...node.props, ...layer.props } }
+    : node;
   return (
     <div
       key={node.id}
-      style={spaceStyle(node.space, ZERO)}
+      style={spaceStyle(mergedSpace(node, layer), ZERO)}
       data-node-id={node.id}
       data-node-kind="widget"
     >
-      <SectionBoundary resetKey={node} fallbackLabel={ctx.errorLabel}>
-        <WidgetLeaf node={node} ctx={ctx} />
+      <SectionBoundary resetKey={effNode} fallbackLabel={ctx.errorLabel}>
+        <WidgetLeaf node={effNode} ctx={ctx} />
       </SectionBoundary>
     </div>
   );
