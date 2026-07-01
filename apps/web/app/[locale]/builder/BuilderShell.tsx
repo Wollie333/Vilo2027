@@ -83,7 +83,11 @@ import {
 } from "@/lib/website/pageDocOps";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
-import type { SitePreset } from "@/lib/site/themes";
+import type { SiteThemeConfig } from "@/lib/site/themes";
+import {
+  saveBuilderDocAction,
+  publishBuilderDocAction,
+} from "@/app/[locale]/dashboard/website/actions";
 
 // Section-structure layouts offered by the "Add section" modal.
 const STRUCTURES: { key: string; label: string; spans: number[] }[] = [
@@ -155,13 +159,18 @@ function WieloMark() {
 export function BuilderShell({
   docName,
   themeLabel,
-  themeBase,
+  theme,
   initialDoc,
+  websiteId,
+  pageId,
 }: {
   docName: string;
   themeLabel: string;
-  themeBase: SitePreset;
+  theme: SiteThemeConfig;
   initialDoc: PageDoc;
+  /** When both are present the builder persists (autosave + publish) to this page. */
+  websiteId?: string;
+  pageId?: string;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
@@ -213,6 +222,48 @@ export function BuilderShell({
       ),
     [],
   );
+
+  // ── persistence (autosave + publish) — only when bound to a real page ──
+  const persists = !!websiteId && !!pageId;
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [publishState, setPublishState] = useState<
+    "idle" | "publishing" | "done" | "error"
+  >("idle");
+  const firstDocRef = useRef(true);
+
+  useEffect(() => {
+    if (!persists || !websiteId || !pageId) return;
+    if (firstDocRef.current) {
+      firstDocRef.current = false; // skip the initial load
+      return;
+    }
+    setSaveState("saving");
+    const t = setTimeout(async () => {
+      const res = await saveBuilderDocAction({ websiteId, pageId, doc });
+      setSaveState(res.ok ? "saved" : "error");
+    }, 800);
+    return () => clearTimeout(t);
+  }, [doc, persists, websiteId, pageId]);
+
+  const doPublish = useCallback(async () => {
+    if (!persists || !websiteId || !pageId) return;
+    setPublishState("publishing");
+    const res = await publishBuilderDocAction({ websiteId, pageId });
+    setPublishState(res.ok ? "done" : "error");
+    if (res.ok) setTimeout(() => setPublishState("idle"), 2500);
+  }, [persists, websiteId, pageId]);
+
+  const statusLabel = !persists
+    ? "· demo (not saved)"
+    : saveState === "saving"
+      ? "· saving…"
+      : saveState === "saved"
+        ? "· saved"
+        : saveState === "error"
+          ? "· save failed"
+          : "· draft";
 
   const selected = selectedId ? findNode(doc, selectedId) : null;
 
@@ -480,11 +531,11 @@ export function BuilderShell({
   // the (heavy) PageDocRenderer tree mid-drag.
   const canvas = useMemo(
     () => (
-      <SiteThemeRoot theme={{ base: themeBase }}>
+      <SiteThemeRoot theme={theme}>
         <PageDocRenderer doc={doc} device={device} />
       </SiteThemeRoot>
     ),
-    [themeBase, doc, device],
+    [theme, doc, device],
   );
 
   const stageClass = ["stage", device, dragging && "wb-dragging"]
@@ -509,7 +560,7 @@ export function BuilderShell({
           <button className="tb-page" title="Switch document" type="button">
             <span className="dot" />
             {docName}
-            <span className="docsub">· draft</span>
+            <span className="docsub">{statusLabel}</span>
             <ChevronDown size={13} strokeWidth={2.2} style={{ opacity: 0.7 }} />
           </button>
           <div className="tb-div" />
@@ -588,9 +639,23 @@ export function BuilderShell({
             {previewing ? "Exit preview" : "Preview"}
           </button>
           <div className="tb-publish">
-            <button className="tb-btn solid" type="button">
+            <button
+              className="tb-btn solid"
+              type="button"
+              onClick={doPublish}
+              disabled={!persists || publishState === "publishing"}
+              title={
+                persists
+                  ? "Publish this page live"
+                  : "Open a real page to publish"
+              }
+            >
               <Upload size={16} strokeWidth={2} />
-              Publish
+              {publishState === "publishing"
+                ? "Publishing…"
+                : publishState === "done"
+                  ? "Published ✓"
+                  : "Publish"}
             </button>
             <button className="tb-caret" title="Publish options" type="button">
               <ChevronDown size={14} strokeWidth={2.2} />

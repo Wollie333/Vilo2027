@@ -11,6 +11,7 @@ import {
   FORM_TYPES,
 } from "@/lib/website/forms.schema";
 import { roomDetailOverrideSchema } from "@/lib/website/roomDetailOverride";
+import { pageDocSchema } from "@/lib/website/pageDoc.schema";
 
 // Apply a catalogue theme to a site — `themeId` is a site_themes uuid OR a
 // "preset:<slug>" id for the built-in presets (pre-migration fallback). `fresh`
@@ -374,6 +375,22 @@ export const saveDraftSectionsSchema = z.object({
 });
 
 export type SaveDraftSectionsInput = z.infer<typeof saveDraftSectionsSchema>;
+
+// --- Builder V2 (PageDoc) ---
+// The nested-document builder persists a validated PageDoc into the same
+// draft/published JSONB columns (parallel build; distinguished by `v:2`).
+export const saveBuilderDocSchema = z.object({
+  websiteId: z.string().uuid(),
+  pageId: z.string().uuid(),
+  doc: pageDocSchema,
+});
+export type SaveBuilderDocInput = z.infer<typeof saveBuilderDocSchema>;
+
+export const publishBuilderDocSchema = z.object({
+  websiteId: z.string().uuid(),
+  pageId: z.string().uuid(),
+});
+export type PublishBuilderDocInput = z.infer<typeof publishBuilderDocSchema>;
 
 // --- Rooms tab (W9) ---
 

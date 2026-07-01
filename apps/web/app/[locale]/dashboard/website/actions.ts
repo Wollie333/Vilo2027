@@ -77,6 +77,8 @@ import {
   saveBlogCategoriesSchema,
   saveBlogPostSchema,
   saveDraftSectionsSchema,
+  saveBuilderDocSchema,
+  publishBuilderDocSchema,
   createPageSchema,
   PAGE_TEMPLATE_SECTIONS,
   saveBlogAuthorsSchema,
@@ -113,6 +115,8 @@ import {
   type SaveBlogCategoriesInput,
   type SaveBlogPostInput,
   type SaveDraftSectionsInput,
+  type SaveBuilderDocInput,
+  type PublishBuilderDocInput,
   type SavePageSeoInput,
   type SavePagesInput,
   type SaveWebsiteRoomsInput,
@@ -921,6 +925,85 @@ export async function saveDraftSectionsAction(
   if (error) return { ok: false, error: "save_failed" };
 
   revalidatePath(`/dashboard/website/${websiteId}/pages/${pageId}`);
+  return { ok: true };
+}
+
+// ============================================================
+// Builder V2 — persist the nested PageDoc (parallel build, Phase 3e-2)
+// ============================================================
+
+/**
+ * Save a page's Builder V2 draft as a validated `PageDoc` into `draft_sections`
+ * (the same JSONB column; distinguished by `v:2`). Re-validated server-side via
+ * `saveBuilderDocSchema.doc = pageDocSchema` — never trust the client shape.
+ * Owner-checked + feature-gated, mirroring `saveDraftSectionsAction`.
+ */
+export async function saveBuilderDocAction(
+  input: SaveBuilderDocInput,
+): Promise<ActionResult> {
+  const parsed = saveBuilderDocSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, pageId, doc } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: page } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("id", pageId)
+    .eq("website_id", websiteId)
+    .maybeSingle();
+  if (!page) return { ok: false, error: "not_found" };
+
+  // NOTE: rich-text/HTML sanitisation of widget props happens at render (the
+  // public v:2 path, Phase 3e-2b) as with the legacy loader.
+  const { error } = await supabase
+    .from("website_pages")
+    .update({ draft_sections: doc })
+    .eq("id", pageId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/builder`);
+  return { ok: true };
+}
+
+/**
+ * Publish a Builder V2 page: copy its `draft_sections` → `published_sections`
+ * (page-level; the public loader reads `published_sections` directly, so this
+ * surfaces the page live once the v:2 render path lands). Owner-checked.
+ */
+export async function publishBuilderDocAction(
+  input: PublishBuilderDocInput,
+): Promise<ActionResult> {
+  const parsed = publishBuilderDocSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, pageId } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { data: page } = await supabase
+    .from("website_pages")
+    .select("draft_sections")
+    .eq("id", pageId)
+    .eq("website_id", websiteId)
+    .maybeSingle();
+  if (!page) return { ok: false, error: "not_found" };
+
+  const { error } = await supabase
+    .from("website_pages")
+    .update({ published_sections: page.draft_sections })
+    .eq("id", pageId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "publish_failed" };
+
+  revalidatePath(`/builder`);
   return { ok: true };
 }
 
