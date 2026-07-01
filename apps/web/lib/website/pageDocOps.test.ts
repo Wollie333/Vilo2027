@@ -11,6 +11,7 @@ import {
   updateNodeProps,
   updateNode,
   updateResponsive,
+  updatePageMeta,
 } from "./pageDocOps";
 import { newPageDoc, newSection, newWidget } from "./widgets/factories";
 import { pageDocSchema } from "./pageDoc.schema";
@@ -181,6 +182,19 @@ describe("pageDocOps", () => {
         }
       ).props.align,
     ).not.toBe("center");
+  });
+
+  it("updatePageMeta merges, deletes on null, and stays schema-valid", () => {
+    const doc = sampleDoc();
+    const a = updatePageMeta(doc, { seoTitle: "Home", index: true });
+    expect(a.meta.seoTitle).toBe("Home");
+    expect(a.meta.index).toBe(true);
+    expect(doc.meta.seoTitle).toBeUndefined(); // original untouched
+    const b = updatePageMeta(a, { metaDesc: "desc", seoTitle: null });
+    expect(b.meta.metaDesc).toBe("desc");
+    expect(b.meta.seoTitle).toBeUndefined(); // null deletes the key
+    expect(b.meta.index).toBe(true); // untouched keys survive
+    expect(pageDocSchema.safeParse(b).success).toBe(true);
   });
 
   it("every op yields a schema-valid PageDoc", () => {

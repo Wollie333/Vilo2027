@@ -86,9 +86,11 @@ import {
   updateNodeProps,
   updateNode,
   updateResponsive,
+  updatePageMeta,
 } from "@/lib/website/pageDocOps";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
+import { PageSettingsOverlay } from "./PageSettingsOverlay";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import {
   saveBuilderDocAction,
@@ -186,6 +188,7 @@ export function BuilderShell({
   websiteId,
   pageId,
   templates = [],
+  domain = "yoursite.co.za",
 }: {
   docName: string;
   themeLabel: string;
@@ -196,6 +199,8 @@ export function BuilderShell({
   pageId?: string;
   /** Wired-in starter layouts (theme blueprints) offered by the Templates menu. */
   templates?: { key: string; label: string; doc: PageDoc }[];
+  /** Public domain shown in the Page Settings SERP / OG previews. */
+  domain?: string;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
@@ -216,6 +221,7 @@ export function BuilderShell({
   const [tplMenuOpen, setTplMenuOpen] = useState(false);
   const [pubMenuOpen, setPubMenuOpen] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
   const [chrome, setChrome] = useState<"emerald" | "light" | "dark">("emerald");
   const [accent, setAccent] = useState(ACCENTS[0]);
   const [density, setDensity] = useState<"roomy" | "compact">("roomy");
@@ -325,6 +331,12 @@ export function BuilderShell({
     setSaveState(res.ok ? "saved" : "error");
     toast(res.ok ? "Draft saved" : "Save failed");
   }, [persists, websiteId, pageId, doc, toast]);
+
+  // Page Settings overlay → patch the doc's page-level meta (undoable + autosaved).
+  const patchMeta = useCallback(
+    (patch: Record<string, unknown>) => setDoc((d) => updatePageMeta(d, patch)),
+    [setDoc],
+  );
 
   // Templates menu — load a wired-in starter layout (undoable).
   const loadTemplate = useCallback(
@@ -820,6 +832,7 @@ export function BuilderShell({
             className="tb-ico"
             title="Page settings (SEO & tracking)"
             type="button"
+            onClick={() => setPageSettingsOpen(true)}
           >
             <Settings size={18} strokeWidth={1.9} />
           </button>
@@ -1166,6 +1179,16 @@ export function BuilderShell({
           </div>
         </div>
       </div>
+
+      {/* Page Settings overlay (SEO / social / tracking / code) */}
+      <PageSettingsOverlay
+        open={pageSettingsOpen}
+        onClose={() => setPageSettingsOpen(false)}
+        docName={docName}
+        domain={domain}
+        meta={doc.meta as Record<string, unknown>}
+        onPatch={patchMeta}
+      />
 
       {/* Toasts */}
       <div className="toasts">

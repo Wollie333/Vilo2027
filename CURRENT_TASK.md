@@ -199,6 +199,20 @@ vilotest (`host@vilotest.com`) + a save point.
   demo branch passes the blueprints as `templates`. Live-verified on `?theme=marmalade` (doc menu,
   Templates Home→About swap, Tweaks dark+purple+compact live, Publish menu + demo toast, 0 console
   errors). tsc + lint clean, 162 vitest, `pnpm build` green.
+- **Phase 4b — Page Settings overlay (DONE + LIVE-VERIFIED, 2026-07-01):** the topbar Settings gear
+  now opens a pixel-faithful `.ps-modal` (SEO · Social share · Tracking & pixels · Custom code).
+  New `pageDocOps.updatePageMeta(doc, patch)` (immutable meta merge, `null` deletes; +1 test → 14).
+  New `PageSettingsOverlay.tsx` binds the PageDoc's page-level `meta` via `onPatch`: SEO (live SERP
+  preview + char counters w/ red over-limit + slug + keyword + index toggle + canonical), Social
+  (live OG card + og title/desc/image + twitter-card seg), Tracking (GA4/GTM/Meta/TikTok/GAds rows
+  with status dot + Active/Off + consent toggle), Custom code (head/body textareas). `BuilderShell`
+  wires the gear → `patchMeta` → `setDoc(updatePageMeta(...))` (undoable + autosaved); new `domain`
+  prop (real: custom_domain||`<sub>.wielo.site`; demo: `<slug>.wielo.site`). Ported `.ps-*`/`.serp`/
+  `.slug`/`.ogcard`/`.pixrow` CSS scoped `.wb`. Live-verified on `?theme=marmalade` (title→SERP+counter
+  live; GA4→dot lit/Active; values persist across close/reopen; 0 console errors). tsc+lint clean,
+  163 vitest, build green. **DEFERRED to Phase 5:** the public render path consuming these meta fields
+  (`<head>` tags + pixel injection) — meta persists now regardless. (Hit the stale-`.next` vendor-chunk
+  ghost again mid-verify → cleared `.next` + restart, see [[next-stale-vendor-chunks]].)
 - **NEXT — Phase 4 remaining (sub-feature overlays):** reskin **Brand Studio**, the **Nav/Menu builder**
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +

@@ -34,7 +34,12 @@ function themeName(slug: string): string {
 async function loadRealPage(
   websiteId: string,
   pageId: string,
-): Promise<{ doc: PageDoc; docName: string; theme: SiteThemeConfig } | null> {
+): Promise<{
+  doc: PageDoc;
+  docName: string;
+  theme: SiteThemeConfig;
+  domain: string;
+} | null> {
   const supabase = createServerClient();
   const { data: page } = await supabase
     .from("website_pages")
@@ -51,9 +56,13 @@ async function loadRealPage(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("theme")
+    .select("theme, subdomain, custom_domain")
     .eq("id", websiteId)
-    .maybeSingle<{ theme: SiteThemeConfig | null }>();
+    .maybeSingle<{
+      theme: SiteThemeConfig | null;
+      subdomain: string | null;
+      custom_domain: string | null;
+    }>();
 
   // Resolve the working doc: stored PageDoc → use it; legacy flat sections →
   // convert; empty → a blank doc.
@@ -66,10 +75,15 @@ async function loadRealPage(
     doc = flat.length ? flatSectionsToPageDoc(flat) : newPageDoc();
   }
 
+  const domain =
+    site?.custom_domain?.trim() ||
+    (site?.subdomain ? `${site.subdomain}.wielo.site` : "yoursite.wielo.site");
+
   return {
     doc,
     docName: page.title?.trim() || themeName(page.kind),
     theme: (site?.theme ?? {}) as SiteThemeConfig,
+    domain,
   };
 }
 
@@ -98,6 +112,7 @@ export default async function BuilderPage({
           initialDoc={real.doc}
           websiteId={searchParams.websiteId}
           pageId={searchParams.pageId}
+          domain={real.domain}
         />
       );
     }
@@ -122,6 +137,7 @@ export default async function BuilderPage({
         label: b.label,
         doc: b.doc,
       }))}
+      domain={`${slug}.wielo.site`}
     />
   );
 }

@@ -116,6 +116,26 @@ export function updateNodeProps(
 }
 
 /**
+ * Merge a patch into the doc's page-level `meta` (SEO / social / tracking /
+ * custom code), immutable + shallow. A `null` value deletes that key. Powers the
+ * Page Settings overlay (Phase 4b). The page meta is a loose record on the
+ * PageDoc, so this never touches the node tree.
+ */
+export function updatePageMeta(
+  doc: PageDoc,
+  patch: Record<string, unknown>,
+): PageDoc {
+  const next = clone(doc);
+  const meta: Record<string, unknown> = { ...(next.meta ?? {}) };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === null) delete meta[k];
+    else meta[k] = v;
+  }
+  next.meta = meta;
+  return next;
+}
+
+/**
  * Merge a patch of NODE-LEVEL fields (tone / bg / space / visibility / cssId /
  * cssClass / span …) into the node itself (immutable, shallow). No-op for a
  * missing node. Used by the inspector's Style + Advanced tabs.

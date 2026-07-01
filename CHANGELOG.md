@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 4b: Page Settings overlay (SEO / social / tracking / code)
+
+Second Phase-4 slice. Self-contained within the doc model (edits the PageDoc's page-level `meta`),
+no new DB. The topbar Settings gear now opens a pixel-faithful port of the prototype's `.ps-modal`.
+
+- **`lib/website/pageDocOps.ts`** — new `updatePageMeta(doc, patch)`: immutable shallow merge into
+  `doc.meta` (a `null` value deletes the key). +1 test (pageDocOps now 14).
+- **`PageSettingsOverlay.tsx`** (new) — centred `.ps-modal` with a left tab rail (SEO · Social
+  share · Tracking & pixels · Custom code) and a scrolling form bound to `meta` via `onPatch`:
+  - **SEO** — live SERP preview, meta title + description with char counters (over-limit turns the
+    badge red), URL slug, focus keyword, allow-search-engines toggle, canonical URL.
+  - **Social** — live Open-Graph card preview; social title/description/image + Twitter card seg.
+  - **Tracking** — GA4 / GTM / Meta Pixel / TikTok / Google Ads rows, each with a coloured status
+    dot + Active/Off label; cookie-consent gating toggle.
+  - **Custom code** — `<head>` + body-end code textareas (mono).
+  - Opens on the SEO tab each time; "Done" / X / scrim-click closes.
+- **`BuilderShell.tsx`** — wired the Settings gear → `pageSettingsOpen`; `patchMeta` routes to
+  `setDoc(updatePageMeta(doc, …))` so every edit is undoable + autosaved with the doc. New `domain`
+  prop feeds the SERP/OG previews.
+- **`page.tsx`** — real-page mode derives `domain` from `custom_domain` || `<subdomain>.wielo.site`;
+  demo mode passes `<slug>.wielo.site`.
+- **`builder-chrome.css`** — ported the `.ps-*` / `.serp` / `.slug` / `.ogcard` / `.pixrow` /
+  `.val.over` / `textarea.inp.code` styles, scoped under `.wb` (+ small-screen stacking).
+- **Live-verified** on `?theme=marmalade`: modal opens pixel-faithfully; typing the meta title
+  updates the SERP + counter live; GA4 entry flips the dot lit + "Active"; values persist in the doc
+  across close/reopen (undoable); 0 console errors. tsc + lint clean, 163 vitest, `pnpm build` green.
+  **Deferred to Phase 5:** the public render path consuming these meta fields (`<head>` tags, pixel
+  injection) — the meta persists now regardless.
+
 ## 2026-07-01 — Builder V2 Phase 4a: topbar affordances + Tweaks FAB
 
 First slice of Phase 4 (sub-feature overlays). All shell-local — no external features, no DB —
