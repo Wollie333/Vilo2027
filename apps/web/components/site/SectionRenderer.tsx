@@ -217,6 +217,37 @@ function SectionSwitch({
     });
     if (mm !== undefined) return mm;
   }
+  return (
+    <GenericSection
+      section={section}
+      data={data}
+      asset={asset}
+      websiteId={websiteId}
+      interactive={interactive}
+    />
+  );
+}
+
+/**
+ * The theme-agnostic render for a single section — reads `--site-*` tokens only,
+ * so it themes per tenant by construction. This is the fallback for every theme
+ * today; under Builder V2 it becomes the SOLE render (the bespoke per-theme
+ * dispatchers are deleted at cutover). Exported so the new PageDoc renderer
+ * (components/site/v2) reuses the exact same on-brand leaves.
+ */
+export function GenericSection({
+  section,
+  data,
+  asset,
+  websiteId,
+  interactive,
+}: {
+  section: WebsiteSection;
+  data?: SiteData;
+  asset?: SiteAssetResolver;
+  websiteId?: string;
+  interactive?: boolean;
+}) {
   switch (section.type) {
     case "hero":
       return (
