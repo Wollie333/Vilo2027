@@ -213,7 +213,25 @@ vilotest (`host@vilotest.com`) + a save point.
   163 vitest, build green. **DEFERRED to Phase 5:** the public render path consuming these meta fields
   (`<head>` tags + pixel injection) — meta persists now regardless. (Hit the stale-`.next` vendor-chunk
   ghost again mid-verify → cleared `.next` + restart, see [[next-stale-vendor-chunks]].)
-- **NEXT — Phase 4 remaining (sub-feature overlays):** reskin **Brand Studio**, the **Nav/Menu builder**
+- **Phase 4c — Brand Studio overlay (DONE + LIVE-VERIFIED, 2026-07-01):** the topbar Palette button
+  opens a pixel-faithful `.bse-*` Brand Studio that edits a **working `SiteThemeConfig`** applied LIVE
+  to the **real builder canvas** (no mock preview — the token-driven thesis proven end to end). Ported
+  the shared `.bse-*` overlay chrome (topbar/rail/accordions/controls + dark `.bse-stage` frame) into
+  `builder-chrome.css` scoped `.wb` (shared by 4c/4d/4e; skipped the `.pv-*` mock styles).
+  `BrandStudioOverlay.tsx` = the prototype's 6-section rail on REAL tokens: Identity (→working brand),
+  Colour (Warm/Coastal/Safari preset cards → preset+base; accent swatches → colors.accent), Typography
+  (6 SiteFont keys + heading weight → type), Buttons & corners (SiteRadius seg + pill → radius/buttons),
+  Images & cards (radius sliders + shadow → image/card), Social (ig/fb → brand.socials; shape →
+  social.shape). Preview = `SiteThemeRoot theme={workTheme}` + `PageDocRenderer` in the `.bse-device`
+  frame. `BuilderShell` lifted theme→`workTheme` state (+`brand`) so edits re-theme the MAIN canvas too;
+  Palette→`brandOpen`; Publish toast. `page.tsx` maps `host_websites.brand` (real) / derives from slug
+  (demo). Live-verified: accent→canvas button teal live (`--site-accent` #C8702E→#0E8FB0); Coastal
+  preset→preview+main bg #F4FAFC; 0 console errors. tsc+lint clean, 163 vitest, build green.
+  **DEFERRED — 4c-2:** persist brand/theme to DB (reuse `saveBrandStudioAction` or a thin owner-checked
+  action). **Phase 5:** bind brand identity/socials into canvas leaves (logo/nav/footer) so Identity +
+  Social show live. (Stale-`.next` vendor-chunk ghost again mid-verify → cleared + restart,
+  [[next-stale-vendor-chunks]].)
+- **NEXT — Phase 4 remaining:** **4c-2** persist Brand Studio · reskin the **Nav/Menu builder**
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

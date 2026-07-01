@@ -91,6 +91,7 @@ import {
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
 import { PageSettingsOverlay } from "./PageSettingsOverlay";
+import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import {
   saveBuilderDocAction,
@@ -189,6 +190,7 @@ export function BuilderShell({
   pageId,
   templates = [],
   domain = "yoursite.co.za",
+  brand: initialBrand = {},
 }: {
   docName: string;
   themeLabel: string;
@@ -201,6 +203,8 @@ export function BuilderShell({
   templates?: { key: string; label: string; doc: PageDoc }[];
   /** Public domain shown in the Page Settings SERP / OG previews. */
   domain?: string;
+  /** Brand identity (name/tagline/monogram/socials) for the Brand Studio overlay. */
+  brand?: Brand;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
@@ -222,6 +226,11 @@ export function BuilderShell({
   const [pubMenuOpen, setPubMenuOpen] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
+  const [brandOpen, setBrandOpen] = useState(false);
+  // Working brand + theme edited by Brand Studio, applied LIVE to the canvas.
+  // (Persisting these to the DB is Phase 4c-2.)
+  const [workTheme, setWorkTheme] = useState<SiteThemeConfig>(theme);
+  const [brand, setBrand] = useState<Brand>(initialBrand);
   const [chrome, setChrome] = useState<"emerald" | "light" | "dark">("emerald");
   const [accent, setAccent] = useState(ACCENTS[0]);
   const [density, setDensity] = useState<"roomy" | "compact">("roomy");
@@ -625,11 +634,11 @@ export function BuilderShell({
   // the (heavy) PageDocRenderer tree mid-drag.
   const canvas = useMemo(
     () => (
-      <SiteThemeRoot theme={theme}>
+      <SiteThemeRoot theme={workTheme}>
         <PageDocRenderer doc={doc} device={device} />
       </SiteThemeRoot>
     ),
-    [theme, doc, device],
+    [workTheme, doc, device],
   );
 
   const stageClass = ["stage", device, dragging && "wb-dragging"]
@@ -825,6 +834,7 @@ export function BuilderShell({
             className="tb-ico"
             title="Brand Studio — colours, fonts & logo"
             type="button"
+            onClick={() => setBrandOpen(true)}
           >
             <Palette size={18} strokeWidth={1.9} />
           </button>
@@ -1179,6 +1189,29 @@ export function BuilderShell({
           </div>
         </div>
       </div>
+
+      {/* Brand Studio overlay (token-driven; live-previews the real canvas) */}
+      <BrandStudioOverlay
+        open={brandOpen}
+        onClose={() => setBrandOpen(false)}
+        siteLabel={themeLabel}
+        domain={domain}
+        theme={workTheme}
+        onThemeChange={setWorkTheme}
+        brand={brand}
+        onBrandChange={setBrand}
+        doc={doc}
+        persists={persists}
+        onPublish={(mode) =>
+          toast(
+            persists
+              ? mode === "draft"
+                ? "Brand saved as draft (persist wiring in 4c-2)"
+                : "Brand preview applied (publish wiring in 4c-2)"
+              : "Open a real page to publish brand",
+          )
+        }
+      />
 
       {/* Page Settings overlay (SEO / social / tracking / code) */}
       <PageSettingsOverlay

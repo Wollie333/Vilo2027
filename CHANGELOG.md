@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 4c: Brand Studio overlay (token-driven, live canvas preview)
+
+Third Phase-4 slice. The topbar Palette button opens a pixel-faithful `.bse-*` Brand Studio overlay
+that edits a **working `SiteThemeConfig`** applied LIVE to the **real builder canvas** — no mock
+preview site. This is the token-driven thesis of the whole redesign, demonstrated end to end.
+
+- **`builder-chrome.css`** — ported the shared `.bse-*` overlay chrome (overlay/topbar/rail/
+  accordions/controls: `.bse-input/.bse-seg/.bse-swgrid/.bse-pal/.bse-rng/.bse-soc` + the dark
+  `.bse-stage` preview frame), scoped under `.wb`. Shared by 4c/4d/4e. The prototype's mock
+  preview-site (`.pv-*`) styles are intentionally NOT ported.
+- **`BrandStudioOverlay.tsx`** (new) — the prototype's 6-section rail mapped onto REAL theme tokens:
+  Identity (name/tagline/monogram → working `brand`), Colour (Warm/Coastal/Safari **preset cards** →
+  `theme.preset`+`base`; accent swatches → `theme.colors.accent`), Typography (heading/body font from
+  the 6 real `SiteFont` keys + heading weight → `theme.type`), Buttons & corners (radius `SiteRadius`
+  seg + button pill → `theme.radius`/`theme.buttons`), Images & cards (image/card radius sliders +
+  card shadow → `theme.image`/`theme.card`), Social (ig/fb → `brand.socials`; icon shape →
+  `theme.social.shape`). The live preview is the REAL canvas: `SiteThemeRoot theme={workTheme}` +
+  `PageDocRenderer` inside the `.bse-device` browser frame, with its own desktop/mobile toggle.
+- **`BuilderShell.tsx`** — lifted the theme into `workTheme` state (+ `brand` state); the main canvas
+  now renders from `workTheme`, so Brand Studio edits re-theme the builder canvas live too. Wired the
+  Palette button → `brandOpen`. Publish/Save toast (DB persistence is 4c-2).
+- **`page.tsx`** — real mode selects + maps the `host_websites.brand` column into the overlay's
+  `Brand` shape; demo mode derives a basic brand from the theme slug.
+- **Live-verified** on `?theme=marmalade`: overlay pixel-faithful; the accent swatch turns the real
+  canvas "See the rooms" button teal live (`--site-accent` #C8702E→#0E8FB0); the Coastal preset
+  switches the preview + main canvas bg to #F4FAFC; overlay closes cleanly; 0 console errors. tsc +
+  lint clean, 163 vitest, `pnpm build` green.
+  **DEFERRED to Phase 4c-2:** persisting brand/theme to the DB (reuse `saveBrandStudioAction` or a
+  thin owner-checked action). **Phase 5:** binding brand identity/socials into the canvas leaves
+  (logo/nav/footer) so the Identity + Social sections show live too.
+
 ## 2026-07-01 — Builder V2 Phase 4b: Page Settings overlay (SEO / social / tracking / code)
 
 Second Phase-4 slice. Self-contained within the doc model (edits the PageDoc's page-level `meta`),

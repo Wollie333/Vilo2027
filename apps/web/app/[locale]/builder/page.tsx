@@ -12,7 +12,28 @@ import { parseSectionsLoose } from "@/lib/website/sections.schema";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 
 import { BuilderShell } from "./BuilderShell";
+import type { Brand as BuilderBrand } from "./BrandStudioOverlay";
 import "./builder-chrome.css";
+
+// Raw `host_websites.brand` jsonb shape (subset the builder overlay reads).
+type RawBrand = {
+  name?: string | null;
+  tagline?: string | null;
+  monogram?: string | null;
+  socials?: { instagram?: string | null; facebook?: string | null } | null;
+};
+
+function toBuilderBrand(raw: RawBrand | null | undefined): BuilderBrand {
+  return {
+    name: raw?.name ?? undefined,
+    tagline: raw?.tagline ?? undefined,
+    monogram: raw?.monogram ?? undefined,
+    socials: {
+      instagram: raw?.socials?.instagram ?? undefined,
+      facebook: raw?.socials?.facebook ?? undefined,
+    },
+  };
+}
 
 // Builder V2 — Phase 3a–3e: the standalone, full-screen builder shell.
 //
@@ -39,6 +60,7 @@ async function loadRealPage(
   docName: string;
   theme: SiteThemeConfig;
   domain: string;
+  brand: BuilderBrand;
 } | null> {
   const supabase = createServerClient();
   const { data: page } = await supabase
@@ -56,12 +78,13 @@ async function loadRealPage(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("theme, subdomain, custom_domain")
+    .select("theme, subdomain, custom_domain, brand")
     .eq("id", websiteId)
     .maybeSingle<{
       theme: SiteThemeConfig | null;
       subdomain: string | null;
       custom_domain: string | null;
+      brand: RawBrand | null;
     }>();
 
   // Resolve the working doc: stored PageDoc → use it; legacy flat sections →
@@ -84,6 +107,7 @@ async function loadRealPage(
     docName: page.title?.trim() || themeName(page.kind),
     theme: (site?.theme ?? {}) as SiteThemeConfig,
     domain,
+    brand: toBuilderBrand(site?.brand),
   };
 }
 
@@ -113,6 +137,7 @@ export default async function BuilderPage({
           websiteId={searchParams.websiteId}
           pageId={searchParams.pageId}
           domain={real.domain}
+          brand={real.brand}
         />
       );
     }
@@ -138,6 +163,10 @@ export default async function BuilderPage({
         doc: b.doc,
       }))}
       domain={`${slug}.wielo.site`}
+      brand={{
+        name: themeName(slug),
+        monogram: themeName(slug).slice(0, 1),
+      }}
     />
   );
 }
