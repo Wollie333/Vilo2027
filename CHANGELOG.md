@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 4d-1: Nav/Menu builder overlay (link builder + live preview)
+
+First slice of the Nav builder (the largest 4d feature). Reskins the LOCKED nav standard into the
+`.bse-*` overlay while keeping the real `SiteNavigation` JSONB as SSOT. Opened from the document
+switcher's **Header & menu** entry.
+
+- **`builder-chrome.css`** — ported the nav link-builder + `.np-*` header-preview styles (scoped
+  `.wb`): `.nav-left`/`.nav-link`/`.nav-add`/`.nav-quick` + `.nav-site`/`.np-hero`/`.np-bar`/`.np-nav`/
+  `.np-reserve`. The preview reads the theme's `--site-accent`/`--site-ink`/heading font.
+- **`NavBuilderOverlay.tsx`** (new) — left link builder editing the real `navigation.menu` TOP-LEVEL
+  items (rename / drag-reorder / add / delete / quick-add-page), each item's internals (children,
+  autoRooms, hiddenOnPages, style, newTab) **preserved untouched** → no data loss on save. Center =
+  live themed header preview (`.np-*` bar over a hero) that re-renders from the menu + brand + theme,
+  with a desktop/mobile toggle. Child/rooms items get a badge; the reserve CTA + monogram show the
+  brand.
+- **`BuilderShell.tsx`** — `navigation` working state (+ `setMenu`); the doc-switcher **Header** entry
+  (was "Soon") opens the overlay; Save/Publish → `saveNavigationAction` with the FULL navigation
+  (menu edits + preserved header/footer/topBar/menuStyle/perPage) so nothing is clobbered; demo toasts.
+- **`page.tsx`** — real mode selects the `navigation` column + loads `website_pages` (→ page options
+  for quick-add); demo mode derives nav + pages from the theme blueprints.
+- **Live-verified** on `?theme=marmalade`: overlay pixel-faithful; rename Journal→Blog + add "Rates"
+  both reflect live in the header preview; delete works; the demo Save toast is correct; 0 console
+  errors. tsc + lint clean, 163 vitest, `pnpm build` green.
+  **DEFERRED — 4d-2+:** nesting/dropdown editing, per-link + global menuStyle (per-device colours/
+  weight/size), per-page show-hide, header (CTA/logo/sticky/transparent/burger/topBar) + footer
+  (columns/newsletter) inspectors, mobile drawer settings, and swapping the `.np-*` preview for the
+  real themed `SiteChrome`.
+
 ## 2026-07-01 — Builder V2 Phase 4c-2: persist Brand Studio (theme + brand)
 
 Wires the Brand Studio overlay's Save/Publish to real DB persistence, mirroring the doc-persist path.

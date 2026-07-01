@@ -10,10 +10,13 @@ import {
 } from "@/lib/website/pageDoc.schema";
 import { parseSectionsLoose } from "@/lib/website/sections.schema";
 import type { SiteThemeConfig } from "@/lib/site/themes";
+import type { SiteNavigation, SiteMenuItem } from "@/lib/site/types";
 
 import { BuilderShell } from "./BuilderShell";
 import type { Brand as BuilderBrand } from "./BrandStudioOverlay";
 import "./builder-chrome.css";
+
+type PageOpt = { key: string; label: string; href: string };
 
 // Raw `host_websites.brand` jsonb shape (subset the builder overlay reads).
 type RawBrand = {
@@ -61,6 +64,8 @@ async function loadRealPage(
   theme: SiteThemeConfig;
   domain: string;
   brand: BuilderBrand;
+  navigation: SiteNavigation;
+  pages: PageOpt[];
 } | null> {
   const supabase = createServerClient();
   const { data: page } = await supabase
@@ -78,14 +83,29 @@ async function loadRealPage(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("theme, subdomain, custom_domain, brand")
+    .select("theme, subdomain, custom_domain, brand, navigation")
     .eq("id", websiteId)
     .maybeSingle<{
       theme: SiteThemeConfig | null;
       subdomain: string | null;
       custom_domain: string | null;
       brand: RawBrand | null;
+      navigation: SiteNavigation | null;
     }>();
+
+  const { data: pageRows } = await supabase
+    .from("website_pages")
+    .select("kind, slug, nav_label, title, nav_order")
+    .eq("website_id", websiteId)
+    .order("nav_order", { ascending: true });
+  const pages: PageOpt[] = (pageRows ?? []).map((p) => {
+    const home = p.kind === "home";
+    return {
+      key: home ? "home" : (p.slug ?? ""),
+      label: p.nav_label?.trim() || p.title?.trim() || p.slug || p.kind,
+      href: home ? "/" : `/${p.slug ?? ""}`,
+    };
+  });
 
   // Resolve the working doc: stored PageDoc → use it; legacy flat sections →
   // convert; empty → a blank doc.
@@ -108,6 +128,8 @@ async function loadRealPage(
     theme: (site?.theme ?? {}) as SiteThemeConfig,
     domain,
     brand: toBuilderBrand(site?.brand),
+    navigation: (site?.navigation ?? {}) as SiteNavigation,
+    pages,
   };
 }
 
@@ -138,6 +160,8 @@ export default async function BuilderPage({
           pageId={searchParams.pageId}
           domain={real.domain}
           brand={real.brand}
+          navigation={real.navigation}
+          pages={real.pages}
         />
       );
     }
@@ -150,6 +174,22 @@ export default async function BuilderPage({
   const base = await resolveThemeBase(slug);
   const chosen =
     blueprints.find((b) => b.key === searchParams?.page) ?? blueprints[0];
+
+  // Demo nav + pages derived from the theme's blueprint pages.
+  const demoPages: PageOpt[] = blueprints.map((b) => ({
+    key: b.key,
+    label: b.label,
+    href: b.key === "home" ? "/" : `/${b.key}`,
+  }));
+  const demoNav: SiteNavigation = {
+    menu: demoPages.map(
+      (p, i): SiteMenuItem => ({
+        id: `demo-${i}`,
+        label: p.label,
+        href: p.href,
+      }),
+    ),
+  };
 
   return (
     <BuilderShell
@@ -167,6 +207,8 @@ export default async function BuilderPage({
         name: themeName(slug),
         monogram: themeName(slug).slice(0, 1),
       }}
+      navigation={demoNav}
+      pages={demoPages}
     />
   );
 }

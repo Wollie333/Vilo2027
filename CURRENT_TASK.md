@@ -238,7 +238,22 @@ vilotest (`host@vilotest.com`) + a save point.
   action (both menu items persist; theme has no draft/published split); demo toasts "Open a real
   page…". Demo path live-verified; tsc+lint clean, 163 vitest, build green. Authed round-trip needs a
   logged-in host session (mirrors the proven `saveBuilderDocAction`).
-- **NEXT — Phase 4 remaining:** reskin the **Nav/Menu builder**
+- **Phase 4d-1 — Nav/Menu builder overlay: link builder + preview (DONE + LIVE-VERIFIED, 2026-07-01):**
+  first slice of the largest 4d feature. Reskins the LOCKED nav standard into the `.bse-*` overlay,
+  real `SiteNavigation` JSONB stays SSOT; opened from the doc-switcher **Header & menu** entry. Ported
+  nav link-builder + `.np-*` header-preview CSS (`.wb`-scoped). `NavBuilderOverlay.tsx` = left link
+  builder editing `navigation.menu` TOP-LEVEL (rename/drag-reorder/add/delete/quick-add-page; each
+  item's children/autoRooms/hiddenOnPages/style/newTab PRESERVED → no data loss) + center live themed
+  header preview (`.np-*` reading `--site-accent`/`--site-ink`) with desktop/mobile toggle.
+  `BuilderShell` holds `navigation` state; Header entry opens it; Save → `saveNavigationAction` with
+  the FULL navigation (menu edits + preserved rest); demo toasts. `page.tsx` real: select `navigation`
+  + load `website_pages`; demo: derive from blueprints. Live-verified (rename/add reflect in preview,
+  delete, demo Save toast, 0 console errors). tsc+lint clean, 163 vitest, build green.
+  **DEFERRED 4d-2+:** nesting/dropdown, per-link + global menuStyle (per-device colours/weight/size),
+  per-page show-hide, header (CTA/logo/sticky/transparent/burger/topBar) + footer (columns/newsletter)
+  inspectors, mobile drawer settings, real themed `SiteChrome` preview.
+- **NEXT — Phase 4 remaining:** **4d-2+** nav style rail / header+footer / per-page / mobile · then
+  **4e** Theme Settings overlay + Footer document. (Also open: **Footer** doc-switcher entry still "Soon".)
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

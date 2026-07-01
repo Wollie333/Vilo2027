@@ -92,11 +92,14 @@ import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
 import { PageSettingsOverlay } from "./PageSettingsOverlay";
 import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
+import { NavBuilderOverlay } from "./NavBuilderOverlay";
 import type { SiteThemeConfig } from "@/lib/site/themes";
+import type { SiteNavigation, SiteMenuItem } from "@/lib/site/types";
 import {
   saveBuilderDocAction,
   publishBuilderDocAction,
   saveBuilderBrandAction,
+  saveNavigationAction,
 } from "@/app/[locale]/dashboard/website/actions";
 
 // Section-structure layouts offered by the "Add section" modal.
@@ -192,6 +195,8 @@ export function BuilderShell({
   templates = [],
   domain = "yoursite.co.za",
   brand: initialBrand = {},
+  navigation: initialNav = {},
+  pages = [],
 }: {
   docName: string;
   themeLabel: string;
@@ -206,6 +211,10 @@ export function BuilderShell({
   domain?: string;
   /** Brand identity (name/tagline/monogram/socials) for the Brand Studio overlay. */
   brand?: Brand;
+  /** Site navigation (SSOT) for the Nav builder overlay. */
+  navigation?: SiteNavigation;
+  /** Site pages for the Nav builder's quick-add-page + per-page controls. */
+  pages?: { key: string; label: string; href: string }[];
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
@@ -228,10 +237,13 @@ export function BuilderShell({
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   // Working brand + theme edited by Brand Studio, applied LIVE to the canvas.
   // (Persisting these to the DB is Phase 4c-2.)
   const [workTheme, setWorkTheme] = useState<SiteThemeConfig>(theme);
   const [brand, setBrand] = useState<Brand>(initialBrand);
+  // Working navigation (SSOT) edited by the Nav builder overlay.
+  const [navigation, setNavigation] = useState<SiteNavigation>(initialNav);
   const [chrome, setChrome] = useState<"emerald" | "light" | "dark">("emerald");
   const [accent, setAccent] = useState(ACCENTS[0]);
   const [density, setDensity] = useState<"roomy" | "compact">("roomy");
@@ -374,6 +386,35 @@ export function BuilderShell({
       );
     },
     [persists, websiteId, workTheme, brand, toast],
+  );
+
+  // Nav builder → persist the full navigation (menu edits + preserved rest).
+  const setMenu = useCallback(
+    (nextMenu: SiteMenuItem[]) =>
+      setNavigation((n) => ({ ...n, menu: nextMenu })),
+    [],
+  );
+  const saveNav = useCallback(
+    async (mode: "draft" | "publish") => {
+      if (!persists || !websiteId) {
+        toast("Open a real page to save the menu");
+        return;
+      }
+      const res = await saveNavigationAction({
+        websiteId,
+        navigation: navigation as Parameters<
+          typeof saveNavigationAction
+        >[0]["navigation"],
+      });
+      toast(
+        res.ok
+          ? mode === "publish"
+            ? "Navigation published"
+            : "Navigation saved"
+          : "Navigation save failed",
+      );
+    },
+    [persists, websiteId, navigation, toast],
   );
 
   // Templates menu — load a wired-in starter layout (undoable).
@@ -738,17 +779,16 @@ export function BuilderShell({
                 type="button"
                 onClick={() => {
                   setDocMenuOpen(false);
-                  toast("Header opens in the Theme overlay (coming next)");
+                  setNavOpen(true);
                 }}
               >
                 <span className="di">
                   <PanelTop size={16} strokeWidth={1.8} />
                 </span>
                 <span className="dmt">
-                  <b>Header</b>
-                  <small>Site-wide template</small>
+                  <b>Header &amp; menu</b>
+                  <small>Navigation · site-wide</small>
                 </span>
-                <span className="soon">Soon</span>
               </button>
               <button
                 type="button"
@@ -1232,6 +1272,22 @@ export function BuilderShell({
         doc={doc}
         persists={persists}
         onPublish={saveBrand}
+      />
+
+      {/* Nav / Menu builder overlay (locked SSOT — real navigation JSONB) */}
+      <NavBuilderOverlay
+        open={navOpen}
+        onClose={() => setNavOpen(false)}
+        siteLabel={themeLabel}
+        domain={domain}
+        menu={navigation.menu ?? []}
+        onMenuChange={setMenu}
+        pages={pages}
+        brand={brand}
+        theme={workTheme}
+        persists={persists}
+        onSave={saveNav}
+        onReset={() => setNavigation(initialNav)}
       />
 
       {/* Page Settings overlay (SEO / social / tracking / code) */}
