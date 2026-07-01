@@ -50,15 +50,24 @@ vilotest (`host@vilotest.com`) + a save point.
   redesign. Section/tone bands, multi-col grids, spacing, reused basics leaves, and all 5 new leaves
   render; zero console errors. (Note: the running dev server had stale `.next` vendor-chunks — see
   memory [[next-stale-vendor-chunks]] — killed PID + `rm -rf apps/web/.next` + `preview_start web`.)
-- **KNOWN REFINEMENT (log):** site-part leaves (logo name, nav links) default to `--site-ink`, so
-  they vanish on a DARK section band. Needs tone/contrast awareness (light text on dark tone) — fold
-  into Phase 5 brand binding + a contrast pass on `NewLeaves.tsx`.
-- **NEXT — Phase 2 remaining slices:** (a) refine leaves for column context (generic components are
-  full-width bands — likely need `bare` variants like `ThemedDateRange` got) + the dark-band
-  contrast fix; (b) variant→prop mapping for shared widgets (e.g. rooms_preview variant→`display`);
-  (c) auto-populate widgets in the demo (feed `SiteData` so rooms/reviews/gallery show); (d) convert
-  the 4 themes to token sets + `PageDoc` blueprints. **DELETION of the 4 bespoke theme dirs MOVES TO
-  CUTOVER (Phase 6)** — deleting now breaks the live public site (still on the legacy flat model).
+- **Phase 2 slice 2 (DONE + LIVE-VERIFIED, 2026-07-01, commit `4c0c2248`):**
+  - **Real tone bug fixed** in `PageDocRenderer`: `sectionToneStyle('dark'/'accent')` sets BOTH
+    `background:var(--site-ink)` AND the `--site-ink` override — on one element the background
+    self-references the override → wrong colour. Split it: background FILL on the OUTER element,
+    `--site-*` overrides on the INNER container. Dark band now renders dark w/ white logo/nav/social
+    (correct contrast, for free — the "contrast refinement" was really this renderer bug, NOT the
+    leaves). NOTE: the legacy `SectionWrap` has the same latent self-reference — bespoke themes
+    handle their own dark bands so it never surfaced; fix legacy only if the generic path needs dark.
+  - `foldVariant()` maps a node's `variant` onto each type's layout prop (`display` for
+    rooms_preview/blog_preview, `variant` otherwise).
+  - Auto-populate with NO `SiteData` degrades gracefully (heading + empty state, no crash).
+  - Process note: a two-step edit briefly logged `foldVariant is not defined` via HMR — stale; use
+    `preview_logs` (server) not `preview_console_logs` to get real SSR error messages.
+- **NEXT — Phase 2 remaining:** (a) feed real `SiteData` so rooms/reviews/gallery render populated
+  (data assembly is Phase-5 territory — may just verify the empty states here and defer); (b) leaf
+  polish for column context (generic components are full-width bands — may need `bare` variants);
+  (c) **convert the 4 themes to token sets + `PageDoc` blueprints** (the big remaining piece).
+  **DELETION of the 4 bespoke theme dirs stays at CUTOVER (Phase 6)** — prod still renders legacy.
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
