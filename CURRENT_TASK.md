@@ -43,13 +43,22 @@ vilotest (`host@vilotest.com`) + a save point.
   no per-theme forks). `components/site/v2/NewLeaves.tsx` — token-driven leaves for the 5 new types
   (placeholders; live brand/menu/room binding is Phase 5). **tsc + 141 vitest + `pnpm build` all
   green.** Additive/parallel — NOT wired to a public route yet, so no live visual check yet.
-- **NEXT — Phase 2 remaining slices:** (a) wire `PageDocRenderer` to a preview route + seed a
-  vilotest PageDoc, then LIVE-verify visually (needs dev server); (b) refine leaves for column
-  context (the generic components are full-width bands — likely need `bare` variants like
-  `ThemedDateRange` got); (c) variant→prop mapping for shared widgets (e.g. rooms_preview
-  variant→`display`); (d) convert the 4 themes to token sets + `PageDoc` blueprints. **DELETION of
-  the 4 bespoke theme dirs MOVES TO CUTOVER (Phase 6)** — deleting now would break the live public
-  site, which still renders the legacy flat model. (Plan §5 updated to reflect parallel-build.)
+- **Phase 2 slice 1b (DONE + LIVE-VERIFIED, 2026-07-01, commit `35454f7e`):** dev route
+  `app/[locale]/builder-preview/page.tsx` renders a demo `PageDoc` (structure + all 5 new leaves)
+  inside `SiteThemeRoot`. **Proven live:** the SAME doc re-themes under `?preset=warm` (serif,
+  terracotta) vs `?preset=coastal` (sans, teal) — pure token theming, the core thesis of the
+  redesign. Section/tone bands, multi-col grids, spacing, reused basics leaves, and all 5 new leaves
+  render; zero console errors. (Note: the running dev server had stale `.next` vendor-chunks — see
+  memory [[next-stale-vendor-chunks]] — killed PID + `rm -rf apps/web/.next` + `preview_start web`.)
+- **KNOWN REFINEMENT (log):** site-part leaves (logo name, nav links) default to `--site-ink`, so
+  they vanish on a DARK section band. Needs tone/contrast awareness (light text on dark tone) — fold
+  into Phase 5 brand binding + a contrast pass on `NewLeaves.tsx`.
+- **NEXT — Phase 2 remaining slices:** (a) refine leaves for column context (generic components are
+  full-width bands — likely need `bare` variants like `ThemedDateRange` got) + the dark-band
+  contrast fix; (b) variant→prop mapping for shared widgets (e.g. rooms_preview variant→`display`);
+  (c) auto-populate widgets in the demo (feed `SiteData` so rooms/reviews/gallery show); (d) convert
+  the 4 themes to token sets + `PageDoc` blueprints. **DELETION of the 4 bespoke theme dirs MOVES TO
+  CUTOVER (Phase 6)** — deleting now breaks the live public site (still on the legacy flat model).
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
