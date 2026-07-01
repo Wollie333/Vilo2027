@@ -4,8 +4,8 @@
 // parent, remove it, duplicate it, or append a new section. Each returns a NEW
 // doc (deep-cloned) so the client store can `setDoc(op(doc, …))` and let React
 // diff. Kept framework-free + unit-tested so the builder store stays thin.
-import type { PageDoc, SectionNode } from "./pageDoc.schema";
-import { newSection, reidNode } from "./widgets/factories";
+import type { PageDoc, SectionNode, WidgetType } from "./pageDoc.schema";
+import { newSection, newWidget, reidNode } from "./widgets/factories";
 
 // A node anywhere in the tree (section / column / widget) — all carry `id`, and
 // containers additionally carry `kids`.
@@ -94,4 +94,53 @@ export function addSection(
   const section: SectionNode = newSection(spans);
   next.root.kids.push(section);
   return { doc: next, newId: section.id };
+}
+
+/** The column with `columnId` (only if it IS a column node). */
+function column(next: PageDoc, columnId: string): TreeNode | null {
+  const hit = findIn(next.root.kids as TreeNode[], columnId);
+  const n = hit?.node as (TreeNode & { type?: string }) | undefined;
+  return n && n.type === "column" && n.kids ? n : null;
+}
+
+/**
+ * Insert a NEW widget of `type` into a column, before `beforeId` (append when
+ * `beforeId` is null / not found). Returns { doc, newId } for selecting the drop.
+ */
+export function insertWidget(
+  doc: PageDoc,
+  columnId: string,
+  beforeId: string | null,
+  type: WidgetType,
+): { doc: PageDoc; newId: string | null } {
+  const next = clone(doc);
+  const col = column(next, columnId);
+  if (!col || !col.kids) return { doc, newId: null };
+  const widget = newWidget(type) as unknown as TreeNode;
+  const idx = beforeId ? col.kids.findIndex((k) => k.id === beforeId) : -1;
+  if (idx < 0) col.kids.push(widget);
+  else col.kids.splice(idx, 0, widget);
+  return { doc: next, newId: widget.id };
+}
+
+/**
+ * Move an EXISTING node into a column, before `beforeId` (append when null / not
+ * found). No-op when the node/column is missing or you'd drop it before itself.
+ */
+export function moveNodeInto(
+  doc: PageDoc,
+  nodeId: string,
+  columnId: string,
+  beforeId: string | null,
+): PageDoc {
+  if (beforeId === nodeId) return doc;
+  const next = clone(doc);
+  const found = findIn(next.root.kids as TreeNode[], nodeId);
+  const col = column(next, columnId);
+  if (!found || !col || !col.kids) return doc;
+  const [node] = found.siblings.splice(found.index, 1);
+  const idx = beforeId ? col.kids.findIndex((k) => k.id === beforeId) : -1;
+  if (idx < 0) col.kids.push(node);
+  else col.kids.splice(idx, 0, node);
+  return next;
 }

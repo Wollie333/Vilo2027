@@ -1,9 +1,11 @@
 "use client";
 
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -31,6 +33,7 @@ import {
   Trash2,
   Plus,
   X,
+  GripVertical,
   // widget-library glyphs (registry `icon` names)
   Heading,
   Type,
@@ -60,6 +63,7 @@ import type {
   SectionNode,
   ColumnNode,
   WidgetNode,
+  WidgetType,
 } from "@/lib/website/pageDoc.schema";
 import {
   findNode,
@@ -67,6 +71,8 @@ import {
   removeNode,
   duplicateNode,
   addSection,
+  insertWidget,
+  moveNodeInto,
 } from "@/lib/website/pageDocOps";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
@@ -249,6 +255,146 @@ export function BuilderShell({
     setStructureOpen(false);
   };
 
+  // ── drag-drop (Phase 3c-2) ──
+  // Refs (not state) hold the in-flight payload + target so dragover doesn't
+  // re-render. Only the drop-line position + the `dragging` flag are state.
+  const dragRef = useRef<
+    { kind: "new"; type: WidgetType } | { kind: "move"; id: string } | null
+  >(null);
+  const dropRef = useRef<{ columnId: string; beforeId: string | null } | null>(
+    null,
+  );
+  const dropColRef = useRef<HTMLElement | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [dropLine, setDropLine] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  const clearDrop = useCallback(() => {
+    dropColRef.current?.classList.remove("wb-drop-over");
+    dropColRef.current = null;
+    dropRef.current = null;
+    setDropLine(null);
+  }, []);
+
+  const endDrag = useCallback(() => {
+    clearDrop();
+    dragRef.current = null;
+    setDragging(false);
+  }, [clearDrop]);
+
+  const startWidgetDrag = (type: WidgetType, e: React.DragEvent) => {
+    dragRef.current = { kind: "new", type };
+    setDragging(true);
+    e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.setData("text/plain", type);
+  };
+  const startMoveDrag = (e: React.DragEvent) => {
+    if (!selectedId) return;
+    dragRef.current = { kind: "move", id: selectedId };
+    setDragging(true);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", "move");
+  };
+
+  const onCanvasDragOver = (e: React.DragEvent) => {
+    if (!dragRef.current) return;
+    const col = (e.target as HTMLElement).closest<HTMLElement>(
+      '[data-node-kind="column"]',
+    );
+    if (!col) {
+      if (dropRef.current) clearDrop();
+      return;
+    }
+    e.preventDefault(); // allow the drop
+    e.dataTransfer.dropEffect =
+      dragRef.current.kind === "new" ? "copy" : "move";
+    const columnId = col.dataset.nodeId ?? "";
+    const widgets = [
+      ...col.querySelectorAll<HTMLElement>(
+        ':scope > [data-node-kind="widget"]',
+      ),
+    ];
+    let beforeId: string | null = null;
+    let beforeEl: HTMLElement | null = null;
+    for (const w of widgets) {
+      const r = w.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) {
+        beforeId = w.dataset.nodeId ?? null;
+        beforeEl = w;
+        break;
+      }
+    }
+    const prev = dropRef.current;
+    if (prev && prev.columnId === columnId && prev.beforeId === beforeId)
+      return;
+    if (dropColRef.current !== col) {
+      dropColRef.current?.classList.remove("wb-drop-over");
+      col.classList.add("wb-drop-over");
+      dropColRef.current = col;
+    }
+    dropRef.current = { columnId, beforeId };
+    const wrap = canvasRef.current;
+    if (!wrap) return;
+    const wr = wrap.getBoundingClientRect();
+    const cr = col.getBoundingClientRect();
+    const left = cr.left - wr.left + wrap.scrollLeft + 8;
+    const width = cr.width - 16;
+    let top: number;
+    if (beforeEl) {
+      top = beforeEl.getBoundingClientRect().top - wr.top + wrap.scrollTop - 2;
+    } else if (widgets.length) {
+      top =
+        widgets[widgets.length - 1].getBoundingClientRect().bottom -
+        wr.top +
+        wrap.scrollTop -
+        2;
+    } else {
+      top = cr.top - wr.top + wrap.scrollTop + 8;
+    }
+    setDropLine({ top, left, width });
+  };
+
+  const onCanvasDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const drag = dragRef.current;
+    const drop = dropRef.current;
+    clearDrop();
+    dragRef.current = null;
+    setDragging(false);
+    if (!drag || !drop) return;
+    if (drag.kind === "new") {
+      const { doc: next, newId } = insertWidget(
+        doc,
+        drop.columnId,
+        drop.beforeId,
+        drag.type,
+      );
+      setDoc(next);
+      if (newId) setSelectedId(newId);
+    } else {
+      setDoc(moveNodeInto(doc, drag.id, drop.columnId, drop.beforeId));
+      setSelectedId(drag.id);
+    }
+  };
+
+  // Memoize the themed canvas so drop-line / dragging state changes don't re-run
+  // the (heavy) PageDocRenderer tree mid-drag.
+  const canvas = useMemo(
+    () => (
+      <SiteThemeRoot theme={{ base: themeBase }}>
+        <PageDocRenderer doc={doc} device={device} />
+      </SiteThemeRoot>
+    ),
+    [themeBase, doc, device],
+  );
+
+  const stageClass = ["stage", device, dragging && "wb-dragging"]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="wb">
       <div className="app">
@@ -355,7 +501,12 @@ export function BuilderShell({
 
             <div className="panel-body">
               {mode === "widgets" && (
-                <WidgetLibrary query={query} setQuery={setQuery} />
+                <WidgetLibrary
+                  query={query}
+                  setQuery={setQuery}
+                  onWidgetDragStart={startWidgetDrag}
+                  onWidgetDragEnd={endDrag}
+                />
               )}
               {mode === "navigator" && (
                 <Navigator
@@ -402,11 +553,15 @@ export function BuilderShell({
           </aside>
 
           {/* CANVAS */}
-          <main className="canvas-wrap" ref={canvasRef} onClick={onCanvasClick}>
-            <div className={`stage ${device}`} ref={stageRef}>
-              <SiteThemeRoot theme={{ base: themeBase }}>
-                <PageDocRenderer doc={doc} device={device} />
-              </SiteThemeRoot>
+          <main
+            className="canvas-wrap"
+            ref={canvasRef}
+            onClick={onCanvasClick}
+            onDragOver={onCanvasDragOver}
+            onDrop={onCanvasDrop}
+          >
+            <div className={stageClass} ref={stageRef}>
+              {canvas}
               <button
                 className="add-sec"
                 type="button"
@@ -419,12 +574,32 @@ export function BuilderShell({
               </button>
             </div>
 
+            {dropLine && (
+              <div
+                className="dropline-abs"
+                style={{
+                  top: dropLine.top,
+                  left: dropLine.left,
+                  width: dropLine.width,
+                }}
+              />
+            )}
+
             {badge && selected && (
               <div
                 className={badgeClass(badge.kind)}
                 style={{ top: badge.top, left: badge.left }}
                 onClick={(e) => e.stopPropagation()}
               >
+                <span
+                  className="nb-grip"
+                  draggable
+                  onDragStart={startMoveDrag}
+                  onDragEnd={endDrag}
+                  title="Drag to move"
+                >
+                  <GripVertical size={13} strokeWidth={2} />
+                </span>
                 <span className="nb-lbl">
                   {nodeMeta(selected.node as AnyNode).label}
                 </span>
@@ -514,9 +689,13 @@ function badgeClass(kind: string): string {
 function WidgetLibrary({
   query,
   setQuery,
+  onWidgetDragStart,
+  onWidgetDragEnd,
 }: {
   query: string;
   setQuery: (v: string) => void;
+  onWidgetDragStart: (type: WidgetType, e: React.DragEvent) => void;
+  onWidgetDragEnd: () => void;
 }) {
   const q = query.trim().toLowerCase();
   return (
@@ -550,6 +729,10 @@ function WidgetLibrary({
                     key={d.type}
                     title={d.label}
                     draggable
+                    onDragStart={(e) =>
+                      onWidgetDragStart(d.type as WidgetType, e)
+                    }
+                    onDragEnd={onWidgetDragEnd}
                   >
                     <span className="wi">
                       <Icon size={19} strokeWidth={1.8} />
@@ -595,7 +778,7 @@ function nodeMeta(
   };
 }
 
-function Navigator({
+const Navigator = memo(function Navigator({
   doc,
   selectedId,
   onSelect,
@@ -622,7 +805,7 @@ function Navigator({
       )}
     </div>
   );
-}
+});
 
 function NavNode({
   node,

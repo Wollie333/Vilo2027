@@ -708,6 +708,44 @@
   color: var(--mute);
   margin-top: 9px;
 }
+
+/* ---------- DRAG-DROP (Phase 3c-2) ---------- */
+.wb .node-badge .nb-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  cursor: grab;
+  opacity: 0.85;
+}
+.wb .node-badge .nb-grip:active {
+  cursor: grabbing;
+}
+.wb .dropline-abs {
+  position: absolute;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
+  z-index: 24;
+  pointer-events: none;
+}
+/* While dragging: outline every column faintly; emphasise the hovered target. */
+.wb .stage.wb-dragging [data-node-kind="column"] {
+  outline: 1px dashed var(--line-2);
+  outline-offset: -3px;
+}
+.wb .stage.wb-dragging [data-node-kind="column"].wb-drop-over {
+  outline: 2px dashed var(--primary);
+  outline-offset: -3px;
+  background: rgba(16, 185, 129, 0.05);
+}
+/* Idle hover affordance on widgets (not while dragging / when selected). */
+.wb .stage:not(.wb-dragging) [data-node-kind="widget"]:not(.wb-node-sel):hover {
+  outline: 1.5px dashed var(--primary);
+  outline-offset: -1px;
+  cursor: pointer;
+}
 .wb .dev-label {
   position: absolute;
   top: 10px;
