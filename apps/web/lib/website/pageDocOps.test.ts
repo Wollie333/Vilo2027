@@ -8,6 +8,7 @@ import {
   addSection,
   insertWidget,
   moveNodeInto,
+  updateNodeProps,
 } from "./pageDocOps";
 import { newPageDoc, newSection, newWidget } from "./widgets/factories";
 import { pageDocSchema } from "./pageDoc.schema";
@@ -104,6 +105,23 @@ describe("pageDocOps", () => {
     expect(moved.root.kids[0].kids[0].kids.map((k) => k.id)).toEqual(["wB"]);
     // dropping a node before itself is a no-op (same reference)
     expect(moveNodeInto(doc, "wA", "s1c", "wA")).toBe(doc);
+  });
+
+  it("updateNodeProps merges into props immutably (no-op for prop-less nodes)", () => {
+    const doc = sampleDoc();
+    const next = updateNodeProps(doc, "wA", { text: "Hello", align: "center" });
+    const wA = findNode(next, "wA")?.node as unknown as {
+      props: Record<string, unknown>;
+    };
+    expect(wA.props.text).toBe("Hello");
+    expect(wA.props.align).toBe("center");
+    // original untouched
+    const wAorig = findNode(doc, "wA")?.node as unknown as {
+      props: Record<string, unknown>;
+    };
+    expect(wAorig.props.text).not.toBe("Hello");
+    // a column has no props → no-op (same doc reference)
+    expect(updateNodeProps(doc, "s1c", { x: 1 })).toBe(doc);
   });
 
   it("every op yields a schema-valid PageDoc", () => {

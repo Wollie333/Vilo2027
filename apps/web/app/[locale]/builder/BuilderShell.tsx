@@ -57,7 +57,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { WIDGET_DEFS, WIDGET_GROUPS } from "@/lib/website/widgets/registry";
+import {
+  WIDGET_DEFS,
+  WIDGET_GROUPS,
+  type WidgetControl,
+} from "@/lib/website/widgets/registry";
 import type {
   PageDoc,
   SectionNode,
@@ -73,6 +77,7 @@ import {
   addSection,
   insertWidget,
   moveNodeInto,
+  updateNodeProps,
 } from "@/lib/website/pageDocOps";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
@@ -220,13 +225,28 @@ export function BuilderShell({
     return () => wrap.removeEventListener("scroll", onScroll);
   }, [placeBadge]);
 
+  // Select a node and open its inspector (Settings). Null just deselects.
+  const selectNode = useCallback((id: string | null) => {
+    setSelectedId(id);
+    if (id) setMode("settings");
+  }, []);
+
   // Click a canvas node → select the innermost node; empty click → deselect.
   const onCanvasClick = (e: React.MouseEvent) => {
     const node = (e.target as HTMLElement).closest<HTMLElement>(
       "[data-node-id]",
     );
-    setSelectedId(node?.dataset.nodeId ?? null);
+    selectNode(node?.dataset.nodeId ?? null);
   };
+
+  // Inspector → patch the selected node's props live.
+  const patchProps = useCallback(
+    (key: string, value: unknown) => {
+      if (selectedId)
+        setDoc((d) => updateNodeProps(d, selectedId, { [key]: value }));
+    },
+    [selectedId],
+  );
 
   // ── structural mutations ──
   const canMove = (dir: -1 | 1): boolean => {
@@ -488,13 +508,17 @@ export function BuilderShell({
                   ? "Widgets"
                   : mode === "navigator"
                     ? "Navigator"
-                    : "Settings"}
+                    : selected
+                      ? nodeMeta(selected.node as AnyNode).label
+                      : "Settings"}
                 <small>
                   {mode === "widgets"
                     ? "Drag a block onto the page"
                     : mode === "navigator"
                       ? "The page structure"
-                      : "Selected element"}
+                      : selected
+                        ? "Editing this block"
+                        : "Nothing selected"}
                 </small>
               </div>
             </div>
@@ -512,16 +536,22 @@ export function BuilderShell({
                 <Navigator
                   doc={doc}
                   selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  onSelect={selectNode}
                 />
               )}
-              {mode === "settings" && (
-                <PanelPlaceholder
-                  Icon={Settings}
-                  title="Nothing selected"
-                  body="Select an element on the canvas to edit its content, style and layout. The inspector lands in Phase 3d."
-                />
-              )}
+              {mode === "settings" &&
+                (selected ? (
+                  <Inspector
+                    node={selected.node as AnyNode}
+                    onPatch={patchProps}
+                  />
+                ) : (
+                  <PanelPlaceholder
+                    Icon={Settings}
+                    title="Nothing selected"
+                    body="Select an element on the canvas to edit its content. Style, spacing and per-device overrides land in Phase 3d-2."
+                  />
+                ))}
             </div>
 
             <div className="panel-foot">
@@ -864,6 +894,206 @@ function NavNode({
       )}
     </div>
   );
+}
+
+// ── Inspector (Phase 3d) ──────────────────────────────────────
+const INSPECTOR_TABS = ["content", "style", "advanced"] as const;
+type InspectorTab = (typeof INSPECTOR_TABS)[number];
+
+function Inspector({
+  node,
+  onPatch,
+}: {
+  node: AnyNode;
+  onPatch: (key: string, value: unknown) => void;
+}) {
+  const [tab, setTab] = useState<InspectorTab>("content");
+  const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
+  const props = ("props" in node ? node.props : {}) as Record<string, unknown>;
+
+  return (
+    <>
+      <div className="tabs">
+        {INSPECTOR_TABS.map((t) => (
+          <button
+            key={t}
+            className={t === tab ? "tab on" : "tab"}
+            type="button"
+            onClick={() => setTab(t)}
+          >
+            {t[0].toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
+      <div className="tabpane">
+        {tab === "content" ? (
+          def?.content ? (
+            def.content.map((ctl, i) => (
+              <Control key={i} ctl={ctl} props={props} onPatch={onPatch} />
+            ))
+          ) : (
+            <div className="insp-stub">
+              This block doesn’t expose content controls yet — its copy comes
+              from the theme blueprint. Editing composite blocks (hero, intro,
+              …) lands in a later slice.
+            </div>
+          )
+        ) : (
+          <div className="insp-stub">
+            {tab === "style" ? "Style" : "Advanced"} controls (tone, background,
+            spacing, visibility, per-device overrides) land in Phase 3d-2.
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+const str = (v: unknown) =>
+  typeof v === "string" ? v : v == null ? "" : String(v);
+const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
+const COLOR_TOKENS: [string, string][] = [
+  ["default", "Default"],
+  ["accent", "Accent"],
+  ["ink", "Ink"],
+  ["mute", "Mute"],
+];
+const ALIGN_OPTS: [string, string][] = [
+  ["left", "Left"],
+  ["center", "Center"],
+  ["right", "Right"],
+];
+
+function Control({
+  ctl,
+  props,
+  onPatch,
+}: {
+  ctl: WidgetControl;
+  props: Record<string, unknown>;
+  onPatch: (key: string, value: unknown) => void;
+}) {
+  if (ctl.kind === "hint") return <div className="hint">{ctl.text}</div>;
+
+  const val = props[ctl.key];
+  const label = (
+    <div className="ctl-l">
+      <label>{ctl.label}</label>
+      {ctl.kind === "range" && <span className="val">{num(val)}</span>}
+    </div>
+  );
+
+  switch (ctl.kind) {
+    case "text":
+      return (
+        <div className="ctl">
+          {label}
+          <input
+            className="inp"
+            value={str(val)}
+            placeholder={ctl.placeholder}
+            onChange={(e) => onPatch(ctl.key, e.target.value)}
+          />
+        </div>
+      );
+    case "textarea":
+      return (
+        <div className="ctl">
+          {label}
+          <textarea
+            className="inp"
+            value={str(val)}
+            onChange={(e) => onPatch(ctl.key, e.target.value)}
+          />
+        </div>
+      );
+    case "select":
+      return (
+        <div className="ctl">
+          {label}
+          <select
+            className="inp"
+            value={str(val)}
+            onChange={(e) => onPatch(ctl.key, e.target.value)}
+          >
+            {ctl.options.map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    case "seg":
+    case "align": {
+      const options = ctl.kind === "align" ? ALIGN_OPTS : ctl.options;
+      return (
+        <div className="ctl">
+          {label}
+          <div className="seg">
+            {options.map(([v, l]) => (
+              <button
+                key={v}
+                type="button"
+                className={str(val) === v ? "on" : undefined}
+                onClick={() => onPatch(ctl.key, v)}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    case "color":
+      return (
+        <div className="ctl">
+          {label}
+          <div className="seg">
+            {COLOR_TOKENS.map(([v, l]) => (
+              <button
+                key={v}
+                type="button"
+                className={str(val) === v ? "on" : undefined}
+                onClick={() => onPatch(ctl.key, v)}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    case "range":
+      return (
+        <div className="ctl">
+          {label}
+          <input
+            type="range"
+            className="rng"
+            min={ctl.min}
+            max={ctl.max}
+            step={ctl.step ?? 1}
+            value={num(val)}
+            onChange={(e) => onPatch(ctl.key, Number(e.target.value))}
+          />
+        </div>
+      );
+    case "toggle":
+      return (
+        <div className="ctl">
+          <div className="togrow">
+            <label>{ctl.label}</label>
+            <div
+              className={val ? "tog on" : "tog"}
+              onClick={() => onPatch(ctl.key, !val)}
+            />
+          </div>
+          {ctl.hint && <div className="hint">{ctl.hint}</div>}
+        </div>
+      );
+    default:
+      return null;
+  }
 }
 
 function PanelPlaceholder({

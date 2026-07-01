@@ -96,6 +96,25 @@ export function addSection(
   return { doc: next, newId: section.id };
 }
 
+/**
+ * Merge a prop patch into a node's `props` (immutable). No-op for a missing node
+ * or a node without `props` (sections / columns). Used by the inspector.
+ */
+export function updateNodeProps(
+  doc: PageDoc,
+  id: string,
+  patch: Record<string, unknown>,
+): PageDoc {
+  const next = clone(doc);
+  const found = findIn(next.root.kids as TreeNode[], id);
+  const node = found?.node as
+    | (TreeNode & { props?: Record<string, unknown> })
+    | undefined;
+  if (!node || !node.props) return doc;
+  node.props = { ...node.props, ...patch };
+  return next;
+}
+
 /** The column with `columnId` (only if it IS a column node). */
 function column(next: PageDoc, columnId: string): TreeNode | null {
   const hit = findIn(next.root.kids as TreeNode[], columnId);
