@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3a: standalone builder shell chrome (live-verified)
+
+Began Phase 3 (the pixel-perfect builder shell) with **3a — chrome**. New standalone,
+full-screen builder route rendering the founder prototype's emerald chrome.
+
+- **`app/[locale]/builder/builder-chrome.css`** — ported the prototype `builder.css` chrome
+  (tokens `--secondary #064E3B` etc., 54px topbar, 332px panel, widget-library grid, canvas +
+  stage device widths) VERBATIM, every selector scoped under a `.wb` root so it can't leak into
+  the app's Tailwind tokens.
+- **`app/[locale]/builder/BuilderShell.tsx`** (client) — emerald topbar (Wielo logo, document
+  switcher, Templates, device toggles, undo/redo/reset/brand/settings, Preview, Publish split),
+  the 332px three-mode left panel (Widgets / Navigator / Settings), and the centred canvas stage.
+  The **Widgets** panel renders the REAL registry library grid (`WIDGET_DEFS`/`WIDGET_GROUPS`,
+  lucide icons); Navigator/Settings show placeholders (filled in 3b/3d). Device toggle + panel-mode
+  switching are functional; drag-drop/selection/inspector are 3b–3e.
+- **`app/[locale]/builder/page.tsx`** (server) — assembles the themed PageDoc (theme blueprint via
+  `?theme`/`?page`, default Safari home) + resolves real tokens, and passes it to the shell as a
+  ready-rendered `stage` node, so the section render stays in the RSC tree.
+- **Live-verified**: emerald topbar + 332px panel + registry widget grid + the Safari home blueprint
+  rendering in the stage (dark hero, ochre button, Cormorant serif); device toggle resizes the stage
+  (desktop 1180 → tablet 768 → mobile 380) with the dev-label; Widgets/Navigator/Settings switch.
+  Zero SSR/console errors. tsc + lint clean; `pnpm build` passes (route `/[locale]/builder`).
+
 ## 2026-07-01 — Builder V2 Phase 2 slice 3: themes → PageDoc blueprints (live-verified)
 
 Converted the four themes' designed pages into Builder V2 `PageDoc` blueprints and proved

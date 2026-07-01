@@ -95,12 +95,29 @@ vilotest (`host@vilotest.com`) + a save point.
   centered empty-state heading inside the column. Only nuance: composites center their content even in
   a narrow sidebar column — a per-widget ALIGNMENT/bare refinement that belongs in the **Phase-3
   inspector**, not a speculative variant system now (least-code rule). tsc + lint + console clean.
-- **NEXT — Phase 2 is substantively COMPLETE** (token render collapse proven + 4 themes → blueprints +
-  column context verified). Remaining tie-offs are DEFERRED by design: (a) live `SiteData` binding
-  (rooms/reviews/gallery/hero images) → **Phase 5**; (b) per-widget align/bare in narrow columns →
-  **Phase 3 inspector**. **→ Begin Phase 3 — the pixel-perfect builder shell** (sub-phase per the plan:
-  3a chrome · 3b library+navigator · 3c canvas · 3d inspector · 3e undo/redo+autosave+preview+publish).
-  **DELETION of the 4 bespoke theme dirs stays at CUTOVER (Phase 6)** — prod still renders legacy.
+- **Phase 2 is substantively COMPLETE** (token render collapse proven + 4 themes → blueprints +
+  column context verified). Deferred by design: (a) live `SiteData` binding → **Phase 5**;
+  (b) per-widget align/bare in narrow columns → **Phase 3d inspector**.
+- **Phase 3a — builder shell CHROME (DONE + LIVE-VERIFIED, 2026-07-01, commits feat + fix `f8a1fd69`):** started
+  Phase 3 (pixel-perfect builder shell). New STANDALONE full-screen route `app/[locale]/builder/`
+  (opens outside the dashboard chrome). Prototype source: the prior session's scratchpad
+  `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js — path
+  `…/c592d567-.../scratchpad/pagebuilder_ui/Wielo Builder/`). Shipped: `builder-chrome.css` (prototype
+  `builder.css` chrome ported VERBATIM, every selector scoped under `.wb` so it can't leak into the
+  app's Tailwind — tokens `--secondary #064E3B`, 54px topbar, 332px panel, lib grid, canvas+stage
+  device widths); `BuilderShell.tsx` (client — emerald topbar w/ logo+doc-switcher+Templates+device
+  toggles+undo/redo/reset/brand/settings+Preview+Publish-split; 332px 3-mode panel Widgets/Navigator/
+  Settings; centred canvas stage; **Widgets = the REAL `WIDGET_DEFS`/`WIDGET_GROUPS` registry grid**
+  with lucide icons; Navigator/Settings placeholders); `page.tsx` (server — assembles themed PageDoc
+  via `?theme&page`, default safari home, resolves tokens, passes a ready-rendered `stage` RSC node so
+  the section render stays server-side). Live-verified: chrome pixel-faithful, device toggle resizes
+  stage (1180/768/380 + dev-label), panel-mode switch works, Safari blueprint renders in stage, 0
+  errors. tsc+lint+build green. Fixed a doc-switcher label wrap (`white-space:nowrap` on `.tb-page`).
+- **NEXT — Phase 3b:** widget library drag-drop + the Navigator tree panel (wire the real `PageDoc`
+  into a client store; drop widgets onto columns with drop-lines; the section-structure modal). Then
+  3c canvas (badges + selection + reorder) · 3d inspector (Content/Style/Advanced + device bar +
+  per-field revert) · 3e undo/redo + autosave + preview + publish. **Bespoke theme dirs delete at
+  CUTOVER (Phase 6)** — prod still renders legacy.
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
