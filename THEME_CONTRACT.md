@@ -1,5 +1,15 @@
 # Theme Contract — how every theme plugs into the Wielo Website CMS
 
+> **⚠️ CHANGING under Builder V2 (2026-07-01).** The "per-theme render layer + scoped CSS"
+> model in layer 3 below is being replaced by **token-driven blocks**: one shared component
+> per block (with shared variants) that reads `--site-*` tokens; a theme becomes a **token set
+> + blueprint**, not a code port. The four bespoke render dirs
+> (`components/site/{safari,sabela,oceansview,marmalade}/`) are deleted in Builder V2 Phase 2.
+> Layers 1 (shared contract) and 2 (shared builder UI) still hold and get *stronger*. Read
+> `docs/features/BUILDER_V2_PLAN.md` + `DECISIONS.md` ADR (2026-07-01) before relying on layer 3.
+> Everything else here (canonical page set, nav standard, header/menu contract, data binding,
+> publish snapshot) remains in force.
+
 > **Why this exists.** Safari (NenGama Lodge) is the **reference theme**. Everything
 > the CMS and the builders do is designed so a *new* theme is "scope the design,
 > reuse the engine": you write a **render layer + scoped CSS** and honour a fixed

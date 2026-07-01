@@ -737,4 +737,47 @@ anchor; memory `project-website-cms`.
 
 ---
 
+## ADR-0xx — Builder V2: standardized Wielo-block builder (reverses the curated-section law)
+**Status:** Accepted
+**Date:** 2026-07-01
+**Supersedes:** the "curated section system, NO freeform drag-drop" design law in
+`WEBSITE_CMS_PLAN.md` §2 and the curated-section constraint referenced in the Phase-5-skip ADR.
+
+**Decision:** Rebuild the website page builder as a standalone, standardized **Wielo-block**
+builder — an Elementor/Webflow-class nested `root → section → column → widget` canvas — matching
+the founder-supplied UI prototype pixel-for-pixel. Blocks are a single, theme-agnostic vocabulary
+(room grid, room card, booking bar, date search, search bar, reviews, specials, map, gallery,
+heading, text, button, image, logo, nav, social, …). The active theme supplies **only tokens**
+(palette, fonts, radius, shadow, spacing) + a **blueprint** (which pages/sections/variants +
+starter copy). Full plan of record: `docs/features/BUILDER_V2_PLAN.md`.
+
+**Locked sub-decisions (2026-07-01):**
+1. Clean break, no migration — re-seed themes into the new model (pre-MVP, no real users).
+2. Pure token-driven theming — one shared component per block, **zero per-theme component files**.
+3. Keep shared layout **variants** so themes stay visually distinct (still zero per-theme code).
+4. The **Nav builder stays the single source of truth** for header/menu (locked nav standard);
+   it is rewired/redesigned into the new UI, not re-implemented as freeform widgets.
+5. Delete the four bespoke theme dirs `components/site/{safari,sabela,oceansview,marmalade}/`
+   outright in Phase 2 (git history is the archive).
+
+**Reasons:**
+- Founder call (2026-07-01): the curated-only model can't deliver the intended enterprise-grade
+  custom builder; a standardized block set gives freeform composition while staying on-brand by
+  construction (variants + tones + tokens).
+- Collapsing four hand-tuned per-theme render layers into one token-driven layer removes the
+  largest source of duplication and makes new themes a token file + blueprint, not a code port
+  (supersedes the per-theme productionization playbook for future themes).
+
+**Rejected alternatives:**
+- Keep curated sections + bolt on freeform — two paradigms in one editor, worst of both.
+- Token-only blocks (no variants) — all four themes collapse to one identical layout; rejected.
+- Per-theme block variants as code — reintroduces the duplication we're removing; rejected.
+
+**Constraint (unchanged, still in force):** canonical page set (`mergeStandardPages`), the locked
+nav standard, server-side price recalculation, `ThemedDateRange` on every themed date picker, the
+brand-safe tone/`--site-*` colour system, the draft → `published_snapshot` split, and the pre-MVP
+data policy all remain non-negotiable through the rebuild.
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

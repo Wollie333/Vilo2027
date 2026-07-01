@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-01 — Builder V2: plan + Phase 0 contracts (page-builder redesign kickoff)
+
+Kicked off **Builder V2** — a complete redesign of the website page builder into a
+standalone, standardized **Wielo-block** builder (nested `section → column → widget`
+canvas, token-driven themes), matching a founder-supplied UI prototype. This reverses
+the earlier "curated, NO freeform drag-drop" design law.
+
+Phase 0 (docs/contracts only — no code):
+- Wrote `docs/features/BUILDER_V2_PLAN.md` (plan of record) and
+  `docs/features/BUILDER_V2_WIDGET_REGISTRY.md` (the `PageDoc` + widget-registry contract
+  Phase 1 implements against).
+- Reversed the "NO freeform" decision in `WEBSITE_CMS_PLAN.md` §2 (superseded banner + new
+  Builder V2 principle), the builder-paradigm table row, and the cross-cutting principle.
+- Added the Builder V2 ADR to `DECISIONS.md` (locks the 5 sub-decisions: clean break,
+  pure token-driven, keep variants, Nav builder stays SSOT, delete the 4 bespoke theme dirs).
+- Flagged `THEME_CONTRACT.md` layer-3 (per-theme render) supersession → tokens + blueprint.
+- Set the `CURRENT_TASK.md` active-lane anchor + memory `project-builder-v2`.
+
+No behaviour change yet — the current builder still runs. Next: Phase 1 (PageDoc schema +
+Widget Registry + the 5 new additive widget types).
+
 ## 2026-06-30 (#10) — Themed date-range picker on every theme's booking flows
 
 Guests were seeing the **native browser calendar** (OS-styled) when picking dates

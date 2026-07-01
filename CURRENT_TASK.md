@@ -2,7 +2,37 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶ SAVE POINT — FOUR THEMES + THEMED DATE PICKERS (· 2026-06-30 #10, DONE — START NEW SESSION HERE)
+## ▶▶ ACTIVE LANE — BUILDER V2 (· 2026-07-01, IN PROGRESS — START NEW SESSION HERE)
+
+**Rebuilding the website page builder as a standalone, standardized Wielo-block builder** matching
+the founder-supplied UI prototype (nested `section → column → widget` canvas, token-driven themes).
+This reverses the old "curated / NO freeform" law. **Read first:**
+`docs/features/BUILDER_V2_PLAN.md` (plan of record) + `docs/features/BUILDER_V2_WIDGET_REGISTRY.md`
+(the PageDoc + widget contract Phase 1 builds to) + `DECISIONS.md` ADR (2026-07-01) + memory
+`project-builder-v2`.
+
+**Locked decisions:** (1) clean break, re-seed themes into the new model; (2) pure token-driven,
+zero per-theme component files; (3) keep shared layout variants; (4) Nav builder stays SSOT for
+header/menu (rewire into new UI, not freeform); (5) delete `components/site/{safari,sabela,
+oceansview,marmalade}/` in Phase 2.
+
+**Phases:** 0 contracts/docs → 1 PageDoc schema + Widget Registry + new widget types → 2 token-driven
+render collapse (delete 4 theme dirs) → 3 pixel-perfect builder shell → 4 sub-feature overlays →
+5 live data + booking → 6 delete old builder. Each ends green (build+lint+vitest) + live-verified on
+vilotest (`host@vilotest.com`) + a save point.
+
+**Progress:**
+- **Phase 0 (in progress, 2026-07-01):** plan + widget-registry contract written; reversed the
+  "NO freeform" decision in `WEBSITE_CMS_PLAN.md` §2 + table + cross-cutting; added the Builder V2
+  ADR to `DECISIONS.md`; flagged `THEME_CONTRACT.md` layer-3 supersession; memory + this anchor set.
+  Remaining P0: none blocking — proceed to Phase 1.
+
+**Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
+brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
+
+---
+
+## ▶▶ SAVE POINT — FOUR THEMES + THEMED DATE PICKERS (· 2026-06-30 #10, DONE)
 
 **All committed AND pushed to `origin/main` → Vercel prod. Tree in sync. `tsc` + `lint` clean; 133 vitest green. The two stray untracked files (`apps/web/vsub.mjs`, `docs/features/WEBSITE_WIZARD_PLAN.md`) are deliberately LEFT ALONE — never `git add -A`. Latest deploy commit `52c3bbfc`.**
 

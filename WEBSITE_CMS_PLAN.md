@@ -22,22 +22,33 @@ A modern, simple, beautiful website CMS that:
 
 ## 2. Design philosophy (the non-negotiable principle)
 
+> **SUPERSEDED 2026-07-01 by Builder V2.** The original "curated, NO freeform" philosophy
+> below is retained for history but no longer governs. The builder is being rebuilt as a
+> standalone, standardized **Wielo block** builder (nested `section → column → widget`,
+> freeform composition) that is still on-brand by construction. See
+> `docs/features/BUILDER_V2_PLAN.md` and the ADR in `DECISIONS.md` (2026-07-01). The
+> parts of this document that still hold — canonical page set, nav standard, data model,
+> auto-populate binding, publish snapshot, SEO/forms/booking phases — remain in force.
+
+**Builder V2 principle (current):** standardized, theme-agnostic **Wielo blocks** on a
+freeform nested canvas. Hosts drag blocks (room grid, booking bar, date search, reviews,
+specials, map, heading, image, etc.) and compose freely, but every block:
+- Ships **shared layout variants** + a **tone/token colour system** — the host styles via
+  tokens and variants, so the result stays on-brand and responsive by construction.
+- Inherits the **active theme's tokens** (palette, fonts, radius, shadow, spacing) as its
+  default look. The theme controls colours + design direction only; the block set is the
+  same on every theme.
+- Opens in a **standalone full-screen builder** (not inside the dashboard shell), matching
+  the supplied prototype pixel-for-pixel.
+
+<details><summary>Original curated-section philosophy (superseded — kept for history)</summary>
+
 **This is NOT a freeform drag-and-drop website builder (not Elementor / Wix-style).**
-It is a **curated section system**:
-
-- **We** design beautiful, pre-built, fully-responsive **sections and elements**.
-- The host **drags a ready-made section onto a page** and only adjusts
-  **text, images, colors, and a layout *variant*** — never raw layout, never CSS.
-- Every section ships with **style variants** and **one-click color schemes** so the
-  host customises in taps, and **cannot break the design**. Every site looks good by
-  construction.
-- Sections and elements are **reusable across pages**.
-- The whole experience lives **in the host dashboard**, with the same polished
-  side-panel feel as Brand/Theme Studio (which the host loves and is the UX north star).
-
-Why: guarantees on-brand, responsive, professional results with zero design skill —
-the foundation of "set up in minutes, easy to use." This principle overrides any
-temptation to add freeform layout controls.
+It is a **curated section system**: we design pre-built responsive sections; the host drags
+a ready-made section and only adjusts text/images/colours/variant — never raw layout, never
+CSS. Every section ships variants + one-click colour schemes; sections reusable across pages;
+the whole experience lived in the host dashboard.
+</details>
 
 ---
 
@@ -117,7 +128,7 @@ confirms nothing local-only remains (worktree status was clean — no uncommitte
 
 | Area | Decision |
 |---|---|
-| **Builder paradigm** | **Curated pre-built sections + variants + customise text/colors only. NO freeform drag-drop.** |
+| **Builder paradigm** | ~~Curated pre-built sections, NO freeform~~ → **SUPERSEDED 2026-07-01: standardized Wielo-block builder, freeform nested canvas, token-driven themes. See `docs/features/BUILDER_V2_PLAN.md`.** |
 | Section system | Style **variants** per section, **visual library** w/ thumbnails, **one-click color schemes**, **saved sections** ("my blocks"), **page-template gallery** |
 | Editor infra | **Autosave + undo/redo**; **inline text editing on the preview** (still no layout control) |
 | Navigation storage | Typed **JSONB** on `host_websites` (`navigation`), folded into publish snapshot |
@@ -159,7 +170,7 @@ confirms nothing local-only remains (worktree status was clean — no uncommitte
 
 ## 6. Cross-cutting requirements (every phase)
 
-- **Curated-section principle** (section 2) — no freeform layout controls, ever.
+- **Builder V2 principle** (section 2) — standardized Wielo blocks, token-driven themes, on-brand by construction via variants + tones (`docs/features/BUILDER_V2_PLAN.md`).
 - **Mobile-first** responsive on dashboard editors AND public output.
 - **Accessibility (WCAG)** — keyboard nav, ARIA, focus management (menus, modals, forms).
 - **Draft → publish** — all new config respects the draft/`published_snapshot` split + `website_restore_points`.
