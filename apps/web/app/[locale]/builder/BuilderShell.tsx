@@ -146,7 +146,7 @@ export function BuilderShell({
             {DEVICES.map(({ key, label, Icon }) => (
               <button
                 key={key}
-                className={`tb-dev${device === key ? "on" : ""}`}
+                className={device === key ? "tb-dev on" : "tb-dev"}
                 title={label}
                 type="button"
                 onClick={() => setDevice(key)}
@@ -238,7 +238,7 @@ export function BuilderShell({
 
             <div className="panel-foot">
               <button
-                className={`foot-ico${mode === "widgets" ? "on" : ""}`}
+                className={mode === "widgets" ? "foot-ico on" : "foot-ico"}
                 type="button"
                 onClick={() => setMode("widgets")}
               >
@@ -246,7 +246,7 @@ export function BuilderShell({
                 Widgets
               </button>
               <button
-                className={`foot-ico${mode === "navigator" ? "on" : ""}`}
+                className={mode === "navigator" ? "foot-ico on" : "foot-ico"}
                 type="button"
                 onClick={() => setMode("navigator")}
               >
@@ -254,7 +254,7 @@ export function BuilderShell({
                 Navigator
               </button>
               <button
-                className={`foot-ico${mode === "settings" ? "on" : ""}`}
+                className={mode === "settings" ? "foot-ico on" : "foot-ico"}
                 type="button"
                 onClick={() => setMode("settings")}
               >
