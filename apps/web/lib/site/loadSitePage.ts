@@ -24,6 +24,11 @@ import {
   type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
+import {
+  isPageDoc,
+  parsePageDocLoose,
+  type PageDoc,
+} from "@/lib/website/pageDoc.schema";
 import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
 import { parseRoomMediaOverrides } from "@/lib/website/roomMedia";
 import {
@@ -134,6 +139,9 @@ export type SitePageResult = {
   page: SitePageMeta;
   sections: WebsiteSection[];
   data: SiteData;
+  /** Builder V2 (v:2) pages carry a nested PageDoc rendered via PageDocRenderer;
+   *  legacy flat pages leave this undefined and render `sections`. */
+  doc?: PageDoc;
 };
 
 /** A `host` (custom domain, has a dot) or a bare subdomain label. */
@@ -536,6 +544,64 @@ function withinSchedule(schedule?: { start?: string; end?: string }): boolean {
   return true;
 }
 
+// ── Builder V2 (PageDoc) helpers ──────────────────────────────
+// Collect the widget LEAVES of a PageDoc as pseudo-sections {id,type,props} so
+// the existing type-keyed `assembleSectionData` builds the SiteData map keyed by
+// node id — exactly the ids `PageDocRenderer` renders under.
+function pageDocLeafSections(doc: PageDoc): WebsiteSection[] {
+  const out: WebsiteSection[] = [];
+  const walk = (
+    kids: Array<{
+      id: string;
+      type: string;
+      kids?: unknown[];
+      props?: unknown;
+    }>,
+  ) => {
+    for (const n of kids) {
+      if (Array.isArray(n.kids)) {
+        walk(n.kids as typeof kids);
+      } else {
+        out.push({
+          id: n.id,
+          type: n.type,
+          enabled: true,
+          props: (n.props ?? {}) as Record<string, unknown>,
+        } as unknown as WebsiteSection);
+      }
+    }
+  };
+  walk(doc.root.kids as unknown as Parameters<typeof walk>[0]);
+  return out;
+}
+
+/** Sanitise the free-form HTML on `rich_text` widget leaves (mirrors
+ *  sanitiseSectionsHtml for the nested model). Returns a fresh doc. */
+function sanitisePageDoc(doc: PageDoc): PageDoc {
+  const clone = structuredClone(doc);
+  const walk = (
+    kids: Array<{
+      kids?: unknown[];
+      type?: string;
+      props?: Record<string, unknown>;
+    }>,
+  ) => {
+    for (const n of kids) {
+      if (Array.isArray(n.kids)) {
+        walk(n.kids as typeof kids);
+      } else if (
+        n.type === "rich_text" &&
+        n.props &&
+        typeof n.props.html === "string"
+      ) {
+        n.props.html = sanitiseListingHtml(n.props.html as string);
+      }
+    }
+  };
+  walk(clone.root.kids as unknown as Parameters<typeof walk>[0]);
+  return clone;
+}
+
 const loadSitePageCached = cache(async function loadSitePageInner(
   ctx: SiteContext,
   slug: string,
@@ -593,25 +659,39 @@ const loadSitePageCached = cache(async function loadSitePageInner(
 
   if (!pageRow) return null;
 
-  const sections = sanitiseSectionsHtml(
-    parseSectionsLoose(
-      ctx.preview ? pageRow.draft_sections : pageRow.published_sections,
-    ),
-  ).filter((s) => ctx.preview || withinSchedule(s.schedule));
+  const pageMeta: SitePageMeta = {
+    id: pageRow.id,
+    kind: pageRow.kind,
+    slug: pageRow.slug,
+    title: pageRow.title,
+    seoOverrides: pageRow.seo_overrides ?? {},
+  };
+
+  const raw = ctx.preview ? pageRow.draft_sections : pageRow.published_sections;
+
+  // Builder V2 (v:2): a stored PageDoc renders through the token PageDocRenderer.
+  // Data is assembled from its widget leaves (keyed by node id); legacy flat
+  // pages fall through to the unchanged array path below.
+  if (isPageDoc(raw)) {
+    const parsed = parsePageDocLoose(raw);
+    if (parsed) {
+      const docSan = sanitisePageDoc(parsed);
+      const data = await assembleSectionData(
+        sb,
+        ctx,
+        pageDocLeafSections(docSan),
+      );
+      return { page: pageMeta, sections: [], data, doc: docSan };
+    }
+  }
+
+  const sections = sanitiseSectionsHtml(parseSectionsLoose(raw)).filter(
+    (s) => ctx.preview || withinSchedule(s.schedule),
+  );
 
   const data = await assembleSectionData(sb, ctx, sections);
 
-  return {
-    page: {
-      id: pageRow.id,
-      kind: pageRow.kind,
-      slug: pageRow.slug,
-      title: pageRow.title,
-      seoOverrides: pageRow.seo_overrides ?? {},
-    },
-    sections,
-    data,
-  };
+  return { page: pageMeta, sections, data };
 });
 
 /**

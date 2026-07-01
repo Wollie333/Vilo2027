@@ -22,6 +22,7 @@ import { SabelaSiteView } from "./sabela/SabelaSiteView";
 import { OceansViewSiteView } from "./oceansview/OceansViewSiteView";
 import { MarmaladeSiteView } from "./marmalade/MarmaladeSiteView";
 import { SectionRenderer } from "./SectionRenderer";
+import { PageDocRenderer } from "./v2/PageDocRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
 
@@ -128,6 +129,47 @@ export async function SitePageView({
   const previewPages = ctx.preview
     ? await buildSitePreviewPages(ctx)
     : undefined;
+
+  // Builder V2 (v:2) pages render through the ONE token renderer inside the
+  // generic chrome — bypassing the bespoke per-theme layers (deleted at cutover).
+  // The theme's tokens still apply via SiteThemeRoot, so it stays on-brand.
+  if (result.doc) {
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {pageMarketing}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            currentPageKey={currentPageKey}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={previewContext}
+            hideBanner={embed}
+            previewPages={previewPages}
+          >
+            <PageDocRenderer
+              doc={result.doc}
+              data={result.data}
+              asset={siteAsset}
+              websiteId={ctx.websiteId}
+              interactive
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
 
   // Safari is fully bespoke — EVERY page renders through its layer (no page ever
   // falls back to the standard chrome / old styles).
