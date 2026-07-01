@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3e-1: undo/redo history + preview toggle (live-verified)
+
+- **`BuilderShell.tsx`** — the doc now lives in a bounded **past→present→future history stack**;
+  every mutation routes through `setDoc` (pushes a present, drops the redo tail, dedupes no-ops that
+  return the same doc, caps at 60 entries). Topbar **Undo/Redo** wired with correct disabled states +
+  **Ctrl/Cmd+Z** / **+Shift+Z** (skipped while a field is focused so native input-undo still works);
+  **Reset** re-seeds the initial blueprint (undoable). A **Preview** toggle adds `.wb.previewing`,
+  which hides the left panel + every editor affordance (badges, add-section, drop-line, selection
+  outlines) and cleans the stage (no border/shadow) so it reads like the live site; button flips to
+  "Exit preview".
+- **`builder-chrome.css`** — scoped `.wb.previewing` rules.
+- **Live-verified**: delete section → Undo restores → Redo re-applies (Undo/Redo disabled states
+  correct); Ctrl+Z undoes; Preview hides all chrome full-bleed, Exit restores. **162 vitest**, tsc +
+  lint + `pnpm build` green. Next 3e-2: autosave + Publish (persist the PageDoc to `website_pages` via
+  a server action; wire real `websiteId`/`pageId`).
+
 ## 2026-07-01 — Builder V2 Phase 3d-2b: inspector device bar + per-device overrides + revert (live-verified)
 
 Completes the inspector (Phase 3d).

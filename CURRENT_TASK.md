@@ -163,13 +163,21 @@ vilotest (`host@vilotest.com`) + a save point.
   (base→registry default/0; device→delete override). **`PageDocRenderer` now merges `responsive[device]`
   props/space at render** so the previewed device shows overrides (base untouched). Live-verified end to
   end. 162 vitest, green.
-- **NEXT — Phase 3e (persist + history):** undo/redo (a `doc` history stack — snapshot on each mutation,
-  ⌘Z/⌘⇧Z + the topbar buttons), autosave (debounced), the **Preview** toggle (hide chrome / render the
-  bare page), and **Publish** — persist the PageDoc to `website_pages.draft_sections`/`published_sections`
-  via a server action (the route currently loads a theme blueprint read-only; wire real websiteId/pageId).
-  Also still deferred: **content controls for composite blocks** (hero/intro/cta/host_bio/stats/faq/values —
-  give them registry `content` entries or a generic prop editor). **Bespoke theme dirs delete at CUTOVER
-  (Phase 6).**
+- **Phase 3e-1 — undo/redo history + preview toggle (DONE + LIVE-VERIFIED, 2026-07-01, commit
+  `fb784e06`):** the doc lives in a bounded past→present→future history stack; every mutation routes
+  through `setDoc` (push present, drop redo tail, dedupe no-ops, cap 60). Topbar Undo/Redo + Ctrl/Cmd+Z /
+  +Shift+Z (skipped while typing); Reset re-seeds the blueprint (undoable). **Preview** toggle
+  (`.wb.previewing`) hides the panel + all editor affordances + cleans the stage (reads like the live
+  site); button flips to "Exit preview". Live-verified undo/redo/keyboard/preview. 162 vitest, green.
+- **NEXT — Phase 3e-2 (persist):** wire the route to a real `websiteId`/`pageId` (it loads a read-only
+  theme blueprint today) → load the stored `PageDoc` from `website_pages.draft_sections`; **autosave**
+  (debounced Server Action writing `draft_sections`); **Publish** split-button → snapshot into
+  `published_sections` (respect `mergeStandardPages` + the publish snapshot flow). Server Actions only
+  (no client writes); never trust client — re-validate the `PageDoc` server-side with `pageDocSchema`.
+  Then **Phase 4** (reskin Brand Studio / Nav / Theme / Page-Settings overlays to `.bse-*` + Templates
+  dropdown + document switcher). Still deferred: **content controls for composite blocks** (hero/intro/
+  cta/host_bio/stats/faq/values); `cssId`/`cssClass`/block-`style` not yet rendered by `PageDocRenderer`.
+  **Bespoke theme dirs delete at CUTOVER (Phase 6).**
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
