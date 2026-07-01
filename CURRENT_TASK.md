@@ -132,11 +132,22 @@ vilotest (`host@vilotest.com`) + a save point.
   the node + scroll-synced. **Add section** → structure-picker modal (12/6-6/4-4-4/8-4/4-8/3-3-3-3).
   `page.tsx` now passes `themeBase`+`initialDoc`. Live-verified add/duplicate/delete/move all update
   canvas + navigator + badge; 156 vitest, tsc+lint+build green.
-- **NEXT — Phase 3c-2 (drag-drop):** drag a widget from the library grid onto a column with
-  **drop-lines** (insert-position indicator), and drag existing nodes to reorder between columns/
-  sections. Add per-node HOVER outlines/badges on the canvas (not just on select). Likely @dnd-kit or
-  HTML5 DnD. Then 3d inspector (Content/Style/Advanced + device bar + per-field revert) · 3e undo/redo
-  + autosave + preview + publish. **Bespoke theme dirs delete at CUTOVER (Phase 6).**
+- **Phase 3c-2 — drag-drop + drop-lines (DONE + LIVE-VERIFIED, 2026-07-01, commit `e35b6750`):**
+  native HTML5 DnD. `pageDocOps` gained `insertWidget` + `moveNodeInto` (+3 tests). Library widgets +
+  the badge grip are draggable; canvas `dragover` finds the column under the pointer, computes the
+  insert index by widget midpoints (change-guarded via refs), shows an absolute **drop-line** overlay
+  + column **drop-over** highlight; `drop` inserts a new widget or moves the dragged node. Canvas +
+  Navigator **memoized** so `PageDocRenderer` doesn't re-run mid-drag. Idle widget hover outline.
+  Live-verified: library Heading → col1 above hero (24→25); grip-move it → col3 (col1 2→1, col3 1→2).
+  159 vitest, green. **PHASE 3c COMPLETE** (chrome 3a · navigator+selection 3b · mutable store+badge+
+  structure modal 3c-1 · drag-drop 3c-2).
+- **NEXT — Phase 3d (the inspector):** when a node is selected, the Settings panel shows its editor:
+  **Content** tab driven by the widget registry's `content` controls (text/textarea/select/seg/range/
+  toggle/align/color/hint) + **Style** (tone, background, block style) + **Advanced** (spacing box,
+  visibility, cssId/class), a **device bar** (desktop/tablet/mobile) writing per-device `responsive`
+  overrides, and per-field **revert-to-default**. Writes flow through the same `setDoc` store (add
+  `updateNodeProps`/`updateNode` ops). Then 3e undo/redo + autosave + preview + publish. **Bespoke
+  theme dirs delete at CUTOVER (Phase 6).**
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.

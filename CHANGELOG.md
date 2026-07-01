@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3c-2: drag-drop + drop-lines (live-verified)
+
+- **`lib/website/pageDocOps.ts`** (+3 tests) — `insertWidget` (new widget into a column before an
+  id / append) + `moveNodeInto` (relocate an existing node; drop-before-self no-op).
+- **`BuilderShell.tsx`** — native HTML5 drag-drop. Library widgets AND the selected-node badge grip
+  are draggable; the canvas `dragover` finds the column under the pointer, computes the insert
+  position by widget midpoints (change-guarded via refs), shows an absolute **drop-line** overlay +
+  a column **drop-over** highlight; `drop` inserts a new widget or moves the dragged node. The canvas
+  + Navigator are **memoized** so the heavy `PageDocRenderer` tree doesn't re-run mid-drag. Idle
+  hover outline on widgets; `dragging` flag outlines all columns as drop zones.
+- **Live-verified** (synthetic DragEvents): drag **Heading** into column 1 above the hero → 24→25
+  nodes, inserted before the hero; drag it (grip) into column 3 → col1 2→1, col3 1→2; drop-line +
+  drop-over + dragging all show then clear. **159 vitest** (was 156), tsc + lint + `pnpm build` green.
+  Phase 3c complete. Next: 3d inspector.
+
 ## 2026-07-01 — Builder V2 Phase 3c-1: mutable PageDoc store + node ops + structure modal (live-verified)
 
 The canvas is now **client-rendered from a mutable doc store** (was a static server node), so
