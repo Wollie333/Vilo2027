@@ -79,6 +79,7 @@ import {
   saveDraftSectionsSchema,
   saveBuilderDocSchema,
   publishBuilderDocSchema,
+  saveBuilderBrandSchema,
   createPageSchema,
   PAGE_TEMPLATE_SECTIONS,
   saveBlogAuthorsSchema,
@@ -116,6 +117,7 @@ import {
   type SaveBlogPostInput,
   type SaveDraftSectionsInput,
   type SaveBuilderDocInput,
+  type SaveBuilderBrandInput,
   type PublishBuilderDocInput,
   type SavePageSeoInput,
   type SavePagesInput,
@@ -1002,6 +1004,54 @@ export async function publishBuilderDocAction(
     .eq("id", pageId)
     .eq("website_id", websiteId);
   if (error) return { ok: false, error: "publish_failed" };
+
+  revalidatePath(`/builder`);
+  return { ok: true };
+}
+
+/**
+ * Save the Builder V2 Brand Studio: the working theme (authoritative — replaces
+ * `host_websites.theme`) + a brand-identity subset (merged into `brand` so logo/
+ * contact/other socials are preserved). Owner-checked + feature-gated. Theme
+ * surfaces live because pages read `theme` directly.
+ */
+export async function saveBuilderBrandAction(
+  input: SaveBuilderBrandInput,
+): Promise<ActionResult> {
+  const parsed = saveBuilderBrandSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, theme, brand } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: row } = await supabase
+    .from("host_websites")
+    .select("brand")
+    .eq("id", websiteId)
+    .maybeSingle<{ brand: Record<string, unknown> | null }>();
+
+  // Merge the brand subset into the existing brand (preserve logo/contact/etc.).
+  const curBrand = (row?.brand ?? {}) as Record<string, unknown>;
+  const curSocials = (curBrand.socials ?? {}) as Record<string, string>;
+  const socials = { ...curSocials };
+  for (const [k, v] of Object.entries(brand.socials ?? {})) {
+    if (v && v.trim()) socials[k] = v.trim();
+    else delete socials[k];
+  }
+  const mergedBrand: Record<string, unknown> = { ...curBrand, socials };
+  if (brand.name !== undefined) mergedBrand.name = brand.name;
+  if (brand.tagline !== undefined) mergedBrand.tagline = brand.tagline;
+  if (brand.monogram !== undefined) mergedBrand.monogram = brand.monogram;
+
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ brand: mergedBrand, theme })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
 
   revalidatePath(`/builder`);
   return { ok: true };

@@ -231,7 +231,14 @@ vilotest (`host@vilotest.com`) + a save point.
   action). **Phase 5:** bind brand identity/socials into canvas leaves (logo/nav/footer) so Identity +
   Social show live. (Stale-`.next` vendor-chunk ghost again mid-verify → cleared + restart,
   [[next-stale-vendor-chunks]].)
-- **NEXT — Phase 4 remaining:** **4c-2** persist Brand Studio · reskin the **Nav/Menu builder**
+- **Phase 4c-2 — persist Brand Studio (DONE, 2026-07-01):** `saveBuilderBrandSchema` (schemas.ts) +
+  `saveBuilderBrandAction` (actions.ts) — owner-checked + feature-gated; working `theme` REPLACES
+  `host_websites.theme` (authoritative), brand subset MERGES into `host_websites.brand` (preserves
+  logo/contact/other socials; drops empty socials). `BuilderShell` Brand Studio `onPublish` → the
+  action (both menu items persist; theme has no draft/published split); demo toasts "Open a real
+  page…". Demo path live-verified; tsc+lint clean, 163 vitest, build green. Authed round-trip needs a
+  logged-in host session (mirrors the proven `saveBuilderDocAction`).
+- **NEXT — Phase 4 remaining:** reskin the **Nav/Menu builder**
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

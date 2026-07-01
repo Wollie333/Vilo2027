@@ -392,6 +392,28 @@ export const publishBuilderDocSchema = z.object({
 });
 export type PublishBuilderDocInput = z.infer<typeof publishBuilderDocSchema>;
 
+// Builder V2 Brand Studio — persist the working theme + a brand-identity subset.
+// `theme` is the full working SiteThemeConfig (authoritative: replaces the column);
+// `brand` is the subset the overlay edits (merged into the brand column so
+// logo/contact/other socials are preserved).
+export const saveBuilderBrandSchema = z.object({
+  websiteId: z.string().uuid(),
+  theme: z.record(z.string(), z.unknown()),
+  brand: z.object({
+    name: z.string().max(120).optional(),
+    tagline: z.string().max(200).optional(),
+    monogram: z.string().max(4).optional(),
+    socials: z
+      .object({
+        instagram: z.string().max(200).optional(),
+        facebook: z.string().max(200).optional(),
+      })
+      .partial()
+      .optional(),
+  }),
+});
+export type SaveBuilderBrandInput = z.infer<typeof saveBuilderBrandSchema>;
+
 // --- Rooms tab (W9) ---
 
 // One room's channel state. Empty display_* strings mean "inherit the live room

@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 4c-2: persist Brand Studio (theme + brand)
+
+Wires the Brand Studio overlay's Save/Publish to real DB persistence, mirroring the doc-persist path.
+
+- **`schemas.ts`** — `saveBuilderBrandSchema` = `{ websiteId, theme (full working SiteThemeConfig),
+  brand (name/tagline/monogram/socials subset) }`.
+- **`actions.ts`** — `saveBuilderBrandAction`: owner-checked + feature-gated; the working `theme`
+  REPLACES `host_websites.theme` (authoritative — it started from the stored theme), and the brand
+  subset MERGES into `host_websites.brand` (preserving logo/contact/other socials; empty socials are
+  dropped). Theme surfaces live because pages read `theme` directly.
+- **`BuilderShell.tsx`** — the Brand Studio `onPublish` now calls `saveBuilderBrandAction` with
+  `workTheme` + `brand`; both menu items (Save as draft / Publish brand) persist (theme has no
+  draft/published split); demo mode toasts "Open a real page to publish brand".
+- **Verified**: demo path toast confirmed live; tsc + lint clean, 163 vitest, `pnpm build` green. The
+  authed round-trip needs a logged-in host session (same caveat as the doc-persist slice); the action
+  mirrors the proven `saveBuilderDocAction` pattern.
+
 ## 2026-07-01 — Builder V2 Phase 4c: Brand Studio overlay (token-driven, live canvas preview)
 
 Third Phase-4 slice. The topbar Palette button opens a pixel-faithful `.bse-*` Brand Studio overlay

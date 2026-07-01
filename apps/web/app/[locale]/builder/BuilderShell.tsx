@@ -96,6 +96,7 @@ import type { SiteThemeConfig } from "@/lib/site/themes";
 import {
   saveBuilderDocAction,
   publishBuilderDocAction,
+  saveBuilderBrandAction,
 } from "@/app/[locale]/dashboard/website/actions";
 
 // Section-structure layouts offered by the "Add section" modal.
@@ -345,6 +346,34 @@ export function BuilderShell({
   const patchMeta = useCallback(
     (patch: Record<string, unknown>) => setDoc((d) => updatePageMeta(d, patch)),
     [setDoc],
+  );
+
+  // Brand Studio → persist the working theme + brand-identity subset.
+  const saveBrand = useCallback(
+    async (mode: "draft" | "publish") => {
+      if (!persists || !websiteId) {
+        toast("Open a real page to publish brand");
+        return;
+      }
+      const res = await saveBuilderBrandAction({
+        websiteId,
+        theme: workTheme as Record<string, unknown>,
+        brand: {
+          name: brand.name,
+          tagline: brand.tagline,
+          monogram: brand.monogram,
+          socials: brand.socials,
+        },
+      });
+      toast(
+        res.ok
+          ? mode === "draft"
+            ? "Brand saved"
+            : "Brand published to every page"
+          : "Brand save failed",
+      );
+    },
+    [persists, websiteId, workTheme, brand, toast],
   );
 
   // Templates menu — load a wired-in starter layout (undoable).
@@ -1202,15 +1231,7 @@ export function BuilderShell({
         onBrandChange={setBrand}
         doc={doc}
         persists={persists}
-        onPublish={(mode) =>
-          toast(
-            persists
-              ? mode === "draft"
-                ? "Brand saved as draft (persist wiring in 4c-2)"
-                : "Brand preview applied (publish wiring in 4c-2)"
-              : "Open a real page to publish brand",
-          )
-        }
+        onPublish={saveBrand}
       />
 
       {/* Page Settings overlay (SEO / social / tracking / code) */}
