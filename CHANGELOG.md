@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3d-2a: inspector Style + Advanced tabs (live-verified)
+
+- **`lib/website/pageDocOps.ts`** (+1 test) — `updateNode(id, patch)` shallow-merges node-level
+  fields immutably (tone / bg / space / visibility / cssId / cssClass / span).
+- **`BuilderShell.tsx`** — the inspector **Style** tab (colour-tone segmented + section background)
+  and **Advanced** tab (padding T/R/B/L + margin T/B spacing boxes, visible-on segmented, CSS id /
+  class) write node-level fields via `updateNode`, live. These are node-level so they work for **all**
+  node kinds — composite blueprint blocks (hero/intro) are now restylable even without content controls.
+- **`builder-chrome.css`** — scoped `.box4` / `.box2` spacing-box styles.
+- **Live-verified**: section tone default→accent recolours the band (`#221A11`→`#B26C2E`); padding-top
+  0→120 changes spacing live; Margin / Visible-on / CSS id+class render. **161 vitest**, tsc + lint +
+  `pnpm build` green. Next 3d-2b: device bar + per-device overrides + per-field revert.
+
 ## 2026-07-01 — Builder V2 Phase 3d-1: inspector Content tab, live prop editing (live-verified)
 
 - **`lib/website/pageDocOps.ts`** (+1 test) — `updateNodeProps(id, patch)` merges into a node's

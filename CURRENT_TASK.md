@@ -149,13 +149,19 @@ vilotest (`host@vilotest.com`) + a save point.
   the node label. Scoped inspector control CSS ported. Live-verified: Rooms Grid → Heading + Rooms-shown
   controls; edit heading → canvas updates. 160 vitest, green. **Style/Advanced are stubs; composite
   blueprint blocks (hero/intro — not in the registry) show a "no controls yet" stub.**
-- **NEXT — Phase 3d-2:** the **Style** tab (tone select, background, block style) + **Advanced** tab
-  (spacing box `.box4` for margin/padding, device visibility, cssId/cssClass), a **device bar**
-  (desktop/tablet/mobile) writing per-device `responsive` prop/space overrides, and per-field
-  **revert-to-default** (`.revert`). Add `updateNode` (node-level fields: tone/bg/span/space/visibility)
-  to `pageDocOps`. CONSIDER giving composite blocks (hero/intro/cta/host_bio/stats/faq/values) their own
-  registry `content` controls so they're editable too (currently stubbed). Then 3e undo/redo + autosave
-  + preview + publish. **Bespoke theme dirs delete at CUTOVER (Phase 6).**
+- **Phase 3d-2a — Style + Advanced tabs (DONE + LIVE-VERIFIED, 2026-07-01, commit `4c1567a1`):**
+  `pageDocOps.updateNode(id, patch)` (+test) shallow-merges node-level fields. Inspector **Style** tab
+  (tone seg + section background) + **Advanced** tab (padding T/R/B/L + margin T/B `.box4`, visible-on
+  seg, CSS id/class) write via `updateNode`, live. Node-level → works for ALL kinds incl composites.
+  Live-verified: tone default→accent recolours band (`#221A11`→`#B26C2E`); padding-top 0→120 live.
+  161 vitest, green.
+- **NEXT — Phase 3d-2b:** the **device bar** (desktop/tablet/mobile) at the top of the inspector,
+  writing per-device `responsive[device]` prop/space/hidden overrides (Content + Advanced controls read/
+  write the active device's layer, falling back to base), and per-field **revert-to-default** (`.revert`
+  icon, resets to the registry/base value). Also CONSIDER giving composite blocks (hero/intro/cta/
+  host_bio/stats/faq/values) registry `content` controls so their copy is editable (currently a stub).
+  Then **Phase 3e**: undo/redo (history stack) + autosave + Preview toggle + Publish (persist the PageDoc
+  through a server action). **Bespoke theme dirs delete at CUTOVER (Phase 6).**
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
