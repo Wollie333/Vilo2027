@@ -83,8 +83,8 @@ function demoDoc() {
   );
   doc.root.kids.push(s3);
 
-  // 4 — site parts: logo, nav, social
-  const s4 = newSection([4, 4, 4], { bg: "var(--site-ink)", valign: "center" });
+  // 4 — site parts: logo, nav, social (dark tone → leaves auto-flip to light)
+  const s4 = newSection([4, 4, 4], { tone: "dark", valign: "center" });
   s4.kids[0].kids.push(w("el_logo", { style: "markName", align: "left" }));
   s4.kids[1].kids.push(
     w(
@@ -105,6 +105,14 @@ function demoDoc() {
     ),
   );
   doc.root.kids.push(s4);
+
+  // 4b — an auto-populate widget with NO SiteData: must degrade gracefully
+  // (render its heading / empty state, never crash). Live data lands in Phase 5.
+  const s4b = newSection([12], { tone: "muted" });
+  s4b.kids[0].kids.push(
+    w("rooms_preview", { heading: "Pick a room, any room", max: 3 }, "grid"),
+  );
+  doc.root.kids.push(s4b);
 
   // 5 — two room cards (variants)
   const s5 = newSection([6, 6]);

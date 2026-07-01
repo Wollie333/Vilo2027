@@ -51,6 +51,20 @@ export function PageDocRenderer({ doc, ...ctx }: { doc: PageDoc } & RenderCtx) {
   return <>{doc.root.kids.map((s) => renderSection(s, ctx))}</>;
 }
 
+// A few shared widgets express their layout as `display` (grid/showcase|journal)
+// rather than `variant`; map the node's variant onto the right prop.
+const DISPLAY_VARIANT_TYPES = new Set(["rooms_preview", "blog_preview"]);
+function foldVariant(
+  type: string,
+  props: Record<string, unknown>,
+  variant: string | undefined,
+): Record<string, unknown> {
+  if (!variant) return props;
+  return DISPLAY_VARIANT_TYPES.has(type)
+    ? { ...props, display: variant }
+    : { ...props, variant };
+}
+
 // ── spacing ───────────────────────────────────────────────────
 const SECTION_DEFAULT: BoxSpace = {
   mt: 0,
@@ -96,19 +110,28 @@ function hiddenOnDevice(
 function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
   if (hiddenOnDevice(node, ctx.device)) return null;
 
-  const tone = sectionToneStyle(node.tone);
   const stackOn =
     node.stack &&
     (node.stack === ctx.device ||
       (node.stack === "tablet" && ctx.device === "mobile"));
 
+  // Split the tone: the background FILL goes on the outer element (so its
+  // `var(--site-ink)` resolves against the inherited palette), while the tone's
+  // `--site-*` overrides go on the INNER container (so children flip to the
+  // right contrast). Setting both on one element makes `background:var(--site-ink)`
+  // self-reference the overridden `--site-ink` and render the wrong colour.
+  const tone = sectionToneStyle(node.tone) as
+    | (CSSProperties & { background?: string })
+    | undefined;
+  const { background: toneBg, ...toneVars } = tone ?? {};
+
   const outer: CSSProperties = {
-    ...(tone ?? {}),
-    ...(node.bg ? { background: node.bg } : {}),
     ...spaceStyle(node.space, SECTION_DEFAULT),
     ...(node.borderB ? { borderBottom: node.borderB } : {}),
+    background: node.bg ?? toneBg,
   };
   const inner: CSSProperties = {
+    ...toneVars,
     maxWidth: node.maxw ?? 1180,
     margin: "0 auto",
     display: "flex",
@@ -177,14 +200,16 @@ function WidgetLeaf({ node, ctx }: { node: WidgetNode; ctx: RenderCtx }) {
       break;
   }
   // Shared widget: validate into a legacy WebsiteSection so we reuse the exact
-  // on-brand generic leaf (and get prop validation for free). `variant` is
-  // folded into props; schemas that don't declare it strip it safely.
+  // on-brand generic leaf (and get prop validation for free). The node-level
+  // `variant` maps onto each type's own layout prop — most read `variant`, a few
+  // read `display`; types without either strip the extra key safely.
+  const props = foldVariant(node.type, node.props, node.variant);
   const parsed = sectionSchema.safeParse({
     id: node.id,
     type: node.type,
     enabled: true,
     tone: node.tone ?? "default",
-    props: node.variant ? { ...node.props, variant: node.variant } : node.props,
+    props,
   });
   if (!parsed.success) return null;
   return (
