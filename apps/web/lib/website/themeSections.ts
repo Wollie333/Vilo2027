@@ -16,6 +16,8 @@
 // exemplar; the other six built-in themes follow the same shape below.
 import { newSection } from "./sectionDefaults";
 import type { SectionType, WebsiteSection } from "./sections.schema";
+import { flatSectionsToPageDoc } from "./blueprints";
+import type { PageDoc } from "./pageDoc.schema";
 
 export type ThemeSectionPreset = {
   /** Stable key (for the sidebar card key + search). */
@@ -1631,6 +1633,41 @@ export function getThemeTemplates(
 ): ThemeTemplate[] {
   if (!themeSlug || !ACTIVE_THEME_SLUGS.has(themeSlug)) return [];
   return TEMPLATES[themeSlug] || [];
+}
+
+/** A theme's designed page blueprint (key/label/doc) — Builder V2 shape. */
+export type ThemeBlueprint = { key: string; label: string; doc: PageDoc };
+
+/**
+ * A theme's designed page as a Builder V2 `PageDoc` blueprint — the flat template
+ * converted 1:1 into the nested model (see lib/website/blueprints.ts). Returns
+ * null for an unknown theme / template key. This is how a theme becomes "tokens +
+ * blueprint": the tokens are its `base` (palette/fonts), the blueprint is this.
+ */
+export function getThemeTemplatePageDoc(
+  themeSlug: string | undefined | null,
+  templateKey: string,
+): PageDoc | null {
+  const tpl = getThemeTemplates(themeSlug).find((t) => t.key === templateKey);
+  if (!tpl) return null;
+  return flatSectionsToPageDoc(tpl.make(), {
+    title: tpl.label,
+    templateKey: tpl.key,
+  });
+}
+
+/** Every designed page blueprint for a theme (empty for an inactive/unknown theme). */
+export function getThemeBlueprints(
+  themeSlug: string | undefined | null,
+): ThemeBlueprint[] {
+  return getThemeTemplates(themeSlug).map((t) => ({
+    key: t.key,
+    label: t.label,
+    doc: flatSectionsToPageDoc(t.make(), {
+      title: t.label,
+      templateKey: t.key,
+    }),
+  }));
 }
 
 /** Human label for the sidebar theme group (capitalised slug, fallback "Theme"). */

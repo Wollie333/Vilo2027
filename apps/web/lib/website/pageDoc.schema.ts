@@ -16,7 +16,11 @@
 // Reuses the shared, brand-safe primitives from sections.schema.ts (tone, block
 // style, responsive) so the two models never diverge on styling semantics.
 import { z } from "zod";
-import { SECTION_TONES, blockStyleSchema } from "./sections.schema";
+import {
+  SECTION_TONES,
+  SECTION_TYPES,
+  blockStyleSchema,
+} from "./sections.schema";
 
 // ── Widget vocabulary ─────────────────────────────────────────
 // The standardized Wielo-block set. Most map 1:1 onto a legacy section `type`
@@ -60,6 +64,30 @@ export const NEW_WIDGET_TYPES = [
   "el_nav",
   "el_social",
 ] as const;
+
+// ── Renderable widget vocabulary (schema) vs library vocabulary (registry) ──
+// `WIDGET_TYPES` above is the CURATED set the drag-library / registry exposes.
+// A stored PageDoc widget, however, may hold ANY type the render layer can draw —
+// including the composite marketing blocks (`hero`, `intro`, `cta`, `host_bio`,
+// `stats`, …) a THEME BLUEPRINT is built from. Those render through the same
+// token-driven `GenericSection` as the public site (no per-theme code), so the
+// widget-node `type` validates against this broader set = every legacy section
+// type PLUS the five new widget types. (`columns`/`flex` are kept renderable but
+// are replaced by real section/column structure in Builder V2.)
+export const RENDERABLE_WIDGET_TYPES = [
+  ...SECTION_TYPES,
+  ...NEW_WIDGET_TYPES,
+] as const;
+export type RenderableWidgetType = (typeof RENDERABLE_WIDGET_TYPES)[number];
+
+const RENDERABLE_SET: ReadonlySet<string> = new Set(RENDERABLE_WIDGET_TYPES);
+
+/** True when a section/widget type can be rendered as a PageDoc widget leaf. */
+export function isRenderableWidgetType(
+  type: string,
+): type is RenderableWidgetType {
+  return RENDERABLE_SET.has(type);
+}
 
 // ── Shared node primitives ────────────────────────────────────
 const nodeId = z.string().min(1);
@@ -115,7 +143,9 @@ const nodeBase = {
 // write. `variant` is the shared layout variant a theme blueprint selects.
 export const widgetNodeSchema = z.object({
   ...nodeBase,
-  type: z.enum(WIDGET_TYPES),
+  // Validates the broad RENDERABLE set (composites included) so theme blueprints
+  // round-trip; the library only ever OFFERS the curated WIDGET_TYPES subset.
+  type: z.enum(RENDERABLE_WIDGET_TYPES),
   props: z.record(z.string(), z.unknown()).default({}),
   variant: z.string().max(40).optional(),
   align: z.enum(WIDGET_ALIGN).optional(),

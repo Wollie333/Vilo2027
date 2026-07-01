@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
 import {
@@ -5,13 +7,32 @@ import {
   newSection,
   newWidget,
 } from "@/lib/website/widgets/factories";
+import { getThemeBlueprints } from "@/lib/website/themeSections";
+import { resolveThemeBase } from "@/lib/site/themes.server";
 import type { WidgetNode } from "@/lib/website/pageDoc.schema";
 
 // Builder V2 — DEV-ONLY preview of the token-driven PageDoc renderer.
-// Renders a demo document (structure + all five new leaves) inside the theme
-// token layer so the new render can be verified live before the real builder
-// route exists. Switch palette with ?preset=warm|coastal. Remove at cutover.
+//
+// Two modes:
+//  • No `?theme` → a hand-built demo doc (structure + all five new leaves), themed
+//    by ?preset=warm|coastal. Proves pure token re-theming of the same document.
+//  • `?theme=<slug>&page=<key>` → a REAL theme, converted from its designed flat
+//    template into a PageDoc blueprint (lib/website/blueprints.ts) and rendered
+//    through the ONE token renderer under that theme's real tokens. Proves the
+//    Phase-2 thesis: the four bespoke themes read distinct from ONE render layer.
+//
+// Remove at cutover (Phase 6).
 export const dynamic = "force-dynamic";
+
+const THEME_SLUGS = ["safari", "sabela", "oceansview", "marmalade"] as const;
+
+// Display webfonts the four themes use, so the blueprint preview reads faithfully
+// even without each theme's bespoke shell (which normally loads them).
+const FONT_HREFS = [
+  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap",
+  "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Manrope:wght@400;500;600&display=swap",
+  "https://fonts.googleapis.com/css2?family=Gloock&family=Karla:wght@400;500;600&display=swap",
+];
 
 function w(
   type: Parameters<typeof newWidget>[0],
@@ -123,18 +144,108 @@ function demoDoc() {
   return doc;
 }
 
-export default function BuilderPreviewPage({
+function Switcher({
+  activeTheme,
+  activePage,
+  pages,
+}: {
+  activeTheme?: string;
+  activePage?: string;
+  pages: { key: string; label: string }[];
+}) {
+  const chip = (active: boolean): React.CSSProperties => ({
+    padding: "2px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    textDecoration: "none",
+    border: "1px solid var(--site-line)",
+    background: active ? "var(--site-accent)" : "transparent",
+    color: active ? "var(--site-accent-ink)" : "var(--site-mute)",
+  });
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6,
+        alignItems: "center",
+        padding: "8px 16px",
+        fontSize: 12,
+        color: "var(--site-mute)",
+        borderBottom: "1px solid var(--site-line)",
+      }}
+    >
+      <span>Builder V2 blueprint preview · theme:</span>
+      {THEME_SLUGS.map((slug) => (
+        <Link
+          key={slug}
+          href={`?theme=${slug}`}
+          style={chip(slug === activeTheme)}
+        >
+          {slug}
+        </Link>
+      ))}
+      {pages.length > 0 && (
+        <>
+          <span style={{ marginLeft: 8 }}>· page:</span>
+          {pages.map((p) => (
+            <Link
+              key={p.key}
+              href={`?theme=${activeTheme}&page=${p.key}`}
+              style={chip(p.key === activePage)}
+            >
+              {p.label}
+            </Link>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+export default async function BuilderPreviewPage({
   searchParams,
 }: {
-  searchParams?: { preset?: string };
+  searchParams?: { preset?: string; theme?: string; page?: string };
 }) {
+  const themeSlug = searchParams?.theme;
+
+  // ── Real theme blueprint mode ──────────────────────────────
+  if (
+    themeSlug &&
+    THEME_SLUGS.includes(themeSlug as (typeof THEME_SLUGS)[number])
+  ) {
+    const blueprints = getThemeBlueprints(themeSlug);
+    if (blueprints.length > 0) {
+      const base = await resolveThemeBase(themeSlug);
+      const chosen =
+        blueprints.find((b) => b.key === searchParams?.page) ?? blueprints[0];
+      return (
+        <SiteThemeRoot theme={{ base }}>
+          {FONT_HREFS.map((href) => (
+            <link key={href} rel="stylesheet" href={href} />
+          ))}
+          <Switcher
+            activeTheme={themeSlug}
+            activePage={chosen.key}
+            pages={blueprints.map(({ key, label }) => ({ key, label }))}
+          />
+          <PageDocRenderer doc={chosen.doc} device="desktop" />
+        </SiteThemeRoot>
+      );
+    }
+  }
+
+  // ── Hand-built demo mode (token re-theming of one document) ──
   const preset = searchParams?.preset ?? "warm";
   return (
     <SiteThemeRoot theme={{ preset }}>
+      <Switcher pages={[]} />
       <div
         style={{ padding: "8px 16px", fontSize: 12, color: "var(--site-mute)" }}
       >
-        Builder V2 preview · preset: <b>{preset}</b> · try ?preset=coastal
+        Demo doc · preset: <b>{preset}</b> · try ?preset=coastal — or pick a
+        theme above to preview its real blueprint.
       </div>
       <PageDocRenderer doc={demoDoc()} device="desktop" />
     </SiteThemeRoot>
