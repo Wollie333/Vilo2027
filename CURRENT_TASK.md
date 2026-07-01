@@ -169,15 +169,24 @@ vilotest (`host@vilotest.com`) + a save point.
   +Shift+Z (skipped while typing); Reset re-seeds the blueprint (undoable). **Preview** toggle
   (`.wb.previewing`) hides the panel + all editor affordances + cleans the stage (reads like the live
   site); button flips to "Exit preview". Live-verified undo/redo/keyboard/preview. 162 vitest, green.
-- **NEXT — Phase 3e-2 (persist):** wire the route to a real `websiteId`/`pageId` (it loads a read-only
-  theme blueprint today) → load the stored `PageDoc` from `website_pages.draft_sections`; **autosave**
-  (debounced Server Action writing `draft_sections`); **Publish** split-button → snapshot into
-  `published_sections` (respect `mergeStandardPages` + the publish snapshot flow). Server Actions only
-  (no client writes); never trust client — re-validate the `PageDoc` server-side with `pageDocSchema`.
-  Then **Phase 4** (reskin Brand Studio / Nav / Theme / Page-Settings overlays to `.bse-*` + Templates
-  dropdown + document switcher). Still deferred: **content controls for composite blocks** (hero/intro/
-  cta/host_bio/stats/faq/values); `cssId`/`cssClass`/block-`style` not yet rendered by `PageDocRenderer`.
-  **Bespoke theme dirs delete at CUTOVER (Phase 6).**
+- **Phase 3e-2a — persist PageDoc (DONE, 2026-07-01, commit `22bf4b95`):** founder chose "wire real DB
+  persistence now." `saveBuilderDocAction`/`publishBuilderDocAction` in `dashboard/website/actions.ts`
+  (owner-checked via `assertWebsiteOwnership`, feature-gated, RLS via authed client; `doc` re-validated
+  with `pageDocSchema`; save→`draft_sections`, publish copies draft→`published_sections`). Route
+  `?websiteId=&pageId=` loads the stored PageDoc (or converts legacy flat / blank) + the site theme;
+  falls back to demo when inaccessible. `BuilderShell` takes full `SiteThemeConfig` + websiteId/pageId,
+  debounced autosave (800ms) + status indicator + wired Publish. tsc+lint+build green; demo + graceful
+  fallback live-verified. **KEY FINDING: pages render `published_sections` DIRECTLY (loadSitePage), the
+  publish SNAPSHOT is chrome-only — so page-level publish surfaces publicly.** Authed round-trip needs a
+  logged-in host session.
+- **NEXT — Phase 3e-2b (public v:2 render path):** `lib/site/loadSitePage.ts` `loadSitePageInner` must
+  detect `isPageDoc(draft/published_sections)` → return the PageDoc (+ walk its widget leaves to build
+  the `SiteData` map keyed by node id via `assembleSectionData`); `components/site/SitePageView.tsx`
+  renders via `PageDocRenderer` (inside the theme) when a doc is present, else the legacy
+  `SectionRenderer`. Additive/gated by v:2 → existing flat pages unaffected. Sanitize widget rich-text
+  HTML on this render path (as the legacy loader does via `sanitiseSectionsHtml`). Then **Phase 4**
+  (reskin overlays). Deferred: composite-block content controls; `cssId`/`cssClass`/`style` not yet
+  rendered. **Bespoke theme dirs delete at CUTOVER (Phase 6).**
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.

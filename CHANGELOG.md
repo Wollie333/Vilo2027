@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3e-2a: persist PageDoc — save/publish Server Actions + autosave
+
+First DB-touching slice. Wires the builder to a real page with owner-authed persistence
+(founder chose "wire real DB persistence now").
+
+- **`dashboard/website/schemas.ts`** — `saveBuilderDocSchema` (`doc = pageDocSchema`, so the doc is
+  re-validated server-side — never trust the client) + `publishBuilderDocSchema`.
+- **`dashboard/website/actions.ts`** — `saveBuilderDocAction` (owner-checked via
+  `assertWebsiteOwnership` + feature-gated, writes the validated PageDoc to `draft_sections`) and
+  `publishBuilderDocAction` (copies `draft_sections` → `published_sections` for the page). Mirrors
+  `saveDraftSectionsAction`'s security exactly (RLS via the authed `createServerClient`).
+- **`builder/page.tsx`** — `?websiteId=&pageId=` loads that page's stored PageDoc (or converts its
+  legacy flat sections / a blank doc) via the OWNER-authed client (RLS gates access) + the site theme;
+  falls back to read-only demo mode when inaccessible.
+- **`BuilderShell.tsx`** — takes the full `SiteThemeConfig` + optional `websiteId`/`pageId`; debounced
+  **autosave** (800 ms) with a status indicator (draft / saving… / saved / save failed / demo) and a
+  wired **Publish** button (disabled in demo).
+- tsc + lint + `pnpm build` green. **Live-verified**: demo mode renders with "· demo (not saved)" +
+  Publish disabled; a non-existent/unowned page URL falls back gracefully (no crash). The authed
+  save/publish round-trip needs a logged-in host session (the actions mirror the proven-secure
+  pattern). Next 3e-2b: the public **v:2 render path** (`loadSitePage`/`SitePageView` detect a PageDoc
+  → render via `PageDocRenderer`) so a published page shows live.
+
 ## 2026-07-01 — Builder V2 Phase 3e-1: undo/redo history + preview toggle (live-verified)
 
 - **`BuilderShell.tsx`** — the doc now lives in a bounded **past→present→future history stack**;
