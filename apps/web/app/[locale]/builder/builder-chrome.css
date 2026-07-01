@@ -436,6 +436,64 @@
   margin: 0;
 }
 
+/* ---------- NAVIGATOR (Phase 3b) ---------- */
+.wb .nav-tree {
+  padding: 8px;
+}
+.wb .nav-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+.wb .nav-row:hover {
+  background: var(--light);
+}
+.wb .nav-row.sel {
+  background: var(--sel-soft);
+  color: var(--sel);
+}
+.wb .nav-row .tw {
+  width: 16px;
+  display: flex;
+  justify-content: center;
+  color: var(--mute);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.wb .nav-row.collapsed .tw {
+  transform: rotate(-90deg);
+}
+.wb .nav-row .ni {
+  display: flex;
+  color: var(--mute);
+  flex-shrink: 0;
+}
+.wb .nav-row.sel .ni {
+  color: var(--sel);
+}
+.wb .nav-row .nlbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wb .nav-kids {
+  padding-left: 16px;
+}
+.wb .nav-row.collapsed + .nav-kids {
+  display: none;
+}
+.wb .nav-empty {
+  padding: 12px;
+  font-size: 11px;
+  color: var(--mute);
+}
+
 /* ---------- CANVAS ---------- */
 .wb .canvas-wrap {
   flex: 1;
@@ -478,6 +536,24 @@
 }
 .wb .stage.mobile {
   max-width: 380px;
+}
+/* Selection outlines on the (server-rendered) stage nodes — section pink,
+   column purple, widget blue, matching the prototype. Toggled by the client
+   selection effect via `.wb-node-sel` on the node's `[data-node-id]` element. */
+.wb .stage [data-node-id] {
+  scroll-margin: 40px;
+}
+.wb .stage [data-node-kind="widget"].wb-node-sel {
+  outline: 2px solid var(--sel);
+  outline-offset: -1px;
+}
+.wb .stage [data-node-kind="section"].wb-node-sel {
+  outline: 2px solid #e8618c;
+  outline-offset: -1px;
+}
+.wb .stage [data-node-kind="column"].wb-node-sel {
+  outline: 2px solid #9333ea;
+  outline-offset: -1px;
 }
 .wb .dev-label {
   position: absolute;

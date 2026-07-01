@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Menu,
   ChevronDown,
+  Rows3,
+  Columns3,
   LayoutGrid,
   Monitor,
   Tablet,
@@ -41,6 +43,12 @@ import {
 } from "lucide-react";
 
 import { WIDGET_DEFS, WIDGET_GROUPS } from "@/lib/website/widgets/registry";
+import type {
+  PageDoc,
+  SectionNode,
+  ColumnNode,
+  WidgetNode,
+} from "@/lib/website/pageDoc.schema";
 
 // Builder V2 — Phase 3a chrome shell (client).
 //
@@ -102,15 +110,42 @@ function WieloMark() {
 export function BuilderShell({
   docName,
   themeLabel,
+  doc,
   stage,
 }: {
   docName: string;
   themeLabel: string;
+  doc: PageDoc;
   stage: ReactNode;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
   const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  // Selection → outline + reveal the matching (server-rendered) canvas node.
+  useEffect(() => {
+    const stageEl = stageRef.current;
+    if (!stageEl) return;
+    stageEl
+      .querySelectorAll(".wb-node-sel")
+      .forEach((e) => e.classList.remove("wb-node-sel"));
+    if (!selectedId) return;
+    const el = stageEl.querySelector(`[data-node-id="${selectedId}"]`);
+    if (el) {
+      el.classList.add("wb-node-sel");
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedId]);
+
+  // Click a canvas node → select the innermost node; empty click → deselect.
+  const onCanvasClick = (e: React.MouseEvent) => {
+    const node = (e.target as HTMLElement).closest<HTMLElement>(
+      "[data-node-id]",
+    );
+    setSelectedId(node?.dataset.nodeId ?? null);
+  };
 
   return (
     <div className="wb">
@@ -221,10 +256,10 @@ export function BuilderShell({
                 <WidgetLibrary query={query} setQuery={setQuery} />
               )}
               {mode === "navigator" && (
-                <PanelPlaceholder
-                  Icon={ListTree}
-                  title="Navigator"
-                  body="The section → column → widget tree lands in Phase 3b, wired to this page."
+                <Navigator
+                  doc={doc}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
                 />
               )}
               {mode === "settings" && (
@@ -265,8 +300,10 @@ export function BuilderShell({
           </aside>
 
           {/* CANVAS */}
-          <main className="canvas-wrap">
-            <div className={`stage ${device}`}>{stage}</div>
+          <main className="canvas-wrap" onClick={onCanvasClick}>
+            <div className={`stage ${device}`} ref={stageRef}>
+              {stage}
+            </div>
             <div className="dev-label">
               {device === "tablet"
                 ? "768 px"
@@ -334,6 +371,123 @@ function WidgetLibrary({
         );
       })}
     </>
+  );
+}
+
+// ── Navigator (Phase 3b) ──────────────────────────────────────
+type AnyNode = SectionNode | ColumnNode | WidgetNode;
+
+function nodeMeta(
+  node: AnyNode,
+  sectionIndex?: number,
+): { label: string; Icon: LucideIcon } {
+  if (node.type === "section") {
+    return {
+      label: sectionIndex != null ? `Section ${sectionIndex + 1}` : "Section",
+      Icon: Rows3,
+    };
+  }
+  if (node.type === "column") {
+    return { label: `Column · ${node.span}`, Icon: Columns3 };
+  }
+  const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
+  const p = node.props as Record<string, unknown>;
+  const snippet = [p.text, p.heading, p.headline, p.title, p.label, p.body]
+    .find((v): v is string => typeof v === "string" && v.trim().length > 0)
+    ?.trim()
+    .slice(0, 18);
+  const base = def?.label ?? node.type;
+  return {
+    label: snippet ? `${base} · ${snippet}` : base,
+    Icon: WIDGET_ICONS[def?.icon ?? ""] ?? Square,
+  };
+}
+
+function Navigator({
+  doc,
+  selectedId,
+  onSelect,
+}: {
+  doc: PageDoc;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const kids = doc.root.kids;
+  return (
+    <div className="nav-tree">
+      {kids.length === 0 ? (
+        <div className="nav-empty">Empty page.</div>
+      ) : (
+        kids.map((s, i) => (
+          <NavNode
+            key={s.id}
+            node={s}
+            sectionIndex={i}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
+function NavNode({
+  node,
+  sectionIndex,
+  selectedId,
+  onSelect,
+}: {
+  node: AnyNode;
+  sectionIndex?: number;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const kids = "kids" in node ? (node.kids as AnyNode[]) : [];
+  const hasKids = kids.length > 0;
+  const { label, Icon } = nodeMeta(node, sectionIndex);
+  const sel = node.id === selectedId;
+
+  const rowClass = ["nav-row", sel && "sel", collapsed && "collapsed"]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <div className="nav-node">
+      <div
+        className={rowClass}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(node.id);
+        }}
+      >
+        <span
+          className="tw"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (hasKids) setCollapsed((c) => !c);
+          }}
+        >
+          {hasKids ? <ChevronDown size={13} strokeWidth={2.2} /> : null}
+        </span>
+        <span className="ni">
+          <Icon size={15} strokeWidth={1.8} />
+        </span>
+        <span className="nlbl">{label}</span>
+      </div>
+      {hasKids && (
+        <div className="nav-kids">
+          {kids.map((k) => (
+            <NavNode
+              key={k.id}
+              node={k}
+              selectedId={selectedId}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

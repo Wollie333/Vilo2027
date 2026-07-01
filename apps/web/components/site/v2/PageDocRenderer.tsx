@@ -142,7 +142,12 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
   };
 
   return (
-    <div key={node.id} style={outer}>
+    <div
+      key={node.id}
+      style={outer}
+      data-node-id={node.id}
+      data-node-kind="section"
+    >
       <div style={inner}>{node.kids.map((c) => renderColumn(c, ctx))}</div>
     </div>
   );
@@ -164,7 +169,12 @@ function renderColumn(node: ColumnNode, ctx: RenderCtx): ReactNode {
     ...spaceStyle(node.space, ZERO),
   };
   return (
-    <div key={node.id} style={style}>
+    <div
+      key={node.id}
+      style={style}
+      data-node-id={node.id}
+      data-node-kind="column"
+    >
       {node.kids.map((k) =>
         k.type === "section" ? renderSection(k, ctx) : renderWidget(k, ctx),
       )}
@@ -176,7 +186,12 @@ function renderColumn(node: ColumnNode, ctx: RenderCtx): ReactNode {
 function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
   if (hiddenOnDevice(node, ctx.device)) return null;
   return (
-    <div key={node.id} style={spaceStyle(node.space, ZERO)}>
+    <div
+      key={node.id}
+      style={spaceStyle(node.space, ZERO)}
+      data-node-id={node.id}
+      data-node-kind="widget"
+    >
       <SectionBoundary resetKey={node} fallbackLabel={ctx.errorLabel}>
         <WidgetLeaf node={node} ctx={ctx} />
       </SectionBoundary>

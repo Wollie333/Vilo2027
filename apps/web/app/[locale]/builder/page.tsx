@@ -48,6 +48,13 @@ export default async function BuilderPage({
     <BuilderShell
       docName={`${themeName(slug)} — ${chosen?.label ?? "Page"}`}
       themeLabel={themeName(slug)}
+      doc={
+        chosen?.doc ?? {
+          v: 2,
+          root: { id: "root", type: "root", kids: [] },
+          meta: {},
+        }
+      }
       stage={stage}
     />
   );
