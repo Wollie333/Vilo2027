@@ -1,0 +1,502 @@
+/* ============================================================
+   Builder V2 — chrome (Phase 3a)
+   Ported from the founder prototype (scratchpad Wielo Builder/
+   builder.css). The emerald/forest "Classic" app system: the
+   CHROME is emerald; the page being built lives in the stage and
+   keeps its own themed look (via SiteThemeRoot --site-* tokens).
+
+   EVERY selector is scoped under `.wb` so the builder chrome can
+   never leak into the Wielo app's own Tailwind tokens. Values are
+   copied verbatim from the prototype to stay pixel-faithful.
+   ============================================================ */
+.wb {
+  --primary: #10b981;
+  --primary-d: #059669;
+  --secondary: #064e3b;
+  --accent: #d1fae5;
+  --light: #f0fdf4;
+  --dark: #0a1510;
+  --ink: #052e1f;
+  --mute: #4a7c6a;
+  --line: #e4efe8;
+  --line-2: #d6e6dd;
+  --sidebar: #eef4f0;
+  --panel: #ffffff;
+  --canvas: #dce7e1;
+  --sel: #2563eb;
+  --sel-soft: #eff5ff;
+  --shadow-1: 0 1px 2px rgba(6, 78, 59, 0.05);
+  --shadow-2: 0 10px 34px -14px rgba(6, 78, 59, 0.18);
+  --shadow-3: 0 24px 60px -22px rgba(6, 78, 59, 0.3);
+  --r-in: 10px;
+  --r-card: 16px;
+  --topbar-h: 54px;
+  --panel-w: 332px;
+  --jak: "Plus Jakarta Sans", system-ui, sans-serif;
+  --inter: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  font-family: var(--inter);
+  background: var(--canvas);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.wb *,
+.wb *::before,
+.wb *::after {
+  box-sizing: border-box;
+}
+.wb button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+.wb input,
+.wb select,
+.wb textarea {
+  font-family: inherit;
+}
+.wb .app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---------- TOPBAR ---------- */
+.wb .topbar {
+  height: var(--topbar-h);
+  background: var(--secondary);
+  color: #eaf6ef;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  z-index: 50;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+}
+.wb .tb-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--jak);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+.wb .tb-logo .mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.wb .tb-div {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.wb .tb-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #cde9dc;
+  white-space: nowrap;
+  transition: 0.15s;
+}
+.wb .tb-page:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.wb .tb-page .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+.wb .tb-page .docsub {
+  color: var(--mute);
+  font-weight: 600;
+}
+.wb .tb-tpl-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #cde9dc;
+  transition: 0.15s;
+}
+.wb .tb-tpl-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.wb .tb-spacer {
+  flex: 1;
+}
+.wb .tb-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bfe3d3;
+  transition: 0.15s;
+}
+.wb .tb-ico:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.wb .tb-ico:disabled {
+  opacity: 0.38;
+  cursor: default;
+  background: none;
+}
+.wb .tb-devs {
+  display: flex;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.16);
+  padding: 3px;
+  border-radius: 10px;
+}
+.wb .tb-dev {
+  width: 34px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a9d4c2;
+  transition: 0.15s;
+}
+.wb .tb-dev.on {
+  background: var(--primary);
+  color: #fff;
+}
+.wb .tb-btn {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 13.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: 0.15s;
+}
+.wb .tb-btn.ghost {
+  color: #cde9dc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.wb .tb-btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.wb .tb-btn.solid {
+  background: var(--primary);
+  color: #fff;
+}
+.wb .tb-btn.solid:hover {
+  background: #34d399;
+}
+.wb .tb-publish {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.wb .tb-publish .tb-btn.solid {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: 12px;
+}
+.wb .tb-caret {
+  background: var(--primary);
+  color: #fff;
+  width: 30px;
+  border-radius: 0 9999px 9999px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 1px;
+  transition: 0.15s;
+}
+.wb .tb-caret:hover {
+  background: #34d399;
+}
+
+/* ---------- BODY ---------- */
+.wb .body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---------- LEFT PANEL ---------- */
+.wb .panel {
+  width: var(--panel-w);
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 30;
+  box-shadow: var(--shadow-1);
+}
+.wb .panel-head {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.wb .panel-head .title {
+  font-family: var(--jak);
+  font-weight: 800;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.wb .panel-head .title small {
+  display: block;
+  font-family: var(--inter);
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--mute);
+  margin-top: 1px;
+}
+.wb .panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.wb .panel-body::-webkit-scrollbar {
+  width: 9px;
+}
+.wb .panel-body::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 9px;
+  border: 2px solid var(--panel);
+}
+.wb .panel-foot {
+  height: 46px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 2px;
+  flex-shrink: 0;
+  background: var(--panel);
+}
+.wb .foot-ico {
+  flex: 1;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--mute);
+  font-size: 9.5px;
+  font-weight: 600;
+  transition: 0.15s;
+}
+.wb .foot-ico.on,
+.wb .foot-ico:hover {
+  background: var(--light);
+  color: var(--secondary);
+}
+
+/* ---------- WIDGET LIBRARY ---------- */
+.wb .lib-search {
+  padding: 12px 14px;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 2;
+}
+.wb .lib-search .box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--light);
+  border: 1px solid var(--line);
+  border-radius: var(--r-in);
+  padding: 0 12px;
+  height: 38px;
+  color: var(--mute);
+}
+.wb .lib-search input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--ink);
+}
+.wb .lib-search input::placeholder {
+  color: var(--mute);
+}
+.wb .lib-group {
+  padding: 4px 14px 14px;
+}
+.wb .lib-group h4 {
+  font-family: var(--jak);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 12px 4px 10px;
+}
+.wb .wgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.wb .widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  aspect-ratio: 1;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--secondary);
+  transition: 0.15s;
+  cursor: grab;
+  user-select: none;
+  text-align: center;
+  padding: 6px;
+}
+.wb .widget:hover {
+  border-color: var(--primary);
+  background: var(--light);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+.wb .widget .wi {
+  color: var(--primary);
+}
+.wb .widget span {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+/* ---------- panel placeholder (navigator / settings — filled in 3b/3d) ---------- */
+.wb .panel-ph {
+  padding: 40px 22px;
+  text-align: center;
+  color: var(--mute);
+}
+.wb .panel-ph .ph-ic {
+  width: 54px;
+  height: 54px;
+  border-radius: 15px;
+  background: var(--light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+.wb .panel-ph b {
+  font-family: var(--jak);
+  font-size: 14px;
+  color: var(--ink);
+  display: block;
+  margin-bottom: 5px;
+}
+.wb .panel-ph p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---------- CANVAS ---------- */
+.wb .canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 26px;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.5),
+      transparent 70%
+    ),
+    var(--canvas);
+}
+.wb .canvas-wrap::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+.wb .canvas-wrap::-webkit-scrollbar-thumb {
+  background: #b8cec4;
+  border-radius: 9px;
+  border: 3px solid var(--canvas);
+}
+.wb .stage {
+  width: 100%;
+  max-width: 1180px;
+  background: #fff;
+  min-height: calc(100% - 0px);
+  box-shadow: var(--shadow-3);
+  border-radius: 8px;
+  overflow: hidden;
+  align-self: flex-start;
+  transition: max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+.wb .stage.tablet {
+  max-width: 768px;
+}
+.wb .stage.mobile {
+  max-width: 380px;
+}
+.wb .dev-label {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mute);
+  background: #fff;
+  padding: 3px 11px;
+  border-radius: 9999px;
+  box-shadow: var(--shadow-1);
+  z-index: 15;
+  opacity: 0;
+  transition: 0.2s;
+  font-family: var(--mono);
+}
+.wb .stage.tablet ~ .dev-label,
+.wb .stage.mobile ~ .dev-label {
+  opacity: 1;
+}
