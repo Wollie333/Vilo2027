@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-01 — Builder V2 Phase 3e-2b: public v:2 PageDoc render path — PHASE 3 COMPLETE
+
+Closes the persist→render loop: a stored Builder V2 PageDoc now renders live on the public site.
+
+- **`lib/site/loadSitePage.ts`** — `loadSitePageInner` detects `isPageDoc(draft/published_sections)`
+  → parses + sanitises (`rich_text` html) + assembles the `SiteData` map from the doc's **widget
+  leaves** (keyed by node id — the ids `PageDocRenderer` renders under, so auto-populate widgets get
+  real data); returns `{ doc }` on `SitePageResult`. Legacy flat pages fall through unchanged
+  (additive, gated by `v:2` → existing pages untouched).
+- **`components/site/SitePageView.tsx`** — when `result.doc` is present, render via `PageDocRenderer`
+  inside the generic `SiteChrome`, **bypassing the bespoke per-theme layers** (the intended cutover
+  behaviour — one token-driven render, no per-theme code); theme tokens still apply via `SiteThemeRoot`.
+- **Live-verified**: wrote a v:2 PageDoc to the `vilotest` home draft, previewed it — the generic
+  chrome + accent-toned "Built with Builder V2" band render, and `rooms_preview` shows **real rooms**
+  (Olive Room / Vineyard Suite, data assembled from the doc leaves). 162 vitest, tsc + lint + `pnpm
+  build` green. Fixture restored via `seed-safari-qa`.
+
+**Phase 3 (the standalone builder) is COMPLETE**: 3a chrome · 3b navigator+selection · 3c mutable
+canvas + drag-drop · 3d full inspector (Content/Style/Advanced + device bar + revert) · 3e undo/redo +
+preview + real persistence + public render. Next: **Phase 4** (reskin the sub-feature overlays —
+Brand Studio / Nav / Theme / Page Settings — into `.bse-*` chrome + Templates dropdown).
+
 ## 2026-07-01 — Builder V2 Phase 3e-2a: persist PageDoc — save/publish Server Actions + autosave
 
 First DB-touching slice. Wires the builder to a real page with owner-authed persistence

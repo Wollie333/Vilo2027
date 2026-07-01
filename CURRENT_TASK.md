@@ -179,14 +179,23 @@ vilotest (`host@vilotest.com`) + a save point.
   fallback live-verified. **KEY FINDING: pages render `published_sections` DIRECTLY (loadSitePage), the
   publish SNAPSHOT is chrome-only — so page-level publish surfaces publicly.** Authed round-trip needs a
   logged-in host session.
-- **NEXT — Phase 3e-2b (public v:2 render path):** `lib/site/loadSitePage.ts` `loadSitePageInner` must
-  detect `isPageDoc(draft/published_sections)` → return the PageDoc (+ walk its widget leaves to build
-  the `SiteData` map keyed by node id via `assembleSectionData`); `components/site/SitePageView.tsx`
-  renders via `PageDocRenderer` (inside the theme) when a doc is present, else the legacy
-  `SectionRenderer`. Additive/gated by v:2 → existing flat pages unaffected. Sanitize widget rich-text
-  HTML on this render path (as the legacy loader does via `sanitiseSectionsHtml`). Then **Phase 4**
-  (reskin overlays). Deferred: composite-block content controls; `cssId`/`cssClass`/`style` not yet
-  rendered. **Bespoke theme dirs delete at CUTOVER (Phase 6).**
+- **Phase 3e-2b — public v:2 render path (DONE + LIVE-VERIFIED, 2026-07-01, commit `270bf12c`). PHASE 3
+  COMPLETE.** `loadSitePage` detects `isPageDoc(draft/published_sections)` → parses + sanitises
+  (`rich_text` html) + assembles `SiteData` from the doc's widget LEAVES (keyed by node id) + returns
+  `{ doc }`; legacy flat pages unchanged. `SitePageView`: `result.doc` → render via `PageDocRenderer`
+  inside the generic `SiteChrome` (bypasses bespoke per-theme layers = intended cutover behaviour);
+  tokens via `SiteThemeRoot`. Live-verified on `vilotest` preview: token render + accent band + REAL
+  rooms via data-from-leaves. 162 vitest, green. Fixture restored via `seed-safari-qa`.
+- **NEXT — Phase 4 (sub-feature overlays):** reskin **Brand Studio**, the **Nav/Menu builder**
+  ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
+  tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
+  a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.
+  See the prototype overlays in the scratchpad `pagebuilder_ui/Wielo Builder/` (theme-embed/nav-embed/
+  brand-embed + the `.bse-*` HTML in the builder HTML). Then **Phase 5** (live data + booking funnel
+  polish) · **Phase 6** (delete the legacy builder + bespoke theme dirs at cutover). DEFERRED across all:
+  composite-block content controls (hero/intro/…); `cssId`/`cssClass`/block-`style` not yet rendered by
+  `PageDocRenderer`; per-page authed autosave/publish round-trip needs a logged-in host session to fully
+  exercise. **Bespoke theme dirs delete at CUTOVER (Phase 6).**
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
