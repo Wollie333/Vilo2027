@@ -35,10 +35,21 @@ vilotest (`host@vilotest.com`) + a save point.
   ROLLED INTO PHASE 2: emitting each theme's canonical pages as `PageDoc` blueprints (needs the
   token render + theme→blueprint conversion), and per-widget write-validation via the registry
   (widget `props` is a loose record for now).
-- **NEXT — Phase 2 (token-driven render collapse):** one `WidgetRenderer` reading `--site-*`; each
-  block one shared component with variants; convert the 4 themes to token sets + `PageDoc`
-  blueprints; delete `components/site/{safari,sabela,oceansview,marmalade}/`; live-verify all four
-  still read distinct on the vilotest fixture. Biggest/riskiest phase — its own focused session.
+- **Phase 2 slice 1 (DONE, 2026-07-01, commit `183c0655`):** the token-driven `PageDoc` renderer.
+  `components/site/SectionRenderer.tsx` — extracted the generic section switch into an exported
+  `GenericSection` (pure refactor; `SectionSwitch` delegates to it after the theme branches).
+  `components/site/v2/PageDocRenderer.tsx` — renders the nested tree: section bands + column grid +
+  spacing + tone + device-hide are NEW; widget leaves REUSE `GenericSection` (one on-brand render,
+  no per-theme forks). `components/site/v2/NewLeaves.tsx` — token-driven leaves for the 5 new types
+  (placeholders; live brand/menu/room binding is Phase 5). **tsc + 141 vitest + `pnpm build` all
+  green.** Additive/parallel — NOT wired to a public route yet, so no live visual check yet.
+- **NEXT — Phase 2 remaining slices:** (a) wire `PageDocRenderer` to a preview route + seed a
+  vilotest PageDoc, then LIVE-verify visually (needs dev server); (b) refine leaves for column
+  context (the generic components are full-width bands — likely need `bare` variants like
+  `ThemedDateRange` got); (c) variant→prop mapping for shared widgets (e.g. rooms_preview
+  variant→`display`); (d) convert the 4 themes to token sets + `PageDoc` blueprints. **DELETION of
+  the 4 bespoke theme dirs MOVES TO CUTOVER (Phase 6)** — deleting now would break the live public
+  site, which still renders the legacy flat model. (Plan §5 updated to reflect parallel-build.)
 
 **Prototype source:** scratchpad `pagebuilder_ui/Wielo Builder/` (builder.html/.css/.js +
 brand/theme/nav embeds) — the pixel-perfect target for the builder shell.

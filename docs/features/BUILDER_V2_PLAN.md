@@ -174,13 +174,23 @@ rule.
   `WEBSITE_CMS_PLAN.md` + `DECISIONS.md`; update `THEME_CONTRACT.md` to the token+blueprint model.
 
 - **Phase 1 — Model + registry + schema.** `PageDoc` Zod schema; widget registry; new widget types;
-  `newSection`/defaults factories; keep tone/variant/responsive/style. Migration reshapes
-  `draft_sections`/`published_sections` (clean break, re-seed). Regenerate DB types if needed.
+  `newSection`/defaults factories; keep tone/variant/responsive/style. **No DB migration** —
+  `draft_sections`/`published_sections` are JSONB, so the reshape is content-only (re-seed script) +
+  additive Zod enum entries. Regenerate DB types only if a column changes (none expected).
 
-- **Phase 2 — Token-driven render collapse.** One `WidgetRenderer` reading `--site-*`; each block a
-  shared component with variants; convert the four themes to token sets + blueprints; delete
-  `components/site/{safari,sabela,oceansview,marmalade}/`. Keep chrome/date/modal shared components.
-  Live-verify all four themes still read distinct on the public site.
+  **Sequencing (adopted 2026-07-01): parallel build, not big-bang.** The new nested model +
+  token-driven renderer + builder shell are built *alongside* the existing flat-model builder/
+  renderer (new route + new render path), so `main` and prod stay green throughout. Cut over and
+  delete the old path in Phase 6. "Clean break" = no data migration of the old JSONB content (it is
+  re-seeded), NOT a broken intermediate main.
+
+- **Phase 2 — Token-driven render collapse.** One `PageDocRenderer` reading `--site-*`; each block a
+  shared component with variants (widget leaves reuse the extracted `GenericSection`); convert the
+  four themes to token sets + `PageDoc` blueprints. Keep chrome/date/modal shared components.
+  Live-verify all four themes still read distinct on the public site. **Deletion of the four bespoke
+  theme dirs (`components/site/{safari,sabela,oceansview,marmalade}/`) MOVES TO CUTOVER (Phase 6)** —
+  under parallel build the live public site still renders the legacy flat model until cutover, so
+  deleting them in Phase 2 would break prod.
 
 - **Phase 3 — Builder shell (pixel-perfect). Biggest phase; sub-phase it.**
   3a chrome (topbar + panel frame + tokens) · 3b widget library + search + Navigator ·
