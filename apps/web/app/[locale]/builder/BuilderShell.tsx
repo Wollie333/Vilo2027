@@ -78,6 +78,7 @@ import {
   insertWidget,
   moveNodeInto,
   updateNodeProps,
+  updateNode,
 } from "@/lib/website/pageDocOps";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
@@ -239,11 +240,19 @@ export function BuilderShell({
     selectNode(node?.dataset.nodeId ?? null);
   };
 
-  // Inspector → patch the selected node's props live.
+  // Inspector → patch the selected node's props (Content) live.
   const patchProps = useCallback(
     (key: string, value: unknown) => {
       if (selectedId)
         setDoc((d) => updateNodeProps(d, selectedId, { [key]: value }));
+    },
+    [selectedId],
+  );
+
+  // Inspector → patch node-level fields (Style / Advanced) live.
+  const patchNode = useCallback(
+    (patch: Record<string, unknown>) => {
+      if (selectedId) setDoc((d) => updateNode(d, selectedId, patch));
     },
     [selectedId],
   );
@@ -544,6 +553,7 @@ export function BuilderShell({
                   <Inspector
                     node={selected.node as AnyNode}
                     onPatch={patchProps}
+                    onPatchNode={patchNode}
                   />
                 ) : (
                   <PanelPlaceholder
@@ -903,9 +913,11 @@ type InspectorTab = (typeof INSPECTOR_TABS)[number];
 function Inspector({
   node,
   onPatch,
+  onPatchNode,
 }: {
   node: AnyNode;
   onPatch: (key: string, value: unknown) => void;
+  onPatchNode: (patch: Record<string, unknown>) => void;
 }) {
   const [tab, setTab] = useState<InspectorTab>("content");
   const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
@@ -926,25 +938,226 @@ function Inspector({
         ))}
       </div>
       <div className="tabpane">
-        {tab === "content" ? (
-          def?.content ? (
+        {tab === "content" &&
+          (def?.content ? (
             def.content.map((ctl, i) => (
               <Control key={i} ctl={ctl} props={props} onPatch={onPatch} />
             ))
           ) : (
             <div className="insp-stub">
-              This block doesn’t expose content controls yet — its copy comes
-              from the theme blueprint. Editing composite blocks (hero, intro,
-              …) lands in a later slice.
+              This block’s copy comes from the theme blueprint — no content
+              controls yet. Use Style &amp; Advanced to restyle it; per-widget
+              controls for composite blocks land in a later slice.
             </div>
-          )
-        ) : (
-          <div className="insp-stub">
-            {tab === "style" ? "Style" : "Advanced"} controls (tone, background,
-            spacing, visibility, per-device overrides) land in Phase 3d-2.
-          </div>
+          ))}
+        {tab === "style" && <StylePane node={node} onPatchNode={onPatchNode} />}
+        {tab === "advanced" && (
+          <AdvancedPane node={node} onPatchNode={onPatchNode} />
         )}
       </div>
+    </>
+  );
+}
+
+const TONE_OPTS: [string, string][] = [
+  ["default", "Default"],
+  ["accent", "Accent"],
+  ["dark", "Dark"],
+  ["muted", "Muted"],
+];
+const VIS_OPTS: [string, string][] = [
+  ["all", "All"],
+  ["desktop", "Desktop"],
+  ["mobile", "Mobile"],
+];
+
+type NodeFields = {
+  tone?: string;
+  bg?: string;
+  visibility?: string;
+  cssId?: string;
+  cssClass?: string;
+  space?: Record<string, number>;
+  type: string;
+};
+
+function SegRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: [string, string][];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="ctl">
+      <div className="ctl-l">
+        <label>{label}</label>
+      </div>
+      <div className="seg">
+        {options.map(([v, l]) => (
+          <button
+            key={v}
+            type="button"
+            className={value === v ? "on" : undefined}
+            onClick={() => onChange(v)}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TextRow({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string | undefined;
+  placeholder?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="ctl">
+      <div className="ctl-l">
+        <label>{label}</label>
+      </div>
+      <input
+        className="inp"
+        value={value ?? ""}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function StylePane({
+  node,
+  onPatchNode,
+}: {
+  node: AnyNode;
+  onPatchNode: (patch: Record<string, unknown>) => void;
+}) {
+  const n = node as unknown as NodeFields;
+  return (
+    <>
+      <SegRow
+        label="Colour tone"
+        value={n.tone ?? "default"}
+        options={TONE_OPTS}
+        onChange={(v) => onPatchNode({ tone: v === "default" ? undefined : v })}
+      />
+      {node.type === "section" && (
+        <TextRow
+          label="Background"
+          value={n.bg}
+          placeholder="var(--site-surface) or #FBF4E6"
+          onChange={(v) => onPatchNode({ bg: v.trim() || undefined })}
+        />
+      )}
+      <div className="hint">
+        Tone recolours the block from the theme palette; Background overrides it
+        with a specific colour (sections).
+      </div>
+    </>
+  );
+}
+
+function SpaceBox({
+  label,
+  keys,
+  labels,
+  space,
+  two,
+  onSet,
+}: {
+  label: string;
+  keys: string[];
+  labels: string[];
+  space: Record<string, number>;
+  two?: boolean;
+  onSet: (k: string, v: number) => void;
+}) {
+  return (
+    <div className="ctl">
+      <div className="ctl-l">
+        <label>{label}</label>
+      </div>
+      <div className={two ? "box4 box2" : "box4"}>
+        {keys.map((k, i) => (
+          <div className="f" key={k}>
+            <input
+              inputMode="numeric"
+              value={space[k] ?? 0}
+              onChange={(e) => {
+                const v = e.target.value === "" ? 0 : Number(e.target.value);
+                if (!Number.isNaN(v)) onSet(k, v);
+              }}
+            />
+            <span>{labels[i]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdvancedPane({
+  node,
+  onPatchNode,
+}: {
+  node: AnyNode;
+  onPatchNode: (patch: Record<string, unknown>) => void;
+}) {
+  const n = node as unknown as NodeFields;
+  const space = n.space ?? {};
+  const setSpace = (k: string, v: number) =>
+    onPatchNode({ space: { ...space, [k]: v } });
+  return (
+    <>
+      <SpaceBox
+        label="Padding"
+        keys={["pt", "pr", "pb", "pl"]}
+        labels={["T", "R", "B", "L"]}
+        space={space}
+        onSet={setSpace}
+      />
+      <SpaceBox
+        label="Margin"
+        keys={["mt", "mb"]}
+        labels={["T", "B"]}
+        space={space}
+        two
+        onSet={setSpace}
+      />
+      <SegRow
+        label="Visible on"
+        value={n.visibility ?? "all"}
+        options={VIS_OPTS}
+        onChange={(v) =>
+          onPatchNode({ visibility: v === "all" ? undefined : v })
+        }
+      />
+      <TextRow
+        label="CSS ID"
+        value={n.cssId}
+        placeholder="my-section"
+        onChange={(v) => onPatchNode({ cssId: v.trim() || undefined })}
+      />
+      <TextRow
+        label="CSS class"
+        value={n.cssClass}
+        placeholder="promo dark"
+        onChange={(v) => onPatchNode({ cssClass: v.trim() || undefined })}
+      />
     </>
   );
 }

@@ -115,6 +115,23 @@ export function updateNodeProps(
   return next;
 }
 
+/**
+ * Merge a patch of NODE-LEVEL fields (tone / bg / space / visibility / cssId /
+ * cssClass / span …) into the node itself (immutable, shallow). No-op for a
+ * missing node. Used by the inspector's Style + Advanced tabs.
+ */
+export function updateNode(
+  doc: PageDoc,
+  id: string,
+  patch: Record<string, unknown>,
+): PageDoc {
+  const next = clone(doc);
+  const found = findIn(next.root.kids as TreeNode[], id);
+  if (!found) return doc;
+  Object.assign(found.node, patch);
+  return next;
+}
+
 /** The column with `columnId` (only if it IS a column node). */
 function column(next: PageDoc, columnId: string): TreeNode | null {
   const hit = findIn(next.root.kids as TreeNode[], columnId);

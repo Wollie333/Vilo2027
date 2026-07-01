@@ -9,6 +9,7 @@ import {
   insertWidget,
   moveNodeInto,
   updateNodeProps,
+  updateNode,
 } from "./pageDocOps";
 import { newPageDoc, newSection, newWidget } from "./widgets/factories";
 import { pageDocSchema } from "./pageDoc.schema";
@@ -122,6 +123,26 @@ describe("pageDocOps", () => {
     expect(wAorig.props.text).not.toBe("Hello");
     // a column has no props → no-op (same doc reference)
     expect(updateNodeProps(doc, "s1c", { x: 1 })).toBe(doc);
+  });
+
+  it("updateNode merges node-level fields immutably", () => {
+    const doc = sampleDoc();
+    const next = updateNode(doc, "s1", {
+      tone: "dark",
+      space: { pt: 20, pb: 20 },
+    });
+    const s1 = findNode(next, "s1")?.node as {
+      tone?: string;
+      space?: { pt?: number };
+    };
+    expect(s1.tone).toBe("dark");
+    expect(s1.space?.pt).toBe(20);
+    // original untouched
+    expect(
+      (findNode(doc, "s1")?.node as { tone?: string }).tone,
+    ).toBeUndefined();
+    // missing node → same reference
+    expect(updateNode(doc, "nope", { tone: "dark" })).toBe(doc);
   });
 
   it("every op yields a schema-valid PageDoc", () => {
