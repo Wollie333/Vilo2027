@@ -91,7 +91,11 @@ import {
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
 import { DEMO_ROOMS, sampleDataForDoc } from "@/lib/site/sampleSite";
-import { PageSettingsOverlay } from "./PageSettingsOverlay";
+import {
+  PageSettingsOverlay,
+  EMPTY_ANALYTICS,
+  type BuilderAnalytics,
+} from "./PageSettingsOverlay";
 import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
 import { NavBuilderOverlay } from "./NavBuilderOverlay";
 import type { SiteThemeConfig } from "@/lib/site/themes";
@@ -100,6 +104,7 @@ import {
   saveBuilderDocAction,
   publishBuilderDocAction,
   saveBuilderBrandAction,
+  saveBuilderAnalyticsAction,
   saveNavigationAction,
 } from "@/app/[locale]/dashboard/website/actions";
 
@@ -197,6 +202,7 @@ export function BuilderShell({
   domain = "yoursite.co.za",
   brand: initialBrand = {},
   navigation: initialNav = {},
+  analytics: initialAnalytics = EMPTY_ANALYTICS,
   pages = [],
 }: {
   docName: string;
@@ -214,6 +220,8 @@ export function BuilderShell({
   brand?: Brand;
   /** Site navigation (SSOT) for the Nav builder overlay. */
   navigation?: SiteNavigation;
+  /** Site-wide analytics IDs (shared by every page) for the Tracking tab. */
+  analytics?: BuilderAnalytics;
   /** Site pages for the Nav builder's quick-add-page + per-page controls. */
   pages?: { key: string; label: string; href: string }[];
 }) {
@@ -363,6 +371,26 @@ export function BuilderShell({
     (patch: Record<string, unknown>) => setDoc((d) => updatePageMeta(d, patch)),
     [setDoc],
   );
+
+  // Site-wide analytics (settings.analytics) — SEPARATE from the doc: the Tracking
+  // tab edits it, and it persists on its own debounced action (not the doc save).
+  const [analytics, setAnalytics] =
+    useState<BuilderAnalytics>(initialAnalytics);
+  const firstAnalyticsRef = useRef(true);
+  const patchAnalytics = useCallback((patch: Partial<BuilderAnalytics>) => {
+    setAnalytics((a) => ({ ...a, ...patch }));
+  }, []);
+  useEffect(() => {
+    if (firstAnalyticsRef.current) {
+      firstAnalyticsRef.current = false; // skip the initial value
+      return;
+    }
+    if (!websiteId) return; // demo mode → local only
+    const t = setTimeout(() => {
+      void saveBuilderAnalyticsAction({ websiteId, ...analytics });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [analytics, websiteId]);
 
   // Brand Studio → persist the working theme + brand-identity subset.
   const saveBrand = useCallback(
@@ -1331,6 +1359,8 @@ export function BuilderShell({
         domain={domain}
         meta={doc.meta as Record<string, unknown>}
         onPatch={patchMeta}
+        analytics={analytics}
+        onAnalyticsPatch={patchAnalytics}
       />
 
       {/* Toasts */}

@@ -24,14 +24,39 @@ import { PAGE_PIXEL_EVENTS } from "@/app/[locale]/dashboard/website/schemas";
 
 type Meta = Record<string, unknown>;
 
-const PS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [
-  { key: "seo", label: "SEO", Icon: Search },
-  { key: "social", label: "Social share", Icon: Share2 },
-  { key: "tracking", label: "Tracking & pixels", Icon: BarChart3 },
-  { key: "code", label: "Custom code", Icon: Code2 },
-];
+/** Site-wide analytics/pixel IDs (one `settings.analytics` record for every
+ *  page). Flat working shape edited in the Tracking tab; persisted via
+ *  `saveBuilderAnalyticsAction`. */
+export type BuilderAnalytics = {
+  ga4: string;
+  metaPixel: string;
+  gtm: string;
+  tiktok: string;
+  googleAds: string;
+  cookieConsentEnabled: boolean;
+  cookieConsentMessage: string;
+  privacyHref: string;
+};
 
-const PIXELS: { key: string; label: string; ph: string; color: string }[] = [
+export const EMPTY_ANALYTICS: BuilderAnalytics = {
+  ga4: "",
+  metaPixel: "",
+  gtm: "",
+  tiktok: "",
+  googleAds: "",
+  cookieConsentEnabled: true,
+  cookieConsentMessage: "",
+  privacyHref: "",
+};
+
+// Site-wide pixel fields shown in the Tracking tab. GA4 + Meta ship in Phase 1
+// (injected); gtm/tiktok/googleAds are added with their injection in Phase 4.
+const SITE_PIXELS: {
+  key: keyof BuilderAnalytics;
+  label: string;
+  ph: string;
+  color: string;
+}[] = [
   {
     key: "ga4",
     label: "GA4 measurement ID",
@@ -39,29 +64,18 @@ const PIXELS: { key: string; label: string; ph: string; color: string }[] = [
     color: "#E8710A",
   },
   {
-    key: "gtm",
-    label: "Google Tag Manager",
-    ph: "GTM-XXXXXXX",
-    color: "#4285F4",
-  },
-  {
     key: "metaPixel",
     label: "Meta (Facebook) Pixel",
     ph: "123456789012345",
     color: "#1877F2",
   },
-  {
-    key: "tiktok",
-    label: "TikTok Pixel",
-    ph: "XXXXXXXXXXXXXXXX",
-    color: "#111111",
-  },
-  {
-    key: "gads",
-    label: "Google Ads conversion",
-    ph: "AW-XXXXXXXXX",
-    color: "#34A853",
-  },
+];
+
+const PS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [
+  { key: "seo", label: "SEO", Icon: Search },
+  { key: "social", label: "Social share", Icon: Share2 },
+  { key: "tracking", label: "Tracking & pixels", Icon: BarChart3 },
+  { key: "code", label: "Custom code", Icon: Code2 },
 ];
 
 const str = (m: Meta, k: string): string =>
@@ -76,6 +90,8 @@ export function PageSettingsOverlay({
   domain,
   meta,
   onPatch,
+  analytics,
+  onAnalyticsPatch,
 }: {
   open: boolean;
   onClose: () => void;
@@ -83,9 +99,15 @@ export function PageSettingsOverlay({
   domain: string;
   meta: Meta;
   onPatch: (patch: Meta) => void;
+  /** Site-wide analytics IDs (shared by every page). */
+  analytics: BuilderAnalytics;
+  /** Patch the site-wide analytics record (persists to settings.analytics). */
+  onAnalyticsPatch: (patch: Partial<BuilderAnalytics>) => void;
 }) {
   const [tab, setTab] = useState("seo");
   const set = (k: string, v: unknown) => onPatch({ [k]: v });
+  const setA = (k: keyof BuilderAnalytics, v: unknown) =>
+    onAnalyticsPatch({ [k]: v } as Partial<BuilderAnalytics>);
 
   // Each time the modal opens, start on the SEO tab (matches the prototype).
   useEffect(() => {
@@ -146,7 +168,14 @@ export function PageSettingsOverlay({
             {tab === "social" && (
               <SocialTab meta={meta} domain={domain} set={set} />
             )}
-            {tab === "tracking" && <TrackingTab meta={meta} set={set} />}
+            {tab === "tracking" && (
+              <TrackingTab
+                meta={meta}
+                set={set}
+                analytics={analytics}
+                setA={setA}
+              />
+            )}
             {tab === "code" && <CodeTab meta={meta} set={set} />}
           </div>
           <div className="ps-foot">
@@ -324,9 +353,13 @@ function SocialTab({
 function TrackingTab({
   meta,
   set,
+  analytics,
+  setA,
 }: {
   meta: Meta;
   set: (k: string, v: unknown) => void;
+  analytics: BuilderAnalytics;
+  setA: (k: keyof BuilderAnalytics, v: unknown) => void;
 }) {
   const pixelEvent = str(meta, "pixelEvent") || "none";
   return (
@@ -353,9 +386,13 @@ function TrackingTab({
           it on a thank-you page to count a conversion.
         </div>
       </Group>
-      <Group title="Analytics & pixels">
-        {PIXELS.map((p) => {
-          const v = str(meta, p.key);
+      <Group title="Pixels & analytics">
+        <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
+          These IDs apply to <b>every page</b> on your site. Editing them here
+          changes them everywhere.
+        </div>
+        {SITE_PIXELS.map((p) => {
+          const v = String(analytics[p.key] ?? "");
           const on = v.trim().length > 0;
           return (
             <div className="pixrow" key={p.key}>
@@ -369,7 +406,7 @@ function TrackingTab({
                   className="inp"
                   value={v}
                   placeholder={p.ph}
-                  onChange={(e) => set(p.key, e.target.value)}
+                  onChange={(e) => setA(p.key, e.target.value)}
                 />
               </div>
               <div className="pixstate">{on ? "Active" : "Off"}</div>
@@ -380,10 +417,26 @@ function TrackingTab({
       <Group title="Consent">
         <ToggleRow
           label="Cookie-consent gating"
-          hint="Hold all tags until the visitor accepts cookies."
-          value={bool(meta, "consent", true)}
-          onChange={(v) => set("consent", v)}
+          hint="Hold all tags until the visitor accepts cookies (POPIA)."
+          value={analytics.cookieConsentEnabled}
+          onChange={(v) => setA("cookieConsentEnabled", v)}
         />
+        <Field label="Consent message">
+          <input
+            className="inp"
+            value={analytics.cookieConsentMessage}
+            placeholder="We use cookies to improve your experience."
+            onChange={(e) => setA("cookieConsentMessage", e.target.value)}
+          />
+        </Field>
+        <Field label="Privacy policy link">
+          <input
+            className="inp"
+            value={analytics.privacyHref}
+            placeholder="/privacy or https://…"
+            onChange={(e) => setA("privacyHref", e.target.value)}
+          />
+        </Field>
       </Group>
     </>
   );

@@ -98,6 +98,8 @@ import {
   setSubmissionStatusSchema,
   seoSchema,
   websiteSettingsSchema,
+  builderAnalyticsSchema,
+  type BuilderAnalyticsInput,
   type ApplyThemeInput,
   type BrandAssetSlot,
   type BrandStudioInput,
@@ -1050,6 +1052,78 @@ export async function saveBuilderBrandAction(
   const { error } = await supabase
     .from("host_websites")
     .update({ brand: mergedBrand, theme })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/builder`);
+  return { ok: true };
+}
+
+/**
+ * Save the SITE-WIDE analytics/pixel IDs from the builder's Page Settings
+ * Tracking tab. Merges into `settings.analytics` (preserving other settings), so
+ * the same record drives every page. Owner-checked + feature-gated. Empty strings
+ * clear an id. Pixels only inject on the public site (consent-gated in SiteMarketing).
+ */
+export async function saveBuilderAnalyticsAction(
+  input: BuilderAnalyticsInput,
+): Promise<ActionResult> {
+  const parsed = builderAnalyticsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const {
+    websiteId,
+    ga4,
+    metaPixel,
+    gtm,
+    tiktok,
+    googleAds,
+    cookieConsentEnabled,
+    cookieConsentMessage,
+    privacyHref,
+  } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const cleanHref = (raw: string) => {
+    const h = raw.trim();
+    return /^(https?:\/\/|\/)/i.test(h) ? h : "";
+  };
+
+  const supabase = createServerClient();
+  const { data: row } = await supabase
+    .from("host_websites")
+    .select("settings")
+    .eq("id", websiteId)
+    .maybeSingle<{ settings: Record<string, unknown> | null }>();
+
+  const prevSettings = (row?.settings ?? {}) as Record<string, unknown>;
+  const prevAnalytics = (prevSettings.analytics ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const settings = {
+    ...prevSettings,
+    analytics: {
+      ...prevAnalytics,
+      ga4: ga4.trim().toUpperCase(),
+      metaPixel: metaPixel.trim(),
+      gtm: gtm.trim().toUpperCase(),
+      tiktok: tiktok.trim().toUpperCase(),
+      googleAds: googleAds.trim().toUpperCase(),
+      cookieConsent: {
+        enabled: cookieConsentEnabled,
+        message: cookieConsentMessage.trim(),
+        privacyHref: cleanHref(privacyHref),
+      },
+    },
+  };
+
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ settings })
     .eq("id", websiteId);
   if (error) return { ok: false, error: "save_failed" };
 

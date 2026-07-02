@@ -14,6 +14,7 @@ import type { SiteNavigation, SiteMenuItem } from "@/lib/site/types";
 
 import { BuilderShell } from "./BuilderShell";
 import type { Brand as BuilderBrand } from "./BrandStudioOverlay";
+import { EMPTY_ANALYTICS, type BuilderAnalytics } from "./PageSettingsOverlay";
 import "./builder-chrome.css";
 
 type PageOpt = { key: string; label: string; href: string };
@@ -25,6 +26,36 @@ type RawBrand = {
   monogram?: string | null;
   socials?: { instagram?: string | null; facebook?: string | null } | null;
 };
+
+// Raw `host_websites.settings.analytics` jsonb → the builder's flat working shape.
+type RawAnalytics = {
+  ga4?: string | null;
+  metaPixel?: string | null;
+  gtm?: string | null;
+  tiktok?: string | null;
+  googleAds?: string | null;
+  cookieConsent?: {
+    enabled?: boolean | null;
+    message?: string | null;
+    privacyHref?: string | null;
+  } | null;
+};
+
+function toBuilderAnalytics(
+  raw: RawAnalytics | null | undefined,
+): BuilderAnalytics {
+  if (!raw) return EMPTY_ANALYTICS;
+  return {
+    ga4: raw.ga4 ?? "",
+    metaPixel: raw.metaPixel ?? "",
+    gtm: raw.gtm ?? "",
+    tiktok: raw.tiktok ?? "",
+    googleAds: raw.googleAds ?? "",
+    cookieConsentEnabled: raw.cookieConsent?.enabled ?? true,
+    cookieConsentMessage: raw.cookieConsent?.message ?? "",
+    privacyHref: raw.cookieConsent?.privacyHref ?? "",
+  };
+}
 
 function toBuilderBrand(raw: RawBrand | null | undefined): BuilderBrand {
   return {
@@ -65,6 +96,7 @@ async function loadRealPage(
   domain: string;
   brand: BuilderBrand;
   navigation: SiteNavigation;
+  analytics: BuilderAnalytics;
   pages: PageOpt[];
 } | null> {
   const supabase = createServerClient();
@@ -83,7 +115,7 @@ async function loadRealPage(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("theme, subdomain, custom_domain, brand, navigation")
+    .select("theme, subdomain, custom_domain, brand, navigation, settings")
     .eq("id", websiteId)
     .maybeSingle<{
       theme: SiteThemeConfig | null;
@@ -91,6 +123,7 @@ async function loadRealPage(
       custom_domain: string | null;
       brand: RawBrand | null;
       navigation: SiteNavigation | null;
+      settings: { analytics?: RawAnalytics | null } | null;
     }>();
 
   const { data: pageRows } = await supabase
@@ -129,6 +162,7 @@ async function loadRealPage(
     domain,
     brand: toBuilderBrand(site?.brand),
     navigation: (site?.navigation ?? {}) as SiteNavigation,
+    analytics: toBuilderAnalytics(site?.settings?.analytics),
     pages,
   };
 }
@@ -161,6 +195,7 @@ export default async function BuilderPage({
           domain={real.domain}
           brand={real.brand}
           navigation={real.navigation}
+          analytics={real.analytics}
           pages={real.pages}
         />
       );

@@ -655,6 +655,55 @@ export const websiteSettingsSchema = z.object({
 
 export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;
 
+// Builder V2 — thin, site-wide analytics patch written from the Page Settings
+// overlay's Tracking tab. These IDs are SITE-WIDE (one `settings.analytics`
+// record for every page); the action merges them, preserving other analytics
+// keys. GA4 + Meta ship first; gtm/tiktok/googleAds are added with their
+// injection wiring (Tracking plan Phase 4).
+export const builderAnalyticsSchema = z.object({
+  websiteId: z.string().uuid(),
+  ga4: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^G-[A-Z0-9]{4,}$/i, "invalid_ga4")
+    .or(z.literal(""))
+    .default(""),
+  metaPixel: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^\d{6,20}$/, "invalid_pixel")
+    .or(z.literal(""))
+    .default(""),
+  gtm: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^GTM-[A-Z0-9]{4,}$/i, "invalid_gtm")
+    .or(z.literal(""))
+    .default(""),
+  tiktok: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^[A-Z0-9]{10,}$/i, "invalid_tiktok")
+    .or(z.literal(""))
+    .default(""),
+  googleAds: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^AW-[0-9]{6,}$/i, "invalid_gads")
+    .or(z.literal(""))
+    .default(""),
+  cookieConsentEnabled: z.boolean().default(true),
+  cookieConsentMessage: z.string().trim().max(300).default(""),
+  privacyHref: z.string().trim().max(300).default(""),
+});
+
+export type BuilderAnalyticsInput = z.infer<typeof builderAnalyticsSchema>;
+
 // --- Multi-page management (Phase 6) ---
 
 export const PAGE_TEMPLATES = [

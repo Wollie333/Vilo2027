@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-02 — Tracking/Events redesign Ph1: site-wide Tracking tab
+
+First slice of the tracking/pixels/events redesign (plan: `docs/features/TRACKING_EVENTS_PLAN.md`).
+The Page Settings overlay's `Tracking & pixels` tab now edits SITE-WIDE analytics (one
+`settings.analytics` record for every page) instead of dead per-page pixel-ID fields.
+
+- **`schemas.ts`** — `builderAnalyticsSchema` + `BuilderAnalyticsInput` (websiteId + ga4/metaPixel/gtm/
+  tiktok/googleAds regex-validated + consent). Forward-compatible: gtm/tiktok/googleAds accepted now,
+  surfaced in Phase 4 with their injection.
+- **`actions.ts`** — `saveBuilderAnalyticsAction`: owner-checked + feature-gated, MERGES into
+  `settings.analytics` (preserves other settings), empty string clears an id.
+- **`PageSettingsOverlay.tsx`** — new `BuilderAnalytics` type + `EMPTY_ANALYTICS`; the overlay takes
+  `analytics` + `onAnalyticsPatch`. Tracking tab: a "Pixels & analytics" group (GA4 + Meta, "apply to
+  every page" note) + a Consent group (gating toggle + message + privacy link) — all bound to the
+  site-wide record. **Deleted the dead per-page pixel-ID fields** (gtm/tiktok/gads/ga4/metaPixel + the
+  per-page consent that were written to `doc.meta` but never read). The per-page Conversion-event
+  selector stays for now (moves to the Events tab in Ph2).
+- **`BuilderShell.tsx`** — holds working `analytics` state + a debounced `saveBuilderAnalyticsAction`
+  (real pages only; demo = local); passes it to the overlay.
+- **`builder/page.tsx`** — loads `settings.analytics` → flat `BuilderAnalytics` (`toBuilderAnalytics`),
+  passes to the shell.
+- **Live-verified** in the builder: the Tracking tab shows the site-wide GA4/Meta inputs + "changes them
+  everywhere" note + POPIA consent; typing a GA4 id flips it to ACTIVE; dead pixel rows gone; 0 runtime
+  errors. tsc + lint clean, 169 vitest. NEXT = Ph2 (per-page Events tab).
+
 ## 2026-07-02 — Builder V2 Phase 5-5: goal / pixel events on v2 pages. PHASE 5 COMPLETE.
 
 The last Phase-5 slice. A Builder V2 page keeps its per-page marketing (SEO / tracking / custom code) in
