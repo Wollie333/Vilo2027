@@ -167,6 +167,9 @@ export function updateResponsive(
     props?: Record<string, unknown>;
     space?: Record<string, unknown>;
     hidden?: boolean;
+    // Per-element style overrides for this device: { elementKey: { prop: value } }.
+    // A `null` value at the prop level reverts that prop to the base (desktop).
+    elements?: Record<string, Record<string, unknown>>;
   },
 ): PageDoc {
   const next = clone(doc);
@@ -179,6 +182,7 @@ export function updateResponsive(
         props?: Record<string, unknown>;
         space?: Record<string, unknown>;
         hidden?: boolean;
+        elements?: Record<string, Record<string, unknown>>;
       }
     >;
   };
@@ -203,10 +207,23 @@ export function updateResponsive(
     if (patch.hidden) layer.hidden = true;
     else delete layer.hidden;
   }
+  if (patch.elements) {
+    // Nested merge: each element's props are merged/dropped independently, and an
+    // element whose overrides all cleared is removed from the layer.
+    const els = { ...(layer.elements ?? {}) };
+    for (const [ek, ev] of Object.entries(patch.elements)) {
+      const merged = mergeDrop(els[ek], ev);
+      if (Object.keys(merged).length === 0) delete els[ek];
+      else els[ek] = merged;
+    }
+    layer.elements = els;
+  }
 
   // Drop now-empty sub-objects + the layer itself so the doc stays tidy.
   if (layer.props && Object.keys(layer.props).length === 0) delete layer.props;
   if (layer.space && Object.keys(layer.space).length === 0) delete layer.space;
+  if (layer.elements && Object.keys(layer.elements).length === 0)
+    delete layer.elements;
   if (Object.keys(layer).length === 0) delete responsive[device];
   else responsive[device] = layer;
   node.responsive = responsive;

@@ -76,6 +76,8 @@ import {
   widgetAvailableOnPage,
   widgetDef,
   type WidgetControl,
+  type ElementDef,
+  type ElementControlKind,
 } from "@/lib/website/widgets/registry";
 import {
   isWidgetRequiredOnPage,
@@ -139,7 +141,14 @@ const AMENITY_DATA_BLOCKS: ReadonlySet<string> = new Set([
 // The `gallery` block edits property_photos (Phase 4b-5).
 const GALLERY_DATA_BLOCKS: ReadonlySet<string> = new Set(["gallery"]);
 import type { SiteThemeConfig } from "@/lib/site/themes";
-import type { SiteNavigation, SiteMenuItem, SiteData } from "@/lib/site/types";
+import type {
+  SiteNavigation,
+  SiteMenuItem,
+  SiteData,
+  SiteBrand,
+  SiteNavItem,
+} from "@/lib/site/types";
+import { SiteChrome } from "@/components/site/SiteChrome";
 import {
   saveBuilderDocAction,
   publishBuilderDocAction,
@@ -868,19 +877,60 @@ export function BuilderShell({
     () => DEMO_ROOMS.rooms.map((r) => ({ id: r.id, name: r.name })),
     [],
   );
+  // Real site header/footer in the canvas (from the same SiteChrome the live site
+  // uses) so the host designs against the true page frame. `chromeInert` makes it
+  // non-interactive, so canvas clicks still select page blocks. Brand/nav come from
+  // the builder's own live state; SiteChrome reads the menu from `navigation.menu`.
+  const chromeBrand = useMemo<SiteBrand>(
+    () => ({
+      name: brand.name?.trim() || "Your site",
+      tagline: brand.tagline ?? null,
+      monogram: brand.monogram ?? null,
+      socials: brand.socials as SiteBrand["socials"],
+    }),
+    [brand],
+  );
+  const chromeNav = useMemo<SiteNavItem[]>(
+    () =>
+      (navigation.menu ?? []).map((m) => ({ label: m.label, href: m.href })),
+    [navigation.menu],
+  );
+  const chromeDevice: "desktop" | "tablet" | "phone" =
+    device === "mobile" ? "phone" : device;
   const canvas = useMemo(
     () => (
       <SiteThemeRoot theme={workTheme}>
-        <PageDocRenderer
-          doc={doc}
-          device={device}
-          brand={brand}
-          menu={menuLabels}
-          data={sampleData}
-        />
+        <SiteChrome
+          brand={chromeBrand}
+          nav={chromeNav}
+          navigation={navigation}
+          header={workTheme.header}
+          footer={workTheme.footer}
+          previewDevice={chromeDevice}
+          chromeInert
+        >
+          <PageDocRenderer
+            doc={doc}
+            device={device}
+            brand={brand}
+            menu={menuLabels}
+            data={sampleData}
+          />
+        </SiteChrome>
       </SiteThemeRoot>
     ),
-    [workTheme, doc, device, brand, menuLabels, sampleData],
+    [
+      workTheme,
+      doc,
+      device,
+      brand,
+      menuLabels,
+      sampleData,
+      chromeBrand,
+      chromeNav,
+      navigation,
+      chromeDevice,
+    ],
   );
 
   const stageClass = ["stage", device, dragging && "wb-dragging"]
@@ -902,6 +952,16 @@ export function BuilderShell({
 
   return (
     <div className={rootClass} style={rootStyle}>
+      {/* Floating exit button — only shown in full-screen preview (topbar hidden). */}
+      <button
+        type="button"
+        className="preview-exit"
+        onClick={togglePreview}
+        title="Exit preview"
+      >
+        <Eye size={15} strokeWidth={2} />
+        Exit preview
+      </button>
       <div className="app">
         {/* ===== TOPBAR ===== */}
         <header className="topbar">
@@ -1895,6 +1955,43 @@ function Inspector({
   const patchStyle = (patch: Record<string, unknown>) =>
     onPatchNode({ style: { ...(n.style ?? {}), ...patch } });
 
+  // Per-element styling (Elementor) — resolve/read/write each sub-element's style
+  // with the SAME base-vs-device layering as content props. Base lives in
+  // `node.elements[key]`; device overrides in `node.responsive[device].elements[key]`.
+  const elBase = (n.elements ?? {}) as Record<string, Record<string, unknown>>;
+  const elResp = (resp?.elements ?? {}) as Record<
+    string,
+    Record<string, unknown>
+  >;
+  const elVal = (ek: string, prop: string): unknown =>
+    isDev && elResp[ek] && prop in elResp[ek]
+      ? elResp[ek][prop]
+      : elBase[ek]?.[prop];
+  const elOver = (ek: string, prop: string): boolean =>
+    isDev
+      ? !!(elResp[ek] && prop in elResp[ek])
+      : elBase[ek]?.[prop] !== undefined;
+  const setEl = (ek: string, prop: string, v: unknown) => {
+    if (isDev) {
+      onPatchResp({ elements: { [ek]: { [prop]: v } } });
+      return;
+    }
+    const cur = elBase[ek] ?? {};
+    onPatchNode({ elements: { ...elBase, [ek]: { ...cur, [prop]: v } } });
+  };
+  const revertEl = (ek: string, prop: string) => {
+    if (isDev) {
+      onPatchResp({ elements: { [ek]: { [prop]: null } } });
+      return;
+    }
+    const cur = { ...(elBase[ek] ?? {}) };
+    delete cur[prop];
+    const next = { ...elBase };
+    if (Object.keys(cur).length) next[ek] = cur;
+    else delete next[ek];
+    onPatchNode({ elements: next });
+  };
+
   return (
     <>
       <div className="tabs">
@@ -2102,6 +2199,18 @@ function Inspector({
               These override the theme’s default styling for this block only.
               Per-device spacing &amp; visibility live in the Advanced tab.
             </div>
+
+            {def?.elements?.length ? (
+              <ElementsPanel
+                elements={def.elements}
+                isDev={isDev}
+                device={device}
+                elVal={elVal}
+                elOver={elOver}
+                setEl={setEl}
+                revertEl={revertEl}
+              />
+            ) : null}
           </>
         )}
 
@@ -2213,11 +2322,13 @@ type RespLayer = {
   props?: Record<string, unknown>;
   space?: Record<string, unknown>;
   hidden?: boolean;
+  elements?: Record<string, Record<string, unknown>>;
 };
 type RespPatch = {
   props?: Record<string, unknown>;
   space?: Record<string, unknown>;
   hidden?: boolean;
+  elements?: Record<string, Record<string, unknown>>;
 };
 type NodeFields = {
   tone?: string;
@@ -2228,6 +2339,7 @@ type NodeFields = {
   space?: Record<string, number>;
   responsive?: Record<string, RespLayer>;
   style?: Record<string, unknown>;
+  elements?: Record<string, Record<string, unknown>>;
   type: string;
 };
 
@@ -2236,6 +2348,258 @@ function RevertBtn({ onClick }: { onClick: () => void }) {
     <button className="revert" type="button" title="Reset" onClick={onClick}>
       <RotateCcw size={13} strokeWidth={2} />
     </button>
+  );
+}
+
+// ── Per-element styling (Elementor) inspector primitives ──────
+// Theme-token quick-picks for the colour controls (write `var(--site-*)`).
+const EL_SWATCHES: [string, string][] = [
+  ["var(--site-accent)", "Accent"],
+  ["var(--site-ink)", "Ink"],
+  ["var(--site-surface)", "Surface"],
+  ["var(--site-bg)", "Background"],
+  ["var(--site-line)", "Line"],
+  ["var(--site-mute)", "Muted"],
+];
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/** Colour control: native picker swatch + hex/var text + theme-token swatches. */
+function ColorRow({
+  label,
+  value,
+  overridden,
+  onChange,
+  onRevert,
+}: {
+  label: string;
+  value: string;
+  overridden: boolean;
+  onChange: (v: string) => void;
+  onRevert: () => void;
+}) {
+  const isHex = HEX_RE.test(value);
+  return (
+    <div className="ctl el-ctl">
+      <div className="ctl-l">
+        <label>{label}</label>
+        {overridden ? <RevertBtn onClick={onRevert} /> : null}
+      </div>
+      <div className="colorrow">
+        <label
+          className="cswatch"
+          style={{ background: value || "transparent" }}
+        >
+          <input
+            type="color"
+            value={isHex ? value : "#ffffff"}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </label>
+        <input
+          className="hexin"
+          value={value}
+          placeholder="#hex or var(--site-…)"
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </div>
+      <div className="cswatches">
+        {EL_SWATCHES.map(([cv, cl]) => (
+          <button
+            key={cv}
+            type="button"
+            title={cl}
+            className={value === cv ? "sw on" : "sw"}
+            style={{ background: cv }}
+            onClick={() => onChange(cv)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Numeric px control: range + number input; empty → revert (null). */
+function NumRow({
+  label,
+  value,
+  min,
+  max,
+  suffix,
+  overridden,
+  onChange,
+  onRevert,
+}: {
+  label: string;
+  value: number | undefined;
+  min: number;
+  max: number;
+  suffix?: string;
+  overridden: boolean;
+  onChange: (v: number | null) => void;
+  onRevert: () => void;
+}) {
+  return (
+    <div className="ctl el-ctl">
+      <div className="ctl-l">
+        <label>{label}</label>
+        {overridden ? <RevertBtn onClick={onRevert} /> : null}
+      </div>
+      <div className="numrow">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value ?? min}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+        <input
+          type="number"
+          className="numin"
+          min={min}
+          max={max}
+          value={value ?? ""}
+          placeholder="—"
+          onChange={(e) =>
+            onChange(e.target.value === "" ? null : Number(e.target.value))
+          }
+        />
+        {suffix ? <span className="sfx">{suffix}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+type ElHelpers = {
+  elVal: (ek: string, prop: string) => unknown;
+  elOver: (ek: string, prop: string) => boolean;
+  setEl: (ek: string, prop: string, v: unknown) => void;
+  revertEl: (ek: string, prop: string) => void;
+};
+
+/** The set of controls for one element key, driven by ElementDef.controls. */
+function ElementControls({
+  el,
+  controls,
+  h,
+}: {
+  el: string;
+  controls: ElementControlKind[];
+  h: ElHelpers;
+}) {
+  const color = (prop: string, label: string) => (
+    <ColorRow
+      key={prop}
+      label={label}
+      value={(h.elVal(el, prop) as string) ?? ""}
+      overridden={h.elOver(el, prop)}
+      onChange={(v) =>
+        v.trim() === "" ? h.revertEl(el, prop) : h.setEl(el, prop, v)
+      }
+      onRevert={() => h.revertEl(el, prop)}
+    />
+  );
+  const num = (
+    prop: string,
+    label: string,
+    min: number,
+    max: number,
+    suffix = "px",
+  ) => (
+    <NumRow
+      key={prop}
+      label={label}
+      value={h.elVal(el, prop) as number | undefined}
+      min={min}
+      max={max}
+      suffix={suffix}
+      overridden={h.elOver(el, prop)}
+      onChange={(v) =>
+        v == null ? h.revertEl(el, prop) : h.setEl(el, prop, v)
+      }
+      onRevert={() => h.revertEl(el, prop)}
+    />
+  );
+  return (
+    <>
+      {controls.map((c) => {
+        switch (c) {
+          case "bg":
+            return color("bg", "Background");
+          case "color":
+            return color("color", "Text colour");
+          case "border":
+            return (
+              <div key="border" className="el-group">
+                {num("borderWidth", "Border width", 0, 8)}
+                {color("borderColor", "Border colour")}
+              </div>
+            );
+          case "radius":
+            return num("radius", "Corner radius", 0, 48);
+          case "size":
+            return num("fontSize", "Font size", 10, 64);
+          case "weight":
+            return (
+              <SegRow
+                key="weight"
+                label="Font weight"
+                value={String(h.elVal(el, "fontWeight") ?? "")}
+                options={[
+                  ["normal", "N"],
+                  ["medium", "M"],
+                  ["semibold", "S"],
+                  ["bold", "B"],
+                ]}
+                onChange={(v) => h.setEl(el, "fontWeight", v)}
+              />
+            );
+          default:
+            return null;
+        }
+      })}
+    </>
+  );
+}
+
+/** Elementor-style "Elements" accordion — one element open at a time. */
+function ElementsPanel({
+  elements,
+  isDev,
+  device,
+  ...h
+}: {
+  elements: ElementDef[];
+  isDev: boolean;
+  device: string;
+} & ElHelpers) {
+  const [open, setOpen] = useState<string | null>(elements[0]?.key ?? null);
+  return (
+    <div className="els">
+      <div className="els-h">
+        <span>Elements</span>
+        {isDev ? <span className="els-dev">{device}</span> : null}
+      </div>
+      {elements.map((el) => {
+        const isOpen = open === el.key;
+        return (
+          <div className={isOpen ? "el open" : "el"} key={el.key}>
+            <button
+              type="button"
+              className="el-hd"
+              onClick={() => setOpen((o) => (o === el.key ? null : el.key))}
+            >
+              <span>{el.label}</span>
+              <ChevronDown size={14} strokeWidth={2} />
+            </button>
+            {isOpen ? (
+              <div className="el-bd">
+                <ElementControls el={el.key} controls={el.controls} h={h} />
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

@@ -49,6 +49,30 @@ export type WidgetControl =
   | { kind: "roompicker"; key: string; label: string }
   | { kind: "hint"; text: string };
 
+/**
+ * Which per-element style controls to show for a block's sub-element. Each maps to
+ * one or more `--el-<key>-*` CSS vars the block's component reads:
+ *   bg → --el-<key>-bg · color → -fg · border → -bdw + -bdc · radius → -radius ·
+ *   size → -size (font-size) · weight → -weight (font-weight)
+ */
+export type ElementControlKind =
+  | "bg"
+  | "color"
+  | "border"
+  | "radius"
+  | "size"
+  | "weight";
+
+/** A stylable sub-element of a composite block (drives the inspector Elements UI). */
+export type ElementDef = {
+  /** Element key — must match the `--el-<key>-*` vars the component reads. */
+  key: string;
+  /** Human label in the inspector accordion. */
+  label: string;
+  /** Which style controls this element exposes. */
+  controls: ElementControlKind[];
+};
+
 export interface WidgetDef {
   type: WidgetType;
   group: WidgetGroup;
@@ -71,6 +95,12 @@ export interface WidgetDef {
   defaults: Record<string, unknown>;
   /** Content-tab controls (Style/Advanced/Responsive are generic + shared). */
   content: WidgetControl[];
+  /**
+   * Stylable sub-elements (Elementor-style per-element styling). Drives the Style
+   * tab's "Elements" accordion; each element's controls write `node.elements[key]`
+   * (per-device via the responsive layer). Undefined = block-level styling only.
+   */
+  elements?: ElementDef[];
 }
 
 const ALIGN_CTL = (key = "align"): WidgetControl => ({
@@ -554,6 +584,21 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "range", key: "max", label: "Rooms shown", min: 1, max: 12 },
+    ],
+    // Elementor-style per-element styling — each maps to `--el-<key>-*` vars read
+    // by RoomsPreviewSection's room card. Keys MUST match the component.
+    elements: [
+      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      { key: "image", label: "Image", controls: ["radius"] },
+      { key: "title", label: "Title", controls: ["color", "size", "weight"] },
+      { key: "price", label: "Price", controls: ["color", "size", "weight"] },
+      { key: "desc", label: "Description", controls: ["color", "size"] },
+      {
+        key: "button",
+        label: "Button",
+        controls: ["bg", "color", "border", "radius"],
+      },
+      { key: "badge", label: "Badge", controls: ["bg", "color", "radius"] },
     ],
   },
   amenities: {

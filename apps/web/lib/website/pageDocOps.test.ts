@@ -225,4 +225,44 @@ describe("pageDocOps", () => {
       expect(pageDocSchema.safeParse(d).success).toBe(true);
     }
   });
+
+  // Per-element styling — device-layer overrides ride the responsive mechanism.
+  it("updateResponsive nests per-element style overrides on the device layer", () => {
+    const doc = sampleDoc();
+    const a = updateResponsive(doc, "wA", "tablet", {
+      elements: { title: { fontSize: 20 } },
+    });
+    const layer = (
+      findNode(a, "wA")!.node as { responsive?: Record<string, unknown> }
+    ).responsive as { tablet?: { elements?: Record<string, unknown> } };
+    expect(layer.tablet?.elements).toEqual({ title: { fontSize: 20 } });
+    // A second element merges alongside; existing element keys are preserved.
+    const b = updateResponsive(a, "wA", "tablet", {
+      elements: { title: { color: "#fff" }, card: { bg: "#000" } },
+    });
+    const l2 = (
+      findNode(b, "wA")!.node as { responsive?: Record<string, unknown> }
+    ).responsive as { tablet?: { elements?: Record<string, unknown> } };
+    expect(l2.tablet?.elements).toEqual({
+      title: { fontSize: 20, color: "#fff" },
+      card: { bg: "#000" },
+    });
+  });
+
+  it("updateResponsive drops a null'd element prop, then the empty layer", () => {
+    const doc = sampleDoc();
+    const a = updateResponsive(doc, "wA", "mobile", {
+      elements: { title: { fontSize: 20 } },
+    });
+    // Null the only prop → the element key drops, the elements map drops, and the
+    // now-empty device layer is removed entirely.
+    const b = updateResponsive(a, "wA", "mobile", {
+      elements: { title: { fontSize: null } },
+    });
+    const node = findNode(b, "wA")!.node as {
+      responsive?: Record<string, unknown>;
+    };
+    expect(node.responsive?.mobile).toBeUndefined();
+    expect(pageDocSchema.safeParse(b).success).toBe(true);
+  });
 });

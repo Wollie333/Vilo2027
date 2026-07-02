@@ -19,7 +19,11 @@ import {
 
 import { GenericSection } from "../SectionRenderer";
 import { SectionBoundary } from "../SectionBoundary";
-import { sectionToneStyle, blockFrameStyle } from "../sections/_shared";
+import {
+  sectionToneStyle,
+  blockFrameStyle,
+  elementVarsCss,
+} from "../sections/_shared";
 import {
   IconLeaf,
   LogoLeaf,
@@ -243,6 +247,11 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
   const effNode: WidgetNode = layer?.props
     ? { ...node, props: { ...node.props, ...layer.props } }
     : node;
+  // Per-element styling (Elementor-style): a scoped <style> sets `--el-*` custom
+  // properties on this wrapper (cascading to every sub-element). `@media` drives
+  // the live site; `@container` drives the builder's device frames — so per-device
+  // element styles preview correctly here AND respond to real screen size live.
+  const elCss = elementVarsCss(`[data-node-id="${node.id}"]`, node);
   return (
     <div
       key={node.id}
@@ -254,6 +263,7 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
       data-node-id={node.id}
       data-node-kind="widget"
     >
+      {elCss ? <style dangerouslySetInnerHTML={{ __html: elCss }} /> : null}
       <SectionBoundary resetKey={effNode} fallbackLabel={ctx.errorLabel}>
         <WidgetLeaf node={effNode} ctx={ctx} />
       </SectionBoundary>

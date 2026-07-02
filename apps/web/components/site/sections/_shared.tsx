@@ -6,6 +6,7 @@ import type {
   ElButtonSize,
   ElColor,
   ElSize,
+  ElementStyle,
   ElWeight,
   SectionTone,
 } from "@/lib/website/sections.schema";
@@ -233,6 +234,73 @@ export function blockStyleCss(cls: string, style?: BlockStyle): string {
   if (tb) css += `@container (max-width:1024px){${sel}{${tb}}}`;
   if (mb) css += `@container (max-width:640px){${sel}{${mb}}}`;
   css += typographyRules(cls, style);
+  return css;
+}
+
+// ── Per-ELEMENT styling (Elementor-style) ─────────────────────
+// A composite block's node carries `elements: { <key>: ElementStyle }` (base =
+// desktop) + optional per-device overrides in `responsive[device].elements`. We
+// turn those into dedicated `--el-<key>-*` CSS custom properties SET ON THE BLOCK
+// WRAPPER, so they cascade to every sub-element (and every card in a grid). The
+// block's own component reads `var(--el-<key>-*, <theme fallback>)`, so an unset
+// value falls straight back to the theme — zero visual change until a host styles.
+//
+// Emitted as a scoped <style> (never inline) so per-device overrides work in BOTH
+// contexts, mirroring `blockStyleCss`: `@media` drives the LIVE site (viewport),
+// `@container` drives the builder's device frames (`.device` is a query container).
+type NodeElementStyles = {
+  elements?: Record<string, ElementStyle>;
+  responsive?: {
+    tablet?: { elements?: Record<string, ElementStyle> };
+    mobile?: { elements?: Record<string, ElementStyle> };
+  };
+};
+
+/** One element map → `--el-<key>-*` declarations (empty when nothing set). */
+function elementDecls(elements?: Record<string, ElementStyle>): string {
+  if (!elements) return "";
+  const out: string[] = [];
+  for (const [key, s] of Object.entries(elements)) {
+    if (!s) continue;
+    if (s.bg) out.push(`--el-${key}-bg:${s.bg}`);
+    if (s.color) out.push(`--el-${key}-fg:${s.color}`);
+    // Composed border shorthand: emitted only when width or colour is set, so a
+    // component's `border: var(--el-<key>-bd, <theme default>)` keeps the theme's
+    // default border untouched until the host actually styles it.
+    if (s.borderWidth != null || s.borderColor) {
+      const w = s.borderWidth != null ? s.borderWidth : 1;
+      const c = s.borderColor || "var(--site-line)";
+      out.push(`--el-${key}-bd:${w}px solid ${c}`);
+    }
+    if (s.radius != null) out.push(`--el-${key}-radius:${s.radius}px`);
+    if (s.fontSize != null) out.push(`--el-${key}-size:${s.fontSize}px`);
+    if (s.fontWeight)
+      out.push(`--el-${key}-weight:${FONT_WEIGHT_CSS[s.fontWeight]}`);
+  }
+  return out.join(";");
+}
+
+/**
+ * Scoped CSS for a node's per-element styles. `selector` targets the block
+ * wrapper (e.g. `[data-node-id="abc"]`). Returns "" when the node has no element
+ * styles, so the caller can skip the `<style>` entirely.
+ */
+export function elementVarsCss(
+  selector: string,
+  node: NodeElementStyles,
+): string {
+  const base = elementDecls(node.elements);
+  const tb = elementDecls(node.responsive?.tablet?.elements);
+  const mb = elementDecls(node.responsive?.mobile?.elements);
+  if (!base && !tb && !mb) return "";
+  let css = "";
+  if (base) css += `${selector}{${base}}`;
+  // Live site (viewport).
+  if (tb) css += `@media (max-width:1024px){${selector}{${tb}}}`;
+  if (mb) css += `@media (max-width:640px){${selector}{${mb}}}`;
+  // Builder device frames (container) — last so they win when both match.
+  if (tb) css += `@container (max-width:1024px){${selector}{${tb}}}`;
+  if (mb) css += `@container (max-width:640px){${selector}{${mb}}}`;
   return css;
 }
 

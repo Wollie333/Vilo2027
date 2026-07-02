@@ -875,6 +875,33 @@ export const blockStyleSchema = z.object({
 });
 export type BlockStyle = z.infer<typeof blockStyleSchema>;
 
+// ── Per-ELEMENT style (Elementor-style, additive) ─────────────
+// A composite block (e.g. the Rooms Grid) exposes named sub-elements — "card",
+// "image", "title", "price", "button"… — each independently stylable. The values
+// here become dedicated `--el-<key>-*` CSS custom properties on the block wrapper
+// (see `elementVarsInline`/`elementVarsCss` in `_shared.tsx`), which the block's
+// component reads via `var(--el-<key>-*, <theme fallback>)`. Colours are free CSS
+// strings so a host can pick raw hex OR a theme token (`var(--site-accent)`), per
+// the founder's "real colour picker + theme swatches" requirement. Numeric fields
+// are px. All optional, so a block with no element styles renders exactly as before.
+export const ELEMENT_WEIGHT = ["normal", "medium", "semibold", "bold"] as const;
+export type ElementWeight = (typeof ELEMENT_WEIGHT)[number];
+
+export const elementStyleSchema = z.object({
+  bg: z.string().max(60).optional(),
+  color: z.string().max(60).optional(),
+  borderColor: z.string().max(60).optional(),
+  borderWidth: z.number().min(0).max(20).optional(),
+  radius: z.number().min(0).max(999).optional(),
+  fontSize: z.number().min(8).max(200).optional(),
+  fontWeight: z.enum(ELEMENT_WEIGHT).optional(),
+});
+export type ElementStyle = z.infer<typeof elementStyleSchema>;
+
+/** Map of element key → its style overrides (base = desktop). */
+export const elementStylesSchema = z.record(z.string(), elementStyleSchema);
+export type ElementStyles = z.infer<typeof elementStylesSchema>;
+
 // ── Room-detail props (room-scoped — render the viewed room) ───
 // All config only; the room's name/photos/price/amenities resolve live from the
 // active room (see lib/site/loadSitePage.ts loadRoomDetail).

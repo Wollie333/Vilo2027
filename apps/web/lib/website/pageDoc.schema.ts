@@ -20,6 +20,7 @@ import {
   SECTION_TONES,
   SECTION_TYPES,
   blockStyleSchema,
+  elementStylesSchema,
 } from "./sections.schema";
 
 // ── Widget vocabulary ─────────────────────────────────────────
@@ -146,6 +147,9 @@ const nodeResponsiveDevice = z
     order: z.number().optional(),
     props: z.record(z.string(), z.unknown()).optional(),
     space: boxSpaceSchema.partial().optional(),
+    // Per-element style overrides for this device (Elementor per-device styling).
+    // Same shape as `nodeBase.elements`; merged over the base at render.
+    elements: elementStylesSchema.optional(),
   })
   .optional();
 
@@ -161,6 +165,9 @@ const nodeBase = {
   space: boxSpaceSchema.partial().optional(),
   responsive: nodeResponsive,
   style: blockStyleSchema.optional(),
+  // Per-element style overrides (base = desktop). Keyed by the element keys a
+  // block declares in the widget registry (`WidgetDef.elements`).
+  elements: elementStylesSchema.optional(),
   cssId: z.string().max(80).optional(),
   cssClass: z.string().max(200).optional(),
   anim: z.enum(NODE_ANIM).optional(),
@@ -224,6 +231,7 @@ export type SectionNode = {
   space?: Partial<BoxSpace>;
   responsive?: z.infer<typeof nodeResponsive>;
   style?: z.infer<typeof blockStyleSchema>;
+  elements?: z.infer<typeof elementStylesSchema>;
   cssId?: string;
   cssClass?: string;
   anim?: (typeof NODE_ANIM)[number];
@@ -246,6 +254,7 @@ export const sectionNodeSchema: z.ZodType<SectionNode> = z.lazy(() =>
     space: boxSpaceSchema.partial().optional(),
     responsive: nodeResponsive,
     style: blockStyleSchema.optional(),
+    elements: elementStylesSchema.optional(),
     cssId: z.string().max(80).optional(),
     cssClass: z.string().max(200).optional(),
     anim: z.enum(NODE_ANIM).optional(),

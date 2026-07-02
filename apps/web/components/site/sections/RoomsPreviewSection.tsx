@@ -34,11 +34,14 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
   return (
     <Card
       className="flex flex-col"
-      style={
-        room.featured
-          ? { boxShadow: "0 0 0 2px var(--site-accent)" }
-          : undefined
-      }
+      // Per-element styling (Elementor): the "card" element controls read
+      // `--el-card-*`, falling back to the theme's own card tokens when unset.
+      style={{
+        background: "var(--el-card-bg, var(--site-surface))",
+        border: "var(--el-card-bd, var(--site-card-border))",
+        borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+        ...(room.featured ? { boxShadow: "0 0 0 2px var(--site-accent)" } : {}),
+      }}
     >
       <div className="relative">
         {room.imageUrl ? (
@@ -47,15 +50,19 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
             alt={room.name}
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             widths={[320, 480, 640, 768]}
-            style={{ aspectRatio: "var(--site-card-ratio)" }}
+            style={{
+              aspectRatio: "var(--site-card-ratio)",
+              borderRadius: "var(--el-image-radius, 0px)",
+            }}
             className="w-full object-cover"
           />
         ) : null}
         {room.badge || room.featured ? (
           <span
             style={{
-              background: "var(--site-accent)",
-              color: "var(--site-accent-ink)",
+              background: "var(--el-badge-bg, var(--site-accent))",
+              color: "var(--el-badge-fg, var(--site-accent-ink))",
+              borderRadius: "var(--el-badge-radius, 9999px)",
             }}
             className="absolute left-3 top-3 rounded-pill px-2.5 py-1 text-[11px] font-semibold shadow-sm"
           >
@@ -67,7 +74,9 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
         <h3
           style={{
             fontFamily: "var(--site-font-heading)",
-            color: "var(--site-ink)",
+            color: "var(--el-title-fg, var(--site-ink))",
+            fontSize: "var(--el-title-size, 1.125rem)",
+            fontWeight: "var(--el-title-weight, 600)",
           }}
           className="text-lg font-semibold"
         >
@@ -101,7 +110,10 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
         ) : null}
         {room.description ? (
           <p
-            style={{ color: "var(--site-mute)" }}
+            style={{
+              color: "var(--el-desc-fg, var(--site-mute))",
+              fontSize: "var(--el-desc-size, 0.875rem)",
+            }}
             className="mt-2 line-clamp-3 text-sm leading-relaxed"
           >
             {room.description}
@@ -110,7 +122,11 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
         <div className="mt-4 flex items-center justify-between gap-3 pt-2">
           {price ? (
             <span
-              style={{ color: "var(--site-ink)" }}
+              style={{
+                color: "var(--el-price-fg, var(--site-ink))",
+                fontSize: "var(--el-price-size, 0.875rem)",
+                fontWeight: "var(--el-price-weight, 600)",
+              }}
               className="text-sm font-semibold"
             >
               {price}
@@ -131,10 +147,11 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
             // so it's not a booking_click — only flag the book deep-link fallback.
             {...(room.detailHref ? {} : { "data-wielo-book": "" })}
             style={{
-              background: "var(--site-btn-primary-bg)",
-              color: "var(--site-btn-primary-color)",
-              border: "var(--site-btn-primary-border)",
-              borderRadius: "var(--site-btn-primary-radius)",
+              background: "var(--el-button-bg, var(--site-btn-primary-bg))",
+              color: "var(--el-button-fg, var(--site-btn-primary-color))",
+              border: "var(--el-button-bd, var(--site-btn-primary-border))",
+              borderRadius:
+                "var(--el-button-radius, var(--site-btn-primary-radius))",
             }}
             className="shrink-0 px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
           >
