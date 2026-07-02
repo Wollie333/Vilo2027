@@ -602,7 +602,7 @@ export function BrandStudioOverlay({
             >
               {open && (
                 <SiteThemeRoot theme={theme}>
-                  <PageDocRenderer doc={doc} device={device} />
+                  <PageDocRenderer doc={doc} device={device} brand={brand} />
                 </SiteThemeRoot>
               )}
             </div>

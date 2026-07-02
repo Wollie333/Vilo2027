@@ -105,25 +105,14 @@ function demoDoc() {
   doc.root.kids.push(s3);
 
   // 4 — site parts: logo, nav, social (dark tone → leaves auto-flip to light)
+  // Phase 5: logo/nav/social bind to the live brand + menu (source menu/brand).
   const s4 = newSection([4, 4, 4], { tone: "dark", valign: "center" });
   s4.kids[0].kids.push(w("el_logo", { style: "markName", align: "left" }));
   s4.kids[1].kids.push(
-    w(
-      "el_nav",
-      {
-        source: "custom",
-        items: "Rooms, The house, Journal, Find us",
-        align: "center",
-      },
-      "underline",
-    ),
+    w("el_nav", { source: "menu", align: "center" }, "underline"),
   );
   s4.kids[2].kids.push(
-    w(
-      "el_social",
-      { source: "custom", networks: "instagram, facebook, x", align: "right" },
-      "round",
-    ),
+    w("el_social", { source: "brand", align: "right" }, "round"),
   );
   doc.root.kids.push(s4);
 
@@ -257,7 +246,16 @@ export default async function BuilderPreviewPage({
         Demo doc · preset: <b>{preset}</b> · try ?preset=coastal — or pick a
         theme above to preview its real blueprint.
       </div>
-      <PageDocRenderer doc={demoDoc()} device="desktop" />
+      <PageDocRenderer
+        doc={demoDoc()}
+        device="desktop"
+        brand={{
+          name: "Marmalade House",
+          monogram: "M",
+          socials: { instagram: "marmaladehouse", facebook: "marmaladehouse" },
+        }}
+        menu={["Rooms", "The house", "Journal", "Find us"]}
+      />
     </SiteThemeRoot>
   );
 }

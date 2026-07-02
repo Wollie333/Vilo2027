@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 5-1: bind logo / nav / social leaves to live data
+
+First Phase-5 (live data) slice. Closes the loop from Brand Studio (4c) + the Nav builder (4d): the
+`el_logo` / `el_nav` / `el_social` leaves now render the REAL brand identity + nav menu instead of
+placeholders.
+
+- **`PageDocRenderer.tsx`** — `RenderCtx` gains `brand` ({name, monogram, socials}) + `menu` (string[]
+  of top-level labels). `WidgetLeaf` threads them: logo → brand name/monogram; nav → `source:"custom"`
+  keeps typed items, else the live menu; social → `source:"custom"` keeps typed networks, else the
+  Brand Studio socials (via `brandNetworks()` — only channels with a handle). (The leaves already
+  accepted these optional props from Phase 2; this supplies them.)
+- **`BuilderShell.tsx`** — the canvas passes `brand` + `menuLabels` (memoized from `navigation.menu`),
+  so editing the name in Brand Studio or a link in the Nav builder updates the canvas leaves live.
+- **`BrandStudioOverlay.tsx`** — its preview canvas passes `brand` too.
+- **`SitePageView.tsx`** — the public v:2 path passes `ctx.brand` + `ctx.navigation.menu` labels, so
+  published pages render the real logo/menu/socials.
+- **Live-verified** on `/builder-preview?preset=warm` (demo flipped to `source: menu`/`brand`): the
+  site-parts band shows the "M" + "Marmalade House" logo, the live menu (Rooms/The house/Journal/Find
+  us), and two social icons — "x" correctly excluded (no handle). 0 console errors. tsc + lint clean,
+  163 vitest, `pnpm build` green.
+  **NEXT Phase-5 slices:** `el_room_card` live room (needs a room-picker inspector control) + auto-
+  populate sample data on the builder canvas; booking-funnel widgets → server quote; room-detail v2.
+
 ## 2026-07-02 — Builder V2 Phase 4d-4: Footer document (columns + newsletter)
 
 Wires the document switcher's **Footer** entry (was "Soon"). Adds a third left tab (Footer) to the

@@ -705,13 +705,22 @@ export function BuilderShell({
 
   // Memoize the themed canvas so drop-line / dragging state changes don't re-run
   // the (heavy) PageDocRenderer tree mid-drag.
+  const menuLabels = useMemo(
+    () => (navigation.menu ?? []).map((m) => m.label),
+    [navigation.menu],
+  );
   const canvas = useMemo(
     () => (
       <SiteThemeRoot theme={workTheme}>
-        <PageDocRenderer doc={doc} device={device} />
+        <PageDocRenderer
+          doc={doc}
+          device={device}
+          brand={brand}
+          menu={menuLabels}
+        />
       </SiteThemeRoot>
     ),
-    [workTheme, doc, device],
+    [workTheme, doc, device, brand, menuLabels],
   );
 
   const stageClass = ["stage", device, dragging && "wb-dragging"]

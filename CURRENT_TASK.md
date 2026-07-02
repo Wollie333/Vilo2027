@@ -277,9 +277,22 @@ vilotest (`host@vilotest.com`) + a save point.
   `initialTab` prop opens the requested tab. `BuilderShell` `navInitialTab` + both entries wired; footer
   persists via saveNavigationAction. Live-verified on marmalade (column "Explore"+link "Rooms"+
   newsletter reflect live; 0 console errors). tsc+lint clean, 163 vitest, build green.
-- **NEXT — Phase 4 remaining:** **4d-5** (optional polish) mobile drawer + nesting/dropdown + per-page
-  show-hide + topBar + real themed `SiteChrome` preview. Then **4e** Theme Settings overlay. All the
-  doc-switcher entries (Page/Header&menu/Footer) + Brand + Page Settings + Tweaks are now wired.
+- **Phase 4 substantively COMPLETE** (all topbar affordances + overlays wired; the prototype's separate
+  "Theme Settings" overlay is redundant with Brand Studio + Nav per §3.4). Deferred polish (4d-5,
+  optional): mobile drawer, nesting/dropdown, per-page show-hide, topBar, real themed SiteChrome preview.
+- **▶ PHASE 5 STARTED — live data + booking funnel.**
+- **Phase 5-1 — bind logo/nav/social leaves to live data (DONE + LIVE-VERIFIED, 2026-07-02):** closes
+  the loop from Brand Studio (4c) + Nav (4d). `PageDocRenderer` `RenderCtx` gains `brand` + `menu`;
+  `WidgetLeaf` threads them into the logo (brand name/monogram), nav (`source:"custom"`→typed items,
+  else live menu), social (`source:"custom"`→typed networks, else Brand socials via `brandNetworks()`).
+  `BuilderShell` canvas passes brand + memoized menuLabels (edits in Brand Studio / Nav update the canvas
+  live); BrandStudioOverlay preview passes brand; public `SitePageView` v:2 path passes `ctx.brand` +
+  `ctx.navigation.menu`. Live-verified on `/builder-preview?preset=warm` (M+Marmalade House logo, live
+  menu, 2 social icons w/ x excluded; 0 console errors). tsc+lint clean, 163 vitest, build green.
+- **NEXT — Phase 5 slices:** `el_room_card` live room (add a room-picker inspector control) + auto-
+  populate sample data on the builder canvas; booking-funnel widgets → server quote (`/api/website-quote`
+  → `quoteWebsiteStay`); room-detail v2 template; goal/pixel events on v2 thank-you. Then **Phase 6**
+  (delete legacy builder + bespoke theme dirs at cutover).
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

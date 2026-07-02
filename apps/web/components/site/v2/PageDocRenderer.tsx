@@ -45,6 +45,25 @@ interface RenderCtx {
   device?: Device;
   /** Builder-only: label shown when a node throws. */
   errorLabel?: string;
+  /** Phase 5: live brand identity for the logo / social leaves. */
+  brand?: {
+    name?: string;
+    monogram?: string;
+    socials?: { instagram?: string; facebook?: string };
+  };
+  /** Phase 5: top-level nav labels for the nav leaf (when it has no custom items). */
+  menu?: string[];
+}
+
+// Network names (for the social leaf) that actually have a handle set.
+function brandNetworks(
+  socials: { instagram?: string; facebook?: string } | undefined,
+): string[] | undefined {
+  if (!socials) return undefined;
+  const nets: string[] = [];
+  if (socials.instagram?.trim()) nets.push("instagram");
+  if (socials.facebook?.trim()) nets.push("facebook");
+  return nets.length ? nets : undefined;
 }
 
 export function PageDocRenderer({ doc, ...ctx }: { doc: PageDoc } & RenderCtx) {
@@ -238,11 +257,33 @@ function WidgetLeaf({ node, ctx }: { node: WidgetNode; ctx: RenderCtx }) {
     case "el_room_card":
       return <RoomCardLeaf props={node.props} variant={node.variant} />;
     case "el_logo":
-      return <LogoLeaf props={node.props} />;
-    case "el_nav":
-      return <NavLeaf props={{ ...node.props, variant: node.variant }} />;
-    case "el_social":
-      return <SocialLeaf props={{ ...node.props, variant: node.variant }} />;
+      return (
+        <LogoLeaf
+          props={node.props}
+          brandName={ctx.brand?.name || undefined}
+          monogram={ctx.brand?.monogram || undefined}
+        />
+      );
+    case "el_nav": {
+      // `source: "custom"` → use the node's own items; else the live Nav menu.
+      const custom = node.props.source === "custom";
+      return (
+        <NavLeaf
+          props={{ ...node.props, variant: node.variant }}
+          items={custom ? undefined : ctx.menu}
+        />
+      );
+    }
+    case "el_social": {
+      // `source: "custom"` → use typed networks; else the Brand Studio socials.
+      const custom = node.props.source === "custom";
+      return (
+        <SocialLeaf
+          props={{ ...node.props, variant: node.variant }}
+          networks={custom ? undefined : brandNetworks(ctx.brand?.socials)}
+        />
+      );
+    }
     default:
       break;
   }

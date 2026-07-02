@@ -164,6 +164,15 @@ export async function SitePageView({
               asset={siteAsset}
               websiteId={ctx.websiteId}
               interactive
+              brand={{
+                name: ctx.brand.name,
+                monogram: ctx.brand.monogram ?? undefined,
+                socials: {
+                  instagram: ctx.brand.socials?.instagram ?? undefined,
+                  facebook: ctx.brand.socials?.facebook ?? undefined,
+                },
+              }}
+              menu={(ctx.navigation?.menu ?? []).map((m) => m.label)}
             />
           </SiteChrome>
         </SiteThemeRoot>
