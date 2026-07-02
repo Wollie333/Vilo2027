@@ -337,10 +337,37 @@ vilotest (`host@vilotest.com`) + a save point.
   selector renders + patches meta via autosave (0 errors). tsc+lint clean, 169 vitest. Public-page fire
   is a type-checked unification of the proven flat marketing path (e2e needs a live GA4/Meta id).
 - **PHASE 5 COMPLETE** — 5-1 logo/nav/social · 5-2 room card + canvas sample data · 5-3 booking widgets ·
-  5-4 room-detail v2 template · 5-5 goal/pixel. **NEXT = Phase 6 (cutover):** delete the legacy builder
-  (`PageBuilder.tsx`, SectionEditor/Library, old editor routes) + the four bespoke theme dirs
-  (`components/site/{safari,sabela,oceansview,marmalade}/`); make the v2 render path the sole path;
-  update docs + memory; full green + live verify.
+  5-4 room-detail v2 template · 5-5 goal/pixel.
+
+## ▶▶ TRACKING / PIXELS / EVENTS REDESIGN — COMPLETE (· 2026-07-02, Ph1–5 shipped)
+
+Plan of record: `docs/features/TRACKING_EVENTS_PLAN.md`. Two scopes in the Page Settings modal:
+site-wide **Tracking & pixels** (one `settings.analytics` record for every page) + a per-page **Events**
+tab + consent-gated **Custom code**. All 5 phases done + pushed:
+- **Ph1** (`d896a989`): site-wide Tracking tab — `builderAnalyticsSchema` + `saveBuilderAnalyticsAction`
+  (merges `settings.analytics`); overlay Tracking tab edits it via `analytics`/`onAnalyticsPatch`;
+  BuilderShell working state + debounced save; `page.tsx` loads it. Deleted the dead per-page pixel IDs.
+- **Ph2** (`cd7aa17d`): per-page **Events** tab (between Tracking & Custom code) → `meta.events[]`;
+  `SitePageView` fires each; Purchase shown auto. Superseded the single 5-5 `pixelEvent`.
+- **Ph3** (`9fc2e5df`): `lib/site/consent.ts` shared signal; `PageBodyCode` (wires dead `bodyCode`);
+  `FirePixelEvent`+head/body code all POPIA consent-gated (thread `consentRequired` everywhere).
+- **Ph4** (`3a4b9d57`): `SiteAnalyticsSettings` += gtm/tiktok/googleAds; `SiteMarketing` injectors
+  (consent-gated); Tracking tab lists all 5 pixels.
+- **Ph5** (`80e32ac2`): dashboard `SettingsForm` + schema + action parity — both editors write the full
+  pixel set to `settings.analytics`.
+DEFERRED (needs a live host GA4/Meta id / authed session to observe e2e): the actual pixel-fire on a
+published page + the dashboard settings round-trip. All type-checked + builder-verified; 169 vitest.
+
+## ▶▶ NEXT — BUILDER V2 PHASE 6 (CUTOVER) — NEEDS A FOUNDER DECISION FIRST
+
+**Do NOT run destructively without sign-off.** Deleting `components/site/{safari,sabela,oceansview,
+marmalade}/` makes EVERY public page render through the generic token `PageDocRenderer` — distinct by
+tokens (colour/font/copy) but **NOT the pixel-perfect bespoke designs** the founder built. That's a
+visual change to the live site, not a neutral refactor. The token render variants were never built to
+reproduce each bespoke layout (Phase 2 deferred it). Options to resolve with the founder:
+(a) accept the generic token look at cutover; (b) build layout variants that reproduce each bespoke
+design before deleting; (c) keep bespoke themes as the public render and use v2 only for new custom
+pages. See `docs/features/BUILDER_V2_PLAN.md` §5 Phase 6.
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.
