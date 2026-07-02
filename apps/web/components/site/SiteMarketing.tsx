@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { SiteAnalyticsSettings } from "@/lib/site/types";
+import { CONSENT_KEY, writeConsent } from "@/lib/site/consent";
 
 // Host third-party analytics on a tenant site: Google Analytics 4 + Meta
 // (Facebook) Pixel, gated behind a POPIA cookie-consent banner. The IDs are the
@@ -13,8 +14,6 @@ import type { SiteAnalyticsSettings } from "@/lib/site/types";
 // which case the pixels load immediately. In builder/preview (`interactive`
 // false) nothing is injected and no choice is persisted — so previews never
 // pollute the host's real analytics.
-
-const CONSENT_KEY = "wielo-cookie-consent"; // "accepted" | "declined"
 
 type FbqFn = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void;
@@ -117,13 +116,9 @@ export function SiteMarketing({
   function choose(value: "accepted" | "declined") {
     decided.current = true;
     setConsent(value);
-    if (interactive) {
-      try {
-        window.localStorage.setItem(CONSENT_KEY, value);
-      } catch {
-        // ignore
-      }
-    }
+    // Persist + broadcast so the per-page events / custom code (which gate on the
+    // same consent signal) light up without a reload. Preview persists nothing.
+    if (interactive) writeConsent(value);
   }
 
   // Banner shows only when consent is required and still undecided.

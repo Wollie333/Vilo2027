@@ -16,7 +16,7 @@ import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
-import { PageHeadCode } from "./PageHeadCode";
+import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
 import { SafariSiteView } from "./safari/SafariSiteView";
 import { SabelaSiteView } from "./sabela/SabelaSiteView";
 import { OceansViewSiteView } from "./oceansview/OceansViewSiteView";
@@ -131,12 +131,27 @@ export async function SitePageView({
   const pageHeadCode = !ctx.preview
     ? docMeta.headCode?.trim() || pageOv.headCode?.trim() || ""
     : "";
+  const pageBodyCode = !ctx.preview
+    ? ((docMeta as { bodyCode?: string }).bodyCode?.trim() ?? "")
+    : "";
+  // Everything below sets cookies / tracks, so it's POPIA consent-gated unless the
+  // host turned the gate off (`cookieConsent.enabled === false`).
+  const consentRequired = ctx.analytics?.cookieConsent?.enabled !== false;
   const pageMarketing = (
     <>
       {pageEvents.map((e, i) => (
-        <FirePixelEvent key={`${e}-${i}`} event={e} />
+        <FirePixelEvent
+          key={`${e}-${i}`}
+          event={e}
+          consentRequired={consentRequired}
+        />
       ))}
-      {pageHeadCode ? <PageHeadCode html={pageHeadCode} /> : null}
+      {pageHeadCode ? (
+        <PageHeadCode html={pageHeadCode} consentRequired={consentRequired} />
+      ) : null}
+      {pageBodyCode ? (
+        <PageBodyCode html={pageBodyCode} consentRequired={consentRequired} />
+      ) : null}
     </>
   );
 

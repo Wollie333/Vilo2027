@@ -107,6 +107,8 @@ export default async function SiteFormThankYouPage({
   const goal = resolveGoal(goalSeg);
   const goalCopy = GOALS[goal];
   const firstName = sp?.name?.trim().slice(0, 60) || null;
+  // POPIA: the goal pixel is consent-gated unless the host disabled the gate.
+  const consentRequired = ctx.analytics?.cookieConsent?.enabled !== false;
 
   // The host's per-form copy overrides the goal defaults.
   let message: string = goalCopy.message;
@@ -151,7 +153,12 @@ export default async function SiteFormThankYouPage({
           analytics={ctx.analytics}
           interactive={!ctx.preview}
         >
-          {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
+          {!ctx.preview ? (
+            <FirePixelEvent
+              event={goalCopy.event}
+              consentRequired={consentRequired}
+            />
+          ) : null}
           <SafariThankYouContent
             state="form"
             firstName={firstName}
@@ -185,7 +192,12 @@ export default async function SiteFormThankYouPage({
           analytics={ctx.analytics}
           interactive={!ctx.preview}
         >
-          {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
+          {!ctx.preview ? (
+            <FirePixelEvent
+              event={goalCopy.event}
+              consentRequired={consentRequired}
+            />
+          ) : null}
           <SabelaThankYouContent
             state="form"
             firstName={firstName}
@@ -219,7 +231,12 @@ export default async function SiteFormThankYouPage({
           analytics={ctx.analytics}
           interactive={!ctx.preview}
         >
-          {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
+          {!ctx.preview ? (
+            <FirePixelEvent
+              event={goalCopy.event}
+              consentRequired={consentRequired}
+            />
+          ) : null}
           <OceansViewThankYouContent
             state="form"
             firstName={firstName}
@@ -252,7 +269,12 @@ export default async function SiteFormThankYouPage({
           analytics={ctx.analytics}
           interactive={!ctx.preview}
         >
-          {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
+          {!ctx.preview ? (
+            <FirePixelEvent
+              event={goalCopy.event}
+              consentRequired={consentRequired}
+            />
+          ) : null}
           <MarmaladeThankYouContent
             state="form"
             firstName={firstName}

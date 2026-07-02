@@ -89,10 +89,18 @@ export default async function SiteBlogPostPage({
       ? post.pixelEvent
       : "";
   const postHeadCode = !ctx.preview ? post.headCode : "";
+  const consentRequired = ctx.analytics?.cookieConsent?.enabled !== false;
   const marketing = (
     <>
-      {postPixelEvent ? <FirePixelEvent event={postPixelEvent} /> : null}
-      {postHeadCode ? <PageHeadCode html={postHeadCode} /> : null}
+      {postPixelEvent ? (
+        <FirePixelEvent
+          event={postPixelEvent}
+          consentRequired={consentRequired}
+        />
+      ) : null}
+      {postHeadCode ? (
+        <PageHeadCode html={postHeadCode} consentRequired={consentRequired} />
+      ) : null}
     </>
   );
 

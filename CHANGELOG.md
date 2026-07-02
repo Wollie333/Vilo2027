@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-02 — Tracking/Events redesign Ph3: consent-gated custom code + events
+
+Custom head/body code now injects on the live site (bodyCode was previously dead), and ALL tracking
+(pixels, per-page events, custom code) is POPIA consent-gated via one shared signal.
+
+- **`lib/site/consent.ts`** (new) — shared consent signal: `CONSENT_KEY`/`CONSENT_EVENT`, `readConsent`,
+  `writeConsent` (persist + broadcast), and `useConsentGranted(required)` (true when the gate is off or
+  the visitor accepted; re-runs on the consent-change + `storage` events, no reload).
+- **`SiteMarketing.tsx`** — `choose()` now calls `writeConsent()` (persist + broadcast) so everything
+  else lights up on accept; dropped the local `CONSENT_KEY` (shared).
+- **`PageHeadCode.tsx`** — refactored to a shared `useInjectedSnippet(html, target, consentRequired)`;
+  exports `PageHeadCode` (→ `<head>`) AND new `PageBodyCode` (→ before `</body>`). Both consent-gated.
+- **`FirePixelEvent.tsx`** — gated behind `useConsentGranted(consentRequired)`; new `consentRequired`
+  prop (default true; pass `false` when the host disabled the gate, else it waits for accept).
+- **`SitePageView.tsx`** — computes `consentRequired` from `ctx.analytics.cookieConsent`; threads it into
+  the per-page events + head code, and now injects `meta.bodyCode` via `PageBodyCode`.
+- **`thank-you/[[...goal]]/page.tsx`** + **`blog/[postSlug]/page.tsx`** — thread `consentRequired` into
+  their FirePixelEvent/PageHeadCode so a consent-disabled host still fires immediately.
+- tsc + lint clean, 169 vitest; builder serves 200. **NOTE:** the consent→inject e2e needs a published
+  site with consent + custom code to observe. NEXT = Ph4 (GTM/TikTok/Google Ads injection).
+
 ## 2026-07-02 — Tracking/Events redesign Ph2: per-page Events tab
 
 New **Events** tab in the Page Settings modal (between Tracking & pixels and Custom code) — a curated

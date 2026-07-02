@@ -2,19 +2,31 @@
 
 import { useEffect } from "react";
 
+import { useConsentGranted } from "@/lib/site/consent";
+
 /**
- * Injects a page's custom head code (meta tags / verification / tracking
- * snippets, set in Page settings) into <head> on mount, and removes it on
- * unmount so client navigation between pages doesn't leak one page's code onto
- * the next. Scripts parsed from innerHTML do NOT execute, so we recreate
- * <script> nodes (copying attributes + body) to run them — matching how a CMS
- * "header code injection" box behaves. Rendered on the LIVE site only (never in
- * the builder preview), the same gate as the pixel/analytics.
+ * Inject a page's custom code (meta tags / verification / tracking snippets, set
+ * in Page settings → Custom code) into <head> or before </body> on mount, and
+ * remove it on unmount so client navigation doesn't leak one page's code onto the
+ * next. Scripts parsed from innerHTML do NOT execute, so we recreate <script>
+ * nodes (copying attributes + body) to run them — matching how a CMS "code
+ * injection" box behaves.
+ *
+ * Rendered on the LIVE site only (same gate as the pixels). Because these snippets
+ * commonly set cookies, they are ALSO POPIA consent-gated: when the site requires
+ * consent, nothing injects until the visitor accepts (re-runs on the shared
+ * consent-change signal).
  */
-export function PageHeadCode({ html }: { html: string }) {
+function useInjectedSnippet(
+  html: string,
+  target: "head" | "body",
+  consentRequired: boolean,
+) {
+  const granted = useConsentGranted(consentRequired);
   useEffect(() => {
     const code = html.trim();
-    if (!code) return;
+    if (!code || !granted) return;
+    const root = target === "head" ? document.head : document.body;
     const tpl = document.createElement("template");
     tpl.innerHTML = code;
     const added: Node[] = [];
@@ -26,17 +38,38 @@ export function PageHeadCode({ html }: { html: string }) {
           script.setAttribute(attr.name, attr.value);
         }
         script.textContent = src.textContent;
-        document.head.appendChild(script);
+        root.appendChild(script);
         added.push(script);
       } else {
         const clone = node.cloneNode(true);
-        document.head.appendChild(clone);
+        root.appendChild(clone);
         added.push(clone);
       }
     });
     return () => {
       for (const node of added) node.parentNode?.removeChild(node);
     };
-  }, [html]);
+  }, [html, target, granted]);
+}
+
+export function PageHeadCode({
+  html,
+  consentRequired = true,
+}: {
+  html: string;
+  consentRequired?: boolean;
+}) {
+  useInjectedSnippet(html, "head", consentRequired);
+  return null;
+}
+
+export function PageBodyCode({
+  html,
+  consentRequired = true,
+}: {
+  html: string;
+  consentRequired?: boolean;
+}) {
+  useInjectedSnippet(html, "body", consentRequired);
   return null;
 }
