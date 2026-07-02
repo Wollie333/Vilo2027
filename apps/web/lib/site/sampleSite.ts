@@ -5,15 +5,19 @@
 // to import in client or server.
 
 import type {
+  BlogPreviewData,
   GalleryData,
+  ReviewsData,
   RoomsPreviewData,
   SiteData,
   SiteNavItem,
+  SpecialsPreviewData,
 } from "@/lib/site/types";
 import {
   sectionsSchema,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
+import type { PageDoc } from "@/lib/website/pageDoc.schema";
 
 const IMG = (seed: string) =>
   `https://picsum.photos/seed/wielo-${seed}/900/700`;
@@ -58,6 +62,137 @@ export const DEMO_GALLERY: GalleryData = {
     caption: null,
   })),
 };
+
+export const DEMO_REVIEWS: ReviewsData = {
+  average: 4.8,
+  count: 37,
+  items: [
+    {
+      author: "Thandi M.",
+      rating: 5,
+      body: "The most restful weekend we've had in years.",
+      date: "Mar 2026",
+    },
+    {
+      author: "Pieter V.",
+      rating: 5,
+      body: "Spotless, characterful, and the host went out of her way.",
+      date: "Feb 2026",
+    },
+    {
+      author: "Aisha K.",
+      rating: 4,
+      body: "Beautiful spot. Bring layers — the nights get cold!",
+      date: "Jan 2026",
+    },
+  ],
+};
+
+export const DEMO_BLOG: BlogPreviewData = {
+  posts: [
+    {
+      title: "Five walks within an hour",
+      href: "#",
+      excerpt: "From gentle riverside strolls to the Compassberg summit.",
+      coverUrl: IMG("b1"),
+      date: "Apr 2026",
+    },
+    {
+      title: "What to pack for the Karoo",
+      href: "#",
+      excerpt: "It's hot by day and properly cold by night.",
+      coverUrl: IMG("b2"),
+      date: "Mar 2026",
+    },
+    {
+      title: "Our favourite village suppers",
+      href: "#",
+      excerpt: "Where the locals actually eat.",
+      coverUrl: IMG("b3"),
+      date: "Feb 2026",
+    },
+  ],
+};
+
+export const DEMO_SPECIALS: SpecialsPreviewData = {
+  specials: [
+    {
+      id: "demo-s1",
+      title: "Midweek escape — 20% off",
+      slug: "midweek-escape",
+      description: "Stay Sun–Thu and save on our garden cottages.",
+      imageUrl: IMG("ds1"),
+      badge: "20% off",
+      priceMode: "per_night",
+      price: 1480,
+      currency: "ZAR",
+      wasPrice: 1850,
+      savingsPct: 20,
+      bookHref: "#",
+    },
+    {
+      id: "demo-s2",
+      title: "Stay 3, pay 2",
+      slug: "stay-3-pay-2",
+      description: "Your third night is on us, all season long.",
+      imageUrl: IMG("ds2"),
+      badge: "Free night",
+      priceMode: "flat",
+      price: 3700,
+      currency: "ZAR",
+      bookHref: "#",
+    },
+  ],
+};
+
+// Builder V2 — walk a PageDoc's widget leaves and produce sample SiteData KEYED
+// BY NODE ID, so the auto-populate blocks (rooms grid, room card, gallery,
+// reviews, journal, specials) show representative content on the builder canvas
+// instead of empty states. Pure + client-safe; the public site uses real data.
+export function sampleDataForDoc(doc: PageDoc): SiteData {
+  const out: SiteData = {};
+  const visit = (node: {
+    id: string;
+    type: string;
+    props?: Record<string, unknown>;
+    kids?: unknown[];
+  }) => {
+    if (Array.isArray(node.kids)) {
+      for (const k of node.kids) visit(k as Parameters<typeof visit>[0]);
+      return;
+    }
+    switch (node.type) {
+      case "rooms_preview":
+        out[node.id] = { type: "rooms_preview", data: DEMO_ROOMS };
+        break;
+      case "gallery":
+        out[node.id] = { type: "gallery", data: DEMO_GALLERY };
+        break;
+      case "reviews":
+        out[node.id] = { type: "reviews", data: DEMO_REVIEWS };
+        break;
+      case "blog_preview":
+        out[node.id] = { type: "blog_preview", data: DEMO_BLOG };
+        break;
+      case "specials_preview":
+        out[node.id] = { type: "specials_preview", data: DEMO_SPECIALS };
+        break;
+      case "el_room_card": {
+        const wanted = node.props?.room_id;
+        const room =
+          DEMO_ROOMS.rooms.find((r) => r.id === wanted) ?? DEMO_ROOMS.rooms[0];
+        if (room) out[node.id] = { type: "el_room_card", data: room };
+        break;
+      }
+      default:
+        break;
+    }
+  };
+  for (const s of doc.root.kids) {
+    visit(s as unknown as Parameters<typeof visit>[0]);
+  }
+  return out;
+}
 
 // Stable uuids per section (the schema requires id: uuid).
 const ID = {
@@ -414,61 +549,8 @@ export const SAMPLE_DATA: SiteData = {
       ],
     },
   },
-  [ID.reviews]: {
-    type: "reviews",
-    data: {
-      average: 4.8,
-      count: 37,
-      items: [
-        {
-          author: "Thandi M.",
-          rating: 5,
-          body: "The most restful weekend we've had in years.",
-          date: "Mar 2026",
-        },
-        {
-          author: "Pieter V.",
-          rating: 5,
-          body: "Spotless, characterful, and the host went out of her way.",
-          date: "Feb 2026",
-        },
-        {
-          author: "Aisha K.",
-          rating: 4,
-          body: "Beautiful spot. Bring layers — the nights get cold!",
-          date: "Jan 2026",
-        },
-      ],
-    },
-  },
-  [ID.blog]: {
-    type: "blog_preview",
-    data: {
-      posts: [
-        {
-          title: "Five walks within an hour",
-          href: "#",
-          excerpt: "From gentle riverside strolls to the Compassberg summit.",
-          coverUrl: IMG("b1"),
-          date: "Apr 2026",
-        },
-        {
-          title: "What to pack for the Karoo",
-          href: "#",
-          excerpt: "It's hot by day and properly cold by night.",
-          coverUrl: IMG("b2"),
-          date: "Mar 2026",
-        },
-        {
-          title: "Our favourite village suppers",
-          href: "#",
-          excerpt: "Where the locals actually eat.",
-          coverUrl: IMG("b3"),
-          date: "Feb 2026",
-        },
-      ],
-    },
-  },
+  [ID.reviews]: { type: "reviews", data: DEMO_REVIEWS },
+  [ID.blog]: { type: "blog_preview", data: DEMO_BLOG },
   // Rooms page list — reuses same demo rooms data
   [ID.roomsList]: {
     type: "rooms_preview",
@@ -505,32 +587,5 @@ export const SAMPLE_DATA: SiteData = {
     },
   },
   // Blog page list — reuses same demo posts data
-  [ID.blogList]: {
-    type: "blog_preview",
-    data: {
-      posts: [
-        {
-          title: "Five walks within an hour",
-          href: "#",
-          excerpt: "From gentle riverside strolls to the Compassberg summit.",
-          coverUrl: IMG("b1"),
-          date: "Apr 2026",
-        },
-        {
-          title: "What to pack for the Karoo",
-          href: "#",
-          excerpt: "It's hot by day and properly cold by night.",
-          coverUrl: IMG("b2"),
-          date: "Mar 2026",
-        },
-        {
-          title: "Our favourite village suppers",
-          href: "#",
-          excerpt: "Where the locals actually eat.",
-          coverUrl: IMG("b3"),
-          date: "Feb 2026",
-        },
-      ],
-    },
-  },
+  [ID.blogList]: { type: "blog_preview", data: DEMO_BLOG },
 };

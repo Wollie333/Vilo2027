@@ -1064,6 +1064,21 @@ async function assembleSectionData(
         } as SiteData[string];
     }
   }
+  // el_room_card is a Builder V2 WIDGET (not a SectionType), so it's handled
+  // outside the SectionType switch: each card renders ONE room from the shared
+  // rooms pool, chosen by props.room_id (else the first/featured room).
+  const roomPool = byType.rooms_preview?.rooms ?? [];
+  if (roomPool.length) {
+    for (const s of sections) {
+      if ((s.type as string) !== "el_room_card") continue;
+      const wanted = (s.props as unknown as { room_id?: string }).room_id;
+      const room =
+        (wanted && roomPool.find((r) => r.id === wanted)) ||
+        roomPool.find((r) => r.featured) ||
+        roomPool[0];
+      if (room) data[s.id] = { type: "el_room_card", data: room };
+    }
+  }
   for (const s of sections) {
     switch (s.type) {
       case "gallery":
@@ -1583,7 +1598,9 @@ export async function assembleSiteDataByType(
     // preview / legacy reads website_rooms live. Either way the live
     // property_rooms supply current price/active state and photos.
     (async () => {
-      if (!types.has("rooms_preview")) return;
+      // el_room_card reuses the rooms pool (it picks ONE room from it).
+      const wants = types as Set<string>;
+      if (!wants.has("rooms_preview") && !wants.has("el_room_card")) return;
 
       let overrideRows: SnapshotRoom[];
       if (ctx.publishedRoomRows) {

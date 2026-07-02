@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 5-2: el_room_card live room + sample data on the builder canvas
+
+Second Phase-5 (live data) slice. The single-room card (`el_room_card`) now binds to a real room, and
+the builder canvas shows representative sample content instead of empty auto-populate blocks.
+
+- **`lib/site/types.ts`** — `SiteDataByType` gains `el_room_card: RoomCard` (a card carries ONE room).
+- **`NewLeaves.tsx`** — `RoomCardLeaf` accepts `room?: RoomCard` and renders its real name / meta
+  (facts→description) / price (`Intl.NumberFormat` ZAR) / cover image; with no data it keeps the
+  placeholder (empty-site fallback).
+- **`PageDocRenderer.tsx`** — `WidgetLeaf` looks up `dataFor(ctx.data, node.id, "el_room_card")` and
+  passes the resolved room to the leaf.
+- **`loadSitePage.ts`** (public path) — the rooms assembly now also fires for `el_room_card`; a
+  pre-switch loop picks ONE room from the shared pool by `props.room_id` (else the first/featured) and
+  keys the datum by node id. `el_room_card` is a WIDGET (not a SectionType), so it's handled outside
+  the SectionType switch.
+- **`widgets/registry.ts`** — new `WidgetControl` kind `roompicker`; `el_room_card`'s `room_id` control
+  switches from a free-text field to the picker (default `room_id: ""`).
+- **`BuilderShell.tsx`** — the canvas now passes sample `SiteData` (from `sampleDataForDoc(doc)`), so
+  rooms/room-card/gallery/reviews/journal/specials render live demo content; the inspector threads a
+  `rooms` list into the `roompicker` (a select of the site's rooms, "First / featured room" default).
+- **`lib/site/sampleSite.ts`** — new `sampleDataForDoc(doc)` walks the PageDoc's widget leaves and keys
+  demo data by node id; extracted reusable `DEMO_REVIEWS` / `DEMO_BLOG` / `DEMO_SPECIALS` (dedupes
+  `SAMPLE_DATA`).
+- **`builder-preview/page.tsx`** (dev harness) — passes sample data + binds its two demo room cards to
+  different rooms by `room_id` (proves per-card selection).
+- **Live-verified:** the `/builder` Safari canvas rooms grid + reviews now populate (Garden Suite /
+  Family Cottage / The Loft, demo review authors — no empty states); `/builder-preview?preset=warm`
+  renders the two room cards bound to Garden Suite (demo-r1) + The Loft (demo-r3), 0 console errors.
+  tsc + lint clean, **167 vitest** (added `sampleData.test.ts`, 4 tests). Hit the stale-`.next`
+  vendor-chunk gremlin mid-verify → cleared `.next` + freed port 3000 + restart.
+  **NEXT Phase-5 slices:** booking-funnel widgets → server quote (`/api/website-quote`); room-detail v2
+  template; goal/pixel events on the v2 thank-you. Then Phase 6 (delete legacy builder + bespoke dirs).
+
 ## 2026-07-02 — Builder V2 Phase 5-1: bind logo / nav / social leaves to live data
 
 First Phase-5 (live data) slice. Closes the loop from Brand Studio (4c) + the Nav builder (4d): the

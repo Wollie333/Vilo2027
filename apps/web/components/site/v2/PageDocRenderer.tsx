@@ -11,7 +11,11 @@ import type {
   WidgetNode,
   BoxSpace,
 } from "@/lib/website/pageDoc.schema";
-import type { SiteAssetResolver, SiteData } from "@/lib/site/types";
+import {
+  dataFor,
+  type SiteAssetResolver,
+  type SiteData,
+} from "@/lib/site/types";
 
 import { GenericSection } from "../SectionRenderer";
 import { SectionBoundary } from "../SectionBoundary";
@@ -255,7 +259,13 @@ function WidgetLeaf({ node, ctx }: { node: WidgetNode; ctx: RenderCtx }) {
     case "el_icon":
       return <IconLeaf props={node.props} variant={node.variant} />;
     case "el_room_card":
-      return <RoomCardLeaf props={node.props} variant={node.variant} />;
+      return (
+        <RoomCardLeaf
+          props={node.props}
+          variant={node.variant}
+          room={dataFor(ctx.data, node.id, "el_room_card")}
+        />
+      );
     case "el_logo":
       return (
         <LogoLeaf

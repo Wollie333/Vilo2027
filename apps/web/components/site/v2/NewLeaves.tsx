@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import type { RoomCard } from "@/lib/site/types";
+
 import { elColor } from "../sections/_shared";
 
 // Builder V2 — token-driven leaves for the FIVE new widget types. Each reads the
@@ -232,18 +234,42 @@ export function SocialLeaf({
 }
 
 // ── Room card ─────────────────────────────────────────────────
-// Renders ONE room; live room resolves in Phase 5. Placeholder card for now so
-// the block is visible + selectable in the builder.
+// Renders ONE room bound live via SiteData (chosen by props.room_id, else the
+// first/featured room). With no data (empty site) it falls back to a placeholder
+// so the block stays visible + selectable in the builder.
+function money(price: number | null | undefined, currency?: string | null) {
+  if (price == null) return null;
+  const code = currency || "ZAR";
+  try {
+    return new Intl.NumberFormat("en-ZA", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }).format(price);
+  } catch {
+    return `${code} ${price}`;
+  }
+}
+
 export function RoomCardLeaf({
   props,
   variant,
+  room,
 }: {
   props: Record<string, unknown>;
   variant?: string;
+  room?: RoomCard;
 }) {
   const showPrice = props.show_price !== false;
   const showMeta = props.show_meta !== false;
   const overlay = variant === "overlay";
+
+  const name = room?.name ?? "A lovely room";
+  const meta = room?.facts?.length
+    ? room.facts.join(" · ")
+    : (room?.description ?? "Sleeps 2 · garden-facing");
+  const priceLabel = room ? money(room.price, room.currency) : "from R1,450";
+
   return (
     <div
       style={{
@@ -258,8 +284,9 @@ export function RoomCardLeaf({
       <div
         style={{
           aspectRatio: "4 / 3",
-          background:
-            "linear-gradient(135deg, var(--site-line), var(--site-surface))",
+          background: room?.imageUrl
+            ? `center / cover no-repeat url(${JSON.stringify(room.imageUrl)})`
+            : "linear-gradient(135deg, var(--site-line), var(--site-surface))",
         }}
       />
       <div style={{ padding: overlay ? "0" : "12px 12px 16px" }}>
@@ -271,16 +298,16 @@ export function RoomCardLeaf({
             marginTop: 8,
           }}
         >
-          A lovely room
+          {name}
         </div>
-        {showMeta ? (
+        {showMeta && meta ? (
           <div
             style={{ fontSize: 13, color: "var(--site-mute)", marginTop: 2 }}
           >
-            Sleeps 2 · garden-facing
+            {meta}
           </div>
         ) : null}
-        {showPrice ? (
+        {showPrice && priceLabel ? (
           <div
             style={{
               marginTop: 8,
@@ -288,7 +315,7 @@ export function RoomCardLeaf({
               color: "var(--site-accent)",
             }}
           >
-            from R1,450
+            {room ? `from ${priceLabel}` : priceLabel}
           </div>
         ) : null}
       </div>

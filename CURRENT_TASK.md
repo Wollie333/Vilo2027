@@ -289,10 +289,24 @@ vilotest (`host@vilotest.com`) + a save point.
   live); BrandStudioOverlay preview passes brand; public `SitePageView` v:2 path passes `ctx.brand` +
   `ctx.navigation.menu`. Live-verified on `/builder-preview?preset=warm` (M+Marmalade House logo, live
   menu, 2 social icons w/ x excluded; 0 console errors). tsc+lint clean, 163 vitest, build green.
-- **NEXT — Phase 5 slices:** `el_room_card` live room (add a room-picker inspector control) + auto-
-  populate sample data on the builder canvas; booking-funnel widgets → server quote (`/api/website-quote`
-  → `quoteWebsiteStay`); room-detail v2 template; goal/pixel events on v2 thank-you. Then **Phase 6**
-  (delete legacy builder + bespoke theme dirs at cutover).
+- **Phase 5-2 — el_room_card live room + sample data on the builder canvas (DONE + LIVE-VERIFIED,
+  2026-07-02):** `SiteDataByType` gains `el_room_card: RoomCard`; `RoomCardLeaf` renders a real room
+  (name/meta/price `Intl` ZAR/cover image, placeholder fallback); `PageDocRenderer.WidgetLeaf` looks up
+  `dataFor(ctx.data, id, "el_room_card")`. Public path (`loadSitePage`): rooms assembly also fires for
+  `el_room_card`; a PRE-switch loop picks ONE room from the shared pool by `props.room_id` (else
+  first/featured) keyed by node id — el_room_card is a WIDGET not a SectionType, so it lives outside the
+  SectionType switch. Registry: new `roompicker` control kind (replaces the room_id free-text). Builder:
+  canvas passes sample `SiteData` from new **`sampleDataForDoc(doc)`** (walks widget leaves → demo data
+  keyed by node id; extracted reusable `DEMO_REVIEWS/DEMO_BLOG/DEMO_SPECIALS`), inspector threads a
+  `rooms` list into the picker. Dev `builder-preview` passes sample data + binds its 2 demo cards to
+  different rooms by id. **Live-verified:** `/builder` Safari canvas rooms grid + reviews populate (no
+  empty states); `/builder-preview?preset=warm` shows the 2 cards → Garden Suite (demo-r1) + The Loft
+  (demo-r3), 0 console errors. tsc+lint clean, **167 vitest** (+`sampleData.test.ts`). (Stale-`.next`
+  gremlin again → cleared + freed :3000 + restart, [[next-stale-vendor-chunks]].)
+- **NEXT — Phase 5 slices:** booking-funnel widgets → server quote (`/api/website-quote`
+  → `quoteWebsiteStay`, never client prices); room-detail v2 template with room-scoped widgets;
+  goal/pixel events on v2 thank-you. Then **Phase 6** (delete legacy builder + bespoke theme dirs at
+  cutover).
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

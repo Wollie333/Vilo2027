@@ -90,6 +90,7 @@ import {
 } from "@/lib/website/pageDocOps";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
+import { DEMO_ROOMS, sampleDataForDoc } from "@/lib/site/sampleSite";
 import { PageSettingsOverlay } from "./PageSettingsOverlay";
 import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
 import { NavBuilderOverlay } from "./NavBuilderOverlay";
@@ -709,6 +710,14 @@ export function BuilderShell({
     () => (navigation.menu ?? []).map((m) => m.label),
     [navigation.menu],
   );
+  // Sample live data so auto-populate blocks (rooms, room card, gallery, reviews,
+  // journal, specials) render representative content on the builder canvas.
+  const sampleData = useMemo(() => sampleDataForDoc(doc), [doc]);
+  // Room options for the Room Card picker (from the same demo rooms).
+  const roomOpts = useMemo(
+    () => DEMO_ROOMS.rooms.map((r) => ({ id: r.id, name: r.name })),
+    [],
+  );
   const canvas = useMemo(
     () => (
       <SiteThemeRoot theme={workTheme}>
@@ -717,10 +726,11 @@ export function BuilderShell({
           device={device}
           brand={brand}
           menu={menuLabels}
+          data={sampleData}
         />
       </SiteThemeRoot>
     ),
-    [workTheme, doc, device, brand, menuLabels],
+    [workTheme, doc, device, brand, menuLabels, sampleData],
   );
 
   const stageClass = ["stage", device, dragging && "wb-dragging"]
@@ -1045,6 +1055,7 @@ export function BuilderShell({
                     onPatch={patchProps}
                     onPatchNode={patchNode}
                     onPatchResp={patchResp}
+                    rooms={roomOpts}
                   />
                 ) : (
                   <PanelPlaceholder
@@ -1536,6 +1547,7 @@ function Inspector({
   onPatch,
   onPatchNode,
   onPatchResp,
+  rooms,
 }: {
   node: AnyNode;
   device: Device;
@@ -1543,6 +1555,8 @@ function Inspector({
   onPatch: (key: string, value: unknown) => void;
   onPatchNode: (patch: Record<string, unknown>) => void;
   onPatchResp: (patch: RespPatch) => void;
+  /** Live room options for the Room Card picker control. */
+  rooms?: { id: string; name: string }[];
 }) {
   const [tab, setTab] = useState<InspectorTab>("content");
   const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
@@ -1634,6 +1648,7 @@ function Inspector({
                   overridden={propOver(ctl.key)}
                   onChange={(v) => setProp(ctl.key, v)}
                   onRevert={() => revertProp(ctl.key)}
+                  rooms={rooms}
                 />
               ),
             )
@@ -1895,12 +1910,15 @@ function Control({
   overridden,
   onChange,
   onRevert,
+  rooms,
 }: {
   ctl: WidgetControl;
   value?: unknown;
   overridden?: boolean;
   onChange?: (value: unknown) => void;
   onRevert?: () => void;
+  /** Live room options — used by the "roompicker" control. */
+  rooms?: { id: string; name: string }[];
 }) {
   if (ctl.kind === "hint") return <div className="hint">{ctl.text}</div>;
   const set = onChange ?? (() => {});
@@ -1949,6 +1967,24 @@ function Control({
             {ctl.options.map(([v, l]) => (
               <option key={v} value={v}>
                 {l}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    case "roompicker":
+      return (
+        <div className="ctl">
+          {label}
+          <select
+            className="inp"
+            value={str(value)}
+            onChange={(e) => set(e.target.value)}
+          >
+            <option value="">First / featured room</option>
+            {(rooms ?? []).map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
               </option>
             ))}
           </select>

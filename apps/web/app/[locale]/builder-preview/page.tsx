@@ -9,6 +9,7 @@ import {
 } from "@/lib/website/widgets/factories";
 import { getThemeBlueprints } from "@/lib/website/themeSections";
 import { resolveThemeBase } from "@/lib/site/themes.server";
+import { sampleDataForDoc } from "@/lib/site/sampleSite";
 import type { WidgetNode } from "@/lib/website/pageDoc.schema";
 
 // Builder V2 — DEV-ONLY preview of the token-driven PageDoc renderer.
@@ -124,10 +125,11 @@ function demoDoc() {
   );
   doc.root.kids.push(s4b);
 
-  // 5 — two room cards (variants)
+  // 5 — two room cards (variants), each bound to a DIFFERENT sample room by
+  // room_id (proves the picker's per-card room selection).
   const s5 = newSection([6, 6]);
-  s5.kids[0].kids.push(w("el_room_card", {}, "postcard"));
-  s5.kids[1].kids.push(w("el_room_card", {}, "clean"));
+  s5.kids[0].kids.push(w("el_room_card", { room_id: "demo-r1" }, "postcard"));
+  s5.kids[1].kids.push(w("el_room_card", { room_id: "demo-r3" }, "clean"));
   doc.root.kids.push(s5);
 
   // 6 — composite Wielo blocks INSIDE columns (content + sidebar). Proves the
@@ -237,6 +239,7 @@ export default async function BuilderPreviewPage({
 
   // ── Hand-built demo mode (token re-theming of one document) ──
   const preset = searchParams?.preset ?? "warm";
+  const doc = demoDoc();
   return (
     <SiteThemeRoot theme={{ preset }}>
       <Switcher pages={[]} />
@@ -247,8 +250,9 @@ export default async function BuilderPreviewPage({
         theme above to preview its real blueprint.
       </div>
       <PageDocRenderer
-        doc={demoDoc()}
+        doc={doc}
         device="desktop"
+        data={sampleDataForDoc(doc)}
         brand={{
           name: "Marmalade House",
           monogram: "M",

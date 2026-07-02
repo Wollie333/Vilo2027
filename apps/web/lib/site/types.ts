@@ -482,6 +482,9 @@ export type SeasonalPricingData = { seasons: SeasonRow[] };
 export type SiteDataByType = {
   gallery: GalleryData;
   rooms_preview: RoomsPreviewData;
+  // A single-room card (Builder V2 el_room_card). Renders ONE room chosen from
+  // the site's rooms by props.room_id (else the first/featured); reuses RoomCard.
+  el_room_card: RoomCard;
   location: LocationData;
   reviews: ReviewsData;
   blog_preview: BlogPreviewData;

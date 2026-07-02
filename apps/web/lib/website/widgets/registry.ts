@@ -39,6 +39,8 @@ export type WidgetControl =
   | { kind: "toggle"; key: string; label: string; hint?: string }
   | { kind: "align"; key: string; label: string }
   | { kind: "color"; key: string; label: string }
+  // Dynamic select of the site's live rooms (options injected by the builder).
+  | { kind: "roompicker"; key: string; label: string }
   | { kind: "hint"; text: string };
 
 export interface WidgetDef {
@@ -336,14 +338,9 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       v,
       v[0].toUpperCase() + v.slice(1),
     ]) as [string, string][],
-    defaults: { show_price: true, show_meta: true },
+    defaults: { room_id: "", show_price: true, show_meta: true },
     content: [
-      {
-        kind: "text",
-        key: "room_id",
-        label: "Room",
-        placeholder: "First / featured room",
-      },
+      { kind: "roompicker", key: "room_id", label: "Room" },
       { kind: "toggle", key: "show_price", label: "Show price" },
       { kind: "toggle", key: "show_meta", label: "Show details" },
     ],
