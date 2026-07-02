@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 6 follow-up ②: system widgets in the drag library (page-kind gated).
+
+The builder's drag library now offers the 6 system/page-template blocks so a host can drag NEW ones
+(previously they could only edit seeded instances). They're contextual — surfaced only on the page kind
+that supplies their data.
+
+- **`pageDoc.schema.ts`** — added `search_results` + `room_gallery`/`room_overview`/`room_amenities`/
+  `room_rate`/`room_policies` to `WIDGET_TYPES` (all already in `SECTION_TYPES` → already renderable; this
+  just exposes them in the curated library). `WIDGET_DEFS` stays exhaustive over `WidgetType`, so TS forces
+  a def for each.
+- **`registry.ts`** — new `"system"` group ("Room & search"); a def per block (group/icon/variants/
+  defaults/content + `dataKey`); new optional `pageKinds` field; pure `widgetAvailableOnPage(def, pageKind)`
+  helper (universal widget → always; contextual → only when `pageKind` matches). Room blocks gated to
+  `room_detail`, search to `search_results`.
+- **`BuilderShell.tsx`** — `WidgetLibrary` takes `pageKind` and filters via `widgetAvailableOnPage`; new
+  lucide glyphs (ListFilter/Images/DoorOpen/ListChecks/BadgeDollarSign/ScrollText). **`page.tsx`** threads
+  the page kind through (real mode = DB `page.kind`; demo = blueprint key).
+- **Render + sample data unchanged** — these types already render through `GenericSection`; a fresh drop is
+  keyed by node id and `sampleDataForDoc` already previews them (proven in Phase 5-4).
+- **Verified:** tsc + lint + `pnpm build` + 172 vitest (was 169: +`widgetAvailableOnPage` both-ways gate +
+  system-block `pageKinds` assertions; the generic factory test already validates `newWidget` for the 6 new
+  types). Live: builder library renders clean, the system group is correctly ABSENT on non-matching pages
+  (demo/home). The POSITIVE library case (group SHOWING on room_detail/search) is unit-proven — real-mode
+  gating needs a host session the local preview can't supply. NEXT: ③ nav-studio cutover + residual safari.
+
 ## 2026-07-02 — Builder V2 Phase 6 follow-up ①: live-verified public render; fixed dark-band self-reference.
 
 Seeded the vilotest fixture (`seed-test-site.mjs` + `seed-safari-qa.mjs`) and eyeballed the public site

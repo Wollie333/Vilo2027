@@ -59,6 +59,12 @@ import {
   Map as MapIcon,
   Hexagon,
   Share2,
+  ListFilter,
+  Images,
+  DoorOpen,
+  ListChecks,
+  BadgeDollarSign,
+  ScrollText,
   Square,
   type LucideIcon,
 } from "lucide-react";
@@ -66,6 +72,7 @@ import {
 import {
   WIDGET_DEFS,
   WIDGET_GROUPS,
+  widgetAvailableOnPage,
   type WidgetControl,
 } from "@/lib/website/widgets/registry";
 import type {
@@ -152,6 +159,12 @@ const WIDGET_ICONS: Record<string, LucideIcon> = {
   Hexagon,
   Menu,
   Share2,
+  ListFilter,
+  Images,
+  DoorOpen,
+  ListChecks,
+  BadgeDollarSign,
+  ScrollText,
 };
 
 const DEVICES: { key: Device; label: string; Icon: LucideIcon }[] = [
@@ -204,11 +217,15 @@ export function BuilderShell({
   navigation: initialNav = {},
   analytics: initialAnalytics = EMPTY_ANALYTICS,
   pages = [],
+  pageKind,
 }: {
   docName: string;
   themeLabel: string;
   theme: SiteThemeConfig;
   initialDoc: PageDoc;
+  /** This page's kind (home/about/room_detail/search_results/…) — gates the
+   *  contextual widgets (room-scoped, search_results) in the library. */
+  pageKind?: string;
   /** When both are present the builder persists (autosave + publish) to this page. */
   websiteId?: string;
   pageId?: string;
@@ -1063,6 +1080,7 @@ export function BuilderShell({
                 <WidgetLibrary
                   query={query}
                   setQuery={setQuery}
+                  pageKind={pageKind}
                   onWidgetDragStart={startWidgetDrag}
                   onWidgetDragEnd={endDrag}
                 />
@@ -1389,11 +1407,13 @@ function badgeClass(kind: string): string {
 function WidgetLibrary({
   query,
   setQuery,
+  pageKind,
   onWidgetDragStart,
   onWidgetDragEnd,
 }: {
   query: string;
   setQuery: (v: string) => void;
+  pageKind?: string;
   onWidgetDragStart: (type: WidgetType, e: React.DragEvent) => void;
   onWidgetDragEnd: () => void;
 }) {
@@ -1414,6 +1434,8 @@ function WidgetLibrary({
         const defs = Object.values(WIDGET_DEFS).filter(
           (d) =>
             d.group === group &&
+            // Contextual widgets only appear on their matching page kind.
+            widgetAvailableOnPage(d, pageKind) &&
             (!q || d.label.toLowerCase().includes(q) || d.type.includes(q)),
         );
         if (defs.length === 0) return null;

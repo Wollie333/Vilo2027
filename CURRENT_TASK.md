@@ -26,9 +26,13 @@ ALONE — never `git add -A` (use `git add -u` / explicit paths).
   checkout through the generic token path. Surfaced + FIXED a real dark-band self-reference bug (legacy
   `SectionWrap` painted white-on-white — the Safari hero headline was invisible). Fix: split the tone fill
   (outer) from the `--site-*` overrides (inner), matching `PageDocRenderer`. All bands legible; gates green.
-- **② Add the system widgets to the builder drag library** — room_gallery/overview/amenities/rate/
-  policies + search_results into `WIDGET_DEFS` so users can drag NEW system blocks (they can already edit
-  seeded ones). `sampleDataForDoc` already previews them.
+- **② Add the system widgets to the builder drag library — ✅ DONE (2026-07-02).** Added
+  room_gallery/overview/amenities/rate/policies + search_results to `WIDGET_TYPES` + `WIDGET_DEFS` (new
+  `"system"` group "Room & search"), gated by a new `pageKinds` field via the pure
+  `widgetAvailableOnPage(def, pageKind)` helper — room blocks only on `room_detail`, search only on
+  `search_results`. `page.tsx` threads the page kind into `BuilderShell`→`WidgetLibrary`. +3 vitest (172).
+  Gating is unit-proven both ways; live-confirmed the group is correctly HIDDEN on non-matching pages
+  (the SHOWING case needs a host session the preview can't supply — render path already proven in 5-4).
 - **③ Nav-studio cutover + delete residual safari** — the full-screen nav studio
   (`website-editor/[websiteId]/navigation`) still imports `SafariNavCanvas`, so
   `components/site/safari/{SafariNavCanvas,SafariShell,SafariNav,SafariLightbox,safari.css}` +

@@ -7,7 +7,7 @@ import {
   isPageDoc,
   parsePageDocLoose,
 } from "../pageDoc.schema";
-import { WIDGET_DEFS, WIDGET_GROUPS } from "./registry";
+import { WIDGET_DEFS, WIDGET_GROUPS, widgetAvailableOnPage } from "./registry";
 import { newWidget, newSection, newPageDoc, reidNode } from "./factories";
 
 describe("widget registry", () => {
@@ -30,6 +30,45 @@ describe("widget registry", () => {
     for (const def of Object.values(WIDGET_DEFS)) {
       if (def.autoPopulate) expect(def.dataKey).toBeTruthy();
     }
+  });
+
+  it("system blocks are gated to their page kind", () => {
+    const ROOM = [
+      "room_gallery",
+      "room_overview",
+      "room_amenities",
+      "room_rate",
+      "room_policies",
+    ] as const;
+    for (const t of ROOM)
+      expect(WIDGET_DEFS[t].pageKinds).toEqual(["room_detail"]);
+    expect(WIDGET_DEFS.search_results.pageKinds).toEqual(["search_results"]);
+  });
+});
+
+describe("widgetAvailableOnPage", () => {
+  it("offers universal widgets on any page (incl. none)", () => {
+    expect(widgetAvailableOnPage(WIDGET_DEFS.el_heading, "home")).toBe(true);
+    expect(widgetAvailableOnPage(WIDGET_DEFS.el_heading, undefined)).toBe(true);
+    expect(
+      widgetAvailableOnPage(WIDGET_DEFS.rooms_preview, "room_detail"),
+    ).toBe(true);
+  });
+
+  it("offers a contextual widget only on its matching page kind", () => {
+    expect(widgetAvailableOnPage(WIDGET_DEFS.room_gallery, "room_detail")).toBe(
+      true,
+    );
+    expect(widgetAvailableOnPage(WIDGET_DEFS.room_gallery, "home")).toBe(false);
+    expect(widgetAvailableOnPage(WIDGET_DEFS.room_gallery, undefined)).toBe(
+      false,
+    );
+    expect(
+      widgetAvailableOnPage(WIDGET_DEFS.search_results, "search_results"),
+    ).toBe(true);
+    expect(
+      widgetAvailableOnPage(WIDGET_DEFS.search_results, "room_detail"),
+    ).toBe(false);
   });
 });
 

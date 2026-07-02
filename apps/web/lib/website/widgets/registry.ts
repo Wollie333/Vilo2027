@@ -19,7 +19,7 @@ import {
   SOCIAL_VARIANTS,
 } from "./newTypes.schema";
 
-export type WidgetGroup = "basic" | "media" | "wielo" | "site";
+export type WidgetGroup = "basic" | "media" | "wielo" | "site" | "system";
 
 /** Declarative inspector control (Content tab). Style/Advanced/Responsive are generic. */
 export type WidgetControl =
@@ -53,6 +53,12 @@ export interface WidgetDef {
   autoPopulate?: boolean;
   /** SiteData bucket / legacy section type reused for data + shared render. */
   dataKey?: string;
+  /**
+   * Contextual widgets: the library only OFFERS this widget on a page whose
+   * `kind` is listed here (room-scoped blocks need the room_detail route's active
+   * room; search_results needs the search page). Undefined = available on any page.
+   */
+  pageKinds?: readonly string[];
   /** Shared layout variants; the theme blueprint picks the default (index 0). */
   variants?: [string, string][];
   /** Initial props on drop — existing token vocabulary, brand-safe. */
@@ -539,6 +545,123 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       ALIGN_CTL(),
     ],
   },
+
+  // ── System / page-template blocks (contextual — see `pageKinds`) ──
+  // Search-results page: a search form + live list of available stays.
+  search_results: {
+    type: "search_results",
+    group: "system",
+    label: "Search Results",
+    icon: "ListFilter",
+    autoPopulate: true,
+    dataKey: "search_results",
+    pageKinds: ["search_results"],
+    defaults: {
+      heading: "Available stays",
+      body: "Choose your dates to see what’s open — book direct for the best rate.",
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "textarea", key: "body", label: "Intro" },
+      {
+        kind: "hint",
+        text: "Dates search the live availability engine — prices are always recalculated server-side.",
+      },
+    ],
+  },
+  // Room detail: the SINGLE room in scope (injected by the /rooms/<slug> route).
+  room_gallery: {
+    type: "room_gallery",
+    group: "system",
+    label: "Room Gallery",
+    icon: "Images",
+    autoPopulate: true,
+    dataKey: "room_gallery",
+    pageKinds: ["room_detail"],
+    variants: [
+      ["carousel", "Carousel"],
+      ["mosaic", "Mosaic"],
+      ["grid", "Grid"],
+      ["stacked", "Stacked"],
+    ],
+    defaults: { max: 12 },
+    content: [
+      { kind: "range", key: "max", label: "Photos", min: 1, max: 30 },
+      { kind: "hint", text: "Shows the photos of the room being viewed." },
+    ],
+  },
+  room_overview: {
+    type: "room_overview",
+    group: "system",
+    label: "Room Overview",
+    icon: "DoorOpen",
+    autoPopulate: true,
+    dataKey: "room_overview",
+    pageKinds: ["room_detail"],
+    variants: [
+      ["split", "Split"],
+      ["stacked", "Stacked"],
+    ],
+    defaults: { show_facts: true, show_price: true },
+    content: [
+      { kind: "text", key: "heading", label: "Heading override" },
+      { kind: "toggle", key: "show_facts", label: "Show room facts" },
+      { kind: "toggle", key: "show_price", label: "Show price + book" },
+      {
+        kind: "hint",
+        text: "Name, facts, description + price come from the room being viewed.",
+      },
+    ],
+  },
+  room_amenities: {
+    type: "room_amenities",
+    group: "system",
+    label: "Room Amenities",
+    icon: "ListChecks",
+    autoPopulate: true,
+    dataKey: "room_amenities",
+    pageKinds: ["room_detail"],
+    variants: [
+      ["grid", "Grid"],
+      ["list", "List"],
+    ],
+    defaults: { heading: "Room amenities" },
+    content: [{ kind: "text", key: "heading", label: "Heading" }],
+  },
+  room_rate: {
+    type: "room_rate",
+    group: "system",
+    label: "Room Rate + Book",
+    icon: "BadgeDollarSign",
+    autoPopulate: true,
+    dataKey: "room_rate",
+    pageKinds: ["room_detail"],
+    variants: [
+      ["card", "Card"],
+      ["banner", "Banner"],
+    ],
+    defaults: { cta_label: "Book this room" },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "text", key: "cta_label", label: "Button label" },
+      { kind: "text", key: "note", label: "Note" },
+    ],
+  },
+  room_policies: {
+    type: "room_policies",
+    group: "system",
+    label: "Room Policies",
+    icon: "ScrollText",
+    autoPopulate: true,
+    dataKey: "room_policies",
+    pageKinds: ["room_detail"],
+    variants: [
+      ["grid", "Grid"],
+      ["list", "List"],
+    ],
+    defaults: { heading: "Things to know" },
+    content: [{ kind: "text", key: "heading", label: "Heading" }],
+  },
 };
 
 /** Library grouping order + labels (matches the prototype). */
@@ -547,10 +670,25 @@ export const WIDGET_GROUPS: [WidgetGroup, string][] = [
   ["media", "Media"],
   ["wielo", "Wielo blocks"],
   ["site", "Site parts"],
+  ["system", "Room & search"],
 ];
 
 export function widgetDef(type: WidgetType): WidgetDef {
   return WIDGET_DEFS[type];
+}
+
+/**
+ * Whether the drag-library should OFFER this widget on a page of the given kind.
+ * A widget with no `pageKinds` is universal; a contextual one (room-scoped blocks,
+ * search_results) is offered only on its matching page kind — dropping it elsewhere
+ * would render an empty placeholder (no room / no search in scope).
+ */
+export function widgetAvailableOnPage(
+  def: WidgetDef,
+  pageKind?: string,
+): boolean {
+  if (!def.pageKinds) return true;
+  return !!pageKind && def.pageKinds.includes(pageKind);
 }
 
 /** A fresh copy of a widget's default props (deep-cloned so nodes never share refs). */

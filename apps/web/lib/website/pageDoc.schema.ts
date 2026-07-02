@@ -53,6 +53,15 @@ export const WIDGET_TYPES = [
   "el_logo", // NEW
   "el_nav", // NEW
   "el_social", // NEW
+  // System / page-template blocks — contextual: the library only offers these on
+  // the matching page kind (registry `pageKinds`). They render the SINGLE room in
+  // scope (room_detail route) or the live search results (search-results page).
+  "search_results", // search-results page
+  "room_gallery", // room_detail
+  "room_overview", // room_detail
+  "room_amenities", // room_detail
+  "room_rate", // room_detail
+  "room_policies", // room_detail
 ] as const;
 export type WidgetType = (typeof WIDGET_TYPES)[number];
 

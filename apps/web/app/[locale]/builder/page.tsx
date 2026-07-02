@@ -92,6 +92,7 @@ async function loadRealPage(
 ): Promise<{
   doc: PageDoc;
   docName: string;
+  kind: string;
   theme: SiteThemeConfig;
   domain: string;
   brand: BuilderBrand;
@@ -158,6 +159,7 @@ async function loadRealPage(
   return {
     doc,
     docName: page.title?.trim() || themeName(page.kind),
+    kind: page.kind,
     theme: (site?.theme ?? {}) as SiteThemeConfig,
     domain,
     brand: toBuilderBrand(site?.brand),
@@ -197,6 +199,7 @@ export default async function BuilderPage({
           navigation={real.navigation}
           analytics={real.analytics}
           pages={real.pages}
+          pageKind={real.kind}
         />
       );
     }
@@ -244,6 +247,7 @@ export default async function BuilderPage({
       }}
       navigation={demoNav}
       pages={demoPages}
+      pageKind={chosen?.key}
     />
   );
 }
