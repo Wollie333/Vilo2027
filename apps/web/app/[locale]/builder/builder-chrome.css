@@ -605,6 +605,18 @@
   cursor: default;
   background: none;
 }
+/* "↑ Section" chip — jump from an element to its wrapping section (auto width). */
+.wb .node-badge button.nb-parent {
+  width: auto;
+  gap: 3px;
+  padding: 0 7px 0 5px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.16);
+}
+.wb .node-badge button.nb-parent:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
 
 /* Add-section affordance at the foot of the canvas. */
 .wb .add-sec {

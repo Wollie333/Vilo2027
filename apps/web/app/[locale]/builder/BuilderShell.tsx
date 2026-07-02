@@ -299,6 +299,9 @@ export function BuilderShell({
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
+  // Which inspector tab is open — lifted out of Inspector so the section gear icon
+  // (and the "↑ Section" chip) can jump straight to the Style tab.
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("content");
   const [query, setQuery] = useState("");
   const [roomDataOpen, setRoomDataOpen] = useState(false);
   const [amenityDataOpen, setAmenityDataOpen] = useState(false);
@@ -637,6 +640,30 @@ export function BuilderShell({
     setSelectedId(id);
     if (id) setMode("settings");
   }, []);
+
+  // Section gear → jump straight to the selected section's Style tab.
+  const openStyleTab = useCallback(() => {
+    setMode("settings");
+    setInspectorTab("style");
+  }, []);
+
+  // "↑ Section" chip on an element → select its wrapping section + open Style.
+  // Uses the rendered DOM (the canvas is a live tree) to find the nearest section
+  // ancestor of the selected node.
+  const selectParentSection = useCallback(() => {
+    if (!selectedId) return;
+    const el = document.querySelector<HTMLElement>(
+      `[data-node-id="${CSS.escape(selectedId)}"]`,
+    );
+    const sec = el?.parentElement?.closest<HTMLElement>(
+      '[data-node-kind="section"]',
+    );
+    const secId = sec?.dataset.nodeId;
+    if (secId) {
+      selectNode(secId);
+      setInspectorTab("style");
+    }
+  }, [selectedId, selectNode]);
 
   // Click a canvas node → select the innermost node; empty click → deselect.
   const onCanvasClick = (e: React.MouseEvent) => {
@@ -1270,6 +1297,8 @@ export function BuilderShell({
                     node={selected.node as AnyNode}
                     device={device}
                     onDevice={setDevice}
+                    tab={inspectorTab}
+                    onTabChange={setInspectorTab}
                     onPatch={patchProps}
                     onPatchNode={patchNode}
                     onPatchResp={patchResp}
@@ -1381,6 +1410,17 @@ export function BuilderShell({
                 <span className="nb-lbl">
                   {nodeMeta(selected.node as AnyNode).label}
                 </span>
+                {(selected.node as AnyNode).type !== "section" && (
+                  <button
+                    className="nb-parent"
+                    type="button"
+                    title="Select the wrapping section (style it)"
+                    onClick={selectParentSection}
+                  >
+                    <ArrowUp size={12} strokeWidth={2.2} />
+                    Section
+                  </button>
+                )}
                 {isWidgetRequiredOnPage(
                   (selected.node as AnyNode).type,
                   pageKind,
@@ -1409,6 +1449,15 @@ export function BuilderShell({
                 >
                   <ArrowDown size={14} strokeWidth={2} />
                 </button>
+                {(selected.node as AnyNode).type === "section" && (
+                  <button
+                    title="Style this section"
+                    type="button"
+                    onClick={openStyleTab}
+                  >
+                    <Settings size={14} strokeWidth={2} />
+                  </button>
+                )}
                 <button title="Duplicate" type="button" onClick={doDuplicate}>
                   <Copy size={14} strokeWidth={2} />
                 </button>
@@ -1889,6 +1938,8 @@ function Inspector({
   node,
   device,
   onDevice,
+  tab,
+  onTabChange,
   onPatch,
   onPatchNode,
   onPatchResp,
@@ -1900,6 +1951,9 @@ function Inspector({
   node: AnyNode;
   device: Device;
   onDevice: (d: Device) => void;
+  /** Active inspector tab — lifted so the section gear can open Style directly. */
+  tab: InspectorTab;
+  onTabChange: (t: InspectorTab) => void;
   onPatch: (key: string, value: unknown) => void;
   onPatchNode: (patch: Record<string, unknown>) => void;
   onPatchResp: (patch: RespPatch) => void;
@@ -1912,7 +1966,7 @@ function Inspector({
   /** Present on the `gallery` block — opens the "Edit photos" modal. */
   onEditGallery?: () => void;
 }) {
-  const [tab, setTab] = useState<InspectorTab>("content");
+  const setTab = onTabChange;
   const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
   const props = ("props" in node ? node.props : {}) as Record<string, unknown>;
   const n = node as unknown as NodeFields;
