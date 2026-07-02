@@ -2401,7 +2401,24 @@ export type SiteRoomResult = {
   data: SiteData;
   /** "/rooms" listing page path, when one exists (for the breadcrumb). */
   roomsHref: string | null;
+  /** Builder V2: when the room-detail template is a PageDoc, render it through
+   *  the token PageDocRenderer (room-scoped leaves get the active room injected). */
+  doc?: PageDoc;
 };
+
+/** Raw room-detail template value (draft in preview, else published) — used to
+ *  detect a Builder V2 PageDoc template before the flat parse. */
+async function loadRoomDetailRaw(ctx: SiteContext): Promise<unknown> {
+  const sb = createAdminClient();
+  const { data: pageRow } = await sb
+    .from("website_pages")
+    .select("draft_sections, published_sections")
+    .eq("website_id", ctx.websiteId)
+    .eq("kind", "room_detail")
+    .maybeSingle<{ draft_sections: unknown; published_sections: unknown }>();
+  if (!pageRow) return null;
+  return ctx.preview ? pageRow.draft_sections : pageRow.published_sections;
+}
 
 /**
  * Assemble a full room-detail page: the viewed room + the template sections +
@@ -2415,6 +2432,24 @@ export async function loadSiteRoomPage(
   const room = await loadRoomDetail(ctx, roomSlug);
   if (!room) return null;
   const sb = createAdminClient();
+
+  // Builder V2: a PageDoc room-detail template renders through the token
+  // PageDocRenderer. Assemble data from its widget leaves (keyed by node id) with
+  // the active room injected into the room-scoped leaves; skip the flat per-room
+  // override merge (overrides apply to the legacy flat model only).
+  const rawTemplate = await loadRoomDetailRaw(ctx);
+  if (isPageDoc(rawTemplate)) {
+    const parsed = parsePageDocLoose(rawTemplate);
+    if (parsed) {
+      const docSan = sanitisePageDoc(parsed);
+      const [roomsHref, data] = await Promise.all([
+        findRoomsIndexHref(ctx),
+        assembleSectionData(sb, ctx, pageDocLeafSections(docSan), room),
+      ]);
+      return { room, sections: [], data, roomsHref, doc: docSan };
+    }
+  }
+
   const [template, roomsHref, overrideRow] = await Promise.all([
     loadRoomDetailSections(ctx),
     findRoomsIndexHref(ctx),

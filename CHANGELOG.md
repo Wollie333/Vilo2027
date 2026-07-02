@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 5-4: room-detail v2 template (token render + room-scoped widgets)
+
+The `/rooms/<slug>` page can now render from a Builder V2 PageDoc template through the ONE token
+renderer (the intended cutover behaviour — bypasses the bespoke per-theme room layers). Plus the
+room-scoped widgets now render sample content on the builder canvas.
+
+- **`loadSitePage.ts`** — `SiteRoomResult` gains an optional `doc`; new `loadRoomDetailRaw(ctx)` reads
+  the raw `room_detail` template value (draft in preview, else published). `loadSiteRoomPage` detects a
+  PageDoc template → sanitises it, assembles `SiteData` from its widget leaves with the ACTIVE room
+  injected into the room-scoped leaves (reuses `assembleSectionData(..., room)` — the same injection the
+  flat room page uses), and returns `{ doc }`. Skips the flat per-room override merge (overrides apply to
+  the legacy flat model only). Legacy flat templates + the theme default are unchanged.
+- **`SiteRoomView.tsx`** — when `result.doc` is present, renders the breadcrumb + `PageDocRenderer`
+  (data + room injection + brand + menu) inside the GENERIC `SiteChrome`, before the bespoke
+  safari/sabela/oceansview/marmalade branches. Mirrors the proven v2 page path (Phase 3e-2b).
+- **`sampleSite.ts`** — new `DEMO_ROOM_DETAIL` (`RoomDetail` — Garden Suite: images, facts, amenities,
+  policies); `sampleDataForDoc` keys it for `room_gallery` / `room_overview` / `room_amenities` /
+  `room_rate` / `room_policies` nodes (all render the SAME room, like the public page).
+- **`builder-preview/page.tsx`** (dev harness) — new `rw()` builds raw nodes for RENDERABLE types
+  outside the curated registry; added a room-detail band (gallery + overview + amenities + rate).
+- **`sampleData.test.ts`** — +1 test (room-scoped sample data → 6). **169 vitest.**
+- **Live-verified** on `/builder-preview?preset=coastal`: the room-scoped widgets render the sample
+  RoomDetail through `PageDocRenderer` → `GenericSection` (Garden Suite name + facts chips "Sleeps 2 ·
+  28 m²" + description, amenities grid, teal-accent rate/Book dock), 14 images, 0 console errors —
+  proving the exact render path + data shape the public v2 room page uses. tsc + lint clean.
+  **NOTE:** the public `/rooms/<slug>` end-to-end with a stored v2 `room_detail` doc needs a seeded doc
+  to exercise (the loader detection is a 3-line mirror of the proven v2 page loader). Room-scoped widgets
+  aren't in the drag library yet (authored via blueprint/seed for now). **NEXT:** goal/pixel events on
+  the v2 thank-you. Then Phase 6 (delete legacy builder + bespoke theme dirs at cutover).
+
 ## 2026-07-02 — Builder V2 Phase 5-3: booking-funnel widgets on the builder canvas
 
 Completes "sample data on the builder canvas" for EVERY auto-populate widget type. The booking-funnel

@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEMO_BOOKING,
+  DEMO_ROOM_DETAIL,
   DEMO_ROOMS,
   sampleDataForDoc,
 } from "@/lib/site/sampleSite";
+import type { RenderableWidgetType } from "@/lib/website/pageDoc.schema";
 import {
   newPageDoc,
   newSection,
@@ -53,6 +55,20 @@ describe("sampleDataForDoc", () => {
     expect(
       dataFor(data, cal.id, "availability_calendar")?.properties.length,
     ).toBe(2);
+  });
+
+  it("keys the sample RoomDetail for every room-scoped widget", () => {
+    // Room-scoped types live outside the curated registry — build raw nodes.
+    const raw = (type: RenderableWidgetType): WidgetNode => ({
+      id: `n-${type}`,
+      type,
+      props: {},
+    });
+    const gallery = raw("room_gallery");
+    const rate = raw("room_rate");
+    const data = sampleDataForDoc(docWith(gallery, rate));
+    expect(dataFor(data, gallery.id, "room_gallery")).toBe(DEMO_ROOM_DETAIL);
+    expect(dataFor(data, rate.id, "room_rate")?.name).toBe("Garden Suite");
   });
 
   it("ignores non-auto-populate widgets", () => {

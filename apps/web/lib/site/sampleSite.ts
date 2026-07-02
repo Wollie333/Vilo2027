@@ -9,6 +9,7 @@ import type {
   BookingFunnelData,
   GalleryData,
   ReviewsData,
+  RoomDetail,
   RoomsPreviewData,
   SiteData,
   SiteNavItem,
@@ -144,6 +145,44 @@ export const DEMO_BOOKING: BookingFunnelData = {
   ],
 };
 
+// One room's full detail — the sample the room-scoped widgets (room gallery /
+// overview / amenities / rate / policies) all render on the builder canvas and
+// in the room-detail template preview (the public page injects the LIVE room).
+export const DEMO_ROOM_DETAIL: RoomDetail = {
+  id: "demo-r1",
+  slug: "garden-suite",
+  name: "Garden Suite",
+  description:
+    "A sunlit corner suite opening onto the fig garden — a deep bath, a private stoep, and a fireplace for cold Karoo nights.",
+  price: 1850,
+  currency: "ZAR",
+  images: Array.from({ length: 5 }, (_, i) => ({
+    url: IMG(`rd${i}`),
+    alt: "Garden Suite",
+  })),
+  facts: ["Sleeps 2", "1 king bed", "Ensuite", "28 m²", "Garden view"],
+  amenities: [
+    { label: "Free Wi-Fi" },
+    { label: "Fireplace" },
+    { label: "Private stoep" },
+    { label: "Nespresso" },
+    { label: "Underfloor heating" },
+    { label: "Pet friendly" },
+  ],
+  bookHref: "#",
+  propertyId: "demo-p1",
+  propertyName: "Olive Grove Guesthouse",
+  maxGuests: 2,
+  policies: {
+    cancellation: "Free cancellation up to 7 days before check-in.",
+    checkIn: "From 14:00",
+    checkOut: "Until 10:00",
+    houseRules: "No smoking indoors. Quiet hours after 22:00.",
+    children: true,
+    pets: true,
+  },
+};
+
 export const DEMO_SPECIALS: SpecialsPreviewData = {
   specials: [
     {
@@ -223,6 +262,17 @@ export function sampleDataForDoc(doc: PageDoc): SiteData {
         if (room) out[node.id] = { type: "el_room_card", data: room };
         break;
       }
+      // Room-scoped widgets (room-detail template) — all render the SAME room.
+      case "room_gallery":
+      case "room_overview":
+      case "room_amenities":
+      case "room_rate":
+      case "room_policies":
+        out[node.id] = {
+          type: node.type,
+          data: DEMO_ROOM_DETAIL,
+        } as SiteData[string];
+        break;
       default:
         break;
     }

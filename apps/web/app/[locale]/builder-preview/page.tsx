@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
 import {
+  newId,
   newPageDoc,
   newSection,
   newWidget,
@@ -10,7 +11,10 @@ import {
 import { getThemeBlueprints } from "@/lib/website/themeSections";
 import { resolveThemeBase } from "@/lib/site/themes.server";
 import { sampleDataForDoc } from "@/lib/site/sampleSite";
-import type { WidgetNode } from "@/lib/website/pageDoc.schema";
+import type {
+  RenderableWidgetType,
+  WidgetNode,
+} from "@/lib/website/pageDoc.schema";
 
 // Builder V2 — DEV-ONLY preview of the token-driven PageDoc renderer.
 //
@@ -43,6 +47,15 @@ function w(
   const node = newWidget(type, props);
   if (variant) node.variant = variant;
   return node;
+}
+
+// Raw widget node for RENDERABLE types outside the curated drag-library registry
+// (e.g. the room-scoped room_gallery/overview/amenities/rate leaves).
+function rw(
+  type: RenderableWidgetType,
+  props: Record<string, unknown> = {},
+): WidgetNode {
+  return { id: newId(), type, props };
 }
 
 function demoDoc() {
@@ -139,6 +152,17 @@ function demoDoc() {
   s5.kids[0].kids.push(w("el_room_card", { room_id: "demo-r1" }, "postcard"));
   s5.kids[1].kids.push(w("el_room_card", { room_id: "demo-r3" }, "clean"));
   doc.root.kids.push(s5);
+
+  // 5b — room-detail template (Phase 5-4): room-scoped widgets, all bound to the
+  // ONE sample RoomDetail by sampleDataForDoc (the public page injects the LIVE
+  // room). Gallery full-width, then overview + amenities beside the rate.
+  const s5b = newSection([12]);
+  s5b.kids[0].kids.push(rw("room_gallery"));
+  doc.root.kids.push(s5b);
+  const s5c = newSection([8, 4], { valign: "flex-start" });
+  s5c.kids[0].kids.push(rw("room_overview"), rw("room_amenities"));
+  s5c.kids[1].kids.push(rw("room_rate"));
+  doc.root.kids.push(s5c);
 
   // 6 — composite Wielo blocks INSIDE columns (content + sidebar). Proves the
   // full-width band leaves stay contained in a <12 column (no bleed / gutter

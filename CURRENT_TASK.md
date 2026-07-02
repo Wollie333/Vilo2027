@@ -313,9 +313,21 @@ vilotest (`host@vilotest.com`) + a save point.
   canvas is non-interactive so no endpoint is hit. Dev `builder-preview` gained a `booking_search` bar
   section. **168 vitest** (+1). Live-verified themed booking bar (property selector + ThemedDateRange +
   accent CTA + "live on your published site" hint), 0 console errors. tsc+lint clean.
-- **NEXT — Phase 5 slices:** room-detail v2 template with room-scoped widgets (`/rooms/<slug>` from a v2
-  PageDoc); goal/pixel events on the v2 thank-you. Then **Phase 6** (delete legacy builder + bespoke
-  theme dirs at cutover).
+- **Phase 5-4 — room-detail v2 template (DONE + LIVE-VERIFIED partial, 2026-07-02):** `/rooms/<slug>`
+  can render from a v2 PageDoc template through the token renderer (cutover behaviour). `loadSitePage`:
+  `SiteRoomResult.doc?` + `loadRoomDetailRaw` + `loadSiteRoomPage` detects a PageDoc room_detail template
+  → assembles data from its leaves with the ACTIVE room injected (reuses `assembleSectionData(...,room)`)
+  → returns `{doc}`; skips flat per-room override merge. `SiteRoomView`: `result.doc` → breadcrumb +
+  `PageDocRenderer` inside GENERIC `SiteChrome` before the bespoke branches (mirrors the proven v2 page
+  path). `sampleSite`: `DEMO_ROOM_DETAIL` keyed for room_gallery/overview/amenities/rate/policies in
+  `sampleDataForDoc`. Dev `builder-preview` gained an `rw()` raw-node builder + a room-detail band. 169
+  vitest (+1). **Live-verified** the room-scoped widgets render the sample RoomDetail via PageDocRenderer→
+  GenericSection on `/builder-preview?preset=coastal` (name+facts+amenities+rate dock, 0 errors) — the
+  exact public render path/data. **Public `/rooms/<slug>` e2e needs a seeded v2 room_detail doc** (loader
+  detection is a 3-line mirror of the proven v2 page loader). Room-scoped widgets not in the drag library
+  yet (blueprint/seed-authored).
+- **NEXT — Phase 5 (last slice):** goal/pixel events on the v2 thank-you. Then **Phase 6** (delete legacy
+  builder + bespoke theme dirs at cutover).
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.
