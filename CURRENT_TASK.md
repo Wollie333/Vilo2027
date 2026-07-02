@@ -2,6 +2,43 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT — RESUME HERE (· 2026-07-02, latest commit `57e262da`, tree in sync with origin/main)
+
+**Everything below is committed + pushed. `pnpm build` + tsc + lint clean, 169 vitest green.** The two
+stray untracked files (`apps/web/vsub.mjs`, `docs/features/WEBSITE_WIZARD_PLAN.md`) are deliberately LEFT
+ALONE — never `git add -A` (use `git add -u` / explicit paths).
+
+**DONE this run (newest first, all pushed):**
+1. **Builder V2 Phase 6 CUTOVER (`57e262da`)** — public site renders the ONE token path (bespoke
+   per-theme branches removed from SitePageView/SiteRoomView/SectionRenderer + 5 site routes incl.
+   checkout); OLD page builder deleted, dashboard opens the new `/builder`; deleted sabela/oceansview/
+   marmalade dirs + safari render files. **System templates already editable in the builder** (page rows
+   → /builder, loadRealPage converts flat→PageDoc). Founder signed off on the generic look.
+2. **Tracking/Pixels/Events redesign (Ph1–5)** — plan `docs/features/TRACKING_EVENTS_PLAN.md`. Site-wide
+   Tracking tab (GA4/Meta/GTM/TikTok/Google Ads, consent-gated) + per-page Events tab (`meta.events`) +
+   consent-gated custom code (`lib/site/consent.ts`, `PageBodyCode`). Dashboard parity.
+3. **Builder V2 Phase 5 (5-1…5-5)** — live logo/nav/social + room card + booking + room-detail v2 +
+   goal/pixel. (Full detail in the sections below + CHANGELOG.)
+
+**NEXT SESSION — pick up here (open follow-ups, tracked):**
+- **① Live-verify the public render on a seeded fixture** (do FIRST): run `node --env-file=.env.local
+  scripts/seed-safari-qa.mjs` from `apps/web`, then eyeball `/site?site=vilotest` (home + checkout +
+  room detail) through the generic token path. The cutover is build-verified but the vilotest fixture
+  wasn't seeded in this DB, so the live look is unconfirmed.
+- **② Add the system widgets to the builder drag library** — room_gallery/overview/amenities/rate/
+  policies + search_results into `WIDGET_DEFS` so users can drag NEW system blocks (they can already edit
+  seeded ones). `sampleDataForDoc` already previews them.
+- **③ Nav-studio cutover + delete residual safari** — the full-screen nav studio
+  (`website-editor/[websiteId]/navigation`) still imports `SafariNavCanvas`, so
+  `components/site/safari/{SafariNavCanvas,SafariShell,SafariNav,SafariLightbox,safari.css}` +
+  `sections/SafariSections` + `SafariContactForm` REMAIN. Cut it over to the new builder's nav overlay,
+  repoint `(editor)/navigation`, then delete the residual safari chrome + `safariNav.ts` if unused.
+
+Read first next session: this SAVE POINT, `docs/features/BUILDER_V2_PLAN.md`, `docs/features/
+TRACKING_EVENTS_PLAN.md`, memory `project-builder-v2`.
+
+---
+
 ## ▶▶ ACTIVE LANE — BUILDER V2 (· 2026-07-01, IN PROGRESS — START NEW SESSION HERE)
 
 **Rebuilding the website page builder as a standalone, standardized Wielo-block builder** matching
