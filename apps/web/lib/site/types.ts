@@ -260,6 +260,12 @@ export type SiteAnalyticsSettings = {
   ga4?: string | null;
   /** Meta (Facebook) Pixel ID — a numeric string. */
   metaPixel?: string | null;
+  /** Google Tag Manager container ID, e.g. "GTM-XXXXXXX". */
+  gtm?: string | null;
+  /** TikTok Pixel ID. */
+  tiktok?: string | null;
+  /** Google Ads conversion ID, e.g. "AW-XXXXXXXXX". */
+  googleAds?: string | null;
   cookieConsent?: {
     /** Require consent before loading any pixel (default true). */
     enabled?: boolean;

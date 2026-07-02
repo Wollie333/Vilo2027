@@ -34,19 +34,102 @@ declare global {
 // Inject once per page, even across re-renders.
 const injected = new Set<string>();
 
+function dataLayerPush(entry: unknown) {
+  window.dataLayer = window.dataLayer ?? [];
+  (window.dataLayer as unknown as unknown[]).push(entry);
+}
+
+// gtag.js is shared by GA4 + Google Ads — load the library once, then `config`
+// each id. `dataLayer` is typed as Record[] globally, so push via an unknown view.
+function ensureGtagLib(firstId: string) {
+  if (injected.has("gtag-lib")) return;
+  injected.add("gtag-lib");
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(firstId)}`;
+  document.head.appendChild(s);
+  dataLayerPush(["js", new Date()]);
+}
+
 function loadGa4(id: string) {
   if (injected.has(`ga4:${id}`)) return;
   injected.add(`ga4:${id}`);
+  ensureGtagLib(id);
+  dataLayerPush(["config", id]);
+}
+
+function loadGoogleAds(id: string) {
+  if (injected.has(`gads:${id}`)) return;
+  injected.add(`gads:${id}`);
+  ensureGtagLib(id);
+  dataLayerPush(["config", id]);
+}
+
+function loadGtm(id: string) {
+  if (injected.has(`gtm:${id}`)) return;
+  injected.add(`gtm:${id}`);
+  dataLayerPush({ "gtm.start": new Date().getTime(), event: "gtm.js" });
   const s = document.createElement("script");
   s.async = true;
-  s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
+  s.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(id)}`;
   document.head.appendChild(s);
-  // gtag.js reads array-like entries off dataLayer; the shared global types it as
-  // Record[], so push through a local unknown[] view.
-  window.dataLayer = window.dataLayer ?? [];
-  const dl = window.dataLayer as unknown as unknown[];
-  dl.push(["js", new Date()]);
-  dl.push(["config", id]);
+}
+
+// TikTok pixel bootstrap (the vendor snippet, typed to avoid `any`).
+type Ttq = {
+  push: (args: unknown[]) => void;
+  methods?: string[];
+  setAndDefer?: (t: Ttq, e: string) => void;
+  load?: (id: string) => void;
+  page?: () => void;
+  _i?: Record<string, unknown>;
+  _t?: Record<string, number>;
+  _o?: Record<string, unknown>;
+  [k: string]: unknown;
+};
+
+function loadTikTok(id: string) {
+  if (injected.has(`ttq:${id}`)) return;
+  injected.add(`ttq:${id}`);
+  const w = window as unknown as { TiktokAnalyticsObject?: string; ttq?: Ttq };
+  w.TiktokAnalyticsObject = "ttq";
+  const ttq: Ttq = w.ttq ?? ([] as unknown as Ttq);
+  w.ttq = ttq;
+  ttq.methods = [
+    "page",
+    "track",
+    "identify",
+    "instances",
+    "debug",
+    "on",
+    "off",
+    "once",
+    "ready",
+    "alias",
+    "group",
+    "enableCookie",
+    "disableCookie",
+  ];
+  ttq.setAndDefer = (t: Ttq, e: string) => {
+    t[e] = (...args: unknown[]) => t.push([e, ...args]);
+  };
+  for (const m of ttq.methods) ttq.setAndDefer(ttq, m);
+  ttq.load = (e: string) => {
+    const n = "https://analytics.tiktok.com/i18n/pixel/events.js";
+    ttq._i = ttq._i ?? {};
+    ttq._i[e] = [];
+    (ttq._i[e] as unknown as { _u?: string })._u = n;
+    ttq._t = ttq._t ?? {};
+    ttq._t[e] = +new Date();
+    ttq._o = ttq._o ?? {};
+    ttq._o[e] = {};
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = `${n}?sdkid=${encodeURIComponent(e)}&lib=ttq`;
+    document.head.appendChild(s);
+  };
+  ttq.load(id);
+  (ttq.page as () => void)();
 }
 
 function loadMetaPixel(id: string) {
@@ -81,7 +164,10 @@ export function SiteMarketing({
 }) {
   const ga4 = analytics?.ga4?.trim() || "";
   const pixel = analytics?.metaPixel?.trim() || "";
-  const hasAnalytics = Boolean(ga4 || pixel);
+  const gtm = analytics?.gtm?.trim() || "";
+  const tiktok = analytics?.tiktok?.trim() || "";
+  const googleAds = analytics?.googleAds?.trim() || "";
+  const hasAnalytics = Boolean(ga4 || pixel || gtm || tiktok || googleAds);
   const consentRequired = analytics?.cookieConsent?.enabled !== false;
 
   // null = undecided; in non-consent mode we treat it as accepted immediately.
@@ -109,7 +195,10 @@ export function SiteMarketing({
     if (!interactive || consent !== "accepted") return;
     if (ga4) loadGa4(ga4);
     if (pixel) loadMetaPixel(pixel);
-  }, [interactive, consent, ga4, pixel]);
+    if (gtm) loadGtm(gtm);
+    if (tiktok) loadTikTok(tiktok);
+    if (googleAds) loadGoogleAds(googleAds);
+  }, [interactive, consent, ga4, pixel, gtm, tiktok, googleAds]);
 
   if (!hasAnalytics) return null;
 

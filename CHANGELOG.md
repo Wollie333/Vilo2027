@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-02 — Tracking/Events redesign Ph4: GTM + TikTok + Google Ads
+
+The full pixel set is now injected — no more dead fields. All five are site-wide + consent-gated.
+
+- **`types.ts`** — `SiteAnalyticsSettings` += `gtm`, `tiktok`, `googleAds`.
+- **`SiteMarketing.tsx`** — new injectors, all fired only once consent is granted: `loadGtm`
+  (`gtm.js` + `gtm.start` dataLayer), `loadTikTok` (typed vendor `ttq` bootstrap, no `any`),
+  `loadGoogleAds` (shares a single gtag.js lib with GA4 via `ensureGtagLib`, then `config`). `loadGa4`
+  refactored onto the shared gtag loader. `hasAnalytics` + the inject effect now cover all five.
+- **`PageSettingsOverlay.tsx`** — the site-wide Tracking tab lists all five IDs (GA4 · Meta · GTM ·
+  TikTok · Google Ads), each regex-validated by `builderAnalyticsSchema` + persisted via
+  `saveBuilderAnalyticsAction`.
+- **Live-verified**: the Tracking tab shows all five pixel inputs. tsc + lint clean (typed TikTok
+  bootstrap — no `any`), 169 vitest. NEXT = Ph5 (dashboard settings parity).
+
 ## 2026-07-02 — Tracking/Events redesign Ph3: consent-gated custom code + events
 
 Custom head/body code now injects on the live site (bodyCode was previously dead), and ALL tracking

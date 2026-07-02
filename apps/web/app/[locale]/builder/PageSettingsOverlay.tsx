@@ -48,8 +48,8 @@ export const EMPTY_ANALYTICS: BuilderAnalytics = {
   privacyHref: "",
 };
 
-// Site-wide pixel fields shown in the Tracking tab. GA4 + Meta ship in Phase 1
-// (injected); gtm/tiktok/googleAds are added with their injection in Phase 4.
+// Site-wide pixel fields shown in the Tracking tab — every one is injected on the
+// public site (consent-gated) by components/site/SiteMarketing.tsx.
 const SITE_PIXELS: {
   key: keyof BuilderAnalytics;
   label: string;
@@ -67,6 +67,24 @@ const SITE_PIXELS: {
     label: "Meta (Facebook) Pixel",
     ph: "123456789012345",
     color: "#1877F2",
+  },
+  {
+    key: "gtm",
+    label: "Google Tag Manager",
+    ph: "GTM-XXXXXXX",
+    color: "#4285F4",
+  },
+  {
+    key: "tiktok",
+    label: "TikTok Pixel",
+    ph: "CXXXXXXXXXXXXXXXXXXX",
+    color: "#111111",
+  },
+  {
+    key: "googleAds",
+    label: "Google Ads conversion",
+    ph: "AW-XXXXXXXXX",
+    color: "#34A853",
   },
 ];
 
