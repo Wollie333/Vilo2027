@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * A theme-styled check-in/check-out date-range picker — a custom calendar popover
@@ -79,18 +80,50 @@ export function ThemedDateRange({
     return { y: b.getFullYear(), m: b.getMonth() };
   });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  // The popover renders in a PORTAL (document.body) with fixed positioning so it
+  // can never be clipped by an ancestor's `overflow:hidden` (e.g. the booking
+  // Card) or trapped below a later section's stacking context — the calendar
+  // always sits on top and the dates stay selectable.
+  const [pos, setPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  const reposition = useCallback(() => {
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const gap = 8;
+    const vw = window.innerWidth;
+    const width = Math.min(300, vw - gap * 2);
+    const top = r.bottom + gap;
+    let left = align === "right" ? r.right - width : r.left;
+    left = Math.max(gap, Math.min(left, vw - width - gap));
+    setPos({ top, left, width });
+  }, [align]);
 
   useEffect(() => {
     if (!open) return;
+    reposition();
+    // Follow the trigger while open (capture = catch nested scrollers too).
+    const onMove = () => reposition();
+    window.addEventListener("scroll", onMove, true);
+    window.addEventListener("resize", onMove);
     // `pointerdown` fires for both mouse and touch, so the calendar dismisses on a
-    // tap-outside on mobile (where a `mousedown`-only listener wouldn't).
+    // tap-outside on mobile. The popover lives in a portal, so exclude it too.
     function onDoc(e: Event) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node))
-        setOpen(false);
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t) || popRef.current?.contains(t)) return;
+      setOpen(false);
     }
     document.addEventListener("pointerdown", onDoc);
-    return () => document.removeEventListener("pointerdown", onDoc);
-  }, [open]);
+    return () => {
+      window.removeEventListener("scroll", onMove, true);
+      window.removeEventListener("resize", onMove);
+      document.removeEventListener("pointerdown", onDoc);
+    };
+  }, [open, reposition]);
 
   function pick(iso: string) {
     // No start yet, a complete range, or a click before the start → begin anew.
@@ -178,113 +211,116 @@ export function ThemedDateRange({
         <div style={{ width: 1, background: line, alignSelf: "stretch" }} />
         {fieldBox(labelOut, to)}
       </button>
-      {open ? (
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 50,
-            top: "calc(100% + 8px)",
-            ...(align === "right" ? { right: 0 } : { left: 0 }),
-            width: 300,
-            maxWidth: "92vw",
-            background: surface,
-            border: `1px solid ${line}`,
-            borderRadius: radius,
-            boxShadow: "0 24px 50px -24px rgba(0,0,0,.35)",
-            padding: 14,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => shiftMonth(-1)}
-              style={navBtn}
-              aria-label="Previous month"
+      {open && pos && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={popRef}
+              style={{
+                position: "fixed",
+                zIndex: 2147483000,
+                top: pos.top,
+                left: pos.left,
+                width: pos.width,
+                background: surface,
+                border: `1px solid ${line}`,
+                borderRadius: radius,
+                boxShadow: "0 24px 50px -24px rgba(0,0,0,.35)",
+                padding: 14,
+              }}
             >
-              ‹
-            </button>
-            <div style={{ fontSize: 14, fontWeight: 600, color: ink }}>
-              {MONTHS[view.m]} {view.y}
-            </div>
-            <button
-              type="button"
-              onClick={() => shiftMonth(1)}
-              style={navBtn}
-              aria-label="Next month"
-            >
-              ›
-            </button>
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7,1fr)",
-              gap: 2,
-              marginBottom: 4,
-            }}
-          >
-            {DOW.map((d) => (
               <div
-                key={d}
                 style={{
-                  textAlign: "center",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: mute,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 10,
                 }}
               >
-                {d}
-              </div>
-            ))}
-          </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7,1fr)",
-              gap: 2,
-            }}
-          >
-            {cells.map((iso, i) => {
-              if (!iso) return <div key={`b${i}`} />;
-              const past = iso < todayISO;
-              const sel = iso === from || iso === to;
-              const inRange = Boolean(from && to && iso > from && iso < to);
-              return (
                 <button
-                  key={iso}
                   type="button"
-                  disabled={past}
-                  onClick={() => pick(iso)}
-                  style={{
-                    aspectRatio: "1",
-                    border: "none",
-                    cursor: past ? "default" : "pointer",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: sel ? 700 : 400,
-                    background: sel
-                      ? accent
-                      : inRange
-                        ? `color-mix(in srgb, ${accent} 16%, transparent)`
-                        : "transparent",
-                    color: sel ? "#fff" : past ? mute : ink,
-                    opacity: past ? 0.4 : 1,
-                  }}
+                  onClick={() => shiftMonth(-1)}
+                  style={navBtn}
+                  aria-label="Previous month"
                 >
-                  {Number(iso.slice(8))}
+                  ‹
                 </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+                <div style={{ fontSize: 14, fontWeight: 600, color: ink }}>
+                  {MONTHS[view.m]} {view.y}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => shiftMonth(1)}
+                  style={navBtn}
+                  aria-label="Next month"
+                >
+                  ›
+                </button>
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7,1fr)",
+                  gap: 2,
+                  marginBottom: 4,
+                }}
+              >
+                {DOW.map((d) => (
+                  <div
+                    key={d}
+                    style={{
+                      textAlign: "center",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: mute,
+                    }}
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7,1fr)",
+                  gap: 2,
+                }}
+              >
+                {cells.map((iso, i) => {
+                  if (!iso) return <div key={`b${i}`} />;
+                  const past = iso < todayISO;
+                  const sel = iso === from || iso === to;
+                  const inRange = Boolean(from && to && iso > from && iso < to);
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      disabled={past}
+                      onClick={() => pick(iso)}
+                      style={{
+                        aspectRatio: "1",
+                        border: "none",
+                        cursor: past ? "default" : "pointer",
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: sel ? 700 : 400,
+                        background: sel
+                          ? accent
+                          : inRange
+                            ? `color-mix(in srgb, ${accent} 16%, transparent)`
+                            : "transparent",
+                        color: sel ? "#fff" : past ? mute : ink,
+                        opacity: past ? 0.4 : 1,
+                      }}
+                    >
+                      {Number(iso.slice(8))}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
