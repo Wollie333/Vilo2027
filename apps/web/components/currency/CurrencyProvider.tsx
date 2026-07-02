@@ -11,6 +11,7 @@ import {
   type RateMap,
 } from "@/lib/currency";
 import { formatMoney } from "@/lib/format";
+import { CURRENCY_SWITCHER_ENABLED } from "@/lib/frontendFlags";
 
 // Viewer-selected DISPLAY currency, available to all client components. The
 // rate map is resolved server-side (lib/fx.ts) and injected once at the root
@@ -48,10 +49,15 @@ export function CurrencyProvider({
   children: React.ReactNode;
 }) {
   const [currency, setState] = useState<DisplayCurrency>(
-    isDisplayCurrency(initialCurrency) ? initialCurrency : "ZAR",
+    // While the currency switcher is disabled the frontend is locked to ZAR —
+    // ignore any saved cookie so every <Money> renders the base rand amount.
+    CURRENCY_SWITCHER_ENABLED && isDisplayCurrency(initialCurrency)
+      ? initialCurrency
+      : "ZAR",
   );
 
   const setCurrency = useCallback((c: DisplayCurrency) => {
+    if (!CURRENCY_SWITCHER_ENABLED) return; // locked to ZAR for now
     setState(c);
     // Persist for a year so the choice follows the guest across visits.
     document.cookie = `${COOKIE}=${c}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;

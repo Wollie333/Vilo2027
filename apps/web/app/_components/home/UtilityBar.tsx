@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 
 import { CurrencySwitcher } from "@/components/currency/CurrencySwitcher";
 import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import {
+  CURRENCY_SWITCHER_ENABLED,
+  LANGUAGE_SWITCHER_ENABLED,
+} from "@/lib/frontendFlags";
 import { Link } from "@/i18n/navigation";
 
 // Thin top utility strip for the public/guest chrome. Rendered by SiteHeader, so
@@ -20,10 +24,18 @@ export function UtilityBar() {
           {t("tagline")}
         </span>
         <div className="ml-auto flex items-center gap-4">
-          <LanguageSwitcher variant="dark" />
-          <span className="h-3.5 w-px bg-white/15" />
-          <CurrencySwitcher variant="dark" />
-          <span className="h-3.5 w-px bg-white/15" />
+          {LANGUAGE_SWITCHER_ENABLED && (
+            <>
+              <LanguageSwitcher variant="dark" />
+              <span className="h-3.5 w-px bg-white/15" />
+            </>
+          )}
+          {CURRENCY_SWITCHER_ENABLED && (
+            <>
+              <CurrencySwitcher variant="dark" />
+              <span className="h-3.5 w-px bg-white/15" />
+            </>
+          )}
           <Link
             href="/booking-management"
             className="inline-flex items-center gap-1 hover:text-white"

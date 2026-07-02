@@ -5,6 +5,7 @@ import {
   DISPLAY_CURRENCIES,
   type DisplayCurrency,
 } from "@/lib/currency";
+import { CURRENCY_SWITCHER_ENABLED } from "@/lib/frontendFlags";
 
 import { useCurrency } from "./CurrencyProvider";
 
@@ -12,6 +13,18 @@ import { useCurrency } from "./CurrencyProvider";
 // instantly (client-side conversion) and persists the choice. `variant="dark"`
 // suits the dark utility bar; "light" (default) suits a white surface.
 export function CurrencySwitcher({
+  className,
+  variant = "light",
+}: {
+  className?: string;
+  variant?: "light" | "dark";
+}) {
+  // Temporarily locked to ZAR (see lib/frontendFlags).
+  if (!CURRENCY_SWITCHER_ENABLED) return null;
+  return <CurrencySwitcherInner className={className} variant={variant} />;
+}
+
+function CurrencySwitcherInner({
   className,
   variant = "light",
 }: {

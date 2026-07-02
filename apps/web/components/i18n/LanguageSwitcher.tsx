@@ -5,6 +5,7 @@ import { useTransition } from "react";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+import { LANGUAGE_SWITCHER_ENABLED } from "@/lib/frontendFlags";
 
 // Display labels for each locale, shown in the locale's own language.
 const LOCALE_LABELS: Record<string, string> = {
@@ -20,6 +21,18 @@ const LOCALE_LABELS: Record<string, string> = {
 // localePrefix:"as-needed" the default locale (en) stays on the unprefixed URL.
 // `variant="dark"` suits the dark utility bar; "light" (default) a white surface.
 export function LanguageSwitcher({
+  className,
+  variant = "light",
+}: {
+  className?: string;
+  variant?: "light" | "dark";
+}) {
+  // Temporarily locked to English (see lib/frontendFlags).
+  if (!LANGUAGE_SWITCHER_ENABLED) return null;
+  return <LanguageSwitcherInner className={className} variant={variant} />;
+}
+
+function LanguageSwitcherInner({
   className,
   variant = "light",
 }: {

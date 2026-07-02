@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-02 — Frontend locked to ZAR + English (temp); builder Settings copy refreshed.
+
+Two small changes. (1) The guest-facing frontend is temporarily pinned to ZAR + English while currency
+conversion + translations get polished — cleanly re-enablable. (2) Freshened a stale builder empty-state
+string.
+
+- **`lib/frontendFlags.ts` (new)** — `CURRENCY_SWITCHER_ENABLED` / `LANGUAGE_SWITCHER_ENABLED`, both `false`.
+  Single obvious toggle to re-enable each switcher later; nothing else needs changing.
+- **Currency locked to ZAR** — `CurrencySwitcher` self-hides when off; `CurrencyProvider` now ignores the
+  saved `vilo_display_ccy` cookie and forces `ZAR` (so every `<Money>` renders the base rand amount, and
+  `setCurrency` is a no-op) while the flag is off. Verified live: with a stale `USD` cookie the booking page
+  still renders R 1 300 / R 1 900 / … — no `$`/`€` anywhere.
+- **Language locked to English** — `LanguageSwitcher` self-hides when off. English was already the firm
+  default (`i18n/routing.ts` → `localeDetection:false`), so no routing change was needed.
+- **`UtilityBar`** — the two switchers + their `|` dividers are gated behind the flags, so the marketing
+  top strip cleanly collapses to "List your property · Help" with no orphan separators.
+- **`BuilderShell`** — the Settings "Nothing selected" body no longer references the shipped "Phase 3d-2";
+  it now reads "Select an element on the canvas to edit its content, style, spacing and per-device overrides
+  in the tabs above."
+- **Verified:** tsc + lint + `pnpm build` + 172 vitest; live-checked the marketing header (switchers gone)
+  and the ZAR lock on the booking page.
+
 ## 2026-07-02 — Builder V2 Phase 6 follow-up ②: system widgets in the drag library (page-kind gated).
 
 The builder's drag library now offers the 6 system/page-template blocks so a host can drag NEW ones

@@ -1107,7 +1107,7 @@ export function BuilderShell({
                   <PanelPlaceholder
                     Icon={Settings}
                     title="Nothing selected"
-                    body="Select an element on the canvas to edit its content. Style, spacing and per-device overrides land in Phase 3d-2."
+                    body="Select an element on the canvas to edit its content, style, spacing and per-device overrides in the tabs above."
                   />
                 ))}
             </div>
