@@ -249,3 +249,15 @@ already written but uncommitted.
   Olive Room untouched, test room deleted after. `tsc`+`lint`+`build` green. **Remaining 4b:**
   real host data on the builder canvas (so edits show in-place) + amenities/rates/gallery
   editors. Then Phase 5 (per-block style UI), Phase 6 (setup wizard + go-live gate).
+- _2026-07-02_ — ✅ **Phase 4b-2 DONE (real host data on the builder canvas).** The canvas
+  auto-populate blocks now render the host's LIVE data, not demo. `builder/page.tsx`
+  `loadRealPage` builds a real `SiteContext` (`loadSiteContext(subdomain,{preview})`) and
+  assembles the page's real `SiteData` via the exported `loadSitePage(ctx, slug)` — keyed by
+  the SAME node ids the builder doc uses (both from `draft_sections`) — passed as `initialData`
+  to `BuilderShell`. Canvas data = `{ ...sampleDataForDoc(doc), ...initialData }` so real data
+  wins and demo fills gaps (newly-added blocks, demo/blueprint mode). Best-effort (try/catch →
+  demo fallback, no regression). **Verified live** on the rooms page: canvas shows the real
+  Olive Room (R1300) / Vineyard Suite (R1900) / Mountain Loft with real photos + descriptions,
+  no demo leak. NOTE: edits via the room modal reflect on the canvas after a RELOAD (initialData
+  loads at page load; live-refresh-after-edit is a later polish). `tsc`+`lint`+`build` green.
+  **Remaining 4b:** amenities/rates/gallery editors. Then Phase 5, Phase 6.

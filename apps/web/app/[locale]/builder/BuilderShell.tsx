@@ -129,7 +129,7 @@ const ROOM_DATA_BLOCKS: ReadonlySet<string> = new Set([
   "room_policies",
 ]);
 import type { SiteThemeConfig } from "@/lib/site/themes";
-import type { SiteNavigation, SiteMenuItem } from "@/lib/site/types";
+import type { SiteNavigation, SiteMenuItem, SiteData } from "@/lib/site/types";
 import {
   saveBuilderDocAction,
   publishBuilderDocAction,
@@ -243,6 +243,7 @@ export function BuilderShell({
   analytics: initialAnalytics = EMPTY_ANALYTICS,
   pages = [],
   pageKind,
+  initialData,
   autoOpenNav = false,
   navTab = "links",
 }: {
@@ -272,6 +273,10 @@ export function BuilderShell({
   analytics?: BuilderAnalytics;
   /** Site pages for the Nav builder's quick-add-page + per-page controls. */
   pages?: { key: string; label: string; href: string }[];
+  /** Real auto-populate data (keyed by node id) for the canvas — the host's live
+   *  rooms/reviews/gallery for THIS page. Overrides demo where present; demo fills
+   *  any gaps (e.g. newly-added blocks). Absent in demo/blueprint mode. */
+  initialData?: SiteData;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
@@ -838,9 +843,14 @@ export function BuilderShell({
     () => (navigation.menu ?? []).map((m) => m.label),
     [navigation.menu],
   );
-  // Sample live data so auto-populate blocks (rooms, room card, gallery, reviews,
-  // journal, specials) render representative content on the builder canvas.
-  const sampleData = useMemo(() => sampleDataForDoc(doc), [doc]);
+  // Canvas data for auto-populate blocks. Real host data (initialData, keyed by
+  // node id) wins where present so the host sees their live rooms/reviews/gallery
+  // and in-place edits; demo fills any gaps (newly-added blocks, or demo/blueprint
+  // mode) so the canvas is never empty.
+  const sampleData = useMemo(
+    () => ({ ...sampleDataForDoc(doc), ...(initialData ?? {}) }),
+    [doc, initialData],
+  );
   // Room options for the Room Card picker (from the same demo rooms).
   const roomOpts = useMemo(
     () => DEMO_ROOMS.rooms.map((r) => ({ id: r.id, name: r.name })),

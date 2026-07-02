@@ -9,8 +9,9 @@ import {
   type PageDoc,
 } from "@/lib/website/pageDoc.schema";
 import { parseSectionsLoose } from "@/lib/website/sections.schema";
+import { loadSiteContext, loadSitePage } from "@/lib/site/loadSitePage";
 import type { SiteThemeConfig } from "@/lib/site/themes";
-import type { SiteNavigation, SiteMenuItem } from "@/lib/site/types";
+import type { SiteNavigation, SiteMenuItem, SiteData } from "@/lib/site/types";
 
 import { BuilderShell } from "./BuilderShell";
 import type { Brand as BuilderBrand } from "./BrandStudioOverlay";
@@ -99,17 +100,19 @@ async function loadRealPage(
   navigation: SiteNavigation;
   analytics: BuilderAnalytics;
   pages: PageOpt[];
+  initialData: SiteData;
 } | null> {
   const supabase = createServerClient();
   const { data: page } = await supabase
     .from("website_pages")
-    .select("id, title, kind, draft_sections")
+    .select("id, title, kind, slug, draft_sections")
     .eq("id", pageId)
     .eq("website_id", websiteId)
     .maybeSingle<{
       id: string;
       title: string | null;
       kind: string;
+      slug: string | null;
       draft_sections: unknown;
     }>();
   if (!page) return null; // not found OR not owned (RLS)
@@ -156,6 +159,32 @@ async function loadRealPage(
     site?.custom_domain?.trim() ||
     (site?.subdomain ? `${site.subdomain}.wielo.site` : "yoursite.wielo.site");
 
+  // Real auto-populate data for the CANVAS (Phase 4b-2): assemble the host's live
+  // SiteData for this page (keyed by the SAME node ids the builder doc uses, since
+  // both come from `draft_sections`) so blocks like the rooms grid render the host's
+  // real rooms/reviews/gallery instead of demo content — and edits made via the
+  // "Edit room data" modal show in place. Best-effort: any failure falls back to the
+  // demo canvas data (no regression). Newly-added blocks still get demo until saved.
+  let initialData: SiteData = {};
+  try {
+    const sub = site?.subdomain?.trim();
+    if (sub) {
+      const ctx = await loadSiteContext(sub, {
+        preview: true,
+        siteParam: sub,
+      });
+      if (ctx) {
+        const real = await loadSitePage(
+          ctx,
+          page.kind === "home" ? [] : [page.slug ?? page.kind],
+        );
+        if (real?.data) initialData = real.data;
+      }
+    }
+  } catch {
+    // fall back to demo-only canvas data
+  }
+
   return {
     doc,
     docName: page.title?.trim() || themeName(page.kind),
@@ -166,6 +195,7 @@ async function loadRealPage(
     navigation: (site?.navigation ?? {}) as SiteNavigation,
     analytics: toBuilderAnalytics(site?.settings?.analytics),
     pages,
+    initialData,
   };
 }
 
@@ -210,6 +240,7 @@ export default async function BuilderPage({
           analytics={real.analytics}
           pages={real.pages}
           pageKind={real.kind}
+          initialData={real.initialData}
           autoOpenNav={!!navTab}
           navTab={navTab}
         />

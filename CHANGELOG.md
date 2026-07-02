@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 4b-2: the builder canvas shows the host's real data.
+
+The page builder's auto-populate blocks (rooms grid, gallery, reviews, specials…) now render
+the host's LIVE data on the canvas instead of demo placeholders — so what you edit is what you
+see. On load, the builder assembles the page's real `SiteData` through the same public path the
+live site uses (`loadSiteContext` + `loadSitePage`), keyed by the same node ids as the builder
+doc, and the canvas layers it over the demo fallback (real wins; demo fills any gaps like a
+just-dragged block). Best-effort, so any failure falls back to the old demo canvas (no
+regression). Verified live: the rooms page now shows the real Olive Room / Vineyard Suite /
+Mountain Loft with their real photos and prices. (Edits made in the "Edit room data" modal show
+on the canvas after a reload.) `tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 4b-1: add rooms from the builder (+ security fix).
 
 The "Edit room data" modal now **creates** rooms too: a "+ New room" form (name / price /
