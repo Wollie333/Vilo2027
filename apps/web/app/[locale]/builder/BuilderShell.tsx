@@ -116,6 +116,7 @@ import {
 import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
 import { NavBuilderOverlay } from "./NavBuilderOverlay";
 import { RoomDataModal } from "./RoomDataModal";
+import { AmenitiesDataModal } from "./AmenitiesDataModal";
 
 // Property-sourced (Wielo) blocks whose DATA comes from the host's rooms — these
 // get an "Edit room data" affordance in the inspector (Phase 4a).
@@ -128,6 +129,8 @@ const ROOM_DATA_BLOCKS: ReadonlySet<string> = new Set([
   "room_rate",
   "room_policies",
 ]);
+// The property `amenities` block edits property_amenities (Phase 4b-3).
+const AMENITY_DATA_BLOCKS: ReadonlySet<string> = new Set(["amenities"]);
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type { SiteNavigation, SiteMenuItem, SiteData } from "@/lib/site/types";
 import {
@@ -282,6 +285,7 @@ export function BuilderShell({
   const [mode, setMode] = useState<PanelMode>("widgets");
   const [query, setQuery] = useState("");
   const [roomDataOpen, setRoomDataOpen] = useState(false);
+  const [amenityDataOpen, setAmenityDataOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
@@ -1208,6 +1212,12 @@ export function BuilderShell({
                         ? () => setRoomDataOpen(true)
                         : undefined
                     }
+                    onEditAmenities={
+                      persists &&
+                      AMENITY_DATA_BLOCKS.has((selected.node as AnyNode).type)
+                        ? () => setAmenityDataOpen(true)
+                        : undefined
+                    }
                   />
                 ) : (
                   <PanelPlaceholder
@@ -1506,6 +1516,13 @@ export function BuilderShell({
         websiteId={websiteId ?? ""}
       />
 
+      <AmenitiesDataModal
+        open={amenityDataOpen}
+        onClose={() => setAmenityDataOpen(false)}
+        toast={toast}
+        websiteId={websiteId ?? ""}
+      />
+
       {/* Toasts */}
       <div className="toasts">
         {toasts.map((t) => (
@@ -1796,6 +1813,7 @@ function Inspector({
   onPatchResp,
   rooms,
   onEditRoomData,
+  onEditAmenities,
 }: {
   node: AnyNode;
   device: Device;
@@ -1807,6 +1825,8 @@ function Inspector({
   rooms?: { id: string; name: string }[];
   /** Present on room-data (Wielo) blocks — opens the "Edit room data" modal. */
   onEditRoomData?: () => void;
+  /** Present on the property `amenities` block — opens the "Edit amenities" modal. */
+  onEditAmenities?: () => void;
 }) {
   const [tab, setTab] = useState<InspectorTab>("content");
   const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
@@ -1907,6 +1927,32 @@ function Inspector({
             <div className="hint" style={{ marginTop: 6 }}>
               This block’s content comes from your rooms. Edit the real room
               data — it updates your live site.
+            </div>
+          </div>
+        )}
+
+        {tab === "content" && onEditAmenities && (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              onClick={onEditAmenities}
+              style={{
+                width: "100%",
+                border: "1px solid var(--secondary, #064E3B)",
+                background: "var(--secondary, #064E3B)",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 12.5,
+                borderRadius: 8,
+                padding: "9px 12px",
+                cursor: "pointer",
+              }}
+            >
+              Edit amenities…
+            </button>
+            <div className="hint" style={{ marginTop: 6 }}>
+              This block lists your property’s amenities. Choose them here — it
+              updates your live site.
             </div>
           </div>
         )}

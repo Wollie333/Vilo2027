@@ -266,3 +266,15 @@ already written but uncommitted.
   re-run only refreshes `initialData`, never the doc. Build + logic verified (not re-verified
   live — the dev server's `.next` needs a reset cycle; the mechanism is standard Next.js).
   **Remaining 4b:** amenities/rates/gallery editors. Then Phase 5, Phase 6.
+- _2026-07-02_ — ✅ **Phase 4b-3 DONE (amenities editor).** The property `amenities` block now
+  shows an **"Edit amenities…"** button → `AmenitiesDataModal`: loads the published amenity
+  catalog (`getAmenityCatalog`, grouped) + the property's current selection via new
+  `fetchBuilderAmenitiesAction(websiteId)` (host-scoped like the rooms fetch), toggles, saves
+  via the existing `replaceAmenitiesAction`, `router.refresh()` after. **Verified live** on the
+  rooms page: modal loaded the 20-item grouped catalog with the property's selection; adding
+  "Air conditioning" (catalog slug `aircon`) persisted to `property_amenities` and **all 8
+  existing keys were preserved** (no data loss); fixture reverted. NOTE: the vilotest fixture
+  has a few LEGACY amenity keys whose slugs differ from the current catalog (e.g. `braai_bbq`),
+  so they show unchecked but are preserved on save — a seed/catalog data-hygiene quirk, not this
+  feature. `tsc`+`lint`+`build` green. **Remaining 4b:** rates + gallery editors. Then Phase 5
+  (per-block style UI — needs `PageDocRenderer` to apply `blockStyle`), Phase 6 (setup wizard).

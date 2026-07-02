@@ -13,8 +13,14 @@
 >
 > **Phase status:** ✅ **0** date-picker/search clipping fix · ✅ **1** stock-data theme
 > preview · ✅ **2** activation → all pages themed + builder-editable (verified) · ⏳ 3
-> **required system-blocks (DONE)** · **4 Wielo data modals (4a + 4b-1 + 4b-2 DONE; 4b rest
-> next)** · 5 per-block style UI · 6 setup wizard + go-live gate.
+> **required system-blocks (DONE)** · **4 Wielo data modals (4a + 4b-1 + 4b-2 + 4b-3 DONE; 4b
+> rest next)** · 5 per-block style UI · 6 setup wizard + go-live gate.
+>
+> **Phase 4b-3 (done):** property `amenities` block → "Edit amenities…" → `AmenitiesDataModal`
+> (catalog via `fetchBuilderAmenitiesAction`, save via existing `replaceAmenitiesAction`,
+> router.refresh). Verified live (added amenity persisted; all existing keys preserved).
+> **4b rest:** rates + gallery editors. NOTE: some vilotest legacy amenity slugs differ from the
+> catalog (shown unchecked but preserved on save) — seed data quirk, not the feature.
 >
 > **Phase 4b-2 (done):** builder CANVAS now renders the host's REAL data (not demo).
 > `builder/page.tsx loadRealPage` builds a real `SiteContext` (`loadSiteContext`) + assembles

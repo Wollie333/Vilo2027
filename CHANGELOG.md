@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 4b-3: edit property amenities from the builder.
+
+The property `amenities` Wielo block now has an **"Edit amenities…"** button in the inspector
+that opens a modal listing the published amenity catalog (grouped: Essentials / Outdoor /
+Family / Safety / Accessibility) with the property's current selection pre-ticked. Toggling +
+saving writes the chosen keys to `property_amenities` via the existing `replaceAmenitiesAction`
+(the Properties-manager SSOT), and the canvas refreshes. New `fetchBuilderAmenitiesAction` loads
+the catalog + selection, host-scoped. Verified live: adding an amenity persisted to the database
+and preserved every existing amenity (no data loss). Same proven pattern as the room editor.
+`tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 4b-2: the builder canvas shows the host's real data.
 
 The page builder's auto-populate blocks (rooms grid, gallery, reviews, specials…) now render

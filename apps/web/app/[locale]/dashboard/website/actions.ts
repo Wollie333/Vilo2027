@@ -22,6 +22,7 @@ import {
   standardPageTemplates,
 } from "@/lib/website/standardPages";
 import { missingRequiredFromRaw } from "@/lib/website/pageContract";
+import { getAmenityCatalog } from "@/lib/taxonomy/getAmenities";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -1091,6 +1092,74 @@ export async function fetchBuilderRoomsAction(
     name: (p.name as string | null) ?? "Untitled property",
   }));
   return { ok: true, rooms, properties };
+}
+
+export type BuilderAmenityGroup = {
+  label: string;
+  items: { key: string; label: string }[];
+};
+export type BuilderPropertyAmenities = {
+  id: string;
+  name: string;
+  keys: string[];
+};
+
+/**
+ * Load the host's properties + their currently-selected amenities + the published
+ * amenity catalog for the builder's "Edit amenities" modal (Phase 4b-3). Scoped to
+ * the host (properties are public-read, so filter by host_id). The modal writes the
+ * chosen keys back via the existing `replaceAmenitiesAction` (property_amenities SSOT).
+ */
+export async function fetchBuilderAmenitiesAction(websiteId: string): Promise<
+  | {
+      ok: true;
+      properties: BuilderPropertyAmenities[];
+      groups: BuilderAmenityGroup[];
+    }
+  | { ok: false; error: string }
+> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return { ok: false, error: "not_owner" };
+
+  const supabase = createServerClient();
+  const [propsRes, catalog] = await Promise.all([
+    supabase
+      .from("properties")
+      .select("id, name")
+      .eq("host_id", own.hostId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true }),
+    getAmenityCatalog(),
+  ]);
+  if (propsRes.error) return { ok: false, error: "load_failed" };
+
+  const propIds = (propsRes.data ?? []).map((p) => p.id as string);
+  const { data: amRows } = await supabase
+    .from("property_amenities")
+    .select("property_id, amenity_key")
+    .in(
+      "property_id",
+      propIds.length ? propIds : ["00000000-0000-0000-0000-000000000000"],
+    );
+  const keysByProp = new Map<string, string[]>();
+  for (const r of amRows ?? []) {
+    const list = keysByProp.get(r.property_id as string) ?? [];
+    list.push(r.amenity_key as string);
+    keysByProp.set(r.property_id as string, list);
+  }
+
+  const properties: BuilderPropertyAmenities[] = (propsRes.data ?? []).map(
+    (p) => ({
+      id: p.id as string,
+      name: (p.name as string | null) ?? "Untitled property",
+      keys: keysByProp.get(p.id as string) ?? [],
+    }),
+  );
+  const groups: BuilderAmenityGroup[] = catalog.map((g) => ({
+    label: g.label,
+    items: g.items.map((i) => ({ key: i.slug, label: i.label })),
+  }));
+  return { ok: true, properties, groups };
 }
 
 /**
