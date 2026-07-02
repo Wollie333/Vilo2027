@@ -38,6 +38,11 @@ ALONE — never `git add -A` (use `git add -u` / explicit paths).
   `components/site/safari/{SafariNavCanvas,SafariShell,SafariNav,SafariLightbox,safari.css}` +
   `sections/SafariSections` + `SafariContactForm` REMAIN. Cut it over to the new builder's nav overlay,
   repoint `(editor)/navigation`, then delete the residual safari chrome + `safariNav.ts` if unused.
+  **ALSO IN THIS PASS (folded in):** the public-site HEADER crowds at tablet/small-desktop widths
+  (~900–1000px) — the logo name ("Olive Grove Guesthouse") overlaps the first nav item ("About") and
+  causes ~6px horizontal overflow. It's a `SiteChrome`/`StickyHeader` responsive-nav issue (not the token
+  render path); fix the header breakpoints (collapse to the mobile menu sooner, or shrink/wrap the nav)
+  while reworking the chrome/nav here.
 
 Read first next session: this SAVE POINT, `docs/features/BUILDER_V2_PLAN.md`, `docs/features/
 TRACKING_EVENTS_PLAN.md`, memory `project-builder-v2`.
