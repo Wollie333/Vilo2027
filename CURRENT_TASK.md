@@ -326,8 +326,21 @@ vilotest (`host@vilotest.com`) + a save point.
   exact public render path/data. **Public `/rooms/<slug>` e2e needs a seeded v2 room_detail doc** (loader
   detection is a 3-line mirror of the proven v2 page loader). Room-scoped widgets not in the drag library
   yet (blueprint/seed-authored).
-- **NEXT — Phase 5 (last slice):** goal/pixel events on the v2 thank-you. Then **Phase 6** (delete legacy
-  builder + bespoke theme dirs at cutover).
+- **Phase 5-5 — goal/pixel events on v2 pages (DONE + LIVE-VERIFIED, 2026-07-02). PHASE 5 COMPLETE.**
+  A v2 page keeps per-page marketing in the PageDoc `meta` (Page Settings overlay), but `SitePageView`
+  read the conversion event + head code from the page-row `seo_overrides` column → v2 marketing never
+  fired. `SitePageView`: `pagePixelEvent`/`pageHeadCode` now PREFER `result.doc.meta` (pixelEvent/
+  headCode), falling back to `seo_overrides` (flat pages have no `result.doc` → unchanged). Covers every
+  branch (pageMarketing is rendered in all), incl. a v2 thank-you firing the host's Pixel/GA4 event on
+  load (live only). `PageSettingsOverlay` Tracking tab gains a "Conversion event" selector
+  (`PAGE_PIXEL_EVENTS`) writing `meta.pixelEvent` (parity with the flat PageSeoCard). Live-verified the
+  selector renders + patches meta via autosave (0 errors). tsc+lint clean, 169 vitest. Public-page fire
+  is a type-checked unification of the proven flat marketing path (e2e needs a live GA4/Meta id).
+- **PHASE 5 COMPLETE** — 5-1 logo/nav/social · 5-2 room card + canvas sample data · 5-3 booking widgets ·
+  5-4 room-detail v2 template · 5-5 goal/pixel. **NEXT = Phase 6 (cutover):** delete the legacy builder
+  (`PageBuilder.tsx`, SectionEditor/Library, old editor routes) + the four bespoke theme dirs
+  (`components/site/{safari,sabela,oceansview,marmalade}/`); make the v2 render path the sole path;
+  update docs + memory; full green + live verify.
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 5-5: goal / pixel events on v2 pages. PHASE 5 COMPLETE.
+
+The last Phase-5 slice. A Builder V2 page keeps its per-page marketing (SEO / tracking / custom code) in
+the PageDoc's `meta` (set in the builder's Page Settings overlay, Phase 4b) — but the public render path
+was reading the host's conversion event + head code from the page-row `seo_overrides` column, so a v2
+page's builder-set marketing never fired. Closed that loop + made the event authorable.
+
+- **`SitePageView.tsx`** — the per-page marketing (`pagePixelEvent` + `pageHeadCode`) now PREFERS
+  `result.doc.meta` (`pixelEvent` / `headCode`) and falls back to the page-row `seo_overrides`. Legacy
+  flat pages have no `result.doc`, so `docMeta = {}` → behaviour unchanged. `pageMarketing` is already
+  rendered in EVERY branch (v2 + bespoke + generic), so the fix covers all of them — including a v2
+  thank-you page firing the host's chosen Meta Pixel / GA4 conversion event on load (live site only,
+  never in preview). `FirePixelEvent` + `PageHeadCode` are the existing, proven components.
+- **`PageSettingsOverlay.tsx`** — the Tracking tab gains a "Conversion event" selector
+  (`PAGE_PIXEL_EVENTS`: none / ViewContent / Lead / Contact / Subscribe / Search / InitiateCheckout /
+  CompleteRegistration) writing `meta.pixelEvent` — parity with the flat page editor's PageSeoCard, so a
+  host can pick the goal event per page (e.g. Lead on a contact thank-you). "none" clears it.
+- **Live-verified** in the builder Page Settings overlay: the Tracking tab shows the Conversion-event
+  selector with all 8 options; selecting "Lead" updates the control + "Saved automatically" fires
+  (patches the doc `meta` through autosave), 0 console errors. tsc + lint clean, 169 vitest.
+  **NOTE:** the public-page firing is a type-checked unification of the already-proven flat marketing
+  path; the end-to-end pixel fire on a published v2 page needs a live host GA4/Meta id to observe.
+  **PHASE 5 (live data + booking funnel) is COMPLETE** (5-1 logo/nav/social · 5-2 room card + canvas
+  sample data · 5-3 booking widgets · 5-4 room-detail v2 template · 5-5 goal/pixel). **NEXT = Phase 6:**
+  delete the legacy builder + the four bespoke theme dirs at cutover.
+
 ## 2026-07-02 — Builder V2 Phase 5-4: room-detail v2 template (token render + room-scoped widgets)
 
 The `/rooms/<slug>` page can now render from a Builder V2 PageDoc template through the ONE token

@@ -99,18 +99,27 @@ export async function SitePageView({
   const headerBookHref =
     ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
 
-  // Per-page marketing overrides (Page settings → seo_overrides). Live site only:
-  // fire the host's chosen Pixel/GA4 event for this page + inject its custom head
-  // code. Read straight from the page row, so they take effect without republish.
+  // Per-page marketing overrides. Live site only: fire the host's chosen
+  // Pixel/GA4 event for this page + inject its custom head code. A Builder V2
+  // page keeps these in its PageDoc `meta` (set in the builder's Page Settings
+  // overlay), so prefer `doc.meta`; legacy flat pages read the page-row
+  // `seo_overrides`. Read straight through, so edits take effect without republish.
   const pageOv = (result.page.seoOverrides ?? {}) as {
     pixelEvent?: string;
     headCode?: string;
   };
+  const docMeta = (result.doc?.meta ?? {}) as {
+    pixelEvent?: string;
+    headCode?: string;
+  };
+  const rawPixelEvent = (docMeta.pixelEvent || pageOv.pixelEvent || "").trim();
   const pagePixelEvent =
-    !ctx.preview && pageOv.pixelEvent && pageOv.pixelEvent !== "none"
-      ? pageOv.pixelEvent
+    !ctx.preview && rawPixelEvent && rawPixelEvent !== "none"
+      ? rawPixelEvent
       : null;
-  const pageHeadCode = !ctx.preview ? pageOv.headCode?.trim() || "" : "";
+  const pageHeadCode = !ctx.preview
+    ? docMeta.headCode?.trim() || pageOv.headCode?.trim() || ""
+    : "";
   const pageMarketing = (
     <>
       {pagePixelEvent ? <FirePixelEvent event={pagePixelEvent} /> : null}

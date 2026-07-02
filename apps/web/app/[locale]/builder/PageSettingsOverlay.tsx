@@ -12,13 +12,15 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { PAGE_PIXEL_EVENTS } from "@/app/[locale]/dashboard/website/schemas";
+
 // Builder V2 — Phase 4b: Page Settings overlay (SEO / social / tracking / code).
 //
 // A pixel-faithful port of the prototype's `.ps-modal`: a centred modal with a
 // left tab rail and a scrolling form. Edits the PageDoc's page-level `meta`
 // (a loose record) via `onPatch`, so every change autosaves + is undoable with
-// the doc. The public render path consuming these fields is a Phase-5 wiring
-// task (the meta persists now, regardless).
+// the doc. Phase 5-5 wires the public v2 render path to consume `meta.pixelEvent`
+// (the conversion event below) + `meta.headCode`.
 
 type Meta = Record<string, unknown>;
 
@@ -326,9 +328,31 @@ function TrackingTab({
   meta: Meta;
   set: (k: string, v: unknown) => void;
 }) {
+  const pixelEvent = str(meta, "pixelEvent") || "none";
   return (
     <>
       <h3 className="ps-h">Tracking &amp; pixels</h3>
+      <Group title="Conversion event">
+        <Field label="Fire on page view">
+          <select
+            className="inp"
+            value={pixelEvent}
+            onChange={(e) =>
+              set("pixelEvent", e.target.value === "none" ? "" : e.target.value)
+            }
+          >
+            {PAGE_PIXEL_EVENTS.map((ev) => (
+              <option key={ev} value={ev}>
+                {ev === "none" ? "No event" : ev}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <div className="hint">
+          Fires this Meta Pixel / GA4 event when the published page loads — use
+          it on a thank-you page to count a conversion.
+        </div>
+      </Group>
       <Group title="Analytics & pixels">
         {PIXELS.map((p) => {
           const v = str(meta, p.key);
