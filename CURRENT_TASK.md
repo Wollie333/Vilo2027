@@ -13,8 +13,14 @@
 >
 > **Phase status:** ✅ **0** date-picker/search clipping fix · ✅ **1** stock-data theme
 > preview · ✅ **2** activation → all pages themed + builder-editable (verified) · ⏳ 3
-> required system-blocks · 4 Wielo data modals · 5 per-block style UI · 6 setup wizard +
-> go-live gate.
+> required system-blocks (**3a done**, 3b next) · 4 Wielo data modals · 5 per-block style
+> UI · 6 setup wizard + go-live gate.
+>
+> **Phase 3a (done):** `lib/website/pageContract.ts` SSOT — required Wielo blocks per page
+> kind (room_detail→gallery/overview/rate/policies; search_results→search_results;
+> rooms→rooms_preview). `publishBuilderDocAction` rejects `missing_required_blocks` (PageDoc
+> only; legacy flat skipped). 11 vitest. **3b next:** builder UI — library "Required" badges
+> (`isWidgetRequiredOnPage`) + delete guard + readiness strip in `BuilderShell.tsx`.
 >
 > **Phase 2 (done, verification):** activation pipeline already correct — `mergeStandardPages`
 > (7 marketing + search_results) + `applyThemeAction` seeds room_detail + `loadPagesList`

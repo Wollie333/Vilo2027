@@ -201,3 +201,13 @@ already written but uncommitted.
   the fixture lacks a `room_detail` row (seed artifact) → self-heals via
   `ensureRoomDetailPage`. No source changed (Phase-1 build stands). Next: Phase 3
   (required system-blocks).
+- _2026-07-02_ — ✅ **Phase 3a DONE (contract SSOT + publish guard + tests).** New
+  `lib/website/pageContract.ts` = SSOT for required Wielo blocks per page kind
+  (`room_detail` → room_gallery/overview/rate/policies; `search_results` →
+  search_results; `rooms` → rooms_preview; everything else free-form). Exposes
+  `requiredWidgetsForPageKind` · `isWidgetRequiredOnPage` · `docWidgetTypes` ·
+  `missingRequiredWidgets(doc,kind)` · `missingRequiredFromRaw(raw,kind)` (publish
+  backstop; enforced on Builder V2 PageDocs only, legacy flat pages skipped).
+  `publishBuilderDocAction` now rejects with `missing_required_blocks` if a required
+  block is absent. 11 vitest (pageContract.test.ts). `tsc`+`lint`+`build` green.
+  Next: **Phase 3b** — builder UI (library "Required" badges + delete guard + readiness).

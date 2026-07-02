@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 3a: required-blocks contract + publish guard.
+
+New `lib/website/pageContract.ts` — the SSOT for which Wielo blocks a page KIND needs to
+function (theme = style, system = data, but a system page still needs its data-driven
+blocks): `room_detail` → gallery/overview/rate/policies; `search_results` → the results
+block; `rooms` → the rooms grid; every other kind is free-form. `publishBuilderDocAction`
+now refuses to publish a Builder V2 page that's missing a required block
+(`missing_required_blocks`); legacy flat pages are skipped (not block-authored). Backed by
+11 unit tests. Next (Phase 3b): the builder UI — "Required" badges in the block library,
+a delete guard, and a per-page readiness strip. `tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 2: activation → all pages themed + editable (verified).
 
 Verification pass — the activation pipeline already delivers "activate a theme → every

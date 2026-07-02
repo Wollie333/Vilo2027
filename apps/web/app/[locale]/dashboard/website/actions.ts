@@ -21,6 +21,7 @@ import {
   mergeStandardPages,
   standardPageTemplates,
 } from "@/lib/website/standardPages";
+import { missingRequiredFromRaw } from "@/lib/website/pageContract";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -1003,11 +1004,18 @@ export async function publishBuilderDocAction(
   const supabase = createServerClient();
   const { data: page } = await supabase
     .from("website_pages")
-    .select("draft_sections")
+    .select("draft_sections, kind")
     .eq("id", pageId)
     .eq("website_id", websiteId)
-    .maybeSingle();
+    .maybeSingle<{ draft_sections: unknown; kind: string }>();
   if (!page) return { ok: false, error: "not_found" };
+
+  // Required-blocks safety (page contract): a system template can't go live
+  // missing a block it needs to function (e.g. a room page with no booking block).
+  // Enforced on Builder V2 docs only; legacy flat pages are skipped. The builder
+  // blocks this client-side too and names the missing blocks — this is the backstop.
+  if (missingRequiredFromRaw(page.draft_sections, page.kind).length)
+    return { ok: false, error: "missing_required_blocks" };
 
   const { error } = await supabase
     .from("website_pages")
