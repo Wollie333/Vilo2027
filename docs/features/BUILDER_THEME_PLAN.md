@@ -311,3 +311,15 @@ already written but uncommitted.
   real signed-URL path), deleted it (→4); fixture clean. `tsc`+`lint`+`build` green. **Wielo block+editor
   pattern now proven for rooms, amenities (2 scopes), AND gallery.** Remaining 4b: rates/seasonal editor.
   Then Phase 5 (per-block style UI), Phase 6 (setup wizard).
+- _2026-07-02_ — ✅ **Phase 4c DONE (complete the block library — all block elements draggable).**
+  Founder: "finish all the blocks first so we have all the block elements, THEN custom design per block."
+  Audit found ~18 renderable section types absent from the drag library. Added them all to `WIDGET_TYPES`
+  + `WIDGET_DEFS`: **6 Wielo/live blocks** (addons_preview, blog_preview, policies, rate_table, room_rates,
+  seasonal_pricing — already render+assemble; + `DEMO_*` sample data so the canvas isn't empty) and a
+  **new "Content blocks" group** with **12 composites** (hero, intro, highlights, stats, cta, host_bio,
+  values, rich_text, faq, pricing, logos, trust) + content controls (array-item blocks get heading + a
+  "restyle for now" hint — per-item editing is a later slice). **Verified live:** the library now shows
+  Content blocks (12) + Wielo blocks (15) + the existing groups; canvas renders. 184 vitest,
+  `tsc`+`lint`+`build` green. **Block set is now COMPLETE.** NEXT = **Phase 5** (per-block custom design —
+  expose `blockStyle` + make `PageDocRenderer` apply it). Deferred: rich per-item editors for composite
+  arrays; the rates/seasonal DATA editor.

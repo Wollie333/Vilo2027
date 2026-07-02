@@ -19,7 +19,13 @@ import {
   SOCIAL_VARIANTS,
 } from "./newTypes.schema";
 
-export type WidgetGroup = "basic" | "media" | "wielo" | "site" | "system";
+export type WidgetGroup =
+  | "basic"
+  | "media"
+  | "content"
+  | "wielo"
+  | "site"
+  | "system";
 
 /** Declarative inspector control (Content tab). Style/Advanced/Responsive are generic. */
 export type WidgetControl =
@@ -310,6 +316,223 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     ],
   },
 
+  // ── Content blocks (theme-composite marketing sections) ─────
+  hero: {
+    type: "hero",
+    group: "content",
+    label: "Hero",
+    icon: "Image",
+    variants: [
+      ["spotlight", "Spotlight"],
+      ["fullscreen", "Full screen"],
+      ["split_right", "Split right"],
+      ["split_left", "Split left"],
+      ["minimal", "Minimal"],
+      ["boxed", "Boxed"],
+      ["search", "Search"],
+    ],
+    defaults: {
+      headline: "Your headline here",
+      subheadline: "A short welcoming line beneath it.",
+      align: "center",
+      variant: "spotlight",
+      overlay: "medium",
+      textTone: "auto",
+      height: "auto",
+    },
+    content: [
+      { kind: "text", key: "headline", label: "Headline" },
+      { kind: "textarea", key: "subheadline", label: "Subheadline" },
+      { kind: "text", key: "cta_label", label: "Button label" },
+      { kind: "text", key: "cta_href", label: "Button link" },
+      ALIGN_CTL(),
+    ],
+  },
+  intro: {
+    type: "intro",
+    group: "content",
+    label: "Intro",
+    icon: "AlignLeft",
+    variants: [
+      ["centered", "Centered"],
+      ["story", "Story"],
+    ],
+    defaults: {
+      heading: "Welcome",
+      body: "Tell guests what makes your place special.",
+      variant: "centered",
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "textarea", key: "body", label: "Body" },
+    ],
+  },
+  highlights: {
+    type: "highlights",
+    group: "content",
+    label: "Highlights",
+    icon: "Star",
+    defaults: {
+      heading: "Why guests come back",
+      variant: "grid",
+      items: [
+        { title: "Direct rates", body: "No platform markup." },
+        { title: "Personal welcome", body: "We host every guest ourselves." },
+        { title: "Great location", body: "Close to everything that matters." },
+      ],
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      {
+        kind: "hint",
+        text: "Restyle via Style & Advanced; per-item editing lands in a later slice.",
+      },
+    ],
+  },
+  stats: {
+    type: "stats",
+    group: "content",
+    label: "Stats",
+    icon: "BarChart3",
+    defaults: {
+      heading: "By the numbers",
+      variant: "band",
+      items: [
+        { value: "500+", label: "Happy guests" },
+        { value: "4.9", label: "Average rating" },
+        { value: "10 yrs", label: "Hosting experience" },
+      ],
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "hint", text: "Stat items are editable in a later slice." },
+    ],
+  },
+  cta: {
+    type: "cta",
+    group: "content",
+    label: "Call to action",
+    icon: "MousePointerClick",
+    defaults: {
+      heading: "Ready to book?",
+      body: "Reserve your dates directly — no booking fees.",
+      button_label: "Check availability",
+      button_href: "#rooms",
+      variant: "banner",
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "textarea", key: "body", label: "Body" },
+      { kind: "text", key: "button_label", label: "Button label" },
+      { kind: "text", key: "button_href", label: "Button link" },
+    ],
+  },
+  host_bio: {
+    type: "host_bio",
+    group: "content",
+    label: "Host bio",
+    icon: "UserRound",
+    defaults: {
+      heading: "Your host",
+      variant: "side",
+      name: "",
+      body: "A few warm lines about you and your team.",
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "text", key: "name", label: "Host name" },
+      { kind: "textarea", key: "body", label: "Bio" },
+    ],
+  },
+  values: {
+    type: "values",
+    group: "content",
+    label: "Values",
+    icon: "Heart",
+    defaults: {
+      heading: "How we host",
+      variant: "border",
+      items: [
+        { title: "Thoughtful", body: "The little touches guests remember." },
+        { title: "Local", body: "We point you to the best of the area." },
+      ],
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "hint", text: "Value items are editable in a later slice." },
+    ],
+  },
+  rich_text: {
+    type: "rich_text",
+    group: "content",
+    label: "Rich text",
+    icon: "Type",
+    defaults: { html: "<p>Add your own text here.</p>", variant: "narrow" },
+    content: [{ kind: "textarea", key: "html", label: "Text (HTML)" }],
+  },
+  faq: {
+    type: "faq",
+    group: "content",
+    label: "FAQ",
+    icon: "HelpCircle",
+    defaults: {
+      heading: "Good to know",
+      variant: "accordion",
+      items: [{ q: "Is there Wi-Fi?", a: "Yes — free, uncapped." }],
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "hint", text: "Q&A items are editable in a later slice." },
+    ],
+  },
+  pricing: {
+    type: "pricing",
+    group: "content",
+    label: "Pricing",
+    icon: "DollarSign",
+    defaults: {
+      heading: "Rates",
+      items: [
+        { label: "Standard room", price: "R1 200", note: "per night" },
+        { label: "Deluxe suite", price: "R2 400", note: "per night" },
+      ],
+      footnote:
+        "Rates are indicative — your final price is confirmed at booking.",
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "text", key: "footnote", label: "Footnote" },
+    ],
+  },
+  logos: {
+    type: "logos",
+    group: "content",
+    label: "Logos",
+    icon: "BadgeCheck",
+    defaults: { heading: "As featured in", items: [], variant: "row" },
+    content: [{ kind: "text", key: "heading", label: "Heading" }],
+  },
+  trust: {
+    type: "trust",
+    group: "content",
+    label: "Trust badges",
+    icon: "ShieldCheck",
+    defaults: {
+      heading: "Book with confidence",
+      show_review_score: true,
+      variant: "badges",
+      items: [
+        { icon: "🔒", label: "Secure payments" },
+        { icon: "✅", label: "Verified host" },
+        { icon: "🏅", label: "Superhost award" },
+      ],
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "toggle", key: "show_review_score", label: "Show review score" },
+    ],
+  },
+
   // ── Wielo blocks (auto-populate) ────────────────────────
   rooms_preview: {
     type: "rooms_preview",
@@ -351,6 +574,109 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         kind: "hint",
         text: "Amenities come from your property — use “Edit amenities…” to choose them.",
       },
+    ],
+  },
+  addons_preview: {
+    type: "addons_preview",
+    group: "wielo",
+    label: "Add-ons",
+    icon: "PlusCircle",
+    autoPopulate: true,
+    dataKey: "addons_preview",
+    defaults: { heading: "Add-ons & extras", layout: "grid", max: 6 },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "range", key: "max", label: "Add-ons shown", min: 1, max: 12 },
+    ],
+  },
+  blog_preview: {
+    type: "blog_preview",
+    group: "wielo",
+    label: "Journal",
+    icon: "Newspaper",
+    autoPopulate: true,
+    dataKey: "blog_preview",
+    variants: [
+      ["grid", "Grid"],
+      ["list", "List"],
+    ],
+    defaults: {
+      heading: "From the journal",
+      max: 3,
+      variant: "grid",
+      display: "grid",
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "range", key: "max", label: "Posts shown", min: 1, max: 12 },
+    ],
+  },
+  policies: {
+    type: "policies",
+    group: "wielo",
+    label: "Policies",
+    icon: "ScrollText",
+    autoPopulate: true,
+    dataKey: "policies",
+    defaults: { heading: "Things to know", variant: "grid" },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      {
+        kind: "hint",
+        text: "Check-in/out, cancellation and house rules come from your property.",
+      },
+    ],
+  },
+  rate_table: {
+    type: "rate_table",
+    group: "wielo",
+    label: "Rate Table",
+    icon: "Table",
+    autoPopulate: true,
+    dataKey: "rate_table",
+    defaults: {
+      heading: "Our rates",
+      note: "Rates are per night from — your final price is confirmed at checkout.",
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "text", key: "note", label: "Note" },
+    ],
+  },
+  room_rates: {
+    type: "room_rates",
+    group: "wielo",
+    label: "Room Rates",
+    icon: "Tag",
+    autoPopulate: true,
+    dataKey: "room_rates",
+    defaults: {
+      heading: "Room rates",
+      note: "Per night, from.",
+      source: "auto",
+      items: [],
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "text", key: "note", label: "Note" },
+    ],
+  },
+  seasonal_pricing: {
+    type: "seasonal_pricing",
+    group: "wielo",
+    label: "Seasonal Pricing",
+    icon: "CalendarRange",
+    autoPopulate: true,
+    dataKey: "seasonal_pricing",
+    defaults: {
+      heading: "Seasonal pricing",
+      note: "Rates vary by season.",
+      source: "auto",
+      items: [],
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "text", key: "note", label: "Note" },
     ],
   },
   el_room_card: {
@@ -688,6 +1014,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
 export const WIDGET_GROUPS: [WidgetGroup, string][] = [
   ["basic", "Basics"],
   ["media", "Media"],
+  ["content", "Content blocks"],
   ["wielo", "Wielo blocks"],
   ["site", "Site parts"],
   ["system", "Room & search"],

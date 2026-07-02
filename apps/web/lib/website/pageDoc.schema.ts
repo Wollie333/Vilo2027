@@ -40,6 +40,19 @@ export const WIDGET_TYPES = [
   // Media (reused)
   "gallery",
   "video",
+  // Content blocks (theme-composite marketing sections — now host-draggable)
+  "hero",
+  "intro",
+  "highlights",
+  "stats",
+  "cta",
+  "host_bio",
+  "values",
+  "rich_text",
+  "faq",
+  "pricing",
+  "logos",
+  "trust",
   // Wielo blocks (reused auto-populate)
   "rooms_preview",
   "el_room_card", // NEW — single room card
@@ -48,6 +61,12 @@ export const WIDGET_TYPES = [
   "reviews",
   "specials_preview",
   "amenities", // property-wide facilities (live from property_amenities)
+  "addons_preview", // live add-ons / extras
+  "blog_preview", // live journal posts
+  "policies", // property "things to know" (cancellation / check-in / rules)
+  "rate_table", // live nightly "from" rates
+  "room_rates", // per-room rates (auto = live)
+  "seasonal_pricing", // seasonal rate bands (auto = live)
   "location",
   "map",
   // Site parts (footer document + in-page)

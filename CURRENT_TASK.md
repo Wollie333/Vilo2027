@@ -38,8 +38,14 @@
 > **Phase 4b-5 (done):** `gallery` block → "Edit photos…" → `GalleryDataModal` (loads property-wide
 > photos via `fetchBuilderGalleryAction`; upload/delete reuse the Properties-manager signed-URL flow +
 > `deleteListingPhotoAction`; router.refresh). Verified live E2E: uploaded a test PNG (→5, real DB row)
-> + deleted (→4), fixture clean. Wielo block+editor pattern proven for rooms/amenities/gallery. **4b
-> rest:** rates/seasonal editor. Then Phase 5 (per-block style UI), Phase 6 (setup wizard + go-live).
+> + deleted (→4), fixture clean. Wielo block+editor pattern proven for rooms/amenities/gallery.
+>
+> **Phase 4c (done):** completed the drag library — ALL ~18 missing renderable blocks now draggable.
+> New **"Content blocks"** group (12 composites: hero/intro/highlights/stats/cta/host_bio/values/
+> rich_text/faq/pricing/logos/trust) + 6 live **Wielo blocks** (addons/journal/policies/rate_table/
+> room_rates/seasonal_pricing) with `DEMO_*` canvas sample data. Verified live (library shows all
+> groups). **NEXT = Phase 5** (per-block custom design — needs `PageDocRenderer` to APPLY `blockStyle`).
+> Deferred: rich per-item editors for composite list blocks; rates/seasonal DATA editor.
 >
 > **Phase 4b-2 (done):** builder CANVAS now renders the host's REAL data (not demo).
 > `builder/page.tsx loadRealPage` builds a real `SiteContext` (`loadSiteContext`) + assembles

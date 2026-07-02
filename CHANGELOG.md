@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 4c: the drag library now has every block.
+
+Completed the block set so the host has all block elements before we wire per-block design. ~18
+renderable blocks were missing from the drag library; all are now added. A new **"Content blocks"**
+group holds 12 composites (Hero, Intro, Highlights, Stats, Call to action, Host bio, Values, Rich
+text, FAQ, Pricing, Logos, Trust badges), and the **Wielo blocks** group gained 6 live blocks
+(Add-ons, Journal, Policies, Rate Table, Room Rates, Seasonal Pricing) — with sample data so they
+render on the builder canvas too. Each new block drops with valid starter props + basic content
+controls (rich per-item editing for list blocks and a dedicated rates editor are later slices).
+Verified live: the library shows all groups populated. 184 unit tests, `tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 4b-5: edit gallery photos from the builder.
 
 The `gallery` Wielo block now has an **"Edit photos…"** button that opens a modal to manage the

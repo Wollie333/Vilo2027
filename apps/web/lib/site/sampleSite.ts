@@ -5,13 +5,17 @@
 // to import in client or server.
 
 import type {
+  AddonsPreviewData,
   AmenitiesData,
   BlogPreviewData,
   BookingFunnelData,
   GalleryData,
+  RateTableData,
   ReviewsData,
   RoomDetail,
+  RoomPolicies,
   RoomsPreviewData,
+  SeasonalPricingData,
   SiteData,
   SiteNavItem,
   SpecialsPreviewData,
@@ -197,6 +201,84 @@ export const DEMO_AMENITIES: AmenitiesData = {
   ],
 };
 
+export const DEMO_ADDONS: AddonsPreviewData = {
+  addons: [
+    {
+      id: "da1",
+      name: "Airport transfer",
+      description: "Door-to-door pickup from the airport.",
+      pricingModel: "per_stay",
+      price: 650,
+      currency: "ZAR",
+    },
+    {
+      id: "da2",
+      name: "Breakfast basket",
+      description: "Fresh local produce delivered each morning.",
+      pricingModel: "per_guest_per_night",
+      price: 120,
+      currency: "ZAR",
+    },
+    {
+      id: "da3",
+      name: "Wine tasting",
+      description: "Guided tasting at a nearby estate.",
+      pricingModel: "per_guest",
+      price: 300,
+      currency: "ZAR",
+    },
+  ],
+};
+
+export const DEMO_RATE_TABLE: RateTableData = {
+  rows: [
+    {
+      roomId: "dr1",
+      name: "Garden Suite",
+      propertyId: "dp1",
+      nightlyFrom: 1850,
+      currency: "ZAR",
+      maxGuests: 2,
+      bookHref: "#",
+    },
+    {
+      roomId: "dr2",
+      name: "Family Cottage",
+      propertyId: "dp1",
+      nightlyFrom: 2200,
+      currency: "ZAR",
+      maxGuests: 4,
+      bookHref: "#",
+    },
+    {
+      roomId: "dr3",
+      name: "The Loft",
+      propertyId: "dp1",
+      nightlyFrom: 1500,
+      currency: "ZAR",
+      maxGuests: 2,
+      bookHref: "#",
+    },
+  ],
+};
+
+export const DEMO_SEASONAL: SeasonalPricingData = {
+  seasons: [
+    { label: "Peak", dates: "Dec – Jan", priceFrom: 2400, currency: "ZAR" },
+    { label: "High", dates: "Feb – Apr", priceFrom: 1850, currency: "ZAR" },
+    { label: "Low", dates: "May – Aug", priceFrom: 1480, currency: "ZAR" },
+  ],
+};
+
+export const DEMO_POLICIES: RoomPolicies = {
+  cancellation: "Free cancellation up to 7 days before check-in.",
+  checkIn: "From 14:00",
+  checkOut: "Until 10:00",
+  houseRules: "No smoking indoors. Quiet hours after 22:00.",
+  children: true,
+  pets: true,
+};
+
 export const DEMO_SPECIALS: SpecialsPreviewData = {
   specials: [
     {
@@ -250,6 +332,16 @@ function sampleDatumFor(
       return { type: "specials_preview", data: DEMO_SPECIALS };
     case "amenities":
       return { type: "amenities", data: DEMO_AMENITIES };
+    case "addons_preview":
+      return { type: "addons_preview", data: DEMO_ADDONS };
+    case "policies":
+      return { type: "policies", data: DEMO_POLICIES };
+    case "rate_table":
+      return { type: "rate_table", data: DEMO_RATE_TABLE };
+    case "room_rates":
+      return { type: "room_rates", data: DEMO_RATE_TABLE };
+    case "seasonal_pricing":
+      return { type: "seasonal_pricing", data: DEMO_SEASONAL };
     case "booking_search":
       return { type: "booking_search", data: DEMO_BOOKING };
     case "availability_calendar":
