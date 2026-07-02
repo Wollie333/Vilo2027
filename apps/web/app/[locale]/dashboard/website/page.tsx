@@ -7,9 +7,14 @@ import { getTranslations } from "next-intl/server";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { loadActiveThemes } from "@/lib/site/themes.server";
 import { createServerClient } from "@/lib/supabase/server";
+import {
+  checkWebsiteReadiness,
+  type ReadinessItem,
+} from "@/lib/website/readiness";
 import { deriveSubdomain } from "@/lib/website/subdomain";
 
 import { CreateWebsiteButton } from "./_components/CreateWebsiteButton";
+import { ReadinessChecklist } from "./_components/ReadinessChecklist";
 import { WebsiteLocked } from "./_components/WebsiteLocked";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +87,20 @@ export default async function WebsiteLandingPage() {
   }
   const siteByBusiness = new Map(sites.map((s) => [s.business_id, s]));
 
+  // Go-live readiness per site (Phase 6) — surface what's left before a site can
+  // publish, right on the management row. Checked in parallel; the SSOT is shared
+  // with the editor Publish gate.
+  const readinessEntries = await Promise.all(
+    sites.map(
+      async (s) =>
+        [
+          s.id,
+          (await checkWebsiteReadiness(supabase, host.id, s.id)).missing,
+        ] as const,
+    ),
+  );
+  const missingBySite = new Map<string, ReadinessItem[]>(readinessEntries);
+
   // Single business that already has a site → go straight to its editor.
   if (businesses.length === 1) {
     const only = siteByBusiness.get(businesses[0].id);
@@ -111,14 +130,23 @@ export default async function WebsiteLandingPage() {
                 className="rounded-card border border-brand-line bg-white shadow-card"
               >
                 {site ? (
-                  <ManageRow
-                    name={name}
-                    subdomain={site.subdomain}
-                    status={site.status}
-                    href={`/dashboard/website/${site.id}`}
-                    manageLabel={t("manageCta")}
-                    statusLabel={t(badgeKey(site.status))}
-                  />
+                  <>
+                    <ManageRow
+                      name={name}
+                      subdomain={site.subdomain}
+                      status={site.status}
+                      href={`/dashboard/website/${site.id}`}
+                      manageLabel={t("manageCta")}
+                      statusLabel={t(badgeKey(site.status))}
+                    />
+                    {(missingBySite.get(site.id)?.length ?? 0) > 0 ? (
+                      <div className="border-t border-brand-line bg-brand-light/40 px-5 py-4">
+                        <ReadinessChecklist
+                          missing={missingBySite.get(site.id) ?? []}
+                        />
+                      </div>
+                    ) : null}
+                  </>
                 ) : (
                   <CreateWebsiteButton
                     businessId={biz.id}

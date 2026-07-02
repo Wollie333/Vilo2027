@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 6a: go-live readiness gate.
+
+A website now can't go live until it's genuinely ready to take bookings. A new single source of
+truth (`lib/website/readiness.ts`) checks the founder-locked hard-required set — a business name, at
+least one active bookable room priced in ZAR, a payment method (manual EFT or a connected card/PayPal
+gateway), a subdomain, and a cancellation policy actually assigned to the property (an authored-but-
+unassigned policy, or the defaulted enum, does not count). The same check now gates the Publish action
+server-side, powers a checklist the host sees at the moment they try to go live (the editor Publish
+button shows exactly what's missing with one-click fix links), drives the setup wizard's final step
+(a brand-new host lands on a draft with the checklist instead of a false "you're live"), and shows a
+readiness card on the website dashboard. Explore, preview and design stay wide open — only Publish is
+walled. Verified live against the vilotest fixture: clicking Publish surfaced the one real gap (assign
+a cancellation policy) and correctly refused to publish. 189 unit tests (5 new) pass.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 5: custom design per block.
 
 Hosts can now restyle any individual block over the active theme. The builder's **Style** tab gained

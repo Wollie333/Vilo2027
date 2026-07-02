@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 
+import type { ReadinessItem } from "@/lib/website/readiness";
+
 import { createWebsiteWithWizardAction } from "../actions";
 import { StepBasics } from "./steps/StepBasics";
 import { StepBuilding } from "./steps/StepBuilding";
@@ -41,6 +43,10 @@ export function WebsiteWizard({
   );
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  // Whether the auto-publish went live, + what's left if it didn't (the go-live
+  // readiness gate holds a brand-new site as a draft until it's bookable).
+  const [published, setPublished] = useState(true);
+  const [missing, setMissing] = useState<ReadinessItem[]>([]);
 
   if (!open) return null;
 
@@ -64,6 +70,8 @@ export function WebsiteWizard({
     });
     if (res.ok) {
       setCreatedId(res.id);
+      setPublished(res.published ?? true);
+      setMissing(res.missing ?? []);
       setStep("done");
     } else {
       setError(t(ERROR_KEY[res.error] ?? "errGeneric"));
@@ -137,7 +145,13 @@ export function WebsiteWizard({
             <StepBuilding error={error} onRetry={build} />
           ) : null}
           {step === "done" && createdId ? (
-            <StepDone websiteId={createdId} subdomain={state.subdomain} />
+            <StepDone
+              websiteId={createdId}
+              subdomain={state.subdomain}
+              published={published}
+              missing={missing}
+              onClose={onClose}
+            />
           ) : null}
         </div>
       </div>

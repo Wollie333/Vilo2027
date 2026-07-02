@@ -22,6 +22,10 @@ import {
   standardPageTemplates,
 } from "@/lib/website/standardPages";
 import { missingRequiredFromRaw } from "@/lib/website/pageContract";
+import {
+  checkWebsiteReadiness,
+  type ReadinessItem,
+} from "@/lib/website/readiness";
 import { getAmenityCatalog } from "@/lib/taxonomy/getAmenities";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -175,7 +179,7 @@ async function assertWebsiteOwnership(
   return { ok: true, hostId: host.hostId, subdomain: site.subdomain };
 }
 export type CreateResult =
-  | { ok: true; id: string }
+  | { ok: true; id: string; published?: boolean; missing?: ReadinessItem[] }
   | { ok: false; error: string };
 
 const uuid = () => crypto.randomUUID();
@@ -668,12 +672,19 @@ export async function createWebsiteWithWizardAction(
   });
 
   // Auto-publish — copy draft→published per page + freeze the snapshot + set
-  // status=published. Best-effort: the site is already created, so a publish
-  // hiccup shouldn't fail the wizard (the host can publish from the editor).
-  await publishWebsiteAction(site.id);
+  // status=published. Best-effort: the site is already created, so this never
+  // fails the wizard. It legitimately WON'T publish when the go-live readiness
+  // gate isn't met yet (a brand-new host has no rooms/payment/policy) — that's
+  // the intended "wall at the exciting moment": the site is created as a draft
+  // and the wizard's final step tells the host exactly what's left to go live.
+  const pub = await publishWebsiteAction(site.id);
+  const published = pub.ok;
+  const missing = published
+    ? []
+    : (await checkWebsiteReadiness(supabase, host.hostId, site.id)).missing;
 
   revalidatePath("/dashboard/website");
-  return { ok: true, id: site.id };
+  return { ok: true, id: site.id, published, missing };
 }
 
 // ============================================================
@@ -1910,6 +1921,18 @@ export async function publishWebsiteAction(
 
   const supabase = createServerClient();
 
+  // Go-live readiness gate (Builder × Theme plan, Phase 6). Publishing is the one
+  // action the hard-required set blocks — a host can build/preview freely, but the
+  // site can't go live (and start accepting bookings) until it has a name, a
+  // bookable priced room, a payment method, a subdomain and a cancellation policy.
+  // The UI surfaces the missing items; this is the server backstop.
+  const readiness = await checkWebsiteReadiness(
+    supabase,
+    own.hostId,
+    websiteId,
+  );
+  if (!readiness.ready) return { ok: false, error: "not_ready" };
+
   // Pull the business's current rooms/properties into channel membership before
   // snapshotting, so the live site always reflects what's managed under Properties.
   await reconcileWebsiteRooms(supabase, websiteId);
@@ -1943,6 +1966,25 @@ export async function publishWebsiteAction(
 
   revalidatePath(`/dashboard/website/${websiteId}`);
   return { ok: true };
+}
+
+export type ReadinessActionResult =
+  | { ok: true; ready: boolean; missing: ReadinessItem[] }
+  | { ok: false; error: string };
+
+/**
+ * Go-live readiness for a site — the same SSOT the publish gate enforces, exposed
+ * to the UI so the editor Publish button and the dashboard readiness card can show
+ * exactly what's missing (with fix links) before the host hits the wall.
+ */
+export async function checkWebsiteReadinessAction(
+  websiteId: string,
+): Promise<ReadinessActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return { ok: false, error: own.error };
+  const supabase = createServerClient();
+  const report = await checkWebsiteReadiness(supabase, own.hostId, websiteId);
+  return { ok: true, ready: report.ready, missing: report.missing };
 }
 
 /**

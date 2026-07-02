@@ -336,3 +336,33 @@ already written but uncommitted.
   (patchStyle reads the render-closure `node.style`) — a non-issue for real clicks (React re-renders
   between events). Deferred: typography controls (headingSize/bodySize — need scoped CSS). **Phase 6
   (setup wizard + go-live gate) is the last major phase.**
+- _2026-07-02_ — ✅ **Phase 6a DONE (go-live readiness gate + SSOT + UI).** New
+  `lib/website/readiness.ts` — the SSOT for the founder-locked hard-required set:
+  pure `evaluateReadiness(input)` → `{ ready, missing[] }` (each item `{ key, label,
+  fixHref }`) + a `checkWebsiteReadiness(supabase, hostId, websiteId)` loader that
+  reads the 5 signals scoped to the site's business: **name** (`businesses.trading_name
+  ||legal_name`), **room** (≥1 `property_rooms` active + `base_price>0` + `currency='ZAR'`
+  on the business's properties), **payment** (host `eft_banking_details` OR a business
+  `host_payment_gateways` row enabled with an active-mode cipher, respecting
+  `settings.payments` toggles), **subdomain** (`host_websites.subdomain`), **policy** (an
+  active `cancellation` policy in `policies` ASSIGNED via `property_policies` to the
+  business's property — assignment REQUIRED so it's in-effect, not the defaulted
+  `listings.cancellation_policy` enum, per "policies are HARD, not defaulted"). Gate:
+  `publishWebsiteAction` now returns `error:"not_ready"` when not ready (the server
+  backstop); the wizard's best-effort auto-publish reports `published`+`missing` so a
+  brand-new host lands on a draft with the checklist instead of a false "live". New
+  `checkWebsiteReadinessAction` wrapper. UI: shared `_components/ReadinessChecklist.tsx`
+  (missing items → fix links) reused by (1) the editor `PublishBar` — fetches readiness
+  on mount/dirty/status change, shows an amber "Go live (N)" + checklist popover when a
+  DRAFT isn't ready, and opens the checklist (no publish) if a live site's "Publish
+  changes" is clicked while not ready; (2) the wizard `StepDone` — draft outcome shows
+  the checklist; (3) the dashboard website landing card. i18n added. **Live-verified**
+  end-to-end against the vilotest fixture: the READY signals resolved true and clicking
+  "Publish changes" on the (published, but now policy-unassigned) site opened the
+  checklist with exactly **"Set a cancellation policy" → /dashboard/policies** and did
+  NOT publish — a read-only service-role probe confirmed the fixture has name/3 ZAR
+  rooms/1 EFT/subdomain but 0 policy assignments, matching the gate exactly. `tsc`+
+  `lint`+**189 vitest** (5 new `readiness.test.ts`) green (`pnpm build` skipped — dev
+  servers up corrupt shared `.next`). **NEXT = Phase 6b** (wizard gains Rooms/Payments/
+  Policies steps that pick up existing data or force-add, mirroring "Create new booking";
+  final Build/Publish disabled until `checkWebsiteReadiness` is green) — the last piece.

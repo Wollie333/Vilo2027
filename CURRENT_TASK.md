@@ -2,7 +2,27 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT — RESUME HERE (· 2026-07-02, Builder × Theme pipeline, **Phase 0 DONE**)
+## ▶▶▶ SAVE POINT — RESUME HERE (· 2026-07-02, Builder × Theme pipeline, **Phase 6a DONE**)
+
+> **▶ PHASE 6a DONE (go-live readiness gate).** New `lib/website/readiness.ts` SSOT:
+> pure `evaluateReadiness` + `checkWebsiteReadiness(supabase,hostId,websiteId)` loader for the
+> founder-locked hard-required set — **name** (`businesses.trading_name||legal_name`) · **room**
+> (≥1 `property_rooms` active + `base_price>0` + `currency='ZAR'` on the business's props) ·
+> **payment** (host `eft_banking_details` OR a business `host_payment_gateways` enabled w/
+> active-mode cipher, respecting `settings.payments`) · **subdomain** · **policy** (active
+> `cancellation` policy ASSIGNED via `property_policies` to the business's property — assignment
+> REQUIRED, the defaulted `listings.cancellation_policy` enum does NOT count). `publishWebsiteAction`
+> gated (`error:"not_ready"`); `checkWebsiteReadinessAction` wrapper; wizard auto-publish now reports
+> `published`+`missing`. Shared `_components/ReadinessChecklist.tsx` reused by the editor `PublishBar`
+> (amber "Go live (N)" + checklist popover on a not-ready draft; opens checklist w/o publishing if a
+> live site's "Publish changes" clicked while not-ready), wizard `StepDone` (draft outcome), and the
+> dashboard landing card. **Live-verified** on vilotest: clicking Publish opened the checklist w/
+> exactly "Set a cancellation policy → /dashboard/policies" (fixture has name/3 ZAR rooms/1 EFT/
+> subdomain but 0 policy assignments — read-only probe confirmed), no publish fired. `tsc`+`lint`+
+> **189 vitest** (5 new) green; `pnpm build` skipped (dev servers up → shared `.next` corruption).
+> **NEXT = Phase 6b:** the setup wizard gains Rooms/Payments/Policies steps (pick up existing data
+> or force-add, mirroring "Create new booking"); final Build/Publish disabled until readiness green.
+> Note: the stray untracked `apps/web/vsub.mjs` is STILL deliberately left alone (never `git add -A`).
 
 > **ACTIVE LANE: Builder × Theme pixel-perfect pipeline.** Plan of record →
 > **`docs/features/BUILDER_THEME_PLAN.md`** (read it first — locked decisions + 7 phases +
