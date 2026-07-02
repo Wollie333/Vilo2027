@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 4d-2: Nav builder per-device style rail
+
+Adds the RIGHT column of the nav overlay — the per-device menu style rail — completing the
+prototype's three-column layout (link builder · live preview · style rail). Writes the real
+`SiteNavigation.menuStyle` (base + `tablet`/`mobile` diff layers).
+
+- **`NavBuilderOverlay.tsx`** — a `.bse-rail` with a device bar (desktop/tablet/mobile) that scopes
+  editing AND drives the preview device. Sections: **Top-level links** (device-aware — colour, hover,
+  weight, UPPERCASE, size → base on desktop, `tablet`/`mobile` diff layer otherwise), **Layout**
+  (base — menu alignment, link spacing), **Scrolled state** (base — scrolled/scrolled-hover colours,
+  the locked two-state standard), **Dropdown menu** (base — submenu colour/hover/bg). The preview now
+  applies `--nlink/--nhover/--nsize/--nweight/--ngap` + uppercase/alignment classes and supports a
+  tablet width; added local rail control primitives (`NavAcc`/`Swatch`/`SelRow`/`SegRow`/`ToggleRow`/
+  `Rng`).
+- **`builder-chrome.css`** — `.bse-device.tablet` (760px), `.np-nav` gap/weight/uppercase/alignment
+  vars + classes, `.nav-right`/`.nav-devbar`/`.nav-devseg`/`.nav-dtag` (the rail device bar).
+- **`BuilderShell.tsx`** — passes `navigation.menuStyle` + `onMenuStyleChange` into the overlay
+  (persists with the rest of the navigation via the existing `saveNavigationAction`).
+- **Live-verified** on `?theme=safari`: rail renders all 4 sections + 3-device bar; UPPERCASE toggle,
+  link size 19px, and hover colour (#B26C2E) reflect live in the preview; **per-device layering
+  proven** — tablet link-size 12px vs desktop base 19px are independent (switching devices swaps the
+  resolved value without clobbering base); 0 console errors. tsc + lint clean, 163 vitest, build green.
+  **DEFERRED — 4d-3+:** nesting/dropdown editing, per-page show-hide, header (CTA/logo/sticky/
+  transparent/burger/topBar) + footer (columns/newsletter) inspectors, mobile drawer (overlayBg), real
+  themed `SiteChrome` preview.
+
 ## 2026-07-01 — Builder V2 Phase 4d-1: Nav/Menu builder overlay (link builder + live preview)
 
 First slice of the Nav builder (the largest 4d feature). Reskins the LOCKED nav standard into the

@@ -252,8 +252,20 @@ vilotest (`host@vilotest.com`) + a save point.
   **DEFERRED 4d-2+:** nesting/dropdown, per-link + global menuStyle (per-device colours/weight/size),
   per-page show-hide, header (CTA/logo/sticky/transparent/burger/topBar) + footer (columns/newsletter)
   inspectors, mobile drawer settings, real themed `SiteChrome` preview.
-- **NEXT — Phase 4 remaining:** **4d-2+** nav style rail / header+footer / per-page / mobile · then
-  **4e** Theme Settings overlay + Footer document. (Also open: **Footer** doc-switcher entry still "Soon".)
+- **Phase 4d-2 — Nav per-device style rail (DONE + LIVE-VERIFIED, 2026-07-02):** the RIGHT column of
+  the nav overlay (completes the 3-column layout). Writes real `SiteNavigation.menuStyle` (base +
+  `tablet`/`mobile` diff layers). `.bse-rail` device bar (desktop/tablet/mobile) scopes editing +
+  drives the preview device. Sections: Top-level links (device-aware color/hover/weight/UPPERCASE/size),
+  Layout (base align + itemGap), Scrolled state (base scrolled/scrolledHover — two-state standard),
+  Dropdown (base submenu color/hover/bg). Preview applies `--nlink/--nhover/--nsize/--nweight/--ngap` +
+  up/align classes; tablet width added; local rail primitives (NavAcc/Swatch/SelRow/SegRow/ToggleRow/
+  Rng). Persists via existing `saveNavigationAction`. Live-verified on safari (uppercase/size/hover
+  live; **per-device proven** tablet 12px vs desktop 19px independent; 0 console errors). tsc+lint
+  clean, 163 vitest, build green.
+- **NEXT — Phase 4 remaining:** **4d-3+** nesting/dropdown editing · per-page show-hide · header
+  (CTA/logo/sticky/transparent/burger/topBar) + footer (columns/newsletter) inspectors · mobile drawer
+  (overlayBg) · real themed `SiteChrome` preview. Then **4e** Theme Settings overlay + **Footer**
+  doc-switcher entry (still "Soon").
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

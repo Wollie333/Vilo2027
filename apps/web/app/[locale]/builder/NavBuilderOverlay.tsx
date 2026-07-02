@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   ChevronLeft,
   ChevronDown,
@@ -9,16 +9,34 @@ import {
   Check,
   Save,
   Monitor,
+  Tablet,
   Smartphone,
   Lock,
   GripVertical,
   Trash2,
   Plus,
+  Type as TypeIcon,
+  AlignCenter,
+  Eye,
+  Rows3,
+  type LucideIcon,
 } from "lucide-react";
 
-import type { SiteMenuItem } from "@/lib/site/types";
+import type {
+  SiteMenuItem,
+  SiteMenuStyle,
+  SiteMenuDeviceStyle,
+} from "@/lib/site/types";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type { Brand } from "./BrandStudioOverlay";
+
+type NavDevice = "desktop" | "tablet" | "mobile";
+const WEIGHT_PX: Record<string, number> = {
+  normal: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+};
 
 // Builder V2 — Phase 4d-1: Nav/Menu builder overlay (link builder + preview).
 //
@@ -38,6 +56,8 @@ export function NavBuilderOverlay({
   domain,
   menu,
   onMenuChange,
+  menuStyle,
+  onMenuStyleChange,
   pages,
   brand,
   theme,
@@ -51,6 +71,8 @@ export function NavBuilderOverlay({
   domain: string;
   menu: SiteMenuItem[];
   onMenuChange: (next: SiteMenuItem[]) => void;
+  menuStyle: SiteMenuStyle;
+  onMenuStyleChange: (next: SiteMenuStyle) => void;
   pages: PageOpt[];
   brand: Brand;
   theme: SiteThemeConfig;
@@ -58,8 +80,47 @@ export function NavBuilderOverlay({
   onSave: (mode: "draft" | "publish") => void;
   onReset: () => void;
 }) {
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [device, setDevice] = useState<NavDevice>("desktop");
   const [pubOpen, setPubOpen] = useState(false);
+  const [openAcc, setOpenAcc] = useState<Set<number>>(() => new Set([0, 1]));
+  const toggleAcc = (i: number) =>
+    setOpenAcc((s) => {
+      const n = new Set(s);
+      if (n.has(i)) n.delete(i);
+      else n.add(i);
+      return n;
+    });
+
+  // ── menu-style helpers (device-aware, mirroring the page-builder inspector) ──
+  const isDev = device !== "desktop";
+  const layer: SiteMenuDeviceStyle =
+    device === "tablet"
+      ? (menuStyle.tablet ?? {})
+      : device === "mobile"
+        ? (menuStyle.mobile ?? {})
+        : {};
+  // Device-aware fields read the layer (fallback base); base-only fields read base.
+  const sVal = <K extends keyof SiteMenuDeviceStyle>(
+    k: K,
+    dflt: NonNullable<SiteMenuDeviceStyle[K]>,
+  ): NonNullable<SiteMenuDeviceStyle[K]> =>
+    (isDev && layer[k] != null
+      ? layer[k]
+      : ((menuStyle[k as keyof SiteMenuStyle] as SiteMenuDeviceStyle[K]) ??
+        dflt)) as NonNullable<SiteMenuDeviceStyle[K]>;
+  const setDeviceAware = (patch: SiteMenuDeviceStyle) => {
+    if (!isDev) {
+      onMenuStyleChange({ ...menuStyle, ...patch });
+    } else {
+      const key = device as "tablet" | "mobile";
+      onMenuStyleChange({
+        ...menuStyle,
+        [key]: { ...(menuStyle[key] ?? {}), ...patch },
+      });
+    }
+  };
+  const setBase = (patch: Partial<SiteMenuStyle>) =>
+    onMenuStyleChange({ ...menuStyle, ...patch });
   const [addLabel, setAddLabel] = useState("");
   const idRef = useRef(0);
   const newId = () => `nav-${Date.now().toString(36)}-${++idRef.current}`;
@@ -85,8 +146,28 @@ export function NavBuilderOverlay({
 
   const monogram = (brand.monogram || brand.name?.[0] || "W").slice(0, 2);
   const name = brand.name || siteLabel;
+  const accent =
+    theme.colors?.accent || theme.base?.palette.accent || "#C8702E";
+
+  // Resolved preview values for the CURRENT device.
+  const rColor = sVal("color", "#F4EEE6");
+  const rHover = sVal("hoverColor", accent);
+  const rSize = sVal("fontSize", 14);
+  const rWeight = sVal("weight", "medium");
+  const rUpper = sVal("uppercase", false);
+  const rGap = menuStyle.itemGap ?? 6;
+  const rAlign = menuStyle.align ?? "end";
 
   const cls = ["bse-overlay", open && "show", open && "in"]
+    .filter(Boolean)
+    .join(" ");
+  const deviceCls = device === "desktop" ? "" : ` ${device}`;
+  const navCls = [
+    "np-nav",
+    rUpper && "up",
+    rAlign === "center" && "al-center",
+    rAlign === "start" && "al-start",
+  ]
     .filter(Boolean)
     .join(" ");
 
@@ -296,39 +377,38 @@ export function NavBuilderOverlay({
             </div>
             <div className="bse-spacer" />
             <div className="bse-devtog">
-              <button
-                type="button"
-                className={
-                  device === "desktop" ? "bse-devbtn on" : "bse-devbtn"
-                }
-                title="Desktop"
-                onClick={() => setDevice("desktop")}
-              >
-                <Monitor size={16} strokeWidth={1.8} />
-              </button>
-              <button
-                type="button"
-                className={device === "mobile" ? "bse-devbtn on" : "bse-devbtn"}
-                title="Mobile"
-                onClick={() => setDevice("mobile")}
-              >
-                <Smartphone size={16} strokeWidth={1.8} />
-              </button>
+              {(
+                [
+                  ["desktop", Monitor],
+                  ["tablet", Tablet],
+                  ["mobile", Smartphone],
+                ] as [NavDevice, LucideIcon][]
+              ).map(([d, Icon]) => (
+                <button
+                  key={d}
+                  type="button"
+                  className={device === d ? "bse-devbtn on" : "bse-devbtn"}
+                  title={d}
+                  onClick={() => setDevice(d)}
+                >
+                  <Icon size={16} strokeWidth={1.8} />
+                </button>
+              ))}
             </div>
           </div>
           <div className="bse-scroll">
-            <div
-              className={
-                device === "mobile" ? "bse-device mobile" : "bse-device"
-              }
-            >
+            <div className={`bse-device${deviceCls}`}>
               <div
                 className="nav-site"
                 style={
                   {
-                    "--site-accent":
-                      theme.colors?.accent || theme.base?.palette.accent,
+                    "--site-accent": accent,
                     "--site-ink": theme.base?.palette.ink,
+                    "--nlink": rColor,
+                    "--nhover": rHover,
+                    "--nsize": `${rSize}px`,
+                    "--nweight": WEIGHT_PX[rWeight] ?? 600,
+                    "--ngap": `${rGap}px`,
                   } as React.CSSProperties
                 }
               >
@@ -338,8 +418,8 @@ export function NavBuilderOverlay({
                       <span className="mk">{monogram}</span>
                       <span className="lname">{name}</span>
                     </div>
-                    {device === "desktop" && (
-                      <nav className="np-nav">
+                    {device !== "mobile" && (
+                      <nav className={navCls}>
                         {menu.map((it, i) => (
                           <span
                             key={it.id}
@@ -374,7 +454,349 @@ export function NavBuilderOverlay({
             </div>
           </div>
         </div>
+
+        {/* per-device style rail */}
+        <aside className="bse-rail nav-right">
+          <div className="nav-devbar">
+            <span className="dl">Styling</span>
+            <div className="nav-devseg">
+              {(
+                [
+                  ["desktop", Monitor],
+                  ["tablet", Tablet],
+                  ["mobile", Smartphone],
+                ] as [NavDevice, LucideIcon][]
+              ).map(([d, Icon]) => (
+                <button
+                  key={d}
+                  type="button"
+                  className={device === d ? "on" : undefined}
+                  title={d}
+                  onClick={() => setDevice(d)}
+                >
+                  <Icon size={15} strokeWidth={1.8} />
+                </button>
+              ))}
+            </div>
+            {isDev && <span className="nav-dtag">{device}</span>}
+          </div>
+
+          <NavAcc
+            i={0}
+            openAcc={openAcc}
+            toggle={toggleAcc}
+            Icon={TypeIcon}
+            title="Top-level links"
+            sub="Colour, weight & size"
+          >
+            <Swatch
+              label="Link colour"
+              value={rColor}
+              palette={["#F4EEE6", "#FFFFFF", accent, "#2C2620", "#052E1F"]}
+              onChange={(v) => setDeviceAware({ color: v })}
+            />
+            <Swatch
+              label="Hover colour"
+              value={rHover}
+              palette={["#F3C98A", accent, "#FFFFFF", "#2C2620"]}
+              onChange={(v) => setDeviceAware({ hoverColor: v })}
+            />
+            <SelRow
+              label="Font weight"
+              value={rWeight}
+              options={[
+                ["normal", "Light"],
+                ["medium", "Regular"],
+                ["semibold", "Semibold"],
+                ["bold", "Bold"],
+              ]}
+              onChange={(v) =>
+                setDeviceAware({ weight: v as SiteMenuDeviceStyle["weight"] })
+              }
+            />
+            <ToggleRow
+              label="UPPERCASE links"
+              value={rUpper}
+              onChange={(v) => setDeviceAware({ uppercase: v })}
+            />
+            <Rng
+              label="Link size"
+              min={11}
+              max={20}
+              value={rSize}
+              suffix="px"
+              onChange={(v) => setDeviceAware({ fontSize: v })}
+            />
+          </NavAcc>
+
+          <NavAcc
+            i={1}
+            openAcc={openAcc}
+            toggle={toggleAcc}
+            Icon={AlignCenter}
+            title="Layout"
+            sub="Alignment & spacing (all devices)"
+          >
+            <SegRow
+              label="Menu alignment"
+              value={menuStyle.align ?? "end"}
+              options={[
+                ["start", "Left"],
+                ["center", "Center"],
+                ["end", "Right"],
+              ]}
+              onChange={(v) => setBase({ align: v as SiteMenuStyle["align"] })}
+            />
+            <Rng
+              label="Link spacing"
+              min={0}
+              max={28}
+              value={menuStyle.itemGap ?? 6}
+              suffix="px"
+              onChange={(v) => setBase({ itemGap: v })}
+            />
+          </NavAcc>
+
+          <NavAcc
+            i={2}
+            openAcc={openAcc}
+            toggle={toggleAcc}
+            Icon={Eye}
+            title="Scrolled state"
+            sub="Transparent-over-hero headers"
+          >
+            <Swatch
+              label="Scrolled link colour"
+              value={menuStyle.scrolledColor ?? "#2C2620"}
+              palette={["#2C2620", "#052E1F", accent, "#FFFFFF"]}
+              onChange={(v) => setBase({ scrolledColor: v })}
+            />
+            <Swatch
+              label="Scrolled hover colour"
+              value={menuStyle.scrolledHoverColor ?? accent}
+              palette={[accent, "#065F46", "#2C2620", "#052E1F"]}
+              onChange={(v) => setBase({ scrolledHoverColor: v })}
+            />
+          </NavAcc>
+
+          <NavAcc
+            i={3}
+            openAcc={openAcc}
+            toggle={toggleAcc}
+            Icon={Rows3}
+            title="Dropdown menu"
+            sub="Sub-item styling"
+          >
+            <Swatch
+              label="Item colour"
+              value={menuStyle.submenuColor ?? "#3A2E20"}
+              palette={["#3A2E20", "#052E1F", "#2C2620", accent]}
+              onChange={(v) => setBase({ submenuColor: v })}
+            />
+            <Swatch
+              label="Item hover colour"
+              value={menuStyle.submenuHoverColor ?? "#065F46"}
+              palette={["#065F46", accent, "#2C2620", "#052E1F"]}
+              onChange={(v) => setBase({ submenuHoverColor: v })}
+            />
+            <Swatch
+              label="Background"
+              value={menuStyle.submenuBg ?? "#FFFFFF"}
+              palette={["#FFFFFF", "#FBF4E6", "#F0FDF4", "#2C2620"]}
+              onChange={(v) => setBase({ submenuBg: v })}
+            />
+          </NavAcc>
+        </aside>
       </div>
     </div>
+  );
+}
+
+// ── rail control primitives ───────────────────────────────────
+function NavAcc({
+  i,
+  openAcc,
+  toggle,
+  Icon,
+  title,
+  sub,
+  children,
+}: {
+  i: number;
+  openAcc: Set<number>;
+  toggle: (i: number) => void;
+  Icon: LucideIcon;
+  title: string;
+  sub: string;
+  children: ReactNode;
+}) {
+  const isOpen = openAcc.has(i);
+  return (
+    <section className={isOpen ? "bse-acc open" : "bse-acc"}>
+      <button className="bse-acc-head" type="button" onClick={() => toggle(i)}>
+        <span className="hic">
+          <Icon size={17} strokeWidth={1.8} />
+        </span>
+        <span>
+          <span className="tt">{title}</span>
+          <span className="sb">{sub}</span>
+        </span>
+        <ChevronDown className="chev" size={18} strokeWidth={1.9} />
+      </button>
+      <div className="bse-acc-body">{children}</div>
+    </section>
+  );
+}
+
+function Ctl({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="bse-ctl">
+      <div className="bse-lbl">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function Swatch({
+  label,
+  value,
+  palette,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  palette: string[];
+  onChange: (v: string) => void;
+}) {
+  const cur = value.toLowerCase();
+  return (
+    <Ctl label={label}>
+      <div className="bse-swgrid">
+        {palette.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className={cur === c.toLowerCase() ? "bse-sw on" : "bse-sw"}
+            style={{ background: c }}
+            onClick={() => onChange(c)}
+            aria-label={c}
+          />
+        ))}
+      </div>
+    </Ctl>
+  );
+}
+
+function SelRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: [string, string][];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Ctl label={label}>
+      <select
+        className="bse-select"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map(([v, l]) => (
+          <option key={v} value={v}>
+            {l}
+          </option>
+        ))}
+      </select>
+    </Ctl>
+  );
+}
+
+function SegRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: [string, string][];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Ctl label={label}>
+      <div className="bse-seg">
+        {options.map(([v, l]) => (
+          <button
+            key={v}
+            type="button"
+            className={value === v ? "opt on" : "opt"}
+            onClick={() => onChange(v)}
+          >
+            <span className="nm">{l}</span>
+          </button>
+        ))}
+      </div>
+    </Ctl>
+  );
+}
+
+function ToggleRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="bse-ctl">
+      <div className="togrow">
+        <label>{label}</label>
+        <div
+          className={value ? "tog on" : "tog"}
+          onClick={() => onChange(!value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Rng({
+  label,
+  min,
+  max,
+  value,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  value: number;
+  suffix?: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <Ctl label={label}>
+      <div className="bse-rng-row">
+        <input
+          className="bse-rng"
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+        <span className="bse-rng-val">
+          {value}
+          {suffix ?? ""}
+        </span>
+      </div>
+    </Ctl>
   );
 }

@@ -2461,16 +2461,27 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ngap, 4px);
+}
+.wb .np-nav.al-center {
+  margin: 0 auto;
+}
+.wb .np-nav.al-start {
+  margin-right: auto;
+  margin-left: 20px;
 }
 .wb .np-nav .nl {
   position: relative;
   color: var(--nlink);
   font-size: var(--nsize);
-  font-weight: 600;
+  font-weight: var(--nweight, 600);
   padding: 8px 12px;
   white-space: nowrap;
   letter-spacing: 0.02em;
+}
+.wb .np-nav.up .nl {
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
 }
 .wb .np-nav .nl.active {
   color: var(--nactive);
@@ -2511,9 +2522,64 @@
   line-height: 1.02;
   margin: 14px 0 60px;
 }
+.wb .bse-device.tablet {
+  max-width: 760px;
+}
 .wb .bse-device.mobile .np-nav {
   display: none;
 }
 .wb .bse-device.mobile .np-title {
   font-size: 34px;
+}
+/* nav style rail sits on the RIGHT (border-left, not right) */
+.wb .nav-right {
+  border-right: none;
+  border-left: 1px solid var(--line);
+}
+.wb .nav-devbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 4px;
+}
+.wb .nav-devbar .dl {
+  font-family: var(--jak);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.wb .nav-devseg {
+  display: flex;
+  gap: 3px;
+  background: var(--light);
+  padding: 3px;
+  border-radius: 9px;
+  margin-left: auto;
+}
+.wb .nav-devseg button {
+  width: 34px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mute);
+  transition: 0.13s;
+}
+.wb .nav-devseg button.on {
+  background: var(--panel);
+  color: var(--secondary);
+  box-shadow: var(--shadow-1);
+}
+.wb .nav-dtag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: var(--light);
+  padding: 3px 8px;
+  border-radius: 999px;
 }

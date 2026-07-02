@@ -1282,6 +1282,10 @@ export function BuilderShell({
         domain={domain}
         menu={navigation.menu ?? []}
         onMenuChange={setMenu}
+        menuStyle={navigation.menuStyle ?? {}}
+        onMenuStyleChange={(ms) =>
+          setNavigation((n) => ({ ...n, menuStyle: ms }))
+        }
         pages={pages}
         brand={brand}
         theme={workTheme}
