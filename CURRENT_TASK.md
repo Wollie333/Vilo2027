@@ -11,15 +11,20 @@
 > host customise with Wielo blocks (required-blocks safety + per-block style override) →
 > a standalone setup wizard gates go-live on a readiness contract.
 >
-> **Phase status:** ✅ **0** date-picker/search-field clipping fix (this commit) ·
-> ⏳ 1 stock preview · 2 activation hardening · 3 required system-blocks · 4 Wielo data
-> modals · 5 per-block style UI · 6 setup wizard + go-live gate.
+> **Phase status:** ✅ **0** date-picker/search clipping fix · ✅ **1** stock-data theme
+> preview · ⏳ 2 activation hardening · 3 required system-blocks · 4 Wielo data modals ·
+> 5 per-block style UI · 6 setup wizard + go-live gate.
 >
-> **Phase 0 (done):** `ThemedDateRange` now portals to `document.body` (fixed pos, max
+> **Phase 0 (done):** `ThemedDateRange` portals to `document.body` (fixed pos, max
 > z-index) so the calendar never clips under the booking Card/overflow. Verified live on
-> Safari room dock (fully in-viewport, day cells clickable). `.claude/launch.json` got
-> `autoPort:true` locally (untracked) so a 2nd preview server can run alongside another
-> chat's port-3000 server — not committed.
+> Safari room dock. `.claude/launch.json` got `autoPort:true` locally (untracked) so a
+> 2nd preview server runs alongside another chat's port-3000 server — not committed.
+>
+> **Phase 1 (done):** theme preview (`?preview=1&theme=`) fills auto-populate blocks with
+> STOCK data (`sampleDataForFlatSections` in `lib/site/sampleSite.ts` → wired into
+> `loadSitePage` theme-preview branch). Verified live: Safari shows stock rooms/reviews,
+> host brand kept. Scoping note: room-detail preview still needs a real room (deferred
+> pure-stock room detail). See plan progress log.
 
 **Everything below is prior context (Phase-6 cutover, commit `57e262da`). Committed + pushed.** The
 stray untracked file `apps/web/vsub.mjs` is deliberately LEFT ALONE — never `git add -A` (use

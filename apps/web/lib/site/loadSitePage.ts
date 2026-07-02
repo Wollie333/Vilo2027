@@ -45,6 +45,7 @@ import {
 import type { SiteThemeConfig } from "./themes";
 import { resolveThemeBase, resolveThemePageTemplates } from "./themes.server";
 import { mergeStandardPages } from "@/lib/website/standardPages";
+import { sampleDataForFlatSections } from "./sampleSite";
 
 /**
  * The full canonical page set a theme presents in PREVIEW: the theme's own
@@ -624,7 +625,11 @@ const loadSitePageCached = cache(async function loadSitePageInner(
     );
     if (tpl) {
       const sections = sanitiseSectionsHtml(parseSectionsLoose(tpl.sections));
-      const data = await assembleSectionData(sb, ctx, sections);
+      // A theme preview is a design SHOWCASE: fill the auto-populate blocks with
+      // representative STOCK data (keyed by section id) so the theme always looks
+      // pixel-perfect regardless of whether the host has set up rooms/photos yet.
+      // Activation swaps in the host's real data via `assembleSectionData`.
+      const data = sampleDataForFlatSections(sections);
       return {
         page: {
           id: `preview-${ctx.previewThemeSlug}-${tpl.kind}`,

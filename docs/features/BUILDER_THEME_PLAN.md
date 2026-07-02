@@ -175,4 +175,14 @@ already written but uncommitted.
   (fixed pos, z-index 2147483000) → calendar never clips under the booking `Card`
   overflow or later stacking contexts; follows trigger on scroll/resize; portal-aware
   outside-click. Verified live on the Safari room-detail dock (popover fully in
-  viewport, day cells hit-testable). `tsc` + `lint` + `pnpm build` green. Next: Phase 1.
+  viewport, day cells hit-testable). `tsc` + `lint` + `pnpm build` green.
+- _2026-07-02_ — ✅ **Phase 1 DONE.** Theme preview (`?preview=1&theme=`) now fills
+  auto-populate blocks with **stock** data via `sampleDataForFlatSections()`
+  (`lib/site/sampleSite.ts`, shares `sampleDatumFor` with `sampleDataForDoc`), wired
+  into `loadSitePage`'s theme-preview branch in place of live `assembleSectionData`.
+  Verified live on Safari: stock rooms (Garden Suite/Family Cottage/The Loft) + stock
+  reviews render, host brand retained; no console errors. `tsc`+`lint`+`build` green.
+  **Scoping note:** room-detail preview still needs a real room (its loader 404s
+  without one) → for a no-rooms host, room-detail isn't in the preview nav. Pure-stock
+  room-detail preview deferred (would need a preview branch in `loadSiteRoomPage`
+  injecting `DEMO_ROOM_DETAIL`). Next: Phase 2 (activation hardening).

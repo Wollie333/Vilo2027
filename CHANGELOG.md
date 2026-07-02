@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 1: theme preview renders pixel-perfect with stock data.
+
+"View theme preview" (`?preview=1&theme=<slug>`) is a design **showcase**, so its
+auto-populate blocks (rooms grid, gallery, reviews, specials, journal, booking search)
+now render representative **stock** content instead of the host's live data — the theme
+always looks pixel-perfect regardless of whether the host has set up rooms/photos yet.
+New `sampleDataForFlatSections()` in `lib/site/sampleSite.ts` (flat-section counterpart
+to the existing `sampleDataForDoc`, sharing one `sampleDatumFor` core) keys demo data by
+section id; `loadSitePage`'s theme-preview branch uses it in place of the live
+`assembleSectionData`. On **activation** the host's real data flows in unchanged via the
+normal path. **Verified live** on the Safari theme preview: rooms show Garden Suite /
+Family Cottage / The Loft (stock), reviews show the demo authors — not the vilotest live
+rows — while the host's own brand/logo is retained. Room-detail preview still uses a real
+room (its loader requires one) — a deliberate scoping note in the plan. `tsc` + `lint` +
+`pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 0: date-picker / search-field clipping fixed.
 
 The themed check-in/check-out calendar (`ThemedDateRange`) now renders in a **React

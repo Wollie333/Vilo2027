@@ -214,6 +214,50 @@ export const DEMO_SPECIALS: SpecialsPreviewData = {
   ],
 };
 
+// Map ONE block (by id + type + props) to its representative stock datum — the
+// shared core behind both the PageDoc walker and the flat-section builder below.
+// Returns undefined for blocks that carry their own content in props (hero/intro/
+// cta/…) or auto-populate types without a demo filler.
+function sampleDatumFor(
+  id: string,
+  type: string,
+  props?: Record<string, unknown>,
+): SiteData[string] | undefined {
+  switch (type) {
+    case "rooms_preview":
+      return { type: "rooms_preview", data: DEMO_ROOMS };
+    case "gallery":
+      return { type: "gallery", data: DEMO_GALLERY };
+    case "reviews":
+      return { type: "reviews", data: DEMO_REVIEWS };
+    case "blog_preview":
+      return { type: "blog_preview", data: DEMO_BLOG };
+    case "specials_preview":
+      return { type: "specials_preview", data: DEMO_SPECIALS };
+    case "booking_search":
+      return { type: "booking_search", data: DEMO_BOOKING };
+    case "availability_calendar":
+      return { type: "availability_calendar", data: DEMO_BOOKING };
+    case "search_results":
+      return { type: "search_results", data: DEMO_BOOKING };
+    case "el_room_card": {
+      const wanted = props?.room_id;
+      const room =
+        DEMO_ROOMS.rooms.find((r) => r.id === wanted) ?? DEMO_ROOMS.rooms[0];
+      return room ? { type: "el_room_card", data: room } : undefined;
+    }
+    // Room-scoped widgets (room-detail template) — all render the SAME room.
+    case "room_gallery":
+    case "room_overview":
+    case "room_amenities":
+    case "room_rate":
+    case "room_policies":
+      return { type, data: DEMO_ROOM_DETAIL } as SiteData[string];
+    default:
+      return undefined;
+  }
+}
+
 // Builder V2 — walk a PageDoc's widget leaves and produce sample SiteData KEYED
 // BY NODE ID, so the auto-populate blocks (rooms grid, room card, gallery,
 // reviews, journal, specials) show representative content on the builder canvas
@@ -230,55 +274,28 @@ export function sampleDataForDoc(doc: PageDoc): SiteData {
       for (const k of node.kids) visit(k as Parameters<typeof visit>[0]);
       return;
     }
-    switch (node.type) {
-      case "rooms_preview":
-        out[node.id] = { type: "rooms_preview", data: DEMO_ROOMS };
-        break;
-      case "gallery":
-        out[node.id] = { type: "gallery", data: DEMO_GALLERY };
-        break;
-      case "reviews":
-        out[node.id] = { type: "reviews", data: DEMO_REVIEWS };
-        break;
-      case "blog_preview":
-        out[node.id] = { type: "blog_preview", data: DEMO_BLOG };
-        break;
-      case "specials_preview":
-        out[node.id] = { type: "specials_preview", data: DEMO_SPECIALS };
-        break;
-      case "booking_search":
-        out[node.id] = { type: "booking_search", data: DEMO_BOOKING };
-        break;
-      case "availability_calendar":
-        out[node.id] = { type: "availability_calendar", data: DEMO_BOOKING };
-        break;
-      case "search_results":
-        out[node.id] = { type: "search_results", data: DEMO_BOOKING };
-        break;
-      case "el_room_card": {
-        const wanted = node.props?.room_id;
-        const room =
-          DEMO_ROOMS.rooms.find((r) => r.id === wanted) ?? DEMO_ROOMS.rooms[0];
-        if (room) out[node.id] = { type: "el_room_card", data: room };
-        break;
-      }
-      // Room-scoped widgets (room-detail template) — all render the SAME room.
-      case "room_gallery":
-      case "room_overview":
-      case "room_amenities":
-      case "room_rate":
-      case "room_policies":
-        out[node.id] = {
-          type: node.type,
-          data: DEMO_ROOM_DETAIL,
-        } as SiteData[string];
-        break;
-      default:
-        break;
-    }
+    const datum = sampleDatumFor(node.id, node.type, node.props);
+    if (datum) out[node.id] = datum;
   };
   for (const s of doc.root.kids) {
     visit(s as unknown as Parameters<typeof visit>[0]);
+  }
+  return out;
+}
+
+// Theme PREVIEW — the flat-section counterpart to {@link sampleDataForDoc}. A
+// theme's `page_templates` are flat `WebsiteSection[]`; keying stock data by
+// section id here lets the theme preview render its designed layout with
+// representative content REGARDLESS of whether the host has set up rooms/photos
+// yet — so "view theme preview" is always pixel-perfect. Activation then swaps in
+// the host's real data through the live `assembleSectionData` path.
+export function sampleDataForFlatSections(
+  sections: { id: string; type: string; props?: Record<string, unknown> }[],
+): SiteData {
+  const out: SiteData = {};
+  for (const s of sections) {
+    const datum = sampleDatumFor(s.id, s.type, s.props);
+    if (datum) out[s.id] = datum;
   }
   return out;
 }
