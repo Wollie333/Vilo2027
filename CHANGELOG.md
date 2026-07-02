@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-02 — Fix "theme preview not working": light-theme heroes rendered white-on-white.
+
+Diagnosed the reported broken theme previews. All four themes (Safari · Sabela · Oceans View · Marmalade)
+ARE present + active in `site_themes` (nothing was actually removed — the add-theme migrations run after the
+lone delete), and each resolves its own tokens. The real bug: **light-theme home heroes were blank**.
+
+- **Root cause** — the blueprint home hero is `variant:fullscreen`, `textTone:"light"`, no image. `HeroSection`
+  forced `#FFFFFF` text whenever `textTone:"light"`, even with no photo. On a dark-tone band (Safari/Sabela)
+  that's fine (white on dark), but on a light theme with no dark tone (Oceans View / Marmalade) it painted
+  white-on-white → an invisible headline + a mostly-empty hero.
+- **Fix (`HeroSection`)** — for spotlight/fullscreen/search, white hero text is now used ONLY when actually
+  over an image; with no image the hero follows the inherited `--site-ink` (dark on a light surface, white on
+  a dark-tone band via the tone override). Adaptive + legible on every theme.
+- **Verified live** on all four previews (`/site?site=vilotest&preview=1&theme=<slug>`): Safari + Sabela
+  headlines stay white on their dark bands (no regression); Oceans View renders teal `#0E2C3A` on white and
+  Marmalade dark `#2C2620` on cream — both now legible. tsc + lint + `pnpm build` + 173 vitest green.
+
 ## 2026-07-02 — Builder polish: exit button, Layout blocks, menu-style wiring, nav-preview hover fix.
 
 Four builder/site fixes from a user pass (a fifth — multi-theme preview — is a product decision, flagged

@@ -215,8 +215,15 @@ export function HeroSection({
   }
 
   // ── SPOTLIGHT / FULLSCREEN / SEARCH — full-bleed image + overlay ──
+  // White hero text only makes sense OVER an image/scrim. With no image the band
+  // is the theme surface (or a tone band), so we follow the inherited --site-ink
+  // (dark on a light surface, white on a dark-tone band). Otherwise a blueprint's
+  // textTone:"light" hero renders white-on-white whenever no photo is set — the
+  // blank-hero bug seen on light themes (e.g. Marmalade / Oceans View) in preview.
   const overImage = !!rawBg;
-  const onDark = resolveOnDark(props.textTone ?? "auto", overImage);
+  const onDark = overImage
+    ? resolveOnDark(props.textTone ?? "auto", true)
+    : false;
   const overlay = overlayCss(props);
   const bgStyle: CSSProperties = bgWide
     ? {
