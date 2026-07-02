@@ -37,12 +37,13 @@ export function requiredWidgetsForPageKind(
   return (kind && PAGE_REQUIRED_WIDGETS[kind]) || [];
 }
 
-/** Whether a widget type is required on a given page kind (for UI badges + delete guard). */
+/** Whether a widget type is required on a given page kind (for UI badges + delete
+ *  guard). Takes a plain string so callers can pass a node's broad renderable type. */
 export function isWidgetRequiredOnPage(
-  type: WidgetType,
+  type: string,
   kind?: string | null,
 ): boolean {
-  return requiredWidgetsForPageKind(kind).includes(type);
+  return (requiredWidgetsForPageKind(kind) as readonly string[]).includes(type);
 }
 
 /** Every widget-leaf type present in a PageDoc (walks section → column → widget). */

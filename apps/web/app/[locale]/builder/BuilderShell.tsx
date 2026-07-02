@@ -74,8 +74,15 @@ import {
   WIDGET_DEFS,
   WIDGET_GROUPS,
   widgetAvailableOnPage,
+  widgetDef,
   type WidgetControl,
 } from "@/lib/website/widgets/registry";
+import {
+  isWidgetRequiredOnPage,
+  requiredWidgetsForPageKind,
+  missingRequiredWidgets,
+  docWidgetTypes,
+} from "@/lib/website/pageContract";
 import type {
   PageDoc,
   SectionNode,
@@ -381,12 +388,22 @@ export function BuilderShell({
       toast("Open a real page to publish");
       return;
     }
+    // Required-blocks safety: name what's missing instead of a bare server reject.
+    const missing = missingRequiredWidgets(doc, pageKind);
+    if (missing.length) {
+      toast(
+        `Add the required block${missing.length > 1 ? "s" : ""} first: ${missing
+          .map((t) => widgetDef(t).label)
+          .join(", ")}`,
+      );
+      return;
+    }
     setPublishState("publishing");
     const res = await publishBuilderDocAction({ websiteId, pageId });
     setPublishState(res.ok ? "done" : "error");
     toast(res.ok ? "Published to your site" : "Publish failed");
     if (res.ok) setTimeout(() => setPublishState("idle"), 2500);
-  }, [persists, websiteId, pageId, toast]);
+  }, [persists, websiteId, pageId, doc, pageKind, toast]);
 
   // Save-draft (Publish menu) — an immediate write of the working doc.
   const doSaveDraft = useCallback(async () => {
@@ -626,7 +643,22 @@ export function BuilderShell({
   };
   const doDelete = () => {
     if (!selectedId) return;
-    setDoc((d) => removeNode(d, selectedId));
+    // Required-blocks guard: block a delete (of a widget OR a section/column that
+    // contains it) that would strip a block this page KIND needs to function. The
+    // host must add another first — the library badges which blocks are required.
+    const next = removeNode(doc, selectedId);
+    const before = docWidgetTypes(doc);
+    const after = docWidgetTypes(next);
+    const lost = requiredWidgetsForPageKind(pageKind).find(
+      (t) => before.has(t) && !after.has(t),
+    );
+    if (lost) {
+      toast(
+        `"${widgetDef(lost).label}" is required on this page and can't be removed. Add another first, then delete this one.`,
+      );
+      return;
+    }
+    setDoc(next);
     setSelectedId(null);
   };
   const doDuplicate = () => {
@@ -1235,6 +1267,18 @@ export function BuilderShell({
                 <span className="nb-lbl">
                   {nodeMeta(selected.node as AnyNode).label}
                 </span>
+                {isWidgetRequiredOnPage(
+                  (selected.node as AnyNode).type,
+                  pageKind,
+                ) && (
+                  <span
+                    className="nb-lbl"
+                    title="Required on this page"
+                    style={{ background: "rgba(255,255,255,.18)" }}
+                  >
+                    Required
+                  </span>
+                )}
                 <button
                   title="Move up"
                   type="button"
@@ -1531,17 +1575,45 @@ function WidgetLibrary({
             <div className="wgrid">
               {defs.map((d) => {
                 const Icon = WIDGET_ICONS[d.icon] ?? Square;
+                const required = isWidgetRequiredOnPage(
+                  d.type as WidgetType,
+                  pageKind,
+                );
                 return (
                   <div
                     className="widget"
                     key={d.type}
-                    title={d.label}
+                    title={
+                      required ? `${d.label} — required on this page` : d.label
+                    }
                     draggable
                     onDragStart={(e) =>
                       onWidgetDragStart(d.type as WidgetType, e)
                     }
                     onDragEnd={onWidgetDragEnd}
+                    style={required ? { position: "relative" } : undefined}
                   >
+                    {required && (
+                      <span
+                        aria-label="Required on this page"
+                        style={{
+                          position: "absolute",
+                          top: 3,
+                          right: 3,
+                          fontSize: 8,
+                          fontWeight: 800,
+                          letterSpacing: ".04em",
+                          textTransform: "uppercase",
+                          background: "var(--secondary, #064E3B)",
+                          color: "#fff",
+                          borderRadius: 3,
+                          padding: "1px 3px",
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        Req
+                      </span>
+                    )}
                     <span className="wi">
                       <Icon size={19} strokeWidth={1.8} />
                     </span>

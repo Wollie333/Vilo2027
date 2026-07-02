@@ -211,3 +211,15 @@ already written but uncommitted.
   `publishBuilderDocAction` now rejects with `missing_required_blocks` if a required
   block is absent. 11 vitest (pageContract.test.ts). `tsc`+`lint`+`build` green.
   Next: **Phase 3b** — builder UI (library "Required" badges + delete guard + readiness).
+- _2026-07-02_ — ✅ **Phase 3b DONE — Phase 3 COMPLETE.** Builder UI in
+  `BuilderShell.tsx`: (1) library cards show a **"Req"** badge on blocks required for the
+  current page kind (`isWidgetRequiredOnPage`); (2) the selected node's canvas badge shows
+  a **"Required"** chip; (3) **delete guard** — `doDelete` simulates the removal and blocks
+  it (with a toast) if it would strip a required block from the page (add another first);
+  (4) **publish guard** client-side — `doPublish` names the missing blocks instead of a
+  bare server reject (backed by the 3a server guard). `isWidgetRequiredOnPage` now takes a
+  plain string (node types are the broad renderable union). **Verified live** (logged in as
+  host@vilotest.com) on the room_detail page: library shows Req on exactly Room Gallery/
+  Overview/Rate/Policies (not the optional Amenities); selecting a required block shows the
+  Required chip; deleting it is blocked (7→7 widgets, toast fired). `tsc`+`lint`+11 vitest+
+  `build` green. Next: Phase 4 (Wielo-block data modals).

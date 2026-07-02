@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 3b: required-blocks UI (badges + delete guard).
+
+Completes Phase 3. The builder now makes the required-blocks contract visible and safe:
+the block library shows a **"Req"** badge on every block a system template needs (e.g. on
+a room-detail page: Room Gallery / Overview / Rate+Book / Policies — not the optional
+Amenities); the selected block's on-canvas badge shows a **"Required"** chip; deleting a
+required block is **blocked** with a clear toast ("… is required on this page and can't be
+removed. Add another first…"); and the Publish button now names the missing blocks instead
+of a bare server error. Verified live in the builder as the test host: the badges land on
+exactly the required blocks and a required-block delete is refused (widget count unchanged,
+toast shown). `tsc` + `lint` + 11 vitest + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 3a: required-blocks contract + publish guard.
 
 New `lib/website/pageContract.ts` — the SSOT for which Wielo blocks a page KIND needs to

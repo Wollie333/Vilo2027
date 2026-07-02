@@ -13,14 +13,17 @@
 >
 > **Phase status:** ✅ **0** date-picker/search clipping fix · ✅ **1** stock-data theme
 > preview · ✅ **2** activation → all pages themed + builder-editable (verified) · ⏳ 3
-> required system-blocks (**3a done**, 3b next) · 4 Wielo data modals · 5 per-block style
-> UI · 6 setup wizard + go-live gate.
+> **required system-blocks (DONE)** · 4 Wielo data modals · 5 per-block style UI · 6 setup
+> wizard + go-live gate.
 >
-> **Phase 3a (done):** `lib/website/pageContract.ts` SSOT — required Wielo blocks per page
+> **Phase 3 (done):** `lib/website/pageContract.ts` SSOT — required Wielo blocks per page
 > kind (room_detail→gallery/overview/rate/policies; search_results→search_results;
-> rooms→rooms_preview). `publishBuilderDocAction` rejects `missing_required_blocks` (PageDoc
-> only; legacy flat skipped). 11 vitest. **3b next:** builder UI — library "Required" badges
-> (`isWidgetRequiredOnPage`) + delete guard + readiness strip in `BuilderShell.tsx`.
+> rooms→rooms_preview). `publishBuilderDocAction` rejects `missing_required_blocks`. Builder
+> UI (`BuilderShell.tsx`): library "Req" badges + canvas "Required" chip + delete guard
+> (`doDelete` simulates removal, blocks if a required block would be lost) + client publish
+> guard naming missing blocks. 11 vitest. **Verified live** as host@vilotest.com on
+> room_detail: Req on the 4 required blocks, delete blocked (7→7 + toast). **4 next:** Wielo
+> data modals — edit real property data (rooms/amenities/rates/photos) from the builder.
 >
 > **Phase 2 (done, verification):** activation pipeline already correct — `mergeStandardPages`
 > (7 marketing + search_results) + `applyThemeAction` seeds room_detail + `loadPagesList`
