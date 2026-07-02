@@ -1028,6 +1028,47 @@ export async function publishBuilderDocAction(
   return { ok: true };
 }
 
+export type BuilderRoom = {
+  id: string;
+  propertyId: string;
+  name: string;
+  description: string | null;
+  basePrice: number;
+  maxGuests: number;
+  isActive: boolean;
+};
+
+/**
+ * Load the host's real rooms for the builder's "Edit room data" modal (Phase 4a).
+ * RLS-scoped to the signed-in host, so it returns only rooms they can manage — the
+ * modal edits these through the existing `updateRoomAction` (property_rooms is the
+ * SSOT; a Wielo block's data comes from the property, never stored on the website).
+ * Ordered like the room manager.
+ */
+export async function fetchBuilderRoomsAction(): Promise<
+  { ok: true; rooms: BuilderRoom[] } | { ok: false; error: string }
+> {
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("property_rooms")
+    .select(
+      "id, property_id, name, description, base_price, max_guests, is_active",
+    )
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: true });
+  if (error) return { ok: false, error: "load_failed" };
+  const rooms: BuilderRoom[] = (data ?? []).map((r) => ({
+    id: r.id as string,
+    propertyId: r.property_id as string,
+    name: (r.name as string | null) ?? "",
+    description: (r.description as string | null) ?? null,
+    basePrice: Number(r.base_price) || 0,
+    maxGuests: Number(r.max_guests) || 1,
+    isActive: !!r.is_active,
+  }));
+  return { ok: true, rooms };
+}
+
 /**
  * Save the Builder V2 Brand Studio: the working theme (authoritative — replaces
  * `host_websites.theme`) + a brand-identity subset (merged into `brand` so logo/

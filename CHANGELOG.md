@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 4a: edit real room data from the builder.
+
+Wielo blocks are theme-styled but system-fed — their content comes from the property, not
+the website. Phase 4a lets the host edit that real data without leaving the builder: room
+blocks (rooms grid, room card, and the room-detail blocks) now show an **"Edit room data…"**
+button in the inspector that opens a modal listing the host's real rooms and editing name /
+price / max-guests / description / active — saved straight to `property_rooms` via the
+existing `updateRoomAction` (the same SSOT the Properties manager uses; nothing forked, no
+data stored on the website). New `fetchBuilderRoomsAction` loads the rooms RLS-scoped to the
+host. Verified live end-to-end: the modal loaded the real rooms (no demo leak) and a price
+edit persisted to the database. The builder canvas still shows sample content for layout —
+rendering real data on the canvas + more block families (amenities/rates/gallery) + add-room
+are Phase 4b. `tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 3b: required-blocks UI (badges + delete guard).
 
 Completes Phase 3. The builder now makes the required-blocks contract visible and safe:

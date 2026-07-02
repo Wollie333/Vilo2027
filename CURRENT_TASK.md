@@ -13,8 +13,16 @@
 >
 > **Phase status:** ✅ **0** date-picker/search clipping fix · ✅ **1** stock-data theme
 > preview · ✅ **2** activation → all pages themed + builder-editable (verified) · ⏳ 3
-> **required system-blocks (DONE)** · 4 Wielo data modals · 5 per-block style UI · 6 setup
-> wizard + go-live gate.
+> **required system-blocks (DONE)** · **4 Wielo data modals (4a DONE, 4b next)** · 5 per-block
+> style UI · 6 setup wizard + go-live gate.
+>
+> **Phase 4a (done):** "Edit room data…" button on room-family blocks
+> (`ROOM_DATA_BLOCKS`) → `RoomDataModal` loads the host's real rooms via
+> `fetchBuilderRoomsAction` (RLS) → edits saved through the existing `updateRoomAction`
+> (property_rooms SSOT). **Verified live**: Olive Room price 1300→1355 persisted to the DB
+> (reverted). **4b next:** render real data on the builder canvas + more block families
+> (amenities/rates/gallery) + add-room. NOTE: running `pnpm build` while the dev server is up
+> corrupts shared `.next` (vendor-chunks error) — clear `.next` + restart preview to recover.
 >
 > **Phase 3 (done):** `lib/website/pageContract.ts` SSOT — required Wielo blocks per page
 > kind (room_detail→gallery/overview/rate/policies; search_results→search_results;

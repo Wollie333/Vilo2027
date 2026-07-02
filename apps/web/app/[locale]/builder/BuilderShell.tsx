@@ -115,6 +115,19 @@ import {
 } from "./PageSettingsOverlay";
 import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
 import { NavBuilderOverlay } from "./NavBuilderOverlay";
+import { RoomDataModal } from "./RoomDataModal";
+
+// Property-sourced (Wielo) blocks whose DATA comes from the host's rooms — these
+// get an "Edit room data" affordance in the inspector (Phase 4a).
+const ROOM_DATA_BLOCKS: ReadonlySet<string> = new Set([
+  "rooms_preview",
+  "el_room_card",
+  "room_gallery",
+  "room_overview",
+  "room_amenities",
+  "room_rate",
+  "room_policies",
+]);
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type { SiteNavigation, SiteMenuItem } from "@/lib/site/types";
 import {
@@ -263,6 +276,7 @@ export function BuilderShell({
   const [device, setDevice] = useState<Device>("desktop");
   const [mode, setMode] = useState<PanelMode>("widgets");
   const [query, setQuery] = useState("");
+  const [roomDataOpen, setRoomDataOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
@@ -1178,6 +1192,12 @@ export function BuilderShell({
                     onPatchNode={patchNode}
                     onPatchResp={patchResp}
                     rooms={roomOpts}
+                    onEditRoomData={
+                      persists &&
+                      ROOM_DATA_BLOCKS.has((selected.node as AnyNode).type)
+                        ? () => setRoomDataOpen(true)
+                        : undefined
+                    }
                   />
                 ) : (
                   <PanelPlaceholder
@@ -1469,6 +1489,12 @@ export function BuilderShell({
         onAnalyticsPatch={patchAnalytics}
       />
 
+      <RoomDataModal
+        open={roomDataOpen}
+        onClose={() => setRoomDataOpen(false)}
+        toast={toast}
+      />
+
       {/* Toasts */}
       <div className="toasts">
         {toasts.map((t) => (
@@ -1758,6 +1784,7 @@ function Inspector({
   onPatchNode,
   onPatchResp,
   rooms,
+  onEditRoomData,
 }: {
   node: AnyNode;
   device: Device;
@@ -1767,6 +1794,8 @@ function Inspector({
   onPatchResp: (patch: RespPatch) => void;
   /** Live room options for the Room Card picker control. */
   rooms?: { id: string; name: string }[];
+  /** Present on room-data (Wielo) blocks — opens the "Edit room data" modal. */
+  onEditRoomData?: () => void;
 }) {
   const [tab, setTab] = useState<InspectorTab>("content");
   const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
@@ -1842,6 +1871,32 @@ function Inspector({
         {isDev && (
           <div className="hint" style={{ marginTop: 12 }}>
             Editing <b>{device}</b> overrides — cleared fields inherit desktop.
+          </div>
+        )}
+
+        {tab === "content" && onEditRoomData && (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              onClick={onEditRoomData}
+              style={{
+                width: "100%",
+                border: "1px solid var(--secondary, #064E3B)",
+                background: "var(--secondary, #064E3B)",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 12.5,
+                borderRadius: 8,
+                padding: "9px 12px",
+                cursor: "pointer",
+              }}
+            >
+              Edit room data…
+            </button>
+            <div className="hint" style={{ marginTop: 6 }}>
+              This block’s content comes from your rooms. Edit the real room
+              data — it updates your live site.
+            </div>
           </div>
         )}
 

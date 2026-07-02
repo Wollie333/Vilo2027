@@ -223,3 +223,17 @@ already written but uncommitted.
   Overview/Rate/Policies (not the optional Amenities); selecting a required block shows the
   Required chip; deleting it is blocked (7→7 widgets, toast fired). `tsc`+`lint`+11 vitest+
   `build` green. Next: Phase 4 (Wielo-block data modals).
+- _2026-07-02_ — ✅ **Phase 4a DONE (rooms data modal).** Founder chose: ship the modal now,
+  real-data-on-canvas later (4b); rooms first. New `fetchBuilderRoomsAction()`
+  (`dashboard/website/actions.ts`) loads the host's REAL rooms RLS-scoped; new
+  `builder/RoomDataModal.tsx` lists them + edits name/price/max-guests/description/active and
+  saves via the EXISTING `updateRoomAction` (property_rooms SSOT — reused, not forked). The
+  inspector shows an **"Edit room data…"** button on room-family blocks (`ROOM_DATA_BLOCKS`:
+  rooms_preview/el_room_card/room_gallery/overview/amenities/rate/policies). **Verified live**
+  end-to-end as host@vilotest.com: opened on room_detail → modal loaded the real rooms (Olive
+  Room/Delux/Vineyard/Mountain, no demo leak) → changed Olive Room price 1300→1355 → Save →
+  **DB `property_rooms.base_price` = 1355** (then reverted to 1300 to keep the fixture clean).
+  Hit + fixed the stale-`.next` vendor-chunks issue (from running `pnpm build` while the dev
+  server shares `.next` — cleared `.next` + restarted). `tsc`+`lint`+`build` green. **Deferred
+  to 4b:** Add-room (needs property picker), other block families (amenities/rates/gallery),
+  and rendering the host's REAL data on the builder canvas so edits show in-place. Next: 4b.
