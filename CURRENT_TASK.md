@@ -33,16 +33,18 @@ ALONE — never `git add -A` (use `git add -u` / explicit paths).
   `search_results`. `page.tsx` threads the page kind into `BuilderShell`→`WidgetLibrary`. +3 vitest (172).
   Gating is unit-proven both ways; live-confirmed the group is correctly HIDDEN on non-matching pages
   (the SHOWING case needs a host session the preview can't supply — render path already proven in 5-4).
-- **③ Nav-studio cutover + delete residual safari** — the full-screen nav studio
-  (`website-editor/[websiteId]/navigation`) still imports `SafariNavCanvas`, so
-  `components/site/safari/{SafariNavCanvas,SafariShell,SafariNav,SafariLightbox,safari.css}` +
-  `sections/SafariSections` + `SafariContactForm` REMAIN. Cut it over to the new builder's nav overlay,
-  repoint `(editor)/navigation`, then delete the residual safari chrome + `safariNav.ts` if unused.
-  **ALSO IN THIS PASS (folded in):** the public-site HEADER crowds at tablet/small-desktop widths
-  (~900–1000px) — the logo name ("Olive Grove Guesthouse") overlaps the first nav item ("About") and
-  causes ~6px horizontal overflow. It's a `SiteChrome`/`StickyHeader` responsive-nav issue (not the token
-  render path); fix the header breakpoints (collapse to the mobile menu sooner, or shrink/wrap the nav)
-  while reworking the chrome/nav here.
+- **③ Nav-studio cutover + delete residual safari — ✅ DONE (2026-07-02).** Retired the full-screen nav
+  studio; header/menu/footer editing now lives in the builder's Nav overlay. `BuilderShell` gained
+  `autoOpenNav`/`navTab`; `builder/page.tsx` reads `?nav=links|header|footer`; the dashboard **Navigation**
+  page's 3 Edit buttons deep-link to `/builder?websiteId=&pageId=<home>&nav=<tab>`. **Deleted 13 files**
+  (the whole `website-editor/.../navigation` route + `components/site/safari/*` chain +
+  `sections/{SafariSections,SafariContactForm}` + `lib/site/safariNav.ts` + the orphaned `SiteChromeCanvas`).
+  **Folded-in header fix DONE:** the classic header's default menu-collapse is now count-aware (>5 links →
+  collapse on tablet too) — live-verified on vilotest (8-link nav → `hidden lg:flex` + hamburger at ~900px,
+  overflow 0). tsc + lint + 172 vitest + build green; public render + dashboard→builder deep-link
+  live-checked. Founder chose "repoint dashboard → builder".
+
+**ALL Builder V2 Phase 6 follow-ups (①②③) COMPLETE.** Phase 6 fully closed out.
 
 Read first next session: this SAVE POINT, `docs/features/BUILDER_V2_PLAN.md`, `docs/features/
 TRACKING_EVENTS_PLAN.md`, memory `project-builder-v2`.

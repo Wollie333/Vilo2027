@@ -1161,8 +1161,6 @@ export function SiteChrome({
     ? navigation.header?.ctaHref?.trim() || bookHref
     : undefined;
   const sticky = navigation.header?.sticky !== false;
-  const menuCollapse: MenuCollapse =
-    navigation.header?.menuCollapse ?? "mobile";
   const topBar = navigation.topBar;
   // Explicit menu wins; otherwise fall back to the page-derived nav.
   const menu: SiteMenuItem[] = filterMenuForPage(
@@ -1175,6 +1173,11 @@ export function SiteChrome({
     label: m.label,
     href: m.href,
   }));
+  // Default collapse breakpoint. A long nav (brand + CTA + many links) crowds in
+  // the md–lg gap (~768–1024px), so navs with more than 5 links collapse to the
+  // hamburger on tablet too; shorter navs keep the tablet nav. Host override wins.
+  const menuCollapse: MenuCollapse =
+    navigation.header?.menuCollapse ?? (menu.length > 5 ? "tablet" : "mobile");
   const footerColumns = navigation.footer?.columns ?? [];
   // Per-page appearance/style override (transparent / bar colour / menu colour
   // for THIS page) — merges over the global values.
@@ -1226,7 +1229,7 @@ export function SiteChrome({
     ...(showBar ? { paddingTop: 44 } : null),
     // Total fixed-bar offset (preview bar + top bar + sticky header) so sticky
     // in-content elements — e.g. the room booking dock — sit BELOW the header
-    // with a gap instead of scrolling behind it. Mirrors SafariShell.
+    // with a gap instead of scrolling behind it.
     "--wielo-sticky-top": `${
       (showBar ? 44 : 0) + (topBar?.enabled ? 38 : 0) + (sticky ? 96 : 28)
     }px`,

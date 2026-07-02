@@ -53,9 +53,23 @@ export default async function WebsiteNavigationPage({
   const brandName =
     ((site.brand ?? {}) as { name?: string }).name?.trim() || site.subdomain;
 
+  // Header/menu/footer are edited in the builder's Nav overlay now (the old
+  // full-screen nav studio is retired). The overlay is site-wide but the builder
+  // needs a page open, so deep-link through the home page (fall back to any page).
+  const { data: navPages } = await supabase
+    .from("website_pages")
+    .select("id, kind, nav_order")
+    .eq("website_id", websiteId)
+    .order("nav_order", { ascending: true });
+  const anchorPageId =
+    navPages?.find((p) => p.kind === "home")?.id ?? navPages?.[0]?.id ?? null;
+  const navHref = (tab: "links" | "header" | "footer") =>
+    anchorPageId
+      ? `/builder?websiteId=${websiteId}&pageId=${anchorPageId}&nav=${tab}`
+      : `/builder?websiteId=${websiteId}`;
+
   const menuCount = navigation.menu?.length ?? 0;
   const colCount = navigation.footer.columns?.length ?? 0;
-  const editBase = `/website-editor/${websiteId}/navigation`;
 
   return (
     <div className="wielo-cms wielo-nav mx-auto max-w-[1080px] space-y-6">
@@ -92,7 +106,7 @@ export default async function WebsiteNavigationPage({
               label={t("navTopBarShort")}
             />
           </div>
-          <Link href={`${editBase}/header`} className="btn btn-primary btn-sm">
+          <Link href={navHref("header")} className="btn btn-primary btn-sm">
             <Pencil style={{ width: 14, height: 14 }} />
             {t("navEditHeader")}
           </Link>
@@ -114,7 +128,7 @@ export default async function WebsiteNavigationPage({
             <h3>{t("navMenuTitle")}</h3>
             <p>{t("navMenuModDesc", { count: menuCount })}</p>
           </div>
-          <Link href={`${editBase}/menu`} className="btn btn-primary btn-sm">
+          <Link href={navHref("links")} className="btn btn-primary btn-sm">
             <Pencil style={{ width: 14, height: 14 }} />
             {t("navEditMenu")}
           </Link>
@@ -145,7 +159,7 @@ export default async function WebsiteNavigationPage({
             <h3>{t("navFooterTitle")}</h3>
             <p>{t("navFooterModDesc", { count: colCount })}</p>
           </div>
-          <Link href={`${editBase}/footer`} className="btn btn-primary btn-sm">
+          <Link href={navHref("footer")} className="btn btn-primary btn-sm">
             <Pencil style={{ width: 14, height: 14 }} />
             {t("navEditFooter")}
           </Link>

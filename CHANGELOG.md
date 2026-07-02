@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 6 follow-up ③: nav-studio cutover + residual safari deleted + header fix.
+
+Retired the legacy full-screen nav studio, moved header/menu/footer editing into the builder's Nav overlay,
+deleted the entire residual safari render chain, and fixed the public header crowding. Founder chose "repoint
+the dashboard → builder".
+
+- **Cutover wiring** — `BuilderShell` gained `autoOpenNav` + `navTab` props (open the Nav overlay on mount,
+  on a given tab). `builder/page.tsx` reads `?nav=links|header|footer` (both real + demo modes). The
+  dashboard **Navigation** page's 3 Edit buttons now deep-link to
+  `/builder?websiteId=&pageId=<home>&nav=<tab>` (resolves the home page id, falls back to any page) instead
+  of the old `/website-editor/.../navigation/<section>`. **Live-verified**: `?nav=header` opens the Nav
+  overlay straight onto the Header tab; the overlay has full header/menu/footer + per-device styling + live
+  preview (parity with the old studio).
+- **Deleted 13 files** (~4.5k lines, all nav-studio-only): the whole `website-editor/[websiteId]/navigation`
+  route (`page`, `NavSectionEditor`, `MenuStudio`, `MenuTree`); `components/site/safari/*`
+  (`SafariNavCanvas`/`SafariShell`/`SafariNav`/`SafariLightbox`/`safari.css`);
+  `sections/{SafariSections,SafariContactForm}`; `lib/site/safariNav.ts`; and the now-orphaned
+  `SiteChromeCanvas.tsx` (its only importers were the deleted studio files — nav preview now lives inside the
+  overlay). The `website-editor` blog + forms editors are untouched. `SiteChrome`/`StickyHeader`/
+  `SiteMobileMenu` (live public chrome) kept; a stale "Mirrors SafariShell" comment removed.
+- **Header crowding fixed** — the classic header's default menu-collapse is now count-aware: a nav with more
+  than 5 links (brand + CTA + many items crowd the md–lg gap) collapses to the hamburger on tablet too;
+  shorter navs keep the tablet nav; host override still wins. **Live-verified** on vilotest (8-link nav): at
+  ~900px the nav is now `hidden lg:flex`, the hamburger shows, and horizontal overflow is 0 (was ~6px).
+- **Verified:** tsc + lint + `pnpm build` + 172 vitest; the public site still renders after the safari
+  deletion (generic token path unaffected); the dashboard→builder nav deep-link + header fix both live-checked.
+
 ## 2026-07-02 — Frontend locked to ZAR + English (temp); builder Settings copy refreshed.
 
 Two small changes. (1) The guest-facing frontend is temporarily pinned to ZAR + English while currency

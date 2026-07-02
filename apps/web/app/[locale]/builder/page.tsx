@@ -177,8 +177,18 @@ export default async function BuilderPage({
     page?: string;
     websiteId?: string;
     pageId?: string;
+    nav?: string;
   };
 }) {
+  // Dashboard "Navigation" deep-links here with ?nav=links|header|footer to open
+  // the Nav builder overlay straight away (the old full-screen nav studio is gone).
+  const navTab =
+    searchParams?.nav === "header" ||
+    searchParams?.nav === "footer" ||
+    searchParams?.nav === "links"
+      ? searchParams.nav
+      : undefined;
+
   // ── Real-page mode (persists) ──
   if (searchParams?.websiteId && searchParams?.pageId) {
     const real = await loadRealPage(
@@ -200,6 +210,8 @@ export default async function BuilderPage({
           analytics={real.analytics}
           pages={real.pages}
           pageKind={real.kind}
+          autoOpenNav={!!navTab}
+          navTab={navTab}
         />
       );
     }
@@ -248,6 +260,8 @@ export default async function BuilderPage({
       navigation={demoNav}
       pages={demoPages}
       pageKind={chosen?.key}
+      autoOpenNav={!!navTab}
+      navTab={navTab}
     />
   );
 }

@@ -218,6 +218,8 @@ export function BuilderShell({
   analytics: initialAnalytics = EMPTY_ANALYTICS,
   pages = [],
   pageKind,
+  autoOpenNav = false,
+  navTab = "links",
 }: {
   docName: string;
   themeLabel: string;
@@ -226,6 +228,10 @@ export function BuilderShell({
   /** This page's kind (home/about/room_detail/search_results/…) — gates the
    *  contextual widgets (room-scoped, search_results) in the library. */
   pageKind?: string;
+  /** Open the Nav builder overlay on mount (dashboard "Navigation" → builder). */
+  autoOpenNav?: boolean;
+  /** Which Nav overlay tab to land on when auto-opened. */
+  navTab?: "links" | "header" | "footer";
   /** When both are present the builder persists (autosave + publish) to this page. */
   websiteId?: string;
   pageId?: string;
@@ -263,10 +269,10 @@ export function BuilderShell({
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(autoOpenNav);
   const [navInitialTab, setNavInitialTab] = useState<
     "links" | "header" | "footer"
-  >("links");
+  >(navTab);
   // Working brand + theme edited by Brand Studio, applied LIVE to the canvas.
   // (Persisting these to the DB is Phase 4c-2.)
   const [workTheme, setWorkTheme] = useState<SiteThemeConfig>(theme);
