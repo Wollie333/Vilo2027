@@ -6,6 +6,8 @@ Wielo gives hosts a professional, branded booking website and a private dashboar
 
 > **Status:** pre-MVP, under active build. **No real users / no production data yet** — every table is treated as empty (see the pre-MVP data policy in [`CLAUDE.md`](./CLAUDE.md)). Live dev deploy: https://vilo2027.vercel.app — **host tenant sites are live on `*.wielo.co.za`** (wildcard domain configured).
 > See **[Build status](#build-status)** for an honest, code-level breakdown of what works today.
+>
+> **Active initiative (Jul 2026): Builder × Theme pixel-perfect pipeline** — plan of record [`docs/features/BUILDER_THEME_PLAN.md`](./docs/features/BUILDER_THEME_PLAN.md). Progress: ✅ **Phase 0** — themed date-picker/search-field clipping fixed (calendar now portals above all content, verified on the Safari room dock) · ⏳ Phases 1–6 (stock preview · activation hardening · required system-blocks · Wielo data modals · per-block style UI · setup wizard + go-live gate).
 
 ---
 

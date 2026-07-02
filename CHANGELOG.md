@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 0: date-picker / search-field clipping fixed.
+
+The themed check-in/check-out calendar (`ThemedDateRange`) now renders in a **React
+portal to `document.body`** with `position:fixed` + a max z-index, so it can never be
+clipped by an ancestor's `overflow:hidden` (the booking `Card`) or trapped under a
+later section's stacking context. It follows the trigger on scroll/resize and dismisses
+on outside tap (portal-aware). This fixes the reported bug where booking search fields /
+the date picker were hidden behind other elements and un-clickable on themed pages.
+**Verified live** on the Safari theme room-detail booking dock (the hardest case —
+sticky aside + rounded overflow card): popover fully in-viewport, day cells hit-testable.
+First step of the **Builder × Theme pixel-perfect pipeline** (plan:
+`docs/features/BUILDER_THEME_PLAN.md`). `tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Pixel-perfect themes, slice 2: the designed "story" band (photo + stat badge).
 
 New `intro` **`story`** variant reproduces every theme's story band — a 2-col layout: eyebrow + heading +

@@ -2,11 +2,28 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT — RESUME HERE (· 2026-07-02, latest commit `57e262da`, tree in sync with origin/main)
+## ▶▶▶ SAVE POINT — RESUME HERE (· 2026-07-02, Builder × Theme pipeline, **Phase 0 DONE**)
 
-**Everything below is committed + pushed. `pnpm build` + tsc + lint clean, 169 vitest green.** The two
-stray untracked files (`apps/web/vsub.mjs`, `docs/features/WEBSITE_WIZARD_PLAN.md`) are deliberately LEFT
-ALONE — never `git add -A` (use `git add -u` / explicit paths).
+> **ACTIVE LANE: Builder × Theme pixel-perfect pipeline.** Plan of record →
+> **`docs/features/BUILDER_THEME_PLAN.md`** (read it first — locked decisions + 7 phases +
+> per-phase save-point routine). End goal: activate theme → system pulls the host's real
+> data into ALL pages incl. system templates (theme=style, system=data) → builder lets the
+> host customise with Wielo blocks (required-blocks safety + per-block style override) →
+> a standalone setup wizard gates go-live on a readiness contract.
+>
+> **Phase status:** ✅ **0** date-picker/search-field clipping fix (this commit) ·
+> ⏳ 1 stock preview · 2 activation hardening · 3 required system-blocks · 4 Wielo data
+> modals · 5 per-block style UI · 6 setup wizard + go-live gate.
+>
+> **Phase 0 (done):** `ThemedDateRange` now portals to `document.body` (fixed pos, max
+> z-index) so the calendar never clips under the booking Card/overflow. Verified live on
+> Safari room dock (fully in-viewport, day cells clickable). `.claude/launch.json` got
+> `autoPort:true` locally (untracked) so a 2nd preview server can run alongside another
+> chat's port-3000 server — not committed.
+
+**Everything below is prior context (Phase-6 cutover, commit `57e262da`). Committed + pushed.** The
+stray untracked file `apps/web/vsub.mjs` is deliberately LEFT ALONE — never `git add -A` (use
+`git add -u` / explicit paths). `docs/features/WEBSITE_WIZARD_PLAN.md` now feeds Phase 6 of the plan.
 
 **DONE this run (newest first, all pushed):**
 1. **Builder V2 Phase 6 CUTOVER (`57e262da`)** — public site renders the ONE token path (bespoke
