@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 4d-4: Footer document (columns + newsletter)
+
+Wires the document switcher's **Footer** entry (was "Soon"). Adds a third left tab (Footer) to the
+nav overlay editing `navigation.footer`, with a themed footer preview.
+
+- **`NavBuilderOverlay.tsx`** — `NavFooterInspector`: copyright line, "Powered by Wielo" toggle,
+  newsletter (enable + heading + body), and a **columns editor** (add/delete columns, edit heading,
+  add/rename/delete links per column). The preview swaps to a themed footer (`.np-footwrap` reading
+  `--site-ink`/`--site-accent`): columns + link lists, newsletter block with an accent "Sign up",
+  and the copyright/powered-by base line. The menu style rail is hidden on the Footer tab. `initialTab`
+  prop opens the overlay on the tab the doc-switcher requested (Header & menu → links, Footer →
+  footer).
+- **`builder-chrome.css`** — `.np-footwrap`/`.np-foot-*` footer preview + `.foot-col`/`.foot-col-head`
+  column-editor styles.
+- **`BuilderShell.tsx`** — `navInitialTab` state; both doc-switcher entries open the overlay on the
+  right tab; footer persists with the rest of the navigation via `saveNavigationAction`.
+- **Live-verified** on `?theme=marmalade`: Footer entry opens the Footer tab (rail hidden, themed
+  footer preview); adding column "Explore" + link "Rooms" and enabling the newsletter reflect live in
+  the preview; 0 console errors. tsc + lint clean, 163 vitest, build green.
+  **DEFERRED — 4d-5:** mobile drawer (burger/overlay/overlayBg), nesting/dropdown editing, per-page
+  show-hide, topBar, real themed `SiteChrome` preview.
+
 ## 2026-07-02 — Builder V2 Phase 4d-3: Nav builder Header inspector
 
 Adds a left **tab bar (Links · Header)** to the nav overlay + a Header inspector editing the real

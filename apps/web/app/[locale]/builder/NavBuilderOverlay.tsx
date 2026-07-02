@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ChevronLeft,
   ChevronDown,
@@ -20,6 +20,7 @@ import {
   Eye,
   Rows3,
   PanelTop,
+  PanelBottom,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,6 +34,9 @@ import type { SiteThemeConfig } from "@/lib/site/themes";
 import type { Brand } from "./BrandStudioOverlay";
 
 type NavHeader = NonNullable<SiteNavigation["header"]>;
+type NavFooter = NonNullable<SiteNavigation["footer"]>;
+type FootCol = NonNullable<NavFooter["columns"]>[number];
+type LeftTab = "links" | "header" | "footer";
 type NavDevice = "desktop" | "tablet" | "mobile";
 const WEIGHT_PX: Record<string, number> = {
   normal: 400,
@@ -63,6 +67,9 @@ export function NavBuilderOverlay({
   onMenuStyleChange,
   header,
   onHeaderChange,
+  footer,
+  onFooterChange,
+  initialTab = "links",
   pages,
   brand,
   theme,
@@ -80,6 +87,10 @@ export function NavBuilderOverlay({
   onMenuStyleChange: (next: SiteMenuStyle) => void;
   header: NavHeader;
   onHeaderChange: (next: NavHeader) => void;
+  footer: NavFooter;
+  onFooterChange: (next: NavFooter) => void;
+  /** Which left tab to open on (doc-switcher: "Header & menu" → links, "Footer" → footer). */
+  initialTab?: LeftTab;
   pages: PageOpt[];
   brand: Brand;
   theme: SiteThemeConfig;
@@ -88,10 +99,16 @@ export function NavBuilderOverlay({
   onReset: () => void;
 }) {
   const [device, setDevice] = useState<NavDevice>("desktop");
-  const [leftTab, setLeftTab] = useState<"links" | "header">("links");
+  const [leftTab, setLeftTab] = useState<LeftTab>(initialTab);
   const [pubOpen, setPubOpen] = useState(false);
   const setHeader = (patch: Partial<NavHeader>) =>
     onHeaderChange({ ...header, ...patch });
+  const setFooter = (patch: Partial<NavFooter>) =>
+    onFooterChange({ ...footer, ...patch });
+  // Open on the tab the doc-switcher requested each time the overlay opens.
+  useEffect(() => {
+    if (open) setLeftTab(initialTab);
+  }, [open, initialTab]);
   const [openAcc, setOpenAcc] = useState<Set<number>>(() => new Set([0, 1]));
   const toggleAcc = (i: number) =>
     setOpenAcc((s) => {
@@ -298,6 +315,14 @@ export function NavBuilderOverlay({
               <PanelTop size={15} strokeWidth={1.9} />
               Header
             </button>
+            <button
+              type="button"
+              className={leftTab === "footer" ? "nav-tab on" : "nav-tab"}
+              onClick={() => setLeftTab("footer")}
+            >
+              <PanelBottom size={15} strokeWidth={1.9} />
+              Footer
+            </button>
           </div>
           <div className="nav-left-body">
             {leftTab === "header" ? (
@@ -307,6 +332,8 @@ export function NavBuilderOverlay({
                 showCta={showCta}
                 showLogo={showLogo}
               />
+            ) : leftTab === "footer" ? (
+              <NavFooterInspector footer={footer} setFooter={setFooter} />
             ) : (
               <>
                 <div className="nav-lbl">Links · drag to reorder</div>
@@ -468,229 +495,237 @@ export function NavBuilderOverlay({
                   } as React.CSSProperties
                 }
               >
-                <div className="np-hero">
-                  <div className="np-bar">
-                    {showLogo && (
-                      <div className="np-logo">
-                        {showMark && (
-                          <span
-                            className="mk"
-                            style={{
-                              width: logoH,
-                              height: logoH,
-                              fontSize: Math.round(logoH * 0.42),
-                            }}
-                          >
-                            {monogram}
-                          </span>
-                        )}
-                        {showName && <span className="lname">{name}</span>}
-                        {tagline && (
-                          <span
-                            style={{
-                              fontSize: 11,
-                              letterSpacing: "0.12em",
-                              textTransform: "uppercase",
-                              color: "var(--nhover)",
-                              marginLeft: 4,
-                            }}
-                          >
-                            {tagline}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {device !== "mobile" && (
-                      <nav className={navCls}>
-                        {menu.map((it, i) => (
-                          <span
-                            key={it.id}
-                            className={i === 0 ? "nl active" : "nl"}
-                          >
-                            {it.label}
-                            {it.children && it.children.length > 0 && (
-                              <ChevronDown
-                                className="cx"
-                                size={13}
-                                strokeWidth={2.2}
-                              />
-                            )}
-                          </span>
-                        ))}
-                        {showCta && (
-                          <span className="np-reserve">{ctaLabel}</span>
-                        )}
-                      </nav>
-                    )}
-                    {device === "mobile" && (
-                      <span
-                        className="np-reserve"
-                        style={{ marginLeft: "auto" }}
-                      >
-                        <MenuIcon size={18} strokeWidth={2} />
-                      </span>
-                    )}
+                {leftTab === "footer" ? (
+                  <FooterPreview footer={footer} name={name} />
+                ) : (
+                  <div className="np-hero">
+                    <div className="np-bar">
+                      {showLogo && (
+                        <div className="np-logo">
+                          {showMark && (
+                            <span
+                              className="mk"
+                              style={{
+                                width: logoH,
+                                height: logoH,
+                                fontSize: Math.round(logoH * 0.42),
+                              }}
+                            >
+                              {monogram}
+                            </span>
+                          )}
+                          {showName && <span className="lname">{name}</span>}
+                          {tagline && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                letterSpacing: "0.12em",
+                                textTransform: "uppercase",
+                                color: "var(--nhover)",
+                                marginLeft: 4,
+                              }}
+                            >
+                              {tagline}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {device !== "mobile" && (
+                        <nav className={navCls}>
+                          {menu.map((it, i) => (
+                            <span
+                              key={it.id}
+                              className={i === 0 ? "nl active" : "nl"}
+                            >
+                              {it.label}
+                              {it.children && it.children.length > 0 && (
+                                <ChevronDown
+                                  className="cx"
+                                  size={13}
+                                  strokeWidth={2.2}
+                                />
+                              )}
+                            </span>
+                          ))}
+                          {showCta && (
+                            <span className="np-reserve">{ctaLabel}</span>
+                          )}
+                        </nav>
+                      )}
+                      {device === "mobile" && (
+                        <span
+                          className="np-reserve"
+                          style={{ marginLeft: "auto" }}
+                        >
+                          <MenuIcon size={18} strokeWidth={2} />
+                        </span>
+                      )}
+                    </div>
+                    <div className="np-eyebrow">{siteLabel} · Book direct</div>
+                    <div className="np-title">Your stay, your way</div>
                   </div>
-                  <div className="np-eyebrow">{siteLabel} · Book direct</div>
-                  <div className="np-title">Your stay, your way</div>
-                </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* per-device style rail */}
-        <aside className="bse-rail nav-right">
-          <div className="nav-devbar">
-            <span className="dl">Styling</span>
-            <div className="nav-devseg">
-              {(
-                [
-                  ["desktop", Monitor],
-                  ["tablet", Tablet],
-                  ["mobile", Smartphone],
-                ] as [NavDevice, LucideIcon][]
-              ).map(([d, Icon]) => (
-                <button
-                  key={d}
-                  type="button"
-                  className={device === d ? "on" : undefined}
-                  title={d}
-                  onClick={() => setDevice(d)}
-                >
-                  <Icon size={15} strokeWidth={1.8} />
-                </button>
-              ))}
+        {/* per-device style rail (menu styling — hidden on the Footer tab) */}
+        {leftTab !== "footer" && (
+          <aside className="bse-rail nav-right">
+            <div className="nav-devbar">
+              <span className="dl">Styling</span>
+              <div className="nav-devseg">
+                {(
+                  [
+                    ["desktop", Monitor],
+                    ["tablet", Tablet],
+                    ["mobile", Smartphone],
+                  ] as [NavDevice, LucideIcon][]
+                ).map(([d, Icon]) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={device === d ? "on" : undefined}
+                    title={d}
+                    onClick={() => setDevice(d)}
+                  >
+                    <Icon size={15} strokeWidth={1.8} />
+                  </button>
+                ))}
+              </div>
+              {isDev && <span className="nav-dtag">{device}</span>}
             </div>
-            {isDev && <span className="nav-dtag">{device}</span>}
-          </div>
 
-          <NavAcc
-            i={0}
-            openAcc={openAcc}
-            toggle={toggleAcc}
-            Icon={TypeIcon}
-            title="Top-level links"
-            sub="Colour, weight & size"
-          >
-            <Swatch
-              label="Link colour"
-              value={rColor}
-              palette={["#F4EEE6", "#FFFFFF", accent, "#2C2620", "#052E1F"]}
-              onChange={(v) => setDeviceAware({ color: v })}
-            />
-            <Swatch
-              label="Hover colour"
-              value={rHover}
-              palette={["#F3C98A", accent, "#FFFFFF", "#2C2620"]}
-              onChange={(v) => setDeviceAware({ hoverColor: v })}
-            />
-            <SelRow
-              label="Font weight"
-              value={rWeight}
-              options={[
-                ["normal", "Light"],
-                ["medium", "Regular"],
-                ["semibold", "Semibold"],
-                ["bold", "Bold"],
-              ]}
-              onChange={(v) =>
-                setDeviceAware({ weight: v as SiteMenuDeviceStyle["weight"] })
-              }
-            />
-            <ToggleRow
-              label="UPPERCASE links"
-              value={rUpper}
-              onChange={(v) => setDeviceAware({ uppercase: v })}
-            />
-            <Rng
-              label="Link size"
-              min={11}
-              max={20}
-              value={rSize}
-              suffix="px"
-              onChange={(v) => setDeviceAware({ fontSize: v })}
-            />
-          </NavAcc>
+            <NavAcc
+              i={0}
+              openAcc={openAcc}
+              toggle={toggleAcc}
+              Icon={TypeIcon}
+              title="Top-level links"
+              sub="Colour, weight & size"
+            >
+              <Swatch
+                label="Link colour"
+                value={rColor}
+                palette={["#F4EEE6", "#FFFFFF", accent, "#2C2620", "#052E1F"]}
+                onChange={(v) => setDeviceAware({ color: v })}
+              />
+              <Swatch
+                label="Hover colour"
+                value={rHover}
+                palette={["#F3C98A", accent, "#FFFFFF", "#2C2620"]}
+                onChange={(v) => setDeviceAware({ hoverColor: v })}
+              />
+              <SelRow
+                label="Font weight"
+                value={rWeight}
+                options={[
+                  ["normal", "Light"],
+                  ["medium", "Regular"],
+                  ["semibold", "Semibold"],
+                  ["bold", "Bold"],
+                ]}
+                onChange={(v) =>
+                  setDeviceAware({ weight: v as SiteMenuDeviceStyle["weight"] })
+                }
+              />
+              <ToggleRow
+                label="UPPERCASE links"
+                value={rUpper}
+                onChange={(v) => setDeviceAware({ uppercase: v })}
+              />
+              <Rng
+                label="Link size"
+                min={11}
+                max={20}
+                value={rSize}
+                suffix="px"
+                onChange={(v) => setDeviceAware({ fontSize: v })}
+              />
+            </NavAcc>
 
-          <NavAcc
-            i={1}
-            openAcc={openAcc}
-            toggle={toggleAcc}
-            Icon={AlignCenter}
-            title="Layout"
-            sub="Alignment & spacing (all devices)"
-          >
-            <SegRow
-              label="Menu alignment"
-              value={menuStyle.align ?? "end"}
-              options={[
-                ["start", "Left"],
-                ["center", "Center"],
-                ["end", "Right"],
-              ]}
-              onChange={(v) => setBase({ align: v as SiteMenuStyle["align"] })}
-            />
-            <Rng
-              label="Link spacing"
-              min={0}
-              max={28}
-              value={menuStyle.itemGap ?? 6}
-              suffix="px"
-              onChange={(v) => setBase({ itemGap: v })}
-            />
-          </NavAcc>
+            <NavAcc
+              i={1}
+              openAcc={openAcc}
+              toggle={toggleAcc}
+              Icon={AlignCenter}
+              title="Layout"
+              sub="Alignment & spacing (all devices)"
+            >
+              <SegRow
+                label="Menu alignment"
+                value={menuStyle.align ?? "end"}
+                options={[
+                  ["start", "Left"],
+                  ["center", "Center"],
+                  ["end", "Right"],
+                ]}
+                onChange={(v) =>
+                  setBase({ align: v as SiteMenuStyle["align"] })
+                }
+              />
+              <Rng
+                label="Link spacing"
+                min={0}
+                max={28}
+                value={menuStyle.itemGap ?? 6}
+                suffix="px"
+                onChange={(v) => setBase({ itemGap: v })}
+              />
+            </NavAcc>
 
-          <NavAcc
-            i={2}
-            openAcc={openAcc}
-            toggle={toggleAcc}
-            Icon={Eye}
-            title="Scrolled state"
-            sub="Transparent-over-hero headers"
-          >
-            <Swatch
-              label="Scrolled link colour"
-              value={menuStyle.scrolledColor ?? "#2C2620"}
-              palette={["#2C2620", "#052E1F", accent, "#FFFFFF"]}
-              onChange={(v) => setBase({ scrolledColor: v })}
-            />
-            <Swatch
-              label="Scrolled hover colour"
-              value={menuStyle.scrolledHoverColor ?? accent}
-              palette={[accent, "#065F46", "#2C2620", "#052E1F"]}
-              onChange={(v) => setBase({ scrolledHoverColor: v })}
-            />
-          </NavAcc>
+            <NavAcc
+              i={2}
+              openAcc={openAcc}
+              toggle={toggleAcc}
+              Icon={Eye}
+              title="Scrolled state"
+              sub="Transparent-over-hero headers"
+            >
+              <Swatch
+                label="Scrolled link colour"
+                value={menuStyle.scrolledColor ?? "#2C2620"}
+                palette={["#2C2620", "#052E1F", accent, "#FFFFFF"]}
+                onChange={(v) => setBase({ scrolledColor: v })}
+              />
+              <Swatch
+                label="Scrolled hover colour"
+                value={menuStyle.scrolledHoverColor ?? accent}
+                palette={[accent, "#065F46", "#2C2620", "#052E1F"]}
+                onChange={(v) => setBase({ scrolledHoverColor: v })}
+              />
+            </NavAcc>
 
-          <NavAcc
-            i={3}
-            openAcc={openAcc}
-            toggle={toggleAcc}
-            Icon={Rows3}
-            title="Dropdown menu"
-            sub="Sub-item styling"
-          >
-            <Swatch
-              label="Item colour"
-              value={menuStyle.submenuColor ?? "#3A2E20"}
-              palette={["#3A2E20", "#052E1F", "#2C2620", accent]}
-              onChange={(v) => setBase({ submenuColor: v })}
-            />
-            <Swatch
-              label="Item hover colour"
-              value={menuStyle.submenuHoverColor ?? "#065F46"}
-              palette={["#065F46", accent, "#2C2620", "#052E1F"]}
-              onChange={(v) => setBase({ submenuHoverColor: v })}
-            />
-            <Swatch
-              label="Background"
-              value={menuStyle.submenuBg ?? "#FFFFFF"}
-              palette={["#FFFFFF", "#FBF4E6", "#F0FDF4", "#2C2620"]}
-              onChange={(v) => setBase({ submenuBg: v })}
-            />
-          </NavAcc>
-        </aside>
+            <NavAcc
+              i={3}
+              openAcc={openAcc}
+              toggle={toggleAcc}
+              Icon={Rows3}
+              title="Dropdown menu"
+              sub="Sub-item styling"
+            >
+              <Swatch
+                label="Item colour"
+                value={menuStyle.submenuColor ?? "#3A2E20"}
+                palette={["#3A2E20", "#052E1F", "#2C2620", accent]}
+                onChange={(v) => setBase({ submenuColor: v })}
+              />
+              <Swatch
+                label="Item hover colour"
+                value={menuStyle.submenuHoverColor ?? "#065F46"}
+                palette={["#065F46", accent, "#2C2620", "#052E1F"]}
+                onChange={(v) => setBase({ submenuHoverColor: v })}
+              />
+              <Swatch
+                label="Background"
+                value={menuStyle.submenuBg ?? "#FFFFFF"}
+                palette={["#FFFFFF", "#FBF4E6", "#F0FDF4", "#2C2620"]}
+                onChange={(v) => setBase({ submenuBg: v })}
+              />
+            </NavAcc>
+          </aside>
+        )}
       </div>
     </div>
   );
@@ -965,5 +1000,212 @@ function NavHeaderInspector({
         onChange={(v) => setHeader({ logoMaxHeight: v })}
       />
     </>
+  );
+}
+
+// ── Footer inspector (left "Footer" tab) ──────────────────────
+let footIdN = 0;
+const footId = (p: string) => `${p}-${Date.now().toString(36)}-${++footIdN}`;
+
+function NavFooterInspector({
+  footer,
+  setFooter,
+}: {
+  footer: NavFooter;
+  setFooter: (patch: Partial<NavFooter>) => void;
+}) {
+  const cols: FootCol[] = footer.columns ?? [];
+  const setCols = (next: FootCol[]) => setFooter({ columns: next });
+  const news = footer.newsletter ?? {};
+  const setNews = (patch: Partial<NonNullable<NavFooter["newsletter"]>>) =>
+    setFooter({ newsletter: { ...news, ...patch } });
+
+  const patchCol = (ci: number, patch: Partial<FootCol>) =>
+    setCols(cols.map((c, i) => (i === ci ? { ...c, ...patch } : c)));
+  const addCol = () =>
+    setCols([...cols, { id: footId("fc"), heading: "New column", links: [] }]);
+  const delCol = (ci: number) => setCols(cols.filter((_, i) => i !== ci));
+  const addLink = (ci: number, label: string) => {
+    const l = label.trim();
+    if (!l) return;
+    patchCol(ci, {
+      links: [...cols[ci].links, { id: footId("fl"), label: l, href: "#" }],
+    });
+  };
+  const renameLink = (ci: number, li: number, label: string) =>
+    patchCol(ci, {
+      links: cols[ci].links.map((lk, i) => (i === li ? { ...lk, label } : lk)),
+    });
+  const delLink = (ci: number, li: number) =>
+    patchCol(ci, { links: cols[ci].links.filter((_, i) => i !== li) });
+
+  return (
+    <>
+      <div className="nav-lbl" style={{ marginTop: 10 }}>
+        Footer base
+      </div>
+      <Ctl label="Copyright line">
+        <input
+          className="bse-input"
+          value={footer.copyright ?? ""}
+          placeholder="© Your business"
+          onChange={(e) => setFooter({ copyright: e.target.value })}
+        />
+      </Ctl>
+      <ToggleRow
+        label="Show “Powered by Wielo”"
+        value={footer.showPoweredBy !== false}
+        onChange={(v) => setFooter({ showPoweredBy: v })}
+      />
+
+      <div className="nav-lbl" style={{ marginTop: 16 }}>
+        Newsletter
+      </div>
+      <ToggleRow
+        label="Show sign-up block"
+        value={!!news.enabled}
+        onChange={(v) => setNews({ enabled: v })}
+      />
+      {news.enabled && (
+        <>
+          <Ctl label="Heading">
+            <input
+              className="bse-input"
+              value={news.heading ?? ""}
+              placeholder="Join the list"
+              onChange={(e) => setNews({ heading: e.target.value })}
+            />
+          </Ctl>
+          <Ctl label="Body">
+            <input
+              className="bse-input"
+              value={news.body ?? ""}
+              placeholder="A note now and then — no spam."
+              onChange={(e) => setNews({ body: e.target.value })}
+            />
+          </Ctl>
+        </>
+      )}
+
+      <div className="nav-lbl" style={{ marginTop: 16 }}>
+        Link columns
+      </div>
+      {cols.map((col, ci) => (
+        <div className="foot-col" key={col.id}>
+          <div className="foot-col-head">
+            <input
+              value={col.heading ?? ""}
+              placeholder="Column heading"
+              onChange={(e) => patchCol(ci, { heading: e.target.value })}
+            />
+            <button
+              className="lact del"
+              type="button"
+              title="Delete column"
+              onClick={() => delCol(ci)}
+            >
+              <Trash2 size={14} strokeWidth={2} />
+            </button>
+          </div>
+          <div className="nav-links">
+            {col.links.map((lk, li) => (
+              <div className="nav-link" key={lk.id}>
+                <input
+                  className="lk"
+                  value={lk.label}
+                  onChange={(e) => renameLink(ci, li, e.target.value)}
+                />
+                <button
+                  className="lact del"
+                  type="button"
+                  title="Delete"
+                  onClick={() => delLink(ci, li)}
+                >
+                  <Trash2 size={14} strokeWidth={2} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <FootAddLink onAdd={(l) => addLink(ci, l)} />
+        </div>
+      ))}
+      <button
+        className="nav-tab"
+        type="button"
+        style={{ width: "100%", marginTop: 4 }}
+        onClick={addCol}
+      >
+        <Plus size={15} strokeWidth={2} />
+        Add column
+      </button>
+    </>
+  );
+}
+
+function FootAddLink({ onAdd }: { onAdd: (label: string) => void }) {
+  const [v, setV] = useState("");
+  return (
+    <div className="nav-add" style={{ marginTop: 8 }}>
+      <input
+        value={v}
+        placeholder="New link…"
+        onChange={(e) => setV(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            onAdd(v);
+            setV("");
+          }
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => {
+          onAdd(v);
+          setV("");
+        }}
+      >
+        <Plus size={15} strokeWidth={2} />
+        Add
+      </button>
+    </div>
+  );
+}
+
+function FooterPreview({ footer, name }: { footer: NavFooter; name: string }) {
+  const cols = footer.columns ?? [];
+  const news = footer.newsletter ?? {};
+  return (
+    <div className="np-footwrap">
+      <div className="np-foot-cols">
+        {cols.length === 0 && (
+          <div className="np-foot-col">
+            <h5>Explore</h5>
+            <a>Add columns in the panel →</a>
+          </div>
+        )}
+        {cols.map((col) => (
+          <div className="np-foot-col" key={col.id}>
+            <h5>{col.heading || "Column"}</h5>
+            {col.links.map((lk) => (
+              <a key={lk.id}>{lk.label}</a>
+            ))}
+          </div>
+        ))}
+        {news.enabled && (
+          <div className="np-foot-news">
+            <h5>{news.heading || "Join the list"}</h5>
+            <p>{news.body || "A note now and then — no spam."}</p>
+            <div className="row">
+              <input placeholder="you@email.com" readOnly />
+              <span className="sub">Sign up</span>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="np-foot-base">
+        <span>{footer.copyright?.trim() || `© ${name}`}</span>
+        {footer.showPoweredBy !== false && <span>· Powered by Wielo</span>}
+      </div>
+    </div>
   );
 }

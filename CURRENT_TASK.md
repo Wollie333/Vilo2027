@@ -269,9 +269,17 @@ vilotest (`host@vilotest.com`) + a save point.
   `BuilderShell` passes header + onHeaderChange (persists via saveNavigationAction). Live-verified on
   safari (tab switch; CTA→"Book now" live; Icon style hides name; hide-CTA removes button; 0 console
   errors). tsc+lint clean, 163 vitest, build green.
-- **NEXT — Phase 4 remaining:** **4d-4** Footer inspector (Footer doc-switcher entry → columns/
-  newsletter) + mobile drawer (burger/overlay) · (deferred within nav: nesting/dropdown, per-page
-  show-hide, topBar, real themed `SiteChrome` preview). Then **4e** Theme Settings overlay.
+- **Phase 4d-4 — Footer document (DONE + LIVE-VERIFIED, 2026-07-02):** wired the doc-switcher **Footer**
+  entry (was "Soon"). Third nav-overlay left tab (Footer) → `NavFooterInspector` editing
+  `navigation.footer`: copyright, powered-by toggle, newsletter (enable/heading/body), columns editor
+  (add/delete column, heading, add/rename/delete links). Preview swaps to a themed `.np-footwrap`
+  (columns + newsletter w/ accent Sign-up + base line); menu style rail hidden on Footer tab.
+  `initialTab` prop opens the requested tab. `BuilderShell` `navInitialTab` + both entries wired; footer
+  persists via saveNavigationAction. Live-verified on marmalade (column "Explore"+link "Rooms"+
+  newsletter reflect live; 0 console errors). tsc+lint clean, 163 vitest, build green.
+- **NEXT — Phase 4 remaining:** **4d-5** (optional polish) mobile drawer + nesting/dropdown + per-page
+  show-hide + topBar + real themed `SiteChrome` preview. Then **4e** Theme Settings overlay. All the
+  doc-switcher entries (Page/Header&menu/Footer) + Brand + Page Settings + Tweaks are now wired.
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

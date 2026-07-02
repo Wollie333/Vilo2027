@@ -238,6 +238,9 @@ export function BuilderShell({
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [navInitialTab, setNavInitialTab] = useState<
+    "links" | "header" | "footer"
+  >("links");
   // Working brand + theme edited by Brand Studio, applied LIVE to the canvas.
   // (Persisting these to the DB is Phase 4c-2.)
   const [workTheme, setWorkTheme] = useState<SiteThemeConfig>(theme);
@@ -779,6 +782,7 @@ export function BuilderShell({
                 type="button"
                 onClick={() => {
                   setDocMenuOpen(false);
+                  setNavInitialTab("links");
                   setNavOpen(true);
                 }}
               >
@@ -794,7 +798,8 @@ export function BuilderShell({
                 type="button"
                 onClick={() => {
                   setDocMenuOpen(false);
-                  toast("Footer opens in the Theme overlay (coming next)");
+                  setNavInitialTab("footer");
+                  setNavOpen(true);
                 }}
               >
                 <span className="di">
@@ -802,9 +807,8 @@ export function BuilderShell({
                 </span>
                 <span className="dmt">
                   <b>Footer</b>
-                  <small>Site-wide template</small>
+                  <small>Columns · newsletter</small>
                 </span>
-                <span className="soon">Soon</span>
               </button>
             </div>
           </div>
@@ -1288,6 +1292,9 @@ export function BuilderShell({
         }
         header={navigation.header ?? {}}
         onHeaderChange={(h) => setNavigation((n) => ({ ...n, header: h }))}
+        footer={navigation.footer ?? {}}
+        onFooterChange={(f) => setNavigation((n) => ({ ...n, footer: f }))}
+        initialTab={navInitialTab}
         pages={pages}
         brand={brand}
         theme={workTheme}
