@@ -117,6 +117,7 @@ import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
 import { NavBuilderOverlay } from "./NavBuilderOverlay";
 import { RoomDataModal } from "./RoomDataModal";
 import { AmenitiesDataModal } from "./AmenitiesDataModal";
+import { GalleryDataModal } from "./GalleryDataModal";
 
 // Property-sourced (Wielo) blocks whose DATA comes from the host's rooms — these
 // get an "Edit room data" affordance in the inspector (Phase 4a).
@@ -135,6 +136,8 @@ const AMENITY_DATA_BLOCKS: ReadonlySet<string> = new Set([
   "amenities",
   "room_amenities",
 ]);
+// The `gallery` block edits property_photos (Phase 4b-5).
+const GALLERY_DATA_BLOCKS: ReadonlySet<string> = new Set(["gallery"]);
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type { SiteNavigation, SiteMenuItem, SiteData } from "@/lib/site/types";
 import {
@@ -290,6 +293,7 @@ export function BuilderShell({
   const [query, setQuery] = useState("");
   const [roomDataOpen, setRoomDataOpen] = useState(false);
   const [amenityDataOpen, setAmenityDataOpen] = useState(false);
+  const [galleryDataOpen, setGalleryDataOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
@@ -1222,6 +1226,12 @@ export function BuilderShell({
                         ? () => setAmenityDataOpen(true)
                         : undefined
                     }
+                    onEditGallery={
+                      persists &&
+                      GALLERY_DATA_BLOCKS.has((selected.node as AnyNode).type)
+                        ? () => setGalleryDataOpen(true)
+                        : undefined
+                    }
                   />
                 ) : (
                   <PanelPlaceholder
@@ -1527,6 +1537,13 @@ export function BuilderShell({
         websiteId={websiteId ?? ""}
       />
 
+      <GalleryDataModal
+        open={galleryDataOpen}
+        onClose={() => setGalleryDataOpen(false)}
+        toast={toast}
+        websiteId={websiteId ?? ""}
+      />
+
       {/* Toasts */}
       <div className="toasts">
         {toasts.map((t) => (
@@ -1818,6 +1835,7 @@ function Inspector({
   rooms,
   onEditRoomData,
   onEditAmenities,
+  onEditGallery,
 }: {
   node: AnyNode;
   device: Device;
@@ -1831,6 +1849,8 @@ function Inspector({
   onEditRoomData?: () => void;
   /** Present on the property `amenities` block — opens the "Edit amenities" modal. */
   onEditAmenities?: () => void;
+  /** Present on the `gallery` block — opens the "Edit photos" modal. */
+  onEditGallery?: () => void;
 }) {
   const [tab, setTab] = useState<InspectorTab>("content");
   const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
@@ -1957,6 +1977,32 @@ function Inspector({
             <div className="hint" style={{ marginTop: 6 }}>
               This block lists your property’s amenities. Choose them here — it
               updates your live site.
+            </div>
+          </div>
+        )}
+
+        {tab === "content" && onEditGallery && (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              type="button"
+              onClick={onEditGallery}
+              style={{
+                width: "100%",
+                border: "1px solid var(--secondary, #064E3B)",
+                background: "var(--secondary, #064E3B)",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 12.5,
+                borderRadius: 8,
+                padding: "9px 12px",
+                cursor: "pointer",
+              }}
+            >
+              Edit photos…
+            </button>
+            <div className="hint" style={{ marginTop: 6 }}>
+              This gallery shows your property’s photos. Add or remove them here
+              — it updates your live site.
             </div>
           </div>
         )}

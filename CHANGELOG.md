@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 4b-5: edit gallery photos from the builder.
+
+The `gallery` Wielo block now has an **"Edit photos…"** button that opens a modal to manage the
+property's real photos (upload + delete), reusing the exact signed-URL upload flow the Properties
+manager uses (browser → Supabase Storage → `property_photos` row) so there's no forked upload path.
+New `fetchBuilderGalleryAction` loads the property-wide photos. Verified live end-to-end: uploaded a
+test image (created a real storage object + DB row) and deleted it, leaving the fixture clean. The
+Wielo block+editor pattern is now proven for rooms, amenities (property + per-room), and photos.
+`tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 4b-4: `amenities` is now a live, draggable Wielo block.
 
 The `amenities` block was static (icon+label typed into props), wasn't in the drag library, and didn't

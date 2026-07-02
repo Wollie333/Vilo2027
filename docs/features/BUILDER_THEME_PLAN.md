@@ -301,3 +301,13 @@ already written but uncommitted.
   the rooms-page amenities block renders the 8 live property amenities (WiFi/Pool/Kitchen/… — static
   "Boma" props overridden); "Amenities" appears in the drag library; canvas shows amenities. 184 vitest,
   `tsc`+`lint`+`build` green. Now the amenities editor + live block form a complete Wielo pair.
+- _2026-07-02_ — ✅ **Phase 4b-5 DONE (gallery/photos editor).** The `gallery` block (already
+  property-sourced, reads `property_photos`) now has an **"Edit photos…"** button →
+  `GalleryDataModal`: loads the property's property-wide photos (room_id null) via new
+  `fetchBuilderGalleryAction`; ADD/DELETE reuse the EXACT Properties-manager flow — browser signed-URL
+  upload (`createClient` + `createListingPhotoUploadUrl` → `uploadToSignedUrl` →
+  `registerListingPhotoAction`) + `deleteListingPhotoAction` — then `router.refresh()`. Property picker
+  if >1. **Verified live end-to-end:** loaded the 4 real photos, uploaded a test PNG (→5, DB row via the
+  real signed-URL path), deleted it (→4); fixture clean. `tsc`+`lint`+`build` green. **Wielo block+editor
+  pattern now proven for rooms, amenities (2 scopes), AND gallery.** Remaining 4b: rates/seasonal editor.
+  Then Phase 5 (per-block style UI), Phase 6 (setup wizard).

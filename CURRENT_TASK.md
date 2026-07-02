@@ -35,6 +35,12 @@
 > renders live `data.items` (props fallback); added to `WIDGET_TYPES` + a `WIDGET_DEF` (draggable).
 > Verified live: rooms-page block shows 8 real amenities; "Amenities" in the drag library. 184 vitest.
 >
+> **Phase 4b-5 (done):** `gallery` block → "Edit photos…" → `GalleryDataModal` (loads property-wide
+> photos via `fetchBuilderGalleryAction`; upload/delete reuse the Properties-manager signed-URL flow +
+> `deleteListingPhotoAction`; router.refresh). Verified live E2E: uploaded a test PNG (→5, real DB row)
+> + deleted (→4), fixture clean. Wielo block+editor pattern proven for rooms/amenities/gallery. **4b
+> rest:** rates/seasonal editor. Then Phase 5 (per-block style UI), Phase 6 (setup wizard + go-live).
+>
 > **Phase 4b-2 (done):** builder CANVAS now renders the host's REAL data (not demo).
 > `builder/page.tsx loadRealPage` builds a real `SiteContext` (`loadSiteContext`) + assembles
 > via exported `loadSitePage(ctx, slug)` → `initialData` (keyed by the same node ids as the

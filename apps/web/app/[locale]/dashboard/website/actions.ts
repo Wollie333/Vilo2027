@@ -1254,6 +1254,61 @@ export async function setBuilderAmenitiesAction(
   return { ok: true };
 }
 
+export type BuilderPhoto = { id: string; url: string };
+export type BuilderGalleryProperty = {
+  id: string;
+  name: string;
+  photos: BuilderPhoto[];
+};
+
+/**
+ * Load the host's properties with their property-WIDE gallery photos (room_id null)
+ * for the builder's "Edit photos" modal (Phase 4b-5). Host-scoped. The modal
+ * uploads/deletes via the existing `createListingPhotoUploadUrl` /
+ * `registerListingPhotoAction` / `deleteListingPhotoAction` (property_photos SSOT).
+ */
+export async function fetchBuilderGalleryAction(
+  websiteId: string,
+): Promise<
+  | { ok: true; properties: BuilderGalleryProperty[] }
+  | { ok: false; error: string }
+> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return { ok: false, error: "not_owner" };
+
+  const supabase = createServerClient();
+  const { data: props, error } = await supabase
+    .from("properties")
+    .select("id, name")
+    .eq("host_id", own.hostId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+  if (error) return { ok: false, error: "load_failed" };
+
+  const propIds = (props ?? []).map((p) => p.id as string);
+  const { data: photos } = await supabase
+    .from("property_photos")
+    .select("id, property_id, url")
+    .in(
+      "property_id",
+      propIds.length ? propIds : ["00000000-0000-0000-0000-000000000000"],
+    )
+    .is("room_id", null)
+    .order("sort_order", { ascending: true });
+  const byProp = new Map<string, BuilderPhoto[]>();
+  for (const ph of photos ?? []) {
+    const list = byProp.get(ph.property_id as string) ?? [];
+    list.push({ id: ph.id as string, url: ph.url as string });
+    byProp.set(ph.property_id as string, list);
+  }
+  const properties: BuilderGalleryProperty[] = (props ?? []).map((p) => ({
+    id: p.id as string,
+    name: (p.name as string | null) ?? "Untitled property",
+    photos: byProp.get(p.id as string) ?? [],
+  }));
+  return { ok: true, properties };
+}
+
 /**
  * Save the Builder V2 Brand Studio: the working theme (authoritative — replaces
  * `host_websites.theme`) + a brand-identity subset (merged into `brand` so logo/
