@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   Menu,
+  ArrowLeft,
   ChevronDown,
   Rows3,
   Columns3,
@@ -89,12 +90,14 @@ import {
   duplicateNode,
   addSection,
   insertWidget,
+  insertSection,
   moveNodeInto,
   updateNodeProps,
   updateNode,
   updateResponsive,
   updatePageMeta,
 } from "@/lib/website/pageDocOps";
+import { useRouter } from "@/i18n/navigation";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
 import { DEMO_ROOMS, sampleDataForDoc } from "@/lib/site/sampleSite";
@@ -139,6 +142,8 @@ type PanelMode = "widgets" | "navigator" | "settings";
 
 // Resolve a registry icon name → a lucide component (fallback: Square).
 const WIDGET_ICONS: Record<string, LucideIcon> = {
+  Rows3,
+  Columns3,
   Heading,
   Type,
   MousePointerClick,
@@ -261,6 +266,13 @@ export function BuilderShell({
   } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Exit the builder back to the dashboard Pages manager (autosave keeps the
+  // working doc, so leaving is safe). Falls back to the dashboard in demo mode.
+  const router = useRouter();
+  const exitHref = websiteId
+    ? `/dashboard/website/${websiteId}/pages`
+    : "/dashboard";
 
   // ── Phase 4a: topbar menus, Tweaks FAB, toasts ──
   const [docMenuOpen, setDocMenuOpen] = useState(false);
@@ -634,7 +646,10 @@ export function BuilderShell({
   // Refs (not state) hold the in-flight payload + target so dragover doesn't
   // re-render. Only the drop-line position + the `dragging` flag are state.
   const dragRef = useRef<
-    { kind: "new"; type: WidgetType } | { kind: "move"; id: string } | null
+    | { kind: "new"; type: WidgetType }
+    | { kind: "new-section"; spans: number[] }
+    | { kind: "move"; id: string }
+    | null
   >(null);
   const dropRef = useRef<{ columnId: string; beforeId: string | null } | null>(
     null,
@@ -673,6 +688,13 @@ export function BuilderShell({
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", "move");
   };
+  // Layout blocks (Section / Inner Section) drop a NESTED section into a column.
+  const startSectionDrag = (spans: number[], e: React.DragEvent) => {
+    dragRef.current = { kind: "new-section", spans };
+    setDragging(true);
+    e.dataTransfer.effectAllowed = "copy";
+    e.dataTransfer.setData("text/plain", "section");
+  };
 
   const onCanvasDragOver = (e: React.DragEvent) => {
     if (!dragRef.current) return;
@@ -685,7 +707,7 @@ export function BuilderShell({
     }
     e.preventDefault(); // allow the drop
     e.dataTransfer.dropEffect =
-      dragRef.current.kind === "new" ? "copy" : "move";
+      dragRef.current.kind === "move" ? "move" : "copy";
     const columnId = col.dataset.nodeId ?? "";
     const widgets = [
       ...col.querySelectorAll<HTMLElement>(
@@ -749,6 +771,15 @@ export function BuilderShell({
       );
       setDoc(next);
       if (newId) setSelectedId(newId);
+    } else if (drag.kind === "new-section") {
+      const { doc: next, newId } = insertSection(
+        doc,
+        drop.columnId,
+        drop.beforeId,
+        drag.spans,
+      );
+      setDoc(next);
+      if (newId) setSelectedId(newId);
     } else {
       setDoc(moveNodeInto(doc, drag.id, drop.columnId, drop.beforeId));
       setSelectedId(drag.id);
@@ -806,8 +837,14 @@ export function BuilderShell({
       <div className="app">
         {/* ===== TOPBAR ===== */}
         <header className="topbar">
-          <button className="tb-ico" title="Menu" type="button">
-            <Menu size={20} strokeWidth={2} />
+          <button
+            className="tb-ico"
+            title="Exit to Pages"
+            aria-label="Exit the builder, back to Pages"
+            type="button"
+            onClick={() => router.push(exitHref)}
+          >
+            <ArrowLeft size={20} strokeWidth={2} />
           </button>
           <div className="tb-logo">
             <span className="mark">
@@ -1088,6 +1125,7 @@ export function BuilderShell({
                   setQuery={setQuery}
                   pageKind={pageKind}
                   onWidgetDragStart={startWidgetDrag}
+                  onSectionDragStart={startSectionDrag}
                   onWidgetDragEnd={endDrag}
                 />
               )}
@@ -1410,20 +1448,37 @@ function badgeClass(kind: string): string {
     .join(" ");
 }
 
+// Structural layout blocks — not registry widgets: they drop a NESTED section
+// (its own columns) into the target column so hosts can build column layouts.
+const LAYOUT_BLOCKS: {
+  key: string;
+  label: string;
+  icon: string;
+  spans: number[];
+}[] = [
+  { key: "section", label: "Section", icon: "Rows3", spans: [12] },
+  { key: "inner", label: "Inner Section", icon: "Columns3", spans: [6, 6] },
+];
+
 function WidgetLibrary({
   query,
   setQuery,
   pageKind,
   onWidgetDragStart,
+  onSectionDragStart,
   onWidgetDragEnd,
 }: {
   query: string;
   setQuery: (v: string) => void;
   pageKind?: string;
   onWidgetDragStart: (type: WidgetType, e: React.DragEvent) => void;
+  onSectionDragStart: (spans: number[], e: React.DragEvent) => void;
   onWidgetDragEnd: () => void;
 }) {
   const q = query.trim().toLowerCase();
+  const layoutBlocks = LAYOUT_BLOCKS.filter(
+    (b) => !q || b.label.toLowerCase().includes(q),
+  );
   return (
     <>
       <div className="lib-search">
@@ -1436,6 +1491,31 @@ function WidgetLibrary({
           />
         </div>
       </div>
+      {layoutBlocks.length > 0 && (
+        <div className="lib-group">
+          <h4>Layout</h4>
+          <div className="wgrid">
+            {layoutBlocks.map((b) => {
+              const Icon = WIDGET_ICONS[b.icon] ?? Square;
+              return (
+                <div
+                  className="widget"
+                  key={b.key}
+                  title={b.label}
+                  draggable
+                  onDragStart={(e) => onSectionDragStart(b.spans, e)}
+                  onDragEnd={onWidgetDragEnd}
+                >
+                  <span className="wi">
+                    <Icon size={19} strokeWidth={1.8} />
+                  </span>
+                  <span>{b.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {WIDGET_GROUPS.map(([group, label]) => {
         const defs = Object.values(WIDGET_DEFS).filter(
           (d) =>

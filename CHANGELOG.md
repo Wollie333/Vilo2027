@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-02 — Builder polish: exit button, Layout blocks, menu-style wiring, nav-preview hover fix.
+
+Four builder/site fixes from a user pass (a fifth — multi-theme preview — is a product decision, flagged
+separately).
+
+- **Exit to Pages** — the builder topbar's (previously dead) leftmost button is now an Exit control
+  (ArrowLeft, "Exit to Pages") that routes back to the dashboard Pages manager
+  (`/dashboard/website/<id>/pages`; `/dashboard` in demo mode). Autosave keeps the working doc.
+- **Layout blocks in the library** — new "Layout" group with **Section** + **Inner Section** drag blocks.
+  Dropping one into a column inserts a NESTED section (Section = 1 col, Inner Section = 6/6) so hosts can
+  build column layouts inside any column. New `pageDocOps.insertSection` (+ test, 173 vitest); the drag
+  reuses the existing widget drop path.
+- **Menu-style wiring — every field now reaches the live site.** `menuStyleCss` (SiteChrome) previously
+  emitted only colour/hover/weight/uppercase; it now also emits **font-size**, **link spacing** (container
+  gap), **scrolled-state colours** (keyed off a new `data-scrolled` on the transparent StickyHeader), and
+  **dropdown submenu colours + background** (new `.wielo-submenu` class + inherited `--wielo-submenu-bg`).
+  This fixes preview↔live drift (font-size/spacing showed in the builder but not live) and revives five
+  controls that were written to the DB but consumed nowhere.
+- **Nav-preview hover fix** — in the builder's Nav overlay the menu-link "hover colour" was recolouring the
+  hero eyebrow (and there was no real link-hover rule): added `.np-nav .nl:hover{color:var(--nhover)}` and
+  repointed `.np-eyebrow` + the tagline to `--naccent`. Hover now affects the menu link, not the hero.
+- **Verified:** tsc + lint + `pnpm build` + 173 vitest; live-checked the exit button, the Layout group, and
+  the nav-preview hover/eyebrow decoupling; the public site + theme preview still render.
+
 ## 2026-07-02 — Builder V2 Phase 6 follow-up ③: nav-studio cutover + residual safari deleted + header fix.
 
 Retired the legacy full-screen nav studio, moved header/menu/footer editing into the builder's Nav overlay,

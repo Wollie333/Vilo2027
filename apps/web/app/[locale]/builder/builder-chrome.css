@@ -2516,6 +2516,10 @@
 .wb .np-nav .nl.active {
   color: var(--nactive);
 }
+/* The actual menu-link hover — this is what the "Hover colour" control drives. */
+.wb .np-nav .nl:hover {
+  color: var(--nhover);
+}
 .wb .np-nav .nl .cx {
   margin-left: 4px;
   opacity: 0.7;
@@ -2537,7 +2541,8 @@
   z-index: 2;
   margin-top: auto;
   text-align: center;
-  color: var(--nhover);
+  /* Hero eyebrow — a brand-accent detail, NOT the nav hover colour. */
+  color: var(--naccent);
   font-size: 13px;
   letter-spacing: 0.22em;
   text-transform: uppercase;

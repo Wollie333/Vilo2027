@@ -467,11 +467,11 @@ function MenuNav({
             <div className="invisible absolute left-0 top-full z-30 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
               <div
                 style={{
-                  background: "var(--site-surface)",
+                  background: "var(--wielo-submenu-bg, var(--site-surface))",
                   border: "1px solid var(--site-line)",
                   borderRadius: "var(--site-radius)",
                 }}
-                className="min-w-[200px] py-1.5 shadow-lift"
+                className="wielo-submenu min-w-[200px] py-1.5 shadow-lift"
               >
                 {item.children.map((child) =>
                   child.children && child.children.length > 0 ? (
@@ -527,18 +527,50 @@ const MENU_WEIGHT: Record<string, number> = {
   bold: 700,
 };
 
-/** Scoped CSS for the styled header menu (.wielo-hmenu) from the host's menuStyle. */
+/** Scoped CSS for the styled header menu (.wielo-hmenu) from the host's menuStyle.
+ *  Emits every menuStyle field so the live site matches the builder controls:
+ *  colour, hover, weight, uppercase, font-size, link spacing, the scrolled-state
+ *  colours (transparent-over-hero headers, keyed off [data-scrolled]) and the
+ *  dropdown submenu colours/background (.wielo-submenu). */
 function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
   const color = style?.color?.trim() || "var(--site-mute)";
   const hover = style?.hoverColor?.trim() || "var(--site-ink)";
   const weight = MENU_WEIGHT[style?.weight ?? "medium"] ?? 500;
   const transform = style?.uppercase ? "uppercase" : "none";
   const spacing = style?.uppercase ? "0.05em" : "normal";
-  return (
+  const size =
+    typeof style?.fontSize === "number" ? `font-size:${style.fontSize}px;` : "";
+  const rules = [
     `.wielo-hmenu a,.wielo-hmenu button{color:${color};font-weight:${weight};` +
-    `text-transform:${transform};letter-spacing:${spacing}}` +
-    `.wielo-hmenu a:hover,.wielo-hmenu button:hover{color:${hover};opacity:1}`
-  );
+      `text-transform:${transform};letter-spacing:${spacing};${size}}`,
+    `.wielo-hmenu a:hover,.wielo-hmenu button:hover{color:${hover};opacity:1}`,
+  ];
+  // Link spacing — overrides the header layout's default flex gap.
+  if (typeof style?.itemGap === "number")
+    rules.push(`.wielo-hmenu{gap:${style.itemGap}px}`);
+  // Scrolled state: once a transparent-over-hero header fades to solid, the bar
+  // is marked [data-scrolled] so the menu can switch to a legible colour.
+  const sColor = style?.scrolledColor?.trim();
+  const sHover = style?.scrolledHoverColor?.trim();
+  if (sColor)
+    rules.push(
+      `[data-scrolled="true"] .wielo-hmenu a,[data-scrolled="true"] .wielo-hmenu button{color:${sColor}}`,
+    );
+  if (sHover)
+    rules.push(
+      `[data-scrolled="true"] .wielo-hmenu a:hover,[data-scrolled="true"] .wielo-hmenu button:hover{color:${sHover}}`,
+    );
+  // Dropdown submenu (.wielo-submenu). The panel inherits --wielo-submenu-bg;
+  // submenu links come AFTER the top-level rule so they win on equal specificity.
+  if (style?.submenuBg?.trim())
+    rules.push(`.wielo-hmenu{--wielo-submenu-bg:${style.submenuBg.trim()}}`);
+  if (style?.submenuColor?.trim())
+    rules.push(`.wielo-submenu a{color:${style.submenuColor.trim()}}`);
+  if (style?.submenuHoverColor?.trim())
+    rules.push(
+      `.wielo-submenu a:hover{color:${style.submenuHoverColor.trim()}}`,
+    );
+  return rules.join("");
 }
 
 /** One per-link style layer → CSS declarations (no selector). */

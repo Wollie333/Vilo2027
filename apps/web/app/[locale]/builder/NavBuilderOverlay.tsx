@@ -521,7 +521,7 @@ export function NavBuilderOverlay({
                                 fontSize: 11,
                                 letterSpacing: "0.12em",
                                 textTransform: "uppercase",
-                                color: "var(--nhover)",
+                                color: "var(--naccent)",
                                 marginLeft: 4,
                               }}
                             >

@@ -241,6 +241,28 @@ export function insertWidget(
 }
 
 /**
+ * Insert a NESTED section (its own columns) into a column, before `beforeId`
+ * (append when null). Mirrors insertWidget — the drag library's Section / Inner
+ * Section blocks drop a fresh `newSection(spans)` here so hosts can build nested
+ * column layouts inside any column.
+ */
+export function insertSection(
+  doc: PageDoc,
+  columnId: string,
+  beforeId: string | null,
+  spans: number[],
+): { doc: PageDoc; newId: string | null } {
+  const next = clone(doc);
+  const col = column(next, columnId);
+  if (!col || !col.kids) return { doc, newId: null };
+  const section = newSection(spans) as unknown as TreeNode;
+  const idx = beforeId ? col.kids.findIndex((k) => k.id === beforeId) : -1;
+  if (idx < 0) col.kids.push(section);
+  else col.kids.splice(idx, 0, section);
+  return { doc: next, newId: section.id };
+}
+
+/**
  * Move an EXISTING node into a column, before `beforeId` (append when null / not
  * found). No-op when the node/column is missing or you'd drop it before itself.
  */

@@ -7,6 +7,7 @@ import {
   duplicateNode,
   addSection,
   insertWidget,
+  insertSection,
   moveNodeInto,
   updateNodeProps,
   updateNode,
@@ -97,6 +98,22 @@ describe("pageDocOps", () => {
     const doc = sampleDoc();
     expect(insertWidget(doc, "s1", null, "el_text").newId).toBeNull(); // s1 is a section
     expect(insertWidget(doc, "nope", null, "el_text").newId).toBeNull();
+  });
+
+  it("insertSection drops a nested section (its own columns) into a column", () => {
+    const doc = sampleDoc();
+    const { doc: next, newId } = insertSection(doc, "s1c", "wB", [6, 6]);
+    const kids = next.root.kids[0].kids[0].kids;
+    expect(kids.map((k) => k.id)).toEqual(["wA", newId, "wB"]);
+    const nested = kids.find((k) => k.id === newId) as {
+      type: string;
+      kids: { span: number }[];
+    };
+    expect(nested.type).toBe("section");
+    expect(nested.kids.map((c) => c.span)).toEqual([6, 6]);
+    // no-op on a missing / non-column target
+    expect(insertSection(doc, "s1", null, [12]).newId).toBeNull(); // s1 is a section
+    expect(insertSection(doc, "nope", null, [12]).newId).toBeNull();
   });
 
   it("moveNodeInto relocates a node before the target and drops before-self", () => {

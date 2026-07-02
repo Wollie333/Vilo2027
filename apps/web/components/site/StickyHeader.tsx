@@ -73,6 +73,8 @@ export function StickyHeader({
   // defaults to white (legible over a hero photo) but the host's menu colour wins.
   return (
     <header
+      // The menu's scrolled-state colours (menuStyle.scrolledColor/…) key off this.
+      data-scrolled={scrolled ? "true" : "false"}
       style={
         {
           background: scrolled
