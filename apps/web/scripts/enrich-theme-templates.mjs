@@ -34,6 +34,16 @@ const CTA = {
   marmalade: U("photo-1505691938895-1758d7feb511", 2000),
 };
 
+// HOME gallery → mosaic layout + STOCK demo photos (order = mosaic; tile 1 = 2x2).
+// Live host photos swap over these on the real site.
+const galleryImgs = (ids) => ids.map((id) => ({ url: U(id, 1100) }));
+const GALLERY = {
+  safari: galleryImgs(["photo-1547721064-da6cfb341d50", "photo-1546182990-dffeafbe841d", "photo-1501706362039-c06b2d715385", "photo-1611892440504-42a792e24d32", "photo-1500382017468-9049fed747ef", "photo-1469474968028-56623f02e42e", "photo-1502920514313-52581002a659"]),
+  sabela: galleryImgs(["photo-1547721064-da6cfb341d50", "photo-1546182990-dffeafbe841d", "photo-1501706362039-c06b2d715385", "photo-1611892440504-42a792e24d32", "photo-1500382017468-9049fed747ef", "photo-1469474968028-56623f02e42e", "photo-1502920514313-52581002a659"]),
+  oceansview: galleryImgs(["photo-1505228395891-9a51e7e86bf6", "photo-1519046904884-53103b34b206", "photo-1507525428034-b723cf961d3e", "photo-1535262412227-85541e910204", "photo-1473116763249-2faaef81ccda", "photo-1468413253725-0d5181091126", "photo-1519046904884-53103b34b206"]),
+  marmalade: galleryImgs(["photo-1522708323590-d24dbb6b0267", "photo-1470337458703-46ad1756a187", "photo-1505691938895-1758d7feb511", "photo-1416879595882-3373a0480b5b", "photo-1502602898657-3e91760cbb34", "photo-1466692476868-aef1dfb1e735", "photo-1560185007-cde436f6a4d0"]),
+};
+
 async function enrich(slug) {
   const { data: theme } = await admin.from("site_themes").select("page_templates").eq("slug", slug).maybeSingle();
   if (!theme) { console.log(`  ${slug}: not found`); return; }
@@ -67,6 +77,13 @@ async function enrich(slug) {
     cta.props = cta.props || {};
     cta.props.variant = "banner";
     cta.props.image_path = CTA[slug];
+    changed++;
+  }
+  const gallery = secs.find((s) => s.type === "gallery");
+  if (gallery && GALLERY[slug]) {
+    gallery.props = gallery.props || {};
+    gallery.props.layout = "mosaic";
+    gallery.props.images = GALLERY[slug];
     changed++;
   }
   await admin.from("site_themes").update({ page_templates: pages }).eq("slug", slug);

@@ -303,8 +303,15 @@ const logosProps = z.object({
 const galleryProps = z.object({
   heading,
   eyebrow: z.string().max(120).optional(),
-  layout: gridLayout,
+  layout: z.enum(["grid", "list", "carousel", "mosaic"]).optional(),
   max: z.number().int().min(1).max(60).default(12),
+  // Stock demo photos shipped by a theme. The live site swaps in the host's real
+  // property photos; these render in the PREVIEW (and until the host adds photos).
+  images: z
+    .array(
+      z.object({ url: z.string(), caption: z.string().max(200).optional() }),
+    )
+    .optional(),
 });
 
 const mapProps = z.object({

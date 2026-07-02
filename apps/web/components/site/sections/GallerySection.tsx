@@ -13,7 +13,14 @@ export function GallerySection({
   props: Props;
   data?: GalleryData;
 }) {
-  const images = (data?.images ?? []).slice(0, props.max);
+  // Live host photos win; otherwise the theme's stock demo photos (preview / until
+  // the host uploads their own). Same swap pattern as the rest of the design.
+  const live = data?.images ?? [];
+  const stock = (props.images ?? []).map((i) => ({
+    url: i.url,
+    caption: i.caption ?? null,
+  }));
+  const images = (live.length ? live : stock).slice(0, props.max);
 
   return (
     <SectionShell>

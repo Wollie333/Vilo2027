@@ -262,6 +262,8 @@ const safari = {
   gallery: () =>
     build("gallery", (s) => {
       s.props.heading = "Moments from the reserve";
+      // Mosaic layout; stock demo photos are seeded by enrich-theme-templates.mjs.
+      s.props.layout = "mosaic";
     }),
   reviews: () =>
     build("reviews", (s) => {
@@ -542,6 +544,7 @@ const sabela = {
   gallery: () =>
     build("gallery", (s) => {
       s.props.heading = "The reserve, in fragments";
+      s.props.layout = "mosaic";
     }),
   reviews: () =>
     build("reviews", (s) => {
@@ -916,6 +919,7 @@ const oceansview = {
   gallery: () =>
     build("gallery", (s) => {
       s.props.heading = "Postcards from the bay";
+      s.props.layout = "mosaic";
     }),
   reviews: () =>
     build("reviews", (s) => {
@@ -1300,6 +1304,7 @@ const marmalade = {
   gallery: () =>
     build("gallery", (s) => {
       s.props.heading = "The house, in snapshots";
+      s.props.layout = "mosaic";
     }),
   reviews: () =>
     build("reviews", (s) => {
