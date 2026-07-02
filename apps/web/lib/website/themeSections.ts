@@ -96,6 +96,8 @@ const safari = {
     build("hero", (s) => {
       s.tone = "dark";
       s.props.headline = "Where the wild still runs";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=2400&q=80";
       s.props.subheadline =
         "An unfenced lodge deep in the Waterberg — a handful of suites, wide skies, and the bush at your door.";
       s.props.cta_label = "Check availability";
@@ -384,6 +386,8 @@ const sabela = {
     build("hero", (s) => {
       s.tone = "dark";
       s.props.headline = "Where the wild still keeps its secrets";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=2400&q=80";
       s.props.subheadline =
         "An intimate, design-led safari lodge on a private reserve — eight suites, twice-daily game drives, and nothing between you and the bush.";
       s.props.cta_label = "Plan your safari";
@@ -751,6 +755,8 @@ const oceansview = {
   heroFull: () =>
     build("hero", (s) => {
       s.props.headline = "Wake up to the ocean";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=2400&q=80";
       s.props.subheadline =
         "A bright beachfront resort where the Atlantic starts at your door — sea-view rooms, three pools, a spa, and tables that watch the sun go down.";
       s.props.cta_label = "Book a room";
@@ -1126,6 +1132,8 @@ const marmalade = {
     build("hero", (s) => {
       s.props.eyebrow = "A guesthouse in the Karoo";
       s.props.headline = "A little house that feeds you well.";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2400&q=80";
       s.props.subheadline =
         "Five sunny rooms in a restored 1873 parsonage, a garden full of figs, and a breakfast worth setting an alarm for.";
       s.props.cta_label = "See the rooms";

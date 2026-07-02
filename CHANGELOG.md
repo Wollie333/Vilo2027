@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-02 — Pixel-perfect themes, slice 1: stock hero photos on all four themes.
+
+Kicking off "make activated themes look like the original designs while staying builder-editable". Phase 6
+converted the 4 bespoke designs to token-driven templates but dropped their stock IMAGES, so every theme
+collapsed to a flat colour band. Restoring the designs' photos (recovered from git `57e262da^`) — starting
+with the home hero, the biggest single visual element.
+
+- **`scripts/enrich-theme-templates.mjs` (new, idempotent)** — patches each theme's
+  `site_themes.page_templates` home hero with its original stock Unsplash photo (+ strong overlay + light
+  text so it stays legible). Run against cloud. Extensible per slice.
+- **`themeSections.ts`** — the same hero `image_path` added to each theme's `heroFull()` (code source of
+  truth, keeps the builder demo + activation seed in sync).
+- **No component change needed** — the fullscreen hero already renders `image_path` (full-bleed photo +
+  scrim + white headline + stats + dual CTA).
+- **Verified live** on `?preview=1&theme=<slug>`: marmalade + oceansview home heroes now render their
+  full-bleed photos with legible white copy (was a flat band). tsc + build green.
+- NEXT slices: intro split-with-photo + badge, CTA background photo, gallery mosaic, reviews score-header,
+  highlights image-cards, then Marmalade's postcard/tilt decorative layer.
+
 ## 2026-07-02 — Theme activation now publishes: an activated theme mounts on the live site immediately.
 
 The reported "themes not automatically mounting" bug. `applyThemeAction` seeded each page's `draft_sections`
