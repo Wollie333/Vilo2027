@@ -295,7 +295,12 @@ export function GenericSection({
         />
       );
     case "amenities":
-      return <AmenitiesSection props={section.props} />;
+      return (
+        <AmenitiesSection
+          props={section.props}
+          data={dataFor(data, section.id, "amenities")}
+        />
+      );
     case "policies":
       return (
         <PoliciesSection

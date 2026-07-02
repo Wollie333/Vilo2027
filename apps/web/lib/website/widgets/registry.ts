@@ -333,6 +333,26 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "range", key: "max", label: "Rooms shown", min: 1, max: 12 },
     ],
   },
+  amenities: {
+    type: "amenities",
+    group: "wielo",
+    label: "Amenities",
+    icon: "Sparkles",
+    autoPopulate: true,
+    dataKey: "amenities",
+    variants: [
+      ["grid", "Grid"],
+      ["inline", "Inline pills"],
+    ],
+    defaults: { heading: "Facilities", items: [], variant: "grid" },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      {
+        kind: "hint",
+        text: "Amenities come from your property — use “Edit amenities…” to choose them.",
+      },
+    ],
+  },
   el_room_card: {
     type: "el_room_card",
     group: "wielo",

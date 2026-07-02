@@ -47,6 +47,7 @@ export const WIDGET_TYPES = [
   "availability_calendar",
   "reviews",
   "specials_preview",
+  "amenities", // property-wide facilities (live from property_amenities)
   "location",
   "map",
   // Site parts (footer document + in-page)

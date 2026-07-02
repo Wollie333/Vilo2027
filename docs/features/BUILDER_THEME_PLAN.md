@@ -289,3 +289,15 @@ already written but uncommitted.
   now returns per-property propertyKeys + rooms[{id,name,keys}]. **Verified live:** added an amenity
   to Olive Room (room scope) → a room-scoped row was created AND the 8 property-level amenities were
   untouched; reverted. `tsc`+`lint`+`build` green.
+- _2026-07-02_ — ✅ **Phase 4b-4 (founder request): the `amenities` block is now a LIVE Wielo
+  block.** It was a static free-form grid (icon+label in props) that wasn't in the drag library and
+  didn't read `property_amenities` — so the editor had nothing to drive. Made it property-sourced:
+  added `amenities` to `AUTO_POPULATE_SECTIONS` + `SiteDataByType` (`AmenitiesData`); a new assembly
+  IIFE in `assembleSiteDataByType` pulls the site's property-WIDE amenities (`room_id` null) → catalog
+  icons/labels (`getAmenityIndex`, `humaniseEnum` fallback); `assembleSectionData` keys it by id;
+  `AmenitiesSection` renders live `data.items` (props items = fallback for demo/manual);
+  `GenericSection` threads the data. Added `amenities` to `WIDGET_TYPES` + a `WIDGET_DEF` (Wielo group,
+  "Amenities", autoPopulate) so it's DRAGGABLE, + `DEMO_AMENITIES` for the canvas. **Verified live:**
+  the rooms-page amenities block renders the 8 live property amenities (WiFi/Pool/Kitchen/… — static
+  "Boma" props overridden); "Amenities" appears in the drag library; canvas shows amenities. 184 vitest,
+  `tsc`+`lint`+`build` green. Now the amenities editor + live block form a complete Wielo pair.

@@ -5,6 +5,7 @@
 // to import in client or server.
 
 import type {
+  AmenitiesData,
   BlogPreviewData,
   BookingFunnelData,
   GalleryData,
@@ -183,6 +184,19 @@ export const DEMO_ROOM_DETAIL: RoomDetail = {
   },
 };
 
+export const DEMO_AMENITIES: AmenitiesData = {
+  items: [
+    { icon: "📶", label: "Free Wi-Fi" },
+    { icon: "🅿️", label: "Free parking" },
+    { icon: "🏊", label: "Pool" },
+    { icon: "🍳", label: "Kitchen" },
+    { icon: "❄️", label: "Air conditioning" },
+    { icon: "🔥", label: "Braai / BBQ" },
+    { icon: "🌿", label: "Garden" },
+    { icon: "☕", label: "Nespresso" },
+  ],
+};
+
 export const DEMO_SPECIALS: SpecialsPreviewData = {
   specials: [
     {
@@ -234,6 +248,8 @@ function sampleDatumFor(
       return { type: "blog_preview", data: DEMO_BLOG };
     case "specials_preview":
       return { type: "specials_preview", data: DEMO_SPECIALS };
+    case "amenities":
+      return { type: "amenities", data: DEMO_AMENITIES };
     case "booking_search":
       return { type: "booking_search", data: DEMO_BOOKING };
     case "availability_calendar":

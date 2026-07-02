@@ -483,6 +483,8 @@ export type SeasonRow = {
   currency: string;
 };
 export type SeasonalPricingData = { seasons: SeasonRow[] };
+/** Property-wide facilities grid — live amenity items (icon + label). */
+export type AmenitiesData = { items: { icon: string | null; label: string }[] };
 
 /** Live-data shape per auto-populate section type. */
 export type SiteDataByType = {
@@ -505,6 +507,9 @@ export type SiteDataByType = {
   // room-scoped room_policies, this is resolved by type (not room) and its data
   // is a RoomPolicies object directly. Reuses the RoomPolicies shape.
   policies: RoomPolicies;
+  // Property-wide facilities grid — live from property_amenities (room_id null),
+  // resolved by TYPE (not room). Manual items in props are the fallback.
+  amenities: AmenitiesData;
   // Booking funnel — search + calendar share the bookable-property set; the
   // rate table reads live nightly rates. Pricing/availability resolve live.
   booking_search: BookingFunnelData;

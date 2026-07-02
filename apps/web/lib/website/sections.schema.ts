@@ -85,6 +85,8 @@ export type SectionType = (typeof SECTION_TYPES)[number];
 export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
   "gallery",
   "rooms_preview",
+  // Property-wide facilities — live from the property's amenities (room_id null).
+  "amenities",
   "location",
   "reviews",
   "blog_preview",

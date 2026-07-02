@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 4b-4: `amenities` is now a live, draggable Wielo block.
+
+The `amenities` block was static (icon+label typed into props), wasn't in the drag library, and didn't
+read the property's amenities — so the new amenities editor had nothing to drive. It's now a proper
+Wielo block: it renders the property's LIVE amenities (pulled from `property_amenities`, property-wide,
+with catalog icons/labels), it's draggable from the **Wielo blocks** group in the builder, and the
+"Edit amenities…" modal drives it. Manual props items remain as a fallback (builder canvas demo). Wired
+through the shared auto-populate path (`SiteDataByType`, `assembleSiteDataByType`, `assembleSectionData`,
+`GenericSection`). Verified live: the rooms page's amenities block shows the 8 real property amenities;
+"Amenities" appears in the library. 184 unit tests, `tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 4b-3b: amenities editor gains property + per-room scopes.
 
 Amenities exist at two levels — property-wide and per-room (`property_amenities.room_id`) — so the

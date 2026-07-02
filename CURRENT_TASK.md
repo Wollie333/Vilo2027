@@ -29,6 +29,12 @@
 > (replaced `replaceAmenitiesAction`, which wiped everything). Verified live: room-scope edit
 > created a room row + left property amenities untouched.
 >
+> **Phase 4b-4 (done, founder request):** the `amenities` block is now a LIVE Wielo block (was
+> static + not in the library). Added to `AUTO_POPULATE_SECTIONS`/`SiteDataByType` (`AmenitiesData`);
+> assembly IIFE pulls property-wide amenities (room_id null) → catalog labels; `AmenitiesSection`
+> renders live `data.items` (props fallback); added to `WIDGET_TYPES` + a `WIDGET_DEF` (draggable).
+> Verified live: rooms-page block shows 8 real amenities; "Amenities" in the drag library. 184 vitest.
+>
 > **Phase 4b-2 (done):** builder CANVAS now renders the host's REAL data (not demo).
 > `builder/page.tsx loadRealPage` builds a real `SiteContext` (`loadSiteContext`) + assembles
 > via exported `loadSitePage(ctx, slug)` → `initialData` (keyed by the same node ids as the

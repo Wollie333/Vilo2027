@@ -1130,6 +1130,10 @@ async function assembleSectionData(
         if (byType.policies)
           data[s.id] = { type: "policies", data: byType.policies };
         break;
+      case "amenities":
+        if (byType.amenities)
+          data[s.id] = { type: "amenities", data: byType.amenities };
+        break;
       case "booking_search":
         if (byType.booking_search)
           data[s.id] = {
@@ -1917,6 +1921,33 @@ export async function assembleSiteDataByType(
         bag.children != null ||
         bag.pets != null;
       if (hasPolicies) out.policies = bag;
+    })(),
+
+    // AMENITIES — property-WIDE facilities (room_id null) across the site's
+    // properties, resolved by TYPE (not room). Icons/labels from the catalog.
+    (async () => {
+      if (!types.has("amenities")) return;
+      const { data: rows } = await sb
+        .from("property_amenities")
+        .select("amenity_key")
+        .in("property_id", ids)
+        .is("room_id", null);
+      const keys = [
+        ...new Set(
+          (rows ?? []).map((r) => (r as { amenity_key: string }).amenity_key),
+        ),
+      ];
+      if (!keys.length) return;
+      const catalog = await getAmenityIndex();
+      out.amenities = {
+        items: keys.map((k) => {
+          const c = catalog.get(k);
+          return {
+            icon: c?.icon ?? null,
+            label: c?.label ?? humaniseEnum(k) ?? k,
+          };
+        }),
+      };
     })(),
   ]);
 
