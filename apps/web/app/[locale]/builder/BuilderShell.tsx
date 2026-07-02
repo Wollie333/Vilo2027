@@ -1286,6 +1286,8 @@ export function BuilderShell({
         onMenuStyleChange={(ms) =>
           setNavigation((n) => ({ ...n, menuStyle: ms }))
         }
+        header={navigation.header ?? {}}
+        onHeaderChange={(h) => setNavigation((n) => ({ ...n, header: h }))}
         pages={pages}
         brand={brand}
         theme={workTheme}

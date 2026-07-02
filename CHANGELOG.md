@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 4d-3: Nav builder Header inspector
+
+Adds a left **tab bar (Links · Header)** to the nav overlay + a Header inspector editing the real
+`navigation.header`, reflected live in the header preview.
+
+- **`NavBuilderOverlay.tsx`** — `leftTab` state swaps the left column between the link builder and a
+  new `NavHeaderInspector`: Book button label (`ctaLabel`), Tagline, Show "Book now" (`showBookCta`),
+  Sticky header (`sticky`), Transparent over hero (`transparentOverHero`), Show logo (`showLogo`),
+  Logo style (`logoStyle`: Name/Mark+name/Icon), Logo height (`logoMaxHeight`). The preview now honours
+  all of these — logo visibility + mark/name per style + height, tagline beside the brand, and the CTA
+  button label / show-hide.
+- **`builder-chrome.css`** — `.nav-left-tabs` / `.nav-tab` styles.
+- **`BuilderShell.tsx`** — passes `navigation.header` + `onHeaderChange` (persists with the rest via
+  `saveNavigationAction`).
+- **Live-verified** on `?theme=safari`: Links/Header tabs switch; CTA label → "Book now" updates the
+  preview button; logo style "Icon" hides the name (mark only); toggling "Book now" off removes the
+  CTA; 0 console errors. tsc + lint clean, 163 vitest, build green.
+  **DEFERRED — 4d-4+:** footer inspector (columns/newsletter — the Footer doc-switcher entry), mobile
+  drawer (burger/overlay/overlayBg), nesting/dropdown editing, per-page show-hide, topBar, real themed
+  `SiteChrome` preview.
+
 ## 2026-07-02 — Builder V2 Phase 4d-2: Nav builder per-device style rail
 
 Adds the RIGHT column of the nav overlay — the per-device menu style rail — completing the

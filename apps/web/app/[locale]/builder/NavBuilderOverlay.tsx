@@ -19,6 +19,7 @@ import {
   AlignCenter,
   Eye,
   Rows3,
+  PanelTop,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,10 +27,12 @@ import type {
   SiteMenuItem,
   SiteMenuStyle,
   SiteMenuDeviceStyle,
+  SiteNavigation,
 } from "@/lib/site/types";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type { Brand } from "./BrandStudioOverlay";
 
+type NavHeader = NonNullable<SiteNavigation["header"]>;
 type NavDevice = "desktop" | "tablet" | "mobile";
 const WEIGHT_PX: Record<string, number> = {
   normal: 400,
@@ -58,6 +61,8 @@ export function NavBuilderOverlay({
   onMenuChange,
   menuStyle,
   onMenuStyleChange,
+  header,
+  onHeaderChange,
   pages,
   brand,
   theme,
@@ -73,6 +78,8 @@ export function NavBuilderOverlay({
   onMenuChange: (next: SiteMenuItem[]) => void;
   menuStyle: SiteMenuStyle;
   onMenuStyleChange: (next: SiteMenuStyle) => void;
+  header: NavHeader;
+  onHeaderChange: (next: NavHeader) => void;
   pages: PageOpt[];
   brand: Brand;
   theme: SiteThemeConfig;
@@ -81,7 +88,10 @@ export function NavBuilderOverlay({
   onReset: () => void;
 }) {
   const [device, setDevice] = useState<NavDevice>("desktop");
+  const [leftTab, setLeftTab] = useState<"links" | "header">("links");
   const [pubOpen, setPubOpen] = useState(false);
+  const setHeader = (patch: Partial<NavHeader>) =>
+    onHeaderChange({ ...header, ...patch });
   const [openAcc, setOpenAcc] = useState<Set<number>>(() => new Set([0, 1]));
   const toggleAcc = (i: number) =>
     setOpenAcc((s) => {
@@ -157,6 +167,16 @@ export function NavBuilderOverlay({
   const rUpper = sVal("uppercase", false);
   const rGap = menuStyle.itemGap ?? 6;
   const rAlign = menuStyle.align ?? "end";
+
+  // Resolved header values for the preview.
+  const ctaLabel = header.ctaLabel?.trim() || "Reserve";
+  const showCta = header.showBookCta !== false;
+  const showLogo = header.showLogo !== false;
+  const logoStyle = header.logoStyle || "wordmark";
+  const showMark = logoStyle !== "wordmark";
+  const showName = logoStyle !== "icon";
+  const tagline = header.tagline?.trim();
+  const logoH = header.logoMaxHeight || 40;
 
   const cls = ["bse-overlay", open && "show", open && "in"]
     .filter(Boolean)
@@ -259,107 +279,143 @@ export function NavBuilderOverlay({
       </header>
 
       <div className="bse-body">
-        {/* link builder */}
+        {/* link builder / header inspector */}
         <aside className="nav-left">
+          <div className="nav-left-tabs">
+            <button
+              type="button"
+              className={leftTab === "links" ? "nav-tab on" : "nav-tab"}
+              onClick={() => setLeftTab("links")}
+            >
+              <MenuIcon size={15} strokeWidth={1.9} />
+              Links
+            </button>
+            <button
+              type="button"
+              className={leftTab === "header" ? "nav-tab on" : "nav-tab"}
+              onClick={() => setLeftTab("header")}
+            >
+              <PanelTop size={15} strokeWidth={1.9} />
+              Header
+            </button>
+          </div>
           <div className="nav-left-body">
-            <div className="nav-lbl">Links · drag to reorder</div>
-            <div className="nav-links">
-              {menu.map((it, i) => (
-                <div
-                  key={it.id}
-                  className={dragOver === i ? "nav-link drag-over" : "nav-link"}
-                  draggable
-                  onDragStart={() => {
-                    dragIdx.current = i;
-                  }}
-                  onDragEnd={() => {
-                    dragIdx.current = null;
-                    setDragOver(null);
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragOver(i);
-                  }}
-                  onDragLeave={() => setDragOver((d) => (d === i ? null : d))}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (dragIdx.current != null) reorder(dragIdx.current, i);
-                    setDragOver(null);
-                  }}
-                >
-                  <span className="grip" title="Drag to reorder">
-                    <GripVertical size={14} strokeWidth={2} />
-                  </span>
-                  <input
-                    className="lk"
-                    value={it.label}
-                    onChange={(e) => rename(i, e.target.value)}
-                  />
-                  {it.children && it.children.length > 0 && (
-                    <span className="drop-badge">menu</span>
+            {leftTab === "header" ? (
+              <NavHeaderInspector
+                header={header}
+                setHeader={setHeader}
+                showCta={showCta}
+                showLogo={showLogo}
+              />
+            ) : (
+              <>
+                <div className="nav-lbl">Links · drag to reorder</div>
+                <div className="nav-links">
+                  {menu.map((it, i) => (
+                    <div
+                      key={it.id}
+                      className={
+                        dragOver === i ? "nav-link drag-over" : "nav-link"
+                      }
+                      draggable
+                      onDragStart={() => {
+                        dragIdx.current = i;
+                      }}
+                      onDragEnd={() => {
+                        dragIdx.current = null;
+                        setDragOver(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOver(i);
+                      }}
+                      onDragLeave={() =>
+                        setDragOver((d) => (d === i ? null : d))
+                      }
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragIdx.current != null)
+                          reorder(dragIdx.current, i);
+                        setDragOver(null);
+                      }}
+                    >
+                      <span className="grip" title="Drag to reorder">
+                        <GripVertical size={14} strokeWidth={2} />
+                      </span>
+                      <input
+                        className="lk"
+                        value={it.label}
+                        onChange={(e) => rename(i, e.target.value)}
+                      />
+                      {it.children && it.children.length > 0 && (
+                        <span className="drop-badge">menu</span>
+                      )}
+                      {it.autoRooms && (
+                        <span className="drop-badge">rooms</span>
+                      )}
+                      <button
+                        className="lact del"
+                        type="button"
+                        title="Delete"
+                        onClick={() => remove(i)}
+                      >
+                        <Trash2 size={14} strokeWidth={2} />
+                      </button>
+                    </div>
+                  ))}
+                  {menu.length === 0 && (
+                    <div className="hint">
+                      No links yet. Add one below or quick-add a page.
+                    </div>
                   )}
-                  {it.autoRooms && <span className="drop-badge">rooms</span>}
+                </div>
+
+                <div className="nav-add">
+                  <input
+                    value={addLabel}
+                    placeholder="New link label…"
+                    onChange={(e) => setAddLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        add(addLabel, "#");
+                        setAddLabel("");
+                      }
+                    }}
+                  />
                   <button
-                    className="lact del"
                     type="button"
-                    title="Delete"
-                    onClick={() => remove(i)}
+                    onClick={() => {
+                      add(addLabel, "#");
+                      setAddLabel("");
+                    }}
                   >
-                    <Trash2 size={14} strokeWidth={2} />
+                    <Plus size={15} strokeWidth={2} />
+                    Add
                   </button>
                 </div>
-              ))}
-              {menu.length === 0 && (
-                <div className="hint">
-                  No links yet. Add one below or quick-add a page.
+
+                <div className="nav-quick">
+                  <div className="nav-lbl" style={{ marginTop: 16 }}>
+                    Quick-add a page
+                  </div>
+                  <select
+                    className="bse-select"
+                    value=""
+                    onChange={(e) => {
+                      const p = pages.find((x) => x.key === e.target.value);
+                      if (p) add(p.label, p.href);
+                    }}
+                  >
+                    <option value="">Choose a page…</option>
+                    {pages.map((p) => (
+                      <option key={p.key} value={p.key}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
-            </div>
-
-            <div className="nav-add">
-              <input
-                value={addLabel}
-                placeholder="New link label…"
-                onChange={(e) => setAddLabel(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    add(addLabel, "#");
-                    setAddLabel("");
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  add(addLabel, "#");
-                  setAddLabel("");
-                }}
-              >
-                <Plus size={15} strokeWidth={2} />
-                Add
-              </button>
-            </div>
-
-            <div className="nav-quick">
-              <div className="nav-lbl" style={{ marginTop: 16 }}>
-                Quick-add a page
-              </div>
-              <select
-                className="bse-select"
-                value=""
-                onChange={(e) => {
-                  const p = pages.find((x) => x.key === e.target.value);
-                  if (p) add(p.label, p.href);
-                }}
-              >
-                <option value="">Choose a page…</option>
-                {pages.map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+              </>
+            )}
           </div>
         </aside>
 
@@ -414,10 +470,36 @@ export function NavBuilderOverlay({
               >
                 <div className="np-hero">
                   <div className="np-bar">
-                    <div className="np-logo">
-                      <span className="mk">{monogram}</span>
-                      <span className="lname">{name}</span>
-                    </div>
+                    {showLogo && (
+                      <div className="np-logo">
+                        {showMark && (
+                          <span
+                            className="mk"
+                            style={{
+                              width: logoH,
+                              height: logoH,
+                              fontSize: Math.round(logoH * 0.42),
+                            }}
+                          >
+                            {monogram}
+                          </span>
+                        )}
+                        {showName && <span className="lname">{name}</span>}
+                        {tagline && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              letterSpacing: "0.12em",
+                              textTransform: "uppercase",
+                              color: "var(--nhover)",
+                              marginLeft: 4,
+                            }}
+                          >
+                            {tagline}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {device !== "mobile" && (
                       <nav className={navCls}>
                         {menu.map((it, i) => (
@@ -435,7 +517,9 @@ export function NavBuilderOverlay({
                             )}
                           </span>
                         ))}
-                        <span className="np-reserve">Reserve</span>
+                        {showCta && (
+                          <span className="np-reserve">{ctaLabel}</span>
+                        )}
                       </nav>
                     )}
                     {device === "mobile" && (
@@ -798,5 +882,88 @@ function Rng({
         </span>
       </div>
     </Ctl>
+  );
+}
+
+// ── Header inspector (left "Header" tab) ──────────────────────
+function NavHeaderInspector({
+  header,
+  setHeader,
+  showCta,
+  showLogo,
+}: {
+  header: NavHeader;
+  setHeader: (patch: Partial<NavHeader>) => void;
+  showCta: boolean;
+  showLogo: boolean;
+}) {
+  return (
+    <>
+      <div className="nav-lbl" style={{ marginTop: 10 }}>
+        Brand & CTA
+      </div>
+      <Ctl label="Book button label">
+        <input
+          className="bse-input"
+          value={header.ctaLabel ?? ""}
+          placeholder="Reserve"
+          onChange={(e) => setHeader({ ctaLabel: e.target.value })}
+        />
+      </Ctl>
+      <Ctl label="Tagline">
+        <input
+          className="bse-input"
+          value={header.tagline ?? ""}
+          placeholder="Beside the brand name"
+          onChange={(e) => setHeader({ tagline: e.target.value })}
+        />
+      </Ctl>
+      <ToggleRow
+        label="Show “Book now” button"
+        value={showCta}
+        onChange={(v) => setHeader({ showBookCta: v })}
+      />
+
+      <div className="nav-lbl" style={{ marginTop: 16 }}>
+        Behaviour
+      </div>
+      <ToggleRow
+        label="Sticky header"
+        value={header.sticky !== false}
+        onChange={(v) => setHeader({ sticky: v })}
+      />
+      <ToggleRow
+        label="Transparent over hero"
+        value={!!header.transparentOverHero}
+        onChange={(v) => setHeader({ transparentOverHero: v })}
+      />
+
+      <div className="nav-lbl" style={{ marginTop: 16 }}>
+        Logo
+      </div>
+      <ToggleRow
+        label="Show logo"
+        value={showLogo}
+        onChange={(v) => setHeader({ showLogo: v })}
+      />
+      <SegRow
+        label="Logo style"
+        value={header.logoStyle ?? "wordmark"}
+        options={[
+          ["wordmark", "Name"],
+          ["mark", "Mark + name"],
+          ["icon", "Icon"],
+        ]}
+        onChange={(v) => setHeader({ logoStyle: v as NavHeader["logoStyle"] })}
+      />
+      <Rng
+        label="Logo height"
+        min={28}
+        max={64}
+        value={header.logoMaxHeight ?? 40}
+        suffix="px"
+        onChange={(v) => setHeader({ logoMaxHeight: v })}
+      />
+    </>
   );
 }

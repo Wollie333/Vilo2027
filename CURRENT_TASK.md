@@ -262,10 +262,16 @@ vilotest (`host@vilotest.com`) + a save point.
   Rng). Persists via existing `saveNavigationAction`. Live-verified on safari (uppercase/size/hover
   live; **per-device proven** tablet 12px vs desktop 19px independent; 0 console errors). tsc+lint
   clean, 163 vitest, build green.
-- **NEXT — Phase 4 remaining:** **4d-3+** nesting/dropdown editing · per-page show-hide · header
-  (CTA/logo/sticky/transparent/burger/topBar) + footer (columns/newsletter) inspectors · mobile drawer
-  (overlayBg) · real themed `SiteChrome` preview. Then **4e** Theme Settings overlay + **Footer**
-  doc-switcher entry (still "Soon").
+- **Phase 4d-3 — Nav Header inspector (DONE + LIVE-VERIFIED, 2026-07-02):** left tab bar (Links ·
+  Header) + `NavHeaderInspector` editing real `navigation.header` (ctaLabel, tagline, showBookCta,
+  sticky, transparentOverHero, showLogo, logoStyle Name/Mark/Icon, logoMaxHeight); the preview honours
+  logo visibility+style+height, tagline, and CTA label/show-hide. `.nav-left-tabs`/`.nav-tab` CSS;
+  `BuilderShell` passes header + onHeaderChange (persists via saveNavigationAction). Live-verified on
+  safari (tab switch; CTA→"Book now" live; Icon style hides name; hide-CTA removes button; 0 console
+  errors). tsc+lint clean, 163 vitest, build green.
+- **NEXT — Phase 4 remaining:** **4d-4** Footer inspector (Footer doc-switcher entry → columns/
+  newsletter) + mobile drawer (burger/overlay) · (deferred within nav: nesting/dropdown, per-page
+  show-hide, topBar, real themed `SiteChrome` preview). Then **4e** Theme Settings overlay.
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.
