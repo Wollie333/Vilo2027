@@ -237,3 +237,15 @@ already written but uncommitted.
   server shares `.next` — cleared `.next` + restarted). `tsc`+`lint`+`build` green. **Deferred
   to 4b:** Add-room (needs property picker), other block families (amenities/rates/gallery),
   and rendering the host's REAL data on the builder canvas so edits show in-place. Next: 4b.
+- _2026-07-02_ — ✅ **Phase 4b-1 DONE (add-room + security fix).** The room modal now
+  CREATES rooms: "+ New room" → form (property picker only if >1, name/price/max-guests/
+  description) → existing `createRoomAction`; a zero-rooms host drops straight into add.
+  `fetchBuilderRoomsAction(websiteId)` now also returns the host's `properties`.
+  **🔒 Security fix caught in live testing:** `properties` is PUBLICLY readable (guest-facing
+  listings), so the RLS'd query leaked *another host's* property into the picker ("Not your
+  listing" on create). Fixed by resolving the host via `assertWebsiteOwnership(websiteId)` and
+  filtering `properties.host_id = own.hostId` (rooms stay RLS-scoped). **Verified live** as
+  host@vilotest.com: added "QA Test Room" → DB row created on the host's OWN property (999/2),
+  Olive Room untouched, test room deleted after. `tsc`+`lint`+`build` green. **Remaining 4b:**
+  real host data on the builder canvas (so edits show in-place) + amenities/rates/gallery
+  editors. Then Phase 5 (per-block style UI), Phase 6 (setup wizard + go-live gate).

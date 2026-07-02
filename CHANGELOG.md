@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 4b-1: add rooms from the builder (+ security fix).
+
+The "Edit room data" modal now **creates** rooms too: a "+ New room" form (name / price /
+max-guests / description, with a property picker only when the host has more than one) that
+calls the existing `createRoomAction`; a host with no rooms drops straight into the add form
+(the "missing data" case). `fetchBuilderRoomsAction` now also returns the host's properties.
+
+**Security fix (caught in live testing):** the `properties` table is publicly readable (it's
+the guest-facing listings), so scoping the property list by RLS alone leaked *another host's*
+property into the picker — creating a room against it failed with "Not your listing." Now the
+host is resolved from the website (`assertWebsiteOwnership`) and the property list is filtered
+by `host_id`. Verified live: adding a room created a DB row on the host's own property and left
+the other rooms untouched. `tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 4a: edit real room data from the builder.
 
 Wielo blocks are theme-styled but system-fed — their content comes from the property, not

@@ -1037,27 +1037,47 @@ export type BuilderRoom = {
   maxGuests: number;
   isActive: boolean;
 };
+export type BuilderProperty = { id: string; name: string };
 
 /**
- * Load the host's real rooms for the builder's "Edit room data" modal (Phase 4a).
- * RLS-scoped to the signed-in host, so it returns only rooms they can manage — the
- * modal edits these through the existing `updateRoomAction` (property_rooms is the
- * SSOT; a Wielo block's data comes from the property, never stored on the website).
- * Ordered like the room manager.
+ * Load the host's real rooms (+ their properties) for the builder's "Edit room
+ * data" modal (Phase 4a/4b). RLS-scoped to the signed-in host, so it returns only
+ * what they can manage — the modal edits/creates rooms through the EXISTING
+ * `updateRoomAction`/`createRoomAction` (property_rooms is the SSOT; a Wielo block's
+ * data comes from the property, never stored on the website). `properties` lets the
+ * host attach a NEW room to one of their properties. Ordered like the room manager.
  */
-export async function fetchBuilderRoomsAction(): Promise<
-  { ok: true; rooms: BuilderRoom[] } | { ok: false; error: string }
+export async function fetchBuilderRoomsAction(
+  websiteId: string,
+): Promise<
+  | { ok: true; rooms: BuilderRoom[]; properties: BuilderProperty[] }
+  | { ok: false; error: string }
 > {
+  // `properties` is PUBLICLY readable (it's the guest-facing listings), so RLS
+  // won't scope it to the host — resolve the host from the website and filter by
+  // host_id. (property_rooms IS host-RLS'd, so that query stays scoped.)
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return { ok: false, error: "not_owner" };
+
   const supabase = createServerClient();
-  const { data, error } = await supabase
-    .from("property_rooms")
-    .select(
-      "id, property_id, name, description, base_price, max_guests, is_active",
-    )
-    .is("deleted_at", null)
-    .order("sort_order", { ascending: true });
-  if (error) return { ok: false, error: "load_failed" };
-  const rooms: BuilderRoom[] = (data ?? []).map((r) => ({
+  const [roomsRes, propsRes] = await Promise.all([
+    supabase
+      .from("property_rooms")
+      .select(
+        "id, property_id, name, description, base_price, max_guests, is_active",
+      )
+      .is("deleted_at", null)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("properties")
+      .select("id, name")
+      .eq("host_id", own.hostId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true }),
+  ]);
+  if (roomsRes.error || propsRes.error)
+    return { ok: false, error: "load_failed" };
+  const rooms: BuilderRoom[] = (roomsRes.data ?? []).map((r) => ({
     id: r.id as string,
     propertyId: r.property_id as string,
     name: (r.name as string | null) ?? "",
@@ -1066,7 +1086,11 @@ export async function fetchBuilderRoomsAction(): Promise<
     maxGuests: Number(r.max_guests) || 1,
     isActive: !!r.is_active,
   }));
-  return { ok: true, rooms };
+  const properties: BuilderProperty[] = (propsRes.data ?? []).map((p) => ({
+    id: p.id as string,
+    name: (p.name as string | null) ?? "Untitled property",
+  }));
+  return { ok: true, rooms, properties };
 }
 
 /**

@@ -1493,6 +1493,7 @@ export function BuilderShell({
         open={roomDataOpen}
         onClose={() => setRoomDataOpen(false)}
         toast={toast}
+        websiteId={websiteId ?? ""}
       />
 
       {/* Toasts */}

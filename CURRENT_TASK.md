@@ -13,8 +13,15 @@
 >
 > **Phase status:** ✅ **0** date-picker/search clipping fix · ✅ **1** stock-data theme
 > preview · ✅ **2** activation → all pages themed + builder-editable (verified) · ⏳ 3
-> **required system-blocks (DONE)** · **4 Wielo data modals (4a DONE, 4b next)** · 5 per-block
-> style UI · 6 setup wizard + go-live gate.
+> **required system-blocks (DONE)** · **4 Wielo data modals (4a + 4b-1 DONE; 4b rest next)** ·
+> 5 per-block style UI · 6 setup wizard + go-live gate.
+>
+> **Phase 4b-1 (done):** room modal now ADDS rooms ("+ New room" → `createRoomAction`);
+> `fetchBuilderRoomsAction(websiteId)` also returns the host's properties. **🔒 Fixed a
+> security leak**: `properties` is public-read, so the picker showed another host's property —
+> now scoped by `host_id` via `assertWebsiteOwnership`. Verified live (added "QA Test Room" →
+> DB row on the host's own property → deleted). **4b rest:** real host data on the builder
+> canvas + amenities/rates/gallery editors.
 >
 > **Phase 4a (done):** "Edit room data…" button on room-family blocks
 > (`ROOM_DATA_BLOCKS`) → `RoomDataModal` loads the host's real rooms via

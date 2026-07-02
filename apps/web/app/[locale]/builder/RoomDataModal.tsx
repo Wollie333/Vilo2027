@@ -12,8 +12,12 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchBuilderRoomsAction,
   type BuilderRoom,
+  type BuilderProperty,
 } from "@/app/[locale]/dashboard/website/actions";
-import { updateRoomAction } from "@/app/[locale]/dashboard/properties/[id]/edit/actions";
+import {
+  updateRoomAction,
+  createRoomAction,
+} from "@/app/[locale]/dashboard/properties/[id]/edit/actions";
 
 type Draft = {
   name: string;
@@ -22,6 +26,8 @@ type Draft = {
   description: string;
   is_active: boolean;
 };
+// A new-room draft carries the property to attach it to (createRoomAction needs it).
+type AddDraft = Draft & { property_id: string };
 
 const toDraft = (r: BuilderRoom): Draft => ({
   name: r.name,
@@ -30,37 +36,63 @@ const toDraft = (r: BuilderRoom): Draft => ({
   description: r.description ?? "",
   is_active: r.isActive,
 });
+const blankAdd = (propertyId: string): AddDraft => ({
+  property_id: propertyId,
+  name: "",
+  base_price: "",
+  max_guests: "2",
+  description: "",
+  is_active: true,
+});
 
 export function RoomDataModal({
   open,
   onClose,
   toast,
+  websiteId,
 }: {
   open: boolean;
   onClose: () => void;
   toast: (msg: string) => void;
+  websiteId: string;
 }) {
   const [rooms, setRooms] = useState<BuilderRoom[] | null>(null);
+  const [properties, setProperties] = useState<BuilderProperty[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [addDraft, setAddDraft] = useState<AddDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setRooms(null);
-    setError(null);
-    const res = await fetchBuilderRoomsAction();
-    if (!res.ok) {
-      setError("Couldn't load your rooms.");
-      setRooms([]);
-      return;
-    }
-    setRooms(res.rooms);
-    // Auto-open the first room so the host lands on an editable form.
-    const first = res.rooms[0];
-    setSelId(first?.id ?? null);
-    setDraft(first ? toDraft(first) : null);
-  }, []);
+  const load = useCallback(
+    async (selectId?: string) => {
+      setRooms(null);
+      setError(null);
+      const res = await fetchBuilderRoomsAction(websiteId);
+      if (!res.ok) {
+        setError("Couldn't load your rooms.");
+        setRooms([]);
+        return;
+      }
+      setRooms(res.rooms);
+      setProperties(res.properties);
+      // Land on the requested room (e.g. a just-created one), else the first. With
+      // NO rooms yet, drop straight into "add" (the missing-data case) when the host
+      // has a property to attach to.
+      const target =
+        (selectId && res.rooms.find((r) => r.id === selectId)) || res.rooms[0];
+      if (!target && res.properties[0]) {
+        setAddDraft(blankAdd(res.properties[0].id));
+        setSelId(null);
+        setDraft(null);
+      } else {
+        setAddDraft(null);
+        setSelId(target?.id ?? null);
+        setDraft(target ? toDraft(target) : null);
+      }
+    },
+    [websiteId],
+  );
 
   useEffect(() => {
     if (open) load();
@@ -71,7 +103,42 @@ export function RoomDataModal({
   const select = (r: BuilderRoom) => {
     setSelId(r.id);
     setDraft(toDraft(r));
+    setAddDraft(null);
     setError(null);
+  };
+
+  const startAdd = () => {
+    setAddDraft(blankAdd(properties[0]?.id ?? ""));
+    setSelId(null);
+    setDraft(null);
+    setError(null);
+  };
+
+  const addRoom = async () => {
+    if (!addDraft) return;
+    const name = addDraft.name.trim();
+    const price = Number(addDraft.base_price);
+    const guests = Number(addDraft.max_guests);
+    if (!addDraft.property_id)
+      return setError("Pick a property for this room.");
+    if (!name) return setError("A room needs a name.");
+    if (!Number.isFinite(price) || price < 0)
+      return setError("Enter a valid price.");
+    if (!Number.isInteger(guests) || guests < 1)
+      return setError("Max guests must be at least 1.");
+    setSaving(true);
+    setError(null);
+    const res = await createRoomAction(addDraft.property_id, {
+      name,
+      base_price: price,
+      max_guests: guests,
+      description: addDraft.description.trim() || null,
+      is_active: addDraft.is_active,
+    });
+    setSaving(false);
+    if (!res.ok) return setError(res.error || "Couldn't create the room.");
+    toast("Room added — it’s now on your live site.");
+    await load(res.data?.id);
   };
 
   const save = async () => {
@@ -147,35 +214,146 @@ export function RoomDataModal({
 
         {rooms === null ? (
           <div style={S.state}>Loading your rooms…</div>
-        ) : rooms.length === 0 ? (
+        ) : rooms.length === 0 && properties.length === 0 ? (
           <div style={S.state}>
-            You don’t have any rooms yet. Add rooms in{" "}
-            <b>Dashboard → Properties</b>, then they’ll appear here and on your
-            site.
+            You don’t have a property yet. Create one in{" "}
+            <b>Dashboard → Properties</b>, then add rooms here and on your site.
           </div>
         ) : (
           <div style={S.body}>
             <div style={S.list}>
-              {rooms.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => select(r)}
-                  style={{
-                    ...S.listItem,
-                    ...(r.id === selId ? S.listItemOn : null),
-                  }}
-                >
-                  <span style={S.roomName}>{r.name || "Untitled room"}</span>
-                  <span style={S.roomMeta}>
-                    R {r.basePrice} · sleeps {r.maxGuests}
-                    {r.isActive ? "" : " · hidden"}
-                  </span>
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={startAdd}
+                disabled={properties.length === 0}
+                style={{
+                  ...S.addBtn,
+                  ...(addDraft ? S.addBtnOn : null),
+                }}
+              >
+                + New room
+              </button>
+              {rooms.length === 0 ? (
+                <div style={S.listEmpty}>No rooms yet — add your first.</div>
+              ) : (
+                rooms.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => select(r)}
+                    style={{
+                      ...S.listItem,
+                      ...(r.id === selId ? S.listItemOn : null),
+                    }}
+                  >
+                    <span style={S.roomName}>{r.name || "Untitled room"}</span>
+                    <span style={S.roomMeta}>
+                      R {r.basePrice} · sleeps {r.maxGuests}
+                      {r.isActive ? "" : " · hidden"}
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
 
             <div style={S.form}>
+              {addDraft ? (
+                <>
+                  <div style={S.formTitle}>Add a new room</div>
+                  {properties.length > 1 && (
+                    <label style={S.field}>
+                      <span style={S.lbl}>Property</span>
+                      <select
+                        style={S.inp}
+                        value={addDraft.property_id}
+                        onChange={(e) =>
+                          setAddDraft({
+                            ...addDraft,
+                            property_id: e.target.value,
+                          })
+                        }
+                      >
+                        {properties.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label style={S.field}>
+                    <span style={S.lbl}>Room name</span>
+                    <input
+                      style={S.inp}
+                      value={addDraft.name}
+                      onChange={(e) =>
+                        setAddDraft({ ...addDraft, name: e.target.value })
+                      }
+                    />
+                  </label>
+                  <div style={S.row2}>
+                    <label style={S.field}>
+                      <span style={S.lbl}>Base price / night (R)</span>
+                      <input
+                        style={S.inp}
+                        inputMode="numeric"
+                        value={addDraft.base_price}
+                        onChange={(e) =>
+                          setAddDraft({
+                            ...addDraft,
+                            base_price: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label style={S.field}>
+                      <span style={S.lbl}>Max guests</span>
+                      <input
+                        style={S.inp}
+                        inputMode="numeric"
+                        value={addDraft.max_guests}
+                        onChange={(e) =>
+                          setAddDraft({
+                            ...addDraft,
+                            max_guests: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <label style={S.field}>
+                    <span style={S.lbl}>Description</span>
+                    <textarea
+                      style={{ ...S.inp, minHeight: 72, resize: "vertical" }}
+                      value={addDraft.description}
+                      onChange={(e) =>
+                        setAddDraft({
+                          ...addDraft,
+                          description: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  {error && <div style={S.err}>{error}</div>}
+                  <div style={S.actions}>
+                    <button
+                      type="button"
+                      onClick={() => load(selId ?? undefined)}
+                      style={S.btnGhost}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={addRoom}
+                      disabled={saving}
+                      style={{ ...S.btn, ...(saving ? S.btnBusy : null) }}
+                    >
+                      {saving ? "Adding…" : "Add room"}
+                    </button>
+                  </div>
+                </>
+              ) : null}
               {draft && (
                 <>
                   <label style={S.field}>
@@ -327,7 +505,26 @@ const S: Record<string, React.CSSProperties> = {
   listItemOn: { background: "#eef5f1", border: "1px solid #cfe3d8" },
   roomName: { fontSize: 13, fontWeight: 600, color: "#0f1f17" },
   roomMeta: { fontSize: 11, color: "#6b7a72" },
+  addBtn: {
+    border: "1px dashed #b9ccc1",
+    background: "#fff",
+    color: "#064E3B",
+    fontWeight: 700,
+    fontSize: 12.5,
+    borderRadius: 8,
+    padding: "9px 10px",
+    cursor: "pointer",
+    marginBottom: 4,
+  },
+  addBtnOn: { background: "#eef5f1", borderColor: "#064E3B" },
+  listEmpty: { fontSize: 12, color: "#6b7a72", padding: "8px 10px" },
   form: { flex: 1, padding: 18, overflow: "auto" },
+  formTitle: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#0f1f17",
+    marginBottom: 12,
+  },
   field: { display: "block", marginBottom: 12 },
   row2: { display: "flex", gap: 12 },
   lbl: {
