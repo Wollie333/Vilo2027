@@ -21,7 +21,8 @@
 > via exported `loadSitePage(ctx, slug)` → `initialData` (keyed by the same node ids as the
 > doc) → BuilderShell canvas data = `{...sampleDataForDoc(doc), ...initialData}`. Try/catch →
 > demo fallback (no regression). Verified live (rooms page shows real Olive/Vineyard/Mountain).
-> Edits reflect on canvas after RELOAD. **4b rest:** amenities/rates/gallery editors.
+> Edits reflect on canvas LIVE now — the room modal calls `router.refresh()` after save/add
+> (doc is client state, preserved). **4b rest:** amenities/rates/gallery editors.
 >
 > **Phase 4b-1 (done):** room modal now ADDS rooms ("+ New room" → `createRoomAction`);
 > `fetchBuilderRoomsAction(websiteId)` also returns the host's properties. **🔒 Fixed a

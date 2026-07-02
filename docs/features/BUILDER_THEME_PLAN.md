@@ -258,6 +258,11 @@ already written but uncommitted.
   wins and demo fills gaps (newly-added blocks, demo/blueprint mode). Best-effort (try/catch →
   demo fallback, no regression). **Verified live** on the rooms page: canvas shows the real
   Olive Room (R1300) / Vineyard Suite (R1900) / Mountain Loft with real photos + descriptions,
-  no demo leak. NOTE: edits via the room modal reflect on the canvas after a RELOAD (initialData
-  loads at page load; live-refresh-after-edit is a later polish). `tsc`+`lint`+`build` green.
+  no demo leak. `tsc`+`lint`+`build` green.
+- _2026-07-02_ — ✅ **Phase 4b-2 polish: live canvas refresh.** The room modal now calls
+  `router.refresh()` after a save/add, so the builder canvas reflects the edit immediately
+  (no manual reload). Safe: the working doc is client `useState` (line 348 lazy init) and the
+  "Reset" button is the only `setDoc(initialDoc)` (a handler, not an effect), so a server
+  re-run only refreshes `initialData`, never the doc. Build + logic verified (not re-verified
+  live — the dev server's `.next` needs a reset cycle; the mechanism is standard Next.js).
   **Remaining 4b:** amenities/rates/gallery editors. Then Phase 5, Phase 6.

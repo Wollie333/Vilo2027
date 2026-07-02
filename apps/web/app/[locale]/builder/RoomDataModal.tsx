@@ -9,6 +9,7 @@
 // (real-data-on-canvas is a later slice).
 import { useCallback, useEffect, useState } from "react";
 
+import { useRouter } from "@/i18n/navigation";
 import {
   fetchBuilderRoomsAction,
   type BuilderRoom,
@@ -56,6 +57,7 @@ export function RoomDataModal({
   toast: (msg: string) => void;
   websiteId: string;
 }) {
+  const router = useRouter();
   const [rooms, setRooms] = useState<BuilderRoom[] | null>(null);
   const [properties, setProperties] = useState<BuilderProperty[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
@@ -139,6 +141,7 @@ export function RoomDataModal({
     if (!res.ok) return setError(res.error || "Couldn't create the room.");
     toast("Room added — it’s now on your live site.");
     await load(res.data?.id);
+    router.refresh(); // reflect the new room on the builder canvas
   };
 
   const save = async () => {
@@ -183,6 +186,9 @@ export function RoomDataModal({
       ),
     );
     toast("Room saved — your live site now shows it.");
+    // Re-run the server load so the builder CANVAS (initialData) reflects the edit
+    // without a manual reload. The working doc is client state, so it's preserved.
+    router.refresh();
   };
 
   return (
