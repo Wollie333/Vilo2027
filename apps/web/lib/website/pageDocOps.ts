@@ -38,6 +38,75 @@ export function findNode(doc: PageDoc, id: string): FoundNode | null {
   return findIn(doc.root.kids as TreeNode[], id);
 }
 
+type LeafInfo = { type: string; props: Record<string, unknown> };
+
+/** The first WIDGET (leaf) node in document order, or null if the page is empty. */
+function firstWidget(
+  nodes: Array<{
+    type?: string;
+    props?: Record<string, unknown>;
+    kids?: unknown[];
+  }>,
+): LeafInfo | null {
+  for (const n of nodes) {
+    const t = n.type;
+    if (t && t !== "section" && t !== "column")
+      return { type: t, props: n.props ?? {} }; // a widget leaf
+    if (Array.isArray(n.kids) && n.kids.length) {
+      const inner = firstWidget(
+        n.kids as Array<{
+          type?: string;
+          props?: Record<string, unknown>;
+          kids?: unknown[];
+        }>,
+      );
+      if (inner) return inner;
+    }
+  }
+  return null;
+}
+
+/**
+ * Whether the page opens with a DARK hero — the only case where a transparent
+ * overlay header renders legibly. A transparent header defaults to white text, so
+ * it must only sit over a dark/full-bleed hero. Concretely:
+ *   • a `hero` with the `fullscreen` variant OR an explicit `textTone: "light"`
+ *     (designed light-on-dark) — e.g. the home hero;
+ *   • a room-detail `room_gallery` (image gallery at the top).
+ * Split / compact / auto-tone heroes (About/Contact open this way) and text-first
+ * pages return `false`, so the header stays solid and its links stay legible.
+ */
+export function pageStartsWithHero(doc: PageDoc): boolean {
+  const w = firstWidget(
+    doc.root.kids as Array<{
+      type?: string;
+      props?: Record<string, unknown>;
+      kids?: unknown[];
+    }>,
+  );
+  return w ? isDarkHeroLeaf(w.type, w.props) : false;
+}
+
+/** Shared test: does this block render a DARK hero (safe for a transparent header)? */
+function isDarkHeroLeaf(type: string, props: Record<string, unknown>): boolean {
+  if (type === "room_gallery") return true;
+  if (type === "hero")
+    return props.textTone === "light" || props.variant === "fullscreen";
+  return false;
+}
+
+/**
+ * Flat-sections variant of {@link pageStartsWithHero} — for the live render path
+ * that renders published `WebsiteSection[]` directly (not a PageDoc). Same rule:
+ * transparent header only when the page's FIRST section is a dark hero.
+ */
+export function sectionsStartWithHero(
+  sections: Array<{ type?: string; props?: Record<string, unknown> }>,
+): boolean {
+  const s = sections?.[0];
+  return s?.type ? isDarkHeroLeaf(s.type, s.props ?? {}) : false;
+}
+
 function clone(doc: PageDoc): PageDoc {
   return structuredClone(doc);
 }

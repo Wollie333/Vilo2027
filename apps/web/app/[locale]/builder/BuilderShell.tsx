@@ -105,6 +105,7 @@ import {
   updateNode,
   updateResponsive,
   updatePageMeta,
+  pageStartsWithHero,
 } from "@/lib/website/pageDocOps";
 import { useRouter } from "@/i18n/navigation";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -934,6 +935,7 @@ export function BuilderShell({
           header={workTheme.header}
           footer={workTheme.footer}
           previewDevice={chromeDevice}
+          pageHasHero={pageStartsWithHero(doc)}
           chromeInert
         >
           <PageDocRenderer

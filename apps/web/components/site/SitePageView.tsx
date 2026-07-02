@@ -12,6 +12,10 @@ import { buildSiteJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
 import { websiteAssetUrl } from "@/lib/website/assets";
+import {
+  pageStartsWithHero,
+  sectionsStartWithHero,
+} from "@/lib/website/pageDocOps";
 
 import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
@@ -189,6 +193,7 @@ export async function SitePageView({
             preview={previewContext}
             hideBanner={embed}
             previewPages={previewPages}
+            pageHasHero={pageStartsWithHero(result.doc)}
           >
             <PageDocRenderer
               doc={result.doc}
@@ -239,6 +244,7 @@ export async function SitePageView({
           preview={previewContext}
           hideBanner={embed}
           previewPages={previewPages}
+          pageHasHero={sectionsStartWithHero(result.sections)}
         >
           <SectionRenderer
             sections={result.sections}

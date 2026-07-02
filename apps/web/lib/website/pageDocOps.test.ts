@@ -13,6 +13,7 @@ import {
   updateNode,
   updateResponsive,
   updatePageMeta,
+  pageStartsWithHero,
 } from "./pageDocOps";
 import { newPageDoc, newSection, newWidget } from "./widgets/factories";
 import { pageDocSchema } from "./pageDoc.schema";
@@ -247,6 +248,34 @@ describe("pageDocOps", () => {
       title: { fontSize: 20, color: "#fff" },
       card: { bg: "#000" },
     });
+  });
+
+  // Transparent-header gate — only a DARK hero (fullscreen / light-on-dark) at the
+  // top makes a transparent overlay header legible; light/text-first pages stay solid.
+  it("pageStartsWithHero requires a dark hero at the top of the page", () => {
+    const heroDoc = (
+      heroProps: Record<string, unknown>,
+      firstType = "hero",
+    ) => {
+      const s = newSection([12]);
+      const w = newWidget(firstType as Parameters<typeof newWidget>[0]);
+      (w as { props: Record<string, unknown> }).props = heroProps;
+      s.kids[0].kids.push(w);
+      return newPageDoc([s]);
+    };
+    // Dark heroes → transparent OK.
+    expect(pageStartsWithHero(heroDoc({ variant: "fullscreen" }))).toBe(true);
+    expect(pageStartsWithHero(heroDoc({ textTone: "light" }))).toBe(true);
+    expect(pageStartsWithHero(heroDoc({}, "room_gallery"))).toBe(true);
+    // Light heroes / text-first → solid header.
+    expect(pageStartsWithHero(heroDoc({ variant: "split_right" }))).toBe(false);
+    const textFirst = (() => {
+      const s = newSection([12]);
+      s.kids[0].kids.push(newWidget("el_text"));
+      return newPageDoc([s]);
+    })();
+    expect(pageStartsWithHero(textFirst)).toBe(false);
+    expect(pageStartsWithHero(newPageDoc([]))).toBe(false);
   });
 
   it("updateResponsive drops a null'd element prop, then the empty layer", () => {

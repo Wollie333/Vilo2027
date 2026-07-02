@@ -18,6 +18,7 @@ import { SiteChrome } from "./SiteChrome";
 import { siteAsset } from "./SitePageView";
 import { SiteThemeRoot } from "./SiteThemeRoot";
 import { PageDocRenderer } from "./v2/PageDocRenderer";
+import { pageStartsWithHero } from "@/lib/website/pageDocOps";
 
 /**
  * Renders one ROOM as a full page: the themed frame + the host's room-detail
@@ -105,6 +106,7 @@ export async function SiteRoomView({
                 : undefined
             }
             previewPages={previewPages}
+            pageHasHero={pageStartsWithHero(result.doc)}
           >
             <nav
               aria-label="Breadcrumb"

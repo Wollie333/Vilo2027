@@ -1149,6 +1149,7 @@ export function SiteChrome({
   hideBanner = false,
   previewPages,
   chromeInert = false,
+  pageHasHero = true,
   children,
 }: {
   brand: SiteBrand;
@@ -1184,6 +1185,9 @@ export function SiteChrome({
   previewPages?: SitePreviewPage[];
   /** Page builder: render the header/footer non-interactive (context only). */
   chromeInert?: boolean;
+  /** Does this page open with a hero? Gates the transparent-over-hero header so
+   * text-first pages (About/Contact) keep a solid, legible header. Default true. */
+  pageHasHero?: boolean;
   children: ReactNode;
 }) {
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
@@ -1240,8 +1244,12 @@ export function SiteChrome({
         "@media (max-width:640px){.wielo-lg-tb{display:none}.wielo-lg-mb{display:contents}}"
       : "";
   // Transparent-over-hero and a top bar can't coexist (the fixed header would
-  // overlay the top bar) — the top bar wins.
-  const transparentOver = pageTransparent && !topBar?.enabled;
+  // overlay the top bar) — the top bar wins. It also only makes sense when the
+  // page actually OPENS with a hero to overlay: on a page that starts with text
+  // (About/Contact), a transparent header renders light links on a light section
+  // → invisible. `pageHasHero` (from the page doc) gates it; defaults true so
+  // callers that don't compute it keep the prior behaviour.
+  const transparentOver = pageTransparent && !topBar?.enabled && pageHasHero;
   const headerDark = transparentOver || darkChrome;
   const boxed = layout === "boxed";
   // The shared Wielo theme-preview bar (single source of truth across all themes).
