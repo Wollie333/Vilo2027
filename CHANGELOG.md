@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 2: activation → all pages themed + editable (verified).
+
+Verification pass — the activation pipeline already delivers "activate a theme → every
+page (incl. system templates) inherits the theme AND is editable in the builder," so no
+code change was needed. Confirmed against the live vilotest fixture + code:
+`mergeStandardPages` guarantees the 7 required marketing pages + `search_results`;
+`room_detail` is seeded by `applyThemeAction`; `loadPagesList` lazily ensures
+`room_detail` + `search_results`. The system pages (checkout / thank-you / search-results)
+all return 200 and carry the active Safari accent (`--site-accent:#B26C2E`). The LIVE
+(non-preview) site renders the host's real rooms while the preview renders stock — no
+leak between the two paths. The builder's `loadRealPage` loads any page row (no kind
+exclusion) and converts flat→PageDoc, so every system page opens and edits in the builder.
+No source changed; the Phase-1 build stands.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 1: theme preview renders pixel-perfect with stock data.
 
 "View theme preview" (`?preview=1&theme=<slug>`) is a design **showcase**, so its

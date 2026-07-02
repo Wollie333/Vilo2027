@@ -12,8 +12,15 @@
 > a standalone setup wizard gates go-live on a readiness contract.
 >
 > **Phase status:** ✅ **0** date-picker/search clipping fix · ✅ **1** stock-data theme
-> preview · ⏳ 2 activation hardening · 3 required system-blocks · 4 Wielo data modals ·
-> 5 per-block style UI · 6 setup wizard + go-live gate.
+> preview · ✅ **2** activation → all pages themed + builder-editable (verified) · ⏳ 3
+> required system-blocks · 4 Wielo data modals · 5 per-block style UI · 6 setup wizard +
+> go-live gate.
+>
+> **Phase 2 (done, verification):** activation pipeline already correct — `mergeStandardPages`
+> (7 marketing + search_results) + `applyThemeAction` seeds room_detail + `loadPagesList`
+> `ensureRoomDetailPage`/`ensureSearchResultsPage` net. System pages checkout/thank-you/
+> search-results = 200 + Safari accent #B26C2E. Live=real rooms, preview=stock (no leak).
+> `loadRealPage` opens any page row (flat→PageDoc) → system pages editable. No code change.
 >
 > **Phase 0 (done):** `ThemedDateRange` portals to `document.body` (fixed pos, max
 > z-index) so the calendar never clips under the booking Card/overflow. Verified live on

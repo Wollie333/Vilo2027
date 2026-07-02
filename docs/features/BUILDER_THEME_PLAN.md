@@ -186,3 +186,18 @@ already written but uncommitted.
   without one) → for a no-rooms host, room-detail isn't in the preview nav. Pure-stock
   room-detail preview deferred (would need a preview branch in `loadSiteRoomPage`
   injecting `DEMO_ROOM_DETAIL`). Next: Phase 2 (activation hardening).
+- _2026-07-02_ — ✅ **Phase 2 DONE (verification pass — no code change needed).**
+  Confirmed the activation pipeline already meets the requirement, against the live
+  vilotest fixture + code. **Page set:** `applyThemeAction` reseeds all pages;
+  `mergeStandardPages` guarantees the 7 required marketing pages + `search_results`;
+  `room_detail` seeded separately (actions.ts L291); `loadPagesList.ts`
+  `ensureRoomDetailPage`/`ensureSearchResultsPage` (L166-167) lazily guarantee both
+  system templates. Fixture = 11 pages incl. checkout/thank-you/search_results.
+  **Theme inheritance:** checkout, thank-you, search-results all 200 + carry the Safari
+  accent `--site-accent:#B26C2E`. **Real vs stock:** the LIVE (non-preview) site renders
+  real rooms (Olive Room/…); preview renders stock; no leak. **Builder-editable:**
+  `builder/page.tsx` `loadRealPage` loads ANY page row (no kind exclusion) + lists all +
+  converts flat→PageDoc, so every system page opens/edits in the builder. Known-benign:
+  the fixture lacks a `room_detail` row (seed artifact) → self-heals via
+  `ensureRoomDetailPage`. No source changed (Phase-1 build stands). Next: Phase 3
+  (required system-blocks).
