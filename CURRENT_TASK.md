@@ -21,10 +21,11 @@ ALONE — never `git add -A` (use `git add -u` / explicit paths).
    goal/pixel. (Full detail in the sections below + CHANGELOG.)
 
 **NEXT SESSION — pick up here (open follow-ups, tracked):**
-- **① Live-verify the public render on a seeded fixture** (do FIRST): run `node --env-file=.env.local
-  scripts/seed-safari-qa.mjs` from `apps/web`, then eyeball `/site?site=vilotest` (home + checkout +
-  room detail) through the generic token path. The cutover is build-verified but the vilotest fixture
-  wasn't seeded in this DB, so the live look is unconfirmed.
+- **① Live-verify the public render on a seeded fixture — ✅ DONE (2026-07-02).** Seeded via
+  `seed-test-site.mjs` + `seed-safari-qa.mjs`; eyeballed `/site?site=vilotest` home + room detail +
+  checkout through the generic token path. Surfaced + FIXED a real dark-band self-reference bug (legacy
+  `SectionWrap` painted white-on-white — the Safari hero headline was invisible). Fix: split the tone fill
+  (outer) from the `--site-*` overrides (inner), matching `PageDocRenderer`. All bands legible; gates green.
 - **② Add the system widgets to the builder drag library** — room_gallery/overview/amenities/rate/
   policies + search_results into `WIDGET_DEFS` so users can drag NEW system blocks (they can already edit
   seeded ones). `sampleDataForDoc` already previews them.

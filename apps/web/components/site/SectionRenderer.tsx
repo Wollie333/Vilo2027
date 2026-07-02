@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import {
@@ -117,7 +117,6 @@ function SectionWrap({
   section: WebsiteSection;
   children: ReactNode;
 }) {
-  const tone = sectionToneStyle(section.tone);
   const vis = section.visibility ?? "all";
   const visClass =
     vis === "desktop"
@@ -126,18 +125,30 @@ function SectionWrap({
         ? "block md:hidden"
         : "";
 
+  // Split the tone: the background FILL goes on the outer element (so a dark
+  // tone's `var(--site-ink)` resolves against the inherited palette), while the
+  // tone's `--site-*` overrides go on an INNER wrapper (so children flip to the
+  // right contrast). Setting both on one element makes `background:var(--site-ink)`
+  // self-reference the overridden `--site-ink: #fff` and paint the band white —
+  // same fix the PageDoc renderer already applies.
+  const tone = sectionToneStyle(section.tone) as
+    | (CSSProperties & { background?: string })
+    | undefined;
+  const { background: toneBg, ...toneVars } = tone ?? {};
   const bg = section.style?.background?.trim();
-  const style = bg ? { ...(tone ?? {}), background: bg } : tone;
+  const fill = bg || toneBg;
+  const hasVars = Object.keys(toneVars).length > 0;
+
   const cls = `wsec-${section.id.replace(/-/g, "")}`;
   const css = blockStyleCss(cls, section.style);
 
-  if (!style && !visClass && !css) return <>{children}</>;
+  if (!fill && !hasVars && !visClass && !css) return <>{children}</>;
   const className =
     [visClass, css ? cls : ""].filter(Boolean).join(" ") || undefined;
   return (
-    <div style={style} className={className}>
+    <div style={fill ? { background: fill } : undefined} className={className}>
       {css ? <style>{css}</style> : null}
-      {children}
+      {hasVars ? <div style={toneVars}>{children}</div> : children}
     </div>
   );
 }

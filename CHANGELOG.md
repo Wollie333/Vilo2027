@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 6 follow-up ①: live-verified public render; fixed dark-band self-reference.
+
+Seeded the vilotest fixture (`seed-test-site.mjs` + `seed-safari-qa.mjs`) and eyeballed the public site
+through the generic token path — home, room detail, and checkout. This surfaced a real contrast bug the
+build-only check couldn't catch, now fixed.
+
+- **Bug:** dark-toned sections (Safari hero + location + CTA) rendered **white text on a white band** —
+  the hero headline "Where the wild still runs" was invisible. Root cause: legacy `SectionWrap` applied
+  `sectionToneStyle('dark')` — which sets BOTH `background: var(--site-ink)` AND `--site-ink: #ffffff` —
+  on ONE element, so the fill's `var(--site-ink)` self-referenced the overridden white and painted the
+  band white. (Same latent bug the PageDoc renderer already documented + fixed in Phase 2 slice 2.)
+- **Fix (`SectionRenderer.tsx`):** `SectionWrap` now splits the tone the same way `PageDocRenderer` does —
+  background FILL on the outer element (so `var(--site-ink)` resolves against the inherited palette),
+  `--site-*` overrides on an INNER wrapper (so children flip contrast). No hero image needed: the hero's
+  own translucent `--site-surface` sits over the now-correctly-dark band. `default`/`muted`/`accent`
+  tones and custom `section.style.background` behaviour unchanged (accent/muted never self-referenced).
+- **Verified live** on `?site=vilotest`: dark bands paint `#221A11` with white text, light bands `#F4EDE0`
+  with dark ink; room detail (2-col + sticky booking dock) and checkout (dates + room list) render clean;
+  0 SSR/console errors (only a pre-existing `fetchpriority` warning in `SiteImg`). tsc + lint + 169 vitest
+  + `pnpm build` all green. NEXT: ② system widgets into the drag library; ③ nav-studio cutover + residual
+  safari deletion.
+
 ## 2026-07-02 — Builder V2 Phase 6 CUTOVER (render + old builder). Bespoke theme layers retired.
 
 Founder-approved cutover (with the visual tradeoff shown + signed off): the public site now renders
