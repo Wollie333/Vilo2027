@@ -266,6 +266,12 @@ export async function applyThemeAction(
     .eq("website_id", websiteId);
   if (deleteErr) return { ok: false, error: "delete_failed" };
 
+  // Seed the theme's designed pages into BOTH draft and published so the stock
+  // theme is LIVE the moment it's activated — the public site (which renders
+  // `published_sections`, no draft fallback) would otherwise show blank pages
+  // until every page was manually published. The host still edits the draft in
+  // the builder and re-publishes their changes.
+  const roomDetailSections = getThemeRoomDetailSections(slug);
   const pagesToInsert = [
     ...templates.map((tpl) => ({
       website_id: websiteId,
@@ -276,7 +282,7 @@ export async function applyThemeAction(
       nav_order: tpl.nav_order,
       show_in_nav: tpl.show_in_nav,
       draft_sections: tpl.sections,
-      published_sections: [],
+      published_sections: tpl.sections,
     })),
     // Every theme seeds its room-detail page so the room layout fits the theme
     // (the page wipe above would otherwise drop a lazily-created one).
@@ -288,8 +294,8 @@ export async function applyThemeAction(
       nav_label: null,
       nav_order: 900,
       show_in_nav: false,
-      draft_sections: getThemeRoomDetailSections(slug),
-      published_sections: [],
+      draft_sections: roomDetailSections,
+      published_sections: roomDetailSections,
     },
   ];
 
@@ -300,7 +306,10 @@ export async function applyThemeAction(
 
   const { error: themeErr } = await admin
     .from("host_websites")
-    .update({ theme: { preset: slug, base } })
+    // Clear the frozen publish snapshot so the public site reads LIVE columns
+    // (the freshly-seeded pages + the new theme's nav) instead of the previous
+    // theme's chrome — otherwise the switched theme wouldn't fully mount live.
+    .update({ theme: { preset: slug, base }, published_snapshot: null })
     .eq("id", websiteId);
   if (themeErr) return { ok: false, error: "apply_failed" };
 

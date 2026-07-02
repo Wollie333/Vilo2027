@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-02 — Theme activation now publishes: an activated theme mounts on the live site immediately.
+
+The reported "themes not automatically mounting" bug. `applyThemeAction` seeded each page's `draft_sections`
+with the theme's designed sections but left `published_sections: []`. The public site renders
+`published_sections` with NO draft fallback ([loadSitePage.ts:670]), so after activating a theme the live
+website showed BLANK pages until every page was manually published — while the builder (draft) showed the
+full theme. So the builder didn't represent the real site.
+
+- **Fix (`applyThemeAction`)** — activation now seeds `published_sections` = the theme's sections too (for
+  every page + the room-detail page), so the stock theme is live the instant it's activated. The host still
+  edits the draft in the builder and re-publishes their own changes.
+- **Also clears the frozen `published_snapshot`** on switch so the public site reads LIVE columns (the new
+  pages + the new theme's nav) instead of the previous theme's chrome — mirrors the QA seed script.
+- **Result:** builder canvas (draft) == live site (published) == the activated theme. WYSIWYG holds
+  (verified separately: the flat→PageDoc wrapper is zero-padding full-bleed, so the builder and the live
+  flat path both render the same `GenericSection` composites; the blank-hero fix aligned the heroes).
+- **Verified:** tsc + lint + `pnpm build` + 173 vitest.
+
 ## 2026-07-02 — Fix "theme preview not working": light-theme heroes rendered white-on-white.
 
 Diagnosed the reported broken theme previews. All four themes (Safari · Sabela · Oceans View · Marmalade)
