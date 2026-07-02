@@ -5,14 +5,13 @@ import {
   Search,
   Share2,
   BarChart3,
+  Zap,
   Code2,
   X,
   Check,
   Settings2,
   type LucideIcon,
 } from "lucide-react";
-
-import { PAGE_PIXEL_EVENTS } from "@/app/[locale]/dashboard/website/schemas";
 
 // Builder V2 — Phase 4b: Page Settings overlay (SEO / social / tracking / code).
 //
@@ -75,7 +74,49 @@ const PS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [
   { key: "seo", label: "SEO", Icon: Search },
   { key: "social", label: "Social share", Icon: Share2 },
   { key: "tracking", label: "Tracking & pixels", Icon: BarChart3 },
+  { key: "events", label: "Events", Icon: Zap },
   { key: "code", label: "Custom code", Icon: Code2 },
+];
+
+// Curated built-in Meta/GA events a host can fire on THIS page (stored in
+// `meta.events`). Page-load events only — Purchase is auto on booking
+// confirmation (shown as an info row, not a toggle).
+const BUILTIN_EVENTS: { key: string; label: string; hint: string }[] = [
+  {
+    key: "Lead",
+    label: "Lead",
+    hint: "A contact / enquiry form was submitted — use on a contact thank-you.",
+  },
+  {
+    key: "Subscribe",
+    label: "Subscribe",
+    hint: "A newsletter sign-up completed.",
+  },
+  {
+    key: "Contact",
+    label: "Contact",
+    hint: "The visitor initiated contact (call / email / WhatsApp).",
+  },
+  {
+    key: "CompleteRegistration",
+    label: "Complete registration",
+    hint: "An account or booking registration finished.",
+  },
+  {
+    key: "ViewContent",
+    label: "View content",
+    hint: "A key page (a room, a special) was viewed.",
+  },
+  {
+    key: "Search",
+    label: "Search",
+    hint: "The visitor ran an availability search.",
+  },
+  {
+    key: "InitiateCheckout",
+    label: "Initiate checkout",
+    hint: "The visitor started the booking checkout.",
+  },
 ];
 
 const str = (m: Meta, k: string): string =>
@@ -169,13 +210,9 @@ export function PageSettingsOverlay({
               <SocialTab meta={meta} domain={domain} set={set} />
             )}
             {tab === "tracking" && (
-              <TrackingTab
-                meta={meta}
-                set={set}
-                analytics={analytics}
-                setA={setA}
-              />
+              <TrackingTab analytics={analytics} setA={setA} />
             )}
+            {tab === "events" && <EventsTab meta={meta} set={set} />}
             {tab === "code" && <CodeTab meta={meta} set={set} />}
           </div>
           <div className="ps-foot">
@@ -350,42 +387,64 @@ function SocialTab({
   );
 }
 
-function TrackingTab({
+function EventsTab({
   meta,
   set,
-  analytics,
-  setA,
 }: {
   meta: Meta;
   set: (k: string, v: unknown) => void;
+}) {
+  const enabled: string[] = Array.isArray(meta.events)
+    ? (meta.events as unknown[]).filter(
+        (e): e is string => typeof e === "string",
+      )
+    : [];
+  const toggle = (key: string, on: boolean) => {
+    const next = on
+      ? Array.from(new Set([...enabled, key]))
+      : enabled.filter((e) => e !== key);
+    set("events", next);
+  };
+  return (
+    <>
+      <h3 className="ps-h">Events</h3>
+      <Group title="Fire on this page">
+        <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
+          These Meta Pixel / GA4 events fire when this published page loads.
+          Turn on the ones that match what this page does (e.g. Lead on a
+          contact thank-you).
+        </div>
+        {BUILTIN_EVENTS.map((ev) => (
+          <ToggleRow
+            key={ev.key}
+            label={ev.label}
+            hint={ev.hint}
+            value={enabled.includes(ev.key)}
+            onChange={(v) => toggle(ev.key, v)}
+          />
+        ))}
+      </Group>
+      <Group title="Purchase (automatic)">
+        <div className="hint" style={{ margin: 0 }}>
+          The <b>Purchase</b> event fires automatically on the booking
+          confirmation page with the order’s value &amp; currency — no setup
+          needed.
+        </div>
+      </Group>
+    </>
+  );
+}
+
+function TrackingTab({
+  analytics,
+  setA,
+}: {
   analytics: BuilderAnalytics;
   setA: (k: keyof BuilderAnalytics, v: unknown) => void;
 }) {
-  const pixelEvent = str(meta, "pixelEvent") || "none";
   return (
     <>
       <h3 className="ps-h">Tracking &amp; pixels</h3>
-      <Group title="Conversion event">
-        <Field label="Fire on page view">
-          <select
-            className="inp"
-            value={pixelEvent}
-            onChange={(e) =>
-              set("pixelEvent", e.target.value === "none" ? "" : e.target.value)
-            }
-          >
-            {PAGE_PIXEL_EVENTS.map((ev) => (
-              <option key={ev} value={ev}>
-                {ev === "none" ? "No event" : ev}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <div className="hint">
-          Fires this Meta Pixel / GA4 event when the published page loads — use
-          it on a thank-you page to count a conversion.
-        </div>
-      </Group>
       <Group title="Pixels & analytics">
         <div className="hint" style={{ marginTop: 0, marginBottom: 10 }}>
           These IDs apply to <b>every page</b> on your site. Editing them here

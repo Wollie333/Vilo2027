@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-02 — Tracking/Events redesign Ph2: per-page Events tab
+
+New **Events** tab in the Page Settings modal (between Tracking & pixels and Custom code) — a curated
+list of built-in Meta/GA events with enable toggles, replacing the single per-page conversion event.
+
+- **`PageSettingsOverlay.tsx`** — `EventsTab` + `BUILTIN_EVENTS` catalogue (Lead / Subscribe / Contact /
+  CompleteRegistration / ViewContent / Search / InitiateCheckout, each with a "use when…" hint) writes
+  the enabled set to `meta.events: string[]`. **Purchase** shown as an info row ("automatic on booking
+  confirmation"), not a toggle. Removed the single Conversion-event selector from the Tracking tab
+  (superseded); `PAGE_PIXEL_EVENTS` import dropped.
+- **`SitePageView.tsx`** — the marketing block now fires EACH event in `doc.meta.events` (one
+  `FirePixelEvent` per event, live only); legacy flat pages fall back to the single
+  `seo_overrides.pixelEvent`. Supersedes the Phase 5-5 single-event firing.
+- **Live-verified**: tab order SEO · Social · Tracking · Events · Custom code; toggling Lead + Subscribe
+  flips them on and persists into `meta.events` (autosaved). tsc + lint clean, 169 vitest.
+  NEXT = Ph3 (consent-gated custom head/body code).
+
 ## 2026-07-02 — Tracking/Events redesign Ph1: site-wide Tracking tab
 
 First slice of the tracking/pixels/events redesign (plan: `docs/features/TRACKING_EVENTS_PLAN.md`).

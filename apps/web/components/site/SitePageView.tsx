@@ -109,20 +109,33 @@ export async function SitePageView({
     headCode?: string;
   };
   const docMeta = (result.doc?.meta ?? {}) as {
-    pixelEvent?: string;
+    events?: unknown;
     headCode?: string;
   };
-  const rawPixelEvent = (docMeta.pixelEvent || pageOv.pixelEvent || "").trim();
-  const pagePixelEvent =
-    !ctx.preview && rawPixelEvent && rawPixelEvent !== "none"
-      ? rawPixelEvent
-      : null;
+  // Builder V2 pages carry a MULTI-event set in `meta.events` (Events tab); legacy
+  // flat pages carry a single `seo_overrides.pixelEvent`. Fire each on load,
+  // live site only. (Purchase stays auto-wired on the booking thank-you.)
+  const docEvents = Array.isArray(docMeta.events)
+    ? (docMeta.events as unknown[]).filter(
+        (e): e is string => typeof e === "string" && !!e && e !== "none",
+      )
+    : [];
+  const legacyEvent = (pageOv.pixelEvent || "").trim();
+  const pageEvents = ctx.preview
+    ? []
+    : docEvents.length
+      ? docEvents
+      : legacyEvent && legacyEvent !== "none"
+        ? [legacyEvent]
+        : [];
   const pageHeadCode = !ctx.preview
     ? docMeta.headCode?.trim() || pageOv.headCode?.trim() || ""
     : "";
   const pageMarketing = (
     <>
-      {pagePixelEvent ? <FirePixelEvent event={pagePixelEvent} /> : null}
+      {pageEvents.map((e, i) => (
+        <FirePixelEvent key={`${e}-${i}`} event={e} />
+      ))}
       {pageHeadCode ? <PageHeadCode html={pageHeadCode} /> : null}
     </>
   );
