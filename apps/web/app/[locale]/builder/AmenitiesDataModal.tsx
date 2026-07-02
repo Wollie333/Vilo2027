@@ -11,10 +11,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import {
   fetchBuilderAmenitiesAction,
+  setBuilderAmenitiesAction,
   type BuilderAmenityGroup,
-  type BuilderPropertyAmenities,
+  type BuilderAmenityProperty,
 } from "@/app/[locale]/dashboard/website/actions";
-import { replaceAmenitiesAction } from "@/app/[locale]/dashboard/properties/[id]/edit/actions";
 
 export function AmenitiesDataModal({
   open,
@@ -29,11 +29,24 @@ export function AmenitiesDataModal({
 }) {
   const router = useRouter();
   const [groups, setGroups] = useState<BuilderAmenityGroup[] | null>(null);
-  const [properties, setProperties] = useState<BuilderPropertyAmenities[]>([]);
+  const [properties, setProperties] = useState<BuilderAmenityProperty[]>([]);
   const [propId, setPropId] = useState<string>("");
+  // The scope being edited: null = property-wide, else a room id.
+  const [roomId, setRoomId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedProp = properties.find((p) => p.id === propId);
+  const keysFor = (
+    p: BuilderAmenityProperty | undefined,
+    rid: string | null,
+  ) =>
+    !p
+      ? []
+      : rid
+        ? (p.rooms.find((r) => r.id === rid)?.keys ?? [])
+        : p.propertyKeys;
 
   const load = useCallback(async () => {
     setGroups(null);
@@ -48,7 +61,8 @@ export function AmenitiesDataModal({
     setProperties(res.properties);
     const first = res.properties[0];
     setPropId(first?.id ?? "");
-    setSelected(new Set(first?.keys ?? []));
+    setRoomId(null); // start on property-wide amenities
+    setSelected(new Set(first?.propertyKeys ?? []));
   }, [websiteId]);
 
   useEffect(() => {
@@ -56,9 +70,18 @@ export function AmenitiesDataModal({
   }, [open, load]);
 
   const pickProperty = (id: string) => {
-    setPropId(id);
     const p = properties.find((x) => x.id === id);
-    setSelected(new Set(p?.keys ?? []));
+    setPropId(id);
+    setRoomId(null);
+    setSelected(new Set(p?.propertyKeys ?? []));
+    setError(null);
+  };
+
+  // Data-source dropdown: "" = whole property, else a room id.
+  const pickScope = (value: string) => {
+    const rid = value || null;
+    setRoomId(rid);
+    setSelected(new Set(keysFor(selectedProp, rid)));
     setError(null);
   };
 
@@ -79,14 +102,31 @@ export function AmenitiesDataModal({
 
   const save = async () => {
     if (!propId) return setError("Pick a property first.");
+    const keys = [...selected];
     setSaving(true);
     setError(null);
-    const res = await replaceAmenitiesAction(propId, [...selected]);
+    const res = await setBuilderAmenitiesAction(
+      websiteId,
+      propId,
+      roomId,
+      keys,
+    );
     setSaving(false);
     if (!res.ok) return setError(res.error || "Couldn't save amenities.");
-    // Keep the local property snapshot in sync so switching away + back is correct.
+    // Keep the local snapshot for THIS scope in sync (switch away + back is correct).
     setProperties((prev) =>
-      prev.map((p) => (p.id === propId ? { ...p, keys: [...selected] } : p)),
+      prev.map((p) =>
+        p.id !== propId
+          ? p
+          : roomId
+            ? {
+                ...p,
+                rooms: p.rooms.map((r) =>
+                  r.id === roomId ? { ...r, keys } : r,
+                ),
+              }
+            : { ...p, propertyKeys: keys },
+      ),
     );
     toast("Amenities saved — your live site now shows them.");
     router.refresh(); // reflect on the builder canvas without a manual reload
@@ -136,6 +176,7 @@ export function AmenitiesDataModal({
                   style={S.sel}
                   value={propId}
                   onChange={(e) => pickProperty(e.target.value)}
+                  aria-label="Property"
                 >
                   {properties.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -144,6 +185,20 @@ export function AmenitiesDataModal({
                   ))}
                 </select>
               )}
+              {/* Data source: whole-property amenities vs a specific room's. */}
+              <select
+                style={S.sel}
+                value={roomId ?? ""}
+                onChange={(e) => pickScope(e.target.value)}
+                aria-label="Amenities for"
+              >
+                <option value="">Whole property</option>
+                {(selectedProp?.rooms ?? []).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    Room · {r.name}
+                  </option>
+                ))}
+              </select>
               <span style={S.counter}>
                 {count} of {totalItems} selected
               </span>

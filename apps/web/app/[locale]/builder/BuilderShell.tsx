@@ -125,12 +125,16 @@ const ROOM_DATA_BLOCKS: ReadonlySet<string> = new Set([
   "el_room_card",
   "room_gallery",
   "room_overview",
-  "room_amenities",
   "room_rate",
   "room_policies",
 ]);
-// The property `amenities` block edits property_amenities (Phase 4b-3).
-const AMENITY_DATA_BLOCKS: ReadonlySet<string> = new Set(["amenities"]);
+// Amenity blocks edit property_amenities (Phase 4b-3): the property-wide `amenities`
+// block and the per-room `room_amenities` block — the modal's data-source dropdown
+// picks the scope (whole property vs a specific room).
+const AMENITY_DATA_BLOCKS: ReadonlySet<string> = new Set([
+  "amenities",
+  "room_amenities",
+]);
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type { SiteNavigation, SiteMenuItem, SiteData } from "@/lib/site/types";
 import {

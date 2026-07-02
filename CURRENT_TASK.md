@@ -22,6 +22,13 @@
 > **4b rest:** rates + gallery editors. NOTE: some vilotest legacy amenity slugs differ from the
 > catalog (shown unchecked but preserved on save) — seed data quirk, not the feature.
 >
+> **Phase 4b-3b (done, founder feedback):** amenities have TWO scopes (property-wide + per-room,
+> via `property_amenities.room_id`). Modal now has a **data-source dropdown** (Whole property +
+> rooms); `amenities` + `room_amenities` blocks both open it. New scope-safe
+> `setBuilderAmenitiesAction(websiteId, propertyId, roomId, keys)` diffs at the exact scope
+> (replaced `replaceAmenitiesAction`, which wiped everything). Verified live: room-scope edit
+> created a room row + left property amenities untouched.
+>
 > **Phase 4b-2 (done):** builder CANVAS now renders the host's REAL data (not demo).
 > `builder/page.tsx loadRealPage` builds a real `SiteContext` (`loadSiteContext`) + assembles
 > via exported `loadSitePage(ctx, slug)` → `initialData` (keyed by the same node ids as the

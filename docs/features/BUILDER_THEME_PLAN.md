@@ -278,3 +278,14 @@ already written but uncommitted.
   so they show unchecked but are preserved on save — a seed/catalog data-hygiene quirk, not this
   feature. `tsc`+`lint`+`build` green. **Remaining 4b:** rates + gallery editors. Then Phase 5
   (per-block style UI — needs `PageDocRenderer` to apply `blockStyle`), Phase 6 (setup wizard).
+- _2026-07-02_ — ✅ **Phase 4b-3b (founder feedback): amenities have TWO scopes.** Amenities live
+  in `property_amenities` keyed by `(property_id, room_id, amenity_key)` — `room_id` null =
+  property-wide, else that room. The modal now has a **data-source dropdown** (Whole property +
+  each room) and the property `amenities` **and** per-room `room_amenities` blocks both open it
+  (`room_amenities` moved from ROOM_DATA_BLOCKS → AMENITY_DATA_BLOCKS). New scope-safe
+  `setBuilderAmenitiesAction(websiteId, propertyId, roomId, keys)` DIFFS at the exact scope
+  (insert/delete), so editing one scope never touches the other — unlike `replaceAmenitiesAction`
+  which wipes the whole set (that was a latent bug in the first 4b-3 cut). `fetchBuilderAmenitiesAction`
+  now returns per-property propertyKeys + rooms[{id,name,keys}]. **Verified live:** added an amenity
+  to Olive Room (room scope) → a room-scoped row was created AND the 8 property-level amenities were
+  untouched; reverted. `tsc`+`lint`+`build` green.

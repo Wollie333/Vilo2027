@@ -1098,22 +1098,26 @@ export type BuilderAmenityGroup = {
   label: string;
   items: { key: string; label: string }[];
 };
-export type BuilderPropertyAmenities = {
+// Amenities live in property_amenities keyed by (property_id, room_id, amenity_key):
+// room_id null = property-wide, room_id = that room. The builder modal edits either
+// scope via a data-source dropdown; each property carries its property-wide keys +
+// its rooms' keys.
+export type BuilderAmenityProperty = {
   id: string;
   name: string;
-  keys: string[];
+  propertyKeys: string[];
+  rooms: { id: string; name: string; keys: string[] }[];
 };
 
 /**
- * Load the host's properties + their currently-selected amenities + the published
- * amenity catalog for the builder's "Edit amenities" modal (Phase 4b-3). Scoped to
- * the host (properties are public-read, so filter by host_id). The modal writes the
- * chosen keys back via the existing `replaceAmenitiesAction` (property_amenities SSOT).
+ * Load the host's properties (+ their rooms) with the amenity keys selected at each
+ * SCOPE (property-wide + per-room) + the published amenity catalog, for the builder's
+ * "Edit amenities" modal. Host-scoped (properties are public-read → filter by host_id).
  */
 export async function fetchBuilderAmenitiesAction(websiteId: string): Promise<
   | {
       ok: true;
-      properties: BuilderPropertyAmenities[];
+      properties: BuilderAmenityProperty[];
       groups: BuilderAmenityGroup[];
     }
   | { ok: false; error: string }
@@ -1134,25 +1138,52 @@ export async function fetchBuilderAmenitiesAction(websiteId: string): Promise<
   if (propsRes.error) return { ok: false, error: "load_failed" };
 
   const propIds = (propsRes.data ?? []).map((p) => p.id as string);
-  const { data: amRows } = await supabase
-    .from("property_amenities")
-    .select("property_id, amenity_key")
-    .in(
-      "property_id",
-      propIds.length ? propIds : ["00000000-0000-0000-0000-000000000000"],
-    );
-  const keysByProp = new Map<string, string[]>();
-  for (const r of amRows ?? []) {
-    const list = keysByProp.get(r.property_id as string) ?? [];
+  const fallback = ["00000000-0000-0000-0000-000000000000"];
+  const [roomsRes, amRes] = await Promise.all([
+    supabase
+      .from("property_rooms")
+      .select("id, property_id, name")
+      .in("property_id", propIds.length ? propIds : fallback)
+      .is("deleted_at", null)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("property_amenities")
+      .select("property_id, room_id, amenity_key")
+      .in("property_id", propIds.length ? propIds : fallback),
+  ]);
+
+  // Bucket amenity keys: property-wide (room_id null) vs per room id.
+  const propKeys = new Map<string, string[]>();
+  const roomKeys = new Map<string, string[]>();
+  for (const r of amRes.data ?? []) {
+    const rid = (r.room_id as string | null) ?? null;
+    const bucket = rid ? roomKeys : propKeys;
+    const mapKey = rid ?? (r.property_id as string);
+    const list = bucket.get(mapKey) ?? [];
     list.push(r.amenity_key as string);
-    keysByProp.set(r.property_id as string, list);
+    bucket.set(mapKey, list);
+  }
+  const roomsByProp = new Map<
+    string,
+    { id: string; name: string; keys: string[] }[]
+  >();
+  for (const rm of roomsRes.data ?? []) {
+    const pid = rm.property_id as string;
+    const list = roomsByProp.get(pid) ?? [];
+    list.push({
+      id: rm.id as string,
+      name: (rm.name as string | null) ?? "Untitled room",
+      keys: roomKeys.get(rm.id as string) ?? [],
+    });
+    roomsByProp.set(pid, list);
   }
 
-  const properties: BuilderPropertyAmenities[] = (propsRes.data ?? []).map(
+  const properties: BuilderAmenityProperty[] = (propsRes.data ?? []).map(
     (p) => ({
       id: p.id as string,
       name: (p.name as string | null) ?? "Untitled property",
-      keys: keysByProp.get(p.id as string) ?? [],
+      propertyKeys: propKeys.get(p.id as string) ?? [],
+      rooms: roomsByProp.get(p.id as string) ?? [],
     }),
   );
   const groups: BuilderAmenityGroup[] = catalog.map((g) => ({
@@ -1160,6 +1191,67 @@ export async function fetchBuilderAmenitiesAction(websiteId: string): Promise<
     items: g.items.map((i) => ({ key: i.slug, label: i.label })),
   }));
   return { ok: true, properties, groups };
+}
+
+/**
+ * Scope-safe amenity save for the builder modal: sets the keys for ONE scope — a
+ * property (roomId null) or a specific room — by DIFFING against the current rows at
+ * that exact scope, so it never disturbs the OTHER scope (unlike the whole-set
+ * `replaceAmenitiesAction`). Ownership: the property must belong to the website's host.
+ */
+export async function setBuilderAmenitiesAction(
+  websiteId: string,
+  propertyId: string,
+  roomId: string | null,
+  keys: string[],
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return { ok: false, error: "not_owner" };
+
+  const admin = createAdminClient();
+  const { data: prop } = await admin
+    .from("properties")
+    .select("id, host_id")
+    .eq("id", propertyId)
+    .maybeSingle<{ id: string; host_id: string }>();
+  if (!prop || prop.host_id !== own.hostId)
+    return { ok: false, error: "not_owner" };
+
+  const supabase = createServerClient();
+  let cur = supabase
+    .from("property_amenities")
+    .select("amenity_key")
+    .eq("property_id", propertyId);
+  cur = roomId ? cur.eq("room_id", roomId) : cur.is("room_id", null);
+  const { data: existing, error: readErr } = await cur;
+  if (readErr) return { ok: false, error: "load_failed" };
+
+  const have = new Set((existing ?? []).map((r) => r.amenity_key as string));
+  const want = new Set(keys);
+  const toAdd = [...want].filter((k) => !have.has(k));
+  const toRemove = [...have].filter((k) => !want.has(k));
+
+  if (toAdd.length) {
+    const { error } = await supabase.from("property_amenities").insert(
+      toAdd.map((k) => ({
+        property_id: propertyId,
+        room_id: roomId,
+        amenity_key: k,
+      })),
+    );
+    if (error) return { ok: false, error: "save_failed" };
+  }
+  if (toRemove.length) {
+    let del = supabase
+      .from("property_amenities")
+      .delete()
+      .eq("property_id", propertyId)
+      .in("amenity_key", toRemove);
+    del = roomId ? del.eq("room_id", roomId) : del.is("room_id", null);
+    const { error } = await del;
+    if (error) return { ok: false, error: "save_failed" };
+  }
+  return { ok: true };
 }
 
 /**

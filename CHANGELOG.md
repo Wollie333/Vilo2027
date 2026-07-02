@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 4b-3b: amenities editor gains property + per-room scopes.
+
+Amenities exist at two levels — property-wide and per-room (`property_amenities.room_id`) — so the
+"Edit amenities" modal now has a **data-source dropdown**: "Whole property" or a specific room. Both
+the property `amenities` block and the per-room `room_amenities` block open it. The save is now
+**scope-safe** — a new `setBuilderAmenitiesAction` diffs the keys at the exact scope (property or a
+room) and inserts/deletes only those rows, so editing a room's amenities never disturbs the
+property's (the previous whole-set replace would have). Verified live: adding an amenity to a room
+created a room-scoped row and left the property-level amenities untouched. `tsc` + `lint` + `pnpm build` green.
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 4b-3: edit property amenities from the builder.
 
 The property `amenities` Wielo block now has an **"Edit amenities…"** button in the inspector
