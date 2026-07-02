@@ -196,9 +196,7 @@ export function PagesManager({
                 ? rooms.map((room) => (
                     <RoomChildRow
                       key={room.roomId}
-                      websiteId={websiteId}
                       subdomain={subdomain}
-                      pageId={p.id}
                       room={room}
                     />
                   ))
@@ -292,24 +290,18 @@ export function PagesManager({
 /** A single room nested under the room-detail template — opens the builder
  *  scoped to that room (the `?room=` param drives "This room only" editing). */
 function RoomChildRow({
-  websiteId,
   subdomain,
-  pageId,
   room,
 }: {
-  websiteId: string;
   subdomain: string;
-  pageId: string;
   room: RoomChild;
 }) {
   const t = useTranslations("website");
+  // Display-only: every room renders from the shared Room detail template, which
+  // is edited via the Rooms / Room detail page in the builder (per-room overrides
+  // were retired in the Builder V2 cutover).
   return (
-    <PendingLink
-      href={`/website-editor/${websiteId}/pages/${pageId}?room=${room.roomId}`}
-      busy={{ title: t("openingEditor"), message: t("openingEditorMsg") }}
-      className="ptr"
-      style={{ gridTemplateColumns: GRID }}
-    >
+    <div className="row" style={{ gridTemplateColumns: GRID }}>
       <div
         className="flex min-w-0 items-center gap-2.5"
         style={{ paddingLeft: 30 }}
@@ -335,13 +327,8 @@ function RoomChildRow({
       </div>
       <div />
       <div />
-      <div className="flex items-center justify-end gap-1.5">
-        <span className="btn btn-ghost btn-sm" style={{ height: 32 }}>
-          <Pencil style={{ width: 14, height: 14, color: "var(--mute)" }} />
-          {t("editRoomPage")}
-        </span>
-      </div>
-    </PendingLink>
+      <div />
+    </div>
   );
 }
 

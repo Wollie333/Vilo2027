@@ -358,16 +358,28 @@ tab + consent-gated **Custom code**. All 5 phases done + pushed:
 DEFERRED (needs a live host GA4/Meta id / authed session to observe e2e): the actual pixel-fire on a
 published page + the dashboard settings round-trip. All type-checked + builder-verified; 169 vitest.
 
-## ▶▶ NEXT — BUILDER V2 PHASE 6 (CUTOVER) — NEEDS A FOUNDER DECISION FIRST
+## ▶▶ BUILDER V2 PHASE 6 CUTOVER — IN PROGRESS (founder signed off on the generic look, 2026-07-02)
 
-**Do NOT run destructively without sign-off.** Deleting `components/site/{safari,sabela,oceansview,
-marmalade}/` makes EVERY public page render through the generic token `PageDocRenderer` — distinct by
-tokens (colour/font/copy) but **NOT the pixel-perfect bespoke designs** the founder built. That's a
-visual change to the live site, not a neutral refactor. The token render variants were never built to
-reproduce each bespoke layout (Phase 2 deferred it). Options to resolve with the founder:
-(a) accept the generic token look at cutover; (b) build layout variants that reproduce each bespoke
-design before deleting; (c) keep bespoke themes as the public render and use v2 only for new custom
-pages. See `docs/features/BUILDER_V2_PLAN.md` §5 Phase 6.
+Founder confirmed (with the generic render screenshot + RoomBuilder feature-loss shown): "delete the
+old and apply the new." DONE so far (one commit): public render cut over to the ONE token path (bespoke
+branches removed from SitePageView/SiteRoomView/SectionRenderer + 5 site routes incl. checkout); OLD page
+builder deleted (website-editor/pages + orphaned (editor)/pages/[pageId] components); PagesManager pages
+→ /builder, room rows display-only; deleted sabela/oceansview/marmalade dirs + safari render files.
+`pnpm build` + tsc + lint + 169 vitest green; /builder + /builder-preview 200. Public tenant render NOT
+live-verified (vilotest fixture not seeded in this DB) — relies on build + the generic path being the
+original proven render.
+
+**REMAINING (this cutover):**
+- **System templates editable in the new builder** (founder ask): PagesManager list + link the system
+  pages (room_detail/search_results/checkout/thank-you) to /builder; ensure the builder exposes the
+  system widgets (room-scoped, booking_search, availability, search_results) so they're customisable.
+  (Page rows already link to /builder, so system pages that are rows already open — verify + fill gaps.)
+- **Nav-studio cutover + residual safari deletion:** the full-screen nav studio
+  (`website-editor/[websiteId]/navigation`, MenuStudio/NavSectionEditor) still imports `SafariNavCanvas`,
+  so `components/site/safari/{SafariNavCanvas,SafariShell,SafariNav,SafariLightbox,safari.css}` +
+  `sections/SafariSections` + `SafariContactForm` REMAIN. Cut the nav studio over to the new builder's
+  nav overlay, repoint the dashboard `(editor)/navigation` link, then delete the residual safari chrome.
+- Live-verify the public tenant render once a fixture is seeded (`scripts/seed-safari-qa.mjs` etc.).
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

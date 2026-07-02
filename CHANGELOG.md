@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 6 CUTOVER (render + old builder). Bespoke theme layers retired.
+
+Founder-approved cutover (with the visual tradeoff shown + signed off): the public site now renders
+through the ONE token path (a stored PageDoc via `PageDocRenderer`, else flat sections via the generic
+`SiteChrome` + `SectionRenderer`), and the OLD page builder is deleted. Every theme still applies its
+colours/fonts via `SiteThemeRoot` tokens — the distinctive bespoke *layouts* are gone.
+
+- **Render cutover** — removed the four bespoke per-theme branches from `SitePageView`, `SiteRoomView`,
+  and the public routes `site/book/page.tsx` (checkout), `site/book/thank-you`, `site/thank-you/[[...
+  goal]]`, `site/blog/page.tsx`, `site/blog/[postSlug]`. `SectionRenderer` dropped its theme dispatch
+  (always `GenericSection`). Each file keeps its generic fallback verbatim (data loading, FirePixelEvent/
+  Purchase, head/body code, JsonLd all intact).
+- **Deleted the old page builder** — `website-editor/[websiteId]/pages/[pageId]/` (PageBuilder,
+  RoomBuilder, ContainerCanvas, page.tsx, loadRoomBuilder) + the orphaned `(editor)/pages/[pageId]/`
+  components (SectionEditor/Library/Thumb, SeoAnalysis, SocialPreview, A11yCard, PageSeoCard,
+  loadPageBuilder). `PagesManager` page-edit/create/duplicate already open `/builder`; the per-room
+  rows are now display-only (per-room override editing retired — the shared Room-detail template is
+  edited via the Rooms page in the builder). `fields.tsx` was preserved (still used by the blog + nav
+  editors).
+- **Deleted the bespoke render dirs** — `components/site/{sabela,oceansview,marmalade}/` in full, the
+  safari render files (`SafariSiteView`, `SafariBookingDock`, `pages/`), and `sections/SafariSections`
+  was kept (needed by the safari nav-canvas + `SafariContactForm`).
+- **Interim (noted):** `components/site/safari/{SafariNavCanvas,SafariShell,SafariNav,SafariLightbox,
+  safari.css}` REMAIN because the still-active full-screen nav studio (`website-editor/[websiteId]/
+  navigation`) imports `SafariNavCanvas`. Follow-up: cut the nav studio over to the new builder's nav
+  overlay, then delete the residual safari chrome.
+- **Verified:** `pnpm build` passes (every route compiles), tsc + lint clean, 169 vitest; `/builder` +
+  `/builder-preview` render 200. (Public tenant render couldn't be exercised locally — the vilotest
+  fixture isn't seeded in this DB — but the generic path is the original proven render + build-verified.)
+  NEXT: system templates editable in the builder; nav-studio cutover + residual safari deletion.
+
 ## 2026-07-02 — Tracking/Events redesign Ph5: dashboard settings parity. PLAN COMPLETE.
 
 The dashboard Website → Settings form now edits the SAME full pixel set as the builder's Tracking tab

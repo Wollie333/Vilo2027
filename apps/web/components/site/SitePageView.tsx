@@ -8,7 +8,6 @@ import {
   siteBookHref,
 } from "@/lib/site/loadSitePage";
 import { pageKeyFor } from "@/lib/site/menuPage";
-import { buildSafariNav } from "@/lib/site/safariNav";
 import { buildSiteJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
@@ -17,10 +16,6 @@ import { websiteAssetUrl } from "@/lib/website/assets";
 import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
 import { PageHeadCode, PageBodyCode } from "./PageHeadCode";
-import { SafariSiteView } from "./safari/SafariSiteView";
-import { SabelaSiteView } from "./sabela/SabelaSiteView";
-import { OceansViewSiteView } from "./oceansview/OceansViewSiteView";
-import { MarmaladeSiteView } from "./marmalade/MarmaladeSiteView";
 import { SectionRenderer } from "./SectionRenderer";
 import { PageDocRenderer } from "./v2/PageDocRenderer";
 import { SiteChrome } from "./SiteChrome";
@@ -217,118 +212,10 @@ export async function SitePageView({
     );
   }
 
-  // Safari is fully bespoke — EVERY page renders through its layer (no page ever
-  // falls back to the standard chrome / old styles).
-  const activeThemeSlug = ctx.previewThemeSlug ?? ctx.theme.preset;
-  if (activeThemeSlug === "safari") {
-    return (
-      <>
-        <JsonLd graph={jsonLdGraph} />
-        {pageMarketing}
-        {/* Wrap in SiteThemeRoot so the host's --site-accent reaches the Safari
-            layer (its --accent derives from it); Safari keeps its own bg/ink. */}
-        <SiteThemeRoot theme={ctx.theme}>
-          <SafariSiteView
-            kind={result.page.kind}
-            pageTitle={result.page.title ?? undefined}
-            sections={result.sections}
-            data={result.data}
-            asset={siteAsset}
-            brandName={ctx.brand.name}
-            contactEmail={ctx.brand.contactEmail}
-            contactPhone={ctx.brand.contactPhone}
-            nav={buildSafariNav(ctx, currentPageKey)}
-            bookHref={headerBookHref}
-            previewPages={previewPages}
-            analytics={ctx.analytics}
-            interactive={!ctx.preview}
-            websiteId={ctx.websiteId}
-          />
-        </SiteThemeRoot>
-      </>
-    );
-  }
-  if (activeThemeSlug === "sabela") {
-    return (
-      <>
-        <JsonLd graph={jsonLdGraph} />
-        {pageMarketing}
-        {/* Wrap in SiteThemeRoot so the host's --site-* reach the Sabela layer
-            (which declares the same tokens under .wielo-sabela). */}
-        <SiteThemeRoot theme={ctx.theme}>
-          <SabelaSiteView
-            kind={result.page.kind}
-            pageTitle={result.page.title ?? undefined}
-            sections={result.sections}
-            data={result.data}
-            asset={siteAsset}
-            brandName={ctx.brand.name}
-            contactEmail={ctx.brand.contactEmail}
-            contactPhone={ctx.brand.contactPhone}
-            nav={buildSafariNav(ctx, currentPageKey)}
-            bookHref={headerBookHref}
-            previewPages={previewPages}
-            analytics={ctx.analytics}
-            interactive={!ctx.preview}
-            websiteId={ctx.websiteId}
-          />
-        </SiteThemeRoot>
-      </>
-    );
-  }
-  if (activeThemeSlug === "oceansview") {
-    return (
-      <>
-        <JsonLd graph={jsonLdGraph} />
-        {pageMarketing}
-        <SiteThemeRoot theme={ctx.theme}>
-          <OceansViewSiteView
-            kind={result.page.kind}
-            pageTitle={result.page.title ?? undefined}
-            sections={result.sections}
-            data={result.data}
-            asset={siteAsset}
-            brandName={ctx.brand.name}
-            contactEmail={ctx.brand.contactEmail}
-            contactPhone={ctx.brand.contactPhone}
-            nav={buildSafariNav(ctx, currentPageKey)}
-            bookHref={headerBookHref}
-            previewPages={previewPages}
-            analytics={ctx.analytics}
-            interactive={!ctx.preview}
-            websiteId={ctx.websiteId}
-          />
-        </SiteThemeRoot>
-      </>
-    );
-  }
-  if (activeThemeSlug === "marmalade") {
-    return (
-      <>
-        <JsonLd graph={jsonLdGraph} />
-        {pageMarketing}
-        <SiteThemeRoot theme={ctx.theme}>
-          <MarmaladeSiteView
-            kind={result.page.kind}
-            pageTitle={result.page.title ?? undefined}
-            sections={result.sections}
-            data={result.data}
-            asset={siteAsset}
-            brandName={ctx.brand.name}
-            contactEmail={ctx.brand.contactEmail}
-            contactPhone={ctx.brand.contactPhone}
-            nav={buildSafariNav(ctx, currentPageKey)}
-            bookHref={headerBookHref}
-            previewPages={previewPages}
-            analytics={ctx.analytics}
-            interactive={!ctx.preview}
-            websiteId={ctx.websiteId}
-          />
-        </SiteThemeRoot>
-      </>
-    );
-  }
-
+  // Builder V2 cutover: EVERY page renders through the ONE token path — a stored
+  // PageDoc via PageDocRenderer (above), else flat sections via the generic
+  // SiteChrome + SectionRenderer below. The bespoke per-theme layers are gone; the
+  // active theme still supplies colours/fonts via SiteThemeRoot tokens.
   return (
     <>
       <JsonLd graph={jsonLdGraph} />

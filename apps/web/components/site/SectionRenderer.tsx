@@ -59,10 +59,6 @@ import {
   ElDividerSection,
 } from "./sections/Elements";
 import { ColumnsSection, FlexSection } from "./sections/ColumnsSection";
-import { renderSafariSection, type SafariCtx } from "./sections/SafariSections";
-import { renderSabelaSection } from "./sabela/SabelaSections";
-import { renderOceansViewSection } from "./oceansview/OceansViewSections";
-import { renderMarmaladeSection } from "./marmalade/MarmaladeSections";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -78,8 +74,6 @@ export function SectionRenderer({
   websiteId,
   interactive = false,
   errorLabel,
-  themeVariant,
-  safariCtx,
 }: {
   sections: WebsiteSection[];
   data?: SiteData;
@@ -91,11 +85,6 @@ export function SectionRenderer({
   /** Builder-only: shown in place of a section that throws at render. When
    *  omitted (public site), a broken section is silently omitted instead. */
   errorLabel?: string;
-  /** Active theme slug. When `"safari"`, supported section types render in the
-   *  bespoke NenGama design (others fall back to the generic look). */
-  themeVariant?: string;
-  /** Cross-page links + brand for the Safari bands (links inert in the builder). */
-  safariCtx?: SafariCtx;
 }) {
   return (
     <>
@@ -110,8 +99,6 @@ export function SectionRenderer({
                 asset={asset}
                 websiteId={websiteId}
                 interactive={interactive}
-                themeVariant={themeVariant}
-                safariCtx={safariCtx}
               />
             </SectionBoundary>
           </SectionWrap>
@@ -161,62 +148,15 @@ function SectionSwitch({
   asset,
   websiteId,
   interactive,
-  themeVariant,
-  safariCtx,
 }: {
   section: WebsiteSection;
   data?: SiteData;
   asset?: SiteAssetResolver;
   websiteId?: string;
   interactive?: boolean;
-  themeVariant?: string;
-  safariCtx?: SafariCtx;
 }) {
-  // Theme-styled variant first; falls through to the generic block when the
-  // active theme has no bespoke design for this section type.
-  if (themeVariant === "safari") {
-    const safari = renderSafariSection(section, {
-      data,
-      asset,
-      ctx: safariCtx,
-      websiteId,
-      interactive,
-    });
-    if (safari !== undefined) return safari;
-  }
-  if (themeVariant === "sabela") {
-    // SabelaCtx is structurally identical to SafariCtx — reuse the same ctx.
-    const sabela = renderSabelaSection(section, {
-      data,
-      asset,
-      ctx: safariCtx,
-      websiteId,
-      interactive,
-    });
-    if (sabela !== undefined) return sabela;
-  }
-  if (themeVariant === "oceansview") {
-    // OceansViewCtx is structurally identical to SafariCtx — reuse the ctx.
-    const ov = renderOceansViewSection(section, {
-      data,
-      asset,
-      ctx: safariCtx,
-      websiteId,
-      interactive,
-    });
-    if (ov !== undefined) return ov;
-  }
-  if (themeVariant === "marmalade") {
-    // MarmaladeCtx is structurally identical to SafariCtx — reuse the ctx.
-    const mm = renderMarmaladeSection(section, {
-      data,
-      asset,
-      ctx: safariCtx,
-      websiteId,
-      interactive,
-    });
-    if (mm !== undefined) return mm;
-  }
+  // Builder V2 cutover: one token-driven render for every theme (the bespoke
+  // per-theme section renderers are gone).
   return (
     <GenericSection
       section={section}

@@ -2,14 +2,6 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
-import { SafariShell } from "@/components/site/safari/SafariShell";
-import { SafariThankYouContent } from "@/components/site/safari/pages/SafariThankYouContent";
-import { SabelaShell } from "@/components/site/sabela/SabelaShell";
-import { SabelaThankYouContent } from "@/components/site/sabela/SabelaThankYouContent";
-import { OceansViewShell } from "@/components/site/oceansview/OceansViewShell";
-import { OceansViewThankYouContent } from "@/components/site/oceansview/OceansViewThankYouContent";
-import { MarmaladeShell } from "@/components/site/marmalade/MarmaladeShell";
-import { MarmaladeThankYouContent } from "@/components/site/marmalade/MarmaladeThankYouContent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import {
   SectionShell,
@@ -17,7 +9,6 @@ import {
   Muted,
 } from "@/components/site/sections/_shared";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
-import { buildSafariNav } from "@/lib/site/safariNav";
 import {
   buildSitePreviewPages,
   loadSiteContext,
@@ -107,8 +98,6 @@ export default async function SiteFormThankYouPage({
   const goal = resolveGoal(goalSeg);
   const goalCopy = GOALS[goal];
   const firstName = sp?.name?.trim().slice(0, 60) || null;
-  // POPIA: the goal pixel is consent-gated unless the host disabled the gate.
-  const consentRequired = ctx.analytics?.cookieConsent?.enabled !== false;
 
   // The host's per-form copy overrides the goal defaults.
   let message: string = goalCopy.message;
@@ -137,161 +126,6 @@ export default async function SiteFormThankYouPage({
   const previewPages = ctx.preview
     ? await buildSitePreviewPages(ctx)
     : undefined;
-
-  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "safari") {
-    const nav = buildSafariNav(ctx);
-    const navLinks = nav.links;
-    const bookHref =
-      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
-    return (
-      <SiteThemeRoot theme={ctx.theme}>
-        <SafariShell
-          brandName={ctx.brand.name}
-          nav={nav}
-          bookHref={bookHref}
-          previewPages={previewPages}
-          analytics={ctx.analytics}
-          interactive={!ctx.preview}
-        >
-          {!ctx.preview ? (
-            <FirePixelEvent
-              event={goalCopy.event}
-              consentRequired={consentRequired}
-            />
-          ) : null}
-          <SafariThankYouContent
-            state="form"
-            firstName={firstName}
-            eyebrow={goalCopy.eyebrow}
-            headingText={heading}
-            message={message}
-            homeHref={
-              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
-              navLinks[0]?.href
-            }
-            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
-            roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
-          />
-        </SafariShell>
-      </SiteThemeRoot>
-    );
-  }
-
-  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "sabela") {
-    const nav = buildSafariNav(ctx);
-    const navLinks = nav.links;
-    const bookHref =
-      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
-    return (
-      <SiteThemeRoot theme={ctx.theme}>
-        <SabelaShell
-          brandName={ctx.brand.name}
-          nav={nav}
-          bookHref={bookHref}
-          previewPages={previewPages}
-          analytics={ctx.analytics}
-          interactive={!ctx.preview}
-        >
-          {!ctx.preview ? (
-            <FirePixelEvent
-              event={goalCopy.event}
-              consentRequired={consentRequired}
-            />
-          ) : null}
-          <SabelaThankYouContent
-            state="form"
-            firstName={firstName}
-            eyebrow={goalCopy.eyebrow}
-            headingText={heading}
-            message={message}
-            homeHref={
-              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
-              navLinks[0]?.href
-            }
-            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
-            roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
-          />
-        </SabelaShell>
-      </SiteThemeRoot>
-    );
-  }
-
-  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "oceansview") {
-    const nav = buildSafariNav(ctx);
-    const navLinks = nav.links;
-    const bookHref =
-      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
-    return (
-      <SiteThemeRoot theme={ctx.theme}>
-        <OceansViewShell
-          brandName={ctx.brand.name}
-          nav={nav}
-          bookHref={bookHref}
-          previewPages={previewPages}
-          analytics={ctx.analytics}
-          interactive={!ctx.preview}
-        >
-          {!ctx.preview ? (
-            <FirePixelEvent
-              event={goalCopy.event}
-              consentRequired={consentRequired}
-            />
-          ) : null}
-          <OceansViewThankYouContent
-            state="form"
-            firstName={firstName}
-            eyebrow={goalCopy.eyebrow}
-            headingText={heading}
-            message={message}
-            homeHref={
-              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
-              navLinks[0]?.href
-            }
-            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
-            roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
-          />
-        </OceansViewShell>
-      </SiteThemeRoot>
-    );
-  }
-  if ((ctx.previewThemeSlug ?? ctx.theme.preset) === "marmalade") {
-    const nav = buildSafariNav(ctx);
-    const navLinks = nav.links;
-    const bookHref =
-      ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
-    return (
-      <SiteThemeRoot theme={ctx.theme}>
-        <MarmaladeShell
-          brandName={ctx.brand.name}
-          nav={nav}
-          bookHref={bookHref}
-          previewPages={previewPages}
-          analytics={ctx.analytics}
-          interactive={!ctx.preview}
-        >
-          {!ctx.preview ? (
-            <FirePixelEvent
-              event={goalCopy.event}
-              consentRequired={consentRequired}
-            />
-          ) : null}
-          <MarmaladeThankYouContent
-            state="form"
-            firstName={firstName}
-            eyebrow={goalCopy.eyebrow}
-            headingText={heading}
-            message={message}
-            homeHref={
-              navLinks.find((l) => /^home$/i.test(l.label))?.href ||
-              navLinks[0]?.href
-            }
-            contactHref={navLinks.find((l) => /contact/i.test(l.label))?.href}
-            roomsHref={navLinks.find((l) => /suite|room/i.test(l.label))?.href}
-          />
-        </MarmaladeShell>
-      </SiteThemeRoot>
-    );
-  }
 
   // Generic themes — the themed shell + a centred confirmation card.
   return (
