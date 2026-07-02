@@ -18,6 +18,14 @@ const HERO = {
   marmalade: U("photo-1505691938895-1758d7feb511"),
 };
 
+// HOME "story" intro band → 2-col photo + floating stat badge (variant "story").
+const STORY = {
+  safari: { img: U("photo-1582719478250-c89cae4dc85b", 1200), badge_value: "2009", badge_label: "Family-run since" },
+  sabela: { img: U("photo-1504280390367-361c6d9f38f4", 1200), badge_value: "12,000", badge_label: "Hectares rewilded" },
+  oceansview: { img: U("photo-1520250497591-112f2f40a3f4", 1200), badge_value: "3", badge_label: "Ocean pools" },
+  marmalade: { img: U("photo-1505693416388-ac5ce068fe85", 1200), badge_value: "1873", badge_label: "A restored parsonage" },
+};
+
 async function enrich(slug) {
   const { data: theme } = await admin.from("site_themes").select("page_templates").eq("slug", slug).maybeSingle();
   if (!theme) { console.log(`  ${slug}: not found`); return; }
@@ -33,6 +41,15 @@ async function enrich(slug) {
     // A photo hero needs a scrim + light text to stay legible.
     hero.props.overlay = hero.props.overlay || "strong";
     hero.props.textTone = "light";
+    changed++;
+  }
+  const story = secs.find((s) => s.type === "intro");
+  if (story && STORY[slug]) {
+    story.props = story.props || {};
+    story.props.variant = "story";
+    story.props.image_path = STORY[slug].img;
+    story.props.badge_value = STORY[slug].badge_value;
+    story.props.badge_label = STORY[slug].badge_label;
     changed++;
   }
   await admin.from("site_themes").update({ page_templates: pages }).eq("slug", slug);

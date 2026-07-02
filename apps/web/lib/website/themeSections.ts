@@ -133,7 +133,12 @@ const safari = {
       s.props.heading = "An unfenced wilderness";
       s.props.body =
         "Some places you pass through. This one stays with you. Days here move to the rhythm of the reserve — early light, long drives, the slow hush of the afternoon, and a fire under more stars than you have ever seen.\n\nReplace this with your own story: the land, the welcome, and why guests make the journey.";
-      s.props.variant = "lead";
+      s.props.eyebrow = "Our story";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200&q=80";
+      s.props.badge_value = "2009";
+      s.props.badge_label = "Family-run since";
+      s.props.variant = "story";
     }),
   // ── About-page blocks (the bespoke NenGama About design) ──
   aboutHero: () =>
@@ -422,7 +427,11 @@ const sabela = {
       s.props.heading = "A safari measured in moments, not checklists";
       s.props.body =
         "Some places you pass through. This one stays with you. Days here move to the rhythm of the reserve — first light on the riverbed, long drives, the slow hush of the afternoon, and a fire under more stars than you have ever seen.\n\nReplace this with your own story: the land, the welcome, and why guests make the journey.";
-      s.props.variant = "lead";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1200&q=80";
+      s.props.badge_value = "12,000";
+      s.props.badge_label = "Hectares rewilded";
+      s.props.variant = "story";
     }),
   // ── About-page blocks ──
   aboutHero: () =>
@@ -791,7 +800,11 @@ const oceansview = {
       s.props.heading = "Barefoot luxury, on the bay";
       s.props.body =
         "Days here run on ocean time — a swim before breakfast, long lunches in the shade, the slow gold of the afternoon, and the sound of the surf to fall asleep to.\n\nReplace this with your own story: the beach, the welcome, and why guests come back every summer.";
-      s.props.variant = "lead";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&q=80";
+      s.props.badge_value = "3";
+      s.props.badge_label = "Ocean pools";
+      s.props.variant = "story";
     }),
   // ── About-page blocks ──
   aboutHero: () =>
@@ -1168,7 +1181,11 @@ const marmalade = {
       s.props.heading = "It's less a hotel, more a home with spare rooms.";
       s.props.body =
         "We're a five-room guesthouse in the old parsonage on Church Street — pressed ceilings, deep baths, a long table, and a garden the kitchen raids every morning.\n\nThere's no front desk, no piped music, and no fee for booking straight with us. Just a key, a cup of tea on arrival, and whichever room suits you best.";
-      s.props.variant = "lead";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80";
+      s.props.badge_value = "1873";
+      s.props.badge_label = "A restored parsonage";
+      s.props.variant = "story";
     }),
   // ── About-page blocks ──
   aboutHero: () =>

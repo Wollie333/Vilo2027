@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-02 — Pixel-perfect themes, slice 2: the designed "story" band (photo + stat badge).
+
+New `intro` **`story`** variant reproduces every theme's story band — a 2-col layout: eyebrow + heading +
+body beside a framed photo with a floating stat badge (the design signature all four themes shared).
+
+- **`IntroSection.tsx`** — renders the `story` variant (uses `image_path` + `badge_value`/`badge_label`,
+  which were already in the schema but drawn by no variant). Token-styled (accent eyebrow, `--site-*`
+  colours, card shadow/radius), stacks on mobile.
+- **`sections.schema.ts`** — `INTRO_VARIANTS += "story"`.
+- **`themeSections.ts` + `enrich-theme-templates.mjs`** — each theme's `story()` now uses `variant:"story"`
+  with its original photo + a stat badge (Safari 2009/Family-run · Sabela 12,000/Hectares · Oceans View
+  3/Ocean pools · Marmalade 1873/Restored parsonage). DB re-enriched.
+- **Verified live** (marmalade preview): the story band now renders the framed bedroom photo + "1873 /
+  A restored parsonage" badge beside the copy. tsc + build + 173 vitest green.
+
 ## 2026-07-02 — Pixel-perfect themes, slice 1: stock hero photos on all four themes.
 
 Kicking off "make activated themes look like the original designs while staying builder-editable". Phase 6
