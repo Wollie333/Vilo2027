@@ -63,6 +63,9 @@ type SettingsState = {
   popupFormId: string;
   ga4MeasurementId: string;
   metaPixelId: string;
+  gtmId: string;
+  tiktokId: string;
+  googleAdsId: string;
   cookieConsentEnabled: boolean;
   cookieConsentMessage: string;
   privacyPolicyHref: string;
@@ -229,6 +232,9 @@ export function SettingsForm({
         popupFormId: state.popupFormId,
         ga4MeasurementId: state.ga4MeasurementId.trim(),
         metaPixelId: state.metaPixelId.trim(),
+        gtmId: state.gtmId.trim(),
+        tiktokId: state.tiktokId.trim(),
+        googleAdsId: state.googleAdsId.trim(),
         cookieConsentEnabled: state.cookieConsentEnabled,
         cookieConsentMessage: state.cookieConsentMessage.trim(),
         privacyPolicyHref: state.privacyPolicyHref.trim(),
@@ -701,6 +707,45 @@ export function SettingsForm({
             placeholder="123456789012345"
             maxLength={20}
             onChange={(e) => set("metaPixelId", e.target.value)}
+          />
+        </Setrow>
+        <Setrow
+          title="Google Tag Manager"
+          desc="Your GTM container ID — applies to every page."
+          col
+        >
+          <input
+            className="field mono"
+            value={state.gtmId}
+            placeholder="GTM-XXXXXXX"
+            maxLength={20}
+            onChange={(e) => set("gtmId", e.target.value)}
+          />
+        </Setrow>
+        <Setrow
+          title="TikTok Pixel"
+          desc="Your TikTok pixel ID — applies to every page."
+          col
+        >
+          <input
+            className="field mono"
+            value={state.tiktokId}
+            placeholder="CXXXXXXXXXXXXXXXXXXX"
+            maxLength={40}
+            onChange={(e) => set("tiktokId", e.target.value)}
+          />
+        </Setrow>
+        <Setrow
+          title="Google Ads conversion"
+          desc="Your Google Ads conversion ID — applies to every page."
+          col
+        >
+          <input
+            className="field mono"
+            value={state.googleAdsId}
+            placeholder="AW-XXXXXXXXX"
+            maxLength={20}
+            onChange={(e) => set("googleAdsId", e.target.value)}
           />
         </Setrow>
         <Setrow

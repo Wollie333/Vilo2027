@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-02 — Tracking/Events redesign Ph5: dashboard settings parity. PLAN COMPLETE.
+
+The dashboard Website → Settings form now edits the SAME full pixel set as the builder's Tracking tab
+(both write `settings.analytics`), so the two editors stay consistent.
+
+- **`schemas.ts`** — `websiteSettingsSchema` += `gtmId` / `tiktokId` / `googleAdsId` (regex-validated).
+- **`actions.ts`** — `saveWebsiteSettingsAction` writes gtm/tiktok/googleAds into `settings.analytics`
+  (merges over the previous analytics so nothing is dropped).
+- **`SettingsForm.tsx`** + **`settings/page.tsx`** — three new rows (GTM · TikTok · Google Ads) bound to
+  the form state + hydrated from `settings.analytics`.
+- tsc + lint clean, 169 vitest. (Dashboard form is behind host auth — full round-trip needs a logged-in
+  session; the wiring mirrors the existing GA4/Meta rows.)
+  **TRACKING/EVENTS PLAN COMPLETE** (Ph1 site-wide Tracking · Ph2 Events tab · Ph3 consent-gated custom
+  code · Ph4 GTM/TikTok/GAds injection · Ph5 dashboard parity). NEXT = Builder V2 Phase 6 cutover.
+
 ## 2026-07-02 — Tracking/Events redesign Ph4: GTM + TikTok + Google Ads
 
 The full pixel set is now injected — no more dead fields. All five are site-wide + consent-gated.

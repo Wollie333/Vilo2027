@@ -642,6 +642,27 @@ export const websiteSettingsSchema = z.object({
     .regex(/^\d{6,20}$/, "invalid_pixel")
     .or(z.literal(""))
     .default(""),
+  gtmId: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^GTM-[A-Z0-9]{4,}$/i, "invalid_gtm")
+    .or(z.literal(""))
+    .default(""),
+  tiktokId: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^[A-Z0-9]{10,}$/i, "invalid_tiktok")
+    .or(z.literal(""))
+    .default(""),
+  googleAdsId: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^AW-[0-9]{6,}$/i, "invalid_gads")
+    .or(z.literal(""))
+    .default(""),
   cookieConsentEnabled: z.boolean().default(true),
   cookieConsentMessage: z.string().trim().max(300).default(""),
   privacyPolicyHref: z.string().trim().max(300).default(""),

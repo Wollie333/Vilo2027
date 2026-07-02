@@ -2572,6 +2572,9 @@ export async function saveWebsiteSettingsAction(
     popupFormId,
     ga4MeasurementId,
     metaPixelId,
+    gtmId,
+    tiktokId,
+    googleAdsId,
     cookieConsentEnabled,
     cookieConsentMessage,
     privacyPolicyHref,
@@ -2643,8 +2646,13 @@ export async function saveWebsiteSettingsAction(
       },
     },
     analytics: {
+      ...(((row?.settings as { analytics?: Record<string, unknown> } | null)
+        ?.analytics ?? {}) as Record<string, unknown>),
       ga4: ga4MeasurementId.trim().toUpperCase(),
       metaPixel: metaPixelId.trim(),
+      gtm: gtmId.trim().toUpperCase(),
+      tiktok: tiktokId.trim().toUpperCase(),
+      googleAds: googleAdsId.trim().toUpperCase(),
       cookieConsent: {
         enabled: cookieConsentEnabled,
         message: cookieConsentMessage.trim(),

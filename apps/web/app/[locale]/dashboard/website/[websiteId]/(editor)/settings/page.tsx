@@ -51,6 +51,9 @@ export default async function WebsiteSettingsPage({
   const analytics = (data.settings.analytics ?? {}) as {
     ga4?: string;
     metaPixel?: string;
+    gtm?: string;
+    tiktok?: string;
+    googleAds?: string;
     cookieConsent?: {
       enabled?: boolean;
       message?: string;
@@ -107,6 +110,9 @@ export default async function WebsiteSettingsPage({
         popupFormId: pop.formId ?? "",
         ga4MeasurementId: analytics.ga4 ?? "",
         metaPixelId: analytics.metaPixel ?? "",
+        gtmId: analytics.gtm ?? "",
+        tiktokId: analytics.tiktok ?? "",
+        googleAdsId: analytics.googleAds ?? "",
         cookieConsentEnabled: consent.enabled !== false,
         cookieConsentMessage: consent.message ?? "",
         privacyPolicyHref: consent.privacyHref ?? "",
