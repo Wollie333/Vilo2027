@@ -26,6 +26,14 @@ const STORY = {
   marmalade: { img: U("photo-1505693416388-ac5ce068fe85", 1200), badge_value: "1873", badge_label: "A restored parsonage" },
 };
 
+// HOME closing CTA band → full-bleed photo band + scrim (banner variant).
+const CTA = {
+  safari: U("photo-1469474968028-56623f02e42e", 2000),
+  sabela: U("photo-1516426122078-c23e76319801", 2000),
+  oceansview: U("photo-1507525428034-b723cf961d3e", 2000),
+  marmalade: U("photo-1505691938895-1758d7feb511", 2000),
+};
+
 async function enrich(slug) {
   const { data: theme } = await admin.from("site_themes").select("page_templates").eq("slug", slug).maybeSingle();
   if (!theme) { console.log(`  ${slug}: not found`); return; }
@@ -50,6 +58,15 @@ async function enrich(slug) {
     story.props.image_path = STORY[slug].img;
     story.props.badge_value = STORY[slug].badge_value;
     story.props.badge_label = STORY[slug].badge_label;
+    changed++;
+  }
+  // The closing CTA is the LAST cta on the home page (banner).
+  const ctas = secs.filter((s) => s.type === "cta");
+  const cta = ctas[ctas.length - 1];
+  if (cta && CTA[slug]) {
+    cta.props = cta.props || {};
+    cta.props.variant = "banner";
+    cta.props.image_path = CTA[slug];
     changed++;
   }
   await admin.from("site_themes").update({ page_templates: pages }).eq("slug", slug);

@@ -278,6 +278,8 @@ const safari = {
     build("cta", (s) => {
       s.tone = "dark";
       s.props.heading = "Your dates, under wide skies";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=2000&q=80";
       s.props.body =
         "Book direct for the best rate and first pick of the season — we'll take care of the rest.";
       s.props.button_label = "Check availability";
@@ -556,6 +558,8 @@ const sabela = {
     build("cta", (s) => {
       s.tone = "dark";
       s.props.heading = "Your safari begins with a single message";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=2000&q=80";
       s.props.body =
         "Book direct for the best rate and first pick of the season — we will take care of the rest.";
       s.props.button_label = "Plan your safari";
@@ -926,6 +930,8 @@ const oceansview = {
   ctaBanner: () =>
     build("cta", (s) => {
       s.props.heading = "Your room by the sea is waiting";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=2000&q=80";
       s.props.body =
         "Book direct for the best rate and a free upgrade when we can — we will take care of the rest.";
       s.props.button_label = "Book a room";
@@ -1308,6 +1314,8 @@ const marmalade = {
   ctaBanner: () =>
     build("cta", (s) => {
       s.props.heading = "Come stay a night or three";
+      s.props.image_path =
+        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2000&q=80";
       s.props.body =
         "Booked direct with the house — the price you see is the price you pay, with breakfast and 0% booking fees.";
       s.props.button_label = "Check availability";

@@ -79,18 +79,41 @@ export function CtaSection({ props }: { props: Props }) {
     );
   }
 
-  // BANNER (default) — full-width centered band.
+  // BANNER (default) — full-width centered band. With an image it becomes a
+  // full-bleed photo band + dark scrim + light text (the designed closing CTA);
+  // without one it's the flat theme surface.
+  const onImage = !!props.image_path;
+  const bannerStyle = onImage
+    ? {
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)),url(${props.image_path})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : { background: "var(--site-surface)" };
   return (
     <section
-      style={{ background: "var(--site-surface)" }}
-      className="px-5 py-16 md:py-20"
+      style={bannerStyle}
+      className={onImage ? "px-5 py-24 md:py-32" : "px-5 py-16 md:py-20"}
     >
       <div className="mx-auto w-full max-w-3xl text-center">
-        <CtaHeading>{props.heading}</CtaHeading>
+        <h2
+          style={{
+            fontFamily: "var(--site-font-heading)",
+            color: onImage ? "#ffffff" : "var(--site-ink)",
+          }}
+          className="text-2xl font-semibold tracking-tight md:text-3xl"
+        >
+          {props.heading}
+        </h2>
         {props.body ? (
-          <Muted className="mx-auto mt-3 max-w-lg text-base">
+          <p
+            style={{
+              color: onImage ? "rgba(255,255,255,0.9)" : "var(--site-mute)",
+            }}
+            className="mx-auto mt-3 max-w-lg text-base"
+          >
             {props.body}
-          </Muted>
+          </p>
         ) : null}
         <div className="mt-7 flex justify-center">
           <SiteButton href={props.button_href}>{props.button_label}</SiteButton>
