@@ -19,7 +19,7 @@ import {
 
 import { GenericSection } from "../SectionRenderer";
 import { SectionBoundary } from "../SectionBoundary";
-import { sectionToneStyle } from "../sections/_shared";
+import { sectionToneStyle, blockFrameStyle } from "../sections/_shared";
 import {
   IconLeaf,
   LogoLeaf,
@@ -179,6 +179,9 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
     ...spaceStyle(mergedSpace(node, layer), SECTION_DEFAULT),
     ...(node.borderB ? { borderBottom: node.borderB } : {}),
     background: node.bg ?? toneBg,
+    // Per-block custom design (Phase 5): background/border/radius/max-width/min-height
+    // from `node.style` win over the theme default.
+    ...blockFrameStyle(node.style),
   };
   const inner: CSSProperties = {
     ...toneVars,
@@ -243,7 +246,11 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
   return (
     <div
       key={node.id}
-      style={spaceStyle(mergedSpace(node, layer), ZERO)}
+      style={{
+        ...spaceStyle(mergedSpace(node, layer), ZERO),
+        // Per-block custom design (Phase 5): frame this block from `node.style`.
+        ...blockFrameStyle(node.style),
+      }}
       data-node-id={node.id}
       data-node-kind="widget"
     >

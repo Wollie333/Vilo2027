@@ -44,8 +44,14 @@
 > New **"Content blocks"** group (12 composites: hero/intro/highlights/stats/cta/host_bio/values/
 > rich_text/faq/pricing/logos/trust) + 6 live **Wielo blocks** (addons/journal/policies/rate_table/
 > room_rates/seasonal_pricing) with `DEMO_*` canvas sample data. Verified live (library shows all
-> groups). **NEXT = Phase 5** (per-block custom design — needs `PageDocRenderer` to APPLY `blockStyle`).
-> Deferred: rich per-item editors for composite list blocks; rates/seasonal DATA editor.
+> groups). Phase 5 done (below).
+>
+> **Phase 5 (done — per-block custom design):** shared `blockFrameStyle(style)` in `_shared.tsx`
+> (background/border/radius/max-width/min-height), applied in `PageDocRenderer` on section + widget
+> wrappers (it never rendered `node.style` before). Inspector **Style tab** exposes the controls (write
+> `node.style` via `patchStyle`). Works on any block. Verified live: home hero got radius 20px + border on
+> the canvas; reset clean. **NEXT = Phase 6** (standalone setup wizard + go-live readiness gate — the last
+> major phase). Deferred: typography controls (scoped CSS); rich per-item editors; rates/seasonal editor.
 >
 > **Phase 4b-2 (done):** builder CANVAS now renders the host's REAL data (not demo).
 > `builder/page.tsx loadRealPage` builds a real `SiteContext` (`loadSiteContext`) + assembles

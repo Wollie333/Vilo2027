@@ -136,7 +136,7 @@ already written but uncommitted.
   static website content. Only on Wielo blocks.
 - Likely sub-sliced per block family (rooms, amenities, rates, gallery).
 
-### Phase 5 — Per-block STYLE override UI
+### Phase 5 — Per-block STYLE override UI  ✅ DONE (see progress log 2026-07-02)
 - Expose the existing `blockStyle` fields (border, borderColor, radius, maxWidth,
   minHeight, heading/body size+weight, per-device) in the Inspector **Style** tab so
   the host restyles individual blocks over the theme default. Reset-to-theme control.
@@ -323,3 +323,16 @@ already written but uncommitted.
   `tsc`+`lint`+`build` green. **Block set is now COMPLETE.** NEXT = **Phase 5** (per-block custom design —
   expose `blockStyle` + make `PageDocRenderer` apply it). Deferred: rich per-item editors for composite
   arrays; the rates/seasonal DATA editor.
+- _2026-07-02_ — ✅ **Phase 5 DONE (per-block custom design).** `node.style` (blockStyle) existed on
+  every node but the v2 `PageDocRenderer` never applied it. Added a shared `blockFrameStyle(style)` →
+  `CSSProperties` (background / border+colour / corner radius+overflow / max-width / min-height; margins
+  stay `node.space`) in `_shared.tsx`, applied on BOTH the section outer AND the widget wrapper in
+  `PageDocRenderer`. Inspector **Style tab** now exposes those controls (SegRows + a Background field)
+  writing `node.style` via a new `patchStyle` (merges into `node.style`); `NodeFields` gained `style`.
+  Works on ANY selected block (section OR widget), overriding the theme default for that block only.
+  **Verified live** on the Safari home hero widget: setting Corner radius=L + Border=Thin rendered
+  `border-radius:20px; overflow:hidden` + a 1px border on the canvas node (screenshot); reset to clean.
+  `tsc`+`lint`+184 vitest+`build` green. NOTE: two style controls clicked within the SAME tick clobber
+  (patchStyle reads the render-closure `node.style`) — a non-issue for real clicks (React re-renders
+  between events). Deferred: typography controls (headingSize/bodySize — need scoped CSS). **Phase 6
+  (setup wizard + go-live gate) is the last major phase.**

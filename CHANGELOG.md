@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-07-02 — Builder × Theme pipeline, Phase 5: custom design per block.
+
+Hosts can now restyle any individual block over the active theme. The builder's **Style** tab gained
+per-block design controls — Background, Corner radius, Border (+ colour), Max width, Min height — that
+write to the block's `style`, and the Builder V2 renderer now applies that style to both section bands
+and individual widgets (it previously stored it but never rendered it). So a host can, e.g., give one
+block rounded corners and a border without touching the theme or any other block. Verified live: setting
+a radius + border on the home hero rendered a 20px corner radius and a 1px border on the canvas.
+`tsc` + `lint` + 184 unit tests + `pnpm build` green. (Typography overrides are a later slice.)
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 4c: the drag library now has every block.
 
 Completed the block set so the host has all block elements before we wire per-block design. ~18

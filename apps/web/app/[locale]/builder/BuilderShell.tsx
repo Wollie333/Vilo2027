@@ -1890,6 +1890,11 @@ function Inspector({
       ? onPatchResp({ space: { [k]: null } })
       : onPatchNode({ space: { ...space, [k]: 0 } });
 
+  // Per-block custom design (Phase 5) — read/merge node.style (blockStyle).
+  const styleVal = (k: string) => n.style?.[k] as string | undefined;
+  const patchStyle = (patch: Record<string, unknown>) =>
+    onPatchNode({ style: { ...(n.style ?? {}), ...patch } });
+
   return (
     <>
       <div className="tabs">
@@ -2042,17 +2047,60 @@ function Inspector({
                 onPatchNode({ tone: v === "default" ? undefined : v })
               }
             />
-            {node.type === "section" && (
-              <TextRow
-                label="Background"
-                value={n.bg}
-                placeholder="var(--site-surface) or #FBF4E6"
-                onChange={(v) => onPatchNode({ bg: v.trim() || undefined })}
+            <TextRow
+              label="Background"
+              value={
+                styleVal("background") ??
+                (node.type === "section" ? n.bg : undefined)
+              }
+              placeholder="var(--site-surface) or #FBF4E6"
+              onChange={(v) =>
+                patchStyle({ background: v.trim() || undefined })
+              }
+            />
+            <SegRow
+              label="Corner radius"
+              value={styleVal("radius") ?? "none"}
+              options={RADIUS_OPTS}
+              onChange={(v) =>
+                patchStyle({ radius: v === "none" ? undefined : v })
+              }
+            />
+            <SegRow
+              label="Border"
+              value={styleVal("border") ?? "none"}
+              options={BORDER_OPTS}
+              onChange={(v) =>
+                patchStyle({ border: v === "none" ? undefined : v })
+              }
+            />
+            {styleVal("border") && styleVal("border") !== "none" && (
+              <SegRow
+                label="Border colour"
+                value={styleVal("borderColor") ?? "line"}
+                options={BORDER_COLOR_OPTS}
+                onChange={(v) => patchStyle({ borderColor: v })}
               />
             )}
+            <SegRow
+              label="Max width"
+              value={styleVal("maxWidth") ?? "full"}
+              options={MAXW_OPTS}
+              onChange={(v) =>
+                patchStyle({ maxWidth: v === "full" ? undefined : v })
+              }
+            />
+            <SegRow
+              label="Min height"
+              value={styleVal("minHeight") ?? "auto"}
+              options={MINH_OPTS}
+              onChange={(v) =>
+                patchStyle({ minHeight: v === "auto" ? undefined : v })
+              }
+            />
             <div className="hint">
-              Tone + background apply to every device. Per-device layout
-              (spacing, hide) lives in the Advanced tab.
+              These override the theme’s default styling for this block only.
+              Per-device spacing &amp; visibility live in the Advanced tab.
             </div>
           </>
         )}
@@ -2128,6 +2176,38 @@ const VIS_OPTS: [string, string][] = [
   ["desktop", "Desktop"],
   ["mobile", "Mobile"],
 ];
+// Per-block custom design (Phase 5) — write to node.style (blockStyle).
+const RADIUS_OPTS: [string, string][] = [
+  ["none", "None"],
+  ["sm", "S"],
+  ["md", "M"],
+  ["lg", "L"],
+  ["full", "Full"],
+];
+const BORDER_OPTS: [string, string][] = [
+  ["none", "None"],
+  ["thin", "Thin"],
+  ["medium", "Med"],
+  ["thick", "Thick"],
+];
+const BORDER_COLOR_OPTS: [string, string][] = [
+  ["line", "Line"],
+  ["ink", "Ink"],
+  ["accent", "Accent"],
+];
+const MAXW_OPTS: [string, string][] = [
+  ["full", "Full"],
+  ["wide", "Wide"],
+  ["medium", "Medium"],
+  ["narrow", "Narrow"],
+];
+const MINH_OPTS: [string, string][] = [
+  ["auto", "Auto"],
+  ["sm", "S"],
+  ["md", "M"],
+  ["lg", "L"],
+  ["screen", "Screen"],
+];
 
 type RespLayer = {
   props?: Record<string, unknown>;
@@ -2147,6 +2227,7 @@ type NodeFields = {
   cssClass?: string;
   space?: Record<string, number>;
   responsive?: Record<string, RespLayer>;
+  style?: Record<string, unknown>;
   type: string;
 };
 

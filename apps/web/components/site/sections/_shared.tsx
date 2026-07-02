@@ -139,6 +139,35 @@ function frameRules(style: BlockStyle): string {
   return out.join(";");
 }
 
+/**
+ * The same per-block FRAME (background / border / radius / max-width / min-height)
+ * as {@link frameRules}, but as an inline `CSSProperties` object — for the Builder V2
+ * `PageDocRenderer`, which styles nodes inline rather than via scoped `<style>`.
+ * Margins/padding are intentionally omitted (Builder V2 owns those via `node.space`).
+ */
+export function blockFrameStyle(style?: BlockStyle): CSSProperties {
+  if (!style) return {};
+  const out: CSSProperties = {};
+  if (style.background) out.background = style.background;
+  if (style.border && style.border !== "none") {
+    const color = BLOCK_BORDER_COLOR_VAR[style.borderColor ?? "line"];
+    out.border = `${BLOCK_BORDER_PX[style.border]}px solid ${color}`;
+  }
+  if (style.radius && style.radius !== "none") {
+    out.borderRadius = BLOCK_RADIUS_PX[style.radius];
+    out.overflow = "hidden";
+  }
+  const mw = style.maxWidth ? BLOCK_MAXWIDTH_CSS[style.maxWidth] : "";
+  if (mw) {
+    out.maxWidth = mw;
+    out.marginLeft = "auto";
+    out.marginRight = "auto";
+  }
+  const mh = style.minHeight ? BLOCK_MINHEIGHT_CSS[style.minHeight] : "";
+  if (mh) out.minHeight = mh;
+  return out;
+}
+
 const HEADING_SIZE_CSS = {
   sm: "1.5rem",
   md: "1.875rem",
