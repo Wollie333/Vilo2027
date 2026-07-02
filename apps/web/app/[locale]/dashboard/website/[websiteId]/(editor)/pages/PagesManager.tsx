@@ -387,13 +387,13 @@ function PageRow({
       }
       toast.success(t("pageDuplicated"));
       onDuplicate();
-      router.push(`/website-editor/${websiteId}/pages/${res.id}`);
+      router.push(`/builder?websiteId=${websiteId}&pageId=${res.id}`);
     });
   }
 
   return (
     <PendingLink
-      href={`/website-editor/${websiteId}/pages/${page.id}`}
+      href={`/builder?websiteId=${websiteId}&pageId=${page.id}`}
       busy={{ title: t("openingEditor"), message: t("openingEditorMsg") }}
       className="ptr"
       style={{ gridTemplateColumns: GRID }}
@@ -593,7 +593,7 @@ function AddPageModal({
       onOpenChange(false);
       setTitle("");
       setTemplate("blank");
-      router.push(`/website-editor/${websiteId}/pages/${res.id}`);
+      router.push(`/builder?websiteId=${websiteId}&pageId=${res.id}`);
     });
   }
 
