@@ -303,10 +303,19 @@ vilotest (`host@vilotest.com`) + a save point.
   empty states); `/builder-preview?preset=warm` shows the 2 cards → Garden Suite (demo-r1) + The Loft
   (demo-r3), 0 console errors. tsc+lint clean, **167 vitest** (+`sampleData.test.ts`). (Stale-`.next`
   gremlin again → cleared + freed :3000 + restart, [[next-stale-vendor-chunks]].)
-- **NEXT — Phase 5 slices:** booking-funnel widgets → server quote (`/api/website-quote`
-  → `quoteWebsiteStay`, never client prices); room-detail v2 template with room-scoped widgets;
-  goal/pixel events on v2 thank-you. Then **Phase 6** (delete legacy builder + bespoke theme dirs at
-  cutover).
+- **Phase 5-3 — booking-funnel widgets on the builder canvas (DONE + LIVE-VERIFIED, 2026-07-02):**
+  finishes canvas sample data for ALL auto-populate types. **Finding:** the booking widgets
+  (`booking_search`/`availability_calendar`/`search_results`) ALREADY server-quote via
+  `/api/website-quote` + use `ThemedDateRange`, and the v2 path (public `SitePageView` + builder canvas)
+  ALREADY threads `interactive`/`websiteId`/`data` via `GenericSection` — so the server-quote line was
+  already satisfied for v2; only the empty canvas preview remained. Added `DEMO_BOOKING`
+  (`BookingFunnelData`, 2 properties) + keyed it for the 3 booking types in `sampleDataForDoc`; the
+  canvas is non-interactive so no endpoint is hit. Dev `builder-preview` gained a `booking_search` bar
+  section. **168 vitest** (+1). Live-verified themed booking bar (property selector + ThemedDateRange +
+  accent CTA + "live on your published site" hint), 0 console errors. tsc+lint clean.
+- **NEXT — Phase 5 slices:** room-detail v2 template with room-scoped widgets (`/rooms/<slug>` from a v2
+  PageDoc); goal/pixel events on the v2 thank-you. Then **Phase 6** (delete legacy builder + bespoke
+  theme dirs at cutover).
   ([[nav-builder-standard]] — stays SSOT), **Theme Settings**, and **Page Settings** (SEO/social/
   tracking) into the prototype's `.bse-*` overlay chrome, launched from the topbar/document-switcher +
   a **Templates** dropdown. Reuse the EXISTING features (no new DB) — just present them in the new UI.

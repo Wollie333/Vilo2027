@@ -125,6 +125,14 @@ function demoDoc() {
   );
   doc.root.kids.push(s4b);
 
+  // 4c — booking search bar (Phase 5-3): renders a populated preview from sample
+  // BookingFunnelData (non-interactive here — the live site quotes server-side).
+  const s4c = newSection([12], { tone: "muted" });
+  s4c.kids[0].kids.push(
+    w("booking_search", { heading: "Check availability" }, "bar"),
+  );
+  doc.root.kids.push(s4c);
+
   // 5 — two room cards (variants), each bound to a DIFFERENT sample room by
   // room_id (proves the picker's per-card room selection).
   const s5 = newSection([6, 6]);

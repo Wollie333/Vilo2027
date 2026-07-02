@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { DEMO_ROOMS, sampleDataForDoc } from "@/lib/site/sampleSite";
+import {
+  DEMO_BOOKING,
+  DEMO_ROOMS,
+  sampleDataForDoc,
+} from "@/lib/site/sampleSite";
 import {
   newPageDoc,
   newSection,
@@ -39,6 +43,16 @@ describe("sampleDataForDoc", () => {
     const card = newWidget("el_room_card", { room_id: target.id });
     const data = sampleDataForDoc(docWith(card));
     expect(dataFor(data, card.id, "el_room_card")?.name).toBe(target.name);
+  });
+
+  it("keys booking-funnel sample data for booking widgets", () => {
+    const bar = newWidget("booking_search");
+    const cal = newWidget("availability_calendar");
+    const data = sampleDataForDoc(docWith(bar, cal));
+    expect(dataFor(data, bar.id, "booking_search")).toBe(DEMO_BOOKING);
+    expect(
+      dataFor(data, cal.id, "availability_calendar")?.properties.length,
+    ).toBe(2);
   });
 
   it("ignores non-auto-populate widgets", () => {

@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-02 — Builder V2 Phase 5-3: booking-funnel widgets on the builder canvas
+
+Completes "sample data on the builder canvas" for EVERY auto-populate widget type. The booking-funnel
+widgets (`booking_search` bar/date-search, `availability_calendar`, `search_results`) already
+server-recalculate every price via `/api/website-quote` and use `ThemedDateRange` — and the v2 path
+(public `SitePageView` + builder canvas) already threads `interactive` / `websiteId` / `data` into them
+via `GenericSection`. The only gap was that they rendered an empty "add a property" hint on the builder
+canvas; now they show a populated, themed, non-interactive preview.
+
+- **`lib/site/sampleSite.ts`** — new `DEMO_BOOKING` (`BookingFunnelData` with two bookable properties);
+  `sampleDataForDoc` now keys it for `booking_search` / `availability_calendar` / `search_results`
+  nodes. The canvas is non-interactive, so these never hit the quote/availability endpoints (the
+  components gate all fetching behind `interactive`).
+- **`builder-preview/page.tsx`** (dev harness) — added a `booking_search` (bar) section to the demo doc
+  for visual verification.
+- **`sampleData.test.ts`** — +1 test (booking sample data → 5). **168 vitest.**
+- **Live-verified** on `/builder-preview?preset=warm`: the booking bar renders the property selector
+  (Olive Grove / Karoo Cottages), themed `ThemedDateRange` check-in/out, guests, the accent "Check
+  availability" button, and the "live on your published site" hint — no empty state, 0 console errors.
+  tsc + lint clean. **NEXT Phase-5 slices:** room-detail v2 template (room-scoped widgets); goal/pixel
+  events on the v2 thank-you. Then Phase 6 (delete legacy builder + bespoke theme dirs at cutover).
+
 ## 2026-07-02 — Builder V2 Phase 5-2: el_room_card live room + sample data on the builder canvas
 
 Second Phase-5 (live data) slice. The single-room card (`el_room_card`) now binds to a real room, and

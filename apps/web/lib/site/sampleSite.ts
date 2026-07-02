@@ -6,6 +6,7 @@
 
 import type {
   BlogPreviewData,
+  BookingFunnelData,
   GalleryData,
   ReviewsData,
   RoomsPreviewData,
@@ -114,6 +115,35 @@ export const DEMO_BLOG: BlogPreviewData = {
   ],
 };
 
+// Two bookable properties so the booking widgets (search bar / date search /
+// search results) render a populated preview on the builder canvas. The canvas
+// is non-interactive, so these never hit the quote/availability endpoints — the
+// live site recalculates every price server-side via /api/website-quote.
+export const DEMO_BOOKING: BookingFunnelData = {
+  websiteId: "demo-website",
+  searchHref: "#",
+  properties: [
+    {
+      id: "demo-p1",
+      slug: "olive-grove",
+      name: "Olive Grove Guesthouse",
+      currency: "ZAR",
+      minNights: 1,
+      maxGuests: 6,
+      bookBase: "#?property=demo-p1",
+    },
+    {
+      id: "demo-p2",
+      slug: "karoo-cottages",
+      name: "Karoo Cottages",
+      currency: "ZAR",
+      minNights: 2,
+      maxGuests: 4,
+      bookBase: "#?property=demo-p2",
+    },
+  ],
+};
+
 export const DEMO_SPECIALS: SpecialsPreviewData = {
   specials: [
     {
@@ -176,6 +206,15 @@ export function sampleDataForDoc(doc: PageDoc): SiteData {
         break;
       case "specials_preview":
         out[node.id] = { type: "specials_preview", data: DEMO_SPECIALS };
+        break;
+      case "booking_search":
+        out[node.id] = { type: "booking_search", data: DEMO_BOOKING };
+        break;
+      case "availability_calendar":
+        out[node.id] = { type: "availability_calendar", data: DEMO_BOOKING };
+        break;
+      case "search_results":
+        out[node.id] = { type: "search_results", data: DEMO_BOOKING };
         break;
       case "el_room_card": {
         const wanted = node.props?.room_id;
