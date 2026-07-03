@@ -110,10 +110,19 @@
 > transform through the `--el-*` pipeline (schema+`elementDecls`+RoomsPreviewSection+registry+controls;
 > `2f9a0149`; verified uppercase drove the card titles). See [[feedback-builder-styling-controls]].
 >
+> ✅ **B — HOME MARKETING COMPOSITES DONE.** intro+highlights (`6528dabd`) + location (`f191d11b`) all
+> render BARE; re-seeded the home intro (variant "lead" → narrow maxw 672)/highlights (grid, 1024)/
+> location (surface bg, 1024) sections with el_headings + republished. **The HOME PAGE is now fully
+> composed** (hero=full-bleed unchanged · intro/highlights/rooms/gallery/reviews/location all bare +
+> section-owned bands · cta="banner" full-bleed unchanged). Verified live, no regressions.
+> **DEFERRED (intentional, not plain content composites):** CTA "banner" variant + hero = full-bleed
+> DESIGNED bands (leave as-is); CTA split/card variants use SectionShell but the home cta is banner.
+>
 > **⏳ NEXT (Phase B rollout):** ~~reviews~~ · ~~gallery~~ · ~~specials~~ · ~~addons~~ · ~~rates~~ · ~~policies~~ ·
-> **marketing composites** (hero/intro/cta/highlights/stats/values/host_bio/faq/pricing/logos/…) next; then a
-> **coordinated SYSTEM-BLOCK reframe** (room_gallery/overview/amenities/rate + room_policies together, since
-> they must stay uniform on the room-detail page):
+> ~~intro~~ · ~~highlights~~ · ~~location~~ · **remaining library-only content composites** (values/host_bio/faq/
+> pricing/logos/stats/richtext/trust/blog_preview — bare + temp-inject verify, mostly not on demo pages;
+> some on the FLAT about/contact pages → convert+reseed like specials); then the **coordinated SYSTEM-BLOCK
+> reframe** (room_gallery/overview/amenities/rate + room_policies together — must stay uniform on room-detail):
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
