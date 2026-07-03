@@ -2264,16 +2264,18 @@ function Inspector({
                 onPatchNode({ tone: v === "default" ? undefined : v })
               }
             />
-            <TextRow
+            <ColorRow
               label="Background"
               value={
                 styleVal("background") ??
-                (node.type === "section" ? n.bg : undefined)
+                (node.type === "section" ? n.bg : undefined) ??
+                ""
               }
-              placeholder="var(--site-surface) or #FBF4E6"
-              onChange={(v) =>
-                patchStyle({ background: v.trim() || undefined })
+              overridden={
+                !!(styleVal("background") ?? (node.type === "section" && n.bg))
               }
+              onChange={(v) => patchStyle({ background: v || undefined })}
+              onRevert={() => patchStyle({ background: undefined })}
             />
             <ScaleRow
               label="Corner radius"
@@ -2504,7 +2506,12 @@ const EL_SWATCHES: [string, string][] = [
 ];
 const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
-/** Colour control: native picker swatch + hex/var text + theme-token swatches. */
+/**
+ * Colour control (Brand-Studio style): a row of round swatches — a "Default (theme)"
+ * chip that resets to the theme colour, the theme-palette circles, and a custom
+ * colour-picker circle. The value defaults to the theme (empty = inherit) and any
+ * override can be reset back to it. Used for text, background and border colours.
+ */
 function ColorRow({
   label,
   value,
@@ -2525,35 +2532,37 @@ function ColorRow({
         <label>{label}</label>
         {overridden ? <RevertBtn onClick={onRevert} /> : null}
       </div>
-      <div className="colorrow">
-        <label
-          className="cswatch"
-          style={{ background: value || "transparent" }}
-        >
-          <input
-            type="color"
-            value={isHex ? value : "#ffffff"}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </label>
-        <input
-          className="hexin"
-          value={value}
-          placeholder="#hex or var(--site-…)"
-          onChange={(e) => onChange(e.target.value)}
+      <div className="swrow">
+        <button
+          type="button"
+          title="Theme default"
+          aria-label="Theme default"
+          className={value ? "swrole" : "swrole on"}
+          data-auto=""
+          onClick={onRevert}
         />
-      </div>
-      <div className="cswatches">
         {EL_SWATCHES.map(([cv, cl]) => (
           <button
             key={cv}
             type="button"
             title={cl}
-            className={value === cv ? "sw on" : "sw"}
+            aria-label={cl}
+            className={value === cv ? "swrole on" : "swrole"}
             style={{ background: cv }}
             onClick={() => onChange(cv)}
           />
         ))}
+        <label
+          className={isHex ? "swrole swcustom on" : "swrole swcustom"}
+          title="Custom colour"
+          style={isHex ? { background: value } : undefined}
+        >
+          <input
+            type="color"
+            value={isHex ? value : "#888888"}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </label>
       </div>
     </div>
   );

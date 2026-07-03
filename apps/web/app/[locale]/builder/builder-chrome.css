@@ -975,6 +975,31 @@
 .wb .swrole[data-auto].on::after {
   display: none;
 }
+/* Custom colour-picker circle — rainbow until a custom hex is set; holds the
+   hidden native <input type=color>. */
+.wb .swrole.swcustom {
+  overflow: hidden;
+  background: conic-gradient(
+    from 90deg,
+    #ff0000,
+    #ffea00,
+    #14ff00,
+    #00e0ff,
+    #0037ff,
+    #ff00e6,
+    #ff0000
+  );
+}
+.wb .swrole.swcustom input[type="color"] {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  border: none;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
 .wb .tog {
   width: 42px;
   height: 24px;
