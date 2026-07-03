@@ -79,8 +79,17 @@
 > tsc+lint clean. **PATTERN for `surface`/toned blocks: set the section's `bg` (or `tone`) in the reseed
 > to preserve the block's old band background** — bare blocks paint nothing.
 >
+> ✅ **B — ADDONS DONE (`ccbb5fa0`).** `AddonsPreviewSection` renders BARE (dropped `SectionShell`
+> incl. its `surface` band); heading → `el_heading`, "view all" CTA stays in the bare block. **No
+> vilotest page uses `addons_preview`** → nothing to reseed, no regression. Verified the bare render
+> live by TEMPORARILY injecting a composed addons section (surface bg + el_heading + block) into the
+> specials DRAFT (centered "Make it yours" over a padded 1024 grid of the 3 real host add-ons on the
+> cream band), then reverted the temp inject (draft===pub confirmed). 197 vitest, tsc+lint clean.
+> **PATTERN for library-only blocks (no demo page):** temp-inject into a v2 page's DRAFT to verify,
+> then revert `draft = published`.
+>
 > **⏳ NEXT (Phase B rollout):** apply the SAME treatment to the remaining blocks one at a time
-> (~~reviews~~ · ~~gallery~~ · ~~specials~~ · addons · rates · policies · marketing composites hero/intro/cta/…):
+> (~~reviews~~ · ~~gallery~~ · ~~specials~~ · ~~addons~~ · rates · policies · marketing composites hero/intro/cta/…):
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
