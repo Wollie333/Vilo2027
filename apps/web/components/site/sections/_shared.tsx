@@ -308,6 +308,37 @@ export function elementVarsCss(
   return css;
 }
 
+/**
+ * Scope a node's free-form custom CSS (Advanced tab, Elementor-style). The keyword
+ * `selector` maps to this node's wrapper (`selector` in a rule is REQUIRED to target
+ * anything), so rules stay confined to the element and override its own styling.
+ * Bare declarations (no braces) are wrapped in `selector{…}` for convenience. The
+ * `</style` / `<script` breakout guard keeps a host from escaping the <style> tag.
+ * Returns "" when there's nothing to emit.
+ */
+export function customCssScoped(selector: string, css?: string): string {
+  const raw = css?.trim();
+  if (!raw) return "";
+  const safe = raw.replace(/<\/?(style|script)/gi, "");
+  const body = safe.includes("{") ? safe : `selector{${safe}}`;
+  const scoped = body
+    // A bare `selector { … }` targets the wrapper AND its content, so declarations
+    // reach the inline-styled leaf (h2 / p / button) too — otherwise the wrapper
+    // rule can't win over the leaf's inline style. Descendant forms like
+    // `selector h3 { … }` keep targeting exactly what the host wrote.
+    .replace(/selector\s*\{/g, `${selector},${selector} *{`)
+    .replace(/selector/g, selector);
+  // The elements render with INLINE styles, which beat any stylesheet rule. To make
+  // this box actually OVERRIDE the element (its whole purpose), force `!important`
+  // onto each declaration that doesn't already have it. At-rule preludes (e.g.
+  // `@media (max-width: 640px)`) end in `)` not `;`/`}`, so they're left untouched.
+  return scoped.replace(
+    /([a-zA-Z-]+\s*:\s*[^;{}!]+?)(\s*!important)?\s*(?=[;}])/g,
+    (_m, decl: string, imp: string) =>
+      imp ? `${decl}${imp}` : `${decl} !important`,
+  );
+}
+
 export function SectionShell({
   children,
   surface = false,

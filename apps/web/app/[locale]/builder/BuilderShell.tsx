@@ -2364,6 +2364,25 @@ function Inspector({
               placeholder="promo dark"
               onChange={(v) => onPatchNode({ cssClass: v.trim() || undefined })}
             />
+            <div className="ctl">
+              <div className="ctl-l">
+                <label>Custom CSS</label>
+              </div>
+              <textarea
+                className="inp mono"
+                rows={5}
+                spellCheck={false}
+                value={n.customCss ?? ""}
+                placeholder={"selector {\n  color: #b45309;\n}"}
+                onChange={(e) =>
+                  onPatchNode({ customCss: e.target.value || undefined })
+                }
+              />
+              <div className="hint" style={{ marginTop: 6 }}>
+                Use <code>selector</code> to target this element. Overrides its
+                styling. Applies to this element only.
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -2434,6 +2453,7 @@ type NodeFields = {
   visibility?: string;
   cssId?: string;
   cssClass?: string;
+  customCss?: string;
   space?: Record<string, number>;
   responsive?: Record<string, RespLayer>;
   style?: Record<string, unknown>;

@@ -170,6 +170,10 @@ const nodeBase = {
   elements: elementStylesSchema.optional(),
   cssId: z.string().max(80).optional(),
   cssClass: z.string().max(200).optional(),
+  // Free-form custom CSS scoped to this node (Elementor-style): the keyword
+  // `selector` maps to this element, so rules only affect it and override the
+  // element's own styling. Emitted as a scoped <style> at render.
+  customCss: z.string().max(4000).optional(),
   anim: z.enum(NODE_ANIM).optional(),
 };
 
@@ -234,6 +238,7 @@ export type SectionNode = {
   elements?: z.infer<typeof elementStylesSchema>;
   cssId?: string;
   cssClass?: string;
+  customCss?: string;
   anim?: (typeof NODE_ANIM)[number];
 };
 
@@ -257,6 +262,7 @@ export const sectionNodeSchema: z.ZodType<SectionNode> = z.lazy(() =>
     elements: elementStylesSchema.optional(),
     cssId: z.string().max(80).optional(),
     cssClass: z.string().max(200).optional(),
+    customCss: z.string().max(4000).optional(),
     anim: z.enum(NODE_ANIM).optional(),
   }),
 );

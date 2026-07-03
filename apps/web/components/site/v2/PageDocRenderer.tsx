@@ -23,6 +23,7 @@ import {
   sectionToneStyle,
   blockFrameStyle,
   elementVarsCss,
+  customCssScoped,
 } from "../sections/_shared";
 import {
   IconLeaf,
@@ -198,13 +199,17 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
     alignItems: node.valign ?? "stretch",
   };
 
+  const custom = customCssScoped(`[data-node-id="${node.id}"]`, node.customCss);
   return (
     <div
       key={node.id}
+      id={node.cssId || undefined}
+      className={node.cssClass || undefined}
       style={outer}
       data-node-id={node.id}
       data-node-kind="section"
     >
+      {custom ? <style dangerouslySetInnerHTML={{ __html: custom }} /> : null}
       <div style={inner}>{node.kids.map((c) => renderColumn(c, ctx))}</div>
     </div>
   );
@@ -251,10 +256,15 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
   // properties on this wrapper (cascading to every sub-element). `@media` drives
   // the live site; `@container` drives the builder's device frames — so per-device
   // element styles preview correctly here AND respond to real screen size live.
-  const elCss = elementVarsCss(`[data-node-id="${node.id}"]`, node);
+  const sel = `[data-node-id="${node.id}"]`;
+  const elCss = elementVarsCss(sel, node);
+  // Advanced tab custom CSS — emitted AFTER elCss so it overrides the element styling.
+  const custom = customCssScoped(sel, node.customCss);
   return (
     <div
       key={node.id}
+      id={node.cssId || undefined}
+      className={node.cssClass || undefined}
       style={{
         ...spaceStyle(mergedSpace(node, layer), ZERO),
         // Per-block custom design (Phase 5): frame this block from `node.style`.
@@ -264,6 +274,7 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
       data-node-kind="widget"
     >
       {elCss ? <style dangerouslySetInnerHTML={{ __html: elCss }} /> : null}
+      {custom ? <style dangerouslySetInnerHTML={{ __html: custom }} /> : null}
       <SectionBoundary resetKey={effNode} fallbackLabel={ctx.errorLabel}>
         <WidgetLeaf node={effNode} ctx={ctx} />
       </SectionBoundary>

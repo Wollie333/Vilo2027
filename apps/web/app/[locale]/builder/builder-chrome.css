@@ -824,6 +824,20 @@
   min-height: 80px;
   line-height: 1.5;
 }
+.wb textarea.inp.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  min-height: 104px;
+  tab-size: 2;
+}
+.wb .hint code {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  background: var(--light);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
 .wb select.inp {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234A7C6A' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");

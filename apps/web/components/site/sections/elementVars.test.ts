@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { elementVarsCss } from "./_shared";
+import { customCssScoped, elementVarsCss } from "./_shared";
 
 const SEL = `[data-node-id="x"]`;
 
@@ -63,5 +63,69 @@ describe("elementVarsCss", () => {
     });
     expect(css).not.toContain("@media");
     expect(css).not.toContain("@container");
+  });
+});
+
+describe("customCssScoped", () => {
+  it("returns empty for blank input", () => {
+    expect(customCssScoped(SEL, undefined)).toBe("");
+    expect(customCssScoped(SEL, "   ")).toBe("");
+  });
+
+  it("replaces the `selector` keyword with the node selector", () => {
+    const css = customCssScoped(SEL, "selector { color: red; }");
+    expect(css).toContain(SEL);
+    expect(css).not.toContain("selector");
+  });
+
+  it("scopes a bare `selector { }` rule to the wrapper AND its content", () => {
+    const css = customCssScoped(SEL, "selector { color: red; }");
+    // wrapper + descendants so it can beat the leaf's inline style
+    expect(css).toContain(`${SEL},${SEL} *{`);
+  });
+
+  it("keeps a descendant `selector h3 { }` targeting exactly that child", () => {
+    const css = customCssScoped(SEL, "selector h3 { color: red; }");
+    expect(css).toContain(`${SEL} h3`);
+    expect(css).not.toContain(`${SEL} *`);
+  });
+
+  it("wraps bare declarations in a selector rule", () => {
+    const css = customCssScoped(SEL, "color: red; padding: 4px");
+    expect(css.startsWith(`${SEL},${SEL} *{`)).toBe(true);
+  });
+
+  it("forces !important so it overrides the element's inline styling", () => {
+    const css = customCssScoped(
+      SEL,
+      "selector { color: red; letter-spacing: 2px; }",
+    );
+    expect(css).toContain("color: red !important");
+    expect(css).toContain("letter-spacing: 2px !important");
+  });
+
+  it("does not double up an existing !important", () => {
+    const css = customCssScoped(SEL, "selector { color: red !important; }");
+    expect(css).toContain("color: red !important");
+    expect(css).not.toContain("!important !important");
+  });
+
+  it("leaves @media preludes untouched (only declarations get !important)", () => {
+    const css = customCssScoped(
+      SEL,
+      "@media (max-width: 640px) { selector { color: red; } }",
+    );
+    expect(css).toContain("@media (max-width: 640px)");
+    expect(css).not.toContain("max-width: 640px !important");
+    expect(css).toContain("color: red !important");
+  });
+
+  it("neutralises a </style> breakout attempt", () => {
+    const css = customCssScoped(
+      SEL,
+      "selector {}</style><script>alert(1)</script>",
+    );
+    expect(css).not.toContain("</style>");
+    expect(css).not.toContain("<script");
   });
 });
