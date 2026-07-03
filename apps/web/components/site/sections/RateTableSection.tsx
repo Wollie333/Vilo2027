@@ -1,7 +1,7 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { RateRow, RateTableData } from "@/lib/site/types";
 
-import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
+import { SectionHeading, Muted, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "rate_table" }>["props"];
 
@@ -36,7 +36,13 @@ export function RateTableSection({
   const cta = props.ctaLabel ?? "Book";
 
   return (
-    <SectionShell>
+    // Bare element (Elementor reframe): just the rate table. No self-wrapping
+    // <section>, no band padding, no width clamp, no heading — ALL owned by the
+    // SECTION the block sits in (padding/width/background via the section node +
+    // gear) and by a separate Heading element the host places above it. The `note`
+    // stays part of the block. `props.heading` is legacy: rendered only if a page
+    // still carries it, so pre-reframe pages keep their title.
+    <>
       {props.heading ? (
         <SectionHeading className="mb-8">{props.heading}</SectionHeading>
       ) : null}
@@ -71,7 +77,7 @@ export function RateTableSection({
       {props.note ? (
         <Muted className="mt-4 text-center text-xs">{props.note}</Muted>
       ) : null}
-    </SectionShell>
+    </>
   );
 }
 

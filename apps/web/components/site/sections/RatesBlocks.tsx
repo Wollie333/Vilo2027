@@ -1,7 +1,7 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { RateTableData, SeasonalPricingData } from "@/lib/site/types";
 
-import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
+import { SectionHeading, Muted, Card } from "./_shared";
 
 type RoomRatesProps = Extract<WebsiteSection, { type: "room_rates" }>["props"];
 type SeasonalProps = Extract<
@@ -56,7 +56,11 @@ export function RoomRatesSection({
   const rows: Row[] = live.length ? live : (props.items ?? []);
 
   return (
-    <SectionShell>
+    // Bare element (Elementor reframe): just the rate list. The SECTION owns the
+    // band (padding/width/background via the section node + gear); the heading is a
+    // separate element the host places above it; the `note` stays part of the block.
+    // `props.heading` is legacy — kept so pre-reframe pages don't lose their title.
+    <>
       {props.heading ? (
         <SectionHeading className="mb-8">{props.heading}</SectionHeading>
       ) : null}
@@ -107,7 +111,7 @@ export function RoomRatesSection({
       {props.note ? (
         <Muted className="mt-4 text-center text-xs">{props.note}</Muted>
       ) : null}
-    </SectionShell>
+    </>
   );
 }
 
@@ -148,7 +152,11 @@ export function SeasonalPricingSection({
   const cards: SeasonCard[] = live.length ? live : (props.items ?? []);
 
   return (
-    <SectionShell>
+    // Bare element (Elementor reframe): just the season cards. The SECTION owns the
+    // band (padding/width/background via the section node + gear); the heading is a
+    // separate element the host places above it; the `note` stays part of the block.
+    // `props.heading` is legacy — kept so pre-reframe pages don't lose their title.
+    <>
       {props.heading ? (
         <SectionHeading className="mb-8">{props.heading}</SectionHeading>
       ) : null}
@@ -201,6 +209,6 @@ export function SeasonalPricingSection({
       {props.note ? (
         <Muted className="mt-4 text-center text-xs">{props.note}</Muted>
       ) : null}
-    </SectionShell>
+    </>
   );
 }
