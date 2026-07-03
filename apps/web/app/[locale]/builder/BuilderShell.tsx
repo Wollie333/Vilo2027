@@ -141,7 +141,7 @@ const AMENITY_DATA_BLOCKS: ReadonlySet<string> = new Set([
 ]);
 // The `gallery` block edits property_photos (Phase 4b-5).
 const GALLERY_DATA_BLOCKS: ReadonlySet<string> = new Set(["gallery"]);
-import type { SiteThemeConfig } from "@/lib/site/themes";
+import { buildSiteVars, type SiteThemeConfig } from "@/lib/site/themes";
 import type {
   SiteNavigation,
   SiteMenuItem,
@@ -1015,6 +1015,13 @@ export function BuilderShell({
     .filter(Boolean)
     .join(" ");
   const rootStyle = {
+    // Expose the tenant theme's `--site-*` palette to the WHOLE builder shell so the
+    // inspector's colour swatches (tone / background / border / text) render the real
+    // theme colours — the inspector lives OUTSIDE the canvas's SiteThemeRoot, so
+    // without this every swatch's `var(--site-accent)` resolves to nothing (white).
+    // The canvas keeps its own SiteThemeRoot vars; builder chrome uses --ink/--panel/…
+    // (a different namespace) so it's unaffected.
+    ...buildSiteVars(workTheme),
     ...CHROME_VARS[chrome],
     "--primary": accent,
     "--panel-w": density === "compact" ? "290px" : "332px",
