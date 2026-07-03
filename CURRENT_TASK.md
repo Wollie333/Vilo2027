@@ -128,12 +128,23 @@
 > gallery untouched). Verified live (about: intro+host_bio+highlights banded; rooms pricing narrow). **ALL
 > vilotest pages are now v2 + fully composed.** DEFERRED: hero + CTA "banner" (full-bleed designed bands).
 >
-> **⏳ NEXT (Phase B — LAST piece):** the **coordinated SYSTEM-BLOCK reframe** — room_gallery/overview/
-> amenities/rate + room_policies on the room-detail page, together (they must stay uniform). PolicyView
-> already has a `bare` flag ready; the room-detail draft is a full v2 doc (7 sections, all maxw:2000/
-> NO_SPACE, each self-banded). Reframe each room_* block bare + reseed the room-detail sections uniformly.
-> Then Phase B follow-up: update seed templates/`blueprints.ts` so NEW activations produce the composed
-> shape (only vilotest exists, so not urgent):
+> ✅ **B — SYSTEM BLOCKS DONE (`10445db4`) → PHASE B COMPLETE.** room_gallery/overview/amenities/rate bare
+> + room_policies passes `bare` to PolicyView + RoomPlaceholder bare; DATA-coupled headings stay in-block
+> (room name h1, "Room amenities", "Things to know") — reframed together, room-detail reseeded uniformly
+> (5 room_* sections band maxw1024 + reviews composed + CTA banner full-bleed), republished (empty flat
+> → v2 doc). Verified live uniform.
+>
+> **🎉 PHASE B COMPLETE — EVERY Wielo block is now a bare, composable element + EVERY vilotest page is a
+> fully-composed v2 doc.** Blocks reframed: rooms_preview·reviews·gallery·specials·addons·rate_table·
+> room_rates·seasonal·policies·intro·highlights·location·values·trust·stats·rich_text·logos·pricing·
+> host_bio·faq·blog_preview·room_gallery·room_overview·room_amenities·room_rate·room_policies. Deferred by
+> design (full-bleed DESIGNED bands): hero + CTA "banner". Plus the STYLING-CONTROLS REFRESH shipped
+> alongside (see [[feedback-builder-styling-controls]]).
+>
+> **⏳ NEXT (Phase B follow-up, not urgent):** update the seed templates / `blueprints.ts` so NEW site
+> activations produce the composed shape (padded section → el_heading + bare block) instead of the old
+> self-banded shape. Only vilotest exists so no live impact yet. Also deferred: per-item editors for
+> composite list blocks; rates/seasonal data editor; typography style controls for more elements.
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading

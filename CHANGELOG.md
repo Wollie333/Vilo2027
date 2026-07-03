@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-03 — Elementor-model builder, Phase B COMPLETE + styling-controls refresh.
+
+Finished the Elementor block reframe. **Every Wielo block now renders "bare"** — just its content,
+with no self-contained band — so the *section* it sits in owns the padding, width and background
+(all stylable via the gear) and the heading becomes its own draggable Heading element above it. A
+host can now compose and style each piece independently, Elementor-style. Reframed the whole set:
+rooms grid, reviews, gallery, specials, add-ons, the three rate blocks, policies, intro, highlights,
+location, values, trust, stats, rich text, logos, pricing, host bio, FAQ, blog list, and the
+room-detail system blocks (gallery/overview/amenities/rate/policies). The full-bleed **hero** and
+**CTA banner** stay as designed photo bands. Re-seeded and republished every vilotest demo page to
+the composed shape — and, crucially, **converted every remaining legacy-flat page to the new v2
+document** so nothing lost its spacing on the way. All pages are now fully composed; verified live
+page-by-page, no regressions.
+
+**Styling-controls refresh** (founder feedback — make the inspector feel like Brand Studio +
+Elementor, not coarse tab strips): text elements (Heading/Text) gained real **Font size** and
+**Font weight** sliders plus a **Text-colour swatch** picker (they had no typography controls at
+all before); the section/block **Style** tab swapped its segmented "tab" controls for sliders
+(radius/border/width/height) + colour-role swatches (tone/border); and composite sub-elements
+(room-card title/price/description) gained **line-height / letter-spacing / text-transform** for
+full typography parity. Also fixed a latent colour-token mismatch that was feeding dead values to
+the icon colour control.
+
+197 vitest green; tsc + lint clean throughout.
+
 ## 2026-07-03 — Elementor-model builder, Phase 0 + Phase A (mechanics + nav fix).
 
 Big step toward an Elementor-style builder. **Phase 0** (engine): every block can now be styled
