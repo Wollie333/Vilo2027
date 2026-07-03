@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-07-03 — Public Looking-For guest-requests page + sign-in-to-quote flow; marketing-header fixes.
+
+Separate lane from the builder work. All shipped to `main` and live.
+
+**Public Looking-For page (`9d9f4287`).** Turned the Looking-For directory into a public,
+marketing-chrome page that mirrors `/deals` (SiteHeader/SiteFooter + hero + filters + card grid).
+Anyone can browse guest requests; each card has a **Send a quote** button. Quoting is gated behind
+auth, and the guest's *first intent to quote survives the whole sign-in / sign-up journey* via a
+single intent path — `/dashboard/looking-for/respond/[postId]` — threaded as `?next=` everywhere:
+- New `QuoteButton` — signed-in → straight to the respond page; signed-out → a "Sign in to quote /
+  Join as a host" modal, both carrying `next`.
+- The **respond page is the single gate**: a signed-in non-host is routed through host signup
+  (`/signup/host?next=self`) and returns to the exact request; a brand-new host whose profile isn't
+  live yet (host row but no active/published listing) gets a friendly "finish your listing" state
+  instead of an empty quote form.
+- The host signup wizard threads `next` to its final CTA ("Continue to your quote"); login/register
+  already honour `next`.
+- "Setup and live" = host row + ≥1 active listing (`looking_for_access` is already open to every
+  host pre-MVP). "Join" points at host signup because quoting is a host action.
+
+**Marketing header — mobile menu (`46e267c6`).** The public header rendered its nav as `lg:flex`
+with no fallback, so below 1024px (phones + tablets) it collapsed to logo + avatar with no menu at
+all. Added a hamburger (`lg:hidden`) → drop panel with all nav links + Sign in / Join for logged-out
+visitors. Desktop unchanged.
+
+**Hidden the black utility strip (`71f30a04`).** `UtilityBar` gated off in SiteHeader (one-line flip
+to restore).
+
+**Hidden the "For hosts" page (`f7e0020d`, `60adb08d`).** `/booking-management` removed from the nav
+and made a 404 behind a `FOR_HOSTS_PAGE_HIDDEN` flag. Repointed the dangling footer "For hosts"
+column + home HostCTA buttons to `/signup/host` so the host-acquisition path stays alive.
+
+**Also (earlier this session):** fixed the guest-portal Looking-For "new request" form crash — a
+Radix `<SelectItem value="">` invariant on the rating field blanked the page; replaced with an
+`"any"` sentinel.
+
+---
+
 ## 2026-07-03 — Elementor-model builder, Phase B COMPLETE + styling-controls refresh.
 
 Finished the Elementor block reframe. **Every Wielo block now renders "bare"** — just its content,

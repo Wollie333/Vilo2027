@@ -2,6 +2,32 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-03) — Marketing site + public Looking-For lane, SHIPPED to `main` (live)
+
+> Separate lane from the Elementor builder anchor below. All pushed; Vercel live. Full detail in
+> [[project-looking-for-public-quote]] memory + CHANGELOG.
+>
+> ✅ **Marketing header mobile menu (`46e267c6`)** — public `SiteHeader.tsx` nav was `lg:flex` with
+> no fallback → no menu below 1024px. Added hamburger (`lg:hidden`) → drop panel (nav links + Sign
+> in/Join). Desktop unchanged.
+> ✅ **Hidden black utility strip (`71f30a04`)** — `UtilityBar` gated off (`{false ? … : null}`).
+> ✅ **Public Looking-For page + sign-in-to-quote flow (`9d9f4287`)** — `/looking-for` directory +
+> `[id]` detail rebuilt to mirror `/deals` (SiteHeader/SiteFooter + hero + filters + cards). New
+> `QuoteButton`: signed-in → respond page; signed-out → modal (Sign in / Join) carrying
+> `?next=/dashboard/looking-for/respond/[postId]`. **Intent survives login/signup**: respond page is
+> the SINGLE gate (non-host → `/signup/host?next=self`; fresh host w/o active listing → "profile not
+> live yet" state); host wizard threads `next` → final CTA "Continue to your quote". "Live" = host +
+> ≥1 active listing.
+> ✅ **Hidden "For hosts" page (`f7e0020d` + `60adb08d`)** — `/booking-management` 404 via
+> `FOR_HOSTS_PAGE_HIDDEN` + removed from nav; footer/HostCTA links repointed → `/signup/host`.
+> ✅ **Guest-portal Looking-For "new" form crash fixed** — Radix `<SelectItem value="">` → `"any"`.
+>
+> Nothing pending on this lane. If reviving "for hosts": flip `FOR_HOSTS_PAGE_HIDDEN` + re-add nav.
+> **GOTCHA:** concurrent session shares `apps/web/.next` → route compiles hang (EPERM/webpack). Fix:
+> stop preview, `Remove-Item -Recurse -Force apps/web/.next`, start a SINGLE fresh preview.
+
+---
+
 ## ▶▶▶ SAVE POINT — RESUME HERE (· 2026-07-03, **Elementor-model builder: Phase 0 + Phase A DONE; Phase B next**)
 
 > **▶ NEW LANE (2026-07-03): Elementor-model builder.** Plan of record →
