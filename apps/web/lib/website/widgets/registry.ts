@@ -127,6 +127,22 @@ const ALIGN_CTL = (key = "align"): WidgetControl => ({
   label: "Alignment",
 });
 
+// Shared per-element styling for the card-grid Wielo blocks (specials / add-ons —
+// same card anatomy). Keys match the `--el-<key>-*` vars each component reads.
+const SPECIAL_CARD_ELEMENTS: ElementDef[] = [
+  { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+  { key: "image", label: "Image", controls: ["radius"] },
+  { key: "badge", label: "Badge", controls: ["bg", "color", "radius"] },
+  { key: "title", label: "Title", controls: ["color", "size", "weight"] },
+  { key: "desc", label: "Description", controls: ["color", "size"] },
+  { key: "price", label: "Price", controls: ["color", "size", "weight"] },
+  {
+    key: "button",
+    label: "Button",
+    controls: ["bg", "color", "border", "radius"],
+  },
+];
+
 // Brand-safe typography scales shared by the text elements — presented as
 // labelled sliders (see the "scale" control). "Auto" inherits the theme (a
 // heading uses its level size/weight; body uses the base) so a host can nudge
@@ -818,6 +834,8 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "range", key: "max", label: "Add-ons shown", min: 1, max: 12 },
     ],
+    // Add-on cards have no per-card button (the block CTA covers it).
+    elements: SPECIAL_CARD_ELEMENTS.filter((e) => e.key !== "button"),
   },
   blog_preview: {
     type: "blog_preview",
@@ -1008,6 +1026,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "range", key: "max", label: "Specials shown", min: 1, max: 12 },
     ],
+    elements: SPECIAL_CARD_ELEMENTS,
   },
   location: {
     type: "location",

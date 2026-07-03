@@ -35,7 +35,14 @@ function SpecialCardView({
   const perLabel = s.priceMode === "flat" ? "package" : "/ night";
 
   return (
-    <Card className="flex flex-col">
+    <Card
+      className="flex flex-col"
+      style={{
+        background: "var(--el-card-bg, var(--site-surface))",
+        border: "var(--el-card-bd, var(--site-card-border))",
+        borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+      }}
+    >
       <div className="relative">
         {s.imageUrl ? (
           <SiteImg
@@ -43,16 +50,18 @@ function SpecialCardView({
             alt={s.title}
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             widths={[320, 480, 640, 768]}
+            style={{ borderRadius: "var(--el-image-radius, 0px)" }}
             className="aspect-[4/3] w-full object-cover"
           />
         ) : null}
         {s.badge ? (
           <span
             style={{
-              background: "var(--site-accent)",
-              color: "var(--site-accent-ink)",
+              background: "var(--el-badge-bg, var(--site-accent))",
+              color: "var(--el-badge-fg, var(--site-accent-ink))",
+              borderRadius: "var(--el-badge-radius, 9999px)",
             }}
-            className="absolute left-3 top-3 rounded-pill px-2.5 py-1 text-[11px] font-semibold shadow-sm"
+            className="absolute left-3 top-3 px-2.5 py-1 text-[11px] font-semibold shadow-sm"
           >
             {s.badge}
           </span>
@@ -67,16 +76,20 @@ function SpecialCardView({
         <h3
           style={{
             fontFamily: "var(--site-font-heading)",
-            color: "var(--site-ink)",
+            color: "var(--el-title-fg, var(--site-ink))",
+            fontSize: "var(--el-title-size, 1.125rem)",
+            fontWeight: "var(--el-title-weight, 600)",
           }}
-          className="text-lg font-semibold"
         >
           {s.title}
         </h3>
         {s.description ? (
           <p
-            style={{ color: "var(--site-mute)" }}
-            className="mt-1.5 line-clamp-3 text-sm leading-relaxed"
+            style={{
+              color: "var(--el-desc-fg, var(--site-mute))",
+              fontSize: "var(--el-desc-size, 0.875rem)",
+            }}
+            className="mt-1.5 line-clamp-3 leading-relaxed"
           >
             {s.description}
           </p>
@@ -84,8 +97,11 @@ function SpecialCardView({
         {price ? (
           <div className="mt-3 flex items-baseline gap-2">
             <span
-              style={{ color: "var(--site-ink)" }}
-              className="text-base font-semibold"
+              style={{
+                color: "var(--el-price-fg, var(--site-ink))",
+                fontSize: "var(--el-price-size, 1rem)",
+                fontWeight: "var(--el-price-weight, 600)",
+              }}
             >
               {price}
             </span>
@@ -112,10 +128,11 @@ function SpecialCardView({
             href={s.bookHref}
             data-wielo-book
             style={{
-              background: "var(--site-btn-primary-bg)",
-              color: "var(--site-btn-primary-color)",
-              border: "var(--site-btn-primary-border)",
-              borderRadius: "var(--site-btn-primary-radius)",
+              background: "var(--el-button-bg, var(--site-btn-primary-bg))",
+              color: "var(--el-button-fg, var(--site-btn-primary-color))",
+              border: "var(--el-button-bd, var(--site-btn-primary-border))",
+              borderRadius:
+                "var(--el-button-radius, var(--site-btn-primary-radius))",
             }}
             className="shrink-0 px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
           >

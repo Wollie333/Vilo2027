@@ -36,7 +36,14 @@ function AddonCardView({ addon: a }: { addon: AddonCardData }) {
   const per = PRICING_LABEL[a.pricingModel] ?? "";
 
   return (
-    <Card className="flex flex-col">
+    <Card
+      className="flex flex-col"
+      style={{
+        background: "var(--el-card-bg, var(--site-surface))",
+        border: "var(--el-card-bd, var(--site-card-border))",
+        borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+      }}
+    >
       <div className="relative">
         {a.imageUrl ? (
           <SiteImg
@@ -44,16 +51,18 @@ function AddonCardView({ addon: a }: { addon: AddonCardData }) {
             alt={a.name}
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             widths={[320, 480, 640, 768]}
+            style={{ borderRadius: "var(--el-image-radius, 0px)" }}
             className="aspect-[4/3] w-full object-cover"
           />
         ) : null}
         {a.required ? (
           <span
             style={{
-              background: "var(--site-accent)",
-              color: "var(--site-accent-ink)",
+              background: "var(--el-badge-bg, var(--site-accent))",
+              color: "var(--el-badge-fg, var(--site-accent-ink))",
+              borderRadius: "var(--el-badge-radius, 9999px)",
             }}
-            className="absolute left-3 top-3 rounded-pill px-2.5 py-1 text-[11px] font-semibold shadow-sm"
+            className="absolute left-3 top-3 px-2.5 py-1 text-[11px] font-semibold shadow-sm"
           >
             Included
           </span>
@@ -63,16 +72,20 @@ function AddonCardView({ addon: a }: { addon: AddonCardData }) {
         <h3
           style={{
             fontFamily: "var(--site-font-heading)",
-            color: "var(--site-ink)",
+            color: "var(--el-title-fg, var(--site-ink))",
+            fontSize: "var(--el-title-size, 1.125rem)",
+            fontWeight: "var(--el-title-weight, 600)",
           }}
-          className="text-lg font-semibold"
         >
           {a.name}
         </h3>
         {a.description ? (
           <p
-            style={{ color: "var(--site-mute)" }}
-            className="mt-1.5 line-clamp-3 text-sm leading-relaxed"
+            style={{
+              color: "var(--el-desc-fg, var(--site-mute))",
+              fontSize: "var(--el-desc-size, 0.875rem)",
+            }}
+            className="mt-1.5 line-clamp-3 leading-relaxed"
           >
             {a.description}
           </p>
@@ -80,8 +93,11 @@ function AddonCardView({ addon: a }: { addon: AddonCardData }) {
         {price ? (
           <div className="mt-3 flex items-baseline gap-2">
             <span
-              style={{ color: "var(--site-ink)" }}
-              className="text-base font-semibold"
+              style={{
+                color: "var(--el-price-fg, var(--site-ink))",
+                fontSize: "var(--el-price-size, 1rem)",
+                fontWeight: "var(--el-price-weight, 600)",
+              }}
             >
               {price}
             </span>
