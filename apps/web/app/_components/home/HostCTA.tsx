@@ -34,14 +34,14 @@ export async function HostCTA() {
         </div>
         <div className="flex flex-col gap-3 lg:col-span-4">
           <Link
-            href="/booking-management#cta"
+            href="/signup/host"
             className="inline-flex items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3 font-medium text-white transition-colors hover:bg-white hover:text-brand-secondary"
           >
             {t("hostCtaPrimary")}
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/booking-management"
+            href="/signup/host"
             className="inline-flex items-center justify-center gap-2 rounded border border-white/25 px-5 py-3 font-medium text-white transition-colors hover:bg-white/10"
           >
             {t("hostCtaSecondary", { brand: brandName })}

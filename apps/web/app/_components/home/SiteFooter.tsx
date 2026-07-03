@@ -26,9 +26,9 @@ const GUESTS = [
 ] as const;
 
 const HOSTS = [
-  { href: "/booking-management", key: "hostsList" },
-  { href: "/booking-management#how", key: "hostsHowItWorks" },
-  { href: "/booking-management#pricing", key: "hostsPricing" },
+  // "For hosts" (/booking-management) is hidden for now — point host links at
+  // the signup flow and drop the deep anchors into the removed page.
+  { href: "/signup/host", key: "hostsList" },
   { href: "/help", key: "hostsAcademy" },
   { href: "/help", key: "hostsMigration" },
 ] as const;
