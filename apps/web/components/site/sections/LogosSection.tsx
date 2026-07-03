@@ -2,7 +2,9 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
 
 import { SiteImg } from "../SiteImg";
-import { SectionShell, SectionHeading } from "./_shared";
+// Bare element (Elementor reframe): renders bare; the SECTION owns padding + width
+// and the heading is a separate Heading element above. `props.heading` stays legacy.
+import { SectionHeading } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "logos" }>["props"];
 
@@ -46,7 +48,7 @@ export function LogosSection({
   // GRID — logos in bordered cells.
   if (variant === "grid") {
     return (
-      <SectionShell>
+      <>
         {props.heading ? (
           <SectionHeading className="mb-10">{props.heading}</SectionHeading>
         ) : null}
@@ -77,14 +79,14 @@ export function LogosSection({
             );
           })}
         </div>
-      </SectionShell>
+      </>
     );
   }
 
   // ROW (grayscale, default) or COLOR (full colour).
   const mono = variant === "row";
   return (
-    <SectionShell>
+    <>
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
@@ -106,6 +108,6 @@ export function LogosSection({
           );
         })}
       </div>
-    </SectionShell>
+    </>
   );
 }

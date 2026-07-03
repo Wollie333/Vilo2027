@@ -1,6 +1,8 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
-import { SectionShell, SectionHeading, Card } from "./_shared";
+// Bare element (Elementor reframe): renders bare; the SECTION owns padding + width
+// and the heading is a separate Heading element above. `props.heading` stays legacy.
+import { SectionHeading, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "values" }>["props"];
 type Item = Props["items"][number];
@@ -34,7 +36,7 @@ export function ValuesSection({ props }: { props: Props }) {
   const variant = props.variant ?? "border";
 
   return (
-    <SectionShell>
+    <>
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
@@ -71,6 +73,6 @@ export function ValuesSection({ props }: { props: Props }) {
           ),
         )}
       </div>
-    </SectionShell>
+    </>
   );
 }

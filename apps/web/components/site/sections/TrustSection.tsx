@@ -1,7 +1,9 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { ReviewsData } from "@/lib/site/types";
 
-import { SectionShell, SectionHeading, Muted, Card, Stars } from "./_shared";
+// Bare element (Elementor reframe): renders bare; the SECTION owns padding + width
+// and the heading is a separate Heading element above. `props.heading` stays legacy.
+import { SectionHeading, Muted, Card, Stars } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "trust" }>["props"];
 
@@ -27,7 +29,7 @@ export function TrustSection({
   const variant = props.variant ?? "badges";
 
   return (
-    <SectionShell>
+    <>
       {props.heading ? (
         <SectionHeading className="mb-3">{props.heading}</SectionHeading>
       ) : null}
@@ -114,6 +116,6 @@ export function TrustSection({
           ))}
         </div>
       )}
-    </SectionShell>
+    </>
   );
 }

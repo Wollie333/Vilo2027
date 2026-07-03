@@ -1,6 +1,9 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
-import { SectionShell, SectionHeading, Card } from "./_shared";
+// Bare element (Elementor reframe): renders bare (incl. the old conditional
+// `surface` band); the SECTION owns padding + width + background (re-seed the band
+// as the section `bg`) and the heading is a separate Heading element above.
+import { SectionHeading, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "stats" }>["props"];
 
@@ -33,7 +36,7 @@ export function StatsSection({ props }: { props: Props }) {
   const cols = props.items.length >= 4 ? "sm:grid-cols-4" : "sm:grid-cols-3";
 
   return (
-    <SectionShell surface={variant === "band"}>
+    <>
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
@@ -50,6 +53,6 @@ export function StatsSection({ props }: { props: Props }) {
           ),
         )}
       </div>
-    </SectionShell>
+    </>
   );
 }
