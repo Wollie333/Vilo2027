@@ -5,7 +5,7 @@ import type {
 } from "@/lib/site/types";
 
 import { SiteImg } from "../SiteImg";
-import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
+import { SectionHeading, Muted, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "addons_preview" }>["props"];
 
@@ -108,7 +108,13 @@ export function AddonsPreviewSection({
   const cta = props.ctaLabel;
 
   return (
-    <SectionShell surface>
+    // Bare element (Elementor reframe): just the add-ons. No self-wrapping <section>,
+    // no band padding, no content-width clamp, no heading — ALL of that is owned by
+    // the SECTION the block sits in (padding/width/background via the section node +
+    // gear; the old `surface` band is re-seeded as the section's `bg`) and by a
+    // separate Heading element the host places above it. `props.heading` is legacy:
+    // rendered only if a page still carries it, so pre-reframe pages keep their title.
+    <>
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
@@ -150,6 +156,6 @@ export function AddonsPreviewSection({
           ) : null}
         </>
       )}
-    </SectionShell>
+    </>
   );
 }
