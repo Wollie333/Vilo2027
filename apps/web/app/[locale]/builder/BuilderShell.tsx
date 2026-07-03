@@ -149,7 +149,8 @@ import type {
   SiteBrand,
   SiteNavItem,
 } from "@/lib/site/types";
-import { SiteChrome } from "@/components/site/SiteChrome";
+import { SiteChrome, type ChromeEditable } from "@/components/site/SiteChrome";
+import { modal } from "@/components/ui/modal-host";
 import {
   saveBuilderDocAction,
   publishBuilderDocAction,
@@ -666,6 +667,32 @@ export function BuilderShell({
     }
   }, [selectedId, selectNode]);
 
+  // Click the header/footer in the canvas → confirm, save THIS page, then open the
+  // header/footer builder in place (an overlay, so closing it returns you here).
+  const onChromeSelect = useCallback(
+    async (target: "header" | "footer") => {
+      const ok = await modal.confirm({
+        title: `Edit the site ${target}?`,
+        description: `This page is saved first, then the ${target} builder opens. Close it to come back to this page.`,
+        confirmLabel: `Edit ${target}`,
+      });
+      if (!ok) return;
+      if (persists && websiteId && pageId) {
+        setSaveState("saving");
+        const res = await saveBuilderDocAction({ websiteId, pageId, doc });
+        setSaveState(res.ok ? "saved" : "error");
+      }
+      setNavInitialTab(target);
+      setNavOpen(true);
+    },
+    [persists, websiteId, pageId, doc],
+  );
+  const chromeEditable = useMemo<ChromeEditable | undefined>(
+    () =>
+      previewing ? undefined : { selected: null, onSelect: onChromeSelect },
+    [previewing, onChromeSelect],
+  );
+
   // Click a canvas node → select the innermost node; empty click → deselect.
   const onCanvasClick = (e: React.MouseEvent) => {
     const node = (e.target as HTMLElement).closest<HTMLElement>(
@@ -947,7 +974,8 @@ export function BuilderShell({
           footer={workTheme.footer}
           previewDevice={chromeDevice}
           pageHasHero={pageStartsWithHero(doc)}
-          chromeInert
+          editable={chromeEditable}
+          chromeInert={previewing}
         >
           <PageDocRenderer
             doc={doc}
@@ -970,6 +998,8 @@ export function BuilderShell({
       chromeNav,
       navigation,
       chromeDevice,
+      chromeEditable,
+      previewing,
     ],
   );
 
