@@ -120,6 +120,7 @@ export default async function PublicPostDetailPage({ params }: Props) {
       quote_count,
       created_at,
       expires_at,
+      image_url,
       guest:user_profiles!guest_id(full_name, avatar_url)
     `,
     )
@@ -208,6 +209,18 @@ export default async function PublicPostDetailPage({ params }: Props) {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main content */}
           <div className="space-y-6 lg:col-span-2">
+            {/* Guest photo */}
+            {post.image_url && (
+              <div className="overflow-hidden rounded-card border border-brand-line bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.image_url}
+                  alt={post.title}
+                  className="max-h-[420px] w-full object-cover"
+                />
+              </div>
+            )}
+
             {/* Post card */}
             <div className="rounded-card border border-brand-line bg-white">
               <div className="border-b border-brand-line p-6">

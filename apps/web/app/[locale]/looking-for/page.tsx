@@ -89,7 +89,8 @@ export default async function LookingForDirectoryPage({ searchParams }: Props) {
       view_count,
       quote_count,
       created_at,
-      expires_at
+      expires_at,
+      image_url
     `,
     )
     .eq("status", "active")
@@ -221,6 +222,18 @@ export default async function LookingForDirectoryPage({ searchParams }: Props) {
                     aria-label={post.title}
                     className="absolute inset-0 z-0 rounded-card"
                   />
+
+                  {/* Optional guest photo */}
+                  {post.image_url && (
+                    <div className="aspect-[16/9] w-full overflow-hidden rounded-t-card border-b border-brand-line">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={post.image_url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
 
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2 border-b border-brand-line p-4 pb-3">

@@ -4477,6 +4477,7 @@ export type Database = {
           fulfilled_via: string | null
           guest_id: string
           id: string
+          image_url: string | null
           infants: number
           is_all_in_quote: boolean | null
           is_public: boolean
@@ -4517,6 +4518,7 @@ export type Database = {
           fulfilled_via?: string | null
           guest_id: string
           id?: string
+          image_url?: string | null
           infants?: number
           is_all_in_quote?: boolean | null
           is_public?: boolean
@@ -4557,6 +4559,7 @@ export type Database = {
           fulfilled_via?: string | null
           guest_id?: string
           id?: string
+          image_url?: string | null
           infants?: number
           is_all_in_quote?: boolean | null
           is_public?: boolean

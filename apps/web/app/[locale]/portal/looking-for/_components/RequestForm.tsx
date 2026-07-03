@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, Zap } from "lucide-react";
+import { ImagePlus, Loader2, X, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { createRequestAction, updateRequestAction } from "../actions";
+import {
+  createRequestAction,
+  updateRequestAction,
+  uploadRequestImageAction,
+} from "../actions";
 import { TemplateSelector } from "./TemplateSelector";
 import type { RequestTemplate } from "./request-templates";
 
@@ -41,7 +45,10 @@ const requestSchema = z.object({
   is_public: z.boolean(),
   quote_deadline: z.string().optional(),
   min_host_rating: z.number().min(1).max(5).optional(),
+  image_url: z.string().optional(),
 });
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 type RequestFormData = z.infer<typeof requestSchema>;
 
@@ -70,6 +77,8 @@ export function RequestForm({ mode, userId, initialData }: RequestFormProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>(
     undefined,
   );
+  const [uploading, setUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const {
     register,
@@ -97,12 +106,40 @@ export function RequestForm({ mode, userId, initialData }: RequestFormProps) {
       is_public: initialData?.is_public ?? true,
       quote_deadline: initialData?.quote_deadline ?? "",
       min_host_rating: initialData?.min_host_rating,
+      image_url: initialData?.image_url ?? "",
     },
   });
 
   const category = watch("category");
   const isUrgent = watch("is_urgent");
   const isPublic = watch("is_public");
+  const imageUrl = watch("image_url");
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Reset the input so re-selecting the same file fires onChange again.
+    e.target.value = "";
+    if (!file) return;
+    setImageError(null);
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError("Image is too large — please keep it under 5MB.");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setImageError("Only image files are allowed.");
+      return;
+    }
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await uploadRequestImageAction(fd);
+    setUploading(false);
+    if (res.success) {
+      setValue("image_url", res.url);
+    } else {
+      setImageError(res.error);
+    }
+  }
 
   function handleTemplateSelect(template: RequestTemplate) {
     setSelectedTemplate(template.id);
@@ -248,6 +285,68 @@ export function RequestForm({ mode, userId, initialData }: RequestFormProps) {
             {...register("location_text")}
           />
         </div>
+      </div>
+
+      {/* Photo */}
+      <div className="space-y-4 rounded-card border border-brand-line bg-white p-6">
+        <div>
+          <h2 className="font-display font-semibold text-brand-ink">
+            Photo (optional)
+          </h2>
+          <p className="mt-1 text-sm text-brand-mute">
+            Add one image to bring your request to life — a place, a vibe, or an
+            example of what you have in mind. Max 5MB.
+          </p>
+        </div>
+
+        {imageUrl ? (
+          <div className="relative w-full max-w-sm overflow-hidden rounded-card border border-brand-line">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt="Request"
+              className="aspect-video w-full object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setValue("image_url", "");
+                setImageError(null);
+              }}
+              className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+              aria-label="Remove image"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <label
+            className={`flex w-full max-w-sm cursor-pointer flex-col items-center justify-center gap-2 rounded-card border border-dashed border-brand-line bg-brand-light/50 px-6 py-8 text-center transition-colors hover:border-brand-primary ${
+              uploading ? "pointer-events-none opacity-60" : ""
+            }`}
+          >
+            {uploading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-brand-primary" />
+            ) : (
+              <ImagePlus className="h-6 w-6 text-brand-mute" />
+            )}
+            <span className="text-sm font-medium text-brand-ink">
+              {uploading ? "Uploading…" : "Upload an image"}
+            </span>
+            <span className="text-xs text-brand-mute">
+              JPG, PNG, WEBP or GIF · up to 5MB
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={handleImageChange}
+              disabled={uploading}
+            />
+          </label>
+        )}
+
+        {imageError && <p className="text-sm text-red-600">{imageError}</p>}
       </div>
 
       {/* Dates & Guests */}
@@ -444,7 +543,7 @@ export function RequestForm({ mode, userId, initialData }: RequestFormProps) {
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || uploading}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {mode === "create" ? "Post Request" : "Save Changes"}
         </Button>

@@ -1,8 +1,12 @@
 "use server";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { revalidatePath } from "next/cache";
+
+const REQUEST_IMAGE_BUCKET = "looking-for-images";
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 type CreateRequestInput = {
   guest_id: string;
@@ -23,7 +27,57 @@ type CreateRequestInput = {
   is_public: boolean;
   quote_deadline?: string;
   min_host_rating?: number;
+  image_url?: string | null;
 };
+
+/**
+ * Upload one image for a Looking-For request. Public bucket
+ * (`looking-for-images`) so `<img src=publicUrl>` renders on the public
+ * directory without a signed URL; path is scoped to the signed-in user's id.
+ * Returns the public URL — the caller stores it on the post via
+ * create/update. Size + type are also capped at the storage layer.
+ */
+export async function uploadRequestImageAction(
+  formData: FormData,
+): Promise<{ success: true; url: string } | { success: false; error: string }> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return { success: false, error: "No file received." };
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return { success: false, error: "Image is too large — max 5MB." };
+  }
+  if (!file.type.startsWith("image/")) {
+    return { success: false, error: "Only image files are allowed." };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "Please sign in to upload an image." };
+  }
+
+  // Admin storage client so the upload doesn't depend on session cookies being
+  // readable in this action context; the path is still scoped to user.id.
+  const admin = createAdminClient();
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${user.id}/request-${Date.now()}.${ext}`;
+
+  const { error: uploadErr } = await admin.storage
+    .from(REQUEST_IMAGE_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (uploadErr) {
+    console.error("[looking-for:uploadImage] failed", uploadErr);
+    return { success: false, error: `Upload failed: ${uploadErr.message}` };
+  }
+
+  const { data: pub } = admin.storage
+    .from(REQUEST_IMAGE_BUCKET)
+    .getPublicUrl(path);
+  return { success: true, url: pub.publicUrl };
+}
 
 /**
  * Create a new Looking For post
@@ -85,6 +139,7 @@ export async function createRequestAction(input: CreateRequestInput) {
       expires_at: expiresAt.toISOString(),
       quote_deadline: input.quote_deadline || null,
       min_host_rating: input.min_host_rating || null,
+      image_url: input.image_url || null,
     })
     .select("id")
     .single();
@@ -155,6 +210,9 @@ export async function updateRequestAction(
       is_public: input.is_public,
       quote_deadline: input.quote_deadline || null,
       min_host_rating: input.min_host_rating || null,
+      ...(input.image_url !== undefined
+        ? { image_url: input.image_url || null }
+        : {}),
       updated_at: new Date().toISOString(),
     })
     .eq("id", postId);

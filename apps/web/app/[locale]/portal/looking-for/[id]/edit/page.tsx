@@ -43,6 +43,7 @@ export default async function EditRequestPage({ params }: Props) {
       budget_per,
       is_urgent,
       is_public,
+      image_url,
       guest_id
     `,
     )
@@ -113,6 +114,7 @@ export default async function EditRequestPage({ params }: Props) {
             | undefined,
           is_urgent: post.is_urgent ?? false,
           is_public: post.is_public ?? true,
+          image_url: post.image_url ?? undefined,
         }}
       />
     </div>
