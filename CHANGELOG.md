@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-03 — Oceans View home: every block skinned pixel-perfect + still editable (`6ae16f4a`).
+
+Theme-skin pipeline: a theme is a CSS **SKIN** over the SAME generic, host-editable builder blocks —
+no per-theme component fork, so per-element `--el-*` overrides keep every element editable.
+
+- Rebuilt the vilotest **home** v2 PageDoc section-for-section to the Oceans View reference
+  (`docs/themes/oceansview/pages/Home.html`) using generic blocks + reference copy/images.
+- Added `sand` + `navy` band tones (`SECTION_TONES` / `sectionToneStyle`), driven by the theme's
+  `--site-soft` / `--site-navy*` tokens with brand-safe fallbacks.
+- New reusable `highlights` **`tiles`** variant — image-backed cards with a scrim overlay (the
+  reference "experiences" tiles).
+- `theme-skins.css`: scoped `.wielo-oceansview [data-section-type=…]` rules for the hero rating
+  chip, coral conversion CTAs, intro coral stat badge, sand stats numbers, room-card hover-lift +
+  aqua-tint chips, experience tiles, amenity icon chips, rounded gallery mosaic, navy testimonial
+  coral quote-marks.
+
+Live-verified top-to-bottom on the vilotest oceansview skin. tsc + eslint clean. Pushed to `main`.
+Deferred polish: nav transparent-over-hero (chrome), intro eyebrow coral, room price pill overlay,
+amenity 4-col. Next: remaining Oceans View pages, then repeat the recipe for other themes.
+
 ## 2026-07-03 — Public Looking-For guest-requests page + sign-in-to-quote flow; marketing-header fixes.
 
 Separate lane from the builder work. All shipped to `main` and live.
