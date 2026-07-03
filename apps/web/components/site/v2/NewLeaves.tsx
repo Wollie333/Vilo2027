@@ -85,6 +85,7 @@ export function LogoLeaf({
   const style = String(props.style ?? "markName");
   const align = (props.align as Align) ?? "left";
   const mono = (monogram ?? brandName[0] ?? "W").slice(0, 2);
+  const sz = LOGO_SIZE[String(props.size ?? "md")] ?? LOGO_SIZE.md;
   return (
     <div
       style={{
@@ -97,8 +98,8 @@ export function LogoLeaf({
       {style !== "name" ? (
         <span
           style={{
-            width: 36,
-            height: 36,
+            width: sz.mono,
+            height: sz.mono,
             borderRadius: "var(--site-radius, 9px)",
             background: "var(--site-accent)",
             color: "var(--site-accentInk, #fff)",
@@ -116,7 +117,7 @@ export function LogoLeaf({
         <span
           style={{
             fontFamily: "var(--site-font-heading)",
-            fontSize: "1.2rem",
+            fontSize: sz.name,
             color: "var(--site-ink)",
           }}
         >
@@ -126,6 +127,11 @@ export function LogoLeaf({
     </div>
   );
 }
+const LOGO_SIZE: Record<string, { mono: number; name: string }> = {
+  sm: { mono: 28, name: "1.05rem" },
+  md: { mono: 36, name: "1.2rem" },
+  lg: { mono: 48, name: "1.5rem" },
+};
 
 // ── Nav menu ──────────────────────────────────────────────────
 // Header/menu are governed by the Nav builder; this leaf is for the footer /
@@ -208,6 +214,10 @@ export function SocialLeaf({
   const align = (props.align as Align) ?? "left";
   const round =
     String((props as { variant?: string }).variant ?? "round") === "round";
+  const chip =
+    typeof props.icon_size === "string" && props.icon_size !== "auto"
+      ? Number(props.icon_size)
+      : 38;
   return (
     <div
       style={{ display: "flex", gap: 10, justifyContent: alignItems(align) }}
@@ -217,15 +227,15 @@ export function SocialLeaf({
           key={i}
           title={n}
           style={{
-            width: 38,
-            height: 38,
+            width: chip,
+            height: chip,
             borderRadius: round ? 999 : 10,
             background: color,
             color: "var(--site-bg)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 13,
+            fontSize: Math.round(chip * 0.34),
             fontWeight: 700,
             textTransform: "capitalize",
           }}

@@ -1036,6 +1036,16 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         ],
       },
       ALIGN_CTL(),
+      {
+        kind: "seg",
+        key: "size",
+        label: "Size",
+        options: [
+          ["sm", "S"],
+          ["md", "M"],
+          ["lg", "L"],
+        ],
+      },
       { kind: "hint", text: "Reads your logo + name from Brand Studio." },
     ],
   },
@@ -1101,6 +1111,18 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       },
       { kind: "color", key: "color", label: "Colour" },
       ALIGN_CTL(),
+      {
+        kind: "scale",
+        key: "icon_size",
+        label: "Icon size",
+        steps: [
+          ["auto", "Auto"],
+          ["30", "30"],
+          ["38", "38"],
+          ["46", "46"],
+          ["56", "56"],
+        ],
+      },
     ],
   },
 

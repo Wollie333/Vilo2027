@@ -42,6 +42,7 @@ export const LOGO_VARIANTS = ["markName", "name", "mark"] as const;
 export const elLogoProps = z.object({
   style: z.enum(LOGO_VARIANTS).default("markName"),
   align: z.enum(ALIGN).default("left"),
+  size: z.enum(["sm", "md", "lg"]).optional(),
 });
 
 // Nav menu — by default renders the menu the Nav builder assigns (SSOT). In
@@ -63,6 +64,8 @@ export const elSocialProps = z.object({
   networks: z.string().max(300).optional(),
   color: z.enum(EL_COLOR).default("default"),
   align: z.enum(ALIGN).default("left"),
+  // Icon chip size in px (scale string; "auto" = the default 38px).
+  icon_size: z.string().max(6).optional(),
 });
 
 /** Zod prop schema per new widget type (used by the registry + write-validation). */
