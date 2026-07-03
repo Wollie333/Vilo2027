@@ -54,8 +54,23 @@
 > real builder canvas: centered heading + "4.8 · 4 reviews" row above a bare 2-col grid, padded, no
 > regression. 197 vitest, tsc+lint clean.
 >
+> ✅ **B — GALLERY DONE (`de204529`).** `GallerySection` renders BARE (dropped `SectionShell`).
+> Re-seeded TWO pages: home's gallery (`safari-home-gallery` → band + `el_heading` "Moments from the
+> reserve") and the dedicated **gallery page** grid (`sf-gl-grid` → band only; heading was empty, hero
+> sits above). **KEY: republished the gallery page from its LEGACY FLAT `published_sections` to the v2
+> draft doc** — because `sectionToPageDocSection` (the flat→PageDoc conversion) gives each section
+> `NO_SPACE` + `maxw:2000` (assumes self-banded blocks), a bare block on the flat path loses its band.
+> So any flat-published page carrying a reframed block MUST be republished to its v2 doc. LIVE-VERIFIED
+> in the builder canvas (home: centered heading + padded 1024 grid; gallery page: hero→bare padded
+> grid→CTA). 197 vitest, tsc+lint clean.
+>
+> **⚠ FLAT-PAGE NOTE for the rest of the queue:** the `specials` page is `draft=flat/pub=flat` (never
+> opened in the builder → no v2 draft yet). To reframe the specials block there, first open/convert the
+> page to v2 (builder auto-converts on open) OR build the v2 doc, then reseed + republish. Check each
+> block's host pages with a probe (draft/pub v2 vs flat) before reseeding.
+>
 > **⏳ NEXT (Phase B rollout):** apply the SAME treatment to the remaining blocks one at a time
-> (~~reviews~~ · gallery · specials · addons · rates · policies · marketing composites hero/intro/cta/…):
+> (~~reviews~~ · ~~gallery~~ · specials · addons · rates · policies · marketing composites hero/intro/cta/…):
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
