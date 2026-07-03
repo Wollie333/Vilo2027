@@ -10,6 +10,13 @@ import { SectionHeading, Muted, Card } from "./_shared";
 type Props = Extract<WebsiteSection, { type: "blog_preview" }>["props"];
 type PostItem = NonNullable<BlogPreviewData["posts"]>[number];
 
+// Per-element style hooks (Elementor accordion) — each reads `--el-<key>-*`.
+const blogCardStyle = {
+  background: "var(--el-card-bg, var(--site-surface))",
+  border: "var(--el-card-bd, var(--site-card-border))",
+  borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+} as const;
+
 function PostMeta({
   post,
   className = "",
@@ -20,23 +27,31 @@ function PostMeta({
   return (
     <div className={className}>
       {post.date ? (
-        <span style={{ color: "var(--site-mute)" }} className="text-xs">
+        <span
+          style={{ color: "var(--el-meta-fg, var(--site-mute))" }}
+          className="text-xs"
+        >
           {post.date}
         </span>
       ) : null}
       <h3
         style={{
           fontFamily: "var(--site-font-heading)",
-          color: "var(--site-ink)",
+          color: "var(--el-title-fg, var(--site-ink))",
+          fontSize: "var(--el-title-size, 1.125rem)",
+          fontWeight: "var(--el-title-weight, 600)",
         }}
-        className="mt-1 text-lg font-semibold transition-opacity group-hover:opacity-80"
+        className="mt-1 transition-opacity group-hover:opacity-80"
       >
         {post.title}
       </h3>
       {post.excerpt ? (
         <p
-          style={{ color: "var(--site-mute)" }}
-          className="mt-1.5 line-clamp-3 text-sm leading-relaxed"
+          style={{
+            color: "var(--el-excerpt-fg, var(--site-mute))",
+            fontSize: "var(--el-excerpt-size, 0.875rem)",
+          }}
+          className="mt-1.5 line-clamp-3 leading-relaxed"
         >
           {post.excerpt}
         </p>
@@ -85,13 +100,17 @@ export function BlogPreviewSection({
             <div className="mx-auto grid max-w-3xl gap-5">
               {posts.map((post) => (
                 <a key={post.href} href={post.href} className="group block">
-                  <Card className="flex flex-col sm:flex-row">
+                  <Card
+                    className="flex flex-col sm:flex-row"
+                    style={blogCardStyle}
+                  >
                     {post.coverUrl ? (
                       <SiteImg
                         src={post.coverUrl}
                         alt={post.title}
                         sizes="(min-width: 640px) 224px, 100vw"
                         widths={[320, 480, 640]}
+                        style={{ borderRadius: "var(--el-image-radius, 0px)" }}
                         className="aspect-[16/9] w-full object-cover sm:aspect-auto sm:w-56"
                       />
                     ) : null}
@@ -104,13 +123,14 @@ export function BlogPreviewSection({
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {posts.map((post) => (
                 <a key={post.href} href={post.href} className="group block">
-                  <Card className="flex h-full flex-col">
+                  <Card className="flex h-full flex-col" style={blogCardStyle}>
                     {post.coverUrl ? (
                       <SiteImg
                         src={post.coverUrl}
                         alt={post.title}
                         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                         widths={[320, 480, 640, 768]}
+                        style={{ borderRadius: "var(--el-image-radius, 0px)" }}
                         className="aspect-[16/9] w-full object-cover"
                       />
                     ) : null}

@@ -23,16 +23,20 @@ function HostText({
         <h3
           style={{
             fontFamily: "var(--site-font-heading)",
-            color: "var(--site-ink)",
+            color: "var(--el-name-fg, var(--site-ink))",
+            fontSize: "var(--el-name-size, 1.25rem)",
+            fontWeight: "var(--el-name-weight, 600)",
           }}
-          className="text-xl font-semibold"
         >
           {name}
         </h3>
       ) : null}
       <p
-        style={{ color: "var(--site-mute)" }}
-        className="mt-2 whitespace-pre-line text-base leading-relaxed"
+        style={{
+          color: "var(--el-body-fg, var(--site-mute))",
+          fontSize: "var(--el-body-size, 1rem)",
+        }}
+        className="mt-2 whitespace-pre-line leading-relaxed"
       >
         {body}
       </p>
@@ -53,7 +57,10 @@ function HostPhoto({
     <SiteImg
       src={src}
       alt={alt}
-      style={siteImageStyle}
+      style={{
+        ...siteImageStyle,
+        borderRadius: "var(--el-photo-radius, var(--site-img-radius))",
+      }}
       className={className}
       sizes="160px"
       widths={[160, 320, 480]}

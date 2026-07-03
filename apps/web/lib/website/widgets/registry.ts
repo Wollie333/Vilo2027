@@ -666,6 +666,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "name", label: "Host name" },
       { kind: "textarea", key: "body", label: "Bio" },
     ],
+    elements: [
+      { key: "photo", label: "Photo", controls: ["radius"] },
+      { key: "name", label: "Name", controls: ["color", "size", "weight"] },
+      { key: "body", label: "Bio", controls: ["color", "size"] },
+    ],
   },
   values: {
     type: "values",
@@ -739,6 +744,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "text", key: "footnote", label: "Footnote" },
+    ],
+    elements: [
+      { key: "card", label: "Table", controls: ["bg", "radius"] },
+      { key: "label", label: "Label", controls: ["color", "size"] },
+      { key: "price", label: "Price", controls: ["color", "size", "weight"] },
     ],
   },
   logos: {
@@ -888,6 +898,13 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "range", key: "max", label: "Posts shown", min: 1, max: 12 },
+    ],
+    elements: [
+      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      { key: "image", label: "Image", controls: ["radius"] },
+      { key: "meta", label: "Date", controls: ["color"] },
+      { key: "title", label: "Title", controls: ["color", "size", "weight"] },
+      { key: "excerpt", label: "Excerpt", controls: ["color", "size"] },
     ],
   },
   policies: {

@@ -16,8 +16,12 @@ export function PricingSection({ props }: { props: Props }) {
         <SectionHeading className="mb-8">{props.heading}</SectionHeading>
       ) : null}
       <div
-        className="overflow-hidden rounded-card border"
-        style={{ borderColor: "var(--site-line)" }}
+        className="overflow-hidden border"
+        style={{
+          borderColor: "var(--site-line)",
+          background: "var(--el-card-bg, transparent)",
+          borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+        }}
       >
         {props.items.map((item, i) => (
           <div
@@ -27,8 +31,11 @@ export function PricingSection({ props }: { props: Props }) {
           >
             <div>
               <div
-                style={{ color: "var(--site-ink)" }}
-                className="text-sm font-semibold"
+                style={{
+                  color: "var(--el-label-fg, var(--site-ink))",
+                  fontSize: "var(--el-label-size, 0.875rem)",
+                }}
+                className="font-semibold"
               >
                 {item.label}
               </div>
@@ -40,10 +47,12 @@ export function PricingSection({ props }: { props: Props }) {
             </div>
             <div
               style={{
-                color: "var(--site-accent)",
+                color: "var(--el-price-fg, var(--site-accent))",
                 fontFamily: "var(--site-font-heading)",
+                fontSize: "var(--el-price-size, 1.125rem)",
+                fontWeight: "var(--el-price-weight, 700)",
               }}
-              className="shrink-0 text-lg font-bold"
+              className="shrink-0"
             >
               {item.price}
             </div>
