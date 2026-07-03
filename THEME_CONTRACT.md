@@ -1,5 +1,15 @@
 # Theme Contract — how every theme plugs into the Wielo Website CMS
 
+> **▶ CURRENT MODEL (2026-07-03): a theme is a SKIN over generic blocks.** The
+> per-theme render layer is gone (Builder V2 Phase 6). The authoritative "how to
+> make a theme pixel-perfect and keep it editable" guide is now
+> **[`docs/themes/THEME_SKIN_STANDARD.md`](docs/themes/THEME_SKIN_STANDARD.md)** —
+> the token contract, the reference→block mapping, the per-page recipe, the skin
+> CSS cookbook, and the gotchas. Read it first for any new theme or page skin.
+> Layers 1 (shared contract) + 2 (shared builder UI) + the canonical page set /
+> nav / header-menu contract below all still hold; layer 3 (per-theme code) is
+> replaced by `theme-skins.css`.
+
 > **⚠️ CHANGING under Builder V2 (2026-07-01).** The "per-theme render layer + scoped CSS"
 > model in layer 3 below is being replaced by **token-driven blocks**: one shared component
 > per block (with shared variants) that reads `--site-*` tokens; a theme becomes a **token set
