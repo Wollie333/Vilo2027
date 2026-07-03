@@ -8,6 +8,13 @@ import type { LocationData } from "@/lib/site/types";
 import { SectionHeading, Muted, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "location" }>["props"];
+
+// Per-element style hook (Elementor accordion) — reads `--el-card-*`.
+const locCardStyle = {
+  background: "var(--el-card-bg, var(--site-surface))",
+  border: "var(--el-card-bd, var(--site-card-border))",
+  borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+} as const;
 type Poi = NonNullable<LocationData["pois"]>[number];
 
 function PoiList({
@@ -26,8 +33,11 @@ function PoiList({
           className="flex items-center justify-between border-b pb-2.5"
         >
           <span
-            style={{ color: "var(--site-ink)" }}
-            className="text-sm font-medium"
+            style={{
+              color: "var(--el-poi-fg, var(--site-ink))",
+              fontSize: "var(--el-poi-size, 0.875rem)",
+            }}
+            className="font-medium"
           >
             {poi.name}
             {poi.category ? (
@@ -70,13 +80,18 @@ export function LocationSection({
         <SectionHeading className="mb-3">{props.heading}</SectionHeading>
       ) : null}
       {data?.address ? (
-        <Muted className="mb-8 text-center text-base">{data.address}</Muted>
+        <Muted
+          className="mb-8 text-center text-base"
+          style={{ color: "var(--el-address-fg, var(--site-mute))" }}
+        >
+          {data.address}
+        </Muted>
       ) : null}
 
       {variant === "stacked" ? (
         <div className="space-y-6">
           {showMap ? (
-            <Card>
+            <Card style={locCardStyle}>
               <iframe
                 src={mapUrl}
                 title="Map"
@@ -101,7 +116,7 @@ export function LocationSection({
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {showMap ? (
-            <Card>
+            <Card style={locCardStyle}>
               <iframe
                 src={mapUrl}
                 title="Map"

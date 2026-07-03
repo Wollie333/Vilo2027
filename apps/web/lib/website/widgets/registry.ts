@@ -873,6 +873,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         text: "Amenities come from your property — use “Edit amenities…” to choose them.",
       },
     ],
+    elements: [
+      { key: "card", label: "Chip", controls: ["bg", "radius"] },
+      { key: "icon", label: "Icon", controls: ["color"] },
+      { key: "label", label: "Label", controls: ["color", "size"] },
+    ],
   },
   addons_preview: {
     type: "addons_preview",
@@ -1117,6 +1122,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "textarea", key: "body", label: "Body" },
       { kind: "toggle", key: "show_map", label: "Show map" },
+    ],
+    elements: [
+      { key: "card", label: "Map", controls: ["bg", "border", "radius"] },
+      { key: "address", label: "Address", controls: ["color"] },
+      { key: "poi", label: "Places", controls: ["color", "size"] },
     ],
   },
   map: {

@@ -29,12 +29,16 @@ export function AmenitiesSection({
         {items.map((item, i) => (
           <div
             key={i}
-            className="flex items-center gap-2.5 rounded-card border p-3"
-            style={{ borderColor: "var(--site-line)" }}
+            className="flex items-center gap-2.5 border p-3"
+            style={{
+              borderColor: "var(--site-line)",
+              background: "var(--el-card-bg, transparent)",
+              borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+            }}
           >
             {item.icon ? (
               <span
-                style={{ color: "var(--site-icon-color)" }}
+                style={{ color: "var(--el-icon-fg, var(--site-icon-color))" }}
                 className="text-xl"
                 aria-hidden
               >
@@ -42,8 +46,11 @@ export function AmenitiesSection({
               </span>
             ) : null}
             <span
-              style={{ color: "var(--site-ink)" }}
-              className="text-sm font-medium"
+              style={{
+                color: "var(--el-label-fg, var(--site-ink))",
+                fontSize: "var(--el-label-size, 0.875rem)",
+              }}
+              className="font-medium"
             >
               {item.label}
             </span>
