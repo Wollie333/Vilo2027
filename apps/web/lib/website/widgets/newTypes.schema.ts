@@ -21,6 +21,8 @@ export const elIconProps = z.object({
   body: z.string().max(600).default("Say what makes it special."),
   color: z.enum(EL_COLOR).default("accent"),
   align: z.enum(ALIGN).default("center"),
+  // Glyph size in px (scale string; "auto" = the default 34px).
+  icon_size: z.string().max(6).optional(),
 });
 
 // Single room card — renders ONE room. `room_id` pins it to a live room; empty

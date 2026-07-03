@@ -30,6 +30,10 @@ export function IconLeaf({
   const color = elColor(props.color as ElColorKey, "var(--site-accent)");
   const align = (props.align as Align) ?? "center";
   const inline = variant === "inline";
+  const iconSize =
+    typeof props.icon_size === "string" && props.icon_size !== "auto"
+      ? Number(props.icon_size)
+      : 34;
   return (
     <div
       style={{
@@ -42,7 +46,7 @@ export function IconLeaf({
         marginInline: align === "center" && !inline ? "auto" : undefined,
       }}
     >
-      <div style={{ fontSize: 34, lineHeight: 1, color }}>{glyph}</div>
+      <div style={{ fontSize: iconSize, lineHeight: 1, color }}>{glyph}</div>
       <div>
         {title ? (
           <h3
