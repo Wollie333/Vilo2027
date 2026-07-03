@@ -20,6 +20,16 @@ export function SiteThemeRoot({
   className?: string;
 }) {
   const vars = buildSiteVars(theme);
+  // Per-theme skin scope. Each built-in theme ships a scoped stylesheet
+  // (`.wielo-<slug> { … }` in theme-skins.css) that styles the SAME section
+  // blocks into its pixel-perfect design. Purely additive: with no skin rules
+  // for a slug, nothing changes; and every rule sits UNDER the builder's inline
+  // `--el-*` overrides, so per-element edits still win.
+  const slug =
+    typeof theme?.preset === "string" && theme.preset.trim()
+      ? theme.preset.trim()
+      : null;
+  const skinClass = slug ? `wielo-${slug}` : "";
   // The global top-loading bar (NextTopLoader, in the root layout) is brand green
   // by default — correct for the Wielo app. On a HOST's themed site, point it at
   // the theme's accent by setting --wielo-toploader on :root (the bar lives at the
@@ -39,7 +49,7 @@ export function SiteThemeRoot({
         lineHeight: "var(--site-leading-body)" as unknown as number,
         letterSpacing: "var(--site-tracking-body)",
       }}
-      className={className}
+      className={[className, skinClass].filter(Boolean).join(" ") || undefined}
     >
       {accent ? <style>{`:root{--wielo-toploader:${accent}}`}</style> : null}
       {children}

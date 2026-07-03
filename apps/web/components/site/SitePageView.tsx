@@ -1,6 +1,11 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+// Per-theme skins. Every rule is scoped to `.wielo-<slug>` (set by SiteThemeRoot),
+// so importing it globally here only ever styles a host site under an active
+// theme — never the Wielo app chrome.
+import "./themes/theme-skins.css";
+
 import {
   buildSitePreviewPages,
   loadSiteContext,

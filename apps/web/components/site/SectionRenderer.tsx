@@ -143,11 +143,20 @@ function SectionWrap({
   const cls = `wsec-${section.id.replace(/-/g, "")}`;
   const css = blockStyleCss(cls, section.style);
 
-  if (!fill && !hasVars && !visClass && !css) return <>{children}</>;
+  // Always emit a wrapping element carrying the stable `data-section-type` hook
+  // so per-theme skins can target each block on this (flat) render path too —
+  // matching the v2 PageDocRenderer. A bare block `<div>` with only the data
+  // attribute is layout-neutral.
+  if (!fill && !hasVars && !visClass && !css)
+    return <div data-section-type={section.type}>{children}</div>;
   const className =
     [visClass, css ? cls : ""].filter(Boolean).join(" ") || undefined;
   return (
-    <div style={fill ? { background: fill } : undefined} className={className}>
+    <div
+      data-section-type={section.type}
+      style={fill ? { background: fill } : undefined}
+      className={className}
+    >
       {css ? <style>{css}</style> : null}
       {hasVars ? <div style={toneVars}>{children}</div> : children}
     </div>

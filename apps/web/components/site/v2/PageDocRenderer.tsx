@@ -272,6 +272,10 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
       }}
       data-node-id={node.id}
       data-node-kind="widget"
+      // Stable semantic hook for per-theme skins (e.g. `.wielo-oceansview
+      // [data-section-type="hero"]`). Additive only — the builder + per-element
+      // `--el-*` overrides are unaffected, and el-* stays inline so it wins.
+      data-section-type={node.type}
     >
       {elCss ? <style dangerouslySetInnerHTML={{ __html: elCss }} /> : null}
       {custom ? <style dangerouslySetInnerHTML={{ __html: custom }} /> : null}

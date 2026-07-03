@@ -1,0 +1,39 @@
+/*
+ * PER-THEME SKINS
+ * ---------------
+ * Each host theme is a *skin* over the SAME builder blocks. The block structure
+ * and the builder's editing (add/remove/reorder, Content/Style tabs, per-element
+ * `--el-*` overrides) never change — a theme only styles those blocks into its
+ * pixel-perfect design via the scoped rules below.
+ *
+ * Contract:
+ *   • Every rule is scoped to `.wielo-<slug>` (set by SiteThemeRoot from the
+ *     active theme). Nothing here touches the Wielo app chrome.
+ *   • Skins set DEFAULTS + LAYOUT only. The builder's per-element overrides are
+ *     emitted INLINE as `--el-*` custom properties, so they always win over a
+ *     skin rule — a host can still restyle any element.
+ *   • Blocks expose a stable semantic hook: `[data-section-type="<type>"]`
+ *     (hero, rooms_preview, gallery, reviews, cta, intro, stats, highlights,
+ *     amenities, …). Skins target those, mirroring the reference HTML's
+ *     `data-section` attribute.
+ *
+ * A CUSTOM uploaded theme follows the same principle: ship its `--site-*` tokens
+ * + a `.wielo-<slug>` block here (or as an uploaded stylesheet), targeting the
+ * same hooks. Reference designs live in docs/themes/<slug>/. See THEME_CONTRACT.md.
+ */
+
+/* ======================================================================
+ * OCEANS VIEW — bright Camps Bay beach resort (aqua · sand · navy · coral)
+ * Ref: docs/themes/oceansview/{theme.css, base.md, pages/*.html}
+ * ==================================================================== */
+.wielo-oceansview {
+  /* Extra tokens the beach-resort look derives from, beyond the core
+     --site-* palette (from base.md). These give the alternating sand bands,
+     the deep-navy testimonial/footer sections and the coral secondary a value
+     to resolve against — additive, so they can't regress anything. */
+  --site-soft: #f7f1e6; /* warm sand fill for alternating bands */
+  --site-navy: #0a2330; /* deep anchor for dark sections + footer */
+  --site-navy-ink: #ffffff;
+  --site-secondary: #ff6b57; /* coral */
+  --site-secondary-ink: #ffffff;
+}
