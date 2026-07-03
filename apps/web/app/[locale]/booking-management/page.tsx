@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
+
+// TEMP: the "For hosts" marketing page is hidden for now — removed from the
+// nav and made unreachable. Delete this flag (and the guard below) to bring it
+// back.
+const FOR_HOSTS_PAGE_HIDDEN = true;
 
 import { Comparison } from "./_components/Comparison";
 import { DirectoryStrip } from "./_components/DirectoryStrip";
@@ -28,6 +34,8 @@ export const metadata: Metadata = {
 };
 
 export default async function BookingManagementPage() {
+  if (FOR_HOSTS_PAGE_HIDDEN) notFound();
+
   const products = await getSubscriptionProducts();
   return (
     <div className="bg-brand-light text-brand-ink">

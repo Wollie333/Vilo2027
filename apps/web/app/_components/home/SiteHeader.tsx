@@ -27,7 +27,7 @@ const NAV = [
   { href: "#destinations", key: "destinations" },
   { href: "#types", key: "propertyTypes" },
   { href: "/deals", key: "deals" },
-  { href: "/booking-management", key: "forHosts" },
+  // "For hosts" (/booking-management) is hidden for now.
   { href: "/launch", key: "launch" },
 ] as const;
 
