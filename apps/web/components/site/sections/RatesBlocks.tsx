@@ -14,6 +14,7 @@ const rateCardStyle = {
   background: "var(--el-card-bg, var(--site-surface))",
   border: "var(--el-card-bd, var(--site-card-border))",
   borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+  boxShadow: "var(--el-card-shadow, var(--site-card-shadow))",
 } as const;
 
 function money(price?: number | null, currency?: string | null) {

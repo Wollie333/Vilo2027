@@ -36,6 +36,7 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
         background: "var(--el-card-bg, var(--site-surface))",
         border: "var(--el-card-bd, var(--site-card-border))",
         borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+        boxShadow: "var(--el-card-shadow, var(--site-card-shadow))",
         ...(room.featured ? { boxShadow: "0 0 0 2px var(--site-accent)" } : {}),
       }}
     >

@@ -53,6 +53,7 @@ export function StatsSection({ props }: { props: Props }) {
                 background: "var(--el-card-bg, var(--site-surface))",
                 border: "var(--el-card-bd, var(--site-card-border))",
                 borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+                boxShadow: "var(--el-card-shadow, var(--site-card-shadow))",
               }}
             >
               <StatBlock value={item.value} label={item.label} />

@@ -135,14 +135,22 @@ const POLICY_ELEMENTS: ElementDef[] = [
 ];
 // Rate list / seasonal cards — card + room/season label + price.
 const RATE_LIST_ELEMENTS: ElementDef[] = [
-  { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+  {
+    key: "card",
+    label: "Card",
+    controls: ["bg", "border", "radius", "shadow"],
+  },
   { key: "label", label: "Label", controls: ["color", "size"] },
   { key: "price", label: "Price", controls: ["color", "size", "weight"] },
 ];
 // Shared per-element styling for the card-grid Wielo blocks (specials / add-ons —
 // same card anatomy). Keys match the `--el-<key>-*` vars each component reads.
 const SPECIAL_CARD_ELEMENTS: ElementDef[] = [
-  { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+  {
+    key: "card",
+    label: "Card",
+    controls: ["bg", "border", "radius", "shadow"],
+  },
   { key: "image", label: "Image", controls: ["radius"] },
   { key: "badge", label: "Badge", controls: ["bg", "color", "radius"] },
   { key: "title", label: "Title", controls: ["color", "size", "weight"] },
@@ -697,7 +705,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       },
     ],
     elements: [
-      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       { key: "icon", label: "Icon", controls: ["color"] },
       { key: "title", label: "Title", controls: ["color", "size", "weight"] },
       { key: "body", label: "Body", controls: ["color", "size"] },
@@ -722,7 +734,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "hint", text: "Stat items are editable in a later slice." },
     ],
     elements: [
-      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       { key: "value", label: "Value", controls: ["color", "size", "weight"] },
       { key: "label", label: "Label", controls: ["color", "size"] },
     ],
@@ -786,7 +802,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "hint", text: "Value items are editable in a later slice." },
     ],
     elements: [
-      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       { key: "title", label: "Title", controls: ["color", "size", "weight"] },
       { key: "body", label: "Body", controls: ["color", "size"] },
     ],
@@ -814,7 +834,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "hint", text: "Q&A items are editable in a later slice." },
     ],
     elements: [
-      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       {
         key: "question",
         label: "Question",
@@ -875,7 +899,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "toggle", key: "show_review_score", label: "Show review score" },
     ],
     elements: [
-      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       { key: "icon", label: "Icon", controls: ["color"] },
       { key: "label", label: "Label", controls: ["color", "size"] },
       { key: "caption", label: "Caption", controls: ["color"] },
@@ -907,7 +935,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     // Elementor-style per-element styling — each maps to `--el-<key>-*` vars read
     // by RoomsPreviewSection's room card. Keys MUST match the component.
     elements: [
-      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       { key: "image", label: "Image", controls: ["radius"] },
       {
         key: "title",
@@ -1001,7 +1033,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "range", key: "max", label: "Posts shown", min: 1, max: 12 },
     ],
     elements: [
-      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       { key: "image", label: "Image", controls: ["radius"] },
       { key: "meta", label: "Date", controls: ["color"] },
       { key: "title", label: "Title", controls: ["color", "size", "weight"] },
@@ -1041,7 +1077,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "note", label: "Note" },
     ],
     elements: [
-      { key: "card", label: "Table", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Table",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       { key: "label", label: "Room name", controls: ["color", "size"] },
       { key: "price", label: "Price", controls: ["color", "size", "weight"] },
       {
@@ -1167,7 +1207,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     ],
     // Per-element styling — keys match the `--el-<key>-*` vars ReviewsSection reads.
     elements: [
-      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       {
         key: "quote",
         label: "Quote",
@@ -1209,7 +1253,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "toggle", key: "show_map", label: "Show map" },
     ],
     elements: [
-      { key: "card", label: "Map", controls: ["bg", "border", "radius"] },
+      {
+        key: "card",
+        label: "Map",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
       { key: "address", label: "Address", controls: ["color"] },
       { key: "poi", label: "Places", controls: ["color", "size"] },
     ],

@@ -25,6 +25,7 @@ function FaqAccordion({ item }: { item: FaqItem }) {
         background: "var(--el-card-bg, var(--site-surface))",
         border: "var(--el-card-bd, 1px solid var(--site-line))",
         borderRadius: "var(--el-card-radius, var(--site-radius))",
+        boxShadow: "var(--el-card-shadow, none)",
       }}
       className="group p-4"
     >
