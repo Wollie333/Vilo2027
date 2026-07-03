@@ -407,16 +407,20 @@ export function RequestForm({ mode, userId, initialData }: RequestFormProps) {
           <div className="space-y-2">
             <Label>Minimum host rating (optional)</Label>
             <Select
-              value={watch("min_host_rating")?.toString() ?? ""}
+              value={watch("min_host_rating")?.toString() ?? "any"}
               onValueChange={(v) =>
-                setValue("min_host_rating", v ? parseFloat(v) : undefined)
+                setValue(
+                  "min_host_rating",
+                  v && v !== "any" ? parseFloat(v) : undefined,
+                )
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Any rating" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any rating</SelectItem>
+                {/* Radix Select forbids an empty-string item value — use a sentinel. */}
+                <SelectItem value="any">Any rating</SelectItem>
                 <SelectItem value="3">3+ stars</SelectItem>
                 <SelectItem value="3.5">3.5+ stars</SelectItem>
                 <SelectItem value="4">4+ stars</SelectItem>
