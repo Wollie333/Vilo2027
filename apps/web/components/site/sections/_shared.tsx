@@ -422,6 +422,8 @@ export function SiteButton({
   variant = "primary",
   size = "md",
   track = false,
+  fullWidth = false,
+  radius,
 }: {
   href: string;
   children: ReactNode;
@@ -429,20 +431,25 @@ export function SiteButton({
   size?: ElButtonSize;
   /** Mark as a booking-engine link so it counts as a booking_click (analytics). */
   track?: boolean;
+  /** Stretch to fill the container width. */
+  fullWidth?: boolean;
+  /** Per-button corner-radius override (px string); else the theme's button radius. */
+  radius?: string;
 }) {
   const prefix = `--site-btn-${variant}`;
   const style: CSSProperties = {
     background: `var(${prefix}-bg)`,
     color: `var(${prefix}-color)`,
     border: `var(${prefix}-border)`,
-    borderRadius: `var(${prefix}-radius)`,
+    borderRadius:
+      radius && radius !== "auto" ? `${radius}px` : `var(${prefix}-radius)`,
   };
   return (
     <a
       href={href}
       style={style}
       {...(track ? { "data-wielo-book": "" } : {})}
-      className={`inline-flex items-center justify-center font-semibold transition-opacity hover:opacity-90 ${BTN_SIZE[size]}`}
+      className={`${fullWidth ? "flex w-full" : "inline-flex"} items-center justify-center font-semibold transition-opacity hover:opacity-90 ${BTN_SIZE[size]}`}
     >
       {children}
     </a>

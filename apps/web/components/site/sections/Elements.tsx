@@ -213,6 +213,8 @@ export function ElButtonSection({ props }: { props: ButtonProps }) {
           href={props.href || "#"}
           variant={props.variant ?? "primary"}
           size={props.size ?? "md"}
+          fullWidth={props.full_width === true}
+          radius={props.radius}
         >
           {label}
         </SiteButton>
@@ -243,13 +245,14 @@ const DIVIDER_PX = { thin: 1, medium: 2, thick: 4 } as const;
 export function ElDividerSection({ props }: { props: DividerProps }) {
   const narrow = (props.width ?? "full") === "narrow";
   const px = DIVIDER_PX[props.thickness ?? "thin"];
+  const color = elColor(props.color, "var(--site-line)");
   return (
     <ElBlock>
       <hr
         className={narrow ? "mx-auto w-24" : "w-full"}
         style={{
           border: "none",
-          borderTop: `${px}px ${props.line ?? "solid"} var(--site-line)`,
+          borderTop: `${px}px ${props.line ?? "solid"} ${color}`,
         }}
       />
     </ElBlock>

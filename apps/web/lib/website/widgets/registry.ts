@@ -279,6 +279,22 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         ],
       },
       ALIGN_CTL(),
+      { kind: "group", label: "Style" },
+      {
+        kind: "scale",
+        key: "radius",
+        label: "Corner radius",
+        steps: [
+          ["auto", "Auto"],
+          ["0", "0"],
+          ["6", "6"],
+          ["10", "10"],
+          ["16", "16"],
+          ["24", "24"],
+          ["999", "Pill"],
+        ],
+      },
+      { kind: "toggle", key: "full_width", label: "Full width" },
     ],
   },
   el_image: {
@@ -370,6 +386,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["full", "Full"],
         ],
       },
+      { kind: "color", key: "color", label: "Colour" },
     ],
   },
   el_spacer: {

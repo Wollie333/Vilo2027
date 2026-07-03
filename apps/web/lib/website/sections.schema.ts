@@ -727,6 +727,10 @@ const elButtonProps = z.object({
   variant: z.enum(["primary", "secondary"]).default("primary"),
   size: z.enum(EL_BUTTON_SIZE).default("md"),
   align: z.enum(ELEMENT_ALIGN).default("left"),
+  // Per-button overrides (else inherit the theme button). radius = px scale string
+  // ("auto" = theme); full_width stretches the button to the container.
+  radius: z.string().max(6).optional(),
+  full_width: z.boolean().optional(),
 });
 
 const elSpacerProps = z.object({
@@ -737,6 +741,8 @@ const elDividerProps = z.object({
   line: z.enum(["solid", "dashed", "dotted"]).default("solid"),
   thickness: z.enum(EL_DIVIDER_THICKNESS).default("thin"),
   width: z.enum(["narrow", "full"]).default("full"),
+  // Line colour (theme role); default = --site-line.
+  color: z.enum(EL_COLOR).optional(),
 });
 
 // ── Columns container ─────────────────────────────────────────
