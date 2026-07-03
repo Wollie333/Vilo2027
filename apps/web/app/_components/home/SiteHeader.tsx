@@ -5,9 +5,11 @@ import {
   LogOut,
   Luggage,
   MessageSquare,
+  Menu,
   Search,
   Settings,
   User,
+  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { forwardRef, useEffect, useRef, useState } from "react";
@@ -42,6 +44,7 @@ export function SiteHeader() {
   const [elevated, setElevated] = useState(false);
   const [session, setSession] = useState<Session>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -200,14 +203,66 @@ export function SiteHeader() {
                 </Link>
                 <Link
                   href="/signup"
-                  className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+                  className="hidden items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary sm:inline-flex"
                 >
                   {t("join", { brand })}
                 </Link>
               </>
             )}
+
+            <button
+              type="button"
+              onClick={() => setNavOpen((v) => !v)}
+              aria-label={navOpen ? "Close menu" : "Open menu"}
+              aria-expanded={navOpen}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-pill border border-brand-line bg-white text-brand-ink transition-shadow hover:shadow-card lg:hidden"
+            >
+              {navOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile / tablet nav — the desktop <nav> is lg:flex, so below 1024px
+            this drop panel is the only way to reach the menu. */}
+        {navOpen ? (
+          <div className="border-t border-brand-line bg-white lg:hidden">
+            <nav className="mx-auto flex max-w-7xl flex-col px-5 py-2">
+              {NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setNavOpen(false)}
+                  className="rounded px-2 py-3 text-[15px] font-medium text-brand-ink hover:bg-brand-accent"
+                >
+                  {t(item.key)}
+                </Link>
+              ))}
+
+              {!session ? (
+                <div className="mt-2 flex flex-col gap-2 border-t border-brand-line pt-3 sm:hidden">
+                  <Link
+                    href="/login"
+                    onClick={() => setNavOpen(false)}
+                    className="rounded border border-brand-line px-4 py-2.5 text-center text-sm font-medium text-brand-ink hover:bg-brand-accent"
+                  >
+                    {t("signIn")}
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setNavOpen(false)}
+                    className="rounded bg-brand-primary px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-brand-secondary"
+                  >
+                    {t("join", { brand })}
+                  </Link>
+                </div>
+              ) : null}
+            </nav>
+          </div>
+        ) : null}
       </header>
     </>
   );
