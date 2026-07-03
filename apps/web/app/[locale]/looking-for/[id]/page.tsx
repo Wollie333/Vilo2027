@@ -120,7 +120,7 @@ export default async function PublicPostDetailPage({ params }: Props) {
       quote_count,
       created_at,
       expires_at,
-      guest:user_profiles!guest_id(display_name, avatar_url)
+      guest:user_profiles!guest_id(full_name, avatar_url)
     `,
     )
     .eq("id", id)
@@ -142,7 +142,7 @@ export default async function PublicPostDetailPage({ params }: Props) {
   }
 
   const guest = post.guest as unknown as {
-    display_name: string | null;
+    full_name: string | null;
     avatar_url: string | null;
   } | null;
 
@@ -230,9 +230,9 @@ export default async function PublicPostDetailPage({ params }: Props) {
                 <h1 className="font-display text-2xl font-bold text-brand-ink">
                   {post.title}
                 </h1>
-                {guest?.display_name && (
+                {guest?.full_name && (
                   <p className="mt-2 text-sm text-brand-mute">
-                    Posted by {guest.display_name}
+                    Posted by {guest.full_name}
                   </p>
                 )}
               </div>
