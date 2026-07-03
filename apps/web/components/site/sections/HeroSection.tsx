@@ -67,9 +67,34 @@ function HeroInner({
   alignLeft: boolean;
   hideCta?: boolean;
 }) {
+  // Additive, builder-editable extras (the props already exist in the schema;
+  // the generic hero simply renders them now). Each carries a stable class hook
+  // (`site-hero-*`) so per-theme skins can style them without touching this
+  // component or the builder's `--el-*` overrides.
+  const showPrimary =
+    !hideCta && props.show_cta !== false && props.cta_label && props.cta_href;
+  const showSecondary =
+    !hideCta &&
+    props.show_cta2 !== false &&
+    props.cta2_label &&
+    props.cta2_href;
   return (
     <>
+      {props.eyebrow ? (
+        <span
+          className="site-hero-eyebrow mb-4 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold"
+          style={{
+            background: onDark
+              ? "rgba(255,255,255,0.16)"
+              : "var(--site-accent)",
+            color: onDark ? "#FFFFFF" : "var(--site-accent-ink, #FFFFFF)",
+          }}
+        >
+          {props.eyebrow}
+        </span>
+      ) : null}
       <h1
+        className="site-hero-title"
         style={{
           fontFamily: "var(--site-font-heading)",
           fontWeight: "var(--site-weight-heading)" as unknown as number,
@@ -83,31 +108,51 @@ function HeroInner({
       </h1>
       {props.subheadline ? (
         <p
+          className="site-hero-sub mt-5 text-lg md:text-xl"
           style={{
             color: onDark ? "rgba(255,255,255,0.9)" : "var(--site-mute)",
           }}
-          className="mt-5 text-lg md:text-xl"
         >
           {props.subheadline}
         </p>
       ) : null}
-      {!hideCta && props.cta_label && props.cta_href ? (
+      {showPrimary || showSecondary ? (
         <div
-          className="mt-8 flex"
+          className={`site-hero-cta mt-8 flex flex-wrap gap-3 ${
+            props.cta_stack ? "flex-col" : ""
+          }`}
           style={{ justifyContent: alignLeft ? "flex-start" : "center" }}
         >
-          <a
-            href={props.cta_href}
-            style={{
-              background: "var(--site-btn-primary-bg)",
-              color: "var(--site-btn-primary-color)",
-              border: "var(--site-btn-primary-border)",
-              borderRadius: "var(--site-btn-primary-radius)",
-            }}
-            className="inline-flex items-center px-7 py-3.5 text-base font-semibold transition-opacity hover:opacity-90"
-          >
-            {props.cta_label}
-          </a>
+          {showPrimary ? (
+            <a
+              href={props.cta_href}
+              className="site-hero-btn site-hero-btn-primary inline-flex items-center justify-center px-7 py-3.5 text-base font-semibold transition-opacity hover:opacity-90"
+              style={{
+                background: "var(--site-btn-primary-bg)",
+                color: "var(--site-btn-primary-color)",
+                border: "var(--site-btn-primary-border)",
+                borderRadius: "var(--site-btn-primary-radius)",
+              }}
+            >
+              {props.cta_label}
+            </a>
+          ) : null}
+          {showSecondary ? (
+            <a
+              href={props.cta2_href}
+              className="site-hero-btn site-hero-btn-secondary inline-flex items-center justify-center px-7 py-3.5 text-base font-semibold transition-colors"
+              style={{
+                background: onDark ? "rgba(255,255,255,0.12)" : "transparent",
+                color: onDark ? "#FFFFFF" : "var(--site-ink)",
+                border: onDark
+                  ? "1px solid rgba(255,255,255,0.55)"
+                  : "1px solid var(--site-line)",
+                borderRadius: "var(--site-btn-primary-radius)",
+              }}
+            >
+              {props.cta2_label}
+            </a>
+          ) : null}
         </div>
       ) : null}
     </>

@@ -31,9 +31,34 @@
      --site-* palette (from base.md). These give the alternating sand bands,
      the deep-navy testimonial/footer sections and the coral secondary a value
      to resolve against — additive, so they can't regress anything. */
+  /* --site-secondary (coral) now comes from the theme palette via buildSiteVars.
+     These are the extra tokens buildSiteVars does NOT emit, which the beach look
+     derives from — additive, no inline conflict. */
   --site-soft: #f7f1e6; /* warm sand fill for alternating bands */
+  --site-soft-2: #efe6d4;
   --site-navy: #0a2330; /* deep anchor for dark sections + footer */
-  --site-navy-ink: #ffffff;
-  --site-secondary: #ff6b57; /* coral */
-  --site-secondary-ink: #ffffff;
+  --site-navy-2: #123040;
+  --site-navy-ink: #eaf4f5;
+  --site-navy-mute: #9fbcc4;
+  --site-accent-deep: #0c8694;
+  --site-secondary-deep: #e9523d;
+  --site-tint: #d7eef1;
+}
+
+/* --- Home hero -------------------------------------------------------------
+ * The reference hero leads with a coral primary CTA (btn-coral) + a ghost
+ * secondary, under a ★-rating eyebrow chip. The components read their button
+ * colours from `--site-btn-primary-*` INLINE, so we override those *variables*
+ * scoped to the hero block — inline `var()` resolves against this ancestor, so
+ * the hero CTA turns coral while the rest of the site's primary buttons stay
+ * aqua. Per-element `--el-*` overrides still win over everything here. */
+.wielo-oceansview [data-section-type="hero"] {
+  --site-btn-primary-bg: var(--site-secondary);
+  --site-btn-primary-color: var(--site-secondary-ink);
+  --site-btn-primary-border: 0;
+}
+/* Rating chip: a touch bolder + wider tracking, mirroring the reference. */
+.wielo-oceansview [data-section-type="hero"] .site-hero-eyebrow {
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(4px);
 }

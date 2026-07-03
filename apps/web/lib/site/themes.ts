@@ -26,6 +26,7 @@ export type SitePalette = {
   line: string; // borders / dividers
   accent: string; // buttons, links, highlights
   accentInk: string; // text/icon on top of accent
+  secondary?: string; // optional secondary/accent-2 (themes that ship one)
 };
 
 export type SitePreset = {
@@ -386,7 +387,8 @@ export function buildSiteVars(
 
   // Secondary accent has no preset value — default to the primary accent so an
   // un-set secondary is harmless (renders the same as primary).
-  const secondary = (c.secondary || "").trim() || accent;
+  const secondary =
+    (c.secondary || "").trim() || preset.palette.secondary || accent;
   const secondaryInk = accentInkFor(secondary);
 
   // --- Typography families ---
