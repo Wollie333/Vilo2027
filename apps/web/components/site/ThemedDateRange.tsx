@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -90,6 +91,11 @@ export function ThemedDateRange({
     left: number;
     width: number;
   } | null>(null);
+  // The popover portals to <body>, OUTSIDE the SiteThemeRoot element that defines
+  // the `--site-*` vars — so `var(--site-surface)` would resolve to nothing there
+  // (a transparent calendar, ugly on dark themes like Safari). Capture the theme
+  // vars from the trigger (which IS in scope) and re-apply them on the popover.
+  const [themeVars, setThemeVars] = useState<Record<string, string>>({});
 
   const reposition = useCallback(() => {
     const r = wrapRef.current?.getBoundingClientRect();
@@ -106,6 +112,29 @@ export function ThemedDateRange({
   useEffect(() => {
     if (!open) return;
     reposition();
+    // Snapshot the theme's `--site-*` values from the in-scope trigger so the
+    // portaled popover themes correctly instead of rendering transparent.
+    const src = wrapRef.current;
+    if (src) {
+      const cs = getComputedStyle(src);
+      const names = [
+        "--site-surface",
+        "--site-bg",
+        "--site-ink",
+        "--site-mute",
+        "--site-line",
+        "--site-accent",
+        "--site-accent-ink",
+        "--site-font-body",
+        "--site-radius",
+      ];
+      const vars: Record<string, string> = {};
+      for (const n of names) {
+        const v = cs.getPropertyValue(n).trim();
+        if (v) vars[n] = v;
+      }
+      setThemeVars(vars);
+    }
     // Follow the trigger while open (capture = catch nested scrollers too).
     const onMove = () => reposition();
     window.addEventListener("scroll", onMove, true);
@@ -216,6 +245,9 @@ export function ThemedDateRange({
             <div
               ref={popRef}
               style={{
+                // Re-scope the theme vars onto the portaled popover so any
+                // `var(--site-*)` the props reference resolves here (not transparent).
+                ...(themeVars as CSSProperties),
                 position: "fixed",
                 zIndex: 2147483000,
                 top: pos.top,
