@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-03 — Oceans View hero type pinned + Rooms page skinned pixel-perfect.
+
+- **Hero typography** (`theme-skins.css`): the generic hero read the theme's small
+  modular scale (`--site-h1` ≈ 33px); pinned the hero title/sub/cta to the
+  reference (clamp(3rem,8vw,7rem), weight 800, line-height .95, tracking −.02em,
+  15ch, chip→h1→sub→cta rhythm). Family was already right (Bricolage Grotesque).
+- **Section heading scale** lifted theme-wide by redefining `--site-h1/h2/h3` on
+  the `[data-section-type]` descendant (beats the root's inline scale, no
+  `!important`, host size edits still win).
+- **Rooms page** rebuilt to its reference with generic blocks + two reusable
+  additive variants: `rooms_preview` **`showcase`** (alternating image/content
+  splits with coral price badge, facts tag, facts list, View+Book) and
+  `amenities` **`inline`** (text pill bar). Page-head hero → sand pill bar →
+  showcase rooms → "Ask the team" CTA. Live-verified on `/rooms`. tsc+eslint clean.
+- Standard doc `docs/themes/THEME_SKIN_STANDARD.md` updated (foldVariant + live-data
+  gotchas, heading-scale technique, Rooms mapping).
+
 ## 2026-07-03 — Oceans View home: every block skinned pixel-perfect + still editable (`6ae16f4a`).
 
 Theme-skin pipeline: a theme is a CSS **SKIN** over the SAME generic, host-editable builder blocks —

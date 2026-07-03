@@ -88,6 +88,11 @@ table as the default mapping for any resort/lodge theme.
 > amenities). For a marketing "everything taken care of" tile grid with body
 > copy, use `highlights` (icon+title+body), NOT `amenities`.
 
+**Rooms page** (`docs/themes/oceansview/pages/Rooms.html`): page-head → `hero`
+(`variant:"fullscreen"`, `height:"medium"`, `show_cta:false`); "included" bar →
+`amenities` (`variant:"inline"`, sand tone); room list → `rooms_preview`
+(**node `variant:"showcase"`** — alternating splits); closing → `cta` banner.
+
 ---
 
 ## 4. The token contract every theme ships
@@ -189,6 +194,17 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
 
 - **`root.type` MUST be `"root"`** in the PageDoc, or `parsePageDocLoose`
   rejects the whole doc and **zero sections render with no error**.
+- **`display`-style blocks (`rooms_preview`, `blog_preview`) read their layout
+  from the node `variant`, not `props.display`** — `foldVariant` in
+  `PageDocRenderer` overwrites `props.display` with the node's `variant`. So to
+  select a rooms layout, set the widget node's `variant` (e.g. `"showcase"`);
+  `props.display` alone is silently overwritten by `variant` (which defaults to
+  `"grid"`).
+- **Data-coupled blocks ignore seeded props when live data exists.** `amenities`
+  renders the host's LIVE property amenities over any `props.items` you seed — and
+  those carry lucide icon *names* (e.g. `"wifi"`), which render as literal text if
+  you output `item.icon`. The `inline` amenities variant omits icons for this
+  reason. Same live-wins rule for `gallery`/`rooms_preview`/`reviews`.
 - **`el_heading` is a valid renderable widget** (headings are their own element
   post-Phase B) — don't expect it to be a "section type" only.
 - **Live vs stock data:** `gallery` / `rooms_preview` / `reviews` / `amenities`
@@ -217,6 +233,15 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   chip→h1→sub→CTA rhythm — see the "Display typography" cookbook note.
   Systemic follow-up: section `el_heading` sizes still use the generic scale
   (~27px vs reference ~56px) — pin per-theme when doing heading-heavy pages.
+- **Section heading scale — FIXED theme-wide** (2026-07-03). Redefined
+  `--site-h1/h2/h3` on `.wielo-oceansview [data-section-type]` (a descendant of
+  the root that carries the inline scale), so every "auto" `el_heading`/section
+  heading grows to the reference display sizes without `!important` and without
+  breaking host size edits. This lifted the home headings too.
+- **Rooms — DONE** (2026-07-03). Page-head hero + sand "included" pill bar +
+  `rooms_preview` **`showcase`** (alternating splits) + coral CTA. Added two
+  reusable variants: `rooms_preview` `showcase` (set via node `variant`) and
+  `amenities` `inline` (text pill bar). Live-verified on `/rooms`.
 - Prior foundation: `f4c49eed` (skin scaffolding + `data-section-type` hooks),
   `4b5ea727` (hero), `c6b0c36f` (cta coral).
 - **Next:** Rooms → Room detail → About → Contact → Journal → Specials →
