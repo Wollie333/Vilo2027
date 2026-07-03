@@ -46,8 +46,16 @@
 > section. The re-seed pattern: transform draft doc (section maxw/space + el_heading element + clear
 > block heading) → republish; do it per page that uses the block.
 >
+> ✅ **B — REVIEWS DONE (`12dd5b11`).** Same treatment: `ReviewsSection` renders BARE (no self
+> `<section>`/padding/width-clamp/heading — just the reviews). Re-seeded vilotest **home**'s reviews
+> section (id `safari-home-reviews`) to the composed shape (section `maxw:1024` + `space{pt/pb:80,
+> pl/pr:20}`, inserted `el_heading` "Quiet that you can feel", cleared block heading) + republished
+> (only page carrying a live v2 `reviews` block). `props.heading` stays legacy. LIVE-VERIFIED in the
+> real builder canvas: centered heading + "4.8 · 4 reviews" row above a bare 2-col grid, padded, no
+> regression. 197 vitest, tsc+lint clean.
+>
 > **⏳ NEXT (Phase B rollout):** apply the SAME treatment to the remaining blocks one at a time
-> (reviews · gallery · specials · addons · rates · policies · marketing composites hero/intro/cta/…):
+> (~~reviews~~ · gallery · specials · addons · rates · policies · marketing composites hero/intro/cta/…):
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
