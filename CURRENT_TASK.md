@@ -94,8 +94,26 @@
 > nothing to reseed. Verified via temp-inject into specials DRAFT (Nightly-rates table + Room-rates
 > list bound to the 3 real rooms; Seasonal empty-state), reverted. 197 vitest, tsc+lint clean.
 >
-> **⏳ NEXT (Phase B rollout):** apply the SAME treatment to the remaining blocks one at a time
-> (~~reviews~~ · ~~gallery~~ · ~~specials~~ · ~~addons~~ · ~~rates~~ · policies · marketing composites hero/intro/cta/…):
+> ✅ **B — POLICIES DONE (`e50afd08`).** Property-level `policies` block (PoliciesSection) renders BARE.
+> `PolicyView` is SHARED with the room-scoped `room_policies` on the SYSTEM room-detail page (whose
+> siblings gallery/overview/amenities/rate are still self-banded + uniform) → added a **`bare` flag**:
+> PoliciesSection passes `bare` + raw props.heading; RoomPoliciesSection keeps the banded default +
+> "Things to know" fallback UNTIL the system blocks are reframed together. Not on any page → temp-inject
+> verified (specials draft: "Good to know" + real property policies, padded 1024), reverted; confirmed
+> room-detail room_policies UNCHANGED (still banded). 197 vitest.
+>
+> **▶ INTERLEAVED LANE — STYLING CONTROLS REFRESH (founder feedback, Brand-Studio-inspired + Elementor).**
+> ✅ Text elements el_heading/el_text got Font size + Font weight SLIDERS + Text-colour SWATCHES (`99c323f8`;
+> new `scale` WidgetControl kind; fixed a latent el_icon colour-token mismatch). ✅ Block/section Style tab
+> converted to sliders (radius/border/max-width/min-height) + tone/border-colour swatches (`0296ff65`; new
+> `ScaleRow`/`RoleSwatchRow`). ✅ Composite ElementsPanel typography parity — line-height/letter-spacing/
+> transform through the `--el-*` pipeline (schema+`elementDecls`+RoomsPreviewSection+registry+controls;
+> `2f9a0149`; verified uppercase drove the card titles). See [[feedback-builder-styling-controls]].
+>
+> **⏳ NEXT (Phase B rollout):** ~~reviews~~ · ~~gallery~~ · ~~specials~~ · ~~addons~~ · ~~rates~~ · ~~policies~~ ·
+> **marketing composites** (hero/intro/cta/highlights/stats/values/host_bio/faq/pricing/logos/…) next; then a
+> **coordinated SYSTEM-BLOCK reframe** (room_gallery/overview/amenities/rate + room_policies together, since
+> they must stay uniform on the room-detail page):
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
