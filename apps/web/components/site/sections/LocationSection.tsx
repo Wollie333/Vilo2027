@@ -1,7 +1,11 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { LocationData } from "@/lib/site/types";
 
-import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
+// Bare element (Elementor reframe): renders bare (no self <section>/band/width-
+// clamp, incl. the old `surface` band); the SECTION owns padding + width +
+// background (the surface band is re-seeded as the section `bg`) and the heading is
+// a separate Heading element above. `props.heading` stays legacy.
+import { SectionHeading, Muted, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "location" }>["props"];
 type Poi = NonNullable<LocationData["pois"]>[number];
@@ -61,7 +65,7 @@ export function LocationSection({
   const mapUrl = data?.mapEmbedUrl ?? "";
 
   return (
-    <SectionShell surface>
+    <>
       {props.heading ? (
         <SectionHeading className="mb-3">{props.heading}</SectionHeading>
       ) : null}
@@ -109,6 +113,6 @@ export function LocationSection({
           {pois.length > 0 ? <PoiList pois={pois} /> : null}
         </div>
       )}
-    </SectionShell>
+    </>
   );
 }
