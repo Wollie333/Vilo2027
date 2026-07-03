@@ -33,6 +33,10 @@ export type WidgetControl =
   | { kind: "textarea"; key: string; label: string }
   | { kind: "select"; key: string; label: string; options: [string, string][] }
   | { kind: "seg"; key: string; label: string; options: [string, string][] }
+  // Ordered preset steps shown as a labelled slider (Elementor-style, but tied to
+  // the theme's brand-safe scale). `steps` is [value, label] in ascending order;
+  // the slider index maps to a value, and the current label is shown as a readout.
+  | { kind: "scale"; key: string; label: string; steps: [string, string][] }
   | {
       kind: "range";
       key: string;
@@ -109,6 +113,34 @@ const ALIGN_CTL = (key = "align"): WidgetControl => ({
   label: "Alignment",
 });
 
+// Brand-safe typography scales shared by the text elements — presented as
+// labelled sliders (see the "scale" control). "Auto" inherits the theme (a
+// heading uses its level size/weight; body uses the base) so a host can nudge
+// size/weight without going off the theme's type scale.
+const SIZE_STEPS: [string, string][] = [
+  ["auto", "Auto"],
+  ["xs", "XS"],
+  ["sm", "S"],
+  ["md", "M"],
+  ["lg", "L"],
+  ["xl", "XL"],
+  ["2xl", "2XL"],
+];
+const WEIGHT_STEPS: [string, string][] = [
+  ["auto", "Auto"],
+  ["light", "Light"],
+  ["normal", "Regular"],
+  ["medium", "Medium"],
+  ["semibold", "Semibold"],
+  ["bold", "Bold"],
+];
+// Text elements share the same typography block (size · weight · colour).
+const TYPOGRAPHY_CTLS: WidgetControl[] = [
+  { kind: "scale", key: "size", label: "Font size", steps: SIZE_STEPS },
+  { kind: "scale", key: "weight", label: "Font weight", steps: WEIGHT_STEPS },
+  { kind: "color", key: "color", label: "Text colour" },
+];
+
 export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
   // ── Basics ──────────────────────────────────────────────
   el_heading: {
@@ -138,6 +170,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["p", "Paragraph"],
         ],
       },
+      ...TYPOGRAPHY_CTLS,
       ALIGN_CTL(),
     ],
   },
@@ -153,7 +186,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       weight: "auto",
       color: "default",
     },
-    content: [{ kind: "textarea", key: "body", label: "Text" }, ALIGN_CTL()],
+    content: [
+      { kind: "textarea", key: "body", label: "Text" },
+      ...TYPOGRAPHY_CTLS,
+      ALIGN_CTL(),
+    ],
   },
   el_button: {
     type: "el_button",

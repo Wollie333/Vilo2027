@@ -2806,11 +2806,14 @@ function SpaceBox({
 const str = (v: unknown) =>
   typeof v === "string" ? v : v == null ? "" : String(v);
 const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
-const COLOR_TOKENS: [string, string][] = [
-  ["default", "Default"],
-  ["accent", "Accent"],
-  ["ink", "Ink"],
-  ["mute", "Mute"],
+// Text/icon colour roles — MUST match `elColor()` (default · muted · accent ·
+// secondary). Each carries the swatch colour shown in the picker; "default"
+// inherits the theme so it renders as an "auto" chip, not a solid fill.
+const COLOR_TOKENS: [string, string, string][] = [
+  ["default", "Theme default", ""],
+  ["muted", "Muted", "var(--site-mute)"],
+  ["accent", "Accent", "var(--site-accent)"],
+  ["secondary", "Secondary", "var(--site-secondary)"],
 ];
 const ALIGN_OPTS: [string, string][] = [
   ["left", "Left"],
@@ -2929,20 +2932,52 @@ function Control({
       return (
         <div className="ctl">
           {label}
-          <div className="seg">
-            {COLOR_TOKENS.map(([v, l]) => (
-              <button
-                key={v}
-                type="button"
-                className={str(value) === v ? "on" : undefined}
-                onClick={() => set(v)}
-              >
-                {l}
-              </button>
-            ))}
+          <div className="swrow">
+            {COLOR_TOKENS.map(([v, l, css]) => {
+              const on = str(value) === v || (!value && v === "default");
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  title={l}
+                  aria-label={l}
+                  className={on ? "swrole on" : "swrole"}
+                  data-auto={v === "default" ? "" : undefined}
+                  style={css ? { background: css } : undefined}
+                  onClick={() => set(v)}
+                />
+              );
+            })}
           </div>
         </div>
       );
+    case "scale": {
+      // Ordered preset steps rendered as a labelled slider (Elementor-style).
+      const steps = ctl.steps;
+      const cur = Math.max(
+        0,
+        steps.findIndex(([v]) => v === str(value)),
+      );
+      const idx = cur < 0 ? 0 : cur;
+      return (
+        <div className="ctl">
+          <div className="ctl-l">
+            <label>{ctl.label}</label>
+            <span className="val">{steps[idx]?.[1] ?? "Auto"}</span>
+            {overridden && onRevert && <RevertBtn onClick={onRevert} />}
+          </div>
+          <input
+            type="range"
+            className="rng"
+            min={0}
+            max={steps.length - 1}
+            step={1}
+            value={idx}
+            onChange={(e) => set(steps[Number(e.target.value)][0])}
+          />
+        </div>
+      );
+    }
     case "range":
       return (
         <div className="ctl">
