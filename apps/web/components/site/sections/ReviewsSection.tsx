@@ -6,20 +6,35 @@ import { SectionHeading, Muted, Card, Stars } from "./_shared";
 type Props = Extract<WebsiteSection, { type: "reviews" }>["props"];
 type ReviewItem = NonNullable<ReviewsData["items"]>[number];
 
+// Per-element style hooks (Elementor accordion) — each reads `--el-<key>-*`, set on
+// the block wrapper by PageDocRenderer, falling back to the theme when unstyled.
+const quoteStyle = {
+  color: "var(--el-quote-fg, var(--site-ink))",
+  fontSize: "var(--el-quote-size, 0.875rem)",
+  lineHeight: "var(--el-quote-lh, 1.625)",
+  letterSpacing: "var(--el-quote-ls, normal)",
+} as const;
+const authorStyle = {
+  color: "var(--el-author-fg, var(--site-mute))",
+  fontSize: "var(--el-author-size, 0.875rem)",
+  fontWeight: "var(--el-author-weight, 500)",
+} as const;
+
 function ReviewCard({ r }: { r: ReviewItem }) {
   return (
-    <Card className="p-6">
+    <Card
+      className="p-6"
+      style={{
+        background: "var(--el-card-bg, var(--site-surface))",
+        border: "var(--el-card-bd, var(--site-card-border))",
+        borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+      }}
+    >
       <Stars rating={r.rating} />
-      <p
-        style={{ color: "var(--site-ink)" }}
-        className="mt-3 text-sm leading-relaxed"
-      >
+      <p style={quoteStyle} className="mt-3 leading-relaxed">
         “{r.body}”
       </p>
-      <p
-        style={{ color: "var(--site-mute)" }}
-        className="mt-3 text-sm font-medium"
-      >
+      <p style={authorStyle} className="mt-3">
         {r.author}
         {r.date ? <span className="font-normal"> · {r.date}</span> : null}
       </p>
@@ -72,15 +87,15 @@ export function ReviewsSection({
                 <Stars rating={r.rating} />
               </div>
               <p
-                style={{ color: "var(--site-ink)" }}
-                className="mt-3 text-lg leading-relaxed"
+                style={{
+                  ...quoteStyle,
+                  fontSize: "var(--el-quote-size, 1.125rem)",
+                }}
+                className="mt-3 leading-relaxed"
               >
                 “{r.body}”
               </p>
-              <p
-                style={{ color: "var(--site-mute)" }}
-                className="mt-3 text-sm font-medium"
-              >
+              <p style={authorStyle} className="mt-3">
                 {r.author}
                 {r.date ? (
                   <span className="font-normal"> · {r.date}</span>

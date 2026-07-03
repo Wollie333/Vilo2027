@@ -985,6 +985,16 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "range", key: "max", label: "Reviews", min: 1, max: 30 },
     ],
+    // Per-element styling — keys match the `--el-<key>-*` vars ReviewsSection reads.
+    elements: [
+      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "quote",
+        label: "Quote",
+        controls: ["color", "size", "lineHeight", "letterSpacing"],
+      },
+      { key: "author", label: "Author", controls: ["color", "size", "weight"] },
+    ],
   },
   specials_preview: {
     type: "specials_preview",
