@@ -7,22 +7,25 @@ import { SectionHeading, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "stats" }>["props"];
 
+// Per-element style hooks (Elementor accordion) — each reads `--el-<key>-*`.
+const statValueStyle = {
+  fontFamily: "var(--site-font-heading)",
+  color: "var(--el-value-fg, var(--site-accent))",
+  fontSize: "var(--el-value-size, 3rem)",
+  fontWeight: "var(--el-value-weight, 700)",
+} as const;
+const statLabelStyle = {
+  color: "var(--el-label-fg, var(--site-mute))",
+  fontSize: "var(--el-label-size, 0.875rem)",
+} as const;
+
 function StatBlock({ value, label }: { value: string; label: string }) {
   return (
     <>
-      <div
-        style={{
-          fontFamily: "var(--site-font-heading)",
-          color: "var(--site-accent)",
-        }}
-        className="text-4xl font-bold tracking-tight md:text-5xl"
-      >
+      <div style={statValueStyle} className="tracking-tight">
         {value}
       </div>
-      <div
-        style={{ color: "var(--site-mute)" }}
-        className="mt-2 text-sm font-medium"
-      >
+      <div style={statLabelStyle} className="mt-2 font-medium">
         {label}
       </div>
     </>
@@ -43,7 +46,15 @@ export function StatsSection({ props }: { props: Props }) {
       <div className={`grid grid-cols-2 gap-8 ${cols}`}>
         {props.items.map((item, i) =>
           variant === "cards" ? (
-            <Card key={i} className="p-6 text-center">
+            <Card
+              key={i}
+              className="p-6 text-center"
+              style={{
+                background: "var(--el-card-bg, var(--site-surface))",
+                border: "var(--el-card-bd, var(--site-card-border))",
+                borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+              }}
+            >
               <StatBlock value={item.value} label={item.label} />
             </Card>
           ) : (

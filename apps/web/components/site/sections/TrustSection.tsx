@@ -7,6 +7,20 @@ import { SectionHeading, Muted, Card, Stars } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "trust" }>["props"];
 
+// Per-element style hooks (Elementor accordion) — each reads `--el-<key>-*`.
+const trustLabelStyle = {
+  color: "var(--el-label-fg, var(--site-ink))",
+  fontSize: "var(--el-label-size, 0.875rem)",
+} as const;
+const trustCaptionStyle = {
+  color: "var(--el-caption-fg, var(--site-mute))",
+} as const;
+const trustCardStyle = {
+  background: "var(--el-card-bg, var(--site-surface))",
+  border: "var(--el-card-bd, var(--site-card-border))",
+  borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+} as const;
+
 /**
  * Trust signals — free-form badges (awards / certifications / payment + secure
  * badges) plus an OPTIONAL live review score. The badges come from `props`
@@ -54,10 +68,14 @@ export function TrustSection({
       {items.length === 0 ? null : variant === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item, i) => (
-            <Card key={i} className="flex items-center gap-3 p-4">
+            <Card
+              key={i}
+              className="flex items-center gap-3 p-4"
+              style={trustCardStyle}
+            >
               {item.icon ? (
                 <span
-                  style={{ color: "var(--site-icon-color)" }}
+                  style={{ color: "var(--el-icon-fg, var(--site-icon-color))" }}
                   className="text-2xl leading-none"
                   aria-hidden
                 >
@@ -65,14 +83,14 @@ export function TrustSection({
                 </span>
               ) : null}
               <span>
-                <span
-                  style={{ color: "var(--site-ink)" }}
-                  className="block text-sm font-semibold"
-                >
+                <span style={trustLabelStyle} className="block font-semibold">
                   {item.label}
                 </span>
                 {item.caption ? (
-                  <Muted className="mt-0.5 block text-[12.5px]">
+                  <Muted
+                    className="mt-0.5 block text-[12.5px]"
+                    style={trustCaptionStyle}
+                  >
                     {item.caption}
                   </Muted>
                 ) : null}
@@ -100,16 +118,10 @@ export function TrustSection({
                   {item.icon}
                 </span>
               ) : null}
-              <span
-                style={{ color: "var(--site-ink)" }}
-                className="text-sm font-medium"
-              >
+              <span style={trustLabelStyle} className="font-medium">
                 {item.label}
                 {item.caption ? (
-                  <span style={{ color: "var(--site-mute)" }}>
-                    {" "}
-                    · {item.caption}
-                  </span>
+                  <span style={trustCaptionStyle}> · {item.caption}</span>
                 ) : null}
               </span>
             </span>

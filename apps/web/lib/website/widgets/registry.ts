@@ -625,6 +625,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "hint", text: "Stat items are editable in a later slice." },
     ],
+    elements: [
+      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      { key: "value", label: "Value", controls: ["color", "size", "weight"] },
+      { key: "label", label: "Label", controls: ["color", "size"] },
+    ],
   },
   cta: {
     type: "cta",
@@ -707,6 +712,15 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "hint", text: "Q&A items are editable in a later slice." },
     ],
+    elements: [
+      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      {
+        key: "question",
+        label: "Question",
+        controls: ["color", "size", "weight"],
+      },
+      { key: "answer", label: "Answer", controls: ["color", "size"] },
+    ],
   },
   pricing: {
     type: "pricing",
@@ -753,6 +767,12 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "toggle", key: "show_review_score", label: "Show review score" },
+    ],
+    elements: [
+      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      { key: "icon", label: "Icon", controls: ["color"] },
+      { key: "label", label: "Label", controls: ["color", "size"] },
+      { key: "caption", label: "Caption", controls: ["color"] },
     ],
   },
 

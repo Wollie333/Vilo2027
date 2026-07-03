@@ -7,20 +7,30 @@ import { SectionHeading } from "./_shared";
 type Props = Extract<WebsiteSection, { type: "faq" }>["props"];
 type FaqItem = Props["items"][number];
 
+// Per-element style hooks (Elementor accordion) — each reads `--el-<key>-*`.
+const faqQuestionStyle = {
+  color: "var(--el-question-fg, var(--site-ink))",
+  fontSize: "var(--el-question-size, 1rem)",
+} as const;
+const faqAnswerStyle = {
+  color: "var(--el-answer-fg, var(--site-mute))",
+  fontSize: "var(--el-answer-size, 0.875rem)",
+} as const;
+
 // Native <details> accordion — no client JS, works in a server component.
 function FaqAccordion({ item }: { item: FaqItem }) {
   return (
     <details
       style={{
-        background: "var(--site-surface)",
-        borderColor: "var(--site-line)",
-        borderRadius: "var(--site-radius)",
+        background: "var(--el-card-bg, var(--site-surface))",
+        border: "var(--el-card-bd, 1px solid var(--site-line))",
+        borderRadius: "var(--el-card-radius, var(--site-radius))",
       }}
-      className="group border p-4"
+      className="group p-4"
     >
       <summary
-        style={{ color: "var(--site-ink)" }}
-        className="flex cursor-pointer list-none items-center justify-between gap-3 text-base font-semibold"
+        style={faqQuestionStyle}
+        className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold"
       >
         {item.q}
         <span
@@ -32,8 +42,8 @@ function FaqAccordion({ item }: { item: FaqItem }) {
         </span>
       </summary>
       <p
-        style={{ color: "var(--site-mute)" }}
-        className="mt-3 whitespace-pre-line text-sm leading-relaxed"
+        style={faqAnswerStyle}
+        className="mt-3 whitespace-pre-line leading-relaxed"
       >
         {item.a}
       </p>
@@ -57,16 +67,16 @@ export function FaqSection({ props }: { props: Props }) {
             <div key={i}>
               <h3
                 style={{
-                  color: "var(--site-ink)",
+                  ...faqQuestionStyle,
                   fontFamily: "var(--site-font-heading)",
                 }}
-                className="text-base font-semibold"
+                className="font-semibold"
               >
                 {item.q}
               </h3>
               <p
-                style={{ color: "var(--site-mute)" }}
-                className="mt-1.5 whitespace-pre-line text-sm leading-relaxed"
+                style={faqAnswerStyle}
+                className="mt-1.5 whitespace-pre-line leading-relaxed"
               >
                 {item.a}
               </p>
