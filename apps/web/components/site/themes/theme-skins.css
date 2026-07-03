@@ -45,14 +45,15 @@
   --site-tint: #d7eef1;
 }
 
-/* --- Home hero -------------------------------------------------------------
- * The reference hero leads with a coral primary CTA (btn-coral) + a ghost
- * secondary, under a ★-rating eyebrow chip. The components read their button
- * colours from `--site-btn-primary-*` INLINE, so we override those *variables*
- * scoped to the hero block — inline `var()` resolves against this ancestor, so
- * the hero CTA turns coral while the rest of the site's primary buttons stay
- * aqua. Per-element `--el-*` overrides still win over everything here. */
-.wielo-oceansview [data-section-type="hero"] {
+/* --- Coral conversion CTAs -------------------------------------------------
+ * In the reference, the big "book" actions are coral (btn-coral): the hero and
+ * the closing CTA banner. Elsewhere the aqua primary stays. Components read
+ * their button colours from `--site-btn-primary-*` INLINE, so we override those
+ * *variables* scoped to the relevant blocks — inline `var()` resolves against
+ * this ancestor, so those CTAs turn coral while the rest of the site's primary
+ * buttons stay aqua. Per-element `--el-*` overrides still win over everything. */
+.wielo-oceansview [data-section-type="hero"],
+.wielo-oceansview [data-section-type="cta"] {
   --site-btn-primary-bg: var(--site-secondary);
   --site-btn-primary-color: var(--site-secondary-ink);
   --site-btn-primary-border: 0;
