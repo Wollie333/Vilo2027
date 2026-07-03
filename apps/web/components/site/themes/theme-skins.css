@@ -138,10 +138,47 @@
   font-family: var(--site-font-heading);
 }
 
+/* --- Section heading scale ----------------------------------------------
+ * `buildSiteVars` emits a small modular type scale (`--site-h2` ≈ 27px) INLINE
+ * on the theme root, so a `.wielo-<slug>{}` rule can't grow it. We instead
+ * redefine the heading tokens on a DESCENDANT (the section wrapper) — a nearer
+ * custom-property value wins over the root's inline one for that subtree WITHOUT
+ * `!important`, so a host's per-element size edit (which renders a concrete value,
+ * not `var(--site-h2)`) still overrides it. This lifts every "auto" `el_heading`
+ * to the reference's display scale, theme-wide. */
+.wielo-oceansview [data-section-type] {
+  --site-h1: clamp(2.8rem, 7vw, 6rem);
+  --site-h2: clamp(2rem, 4.2vw, 3.4rem);
+  --site-h3: 1.5rem;
+}
+
 /* --- STATS (sand band) --------------------------------------------------- */
 /* Big aqua numbers, muted labels — `--el-*` still override. */
 .wielo-oceansview [data-section-type="stats"] {
   --el-value-fg: var(--site-accent);
+}
+
+/* --- ROOMS SHOWCASE (Rooms page — alternating splits) -------------------- */
+.wielo-oceansview .site-room-frame {
+  transition: transform 1.1s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.wielo-oceansview .site-room-row:hover .site-room-frame {
+  transform: scale(1.02);
+}
+/* Coral price badge on white, matching `.float-badge`. */
+.wielo-oceansview .site-room-badge {
+  box-shadow: 0 24px 50px -22px rgba(10, 34, 48, 0.4);
+}
+/* Facts list ticks read as the aqua accent (already inline); nothing more. */
+
+/* --- INCLUDED PILL BAR (amenities inline) -------------------------------- */
+/* Aqua-tint pills, matching the reference `.chip`. */
+.wielo-oceansview .site-amen-pill {
+  color: var(--site-accent-deep);
+  background: var(--site-tint);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
 }
 
 /* --- ROOM CARDS ---------------------------------------------------------- */

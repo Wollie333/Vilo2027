@@ -167,6 +167,154 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
   );
 }
 
+// SHOWCASE — full-width alternating image/content splits (the designed Rooms
+// page): a framed photo with a floating price badge beside a tag, big name,
+// description, a two-column facts list, and View + Book actions. Reusable by any
+// theme via `display:"showcase"`; all data is the same live RoomCard.
+function RoomShowcase({ rooms, cta }: { rooms: RoomCardData[]; cta: string }) {
+  return (
+    <div className="site-room-showcase flex flex-col gap-16 md:gap-24">
+      {rooms.map((room, i) => {
+        const price = priceLabel(room.price, room.currency);
+        const reverse = i % 2 === 1;
+        const bookLabel = price ? `Book · ${price}` : cta;
+        return (
+          <div
+            key={room.id}
+            className="site-room-row grid items-center gap-8 md:grid-cols-2 md:gap-14"
+          >
+            <div className={`relative ${reverse ? "md:order-last" : ""}`}>
+              {room.imageUrl ? (
+                <SiteImg
+                  src={room.imageUrl}
+                  alt={room.name}
+                  sizes="(min-width: 768px) 50vw, 100vw"
+                  widths={[640, 768, 1024, 1280]}
+                  style={{ borderRadius: "var(--site-img-radius)" }}
+                  className="site-room-frame aspect-[4/3] w-full object-cover"
+                />
+              ) : null}
+              {price ? (
+                <div
+                  className="site-room-badge absolute -bottom-5 right-4 px-5 py-3 text-center"
+                  style={{
+                    background: "var(--site-surface)",
+                    borderRadius: "var(--site-radius)",
+                    boxShadow: "var(--site-card-shadow)",
+                  }}
+                >
+                  <div
+                    className="text-2xl font-bold leading-none"
+                    style={{
+                      color: "var(--site-secondary)",
+                      fontFamily: "var(--site-font-heading)",
+                    }}
+                  >
+                    {price}
+                  </div>
+                  <div
+                    className="mt-1 text-[11px] font-medium uppercase tracking-wide"
+                    style={{ color: "var(--site-mute)" }}
+                  >
+                    Per night
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div>
+              {room.facts && room.facts.length > 0 ? (
+                <div
+                  className="site-room-tag text-xs font-bold uppercase tracking-[0.14em]"
+                  style={{ color: "var(--site-secondary)" }}
+                >
+                  {room.facts.slice(0, 2).join(" · ")}
+                </div>
+              ) : null}
+              <h3
+                className="site-room-name mt-3"
+                style={{
+                  fontFamily: "var(--site-font-heading)",
+                  fontWeight: "var(--site-weight-heading)" as unknown as number,
+                  fontSize: "clamp(1.9rem, 4vw, 3rem)",
+                  lineHeight: "1.02",
+                  letterSpacing: "var(--site-tracking-heading)",
+                  color: "var(--site-ink)",
+                }}
+              >
+                {room.detailHref ? (
+                  <a
+                    href={room.detailHref}
+                    className="transition-opacity hover:opacity-80"
+                  >
+                    {room.name}
+                  </a>
+                ) : (
+                  room.name
+                )}
+              </h3>
+              {room.description ? (
+                <p
+                  className="mt-4 max-w-[52ch] leading-relaxed"
+                  style={{ color: "var(--site-mute)" }}
+                >
+                  {room.description}
+                </p>
+              ) : null}
+              {room.facts && room.facts.length > 0 ? (
+                <div className="site-room-amen mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {room.facts.map((f, j) => (
+                    <div
+                      key={j}
+                      className="flex items-center gap-2.5 text-sm font-medium"
+                      style={{ color: "var(--site-ink)" }}
+                    >
+                      <span
+                        aria-hidden
+                        className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ background: "var(--site-accent)" }}
+                      />
+                      {f}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <div className="mt-8 flex flex-wrap gap-3.5">
+                {room.detailHref ? (
+                  <a
+                    href={room.detailHref}
+                    className="inline-flex items-center justify-center px-7 py-3.5 text-sm font-semibold transition-colors"
+                    style={{
+                      background: "transparent",
+                      color: "var(--site-ink)",
+                      border: "1px solid var(--site-line)",
+                      borderRadius: "var(--site-btn-primary-radius)",
+                    }}
+                  >
+                    View room
+                  </a>
+                ) : null}
+                <a
+                  href={room.bookHref}
+                  data-wielo-book=""
+                  className="inline-flex items-center justify-center px-7 py-3.5 text-sm font-semibold transition-opacity hover:opacity-90"
+                  style={{
+                    background: "var(--site-btn-primary-bg)",
+                    color: "var(--site-btn-primary-color)",
+                    border: "var(--site-btn-primary-border)",
+                    borderRadius: "var(--site-btn-primary-radius)",
+                  }}
+                >
+                  {bookLabel}
+                </a>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function RoomGrid({
   rooms,
   cta,
@@ -201,6 +349,7 @@ export function RoomsPreviewSection({
   const rooms = (data?.rooms ?? []).slice(0, props.max);
   const groups = data?.groups;
   const cta = props.ctaLabel ?? "View & book";
+  const showcase = props.display === "showcase";
 
   // Segment rooms into contiguous runs by property (rooms are saved grouped per
   // property) so each property with an override can show its own header.
@@ -229,6 +378,8 @@ export function RoomsPreviewSection({
         <Muted className="text-center text-sm">
           Rooms from your property appear here.
         </Muted>
+      ) : showcase ? (
+        <RoomShowcase rooms={rooms} cta={cta} />
       ) : groups ? (
         <div className="space-y-12">
           {runs.map((run, i) => {

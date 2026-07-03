@@ -22,6 +22,30 @@ export function AmenitiesSection({
 }) {
   const items = data?.items?.length ? data.items : props.items;
   if (items.length === 0) return null;
+
+  // INLINE — a centred row of text pills, no heading (the designed "what's
+  // included" bar). Icons are intentionally omitted: live amenities carry lucide
+  // icon *names* (not emoji), which would render as literal text here. Reusable
+  // by any theme via `variant:"inline"`.
+  if (props.variant === "inline") {
+    return (
+      <div className="site-amen-inline flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+        {items.map((item, i) => (
+          <span
+            key={i}
+            className="site-amen-pill inline-flex items-center gap-2 text-sm font-semibold"
+            style={{
+              color: "var(--el-label-fg, var(--site-ink))",
+              borderRadius: "var(--site-radius)",
+            }}
+          >
+            {item.label}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <>
       {props.heading ? (
