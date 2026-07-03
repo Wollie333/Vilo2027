@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-03 — Elementor-model builder, Phase 0 + Phase A (mechanics + nav fix).
+
+Big step toward an Elementor-style builder. **Phase 0** (engine): every block can now be styled
+per sub-element — a room card's background, border, radius, image, title, price, description and
+button each have their own controls (real colour picker + theme swatches), with per-device
+overrides that work on the live site via scoped `@media`/`@container` CSS. The builder Preview goes
+true full-screen, and the canvas now shows the real site header + footer for context.
+**Phase A** (builder mechanics + a bug): (A1) each section has a gear icon that opens its styling,
+and every element has a "Section" chip to jump to its wrapping section; (A2) blocks can be dropped
+into a section and Inner Sections nest properly, with clearer drop zones; (A3) new sections land
+above the footer; (A4) fixed the Safari header rendering invisible white links on text pages like
+About — the header only goes transparent over a genuinely dark hero now; (A5) clicking the header
+or footer in the canvas prompts, saves the page, and opens the header/footer builder in place
+(close to return). All verified live; 197 unit tests. **Next: Phase B** — Wielo blocks become bare,
+composable elements inside host-controlled sections (room grid first).
+
 ## 2026-07-02 — Builder × Theme pipeline, Phase 6a: go-live readiness gate.
 
 A website now can't go live until it's genuinely ready to take bookings. A new single source of

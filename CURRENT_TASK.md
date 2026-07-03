@@ -2,7 +2,41 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT — RESUME HERE (· 2026-07-02, Builder × Theme pipeline, **Phase 6a DONE**)
+## ▶▶▶ SAVE POINT — RESUME HERE (· 2026-07-03, **Elementor-model builder: Phase 0 + Phase A DONE; Phase B next**)
+
+> **▶ NEW LANE (2026-07-03): Elementor-model builder.** Plan of record →
+> `C:\Users\Wollie\.claude\plans\parsed-roaming-pine.md`. Founder wants Wielo *blocks* → Wielo
+> *elements* (bare, composable inside host-controlled sections), each fully stylable per element,
+> Elementor-style. **Sequencing (founder): builder mechanics first, then the block reframe.**
+>
+> ✅ **Phase 0 (commit `3c8bf6f3`)** — per-element styling engine: `node.elements` (+ per-device
+> responsive layer) → `--el-*` CSS vars via scoped `<style>` (`@media` live + `@container` builder)
+> in `_shared.tsx` `elementVarsCss`, wired in `PageDocRenderer`; `WidgetDef.elements` registry
+> metadata; inspector **Elements** accordion + `ColorRow`/`NumRow` (real colour picker + theme
+> swatches); room card reads `--el-*`; full-screen Preview (`.wb.previewing` hides topbar/sidebar +
+> floating Exit); canvas renders real `SiteChrome` header/footer.
+> ✅ **A1 (`efd2069f`)** — section **gear** → Style tab (Inspector `tab` lifted to BuilderShell) +
+> **"Section" chip** on elements → select wrapping section.
+> ✅ **A2 (`cc7beb90`)** — drop blocks into sections + **nest Inner Sections**: drag-over falls back
+> to a section's own column, treats nested sections as insertion anchors, empty-column min-height
+> during drag. Verified (synthetic drag nested a section in a column).
+> ✅ **A3** — new sections land above the footer (verified, no code).
+> ✅ **A4 (`30e1f306`)** — Safari nav bug: header transparent ONLY over a dark hero
+> (`pageStartsWithHero`/`sectionsStartWithHero` in `pageDocOps.ts`, gate `transparentOver` in
+> `SiteChrome`; wired in SitePageView doc+flat paths, SiteRoomView, builder canvas). Verified: home
+> transparent, About solid dark-inked (toggled transparentOverHero on/off on vilotest to prove it).
+> ✅ **A5 (`aadce2e8`)** — click canvas header/footer → confirm modal → save page → open
+> NavBuilderOverlay at that tab (in-place; close = back). Verified live (Header tab opened).
+>
+> **⏳ NEXT = Phase B (the reframe, block-by-block, room grid first):** strip each Wielo block's
+> `SectionShell`/self-heading so it renders BARE inside a host section; re-seed demo pages to
+> section→Heading element + bare Wielo element; roll out block-by-block. Founder wants each block
+> shipped + approved before the next. GOTCHA: concurrent session shares `.next` → stale bundles;
+> restart the preview server to see changes. `vsub.mjs` still untracked (leave alone).
+
+---
+
+## ▶ Prior anchor (· 2026-07-02, Builder × Theme pipeline, **Phase 6a DONE**)
 
 > **▶ PHASE 6a DONE (go-live readiness gate).** New `lib/website/readiness.ts` SSOT:
 > pure `evaluateReadiness` + `checkWebsiteReadiness(supabase,hostId,websiteId)` loader for the
