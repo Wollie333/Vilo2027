@@ -52,7 +52,13 @@ export function RateTableSection({
           Your room rates appear here.
         </Muted>
       ) : (
-        <Card>
+        <Card
+          style={{
+            background: "var(--el-card-bg, var(--site-surface))",
+            border: "var(--el-card-bd, var(--site-card-border))",
+            borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+          }}
+        >
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--site-line)" }}>
@@ -106,7 +112,13 @@ function RateTableRow({ row, cta }: { row: RateRow; cta: string }) {
   return (
     <tr style={{ borderBottom: "1px solid var(--site-line)" }}>
       <td className="px-4 py-4">
-        <span style={{ color: "var(--site-ink)" }} className="font-semibold">
+        <span
+          style={{
+            color: "var(--el-label-fg, var(--site-ink))",
+            fontSize: "var(--el-label-size, 0.875rem)",
+          }}
+          className="font-semibold"
+        >
           {row.name}
         </span>
         {row.maxGuests ? (
@@ -119,8 +131,12 @@ function RateTableRow({ row, cta }: { row: RateRow; cta: string }) {
         ) : null}
       </td>
       <td
-        style={{ color: "var(--site-ink)" }}
-        className="px-4 py-4 text-right font-semibold"
+        style={{
+          color: "var(--el-price-fg, var(--site-ink))",
+          fontSize: "var(--el-price-size, 0.875rem)",
+          fontWeight: "var(--el-price-weight, 600)",
+        }}
+        className="px-4 py-4 text-right"
       >
         {from ?? "—"}
       </td>
@@ -141,10 +157,11 @@ function RateTableRow({ row, cta }: { row: RateRow; cta: string }) {
           href={row.bookHref}
           data-wielo-book
           style={{
-            background: "var(--site-btn-primary-bg)",
-            color: "var(--site-btn-primary-color)",
-            border: "var(--site-btn-primary-border)",
-            borderRadius: "var(--site-btn-primary-radius)",
+            background: "var(--el-button-bg, var(--site-btn-primary-bg))",
+            color: "var(--el-button-fg, var(--site-btn-primary-color))",
+            border: "var(--el-button-bd, var(--site-btn-primary-border))",
+            borderRadius:
+              "var(--el-button-radius, var(--site-btn-primary-radius))",
           }}
           className="inline-flex px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
         >

@@ -9,6 +9,13 @@ type SeasonalProps = Extract<
   { type: "seasonal_pricing" }
 >["props"];
 
+// Per-element style hook (Elementor accordion) — reads `--el-card-*`.
+const rateCardStyle = {
+  background: "var(--el-card-bg, var(--site-surface))",
+  border: "var(--el-card-bd, var(--site-card-border))",
+  borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+} as const;
+
 function money(price?: number | null, currency?: string | null) {
   if (price == null) return null;
   const ccy = currency ?? "ZAR";
@@ -70,7 +77,7 @@ export function RoomRatesSection({
           Your room rates appear here.
         </Muted>
       ) : (
-        <Card>
+        <Card style={rateCardStyle}>
           <ul>
             {rows.map((item, i) => (
               <li
@@ -82,7 +89,10 @@ export function RoomRatesSection({
               >
                 <div className="min-w-0">
                   <span
-                    style={{ color: "var(--site-ink)" }}
+                    style={{
+                      color: "var(--el-label-fg, var(--site-ink))",
+                      fontSize: "var(--el-label-size, 1rem)",
+                    }}
                     className="font-semibold"
                   >
                     {item.room}
@@ -97,8 +107,12 @@ export function RoomRatesSection({
                   ) : null}
                 </div>
                 <span
-                  style={{ color: "var(--site-ink)" }}
-                  className="shrink-0 font-semibold"
+                  style={{
+                    color: "var(--el-price-fg, var(--site-ink))",
+                    fontSize: "var(--el-price-size, 1rem)",
+                    fontWeight: "var(--el-price-weight, 600)",
+                  }}
+                  className="shrink-0"
                 >
                   {item.price}
                 </span>
@@ -168,11 +182,14 @@ export function SeasonalPricingSection({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((item, i) => (
-            <Card key={i}>
+            <Card key={i} style={rateCardStyle}>
               <div className="flex h-full flex-col gap-1 px-5 py-5">
                 <span
-                  style={{ color: "var(--site-ink)" }}
-                  className="text-lg font-semibold"
+                  style={{
+                    color: "var(--el-label-fg, var(--site-ink))",
+                    fontSize: "var(--el-label-size, 1.125rem)",
+                  }}
+                  className="font-semibold"
                 >
                   {item.season}
                 </span>
@@ -186,8 +203,12 @@ export function SeasonalPricingSection({
                 ) : null}
                 {item.price ? (
                   <span
-                    style={{ color: "var(--site-accent)" }}
-                    className="mt-2 text-xl font-semibold"
+                    style={{
+                      color: "var(--el-price-fg, var(--site-accent))",
+                      fontSize: "var(--el-price-size, 1.25rem)",
+                      fontWeight: "var(--el-price-weight, 600)",
+                    }}
+                    className="mt-2"
                   >
                     {item.price}
                   </span>

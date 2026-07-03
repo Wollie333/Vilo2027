@@ -367,12 +367,18 @@ export function PolicyView({
         {items.map((it, i) => (
           <div key={i}>
             <div
-              style={{ color: "var(--site-mute)" }}
+              style={{ color: "var(--el-label-fg, var(--site-mute))" }}
               className="text-[11px] font-semibold uppercase tracking-wide"
             >
               {it.label}
             </div>
-            <div style={{ color: "var(--site-ink)" }} className="mt-1 text-sm">
+            <div
+              style={{
+                color: "var(--el-value-fg, var(--site-ink))",
+                fontSize: "var(--el-value-size, 0.875rem)",
+              }}
+              className="mt-1"
+            >
               {it.value}
             </div>
           </div>

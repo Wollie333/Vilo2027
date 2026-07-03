@@ -127,6 +127,17 @@ const ALIGN_CTL = (key = "align"): WidgetControl => ({
   label: "Alignment",
 });
 
+// Policies (property + room) — label/value pairs.
+const POLICY_ELEMENTS: ElementDef[] = [
+  { key: "label", label: "Label", controls: ["color"] },
+  { key: "value", label: "Value", controls: ["color", "size"] },
+];
+// Rate list / seasonal cards — card + room/season label + price.
+const RATE_LIST_ELEMENTS: ElementDef[] = [
+  { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+  { key: "label", label: "Label", controls: ["color", "size"] },
+  { key: "price", label: "Price", controls: ["color", "size", "weight"] },
+];
 // Shared per-element styling for the card-grid Wielo blocks (specials / add-ons —
 // same card anatomy). Keys match the `--el-<key>-*` vars each component reads.
 const SPECIAL_CARD_ELEMENTS: ElementDef[] = [
@@ -922,6 +933,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         text: "Check-in/out, cancellation and house rules come from your property.",
       },
     ],
+    elements: POLICY_ELEMENTS,
   },
   rate_table: {
     type: "rate_table",
@@ -937,6 +949,16 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "text", key: "note", label: "Note" },
+    ],
+    elements: [
+      { key: "card", label: "Table", controls: ["bg", "border", "radius"] },
+      { key: "label", label: "Room name", controls: ["color", "size"] },
+      { key: "price", label: "Price", controls: ["color", "size", "weight"] },
+      {
+        key: "button",
+        label: "Button",
+        controls: ["bg", "color", "border", "radius"],
+      },
     ],
   },
   room_rates: {
@@ -956,6 +978,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "text", key: "note", label: "Note" },
     ],
+    elements: RATE_LIST_ELEMENTS,
   },
   seasonal_pricing: {
     type: "seasonal_pricing",
@@ -974,6 +997,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "text", key: "note", label: "Note" },
     ],
+    elements: RATE_LIST_ELEMENTS,
   },
   el_room_card: {
     type: "el_room_card",
@@ -1339,6 +1363,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     ],
     defaults: { heading: "Things to know" },
     content: [{ kind: "text", key: "heading", label: "Heading" }],
+    elements: POLICY_ELEMENTS,
   },
 };
 
