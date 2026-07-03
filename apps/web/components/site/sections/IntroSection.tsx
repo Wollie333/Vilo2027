@@ -1,6 +1,10 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
-import { SectionShell, SectionHeading } from "./_shared";
+// Bare element (Elementor reframe): every variant renders bare (no self <section>/
+// band/width-clamp); the SECTION owns padding + width, and the heading is a separate
+// Heading element the host places above. `props.heading` stays legacy (kept so
+// pre-reframe pages don't lose their title before they're re-seeded).
+import { SectionHeading } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "intro" }>["props"];
 
@@ -13,7 +17,7 @@ export function IntroSection({ props }: { props: Props }) {
   if (variant === "story") {
     const showBadge = props.show_badge !== false && !!props.badge_value?.trim();
     return (
-      <SectionShell>
+      <>
         <div className="grid items-center gap-8 md:grid-cols-2 md:gap-14">
           <div>
             {props.eyebrow ? (
@@ -71,14 +75,14 @@ export function IntroSection({ props }: { props: Props }) {
             </div>
           ) : null}
         </div>
-      </SectionShell>
+      </>
     );
   }
 
   // SPLIT — heading on the left, body on the right (stacks on mobile).
   if (variant === "split") {
     return (
-      <SectionShell>
+      <>
         <div className="grid gap-6 md:grid-cols-2 md:gap-12">
           {props.heading ? (
             <SectionHeading centered={false} className="md:text-3xl">
@@ -94,14 +98,14 @@ export function IntroSection({ props }: { props: Props }) {
             {props.body}
           </p>
         </div>
-      </SectionShell>
+      </>
     );
   }
 
   // LEAD — large, light statement paragraph.
   if (variant === "lead") {
     return (
-      <SectionShell width="narrow">
+      <>
         {props.heading ? (
           <SectionHeading className="mb-5">{props.heading}</SectionHeading>
         ) : null}
@@ -111,13 +115,13 @@ export function IntroSection({ props }: { props: Props }) {
         >
           {props.body}
         </p>
-      </SectionShell>
+      </>
     );
   }
 
   // CENTERED (default).
   return (
-    <SectionShell width="narrow">
+    <>
       {props.heading ? (
         <SectionHeading className="mb-5">{props.heading}</SectionHeading>
       ) : null}
@@ -127,6 +131,6 @@ export function IntroSection({ props }: { props: Props }) {
       >
         {props.body}
       </p>
-    </SectionShell>
+    </>
   );
 }
