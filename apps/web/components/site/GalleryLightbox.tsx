@@ -9,10 +9,12 @@ import { siteImageStyle } from "./sections/_shared";
 import { SiteImg } from "./SiteImg";
 
 // Gallery tiles ride the theme image style, but let the block's "Image" element
-// override the corner radius (`--el-image-radius`, set on the block wrapper).
+// override radius / border / shadow (`--el-image-*`, set on the block wrapper).
 const galleryTileStyle = {
   ...siteImageStyle,
   borderRadius: "var(--el-image-radius, var(--site-img-radius))",
+  border: "var(--el-image-bd, var(--site-img-border))",
+  boxShadow: "var(--el-image-shadow, var(--site-img-shadow))",
 };
 
 /**
@@ -22,13 +24,18 @@ const galleryTileStyle = {
  * caption. Thumbnails and the full image both ride the Supabase transform
  * pipeline via <SiteImg>, so each is sized to its slot.
  */
+const GAP_PX = { sm: 6, md: 12, lg: 24 } as const;
+
 export function GalleryLightbox({
   images,
   layout,
+  gap,
 }: {
   images: GalleryImage[];
   layout?: "grid" | "list" | "carousel" | "mosaic";
+  gap?: "sm" | "md" | "lg";
 }) {
+  const gapPx = GAP_PX[gap ?? "md"];
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const isOpen = openIndex !== null;
   const count = images.length;
@@ -90,8 +97,8 @@ export function GalleryLightbox({
     <>
       {mosaic ? (
         <div
-          className="relative grid h-[340px] grid-cols-4 grid-rows-2 gap-2 overflow-hidden sm:h-[460px]"
-          style={galleryTileStyle}
+          className="relative grid h-[340px] grid-cols-4 grid-rows-2 overflow-hidden sm:h-[460px]"
+          style={{ ...galleryTileStyle, gap: gapPx }}
         >
           <button
             type="button"
@@ -140,7 +147,7 @@ export function GalleryLightbox({
           </button>
         </div>
       ) : (
-        <div className={`grid gap-3 ${cols}`}>
+        <div className={`grid ${cols}`} style={{ gap: gapPx }}>
           {images.map((img, i) => (
             <button
               key={i}

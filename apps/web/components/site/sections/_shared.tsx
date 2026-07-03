@@ -256,6 +256,13 @@ type NodeElementStyles = {
   };
 };
 
+const EL_SHADOW_CSS: Record<string, string> = {
+  none: "none",
+  sm: "0 1px 3px rgba(0,0,0,0.08)",
+  md: "0 8px 24px rgba(0,0,0,0.12)",
+  lg: "0 20px 48px rgba(0,0,0,0.18)",
+};
+
 /** One element map → `--el-<key>-*` declarations (empty when nothing set). */
 function elementDecls(elements?: Record<string, ElementStyle>): string {
   if (!elements) return "";
@@ -280,6 +287,7 @@ function elementDecls(elements?: Record<string, ElementStyle>): string {
     if (s.letterSpacing != null)
       out.push(`--el-${key}-ls:${s.letterSpacing}px`);
     if (s.textTransform) out.push(`--el-${key}-tt:${s.textTransform}`);
+    if (s.shadow) out.push(`--el-${key}-shadow:${EL_SHADOW_CSS[s.shadow]}`);
   }
   return out.join(";");
 }

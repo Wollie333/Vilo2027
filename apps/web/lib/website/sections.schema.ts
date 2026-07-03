@@ -307,6 +307,8 @@ const galleryProps = z.object({
   heading,
   eyebrow: z.string().max(120).optional(),
   layout: z.enum(["grid", "list", "carousel", "mosaic"]).optional(),
+  // Spacing between images (block-level layout, in the Content tab).
+  gap: z.enum(["sm", "md", "lg"]).optional(),
   max: z.number().int().min(1).max(60).default(12),
   // Stock demo photos shipped by a theme. The live site swaps in the host's real
   // property photos; these render in the PREVIEW (and until the host adds photos).
@@ -947,6 +949,8 @@ export const elementStyleSchema = z.object({
   lineHeight: z.number().min(0.8).max(3).optional(),
   letterSpacing: z.number().min(-5).max(20).optional(),
   textTransform: z.enum(ELEMENT_TRANSFORM).optional(),
+  // Drop-shadow depth preset (Elementor "Box shadow").
+  shadow: z.enum(["none", "sm", "md", "lg"]).optional(),
 });
 export type ElementStyle = z.infer<typeof elementStyleSchema>;
 

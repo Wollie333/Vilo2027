@@ -38,7 +38,11 @@ export function GallerySection({
           Photos from your property appear here.
         </Muted>
       ) : (
-        <GalleryLightbox images={images} layout={props.layout} />
+        <GalleryLightbox
+          images={images}
+          layout={props.layout}
+          gap={props.gap}
+        />
       )}
     </>
   );

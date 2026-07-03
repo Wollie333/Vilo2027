@@ -2708,6 +2708,25 @@ function ElementControls({
             );
           case "radius":
             return num("radius", "Corner radius", 0, 48);
+          case "shadow":
+            return (
+              <SegRow
+                key="shadow"
+                label="Shadow"
+                value={String(h.elVal(el, "shadow") ?? "none")}
+                options={[
+                  ["none", "None"],
+                  ["sm", "S"],
+                  ["md", "M"],
+                  ["lg", "L"],
+                ]}
+                onChange={(v) =>
+                  v === "none"
+                    ? h.revertEl(el, "shadow")
+                    : h.setEl(el, "shadow", v)
+                }
+              />
+            );
           case "size":
             return num("fontSize", "Font size", 10, 64);
           case "lineHeight":

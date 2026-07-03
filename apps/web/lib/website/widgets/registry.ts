@@ -68,6 +68,7 @@ export type ElementControlKind =
   | "color"
   | "border"
   | "radius"
+  | "shadow"
   | "size"
   | "weight"
   | "lineHeight"
@@ -565,9 +566,29 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       ["list", "List"],
       ["carousel", "Carousel"],
     ],
-    defaults: { heading: "", layout: "grid", max: 12 },
+    defaults: { heading: "", layout: "grid", gap: "md", max: 12 },
     content: [
       { kind: "text", key: "heading", label: "Heading" },
+      {
+        kind: "seg",
+        key: "layout",
+        label: "Layout",
+        options: [
+          ["grid", "Grid"],
+          ["mosaic", "Mosaic"],
+          ["list", "List"],
+        ],
+      },
+      {
+        kind: "seg",
+        key: "gap",
+        label: "Spacing",
+        options: [
+          ["sm", "Tight"],
+          ["md", "Normal"],
+          ["lg", "Loose"],
+        ],
+      },
       {
         kind: "range",
         key: "max",
@@ -577,7 +598,14 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         suffix: "",
       },
     ],
-    elements: [{ key: "image", label: "Image", controls: ["radius"] }],
+    // Style tab controls the finer per-image detail (border · shadow · radius).
+    elements: [
+      {
+        key: "image",
+        label: "Image",
+        controls: ["radius", "border", "shadow"],
+      },
+    ],
   },
   video: {
     type: "video",
@@ -1358,7 +1386,13 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "range", key: "max", label: "Photos", min: 1, max: 30 },
       { kind: "hint", text: "Shows the photos of the room being viewed." },
     ],
-    elements: [{ key: "image", label: "Image", controls: ["radius"] }],
+    elements: [
+      {
+        key: "image",
+        label: "Image",
+        controls: ["radius", "border", "shadow"],
+      },
+    ],
   },
   room_overview: {
     type: "room_overview",
