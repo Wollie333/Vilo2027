@@ -104,8 +104,15 @@ export interface WidgetDef {
   variants?: [string, string][];
   /** Initial props on drop — existing token vocabulary, brand-safe. */
   defaults: Record<string, unknown>;
-  /** Content-tab controls (Style/Advanced/Responsive are generic + shared). */
+  /** Content-tab controls — the WORDS / images / uploaded icons / links only. */
   content: WidgetControl[];
+  /**
+   * Style-tab controls — everything visual (colour · size · spacing · radius …).
+   * Rendered above the generic block-frame controls. Same declarative kinds as
+   * `content`; both write to `node.props`. Keeping content vs style split uniform
+   * across every element is the whole point (content = what, style = how it looks).
+   */
+  style?: WidgetControl[];
   /**
    * Stylable sub-elements (Elementor-style per-element styling). Drives the Style
    * tab's "Elements" accordion; each element's controls write `node.elements[key]`
@@ -222,9 +229,8 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["p", "Paragraph"],
         ],
       },
-      ...TYPOGRAPHY_CTLS,
-      ALIGN_CTL(),
     ],
+    style: [...TYPOGRAPHY_CTLS, ALIGN_CTL()],
   },
   el_text: {
     type: "el_text",
@@ -238,11 +244,8 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       weight: "auto",
       color: "default",
     },
-    content: [
-      { kind: "textarea", key: "body", label: "Text" },
-      ...TYPOGRAPHY_CTLS,
-      ALIGN_CTL(),
-    ],
+    content: [{ kind: "textarea", key: "body", label: "Text" }],
+    style: [...TYPOGRAPHY_CTLS, ALIGN_CTL()],
   },
   el_button: {
     type: "el_button",
@@ -259,10 +262,12 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "label", label: "Label" },
       { kind: "text", key: "href", label: "Link", placeholder: "https://" },
+    ],
+    style: [
       {
         kind: "seg",
         key: "variant",
-        label: "Style",
+        label: "Type",
         options: [
           ["primary", "Primary"],
           ["secondary", "Secondary"],
@@ -278,8 +283,6 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["lg", "L"],
         ],
       },
-      ALIGN_CTL(),
-      { kind: "group", label: "Style" },
       {
         kind: "scale",
         key: "radius",
@@ -295,6 +298,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         ],
       },
       { kind: "toggle", key: "full_width", label: "Full width" },
+      ALIGN_CTL(),
     ],
   },
   el_image: {
@@ -307,6 +311,12 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "image_path", label: "Image" },
       { kind: "text", key: "alt", label: "Alt text" },
       {
+        kind: "hint",
+        text: "In the builder, click the image to upload from your media library.",
+      },
+    ],
+    style: [
+      {
         kind: "seg",
         key: "width",
         label: "Width",
@@ -316,8 +326,6 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["full", "Full"],
         ],
       },
-      ALIGN_CTL(),
-      { kind: "group", label: "Style" },
       {
         kind: "scale",
         key: "radius",
@@ -344,10 +352,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["lg", "L"],
         ],
       },
-      {
-        kind: "hint",
-        text: "In the builder, click the image to upload from your media library.",
-      },
+      ALIGN_CTL(),
     ],
   },
   el_divider: {
@@ -358,9 +363,15 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     defaults: { line: "solid", thickness: "thin", width: "full" },
     content: [
       {
+        kind: "hint",
+        text: "A divider has no text — style it in the Style tab.",
+      },
+    ],
+    style: [
+      {
         kind: "seg",
         key: "line",
-        label: "Style",
+        label: "Line",
         options: [
           ["solid", "Solid"],
           ["dashed", "Dashed"],
@@ -397,6 +408,12 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     defaults: { size: "md" },
     content: [
       {
+        kind: "hint",
+        text: "A spacer has no text — set its height in the Style tab.",
+      },
+    ],
+    style: [
+      {
         kind: "seg",
         key: "size",
         label: "Height",
@@ -431,8 +448,8 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "glyph", label: "Icon / emoji" },
       { kind: "text", key: "title", label: "Title" },
       { kind: "textarea", key: "body", label: "Description" },
-      ALIGN_CTL(),
-      { kind: "group", label: "Style" },
+    ],
+    style: [
       {
         kind: "scale",
         key: "icon_size",
@@ -448,6 +465,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         ],
       },
       { kind: "color", key: "color", label: "Icon colour" },
+      ALIGN_CTL(),
     ],
   },
 
@@ -1035,7 +1053,9 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["mark", "Mark only"],
         ],
       },
-      ALIGN_CTL(),
+      { kind: "hint", text: "Reads your logo + name from Brand Studio." },
+    ],
+    style: [
       {
         kind: "seg",
         key: "size",
@@ -1046,7 +1066,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["lg", "L"],
         ],
       },
-      { kind: "hint", text: "Reads your logo + name from Brand Studio." },
+      ALIGN_CTL(),
     ],
   },
   el_nav: {
@@ -1075,13 +1095,12 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         label: "Custom links",
         placeholder: "Comma-separated",
       },
-      { kind: "color", key: "color", label: "Link colour" },
-      ALIGN_CTL(),
       {
         kind: "hint",
         text: "Header & menu are managed in the Nav builder — this is for the footer / in-page.",
       },
     ],
+    style: [{ kind: "color", key: "color", label: "Link colour" }, ALIGN_CTL()],
   },
   el_social: {
     type: "el_social",
@@ -1109,8 +1128,9 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         label: "Networks",
         placeholder: "instagram, facebook, x",
       },
+    ],
+    style: [
       { kind: "color", key: "color", label: "Colour" },
-      ALIGN_CTL(),
       {
         kind: "scale",
         key: "icon_size",
@@ -1123,6 +1143,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
           ["56", "56"],
         ],
       },
+      ALIGN_CTL(),
     ],
   },
 

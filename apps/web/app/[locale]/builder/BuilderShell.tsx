@@ -2233,6 +2233,29 @@ function Inspector({
 
         {tab === "style" && (
           <>
+            {/* Element-specific style controls (colour · size · spacing …) —
+                declared per widget so every element's styling lives HERE, not in
+                the Content tab. */}
+            {def?.style?.length
+              ? def.style.map((ctl, i) =>
+                  ctl.kind === "hint" || ctl.kind === "group" ? (
+                    <Control key={`s${i}`} ctl={ctl} />
+                  ) : (
+                    <Control
+                      key={`s${i}`}
+                      ctl={ctl}
+                      value={propVal(ctl.key)}
+                      overridden={propOver(ctl.key)}
+                      onChange={(v) => setProp(ctl.key, v)}
+                      onRevert={() => revertProp(ctl.key)}
+                      rooms={rooms}
+                    />
+                  ),
+                )
+              : null}
+            {def?.style?.length ? (
+              <div className="ctl-group">Background &amp; frame</div>
+            ) : null}
             <RoleSwatchRow
               label="Colour tone"
               value={n.tone ?? "default"}
