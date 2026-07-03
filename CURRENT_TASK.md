@@ -69,8 +69,18 @@
 > page to v2 (builder auto-converts on open) OR build the v2 doc, then reseed + republish. Check each
 > block's host pages with a probe (draft/pub v2 vs flat) before reseeding.
 >
+> ✅ **B — SPECIALS DONE (`e6595319`).** `SpecialsPreviewSection` renders BARE (dropped `SectionShell`,
+> incl. its `surface` band). The specials page was fully LEGACY FLAT (draft+pub), so this **converts it
+> to v2** (same flat→PageDoc mapping the builder uses on open — replicated in the reseed script) +
+> composes the specials section: `maxw:1024` + band, `el_heading` "Current offers", and
+> **`bg:"var(--site-surface)"`** to preserve the old `<SectionShell surface>` raised band (v2 renderer
+> paints `node.bg ?? toneBg`). Hero + dark CTA carry over unchanged. LIVE-VERIFIED in the builder
+> canvas (cream `#FBF6EC` band, centered heading, 2 padded specials cards, dark CTA below). 197 vitest,
+> tsc+lint clean. **PATTERN for `surface`/toned blocks: set the section's `bg` (or `tone`) in the reseed
+> to preserve the block's old band background** — bare blocks paint nothing.
+>
 > **⏳ NEXT (Phase B rollout):** apply the SAME treatment to the remaining blocks one at a time
-> (~~reviews~~ · ~~gallery~~ · specials · addons · rates · policies · marketing composites hero/intro/cta/…):
+> (~~reviews~~ · ~~gallery~~ · ~~specials~~ · addons · rates · policies · marketing composites hero/intro/cta/…):
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
