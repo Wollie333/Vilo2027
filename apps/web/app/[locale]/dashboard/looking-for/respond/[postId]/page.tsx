@@ -32,8 +32,13 @@ export default async function RespondToPostPage({ params }: Props) {
     .is("deleted_at", null)
     .maybeSingle();
 
+  // Signed in but not yet a host (e.g. a guest who clicked "Send a quote"):
+  // send them through host signup, carrying the quote intent forward so they
+  // land back on THIS request once their profile exists.
   if (!host) {
-    redirect("/dashboard");
+    redirect(
+      `/signup/host?next=${encodeURIComponent(`/dashboard/looking-for/respond/${postId}`)}`,
+    );
   }
 
   const canLookingFor = await hostHasFeature(host.id, "looking_for_access");
@@ -162,26 +167,36 @@ export default async function RespondToPostPage({ params }: Props) {
     .is("deleted_at", null)
     .eq("is_active", true);
 
+  // First-time host whose profile isn't live yet: they have a host row but no
+  // active (published) listing, so there's nothing to quote from. Guide them to
+  // finish their listing rather than dropping them into an empty quote form.
+  // The quote intent is preserved — once a listing is live, this same request
+  // link takes them straight to the form.
   if (!listings || listings.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild className="gap-1.5">
-            <Link href="/dashboard/looking-for">
+            <Link href="/looking-for">
               <ArrowLeft className="h-4 w-4" />
-              Back
+              Back to requests
             </Link>
           </Button>
         </div>
         <div className="rounded-card border border-dashed border-brand-line bg-white p-12 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
+            <Search className="h-6 w-6" />
+          </div>
           <h3 className="font-display text-lg font-semibold text-brand-ink">
-            No listings available
+            Your profile isn&apos;t live yet
           </h3>
-          <p className="mt-2 text-sm text-brand-mute">
-            You need at least one active listing to send quotes.
+          <p className="mx-auto mt-2 max-w-md text-sm text-brand-mute">
+            You can send quotes as soon as you have one published listing.
+            Finish and publish your first listing, then come back to this
+            request to quote.
           </p>
           <Button asChild className="mt-4">
-            <Link href="/dashboard/listings/new">Create a listing</Link>
+            <Link href="/dashboard/properties">Finish my listing</Link>
           </Button>
         </div>
       </div>

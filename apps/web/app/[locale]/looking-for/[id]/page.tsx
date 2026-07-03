@@ -13,10 +13,14 @@ import {
   Share2,
 } from "lucide-react";
 
+import { SiteFooter } from "@/app/_components/home/SiteFooter";
+import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+
+import { QuoteButton } from "../_components/QuoteButton";
 
 // Native date formatting utility
 function formatDistanceToNow(date: Date) {
@@ -81,6 +85,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PublicPostDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = createServerClient();
+
+  // Viewer auth state — signed-in hosts go straight to the respond page;
+  // signed-out visitors get the sign-in-to-quote modal.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const authed = Boolean(user);
 
   // Fetch the post
   const { data: post, error } = await supabase
@@ -171,8 +182,10 @@ export default async function PublicPostDetailPage({ params }: Props) {
     .then(() => {});
 
   return (
-    <div className="min-h-screen bg-brand-light">
-      {/* Header */}
+    <div className="bg-brand-light text-brand-ink">
+      <SiteHeader />
+
+      {/* Back / share bar */}
       <div className="border-b border-brand-line bg-white">
         <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
@@ -320,19 +333,25 @@ export default async function PublicPostDetailPage({ params }: Props) {
                 Respond to this request
               </h2>
               <p className="mt-2 text-sm text-brand-mute">
-                Sign in to your host dashboard to send a quote.
+                Send this guest a direct quote — no commission on the booking.
               </p>
-              <Button asChild className="mt-4 w-full">
-                <Link href={`/dashboard/looking-for?respond=${id}`}>
-                  Send a Quote
-                </Link>
-              </Button>
-              <p className="mt-3 text-center text-xs text-brand-mute">
-                Not a host yet?{" "}
-                <Link href="/signup" className="text-brand-primary underline">
-                  Get started free
-                </Link>
-              </p>
+              <QuoteButton
+                postId={id}
+                authed={authed}
+                size="lg"
+                className="mt-4"
+              />
+              {!authed && (
+                <p className="mt-3 text-center text-xs text-brand-mute">
+                  Not a host yet?{" "}
+                  <Link
+                    href="/signup/host"
+                    className="text-brand-primary underline"
+                  >
+                    Get started free
+                  </Link>
+                </p>
+              )}
             </div>
 
             {/* Info box */}
@@ -349,6 +368,8 @@ export default async function PublicPostDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

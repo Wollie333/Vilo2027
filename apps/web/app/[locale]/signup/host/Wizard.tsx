@@ -234,6 +234,7 @@ export function Wizard({
   purchasedProductName = null,
   purchasedOrderToken = null,
   purchasedEmail = null,
+  next = null,
 }: {
   prefilledEmail: string | null;
   prefilledFullName?: string | null;
@@ -256,6 +257,10 @@ export function Wizard({
   purchasedProductName?: string | null;
   purchasedOrderToken?: string | null;
   purchasedEmail?: string | null;
+  // A safe relative path to return to after onboarding (e.g. a Looking-For
+  // quote the guest started before signing up). Honoured by the final CTA so
+  // their original intent survives the whole signup journey.
+  next?: string | null;
 }) {
   const brandName = useBrandName();
   // Returning users (already signed in) skip Step 1. A product buyer is NOT yet
@@ -533,6 +538,7 @@ export function Wizard({
             data={data}
             finalizePending={finalizePending}
             finalizeResult={finalizeResult}
+            next={next}
           />
         );
     }
@@ -1606,10 +1612,12 @@ function StepWelcome({
   data,
   finalizePending,
   finalizeResult,
+  next = null,
 }: {
   data: WizardData;
   finalizePending: boolean;
   finalizeResult: FinalizeOnboardingData | null;
+  next?: string | null;
 }) {
   // Resolve the plan the user picked. PLANS is the source of truth for
   // pricing + features so the receipt always matches what was shown on
@@ -1783,16 +1791,18 @@ function StepWelcome({
           </div>
         </div>
 
-        {/* CTA */}
+        {/* CTA — honour a pending intent (e.g. the quote they started before
+            signing up) so their first intent survives the whole journey. */}
         <div className="mt-6 flex justify-end">
           <Link
-            href="/dashboard?welcome=1"
+            href={next ?? "/dashboard?welcome=1"}
             className={`inline-flex items-center gap-2 rounded bg-brand-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-secondary ${
               finalizePending ? "pointer-events-none opacity-60" : ""
             }`}
             aria-disabled={finalizePending}
           >
-            Go to dashboard <ArrowUpRight className="h-4 w-4" />
+            {next ? "Continue to your quote" : "Go to dashboard"}{" "}
+            <ArrowUpRight className="h-4 w-4" />
           </Link>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { safeNextPath } from "@/lib/auth/safeNext";
 import { getBrandName } from "@/lib/brand";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -22,8 +23,11 @@ export const dynamic = "force-dynamic";
 export default async function HostSignupPage({
   searchParams,
 }: {
-  searchParams?: { order?: string };
+  searchParams?: { order?: string; next?: string };
 }) {
+  // A quote (or other) intent to return to after onboarding. Same-origin guard.
+  const nextPath = safeNextPath(searchParams?.next);
+
   const supabase = createServerClient();
   const {
     data: { user },
@@ -65,7 +69,8 @@ export default async function HostSignupPage({
       .eq("user_id", user.id)
       .maybeSingle();
     if (existingHost) {
-      redirect("/dashboard");
+      // Already a host — honour the pending intent (e.g. a quote) if present.
+      redirect(nextPath ?? "/dashboard");
     }
 
     // Pre-seed any About-step fields they've already entered (full_name
@@ -120,6 +125,7 @@ export default async function HostSignupPage({
       purchasedProductName={purchasedProductName}
       purchasedOrderToken={purchasedOrderToken}
       purchasedEmail={purchasedEmail}
+      next={nextPath}
     />
   );
 }
