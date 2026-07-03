@@ -521,6 +521,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         suffix: "",
       },
     ],
+    elements: [{ key: "image", label: "Image", controls: ["radius"] }],
   },
   video: {
     type: "video",
@@ -1301,6 +1302,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "range", key: "max", label: "Photos", min: 1, max: 30 },
       { kind: "hint", text: "Shows the photos of the room being viewed." },
     ],
+    elements: [{ key: "image", label: "Image", controls: ["radius"] }],
   },
   room_overview: {
     type: "room_overview",

@@ -8,6 +8,13 @@ import type { GalleryImage } from "@/lib/site/types";
 import { siteImageStyle } from "./sections/_shared";
 import { SiteImg } from "./SiteImg";
 
+// Gallery tiles ride the theme image style, but let the block's "Image" element
+// override the corner radius (`--el-image-radius`, set on the block wrapper).
+const galleryTileStyle = {
+  ...siteImageStyle,
+  borderRadius: "var(--el-image-radius, var(--site-img-radius))",
+};
+
 /**
  * Gallery grid + swipeable fullscreen lightbox (Phase 7c). The grid mirrors the
  * three section layouts (grid / list / carousel); clicking any tile opens a
@@ -84,7 +91,7 @@ export function GalleryLightbox({
       {mosaic ? (
         <div
           className="relative grid h-[340px] grid-cols-4 grid-rows-2 gap-2 overflow-hidden sm:h-[460px]"
-          style={siteImageStyle}
+          style={galleryTileStyle}
         >
           <button
             type="button"
@@ -141,7 +148,7 @@ export function GalleryLightbox({
               onClick={() => setOpenIndex(i)}
               aria-label={img.caption || `View image ${i + 1}`}
               className="group block cursor-zoom-in overflow-hidden"
-              style={siteImageStyle}
+              style={galleryTileStyle}
             >
               <SiteImg
                 src={img.url}
