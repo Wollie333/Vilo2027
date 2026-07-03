@@ -204,12 +204,13 @@ export function RoomsPreviewSection({
   }
 
   return (
-    // Bare element (Elementor reframe): no self-wrapping <section>. The block's
-    // BAND — background, tone, vertical padding — is now owned by the section node
-    // it sits in (styleable via the section gear), so the host controls it. Only a
-    // content max-width + horizontal gutter stay here for readability. The heading
-    // is optional/legacy — hosts can clear it and add a Heading element instead.
-    <div className="mx-auto w-full max-w-5xl px-5 py-16 md:py-20">
+    // Bare element (Elementor reframe): just the grid. No self-wrapping <section>,
+    // no band padding, no content-width clamp, no heading — ALL of that is owned by
+    // the SECTION the block sits in (padding/width via the section node, background
+    // via the section gear) and by a separate Heading element the host places above
+    // it. `props.heading` is legacy: rendered only if a page still carries it, so
+    // pre-reframe pages don't silently lose their title before they're re-seeded.
+    <>
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
@@ -262,6 +263,6 @@ export function RoomsPreviewSection({
       ) : (
         <RoomGrid rooms={rooms} cta={cta} layout={props.layout} />
       )}
-    </div>
+    </>
   );
 }
