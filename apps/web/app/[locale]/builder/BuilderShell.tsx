@@ -2522,6 +2522,7 @@ function NumRow({
   value,
   min,
   max,
+  step,
   suffix,
   overridden,
   onChange,
@@ -2531,6 +2532,7 @@ function NumRow({
   value: number | undefined;
   min: number;
   max: number;
+  step?: number;
   suffix?: string;
   overridden: boolean;
   onChange: (v: number | null) => void;
@@ -2547,6 +2549,7 @@ function NumRow({
           type="range"
           min={min}
           max={max}
+          step={step ?? 1}
           value={value ?? min}
           onChange={(e) => onChange(Number(e.target.value))}
         />
@@ -2555,6 +2558,7 @@ function NumRow({
           className="numin"
           min={min}
           max={max}
+          step={step ?? 1}
           value={value ?? ""}
           placeholder="—"
           onChange={(e) =>
@@ -2602,6 +2606,7 @@ function ElementControls({
     min: number,
     max: number,
     suffix = "px",
+    step?: number,
   ) => (
     <NumRow
       key={prop}
@@ -2609,6 +2614,7 @@ function ElementControls({
       value={h.elVal(el, prop) as number | undefined}
       min={min}
       max={max}
+      step={step}
       suffix={suffix}
       overridden={h.elOver(el, prop)}
       onChange={(v) =>
@@ -2636,6 +2642,10 @@ function ElementControls({
             return num("radius", "Corner radius", 0, 48);
           case "size":
             return num("fontSize", "Font size", 10, 64);
+          case "lineHeight":
+            return num("lineHeight", "Line height", 0.8, 3, "", 0.1);
+          case "letterSpacing":
+            return num("letterSpacing", "Letter spacing", -5, 20);
           case "weight":
             return (
               <SegRow
@@ -2649,6 +2659,25 @@ function ElementControls({
                   ["bold", "B"],
                 ]}
                 onChange={(v) => h.setEl(el, "fontWeight", v)}
+              />
+            );
+          case "transform":
+            return (
+              <SegRow
+                key="transform"
+                label="Text transform"
+                value={String(h.elVal(el, "textTransform") ?? "none")}
+                options={[
+                  ["none", "Aa"],
+                  ["uppercase", "AG"],
+                  ["lowercase", "ag"],
+                  ["capitalize", "Ap"],
+                ]}
+                onChange={(v) =>
+                  v === "none"
+                    ? h.revertEl(el, "textTransform")
+                    : h.setEl(el, "textTransform", v)
+                }
               />
             );
           default:

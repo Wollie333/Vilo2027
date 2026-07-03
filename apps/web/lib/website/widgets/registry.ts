@@ -57,7 +57,8 @@ export type WidgetControl =
  * Which per-element style controls to show for a block's sub-element. Each maps to
  * one or more `--el-<key>-*` CSS vars the block's component reads:
  *   bg → --el-<key>-bg · color → -fg · border → -bdw + -bdc · radius → -radius ·
- *   size → -size (font-size) · weight → -weight (font-weight)
+ *   size → -size (font-size) · weight → -weight (font-weight) ·
+ *   lineHeight → -lh · letterSpacing → -ls · transform → -tt (text-transform)
  */
 export type ElementControlKind =
   | "bg"
@@ -65,7 +66,10 @@ export type ElementControlKind =
   | "border"
   | "radius"
   | "size"
-  | "weight";
+  | "weight"
+  | "lineHeight"
+  | "letterSpacing"
+  | "transform";
 
 /** A stylable sub-element of a composite block (drives the inspector Elements UI). */
 export type ElementDef = {
@@ -627,9 +631,28 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     elements: [
       { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
       { key: "image", label: "Image", controls: ["radius"] },
-      { key: "title", label: "Title", controls: ["color", "size", "weight"] },
-      { key: "price", label: "Price", controls: ["color", "size", "weight"] },
-      { key: "desc", label: "Description", controls: ["color", "size"] },
+      {
+        key: "title",
+        label: "Title",
+        controls: [
+          "color",
+          "size",
+          "weight",
+          "lineHeight",
+          "letterSpacing",
+          "transform",
+        ],
+      },
+      {
+        key: "price",
+        label: "Price",
+        controls: ["color", "size", "weight", "letterSpacing"],
+      },
+      {
+        key: "desc",
+        label: "Description",
+        controls: ["color", "size", "lineHeight", "letterSpacing"],
+      },
       {
         key: "button",
         label: "Button",

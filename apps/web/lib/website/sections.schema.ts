@@ -887,6 +887,14 @@ export type BlockStyle = z.infer<typeof blockStyleSchema>;
 export const ELEMENT_WEIGHT = ["normal", "medium", "semibold", "bold"] as const;
 export type ElementWeight = (typeof ELEMENT_WEIGHT)[number];
 
+export const ELEMENT_TRANSFORM = [
+  "none",
+  "uppercase",
+  "lowercase",
+  "capitalize",
+] as const;
+export type ElementTransform = (typeof ELEMENT_TRANSFORM)[number];
+
 export const elementStyleSchema = z.object({
   bg: z.string().max(60).optional(),
   color: z.string().max(60).optional(),
@@ -895,6 +903,11 @@ export const elementStyleSchema = z.object({
   radius: z.number().min(0).max(999).optional(),
   fontSize: z.number().min(8).max(200).optional(),
   fontWeight: z.enum(ELEMENT_WEIGHT).optional(),
+  // Typography extras (Elementor parity). lineHeight is a unitless multiplier;
+  // letterSpacing is px (may be negative); textTransform is a CSS keyword.
+  lineHeight: z.number().min(0.8).max(3).optional(),
+  letterSpacing: z.number().min(-5).max(20).optional(),
+  textTransform: z.enum(ELEMENT_TRANSFORM).optional(),
 });
 export type ElementStyle = z.infer<typeof elementStyleSchema>;
 

@@ -276,6 +276,10 @@ function elementDecls(elements?: Record<string, ElementStyle>): string {
     if (s.fontSize != null) out.push(`--el-${key}-size:${s.fontSize}px`);
     if (s.fontWeight)
       out.push(`--el-${key}-weight:${FONT_WEIGHT_CSS[s.fontWeight]}`);
+    if (s.lineHeight != null) out.push(`--el-${key}-lh:${s.lineHeight}`);
+    if (s.letterSpacing != null)
+      out.push(`--el-${key}-ls:${s.letterSpacing}px`);
+    if (s.textTransform) out.push(`--el-${key}-tt:${s.textTransform}`);
   }
   return out.join(";");
 }

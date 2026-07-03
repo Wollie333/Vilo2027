@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type {
   RoomCard as RoomCardData,
@@ -71,6 +73,10 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
             color: "var(--el-title-fg, var(--site-ink))",
             fontSize: "var(--el-title-size, 1.125rem)",
             fontWeight: "var(--el-title-weight, 600)",
+            lineHeight: "var(--el-title-lh, 1.3)",
+            letterSpacing: "var(--el-title-ls, normal)",
+            textTransform:
+              "var(--el-title-tt, none)" as CSSProperties["textTransform"],
           }}
           className="text-lg font-semibold"
         >
@@ -107,6 +113,8 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
             style={{
               color: "var(--el-desc-fg, var(--site-mute))",
               fontSize: "var(--el-desc-size, 0.875rem)",
+              lineHeight: "var(--el-desc-lh, 1.625)",
+              letterSpacing: "var(--el-desc-ls, normal)",
             }}
             className="mt-2 line-clamp-3 text-sm leading-relaxed"
           >
@@ -120,6 +128,7 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
                 color: "var(--el-price-fg, var(--site-ink))",
                 fontSize: "var(--el-price-size, 0.875rem)",
                 fontWeight: "var(--el-price-weight, 600)",
+                letterSpacing: "var(--el-price-ls, normal)",
               }}
               className="text-sm font-semibold"
             >
