@@ -333,17 +333,30 @@ export function PolicyView({
   heading,
   variant,
   policies,
+  bare = false,
 }: {
   heading?: string;
   variant: "grid" | "list";
   policies: RoomPolicies;
+  /** Elementor reframe: render bare (no self <section>/band, heading optional) so
+   *  the SECTION owns the band + a Heading element sits above. The room-scoped
+   *  room_policies keeps the banded default until the system blocks are reframed. */
+  bare?: boolean;
 }) {
   const items = policyItems(policies);
-  return (
-    <SectionShell>
-      <SectionHeading centered={false} className="mb-6">
-        {heading || "Things to know"}
-      </SectionHeading>
+  const inner = (
+    <>
+      {bare ? (
+        heading ? (
+          <SectionHeading centered={false} className="mb-6">
+            {heading}
+          </SectionHeading>
+        ) : null
+      ) : (
+        <SectionHeading centered={false} className="mb-6">
+          {heading || "Things to know"}
+        </SectionHeading>
+      )}
       <div
         className={
           variant === "list"
@@ -381,8 +394,9 @@ export function PolicyView({
           </p>
         </div>
       ) : null}
-    </SectionShell>
+    </>
   );
+  return bare ? inner : <SectionShell>{inner}</SectionShell>;
 }
 
 export function RoomPoliciesSection({
@@ -423,11 +437,15 @@ export function PoliciesSection({
   data?: RoomPolicies;
 }) {
   if (!data) return null;
+  // Bare element (Elementor reframe): the SECTION owns the band; the heading is a
+  // separate Heading element the host places above. `props.heading` stays legacy —
+  // rendered only if a page still carries it, so pre-reframe pages keep their title.
   return (
     <PolicyView
-      heading={props.heading || "Things to know"}
+      heading={props.heading}
       variant={props.variant}
       policies={data}
+      bare
     />
   );
 }
