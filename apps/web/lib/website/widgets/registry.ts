@@ -555,7 +555,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
   // ── Media ───────────────────────────────────────────────
   gallery: {
     type: "gallery",
-    group: "media",
+    group: "wielo",
     label: "Gallery",
     icon: "LayoutGrid",
     autoPopulate: true,
@@ -581,7 +581,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
   },
   video: {
     type: "video",
-    group: "media",
+    group: "basic",
     label: "Video",
     icon: "Play",
     defaults: { heading: "", url: "", caption: "" },
@@ -1438,11 +1438,40 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
 /** Library grouping order + labels (matches the prototype). */
 export const WIDGET_GROUPS: [WidgetGroup, string][] = [
   ["basic", "Basics"],
-  ["media", "Media"],
   ["content", "Content blocks"],
   ["wielo", "Wielo blocks"],
   ["site", "Site parts"],
   ["system", "Room & search"],
+];
+
+/**
+ * The library's TWO top-level categories (founder's model): **Wielo Elements** are
+ * the individual pieces a host composes inside their own sections; **Wielo Blocks**
+ * are whole pre-designed sections. Each lists the sub-groups it contains (rendered as
+ * sub-headers), so the panel reads: Layout → Elements → Blocks.
+ */
+export const WIDGET_CATEGORIES: {
+  label: string;
+  hint: string;
+  groups: [WidgetGroup, string][];
+}[] = [
+  {
+    label: "Wielo Elements",
+    hint: "Build your own — drop these into a section",
+    groups: [
+      ["basic", "Basics"],
+      ["site", "Brand parts"],
+    ],
+  },
+  {
+    label: "Wielo Blocks",
+    hint: "Ready-made sections you restyle",
+    groups: [
+      ["content", "Marketing"],
+      ["wielo", "Property"],
+      ["system", "Room pages"],
+    ],
+  },
 ];
 
 export function widgetDef(type: WidgetType): WidgetDef {

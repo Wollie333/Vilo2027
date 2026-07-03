@@ -361,12 +361,33 @@
 }
 .wb .lib-group h4 {
   font-family: var(--jak);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--mute);
-  margin: 12px 4px 10px;
+  margin: 10px 4px 9px;
+}
+/* Two top-level library categories: Wielo Elements · Wielo Blocks. */
+.wb .lib-cat {
+  border-top: 1px solid var(--line);
+}
+.wb .lib-cat-h {
+  padding: 14px 18px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.wb .lib-cat-t {
+  font-family: var(--jak);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.wb .lib-cat-s {
+  font-size: 11px;
+  color: var(--mute);
 }
 .wb .wgrid {
   display: grid;

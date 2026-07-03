@@ -72,7 +72,7 @@ import {
 
 import {
   WIDGET_DEFS,
-  WIDGET_GROUPS,
+  WIDGET_CATEGORIES,
   widgetAvailableOnPage,
   widgetDef,
   type WidgetControl,
@@ -1787,68 +1787,84 @@ function WidgetLibrary({
           </div>
         </div>
       )}
-      {WIDGET_GROUPS.map(([group, label]) => {
-        const defs = Object.values(WIDGET_DEFS).filter(
-          (d) =>
-            d.group === group &&
-            // Contextual widgets only appear on their matching page kind.
-            widgetAvailableOnPage(d, pageKind) &&
-            (!q || d.label.toLowerCase().includes(q) || d.type.includes(q)),
-        );
-        if (defs.length === 0) return null;
+      {WIDGET_CATEGORIES.map((cat) => {
+        const groupSections = cat.groups
+          .map(([group, label]) => ({
+            group,
+            label,
+            defs: Object.values(WIDGET_DEFS).filter(
+              (d) =>
+                d.group === group &&
+                // Contextual widgets only appear on their matching page kind.
+                widgetAvailableOnPage(d, pageKind) &&
+                (!q || d.label.toLowerCase().includes(q) || d.type.includes(q)),
+            ),
+          }))
+          .filter((g) => g.defs.length > 0);
+        if (groupSections.length === 0) return null;
         return (
-          <div className="lib-group" key={group}>
-            <h4>{label}</h4>
-            <div className="wgrid">
-              {defs.map((d) => {
-                const Icon = WIDGET_ICONS[d.icon] ?? Square;
-                const required = isWidgetRequiredOnPage(
-                  d.type as WidgetType,
-                  pageKind,
-                );
-                return (
-                  <div
-                    className="widget"
-                    key={d.type}
-                    title={
-                      required ? `${d.label} — required on this page` : d.label
-                    }
-                    draggable
-                    onDragStart={(e) =>
-                      onWidgetDragStart(d.type as WidgetType, e)
-                    }
-                    onDragEnd={onWidgetDragEnd}
-                    style={required ? { position: "relative" } : undefined}
-                  >
-                    {required && (
-                      <span
-                        aria-label="Required on this page"
-                        style={{
-                          position: "absolute",
-                          top: 3,
-                          right: 3,
-                          fontSize: 8,
-                          fontWeight: 800,
-                          letterSpacing: ".04em",
-                          textTransform: "uppercase",
-                          background: "var(--secondary, #064E3B)",
-                          color: "#fff",
-                          borderRadius: 3,
-                          padding: "1px 3px",
-                          lineHeight: 1.3,
-                        }}
-                      >
-                        Req
-                      </span>
-                    )}
-                    <span className="wi">
-                      <Icon size={19} strokeWidth={1.8} />
-                    </span>
-                    <span>{d.label}</span>
-                  </div>
-                );
-              })}
+          <div className="lib-cat" key={cat.label}>
+            <div className="lib-cat-h">
+              <span className="lib-cat-t">{cat.label}</span>
+              <span className="lib-cat-s">{cat.hint}</span>
             </div>
+            {groupSections.map(({ group, label, defs }) => (
+              <div className="lib-group" key={group}>
+                <h4>{label}</h4>
+                <div className="wgrid">
+                  {defs.map((d) => {
+                    const Icon = WIDGET_ICONS[d.icon] ?? Square;
+                    const required = isWidgetRequiredOnPage(
+                      d.type as WidgetType,
+                      pageKind,
+                    );
+                    return (
+                      <div
+                        className="widget"
+                        key={d.type}
+                        title={
+                          required
+                            ? `${d.label} — required on this page`
+                            : d.label
+                        }
+                        draggable
+                        onDragStart={(e) =>
+                          onWidgetDragStart(d.type as WidgetType, e)
+                        }
+                        onDragEnd={onWidgetDragEnd}
+                        style={required ? { position: "relative" } : undefined}
+                      >
+                        {required && (
+                          <span
+                            aria-label="Required on this page"
+                            style={{
+                              position: "absolute",
+                              top: 3,
+                              right: 3,
+                              fontSize: 8,
+                              fontWeight: 800,
+                              letterSpacing: ".04em",
+                              textTransform: "uppercase",
+                              background: "var(--secondary, #064E3B)",
+                              color: "#fff",
+                              borderRadius: 3,
+                              padding: "1px 3px",
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            Req
+                          </span>
+                        )}
+                        <span className="wi">
+                          <Icon size={19} strokeWidth={1.8} />
+                        </span>
+                        <span>{d.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         );
       })}
