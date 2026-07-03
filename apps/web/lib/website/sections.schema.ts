@@ -73,6 +73,7 @@ export const SECTION_TYPES = [
   "el_button",
   "el_spacer",
   "el_divider",
+  "el_list",
   // Columns — a bounded single-level container (NOT a general element tree).
   "columns",
   // Flex container — a free-form block where the host arranges elements with
@@ -745,6 +746,21 @@ const elDividerProps = z.object({
   color: z.enum(EL_COLOR).optional(),
 });
 
+// List element — one item per line in `items` (newline-separated, edited as a
+// textarea). `marker` picks the bullet style; typography + marker colour styleable.
+export const EL_LIST_MARKER = ["check", "bullet", "dash", "number"] as const;
+export type ElListMarker = (typeof EL_LIST_MARKER)[number];
+const elListProps = z.object({
+  items: z.string().max(4000).default(""),
+  marker: z.enum(EL_LIST_MARKER).default("check"),
+  align: z.enum(ELEMENT_ALIGN).default("left"),
+  columns: z.enum(["1", "2"]).default("1"),
+  size: z.enum(EL_SIZE).default("auto"),
+  weight: z.enum(EL_WEIGHT).default("auto"),
+  color: z.enum(EL_COLOR).default("default"),
+  markerColor: z.enum(EL_COLOR).optional(),
+});
+
 // ── Columns container ─────────────────────────────────────────
 // A bounded, SINGLE-LEVEL layout block: a row of 1–4 columns, each holding a
 // short list of inline content blocks (heading / text / image / button). This
@@ -1177,6 +1193,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("el_divider"),
     props: elDividerProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("el_list"),
+    props: elListProps,
   }),
   z.object({
     ...sectionBase,

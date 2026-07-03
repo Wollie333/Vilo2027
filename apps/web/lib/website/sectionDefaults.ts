@@ -544,6 +544,22 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: { line: "solid", thickness: "thin", width: "full" },
       };
+    case "el_list":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          items: "First item\nSecond item\nThird item",
+          marker: "check",
+          align: "left",
+          columns: "1",
+          size: "auto",
+          weight: "auto",
+          color: "default",
+        },
+      };
     case "columns":
       return {
         id,

@@ -455,6 +455,62 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       },
     ],
   },
+  el_list: {
+    type: "el_list",
+    group: "basic",
+    label: "List",
+    icon: "ListChecks",
+    defaults: {
+      items: "Free Wi-Fi\nSecure parking\nSelf check-in\nBreakfast included",
+      marker: "check",
+      align: "left",
+      columns: "1",
+      size: "auto",
+      weight: "auto",
+      color: "default",
+    },
+    content: [
+      {
+        kind: "textarea",
+        key: "items",
+        label: "Items (one per line)",
+      },
+    ],
+    style: [
+      { kind: "group", label: "List" },
+      {
+        kind: "seg",
+        key: "marker",
+        label: "Marker",
+        options: [
+          ["check", "✓"],
+          ["bullet", "•"],
+          ["dash", "–"],
+          ["number", "1."],
+        ],
+      },
+      {
+        kind: "seg",
+        key: "columns",
+        label: "Columns",
+        options: [
+          ["1", "1"],
+          ["2", "2"],
+        ],
+      },
+      { kind: "color", key: "markerColor", label: "Marker colour" },
+      { kind: "group", label: "Typography" },
+      { kind: "scale", key: "size", label: "Font size", steps: SIZE_STEPS },
+      {
+        kind: "scale",
+        key: "weight",
+        label: "Font weight",
+        steps: WEIGHT_STEPS,
+      },
+      { kind: "color", key: "color", label: "Text colour" },
+      ALIGN_CTL(),
+    ],
+  },
   el_icon: {
     type: "el_icon",
     group: "basic",

@@ -38,6 +38,7 @@ export const WIDGET_TYPES = [
   "el_divider",
   "el_spacer",
   "el_icon", // NEW — icon box
+  "el_list", // NEW — bullet / check / numbered list
   // Media (reused)
   "gallery",
   "video",

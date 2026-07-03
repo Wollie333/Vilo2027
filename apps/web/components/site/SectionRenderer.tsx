@@ -57,6 +57,7 @@ import {
   ElButtonSection,
   ElSpacerSection,
   ElDividerSection,
+  ElListSection,
 } from "./sections/Elements";
 import { ColumnsSection, FlexSection } from "./sections/ColumnsSection";
 
@@ -417,6 +418,8 @@ export function GenericSection({
       return <ElSpacerSection props={section.props} />;
     case "el_divider":
       return <ElDividerSection props={section.props} />;
+    case "el_list":
+      return <ElListSection props={section.props} />;
     case "columns":
       return <ColumnsSection props={section.props} asset={asset} />;
     case "flex":

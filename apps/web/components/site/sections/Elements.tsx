@@ -258,3 +258,51 @@ export function ElDividerSection({ props }: { props: DividerProps }) {
     </ElBlock>
   );
 }
+
+// ── List ──────────────────────────────────────────────────────
+type ListProps = Extract<WebsiteSection, { type: "el_list" }>["props"];
+const LIST_MARKER: Record<string, string> = {
+  check: "✓",
+  bullet: "•",
+  dash: "–",
+};
+
+export function ElListSection({ props }: { props: ListProps }) {
+  const items = (props.items ?? "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (items.length === 0) return null;
+  const align = (props.align ?? "left") as Align;
+  const numbered = props.marker === "number";
+  const glyph = LIST_MARKER[props.marker ?? "check"] ?? "✓";
+  const markerColor = elColor(props.markerColor, "var(--site-accent)");
+  const textStyle: CSSProperties = {
+    color: elColor(props.color, "var(--site-ink)"),
+    fontWeight: elFontWeight(props.weight, 400),
+  };
+  if (props.size && props.size !== "auto") {
+    textStyle.fontSize = elFontSize(props.size, "");
+  }
+  const cols = props.columns === "2";
+  return (
+    <ElBlock className={textAlign(align)}>
+      <ol
+        className={`mx-auto ${cols ? "grid gap-x-8 gap-y-2 sm:grid-cols-2" : "space-y-2"} ${align === "left" ? "" : "inline-block text-left"}`}
+      >
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2.5" style={textStyle}>
+            <span
+              aria-hidden
+              className="shrink-0 font-semibold leading-relaxed"
+              style={{ color: markerColor }}
+            >
+              {numbered ? `${i + 1}.` : glyph}
+            </span>
+            <span className="leading-relaxed">{item}</span>
+          </li>
+        ))}
+      </ol>
+    </ElBlock>
+  );
+}
