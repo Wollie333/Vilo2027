@@ -121,6 +121,12 @@ export function ElTextSection({ props }: { props: TextProps }) {
 // ── Image ─────────────────────────────────────────────────────
 type ImageProps = Extract<WebsiteSection, { type: "el_image" }>["props"];
 const IMG_MAX = { narrow: "32rem", medium: "48rem", full: "100%" } as const;
+const EL_IMG_SHADOW: Record<string, string> = {
+  none: "none",
+  sm: "0 1px 3px rgba(0,0,0,0.08)",
+  md: "0 8px 24px rgba(0,0,0,0.12)",
+  lg: "0 20px 48px rgba(0,0,0,0.18)",
+};
 
 export function ElImageSection({
   props,
@@ -150,11 +156,19 @@ export function ElImageSection({
   }
   const align = (props.align ?? "center") as Align;
   const width = props.width ?? "full";
+  // Per-image overrides layer over the theme's --site-img-* defaults.
+  const imgStyle: CSSProperties = { ...siteImageStyle };
+  if (props.radius && props.radius !== "auto") {
+    imgStyle.borderRadius = `${props.radius}px`;
+  }
+  if (props.shadow && props.shadow !== "auto") {
+    imgStyle.boxShadow = EL_IMG_SHADOW[props.shadow] ?? undefined;
+  }
   const img = (
     <SiteImg
       src={src}
       alt={props.alt ?? ""}
-      style={siteImageStyle}
+      style={imgStyle}
       className="h-auto w-full object-cover"
       sizes="(min-width: 768px) 768px, 100vw"
     />

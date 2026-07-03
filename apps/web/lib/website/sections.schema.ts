@@ -705,6 +705,9 @@ const elTextProps = z.object({
   ...elTypographyExtras,
 });
 
+export const EL_IMAGE_SHADOW = ["auto", "none", "sm", "md", "lg"] as const;
+export type ElImageShadow = (typeof EL_IMAGE_SHADOW)[number];
+
 const elImageProps = z.object({
   image_path: z.string().optional(),
   alt: z.string().max(200).optional(),
@@ -712,6 +715,10 @@ const elImageProps = z.object({
   href: z.string().max(500).optional(),
   width: z.enum(["narrow", "medium", "full"]).default("full"),
   align: z.enum(ELEMENT_ALIGN).default("center"),
+  // Per-image style overrides (else inherit the theme's --site-img-*). radius is px
+  // as a scale string ("auto" = theme); shadow is a preset depth.
+  radius: z.string().max(6).optional(),
+  shadow: z.enum(EL_IMAGE_SHADOW).optional(),
 });
 
 const elButtonProps = z.object({

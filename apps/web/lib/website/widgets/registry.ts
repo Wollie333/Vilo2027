@@ -301,6 +301,33 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         ],
       },
       ALIGN_CTL(),
+      { kind: "group", label: "Style" },
+      {
+        kind: "scale",
+        key: "radius",
+        label: "Corner radius",
+        steps: [
+          ["auto", "Auto"],
+          ["0", "0"],
+          ["6", "6"],
+          ["12", "12"],
+          ["20", "20"],
+          ["32", "32"],
+          ["999", "Pill"],
+        ],
+      },
+      {
+        kind: "seg",
+        key: "shadow",
+        label: "Shadow",
+        options: [
+          ["auto", "Auto"],
+          ["none", "None"],
+          ["sm", "S"],
+          ["md", "M"],
+          ["lg", "L"],
+        ],
+      },
       {
         kind: "hint",
         text: "In the builder, click the image to upload from your media library.",
