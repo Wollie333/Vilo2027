@@ -88,8 +88,14 @@
 > **PATTERN for library-only blocks (no demo page):** temp-inject into a v2 page's DRAFT to verify,
 > then revert `draft = published`.
 >
+> ✅ **B — RATES DONE (`a0228172`).** ALL THREE rate blocks bare: `rate_table` (RateTableSection) +
+> `room_rates` + `seasonal_pricing` (RatesBlocks) — dropped `SectionShell`; heading → `el_heading`, the
+> optional `note` stays in the bare block. No vilotest page uses any rate block (library-only) →
+> nothing to reseed. Verified via temp-inject into specials DRAFT (Nightly-rates table + Room-rates
+> list bound to the 3 real rooms; Seasonal empty-state), reverted. 197 vitest, tsc+lint clean.
+>
 > **⏳ NEXT (Phase B rollout):** apply the SAME treatment to the remaining blocks one at a time
-> (~~reviews~~ · ~~gallery~~ · ~~specials~~ · ~~addons~~ · rates · policies · marketing composites hero/intro/cta/…):
+> (~~reviews~~ · ~~gallery~~ · ~~specials~~ · ~~addons~~ · ~~rates~~ · policies · marketing composites hero/intro/cta/…):
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
