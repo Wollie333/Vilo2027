@@ -118,11 +118,22 @@
 > **DEFERRED (intentional, not plain content composites):** CTA "banner" variant + hero = full-bleed
 > DESIGNED bands (leave as-is); CTA split/card variants use SectionShell but the home cta is banner.
 >
-> **⏳ NEXT (Phase B rollout):** ~~reviews~~ · ~~gallery~~ · ~~specials~~ · ~~addons~~ · ~~rates~~ · ~~policies~~ ·
-> ~~intro~~ · ~~highlights~~ · ~~location~~ · **remaining library-only content composites** (values/host_bio/faq/
-> pricing/logos/stats/richtext/trust/blog_preview — bare + temp-inject verify, mostly not on demo pages;
-> some on the FLAT about/contact pages → convert+reseed like specials); then the **coordinated SYSTEM-BLOCK
-> reframe** (room_gallery/overview/amenities/rate + room_policies together — must stay uniform on room-detail):
+> ✅ **B — ALL MARKETING/CONTENT COMPOSITES DONE.** library-only bare: values/trust/stats/rich_text/logos
+> (`5b279a42`); on-page bare: pricing/host_bio/faq/blog_preview (`8570b492`). **CRUCIAL:** the bare reframes
+> (intro/highlights/gallery/location + these) were used on the vilotest LEGACY-FLAT demo pages
+> (about/contact/blog/experiences/checkout/thank-you) where a bare block on the flat→PageDoc path
+> (NO_SPACE) LOSES its band — a regression from earlier commits. **Converted EVERY flat demo page to its v2
+> doc + composed each bare-block section** (band + width-by-variant + surface bg + el_heading from the
+> block heading), republished; also composed rooms pricing+intro. Idempotent (home/rooms-grid/specials/
+> gallery untouched). Verified live (about: intro+host_bio+highlights banded; rooms pricing narrow). **ALL
+> vilotest pages are now v2 + fully composed.** DEFERRED: hero + CTA "banner" (full-bleed designed bands).
+>
+> **⏳ NEXT (Phase B — LAST piece):** the **coordinated SYSTEM-BLOCK reframe** — room_gallery/overview/
+> amenities/rate + room_policies on the room-detail page, together (they must stay uniform). PolicyView
+> already has a `bare` flag ready; the room-detail draft is a full v2 doc (7 sections, all maxw:2000/
+> NO_SPACE, each self-banded). Reframe each room_* block bare + reseed the room-detail sections uniformly.
+> Then Phase B follow-up: update seed templates/`blueprints.ts` so NEW activations produce the composed
+> shape (only vilotest exists, so not urgent):
 > strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
 > it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
 > `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
