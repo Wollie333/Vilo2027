@@ -2,7 +2,9 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
 
 import { SiteImg } from "../SiteImg";
-import { SectionShell, SectionHeading, Card, siteImageStyle } from "./_shared";
+// Bare element (Elementor reframe): all variants render bare; the SECTION owns
+// padding + width and the heading is a separate Heading element above.
+import { SectionHeading, Card, siteImageStyle } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "host_bio" }>["props"];
 
@@ -73,7 +75,7 @@ export function HostBioSection({
   // CENTERED — photo on top, everything centred.
   if (variant === "centered") {
     return (
-      <SectionShell width="narrow">
+      <>
         {props.heading ? (
           <SectionHeading className="mb-8">{props.heading}</SectionHeading>
         ) : null}
@@ -87,14 +89,14 @@ export function HostBioSection({
           ) : null}
           <HostText name={props.name} body={props.body} />
         </div>
-      </SectionShell>
+      </>
     );
   }
 
   // CARD — photo + text inside a surface card.
   if (variant === "card") {
     return (
-      <SectionShell width="narrow">
+      <>
         {props.heading ? (
           <SectionHeading className="mb-8">{props.heading}</SectionHeading>
         ) : null}
@@ -108,13 +110,13 @@ export function HostBioSection({
           ) : null}
           <HostText name={props.name} body={props.body} />
         </Card>
-      </SectionShell>
+      </>
     );
   }
 
   // SIDE (default) — photo beside the text.
   return (
-    <SectionShell>
+    <>
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
@@ -132,6 +134,6 @@ export function HostBioSection({
           className="text-center md:text-left"
         />
       </div>
-    </SectionShell>
+    </>
   );
 }

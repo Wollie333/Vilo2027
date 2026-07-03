@@ -2,7 +2,10 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { BlogPreviewData } from "@/lib/site/types";
 
 import { SiteImg } from "../SiteImg";
-import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
+// Bare element (Elementor reframe): renders bare (incl. the old `surface` band); the
+// SECTION owns padding + width + background (re-seed the band as the section `bg`)
+// and the heading is a separate Heading element above. `props.heading` stays legacy.
+import { SectionHeading, Muted, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "blog_preview" }>["props"];
 type PostItem = NonNullable<BlogPreviewData["posts"]>[number];
@@ -55,7 +58,7 @@ export function BlogPreviewSection({
   const variant = props.variant ?? "grid";
 
   return (
-    <SectionShell surface>
+    <>
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
@@ -133,6 +136,6 @@ export function BlogPreviewSection({
           ) : null}
         </>
       )}
-    </SectionShell>
+    </>
   );
 }

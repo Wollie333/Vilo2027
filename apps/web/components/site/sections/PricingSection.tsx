@@ -1,6 +1,8 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
-import { SectionShell, SectionHeading, Muted } from "./_shared";
+// Bare element (Elementor reframe): renders bare; the SECTION owns padding + width
+// and the heading is a separate Heading element above. `props.heading` stays legacy.
+import { SectionHeading, Muted } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "pricing" }>["props"];
 
@@ -9,7 +11,7 @@ type Props = Extract<WebsiteSection, { type: "pricing" }>["props"];
 export function PricingSection({ props }: { props: Props }) {
   if (props.items.length === 0) return null;
   return (
-    <SectionShell width="narrow">
+    <>
       {props.heading ? (
         <SectionHeading className="mb-8">{props.heading}</SectionHeading>
       ) : null}
@@ -51,6 +53,6 @@ export function PricingSection({ props }: { props: Props }) {
       {props.footnote ? (
         <Muted className="mt-3 text-center text-xs">{props.footnote}</Muted>
       ) : null}
-    </SectionShell>
+    </>
   );
 }

@@ -1,6 +1,8 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
-import { SectionShell, SectionHeading } from "./_shared";
+// Bare element (Elementor reframe): all variants render bare; the SECTION owns
+// padding + width and the heading is a separate Heading element above.
+import { SectionHeading } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "faq" }>["props"];
 type FaqItem = Props["items"][number];
@@ -46,7 +48,7 @@ export function FaqSection({ props }: { props: Props }) {
   // PLAIN — always-open Q/A list, no toggle.
   if (variant === "plain") {
     return (
-      <SectionShell width="narrow">
+      <>
         {props.heading ? (
           <SectionHeading className="mb-8">{props.heading}</SectionHeading>
         ) : null}
@@ -71,13 +73,13 @@ export function FaqSection({ props }: { props: Props }) {
             </div>
           ))}
         </div>
-      </SectionShell>
+      </>
     );
   }
 
   // ACCORDION (default, single column) or COLUMNS (two-column accordion).
   return (
-    <SectionShell width={variant === "columns" ? "wide" : "narrow"}>
+    <>
       {props.heading ? (
         <SectionHeading className="mb-8">{props.heading}</SectionHeading>
       ) : null}
@@ -90,6 +92,6 @@ export function FaqSection({ props }: { props: Props }) {
           <FaqAccordion key={i} item={item} />
         ))}
       </div>
-    </SectionShell>
+    </>
   );
 }
