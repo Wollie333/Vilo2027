@@ -211,12 +211,12 @@ export default async function PublicPostDetailPage({ params }: Props) {
           <div className="space-y-6 lg:col-span-2">
             {/* Guest photo */}
             {post.image_url && (
-              <div className="overflow-hidden rounded-card border border-brand-line bg-white">
+              <div className="aspect-[16/9] w-full overflow-hidden rounded-card border border-brand-line bg-brand-light">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={post.image_url}
                   alt={post.title}
-                  className="max-h-[420px] w-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               </div>
             )}
