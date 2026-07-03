@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-03 — Oceans View room detail: 2-col sticky booking layout (`cc428f8f`).
+
+- Room-detail page rebuilt to its reference with generic room-scoped blocks in a
+  real 2-column band: full-width `room_gallery` → content (`room_overview` +
+  "In the room" `room_amenities` + "Things to know" `room_policies`) beside a
+  **sticky coral** `room_rate` card → `rooms_preview` "other rooms".
+- `PageDocRenderer`: multi-column sections with `stack` now emit a scoped
+  media/container query (`flex-direction:column !important`) so a 2-col band
+  collapses to one column on real phones — previously `stack` only fired off the
+  builder device, leaving live mobile cramped. Benefits every theme.
+- Standard doc updated: 2-col-via-columns recipe, the invalid-variant→empty-block
+  gotcha (`room_overview` needs `stacked`, not `default`), the stack fix.
+- Live-verified on `/rooms/olive-room`, desktop + mobile. tsc + eslint clean.
+
 ## 2026-07-03 — Oceans View hero type pinned + Rooms page skinned pixel-perfect.
 
 - **Hero typography** (`theme-skins.css`): the generic hero read the theme's small

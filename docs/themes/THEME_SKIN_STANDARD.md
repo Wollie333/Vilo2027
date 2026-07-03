@@ -93,6 +93,14 @@ table as the default mapping for any resort/lodge theme.
 `amenities` (`variant:"inline"`, sand tone); room list → `rooms_preview`
 (**node `variant:"showcase"`** — alternating splits); closing → `cta` banner.
 
+**Room detail** (`docs/themes/oceansview/pages/Room.html`): a full-width
+`room_gallery` (`variant:"mosaic"`); then a **2-column band** — a section with two
+columns: `col(8)` = `room_overview` (`variant:"stacked"`, `show_price:false`) +
+an `el_heading` + `room_amenities` + `room_policies`; `col(4)` = `room_rate`
+(`variant:"card"`) — skinned sticky + coral; then `rooms_preview` grid ("the
+other rooms", sand). Set the band `stack:"tablet"` so it collapses to one column
+on phones. All room-scoped blocks render the room in scope live.
+
 ---
 
 ## 4. The token contract every theme ships
@@ -200,6 +208,16 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   select a rooms layout, set the widget node's `variant` (e.g. `"showcase"`);
   `props.display` alone is silently overwritten by `variant` (which defaults to
   `"grid"`).
+- **A node `variant` MUST be one of the block's declared variants**, or the
+  shared-widget path's `sectionSchema.safeParse` fails and the block renders
+  **empty (null)** with no error. Don't use `"default"` as a catch-all — e.g.
+  `room_overview` variants are `["split","stacked"]`, so `variant:"default"`
+  blanks it. Check the block's `*_VARIANTS` enum in `sections.schema.ts`.
+- **2-column layouts** (content + sticky aside) = a section with two columns
+  (`col(8)` + `col(4)`), NOT a block. Set the section `stack:"tablet"|"mobile"`
+  so it collapses on phones — the renderer now emits a stacking media query for
+  `stack` (before, `stack` only fired off the builder device, so live mobile
+  stayed cramped). A sticky aside is `position:sticky;top:Npx` in the skin.
 - **Data-coupled blocks ignore seeded props when live data exists.** `amenities`
   renders the host's LIVE property amenities over any `props.items` you seed — and
   those carry lucide icon *names* (e.g. `"wifi"`), which render as literal text if
@@ -242,6 +260,11 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   `rooms_preview` **`showcase`** (alternating splits) + coral CTA. Added two
   reusable variants: `rooms_preview` `showcase` (set via node `variant`) and
   `amenities` `inline` (text pill bar). Live-verified on `/rooms`.
+- **Room detail — DONE** (2026-07-03). 2-column band (content + sticky coral
+  booking card) via real builder columns; full-width gallery + "other rooms".
+  Fixed a general responsive gap: multi-column `stack` sections now emit a
+  stacking media query so they collapse on live phones (was builder-device only).
+  Live-verified on `/rooms/olive-room`, desktop + mobile.
 - Prior foundation: `f4c49eed` (skin scaffolding + `data-section-type` hooks),
   `4b5ea727` (hero), `c6b0c36f` (cta coral).
 - **Next:** Rooms → Room detail → About → Contact → Journal → Specials →
