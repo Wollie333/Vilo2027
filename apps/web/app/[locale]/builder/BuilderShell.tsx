@@ -798,9 +798,17 @@ export function BuilderShell({
 
   const onCanvasDragOver = (e: React.DragEvent) => {
     if (!dragRef.current) return;
-    const col = (e.target as HTMLElement).closest<HTMLElement>(
-      '[data-node-kind="column"]',
-    );
+    const target = e.target as HTMLElement;
+    let col = target.closest<HTMLElement>('[data-node-kind="column"]');
+    // Fallback: hovering a SECTION but not directly over one of its columns (its
+    // padding / gap, or a full-bleed composite that fills it) — target that
+    // section's first column so the whole section is a drop zone. This is what
+    // lets an Inner Section (or any block) actually land inside a section.
+    if (!col) {
+      const sec = target.closest<HTMLElement>('[data-node-kind="section"]');
+      col =
+        sec?.querySelector<HTMLElement>('[data-node-kind="column"]') ?? null;
+    }
     if (!col) {
       if (dropRef.current) clearDrop();
       return;
@@ -809,14 +817,17 @@ export function BuilderShell({
     e.dataTransfer.dropEffect =
       dragRef.current.kind === "move" ? "move" : "copy";
     const columnId = col.dataset.nodeId ?? "";
-    const widgets = [
+    // Insertion anchors = the column's DIRECT children, both widgets AND nested
+    // sections, in DOM order — so a block can be dropped/reordered relative to a
+    // nested section (not just widgets), which is what makes real nesting work.
+    const items = [
       ...col.querySelectorAll<HTMLElement>(
-        ':scope > [data-node-kind="widget"]',
+        ':scope > [data-node-kind="widget"], :scope > [data-node-kind="section"]',
       ),
     ];
     let beforeId: string | null = null;
     let beforeEl: HTMLElement | null = null;
-    for (const w of widgets) {
+    for (const w of items) {
       const r = w.getBoundingClientRect();
       if (e.clientY < r.top + r.height / 2) {
         beforeId = w.dataset.nodeId ?? null;
@@ -842,9 +853,9 @@ export function BuilderShell({
     let top: number;
     if (beforeEl) {
       top = beforeEl.getBoundingClientRect().top - wr.top + wrap.scrollTop - 2;
-    } else if (widgets.length) {
+    } else if (items.length) {
       top =
-        widgets[widgets.length - 1].getBoundingClientRect().bottom -
+        items[items.length - 1].getBoundingClientRect().bottom -
         wr.top +
         wrap.scrollTop -
         2;

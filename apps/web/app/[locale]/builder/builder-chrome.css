@@ -1189,10 +1189,13 @@
   z-index: 24;
   pointer-events: none;
 }
-/* While dragging: outline every column faintly; emphasise the hovered target. */
+/* While dragging: outline every column faintly; emphasise the hovered target.
+   A min-height keeps an empty column (e.g. a freshly-added section) a hoverable
+   drop zone instead of collapsing to zero height. Builder-only, drag-only. */
 .wb .stage.wb-dragging [data-node-kind="column"] {
   outline: 1px dashed var(--line-2);
   outline-offset: -3px;
+  min-height: 44px;
 }
 .wb .stage.wb-dragging [data-node-kind="column"].wb-drop-over {
   outline: 2px dashed var(--primary);
