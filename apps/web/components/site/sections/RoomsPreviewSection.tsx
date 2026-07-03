@@ -5,13 +5,7 @@ import type {
 } from "@/lib/site/types";
 
 import { SiteImg } from "../SiteImg";
-import {
-  SectionShell,
-  SectionHeading,
-  Muted,
-  Card,
-  siteImageStyle,
-} from "./_shared";
+import { SectionHeading, Muted, Card, siteImageStyle } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "rooms_preview" }>["props"];
 
@@ -210,7 +204,12 @@ export function RoomsPreviewSection({
   }
 
   return (
-    <SectionShell>
+    // Bare element (Elementor reframe): no self-wrapping <section>. The block's
+    // BAND — background, tone, vertical padding — is now owned by the section node
+    // it sits in (styleable via the section gear), so the host controls it. Only a
+    // content max-width + horizontal gutter stay here for readability. The heading
+    // is optional/legacy — hosts can clear it and add a Heading element instead.
+    <div className="mx-auto w-full max-w-5xl px-5 py-16 md:py-20">
       {props.heading ? (
         <SectionHeading className="mb-10">{props.heading}</SectionHeading>
       ) : null}
@@ -263,6 +262,6 @@ export function RoomsPreviewSection({
       ) : (
         <RoomGrid rooms={rooms} cta={cta} layout={props.layout} />
       )}
-    </SectionShell>
+    </div>
   );
 }
