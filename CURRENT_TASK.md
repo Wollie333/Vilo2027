@@ -27,12 +27,35 @@
 > transparent, About solid dark-inked (toggled transparentOverHero on/off on vilotest to prove it).
 > ✅ **A5 (`aadce2e8`)** — click canvas header/footer → confirm modal → save page → open
 > NavBuilderOverlay at that tab (in-place; close = back). Verified live (Header tab opened).
+> ✅ **Date-picker transparency fix (`db0e8288`)** — `ThemedDateRange` popover portals to `<body>`
+> (outside `SiteThemeRoot`) so `var(--site-surface)` resolved to nothing → transparent. Now it
+> snapshots the theme's `--site-*` from the in-scope trigger on open + re-applies them on the
+> portaled popover. Fixes every date picker on all themes; verified live on Safari (solid `#FBF6EC`).
 >
-> **⏳ NEXT = Phase B (the reframe, block-by-block, room grid first):** strip each Wielo block's
-> `SectionShell`/self-heading so it renders BARE inside a host section; re-seed demo pages to
-> section→Heading element + bare Wielo element; roll out block-by-block. Founder wants each block
-> shipped + approved before the next. GOTCHA: concurrent session shares `.next` → stale bundles;
-> restart the preview server to see changes. `vsub.mjs` still untracked (leave alone).
+> **▶ PHASE B STARTED (Elementor reframe, block-by-block, FULL depth — founder chose: section owns
+> padding + heading becomes its own element + re-seed demo pages).**
+> ✅ **B — ROOM GRID DONE (`23a50ed7`, prior step `04cfdf6f`).** `RoomsPreviewSection` renders BARE
+> (just the grid — no self `<section>`, no band padding, no width clamp, no heading). The SECTION
+> owns padding+width; the heading is its own `el_heading` element above the grid. Re-seeded the
+> vilotest **home + rooms** pages' DRAFT docs (set section `maxw:1024` + `space{pt/pb:80,pl/pr:20}`,
+> inserted an `el_heading` before the grid, cleared the block's `heading` prop) via a one-off
+> service-role script, then republished (copied draft→published so the live v2-doc path renders it).
+> `props.heading` stays legacy-rendered so not-yet-reseeded pages keep their title. LIVE-VERIFIED:
+> rooms page shows a separate "Where you will rest" `<h2>` above a bare grid, well-padded, no
+> regression. Combined with the Phase-0 per-element engine, host can style each card + heading +
+> section. The re-seed pattern: transform draft doc (section maxw/space + el_heading element + clear
+> block heading) → republish; do it per page that uses the block.
+>
+> **⏳ NEXT (Phase B rollout):** apply the SAME treatment to the remaining blocks one at a time
+> (reviews · gallery · specials · addons · rates · policies · marketing composites hero/intro/cta/…):
+> strip each block's `SectionShell`/self-heading → bare; re-seed + republish the demo pages that use
+> it. Founder approves each block before the next. **ALSO (follow-up):** update the SEED TEMPLATES /
+> `blueprints.ts` so NEW site activations produce the composed shape (padded section → Heading
+> element + bare block) — currently they still seed the old shape (only vilotest exists, so not
+> urgent). GOTCHA: concurrent session shares `.next` → stale bundles, restart the preview server to
+> see changes; fresh-server first compile is slow (navigate again if it lands on `/`). `vsub.mjs`
+> still untracked (leave alone). Re-seed scripts are one-off `.mjs` in apps/web run with
+> `node --env-file=.env.local` (service-role) — delete after use, never commit.
 
 ---
 

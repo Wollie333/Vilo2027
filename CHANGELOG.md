@@ -18,8 +18,18 @@ into a section and Inner Sections nest properly, with clearer drop zones; (A3) n
 above the footer; (A4) fixed the Safari header rendering invisible white links on text pages like
 About — the header only goes transparent over a genuinely dark hero now; (A5) clicking the header
 or footer in the canvas prompts, saves the page, and opens the header/footer builder in place
-(close to return). All verified live; 197 unit tests. **Next: Phase B** — Wielo blocks become bare,
-composable elements inside host-controlled sections (room grid first).
+(close to return). All verified live; 197 unit tests.
+
+Also fixed a **transparent date picker**: the themed calendar portals to `<body>` (so it can't be
+clipped), which put it outside the theme's colour scope — it now re-applies the theme colours on the
+popover, fixing it across every date picker and theme (worst on dark Safari).
+
+**Phase B started** (Wielo blocks → bare, composable elements): the **Rooms Grid** is the first
+block converted. It renders only the grid now — the section it sits in owns the padding/width and
+its title is a separate Heading element you can move and style on its own. The home + rooms demo
+pages were re-composed to match. Combined with the per-element engine, a host can style each room
+card, the heading, and the section independently. Next: roll the same treatment through the
+remaining blocks (reviews, gallery, specials, rates, etc.), one at a time.
 
 ## 2026-07-02 — Builder × Theme pipeline, Phase 6a: go-live readiness gate.
 
