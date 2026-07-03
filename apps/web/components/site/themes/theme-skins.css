@@ -83,6 +83,32 @@
 }
 
 /* --- HERO ---------------------------------------------------------------- */
+/* Typography is pinned to the reference (`.hero h1` / `.hero-sub` / `.hero-cta`
+ * in docs/themes/oceansview/theme.css). The generic hero reads the theme's
+ * modular type scale (`--site-h1` ≈ 33px, weight 600) inline, which is far
+ * smaller than this beach design's dramatic display type — so we override the
+ * rendered size/weight/leading/tracking here. `!important` is needed only to beat
+ * the component's INLINE `var(--site-h1)`; per-element `--el-*` edits aren't wired
+ * on the hero title, so nothing host-editable is lost. */
+.wielo-oceansview [data-section-type="hero"] .site-hero-title {
+  font-size: clamp(3rem, 8vw, 7rem) !important;
+  font-weight: 800 !important;
+  line-height: 0.95 !important;
+  letter-spacing: -0.02em !important;
+  max-width: 15ch;
+  margin-top: 24px;
+}
+.wielo-oceansview [data-section-type="hero"] .site-hero-sub {
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  line-height: 1.5;
+  max-width: 46ch;
+  margin-top: 24px;
+}
+.wielo-oceansview [data-section-type="hero"] .site-hero-cta {
+  gap: 14px;
+  margin-top: 36px;
+}
+
 /* Rating chip: glassy pill with a gold star run, matching `.hero-chip`. */
 .wielo-oceansview [data-section-type="hero"] .site-hero-eyebrow {
   display: inline-flex;

@@ -136,6 +136,24 @@ pixel-perfect — adapt the values, keep the structure.
   `:not(:has(.site-hl-tile))` so it doesn't hit the image-tile variant.
 - **Coral quote-marks** (navy reviews): `::before { content:"\201C"; color:var(--site-secondary) }`
   on each `.grid > *`, add top padding.
+- **Display typography** (hero / big headings): `buildSiteVars` emits a *modular*
+  type scale (`--site-h1` ≈ 33px, weight 600) that is far smaller than a dramatic
+  theme's display type — and it's emitted **inline**, so a `.wielo-<slug>
+  { --site-h1: … }` rule can't win. Pin the rendered type at the **consumption
+  site** instead, from the reference values:
+  ```css
+  .wielo-x [data-section-type="hero"] .site-hero-title {
+    font-size: clamp(3rem,8vw,7rem) !important;  /* !important beats the inline var */
+    font-weight: 800 !important; line-height: .95 !important;
+    letter-spacing: -.02em !important; max-width: 15ch;
+  }
+  ```
+  Hero hooks: `.site-hero-title` / `.site-hero-sub` / `.site-hero-cta` /
+  `.site-hero-eyebrow`. Match font-size, weight, line-height, letter-spacing,
+  max-width AND the vertical rhythm (margin-top between chip → h1 → sub → CTA).
+  The `.site-hero-*` title isn't wired to `--el-*`, so `!important` here costs no
+  editability; for `--el-*`-backed elements never `!important` over the `--el-*`
+  hook.
 
 **Rules:** skin sets defaults/layout only; never `!important` except to beat an
 inline theme default you must override (and never over an `--el-*` hook). Keep
@@ -193,6 +211,12 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   reusable `sand`/`navy` tones + `highlights` `tiles` variant. Live-verified.
   Deferred polish: nav transparent-over-hero (chrome), intro eyebrow coral, room
   price pill overlay, amenity 4-col.
+- **Home hero typography pinned to reference** (2026-07-03). Family was already
+  correct (Bricolage Grotesque); fixed size (33→102px @1280), weight (600→800),
+  line-height (1.15→0.95), tracking (−0.01→−0.02em), max-width 15ch, and the
+  chip→h1→sub→CTA rhythm — see the "Display typography" cookbook note.
+  Systemic follow-up: section `el_heading` sizes still use the generic scale
+  (~27px vs reference ~56px) — pin per-theme when doing heading-heavy pages.
 - Prior foundation: `f4c49eed` (skin scaffolding + `data-section-type` hooks),
   `4b5ea727` (hero), `c6b0c36f` (cta coral).
 - **Next:** Rooms → Room detail → About → Contact → Journal → Specials →
