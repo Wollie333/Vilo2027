@@ -663,10 +663,26 @@ export const EL_WEIGHT = [
 export type ElWeight = (typeof EL_WEIGHT)[number];
 export const EL_COLOR = ["default", "muted", "accent", "secondary"] as const;
 export type ElColor = (typeof EL_COLOR)[number];
+export const ELEMENT_TRANSFORM = [
+  "none",
+  "uppercase",
+  "lowercase",
+  "capitalize",
+] as const;
+export type ElementTransform = (typeof ELEMENT_TRANSFORM)[number];
 export const EL_BUTTON_SIZE = ["sm", "md", "lg"] as const;
 export type ElButtonSize = (typeof EL_BUTTON_SIZE)[number];
 export const EL_DIVIDER_THICKNESS = ["thin", "medium", "thick"] as const;
 export type ElDividerThickness = (typeof EL_DIVIDER_THICKNESS)[number];
+
+// Extra typography overrides shared by the text elements. All optional strings so
+// they inherit the theme until the host nudges them ("auto" = inherit); line-height
+// is a unitless multiplier, letter-spacing is px, both as strings from the scale.
+const elTypographyExtras = {
+  lineHeight: z.string().max(8).optional(),
+  letterSpacing: z.string().max(8).optional(),
+  transform: z.enum(ELEMENT_TRANSFORM).optional(),
+};
 
 const elHeadingProps = z.object({
   text: z.string().max(200),
@@ -677,6 +693,7 @@ const elHeadingProps = z.object({
   size: z.enum(EL_SIZE).default("auto"),
   weight: z.enum(EL_WEIGHT).default("auto"),
   color: z.enum(EL_COLOR).default("default"),
+  ...elTypographyExtras,
 });
 
 const elTextProps = z.object({
@@ -685,6 +702,7 @@ const elTextProps = z.object({
   size: z.enum(EL_SIZE).default("auto"),
   weight: z.enum(EL_WEIGHT).default("auto"),
   color: z.enum(EL_COLOR).default("default"),
+  ...elTypographyExtras,
 });
 
 const elImageProps = z.object({
@@ -886,14 +904,6 @@ export type BlockStyle = z.infer<typeof blockStyleSchema>;
 // are px. All optional, so a block with no element styles renders exactly as before.
 export const ELEMENT_WEIGHT = ["normal", "medium", "semibold", "bold"] as const;
 export type ElementWeight = (typeof ELEMENT_WEIGHT)[number];
-
-export const ELEMENT_TRANSFORM = [
-  "none",
-  "uppercase",
-  "lowercase",
-  "capitalize",
-] as const;
-export type ElementTransform = (typeof ELEMENT_TRANSFORM)[number];
 
 export const elementStyleSchema = z.object({
   bg: z.string().max(60).optional(),

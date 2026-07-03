@@ -480,6 +480,28 @@ export function elFontWeight(
 ): number | string {
   return weight && weight !== "auto" ? EL_WEIGHT_CSS[weight] : fallback;
 }
+/** Element line-height override (unitless multiplier, as a string), else fallback. */
+export function elLineHeight<T>(
+  lh: string | undefined,
+  fallback: T,
+): number | T {
+  return lh && lh !== "auto" ? Number(lh) : fallback;
+}
+/** Element letter-spacing override (px, as a string), else fallback. */
+export function elLetterSpacing<T>(
+  ls: string | undefined,
+  fallback: T,
+): string | T {
+  return ls && ls !== "auto" ? `${ls}px` : fallback;
+}
+/** Element text-transform override, or `{}` (inherit) when "none"/unset. */
+export function elTransform(t: string | undefined): {
+  textTransform?: CSSProperties["textTransform"];
+} {
+  return t && t !== "none"
+    ? { textTransform: t as CSSProperties["textTransform"] }
+    : {};
+}
 /** Element colour override (theme role), or `fallback` when "default"/unset. */
 export function elColor(color: ElColor | undefined, fallback: string): string {
   switch (color) {

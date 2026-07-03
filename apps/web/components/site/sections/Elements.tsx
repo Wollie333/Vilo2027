@@ -9,6 +9,9 @@ import {
   elColor,
   elFontSize,
   elFontWeight,
+  elLetterSpacing,
+  elLineHeight,
+  elTransform,
   siteImageStyle,
 } from "./_shared";
 
@@ -61,9 +64,16 @@ export function ElHeadingSection({ props }: { props: HeadingProps }) {
     fontFamily: "var(--site-font-heading)",
     fontWeight: elFontWeight(props.weight, "var(--site-weight-heading)"),
     fontSize: elFontSize(props.size, H_SIZE[level]),
-    lineHeight: "var(--site-leading-heading)" as unknown as number,
-    letterSpacing: "var(--site-tracking-heading)",
+    lineHeight: elLineHeight(
+      props.lineHeight,
+      "var(--site-leading-heading)" as unknown as number,
+    ),
+    letterSpacing: elLetterSpacing(
+      props.letterSpacing,
+      "var(--site-tracking-heading)",
+    ),
     color: elColor(props.color, "var(--site-ink)"),
+    ...elTransform(props.transform),
   };
   const text = props.text?.trim();
   if (!text) return null;
@@ -86,7 +96,12 @@ export function ElTextSection({ props }: { props: TextProps }) {
   // (the className `text-base` size + body weight) exactly as before.
   const style: CSSProperties = {
     color: elColor(props.color, "var(--site-mute)"),
-    lineHeight: "var(--site-leading-body)" as unknown as number,
+    lineHeight: elLineHeight(
+      props.lineHeight,
+      "var(--site-leading-body)" as unknown as number,
+    ),
+    letterSpacing: elLetterSpacing(props.letterSpacing, undefined),
+    ...elTransform(props.transform),
   };
   if (props.size && props.size !== "auto") {
     style.fontSize = elFontSize(props.size, "");

@@ -51,6 +51,9 @@ export type WidgetControl =
   | { kind: "color"; key: string; label: string }
   // Dynamic select of the site's live rooms (options injected by the builder).
   | { kind: "roompicker"; key: string; label: string }
+  // A small uppercase section label that groups the controls beneath it (e.g.
+  // "Typography", "Link") so a long inspector panel reads cleanly.
+  | { kind: "group"; label: string }
   | { kind: "hint"; text: string };
 
 /**
@@ -138,10 +141,55 @@ const WEIGHT_STEPS: [string, string][] = [
   ["semibold", "Semibold"],
   ["bold", "Bold"],
 ];
-// Text elements share the same typography block (size · weight · colour).
+// "Auto" keeps the theme's own leading/tracking; the rest are common presets.
+const LINE_HEIGHT_STEPS: [string, string][] = [
+  ["auto", "Auto"],
+  ["1", "1.0"],
+  ["1.15", "1.15"],
+  ["1.3", "1.3"],
+  ["1.5", "1.5"],
+  ["1.75", "1.75"],
+  ["2", "2.0"],
+];
+const LETTER_SPACING_STEPS: [string, string][] = [
+  ["auto", "Auto"],
+  ["-1", "-1"],
+  ["0", "0"],
+  ["0.5", "0.5"],
+  ["1", "1"],
+  ["2", "2"],
+  ["4", "4"],
+];
+const TRANSFORM_CTL: WidgetControl = {
+  kind: "seg",
+  key: "transform",
+  label: "Text case",
+  options: [
+    ["none", "Aa"],
+    ["uppercase", "AG"],
+    ["lowercase", "ag"],
+    ["capitalize", "Ap"],
+  ],
+};
+// Text elements share one professional typography panel (grouped for readability):
+// size · weight · line-height · letter-spacing · case · colour.
 const TYPOGRAPHY_CTLS: WidgetControl[] = [
+  { kind: "group", label: "Typography" },
   { kind: "scale", key: "size", label: "Font size", steps: SIZE_STEPS },
   { kind: "scale", key: "weight", label: "Font weight", steps: WEIGHT_STEPS },
+  {
+    kind: "scale",
+    key: "lineHeight",
+    label: "Line height",
+    steps: LINE_HEIGHT_STEPS,
+  },
+  {
+    kind: "scale",
+    key: "letterSpacing",
+    label: "Letter spacing",
+    steps: LETTER_SPACING_STEPS,
+  },
+  TRANSFORM_CTL,
   { kind: "color", key: "color", label: "Text colour" },
 ];
 

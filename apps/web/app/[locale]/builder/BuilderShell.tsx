@@ -2209,7 +2209,7 @@ function Inspector({
         {tab === "content" &&
           (def?.content ? (
             def.content.map((ctl, i) =>
-              ctl.kind === "hint" ? (
+              ctl.kind === "hint" || ctl.kind === "group" ? (
                 <Control key={i} ctl={ctl} />
               ) : (
                 <Control
@@ -2960,6 +2960,7 @@ function Control({
   rooms?: { id: string; name: string }[];
 }) {
   if (ctl.kind === "hint") return <div className="hint">{ctl.text}</div>;
+  if (ctl.kind === "group") return <div className="ctl-group">{ctl.label}</div>;
   const set = onChange ?? (() => {});
 
   const label = (
