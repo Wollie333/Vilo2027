@@ -206,8 +206,14 @@ export function updatePageMeta(
 
 /**
  * Merge a patch of NODE-LEVEL fields (tone / bg / space / visibility / cssId /
- * cssClass / span …) into the node itself (immutable, shallow). No-op for a
- * missing node. Used by the inspector's Style + Advanced tabs.
+ * cssClass / span …) into the node itself (immutable). No-op for a missing node.
+ * Used by the inspector's Style + Advanced tabs.
+ *
+ * `elements` and `style` are DEEP-MERGED (per key/prop for elements; per prop for
+ * style), with a `null`/`undefined` value DELETING that prop. This lets the
+ * inspector send a partial patch of just the control that changed, so two quick
+ * successive edits never clobber each other (React batches state, so a full-object
+ * spread would carry stale data). Every other field is replaced as before.
  */
 export function updateNode(
   doc: PageDoc,
@@ -217,7 +223,37 @@ export function updateNode(
   const next = clone(doc);
   const found = findIn(next.root.kids as TreeNode[], id);
   if (!found) return doc;
-  Object.assign(found.node, patch);
+  const node = found.node as Record<string, unknown>;
+  for (const [key, val] of Object.entries(patch)) {
+    if (key === "elements" && val && typeof val === "object") {
+      const base = {
+        ...((node.elements as Record<string, Record<string, unknown>>) ?? {}),
+      };
+      for (const [ek, ev] of Object.entries(
+        val as Record<string, Record<string, unknown>>,
+      )) {
+        const merged = { ...(base[ek] ?? {}) };
+        for (const [p, pv] of Object.entries(ev ?? {})) {
+          if (pv == null) delete merged[p];
+          else merged[p] = pv;
+        }
+        if (Object.keys(merged).length === 0) delete base[ek];
+        else base[ek] = merged;
+      }
+      if (Object.keys(base).length === 0) delete node.elements;
+      else node.elements = base;
+    } else if (key === "style" && val && typeof val === "object") {
+      const base = { ...((node.style as Record<string, unknown>) ?? {}) };
+      for (const [p, pv] of Object.entries(val as Record<string, unknown>)) {
+        if (pv == null) delete base[p];
+        else base[p] = pv;
+      }
+      if (Object.keys(base).length === 0) delete node.style;
+      else node.style = base;
+    } else {
+      node[key] = val;
+    }
+  }
   return next;
 }
 

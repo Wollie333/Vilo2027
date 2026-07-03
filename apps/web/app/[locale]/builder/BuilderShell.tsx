@@ -2071,9 +2071,11 @@ function Inspector({
       : onPatchNode({ space: { ...space, [k]: 0 } });
 
   // Per-block custom design (Phase 5) — read/merge node.style (blockStyle).
+  // Partial patch: `updateNode` deep-merges into node.style (undefined = clear), so
+  // rapid successive edits don't clobber each other via a stale spread.
   const styleVal = (k: string) => n.style?.[k] as string | undefined;
   const patchStyle = (patch: Record<string, unknown>) =>
-    onPatchNode({ style: { ...(n.style ?? {}), ...patch } });
+    onPatchNode({ style: patch });
 
   // Per-element styling (Elementor) — resolve/read/write each sub-element's style
   // with the SAME base-vs-device layering as content props. Base lives in
@@ -2091,25 +2093,16 @@ function Inspector({
     isDev
       ? !!(elResp[ek] && prop in elResp[ek])
       : elBase[ek]?.[prop] !== undefined;
+  // Partial patch of just the changed sub-element prop; `updateNode` deep-merges it
+  // (per key/prop) so concurrent edits accumulate instead of clobbering.
   const setEl = (ek: string, prop: string, v: unknown) => {
-    if (isDev) {
-      onPatchResp({ elements: { [ek]: { [prop]: v } } });
-      return;
-    }
-    const cur = elBase[ek] ?? {};
-    onPatchNode({ elements: { ...elBase, [ek]: { ...cur, [prop]: v } } });
+    if (isDev) onPatchResp({ elements: { [ek]: { [prop]: v } } });
+    else onPatchNode({ elements: { [ek]: { [prop]: v } } });
   };
   const revertEl = (ek: string, prop: string) => {
-    if (isDev) {
-      onPatchResp({ elements: { [ek]: { [prop]: null } } });
-      return;
-    }
-    const cur = { ...(elBase[ek] ?? {}) };
-    delete cur[prop];
-    const next = { ...elBase };
-    if (Object.keys(cur).length) next[ek] = cur;
-    else delete next[ek];
-    onPatchNode({ elements: next });
+    // null = delete this prop (both the device layer and the base merge treat it so).
+    if (isDev) onPatchResp({ elements: { [ek]: { [prop]: null } } });
+    else onPatchNode({ elements: { [ek]: { [prop]: null } } });
   };
 
   return (
