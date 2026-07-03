@@ -2233,10 +2233,10 @@ function Inspector({
 
         {tab === "style" && (
           <>
-            <SegRow
+            <RoleSwatchRow
               label="Colour tone"
               value={n.tone ?? "default"}
-              options={TONE_OPTS}
+              roles={TONE_ROLES}
               onChange={(v) =>
                 onPatchNode({ tone: v === "default" ? undefined : v })
               }
@@ -2252,7 +2252,7 @@ function Inspector({
                 patchStyle({ background: v.trim() || undefined })
               }
             />
-            <SegRow
+            <ScaleRow
               label="Corner radius"
               value={styleVal("radius") ?? "none"}
               options={RADIUS_OPTS}
@@ -2260,7 +2260,7 @@ function Inspector({
                 patchStyle({ radius: v === "none" ? undefined : v })
               }
             />
-            <SegRow
+            <ScaleRow
               label="Border"
               value={styleVal("border") ?? "none"}
               options={BORDER_OPTS}
@@ -2269,14 +2269,14 @@ function Inspector({
               }
             />
             {styleVal("border") && styleVal("border") !== "none" && (
-              <SegRow
+              <RoleSwatchRow
                 label="Border colour"
                 value={styleVal("borderColor") ?? "line"}
-                options={BORDER_COLOR_OPTS}
+                roles={BORDER_COLOR_ROLES}
                 onChange={(v) => patchStyle({ borderColor: v })}
               />
             )}
-            <SegRow
+            <ScaleRow
               label="Max width"
               value={styleVal("maxWidth") ?? "full"}
               options={MAXW_OPTS}
@@ -2284,7 +2284,7 @@ function Inspector({
                 patchStyle({ maxWidth: v === "full" ? undefined : v })
               }
             />
-            <SegRow
+            <ScaleRow
               label="Min height"
               value={styleVal("minHeight") ?? "auto"}
               options={MINH_OPTS}
@@ -2371,11 +2371,17 @@ function Inspector({
   );
 }
 
-const TONE_OPTS: [string, string][] = [
-  ["default", "Default"],
-  ["accent", "Accent"],
-  ["dark", "Dark"],
-  ["muted", "Muted"],
+// Round-swatch palettes (value · label · swatch css; "" = inherit chip).
+const TONE_ROLES: [string, string, string][] = [
+  ["default", "Default", ""],
+  ["accent", "Accent", "var(--site-accent)"],
+  ["dark", "Dark", "var(--site-ink)"],
+  ["muted", "Muted", "var(--site-line)"],
+];
+const BORDER_COLOR_ROLES: [string, string, string][] = [
+  ["line", "Line", "var(--site-line)"],
+  ["ink", "Ink", "var(--site-ink)"],
+  ["accent", "Accent", "var(--site-accent)"],
 ];
 const VIS_OPTS: [string, string][] = [
   ["all", "All"],
@@ -2395,11 +2401,6 @@ const BORDER_OPTS: [string, string][] = [
   ["thin", "Thin"],
   ["medium", "Med"],
   ["thick", "Thick"],
-];
-const BORDER_COLOR_OPTS: [string, string][] = [
-  ["line", "Line"],
-  ["ink", "Ink"],
-  ["accent", "Accent"],
 ];
 const MAXW_OPTS: [string, string][] = [
   ["full", "Full"],
@@ -2726,6 +2727,78 @@ function SegRow({
           >
             {l}
           </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Ordered-preset slider with a live label readout — the refined replacement for
+ *  a SegRow of scale-like presets (radius / border / width / height). The first
+ *  option is the "off"/default position, so dragging fully left resets it. */
+function ScaleRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: [string, string][];
+  onChange: (v: string) => void;
+}) {
+  const found = options.findIndex(([v]) => v === value);
+  const idx = found < 0 ? 0 : found;
+  return (
+    <div className="ctl">
+      <div className="ctl-l">
+        <label>{label}</label>
+        <span className="val">{options[idx]?.[1] ?? options[0][1]}</span>
+      </div>
+      <input
+        type="range"
+        className="rng"
+        min={0}
+        max={options.length - 1}
+        step={1}
+        value={idx}
+        onChange={(e) => onChange(options[Number(e.target.value)][0])}
+      />
+    </div>
+  );
+}
+
+/** Theme-role colour swatches (round) — the refined replacement for a SegRow of
+ *  colour roles (section tone / border colour). `css === ""` renders an inherit
+ *  chip (theme default). */
+function RoleSwatchRow({
+  label,
+  value,
+  roles,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  roles: [string, string, string][];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="ctl">
+      <div className="ctl-l">
+        <label>{label}</label>
+      </div>
+      <div className="swrow">
+        {roles.map(([v, l, css]) => (
+          <button
+            key={v}
+            type="button"
+            title={l}
+            aria-label={l}
+            className={value === v ? "swrole on" : "swrole"}
+            data-auto={css ? undefined : ""}
+            style={css ? { background: css } : undefined}
+            onClick={() => onChange(v)}
+          />
         ))}
       </div>
     </div>
