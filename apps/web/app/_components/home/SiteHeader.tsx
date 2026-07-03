@@ -123,7 +123,8 @@ export function SiteHeader() {
 
   return (
     <>
-      <UtilityBar />
+      {/* UtilityBar (black top strip) hidden for now — re-enable when needed. */}
+      {false ? <UtilityBar /> : null}
       <header
         ref={headerRef}
         className={`sticky top-0 z-40 border-b border-brand-line bg-white/90 backdrop-blur transition-shadow ${
