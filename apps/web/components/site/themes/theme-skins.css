@@ -58,8 +58,143 @@
   --site-btn-primary-color: var(--site-secondary-ink);
   --site-btn-primary-border: 0;
 }
-/* Rating chip: a touch bolder + wider tracking, mirroring the reference. */
+
+/* --- Section eyebrow "tag" ------------------------------------------------
+ * The reference precedes each section heading with a coral uppercase tag + a
+ * small coral dot. The generic blocks render an eyebrow (`.site-eyebrow`); we
+ * skin it into that tag look. (Set on the block wrapper, inherited by the
+ * eyebrow span the components render.) */
+.wielo-oceansview .site-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--site-secondary);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.wielo-oceansview .site-eyebrow::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--site-secondary);
+}
+
+/* --- HERO ---------------------------------------------------------------- */
+/* Rating chip: glassy pill with a gold star run, matching `.hero-chip`. */
 .wielo-oceansview [data-section-type="hero"] .site-hero-eyebrow {
-  letter-spacing: 0.01em;
-  backdrop-filter: blur(4px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(8px);
+  padding: 9px 16px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 13px;
+}
+
+/* --- INTRO (story: split + framed photo + floating badge) ---------------- */
+/* The floating badge is coral-numbered on white in the reference, not the aqua
+   fill the generic block ships. Re-point the badge box to the beach look. */
+.wielo-oceansview [data-section-type="intro"] .absolute {
+  background: var(--site-surface) !important;
+  color: var(--site-ink) !important;
+}
+.wielo-oceansview [data-section-type="intro"] .absolute .leading-none {
+  color: var(--site-secondary);
+  font-family: var(--site-font-heading);
+}
+
+/* --- STATS (sand band) --------------------------------------------------- */
+/* Big aqua numbers, muted labels — `--el-*` still override. */
+.wielo-oceansview [data-section-type="stats"] {
+  --el-value-fg: var(--site-accent);
+}
+
+/* --- ROOM CARDS ---------------------------------------------------------- */
+/* Lift on hover + aqua-tint fact chips, matching `.room` / `.chip`. */
+.wielo-oceansview [data-section-type="rooms_preview"] > * > * {
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    box-shadow 0.4s;
+}
+.wielo-oceansview [data-section-type="rooms_preview"] > * > *:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 36px 60px -30px rgba(10, 34, 48, 0.34);
+}
+.wielo-oceansview [data-section-type="rooms_preview"] .rounded-pill {
+  color: var(--site-accent-deep);
+  background: var(--site-tint);
+  border-color: transparent;
+}
+
+/* --- EXPERIENCE TILES (highlights "tiles" variant) ----------------------- */
+.wielo-oceansview .site-hl-tile {
+  transition: box-shadow 0.35s;
+}
+.wielo-oceansview .site-hl-tile:hover {
+  box-shadow: 0 30px 60px -30px rgba(10, 34, 48, 0.5);
+}
+
+/* --- AMENITY / FEATURE TILES (highlights grid) --------------------------- */
+/* Reference tiles: rounded cards, an aqua-tint rounded icon chip, lift on
+   hover. The generic highlights card already has the theme card chrome; we add
+   the icon chip + hover lift. */
+.wielo-oceansview
+  [data-section-type="highlights"]:not(:has(.site-hl-tile))
+  .grid
+  > * {
+  transition:
+    transform 0.35s,
+    box-shadow 0.35s;
+}
+.wielo-oceansview
+  [data-section-type="highlights"]:not(:has(.site-hl-tile))
+  .grid
+  > *:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 50px -28px rgba(10, 34, 48, 0.3);
+}
+.wielo-oceansview
+  [data-section-type="highlights"]:not(:has(.site-hl-tile))
+  .text-2xl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--site-tint);
+}
+
+/* --- GALLERY MOSAIC ------------------------------------------------------ */
+/* Rounded corners on the mosaic + its tiles, matching `.mosaic .m`. */
+.wielo-oceansview [data-section-type="gallery"] .overflow-hidden {
+  border-radius: var(--site-img-radius);
+}
+
+/* --- TESTIMONIALS (navy band) ------------------------------------------- */
+/* Coral opening quote-mark above each review, matching `.quote .qm`. */
+.wielo-oceansview [data-section-type="reviews"] .grid > * {
+  position: relative;
+}
+.wielo-oceansview [data-section-type="reviews"] .grid > *::before {
+  content: "\201C";
+  position: absolute;
+  top: 18px;
+  left: 24px;
+  font-family: var(--site-font-heading);
+  font-size: 3rem;
+  line-height: 0.6;
+  color: var(--site-secondary);
+}
+.wielo-oceansview [data-section-type="reviews"] .grid > * {
+  padding-top: 40px;
 }

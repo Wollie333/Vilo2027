@@ -129,7 +129,17 @@ export function isRoomScoped(type: SectionType): boolean {
 // ── Per-section presentation (Phase 1) ────────────────────────
 // `tone` is shared across every section (one-tap colour scheme); `variant` is
 // per-type (each section declares the layout options that make sense for it).
-export const SECTION_TONES = ["default", "accent", "dark", "muted"] as const;
+// `sand` + `navy` are warm/deep band tones themes can ship extra tokens for
+// (--site-soft / --site-navy*); on a theme without them they degrade to a safe
+// fallback (a soft ink-tint and the theme ink), so they're brand-safe everywhere.
+export const SECTION_TONES = [
+  "default",
+  "accent",
+  "dark",
+  "muted",
+  "sand",
+  "navy",
+] as const;
 export type SectionTone = (typeof SECTION_TONES)[number];
 
 // Device targeting + scheduling (optional, so no default churn on every section).
@@ -172,7 +182,7 @@ export const HERO_HEIGHT = ["auto", "medium", "tall", "screen"] as const;
 export type HeroHeight = (typeof HERO_HEIGHT)[number];
 export const INTRO_VARIANTS = ["centered", "split", "lead", "story"] as const;
 export const CTA_VARIANTS = ["banner", "card", "split"] as const;
-export const HIGHLIGHTS_VARIANTS = ["grid", "list", "plain"] as const;
+export const HIGHLIGHTS_VARIANTS = ["grid", "list", "plain", "tiles"] as const;
 export const STATS_VARIANTS = ["band", "plain", "cards"] as const;
 export const VALUES_VARIANTS = ["border", "cards", "numbered"] as const;
 export const HOSTBIO_VARIANTS = ["side", "centered", "card"] as const;

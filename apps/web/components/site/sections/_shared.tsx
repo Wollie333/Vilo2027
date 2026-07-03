@@ -59,6 +59,29 @@ export function sectionToneStyle(
         background: "color-mix(in srgb, var(--site-ink) 5%, var(--site-bg))",
         "--site-surface": "var(--site-bg)",
       } as CSSProperties;
+    case "sand":
+      // Warm alternating band. Themes ship `--site-soft` (and an optional
+      // `--site-soft-2`); without them it falls back to a soft ink-tint so it
+      // still reads as a distinct band. Text stays dark-on-light (no ink flip);
+      // cards flip to the page bg so they lift off the band.
+      return {
+        background:
+          "var(--site-soft, color-mix(in srgb, var(--site-ink) 6%, var(--site-bg)))",
+        "--site-surface": "var(--site-bg)",
+      } as CSSProperties;
+    case "navy":
+      // Deep anchor band (testimonials / closing sections). Themes ship
+      // `--site-navy*`; without them it falls back to the theme ink. Text flips
+      // to light and cards sit on a slightly-raised navy.
+      return {
+        background: "var(--site-navy, var(--site-ink))",
+        "--site-bg": "var(--site-navy, var(--site-ink))",
+        "--site-surface":
+          "var(--site-navy-2, color-mix(in srgb, #fff 8%, var(--site-navy, var(--site-ink))))",
+        "--site-ink": "var(--site-navy-ink, #ffffff)",
+        "--site-mute": "var(--site-navy-mute, rgba(255,255,255,0.68))",
+        "--site-line": "rgba(255,255,255,0.14)",
+      } as CSSProperties;
     default:
       return undefined;
   }

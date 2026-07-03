@@ -45,6 +45,76 @@ export function HighlightsSection({ props }: { props: Props }) {
   if (props.items.length === 0) return null;
   const variant = props.variant ?? "grid";
 
+  // TILES — big image-backed cards with the title/body overlaid at the bottom
+  // (the designed "experiences" tiles). Falls back to icon+title when an item
+  // has no image, so it degrades gracefully. Per-element `--el-*` still win.
+  if (variant === "tiles") {
+    return (
+      <>
+        {props.heading ? (
+          <SectionHeading className="mb-10">{props.heading}</SectionHeading>
+        ) : null}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {props.items.map((item, i) => (
+            <div
+              key={i}
+              className="site-hl-tile group relative flex min-h-[360px] items-end overflow-hidden p-7"
+              style={{
+                borderRadius: "var(--el-card-radius, var(--site-img-radius))",
+                background: "var(--site-ink)",
+              }}
+            >
+              {item.image_path ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.image_path}
+                  alt={item.title}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              ) : null}
+              <div
+                className="absolute inset-0"
+                aria-hidden
+                style={{
+                  background:
+                    "linear-gradient(180deg, rgba(8,28,40,0) 35%, rgba(8,28,40,0.82))",
+                }}
+              />
+              <div className="relative">
+                {item.icon ? (
+                  <div className="mb-2 text-2xl" aria-hidden>
+                    {item.icon}
+                  </div>
+                ) : null}
+                <h3
+                  style={{
+                    fontFamily: "var(--site-font-heading)",
+                    color: "var(--el-title-fg, #ffffff)",
+                    fontSize: "var(--el-title-size, 1.5rem)",
+                    fontWeight: "var(--el-title-weight, 700)",
+                  }}
+                >
+                  {item.title}
+                </h3>
+                {item.body ? (
+                  <p
+                    style={{
+                      color: "var(--el-body-fg, rgba(255,255,255,0.85))",
+                      fontSize: "var(--el-body-size, 0.875rem)",
+                    }}
+                    className="mt-2 leading-relaxed"
+                  >
+                    {item.body}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
   // LIST — stacked rows with the icon to the left of the text.
   if (variant === "list") {
     return (
