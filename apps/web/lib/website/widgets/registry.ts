@@ -600,6 +600,12 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         text: "Restyle via Style & Advanced; per-item editing lands in a later slice.",
       },
     ],
+    elements: [
+      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      { key: "icon", label: "Icon", controls: ["color"] },
+      { key: "title", label: "Title", controls: ["color", "size", "weight"] },
+      { key: "body", label: "Body", controls: ["color", "size"] },
+    ],
   },
   stats: {
     type: "stats",
@@ -672,6 +678,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "hint", text: "Value items are editable in a later slice." },
+    ],
+    elements: [
+      { key: "card", label: "Card", controls: ["bg", "border", "radius"] },
+      { key: "title", label: "Title", controls: ["color", "size", "weight"] },
+      { key: "body", label: "Body", controls: ["color", "size"] },
     ],
   },
   rich_text: {

@@ -7,23 +7,24 @@ import { SectionHeading, Card } from "./_shared";
 type Props = Extract<WebsiteSection, { type: "values" }>["props"];
 type Item = Props["items"][number];
 
+// Per-element style hooks (Elementor accordion) — each reads `--el-<key>-*`.
+const valTitleStyle = {
+  fontFamily: "var(--site-font-heading)",
+  color: "var(--el-title-fg, var(--site-ink))",
+  fontSize: "var(--el-title-size, 1.125rem)",
+  fontWeight: "var(--el-title-weight, 600)",
+} as const;
+const valBodyStyle = {
+  color: "var(--el-body-fg, var(--site-mute))",
+  fontSize: "var(--el-body-size, 0.875rem)",
+} as const;
+
 function ValueText({ item }: { item: Item }) {
   return (
     <>
-      <h3
-        style={{
-          fontFamily: "var(--site-font-heading)",
-          color: "var(--site-ink)",
-        }}
-        className="text-lg font-semibold"
-      >
-        {item.title}
-      </h3>
+      <h3 style={valTitleStyle}>{item.title}</h3>
       {item.body ? (
-        <p
-          style={{ color: "var(--site-mute)" }}
-          className="mt-1.5 text-sm leading-relaxed"
-        >
+        <p style={valBodyStyle} className="mt-1.5 leading-relaxed">
           {item.body}
         </p>
       ) : null}
@@ -43,7 +44,15 @@ export function ValuesSection({ props }: { props: Props }) {
       <div className="mx-auto grid max-w-3xl gap-8 sm:grid-cols-2">
         {props.items.map((item, i) =>
           variant === "cards" ? (
-            <Card key={i} className="p-6">
+            <Card
+              key={i}
+              className="p-6"
+              style={{
+                background: "var(--el-card-bg, var(--site-surface))",
+                border: "var(--el-card-bd, var(--site-card-border))",
+                borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+              }}
+            >
               <ValueText item={item} />
             </Card>
           ) : variant === "numbered" ? (
