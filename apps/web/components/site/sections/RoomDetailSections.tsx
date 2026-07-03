@@ -27,14 +27,14 @@ function priceLabel(price?: number | null, currency?: string | null) {
 /** Shown in the builder preview / on a non-room page where no room is in scope. */
 function RoomPlaceholder({ label }: { label: string }) {
   return (
-    <SectionShell>
+    <>
       <div
         style={{ borderColor: "var(--site-line)", color: "var(--site-mute)" }}
         className="rounded-[var(--site-radius)] border border-dashed p-10 text-center text-sm"
       >
         {label}
       </div>
-    </SectionShell>
+    </>
   );
 }
 
@@ -62,9 +62,9 @@ export function RoomGallerySection({
   const layout = props.variant === "stacked" ? "grid" : props.variant;
 
   return (
-    <SectionShell>
+    <>
       <GalleryLightbox images={lightboxImages} layout={layout} />
-    </SectionShell>
+    </>
   );
 }
 
@@ -162,7 +162,7 @@ export function RoomOverviewSection({
     ) : null;
 
   return (
-    <SectionShell>
+    <>
       {split && aside ? (
         <div className="grid gap-8 md:grid-cols-[1fr_18rem]">
           {body}
@@ -174,7 +174,7 @@ export function RoomOverviewSection({
           {aside}
         </div>
       )}
-    </SectionShell>
+    </>
   );
 }
 
@@ -196,7 +196,7 @@ export function RoomAmenitiesSection({
     return <RoomPlaceholder label="This room's amenities appear here." />;
 
   return (
-    <SectionShell>
+    <>
       {props.heading ? (
         <SectionHeading centered={false} className="mb-6">
           {props.heading}
@@ -222,7 +222,7 @@ export function RoomAmenitiesSection({
           </li>
         ))}
       </ul>
-    </SectionShell>
+    </>
   );
 }
 
@@ -284,7 +284,7 @@ export function RoomRateSection({
   );
 
   return (
-    <SectionShell>
+    <>
       {props.variant === "banner" ? (
         <div
           style={{ background: "var(--site-surface)" }}
@@ -295,7 +295,7 @@ export function RoomRateSection({
       ) : (
         <Card className="p-6">{inner}</Card>
       )}
-    </SectionShell>
+    </>
   );
 }
 
@@ -411,11 +411,16 @@ export function RoomPoliciesSection({
     return (
       <RoomPlaceholder label="This room's cancellation policy and house rules appear here." />
     );
+  // Bare (Elementor reframe): the room-detail SECTION owns the band; the block keeps
+  // its own "Things to know" heading (data-coupled, not split into an el_heading like
+  // the marketing composites). All room_* system blocks are reframed together so the
+  // room-detail page stays uniform.
   return (
     <PolicyView
       heading={props.heading || "Things to know"}
       variant={props.variant}
       policies={p}
+      bare
     />
   );
 }
