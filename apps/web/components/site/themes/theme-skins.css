@@ -181,6 +181,30 @@
   font-size: 13px;
 }
 
+/* --- ROOM DETAIL --------------------------------------------------------- */
+/* Coral "Reserve this room" (a conversion CTA, like the hero/cta banner) +
+ * sticky booking card, matching the reference `.bkcard`. The rate block is the
+ * right column of the 2-col band; making it sticky pins it as the content
+ * scrolls. */
+.wielo-oceansview [data-section-type="room_rate"] {
+  --site-btn-primary-bg: var(--site-secondary);
+  --site-btn-primary-color: var(--site-secondary-ink);
+  --site-btn-primary-border: 0;
+  position: sticky;
+  top: 100px;
+}
+/* The book button spans the card, matching `.btn-block`. */
+.wielo-oceansview [data-section-type="room_rate"] a[href] {
+  display: flex;
+  width: 100%;
+}
+/* Room amenity ticks read as the aqua accent (already inline ✓); nothing more.
+ * "In the room" + "Things to know" headings inherit the theme scale (§heading). */
+.wielo-oceansview [data-section-type="room_gallery"] .overflow-hidden,
+.wielo-oceansview [data-section-type="room_gallery"] [class*="rounded"] {
+  border-radius: var(--site-img-radius);
+}
+
 /* --- ROOM CARDS ---------------------------------------------------------- */
 /* Lift on hover + aqua-tint fact chips, matching `.room` / `.chip`. */
 .wielo-oceansview [data-section-type="rooms_preview"] > * > * {

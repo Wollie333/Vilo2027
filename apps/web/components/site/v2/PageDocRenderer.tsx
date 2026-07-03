@@ -199,6 +199,21 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
     alignItems: node.valign ?? "stretch",
   };
 
+  // `stack` also needs to fire on the LIVE viewport, not just the builder device
+  // (`stackOn` above). Emit a scoped media/container query so a multi-column band
+  // (e.g. room-detail content + sticky booking card) collapses to one column on
+  // real phones — `@media` drives the live site, `@container` the builder frames.
+  const stackCss =
+    node.stack && !stackOn
+      ? (() => {
+          const bp = node.stack === "mobile" ? 640 : 1024;
+          const sel = `[data-node-id="${node.id}"] > .pd-cols`;
+          // `!important` so it beats the inner div's INLINE `flex-direction:row`.
+          const rule = `${sel}{flex-direction:column!important}`;
+          return `@media(max-width:${bp}px){${rule}}@container(max-width:${bp}px){${rule}}`;
+        })()
+      : "";
+
   const custom = customCssScoped(`[data-node-id="${node.id}"]`, node.customCss);
   return (
     <div
@@ -209,8 +224,13 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
       data-node-id={node.id}
       data-node-kind="section"
     >
+      {stackCss ? (
+        <style dangerouslySetInnerHTML={{ __html: stackCss }} />
+      ) : null}
       {custom ? <style dangerouslySetInnerHTML={{ __html: custom }} /> : null}
-      <div style={inner}>{node.kids.map((c) => renderColumn(c, ctx))}</div>
+      <div className="pd-cols" style={inner}>
+        {node.kids.map((c) => renderColumn(c, ctx))}
+      </div>
     </div>
   );
 }
