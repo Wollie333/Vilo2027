@@ -107,6 +107,16 @@ async function enrich(slug) {
     gallery.props.images = GALLERY[slug];
     changed++;
   }
+  // EXPERIENCES page → the highlights grid already carries per-item photos, so
+  // render them as image-backed tiles (the designed layout) rather than flat
+  // cards. Only promote when every item actually has an image to show.
+  const exp = pages.find((p) => p.kind === "experiences" || p.slug === "experiences");
+  const expHl = exp?.sections?.find((s) => s.type === "highlights");
+  const expItems = expHl?.props?.items;
+  if (expHl && Array.isArray(expItems) && expItems.length && expItems.every((it) => it?.image_path)) {
+    expHl.props.variant = "tiles";
+    changed++;
+  }
   await admin.from("site_themes").update({ page_templates: pages }).eq("slug", slug);
   console.log(`  ${slug}: hero image ${hero ? "set" : "MISSING"} (${changed} section${changed === 1 ? "" : "s"} patched, ${iconFixes} icon${iconFixes === 1 ? "" : "s"} normalised)`);
 }
