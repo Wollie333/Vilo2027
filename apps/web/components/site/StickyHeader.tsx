@@ -15,6 +15,9 @@ export function StickyHeader({
   bgColor,
   scrolledBgColor,
   scrolledBorderColor,
+  scrolledShadow,
+  scrolledShadowColor,
+  scrolledShadowSize,
   textColor,
   topOffset = 0,
   children,
@@ -27,6 +30,12 @@ export function StickyHeader({
   scrolledBgColor?: string | null;
   /** Bottom-border colour of the solid/scrolled bar; blank → theme hairline. */
   scrolledBorderColor?: string | null;
+  /** Cast a drop-shadow once the header lifts off (scrolled / solid sticky bar). */
+  scrolledShadow?: boolean | null;
+  /** Shadow colour; blank → a soft black. */
+  scrolledShadowColor?: string | null;
+  /** Shadow blur (px); blank → 18. */
+  scrolledShadowSize?: number | null;
   /** Header text/menu colour (the host's menu colour). Drives logo + menu so it
    *  stays legible on a custom/transparent background. Blank → sensible default. */
   textColor?: string | null;
@@ -36,15 +45,26 @@ export function StickyHeader({
 }) {
   const [scrolled, setScrolled] = useState(false);
 
+  // The transparent bar always needs the scroll listener (to fade to solid). A
+  // solid sticky bar only needs it when a scrolled-shadow is enabled (to lift on
+  // scroll). Otherwise skip it — nothing changes on scroll.
+  const wantsScroll = transparent || (sticky && !!scrolledShadow);
   useEffect(() => {
-    if (!transparent) return;
+    if (!wantsScroll) return;
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [transparent]);
+  }, [wantsScroll]);
 
   const text = textColor?.trim();
+  // The lift shadow, applied once scrolled (when enabled).
+  const liftShadow =
+    scrolledShadow && scrolled
+      ? `0 4px ${scrolledShadowSize ?? 18}px 0 ${
+          scrolledShadowColor?.trim() || "rgba(0,0,0,0.12)"
+        }`
+      : undefined;
 
   if (!transparent) {
     // Solid bar. A custom background → drive the text colour too (so e.g. a black
@@ -53,6 +73,7 @@ export function StickyHeader({
     const style: CSSProperties = {
       background: customBg || "var(--site-surface)",
       borderColor: scrolledBorderColor?.trim() || "var(--site-line)",
+      ...(liftShadow ? { boxShadow: liftShadow } : null),
       ...(topOffset ? { top: topOffset } : null),
     };
     if (text) {
@@ -61,8 +82,11 @@ export function StickyHeader({
     }
     return (
       <header
+        data-scrolled={scrolled ? "true" : "false"}
         style={style}
-        className={sticky ? "sticky top-0 z-20 border-b" : "border-b"}
+        className={
+          sticky ? "sticky top-0 z-20 border-b transition-shadow" : "border-b"
+        }
       >
         {children}
       </header>
@@ -83,6 +107,7 @@ export function StickyHeader({
           borderColor: scrolled
             ? scrolledBorderColor?.trim() || "rgba(255,255,255,0.12)"
             : "transparent",
+          ...(liftShadow ? { boxShadow: liftShadow } : null),
           "--site-ink": text || "#ffffff",
           "--site-mute": text || "rgba(255,255,255,0.88)",
           ...(topOffset ? { top: `${topOffset}px` } : null),

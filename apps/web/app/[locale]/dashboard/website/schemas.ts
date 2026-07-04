@@ -865,6 +865,10 @@ export const menuStyleSchema = z
     submenuColor: z.string().trim().max(40).optional(),
     submenuHoverColor: z.string().trim().max(40).optional(),
     submenuBg: z.string().trim().max(40).optional(),
+    // Scrolled-state dropdown — when a transparent-over-hero header has scrolled
+    // to solid, the dropdown panel/link colours switch to these ([data-scrolled]).
+    scrolledSubmenuBg: z.string().trim().max(40).optional(),
+    scrolledSubmenuColor: z.string().trim().max(40).optional(),
     // Layout: horizontal spacing between top-level links (px). Blank → theme.
     itemGap: z.number().int().min(4).max(64).optional(),
     // ── Per-device overrides (scoped to screen size) ──
@@ -946,6 +950,11 @@ export const navigationSchema = z.object({
       // Bottom-border colour of the header once it's solid/scrolled. Blank → the
       // theme's default hairline.
       scrolledBorderColor: z.string().trim().max(40).optional(),
+      // Drop-shadow under the header once it lifts off (scrolled, or a solid
+      // sticky bar). Off by default; when on, the size (blur px) + colour tune it.
+      scrolledShadow: z.boolean().optional(),
+      scrolledShadowColor: z.string().trim().max(40).optional(),
+      scrolledShadowSize: z.number().int().min(0).max(60).optional(),
       // When the full menu collapses to a ☰ button: on phones only ("mobile"),
       // on tablets too ("tablet"), or never (always show the full inline menu).
       menuCollapse: z.enum(["mobile", "tablet", "never"]).default("mobile"),

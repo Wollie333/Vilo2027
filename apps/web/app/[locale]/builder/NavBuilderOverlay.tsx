@@ -890,6 +890,14 @@ export function NavBuilderOverlay({
                       theme.base?.palette.ink ??
                       "#2C2620",
                     "--nbar-scrolled-bg": header.scrolledBgColor ?? "#ffffff",
+                    // Scrolled drop-shadow — the mock bar lifts once scrolled.
+                    // Off → keep the subtle hairline the bar always had.
+                    "--nbar-shadow": header.scrolledShadow
+                      ? `0 4px ${header.scrolledShadowSize ?? 18}px 0 ${
+                          header.scrolledShadowColor?.trim() ||
+                          "rgba(0,0,0,0.12)"
+                        }`
+                      : "0 1px 0 rgba(10,20,15,0.1)",
                   } as React.CSSProperties
                 }
               >
@@ -1263,6 +1271,29 @@ export function NavBuilderOverlay({
                 swatches={themeCols}
                 onChange={(v) => setHeader({ scrolledBorderColor: v })}
               />
+              <ToggleRow
+                label="Drop-shadow on scroll"
+                value={!!header.scrolledShadow}
+                onChange={(v) => setHeader({ scrolledShadow: v })}
+              />
+              {header.scrolledShadow ? (
+                <>
+                  <Swatch
+                    label="Shadow colour"
+                    value={header.scrolledShadowColor ?? "rgba(0,0,0,0.12)"}
+                    swatches={themeCols}
+                    onChange={(v) => setHeader({ scrolledShadowColor: v })}
+                  />
+                  <Rng
+                    label="Shadow size"
+                    min={0}
+                    max={60}
+                    value={header.scrolledShadowSize ?? 18}
+                    suffix="px"
+                    onChange={(v) => setHeader({ scrolledShadowSize: v })}
+                  />
+                </>
+              ) : null}
             </NavAcc>
 
             <NavAcc
@@ -1290,6 +1321,18 @@ export function NavBuilderOverlay({
                 value={menuStyle.submenuBg ?? "#FFFFFF"}
                 swatches={themeCols}
                 onChange={(v) => setBase({ submenuBg: v })}
+              />
+              <Swatch
+                label="Scrolled item colour"
+                value={menuStyle.scrolledSubmenuColor ?? "#3A2E20"}
+                swatches={themeCols}
+                onChange={(v) => setBase({ scrolledSubmenuColor: v })}
+              />
+              <Swatch
+                label="Scrolled background"
+                value={menuStyle.scrolledSubmenuBg ?? "#FFFFFF"}
+                swatches={themeCols}
+                onChange={(v) => setBase({ scrolledSubmenuBg: v })}
               />
             </NavAcc>
 

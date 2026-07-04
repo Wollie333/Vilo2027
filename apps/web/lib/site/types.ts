@@ -131,6 +131,9 @@ export type SiteMenuStyle = {
   submenuColor?: string | null;
   submenuHoverColor?: string | null;
   submenuBg?: string | null;
+  /** Scrolled-state dropdown colours (transparent-over-hero header, [data-scrolled]). */
+  scrolledSubmenuBg?: string | null;
+  scrolledSubmenuColor?: string | null;
   /** Layout: horizontal spacing between top-level links (px). */
   itemGap?: number;
   /** Per-device overrides scoped to screen size (mirrors the page builder). */
@@ -186,6 +189,10 @@ export type SiteNavigation = {
     scrolledBgColor?: string | null;
     /** Header bottom-border colour once solid/scrolled; blank → theme hairline. */
     scrolledBorderColor?: string | null;
+    /** Drop-shadow under the header once lifted (scrolled / solid sticky bar). */
+    scrolledShadow?: boolean | null;
+    scrolledShadowColor?: string | null;
+    scrolledShadowSize?: number | null;
     /** Mobile ☰ icon design. */
     burger?: {
       color?: string;

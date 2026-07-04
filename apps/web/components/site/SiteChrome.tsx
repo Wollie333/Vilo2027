@@ -570,6 +570,18 @@ function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
     rules.push(
       `.wielo-submenu a:hover{color:${style.submenuHoverColor.trim()}}`,
     );
+  // Scrolled-state dropdown — once a transparent-over-hero header turns solid
+  // ([data-scrolled]), the dropdown panel + links can switch colours to stay
+  // legible against the scrolled bar. Emitted after the base submenu rules so
+  // they win on equal specificity when scrolled.
+  if (style?.scrolledSubmenuBg?.trim())
+    rules.push(
+      `[data-scrolled="true"] .wielo-hmenu{--wielo-submenu-bg:${style.scrolledSubmenuBg.trim()}}`,
+    );
+  if (style?.scrolledSubmenuColor?.trim())
+    rules.push(
+      `[data-scrolled="true"] .wielo-submenu a{color:${style.scrolledSubmenuColor.trim()}}`,
+    );
   return rules.join("");
 }
 
@@ -1337,6 +1349,9 @@ export function SiteChrome({
           bgColor={pageBgColor}
           scrolledBgColor={navigation.header?.scrolledBgColor}
           scrolledBorderColor={navigation.header?.scrolledBorderColor}
+          scrolledShadow={navigation.header?.scrolledShadow}
+          scrolledShadowColor={navigation.header?.scrolledShadowColor}
+          scrolledShadowSize={navigation.header?.scrolledShadowSize}
           textColor={mergedMenuStyle?.color}
           topOffset={showBar ? 44 : 0}
         >

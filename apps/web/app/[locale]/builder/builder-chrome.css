@@ -2911,7 +2911,7 @@
 /* Scrolled state — the bar turns solid + adopts the "Scrolled state" colours. */
 .wb .np-bar[data-scrolled="true"] {
   background: var(--nbar-scrolled-bg, #fff);
-  box-shadow: 0 1px 0 rgba(10, 20, 15, 0.1);
+  box-shadow: var(--nbar-shadow, 0 1px 0 rgba(10, 20, 15, 0.1));
   padding-top: 16px;
   padding-bottom: 16px;
 }
