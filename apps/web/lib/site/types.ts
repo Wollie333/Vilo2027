@@ -349,6 +349,8 @@ export type RoomDetail = {
   /** Deep-link into the on-site checkout with this room preselected. */
   bookHref: string;
   propertyId: string;
+  /** Owning website id — lets the room_rate booking form call the quote API. */
+  websiteId?: string;
   propertyName?: string | null;
   /** Max occupancy — caps the booking dock's guest selector. */
   maxGuests?: number | null;

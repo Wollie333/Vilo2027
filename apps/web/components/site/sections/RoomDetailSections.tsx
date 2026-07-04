@@ -2,13 +2,8 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { GalleryImage, RoomDetail, RoomPolicies } from "@/lib/site/types";
 
 import { GalleryLightbox } from "../GalleryLightbox";
-import {
-  Card,
-  Muted,
-  SectionHeading,
-  SectionShell,
-  SiteButton,
-} from "./_shared";
+import { RoomBookingForm } from "../RoomBookingForm";
+import { Card, SectionHeading, SectionShell, SiteButton } from "./_shared";
 
 function priceLabel(price?: number | null, currency?: string | null) {
   if (price == null) return null;
@@ -242,76 +237,46 @@ export function RoomAmenitiesSection({
   );
 }
 
-// ── Room rate + book CTA ──────────────────────────────────────
+// ── Room rate + LIVE booking form ─────────────────────────────
 type RateProps = Extract<WebsiteSection, { type: "room_rate" }>["props"];
 
+/**
+ * The room_rate block is a LIVE booking form: pick dates → a server-recalculated
+ * availability + price check → the CTA becomes "Reserve · <total>" (deep-links
+ * into checkout with THIS room + dates pre-filled) or a disabled "Unavailable".
+ * All surfaces read `--el-*` vars (host-editable via the block's element controls)
+ * over the theme tokens. In the builder preview (`interactive=false`) it renders
+ * static (no API call). See `RoomBookingForm`.
+ */
 export function RoomRateSection({
   props,
   data,
+  interactive = false,
 }: {
   props: RateProps;
   data?: RoomDetail;
+  interactive?: boolean;
 }) {
   if (!data)
     return (
-      <RoomPlaceholder label="The room's rate and booking button appear here." />
+      <RoomPlaceholder label="The room's rate and booking form appear here." />
     );
 
-  const price = priceLabel(data.price, data.currency);
-  const cta = props.cta_label?.trim() || "Book this room";
-
-  const inner = (
-    <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        {props.heading ? (
-          <h3
-            style={{
-              fontFamily: "var(--site-font-heading)",
-              color: "var(--site-ink)",
-            }}
-            className="text-lg font-semibold"
-          >
-            {props.heading}
-          </h3>
-        ) : null}
-        {price ? (
-          <div
-            style={{ color: "var(--site-ink)" }}
-            className="text-2xl font-bold"
-          >
-            {price}
-            <span
-              style={{ color: "var(--site-mute)" }}
-              className="text-sm font-normal"
-            >
-              {" "}
-              / night
-            </span>
-          </div>
-        ) : null}
-        {props.note ? (
-          <Muted className="mt-1 text-sm">{props.note}</Muted>
-        ) : null}
-      </div>
-      <SiteButton href={data.bookHref} size="lg" track>
-        {cta}
-      </SiteButton>
-    </div>
-  );
-
   return (
-    <>
-      {props.variant === "banner" ? (
-        <div
-          style={{ background: "var(--site-surface)" }}
-          className="rounded-[var(--site-radius)] p-6"
-        >
-          {inner}
-        </div>
-      ) : (
-        <Card className="p-6">{inner}</Card>
-      )}
-    </>
+    <RoomBookingForm
+      websiteId={data.websiteId}
+      propertyId={data.propertyId}
+      roomId={data.id}
+      roomName={data.name}
+      price={data.price}
+      currency={data.currency}
+      bookHref={data.bookHref}
+      maxGuests={data.maxGuests}
+      cta={props.cta_label?.trim() || "Reserve now"}
+      heading={props.heading ?? null}
+      note={props.note ?? null}
+      interactive={interactive}
+    />
   );
 }
 

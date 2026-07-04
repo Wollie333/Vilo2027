@@ -435,6 +435,7 @@ export function GenericSection({
         <RoomRateSection
           props={section.props}
           data={dataFor(data, section.id, "room_rate")}
+          interactive={interactive}
         />
       );
     case "room_policies":

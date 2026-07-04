@@ -2231,6 +2231,7 @@ export async function loadRoomDetail(
       roomId: room.id,
     }),
     propertyId: room.property_id,
+    websiteId: ctx.websiteId,
     propertyName: propRow?.name ?? null,
     maxGuests: room.max_guests ?? null,
     policies: hasPolicies ? policies : null,

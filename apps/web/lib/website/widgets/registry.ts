@@ -168,6 +168,27 @@ const SPECIAL_CARD_ELEMENTS: ElementDef[] = [
     controls: ["bg", "color", "border", "radius", "padding", "margin"],
   },
 ];
+// Room_rate LIVE booking form — keys match the `--el-<key>-*` vars RoomBookingForm
+// reads (card wrapper · heading · price · date/guest fields · reserve button).
+const ROOM_BOOKING_ELEMENTS: ElementDef[] = [
+  {
+    key: "card",
+    label: "Card",
+    controls: ["bg", "border", "radius", "shadow"],
+  },
+  { key: "title", label: "Heading", controls: ["color", "size"] },
+  { key: "price", label: "Price", controls: ["color", "size"] },
+  {
+    key: "field",
+    label: "Date & guest fields",
+    controls: ["bg", "color", "border", "radius"],
+  },
+  {
+    key: "button",
+    label: "Reserve button",
+    controls: ["bg", "color", "border", "radius"],
+  },
+];
 
 // Brand-safe typography scales shared by the text elements — presented as
 // labelled sliders (see the "scale" control). "Auto" inherits the theme (a
@@ -1572,12 +1593,13 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       ["card", "Card"],
       ["banner", "Banner"],
     ],
-    defaults: { cta_label: "Book this room" },
+    defaults: { cta_label: "Reserve now" },
     content: [
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "text", key: "cta_label", label: "Button label" },
       { kind: "text", key: "note", label: "Note" },
     ],
+    elements: ROOM_BOOKING_ELEMENTS,
   },
   room_policies: {
     type: "room_policies",

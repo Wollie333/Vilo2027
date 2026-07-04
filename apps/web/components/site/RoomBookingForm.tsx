@@ -102,7 +102,10 @@ export function RoomBookingForm({
               : { available: false, total: null, nights: 0 },
           );
         })
-        .catch(() => active && setQuote({ available: false, total: null, nights: 0 }))
+        .catch(
+          () =>
+            active && setQuote({ available: false, total: null, nights: 0 }),
+        )
         .finally(() => active && setQuoting(false));
     }, 450);
     return () => {
@@ -212,12 +215,18 @@ export function RoomBookingForm({
         />
 
         {maxG > 1 ? (
-          <label className="mt-3 flex items-center justify-between gap-3 border px-3 py-2.5 text-sm" style={fieldStyle}>
+          <label
+            className="mt-3 flex items-center justify-between gap-3 border px-3 py-2.5 text-sm"
+            style={fieldStyle}
+          >
             <span style={{ color: "var(--site-mute)" }}>Guests</span>
             <select
               value={guests}
               onChange={(e) => setGuests(Number(e.target.value))}
-              style={{ background: "transparent", color: "var(--el-field-fg, var(--site-ink))" }}
+              style={{
+                background: "transparent",
+                color: "var(--el-field-fg, var(--site-ink))",
+              }}
               className="font-medium outline-none"
             >
               {Array.from({ length: maxG }, (_, i) => i + 1).map((n) => (
@@ -236,8 +245,8 @@ export function RoomBookingForm({
               style={{ color: "var(--site-accent)" }}
               className="mt-3 text-xs font-medium"
             >
-              Available for your dates ·{" "}
-              {quote.nights} {quote.nights === 1 ? "night" : "nights"}
+              Available for your dates · {quote.nights}{" "}
+              {quote.nights === 1 ? "night" : "nights"}
             </p>
           ) : (
             <p className="mt-3 text-xs font-medium text-red-600">
@@ -247,13 +256,20 @@ export function RoomBookingForm({
         ) : null}
 
         {canBook ? (
-          <a href={checkoutHref} data-wielo-book style={btnStyle} className={`${btnCls} hover:opacity-90`}>
+          <a
+            href={checkoutHref}
+            data-wielo-book
+            aria-label={`Reserve ${roomName}`}
+            style={btnStyle}
+            className={`${btnCls} hover:opacity-90`}
+          >
             {label}
           </a>
         ) : (
           <button
             type="button"
             disabled
+            aria-label={roomName}
             style={btnStyle}
             className={`${btnCls} cursor-not-allowed`}
           >
@@ -262,7 +278,10 @@ export function RoomBookingForm({
         )}
 
         {note ? (
-          <p style={{ color: "var(--site-mute)" }} className="mt-2 text-center text-xs">
+          <p
+            style={{ color: "var(--site-mute)" }}
+            className="mt-2 text-center text-xs"
+          >
             {note}
           </p>
         ) : null}
