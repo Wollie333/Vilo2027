@@ -358,3 +358,35 @@
   --site-h2: clamp(2rem, 3.6vw, 3.1rem);
   --site-h3: 1.4rem;
 }
+
+/* --- SABELA home section skins ------------------------------------------- */
+/* Suite cards: gold-tint fact chips + a restrained editorial hover-lift. */
+.wielo-sabela [data-section-type="rooms_preview"] .rounded-pill {
+  color: var(--site-accent);
+  background: var(--site-tint);
+  border-color: transparent;
+}
+.wielo-sabela [data-section-type="rooms_preview"] > * > * {
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    box-shadow 0.4s;
+}
+.wielo-sabela [data-section-type="rooms_preview"] > * > *:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 60px -34px rgba(0, 0, 0, 0.7);
+}
+/* Experience feature cards: gold-tint icon box (when an icon is present). */
+.wielo-sabela [data-section-type="highlights"] .text-2xl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--site-radius, 4px);
+  background: var(--site-tint);
+  color: var(--site-accent);
+}
+/* Gallery mosaic tiles inherit the theme's sharp radius (no rounding). */
+.wielo-sabela [data-section-type="gallery"] .overflow-hidden {
+  border-radius: var(--site-img-radius);
+}
