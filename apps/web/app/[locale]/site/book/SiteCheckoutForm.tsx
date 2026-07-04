@@ -1020,8 +1020,9 @@ export function SiteCheckoutForm({
           </div>
         </Card>
 
-        {/* ── Summary / payment ── */}
-        <div>
+        {/* ── Summary / payment ── (sticky on desktop so it follows the scroll
+             and stays in view; self-start keeps it its natural height) */}
+        <div className="lg:sticky lg:top-6 lg:self-start">
           <Card className="p-6">
             <h3
               style={{ color: "var(--site-ink)" }}

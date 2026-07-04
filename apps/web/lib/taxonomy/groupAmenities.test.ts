@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAmenityCategories, humanizeAmenityKey } from "./groupAmenities";
+import { buildAmenityCategories } from "./groupAmenities";
 import type { AmenityGroupWithItems } from "./types";
 
 function group(
@@ -58,22 +58,15 @@ describe("buildAmenityCategories", () => {
     expect(cats[0].items.map((i) => i.key)).toEqual(["aircon"]);
   });
 
-  it("collects unknown keys into a trailing Other category (humanized)", () => {
+  it("drops keys the admin catalog doesn't define (admin categories only)", () => {
+    // A host can only ever select catalog amenities; an off-catalog key
+    // (legacy/deactivated) is not rendered — only admin-managed categories show.
     const cats = buildAmenityCategories(catalog, ["wifi", "rooftop_deck"]);
-    const other = cats.at(-1)!;
-    expect(other.id).toBe("other");
-    expect(other.items).toEqual([
-      { key: "rooftop_deck", label: "Rooftop Deck" },
-    ]);
+    expect(cats.map((c) => c.id)).toEqual(["internet"]);
+    expect(cats.flatMap((c) => c.items.map((i) => i.key))).toEqual(["wifi"]);
   });
 
   it("returns [] when nothing is selected", () => {
     expect(buildAmenityCategories(catalog, [])).toEqual([]);
-  });
-});
-
-describe("humanizeAmenityKey", () => {
-  it("title-cases underscore keys", () => {
-    expect(humanizeAmenityKey("free_wifi")).toBe("Free Wifi");
   });
 });

@@ -9,19 +9,14 @@ export type AmenityCategory = {
   items: { key: string; label: string }[];
 };
 
-/** "free_wifi" → "Free Wifi" (fallback label for keys not in the catalog). */
-export function humanizeAmenityKey(key: string): string {
-  return key
-    .split("_")
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(" ");
-}
-
 /**
- * Group a listing's selected amenity KEYS by the admin-managed category catalog,
- * preserving catalog order. Categories with no selected item are dropped; any key
- * the catalog doesn't know (legacy/custom) is collected into a trailing "Other"
- * category so nothing a host selected is ever hidden.
+ * Group a listing's selected amenity KEYS by the ADMIN-managed category catalog,
+ * preserving catalog order. Categories with no selected item are dropped.
+ *
+ * Categories + amenities are defined ONLY by the admin (in /admin/platform/
+ * amenities); a host merely SELECTS which apply to their property. So a key not in
+ * the published catalog (e.g. a legacy/deactivated amenity) is intentionally NOT
+ * shown — the listing only ever renders admin-managed categories.
  *
  * Pure + shared by the marketplace listing and a host's themed site, so the
  * grouping is identical everywhere.
@@ -31,7 +26,7 @@ export function buildAmenityCategories(
   keys: string[],
 ): AmenityCategory[] {
   const keySet = new Set(keys);
-  const categories: AmenityCategory[] = catalog
+  return catalog
     .map((g) => ({
       id: g.id,
       label: g.label,
@@ -41,17 +36,4 @@ export function buildAmenityCategories(
         .map((i) => ({ key: i.slug, label: i.label })),
     }))
     .filter((c) => c.items.length > 0);
-
-  const known = new Set(catalog.flatMap((g) => g.items.map((i) => i.slug)));
-  const extras = keys.filter((k) => !known.has(k));
-  if (extras.length > 0) {
-    categories.push({
-      id: "other",
-      label: "Other",
-      icon: "circle-check",
-      items: extras.map((k) => ({ key: k, label: humanizeAmenityKey(k) })),
-    });
-  }
-
-  return categories;
 }
