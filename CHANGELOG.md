@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-04 — Builder: "you are here" chip + block background image; colour audit.
+
+- Topbar **context chip** next to Templates shows the current page + selected
+  element ("Home › Hero", "Contact › whole page") so the user always knows what
+  they're editing.
+- **Background image** on any section/block: `blockStyleSchema.backgroundImage`,
+  applied by both renderers (cover/centre; a background colour acts as a scrim),
+  with a "Background image" field in the Style tab. Verified render live.
+- **Colour audit**: swept the `--el-*` wiring across every section component — the
+  inspector swatches write resolvable values (`var(--site-*)` / hex), `elementDecls`
+  emits `--el-<key>-fg/-bg/-bd`, and every component reads its declared colour vars
+  (values/pricing/trust/rate/specials incl.). No systemic code bug found; a precise
+  repro (page + element + colour) is needed to fix any remaining specific case.
+  Note: text elements (el_heading/el_text) are intentionally token-only colours
+  (brand-safe), not a free picker.
+
 ## 2026-07-04 — Marmalade theme skinned (foundation + home + Caveat font).
 
 Added the founder-provided Marmalade House reference (docs/themes/marmalade/) and
