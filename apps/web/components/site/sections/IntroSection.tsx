@@ -23,7 +23,8 @@ export function IntroSection({ props }: { props: Props }) {
             {props.eyebrow ? (
               <div
                 style={{
-                  color: "var(--el-eyebrow-fg, var(--site-accent))",
+                  color:
+                    "var(--el-eyebrow-fg, var(--site-intro-eyebrow-fg, var(--site-accent)))",
                   fontSize: "var(--el-eyebrow-size, 0.8125rem)",
                 }}
                 className="mb-3 font-semibold uppercase tracking-[0.18em]"

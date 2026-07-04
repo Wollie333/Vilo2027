@@ -59,6 +59,9 @@
   --site-intro-badge-bg: var(--site-surface);
   --site-intro-badge-fg: var(--site-ink);
   --site-intro-badge-value: var(--site-secondary);
+  /* Section tags are coral in the reference — match the intro story eyebrow to
+     the el_text eyebrows on the other pages (still host-editable via --el). */
+  --site-intro-eyebrow-fg: var(--site-secondary);
 }
 
 /* --- Coral conversion CTAs -------------------------------------------------
