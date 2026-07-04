@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-04 — Specials / Experiences / Gallery pages + element wiring propagated.
+
+- Specials, Experiences and Gallery rebuilt to their references from already-
+  skinned, editable blocks (pure reuse + data reseed): page-head hero +
+  `specials_preview` (live offers) + CTA; hero + `highlights` image-tiles + icon
+  grid (sand) + `gallery` mosaic + CTA; hero + `gallery` mosaic + CTA. Stock
+  hero/CTA images; grids/gallery show live host data. Live-verified.
+- Element wiring propagated (`9af3e261`): the showcase room name/tag/price/desc/
+  button and blog "journal" featured title/excerpt/meta now read `--el-*` with the
+  theme design as the fallback, so they're host-editable in the builder. Added a
+  "tag" element to the rooms_preview registry. Verified on /rooms: default = design,
+  per-element override wins. tsc + eslint clean.
+
 ## 2026-07-03 — Wire the hero skin into per-element controls (`e5bc85f8`).
 
 The hero's design is now the host-EDITABLE default of each element (not a CSS

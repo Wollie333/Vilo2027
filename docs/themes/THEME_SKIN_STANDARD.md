@@ -313,6 +313,15 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   Fixed a general responsive gap: multi-column `stack` sections now emit a
   stacking media query so they collapse on live phones (was builder-device only).
   Live-verified on `/rooms/olive-room`, desktop + mobile.
+- **Specials / Experiences / Gallery — DONE** (2026-07-04). Pure block reuse +
+  data reseed, no code change: page-head hero + `specials_preview` (live offers,
+  aqua "Book this offer" per ref) + CTA; hero + `highlights` "tiles" (image) +
+  `highlights` grid (icon, sand) + `gallery` mosaic + CTA; hero + `gallery`
+  mosaic + CTA. Stock hero/CTA images; grids/gallery show live host data.
+- **Element wiring propagated** (2026-07-04, `9af3e261` + hero `e5bc85f8`): the
+  showcase (name/tag/price/desc/button), blog featured (title/excerpt/meta) and
+  hero (eyebrow/title/sub/buttons) now read `--el-*` with the theme design as the
+  fallback — host-editable per §5b. Highlights tiles already did.
 - **Journal (/blog) — PARTIAL** (2026-07-03). `/blog` is a FIXED system route
   (`app/[locale]/site/blog/page.tsx`), not a builder doc — so the reference's hero
   page-head + featured post + newsletter can't come from a reseed. Skinned its card
