@@ -2,6 +2,82 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-04 #2, **Builder/room/nav upgrades — LOCAL commits, NOT pushed**)
+
+> **WORKFLOW FOR THIS LANE (founder instruction):** commit **LOCALLY only, DO NOT push
+> to `main`**. Create save points as you go. We push everything together once it's all
+> correct and the founder confirms. (This overrides the standing "always push to main"
+> memory for this lane.)
+
+### State of the tree
+- **5 local commits ahead of `origin/main` (NOT pushed):**
+  - `bed5a3a5` feat(nav): per-link destination + settings (custom links)
+  - `bcf01b76` feat(nav): custom-colour picker on every swatch + scrolled bg/border controls
+  - `849c9c1c` feat(builder): room-overview name/description/pills are style-editable
+  - `81086cd0` feat(themes): room-detail hero is a directory-style photo mosaic
+  - `15c58378` feat(specials): active-offer line in the summary + locked offer dates
+- **UNCOMMITTED, WRITTEN BUT NOT WIRED:** `apps/web/components/site/RoomBookingForm.tsx`
+  — a NEW client component for task #29 (the live booking form). It's complete but
+  **not imported anywhere yet** (harmless). To finish #29: (a) `RoomRateSection`
+  (in `components/site/sections/RoomDetailSections.tsx`) should render `<RoomBookingForm>`
+  by DEFAULT; (b) add a `"form"` variant (default) + `elements` (card/button/field/
+  price/title) to `room_rate` in `lib/website/widgets/registry.ts`; (c) pass
+  `websiteId={websiteId}` to `RoomRateSection` in `SectionRenderer.tsx` (GenericSection
+  already has `websiteId`); the form POSTs `/api/site-booking-quote` (shape: see
+  `SiteCheckoutForm` quote fetch) for live availability + total, then deep-links
+  `bookHref&from=&to=&guests=` into the checkout when available (disabled "Unavailable"
+  when not). Seeded demo: Vineyard Suite room now has 6 `property_photos`.
+
+### Founder's task plan (do IN THIS ORDER): #29 → #33 → #34 → then the NEW items below
+- **#29 Room-rate → LIVE booking form** *(IN PROGRESS — component written, needs wiring; see above).*
+  Date fields + this room's price + live availability (button disables + "Unavailable"
+  when not available; when available → checkout with dates+room pre-filled). Full styling
+  controls: bg / button / hover / field styles via `--el-*`. Booking form is the DEFAULT.
+- **#33 Menu system.** (1) Make the mobile hamburger actually OPEN the drawer in the nav
+  builder CANVAS (clickable). (2) Header tab: a DROPDOWN to select the PRIMARY menu.
+  (3) The Links tab is the menu editor — user first creates a menu, then adds links; BUT
+  the system should by DEFAULT create a "Main menu" populated with the theme's existing
+  pages, so every new site ships with a working active menu.
+- **#34 Builder-wide audit.** Across page/navigation/header/footer builders: the canvas
+  must display EVERY change IMMEDIATELY + apply on the LIVE site. Remove/fix any styling
+  control that does NOT take effect. Add the custom-colour circle (native picker) to the
+  PAGE builder's colour rows too (already added to the nav editor's swatches).
+
+### NEW founder instructions (2026-07-04 #2 — capture, do after/with the above)
+1. **Nav header → "Scrolled state" → scrolled BACKGROUND colour control.** Add a colour
+   setting for the header scrolled-background colour. MUST apply to the CANVAS *and* the
+   LIVE site. (NOTE: a "Scrolled background" swatch was already added in `bcf01b76`
+   writing `header.scrolledBgColor`; StickyHeader already reads it → **verify** it truly
+   applies on the live site + nav canvas; wire whatever's missing.)
+2. **Header background SHADOW control.** Add a shadow setting for the header background —
+   with controls for SHADOW **spread** and **colour** (schema field likely new, e.g.
+   `header.shadow` / `scrolledShadow`; apply in `StickyHeader`/`SiteChrome` + expose in
+   the nav editor Header/Scrolled panel; canvas + live).
+3. **Header on NO-HERO pages (LIVE BUG).** On theme pages with NO hero image the header
+   must display correctly. **On the ROOM DETAIL page you cannot see the menu/header —
+   fix the spacing.** Check ALL pages (rooms/room-detail/blog/checkout/thank-you/contact/
+   etc.) for the same issue so it's prevented everywhere. Likely cause: `pageHasHero`/
+   `transparentOverHero` makes the header transparent (white text) with no hero behind
+   it → invisible, or content sits under the header with no top offset. Trace
+   `pageStartsWithHero` (in `pageDocOps`) + `SiteChrome`/`StickyHeader` transparent logic;
+   ensure non-hero pages get a SOLID header + proper top spacing. Changes must apply on
+   the LIVE site.
+
+### Key files (for the above)
+- Nav editor: `app/[locale]/builder/NavBuilderOverlay.tsx` (+ `builder-chrome.css`).
+- Header/footer render (live + canvas share it): `components/site/SiteChrome.tsx`,
+  `components/site/StickyHeader.tsx`, `components/site/SiteMobileMenu.tsx`, `BurgerGlyph.tsx`.
+- Nav schema: `lib/site/types.ts` (`SiteNavigation`, header.*, menuStyle.*) +
+  `app/[locale]/dashboard/website/schemas.ts`.
+- Room detail: `components/site/SiteRoomView.tsx` (renders SiteChrome w/
+  `pageHasHero={pageStartsWithHero(result.doc)}`), `RoomDetailSections.tsx`,
+  `RoomBookingForm.tsx` (new). Room-detail template = `website_pages` kind `room_detail`.
+- Page builder controls: `app/[locale]/builder/BuilderShell.tsx` (ColorRow etc.).
+- GOTCHA: `pnpm build` while the preview server runs corrupts the shared `.next`.
+- Full session log in CHANGELOG (2026-07-04 entries) + [[reference-builder-icons-spacing]].
+
+---
+
 ## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-04, **Oceans theme polish + builder styling, SHIPPED to `main`**)
 
 > Focus is Oceans View only (founder: hold other themes). All pushed to `main`, Vercel live.
