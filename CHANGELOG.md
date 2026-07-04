@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-04 — Builder: element padding/margin, icon/SVG upload, blog featured image.
+
+Three founder-requested builder capabilities (mapped the styling + upload
+architecture first via a subagent, then extended the right layers). All verified
+live and pushed to main.
+
+- **Per-element padding + margin** (`4e366da9`): added `padY/padX` + `marginTop/
+  marginBottom` to `elementStyleSchema`; emit `--el-<key>-py/px/mt/mb` in
+  `_shared` `elementDecls`; new "Padding ↕/↔" + "Margin top/bottom" number rows in
+  the inspector (`ElementControls`). Wired: `SiteButton` padding→`var(--el-button-
+  py/px, <size preset>)` + margin; shared `Card`→`var(--el-card-mt/mb, 0)`. Buttons
+  expose padding+margin, cards expose margin, across every block that declares them.
+  Fallbacks equal current defaults → unstyled blocks render identically.
+- **Icon / image / SVG upload** (`3e25ff28`): SVG already flows end-to-end (media
+  library accepts `image/svg+xml`; server sanitises the ext). Added a shared
+  `SiteIcon` — an icon value that's an image URL/path/data-URI renders as `<img>`
+  (SVG included), else the emoji glyph. Widened the icon/glyph schema fields
+  (8/40/60→500) so a URL validates. Wired into highlights (grid+tiles), `el_icon`,
+  amenities grid. Hosts upload via the media library + set the icon to its URL.
+- **Blog featured image** (`39c63c19`): blog index cards lead with the post cover
+  or a themed gradient placeholder (accent→secondary + title initial) when none;
+  demo Journal post seeded with a cover + `featured`.
+- **Empty location band**: `LocationSection` returns null when it has no address,
+  map, or POIs — no more bare 49px padded strip on sites without location data.
+
 ## 2026-07-04 — Oceans View refinement pass (all 8 pages) + specials checkout preselect.
 
 Walked every Oceans View page over the vilotest fixture (`?site=vilotest&theme=oceansview`),

@@ -75,6 +75,10 @@ export function LocationSection({
     props.show_map && variant !== "list" && Boolean(data?.mapEmbedUrl);
   const mapUrl = data?.mapEmbedUrl ?? "";
 
+  // Nothing to show (no address, no map, no points of interest) — render nothing
+  // rather than a bare padded strip. Common before a host adds location details.
+  if (!data?.address && !showMap && pois.length === 0) return null;
+
   return (
     <>
       {props.heading ? (
