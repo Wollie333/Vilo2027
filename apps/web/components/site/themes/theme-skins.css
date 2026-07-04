@@ -152,11 +152,13 @@
   --site-h3: 1.5rem;
 }
 
-/* --- STATS (sand band) --------------------------------------------------- */
-/* Big aqua numbers, muted labels — `--el-*` still override. */
-.wielo-oceansview [data-section-type="stats"] {
-  --el-value-fg: var(--site-accent);
-}
+/* --- STATS --------------------------------------------------------------- */
+/* Numbers are already the aqua accent via the component's own default
+ * (`var(--el-value-fg, var(--site-accent))`) — DON'T set `--el-value-fg` in the
+ * skin: that occupies the host's per-element slot. A per-element override lives at
+ * `[data-node-id]` (specificity 0,1,0), which would LOSE to a skin rule at
+ * `.wielo-x [data-section-type]` (0,2,0). The About page overrides this slot to
+ * coral on its navy band, and that must win. */
 
 /* --- ROOMS SHOWCASE (Rooms page — alternating splits) -------------------- */
 .wielo-oceansview .site-room-frame {
