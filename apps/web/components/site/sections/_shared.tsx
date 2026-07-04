@@ -196,6 +196,11 @@ const BLOCK_BORDER_COLOR_VAR = {
   ink: "var(--site-ink)",
   accent: "var(--site-accent)",
 } as const;
+/** Border colour → a semantic role's theme var, or a raw custom value (hex/rgb). */
+function resolveBorderColor(bc?: string): string {
+  if (!bc) return BLOCK_BORDER_COLOR_VAR.line;
+  return (BLOCK_BORDER_COLOR_VAR as Record<string, string>)[bc] ?? bc;
+}
 const BLOCK_MAXWIDTH_CSS = {
   full: "",
   wide: "64rem",
@@ -225,7 +230,7 @@ function frameRules(style: BlockStyle): string {
   if (style.marginBottom)
     out.push(`margin-bottom:${BLOCK_PAD[style.marginBottom]}px`);
   if (style.border && style.border !== "none") {
-    const color = BLOCK_BORDER_COLOR_VAR[style.borderColor ?? "line"];
+    const color = resolveBorderColor(style.borderColor);
     out.push(`border:${BLOCK_BORDER_PX[style.border]}px solid ${color}`);
   }
   if (style.radius && style.radius !== "none") {
@@ -258,7 +263,7 @@ export function blockFrameStyle(style?: BlockStyle): CSSProperties {
     out.backgroundRepeat = "no-repeat";
   }
   if (style.border && style.border !== "none") {
-    const color = BLOCK_BORDER_COLOR_VAR[style.borderColor ?? "line"];
+    const color = resolveBorderColor(style.borderColor);
     out.border = `${BLOCK_BORDER_PX[style.border]}px solid ${color}`;
   }
   if (style.radius && style.radius !== "none") {

@@ -921,7 +921,9 @@ export const blockStyleSchema = z.object({
   marginTop: z.enum(BLOCK_SPACE).optional(),
   marginBottom: z.enum(BLOCK_SPACE).optional(),
   border: z.enum(BLOCK_BORDER).optional(),
-  borderColor: z.enum(BLOCK_BORDER_COLOR).optional(),
+  // A semantic role (line/ink/accent) OR a raw custom colour (hex/rgb) picked from
+  // the block's "Border colour" custom-colour circle. Resolved by blockFrameStyle.
+  borderColor: z.string().max(60).optional(),
   radius: z.enum(BLOCK_RADIUS).optional(),
   maxWidth: z.enum(BLOCK_MAXWIDTH).optional(),
   minHeight: z.enum(BLOCK_MINHEIGHT).optional(),

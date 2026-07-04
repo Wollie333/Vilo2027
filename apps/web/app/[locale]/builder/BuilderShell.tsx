@@ -2396,6 +2396,7 @@ function Inspector({
                 value={styleVal("borderColor") ?? "line"}
                 roles={BORDER_COLOR_ROLES}
                 onChange={(v) => patchStyle({ borderColor: v })}
+                allowCustom
               />
             )}
             <ScaleRow
@@ -2986,12 +2987,17 @@ function RoleSwatchRow({
   value,
   roles,
   onChange,
+  allowCustom = false,
 }: {
   label: string;
   value: string;
   roles: [string, string, string][];
   onChange: (v: string) => void;
+  /** Add a custom-colour circle so the host can pick any colour, not just roles. */
+  allowCustom?: boolean;
 }) {
+  // A value that isn't one of the semantic roles is a custom colour.
+  const isCustom = allowCustom && !roles.some(([v]) => v === value);
   return (
     <div className="ctl">
       <div className="ctl-l">
@@ -3010,6 +3016,19 @@ function RoleSwatchRow({
             onClick={() => onChange(v)}
           />
         ))}
+        {allowCustom ? (
+          <label
+            className={isCustom ? "swrole swcustom on" : "swrole swcustom"}
+            title="Custom colour"
+            style={isCustom ? { background: value } : undefined}
+          >
+            <input
+              type="color"
+              value={HEX_RE.test(value) ? value : "#888888"}
+              onChange={(e) => onChange(e.target.value)}
+            />
+          </label>
+        ) : null}
       </div>
     </div>
   );
