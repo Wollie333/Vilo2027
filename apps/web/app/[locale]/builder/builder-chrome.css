@@ -673,6 +673,68 @@
 .wb .node-badge button.nb-parent:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+/* Gear active (its on-canvas settings popover is open). */
+.wb .node-badge button.on {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* On-canvas section settings popover (the badge gear). Anchored to the badge,
+   floats over the canvas, and hosts the SAME inspector as the side panel. */
+.wb .nb-inspector {
+  position: absolute;
+  z-index: 30;
+  width: 322px;
+  max-width: calc(100% - 24px);
+  max-height: min(72vh, 640px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(10, 20, 15, 0.22);
+  overflow: hidden;
+  animation: nb-pop 0.14s ease;
+}
+@keyframes nb-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.wb .nb-inspector-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 8px 9px 13px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  background: var(--light);
+}
+.wb .nb-inspector-head button {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mute);
+  transition: 0.12s;
+}
+.wb .nb-inspector-head button:hover {
+  background: var(--panel);
+  color: var(--ink);
+}
+.wb .nb-inspector-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
 
 /* Add-section affordance at the foot of the canvas. */
 .wb .add-sec {

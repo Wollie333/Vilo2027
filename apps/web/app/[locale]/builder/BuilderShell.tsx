@@ -319,6 +319,9 @@ export function BuilderShell({
   const [amenityDataOpen, setAmenityDataOpen] = useState(false);
   const [galleryDataOpen, setGalleryDataOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // On-canvas section settings popover (the badge gear) — surfaces the section's
+  // inspector ON the section instead of only in the side panel.
+  const [gearOpen, setGearOpen] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [structureOpen, setStructureOpen] = useState(false);
   const [badge, setBadge] = useState<{
@@ -685,11 +688,29 @@ export function BuilderShell({
     if (id) setMode("settings");
   }, []);
 
-  // Section gear → jump straight to the selected section's Style tab.
+  // Section gear → surface the section's inspector in an on-canvas popover
+  // anchored to the badge (opens on the Style tab). Toggles closed on a second
+  // click. The side-panel Settings tab still works independently.
   const openStyleTab = useCallback(() => {
-    setMode("settings");
     setInspectorTab("style");
+    setGearOpen((o) => !o);
   }, []);
+
+  // The on-canvas popover belongs to the selected section — close it whenever the
+  // selection changes (or clears) so it never lingers over the wrong node.
+  useEffect(() => {
+    setGearOpen(false);
+  }, [selectedId]);
+
+  // Escape closes the on-canvas section popover.
+  useEffect(() => {
+    if (!gearOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setGearOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [gearOpen]);
 
   // "↑ Section" chip on an element → select its wrapping section + open Style.
   // Uses the rendered DOM (the canvas is a live tree) to find the nearest section
@@ -1059,6 +1080,40 @@ export function BuilderShell({
     .filter(Boolean)
     .join(" ");
 
+  // The selected node's inspector — rendered in the side panel AND (for a section)
+  // in the on-canvas gear popover, so the two stay identically wired.
+  const renderInspector = () =>
+    selected ? (
+      <Inspector
+        node={selected.node as AnyNode}
+        device={device}
+        onDevice={setDevice}
+        tab={inspectorTab}
+        onTabChange={setInspectorTab}
+        onPatch={patchProps}
+        onPatchNode={patchNode}
+        onPatchResp={patchResp}
+        onDeviceHidden={setDeviceHidden}
+        rooms={roomOpts}
+        websiteId={websiteId}
+        onEditRoomData={
+          persists && ROOM_DATA_BLOCKS.has((selected.node as AnyNode).type)
+            ? () => setRoomDataOpen(true)
+            : undefined
+        }
+        onEditAmenities={
+          persists && AMENITY_DATA_BLOCKS.has((selected.node as AnyNode).type)
+            ? () => setAmenityDataOpen(true)
+            : undefined
+        }
+        onEditGallery={
+          persists && GALLERY_DATA_BLOCKS.has((selected.node as AnyNode).type)
+            ? () => setGalleryDataOpen(true)
+            : undefined
+        }
+      />
+    ) : null;
+
   const rootClass = [
     "wb",
     previewing && "previewing",
@@ -1413,37 +1468,7 @@ export function BuilderShell({
                 )}
                 {mode === "settings" &&
                   (selected ? (
-                    <Inspector
-                      node={selected.node as AnyNode}
-                      device={device}
-                      onDevice={setDevice}
-                      tab={inspectorTab}
-                      onTabChange={setInspectorTab}
-                      onPatch={patchProps}
-                      onPatchNode={patchNode}
-                      onPatchResp={patchResp}
-                      onDeviceHidden={setDeviceHidden}
-                      rooms={roomOpts}
-                      websiteId={websiteId}
-                      onEditRoomData={
-                        persists &&
-                        ROOM_DATA_BLOCKS.has((selected.node as AnyNode).type)
-                          ? () => setRoomDataOpen(true)
-                          : undefined
-                      }
-                      onEditAmenities={
-                        persists &&
-                        AMENITY_DATA_BLOCKS.has((selected.node as AnyNode).type)
-                          ? () => setAmenityDataOpen(true)
-                          : undefined
-                      }
-                      onEditGallery={
-                        persists &&
-                        GALLERY_DATA_BLOCKS.has((selected.node as AnyNode).type)
-                          ? () => setGalleryDataOpen(true)
-                          : undefined
-                      }
-                    />
+                    renderInspector()
                   ) : (
                     <PanelPlaceholder
                       Icon={Settings}
@@ -1573,7 +1598,8 @@ export function BuilderShell({
                   </button>
                   {(selected.node as AnyNode).type === "section" && (
                     <button
-                      title="Style this section"
+                      className={gearOpen ? "on" : undefined}
+                      title={gearOpen ? "Close settings" : "Section settings"}
                       type="button"
                       onClick={openStyleTab}
                     >
@@ -1588,6 +1614,34 @@ export function BuilderShell({
                   </button>
                 </div>
               )}
+
+              {/* On-canvas section settings popover — the badge gear surfaces the
+                  section's full inspector anchored ON the section (not just the
+                  side panel). Same <Inspector/> wiring via renderInspector(). */}
+              {gearOpen &&
+                badge &&
+                selected &&
+                (selected.node as AnyNode).type === "section" && (
+                  <div
+                    className="nb-inspector"
+                    style={{ top: badge.top + 34, left: badge.left }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="nb-inspector-head">
+                      <span>
+                        {nodeMeta(selected.node as AnyNode).label} · settings
+                      </span>
+                      <button
+                        type="button"
+                        title="Close"
+                        onClick={() => setGearOpen(false)}
+                      >
+                        <X size={15} strokeWidth={2} />
+                      </button>
+                    </div>
+                    <div className="nb-inspector-body">{renderInspector()}</div>
+                  </div>
+                )}
 
               <div className="dev-label">
                 {device === "tablet"
