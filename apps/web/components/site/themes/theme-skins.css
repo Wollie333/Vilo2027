@@ -390,3 +390,82 @@
 .wielo-sabela [data-section-type="gallery"] .overflow-hidden {
   border-radius: var(--site-img-radius);
 }
+
+/* ======================================================================
+ * MARMALADE HOUSE — warm guesthouse "postcards" (butter cream · marmalade · berry)
+ * Ref: docs/themes/marmalade/{theme.css, base.md, pages/*.html}
+ * A LIGHT theme — tokens carry most of the warm look. The signature SHELL
+ * (floating pill nav, tilted/taped postcards) is bespoke chrome beyond the
+ * generic blocks; here we get the palette, fonts, bands + warm card treatment.
+ * Scope: `.wielo-marmalade`.
+ * ==================================================================== */
+.wielo-marmalade {
+  /* Scrapbook support tokens (defaults from base.md). Additive. */
+  --site-soft: #fbf4e6; /* cream soft band */
+  --site-soft-2: #efe3cb;
+  --site-tint: #f6e6c8; /* warm tint (chips) */
+  --site-seal: #3c5234; /* wax-seal green */
+  --site-note: #f8dca0; /* stamp yellow */
+  --site-accent-deep: #a85820; /* darker marmalade (hover) */
+  --site-secondary-deep: #872f45;
+  /* Light warm theme: the deep "navy" band degrades to the warm ink so a navy
+     tone still reads as a distinct dark band rather than a jarring blue. */
+  --site-navy: #2c2620;
+  --site-navy-2: #3a332b;
+  --site-navy-ink: #f4ecdb;
+  --site-navy-mute: #cbb998;
+
+  /* Hero display type — Gloock display serif scale (marmalade theme.css). Read by
+     HeroSection as the `--el-*` fallback, so it stays host-editable. */
+  --site-hero-title-size: clamp(2.6rem, 5.4vw, 4.6rem);
+  --site-hero-title-weight: 400;
+  --site-hero-title-lh: 1.05;
+  --site-hero-title-ls: -0.01em;
+  --site-hero-sub-size: clamp(1.02rem, 1.5vw, 1.28rem);
+
+  /* Intro stat badge + section eyebrows in the marmalade accent. */
+  --site-intro-badge-bg: var(--site-surface);
+  --site-intro-badge-fg: var(--site-ink);
+  --site-intro-badge-value: var(--site-accent);
+  --site-intro-eyebrow-fg: var(--site-accent);
+}
+
+/* Editorial display scale for section headings (descendant beats the inline
+   modular scale, host edits still win). */
+.wielo-marmalade [data-section-type] {
+  --site-h1: clamp(2.6rem, 5.4vw, 4.6rem);
+  --site-h2: clamp(2rem, 4vw, 3.2rem);
+  --site-h3: 1.4rem;
+}
+
+/* --- MARMALADE home section skins ---------------------------------------- */
+/* Postcard cards: warm white with a soft lifted shadow + a gentle straighten-on-
+   hover, echoing the tilted postcard motif (kept subtle so it never reads broken). */
+.wielo-marmalade [data-section-type="rooms_preview"] > * > *,
+.wielo-marmalade [data-section-type="reviews"] .grid > * {
+  box-shadow: 0 18px 40px -24px rgba(44, 38, 32, 0.35);
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    box-shadow 0.4s;
+}
+.wielo-marmalade [data-section-type="rooms_preview"] > * > *:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 56px -28px rgba(44, 38, 32, 0.4);
+}
+/* Room fact chips: warm tint pills in the marmalade accent. */
+.wielo-marmalade [data-section-type="rooms_preview"] .rounded-pill {
+  color: var(--site-accent-deep);
+  background: var(--site-tint);
+  border-color: transparent;
+}
+/* Experience feature icon box: warm tint square. */
+.wielo-marmalade [data-section-type="highlights"] .text-2xl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--site-radius, 16px);
+  background: var(--site-tint);
+  color: var(--site-accent-deep);
+}

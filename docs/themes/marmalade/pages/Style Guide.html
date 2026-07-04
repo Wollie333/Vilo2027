@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="marmalade" data-font="homely" data-shape="soft">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Style guide &amp; swatches — Marmalade House</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Gloock&family=Caveat:wght@600;700&family=Karla:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .sg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:clamp(28px,3vw,44px)}
+  .sg-card{background:var(--site-surface);border-radius:var(--site-radius-sm);overflow:hidden;box-shadow:0 22px 44px -30px rgba(44,38,32,.4)}
+  .sg-h{padding:16px 20px;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px dashed var(--site-line)}
+  .sg-h .nm{font-family:var(--site-font-heading);font-size:1.25rem}
+  .sg-h .tg{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute)}
+  .sw-row{display:grid;grid-template-columns:repeat(7,1fr)}
+  .sw{display:flex;flex-direction:column}.sw .c{height:58px}
+  .sw .l{font-size:7.5px;text-align:center;padding:6px 1px;color:var(--site-mute);font-family:ui-monospace,monospace;line-height:1.35}
+  .sg-acc{padding:14px 20px;display:flex;gap:9px;align-items:center;border-top:1.5px dashed var(--site-line)}
+  .sg-acc .cap{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--site-mute);margin-right:4px}
+  .sg-acc .s{width:28px;height:28px;border-radius:50%;box-shadow:0 0 0 1px rgba(128,128,128,.25)}
+  .sg-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:24px}
+  .sg-tile{background:var(--site-surface);border-radius:var(--site-radius-sm);padding:26px;box-shadow:0 18px 38px -30px rgba(44,38,32,.4)}
+  .sg-tile .cap{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--site-mute);margin-bottom:14px}
+  .sg-shape{display:flex;gap:14px}.sg-shape .b{flex:1;text-align:center}
+  .sg-shape .b .box{height:58px;background:var(--site-tint);border:2px solid var(--site-accent)}
+  .sg-shape .b .t{font-size:12px;color:var(--site-mute);margin-top:8px}
+  @media(max-width:860px){.sg-grid,.sg-tiles{grid-template-columns:1fr}}
+</style>
+<script>document.documentElement.classList.add('js');window.MH_DEFAULTS=/*EDITMODE-BEGIN*/{"theme":"marmalade","font":"homely","shape":"soft"}/*EDITMODE-END*/;try{var d=window.MH_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('mhTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);var r=document.documentElement;r.setAttribute('data-theme',t.theme);r.setAttribute('data-font',t.font);r.setAttribute('data-shape',t.shape);}catch(e){}</script>
+</head>
+<body>
+<header class="nav" data-screen-label="Style guide">
+  <div class="pill"><a href="Home.html" class="brand"><span class="bmark">M</span>Marmalade House</a><nav class="pill-links"><a href="Rooms.html">Rooms</a><a href="About.html">The House</a><a href="Journal.html">Journal</a><a href="Contact.html">Contact</a></nav><a href="Booking.html" class="book">Book a room</a><button class="burger" data-burger aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div>
+</header>
+
+<section class="phead-plain"><div class="wrap-tight"><span class="hand">theme base</span><h1>Swatches &amp; style</h1><p class="lead mx">The three palettes, display fonts and corner styles behind the whole theme. Switch them live from the Tweaks panel.</p></div></section>
+
+<section class="section" style="padding-top:clamp(16px,2vw,32px)">
+  <div class="wrap">
+    <div class="sec-head"><span class="hand">palettes</span><h2 style="font-size:clamp(1.8rem,4vw,2.8rem)">Three palettes</h2></div>
+    <div class="sg-grid">
+      <div class="sg-card">
+        <div class="sg-h"><span class="nm">Marmalade</span><span class="tg">Default · clay</span></div>
+        <div class="sw-row">
+          <div class="sw"><div class="c" style="background:#F4ECDB"></div><div class="l">bg<br>F4ECDB</div></div>
+          <div class="sw"><div class="c" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #E4D6BE"></div><div class="l">surface<br>FFFFFF</div></div>
+          <div class="sw"><div class="c" style="background:#2C2620"></div><div class="l">ink<br>2C2620</div></div>
+          <div class="sw"><div class="c" style="background:#6F6354"></div><div class="l">mute<br>6F6354</div></div>
+          <div class="sw"><div class="c" style="background:#E4D6BE"></div><div class="l">line<br>E4D6BE</div></div>
+          <div class="sw"><div class="c" style="background:#C8702E"></div><div class="l">accent<br>C8702E</div></div>
+          <div class="sw"><div class="c" style="background:#3C5234"></div><div class="l">seal<br>3C5234</div></div>
+        </div>
+        <div class="sg-acc"><span class="cap">Berry · note</span><span class="s" style="background:#9C3B52"></span><span class="s" style="background:#F8DCA0"></span></div>
+      </div>
+      <div class="sg-card">
+        <div class="sg-h"><span class="nm">Damson</span><span class="tg">plum · sage</span></div>
+        <div class="sw-row">
+          <div class="sw"><div class="c" style="background:#F5EFEA"></div><div class="l">bg<br>F5EFEA</div></div>
+          <div class="sw"><div class="c" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #E6DBD6"></div><div class="l">surface<br>FFFFFF</div></div>
+          <div class="sw"><div class="c" style="background:#2C2230"></div><div class="l">ink<br>2C2230</div></div>
+          <div class="sw"><div class="c" style="background:#75697A"></div><div class="l">mute<br>75697A</div></div>
+          <div class="sw"><div class="c" style="background:#E6DBD6"></div><div class="l">line<br>E6DBD6</div></div>
+          <div class="sw"><div class="c" style="background:#8E4A63"></div><div class="l">accent<br>8E4A63</div></div>
+          <div class="sw"><div class="c" style="background:#4E6151"></div><div class="l">seal<br>4E6151</div></div>
+        </div>
+        <div class="sg-acc"><span class="cap">Sage · note</span><span class="s" style="background:#4E6151"></span><span class="s" style="background:#EAD3C0"></span></div>
+      </div>
+      <div class="sg-card">
+        <div class="sg-h"><span class="nm">Sage</span><span class="tg">green · cream</span></div>
+        <div class="sw-row">
+          <div class="sw"><div class="c" style="background:#EEF1E7"></div><div class="l">bg<br>EEF1E7</div></div>
+          <div class="sw"><div class="c" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #DBE2D0"></div><div class="l">surface<br>FFFFFF</div></div>
+          <div class="sw"><div class="c" style="background:#21302A"></div><div class="l">ink<br>21302A</div></div>
+          <div class="sw"><div class="c" style="background:#5E6E63"></div><div class="l">mute<br>5E6E63</div></div>
+          <div class="sw"><div class="c" style="background:#DBE2D0"></div><div class="l">line<br>DBE2D0</div></div>
+          <div class="sw"><div class="c" style="background:#2E7D6B"></div><div class="l">accent<br>2E7D6B</div></div>
+          <div class="sw"><div class="c" style="background:#1F5E50"></div><div class="l">seal<br>1F5E50</div></div>
+        </div>
+        <div class="sg-acc"><span class="cap">Marmalade · note</span><span class="s" style="background:#C8702E"></span><span class="s" style="background:#F2E3B8"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section soft">
+  <div class="wrap">
+    <div class="sec-head"><span class="hand">type &amp; shape</span><h2 style="font-size:clamp(1.8rem,4vw,2.8rem)">Fonts and corners</h2></div>
+    <div class="sg-tiles">
+      <div class="sg-tile"><div class="cap">Homely · default</div><div style="font-family:'Gloock',serif;font-size:2.1rem;line-height:1.05;color:var(--site-ink)">A little house that feeds you</div><p class="muted" style="margin-top:10px;font-size:13.5px">Gloock + Karla + Caveat</p></div>
+      <div class="sg-tile"><div class="cap">Classic</div><div style="font-family:'Playfair Display',serif;font-weight:600;font-size:2.1rem;line-height:1.05;color:var(--site-ink)">A little house that feeds you</div><p class="muted" style="margin-top:10px;font-size:13.5px">Playfair Display + Karla</p></div>
+      <div class="sg-tile"><div class="cap">Corners · soft / sharp</div><div class="sg-shape"><div class="b"><div class="box" style="border-radius:14px"></div><div class="t">Soft · 16px</div></div><div class="b"><div class="box" style="border-radius:3px"></div><div class="t">Sharp · 3px</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="sec-head"><span class="hand">components</span><h2 style="font-size:clamp(1.8rem,4vw,2.8rem)">Buttons &amp; bits</h2></div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center"><a class="btn btn-accent">Accent</a><a class="btn btn-ink">Ink</a><a class="btn btn-ghost">Ghost</a><span class="chip">Chip · amenity</span><span class="hand lg">a handwritten note</span><span class="stamp" style="position:static">M</span></div>
+  </div>
+</section>
+
+<footer class="footer" style="padding:46px 0 36px"><div class="wrap"><div class="foot-bottom" style="margin-top:0;border-top:none;padding-top:0"><span>© 2026 Marmalade House · theme style guide</span><span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo</span></div></div></footer>
+<div class="mnav"><div class="mnav-top"><a href="Home.html" class="brand"><span class="bmark">M</span>Marmalade House</a><button data-mclose style="background:none;border:none;color:var(--site-bg);cursor:pointer"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><nav class="mnav-links"><a href="Rooms.html">Rooms</a><a href="About.html">The House</a><a href="Journal.html">Journal</a><a href="Contact.html">Contact</a></nav><a href="Booking.html" class="btn btn-accent btn-lg btn-block">Book a room</a></div>
+<script src="marmalade.js"></script>
+</body>
+</html>

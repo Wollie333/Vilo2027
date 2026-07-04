@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="marmalade" data-font="homely" data-shape="soft">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>You're booked — Marmalade House</title>
+<meta name="description" content="Your booking at Marmalade House is confirmed." />
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Gloock&family=Caveat:wght@600;700&family=Karla:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .tyhero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:120px 20px 60px}
+  .tyhero .bg{position:absolute;inset:0}.tyhero .bg img{width:100%;height:100%;object-fit:cover}
+  .tyhero::after{content:"";position:absolute;inset:0;background:rgba(28,22,16,.5)}
+  .tycard{position:relative;z-index:2;background:var(--site-surface);width:min(620px,94vw);padding:clamp(30px,4vw,48px);text-align:center;box-shadow:0 50px 90px -32px rgba(28,22,16,.7);border-radius:var(--site-radius-sm);transform:rotate(-1deg)}
+  .tycard .stamp{position:absolute;right:24px;top:-26px;transform:rotate(6deg)}
+  .tychk{width:64px;height:64px;border-radius:50%;background:var(--site-seal);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto;animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+  .tyref{display:inline-flex;gap:8px;margin-top:18px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--site-mute);background:var(--site-soft);padding:9px 16px;border-radius:999px}
+  .tyref b{color:var(--site-ink)}
+  .tysum{margin-top:24px;border:1.5px dashed var(--site-line);border-radius:var(--site-radius-sm);overflow:hidden;text-align:left}
+  .tysum-top{display:flex;gap:14px;padding:16px;background:var(--site-soft)}
+  .tysum-top img{width:74px;height:74px;border-radius:var(--site-radius-sm);object-fit:cover;flex-shrink:0}
+  .tyrow{display:flex;justify-content:space-between;padding:12px 16px;border-top:1.5px dashed var(--site-line);font-size:14px;color:var(--site-mute)}
+  .tyrow b{color:var(--site-ink);font-weight:700}
+</style>
+<script>document.documentElement.classList.add('js');window.MH_DEFAULTS=/*EDITMODE-BEGIN*/{"theme":"marmalade","font":"homely","shape":"soft"}/*EDITMODE-END*/;try{var d=window.MH_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('mhTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);var r=document.documentElement;r.setAttribute('data-theme',t.theme);r.setAttribute('data-font',t.font);r.setAttribute('data-shape',t.shape);}catch(e){}</script>
+</head>
+<body>
+<header class="nav" data-screen-label="Thank You">
+  <div class="pill">
+    <a href="Home.html" class="brand"><span class="bmark">M</span>Marmalade House</a>
+    <nav class="pill-links"><a href="Rooms.html">Rooms</a><a href="About.html">The House</a><a href="Journal.html">Journal</a><a href="Contact.html">Contact</a></nav>
+    <a href="Home.html" class="book">Back home</a>
+    <button class="burger" data-burger aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  </div>
+</header>
+
+<section class="tyhero" data-section="hero">
+  <div class="bg"><img src="https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=2000&q=80" alt="The house" onerror="this.style.display='none'" /></div>
+  <div class="tycard">
+    <span class="stamp">M</span>
+    <div class="tychk"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <span class="hand lg" style="display:block;margin-top:14px">see you soon!</span>
+    <h1 style="font-size:clamp(2rem,5vw,3rem);margin-top:4px">You're booked, <span id="tyName">friend</span></h1>
+    <p class="muted" style="margin-top:10px;max-width:44ch;margin-inline:auto">A confirmation's on its way to <b id="tyEmail" style="color:var(--site-ink)">your inbox</b>. We'll have the kettle on and your room ready.</p>
+    <div class="tyref">Reference <b id="tyRef">MH-204815</b></div>
+    <div class="tysum">
+      <div class="tysum-top"><img id="tyImg" src="https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=300&q=80" alt="Your room" onerror="this.style.display='none'" /><div><span style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--site-mute)">Marmalade House</span><h3 id="tyRoom" style="font-size:1.3rem;margin-top:4px">The Fig Room</h3><div style="font-size:12.5px;color:var(--site-mute);margin-top:4px">Breakfast included</div></div></div>
+      <div class="tyrow"><span>Arrive</span><b id="tyIn">10 Jul 2026</b></div>
+      <div class="tyrow"><span>Depart</span><b id="tyOut">12 Jul 2026</b></div>
+      <div class="tyrow"><span>Guests · nights</span><b><span id="tyGuests">2</span> · <span id="tyNights">2</span> nights</b></div>
+      <div class="tyrow"><span>Total paid</span><b id="tyTotal">R2,900</b></div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px"><a href="Home.html" class="btn btn-accent">Back to home</a><a href="Contact.html" class="btn btn-ghost">Send us your route</a></div>
+    <p class="muted" style="font-size:12px;margin-top:16px">Free cancellation up to 48 hours before · no booking fees were charged.</p>
+  </div>
+</section>
+
+<footer class="footer" style="padding:46px 0 36px">
+  <div class="wrap"><div class="foot-bottom" style="margin-top:0;border-top:none;padding-top:0"><span>© 2026 Marmalade House · Prince Albert, Karoo</span><span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span><div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></div></div></div>
+</footer>
+<div class="mnav">
+  <div class="mnav-top"><a href="Home.html" class="brand"><span class="bmark">M</span>Marmalade House</a><button data-mclose aria-label="Close menu" style="background:none;border:none;color:var(--site-bg);cursor:pointer"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <nav class="mnav-links"><a href="Rooms.html">Rooms</a><a href="About.html">The House</a><a href="Journal.html">Journal</a><a href="Contact.html">Contact</a></nav>
+  <a href="Home.html" class="btn btn-accent btn-lg btn-block">Back home</a>
+</div>
+<script>(function(){var b={};try{b=JSON.parse(localStorage.getItem('mhBooking')||'{}');}catch(e){}var money=function(n){return 'R'+Number(n).toLocaleString('en-ZA');};var fd=function(s){if(!s)return null;var d=new Date(s);if(isNaN(d))return null;return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});};var set=function(id,v){var el=document.getElementById(id);if(el&&v!=null&&v!=='')el.textContent=v;};set('tyRoom',b.room);set('tyName',b.firstName);set('tyEmail',b.email);set('tyRef',b.ref);set('tyIn',fd(b.checkin));set('tyOut',fd(b.checkout));set('tyGuests',b.guests);set('tyNights',b.nights);if(b.total!=null)set('tyTotal',money(b.total));var imgs={'The Fig Room':'photo-1560185007-cde436f6a4d0','The Garden Room':'photo-1611892440504-42a792e24d32','The Loft':'photo-1505693416388-ac5ce068fe85','The Stoep Suite':'photo-1566195992011-5f6b21e539aa','The Little Room':'photo-1505691938895-1758d7feb511'};if(b.room&&imgs[b.room])document.getElementById('tyImg').src='https://images.unsplash.com/'+imgs[b.room]+'?w=300&q=80';})();</script>
+<script src="marmalade.js"></script>
+</body>
+</html>

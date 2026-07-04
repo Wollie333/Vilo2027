@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="marmalade" data-font="homely" data-shape="soft">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Header / nav — Marmalade House / Wielo theme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Gloock&family=Caveat:wght@600;700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  body{padding:clamp(20px,4vw,48px);background:var(--site-soft)}
+  .demo{max-width:1120px;margin:0 auto}.demo h1{font-size:clamp(2rem,4vw,2.8rem);margin-bottom:6px}
+  .cap{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--site-mute);margin:36px 0 12px}
+  .frame{border:1px solid var(--site-line);border-radius:var(--site-radius);overflow:hidden;position:relative}
+  .demo .nav{position:relative;top:0;padding:18px 0}
+  .ph{position:relative;height:300px;background:#d8cdb8 repeating-linear-gradient(45deg,rgba(0,0,0,.04) 0 12px,transparent 12px 24px)}
+  .ph img{width:100%;height:100%;object-fit:cover}
+  .ph::after{content:"";position:absolute;inset:0;background:rgba(28,22,16,.3)}
+  .over{position:absolute;left:0;right:0;top:0;z-index:5}
+</style>
+</head>
+<body>
+<div class="demo">
+  <h1>Header &amp; navigation</h1>
+  <p class="muted">A single floating pill menu — brand monogram, links with a dropdown, and a Book CTA. It floats over photo heroes and over cream alike; an optional announcement strip sits above it; on mobile it collapses to a burger and a full-screen drawer.</p>
+
+  <div class="cap">Announcement bar (optional)</div>
+  <div class="frame"><div class="announce" style="position:relative">The figs are ripe · breakfast just got better — <a href="Journal.html">read the journal</a></div></div>
+
+  <div class="cap">The pill, over a photo (light scene)</div>
+  <div class="frame">
+    <div class="ph"><img src="https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1400&q=80" alt="" onerror="this.style.display='none'" />
+      <header class="nav over"><div class="pill"><a href="#" class="brand"><span class="bmark">M</span>Marmalade House</a><nav class="pill-links"><a href="#">Rooms</a><a href="#">Explore</a><a href="#">The House</a><a href="#">Contact</a></nav><a href="#" class="book">Book a room</a></div></header>
+    </div>
+  </div>
+
+  <div class="cap">The pill, on cream — with the dropdown open</div>
+  <div class="frame" style="background:var(--site-bg);padding-bottom:120px">
+    <header class="nav"><div class="pill"><a href="#" class="brand"><span class="bmark">M</span>Marmalade House</a><nav class="pill-links"><a href="#" class="active">Rooms</a><div class="has-sub"><a href="#">Explore</a><div class="pill-sub" style="opacity:1;visibility:visible;transform:translateX(-50%)"><a href="#">Things to do</a><a href="#">Gallery</a><a href="#">Journal</a><a href="#">Offers</a></div></div><a href="#">The House</a><a href="#">Contact</a></nav><a href="#" class="book">Book a room</a></div></header>
+  </div>
+
+  <div class="cap">Mobile — burger + full-screen drawer</div>
+  <div class="frame" style="max-width:380px;height:520px;background:var(--site-bg)">
+    <header class="nav"><div class="pill" style="margin:0 16px"><a href="#" class="brand"><span class="bmark">M</span>Marmalade House</a><button class="burger" style="display:block;background:none;border:none;color:var(--site-ink)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button></div></header>
+    <div class="mnav open" style="position:absolute">
+      <div class="mnav-top"><a href="#" class="brand"><span class="bmark">M</span>Marmalade House</a><button style="background:none;border:none;color:var(--site-bg)"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+      <nav class="mnav-links"><a href="#">Rooms</a><a href="#">Things to do</a><a href="#">Gallery</a><a href="#">Journal</a><a href="#">Offers</a><a href="#">The House</a><a href="#">Contact</a></nav>
+      <a href="#" class="btn btn-accent btn-lg btn-block">Book a room</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

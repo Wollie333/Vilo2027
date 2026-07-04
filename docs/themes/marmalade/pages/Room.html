@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en" class="wielo-theme" data-theme="marmalade" data-font="homely" data-shape="soft">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Fig Room — Marmalade House</title>
+<meta name="description" content="The Fig Room at Marmalade House — our sunniest room, garden-facing with a claw-foot bath. From R1,450/night, breakfast included." />
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Gloock&family=Caveat:wght@600;700&family=Karla:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .rgal{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:12px;height:clamp(400px,56vh,560px);padding-top:96px}
+  .rgal .gg{overflow:hidden;border-radius:var(--site-img-radius);box-shadow:0 16px 34px -24px rgba(44,38,32,.45)}
+  .rgal .gg img{width:100%;height:100%;object-fit:cover;cursor:zoom-in;transition:transform 1s cubic-bezier(.2,.8,.3,1)}
+  .rgal .gg:hover img{transform:scale(1.05)}
+  .rgal .gg.main{grid-row:span 2}
+  .rlay{display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(34px,5vw,66px);align-items:start}
+  .specs{display:flex;gap:30px;flex-wrap:wrap;padding:24px 0;border-top:1.5px dashed var(--site-line);border-bottom:1.5px dashed var(--site-line);margin:28px 0}
+  .specs b{font-family:var(--site-font-heading);font-size:1.5rem;display:block;line-height:1}
+  .specs span{font-size:12px;font-weight:600;color:var(--site-mute);margin-top:4px;display:block}
+  .bkrate{display:flex;align-items:baseline;gap:8px;padding-bottom:18px;border-bottom:1.5px dashed var(--site-line);margin-bottom:18px}
+  .bkrate .amt{font-family:var(--site-font-heading);font-size:2.2rem;line-height:1}
+  .bkgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .gtk{display:flex;flex-direction:column}
+  .gtk .row{display:flex;justify-content:space-between;gap:20px;padding:15px 0;border-bottom:1.5px dashed var(--site-line)}
+  .gtk .row .k{font-family:var(--site-font-heading);font-size:1.05rem}
+  .gtk .row .v{font-size:14.5px;color:var(--site-mute);text-align:right;max-width:34ch}
+  @media(max-width:860px){.rgal{grid-template-columns:1fr 1fr;height:auto;grid-auto-rows:150px;padding-top:88px}.rgal .gg.main{grid-column:span 2;grid-row:span 1;height:220px}.rlay{grid-template-columns:1fr}.summary{position:static}}
+</style>
+<script>
+document.documentElement.classList.add('js');
+window.MH_DEFAULTS = /*EDITMODE-BEGIN*/{"theme":"marmalade","font":"homely","shape":"soft"}/*EDITMODE-END*/;
+try{var d=window.MH_DEFAULTS,s={};try{s=JSON.parse(localStorage.getItem('mhTweaks')||'{}')}catch(e){}var t=Object.assign({},d,s);var r=document.documentElement;r.setAttribute('data-theme',t.theme);r.setAttribute('data-font',t.font);r.setAttribute('data-shape',t.shape);}catch(e){}
+</script>
+</head>
+<body>
+
+<header class="nav" data-screen-label="Room detail">
+  <div class="pill">
+    <a href="Home.html" class="brand"><span class="bmark">M</span>Marmalade House</a>
+    <nav class="pill-links">
+      <a href="Rooms.html" class="active">Rooms</a>
+      <div class="has-sub"><a href="Experiences.html">Explore</a><div class="pill-sub"><a href="Experiences.html">Things to do</a><a href="Gallery.html">Gallery</a><a href="Journal.html">Journal</a><a href="Specials.html">Offers</a></div></div>
+      <a href="About.html">The House</a>
+      <a href="Contact.html">Contact</a>
+    </nav>
+    <a href="Booking.html?room=Fig&rate=1450" class="book">Book a room</a>
+    <button class="burger" data-burger aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  </div>
+</header>
+
+<!-- GALLERY -->
+<section class="wrap" data-section="room_gallery" data-live="true">
+  <!-- empty: the room's own photos drive this mosaic + lightbox; one placeholder shows if none -->
+  <div class="rgal">
+    <div class="gg main"><img src="https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=1400&q=80" data-lb="https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=2000&q=80" alt="The Fig Room" onerror="this.style.display='none'" /></div>
+    <div class="gg"><img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&q=80" data-lb="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1600&q=80" alt="The bed" onerror="this.style.display='none'" /></div>
+    <div class="gg"><img src="https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&q=80" data-lb="https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1600&q=80" alt="The bathroom" onerror="this.style.display='none'" /></div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:clamp(36px,4vw,56px)" data-section="room_overview" data-live="true">
+  <div class="wrap">
+    <div class="rlay">
+      <div>
+        <div class="reveal">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><span class="eyebrow">Garden-facing · sleeps 2</span><span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--site-mute)"><span style="color:#E0913E">★★★★★</span> 4.98 · 96 stays</span></div>
+          <h1 style="margin-top:14px;font-size:clamp(2.4rem,5vw,3.8rem)">The Fig Room</h1>
+          <p class="lead" style="margin-top:16px">Our sunniest room, opening straight onto the old fig tree. A deep claw-foot bath under the window, a brass bed dressed in good linen, and birdsong for an alarm clock.</p>
+          <div class="specs"><div><b>2</b><span>Guests</span></div><div><b>1</b><span>King bed</span></div><div><b>28 m²</b><span>Room</span></div><div><b>Ground</b><span>Floor</span></div></div>
+        </div>
+        <div class="reveal"><h2 class="lg" style="font-size:clamp(1.5rem,3vw,2.1rem)">Small, but never plain</h2><p class="muted" style="margin-top:14px;max-width:58ch">Wake with the light, throw open the doors, and take your coffee on the little terrace while the garden comes alive. Inside: a deep bath, fresh flowers, a stack of good books, and a bed you'll be talked out of leaving.</p></div>
+        <div class="reveal" style="margin-top:40px" data-section="room_amenities">
+          <h2 class="lg" style="font-size:clamp(1.5rem,3vw,2.1rem)">In the room</h2>
+          <div class="amen" style="margin-top:20px">
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16M2 8h18l2-4"/></svg>King bed &amp; fresh linen</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21v-8M19 21v-8M4 13h16l-2-5H6z"/></svg>Claw-foot bath</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>Doors to the garden</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5l8 4 8-4v14l-8-4z"/></svg>Tea tray &amp; plunger coffee</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-9"/></svg>Fast Wi-Fi</div>
+            <div class="a"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7c0 5 7 13 7 13"/></svg>Heater &amp; fan</div>
+          </div>
+        </div>
+        <div class="reveal" style="margin-top:40px" data-section="room_policies">
+          <h2 class="lg" style="font-size:clamp(1.5rem,3vw,2.1rem)">Good to know</h2>
+          <div class="gtk" style="margin-top:16px">
+            <div class="row"><span class="k">Check-in / out</span><span class="v">From 2pm · until 10am</span></div>
+            <div class="row"><span class="k">Breakfast</span><span class="v">Included · 7–10am in the garden</span></div>
+            <div class="row"><span class="k">Cancellation</span><span class="v">Free up to 48 hours before arrival</span></div>
+            <div class="row"><span class="k">Children</span><span class="v">Over-8s welcome in this room</span></div>
+            <div class="row"><span class="k">Pets</span><span class="v">Sorry — the Stoep Suite only</span></div>
+          </div>
+        </div>
+      </div>
+      <aside>
+        <div class="summary" data-booking data-rate="1450" data-section="room_rate" data-live="true">
+          <div class="bkrate"><span class="amt">R1,450</span><span class="muted">/ night · incl. breakfast</span></div>
+          <div class="bkgrid"><div class="field" style="margin-bottom:12px"><label>Arrive</label><input type="date" name="checkin" value="2026-07-10" /></div><div class="field" style="margin-bottom:12px"><label>Depart</label><input type="date" name="checkout" value="2026-07-12" /></div></div>
+          <div class="field" style="margin-bottom:16px"><label>Guests</label><select name="guests"><option value="1">1 guest</option><option value="2" selected>2 guests</option></select></div>
+          <div class="sline" style="border-top:1.5px dashed var(--site-line);padding-top:14px"><span data-ratenights>R1,450 × 2 nights</span><b data-sub>R2,900</b></div>
+          <div class="sline"><span>Breakfast &amp; taxes</span><b>Included</b></div>
+          <div class="stotal"><span class="l">Total</span><span class="amt" data-total>R2,900</span></div>
+          <div class="nofee"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg><span><span data-nights>2 nights</span> · no booking fees, ever</span></div>
+          <a href="Booking.html?room=Fig&rate=1450" class="btn btn-accent btn-lg btn-block" style="margin-top:18px">Reserve this room</a>
+          <p class="muted center" style="font-size:12.5px;margin-top:12px">Free cancellation up to 48 hours before</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- CROSS-SELL -->
+<section class="section soft" data-section="rooms_preview" data-live="true">
+  <!-- empty: "More rooms will appear here once you add them." -->
+  <div class="wrap">
+    <div class="sec-head center reveal"><span class="hand">also free those nights</span><h2>The other rooms</h2></div>
+    <div class="pcgrid reveal">
+      <a href="Room.html" class="pc"><div class="pi"><span class="pcprice">R1,650</span><img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=900&q=80" alt="The Garden Room" onerror="this.style.display='none'" /></div><div class="cap">The Garden Room</div><div class="meta">Sleeps 2 · private stoep</div></a>
+      <a href="Room.html" class="pc"><div class="pi"><span class="pcprice">R2,300</span><img src="https://images.unsplash.com/photo-1566195992011-5f6b21e539aa?w=900&q=80" alt="The Stoep Suite" onerror="this.style.display='none'" /></div><div class="cap">The Stoep Suite</div><div class="meta">Sleeps 4 · for families</div></a>
+      <a href="Room.html" class="pc"><div class="pi"><span class="pcprice">R1,550</span><img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900&q=80" alt="The Loft" onerror="this.style.display='none'" /></div><div class="cap">The Loft</div><div class="meta">Sleeps 2 · village view</div></a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div><a href="Home.html" class="brand"><span class="bmark">M</span>Marmalade House</a><p class="foot-blurb">A five-room guesthouse in a restored 1873 parsonage in Prince Albert, in the heart of the Karoo. Sunny rooms, a fig garden, and very good breakfast.</p></div>
+      <div><div class="foot-h">The house</div><div class="foot-col"><a href="Rooms.html">Rooms</a><a href="Experiences.html">Things to do</a><a href="Gallery.html">Gallery</a><a href="Specials.html">Offers</a><a href="Journal.html">Journal</a></div></div>
+      <div><div class="foot-h">Stay</div><div class="foot-col"><a href="Booking.html">Book a room</a><a href="Contact.html">Getting here</a><a href="Contact.html">FAQ</a></div></div>
+      <div><div class="foot-h">Notes from the kitchen</div><p class="foot-blurb" style="margin-top:0">Open dates, the odd recipe, and when the figs are ripe. Once a month, never more.</p><form class="foot-news" onsubmit="return false"><input type="email" placeholder="you@email.com" aria-label="Email" /><button class="btn btn-accent btn-sm" type="submit">Join</button></form></div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Marmalade House · Prince Albert, Karoo</span>
+      <span class="foot-vilo"><svg width="15" height="15" viewBox="0 0 100 100" fill="none"><rect width="100" height="100" rx="24" fill="#10B981"/><path d="M20 30 L36 72 L50 44 L64 72 L80 30" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>Powered by Wielo · 0% booking fees</span>
+      <div class="foot-soc"><a href="#" aria-label="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a><a href="#" aria-label="Facebook"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a></div>
+    </div>
+  </div>
+</footer>
+
+<div class="mnav">
+  <div class="mnav-top"><a href="Home.html" class="brand"><span class="bmark">M</span>Marmalade House</a><button data-mclose aria-label="Close menu" style="background:none;border:none;color:var(--site-bg);cursor:pointer"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <nav class="mnav-links"><a href="Rooms.html">Rooms</a><a href="Experiences.html">Things to do</a><a href="Gallery.html">Gallery</a><a href="Journal.html">Journal</a><a href="Specials.html">Offers</a><a href="About.html">The House</a><a href="Contact.html">Contact</a></nav>
+  <a href="Booking.html?room=Fig&rate=1450" class="btn btn-accent btn-lg btn-block">Book a room</a>
+</div>
+
+<div class="lightbox" data-lightbox><img src="" alt="Room photo enlarged" /></div>
+<script src="marmalade.js"></script>
+</body>
+</html>
