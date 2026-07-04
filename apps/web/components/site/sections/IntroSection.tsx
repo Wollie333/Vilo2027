@@ -48,7 +48,9 @@ export function IntroSection({ props }: { props: Props }) {
             </p>
           </div>
           {props.image_path ? (
-            <div className="relative">
+            // Reserve space for the badge's -bottom-5 overhang so it never
+            // collides with the next section's heading (notably on mobile).
+            <div className={`relative ${showBadge ? "mb-8" : ""}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={props.image_path}
