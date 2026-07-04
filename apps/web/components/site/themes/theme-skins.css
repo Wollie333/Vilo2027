@@ -308,3 +308,53 @@
 .wielo-oceansview [data-section-type="reviews"] .grid > * {
   padding-top: 40px;
 }
+
+/* ======================================================================
+ * SABELA LODGE — dark-first editorial safari lodge (ebony · warm bone · gold)
+ * Ref: docs/themes/sabela/{theme.source.css, base.md, pages/*.html}
+ * FOUNDATION slice: extra tokens + hero display scale. Section skins land
+ * section-by-section next (same recipe as Oceans View). Scope: `.wielo-sabela`.
+ * ==================================================================== */
+.wielo-sabela {
+  /* Extra tokens the dark lodge look derives from (Ebony defaults from base.md),
+     beyond the core --site-* palette. Additive — brand-safe fallbacks elsewhere. */
+  --site-soft: #1a1710; /* raised dark band */
+  --site-soft-2: #221e15;
+  --site-tint: rgba(201, 162, 74, 0.15); /* gold tint (chips / icon boxes) */
+  --site-foot: #0c0a06;
+  --site-foot-ink: rgba(241, 234, 219, 0.56);
+  --site-foot-head: #f1eadb;
+  --site-cta-bg: #221e15;
+  --site-cta-ink: #f1eadb;
+  --site-cta-accent: #c9a24a; /* brand gold */
+  --site-ring: rgba(201, 162, 74, 0.24);
+  --site-accent-deep: #b08a34; /* darker gold (hover) */
+  /* Dark-first bands: sabela has no bright "sand"; the sand tone degrades to the
+     raised dark soft fill, and navy anchors deeper still. */
+  --site-navy: #0c0a06;
+  --site-navy-2: #1a1710;
+  --site-navy-ink: #f1eadb;
+  --site-navy-mute: #a99b7f;
+
+  /* Hero display type — editorial Cormorant Garamond scale (base.md). Read by
+     HeroSection as the `--el-*` fallback, so it stays host-editable. */
+  --site-hero-title-size: clamp(2.8rem, 6vw, 5.2rem);
+  --site-hero-title-weight: 600;
+  --site-hero-title-lh: 1.07;
+  --site-hero-title-ls: -0.02em;
+  --site-hero-sub-size: clamp(1.02rem, 1.5vw, 1.28rem);
+
+  /* Intro stat badge: gold-on-raised-dark (matches the lodge palette). */
+  --site-intro-badge-bg: var(--site-soft);
+  --site-intro-badge-fg: var(--site-ink);
+  --site-intro-badge-value: var(--site-accent);
+  --site-intro-eyebrow-fg: var(--site-accent);
+}
+
+/* Section heading scale (descendant beats the root's inline modular scale, no
+   !important, host edits still win) — sabela's editorial display sizes. */
+.wielo-sabela [data-section-type] {
+  --site-h1: clamp(2.8rem, 6vw, 5.2rem);
+  --site-h2: clamp(2rem, 3.6vw, 3.1rem);
+  --site-h3: 1.4rem;
+}
