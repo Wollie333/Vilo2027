@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-04 — Responsive: content sections get a mobile-safe band (all themes).
+
+Root cause of content sitting flush to the screen edge on mobile: the flat
+theme-template render path (`SectionRenderer`) never supplied a band padding /
+content-width clamp — theme-template section styles are empty `{}`, the reframed
+section components are bare, and unlike v2's `PageDocRenderer` (`SECTION_DEFAULT`
+pl/pr:24) nothing filled that gap. So every content section rendered edge-to-edge
+at every width (worst on phones).
+
+Fix (`SectionRenderer.tsx` `SectionWrap`): wrap CONTENT sections in a centred
+`.site-band` — `max-width:1180; margin-inline:auto; padding-inline:clamp(20,4vw,32)`.
+Genuinely full-bleed sections (`hero`/`gallery`/`cta` — own background + internal
+padding) opt out via `FULL_BLEED_SECTIONS`. Systemic → fixes every page on every
+theme. Verified across the Oceans View pages at 375px (intro/highlights/rooms/
+specials/about/contact/experiences/blog: 20px gutter, no horizontal overflow, full-
+bleed heroes/galleries/CTAs preserved) and at 1280px (content clamps to 1180
+centred, splits intact).
+
 ## 2026-07-04 — Builder: Elementor-style icon picker (Lucide + emoji + upload).
 
 An icon control where the host picks a free icon, types an emoji, or uploads an

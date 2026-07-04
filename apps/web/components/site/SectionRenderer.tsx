@@ -143,12 +143,28 @@ function SectionWrap({
   const cls = `wsec-${section.id.replace(/-/g, "")}`;
   const css = blockStyleCss(cls, section.style);
 
+  // Bare theme-template blocks carry no band padding or content-width clamp of
+  // their own (the reframe made them "the section owns padding + width"), and the
+  // flat template render path — unlike the v2 PageDocRenderer's SECTION_DEFAULT —
+  // never supplied that band. So wrap CONTENT sections in a centred, gutter-padded
+  // band: content never touches the screen edge on mobile and never over-stretches
+  // on wide desktops. Genuinely full-bleed sections (hero/gallery/cta own their own
+  // background + internal padding) opt out and render edge-to-edge.
+  const banded = !FULL_BLEED_SECTIONS.has(section.type);
+  const content = banded ? (
+    <div className="site-band" style={BAND_STYLE}>
+      {children}
+    </div>
+  ) : (
+    children
+  );
+
   // Always emit a wrapping element carrying the stable `data-section-type` hook
   // so per-theme skins can target each block on this (flat) render path too —
   // matching the v2 PageDocRenderer. A bare block `<div>` with only the data
   // attribute is layout-neutral.
   if (!fill && !hasVars && !visClass && !css)
-    return <div data-section-type={section.type}>{children}</div>;
+    return <div data-section-type={section.type}>{content}</div>;
   const className =
     [visClass, css ? cls : ""].filter(Boolean).join(" ") || undefined;
   return (
@@ -158,10 +174,23 @@ function SectionWrap({
       className={className}
     >
       {css ? <style>{css}</style> : null}
-      {hasVars ? <div style={toneVars}>{children}</div> : children}
+      {hasVars ? <div style={toneVars}>{content}</div> : content}
     </div>
   );
 }
+
+// Sections that render edge-to-edge (own full-bleed background + internal padding)
+// — they must NOT be clamped/gutter-padded by the content band.
+const FULL_BLEED_SECTIONS = new Set(["hero", "gallery", "cta"]);
+// Centred content band: a mobile-safe horizontal gutter (never flush to the edge)
+// plus a max-width so text doesn't over-stretch on wide screens. Matches the v2
+// renderer's 1180px content width.
+const BAND_STYLE: CSSProperties = {
+  width: "100%",
+  maxWidth: 1180,
+  marginInline: "auto",
+  paddingInline: "clamp(20px, 4vw, 32px)",
+};
 
 function SectionSwitch({
   section,
