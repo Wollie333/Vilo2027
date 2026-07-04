@@ -8,11 +8,13 @@ import { SectionShell, SectionHeading, Muted } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "contact_form" }>["props"];
 
+// Per-element styling: the input fields read `--el-field-*` (host-editable via the
+// contact_form "field" element), falling back to the theme tokens.
 const fieldStyle: CSSProperties = {
-  background: "var(--site-bg)",
+  background: "var(--el-field-bg, var(--site-bg))",
   borderColor: "var(--site-line)",
-  color: "var(--site-ink)",
-  borderRadius: "var(--site-radius)",
+  color: "var(--el-field-fg, var(--site-ink))",
+  borderRadius: "var(--el-field-radius, var(--site-radius))",
 };
 
 /**
@@ -161,10 +163,11 @@ export function ContactFormSection({
         type="submit"
         disabled={!live || status === "sending"}
         style={{
-          background: "var(--site-btn-primary-bg)",
-          color: "var(--site-btn-primary-color)",
-          border: "var(--site-btn-primary-border)",
-          borderRadius: "var(--site-btn-primary-radius)",
+          background: "var(--el-button-bg, var(--site-btn-primary-bg))",
+          color: "var(--el-button-fg, var(--site-btn-primary-color))",
+          border: "var(--el-button-bd, var(--site-btn-primary-border))",
+          borderRadius:
+            "var(--el-button-radius, var(--site-btn-primary-radius))",
         }}
         className="inline-flex w-full items-center justify-center px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto"
       >
