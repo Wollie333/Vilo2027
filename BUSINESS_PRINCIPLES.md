@@ -287,3 +287,43 @@ breaks the brand promise on both sides.
   **brand tokens** (`--brand-*`, Vilo green `#10b981`).
 - A shared component used on both (e.g. `AmenitiesCategorized`) stays
   colour-agnostic via CSS vars and lets each caller supply the right world's colours.
+
+---
+
+## Principle #7 — Plan first, then ship in phased save points
+
+**Date:** 2026-07-05
+**Status:** Active
+
+### The principle
+
+**Every new feature, and every major change to an existing feature, is planned
+before any code is written — and then delivered in phases, each ending in a
+committed, pushed save point.** This is the default workflow, always.
+
+The sequence, every time:
+
+1. **Plan.** Study the *existing codebase* first (what's already there to reuse, what
+   the change touches) and state the *expected outcome*. Write the plan down for
+   anything non-trivial (a `docs/features/*.md` for a real feature).
+2. **Phase it.** Break the work into small, easy-to-execute phases — each one a
+   coherent, independently-verifiable slice, not a big-bang.
+3. **Save point per phase.** When a phase is complete and green (build/lint/tests),
+   create a save point: **commit and push to `main`.** Then start the next phase.
+
+### Why this matters
+
+- Planning against the real codebase prevents rebuilding what exists and catches the
+  blast radius before it becomes a mess (reinforces Principle #5, One Source of Truth).
+- Small phases keep every step reviewable and reversible; a committed-and-pushed save
+  point after each means work is never lost and `main` always moves in verified steps.
+- It makes progress legible: at any moment there's a plan, a current phase, and a
+  clean history of shipped save points.
+
+### How to apply it
+
+- Before building: map the touched systems, confirm the approach, write the plan.
+- Size phases so each is genuinely easy to do and to verify.
+- After each phase: build/lint/test green → commit → **push to `main`** → next phase.
+- Don't batch several phases into one unverified push, and don't start a feature by
+  writing code before the plan exists.
