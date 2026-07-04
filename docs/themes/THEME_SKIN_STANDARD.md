@@ -241,6 +241,14 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   only shows in preview / until the host adds data. This is correct.
 - **Preview width** is ~726px (below `md`) — resize to 1280 to check desktop
   layouts.
+- **Some pages are FIXED system routes, not builder docs** — `/blog` (index),
+  `/blog/[slug]`, `/search`, likely checkout/thank-you render from dedicated
+  `app/[locale]/site/**/page.tsx` files, NOT the page's `published_sections`. A
+  reseed of those page kinds is unused. They still sit inside `SiteThemeRoot`
+  (the `.wielo-<slug>` scope) and use `--site-*`, so you can SKIN them (add a
+  stable class hook to the route, then scope CSS) — but you can't restructure them
+  per-theme. Reproducing a reference layout they don't have is a platform change
+  to the shared route.
 - **`pnpm build` while the dev server is running corrupts the shared `.next`** —
   don't; use `tsc --noEmit` + `eslint <files>` to gate a commit instead.
 - **Formatter strips a leading space in a template-literal `className`
@@ -275,6 +283,14 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   Fixed a general responsive gap: multi-column `stack` sections now emit a
   stacking media query so they collapse on live phones (was builder-device only).
   Live-verified on `/rooms/olive-room`, desktop + mobile.
+- **Journal (/blog) — PARTIAL** (2026-07-03). `/blog` is a FIXED system route
+  (`app/[locale]/site/blog/page.tsx`), not a builder doc — so the reference's hero
+  page-head + featured post + newsletter can't come from a reseed. Skinned its card
+  grid (hover-lift via a `site-blog-grid` hook). Added reusable blocks for a
+  journal teaser on any BUILDER page: `blog_preview` "journal" display (featured +
+  grid, one block) and `cta` "newsletter" (email + subscribe). ⚠️ Matching the
+  reference Journal fully needs a platform change to the shared blog route (adds a
+  page-head + featured) — affects every theme; flagged, not done.
 - **Contact — DONE** (2026-07-03). Page-head hero + `contact_form` (split, posts
   to `/api/website-enquiry`) + FAQ accordion (sand). Added `contact_form` to the
   coral conversion-CTA scope (design reserves coral for book + submit). Deferred:

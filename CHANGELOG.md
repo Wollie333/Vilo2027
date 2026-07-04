@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-07-03 — Journal: blog_preview "journal" variant, cta newsletter, blog-index skin (`129f2350`).
+
+- `/blog` is a fixed SYSTEM route (not a builder doc), so the reference Journal's
+  hero page-head + featured post + newsletter can't come from a reseed. Skinned its
+  card grid (hover-lift via a `site-blog-grid` hook).
+- Reusable block additions for a journal teaser on any BUILDER page: `blog_preview`
+  "journal" display (a large featured post over a grid of the rest, one block) and
+  `cta` "newsletter" (email + subscribe form instead of the link button).
+- Live-verified `/blog` renders on-brand. Flagged: matching the reference Journal
+  fully needs the shared blog route to gain a page-head + featured (platform change,
+  affects every theme).
+
 ## 2026-07-03 — Oceans View contact page (`e7c33e96`).
 
 Contact rebuilt to its reference from generic, editable blocks: page-head hero
