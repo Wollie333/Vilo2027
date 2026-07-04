@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-04 — Menu system: named menus, out-of-the-box Main menu, working ☰ in canvas.
+
+- **Named-menu model (`6ef11cd6`):** `navigation.menus[]` (each `{id,name,items}`) +
+  `navigation.primaryMenuId`. The header render path stays on `navigation.menu`, kept
+  mirrored to the primary menu's items, so live sites carry zero risk. Pure helpers in
+  `lib/site/namedMenus.ts` (`resolveNamedMenus`/`resolvePrimaryMenuId`/`primaryMenuItems`/
+  `withNamedMenus`); Zod + `SiteNavigation` type extended.
+- **Nav builder UI:** Links tab gained a menu switcher (select / new / rename / delete +
+  "make this the header menu"); the link list edits the selected menu. Header tab gained a
+  **Primary menu** dropdown that picks which named menu drives the header.
+- **Working mobile ☰ in the canvas:** the hamburger is now interactive — it opens a live
+  drawer preview styled from the Mobile-menu panel (overlay bg, link colour/size/weight/
+  uppercase, backdrop tint).
+- **Ships with a working menu:** `applyThemeAction` now seeds a default **"Main menu"**
+  from the site's in-nav pages on activation (not just lazily on the old dashboard page);
+  `ensureDefaultMenu` also upgrades a legacy single menu into the named shape once.
+- tsc + eslint clean; **215 vitest** (9 new for the named-menu model). Not yet
+  live-clicked — the shared preview tab was pinned to a concurrent session's site URL.
+
 ## 2026-07-04 — Offer card details, Mobile-menu styling, scrollable nav canvas.
 
 - **Offer card (`0d7eb0f7`):** the "Offer applied" card now prints the special's real
