@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-07-03 — Wire the hero skin into per-element controls (`e5bc85f8`).
+
+The hero's design is now the host-EDITABLE default of each element (not a CSS
+`!important` pin). HeroSection reads `--el-<key>-*` on the eyebrow/title/sub/both
+buttons, falling back to the theme's `--site-hero-*` display scale then generic
+`--site-*`. The registry declares the hero elements so the builder inspector shows
+the controls; the theme-skins.css hero scale moved to `--site-hero-*` theme vars
+(no `!important`). Verified: default renders the design (102px/800/lh.95), a seeded
+`--el-title-size`/`-fg` override wins. Pattern documented in THEME_SKIN_STANDARD §5b.
+
 ## 2026-07-03 — Journal: blog_preview "journal" variant, cta newsletter, blog-index skin (`129f2350`).
 
 - `/blog` is a fixed SYSTEM route (not a builder doc), so the reference Journal's

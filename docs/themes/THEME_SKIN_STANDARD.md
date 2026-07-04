@@ -184,6 +184,36 @@ coral-number override.)
 
 ---
 
+## 5b. Wire the skin INTO the elements (host-editable design)
+
+A CSS-only skin makes an element pixel-perfect but **not editable** — the host
+can't nudge it in the builder. The goal is: the theme's design is the *default*
+of a per-element control the host can override. Three parts, per element:
+
+1. **Component reads `--el-<key>-<prop>`** with the theme design as the FALLBACK
+   (never as the `--el-*` slot itself — see the "never set an `--el-*` slot"
+   rule). Layer the fallback so the design lives in a THEME var:
+   ```
+   fontSize: "var(--el-title-size, var(--site-hero-title-size, var(--site-h1)))"
+   //         ^host edit           ^theme design default        ^generic fallback
+   ```
+2. **Theme sets the design default** as a `--site-*` theme var in
+   `theme-skins.css` (e.g. `--site-hero-title-size: clamp(3rem,8vw,7rem)`). Fluid
+   clamps stay responsive until a host sets a fixed px via `--el-*`.
+3. **Registry declares the element** in `WidgetDef.elements` (key + label +
+   controls) so the builder's Style-tab "Elements" accordion shows it. The `key`
+   MUST match the `--el-<key>-*` the component reads.
+
+Result: default = the theme's pixel-perfect design; the host can restyle each
+element (colour/size/weight/radius/…) in the builder; other themes (no
+`--site-*` default) fall back to the generic scale — no regression. Prefer this
+over a CSS-property skin whenever the property is one the `--el-*` system can
+carry (colour, font-size px, weight, line-height, letter-spacing, radius, bg,
+border, shadow). STRUCTURAL/interactive things the `--el-*` system can't express
+— hover transforms, gradients/scrims, grid spans, sticky, pseudo-element quote
+marks, measure/margins — stay in the skin CSS (not per-element editable; that's
+inherent). Done for the hero (`e5bc85f8`): eyebrow/title/sub/both buttons.
+
 ## 6. Bake this into the reference design (so skinning is fast)
 
 When commissioning / drawing a NEW theme reference, design **against the generic
