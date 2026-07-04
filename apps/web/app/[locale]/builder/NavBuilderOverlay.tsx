@@ -148,6 +148,17 @@ export function NavBuilderOverlay({
   };
   const setBase = (patch: Partial<SiteMenuStyle>) =>
     onMenuStyleChange({ ...menuStyle, ...patch });
+  // The ☰ drawer's own styling lives on menuStyle.mobile (always, regardless of the
+  // device toggle); the hamburger ICON lives on header.burger.
+  const mob = (menuStyle.mobile ?? {}) as NonNullable<SiteMenuStyle["mobile"]>;
+  const setMobile = (patch: Partial<NonNullable<SiteMenuStyle["mobile"]>>) =>
+    onMenuStyleChange({
+      ...menuStyle,
+      mobile: { ...(menuStyle.mobile ?? {}), ...patch },
+    });
+  const burgerCfg = header.burger ?? {};
+  const setBurger = (patch: Partial<NonNullable<NavHeader["burger"]>>) =>
+    setHeader({ burger: { ...(header.burger ?? {}), ...patch } });
   const [addLabel, setAddLabel] = useState("");
   const idRef = useRef(0);
   const newId = () => `nav-${Date.now().toString(36)}-${++idRef.current}`;
@@ -722,6 +733,115 @@ export function NavBuilderOverlay({
                 value={menuStyle.submenuBg ?? "#FFFFFF"}
                 palette={["#FFFFFF", "#FBF4E6", "#F0FDF4", "#2C2620"]}
                 onChange={(v) => setBase({ submenuBg: v })}
+              />
+            </NavAcc>
+
+            {/* Mobile menu — the ☰ drawer overlay + the hamburger icon. Always
+                edits menuStyle.mobile / header.burger (mobile-specific), regardless
+                of the device toggle above. Applies on the live site + canvas. */}
+            <NavAcc
+              i={4}
+              openAcc={openAcc}
+              toggle={toggleAcc}
+              Icon={Smartphone}
+              title="Mobile menu"
+              sub="The ☰ drawer overlay + hamburger"
+            >
+              <Swatch
+                label="Overlay background"
+                value={mob.overlayBg ?? "#FFFFFF"}
+                palette={["#FFFFFF", "#0B2A38", "#052E1F", "#2C2620", accent]}
+                onChange={(v) => setMobile({ overlayBg: v })}
+              />
+              <Swatch
+                label="Link colour"
+                value={mob.color ?? "#052E1F"}
+                palette={["#052E1F", "#2C2620", accent, "#FFFFFF"]}
+                onChange={(v) => setMobile({ color: v })}
+              />
+              <Rng
+                label="Link size"
+                min={14}
+                max={28}
+                value={mob.fontSize ?? 16}
+                suffix="px"
+                onChange={(v) => setMobile({ fontSize: v })}
+              />
+              <SelRow
+                label="Link weight"
+                value={mob.weight ?? "medium"}
+                options={[
+                  ["normal", "Light"],
+                  ["medium", "Regular"],
+                  ["semibold", "Semibold"],
+                  ["bold", "Bold"],
+                ]}
+                onChange={(v) =>
+                  setMobile({ weight: v as SiteMenuDeviceStyle["weight"] })
+                }
+              />
+              <ToggleRow
+                label="UPPERCASE links"
+                value={mob.uppercase ?? false}
+                onChange={(v) => setMobile({ uppercase: v })}
+              />
+              <Swatch
+                label="Backdrop tint"
+                value={mob.backdropColor ?? "rgba(0,0,0,0.4)"}
+                palette={[
+                  "rgba(0,0,0,0.4)",
+                  "rgba(0,0,0,0.6)",
+                  "rgba(11,42,56,0.7)",
+                  "rgba(5,46,31,0.6)",
+                ]}
+                onChange={(v) => setMobile({ backdropColor: v })}
+              />
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  opacity: 0.55,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  margin: "12px 0 2px",
+                }}
+              >
+                Hamburger icon
+              </div>
+              <SelRow
+                label="Icon style"
+                value={burgerCfg.style ?? "lines"}
+                options={[
+                  ["lines", "Lines"],
+                  ["short", "Staggered"],
+                  ["dots", "Dots"],
+                  ["grid", "Grid"],
+                ]}
+                onChange={(v) =>
+                  setBurger({
+                    style: v as NonNullable<NavHeader["burger"]>["style"],
+                  })
+                }
+              />
+              <Swatch
+                label="Icon colour"
+                value={burgerCfg.color ?? "#052E1F"}
+                palette={["#052E1F", "#2C2620", accent, "#FFFFFF"]}
+                onChange={(v) => setBurger({ color: v })}
+              />
+              <Swatch
+                label="Button background"
+                value={burgerCfg.bg ?? "transparent"}
+                palette={["transparent", "#F0FDF4", accent, "#0B2A38"]}
+                onChange={(v) => setBurger({ bg: v })}
+              />
+              <Rng
+                label="Icon size"
+                min={18}
+                max={40}
+                value={burgerCfg.size ?? 26}
+                suffix="px"
+                onChange={(v) => setBurger({ size: v })}
               />
             </NavAcc>
           </aside>

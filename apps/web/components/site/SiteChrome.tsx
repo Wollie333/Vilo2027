@@ -641,6 +641,17 @@ function menuItemStyleCss(
  * the collapse breakpoint, and a hamburger drawer below it. `collapse` lets the
  * host choose when it collapses — phones only, tablets too, or never.
  */
+// Host mobile-drawer styling (from navigation.menuStyle.mobile) threaded to the
+// hamburger drawer so it themes on the live site + builder canvas.
+type MobileMenuStyle = {
+  overlayBg?: string | null;
+  color?: string | null;
+  fontSize?: number | null;
+  weight?: "normal" | "medium" | "semibold" | "bold" | null;
+  uppercase?: boolean | null;
+  backdropColor?: string | null;
+};
+
 function HeaderMenu({
   menu,
   collapse,
@@ -650,6 +661,7 @@ function HeaderMenu({
   dark,
   preview,
   burger,
+  mobileStyle,
 }: {
   menu: SiteMenuItem[];
   collapse: MenuCollapse;
@@ -659,6 +671,7 @@ function HeaderMenu({
   dark?: boolean;
   preview?: PreviewCtx;
   burger?: BurgerConfig;
+  mobileStyle?: MobileMenuStyle;
 }) {
   if (menu.length === 0) return null;
   if (collapse === "never") {
@@ -690,6 +703,7 @@ function HeaderMenu({
         bookLabel={bookLabel}
         dark={dark}
         burger={burger}
+        mobile={mobileStyle}
         className={`${burgerShow} wielo-cq-burg-${bp}`}
       />
     </>
@@ -799,6 +813,7 @@ function HeaderInner({
   dark,
   preview,
   burger,
+  mobileStyle,
 }: {
   variant: SiteHeaderLayout;
   brand: SiteBrand;
@@ -819,6 +834,7 @@ function HeaderInner({
   dark?: boolean;
   preview?: { subdomain: string; themeSlug?: string };
   burger?: BurgerConfig;
+  mobileStyle?: MobileMenuStyle;
 }) {
   // Per-device logo (desktop base + tablet/mobile overrides). Style swaps markup,
   // so — like Safari — the builder renders the active device (previewDevice) and
@@ -890,6 +906,7 @@ function HeaderInner({
             menu={menu}
             collapse={collapse}
             burger={burger}
+            mobileStyle={mobileStyle}
             navClassName="flex-wrap items-center gap-x-6 gap-y-2"
             bookHref={bookHref}
             bookLabel={bookLabel}
@@ -923,6 +940,7 @@ function HeaderInner({
               bookLabel={bookLabel}
               dark={dark}
               burger={burger}
+              mobile={mobileStyle}
             />
           ) : null}
         </div>
@@ -938,6 +956,7 @@ function HeaderInner({
             menu={menu}
             collapse={collapse}
             burger={burger}
+            mobileStyle={mobileStyle}
             navClassName="items-center gap-5"
             bookHref={bookHref}
             bookLabel={bookLabel}
@@ -964,6 +983,7 @@ function HeaderInner({
         menu={menu}
         collapse={collapse}
         burger={burger}
+        mobileStyle={mobileStyle}
         navClassName={`flex-1 ${alignClass} items-center gap-6`}
         bookHref={bookHref}
         bookLabel={bookLabel}
@@ -1339,6 +1359,7 @@ export function SiteChrome({
               dark={headerDark}
               preview={preview}
               burger={navigation.header?.burger}
+              mobileStyle={mergedMenuStyle?.mobile}
             />
           </div>
           <div className="wielo-cq-m md:hidden">
@@ -1360,6 +1381,7 @@ export function SiteChrome({
               dark={headerDark}
               preview={preview}
               burger={navigation.header?.burger}
+              mobileStyle={mergedMenuStyle?.mobile}
             />
           </div>
         </StickyHeader>

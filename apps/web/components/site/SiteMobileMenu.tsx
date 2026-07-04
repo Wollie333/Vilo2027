@@ -12,12 +12,20 @@ import type { SiteMenuItem } from "@/lib/site/types";
  * friendly, unlike the desktop hover dropdowns. Themed entirely off `--site-*`
  * so it matches every theme. Closes on link tap, backdrop, the X, or Escape.
  */
+const WEIGHT_CSS: Record<string, number> = {
+  normal: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+};
+
 export function SiteMobileMenu({
   menu,
   bookHref,
   bookLabel,
   dark,
   burger,
+  mobile,
   className = "",
 }: {
   menu: SiteMenuItem[];
@@ -26,10 +34,31 @@ export function SiteMobileMenu({
   dark?: boolean;
   /** Host ☰ icon design (colour / size / weight / glyph / button background). */
   burger?: BurgerConfig;
+  /** Host mobile-drawer styling (overlay/backdrop colours, link type). All optional
+   *  — each falls back to the theme token so an unstyled drawer looks identical. */
+  mobile?: {
+    overlayBg?: string | null;
+    color?: string | null;
+    fontSize?: number | null;
+    weight?: "normal" | "medium" | "semibold" | "bold" | null;
+    uppercase?: boolean | null;
+    backdropColor?: string | null;
+  };
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  // Host overrides win; otherwise the theme tokens (identical to before).
+  const drawerBg = mobile?.overlayBg?.trim() || "var(--site-bg)";
+  const linkColor = mobile?.color?.trim() || "var(--site-ink)";
+  const backdrop = mobile?.backdropColor?.trim() || "rgba(0,0,0,0.4)";
+  const linkType = {
+    color: linkColor,
+    ...(mobile?.fontSize ? { fontSize: mobile.fontSize } : {}),
+    ...(mobile?.weight ? { fontWeight: WEIGHT_CSS[mobile.weight] } : {}),
+    ...(mobile?.uppercase ? { textTransform: "uppercase" as const } : {}),
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -76,13 +105,14 @@ export function SiteMobileMenu({
             type="button"
             aria-label="Close menu"
             onClick={() => setOpen(false)}
-            className="fixed inset-0 z-[60] bg-black/40"
+            style={{ background: backdrop }}
+            className="fixed inset-0 z-[60]"
           />
           {/* Drawer */}
           <div
             role="dialog"
             aria-modal="true"
-            style={{ background: "var(--site-bg)", color: "var(--site-ink)" }}
+            style={{ background: drawerBg, color: linkColor }}
             className="fixed inset-y-0 right-0 z-[61] flex w-[86%] max-w-sm flex-col shadow-2xl"
           >
             <div
@@ -92,7 +122,7 @@ export function SiteMobileMenu({
               <span
                 style={{
                   fontFamily: "var(--site-font-heading)",
-                  color: "var(--site-ink)",
+                  color: linkColor,
                 }}
                 className="text-sm font-semibold uppercase tracking-wide"
               >
@@ -102,7 +132,7 @@ export function SiteMobileMenu({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close menu"
-                style={{ color: "var(--site-ink)" }}
+                style={{ color: linkColor }}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--site-radius)] transition-opacity hover:opacity-70"
               >
                 <X className="h-5 w-5" />
@@ -120,7 +150,7 @@ export function SiteMobileMenu({
                       target={item.newTab ? "_blank" : undefined}
                       rel={item.newTab ? "noopener noreferrer" : undefined}
                       onClick={() => setOpen(false)}
-                      style={{ color: "var(--site-ink)" }}
+                      style={linkType}
                       className="block rounded-[var(--site-radius)] px-3 py-3 text-base font-medium transition-colors hover:bg-[var(--site-surface)]"
                     >
                       {item.label}
@@ -136,7 +166,7 @@ export function SiteMobileMenu({
                         setExpanded((p) => ({ ...p, [item.id]: !isOpen }))
                       }
                       aria-expanded={isOpen}
-                      style={{ color: "var(--site-ink)" }}
+                      style={linkType}
                       className="flex w-full items-center justify-between rounded-[var(--site-radius)] px-3 py-3 text-base font-medium transition-colors hover:bg-[var(--site-surface)]"
                     >
                       {item.label}

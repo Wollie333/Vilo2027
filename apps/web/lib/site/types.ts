@@ -128,7 +128,10 @@ export type SiteMenuStyle = {
   /** Per-device overrides scoped to screen size (mirrors the page builder). */
   tablet?: SiteMenuDeviceStyle;
   /** Mobile = the ☰ drawer / overlay (its own background + link styling). */
-  mobile?: SiteMenuDeviceStyle & { overlayBg?: string };
+  mobile?: SiteMenuDeviceStyle & {
+    overlayBg?: string;
+    backdropColor?: string;
+  };
 };
 /** Per-page menu/header override — appearance + style scoped to one page key. */
 export type MenuPageOverride = {

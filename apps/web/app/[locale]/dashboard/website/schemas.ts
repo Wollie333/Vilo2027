@@ -872,7 +872,10 @@ export const menuStyleSchema = z
     tablet: menuDeviceStyleSchema.optional(),
     // Mobile — the ☰ drawer / overlay (its own bg + link styling).
     mobile: menuDeviceStyleSchema
-      .extend({ overlayBg: z.string().trim().max(40).optional() })
+      .extend({
+        overlayBg: z.string().trim().max(40).optional(),
+        backdropColor: z.string().trim().max(40).optional(),
+      })
       .optional(),
   })
   .default({ weight: "medium", uppercase: false, align: "start" });
