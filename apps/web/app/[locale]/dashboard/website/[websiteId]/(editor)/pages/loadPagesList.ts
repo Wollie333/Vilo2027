@@ -6,9 +6,10 @@ import { siteImageUrl } from "@/lib/site/image";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import { createServerClient } from "@/lib/supabase/server";
 import {
-  parseSectionsLoose,
-  type WebsiteSection,
-} from "@/lib/website/sections.schema";
+  countRenderableSections,
+  renderableLeaves,
+  type RenderableLeaf,
+} from "@/lib/website/pageDoc.schema";
 import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
 
 /** A page's featured-image thumbnail: the first uploaded image across its
@@ -19,9 +20,9 @@ import { getThemeRoomDetailSections } from "@/lib/website/themeSections";
  *  Stored values are bare `website-assets` paths, so resolve them to a public URL
  *  first (`websiteAssetUrl`), THEN transform to a small thumbnail. Passing a bare
  *  path straight to `siteImageUrl` returns it unchanged → a broken <img>. */
-function firstSectionImage(sections: WebsiteSection[]): string | null {
+function firstSectionImage(sections: RenderableLeaf[]): string | null {
   for (const s of sections) {
-    const p = s.props as Record<string, unknown>;
+    const p = s.props;
     const raw = p.image_path ?? p.photo_path ?? p.src;
     if (typeof raw === "string" && raw.trim()) {
       const full = websiteAssetUrl(raw);
@@ -53,6 +54,10 @@ async function ensureRoomDetailPage(
     .maybeSingle();
   if (existing) return;
 
+  // Seed BOTH draft and published with the theme's room layout, so this system
+  // template ships LIVE + shows "Published" the moment it's created (mirrors
+  // applyThemeAction). Seeding published as [] left it perpetually "Draft" + dirty.
+  const sections = getThemeRoomDetailSections(themePreset);
   await supabase.from("website_pages").insert({
     website_id: websiteId,
     kind: "room_detail",
@@ -60,8 +65,8 @@ async function ensureRoomDetailPage(
     title: "Room details",
     show_in_nav: false,
     nav_order: 900,
-    draft_sections: getThemeRoomDetailSections(themePreset),
-    published_sections: [],
+    draft_sections: sections,
+    published_sections: sections,
   });
 }
 
@@ -83,6 +88,19 @@ async function ensureSearchResultsPage(
     .maybeSingle();
   if (existing) return;
 
+  // Seed BOTH draft and published so the system template ships LIVE + reads
+  // "Published" immediately (see ensureRoomDetailPage).
+  const sections = [
+    {
+      id: crypto.randomUUID(),
+      type: "search_results",
+      enabled: true,
+      props: {
+        heading: "Available stays",
+        body: "Choose your dates to see what’s open — book direct for the best rate.",
+      },
+    },
+  ];
   await supabase.from("website_pages").insert({
     website_id: websiteId,
     kind: "search_results",
@@ -90,18 +108,8 @@ async function ensureSearchResultsPage(
     title: "Search results",
     show_in_nav: false,
     nav_order: 905,
-    draft_sections: [
-      {
-        id: crypto.randomUUID(),
-        type: "search_results",
-        enabled: true,
-        props: {
-          heading: "Available stays",
-          body: "Choose your dates to see what’s open — book direct for the best rate.",
-        },
-      },
-    ],
-    published_sections: [],
+    draft_sections: sections,
+    published_sections: sections,
   });
 }
 
@@ -175,7 +183,9 @@ export async function loadPagesList(
     .order("nav_order", { ascending: true });
 
   return (rows ?? []).map((r) => {
-    const draft = parseSectionsLoose(r.draft_sections);
+    // v2-aware: a Builder V2 page stores a PageDoc OBJECT (not a section array),
+    // so counting must use `countRenderableSections` — `parseSectionsLoose` alone
+    // returns 0 for a PageDoc and mislabels every published v2 page as "Draft".
     return {
       id: r.id,
       kind: r.kind,
@@ -183,9 +193,9 @@ export async function loadPagesList(
       navLabel: r.nav_label,
       title: r.title,
       showInNav: r.show_in_nav,
-      draftCount: draft.length,
-      publishedCount: parseSectionsLoose(r.published_sections).length,
-      thumbUrl: firstSectionImage(draft),
+      draftCount: countRenderableSections(r.draft_sections),
+      publishedCount: countRenderableSections(r.published_sections),
+      thumbUrl: firstSectionImage(renderableLeaves(r.draft_sections)),
     };
   });
 }

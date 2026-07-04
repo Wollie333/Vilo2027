@@ -21,6 +21,7 @@ import {
   SECTION_TYPES,
   blockStyleSchema,
   elementStylesSchema,
+  parseSectionsLoose,
 } from "./sections.schema";
 
 // ── Widget vocabulary ─────────────────────────────────────────
@@ -318,4 +319,66 @@ export function isPageDoc(value: unknown): value is PageDoc {
 export function parsePageDocLoose(value: unknown): PageDoc | null {
   const res = pageDocSchema.safeParse(value);
   return res.success ? res.data : null;
+}
+
+/** A renderable leaf of a stored page (widget), whether from a flat WebsiteSection[]
+ *  or a Builder V2 PageDoc — enough to count content + find a thumbnail. */
+export type RenderableLeaf = {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+};
+
+/** Walk a PageDoc's tree (section → column → widget) and collect its widget LEAVES
+ *  (container nodes — those with `kids` — are excluded). */
+export function pageDocLeaves(doc: PageDoc): RenderableLeaf[] {
+  const out: RenderableLeaf[] = [];
+  const walk = (
+    kids: Array<{
+      id: string;
+      type: string;
+      kids?: unknown[];
+      props?: unknown;
+    }>,
+  ) => {
+    for (const n of kids) {
+      if (Array.isArray(n.kids)) {
+        walk(n.kids as Parameters<typeof walk>[0]);
+      } else {
+        out.push({
+          id: n.id,
+          type: n.type,
+          props: (n.props ?? {}) as Record<string, unknown>,
+        });
+      }
+    }
+  };
+  const rootKids = (doc.root as { kids?: unknown[] }).kids;
+  if (Array.isArray(rootKids)) walk(rootKids as Parameters<typeof walk>[0]);
+  return out;
+}
+
+/**
+ * The renderable leaves of a stored page value, normalising BOTH shapes: a legacy
+ * flat `WebsiteSection[]` and a Builder V2 `PageDoc`. This is the single v2-aware
+ * lens the Pages manager / publish-state code must use — `parseSectionsLoose`
+ * alone returns `[]` for a PageDoc (it's an object, not an array), which would
+ * mislabel every published v2 page as empty/"Draft".
+ */
+export function renderableLeaves(value: unknown): RenderableLeaf[] {
+  if (isPageDoc(value)) {
+    const doc = parsePageDocLoose(value);
+    return doc ? pageDocLeaves(doc) : [];
+  }
+  return parseSectionsLoose(value).map((s) => ({
+    id: s.id,
+    type: s.type,
+    props: (s.props ?? {}) as Record<string, unknown>,
+  }));
+}
+
+/** How many renderable widgets a stored page value holds (0 = empty / unpublished),
+ *  v2-aware. Used to derive draft/published status in the Pages manager. */
+export function countRenderableSections(value: unknown): number {
+  return renderableLeaves(value).length;
 }
