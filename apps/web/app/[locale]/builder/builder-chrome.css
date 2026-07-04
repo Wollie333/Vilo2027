@@ -3363,3 +3363,49 @@
   border: none;
   padding: 0;
 }
+
+/* Per-link destination + settings (custom URL, open-in-new-tab). */
+.wb .nav-linkwrap {
+  display: flex;
+  flex-direction: column;
+}
+.wb .nav-linkset {
+  margin: 2px 0 8px 26px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--light);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.wb .nav-linkset-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.wb .nav-linkset-row input {
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  background: var(--panel);
+}
+.wb .nav-linkset-tog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}

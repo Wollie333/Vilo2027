@@ -172,6 +172,15 @@ export function NavBuilderOverlay({
   const rename = (i: number, label: string) =>
     onMenuChange(menu.map((m, j) => (j === i ? { ...m, label } : m)));
   const remove = (i: number) => onMenuChange(menu.filter((_, j) => j !== i));
+  // Per-link destination + settings (custom URLs, open-in-new-tab). Which link's
+  // settings row is expanded.
+  const [editLink, setEditLink] = useState<string | null>(null);
+  const setHref = (i: number, href: string) =>
+    onMenuChange(menu.map((m, j) => (j === i ? { ...m, href } : m)));
+  const setNewTab = (i: number, newTab: boolean) =>
+    onMenuChange(
+      menu.map((m, j) => (j === i ? { ...m, newTab: newTab || undefined } : m)),
+    );
   const add = (label: string, href: string) => {
     const l = label.trim();
     if (!l) return;
@@ -353,55 +362,96 @@ export function NavBuilderOverlay({
                 <div className="nav-lbl">Links · drag to reorder</div>
                 <div className="nav-links">
                   {menu.map((it, i) => (
-                    <div
-                      key={it.id}
-                      className={
-                        dragOver === i ? "nav-link drag-over" : "nav-link"
-                      }
-                      draggable
-                      onDragStart={() => {
-                        dragIdx.current = i;
-                      }}
-                      onDragEnd={() => {
-                        dragIdx.current = null;
-                        setDragOver(null);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragOver(i);
-                      }}
-                      onDragLeave={() =>
-                        setDragOver((d) => (d === i ? null : d))
-                      }
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (dragIdx.current != null)
-                          reorder(dragIdx.current, i);
-                        setDragOver(null);
-                      }}
-                    >
-                      <span className="grip" title="Drag to reorder">
-                        <GripVertical size={14} strokeWidth={2} />
-                      </span>
-                      <input
-                        className="lk"
-                        value={it.label}
-                        onChange={(e) => rename(i, e.target.value)}
-                      />
-                      {it.children && it.children.length > 0 && (
-                        <span className="drop-badge">menu</span>
-                      )}
-                      {it.autoRooms && (
-                        <span className="drop-badge">rooms</span>
-                      )}
-                      <button
-                        className="lact del"
-                        type="button"
-                        title="Delete"
-                        onClick={() => remove(i)}
+                    <div key={it.id} className="nav-linkwrap">
+                      <div
+                        className={
+                          dragOver === i ? "nav-link drag-over" : "nav-link"
+                        }
+                        draggable
+                        onDragStart={() => {
+                          dragIdx.current = i;
+                        }}
+                        onDragEnd={() => {
+                          dragIdx.current = null;
+                          setDragOver(null);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOver(i);
+                        }}
+                        onDragLeave={() =>
+                          setDragOver((d) => (d === i ? null : d))
+                        }
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (dragIdx.current != null)
+                            reorder(dragIdx.current, i);
+                          setDragOver(null);
+                        }}
                       >
-                        <Trash2 size={14} strokeWidth={2} />
-                      </button>
+                        <span className="grip" title="Drag to reorder">
+                          <GripVertical size={14} strokeWidth={2} />
+                        </span>
+                        <input
+                          className="lk"
+                          value={it.label}
+                          onChange={(e) => rename(i, e.target.value)}
+                        />
+                        {it.children && it.children.length > 0 && (
+                          <span className="drop-badge">menu</span>
+                        )}
+                        {it.autoRooms && (
+                          <span className="drop-badge">rooms</span>
+                        )}
+                        <button
+                          className="lact"
+                          type="button"
+                          title="Link destination & settings"
+                          onClick={() =>
+                            setEditLink((v) => (v === it.id ? null : it.id))
+                          }
+                        >
+                          <ChevronDown
+                            size={14}
+                            strokeWidth={2}
+                            style={{
+                              transform:
+                                editLink === it.id
+                                  ? "rotate(180deg)"
+                                  : undefined,
+                              transition: "transform 0.18s",
+                            }}
+                          />
+                        </button>
+                        <button
+                          className="lact del"
+                          type="button"
+                          title="Delete"
+                          onClick={() => remove(i)}
+                        >
+                          <Trash2 size={14} strokeWidth={2} />
+                        </button>
+                      </div>
+                      {editLink === it.id ? (
+                        <div className="nav-linkset">
+                          <label className="nav-linkset-row">
+                            <span>Link URL</span>
+                            <input
+                              value={it.href}
+                              placeholder="/about  ·  https://example.com"
+                              onChange={(e) => setHref(i, e.target.value)}
+                            />
+                          </label>
+                          <label className="nav-linkset-tog">
+                            <input
+                              type="checkbox"
+                              checked={!!it.newTab}
+                              onChange={(e) => setNewTab(i, e.target.checked)}
+                            />
+                            Open in a new tab
+                          </label>
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                   {menu.length === 0 && (
