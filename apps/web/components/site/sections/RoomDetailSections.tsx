@@ -58,8 +58,15 @@ export function RoomGallerySection({
     url: img.url,
     caption: img.alt ?? data?.name ?? null,
   }));
-  // "stacked" isn't a lightbox layout — fall back to a grid for it.
-  const layout = props.variant === "stacked" ? "grid" : props.variant;
+  // Directory-listing hero: one big photo + a grid of thumbnails + a "View all N
+  // photos" pill (the designed room-detail header). MOSAIC is the default; a host
+  // can still pick grid/carousel/list explicitly. ("stacked" → grid.)
+  const layout =
+    props.variant === "stacked"
+      ? "grid"
+      : props.variant === "carousel"
+        ? "mosaic"
+        : props.variant;
 
   return (
     <>

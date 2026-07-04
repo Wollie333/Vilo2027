@@ -130,7 +130,7 @@ export function GalleryLightbox({
               type="button"
               onClick={() => setOpenIndex(0)}
               aria-label={images[0].caption || "View photo 1"}
-              className={`group relative col-span-4 row-span-2 cursor-zoom-in overflow-hidden ${heroSpan}`}
+              className={`group relative row-span-2 cursor-zoom-in overflow-hidden ${heroSpan}`}
             >
               <SiteImg
                 src={images[0].url}
