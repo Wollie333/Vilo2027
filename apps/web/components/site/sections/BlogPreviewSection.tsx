@@ -82,6 +82,87 @@ export function BlogPreviewSection({
         <Muted className="text-center text-sm">
           Your latest blog posts appear here.
         </Muted>
+      ) : props.display === "journal" ? (
+        // JOURNAL — a large featured first post over a grid of the rest (the
+        // designed Journal index). One block, so posts never duplicate across two
+        // sections. Reusable by any theme via the node `variant:"journal"`.
+        <>
+          <a
+            href={posts[0].href}
+            className="site-blog-feat group grid items-center gap-8 md:grid-cols-2 md:gap-12"
+          >
+            {posts[0].coverUrl ? (
+              <SiteImg
+                src={posts[0].coverUrl}
+                alt={posts[0].title}
+                sizes="(min-width: 768px) 50vw, 100vw"
+                widths={[640, 768, 1024, 1280]}
+                style={{ borderRadius: "var(--site-img-radius)" }}
+                className="site-blog-feat-img aspect-[16/10] w-full object-cover"
+              />
+            ) : null}
+            <div>
+              {posts[0].date ? (
+                <span
+                  style={{ color: "var(--site-secondary)" }}
+                  className="text-xs font-bold uppercase tracking-[0.14em]"
+                >
+                  Featured · {posts[0].date}
+                </span>
+              ) : null}
+              <h3
+                style={{
+                  fontFamily: "var(--site-font-heading)",
+                  fontWeight: "var(--site-weight-heading)" as unknown as number,
+                  fontSize: "clamp(1.8rem, 4vw, 3rem)",
+                  lineHeight: 1.02,
+                  color: "var(--site-ink)",
+                }}
+                className="mt-3 transition-opacity group-hover:opacity-80"
+              >
+                {posts[0].title}
+              </h3>
+              {posts[0].excerpt ? (
+                <p
+                  style={{ color: "var(--site-mute)" }}
+                  className="mt-4 max-w-[52ch] text-lg leading-relaxed"
+                >
+                  {posts[0].excerpt}
+                </p>
+              ) : null}
+              <span
+                style={{ color: "var(--site-accent)" }}
+                className="mt-5 inline-flex text-sm font-semibold"
+              >
+                Read the story &rarr;
+              </span>
+            </div>
+          </a>
+          {posts.length > 1 ? (
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {posts.slice(1).map((post) => (
+                <a key={post.href} href={post.href} className="group block">
+                  <Card className="flex h-full flex-col" style={blogCardStyle}>
+                    {post.coverUrl ? (
+                      <SiteImg
+                        src={post.coverUrl}
+                        alt={post.title}
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        widths={[320, 480, 640, 768]}
+                        style={{ borderRadius: "var(--el-image-radius, 0px)" }}
+                        className="aspect-[16/9] w-full object-cover"
+                      />
+                    ) : null}
+                    <PostMeta
+                      post={post}
+                      className="flex flex-1 flex-col p-5"
+                    />
+                  </Card>
+                </a>
+              ))}
+            </div>
+          ) : null}
+        </>
       ) : (
         <>
           {variant === "compact" ? (

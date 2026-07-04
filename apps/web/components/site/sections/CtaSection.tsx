@@ -115,9 +115,45 @@ export function CtaSection({ props }: { props: Props }) {
             {props.body}
           </p>
         ) : null}
-        <div className="mt-7 flex justify-center">
-          <SiteButton href={props.button_href}>{props.button_label}</SiteButton>
-        </div>
+        {props.newsletter ? (
+          // Newsletter sign-up band (email + subscribe) instead of a link button.
+          // Visual for the theme; the footer carries the wired newsletter. Any
+          // theme can use it via `newsletter:true`.
+          <form className="mx-auto mt-7 flex max-w-md flex-col gap-3 sm:flex-row">
+            <input
+              type="email"
+              placeholder="you@email.com"
+              aria-label="Email"
+              style={{
+                background: onImage
+                  ? "rgba(255,255,255,0.16)"
+                  : "var(--site-bg)",
+                border: `1px solid ${onImage ? "rgba(255,255,255,0.32)" : "var(--site-line)"}`,
+                color: onImage ? "#ffffff" : "var(--site-ink)",
+                borderRadius: "var(--site-radius)",
+              }}
+              className="w-full px-4 py-3 text-sm outline-none"
+            />
+            <button
+              type="button"
+              style={{
+                background: "var(--site-btn-primary-bg)",
+                color: "var(--site-btn-primary-color)",
+                border: "var(--site-btn-primary-border)",
+                borderRadius: "var(--site-btn-primary-radius)",
+              }}
+              className="shrink-0 px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90"
+            >
+              {props.button_label}
+            </button>
+          </form>
+        ) : (
+          <div className="mt-7 flex justify-center">
+            <SiteButton href={props.button_href}>
+              {props.button_label}
+            </SiteButton>
+          </div>
+        )}
       </div>
     </section>
   );

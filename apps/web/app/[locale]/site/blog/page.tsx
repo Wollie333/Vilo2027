@@ -106,7 +106,7 @@ export default async function SiteBlogIndexPage({
               No posts yet. Check back soon.
             </p>
           ) : (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="site-blog-grid mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {posts.map((post) => (
                 <a
                   key={post.slug}
