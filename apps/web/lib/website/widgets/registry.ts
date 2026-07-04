@@ -49,6 +49,9 @@ export type WidgetControl =
   | { kind: "toggle"; key: string; label: string; hint?: string }
   | { kind: "align"; key: string; label: string }
   | { kind: "color"; key: string; label: string }
+  // Elementor-style icon control: pick a free Lucide icon, an emoji, or upload an
+  // image/SVG. Stores `lucide:<name>` | emoji glyph | asset URL (read by SiteIcon).
+  | { kind: "icon"; key: string; label: string }
   // Dynamic select of the site's live rooms (options injected by the builder).
   | { kind: "roompicker"; key: string; label: string }
   // A small uppercase section label that groups the controls beneath it (e.g.
@@ -540,7 +543,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       align: "center",
     },
     content: [
-      { kind: "text", key: "glyph", label: "Icon / emoji" },
+      { kind: "icon", key: "glyph", label: "Icon" },
       { kind: "text", key: "title", label: "Title" },
       { kind: "textarea", key: "body", label: "Description" },
     ],

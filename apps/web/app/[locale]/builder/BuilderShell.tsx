@@ -117,6 +117,7 @@ import {
   type BuilderAnalytics,
 } from "./PageSettingsOverlay";
 import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
+import { IconPicker } from "./IconPicker";
 import { NavBuilderOverlay } from "./NavBuilderOverlay";
 import { RoomDataModal } from "./RoomDataModal";
 import { AmenitiesDataModal } from "./AmenitiesDataModal";
@@ -1375,6 +1376,7 @@ export function BuilderShell({
                     onPatchNode={patchNode}
                     onPatchResp={patchResp}
                     rooms={roomOpts}
+                    websiteId={websiteId}
                     onEditRoomData={
                       persists &&
                       ROOM_DATA_BLOCKS.has((selected.node as AnyNode).type)
@@ -2032,6 +2034,7 @@ function Inspector({
   onPatchNode,
   onPatchResp,
   rooms,
+  websiteId,
   onEditRoomData,
   onEditAmenities,
   onEditGallery,
@@ -2047,6 +2050,8 @@ function Inspector({
   onPatchResp: (patch: RespPatch) => void;
   /** Live room options for the Room Card picker control. */
   rooms?: { id: string; name: string }[];
+  /** Site id — enables the icon control's image/SVG upload. */
+  websiteId?: string;
   /** Present on room-data (Wielo) blocks — opens the "Edit room data" modal. */
   onEditRoomData?: () => void;
   /** Present on the property `amenities` block — opens the "Edit amenities" modal. */
@@ -2258,6 +2263,7 @@ function Inspector({
                   onChange={(v) => setProp(ctl.key, v)}
                   onRevert={() => revertProp(ctl.key)}
                   rooms={rooms}
+                  websiteId={websiteId}
                 />
               ),
             )
@@ -2287,6 +2293,7 @@ function Inspector({
                       onChange={(v) => setProp(ctl.key, v)}
                       onRevert={() => revertProp(ctl.key)}
                       rooms={rooms}
+                      websiteId={websiteId}
                     />
                   ),
                 )
@@ -3061,6 +3068,7 @@ function Control({
   onChange,
   onRevert,
   rooms,
+  websiteId,
 }: {
   ctl: WidgetControl;
   value?: unknown;
@@ -3069,6 +3077,8 @@ function Control({
   onRevert?: () => void;
   /** Live room options — used by the "roompicker" control. */
   rooms?: { id: string; name: string }[];
+  /** Site id — enables the icon control's image/SVG upload. */
+  websiteId?: string;
 }) {
   if (ctl.kind === "hint") return <div className="hint">{ctl.text}</div>;
   if (ctl.kind === "group") return <div className="ctl-group">{ctl.label}</div>;
@@ -3121,6 +3131,17 @@ function Control({
               </option>
             ))}
           </select>
+        </div>
+      );
+    case "icon":
+      return (
+        <div className="ctl">
+          {label}
+          <IconPicker
+            value={str(value)}
+            onChange={(v) => set(v)}
+            websiteId={websiteId}
+          />
         </div>
       );
     case "roompicker":

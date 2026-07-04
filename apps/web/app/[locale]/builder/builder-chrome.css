@@ -3108,3 +3108,149 @@
   padding: 3px 8px;
   border-radius: 999px;
 }
+
+/* ── Icon picker (Elementor-style: select Lucide · emoji · upload) ── */
+.wb .iconpick {
+  position: relative;
+}
+.wb .iconpick-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-in);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  transition: 0.15s;
+}
+.wb .iconpick-trigger:hover {
+  border-color: var(--primary);
+}
+.wb .iconpick-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--ink);
+}
+.wb .iconpick-cur {
+  flex: 1;
+  text-align: left;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb .iconpick-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.55;
+}
+.wb .iconpick-clear:hover {
+  opacity: 1;
+  background: rgba(127, 127, 127, 0.18);
+}
+.wb .iconpick-pop {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+.wb .iconpick-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.wb .iconpick-tabs button {
+  flex: 1;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+.wb .iconpick-tabs button.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.wb .iconpick-search {
+  margin-bottom: 8px;
+}
+.wb .iconpick-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.wb .iconpick-grid button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  transition: 0.12s;
+}
+.wb .iconpick-grid button:hover {
+  background: rgba(127, 127, 127, 0.14);
+}
+.wb .iconpick-grid button.on {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.wb .iconpick-empty,
+.wb .iconpick-hint {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 6px 2px 0;
+}
+.wb .iconpick-emoji,
+.wb .iconpick-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wb .iconpick-uploadbtn {
+  height: 40px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wb .iconpick-uploadbtn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.wb .iconpick-err {
+  font-size: 12px;
+  color: #ef4444;
+  margin: 2px;
+}

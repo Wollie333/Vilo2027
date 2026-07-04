@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-04 — Builder: Elementor-style icon picker (Lucide + emoji + upload).
+
+An icon control where the host picks a free icon, types an emoji, or uploads an
+image/SVG — same principle as Elementor. No new dependency: `lucide-react` (ISC,
+~1500 icons) is already installed.
+
+- `lib/website/icons/lucideCatalog.tsx`: curated ~110-icon set (hospitality + UI),
+  keyed by Lucide's kebab name. Shared by the renderer + picker; a curated set (not
+  all 1500) keeps the public bundle lean. Value stored as `lucide:<name>`.
+- `SiteIcon` (`_shared`): resolves `lucide:<name>` → the SVG icon (inherits colour
+  via currentColor), else image URL → `<img>`, else emoji glyph.
+- `IconPicker` (`app/[locale]/builder/IconPicker.tsx`): popover with three tabs —
+  **Icons** (searchable Lucide grid), **Emoji** (text), **Upload** (image/SVG via
+  the existing media-upload flow, sets the asset URL). New `icon` WidgetControl kind
+  rendered by the inspector `Control`; `el_icon`'s glyph field now uses it. Styles in
+  `builder-chrome.css` (`.iconpick-*`, `.wb`-scoped to match light/dark).
+- Verified: Lucide icons render live on the public site (waves + utensils-crossed as
+  themed line icons); builder loads clean; tsc + lint green. (Drag-drop insertion to
+  open the popover isn't scriptable in the preview harness — the picker uses the same
+  Control-dispatch path as every working control.)
+
 ## 2026-07-04 — Builder: element padding/margin, icon/SVG upload, blog featured image.
 
 Three founder-requested builder capabilities (mapped the styling + upload

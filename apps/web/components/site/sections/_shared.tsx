@@ -11,6 +11,7 @@ import type {
   SectionTone,
 } from "@/lib/website/sections.schema";
 import { websiteAssetUrl } from "@/lib/website/assets";
+import { isLucideIcon, lucideIconFor } from "@/lib/website/icons/lucideCatalog";
 
 // Shared presentational primitives for site sections. All colour/radius/font
 // come from the scoped `--site-*` CSS vars (set by <SiteThemeRoot>), never the
@@ -55,6 +56,21 @@ export function SiteIcon({
   style?: CSSProperties;
 }) {
   if (!value) return null;
+  // Lucide catalogue pick (`lucide:<name>`) → the SVG icon. Inherits the caller's
+  // colour via `currentColor` (set through `style.color`).
+  if (isLucideIcon(value)) {
+    const Icon = lucideIconFor(value);
+    if (Icon)
+      return (
+        <Icon
+          aria-hidden
+          size={size}
+          strokeWidth={1.8}
+          style={style}
+          className={className}
+        />
+      );
+  }
   if (isIconImage(value)) {
     const src = websiteAssetUrl(value) ?? value;
     return (
