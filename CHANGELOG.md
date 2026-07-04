@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-04 — Marmalade theme skinned (foundation + home + Caveat font).
+
+Added the founder-provided Marmalade House reference (docs/themes/marmalade/) and
+skinned the theme (warm guesthouse "postcards" — butter-cream/marmalade/berry,
+Gloock + Karla + Caveat). `.wielo-marmalade` foundation (scrapbook tokens + Gloock
+display scale + accent badge/eyebrow) + home skins (postcard cards, warm tint
+chips, feature icon boxes); SiteFontLinks now loads Caveat for `homely`. Verified
+via `?theme=marmalade&preview=1` — marmalade accent, cream bands, Gloock loaded
+(69px hero). Boundary: the pill nav / tilted-taped postcards are bespoke chrome
+beyond the generic-block skin.
+
 ## 2026-07-04 — Load each theme's display webfont on the public site (`4072a517`).
 
 Real bug: the public `/site` route never loaded theme display fonts (only the
