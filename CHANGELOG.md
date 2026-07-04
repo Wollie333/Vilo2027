@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-04 — Oceans focus: rich footer; specials-404 diagnosed (money-critical).
+
+- Footer: the generic minimal footer became the rich reference layout (Explore/Stay
+  link columns + brand + social + © bottom bar) by populating `navigation.footer`
+  (columns/copyright) — the `FooterColumns` render already existed; it was just
+  unconfigured. Verified live on the vilotest oceansview footer. Follow-ups: a
+  newsletter block in FooterColumns + make it a theme default so activations get it.
+- Specials "Book" → 404 DIAGNOSED: `specialBookHref` links to `/{locale}/deal/
+  {slug}/book` (a marketplace route not served on tenant subdomains). The themed
+  checkout is `/site/book` via `createBookingCore`, which is room-based and has NO
+  special support (special pricing/redemption live in the separate deal action:
+  app/[locale]/deal/[slug]/book/actions.ts + lib/specials/pricing.ts; persist.ts
+  already supports special_id/redemption/booked_via). Correct fix = route specials
+  through /site/book, price at the special rate server-side, atomic redemption,
+  website attribution. MONEY-CRITICAL — needs a real booking to verify end-to-end;
+  scoped as a dedicated task, not rushed.
+
 ## 2026-07-04 — Builder: "you are here" chip + block background image; colour audit.
 
 - Topbar **context chip** next to Templates shows the current page + selected
