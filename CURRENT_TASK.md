@@ -2,7 +2,78 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-04 #2, **Builder/room/nav upgrades — LOCAL commits, NOT pushed**)
+## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-05, **Website-builder upgrades — ALL PUSHED to `main`**)
+
+> **WORKFLOW (Business Principle #7):** plan first (against the codebase) → phase into
+> small tasks → after each phase, green build/lint/tests → **commit + push to `main`**.
+> Everything below is already on `main` (`ca3d0419` is the latest). The remaining tasks
+> are NOT started — pick them up in order.
+
+### ✅ Done this session (all pushed to `main`)
+
+- **#33 named menus** (`6ef11cd6`) · **#29 room-rate live booking form** (`f5cdd3a0`) ·
+  **#34 border-colour custom circle** (`57d86d0c`) · **publish-status "Draft" fix**
+  (`0d5eccc6`, see [[publish-status-v2-gotcha]]).
+- **Category-based amenities** — 16 cats/102 amenities, admin-managed, categorized
+  listing display (Vilo green marketplace / site-accent tenant), admin-categories-only.
+  See [[reference-amenities-system]]. Migration `20260704120000` APPLIED.
+- **Sticky booking cards** — one shared `.wielo-book-card-sticky` rule for checkout
+  Summary + room-detail dock + v2 room_rate card. See [[reference-booking-card-sticky]].
+- **Heroless-page header fix** — checkout + FLAT room path pass `pageHasHero={false}`.
+  ⚠️ The **v2 room-detail** page (the LIVE one) still has the bug (see task 6 below).
+- **Unified colour picker (SSOT)** — `components/ui/ThemeColorPicker.tsx` everywhere;
+  see [[reference-color-picker-ssot]]. Rolled out to nav + page builders (`9d2da7ea`).
+- **Builder background media + overlay** (`ee84dfea`/`6c71b247`/`3559adcd`) — image
+  upload (`MediaField`, `website-assets`) + `image` control kind for `el_image`;
+  YouTube/Vimeo background video (`blockStyle.backgroundVideo` → `BackgroundVideo`);
+  overlay scrim (`overlayColor`/`overlayOpacity`). See `docs/features/BUILDER_MEDIA_PROFILE_PLAN.md`.
+- **Host Profile Wielo block** (`ca3d0419`) — auto-populate block pulling the host
+  (avatar/name/rating/bio/badges). `ProfileSection`, `ProfileData`, loader via
+  businesses→hosts join. See [[builder-autopopulate-block-recipe]].
+- **Business Principles #6** (theme vs Vilo colour worlds) + **#7** (plan → phased save
+  points) added to `BUSINESS_PRINCIPLES.md`.
+
+### ⏳ Outstanding — NOT started (do in this order)
+
+- **B — menu styling not applying.** The MOBILE drawer (`menuStyle.mobile`:
+  overlayBg/color/fontSize/weight/uppercase/backdropColor) + DROPDOWN/submenu
+  (`menuStyle.submenuColor/submenuHoverColor/submenuBg`) styles don't show in the
+  builder canvas, on the live site, or after publish. `menuStyleCss` (SiteChrome
+  ~535-574) emits `.wielo-submenu`/`[data-scrolled]` CSS; `SiteMobileMenu` reads the
+  `mobile` prop. DEBUG the emit→consume gap (props threaded? `<style>` reaching DOM?).
+- **C — menu builder features:** (1) header renders ONLY the primary/active menu
+  (verify `navigation.menu` = primary mirror reaches SiteChrome); (2) individual
+  ROOM-PAGE links selectable in the menu; (3) **drag-to-INDENT** a link so it becomes
+  a dropdown child of the link above (WordPress-style) in `NavBuilderOverlay` Links tab
+  (`SiteMenuItem.children`); (4) link-row action icons: dropdown chevron + delete
+  always **light grey**, **Vilo-green** hover on the dropdown, **light-red** hover on
+  delete (`.lact`/`.lact.del` in NavBuilderOverlay ~link row).
+- **D — scrolled state:** a scrolled-state DROPDOWN style
+  (`[data-scrolled="true"] .wielo-submenu`) + a scrolled HEADER SHADOW control
+  (`navigation.header.scrolledShadow…` → boxShadow in `StickyHeader` when scrolled).
+- **E — gear icon on the section highlight (NEW, founder idea).** In the builder canvas,
+  the selected SECTION shows a blue highlight/badge — add a **gear icon** on it that
+  opens/surfaces that section's controls (settings/inspector) ON the section, instead
+  of only in the side panel. See `BuilderShell` selected-node badge
+  (`badgeClass`/node-badge, the floating badge with move/duplicate/delete).
+- **6 — per-page header/footer + v2 room header bug.** (a) IMMEDIATE: the LIVE
+  v2 room-detail (`SiteRoomView` v2 path ~L89, `pageStartsWithHero(result.doc)`) still
+  renders the transparent-over-hero header over a heroless page → green/invisible header
+  + breadcrumb overlap; make it solid (pageHasHero false for room_detail docs). Same for
+  any heroless v2 page. (b) FEATURE (needs its own plan doc): named HEADER + FOOTER
+  instances (like named menus) that the host assigns PER PAGE.
+
+### Recon already done (maps in prior agent runs / memories)
+
+Colour pickers, menu-style emit/consume, link builder, primary-menu, scrolled state:
+mapped in the "Map colour pickers + menu styling" agent run. Builder media + profile
+data: mapped in "Map builder media + profile data". `SiteChrome` header transparency:
+`transparentOver = pageTransparent && !topBar && pageHasHero` (L1272);
+`--wielo-sticky-top` on the body wrapper.
+
+---
+
+## ▶ (historical) SAVE POINT — RESUME HERE (2026-07-04 #2, **Builder/room/nav upgrades — LOCAL commits, NOT pushed**)
 
 > **WORKFLOW FOR THIS LANE (founder instruction):** commit **LOCALLY only, DO NOT push
 > to `main`**. Create save points as you go. We push everything together once it's all

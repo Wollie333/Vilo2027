@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-05 — SAVE POINT: colour picker SSOT, builder media, profile block, principles.
+
+Resume anchor for the next session in `CURRENT_TASK.md` (top). All pushed to `main`.
+
+- **Unified colour picker (SSOT)** (`9d2da7ea`) — one `ThemeColorPicker` (single swatch →
+  popover with theme circles + custom) across nav + page builders; theme-scoped via
+  `themeSwatches`.
+- **Builder background media** — image upload (`MediaField` + `image` control kind for
+  el_image, `ee84dfea`) · YouTube/Vimeo background video (`3559adcd`… `6c71b247`) ·
+  overlay scrim (`overlayColor`/`overlayOpacity`, `3559adcd`).
+- **Host Profile Wielo block** (`ca3d0419`) — auto-populates the site's host
+  (photo/name/rating/bio/badges).
+- **Business Principles #6** (host-site = theme colours; Vilo surfaces = Vilo green) and
+  **#7** (plan → phased save points, commit+push per phase).
+- **Still outstanding** (not started): B (mobile/dropdown menu styling not applying),
+  C (menu features: primary-only header, room-page links, drag-to-indent dropdowns,
+  link-row icon hovers), D (scrolled dropdown + header shadow), E (gear icon on the
+  section highlight), 6 (per-page header/footer + the v2 room-detail header still
+  transparent/invisible). Detail + maps in `CURRENT_TASK.md`.
+
 ## 2026-07-05 — Category-based amenities + sticky checkout summary.
 
 - **Taxonomy expansion (migration `20260704120000`, applied):** re-seeded the
