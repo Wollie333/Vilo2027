@@ -81,6 +81,42 @@ function money(total: number | null, currency: string) {
   }
 }
 
+// Deterministic date formatting for the offer card (no locale → no hydration drift).
+const OFFER_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+function fmtOfferDate(iso?: string | null): string | null {
+  if (!iso) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return null;
+  return `${Number(m[3])} ${OFFER_MONTHS[Number(m[2]) - 1]} ${m[1]}`;
+}
+function fmtOfferRange(a?: string | null, b?: string | null): string | null {
+  const s = fmtOfferDate(a);
+  const e = fmtOfferDate(b);
+  if (s && e) return `${s} – ${e}`;
+  return s || e || null;
+}
+function offerNightsLabel(
+  min?: number | null,
+  max?: number | null,
+): string | null {
+  if (min && max && min !== max) return `${min}–${max} nights`;
+  const n = min || max;
+  return n ? `${n} night${n === 1 ? "" : "s"}` : null;
+}
+
 /**
  * On-site checkout form (Phase 6B/c) — themed with --site-* so it lives on the
  * host's own domain. Collects the stay, party and contact details, shows a
@@ -139,6 +175,16 @@ export function SiteCheckoutForm({
     savingsLabel?: string | null;
     /** Offer's room (null = whole-listing offer). Locks the room selection. */
     roomId?: string | null;
+    description?: string | null;
+    // Offer terms shown on the "Offer applied" card so the guest knows how to claim it.
+    windowStart?: string | null;
+    windowEnd?: string | null;
+    fixedCheckIn?: string | null;
+    fixedCheckOut?: string | null;
+    minNights?: number | null;
+    maxNights?: number | null;
+    remaining?: number | null;
+    bookBy?: string | null;
   };
 }) {
   const canWhole = bookingMode !== "rooms_only" && basePrice != null;
@@ -494,34 +540,92 @@ export function SiteCheckoutForm({
         Reserve your stay directly — no booking fees.
       </Muted>
 
-      {special ? (
-        <div
-          style={{
-            background:
-              "var(--site-soft, color-mix(in srgb, var(--site-accent) 10%, var(--site-bg)))",
-            borderColor: "var(--site-accent)",
-            borderRadius: "var(--site-radius)",
-          }}
-          className="mx-auto mb-8 flex max-w-3xl flex-col items-center gap-1 border px-5 py-4 text-center"
-        >
-          <span
-            style={{ color: "var(--site-accent)" }}
-            className="text-xs font-bold uppercase tracking-[0.14em]"
-          >
-            Offer applied
-            {special.savingsLabel ? ` · ${special.savingsLabel}` : ""}
-          </span>
-          <span style={{ color: "var(--site-ink)" }} className="font-semibold">
-            {special.title}
-          </span>
-          <span style={{ color: "var(--site-mute)" }} className="text-sm">
-            {special.dateMode === "fixed"
-              ? "Fixed offer dates — locked below."
-              : "Choose your dates within the offer window."}{" "}
-            You pay the offer rate; nothing changes at payment.
-          </span>
-        </div>
-      ) : null}
+      {special
+        ? (() => {
+            const fixed = special.dateMode === "fixed";
+            const validRange = fixed
+              ? fmtOfferRange(special.fixedCheckIn, special.fixedCheckOut)
+              : fmtOfferRange(special.windowStart, special.windowEnd);
+            const nights = offerNightsLabel(
+              special.minNights,
+              special.maxNights,
+            );
+            const bookBy = fmtOfferDate(special.bookBy);
+            const facts: { label: string; value: string }[] = [];
+            if (validRange)
+              facts.push({
+                label: fixed ? "Stay dates" : "Valid",
+                value: validRange,
+              });
+            if (nights) facts.push({ label: "Length", value: nights });
+            if (special.remaining != null)
+              facts.push({
+                label: "Availability",
+                value:
+                  special.remaining <= 0
+                    ? "Sold out"
+                    : `${special.remaining} left`,
+              });
+            if (bookBy) facts.push({ label: "Book by", value: bookBy });
+            return (
+              <div
+                style={{
+                  background:
+                    "var(--site-soft, color-mix(in srgb, var(--site-accent) 10%, var(--site-bg)))",
+                  borderColor: "var(--site-accent)",
+                  borderRadius: "var(--site-radius)",
+                }}
+                className="mx-auto mb-8 flex max-w-3xl flex-col items-center gap-2 border px-5 py-4 text-center"
+              >
+                <span
+                  style={{ color: "var(--site-accent)" }}
+                  className="text-xs font-bold uppercase tracking-[0.14em]"
+                >
+                  Offer applied
+                  {special.savingsLabel ? ` · ${special.savingsLabel}` : ""}
+                </span>
+                <span
+                  style={{ color: "var(--site-ink)" }}
+                  className="text-lg font-semibold"
+                >
+                  {special.title}
+                </span>
+                {special.description ? (
+                  <span
+                    style={{ color: "var(--site-mute)" }}
+                    className="max-w-prose text-sm"
+                  >
+                    {special.description}
+                  </span>
+                ) : null}
+                {facts.length > 0 ? (
+                  <div className="mt-1 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm">
+                    {facts.map((f) => (
+                      <span key={f.label} style={{ color: "var(--site-ink)" }}>
+                        <span
+                          style={{ color: "var(--site-mute)" }}
+                          className="uppercase tracking-wide"
+                        >
+                          {f.label}:
+                        </span>{" "}
+                        <span className="font-semibold">{f.value}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <span style={{ color: "var(--site-mute)" }} className="text-sm">
+                  {fixed
+                    ? "Your stay dates are set below."
+                    : validRange
+                      ? "Pick your check-in and check-out inside the valid window above."
+                      : "Pick your dates above."}{" "}
+                  The offer rate is applied automatically — nothing changes at
+                  payment.
+                </span>
+              </div>
+            );
+          })()
+        : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* ── Form ── */}

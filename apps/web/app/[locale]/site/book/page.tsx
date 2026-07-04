@@ -248,6 +248,7 @@ export default async function SiteBookPage({
   let special: {
     id: string;
     title: string;
+    description?: string | null;
     total: number;
     perNight: number | null;
     currency: string;
@@ -256,6 +257,16 @@ export default async function SiteBookPage({
     from?: string;
     to?: string;
     roomId?: string | null;
+    // Offer terms surfaced on the "Offer applied" card so the guest knows exactly
+    // how to claim it: the valid window, stay length, remaining stock, book-by date.
+    windowStart?: string | null;
+    windowEnd?: string | null;
+    fixedCheckIn?: string | null;
+    fixedCheckOut?: string | null;
+    minNights?: number | null;
+    maxNights?: number | null;
+    remaining?: number | null;
+    bookBy?: string | null;
   } | null = null;
   // A special's OWN bundled add-ons (compulsory + optional upsells) — shown +
   // pre-selected on its checkout instead of the property's generic add-ons, so the
@@ -267,7 +278,7 @@ export default async function SiteBookPage({
     const { data: sRow } = await admin
       .from("specials")
       .select(
-        "id, business_id, property_id, room_id, title, currency, status, deleted_at, show_on_website, date_mode, fixed_check_in, fixed_check_out, price_mode, flat_total, per_night_price, savings_pct, savings_amount, quantity, redemptions_used, go_live_at, book_by",
+        "id, business_id, property_id, room_id, title, description, currency, status, deleted_at, show_on_website, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, savings_pct, savings_amount, quantity, redemptions_used, go_live_at, book_by",
       )
       .eq("id", specialId)
       .maybeSingle();
@@ -306,6 +317,7 @@ export default async function SiteBookPage({
       special = {
         id: sRow!.id,
         title: sRow!.title,
+        description: sRow!.description,
         total,
         perNight:
           sRow!.price_mode === "per_night"
@@ -317,6 +329,18 @@ export default async function SiteBookPage({
         from,
         to,
         roomId: sRow!.room_id,
+        windowStart: sRow!.window_start,
+        windowEnd: sRow!.window_end,
+        fixedCheckIn: sRow!.fixed_check_in,
+        fixedCheckOut: sRow!.fixed_check_out,
+        minNights: sRow!.min_nights,
+        maxNights: sRow!.max_nights,
+        // Remaining stock (null when effectively unlimited — a very high quantity).
+        remaining:
+          sRow!.quantity == null
+            ? null
+            : Math.max(0, sRow!.quantity - (sRow!.redemptions_used ?? 0)),
+        bookBy: sRow!.book_by,
       };
 
       // The offer's bundled add-ons (compulsory + optional upsells), re-priced off
@@ -383,6 +407,7 @@ export default async function SiteBookPage({
           ? {
               id: special.id,
               title: special.title,
+              description: special.description,
               total: special.total,
               perNight: special.perNight,
               currency: special.currency,
@@ -390,6 +415,14 @@ export default async function SiteBookPage({
               savingsLabel: special.savingsLabel,
               // Locks the checkout to the offer's room (null = whole-listing offer).
               roomId: special.roomId,
+              windowStart: special.windowStart,
+              windowEnd: special.windowEnd,
+              fixedCheckIn: special.fixedCheckIn,
+              fixedCheckOut: special.fixedCheckOut,
+              minNights: special.minNights,
+              maxNights: special.maxNights,
+              remaining: special.remaining,
+              bookBy: special.bookBy,
             }
           : undefined
       }
