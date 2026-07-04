@@ -325,10 +325,15 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   aqua "Book this offer" per ref) + CTA; hero + `highlights` "tiles" (image) +
   `highlights` grid (icon, sand) + `gallery` mosaic + CTA; hero + `gallery`
   mosaic + CTA. Stock hero/CTA images; grids/gallery show live host data.
-- **Element wiring propagated** (2026-07-04, `9af3e261` + hero `e5bc85f8`): the
-  showcase (name/tag/price/desc/button), blog featured (title/excerpt/meta) and
-  hero (eyebrow/title/sub/buttons) now read `--el-*` with the theme design as the
-  fallback — host-editable per §5b. Highlights tiles already did.
+- **Element wiring** (2026-07-04, `e5bc85f8` · `9af3e261` · `cbc719fc`): hero
+  (eyebrow/title/sub/buttons), showcase (name/tag/price/desc/button), blog
+  featured (title/excerpt/meta), intro story (eyebrow/body/badge/badge-value),
+  cta (heading/body/button) and `SiteButton` (`--el-button-*`, so every themed
+  button is editable) all read `--el-*` with the theme design as the fallback —
+  host-editable per §5b; registry declares each. Highlights tiles already did.
+  Theme defaults that were `!important` skins (hero type, intro badge) are now
+  `--site-hero-*` / `--site-intro-badge-*` theme vars. Verified: default = design,
+  per-element override wins.
 - **Journal (/blog) — PARTIAL** (2026-07-03). `/blog` is a FIXED system route
   (`app/[locale]/site/blog/page.tsx`), not a builder doc — so the reference's hero
   page-head + featured post + newsletter can't come from a reseed. Skinned its card

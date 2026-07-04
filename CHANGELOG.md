@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-04 — Wire intro + cta + SiteButton into per-element controls (`cbc719fc`).
+
+Completes the element-wiring pass for the prominent blocks used across the pages.
+IntroSection story (eyebrow/body/badge/badge-value), CtaSection banner
+(heading/body) and `SiteButton` (`--el-button-*`, making every themed button
+editable) now read `--el-*` with the theme design as the fallback; the registry
+declares intro + cta elements. The oceansview coral-on-white intro badge is now a
+`--site-intro-badge-*` theme default (the `!important` skin removed). Verified on
+/about: default = design (white badge, coral number, white cta heading), override
+wins. Cleared a corrupted `.next` cache to cold-rebuild + verify.
+
 ## 2026-07-04 — Oceans View theme functionally complete (system routes token-themed).
 
 The transactional system routes (search results, checkout/`book`, thank-you) are
