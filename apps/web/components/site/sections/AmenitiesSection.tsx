@@ -3,7 +3,7 @@ import type { AmenitiesData } from "@/lib/site/types";
 
 // Bare element (Elementor reframe): renders bare; the SECTION owns padding + width
 // and the heading is a separate Heading element above. `props.heading` stays legacy.
-import { SectionHeading } from "./_shared";
+import { SectionHeading, SiteIcon } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "amenities" }>["props"];
 
@@ -63,13 +63,12 @@ export function AmenitiesSection({
             }}
           >
             {item.icon ? (
-              <span
+              <SiteIcon
+                value={item.icon}
+                size={22}
                 style={{ color: "var(--el-icon-fg, var(--site-icon-color))" }}
                 className="text-xl"
-                aria-hidden
-              >
-                {item.icon}
-              </span>
+              />
             ) : null}
             <span
               style={{

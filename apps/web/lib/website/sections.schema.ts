@@ -273,7 +273,7 @@ const highlightsProps = z.object({
   items: z
     .array(
       z.object({
-        icon: z.string().max(60).optional(),
+        icon: z.string().max(500).optional(), // emoji/char OR uploaded image/SVG URL/path
         title: z.string().max(120),
         body: z.string().max(600).optional(),
         image_path: z.string().optional(),
@@ -479,7 +479,7 @@ const contactFormProps = z.object({
   details: z
     .array(
       z.object({
-        icon: z.string().max(8).optional(),
+        icon: z.string().max(500).optional(), // emoji/char OR uploaded image/SVG URL/path
         title: z.string().max(160),
         label: z.string().max(160).optional(),
       }),
@@ -507,7 +507,7 @@ const amenitiesProps = z.object({
   items: z
     .array(
       z.object({
-        icon: z.string().max(60).optional(),
+        icon: z.string().max(500).optional(), // emoji/char OR uploaded image/SVG URL/path
         label: z.string().max(120),
       }),
     )
@@ -555,7 +555,7 @@ const trustProps = z.object({
   items: z
     .array(
       z.object({
-        icon: z.string().max(60).optional(),
+        icon: z.string().max(500).optional(), // emoji/char OR uploaded image/SVG URL/path
         label: z.string().max(120),
         caption: z.string().max(160).optional(),
       }),

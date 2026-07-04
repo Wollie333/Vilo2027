@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 import type { RoomCard } from "@/lib/site/types";
 
-import { elColor } from "../sections/_shared";
+import { elColor, SiteIcon } from "../sections/_shared";
 
 // Builder V2 — token-driven leaves for the FIVE new widget types. Each reads the
 // scoped `--site-*` vars only (brand-safe, themes per tenant). Live binding
@@ -46,7 +46,11 @@ export function IconLeaf({
         marginInline: align === "center" && !inline ? "auto" : undefined,
       }}
     >
-      <div style={{ fontSize: iconSize, lineHeight: 1, color }}>{glyph}</div>
+      <SiteIcon
+        value={glyph}
+        size={iconSize}
+        style={{ fontSize: iconSize, lineHeight: 1, color }}
+      />
       <div>
         {title ? (
           <h3

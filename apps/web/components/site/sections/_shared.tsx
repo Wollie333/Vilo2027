@@ -10,6 +10,7 @@ import type {
   ElWeight,
   SectionTone,
 } from "@/lib/website/sections.schema";
+import { websiteAssetUrl } from "@/lib/website/assets";
 
 // Shared presentational primitives for site sections. All colour/radius/font
 // come from the scoped `--site-*` CSS vars (set by <SiteThemeRoot>), never the
@@ -22,6 +23,57 @@ export const siteImageStyle: CSSProperties = {
   border: "var(--site-img-border)",
   boxShadow: "var(--site-img-shadow)",
 };
+
+/**
+ * An icon value is an uploaded image/SVG (URL, storage path, or data URI) rather
+ * than an emoji/character glyph. Lets any icon field accept an uploaded asset —
+ * hosts upload PNG/SVG/etc via the media library (which accepts image/svg+xml)
+ * and set the icon to its URL/path.
+ */
+export function isIconImage(v?: string | null): boolean {
+  if (!v) return false;
+  return (
+    /^(https?:\/\/|\/|data:image\/)/.test(v) ||
+    /\.(svg|png|jpe?g|webp|gif)$/i.test(v)
+  );
+}
+
+/**
+ * Render an item icon: an uploaded image/SVG when the value is a URL/path,
+ * otherwise the emoji/character glyph. `size` is the image box in px; for a glyph
+ * the caller's `className`/`style` (e.g. `text-2xl`, colour) drive its size/colour.
+ */
+export function SiteIcon({
+  value,
+  size = 32,
+  className = "",
+  style,
+}: {
+  value?: string | null;
+  size?: number;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  if (!value) return null;
+  if (isIconImage(value)) {
+    const src = websiteAssetUrl(value) ?? value;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        style={{ width: size, height: size, objectFit: "contain", ...style }}
+        className={className}
+      />
+    );
+  }
+  return (
+    <span aria-hidden className={className} style={style}>
+      {value}
+    </span>
+  );
+}
 
 /**
  * Per-section colour scheme ("tone"). Returns a style that paints the band

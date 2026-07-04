@@ -3,7 +3,7 @@ import type { WebsiteSection } from "@/lib/website/sections.schema";
 // Bare element (Elementor reframe): renders bare (no self <section>/band/width-
 // clamp); the SECTION owns padding + width and the heading is a separate Heading
 // element above. `props.heading` stays legacy for pre-reframe pages.
-import { SectionHeading, Card } from "./_shared";
+import { SectionHeading, Card, SiteIcon } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "highlights" }>["props"];
 type Item = Props["items"][number];
@@ -27,9 +27,12 @@ function ItemBody({ item }: { item: Item }) {
   return (
     <>
       {item.icon ? (
-        <div style={iconStyle} className="mb-3 text-2xl" aria-hidden>
-          {item.icon}
-        </div>
+        <SiteIcon
+          value={item.icon}
+          style={iconStyle}
+          className="mb-3 text-2xl"
+          size={36}
+        />
       ) : null}
       <h3 style={hlTitleStyle}>{item.title}</h3>
       {item.body ? (
@@ -82,9 +85,11 @@ export function HighlightsSection({ props }: { props: Props }) {
               />
               <div className="relative">
                 {item.icon ? (
-                  <div className="mb-2 text-2xl" aria-hidden>
-                    {item.icon}
-                  </div>
+                  <SiteIcon
+                    value={item.icon}
+                    className="mb-2 text-2xl"
+                    size={36}
+                  />
                 ) : null}
                 <h3
                   style={{

@@ -16,7 +16,7 @@ const ALIGN = ["left", "center", "right"] as const;
 // Icon box — a glyph/emoji (or lucide icon name) + a title + a short body.
 export const ICON_VARIANTS = ["stack", "inline"] as const;
 export const elIconProps = z.object({
-  glyph: z.string().max(40).default("★"),
+  glyph: z.string().max(500).default("★"), // emoji/char OR uploaded image/SVG URL/path
   title: z.string().max(120).default("A little something"),
   body: z.string().max(600).default("Say what makes it special."),
   color: z.enum(EL_COLOR).default("accent"),
