@@ -335,6 +335,25 @@ function resolvePreset(key?: string): SitePreset {
   return SITE_PRESETS[DEFAULT_PRESET];
 }
 
+/**
+ * The effective heading + body {@link SiteFont} keys for a theme — the SAME
+ * resolution `buildSiteVars` uses (type override → theme.font → preset.font).
+ * Used by `<SiteFontLinks>` to load the right web fonts on the public site so a
+ * themed page renders its display font (e.g. Safari's Cormorant Garamond) instead
+ * of a system fallback.
+ */
+export function themeFontKeys(theme: SiteThemeConfig | null | undefined): {
+  heading: SiteFont;
+  body: SiteFont;
+} {
+  const preset = theme?.base ?? resolvePreset(theme?.preset);
+  const ty = theme?.type ?? {};
+  return {
+    heading: ty.headingFont ?? theme?.font ?? preset.font,
+    body: ty.bodyFont ?? theme?.font ?? preset.font,
+  };
+}
+
 const clampNum = (n: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, n));
 

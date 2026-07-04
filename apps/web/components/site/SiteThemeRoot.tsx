@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import { buildSiteVars, type SiteThemeConfig } from "@/lib/site/themes";
 
+import { SiteFontLinks } from "./SiteFontLinks";
+
 /**
  * Scopes the `--site-*` CSS variables to its subtree and sets the base page
  * surface + body font. Everything inside (chrome + sections) themes off these
@@ -51,6 +53,7 @@ export function SiteThemeRoot({
       }}
       className={[className, skinClass].filter(Boolean).join(" ") || undefined}
     >
+      <SiteFontLinks theme={theme} />
       {accent ? <style>{`:root{--wielo-toploader:${accent}}`}</style> : null}
       {children}
     </div>
