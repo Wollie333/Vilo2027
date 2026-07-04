@@ -275,6 +275,11 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   Fixed a general responsive gap: multi-column `stack` sections now emit a
   stacking media query so they collapse on live phones (was builder-device only).
   Live-verified on `/rooms/olive-room`, desktop + mobile.
+- **Contact — DONE** (2026-07-03). Page-head hero + `contact_form` (split, posts
+  to `/api/website-enquiry`) + FAQ accordion (sand). Added `contact_form` to the
+  coral conversion-CTA scope (design reserves coral for book + submit). Deferred:
+  the contact-details card / decorative map (data-coupled; footer carries contact
+  info). Live-verified `/contact`.
 - **About — DONE** (2026-07-03). Pure reuse of skinned blocks: page-head hero,
   intro "story" (coral "2014" badge), navy stats (coral numbers via a per-element
   override), values icon-tiles (`highlights` grid), sand founder pull-quote

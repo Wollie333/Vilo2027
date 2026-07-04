@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-07-03 — Oceans View contact page (`e7c33e96`).
+
+Contact rebuilt to its reference from generic, editable blocks: page-head hero
+("Say hello"), a working `contact_form` (split — heading + intro beside the
+fields, posts to `/api/website-enquiry`), and the FAQ accordion on a sand band.
+Added `contact_form` to the coral conversion-CTA scope so "Send message" matches
+the reference btn-coral. Live-verified `/contact`. Deferred: the contact-details
+card + decorative map (data-coupled; footer already carries contact info).
+
 ## 2026-07-03 — Oceans View about page + stats el-slot fix (`775f9e51`).
 
 - About page rebuilt to its reference entirely from already-skinned, editable
