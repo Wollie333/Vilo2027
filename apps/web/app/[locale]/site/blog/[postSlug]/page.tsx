@@ -127,6 +127,7 @@ export default async function SiteBlogPostPage({
         <SiteChrome
           brand={ctx.brand}
           nav={ctx.nav}
+          navigation={ctx.navigation}
           conversion={ctx.conversion}
           analytics={ctx.analytics}
           layout={ctx.layout}
