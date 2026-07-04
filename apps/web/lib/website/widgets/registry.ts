@@ -73,7 +73,10 @@ export type ElementControlKind =
   | "weight"
   | "lineHeight"
   | "letterSpacing"
-  | "transform";
+  | "transform"
+  // Box spacing → --el-<key>-py/px (padding) and -mt/-mb (margin).
+  | "padding"
+  | "margin";
 
 /** A stylable sub-element of a composite block (drives the inspector Elements UI). */
 export type ElementDef = {
@@ -138,7 +141,7 @@ const RATE_LIST_ELEMENTS: ElementDef[] = [
   {
     key: "card",
     label: "Card",
-    controls: ["bg", "border", "radius", "shadow"],
+    controls: ["bg", "border", "radius", "shadow", "margin"],
   },
   { key: "label", label: "Label", controls: ["color", "size"] },
   { key: "price", label: "Price", controls: ["color", "size", "weight"] },
@@ -149,7 +152,7 @@ const SPECIAL_CARD_ELEMENTS: ElementDef[] = [
   {
     key: "card",
     label: "Card",
-    controls: ["bg", "border", "radius", "shadow"],
+    controls: ["bg", "border", "radius", "shadow", "margin"],
   },
   { key: "image", label: "Image", controls: ["radius"] },
   { key: "badge", label: "Badge", controls: ["bg", "color", "radius"] },
@@ -159,7 +162,7 @@ const SPECIAL_CARD_ELEMENTS: ElementDef[] = [
   {
     key: "button",
     label: "Button",
-    controls: ["bg", "color", "border", "radius"],
+    controls: ["bg", "color", "border", "radius", "padding", "margin"],
   },
 ];
 
@@ -685,12 +688,12 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "button",
         label: "Primary button",
-        controls: ["bg", "color", "border", "radius"],
+        controls: ["bg", "color", "border", "radius", "padding", "margin"],
       },
       {
         key: "button2",
         label: "Secondary button",
-        controls: ["bg", "color", "border", "radius"],
+        controls: ["bg", "color", "border", "radius", "padding", "margin"],
       },
     ],
   },
@@ -753,7 +756,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Card",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       { key: "icon", label: "Icon", controls: ["color"] },
       { key: "title", label: "Title", controls: ["color", "size", "weight"] },
@@ -782,7 +785,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Card",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       { key: "value", label: "Value", controls: ["color", "size", "weight"] },
       { key: "label", label: "Label", controls: ["color", "size"] },
@@ -816,7 +819,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "button",
         label: "Button",
-        controls: ["bg", "color", "border", "radius"],
+        controls: ["bg", "color", "border", "radius", "padding", "margin"],
       },
     ],
   },
@@ -863,7 +866,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Card",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       { key: "title", label: "Title", controls: ["color", "size", "weight"] },
       { key: "body", label: "Body", controls: ["color", "size"] },
@@ -895,7 +898,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Card",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       {
         key: "question",
@@ -960,7 +963,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Card",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       { key: "icon", label: "Icon", controls: ["color"] },
       { key: "label", label: "Label", controls: ["color", "size"] },
@@ -996,7 +999,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Card",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       { key: "image", label: "Image", controls: ["radius"] },
       {
@@ -1024,7 +1027,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "button",
         label: "Button",
-        controls: ["bg", "color", "border", "radius"],
+        controls: ["bg", "color", "border", "radius", "padding", "margin"],
       },
       { key: "badge", label: "Badge", controls: ["bg", "color", "radius"] },
       // Showcase-only: the coral "Sleeps 2 · Sea view" facts tag above the name.
@@ -1096,7 +1099,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Card",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       { key: "image", label: "Image", controls: ["radius"] },
       { key: "meta", label: "Date", controls: ["color"] },
@@ -1140,14 +1143,14 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Table",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       { key: "label", label: "Room name", controls: ["color", "size"] },
       { key: "price", label: "Price", controls: ["color", "size", "weight"] },
       {
         key: "button",
         label: "Button",
-        controls: ["bg", "color", "border", "radius"],
+        controls: ["bg", "color", "border", "radius", "padding", "margin"],
       },
     ],
   },
@@ -1270,7 +1273,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Card",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       {
         key: "quote",
@@ -1316,7 +1319,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       {
         key: "card",
         label: "Map",
-        controls: ["bg", "border", "radius", "shadow"],
+        controls: ["bg", "border", "radius", "shadow", "margin"],
       },
       { key: "address", label: "Address", controls: ["color"] },
       { key: "poi", label: "Places", controls: ["color", "size"] },

@@ -379,6 +379,12 @@ function elementDecls(elements?: Record<string, ElementStyle>): string {
       out.push(`--el-${key}-ls:${s.letterSpacing}px`);
     if (s.textTransform) out.push(`--el-${key}-tt:${s.textTransform}`);
     if (s.shadow) out.push(`--el-${key}-shadow:${EL_SHADOW_CSS[s.shadow]}`);
+    // Box spacing — consumed as `padding: var(--el-<key>-py) var(--el-<key>-px)`
+    // and `margin-top/bottom: var(--el-<key>-mt/mb, …)` by the element.
+    if (s.padY != null) out.push(`--el-${key}-py:${s.padY}px`);
+    if (s.padX != null) out.push(`--el-${key}-px:${s.padX}px`);
+    if (s.marginTop != null) out.push(`--el-${key}-mt:${s.marginTop}px`);
+    if (s.marginBottom != null) out.push(`--el-${key}-mb:${s.marginBottom}px`);
   }
   return out.join(";");
 }
@@ -510,9 +516,16 @@ export function Muted({
 // Button size presets (preset-only, brand-safe). md = the long-standing default,
 // so existing callers that omit `size` render exactly as before.
 const BTN_SIZE: Record<ElButtonSize, string> = {
-  sm: "px-4 py-2 text-xs",
-  md: "px-6 py-3 text-sm",
-  lg: "px-8 py-4 text-base",
+  sm: "text-xs",
+  md: "text-sm",
+  lg: "text-base",
+};
+// Default padding per size (px) — the fallback for the editable `--el-button-py/px`
+// override, so a host's per-button padding wins but the size preset holds otherwise.
+const BTN_PAD: Record<ElButtonSize, { py: number; px: number }> = {
+  sm: { py: 8, px: 16 },
+  md: { py: 12, px: 24 },
+  lg: { py: 16, px: 32 },
 };
 
 export function SiteButton({
@@ -538,6 +551,7 @@ export function SiteButton({
   // Per-element styling: reads `--el-button-*` (host edit) → theme button tokens.
   // So any block whose registry declares a "button" element makes this editable.
   const prefix = `--site-btn-${variant}`;
+  const pad = BTN_PAD[size];
   const style: CSSProperties = {
     background: `var(--el-button-bg, var(${prefix}-bg))`,
     color: `var(--el-button-fg, var(${prefix}-color))`,
@@ -546,6 +560,10 @@ export function SiteButton({
       radius && radius !== "auto"
         ? `${radius}px`
         : `var(--el-button-radius, var(${prefix}-radius))`,
+    // Editable padding/margin: host override wins, else the size preset / 0.
+    padding: `var(--el-button-py, ${pad.py}px) var(--el-button-px, ${pad.px}px)`,
+    marginTop: "var(--el-button-mt, 0px)",
+    marginBottom: "var(--el-button-mb, 0px)",
   };
   return (
     <a
@@ -642,6 +660,9 @@ export function Card({
         border: "var(--site-card-border)",
         borderRadius: "var(--site-card-radius)",
         boxShadow: "var(--site-card-shadow)",
+        // Editable card margin (default 0 → no effect until the host sets it).
+        marginTop: "var(--el-card-mt, 0px)",
+        marginBottom: "var(--el-card-mb, 0px)",
         ...style,
       }}
       className={`overflow-hidden ${className}`}

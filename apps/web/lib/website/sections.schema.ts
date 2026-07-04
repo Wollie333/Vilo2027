@@ -964,6 +964,13 @@ export const elementStyleSchema = z.object({
   textTransform: z.enum(ELEMENT_TRANSFORM).optional(),
   // Drop-shadow depth preset (Elementor "Box shadow").
   shadow: z.enum(["none", "sm", "md", "lg"]).optional(),
+  // Box spacing (Elementor "Padding"/"Margin"), px. Padding is symmetric per axis
+  // (Y = top+bottom, X = left+right); margins may be negative to pull elements up
+  // or overlap. Emitted as `--el-<key>-py/px/mt/mb` and consumed by the element.
+  padY: z.number().min(0).max(200).optional(),
+  padX: z.number().min(0).max(200).optional(),
+  marginTop: z.number().min(-200).max(200).optional(),
+  marginBottom: z.number().min(-200).max(200).optional(),
 });
 export type ElementStyle = z.infer<typeof elementStyleSchema>;
 

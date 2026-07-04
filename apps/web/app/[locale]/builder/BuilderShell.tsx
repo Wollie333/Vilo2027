@@ -2757,6 +2757,20 @@ function ElementControls({
                 }
               />
             );
+          case "padding":
+            return (
+              <div key="padding" className="el-group">
+                {num("padY", "Padding ↕", 0, 120)}
+                {num("padX", "Padding ↔", 0, 120)}
+              </div>
+            );
+          case "margin":
+            return (
+              <div key="margin" className="el-group">
+                {num("marginTop", "Margin top", -120, 120)}
+                {num("marginBottom", "Margin bottom", -120, 120)}
+              </div>
+            );
           case "size":
             return num("fontSize", "Font size", 10, 64);
           case "lineHeight":
