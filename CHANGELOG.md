@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-04 — Responsive overlaps fixed + builder shows the theme skin.
+
+- **Overlap:** the story-intro's floating stat badge (`-bottom-5`) overhung into
+  the next section's heading on mobile (home "3 OCEAN POOLS" over "Everything taken
+  care of"). Reserve the overhang with a bottom margin on the image container when
+  the badge shows. Systematic overlap scan (text-on-text) across home/rooms/specials
+  at 375px + tablet home now clean (only the by-design sticky header floats over
+  scrolling content).
+- **Per-device editing (verified, no change needed):** the builder's desktop/tablet/
+  mobile toggles already edit element styles per size — `setEl`/`elVal`/`revertEl`
+  branch on `isDev` → `onPatchResp` → `updateResponsive` writes/merges/reverts
+  `node.responsive[device].elements`, and `elementVarsCss` emits `@media`+`@container`
+  queries per device (incl. the new padding/margin props).
+- **Builder skin:** the builder canvas already carries the `.wielo-<slug>` scope
+  (SiteThemeRoot) + `[data-section-type]` hooks (v2 PageDocRenderer), but
+  `theme-skins.css` was imported only by `SitePageView` (public site) — so the
+  canvas was token-themed but unskinned. Import it in the builder `page.tsx` too;
+  the canvas now renders the SAME pixel-perfect skin the live site shows (verified:
+  31 Oceans skin rules load + apply to the scoped canvas; builder chrome unaffected
+  since every skin rule is `.wielo-*`-scoped).
+
 ## 2026-07-04 — Responsive: content sections get a mobile-safe band (all themes).
 
 Root cause of content sitting flush to the screen edge on mobile: the flat

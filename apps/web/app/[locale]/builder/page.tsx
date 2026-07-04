@@ -17,6 +17,11 @@ import { BuilderShell } from "./BuilderShell";
 import type { Brand as BuilderBrand } from "./BrandStudioOverlay";
 import { EMPTY_ANALYTICS, type BuilderAnalytics } from "./PageSettingsOverlay";
 import "./builder-chrome.css";
+// Load the per-theme skin stylesheet so the builder canvas renders the SAME
+// pixel-perfect theme design the live site shows (the canvas already carries the
+// `.wielo-<slug>` scope via SiteThemeRoot + `[data-section-type]` hooks). Editing
+// then matches what visitors see.
+import "@/components/site/themes/theme-skins.css";
 
 type PageOpt = { key: string; label: string; href: string };
 
