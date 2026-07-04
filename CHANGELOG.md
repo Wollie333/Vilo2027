@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-05 — Category-based amenities + sticky checkout summary.
+
+- **Taxonomy expansion (migration `20260704120000`, applied):** re-seeded the
+  admin-managed amenity catalog to **16 categories / 102 amenities** in a Vilo-first
+  order (existing slugs preserved — no host selection lost; `catalog_id` is
+  ON DELETE SET NULL). Expanded the curated `LUCIDE_ICONS` set with 22 accommodation
+  icons. Admin edits everything at `/admin/platform/amenities`.
+- **Categorized display (`AmenitiesCategorized`):** Booking.com-style grouped layout
+  (accent category icon + title + dot-bulleted amenities in a masonry). Marketplace
+  listing (`/property/[slug]`) uses **Vilo green**; host sites (`AmenitiesSection`)
+  use the site's own accent. Pure `buildAmenityCategories(catalog, keys)` helper,
+  shared by both. **Admin categories only** — a key not in the published catalog is
+  not shown (host selects from the catalog; no custom amenities).
+- **Sticky checkout summary:** the website checkout order-Summary box is now sticky on
+  desktop so it follows the scroll and stays in view.
+- Verified live (marketplace shows admin categories, no "Other"; migration DB check:
+  16 groups / 102 amenities, all preserved slugs intact). tsc + eslint clean; 223 vitest.
+
 ## 2026-07-04 — Fix: Pages manager mislabelled every Builder-V2 page as "Draft".
 
 - **Root cause (`0d5eccc6`):** page status was derived from
