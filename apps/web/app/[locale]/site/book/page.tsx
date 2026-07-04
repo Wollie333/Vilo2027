@@ -388,6 +388,8 @@ export default async function SiteBookPage({
               currency: special.currency,
               dateMode: special.dateMode,
               savingsLabel: special.savingsLabel,
+              // Locks the checkout to the offer's room (null = whole-listing offer).
+              roomId: special.roomId,
             }
           : undefined
       }

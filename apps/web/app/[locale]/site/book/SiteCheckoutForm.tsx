@@ -137,13 +137,24 @@ export function SiteCheckoutForm({
     currency: string;
     dateMode: "fixed" | "flexible";
     savingsLabel?: string | null;
+    /** Offer's room (null = whole-listing offer). Locks the room selection. */
+    roomId?: string | null;
   };
 }) {
   const canWhole = bookingMode !== "rooms_only" && basePrice != null;
   const canRooms = rooms.length > 0;
 
+  // A special LOCKS what's bookable: a room-scoped offer pins that one room; a
+  // whole-listing offer pins the whole place. The guest can't switch either.
+  const lockedRoomId = special?.roomId ?? null;
+  const lockedWhole = !!special && !special.roomId;
+
   const [scope, setScope] = useState<Scope>(
-    initial.scope ?? (canRooms ? "rooms" : "whole_listing"),
+    lockedRoomId
+      ? "rooms"
+      : lockedWhole
+        ? "whole_listing"
+        : (initial.scope ?? (canRooms ? "rooms" : "whole_listing")),
   );
 
   // Per-room selected guest counts (rooms scope). Seed the pre-selected room with
@@ -534,8 +545,8 @@ export function SiteCheckoutForm({
               />
             </Group>
 
-            {/* What to book */}
-            {canWhole && canRooms ? (
+            {/* What to book — hidden on a special (the offer pins the scope). */}
+            {canWhole && canRooms && !special ? (
               <div className="flex gap-2">
                 <ScopeTab
                   active={scope === "rooms"}
@@ -553,10 +564,15 @@ export function SiteCheckoutForm({
             ) : null}
 
             {scope === "rooms" ? (
-              <Group title="Rooms">
+              <Group title={lockedRoomId ? "Your room" : "Rooms"}>
                 <div className="space-y-2">
-                  {rooms.map((r) => {
-                    const sel = roomGuests[r.id] > 0;
+                  {(lockedRoomId
+                    ? rooms.filter((r) => r.id === lockedRoomId)
+                    : rooms
+                  ).map((r) => {
+                    // On a room-scoped offer the room is fixed: always selected,
+                    // and the checkbox is locked so it can't be changed/removed.
+                    const sel = !!lockedRoomId || roomGuests[r.id] > 0;
                     return (
                       <div
                         key={r.id}
@@ -570,6 +586,7 @@ export function SiteCheckoutForm({
                           <input
                             type="checkbox"
                             checked={sel}
+                            disabled={!!lockedRoomId}
                             onChange={() => toggleRoom(r)}
                             className="h-4 w-4"
                           />
@@ -580,7 +597,14 @@ export function SiteCheckoutForm({
                             >
                               {r.name}
                             </span>
-                            {r.price != null ? (
+                            {lockedRoomId ? (
+                              <span
+                                style={{ color: "var(--site-accent)" }}
+                                className="ml-2 text-xs font-semibold"
+                              >
+                                Included in this offer
+                              </span>
+                            ) : r.price != null ? (
                               <span
                                 style={{ color: "var(--site-mute)" }}
                                 className="ml-2 text-xs"
