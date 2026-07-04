@@ -183,13 +183,17 @@ function SectionWrap({
 // — they must NOT be clamped/gutter-padded by the content band.
 const FULL_BLEED_SECTIONS = new Set(["hero", "gallery", "cta"]);
 // Centred content band: a mobile-safe horizontal gutter (never flush to the edge)
-// plus a max-width so text doesn't over-stretch on wide screens. Matches the v2
-// renderer's 1180px content width.
+// plus a max-width so text doesn't over-stretch on wide screens (matches the v2
+// renderer's 1180px content width). `paddingBlock` gives every content section the
+// SAME vertical rhythm — 50px on phones → 100px on desktop — so sections read neat
+// and professional instead of squashed. A per-section `style.padTop/padBottom`
+// override still wins (applied as a scoped rule on the outer element).
 const BAND_STYLE: CSSProperties = {
   width: "100%",
   maxWidth: 1180,
   marginInline: "auto",
   paddingInline: "clamp(20px, 4vw, 32px)",
+  paddingBlock: "clamp(50px, 7vw, 100px)",
 };
 
 function SectionSwitch({
