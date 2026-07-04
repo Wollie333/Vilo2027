@@ -3,15 +3,37 @@ import "server-only";
 import { z } from "zod";
 
 import {
+  computeAddonSubtotal,
+  defaultAddonQuantity,
+  type PricingModel,
+} from "@/app/[locale]/dashboard/addons/schemas";
+import {
   createBookingCore,
   priceBooking,
   type CreateBookingCoreResult,
 } from "@/lib/bookings/createBooking";
+import {
+  persistBookingAndPay,
+  type BookingAddonRow,
+} from "@/lib/bookings/persist";
 import type { CreateBookingInput } from "@/app/[locale]/property/[slug]/book/schemas";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
-import { nightsBetween } from "@/lib/pricing";
+import { getLegalDocuments } from "@/lib/legal";
+import { nightsBetween, type PricingUnit, type StayAddon } from "@/lib/pricing";
+import { priceSpecialStay } from "@/lib/specials/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveSiteProperty } from "@/lib/website/bookingFunnel";
+
+const num = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+const numOrNull = (v: unknown): number | null => {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+const todayStr = () => new Date().toISOString().slice(0, 10);
 
 // Server-side logic for the ON-SITE website checkout (Phase 6B/c). Two
 // session-less, membership-gated entry points used by the tenant-domain checkout:
@@ -299,4 +321,428 @@ export async function createSiteBooking(
   }
 
   return result;
+}
+
+// ── Special (offer) checkout on the host's own website ─────────
+// A special card's "Book" now routes to THIS themed checkout with `special_id`.
+// This mirrors the proven marketplace deal action (app/[locale]/deal/[slug]/book/
+// actions.ts) — same authoritative `priceSpecialStay` + atomic `redeem_special`
+// claim via the shared `persistBookingAndPay` — but for a session-less website
+// guest, business-scoped to this site, priced ENTIRELY server-side (never trust
+// the client on money), and attributed `booked_via:"website"` so reporting sees a
+// special sold through the host's site.
+export const siteSpecialSchema = z.object({
+  website_id: z.string().uuid(),
+  special_id: z.string().uuid(),
+  return_path: z.string().min(1).max(300),
+  guest_name: z.string().trim().min(2, "Enter your name.").max(120),
+  guest_email: z.string().trim().email("Enter a valid email.").max(160),
+  guest_phone: z.string().trim().max(40).optional(),
+  guests: z.number().int().min(1).max(50).default(2),
+  // Only used for flexible-date specials; fixed specials force their own dates.
+  check_in: iso.optional(),
+  check_out: iso.optional(),
+  selected_addons: z.array(z.string().uuid()).max(30).default([]),
+  payment_method: z.enum(["paystack", "eft"]),
+});
+
+export async function createSiteSpecialBooking(
+  body: unknown,
+  ctx: { origin: string },
+): Promise<CreateBookingCoreResult> {
+  const parsed = siteSpecialSchema.safeParse(body);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Please complete your details.",
+    };
+  }
+  const d = parsed.data;
+  if (!d.return_path.startsWith("/") || d.return_path.startsWith("//")) {
+    return { ok: false, error: "Invalid request." };
+  }
+
+  const admin = createAdminClient();
+
+  // The website's business — the special MUST belong to it and be opted-in to the
+  // site (mirrors loadSpecialsPreview's business-scoped, show_on_website gate), so
+  // a crafted special_id from another host can't be booked through this site.
+  const { data: site } = await admin
+    .from("host_websites")
+    .select("business_id, settings")
+    .eq("id", d.website_id)
+    .maybeSingle();
+  if (!site?.business_id) {
+    return { ok: false, error: "That offer isn't bookable on this site." };
+  }
+
+  const { data: special } = await admin
+    .from("specials")
+    .select(
+      "id, host_id, business_id, property_id, room_id, currency, status, deleted_at, show_on_website, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, max_guests, quantity, redemptions_used, go_live_at, book_by, cancellation_policy_id",
+    )
+    .eq("id", d.special_id)
+    .maybeSingle();
+  if (
+    !special ||
+    special.deleted_at ||
+    special.status !== "active" ||
+    !special.show_on_website ||
+    special.business_id !== site.business_id
+  ) {
+    return { ok: false, error: "That offer isn't bookable on this site." };
+  }
+  const now = todayStr();
+  if (special.go_live_at && special.go_live_at > now) {
+    return { ok: false, error: "This offer isn't available yet." };
+  }
+  if (special.book_by && special.book_by < now) {
+    return { ok: false, error: "Bookings for this offer have closed." };
+  }
+  if (special.redemptions_used >= special.quantity) {
+    return { ok: false, error: "Sorry — this offer is sold out." };
+  }
+
+  // The special's property must be a VISIBLE member of this site.
+  const member = await resolveSiteProperty(
+    admin,
+    d.website_id,
+    special.property_id,
+  );
+  if (!member) {
+    return { ok: false, error: "That offer isn't bookable on this site." };
+  }
+
+  // Server-side payment-method gate (host's per-website toggles).
+  const payCfg =
+    (
+      site.settings as {
+        payments?: { paystack?: boolean; eft?: boolean };
+      } | null
+    )?.payments ?? {};
+  if (d.payment_method === "paystack" && payCfg.paystack === false) {
+    return { ok: false, error: "Card payment isn't available for this site." };
+  }
+  if (d.payment_method === "eft" && payCfg.eft === false) {
+    return { ok: false, error: "EFT isn't available for this site." };
+  }
+
+  const { data: property } = await admin
+    .from("properties")
+    .select(
+      "id, host_id, name, currency, base_price, weekend_price, cleaning_fee, max_guests",
+    )
+    .eq("id", special.property_id)
+    .maybeSingle();
+  if (!property) {
+    return { ok: false, error: "That offer isn't bookable on this site." };
+  }
+
+  type RoomRow = {
+    base_price: number | null;
+    weekend_price: number | null;
+    cleaning_fee: number | null;
+    max_guests: number;
+    pricing_mode: string | null;
+    price_per_person: number | null;
+    base_occupancy: number | null;
+    extra_guest_price: number | null;
+  };
+  let room: RoomRow | null = null;
+  if (special.room_id) {
+    const { data } = await admin
+      .from("property_rooms")
+      .select(
+        "base_price, weekend_price, cleaning_fee, max_guests, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+      )
+      .eq("id", special.room_id)
+      .maybeSingle();
+    if (!data) {
+      return { ok: false, error: "That offer isn't bookable on this site." };
+    }
+    room = data;
+  }
+
+  // Dates — fixed specials force their own; flexible validate against the window.
+  let checkIn: string;
+  let checkOut: string;
+  if (special.date_mode === "fixed") {
+    if (!special.fixed_check_in || !special.fixed_check_out) {
+      return { ok: false, error: "That offer isn't bookable on this site." };
+    }
+    checkIn = special.fixed_check_in;
+    checkOut = special.fixed_check_out;
+  } else {
+    if (!d.check_in || !d.check_out) {
+      return { ok: false, error: "Pick your check-in and check-out dates." };
+    }
+    checkIn = d.check_in;
+    checkOut = d.check_out;
+    if (
+      !special.window_start ||
+      !special.window_end ||
+      checkIn < special.window_start ||
+      checkOut > special.window_end
+    ) {
+      return { ok: false, error: "Choose dates inside the offer window." };
+    }
+  }
+  const nights = nightsBetween(checkIn, checkOut);
+  if (nights <= 0) {
+    return { ok: false, error: "Check-out must be after check-in." };
+  }
+  if (special.date_mode === "flexible") {
+    if (special.min_nights && nights < special.min_nights) {
+      return {
+        ok: false,
+        error: `This offer needs at least ${special.min_nights} night${special.min_nights === 1 ? "" : "s"}.`,
+      };
+    }
+    if (special.max_nights && nights > special.max_nights) {
+      return {
+        ok: false,
+        error: `This offer is for at most ${special.max_nights} nights.`,
+      };
+    }
+  }
+
+  const maxGuests =
+    special.max_guests ?? room?.max_guests ?? property.max_guests ?? 50;
+  if (d.guests > maxGuests) {
+    return {
+      ok: false,
+      error: `This offer sleeps up to ${maxGuests} guest${maxGuests === 1 ? "" : "s"}.`,
+    };
+  }
+
+  // Availability — authoritative gate (same RPCs as a normal booking).
+  if (special.room_id) {
+    const { data: avail, error } = await admin.rpc("room_is_available", {
+      p_listing_id: property.id,
+      p_room_id: special.room_id,
+      p_check_in: checkIn,
+      p_check_out: checkOut,
+    });
+    if (error || avail === false) {
+      return {
+        ok: false,
+        error: "These dates were just booked. Try different dates.",
+      };
+    }
+  } else {
+    const { data: avail, error } = await admin.rpc(
+      "listing_is_available_whole",
+      {
+        p_listing_id: property.id,
+        p_check_in: checkIn,
+        p_check_out: checkOut,
+      },
+    );
+    if (error || avail === false) {
+      return {
+        ok: false,
+        error: "These dates aren't available. Try different dates.",
+      };
+    }
+  }
+
+  const unit: PricingUnit = special.room_id
+    ? {
+        roomId: special.room_id,
+        pricing_mode: (room?.pricing_mode ??
+          "per_room") as PricingUnit["pricing_mode"],
+        base_price: num(room?.base_price),
+        price_per_person: numOrNull(room?.price_per_person),
+        base_occupancy: room?.base_occupancy ?? null,
+        extra_guest_price: numOrNull(room?.extra_guest_price),
+        weekend_price: numOrNull(room?.weekend_price),
+        cleaning_fee: num(room?.cleaning_fee),
+        guests: d.guests,
+      }
+    : {
+        roomId: null,
+        pricing_mode: "per_room",
+        base_price: num(property.base_price),
+        price_per_person: null,
+        base_occupancy: null,
+        extra_guest_price: null,
+        weekend_price: numOrNull(property.weekend_price),
+        cleaning_fee: num(property.cleaning_fee),
+        guests: d.guests,
+      };
+
+  // Bundle add-ons (compulsory + guest-selected), re-priced server-side.
+  const { data: specialAddonRows } = await admin
+    .from("special_addons")
+    .select(
+      "addon_id, is_required, unit_price_override, sort_order, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, stock_quantity, is_active )",
+    )
+    .eq("special_id", special.id)
+    .order("sort_order", { ascending: true });
+  type AddonJoin = {
+    addon_id: string;
+    is_required: boolean;
+    unit_price_override: number | null;
+    addons: {
+      id: string;
+      name: string;
+      pricing_model: PricingModel;
+      unit_price: number;
+      currency: string;
+      min_quantity: number;
+      is_active: boolean;
+    };
+  };
+  const selectedOptional = new Set(d.selected_addons);
+  const stayAddons: StayAddon[] = [];
+  const bookingAddons: BookingAddonRow[] = [];
+  let sortOrder = 0;
+  for (const raw of (specialAddonRows ?? []) as unknown as AddonJoin[]) {
+    const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
+    if (!a || !a.is_active) continue;
+    if (!raw.is_required && !selectedOptional.has(raw.addon_id)) continue;
+    const model = a.pricing_model;
+    const unitPrice =
+      raw.unit_price_override == null
+        ? num(a.unit_price)
+        : num(raw.unit_price_override);
+    const quantity = defaultAddonQuantity(model, a.min_quantity ?? 1, nights);
+    if (quantity <= 0) continue;
+    const subtotal = computeAddonSubtotal(model, unitPrice, quantity, d.guests);
+    stayAddons.push({
+      label: a.name,
+      pricingModel: model,
+      unitPrice,
+      quantity,
+      addonId: a.id,
+    });
+    bookingAddons.push({
+      addon_id: a.id,
+      label: a.name,
+      quantity,
+      unit_price: unitPrice,
+      pricing_model: model,
+      currency: a.currency,
+      is_required: raw.is_required,
+      subtotal,
+      sort_order: sortOrder++,
+      reserve: true,
+    });
+  }
+
+  // Authoritative price — flat package or per-night synthetic rule.
+  const breakdown = priceSpecialStay({
+    priceMode: special.price_mode as "flat" | "per_night",
+    flatTotal: numOrNull(special.flat_total),
+    perNightPrice: numOrNull(special.per_night_price),
+    currency: special.currency,
+    checkIn,
+    checkOut,
+    unit,
+    totalGuests: d.guests,
+    addons: stayAddons,
+  });
+
+  // Session-less website guest (passwordless lead), like the room checkout.
+  const identity = await findOrCreateLeadIdentity(admin, {
+    email: d.guest_email,
+    name: d.guest_name,
+    phone: d.guest_phone || null,
+  });
+  if (!identity) {
+    return { ok: false, error: "Could not start your booking. Try again." };
+  }
+
+  const scope = special.room_id ? "rooms" : "whole_listing";
+  const isEft = d.payment_method === "eft";
+  const legal = await getLegalDocuments();
+  const returnTo = (bookingId: string) =>
+    `${d.return_path}${d.return_path.includes("?") ? "&" : "?"}b=${bookingId}`;
+
+  const result = await persistBookingAndPay({
+    admin,
+    bookingInsert: {
+      property_id: property.id,
+      host_id: property.host_id,
+      guest_id: identity.guestId,
+      special_id: special.id,
+      booked_via: "website",
+      origin: "special_booked",
+      check_in: checkIn,
+      check_out: checkOut,
+      session_date: null,
+      guests_count: d.guests,
+      guests_breakdown: { adults: d.guests, children: 0, infants: 0, pets: 0 },
+      base_amount: breakdown.baseSubtotal,
+      cleaning_fee: breakdown.cleaningTotal,
+      discount_amount: breakdown.discount.discountTotal,
+      total_amount: breakdown.total,
+      price_breakdown: breakdown,
+      currency: special.currency,
+      payment_method: d.payment_method,
+      status: isEft ? "pending_eft" : "pending",
+      payment_status: "pending",
+      scope,
+      guest_name: d.guest_name,
+      guest_email: d.guest_email,
+      guest_phone: d.guest_phone ?? null,
+      special_requests: null,
+      additional_guests: [],
+      policy_acknowledged: true,
+      policy_acknowledged_at: new Date().toISOString(),
+      accepted_terms_version: legal.booking_terms.version,
+      accepted_privacy_version: legal.privacy.version,
+    },
+    redeem: {
+      claim: async () => {
+        const { data: ok, error } = await admin.rpc("redeem_special", {
+          p_special_id: special.id,
+        });
+        if (error || ok !== true) {
+          return { ok: false, error: "Sorry — this offer just sold out." };
+        }
+        return { ok: true };
+      },
+      rollback: async () => {
+        await admin.rpc("release_special", { p_special_id: special.id });
+      },
+    },
+    bookingRooms: special.room_id
+      ? [
+          {
+            room_id: special.room_id,
+            base_amount: breakdown.units[0]?.baseSubtotal ?? 0,
+            cleaning_fee: breakdown.units[0]?.cleaningFee ?? 0,
+          },
+        ]
+      : [],
+    addons: bookingAddons,
+    policy: {
+      listingId: property.id,
+      specialCancellationPolicyId: special.cancellation_policy_id,
+    },
+    payable: {
+      scope,
+      status: isEft ? "pending_eft" : "pending",
+      payment_status: "pending",
+      total_amount: breakdown.total,
+      deposit_amount: null,
+      currency: special.currency,
+      guest_id: identity.guestId,
+      property_id: property.id,
+      listing_name: property.name,
+      host_id: property.host_id,
+    },
+    payment: {
+      method: d.payment_method,
+      amount: "full",
+      email: d.guest_email,
+      origin: ctx.origin,
+      returnTo,
+    },
+  });
+
+  return result.ok
+    ? { ok: true, bookingId: result.bookingId, redirectTo: result.redirectTo }
+    : { ok: false, error: result.error };
 }

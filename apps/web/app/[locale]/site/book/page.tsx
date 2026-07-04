@@ -39,6 +39,8 @@ type SP = {
   scope?: string;
   preview?: string;
   theme?: string;
+  /** Set when booking a SPECIAL (offer) — locks the checkout to it. */
+  special?: string;
 };
 
 const isIso = (v?: string) => Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v));
@@ -240,6 +242,81 @@ export default async function SiteBookPage({
     cancellation = null;
   }
 
+  // SPECIAL (offer) checkout — when ?special is present, load the offer (scoped to
+  // this site's business + opted-in), lock the checkout to it, and show the offer
+  // total. The create call re-prices at the offer rate + redeems it server-side.
+  let special: {
+    id: string;
+    title: string;
+    total: number;
+    perNight: number | null;
+    currency: string;
+    dateMode: "fixed" | "flexible";
+    savingsLabel?: string | null;
+    from?: string;
+    to?: string;
+    roomId?: string | null;
+  } | null = null;
+  const specialId = sp?.special?.trim();
+  if (specialId) {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: sRow } = await admin
+      .from("specials")
+      .select(
+        "id, business_id, property_id, room_id, title, currency, status, deleted_at, show_on_website, date_mode, fixed_check_in, fixed_check_out, price_mode, flat_total, per_night_price, savings_pct, savings_amount, quantity, redemptions_used, go_live_at, book_by",
+      )
+      .eq("id", specialId)
+      .maybeSingle();
+    const eligible =
+      sRow &&
+      !sRow.deleted_at &&
+      sRow.status === "active" &&
+      sRow.show_on_website &&
+      sRow.business_id === property.business_id &&
+      sRow.property_id === property.id &&
+      sRow.redemptions_used < sRow.quantity &&
+      (!sRow.go_live_at || sRow.go_live_at <= today) &&
+      (!sRow.book_by || sRow.book_by >= today);
+    if (eligible) {
+      const from = isIso(sp?.from) ? sp!.from! : (sRow!.fixed_check_in ?? "");
+      const to = isIso(sp?.to) ? sp!.to! : (sRow!.fixed_check_out ?? "");
+      const nights =
+        from && to
+          ? Math.max(
+              1,
+              Math.round(
+                (new Date(to).getTime() - new Date(from).getTime()) / 86400000,
+              ),
+            )
+          : 1;
+      const total =
+        sRow!.price_mode === "flat"
+          ? Number(sRow!.flat_total ?? 0)
+          : Number(sRow!.per_night_price ?? 0) * nights;
+      const savingsLabel =
+        sRow!.savings_pct != null
+          ? `Save ${sRow!.savings_pct}%`
+          : sRow!.savings_amount != null
+            ? `Save ${property.currency || "ZAR"} ${Number(sRow!.savings_amount)}`
+            : null;
+      special = {
+        id: sRow!.id,
+        title: sRow!.title,
+        total,
+        perNight:
+          sRow!.price_mode === "per_night"
+            ? Number(sRow!.per_night_price ?? 0)
+            : null,
+        currency: sRow!.currency || property.currency || "ZAR",
+        dateMode: sRow!.date_mode === "fixed" ? "fixed" : "flexible",
+        savingsLabel,
+        from,
+        to,
+        roomId: sRow!.room_id,
+      };
+    }
+  }
+
   const checkout = (
     <SiteCheckoutForm
       websiteId={ctx.websiteId}
@@ -256,11 +333,24 @@ export default async function SiteBookPage({
       cardAvailable={cardAvailable}
       eftAvailable={eftAvailable}
       cancellation={cancellation}
+      special={
+        special
+          ? {
+              id: special.id,
+              title: special.title,
+              total: special.total,
+              perNight: special.perNight,
+              currency: special.currency,
+              dateMode: special.dateMode,
+              savingsLabel: special.savingsLabel,
+            }
+          : undefined
+      }
       initial={{
-        from: isIso(sp?.from) ? sp!.from! : "",
-        to: isIso(sp?.to) ? sp!.to! : "",
+        from: special?.from ?? (isIso(sp?.from) ? sp!.from! : ""),
+        to: special?.to ?? (isIso(sp?.to) ? sp!.to! : ""),
         guests: Math.max(1, Number(sp?.guests) || 2),
-        roomId: sp?.room?.trim() || null,
+        roomId: special?.roomId ?? (sp?.room?.trim() || null),
         scope: sp?.scope === "whole_listing" ? "whole_listing" : null,
       }}
     />

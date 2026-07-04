@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { nightsBetween } from "@/lib/pricing";
+
 import {
   PRICING_LABEL,
   type PricingModel,
@@ -101,6 +103,7 @@ export function SiteCheckoutForm({
   eftAvailable,
   cancellation,
   initial,
+  special,
 }: {
   websiteId: string;
   propertyId: string;
@@ -120,6 +123,20 @@ export function SiteCheckoutForm({
     guests: number;
     roomId: string | null;
     scope: Scope | null;
+  };
+  /** Set when booking a SPECIAL (offer): the checkout is locked to it and the
+   *  server prices at the offer rate + redeems it. Total shown here is the
+   *  server-computed offer total (advisory; the create call re-prices). */
+  special?: {
+    id: string;
+    title: string;
+    total: number;
+    /** Per-night offer rate (null for flat offers) — lets the running total track
+     *  the guest's chosen nights on a flexible per-night offer. */
+    perNight?: number | null;
+    currency: string;
+    dateMode: "fixed" | "flexible";
+    savingsLabel?: string | null;
   };
 }) {
   const canWhole = bookingMode !== "rooms_only" && basePrice != null;
@@ -231,6 +248,18 @@ export function SiteCheckoutForm({
 
   // Live, server-recalculated quote (debounced).
   useEffect(() => {
+    // SPECIAL mode: the offer price is fixed by the offer, not the room quote —
+    // show the server-computed offer total (the create call re-prices + redeems).
+    if (special) {
+      const n = nightsBetween(checkIn, checkOut) || 1;
+      setQuote({
+        available: true,
+        total: special.perNight != null ? special.perNight * n : special.total,
+        nights: n,
+        couponApplied: false,
+      });
+      return;
+    }
     if (!canQuote) {
       setQuote(null);
       return;
@@ -369,6 +398,8 @@ export function SiteCheckoutForm({
         body: JSON.stringify({
           website_id: websiteId,
           property_id: propertyId,
+          // A special routes to the offer path server-side (offer-rate + redemption).
+          special_id: special?.id,
           scope,
           room_ids: scope === "rooms" ? selectedRoomIds : undefined,
           room_guests:
@@ -443,6 +474,35 @@ export function SiteCheckoutForm({
       <Muted className="mb-8 text-center text-base">
         Reserve your stay directly — no booking fees.
       </Muted>
+
+      {special ? (
+        <div
+          style={{
+            background:
+              "var(--site-soft, color-mix(in srgb, var(--site-accent) 10%, var(--site-bg)))",
+            borderColor: "var(--site-accent)",
+            borderRadius: "var(--site-radius)",
+          }}
+          className="mx-auto mb-8 flex max-w-3xl flex-col items-center gap-1 border px-5 py-4 text-center"
+        >
+          <span
+            style={{ color: "var(--site-accent)" }}
+            className="text-xs font-bold uppercase tracking-[0.14em]"
+          >
+            Offer applied
+            {special.savingsLabel ? ` · ${special.savingsLabel}` : ""}
+          </span>
+          <span style={{ color: "var(--site-ink)" }} className="font-semibold">
+            {special.title}
+          </span>
+          <span style={{ color: "var(--site-mute)" }} className="text-sm">
+            {special.dateMode === "fixed"
+              ? "Fixed offer dates — locked below."
+              : "Choose your dates within the offer window."}{" "}
+            You pay the offer rate; nothing changes at payment.
+          </span>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         {/* ── Form ── */}

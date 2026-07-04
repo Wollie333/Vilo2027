@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
-import { createSiteBooking } from "@/lib/website/siteCheckout";
+import {
+  createSiteBooking,
+  createSiteSpecialBooking,
+} from "@/lib/website/siteCheckout";
 
 // Public on-site checkout endpoint (Phase 6B/c) — creates the booking
 // session-lessly and starts payment, returning the redirect target (Paystack
@@ -48,7 +51,16 @@ export async function POST(req: Request) {
   const origin = req.headers.get("origin") || new URL(req.url).origin || "";
 
   try {
-    const result = await createSiteBooking(body, { origin });
+    // A special (offer) booking carries a `special_id` — route it through the
+    // special path (special-rate pricing + atomic redemption + website
+    // attribution). Everything else is a normal room booking.
+    const hasSpecial =
+      body &&
+      typeof body === "object" &&
+      typeof (body as { special_id?: unknown }).special_id === "string";
+    const result = hasSpecial
+      ? await createSiteSpecialBooking(body, { origin })
+      : await createSiteBooking(body, { origin });
     return NextResponse.json(result, { status: 200 });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unexpected error";

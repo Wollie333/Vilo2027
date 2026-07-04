@@ -86,8 +86,6 @@ import type {
   SiteFormDef,
 } from "./types";
 
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ?? "";
-
 export type SiteContext = {
   websiteId: string;
   businessId: string;
@@ -735,6 +733,8 @@ export function siteBookHref(
     from?: string;
     to?: string;
     guests?: number;
+    /** When set, the themed checkout books this SPECIAL (special-rate + redemption). */
+    special?: string;
   },
 ): string {
   const qs = new URLSearchParams();
@@ -743,6 +743,7 @@ export function siteBookHref(
   if (params.from) qs.set("from", params.from);
   if (params.to) qs.set("to", params.to);
   if (params.guests != null) qs.set("guests", String(params.guests));
+  if (params.special) qs.set("special", params.special);
   if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
   // Stay in preview so a "Book" tap from a draft/unpublished site keeps rendering
   // the themed checkout in preview mode instead of 404ing on the live route.
@@ -833,10 +834,6 @@ function roomFacts(room: {
 }
 
 /** Deep-link into the special booking flow, tagged as a website-channel booking. */
-function specialBookHref(locale: string, slug: string): string {
-  const path = `/${locale}/deal/${slug}/book?via=website`;
-  return APP_URL ? `${APP_URL}${path}` : path;
-}
 
 type SpecialPreviewRow = {
   id: string;
@@ -845,7 +842,10 @@ type SpecialPreviewRow = {
   description: string | null;
   hero_image_path: string | null;
   badge: string | null;
+  property_id: string;
+  room_id: string | null;
   date_mode: string;
+  fixed_check_in: string | null;
   fixed_check_out: string | null;
   window_end: string | null;
   price_mode: string;
@@ -887,7 +887,7 @@ async function loadSpecialsPreview(
   const { data } = await sb
     .from("specials")
     .select(
-      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_out, window_end, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, is_featured, sort_order, property:properties!inner ( deleted_at, photos:property_photos ( url, sort_order ) )",
+      "id, slug, title, description, hero_image_path, badge, property_id, room_id, date_mode, fixed_check_in, fixed_check_out, window_end, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, is_featured, sort_order, property:properties!inner ( deleted_at, photos:property_photos ( url, sort_order ) )",
     )
     .eq("business_id", ctx.businessId)
     .eq("status", "active")
@@ -944,7 +944,22 @@ async function loadSpecialsPreview(
           r.savings_amount == null ? null : Number(r.savings_amount),
         savingsPct: r.savings_pct,
         remaining,
-        bookHref: specialBookHref(ctx.locale, r.slug),
+        // Route the offer's "Book" to THIS themed checkout, preloaded + locked to
+        // the special (special-rate pricing + redemption + website attribution).
+        // Fixed-date specials pin their dates; flexible ones let the guest pick.
+        bookHref: siteBookHref(ctx, {
+          propertyId: r.property_id,
+          roomId: r.room_id ?? undefined,
+          from:
+            r.date_mode === "fixed"
+              ? (r.fixed_check_in ?? undefined)
+              : undefined,
+          to:
+            r.date_mode === "fixed"
+              ? (r.fixed_check_out ?? undefined)
+              : undefined,
+          special: r.id,
+        }),
       },
     });
   }
