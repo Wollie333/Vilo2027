@@ -713,3 +713,27 @@ section[id^="sec-"] {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Sticky booking / summary card — the SINGLE rule shared by every right-hand card
+   on a website's booking surfaces (checkout Summary + room-detail booking dock),
+   so they behave IDENTICALLY: from desktop up they follow the scroll, clear the
+   sticky header (`--wielo-sticky-top`), and stay fully in view (internal scroll
+   when the card is taller than the viewport). Below the desktop breakpoint the
+   card is static (it stacks under the content). */
+@media (min-width: 1024px) {
+  .wielo-book-card-sticky {
+    position: sticky;
+    top: var(--wielo-sticky-top, 110px);
+    max-height: calc(100vh - var(--wielo-sticky-top, 110px) - 1.25rem);
+    overflow-y: auto;
+    /* room for the internal scrollbar so it never overlaps the card content */
+    scrollbar-gutter: stable;
+  }
+  /* Grid/flex-row parents stretch their child to full row height, which leaves the
+     sticky card no room to move — `self-start` makes it its natural height. (A
+     flex-COLUMN parent already leaves it natural-height, and self-start there would
+     wrongly shrink its width — so it's opt-in per context, not in the base rule.) */
+  .wielo-book-card-sticky.wielo-book-card-selfstart {
+    align-self: flex-start;
+  }
+}

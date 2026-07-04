@@ -159,8 +159,11 @@ export function RoomBookingForm({
     "site-rbf-btn mt-4 block w-full px-5 py-3.5 text-center text-sm font-semibold transition-opacity";
 
   return (
+    // Shared sticky-card rule (same as the checkout Summary) so the room-detail
+    // booking card follows the scroll + clears the header. No `self-start` — inside
+    // a flex-column booking rail the card must keep its full width.
     <div
-      className="site-rbf"
+      className="site-rbf wielo-book-card-sticky"
       style={{
         background: "var(--el-card-bg, var(--site-surface))",
         border: "var(--el-card-bd, var(--site-card-border))",
