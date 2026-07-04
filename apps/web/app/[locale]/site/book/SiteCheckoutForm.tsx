@@ -194,6 +194,9 @@ export function SiteCheckoutForm({
   // whole-listing offer pins the whole place. The guest can't switch either.
   const lockedRoomId = special?.roomId ?? null;
   const lockedWhole = !!special && !special.roomId;
+  // A fixed-date offer pins the exact stay dates — show them read-only (like the
+  // compulsory add-ons), so the guest can't change them.
+  const datesLocked = special?.dateMode === "fixed";
 
   const [scope, setScope] = useState<Scope>(
     lockedRoomId
@@ -631,22 +634,59 @@ export function SiteCheckoutForm({
         {/* ── Form ── */}
         <Card className="p-6">
           <div className="space-y-6">
-            {/* Dates — the same themed calendar as the booking form/dock. */}
+            {/* Dates — the same themed calendar as the booking form/dock. On a
+                fixed-date offer they're LOCKED to the offer's dates (read-only). */}
             <Group title="Your dates">
-              <ThemedDateRange
-                from={checkIn}
-                to={checkOut}
-                onChange={(f, t) => {
-                  setCheckIn(f);
-                  setCheckOut(t);
-                }}
-                accent="var(--site-accent)"
-                ink="var(--site-ink)"
-                mute="var(--site-mute)"
-                line="var(--site-line)"
-                surface="var(--site-surface)"
-                radius="var(--site-radius)"
-              />
+              {datesLocked ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {(
+                    [
+                      ["Check-in", checkIn],
+                      ["Check-out", checkOut],
+                    ] as [string, string][]
+                  ).map(([lbl, val]) => (
+                    <div
+                      key={lbl}
+                      style={{ ...fieldStyle, opacity: 0.9 }}
+                      className="flex flex-col gap-0.5 border px-3 py-2"
+                    >
+                      <span
+                        style={{ color: "var(--site-mute)" }}
+                        className="text-[10px] font-semibold uppercase tracking-wide"
+                      >
+                        {lbl}
+                      </span>
+                      <span
+                        style={{ color: "var(--site-ink)" }}
+                        className="text-sm font-medium"
+                      >
+                        {fmtOfferDate(val) ?? "—"}
+                      </span>
+                    </div>
+                  ))}
+                  <p
+                    style={{ color: "var(--site-accent)" }}
+                    className="col-span-2 text-xs font-medium"
+                  >
+                    Offer dates — set by this special, and locked.
+                  </p>
+                </div>
+              ) : (
+                <ThemedDateRange
+                  from={checkIn}
+                  to={checkOut}
+                  onChange={(f, t) => {
+                    setCheckIn(f);
+                    setCheckOut(t);
+                  }}
+                  accent="var(--site-accent)"
+                  ink="var(--site-ink)"
+                  mute="var(--site-mute)"
+                  line="var(--site-line)"
+                  surface="var(--site-surface)"
+                  radius="var(--site-radius)"
+                />
+              )}
             </Group>
 
             {/* What to book — hidden on a special (the offer pins the scope). */}
@@ -1029,6 +1069,32 @@ export function SiteCheckoutForm({
                   </p>
                 ) : null}
               </div>
+
+              {/* Active-offer line — makes it obvious in the summary that a special
+                  is applied to this total (mirrors the checkout's offer card). */}
+              {special ? (
+                <div
+                  style={{
+                    background:
+                      "var(--site-soft, color-mix(in srgb, var(--site-accent) 12%, var(--site-bg)))",
+                    borderRadius: "var(--site-radius)",
+                  }}
+                  className="mt-2 flex items-center justify-between gap-2 px-2.5 py-2"
+                >
+                  <span
+                    style={{ color: "var(--site-accent)" }}
+                    className="text-[11px] font-bold uppercase tracking-wide"
+                  >
+                    Special active
+                  </span>
+                  <span
+                    style={{ color: "var(--site-ink)" }}
+                    className="truncate text-right text-xs font-semibold"
+                  >
+                    {special.title}
+                  </span>
+                </div>
+              ) : null}
 
               <div
                 style={{ borderColor: "var(--site-line)" }}
