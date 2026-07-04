@@ -257,6 +257,10 @@ export default async function SiteBookPage({
     to?: string;
     roomId?: string | null;
   } | null = null;
+  // A special's OWN bundled add-ons (compulsory + optional upsells) — shown +
+  // pre-selected on its checkout instead of the property's generic add-ons, so the
+  // guest sees exactly what the offer includes. The create call re-prices them.
+  let specialAddons: CheckoutAddon[] | null = null;
   const specialId = sp?.special?.trim();
   if (specialId) {
     const today = new Date().toISOString().slice(0, 10);
@@ -314,6 +318,47 @@ export default async function SiteBookPage({
         to,
         roomId: sRow!.room_id,
       };
+
+      // The offer's bundled add-ons (compulsory + optional upsells), re-priced off
+      // the catalog + the special's per-deal override. Shown + pre-selected on the
+      // checkout; the create call re-validates them.
+      type SAJoin = {
+        addon_id: string;
+        is_required: boolean;
+        unit_price_override: number | null;
+        addons: AddonDef | AddonDef[] | null;
+      };
+      const { data: saRows } = await admin
+        .from("special_addons")
+        .select(
+          "addon_id, is_required, unit_price_override, sort_order, addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active )",
+        )
+        .eq("special_id", sRow!.id)
+        .order("sort_order", { ascending: true });
+      specialAddons = ((saRows ?? []) as unknown as SAJoin[])
+        .map((raw): CheckoutAddon | null => {
+          const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
+          if (!a || !a.is_active) return null;
+          return {
+            id: a.id,
+            name: a.name,
+            description: a.description,
+            imageUrl: addonImageUrl(a.image_path),
+            pricingModel: a.pricing_model as PricingModel,
+            unitPrice:
+              raw.unit_price_override == null
+                ? Number(a.unit_price)
+                : Number(raw.unit_price_override),
+            currency: a.currency || property.currency || "ZAR",
+            minQuantity: a.min_quantity,
+            maxQuantity: a.max_quantity,
+            allowCustom: a.allow_custom_quantity,
+            stock: a.stock_quantity,
+            isRequired: raw.is_required,
+            roomIds: null,
+          };
+        })
+        .filter((a): a is CheckoutAddon => a !== null);
     }
   }
 
@@ -329,7 +374,7 @@ export default async function SiteBookPage({
       }
       bookingMode={property.booking_mode ?? "whole_listing"}
       rooms={rooms}
-      addons={addons}
+      addons={specialAddons ?? addons}
       cardAvailable={cardAvailable}
       eftAvailable={eftAvailable}
       cancellation={cancellation}

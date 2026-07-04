@@ -177,7 +177,15 @@ export function SiteCheckoutForm({
     { name: string; email: string; phone: string }[]
   >([]);
 
-  const [addonQty, setAddonQty] = useState<Record<string, number>>({});
+  // On a special, PRE-SELECT everything the offer bundles (its add-ons) so the
+  // checkout reflects exactly what's included — the guest can still adjust optional
+  // ones. Required add-ons are added server-side regardless.
+  const [addonQty, setAddonQty] = useState<Record<string, number>>(() => {
+    if (!special) return {};
+    const init: Record<string, number> = {};
+    for (const a of addons) init[a.id] = Math.max(1, a.minQuantity || 1);
+    return init;
+  });
   const [coupon, setCoupon] = useState("");
 
   const [method, setMethod] = useState<"paystack" | "eft">(
