@@ -81,6 +81,8 @@ type OverviewProps = Extract<
   { type: "room_overview" }
 >["props"];
 
+// The fact pills carry LIVE data (scoped from the listing) but their look is
+// host-editable via the room_overview "Pill" element (`--el-pill-*`).
 function FactPills({ facts }: { facts: string[] }) {
   if (facts.length === 0) return null;
   return (
@@ -89,11 +91,13 @@ function FactPills({ facts }: { facts: string[] }) {
         <span
           key={i}
           style={{
-            background: "var(--site-bg)",
-            color: "var(--site-mute)",
-            borderColor: "var(--site-line)",
+            background: "var(--el-pill-bg, var(--site-bg))",
+            color: "var(--el-pill-fg, var(--site-mute))",
+            border: "var(--el-pill-bd, 1px solid var(--site-line))",
+            borderRadius: "var(--el-pill-radius, 9999px)",
+            fontSize: "var(--el-pill-size, 0.75rem)",
           }}
-          className="rounded-pill border px-2.5 py-1 text-xs font-medium"
+          className="px-2.5 py-1 font-medium"
         >
           {f}
         </span>
@@ -121,19 +125,24 @@ export function RoomOverviewSection({
       <h1
         style={{
           fontFamily: "var(--site-font-heading)",
-          color: "var(--site-ink)",
-          fontSize: "var(--site-h2)",
-          lineHeight: "var(--site-leading-heading)" as unknown as number,
+          color: "var(--el-title-fg, var(--site-ink))",
+          fontSize: "var(--el-title-size, var(--site-h2))",
+          fontWeight: "var(--el-title-weight, 600)",
+          lineHeight:
+            "var(--el-title-lh, var(--site-leading-heading))" as unknown as number,
+          letterSpacing: "var(--el-title-ls, normal)",
         }}
-        className="font-semibold"
       >
         {title}
       </h1>
       {props.show_facts ? <FactPills facts={data.facts} /> : null}
       {data.description ? (
         <p
-          style={{ color: "var(--site-mute)" }}
-          className="mt-4 whitespace-pre-line text-[15px] leading-relaxed"
+          style={{
+            color: "var(--el-desc-fg, var(--site-mute))",
+            fontSize: "var(--el-desc-size, 15px)",
+          }}
+          className="mt-4 whitespace-pre-line leading-relaxed"
         >
           {data.description}
         </p>

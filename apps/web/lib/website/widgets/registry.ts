@@ -1530,6 +1530,20 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         text: "Name, facts, description + price come from the room being viewed.",
       },
     ],
+    // Data is scoped from the listing; the LOOK is host-editable per element.
+    elements: [
+      {
+        key: "title",
+        label: "Room name",
+        controls: ["color", "size", "weight", "lineHeight", "letterSpacing"],
+      },
+      { key: "desc", label: "Description", controls: ["color", "size"] },
+      {
+        key: "pill",
+        label: "Fact pill",
+        controls: ["bg", "color", "border", "radius", "size"],
+      },
+    ],
   },
   room_amenities: {
     type: "room_amenities",
