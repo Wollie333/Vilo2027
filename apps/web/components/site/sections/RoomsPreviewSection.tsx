@@ -29,7 +29,10 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
   const price = priceLabel(room.price, room.currency);
   return (
     <Card
-      className="flex flex-col"
+      // `site-room-card` is the STABLE hook the per-theme skins target for the
+      // card lift/hover — depth-independent, so wrapping the section in the
+      // responsive content band never breaks it.
+      className="site-room-card flex flex-col"
       // Per-element styling (Elementor): the "card" element controls read
       // `--el-card-*`, falling back to the theme's own card tokens when unset.
       style={{

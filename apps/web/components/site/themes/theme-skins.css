@@ -230,12 +230,12 @@
 
 /* --- ROOM CARDS ---------------------------------------------------------- */
 /* Lift on hover + aqua-tint fact chips, matching `.room` / `.chip`. */
-.wielo-oceansview [data-section-type="rooms_preview"] > * > * {
+.wielo-oceansview .site-room-card {
   transition:
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
     box-shadow 0.4s;
 }
-.wielo-oceansview [data-section-type="rooms_preview"] > * > *:hover {
+.wielo-oceansview .site-room-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 36px 60px -30px rgba(10, 34, 48, 0.34);
 }
@@ -366,12 +366,12 @@
   background: var(--site-tint);
   border-color: transparent;
 }
-.wielo-sabela [data-section-type="rooms_preview"] > * > * {
+.wielo-sabela .site-room-card {
   transition:
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
     box-shadow 0.4s;
 }
-.wielo-sabela [data-section-type="rooms_preview"] > * > *:hover {
+.wielo-sabela .site-room-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 30px 60px -34px rgba(0, 0, 0, 0.7);
 }
@@ -441,14 +441,14 @@
 /* --- MARMALADE home section skins ---------------------------------------- */
 /* Postcard cards: warm white with a soft lifted shadow + a gentle straighten-on-
    hover, echoing the tilted postcard motif (kept subtle so it never reads broken). */
-.wielo-marmalade [data-section-type="rooms_preview"] > * > *,
+.wielo-marmalade .site-room-card,
 .wielo-marmalade [data-section-type="reviews"] .grid > * {
   box-shadow: 0 18px 40px -24px rgba(44, 38, 32, 0.35);
   transition:
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
     box-shadow 0.4s;
 }
-.wielo-marmalade [data-section-type="rooms_preview"] > * > *:hover {
+.wielo-marmalade .site-room-card:hover {
   transform: translateY(-6px);
   box-shadow: 0 30px 56px -28px rgba(44, 38, 32, 0.4);
 }
