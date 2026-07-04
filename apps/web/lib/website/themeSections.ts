@@ -872,17 +872,17 @@ const oceansview = {
       s.props.variant = "grid";
       s.props.items = [
         {
-          icon: "Waves",
+          icon: "🌊",
           title: "Three pools & the sea",
           body: "Two heated pools, a lap pool and a private path straight onto the sand.",
         },
         {
-          icon: "Utensils",
+          icon: "🍽️",
           title: "Tables by the water",
           body: "Sea-to-table menus and sundowners with the best view on the bay.",
         },
         {
-          icon: "Sparkles",
+          icon: "💆",
           title: "Spa & wellness",
           body: "Ocean-air treatments, a sauna, and morning yoga on the deck.",
         },

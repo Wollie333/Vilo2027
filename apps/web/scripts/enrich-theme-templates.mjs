@@ -44,10 +44,31 @@ const GALLERY = {
   marmalade: galleryImgs(["photo-1522708323590-d24dbb6b0267", "photo-1470337458703-46ad1756a187", "photo-1505691938895-1758d7feb511", "photo-1416879595882-3373a0480b5b", "photo-1502602898657-3e91760cbb34", "photo-1466692476868-aef1dfb1e735", "photo-1560185007-cde436f6a4d0"]),
 };
 
+// Highlight/amenity cards render `item.icon` as a literal glyph (emoji/char), so
+// any lucide icon *name* left in the seed shows as raw text ("Waves"). Normalise
+// the known names to emoji across every page's item lists. Idempotent.
+const ICON_GLYPHS = {
+  Waves: "🌊", Utensils: "🍽️", Sparkles: "💆", Sunrise: "🌅", Sunset: "🌇",
+  Moon: "🌙", Flame: "🔥", Footprints: "👣", Sun: "☀️", Wine: "🍷",
+  Wifi: "📶", Coffee: "☕", Waves2: "🌊", Fish: "🐟", Anchor: "⚓",
+};
+function normaliseIcons(pages) {
+  let n = 0;
+  for (const p of pages)
+    for (const sec of p.sections || []) {
+      const items = sec.props?.items;
+      if (!Array.isArray(items)) continue;
+      for (const it of items)
+        if (it && ICON_GLYPHS[it.icon]) { it.icon = ICON_GLYPHS[it.icon]; n++; }
+    }
+  return n;
+}
+
 async function enrich(slug) {
   const { data: theme } = await admin.from("site_themes").select("page_templates").eq("slug", slug).maybeSingle();
   if (!theme) { console.log(`  ${slug}: not found`); return; }
   const pages = Array.isArray(theme.page_templates) ? theme.page_templates : [];
+  const iconFixes = normaliseIcons(pages);
   const home = pages.find((p) => p.kind === "home");
   if (!home) { console.log(`  ${slug}: no home page`); return; }
   const secs = Array.isArray(home.sections) ? home.sections : [];
@@ -87,7 +108,7 @@ async function enrich(slug) {
     changed++;
   }
   await admin.from("site_themes").update({ page_templates: pages }).eq("slug", slug);
-  console.log(`  ${slug}: hero image ${hero ? "set" : "MISSING"} (${changed} section${changed === 1 ? "" : "s"} patched)`);
+  console.log(`  ${slug}: hero image ${hero ? "set" : "MISSING"} (${changed} section${changed === 1 ? "" : "s"} patched, ${iconFixes} icon${iconFixes === 1 ? "" : "s"} normalised)`);
 }
 
 console.log("Enriching theme templates with stock images…");
