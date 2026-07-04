@@ -568,6 +568,11 @@ export function BuilderShell({
           : "· draft";
 
   const selected = selectedId ? findNode(doc, selectedId) : null;
+  // Human page label for the topbar "you are here" chip (home → "Home",
+  // room_detail → "Room Detail", thank-you → "Thank You").
+  const pageLabelText = pageKind
+    ? pageKind.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    : "Page";
 
   // Selection → outline the matching canvas node. Re-runs on doc changes so the
   // outline follows the node after a mutation.
@@ -1168,6 +1173,23 @@ export function BuilderShell({
                 ))
               )}
             </div>
+          </div>
+
+          <div className="tb-spacer" />
+
+          <div className="tb-context" title="What you're editing">
+            <MapPin size={13} strokeWidth={2} />
+            <span className="tb-ctx-page">{pageLabelText}</span>
+            {selected?.node ? (
+              <>
+                <span className="tb-ctx-sep">›</span>
+                <span className="tb-ctx-node">
+                  {nodeMeta(selected.node as AnyNode).label}
+                </span>
+              </>
+            ) : (
+              <span className="tb-ctx-hint">· whole page</span>
+            )}
           </div>
 
           <div className="tb-spacer" />

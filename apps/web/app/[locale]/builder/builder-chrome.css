@@ -151,6 +151,41 @@
 .wb .tb-spacer {
   flex: 1;
 }
+/* "You are here" context chip — shows the current page + the selected element so
+   the user always knows what they're editing. */
+.wb .tb-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 340px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.wb .tb-context svg {
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+.wb .tb-ctx-page {
+  font-weight: 700;
+  color: #fff;
+}
+.wb .tb-ctx-sep {
+  opacity: 0.55;
+}
+.wb .tb-ctx-node {
+  color: rgba(255, 255, 255, 0.82);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wb .tb-ctx-hint {
+  color: rgba(255, 255, 255, 0.6);
+}
 .wb .tb-ico {
   width: 34px;
   height: 34px;
