@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-04 — Page builder: custom-colour circle on the Border-colour row.
+
+- **Custom border colour (`57d86d0c`):** the block "Border colour" row was semantic-
+  role only (line/ink/accent); it now offers the same rainbow custom-colour circle as
+  the nav editor + element colours. `RoleSwatchRow` gained an opt-in `allowCustom`;
+  `blockStyle.borderColor` widened from a strict enum to role-or-custom; the renderers
+  resolve a role → theme var, else use the raw hex/rgb (`resolveBorderColor`).
+  Background + element colours already had the circle; Colour tone stays role-only
+  (semantic light/dark treatment). tsc + eslint clean; 215 vitest.
+  _(The broader #34 audit — verifying every styling control updates the canvas live
+  and pruning dead controls — needs the authenticated builder and is a focused
+  follow-up.)_
+
 ## 2026-07-04 — Room-rate block is a live booking form.
 
 - **Live booking form (`f5cdd3a0`):** the `room_rate` website block is now a working
