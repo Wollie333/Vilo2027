@@ -238,6 +238,87 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
 
 ---
 
+## 6b. Signature shell elements — the scope standard
+
+Not every reference design fits the generic block vocabulary. Some ship a
+**signature shell** — bespoke chrome or structural motifs that are the theme's
+identity but sit *outside* the section → column → block grid. This section is the
+STANDARD for how a theme skin is scoped: what a skin always covers, what it does
+not, and how to decide the fate of each signature element **up front** so a theme
+is "done" honestly (not silently missing its identity).
+
+### A) Always IN scope — a skin MUST match these to the reference
+| Layer | Covered by |
+|---|---|
+| Palette (all colours, accents, bands) | `--site-*` tokens + `.wielo-<slug>` extra tokens |
+| Fonts (display / body / hand) | `SiteFontLinks` + `FONT_STACKS` (load the real webfont!) |
+| Type scale (hero + heading display sizes) | `--site-hero-*` + `[data-section-type]` heading scale |
+| Section bands / tones | `sand` / `navy` / `soft` tones + tokens |
+| Cards, chips, badges, eyebrows, icon boxes | scoped `[data-section-type]` rules |
+| Buttons (per role: book/submit/ghost) | `--site-btn-*` scope overrides |
+| Per-element editability | `--el-*` wiring (§5b) |
+| Hover/transition polish, gradients, mosaics | scoped CSS |
+
+If any of these don't match the reference, the skin is **not done** — they are
+never "out of scope".
+
+### B) OUT of scope for a section skin — the "signature shell"
+These are bespoke and cannot be expressed by skinning generic blocks:
+| Kind | Examples seen |
+|---|---|
+| **Chrome / nav** | Marmalade floating **pill nav**, announcement strips, per-theme header shells |
+| **Hero shell** | Marmalade **overlapping white postcard** hero, Sabela hero **scroll indicator** |
+| **Structural motifs** | Marmalade **tilted / washi-taped postcards**, stamps, handwriting accents pinned to specific spots |
+| **Bespoke layouts** | anything not a section→column→block arrangement |
+
+### C) The decision path for each signature element (choose ONE, record it)
+Rank in this order — earlier options are preferred:
+
+1. **PROMOTE to a reusable generic capability** *(best)* — add a variant / element
+   / tone to the shared block + registry so EVERY theme can reuse it. This is how
+   the "signature" becomes generic: `highlights` **tiles**, `rooms_preview`
+   **showcase**, `amenities` **inline**, `blog_preview` **journal**, `cta`
+   **newsletter**, the `sand`/`navy` tones, the multi-column `stack` fix all
+   started as one theme's signature and are now shared. Do this when the element
+   is a genuine layout pattern others will want.
+2. **APPROXIMATE within the skin** — tasteful scoped CSS that evokes it without
+   faking it badly (e.g. Marmalade postcard cards = warm white + soft lifted
+   shadow + a subtle straighten-on-hover, *not* literal tilt+tape). Do this for
+   decorative motifs where a close-enough read is fine and a literal version
+   would look broken or fragile.
+3. **EXTEND THE CHROME** — for nav/header/footer shells, add a variant to
+   `SiteChrome` / the nav config (e.g. a "pill" header style, transparent-over-hero
+   which already exists). This is a PLATFORM change (affects all themes) — scope it
+   as its own task, don't smuggle it into a theme skin.
+4. **DEFER (document, don't fake)** — if it's not reusable, not safely
+   approximable, and not worth a platform change now, leave it out and RECORD it in
+   the theme's ledger. Never ship a broken half-version.
+
+**How to choose:** reusable layout → 1. Decorative motif → 2. Nav/chrome → 3.
+Niche + risky → 4. Bias toward 1 whenever the element is a real pattern — that's
+what keeps the generic block set growing and future themes cheap.
+
+### D) Per-theme signature ledger (fill in for every theme)
+Record each theme's signature elements + the chosen path, so "done" is explicit.
+
+- **Oceans View** — no bespoke shell (its design maps cleanly to generic blocks) →
+  reached true pixel-perfect. Promoted: `highlights` tiles, `rooms_preview`
+  showcase, `amenities` inline, `sand`/`navy` tones.
+- **Sabela** — hero scroll indicator → **defer**; inline rating row → **approximate**
+  (reviews score). Rest is palette/type/bands (in scope, done).
+- **Marmalade** — floating **pill nav** → **defer** (candidate for path 3, a
+  SiteChrome "pill" header variant, later); overlapping **postcard hero** → **defer**;
+  **tilted/taped postcards** → **approximate** (warm card + soft shadow + subtle
+  hover); handwriting (Caveat) accents → **defer**. Palette/fonts/bands/cards done.
+
+### E) Definition of "theme skin done"
+A theme is skin-complete when: (1) every §A item matches the reference, AND (2)
+every signature-shell element is classified in the ledger (promoted / approximated
+/ chrome-task / deferred) with a one-line rationale. A deferred item is fine — an
+*undocumented* gap is not.
+
+---
+
 ## 7. Gotchas (learned the hard way)
 
 - **`root.type` MUST be `"root"`** in the PageDoc, or `parsePageDocLoose`
