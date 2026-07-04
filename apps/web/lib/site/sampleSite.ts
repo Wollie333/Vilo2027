@@ -199,6 +199,42 @@ export const DEMO_AMENITIES: AmenitiesData = {
     { icon: "🌿", label: "Garden" },
     { icon: "☕", label: "Nespresso" },
   ],
+  // Grouped sample so the builder canvas previews the categorized layout.
+  categories: [
+    {
+      id: "internet",
+      label: "Internet",
+      icon: "wifi",
+      items: [{ key: "wifi", label: "Free WiFi in public areas" }],
+    },
+    {
+      id: "parking",
+      label: "Parking & transport",
+      icon: "square-parking",
+      items: [
+        { key: "parking", label: "Free parking" },
+        { key: "shuttle_paid", label: "Airport shuttle (paid)" },
+      ],
+    },
+    {
+      id: "wellness",
+      label: "Recreation & wellness",
+      icon: "waves",
+      items: [
+        { key: "pool", label: "Pool" },
+        { key: "fitness_centre", label: "Fitness centre" },
+      ],
+    },
+    {
+      id: "outdoors",
+      label: "Outdoors & view",
+      icon: "tree-pine",
+      items: [
+        { key: "braai", label: "Braai / BBQ facilities" },
+        { key: "garden", label: "Garden" },
+      ],
+    },
+  ],
 };
 
 export const DEMO_ADDONS: AddonsPreviewData = {

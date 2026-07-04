@@ -16,7 +16,11 @@ import { cache } from "react";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { slugify } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getAmenityIndex } from "@/lib/taxonomy/getAmenities";
+import {
+  getAmenityIndex,
+  getAmenityCatalog,
+} from "@/lib/taxonomy/getAmenities";
+import { buildAmenityCategories } from "@/lib/taxonomy/groupAmenities";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import {
   isRoomScoped,
@@ -1953,15 +1957,20 @@ export async function assembleSiteDataByType(
         ),
       ];
       if (!keys.length) return;
-      const catalog = await getAmenityIndex();
+      const [index, grouped] = await Promise.all([
+        getAmenityIndex(),
+        getAmenityCatalog(),
+      ]);
       out.amenities = {
         items: keys.map((k) => {
-          const c = catalog.get(k);
+          const c = index.get(k);
           return {
             icon: c?.icon ?? null,
             label: c?.label ?? humaniseEnum(k) ?? k,
           };
         }),
+        // Same amenities grouped by admin category (Booking.com layout).
+        categories: buildAmenityCategories(grouped, keys),
       };
     })(),
   ]);

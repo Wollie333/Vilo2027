@@ -12,6 +12,7 @@ import type {
   FormType,
 } from "@/lib/website/forms.schema";
 import type { RoomMediaOverrides } from "@/lib/website/roomMedia";
+import type { AmenityCategory } from "@/lib/taxonomy/groupAmenities";
 
 export type SiteLogoStyle = "wordmark" | "mark" | "icon";
 
@@ -501,8 +502,12 @@ export type SeasonRow = {
   currency: string;
 };
 export type SeasonalPricingData = { seasons: SeasonRow[] };
-/** Property-wide facilities grid — live amenity items (icon + label). */
-export type AmenitiesData = { items: { icon: string | null; label: string }[] };
+/** Property-wide facilities — live amenity items (icon + label) plus the same
+ *  amenities grouped by admin category (for the "categorized" Booking.com layout). */
+export type AmenitiesData = {
+  items: { icon: string | null; label: string }[];
+  categories?: AmenityCategory[];
+};
 
 /** Live-data shape per auto-populate section type. */
 export type SiteDataByType = {

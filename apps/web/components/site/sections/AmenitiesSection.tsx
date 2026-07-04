@@ -1,5 +1,8 @@
+import type { CSSProperties } from "react";
+
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { AmenitiesData } from "@/lib/site/types";
+import { AmenitiesCategorized } from "@/components/listing/AmenitiesCategorized";
 
 // Bare element (Elementor reframe): renders bare; the SECTION owns padding + width
 // and the heading is a separate Heading element above. `props.heading` stays legacy.
@@ -21,13 +24,14 @@ export function AmenitiesSection({
   data?: AmenitiesData;
 }) {
   const items = data?.items?.length ? data.items : props.items;
-  if (items.length === 0) return null;
+  const categories = data?.categories ?? [];
 
   // INLINE — a centred row of text pills, no heading (the designed "what's
   // included" bar). Icons are intentionally omitted: live amenities carry lucide
   // icon *names* (not emoji), which would render as literal text here. Reusable
   // by any theme via `variant:"inline"`.
   if (props.variant === "inline") {
+    if (items.length === 0) return null;
     return (
       <div className="site-amen-inline flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
         {items.map((item, i) => (
@@ -46,6 +50,34 @@ export function AmenitiesSection({
     );
   }
 
+  // CATEGORIZED (default) — the Booking.com-style grouped layout: each admin
+  // category shows an accent icon + title with dot-bulleted amenities, flowing
+  // into a masonry. Live tenant sites always have grouped `data.categories`; the
+  // colours follow the host's own theme (site accent + ink/mute). Falls through to
+  // the flat grid below only when there's no grouped data (canvas / manual items).
+  if (categories.length > 0) {
+    return (
+      <>
+        {props.heading ? (
+          <SectionHeading className="mb-10">{props.heading}</SectionHeading>
+        ) : null}
+        <div
+          className="site-amen-cats mx-auto max-w-4xl"
+          style={
+            {
+              "--am-accent": "var(--site-accent)",
+              "--am-title": "var(--site-ink)",
+              "--am-text": "var(--site-mute)",
+            } as CSSProperties
+          }
+        >
+          <AmenitiesCategorized categories={categories} />
+        </div>
+      </>
+    );
+  }
+
+  if (items.length === 0) return null;
   return (
     <>
       {props.heading ? (
