@@ -895,7 +895,20 @@ const menuPageOverrideSchema = z.object({
 });
 
 export const navigationSchema = z.object({
+  // Effective header menu — mirrored from the primary named menu (render SSOT).
   menu: z.array(menuItemSchema).max(20).default([]),
+  // Named menus (multi-menu). The header uses the `primaryMenuId` menu.
+  menus: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string().trim().max(60),
+        items: z.array(menuItemSchema).max(20).default([]),
+      }),
+    )
+    .max(10)
+    .optional(),
+  primaryMenuId: z.string().max(120).optional(),
   menuStyle: menuStyleSchema,
   // Per-page appearance/style overrides, keyed by page key ("home" or a slug).
   perPage: z.record(z.string(), menuPageOverrideSchema).optional(),

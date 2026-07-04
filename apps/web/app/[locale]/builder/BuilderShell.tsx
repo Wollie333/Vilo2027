@@ -145,11 +145,12 @@ const GALLERY_DATA_BLOCKS: ReadonlySet<string> = new Set(["gallery"]);
 import { buildSiteVars, type SiteThemeConfig } from "@/lib/site/themes";
 import type {
   SiteNavigation,
-  SiteMenuItem,
+  SiteNamedMenu,
   SiteData,
   SiteBrand,
   SiteNavItem,
 } from "@/lib/site/types";
+import { resolveNamedMenus, resolvePrimaryMenuId } from "@/lib/site/namedMenus";
 import { SiteChrome, type ChromeEditable } from "@/components/site/SiteChrome";
 import { modal } from "@/components/ui/modal-host";
 import {
@@ -519,9 +520,36 @@ export function BuilderShell({
   );
 
   // Nav builder → persist the full navigation (menu edits + preserved rest).
-  const setMenu = useCallback(
-    (nextMenu: SiteMenuItem[]) =>
-      setNavigation((n) => ({ ...n, menu: nextMenu })),
+  // Named-menu model: `menus` + `primaryMenuId` are the SSOT; `menu` is kept
+  // mirrored to the primary menu's items so the render path (SiteChrome) is
+  // untouched. Both handlers re-derive the mirror on every change.
+  const setMenus = useCallback(
+    (nextMenus: SiteNamedMenu[]) =>
+      setNavigation((n) => {
+        const primaryId = resolvePrimaryMenuId({ ...n, menus: nextMenus });
+        const primary =
+          nextMenus.find((m) => m.id === primaryId) ?? nextMenus[0];
+        return {
+          ...n,
+          menus: nextMenus,
+          primaryMenuId: primary?.id,
+          menu: primary?.items ?? [],
+        };
+      }),
+    [],
+  );
+  const setPrimaryMenu = useCallback(
+    (id: string) =>
+      setNavigation((n) => {
+        const menus = resolveNamedMenus(n);
+        const primary = menus.find((m) => m.id === id) ?? menus[0];
+        return {
+          ...n,
+          menus,
+          primaryMenuId: primary?.id,
+          menu: primary?.items ?? [],
+        };
+      }),
     [],
   );
   const saveNav = useCallback(
@@ -1686,8 +1714,10 @@ export function BuilderShell({
         onClose={() => setNavOpen(false)}
         siteLabel={themeLabel}
         domain={domain}
-        menu={navigation.menu ?? []}
-        onMenuChange={setMenu}
+        menus={resolveNamedMenus(navigation)}
+        primaryMenuId={resolvePrimaryMenuId(navigation)}
+        onMenusChange={setMenus}
+        onPrimaryMenuChange={setPrimaryMenu}
         menuStyle={navigation.menuStyle ?? {}}
         onMenuStyleChange={(ms) =>
           setNavigation((n) => ({ ...n, menuStyle: ms }))

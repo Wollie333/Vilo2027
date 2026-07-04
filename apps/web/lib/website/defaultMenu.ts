@@ -2,6 +2,11 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import {
+  MAIN_MENU_ID,
+  MAIN_MENU_NAME,
+  withNamedMenus,
+} from "@/lib/site/namedMenus";
 import type { SiteMenuItem, SiteNavigation } from "@/lib/site/types";
 
 type PageRow = {
@@ -49,17 +54,32 @@ export function buildDefaultMenu(pages: PageRow[]): SiteMenuItem[] {
 }
 
 /**
- * Materialise a default menu when a site has none, so first-time hosts get a
- * real, editable menu in the builder instead of the implicit "auto-pull every
- * page" fallback. Idempotent — returns the navigation unchanged once a menu
- * exists. Persists the seeded menu so it shows + publishes like any edit.
+ * Materialise a default "Main menu" when a site has none, so first-time hosts get
+ * a real, editable menu in the builder (named-menu model) instead of the implicit
+ * "auto-pull every page" fallback. Idempotent — when the site already has menu
+ * content it only upgrades the legacy single `menu` into the named shape (once).
+ * Persists so the menu shows + publishes like any edit.
  */
 export async function ensureDefaultMenu<T extends SiteNavigation>(
   supabase: SupabaseClient,
   websiteId: string,
   navigation: T,
 ): Promise<T> {
-  if (navigation.menu && navigation.menu.length > 0) return navigation;
+  // Already has real menu content — just ensure it's in the named-menu shape and
+  // persist the upgrade the first time (legacy single `menu` → named "Main menu").
+  const existing = navigation.menus?.length
+    ? navigation.menus.flatMap((m) => m.items)
+    : (navigation.menu ?? []);
+  if (existing.length > 0) {
+    const normalized = withNamedMenus(navigation) as T;
+    if (!navigation.menus || navigation.menus.length === 0) {
+      await supabase
+        .from("host_websites")
+        .update({ navigation: normalized })
+        .eq("id", websiteId);
+    }
+    return normalized;
+  }
 
   const { data: pages } = await supabase
     .from("website_pages")
@@ -68,10 +88,15 @@ export async function ensureDefaultMenu<T extends SiteNavigation>(
     .eq("show_in_nav", true)
     .order("nav_order", { ascending: true });
 
-  const menu = buildDefaultMenu((pages ?? []) as PageRow[]);
-  if (menu.length === 0) return navigation;
+  const items = buildDefaultMenu((pages ?? []) as PageRow[]);
+  if (items.length === 0) return navigation;
 
-  const next = { ...navigation, menu } as T;
+  const next = {
+    ...navigation,
+    menus: [{ id: MAIN_MENU_ID, name: MAIN_MENU_NAME, items }],
+    primaryMenuId: MAIN_MENU_ID,
+    menu: items,
+  } as T;
   await supabase
     .from("host_websites")
     .update({ navigation: next })

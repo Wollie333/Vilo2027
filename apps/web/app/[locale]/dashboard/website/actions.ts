@@ -43,6 +43,7 @@ import {
   restoreSnapshotToSite,
 } from "@/lib/website/restorePoints";
 import { newSection } from "@/lib/website/sectionDefaults";
+import { ensureDefaultMenu } from "@/lib/website/defaultMenu";
 import { roomMediaOverridesSchema } from "@/lib/website/roomMedia";
 import { hasRoomOverride } from "@/lib/website/roomDetailOverride";
 import {
@@ -92,6 +93,7 @@ import {
   savePageSeoSchema,
   savePagesSchema,
   saveNavigationSchema,
+  navigationSchema,
   saveSavedSectionSchema,
   deleteSavedSectionSchema,
   savedSectionsSchema,
@@ -206,7 +208,9 @@ export async function applyThemeAction(
   const supabase = createServerClient();
   const { data: site } = await supabase
     .from("host_websites")
-    .select("brand, subdomain, business:businesses ( trading_name )")
+    .select(
+      "brand, subdomain, navigation, business:businesses ( trading_name )",
+    )
     .eq("id", websiteId)
     .maybeSingle();
   const brand = (site?.brand ?? {}) as { name?: string };
@@ -318,6 +322,15 @@ export async function applyThemeAction(
     .update({ theme: { preset: slug, base }, published_snapshot: null })
     .eq("id", websiteId);
   if (themeErr) return { ok: false, error: "apply_failed" };
+
+  // Ship a working "Main menu" out of the box — seed the default named menu from
+  // the freshly-seeded in-nav pages (idempotent: keeps an existing menu untouched,
+  // only upgrades a legacy single menu into the named shape).
+  await ensureDefaultMenu(
+    admin,
+    websiteId,
+    navigationSchema.parse(site?.navigation ?? {}),
+  );
 
   revalidatePath(`/dashboard/website/${websiteId}`);
   revalidatePath(`/dashboard/website/${websiteId}/brand`);

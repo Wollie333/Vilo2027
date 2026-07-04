@@ -91,6 +91,13 @@ export type SiteMenuItem = {
   /** Page keys this link is HIDDEN on ("home" or a slug) — per-page show/hide. */
   hiddenOnPages?: string[];
 };
+/** A named menu (multi-menu model). Sites can hold several; the header renders
+ *  the one referenced by `SiteNavigation.primaryMenuId`. */
+export type SiteNamedMenu = {
+  id: string;
+  name: string;
+  items: SiteMenuItem[];
+};
 export type SiteFooterColumn = {
   id: string;
   heading?: string;
@@ -150,8 +157,14 @@ export type LogoOverride = {
   maxHeight?: number;
 };
 export type SiteNavigation = {
-  /** Explicit header menu; when empty the page-derived nav is used. */
+  /** Effective header menu — the primary named menu's items, mirrored here so the
+   *  render path (SiteChrome) stays on one field. When empty the page-derived nav
+   *  is used. Kept in sync with `menus`/`primaryMenuId`. */
   menu?: SiteMenuItem[];
+  /** Named menus (multi-menu). The header renders the `primaryMenuId` menu. */
+  menus?: SiteNamedMenu[];
+  /** Id of the menu that drives the header (falls back to the first menu). */
+  primaryMenuId?: string;
   /** Menu link styling (colours / weight / uppercase). */
   menuStyle?: SiteMenuStyle;
   /** Per-page appearance/style overrides, keyed by page key ("home" or a slug). */

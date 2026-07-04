@@ -15,6 +15,9 @@ import {
   GripVertical,
   Trash2,
   Plus,
+  Pencil,
+  Star,
+  X,
   Type as TypeIcon,
   AlignCenter,
   Eye,
@@ -24,8 +27,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { newMenuId } from "@/lib/site/namedMenus";
 import type {
   SiteMenuItem,
+  SiteNamedMenu,
   SiteMenuStyle,
   SiteMenuDeviceStyle,
   SiteNavigation,
@@ -61,8 +66,10 @@ export function NavBuilderOverlay({
   onClose,
   siteLabel,
   domain,
-  menu,
-  onMenuChange,
+  menus,
+  primaryMenuId,
+  onMenusChange,
+  onPrimaryMenuChange,
   menuStyle,
   onMenuStyleChange,
   header,
@@ -81,8 +88,12 @@ export function NavBuilderOverlay({
   onClose: () => void;
   siteLabel: string;
   domain: string;
-  menu: SiteMenuItem[];
-  onMenuChange: (next: SiteMenuItem[]) => void;
+  /** Named menus (multi-menu). At least one is always supplied. */
+  menus: SiteNamedMenu[];
+  /** Id of the menu that drives the header. */
+  primaryMenuId: string;
+  onMenusChange: (next: SiteNamedMenu[]) => void;
+  onPrimaryMenuChange: (id: string) => void;
   menuStyle: SiteMenuStyle;
   onMenuStyleChange: (next: SiteMenuStyle) => void;
   header: NavHeader;
@@ -101,6 +112,53 @@ export function NavBuilderOverlay({
   const [device, setDevice] = useState<NavDevice>("desktop");
   const [leftTab, setLeftTab] = useState<LeftTab>(initialTab);
   const [pubOpen, setPubOpen] = useState(false);
+  // Mobile ☰ drawer preview open-state (canvas only).
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Which named menu the Links tab is editing (defaults to the primary).
+  const [editingMenuId, setEditingMenuId] = useState<string>(primaryMenuId);
+  // Keep the editing target valid: snap to the primary each time the overlay
+  // opens, and never point at a deleted menu.
+  useEffect(() => {
+    if (open) setEditingMenuId(primaryMenuId);
+  }, [open, primaryMenuId]);
+  // The ☰ drawer preview only exists on the mobile frame — close it otherwise.
+  useEffect(() => {
+    if (device !== "mobile") setDrawerOpen(false);
+  }, [device]);
+  const editingMenu =
+    menus.find((m) => m.id === editingMenuId) ?? menus[0] ?? null;
+  const activeMenuId = editingMenu?.id ?? primaryMenuId;
+  const menu: SiteMenuItem[] = editingMenu?.items ?? [];
+  // Edit the items of the currently-selected menu, leaving the others untouched.
+  const onMenuChange = (nextItems: SiteMenuItem[]) =>
+    onMenusChange(
+      menus.map((m) =>
+        m.id === activeMenuId ? { ...m, items: nextItems } : m,
+      ),
+    );
+  const isPrimary = activeMenuId === primaryMenuId;
+  const [renaming, setRenaming] = useState(false);
+  const addMenu = () => {
+    const id = newMenuId();
+    onMenusChange([
+      ...menus,
+      { id, name: `Menu ${menus.length + 1}`, items: [] },
+    ]);
+    setEditingMenuId(id);
+    setRenaming(true);
+  };
+  const renameMenu = (name: string) =>
+    onMenusChange(
+      menus.map((m) => (m.id === activeMenuId ? { ...m, name } : m)),
+    );
+  const deleteMenu = () => {
+    if (menus.length <= 1) return;
+    const next = menus.filter((m) => m.id !== activeMenuId);
+    onMenusChange(next);
+    setEditingMenuId(next[0]?.id ?? "");
+    // If the primary was deleted, promote the first remaining menu.
+    if (isPrimary && next[0]) onPrimaryMenuChange(next[0].id);
+  };
   // Scroll-state preview: the canvas scrolls a mock page behind a STICKY header,
   // so the host can watch (and edit) the transparent → scrolled transition live.
   const [scrolled, setScrolled] = useState(false);
@@ -354,12 +412,108 @@ export function NavBuilderOverlay({
                 setHeader={setHeader}
                 showCta={showCta}
                 showLogo={showLogo}
+                menus={menus}
+                primaryMenuId={primaryMenuId}
+                onPrimaryMenuChange={onPrimaryMenuChange}
               />
             ) : leftTab === "footer" ? (
               <NavFooterInspector footer={footer} setFooter={setFooter} />
             ) : (
               <>
-                <div className="nav-lbl">Links · drag to reorder</div>
+                {/* Menu switcher — pick / create / rename / delete a named menu.
+                    The link list below edits the SELECTED menu; the header renders
+                    the PRIMARY menu (chosen here or on the Header tab). */}
+                <div className="nav-lbl" style={{ marginTop: 8 }}>
+                  Menu
+                </div>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {renaming ? (
+                    <input
+                      className="bse-input"
+                      autoFocus
+                      style={{ flex: 1 }}
+                      value={editingMenu?.name ?? ""}
+                      onChange={(e) => renameMenu(e.target.value)}
+                      onBlur={() => setRenaming(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") setRenaming(false);
+                      }}
+                    />
+                  ) : (
+                    <select
+                      className="bse-select"
+                      style={{ flex: 1 }}
+                      value={activeMenuId}
+                      onChange={(e) => setEditingMenuId(e.target.value)}
+                    >
+                      {menus.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                          {m.id === primaryMenuId ? " · primary" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <button
+                    className="lact"
+                    type="button"
+                    title="Rename this menu"
+                    onClick={() => setRenaming((r) => !r)}
+                  >
+                    <Pencil size={14} strokeWidth={2} />
+                  </button>
+                  <button
+                    className="lact"
+                    type="button"
+                    title="New menu"
+                    onClick={addMenu}
+                  >
+                    <Plus size={15} strokeWidth={2} />
+                  </button>
+                  <button
+                    className="lact del"
+                    type="button"
+                    title={
+                      menus.length <= 1
+                        ? "A site needs at least one menu"
+                        : "Delete this menu"
+                    }
+                    disabled={menus.length <= 1}
+                    onClick={deleteMenu}
+                  >
+                    <Trash2 size={14} strokeWidth={2} />
+                  </button>
+                </div>
+                {isPrimary ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      margin: "8px 0 2px",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: "#0F7A52",
+                    }}
+                  >
+                    <Star size={12} strokeWidth={2.2} fill="currentColor" />
+                    This is the header (primary) menu
+                  </div>
+                ) : (
+                  <button
+                    className="nav-tab"
+                    type="button"
+                    style={{ width: "100%", margin: "8px 0 2px" }}
+                    onClick={() => onPrimaryMenuChange(activeMenuId)}
+                  >
+                    <Star size={13} strokeWidth={2} />
+                    Make this the header menu
+                  </button>
+                )}
+
+                <div className="nav-lbl" style={{ marginTop: 14 }}>
+                  Links · drag to reorder
+                </div>
                 <div className="nav-links">
                   {menu.map((it, i) => (
                     <div key={it.id} className="nav-linkwrap">
@@ -544,7 +698,10 @@ export function NavBuilderOverlay({
             </div>
           </div>
           <div className="bse-scroll">
-            <div className={`bse-device${deviceCls}`}>
+            <div
+              className={`bse-device${deviceCls}`}
+              style={{ position: "relative" }}
+            >
               <div
                 className="nav-site"
                 onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 20)}
@@ -626,12 +783,36 @@ export function NavBuilderOverlay({
                           </nav>
                         )}
                         {device === "mobile" && (
-                          <span
-                            className="np-reserve"
-                            style={{ marginLeft: "auto" }}
+                          <button
+                            type="button"
+                            aria-label={drawerOpen ? "Close menu" : "Open menu"}
+                            onClick={() => setDrawerOpen((o) => !o)}
+                            style={{
+                              marginLeft: "auto",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: (burgerCfg.size ?? 26) + 14,
+                              height: (burgerCfg.size ?? 26) + 14,
+                              borderRadius: 9,
+                              border: "none",
+                              cursor: "pointer",
+                              background:
+                                burgerCfg.bg && burgerCfg.bg !== "transparent"
+                                  ? burgerCfg.bg
+                                  : "transparent",
+                              color: burgerCfg.color ?? "#052E1F",
+                            }}
                           >
-                            <MenuIcon size={18} strokeWidth={2} />
-                          </span>
+                            {drawerOpen ? (
+                              <X size={burgerCfg.size ?? 26} strokeWidth={2} />
+                            ) : (
+                              <MenuIcon
+                                size={burgerCfg.size ?? 26}
+                                strokeWidth={2}
+                              />
+                            )}
+                          </button>
                         )}
                       </div>
                       <div className="np-herovis">
@@ -673,6 +854,105 @@ export function NavBuilderOverlay({
                   </>
                 )}
               </div>
+              {/* Mobile ☰ drawer — a working preview of the menu overlay, styled
+                  live from the Mobile-menu panel (overlay bg, link colour/size,
+                  backdrop tint). Opens/closes from the hamburger above. */}
+              {device === "mobile" && leftTab !== "footer" && drawerOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 40,
+                    display: "flex",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <div
+                    onClick={() => setDrawerOpen(false)}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: mob.backdropColor ?? "rgba(0,0,0,0.4)",
+                    }}
+                  />
+                  <aside
+                    style={{
+                      position: "relative",
+                      width: "78%",
+                      maxWidth: 320,
+                      height: "100%",
+                      background: mob.overlayBg ?? "#FFFFFF",
+                      boxShadow: "-8px 0 30px rgba(0,0,0,0.18)",
+                      padding: "16px 18px 24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                      overflowY: "auto",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-label="Close menu"
+                      onClick={() => setDrawerOpen(false)}
+                      style={{
+                        alignSelf: "flex-end",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: mob.color ?? "#052E1F",
+                        padding: 4,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <X size={20} strokeWidth={2} />
+                    </button>
+                    {menu.length === 0 && (
+                      <span style={{ opacity: 0.5, fontSize: 13 }}>
+                        No links in this menu yet.
+                      </span>
+                    )}
+                    {menu.map((it) => (
+                      <span
+                        key={it.id}
+                        style={{
+                          padding: "11px 2px",
+                          borderBottom: "1px solid rgba(128,128,128,0.18)",
+                          color: mob.color ?? "#052E1F",
+                          fontSize: mob.fontSize ?? 16,
+                          fontWeight: WEIGHT_PX[mob.weight ?? "medium"] ?? 500,
+                          textTransform: mob.uppercase ? "uppercase" : "none",
+                          letterSpacing: mob.uppercase ? "0.04em" : undefined,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        {it.label}
+                        {((it.children && it.children.length > 0) ||
+                          it.autoRooms) && (
+                          <ChevronDown
+                            size={15}
+                            strokeWidth={2}
+                            style={{ opacity: 0.5 }}
+                          />
+                        )}
+                      </span>
+                    ))}
+                    {showCta && (
+                      <span
+                        className="np-reserve"
+                        style={{
+                          marginTop: 16,
+                          justifyContent: "center",
+                          textAlign: "center",
+                        }}
+                      >
+                        {ctaLabel}
+                      </span>
+                    )}
+                  </aside>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1174,15 +1454,39 @@ function NavHeaderInspector({
   setHeader,
   showCta,
   showLogo,
+  menus,
+  primaryMenuId,
+  onPrimaryMenuChange,
 }: {
   header: NavHeader;
   setHeader: (patch: Partial<NavHeader>) => void;
   showCta: boolean;
   showLogo: boolean;
+  menus: SiteNamedMenu[];
+  primaryMenuId: string;
+  onPrimaryMenuChange: (id: string) => void;
 }) {
   return (
     <>
       <div className="nav-lbl" style={{ marginTop: 10 }}>
+        Primary menu
+      </div>
+      <Ctl label="Menu shown in the header">
+        <select
+          className="bse-select"
+          value={primaryMenuId}
+          onChange={(e) => onPrimaryMenuChange(e.target.value)}
+        >
+          {menus.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name} · {m.items.length} link
+              {m.items.length === 1 ? "" : "s"}
+            </option>
+          ))}
+        </select>
+      </Ctl>
+
+      <div className="nav-lbl" style={{ marginTop: 16 }}>
         Brand & CTA
       </div>
       <Ctl label="Book button label">
