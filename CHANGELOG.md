@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-04 — Fix: Pages manager mislabelled every Builder-V2 page as "Draft".
+
+- **Root cause (`0d5eccc6`):** page status was derived from
+  `parseSectionsLoose(published_sections).length > 0`, but Builder V2 stores
+  `published_sections` as a PageDoc **object** (`{v:2,root}`), not a section array.
+  `parseSectionsLoose` returns `[]` for a non-array → `publishedCount = 0` for every
+  v2 page → the Pages manager showed "Draft" even though the live loader renders the
+  same PageDoc. Hence "draft status yet live on the site."
+- **Fix:** v2-aware `renderableLeaves` / `countRenderableSections` in `pageDoc.schema.ts`
+  (handle both a flat `WebsiteSection[]` and a PageDoc's widget leaves); `loadPagesList`
+  counts + thumbnails through them, so published v2 pages read "Live".
+- Also: `ensureRoomDetailPage`/`ensureSearchResultsPage` now seed
+  `published_sections = draft` (not `[]`), so lazily-created system templates ship live
+  and aren't perpetually "Draft"/"unpublished changes". Existing sites clear their
+  legacy empty-published system pages with one site-level Publish.
+- Save-draft (→`draft_sections`) and publish (→`published_sections`) were already
+  correct; public routes are `force-dynamic` so a publish reflects live instantly.
+  tsc + eslint clean; 219 vitest (4 new).
+
 ## 2026-07-04 — Page builder: custom-colour circle on the Border-colour row.
 
 - **Custom border colour (`57d86d0c`):** the block "Border colour" row was semantic-
