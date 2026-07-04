@@ -43,6 +43,8 @@ export const SECTION_TYPES = [
   // pulled from the addons catalogue scoped to this site's properties.
   "addons_preview",
   "amenities",
+  // Host profile — auto-pulled from the site's host (photo, name, rating, bio).
+  "profile",
   // Property-level "Things to know" — auto-pulled from the site's primary
   // property (NOT room-scoped; resolved by type like amenities/reviews).
   "policies",
@@ -88,6 +90,8 @@ export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
   "rooms_preview",
   // Property-wide facilities — live from the property's amenities (room_id null).
   "amenities",
+  // Host profile — live from the site's host record.
+  "profile",
   "location",
   "reviews",
   "blog_preview",
@@ -516,6 +520,16 @@ const amenitiesProps = z.object({
   // Safari: "grid" = headed amenity grid; "inline" = a centred row of pills with
   // no heading (the Suites page "what's included" bar).
   variant: z.enum(["grid", "inline"]).default("grid"),
+});
+
+// Host profile card — auto-pulls the site's host (photo · name · rating · bio ·
+// badges). Props are config only; the data is live from the `hosts` table.
+const profileProps = z.object({
+  eyebrow: z.string().max(120).optional(),
+  heading,
+  show_rating: z.boolean().default(true),
+  show_badges: z.boolean().default(true),
+  variant: z.enum(["card", "side", "centered"]).default("card"),
 });
 
 // Free-form display-only rates table (booking always re-prices server-side).
@@ -1137,6 +1151,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("amenities"),
     props: amenitiesProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("profile"),
+    props: profileProps,
   }),
   z.object({
     ...sectionBase,

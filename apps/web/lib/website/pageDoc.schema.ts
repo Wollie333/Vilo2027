@@ -64,6 +64,7 @@ export const WIDGET_TYPES = [
   "reviews",
   "specials_preview",
   "amenities", // property-wide facilities (live from property_amenities)
+  "profile", // host profile card (live from the hosts table)
   "addons_preview", // live add-ons / extras
   "blog_preview", // live journal posts
   "policies", // property "things to know" (cancellation / check-in / rules)

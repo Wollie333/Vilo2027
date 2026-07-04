@@ -31,6 +31,7 @@ import { FaqSection } from "./sections/FaqSection";
 import { ContactFormSection } from "./sections/ContactFormSection";
 import { FormSection } from "./sections/FormSection";
 import { AmenitiesSection } from "./sections/AmenitiesSection";
+import { ProfileSection } from "./sections/ProfileSection";
 import { PricingSection } from "./sections/PricingSection";
 import { VideoSection } from "./sections/VideoSection";
 import { TrustSection } from "./sections/TrustSection";
@@ -344,6 +345,13 @@ export function GenericSection({
         <AmenitiesSection
           props={section.props}
           data={dataFor(data, section.id, "amenities")}
+        />
+      );
+    case "profile":
+      return (
+        <ProfileSection
+          props={section.props}
+          data={dataFor(data, section.id, "profile")}
         />
       );
     case "policies":

@@ -508,6 +508,16 @@ export type AmenitiesData = {
   items: { icon: string | null; label: string }[];
   categories?: AmenityCategory[];
 };
+/** The site's host — pulled live from the `hosts` table for the Profile block. */
+export type ProfileData = {
+  name: string;
+  avatar: string | null;
+  bio: string | null;
+  rating: number | null;
+  reviews: number;
+  superhost: boolean;
+  verified: boolean;
+};
 
 /** Live-data shape per auto-populate section type. */
 export type SiteDataByType = {
@@ -533,6 +543,8 @@ export type SiteDataByType = {
   // Property-wide facilities grid — live from property_amenities (room_id null),
   // resolved by TYPE (not room). Manual items in props are the fallback.
   amenities: AmenitiesData;
+  // Host profile — live from the site's host record (photo/name/rating/bio/badges).
+  profile: ProfileData;
   // Booking funnel — search + calendar share the bookable-property set; the
   // rate table reads live nightly rates. Pricing/availability resolve live.
   booking_search: BookingFunnelData;

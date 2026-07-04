@@ -7,6 +7,7 @@
 import type {
   AddonsPreviewData,
   AmenitiesData,
+  ProfileData,
   BlogPreviewData,
   BookingFunnelData,
   GalleryData,
@@ -237,6 +238,16 @@ export const DEMO_AMENITIES: AmenitiesData = {
   ],
 };
 
+export const DEMO_PROFILE: ProfileData = {
+  name: "Thandi Mokoena",
+  avatar: null,
+  bio: "Born and raised in the winelands, I've hosted travellers from all over the world for the past eight years. I love sharing my favourite hidden trails, farm stalls and sunset spots — just ask.",
+  rating: 4.9,
+  reviews: 128,
+  superhost: true,
+  verified: true,
+};
+
 export const DEMO_ADDONS: AddonsPreviewData = {
   addons: [
     {
@@ -368,6 +379,8 @@ function sampleDatumFor(
       return { type: "specials_preview", data: DEMO_SPECIALS };
     case "amenities":
       return { type: "amenities", data: DEMO_AMENITIES };
+    case "profile":
+      return { type: "profile", data: DEMO_PROFILE };
     case "addons_preview":
       return { type: "addons_preview", data: DEMO_ADDONS };
     case "policies":

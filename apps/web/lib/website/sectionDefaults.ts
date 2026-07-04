@@ -278,6 +278,19 @@ export function newSection(type: SectionType): WebsiteSection {
           variant: "grid",
         },
       };
+    case "profile":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Meet your host",
+          show_rating: true,
+          show_badges: true,
+          variant: "card",
+        },
+      };
     case "policies":
       return {
         id,

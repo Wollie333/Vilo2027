@@ -1087,6 +1087,44 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { key: "label", label: "Label", controls: ["color", "size"] },
     ],
   },
+  profile: {
+    type: "profile",
+    group: "wielo",
+    label: "Host Profile",
+    icon: "UserCheck",
+    autoPopulate: true,
+    dataKey: "profile",
+    variants: [
+      ["card", "Card"],
+      ["side", "Side by side"],
+      ["centered", "Centered"],
+    ],
+    defaults: {
+      heading: "Meet your host",
+      show_rating: true,
+      show_badges: true,
+      variant: "card",
+    },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      { kind: "toggle", key: "show_rating", label: "Show rating" },
+      { kind: "toggle", key: "show_badges", label: "Show badges" },
+      {
+        kind: "hint",
+        text: "The host's photo, name, rating and bio come live from your host profile.",
+      },
+    ],
+    elements: [
+      {
+        key: "card",
+        label: "Card",
+        controls: ["bg", "border", "radius", "shadow"],
+      },
+      { key: "avatar", label: "Photo", controls: ["radius", "border"] },
+      { key: "name", label: "Name", controls: ["color", "size", "weight"] },
+      { key: "bio", label: "Bio", controls: ["color", "size"] },
+    ],
+  },
   addons_preview: {
     type: "addons_preview",
     group: "wielo",

@@ -1153,6 +1153,10 @@ async function assembleSectionData(
         if (byType.amenities)
           data[s.id] = { type: "amenities", data: byType.amenities };
         break;
+      case "profile":
+        if (byType.profile)
+          data[s.id] = { type: "profile", data: byType.profile };
+        break;
       case "booking_search":
         if (byType.booking_search)
           data[s.id] = {
@@ -1971,6 +1975,41 @@ export async function assembleSiteDataByType(
         }),
         // Same amenities grouped by admin category (Booking.com layout).
         categories: buildAmenityCategories(grouped, keys),
+      };
+    })(),
+
+    // PROFILE — the site's host (photo, name, rating, bio, badges), pulled live
+    // from the `hosts` row for this site's business.
+    (async () => {
+      if (!types.has("profile")) return;
+      const { data: biz } = await sb
+        .from("businesses")
+        .select(
+          "host:hosts ( avatar_url, display_name, bio, avg_rating, total_reviews, is_superhost, is_verified )",
+        )
+        .eq("id", ctx.businessId)
+        .maybeSingle();
+      const raw = (biz as { host?: unknown } | null)?.host;
+      const host = (Array.isArray(raw) ? raw[0] : raw) as
+        | {
+            avatar_url: string | null;
+            display_name: string;
+            bio: string | null;
+            avg_rating: number | null;
+            total_reviews: number | null;
+            is_superhost: boolean | null;
+            is_verified: boolean | null;
+          }
+        | undefined;
+      if (!host) return;
+      out.profile = {
+        name: host.display_name,
+        avatar: host.avatar_url,
+        bio: host.bio,
+        rating: host.avg_rating,
+        reviews: host.total_reviews ?? 0,
+        superhost: !!host.is_superhost,
+        verified: !!host.is_verified,
       };
     })(),
   ]);
