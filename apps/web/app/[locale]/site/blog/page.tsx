@@ -130,7 +130,28 @@ export default async function SiteBlogIndexPage({
                         widths={[320, 480, 640, 768]}
                         className="aspect-[16/9] w-full object-cover"
                       />
-                    ) : null}
+                    ) : (
+                      // Themed placeholder so a coverless post still leads with a
+                      // featured-image block instead of a bare text card.
+                      <div
+                        aria-hidden
+                        style={{
+                          background:
+                            "linear-gradient(135deg, var(--site-accent), var(--site-secondary))",
+                        }}
+                        className="flex aspect-[16/9] w-full items-center justify-center"
+                      >
+                        <span
+                          style={{
+                            fontFamily: "var(--site-font-heading)",
+                            color: "#fff",
+                          }}
+                          className="text-3xl font-bold opacity-90"
+                        >
+                          {(post.title?.[0] ?? "•").toUpperCase()}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex flex-1 flex-col p-5">
                       <div className="flex items-center gap-2 text-xs">
                         {post.featured ? (
