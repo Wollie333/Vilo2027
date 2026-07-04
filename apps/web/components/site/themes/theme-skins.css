@@ -43,6 +43,16 @@
   --site-accent-deep: #0c8694;
   --site-secondary-deep: #e9523d;
   --site-tint: #d7eef1;
+
+  /* Hero display type — the theme's design DEFAULTS, read by HeroSection as the
+     `--el-*` fallback (`var(--el-title-size, var(--site-hero-title-size, …))`).
+     These are theme vars, NOT `--el-*` slots, so the host's per-element edit
+     still wins. Fluid clamps stay responsive until a host sets a fixed px size. */
+  --site-hero-title-size: clamp(3rem, 8vw, 7rem);
+  --site-hero-title-weight: 800;
+  --site-hero-title-lh: 0.95;
+  --site-hero-title-ls: -0.02em;
+  --site-hero-sub-size: clamp(1.05rem, 1.6vw, 1.35rem);
 }
 
 /* --- Coral conversion CTAs -------------------------------------------------
@@ -84,24 +94,16 @@
 }
 
 /* --- HERO ---------------------------------------------------------------- */
-/* Typography is pinned to the reference (`.hero h1` / `.hero-sub` / `.hero-cta`
- * in docs/themes/oceansview/theme.css). The generic hero reads the theme's
- * modular type scale (`--site-h1` ≈ 33px, weight 600) inline, which is far
- * smaller than this beach design's dramatic display type — so we override the
- * rendered size/weight/leading/tracking here. `!important` is needed only to beat
- * the component's INLINE `var(--site-h1)`; per-element `--el-*` edits aren't wired
- * on the hero title, so nothing host-editable is lost. */
+/* The hero TYPE (size/weight/leading/tracking) is now wired into per-element
+ * `--el-*` controls, defaulting to this theme's `--site-hero-*` display scale
+ * (declared above) — so it's host-editable in the builder, no `!important`. Here
+ * we keep only the STRUCTURAL bits that aren't per-element controls: the headline
+ * measure + the vertical rhythm between chip → h1 → sub → CTA. */
 .wielo-oceansview [data-section-type="hero"] .site-hero-title {
-  font-size: clamp(3rem, 8vw, 7rem) !important;
-  font-weight: 800 !important;
-  line-height: 0.95 !important;
-  letter-spacing: -0.02em !important;
   max-width: 15ch;
   margin-top: 24px;
 }
 .wielo-oceansview [data-section-type="hero"] .site-hero-sub {
-  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
-  line-height: 1.5;
   max-width: 46ch;
   margin-top: 24px;
 }

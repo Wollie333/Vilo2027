@@ -663,6 +663,36 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "cta_href", label: "Button link" },
       ALIGN_CTL(),
     ],
+    // Per-element styling (Elementor): each hero element reads `--el-<key>-*` and
+    // defaults to the theme's design (a `--site-hero-*` display scale). The host
+    // can restyle any of them in the builder.
+    elements: [
+      {
+        key: "eyebrow",
+        label: "Eyebrow chip",
+        controls: ["bg", "color", "size", "radius"],
+      },
+      {
+        key: "title",
+        label: "Headline",
+        controls: ["color", "size", "weight", "lineHeight", "letterSpacing"],
+      },
+      {
+        key: "sub",
+        label: "Subheadline",
+        controls: ["color", "size", "lineHeight"],
+      },
+      {
+        key: "button",
+        label: "Primary button",
+        controls: ["bg", "color", "border", "radius"],
+      },
+      {
+        key: "button2",
+        label: "Secondary button",
+        controls: ["bg", "color", "border", "radius"],
+      },
+    ],
   },
   intro: {
     type: "intro",

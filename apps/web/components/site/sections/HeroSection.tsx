@@ -78,16 +78,31 @@ function HeroInner({
     props.show_cta2 !== false &&
     props.cta2_label &&
     props.cta2_href;
+
+  // Per-element styling (Elementor): every hero element reads `--el-<key>-*` so a
+  // host can restyle it in the builder. The fallback is the THEME default — a
+  // theme-var display scale (`--site-hero-*`, set by the skin) for size/weight,
+  // then the generic `--site-*`. Wiring the theme's design in as the *fallback*
+  // (never as the `--el-*` slot itself) keeps every element host-editable.
+  const titleColor = onDark ? "#FFFFFF" : "var(--site-ink)";
+  const subColor = onDark ? "rgba(255,255,255,0.9)" : "var(--site-mute)";
+  const eyebrowBg = onDark ? "rgba(255,255,255,0.16)" : "var(--site-accent)";
+  const eyebrowFg = onDark ? "#FFFFFF" : "var(--site-accent-ink, #FFFFFF)";
+  const btn2Bg = onDark ? "rgba(255,255,255,0.12)" : "transparent";
+  const btn2Fg = onDark ? "#FFFFFF" : "var(--site-ink)";
+  const btn2Bd = onDark
+    ? "1px solid rgba(255,255,255,0.55)"
+    : "1px solid var(--site-line)";
   return (
     <>
       {props.eyebrow ? (
         <span
           className="site-hero-eyebrow mb-4 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold"
           style={{
-            background: onDark
-              ? "rgba(255,255,255,0.16)"
-              : "var(--site-accent)",
-            color: onDark ? "#FFFFFF" : "var(--site-accent-ink, #FFFFFF)",
+            background: `var(--el-eyebrow-bg, ${eyebrowBg})`,
+            color: `var(--el-eyebrow-fg, ${eyebrowFg})`,
+            fontSize: "var(--el-eyebrow-size, 0.875rem)",
+            borderRadius: "var(--el-eyebrow-radius, 9999px)",
           }}
         >
           {props.eyebrow}
@@ -97,20 +112,26 @@ function HeroInner({
         className="site-hero-title"
         style={{
           fontFamily: "var(--site-font-heading)",
-          fontWeight: "var(--site-weight-heading)" as unknown as number,
-          fontSize: "var(--site-h1)",
-          lineHeight: "var(--site-leading-heading)" as unknown as number,
-          letterSpacing: "var(--site-tracking-heading)",
-          color: onDark ? "#FFFFFF" : "var(--site-ink)",
+          fontWeight:
+            "var(--el-title-weight, var(--site-hero-title-weight, var(--site-weight-heading)))" as unknown as number,
+          fontSize:
+            "var(--el-title-size, var(--site-hero-title-size, var(--site-h1)))",
+          lineHeight:
+            "var(--el-title-lh, var(--site-hero-title-lh, var(--site-leading-heading)))" as unknown as number,
+          letterSpacing:
+            "var(--el-title-ls, var(--site-hero-title-ls, var(--site-tracking-heading)))",
+          color: `var(--el-title-fg, ${titleColor})`,
         }}
       >
         {props.headline}
       </h1>
       {props.subheadline ? (
         <p
-          className="site-hero-sub mt-5 text-lg md:text-xl"
+          className="site-hero-sub mt-5"
           style={{
-            color: onDark ? "rgba(255,255,255,0.9)" : "var(--site-mute)",
+            fontSize: "var(--el-sub-size, var(--site-hero-sub-size, 1.125rem))",
+            lineHeight: "var(--el-sub-lh, 1.6)",
+            color: `var(--el-sub-fg, ${subColor})`,
           }}
         >
           {props.subheadline}
@@ -128,10 +149,11 @@ function HeroInner({
               href={props.cta_href}
               className="site-hero-btn site-hero-btn-primary inline-flex items-center justify-center px-7 py-3.5 text-base font-semibold transition-opacity hover:opacity-90"
               style={{
-                background: "var(--site-btn-primary-bg)",
-                color: "var(--site-btn-primary-color)",
-                border: "var(--site-btn-primary-border)",
-                borderRadius: "var(--site-btn-primary-radius)",
+                background: "var(--el-button-bg, var(--site-btn-primary-bg))",
+                color: "var(--el-button-fg, var(--site-btn-primary-color))",
+                border: "var(--el-button-bd, var(--site-btn-primary-border))",
+                borderRadius:
+                  "var(--el-button-radius, var(--site-btn-primary-radius))",
               }}
             >
               {props.cta_label}
@@ -142,12 +164,11 @@ function HeroInner({
               href={props.cta2_href}
               className="site-hero-btn site-hero-btn-secondary inline-flex items-center justify-center px-7 py-3.5 text-base font-semibold transition-colors"
               style={{
-                background: onDark ? "rgba(255,255,255,0.12)" : "transparent",
-                color: onDark ? "#FFFFFF" : "var(--site-ink)",
-                border: onDark
-                  ? "1px solid rgba(255,255,255,0.55)"
-                  : "1px solid var(--site-line)",
-                borderRadius: "var(--site-btn-primary-radius)",
+                background: `var(--el-button2-bg, ${btn2Bg})`,
+                color: `var(--el-button2-fg, ${btn2Fg})`,
+                border: `var(--el-button2-bd, ${btn2Bd})`,
+                borderRadius:
+                  "var(--el-button2-radius, var(--site-btn-primary-radius))",
               }}
             >
               {props.cta2_label}
