@@ -24,6 +24,7 @@ import {
   blockFrameStyle,
   elementVarsCss,
   customCssScoped,
+  deviceHideCss,
 } from "../sections/_shared";
 import {
   IconLeaf,
@@ -119,12 +120,16 @@ function hiddenOnDevice(
   node: {
     visibility?: string;
     responsive?: {
+      desktop?: { hidden?: boolean };
       tablet?: { hidden?: boolean };
       mobile?: { hidden?: boolean };
     };
   },
   device: Device | undefined,
 ): boolean {
+  // Builder canvas: remove the node for the currently-previewed device. (The live
+  // site renders with device=undefined and hides via the emitted media-query CSS.)
+  if (device === "desktop" && node.responsive?.desktop?.hidden) return true;
   if (device === "tablet" && node.responsive?.tablet?.hidden) return true;
   if (device === "mobile" && node.responsive?.mobile?.hidden) return true;
   const vis = node.visibility ?? "all";
@@ -215,6 +220,7 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
       : "";
 
   const custom = customCssScoped(`[data-node-id="${node.id}"]`, node.customCss);
+  const hideCss = deviceHideCss(`[data-node-id="${node.id}"]`, node);
   return (
     <div
       key={node.id}
@@ -227,6 +233,7 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
       {stackCss ? (
         <style dangerouslySetInnerHTML={{ __html: stackCss }} />
       ) : null}
+      {hideCss ? <style dangerouslySetInnerHTML={{ __html: hideCss }} /> : null}
       {custom ? <style dangerouslySetInnerHTML={{ __html: custom }} /> : null}
       <div className="pd-cols" style={inner}>
         {node.kids.map((c) => renderColumn(c, ctx))}
@@ -250,6 +257,7 @@ function renderColumn(node: ColumnNode, ctx: RenderCtx): ReactNode {
     alignItems: node.align ?? (dir === "row" ? "center" : "stretch"),
     ...spaceStyle(mergedSpace(node, respLayer(node, ctx.device)), ZERO),
   };
+  const hideCss = deviceHideCss(`[data-node-id="${node.id}"]`, node);
   return (
     <div
       key={node.id}
@@ -257,6 +265,7 @@ function renderColumn(node: ColumnNode, ctx: RenderCtx): ReactNode {
       data-node-id={node.id}
       data-node-kind="column"
     >
+      {hideCss ? <style dangerouslySetInnerHTML={{ __html: hideCss }} /> : null}
       {node.kids.map((k) =>
         k.type === "section" ? renderSection(k, ctx) : renderWidget(k, ctx),
       )}
@@ -278,6 +287,10 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
   // element styles preview correctly here AND respond to real screen size live.
   const sel = `[data-node-id="${node.id}"]`;
   const elCss = elementVarsCss(sel, node);
+  // Per-device visibility: hide this element at the right breakpoint on the live
+  // site (@media) + builder frames (@container). The builder ALSO removes the node
+  // for the currently-previewed device via hiddenOnDevice above.
+  const hideCss = deviceHideCss(sel, node);
   // Advanced tab custom CSS — emitted AFTER elCss so it overrides the element styling.
   const custom = customCssScoped(sel, node.customCss);
   return (
@@ -298,6 +311,7 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
       data-section-type={node.type}
     >
       {elCss ? <style dangerouslySetInnerHTML={{ __html: elCss }} /> : null}
+      {hideCss ? <style dangerouslySetInnerHTML={{ __html: hideCss }} /> : null}
       {custom ? <style dangerouslySetInnerHTML={{ __html: custom }} /> : null}
       <SectionBoundary resetKey={effNode} fallbackLabel={ctx.errorLabel}>
         <WidgetLeaf node={effNode} ctx={ctx} />

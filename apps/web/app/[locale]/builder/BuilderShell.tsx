@@ -733,6 +733,16 @@ export function BuilderShell({
     [selectedId, device, setDoc],
   );
 
+  // Hide/show the selected node on a SPECIFIC screen size (independent of which
+  // device is being previewed) — powers the "Show on desktop/tablet/mobile" toggles.
+  const setDeviceHidden = useCallback(
+    (dev: Device, hidden: boolean) => {
+      if (selectedId)
+        setDoc((d) => updateResponsive(d, selectedId, dev, { hidden }));
+    },
+    [selectedId, setDoc],
+  );
+
   // ── structural mutations ──
   const canMove = (dir: -1 | 1): boolean => {
     if (!selected) return false;
@@ -1375,6 +1385,7 @@ export function BuilderShell({
                     onPatch={patchProps}
                     onPatchNode={patchNode}
                     onPatchResp={patchResp}
+                    onDeviceHidden={setDeviceHidden}
                     rooms={roomOpts}
                     websiteId={websiteId}
                     onEditRoomData={
@@ -2033,6 +2044,7 @@ function Inspector({
   onPatch,
   onPatchNode,
   onPatchResp,
+  onDeviceHidden,
   rooms,
   websiteId,
   onEditRoomData,
@@ -2048,6 +2060,8 @@ function Inspector({
   onPatch: (key: string, value: unknown) => void;
   onPatchNode: (patch: Record<string, unknown>) => void;
   onPatchResp: (patch: RespPatch) => void;
+  /** Hide/show the node on a specific screen size (independent of preview device). */
+  onDeviceHidden: (device: Device, hidden: boolean) => void;
   /** Live room options for the Room Card picker control. */
   rooms?: { id: string; name: string }[];
   /** Site id — enables the icon control's image/SVG upload. */
@@ -2410,26 +2424,30 @@ function Inspector({
               onSet={setSpace}
               onRevert={revertSpace}
             />
-            {isDev ? (
-              <div className="ctl">
-                <div className="togrow">
-                  <label>Hidden on {device}</label>
-                  <div
-                    className={resp?.hidden ? "tog on" : "tog"}
-                    onClick={() => onPatchResp({ hidden: !resp?.hidden })}
-                  />
-                </div>
+            {/* Per-screen visibility — hide this element on any size independently.
+                Writes node.responsive[device].hidden; the renderer emits a scoped
+                @media/@container display:none so it hides on the LIVE site too. */}
+            <div className="ctl">
+              <div className="ctl-l">
+                <label>Show on</label>
               </div>
-            ) : (
-              <SegRow
-                label="Visible on"
-                value={n.visibility ?? "all"}
-                options={VIS_OPTS}
-                onChange={(v) =>
-                  onPatchNode({ visibility: v === "all" ? undefined : v })
-                }
-              />
-            )}
+              <div className="seg">
+                {DEVICES.map(({ key, label, Icon }) => {
+                  const shown = !n.responsive?.[key]?.hidden;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      title={`${shown ? "Hide" : "Show"} on ${label}`}
+                      className={shown ? "on" : undefined}
+                      onClick={() => onDeviceHidden(key, shown)}
+                    >
+                      <Icon size={15} strokeWidth={1.8} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <TextRow
               label="CSS ID"
               value={n.cssId}
@@ -2479,11 +2497,6 @@ const BORDER_COLOR_ROLES: [string, string, string][] = [
   ["line", "Line", "var(--site-line)"],
   ["ink", "Ink", "var(--site-ink)"],
   ["accent", "Accent", "var(--site-accent)"],
-];
-const VIS_OPTS: [string, string][] = [
-  ["all", "All"],
-  ["desktop", "Desktop"],
-  ["mobile", "Mobile"],
 ];
 // Per-block custom design (Phase 5) — write to node.style (blockStyle).
 const RADIUS_OPTS: [string, string][] = [

@@ -267,7 +267,7 @@ export function updateNode(
 export function updateResponsive(
   doc: PageDoc,
   id: string,
-  device: "tablet" | "mobile",
+  device: "desktop" | "tablet" | "mobile",
   patch: {
     props?: Record<string, unknown>;
     space?: Record<string, unknown>;

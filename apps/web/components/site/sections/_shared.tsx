@@ -406,6 +406,36 @@ function elementDecls(elements?: Record<string, ElementStyle>): string {
 }
 
 /**
+ * Per-device visibility CSS. When a node is flagged hidden on a device, emit a
+ * `display:none` rule scoped to `selector` at that device's breakpoint — `@media`
+ * drives the LIVE site, `@container` the builder device frames (same dual pattern
+ * as `elementVarsCss`). Independent per size: hide on any of desktop/tablet/mobile
+ * without affecting the others. Returns "" when nothing is hidden.
+ */
+export function deviceHideCss(
+  selector: string,
+  node: {
+    responsive?: {
+      desktop?: { hidden?: boolean };
+      tablet?: { hidden?: boolean };
+      mobile?: { hidden?: boolean };
+    };
+  },
+): string {
+  const r = node.responsive;
+  if (!r) return "";
+  const hide = `${selector}{display:none!important}`;
+  let css = "";
+  if (r.mobile?.hidden)
+    css += `@media (max-width:640px){${hide}}@container (max-width:640px){${hide}}`;
+  if (r.tablet?.hidden)
+    css += `@media (min-width:641px) and (max-width:1024px){${hide}}@container (min-width:641px) and (max-width:1024px){${hide}}`;
+  if (r.desktop?.hidden)
+    css += `@media (min-width:1025px){${hide}}@container (min-width:1025px){${hide}}`;
+  return css;
+}
+
+/**
  * Scoped CSS for a node's per-element styles. `selector` targets the block
  * wrapper (e.g. `[data-node-id="abc"]`). Returns "" when the node has no element
  * styles, so the caller can skip the `<style>` entirely.
