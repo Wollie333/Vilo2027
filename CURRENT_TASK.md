@@ -2,6 +2,34 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-04, **Oceans theme polish + builder styling, SHIPPED to `main`**)
+
+> Focus is Oceans View only (founder: hold other themes). All pushed to `main`, Vercel live.
+> Full detail in CHANGELOG (2026-07-04 entries) + [[reference-builder-icons-spacing]] memory.
+>
+> **Shipped this session:**
+> - Specials → themed checkout with add-on + room preselect (`3e13da83`).
+> - Oceans page refinements: highlight icon glyphs, experiences image-tiles, themed savings badge,
+>   blog featured image, blog footer, empty-location collapse.
+> - Builder: per-element **padding/margin** controls (`--el-<key>-py/px/mt/mb`, `4e366da9`);
+>   **icon fields accept image/SVG** + widened schema (`3e25ff28`); **Elementor icon picker**
+>   (Lucide catalog `lib/website/icons/lucideCatalog.tsx` + `IconPicker.tsx` + `icon` control kind,
+>   `13de0b96`); theme **skin now loads in the builder canvas** (`9eaa2fc3`).
+> - Responsive: **`.site-band`** content wrapper in `SectionRenderer` (max-w 1180 + gutter
+>   clamp(20,4vw,32); full-bleed hero/gallery/cta opt out, `66f0c183`); intro badge overlap fix
+>   (`31044321`).
+>
+> **Per-device element editing is already wired** (setEl→onPatchResp→updateResponsive→
+> `node.responsive[device].elements` → `elementVarsCss` @media/@container).
+>
+> **⏳ IN PROGRESS (next):** (1) per-element **hide per screen size** control; (2) **uniform section
+> vertical padding** clamp(50px,7vw,100px) so sections aren't squashed; (3) **room-card fix** —
+> inner padding + fix the ugly paddingless white hover bg (no radius) — pixel-perfect Oceans skin +
+> editable. Founder's model: activate theme → skin styles the whole site professionally → host can
+> override any element's styling per page. GOTCHA: `pnpm build` while preview runs corrupts `.next`.
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-03) — Marketing site + public Looking-For lane, SHIPPED to `main` (live)
 
 > Separate lane from the Elementor builder anchor below. All pushed; Vercel live. Full detail in
