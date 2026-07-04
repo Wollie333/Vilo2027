@@ -9,9 +9,14 @@ import {
   type PageDoc,
 } from "@/lib/website/pageDoc.schema";
 import { parseSectionsLoose } from "@/lib/website/sections.schema";
-import { loadSiteContext, loadSitePage } from "@/lib/site/loadSitePage";
+import {
+  loadSiteContext,
+  loadSitePage,
+  roomMenuLinks,
+} from "@/lib/site/loadSitePage";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type { SiteNavigation, SiteMenuItem, SiteData } from "@/lib/site/types";
+import { DEMO_ROOMS } from "@/lib/site/sampleSite";
 
 import { BuilderShell } from "./BuilderShell";
 import type { Brand as BuilderBrand } from "./BrandStudioOverlay";
@@ -105,6 +110,7 @@ async function loadRealPage(
   navigation: SiteNavigation;
   analytics: BuilderAnalytics;
   pages: PageOpt[];
+  roomLinks: PageOpt[];
   initialData: SiteData;
 } | null> {
   const supabase = createServerClient();
@@ -171,6 +177,8 @@ async function loadRealPage(
   // "Edit room data" modal show in place. Best-effort: any failure falls back to the
   // demo canvas data (no regression). Newly-added blocks still get demo until saved.
   let initialData: SiteData = {};
+  // The host's individual room pages, as selectable menu links (nav quick-add).
+  let roomLinks: PageOpt[] = [];
   try {
     const sub = site?.subdomain?.trim();
     if (sub) {
@@ -184,6 +192,11 @@ async function loadRealPage(
           page.kind === "home" ? [] : [page.slug ?? page.kind],
         );
         if (real?.data) initialData = real.data;
+        roomLinks = (await roomMenuLinks(ctx)).map((r) => ({
+          key: r.roomId,
+          label: r.label,
+          href: r.href,
+        }));
       }
     }
   } catch {
@@ -200,6 +213,7 @@ async function loadRealPage(
     navigation: (site?.navigation ?? {}) as SiteNavigation,
     analytics: toBuilderAnalytics(site?.settings?.analytics),
     pages,
+    roomLinks,
     initialData,
   };
 }
@@ -244,6 +258,7 @@ export default async function BuilderPage({
           navigation={real.navigation}
           analytics={real.analytics}
           pages={real.pages}
+          roomLinks={real.roomLinks}
           pageKind={real.kind}
           initialData={real.initialData}
           autoOpenNav={!!navTab}
@@ -276,6 +291,16 @@ export default async function BuilderPage({
       }),
     ),
   };
+  // Demo room-page links (so the nav "Quick-add a room page" is testable without
+  // a real host); slug mirrors the /rooms/<slug> route derived from the name.
+  const demoRoomLinks: PageOpt[] = DEMO_ROOMS.rooms.map((r) => ({
+    key: r.id,
+    label: r.name,
+    href: `/rooms/${r.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")}`,
+  }));
 
   return (
     <BuilderShell
@@ -295,6 +320,7 @@ export default async function BuilderPage({
       }}
       navigation={demoNav}
       pages={demoPages}
+      roomLinks={demoRoomLinks}
       pageKind={chosen?.key}
       autoOpenNav={!!navTab}
       navTab={navTab}

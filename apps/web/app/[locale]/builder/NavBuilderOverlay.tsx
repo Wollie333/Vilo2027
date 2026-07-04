@@ -143,6 +143,7 @@ export function NavBuilderOverlay({
   onFooterChange,
   initialTab = "links",
   pages,
+  roomLinks = [],
   brand,
   theme,
   persists,
@@ -168,6 +169,8 @@ export function NavBuilderOverlay({
   /** Which left tab to open on (doc-switcher: "Header & menu" → links, "Footer" → footer). */
   initialTab?: LeftTab;
   pages: PageOpt[];
+  /** The host's individual room-detail pages, as selectable menu links. */
+  roomLinks?: PageOpt[];
   brand: Brand;
   theme: SiteThemeConfig;
   persists: boolean;
@@ -828,6 +831,31 @@ export function NavBuilderOverlay({
                     ))}
                   </select>
                 </div>
+
+                {roomLinks.length > 0 && (
+                  <div className="nav-quick">
+                    <div className="nav-lbl" style={{ marginTop: 12 }}>
+                      Quick-add a room page
+                    </div>
+                    <select
+                      className="bse-select"
+                      value=""
+                      onChange={(e) => {
+                        const r = roomLinks.find(
+                          (x) => x.key === e.target.value,
+                        );
+                        if (r) add(r.label, r.href);
+                      }}
+                    >
+                      <option value="">Choose a room…</option>
+                      {roomLinks.map((r) => (
+                        <option key={r.key} value={r.key}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </>
             )}
           </div>

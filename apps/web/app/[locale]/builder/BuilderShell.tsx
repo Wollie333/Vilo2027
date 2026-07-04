@@ -273,6 +273,7 @@ export function BuilderShell({
   navigation: initialNav = {},
   analytics: initialAnalytics = EMPTY_ANALYTICS,
   pages = [],
+  roomLinks = [],
   pageKind,
   initialData,
   autoOpenNav = false,
@@ -304,6 +305,8 @@ export function BuilderShell({
   analytics?: BuilderAnalytics;
   /** Site pages for the Nav builder's quick-add-page + per-page controls. */
   pages?: { key: string; label: string; href: string }[];
+  /** The host's individual room-detail pages, as selectable menu links. */
+  roomLinks?: { key: string; label: string; href: string }[];
   /** Real auto-populate data (keyed by node id) for the canvas — the host's live
    *  rooms/reviews/gallery for THIS page. Overrides demo where present; demo fills
    *  any gaps (e.g. newly-added blocks). Absent in demo/blueprint mode. */
@@ -1791,6 +1794,7 @@ export function BuilderShell({
           onFooterChange={(f) => setNavigation((n) => ({ ...n, footer: f }))}
           initialTab={navInitialTab}
           pages={pages}
+          roomLinks={roomLinks}
           brand={brand}
           theme={workTheme}
           persists={persists}
