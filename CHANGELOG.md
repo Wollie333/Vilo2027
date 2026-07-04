@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-04 — Offer card details, Mobile-menu styling, scrollable nav canvas.
+
+- **Offer card (`0d7eb0f7`):** the "Offer applied" card now prints the special's real
+  terms — VALID window (actual dates), LENGTH (min–max nights), AVAILABILITY (N left),
+  BOOK BY date, description, and how to claim. Threaded window/nights/quantity/book_by
+  from page.tsx; deterministic date formatting.
+- **Mobile menu styling (`bca692e0`):** new "Mobile menu" panel in the nav editor's
+  styling rail — overlay background, backdrop tint, link colour/size/weight/UPPERCASE,
+  and the hamburger icon (style/colour/button-bg/size). `SiteMobileMenu` now READS
+  `menuStyle.mobile` (threaded through SiteChrome's HeaderMenu/HeaderInner) + the new
+  `backdropColor` field, so it applies on the live site AND the builder canvas. Verified
+  end-to-end (navy overlay, coral bold uppercase links).
+- **Scrollable nav canvas (`b2090e0b`):** the header/menu editor canvas now scrolls a
+  mock page (hero + body) INSIDE the device frame behind a STICKY header, so the host
+  can watch + edit the transparent→scrolled transition (solid bg + scrolled link colour)
+  live. `nav-site` is the internal scroller; `.np-bar[data-scrolled]` flips the state.
+- **Header/footer on canvas + live:** already the case (builder canvas and live site
+  share `SiteChrome`); the mobile-menu work closed the last gap.
+
 ## 2026-07-04 — Neat gallery + specials checkout locked to the offer.
 
 - **Gallery (`7d31e21b`):** contained in the content band (was full-bleed) so tiles
