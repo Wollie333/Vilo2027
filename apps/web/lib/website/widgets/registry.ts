@@ -52,6 +52,9 @@ export type WidgetControl =
   // Elementor-style icon control: pick a free Lucide icon, an emoji, or upload an
   // image/SVG. Stores `lucide:<name>` | emoji glyph | asset URL (read by SiteIcon).
   | { kind: "icon"; key: string; label: string }
+  // Image control: upload a custom image (website-assets bucket) or paste a URL.
+  // Stores the resolved asset URL. Used for el_image + any image field.
+  | { kind: "image"; key: string; label: string }
   // Dynamic select of the site's live rooms (options injected by the builder).
   | { kind: "roompicker"; key: string; label: string }
   // A small uppercase section label that groups the controls beneath it (e.g.
@@ -370,8 +373,9 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     label: "Image",
     icon: "Image",
     defaults: { image_path: "", alt: "", width: "full", align: "center" },
+    // (image_path uses the upload/pick MediaField — see the `image` control kind)
     content: [
-      { kind: "text", key: "image_path", label: "Image" },
+      { kind: "image", key: "image_path", label: "Image" },
       { kind: "text", key: "alt", label: "Alt text" },
       {
         kind: "hint",

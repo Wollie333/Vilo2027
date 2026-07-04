@@ -120,6 +120,7 @@ import {
 } from "./PageSettingsOverlay";
 import { BrandStudioOverlay, type Brand } from "./BrandStudioOverlay";
 import { IconPicker } from "./IconPicker";
+import { MediaField } from "./MediaField";
 import { NavBuilderOverlay } from "./NavBuilderOverlay";
 import { RoomDataModal } from "./RoomDataModal";
 import { AmenitiesDataModal } from "./AmenitiesDataModal";
@@ -2375,14 +2376,18 @@ function Inspector({
               onChange={(v) => patchStyle({ background: v || undefined })}
               onRevert={() => patchStyle({ background: undefined })}
             />
-            <TextRow
-              label="Background image"
-              value={styleVal("backgroundImage")}
-              placeholder="Paste an image URL"
-              onChange={(v) =>
-                patchStyle({ backgroundImage: v.trim() || undefined })
-              }
-            />
+            <div className="ctl">
+              <div className="ctl-l">
+                <label>Background image</label>
+              </div>
+              <MediaField
+                value={styleVal("backgroundImage")}
+                websiteId={websiteId}
+                onChange={(v) =>
+                  patchStyle({ backgroundImage: v.trim() || undefined })
+                }
+              />
+            </div>
             <ScaleRow
               label="Corner radius"
               value={styleVal("radius") ?? "none"}
@@ -3176,6 +3181,17 @@ function Control({
         <div className="ctl">
           {label}
           <IconPicker
+            value={str(value)}
+            onChange={(v) => set(v)}
+            websiteId={websiteId}
+          />
+        </div>
+      );
+    case "image":
+      return (
+        <div className="ctl">
+          {label}
+          <MediaField
             value={str(value)}
             onChange={(v) => set(v)}
             websiteId={websiteId}
