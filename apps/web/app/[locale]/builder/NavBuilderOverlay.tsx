@@ -741,6 +741,12 @@ export function NavBuilderOverlay({
               sub="Transparent-over-hero headers"
             >
               <Swatch
+                label="Scrolled background"
+                value={header.scrolledBgColor ?? "#FFFFFF"}
+                palette={["#FFFFFF", "#0B2A38", "#052E1F", "#2C2620"]}
+                onChange={(v) => setHeader({ scrolledBgColor: v })}
+              />
+              <Swatch
                 label="Scrolled link colour"
                 value={menuStyle.scrolledColor ?? "#2C2620"}
                 palette={["#2C2620", "#052E1F", accent, "#FFFFFF"]}
@@ -751,6 +757,12 @@ export function NavBuilderOverlay({
                 value={menuStyle.scrolledHoverColor ?? accent}
                 palette={[accent, "#065F46", "#2C2620", "#052E1F"]}
                 onChange={(v) => setBase({ scrolledHoverColor: v })}
+              />
+              <Swatch
+                label="Scrolled border colour"
+                value={header.scrolledBorderColor ?? "#E4EFE8"}
+                palette={["#E4EFE8", "#0B2A38", accent, "transparent"]}
+                onChange={(v) => setHeader({ scrolledBorderColor: v })}
               />
             </NavAcc>
 
@@ -954,6 +966,11 @@ function Swatch({
   onChange: (v: string) => void;
 }) {
   const cur = value.toLowerCase();
+  const inPalette = palette.some((c) => c.toLowerCase() === cur);
+  // Native colour input needs a #rrggbb value; fall back when the current value is
+  // a token/rgba/blank so the picker still opens.
+  const hex = /^#[0-9a-f]{6}$/i.test(value) ? value : "#10b981";
+  const customActive = !!value && !inPalette;
   return (
     <Ctl label={label}>
       <div className="bse-swgrid">
@@ -967,6 +984,21 @@ function Swatch({
             aria-label={c}
           />
         ))}
+        {/* Custom colour — a rainbow circle that opens the native picker; shows the
+            chosen colour once set. Lets the host pick ANY colour, not just presets. */}
+        <label
+          className={
+            customActive ? "bse-sw bse-sw-custom on" : "bse-sw bse-sw-custom"
+          }
+          title="Custom colour"
+          style={customActive ? { background: value } : undefined}
+        >
+          <input
+            type="color"
+            value={hex}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </label>
       </div>
     </Ctl>
   );
