@@ -53,7 +53,8 @@
  * this ancestor, so those CTAs turn coral while the rest of the site's primary
  * buttons stay aqua. Per-element `--el-*` overrides still win over everything. */
 .wielo-oceansview [data-section-type="hero"],
-.wielo-oceansview [data-section-type="cta"] {
+.wielo-oceansview [data-section-type="cta"],
+.wielo-oceansview [data-section-type="contact_form"] {
   --site-btn-primary-bg: var(--site-secondary);
   --site-btn-primary-color: var(--site-secondary-ink);
   --site-btn-primary-border: 0;
