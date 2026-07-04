@@ -99,18 +99,21 @@ export function CtaSection({ props }: { props: Props }) {
         <h2
           style={{
             fontFamily: "var(--site-font-heading)",
-            color: onImage ? "#ffffff" : "var(--site-ink)",
+            color: `var(--el-heading-fg, ${onImage ? "#ffffff" : "var(--site-ink)"})`,
+            fontSize: "var(--el-heading-size, 1.875rem)",
+            fontWeight: "var(--el-heading-weight, 600)",
           }}
-          className="text-2xl font-semibold tracking-tight md:text-3xl"
+          className="tracking-tight"
         >
           {props.heading}
         </h2>
         {props.body ? (
           <p
             style={{
-              color: onImage ? "rgba(255,255,255,0.9)" : "var(--site-mute)",
+              color: `var(--el-body-fg, ${onImage ? "rgba(255,255,255,0.9)" : "var(--site-mute)"})`,
+              fontSize: "var(--el-body-size, 1rem)",
             }}
-            className="mx-auto mt-3 max-w-lg text-base"
+            className="mx-auto mt-3 max-w-lg"
           >
             {props.body}
           </p>

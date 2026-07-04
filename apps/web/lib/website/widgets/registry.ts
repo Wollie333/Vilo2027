@@ -712,6 +712,21 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "textarea", key: "body", label: "Body" },
     ],
+    // Story variant: eyebrow + body + the floating stat badge are host-stylable.
+    elements: [
+      { key: "eyebrow", label: "Eyebrow", controls: ["color", "size"] },
+      { key: "body", label: "Body", controls: ["color", "size"] },
+      {
+        key: "badge",
+        label: "Stat badge",
+        controls: ["bg", "color", "radius"],
+      },
+      {
+        key: "badge-value",
+        label: "Badge number",
+        controls: ["color", "size"],
+      },
+    ],
   },
   highlights: {
     type: "highlights",
@@ -790,6 +805,19 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "textarea", key: "body", label: "Body" },
       { kind: "text", key: "button_label", label: "Button label" },
       { kind: "text", key: "button_href", label: "Button link" },
+    ],
+    elements: [
+      {
+        key: "heading",
+        label: "Heading",
+        controls: ["color", "size", "weight"],
+      },
+      { key: "body", label: "Body", controls: ["color", "size"] },
+      {
+        key: "button",
+        label: "Button",
+        controls: ["bg", "color", "border", "radius"],
+      },
     ],
   },
   host_bio: {

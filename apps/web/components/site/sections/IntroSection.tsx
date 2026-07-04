@@ -22,8 +22,11 @@ export function IntroSection({ props }: { props: Props }) {
           <div>
             {props.eyebrow ? (
               <div
-                style={{ color: "var(--site-accent)" }}
-                className="mb-3 text-[13px] font-semibold uppercase tracking-[0.18em]"
+                style={{
+                  color: "var(--el-eyebrow-fg, var(--site-accent))",
+                  fontSize: "var(--el-eyebrow-size, 0.8125rem)",
+                }}
+                className="mb-3 font-semibold uppercase tracking-[0.18em]"
               >
                 {props.eyebrow}
               </div>
@@ -34,8 +37,11 @@ export function IntroSection({ props }: { props: Props }) {
               </SectionHeading>
             ) : null}
             <p
-              style={{ color: "var(--site-mute)" }}
-              className="mt-5 whitespace-pre-line text-lg leading-relaxed"
+              style={{
+                color: "var(--el-body-fg, var(--site-mute))",
+                fontSize: "var(--el-body-size, 1.125rem)",
+              }}
+              className="mt-5 whitespace-pre-line leading-relaxed"
             >
               {props.body}
             </p>
@@ -55,14 +61,23 @@ export function IntroSection({ props }: { props: Props }) {
               {showBadge ? (
                 <div
                   style={{
-                    background: "var(--site-accent)",
-                    color: "var(--site-accent-ink)",
-                    borderRadius: "var(--site-card-radius, var(--site-radius))",
+                    background:
+                      "var(--el-badge-bg, var(--site-intro-badge-bg, var(--site-accent)))",
+                    color:
+                      "var(--el-badge-fg, var(--site-intro-badge-fg, var(--site-accent-ink)))",
+                    borderRadius:
+                      "var(--el-badge-radius, var(--site-card-radius, var(--site-radius)))",
                     boxShadow: "var(--site-card-shadow)",
                   }}
                   className="absolute -bottom-5 -left-5 px-5 py-3 text-center"
                 >
-                  <div className="text-2xl font-bold leading-none">
+                  <div
+                    className="text-2xl font-bold leading-none"
+                    style={{
+                      color:
+                        "var(--el-badge-value-fg, var(--site-intro-badge-value, inherit))",
+                    }}
+                  >
                     {props.badge_value}
                   </div>
                   {props.badge_label ? (

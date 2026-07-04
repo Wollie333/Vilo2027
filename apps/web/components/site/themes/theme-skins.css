@@ -53,6 +53,12 @@
   --site-hero-title-lh: 0.95;
   --site-hero-title-ls: -0.02em;
   --site-hero-sub-size: clamp(1.05rem, 1.6vw, 1.35rem);
+
+  /* Intro stat badge design defaults (read by IntroSection as the `--el-badge-*`
+     fallback): a white card with a coral number, per the reference float-badge. */
+  --site-intro-badge-bg: var(--site-surface);
+  --site-intro-badge-fg: var(--site-ink);
+  --site-intro-badge-value: var(--site-secondary);
 }
 
 /* --- Coral conversion CTAs -------------------------------------------------
@@ -130,14 +136,10 @@
 }
 
 /* --- INTRO (story: split + framed photo + floating badge) ---------------- */
-/* The floating badge is coral-numbered on white in the reference, not the aqua
-   fill the generic block ships. Re-point the badge box to the beach look. */
-.wielo-oceansview [data-section-type="intro"] .absolute {
-  background: var(--site-surface) !important;
-  color: var(--site-ink) !important;
-}
-.wielo-oceansview [data-section-type="intro"] .absolute .leading-none {
-  color: var(--site-secondary);
+/* The floating badge's coral-on-white design is now wired into the block's
+   `--el-badge-*` controls (defaults from `--site-intro-badge-*` above), so it's
+   host-editable — no skin override needed. Only the heading font stays here. */
+.wielo-oceansview [data-section-type="intro"] .leading-none {
   font-family: var(--site-font-heading);
 }
 

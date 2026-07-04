@@ -467,13 +467,17 @@ export function SiteButton({
   /** Per-button corner-radius override (px string); else the theme's button radius. */
   radius?: string;
 }) {
+  // Per-element styling: reads `--el-button-*` (host edit) → theme button tokens.
+  // So any block whose registry declares a "button" element makes this editable.
   const prefix = `--site-btn-${variant}`;
   const style: CSSProperties = {
-    background: `var(${prefix}-bg)`,
-    color: `var(${prefix}-color)`,
-    border: `var(${prefix}-border)`,
+    background: `var(--el-button-bg, var(${prefix}-bg))`,
+    color: `var(--el-button-fg, var(${prefix}-color))`,
+    border: `var(--el-button-bd, var(${prefix}-border))`,
     borderRadius:
-      radius && radius !== "auto" ? `${radius}px` : `var(${prefix}-radius)`,
+      radius && radius !== "auto"
+        ? `${radius}px`
+        : `var(--el-button-radius, var(${prefix}-radius))`,
   };
   return (
     <a
