@@ -101,6 +101,9 @@ export function NavBuilderOverlay({
   const [device, setDevice] = useState<NavDevice>("desktop");
   const [leftTab, setLeftTab] = useState<LeftTab>(initialTab);
   const [pubOpen, setPubOpen] = useState(false);
+  // Scroll-state preview: the canvas scrolls a mock page behind a STICKY header,
+  // so the host can watch (and edit) the transparent → scrolled transition live.
+  const [scrolled, setScrolled] = useState(false);
   const setHeader = (patch: Partial<NavHeader>) =>
     onHeaderChange({ ...header, ...patch });
   const setFooter = (patch: Partial<NavFooter>) =>
@@ -494,6 +497,7 @@ export function NavBuilderOverlay({
             <div className={`bse-device${deviceCls}`}>
               <div
                 className="nav-site"
+                onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 20)}
                 style={
                   {
                     "--site-accent": accent,
@@ -503,78 +507,120 @@ export function NavBuilderOverlay({
                     "--nsize": `${rSize}px`,
                     "--nweight": WEIGHT_PX[rWeight] ?? 600,
                     "--ngap": `${rGap}px`,
+                    // Scrolled-state colours (from the "Scrolled state" panel) — the
+                    // sticky header flips to these once the mock page scrolls.
+                    "--nlink-scrolled":
+                      menuStyle.scrolledColor ??
+                      theme.base?.palette.ink ??
+                      "#2C2620",
+                    "--nbar-scrolled-bg": header.scrolledBgColor ?? "#ffffff",
                   } as React.CSSProperties
                 }
               >
                 {leftTab === "footer" ? (
                   <FooterPreview footer={footer} name={name} />
                 ) : (
-                  <div className="np-hero">
-                    <div className="np-bar">
-                      {showLogo && (
-                        <div className="np-logo">
-                          {showMark && (
-                            <span
-                              className="mk"
-                              style={{
-                                width: logoH,
-                                height: logoH,
-                                fontSize: Math.round(logoH * 0.42),
-                              }}
-                            >
-                              {monogram}
-                            </span>
-                          )}
-                          {showName && <span className="lname">{name}</span>}
-                          {tagline && (
-                            <span
-                              style={{
-                                fontSize: 11,
-                                letterSpacing: "0.12em",
-                                textTransform: "uppercase",
-                                color: "var(--naccent)",
-                                marginLeft: 4,
-                              }}
-                            >
-                              {tagline}
-                            </span>
-                          )}
+                  <>
+                    <div className="np-hero">
+                      <div className="np-bar" data-scrolled={scrolled}>
+                        {showLogo && (
+                          <div className="np-logo">
+                            {showMark && (
+                              <span
+                                className="mk"
+                                style={{
+                                  width: logoH,
+                                  height: logoH,
+                                  fontSize: Math.round(logoH * 0.42),
+                                }}
+                              >
+                                {monogram}
+                              </span>
+                            )}
+                            {showName && <span className="lname">{name}</span>}
+                            {tagline && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  letterSpacing: "0.12em",
+                                  textTransform: "uppercase",
+                                  color: "var(--naccent)",
+                                  marginLeft: 4,
+                                }}
+                              >
+                                {tagline}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {device !== "mobile" && (
+                          <nav className={navCls}>
+                            {menu.map((it, i) => (
+                              <span
+                                key={it.id}
+                                className={i === 0 ? "nl active" : "nl"}
+                              >
+                                {it.label}
+                                {it.children && it.children.length > 0 && (
+                                  <ChevronDown
+                                    className="cx"
+                                    size={13}
+                                    strokeWidth={2.2}
+                                  />
+                                )}
+                              </span>
+                            ))}
+                            {showCta && (
+                              <span className="np-reserve">{ctaLabel}</span>
+                            )}
+                          </nav>
+                        )}
+                        {device === "mobile" && (
+                          <span
+                            className="np-reserve"
+                            style={{ marginLeft: "auto" }}
+                          >
+                            <MenuIcon size={18} strokeWidth={2} />
+                          </span>
+                        )}
+                      </div>
+                      <div className="np-herovis">
+                        <div className="np-eyebrow">
+                          {siteLabel} · Book direct
                         </div>
-                      )}
-                      {device !== "mobile" && (
-                        <nav className={navCls}>
-                          {menu.map((it, i) => (
-                            <span
-                              key={it.id}
-                              className={i === 0 ? "nl active" : "nl"}
-                            >
-                              {it.label}
-                              {it.children && it.children.length > 0 && (
-                                <ChevronDown
-                                  className="cx"
-                                  size={13}
-                                  strokeWidth={2.2}
-                                />
-                              )}
-                            </span>
-                          ))}
-                          {showCta && (
-                            <span className="np-reserve">{ctaLabel}</span>
-                          )}
-                        </nav>
-                      )}
-                      {device === "mobile" && (
-                        <span
-                          className="np-reserve"
-                          style={{ marginLeft: "auto" }}
-                        >
-                          <MenuIcon size={18} strokeWidth={2} />
-                        </span>
-                      )}
+                        <div className="np-title">Your stay, your way</div>
+                      </div>
+                      {/* Mock page below the hero so the canvas SCROLLS — the sticky
+                        header flips to its scrolled state as you scroll down. */}
+                      <div className="np-body">
+                        <div className="np-sec">
+                          <span className="np-eyeb2">The stay</span>
+                          <div className="np-h2">
+                            Scroll to preview the header
+                          </div>
+                          <p className="np-p">
+                            As the page scrolls under the sticky header, it
+                            switches to the scrolled-state colours from the
+                            panel on the right — so you can style both states
+                            and see them here.
+                          </p>
+                        </div>
+                        <div className="np-tiles">
+                          <span />
+                          <span />
+                          <span />
+                        </div>
+                        <div className="np-sec">
+                          <div className="np-h2">Everything, taken care of</div>
+                          <p className="np-p">
+                            A representative page block, just to give the header
+                            room to move.
+                          </p>
+                        </div>
+                        <div className="np-band" />
+                      </div>
                     </div>
-                    <div className="np-eyebrow">{siteLabel} · Book direct</div>
-                    <div className="np-title">Your stay, your way</div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>

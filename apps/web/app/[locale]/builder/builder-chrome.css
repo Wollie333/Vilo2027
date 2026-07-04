@@ -2830,25 +2830,107 @@
   --nsize: 14px;
   font-family: var(--inter);
   background: #0d0b09;
+  /* Internal scroll so the page moves INSIDE the device frame (like a real
+     browser viewport) and the sticky header sticks to the top of THIS box. */
+  max-height: 640px;
+  overflow-y: auto;
+}
+.wb .bse-device.mobile .nav-site {
+  max-height: 680px;
 }
 .wb .np-hero {
   position: relative;
-  min-height: 520px;
+  background: var(--panel, #fff);
+}
+/* The dark hero visual sits BEHIND the sticky transparent bar (negative margin
+   pulls it up under the bar); the bar overlays it until you scroll. */
+.wb .np-herovis {
+  min-height: 400px;
+  margin-top: -84px;
+  padding: 104px 34px 48px;
   background:
-    linear-gradient(180deg, rgba(20, 14, 8, 0.45), rgba(20, 14, 8, 0.55)),
+    linear-gradient(180deg, rgba(20, 14, 8, 0.45), rgba(20, 14, 8, 0.6)),
     var(--site-ink, #221a11);
   background-size: cover;
   background-position: center;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 .wb .np-bar {
-  position: relative;
-  z-index: 3;
+  position: sticky;
+  top: 0;
+  z-index: 6;
   display: flex;
   align-items: center;
   gap: 20px;
   padding: 22px 34px;
+  transition:
+    background 0.28s ease,
+    box-shadow 0.28s ease,
+    padding 0.28s ease;
+}
+/* Scrolled state — the bar turns solid + adopts the "Scrolled state" colours. */
+.wb .np-bar[data-scrolled="true"] {
+  background: var(--nbar-scrolled-bg, #fff);
+  box-shadow: 0 1px 0 rgba(10, 20, 15, 0.1);
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.wb .np-bar[data-scrolled="true"] .nl,
+.wb .np-bar[data-scrolled="true"] .lname {
+  color: var(--nlink-scrolled, #2c2620);
+}
+/* Mock page body below the hero — gives the sticky header room to move. */
+.wb .np-body {
+  background: var(--panel, #fff);
+  padding: 40px 34px 80px;
+  color: #2c2620;
+}
+.wb .np-sec {
+  max-width: 560px;
+  margin: 0 auto 28px;
+  text-align: center;
+}
+.wb .np-eyeb2 {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--naccent);
+  margin-bottom: 8px;
+}
+.wb .np-h2 {
+  font-family: var(--site-font-heading, serif);
+  font-size: 26px;
+  color: #1b1712;
+  margin-bottom: 10px;
+}
+.wb .np-p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #6b6258;
+}
+.wb .np-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  max-width: 760px;
+  margin: 0 auto 40px;
+}
+.wb .np-tiles span {
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ece6dd, #f6f1e8);
+}
+.wb .np-band {
+  height: 220px;
+  border-radius: 16px;
+  max-width: 900px;
+  margin: 8px auto 0;
+  background: linear-gradient(135deg, var(--naccent), #0b2a38);
+  opacity: 0.9;
 }
 .wb .np-logo {
   display: flex;
