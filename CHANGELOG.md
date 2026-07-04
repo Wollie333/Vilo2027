@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-04 — Room cards, uniform section rhythm, per-screen hide.
+
+- **Room card regression (`fe1f9565`):** the `.site-band` wrapper added a DOM level,
+  so the room-card skin's `[data-section-type=rooms_preview] > * > *` selector began
+  targeting the GRID instead of the card — hover lifted a square, radius-less white
+  box. Gave the card a stable `.site-room-card` hook and retargeted the oceansview/
+  sabela/marmalade skins to it (depth-independent). Cards keep 14px radius,
+  overflow-hidden image, 20px inner padding, and lift as a rounded card on hover.
+- **Uniform vertical rhythm (`28421f72`):** `.site-band` now applies
+  `padding-block: clamp(50px, 7vw, 100px)` — the same neat 50→100px top/bottom on
+  every content section, so nothing reads squashed. Full-bleed hero/gallery/cta keep
+  their own spacing; a per-section `padTop/padBottom` override still wins.
+- **Per-screen hide (`a775d4d8`):** new "Show on" three-toggle (desktop·tablet·
+  mobile) hides any element/column/section on each size INDEPENDENTLY. Was
+  builder-only before; the renderer now emits scoped `@media`+`@container`
+  display:none so it hides on the LIVE site too (mobile ≤640, tablet 641-1024,
+  desktop ≥1025). New `deviceHideCss` in `_shared`; `updateResponsive` +
+  `hiddenOnDevice` extended to the desktop layer. Verified end-to-end in the builder.
+
 ## 2026-07-04 — Responsive overlaps fixed + builder shows the theme skin.
 
 - **Overlap:** the story-intro's floating stat badge (`-bottom-5`) overhung into
