@@ -33,6 +33,12 @@ function SpecialCardView({
   const price = priceLabel(s.price, s.currency);
   const was = priceLabel(s.wasPrice, s.currency);
   const perLabel = s.priceMode === "flat" ? "package" : "/ night";
+  // The auto savings badge (top-right) is redundant when the host's own badge
+  // (top-left) already spells out the same discount (e.g. both say "20% off") —
+  // show it only when it adds information.
+  const showSavings =
+    !!s.savingsPct &&
+    !(s.badge && s.badge.replace(/\s/g, "").includes(`${s.savingsPct}%`));
 
   return (
     <Card
@@ -67,8 +73,15 @@ function SpecialCardView({
             {s.badge}
           </span>
         ) : null}
-        {s.savingsPct ? (
-          <span className="absolute right-3 top-3 rounded-pill bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
+        {showSavings ? (
+          <span
+            style={{
+              background: "var(--el-savings-bg, var(--site-secondary))",
+              color: "var(--el-savings-fg, var(--site-secondary-ink))",
+              borderRadius: "var(--el-savings-radius, 9999px)",
+            }}
+            className="absolute right-3 top-3 px-2.5 py-1 text-[11px] font-semibold shadow-sm"
+          >
             {s.savingsPct}% off
           </span>
         ) : null}
