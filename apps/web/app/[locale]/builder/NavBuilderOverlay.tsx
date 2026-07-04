@@ -13,6 +13,8 @@ import {
   Smartphone,
   Lock,
   GripVertical,
+  IndentIncrease,
+  IndentDecrease,
   Trash2,
   Plus,
   Pencil,
@@ -50,6 +52,68 @@ const WEIGHT_PX: Record<string, number> = {
   semibold: 600,
   bold: 700,
 };
+
+// ── Menu tree ⇄ flat rows (drag-to-reorder + drag-to-indent) ───────────────
+// The Links editor supports ONE level of nesting (a dropdown parent + its
+// children). We flatten the tree to rows tagged with a depth, let drag/indent
+// reorder the flat list, then rebuild the tree — so a single algorithm handles
+// reorder, indent (→ child of the row above) and outdent (→ top-level). A
+// depth-0 row that is a parent carries its trailing depth-1 rows as a block.
+type FlatRow = { item: SiteMenuItem; depth: 0 | 1 };
+
+function flattenMenu(menu: SiteMenuItem[]): FlatRow[] {
+  const rows: FlatRow[] = [];
+  for (const it of menu) {
+    rows.push({ item: { ...it, children: undefined }, depth: 0 });
+    for (const ch of it.children ?? [])
+      rows.push({ item: { ...ch, children: undefined }, depth: 1 });
+  }
+  return rows;
+}
+
+function buildMenu(rows: FlatRow[]): SiteMenuItem[] {
+  const out: SiteMenuItem[] = [];
+  let cur: SiteMenuItem | null = null;
+  for (const r of rows) {
+    if (r.depth === 0) {
+      cur = { ...r.item, children: undefined };
+      out.push(cur);
+    } else if (cur) {
+      cur.children = [
+        ...(cur.children ?? []),
+        { ...r.item, children: undefined },
+      ];
+    } else {
+      // Orphan child (nothing above) → promote to a top-level link.
+      out.push({ ...r.item, children: undefined });
+    }
+  }
+  return out;
+}
+
+/** Apply `fn` to the item with `id` anywhere in the tree (immutable). */
+function mapMenuItem(
+  menu: SiteMenuItem[],
+  id: string,
+  fn: (it: SiteMenuItem) => SiteMenuItem,
+): SiteMenuItem[] {
+  return menu.map((it) =>
+    it.id === id
+      ? fn(it)
+      : it.children
+        ? { ...it, children: mapMenuItem(it.children, id, fn) }
+        : it,
+  );
+}
+
+/** Remove the item with `id` anywhere in the tree (immutable). */
+function removeMenuItem(menu: SiteMenuItem[], id: string): SiteMenuItem[] {
+  return menu
+    .filter((it) => it.id !== id)
+    .map((it) =>
+      it.children ? { ...it, children: removeMenuItem(it.children, id) } : it,
+    );
+}
 
 // Builder V2 — Phase 4d-1: Nav/Menu builder overlay (link builder + preview).
 //
@@ -225,32 +289,81 @@ export function NavBuilderOverlay({
   const idRef = useRef(0);
   const newId = () => `nav-${Date.now().toString(36)}-${++idRef.current}`;
 
-  const dragIdx = useRef<number | null>(null);
-  const [dragOver, setDragOver] = useState<number | null>(null);
+  // Drag state: the id being dragged + a live drop target (row id, whether we
+  // drop above/below it, and whether the pointer is indented → nest as a child).
+  const dragId = useRef<string | null>(null);
+  const [drop, setDrop] = useState<{
+    id: string;
+    place: "before" | "after";
+    indent: boolean;
+  } | null>(null);
 
-  const rename = (i: number, label: string) =>
-    onMenuChange(menu.map((m, j) => (j === i ? { ...m, label } : m)));
-  const remove = (i: number) => onMenuChange(menu.filter((_, j) => j !== i));
+  // Flattened rows (top-level + one level of children) for the editor list.
+  const rows = flattenMenu(menu);
+
+  // ── id-based edits (work at any depth) ──
+  const rename = (id: string, label: string) =>
+    onMenuChange(mapMenuItem(menu, id, (it) => ({ ...it, label })));
+  const remove = (id: string) => onMenuChange(removeMenuItem(menu, id));
   // Per-link destination + settings (custom URLs, open-in-new-tab). Which link's
   // settings row is expanded.
   const [editLink, setEditLink] = useState<string | null>(null);
-  const setHref = (i: number, href: string) =>
-    onMenuChange(menu.map((m, j) => (j === i ? { ...m, href } : m)));
-  const setNewTab = (i: number, newTab: boolean) =>
+  const setHref = (id: string, href: string) =>
+    onMenuChange(mapMenuItem(menu, id, (it) => ({ ...it, href })));
+  const setNewTab = (id: string, newTab: boolean) =>
     onMenuChange(
-      menu.map((m, j) => (j === i ? { ...m, newTab: newTab || undefined } : m)),
+      mapMenuItem(menu, id, (it) => ({ ...it, newTab: newTab || undefined })),
     );
   const add = (label: string, href: string) => {
     const l = label.trim();
     if (!l) return;
     onMenuChange([...menu, { id: newId(), label: l, href }]);
   };
-  const reorder = (from: number, to: number) => {
-    if (from === to) return;
-    const next = [...menu];
-    const [m] = next.splice(from, 1);
-    next.splice(to, 0, m);
-    onMenuChange(next);
+
+  // Is the row at index `i` a dropdown parent (a depth-0 row with children)?
+  const rowIsParent = (i: number) =>
+    rows[i]?.depth === 0 && rows[i + 1]?.depth === 1;
+
+  // Set a row's nesting depth (indent → child of the row above, outdent → top).
+  // A parent can't be nested (it would create a 3rd level); the first row can't
+  // be a child (nothing above it to parent it).
+  const setDepth = (id: string, depth: 0 | 1) => {
+    const next = flattenMenu(menu);
+    const i = next.findIndex((r) => r.item.id === id);
+    if (i < 0 || next[i].depth === depth) return;
+    if (depth === 1 && (i === 0 || rowIsParent(i))) return;
+    next[i] = { ...next[i], depth };
+    onMenuChange(buildMenu(next));
+  };
+
+  // Move the dragged block to sit before/after `targetId`, optionally nesting it
+  // as a child. The block = the dragged row plus (if it's a parent) its trailing
+  // children, so a dropdown moves as a unit.
+  const moveLink = (
+    dragit: string,
+    targetId: string,
+    place: "before" | "after",
+    indent: boolean,
+  ) => {
+    if (dragit === targetId) return;
+    const all = flattenMenu(menu);
+    const from = all.findIndex((r) => r.item.id === dragit);
+    if (from < 0) return;
+    let end = from + 1;
+    if (all[from].depth === 0)
+      while (end < all.length && all[end].depth === 1) end++;
+    const block = all.slice(from, end);
+    // Dropping onto the block itself (or its own child) is a no-op.
+    if (block.some((r) => r.item.id === targetId)) return;
+    const rest = [...all.slice(0, from), ...all.slice(end)];
+    let at = rest.findIndex((r) => r.item.id === targetId);
+    if (at < 0) return;
+    if (place === "after") at += 1;
+    const isParent = block.length > 1;
+    const depth: 0 | 1 = indent && !isParent && at > 0 ? 1 : 0;
+    block[0] = { ...block[0], depth };
+    rest.splice(at, 0, ...block);
+    onMenuChange(buildMenu(rest));
   };
 
   const monogram = (brand.monogram || brand.name?.[0] || "W").slice(0, 2);
@@ -516,102 +629,154 @@ export function NavBuilderOverlay({
                 )}
 
                 <div className="nav-lbl" style={{ marginTop: 14 }}>
-                  Links · drag to reorder
+                  Links · drag to reorder · drag right to nest a dropdown
                 </div>
                 <div className="nav-links">
-                  {menu.map((it, i) => (
-                    <div key={it.id} className="nav-linkwrap">
-                      <div
-                        className={
-                          dragOver === i ? "nav-link drag-over" : "nav-link"
-                        }
-                        draggable
-                        onDragStart={() => {
-                          dragIdx.current = i;
-                        }}
-                        onDragEnd={() => {
-                          dragIdx.current = null;
-                          setDragOver(null);
-                        }}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          setDragOver(i);
-                        }}
-                        onDragLeave={() =>
-                          setDragOver((d) => (d === i ? null : d))
-                        }
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          if (dragIdx.current != null)
-                            reorder(dragIdx.current, i);
-                          setDragOver(null);
-                        }}
-                      >
-                        <span className="grip" title="Drag to reorder">
-                          <GripVertical size={14} strokeWidth={2} />
-                        </span>
-                        <input
-                          className="lk"
-                          value={it.label}
-                          onChange={(e) => rename(i, e.target.value)}
-                        />
-                        {it.children && it.children.length > 0 && (
-                          <span className="drop-badge">menu</span>
-                        )}
-                        {it.autoRooms && (
-                          <span className="drop-badge">rooms</span>
-                        )}
-                        <button
-                          className="lact"
-                          type="button"
-                          title="Link destination & settings"
-                          onClick={() =>
-                            setEditLink((v) => (v === it.id ? null : it.id))
+                  {rows.map((r, i) => {
+                    const it = r.item;
+                    const parent = rowIsParent(i);
+                    const canIndent = i > 0 && !parent && r.depth === 0;
+                    const isDrop = drop?.id === it.id;
+                    const dropAt = (e: React.DragEvent) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      return {
+                        place: (e.clientY - rect.top < rect.height / 2
+                          ? "before"
+                          : "after") as "before" | "after",
+                        indent: e.clientX - rect.left > 42,
+                      };
+                    };
+                    return (
+                      <div key={it.id} className="nav-linkwrap">
+                        <div
+                          className={[
+                            "nav-link",
+                            r.depth === 1 && "child",
+                            isDrop && `drop-${drop!.place}`,
+                            isDrop && drop!.indent && "drop-indent",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          draggable
+                          onDragStart={() => {
+                            dragId.current = it.id;
+                          }}
+                          onDragEnd={() => {
+                            dragId.current = null;
+                            setDrop(null);
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            const { place, indent } = dropAt(e);
+                            setDrop({ id: it.id, place, indent });
+                          }}
+                          onDragLeave={() =>
+                            setDrop((d) => (d?.id === it.id ? null : d))
                           }
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const { place, indent } = dropAt(e);
+                            if (dragId.current)
+                              moveLink(dragId.current, it.id, place, indent);
+                            dragId.current = null;
+                            setDrop(null);
+                          }}
                         >
-                          <ChevronDown
-                            size={14}
-                            strokeWidth={2}
-                            style={{
-                              transform:
-                                editLink === it.id
-                                  ? "rotate(180deg)"
-                                  : undefined,
-                              transition: "transform 0.18s",
-                            }}
+                          <span
+                            className="grip"
+                            title="Drag to reorder · drag right to nest"
+                          >
+                            <GripVertical size={14} strokeWidth={2} />
+                          </span>
+                          <input
+                            className="lk"
+                            value={it.label}
+                            onChange={(e) => rename(it.id, e.target.value)}
                           />
-                        </button>
-                        <button
-                          className="lact del"
-                          type="button"
-                          title="Delete"
-                          onClick={() => remove(i)}
-                        >
-                          <Trash2 size={14} strokeWidth={2} />
-                        </button>
-                      </div>
-                      {editLink === it.id ? (
-                        <div className="nav-linkset">
-                          <label className="nav-linkset-row">
-                            <span>Link URL</span>
-                            <input
-                              value={it.href}
-                              placeholder="/about  ·  https://example.com"
-                              onChange={(e) => setHref(i, e.target.value)}
+                          {parent && <span className="drop-badge">menu</span>}
+                          {it.autoRooms && (
+                            <span className="drop-badge">rooms</span>
+                          )}
+                          {r.depth === 1 ? (
+                            <button
+                              className="lact"
+                              type="button"
+                              title="Move back to the top level"
+                              onClick={() => setDepth(it.id, 0)}
+                            >
+                              <IndentDecrease size={14} strokeWidth={2} />
+                            </button>
+                          ) : (
+                            <button
+                              className="lact"
+                              type="button"
+                              disabled={!canIndent}
+                              title={
+                                canIndent
+                                  ? "Nest under the link above (dropdown)"
+                                  : parent
+                                    ? "A dropdown can't nest inside another"
+                                    : "Add a link above to nest under it"
+                              }
+                              onClick={() => setDepth(it.id, 1)}
+                            >
+                              <IndentIncrease size={14} strokeWidth={2} />
+                            </button>
+                          )}
+                          <button
+                            className="lact chev"
+                            type="button"
+                            title="Link destination & settings"
+                            onClick={() =>
+                              setEditLink((v) => (v === it.id ? null : it.id))
+                            }
+                          >
+                            <ChevronDown
+                              size={14}
+                              strokeWidth={2}
+                              style={{
+                                transform:
+                                  editLink === it.id
+                                    ? "rotate(180deg)"
+                                    : undefined,
+                                transition: "transform 0.18s",
+                              }}
                             />
-                          </label>
-                          <label className="nav-linkset-tog">
-                            <input
-                              type="checkbox"
-                              checked={!!it.newTab}
-                              onChange={(e) => setNewTab(i, e.target.checked)}
-                            />
-                            Open in a new tab
-                          </label>
+                          </button>
+                          <button
+                            className="lact del"
+                            type="button"
+                            title="Delete"
+                            onClick={() => remove(it.id)}
+                          >
+                            <Trash2 size={14} strokeWidth={2} />
+                          </button>
                         </div>
-                      ) : null}
-                    </div>
-                  ))}
+                        {editLink === it.id ? (
+                          <div className="nav-linkset">
+                            <label className="nav-linkset-row">
+                              <span>Link URL</span>
+                              <input
+                                value={it.href}
+                                placeholder="/about  ·  https://example.com"
+                                onChange={(e) => setHref(it.id, e.target.value)}
+                              />
+                            </label>
+                            <label className="nav-linkset-tog">
+                              <input
+                                type="checkbox"
+                                checked={!!it.newTab}
+                                onChange={(e) =>
+                                  setNewTab(it.id, e.target.checked)
+                                }
+                              />
+                              Open in a new tab
+                            </label>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                   {menu.length === 0 && (
                     <div className="hint">
                       No links yet. Add one below or quick-add a page.
