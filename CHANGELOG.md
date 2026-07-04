@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-04 — Sabela theme skinned (foundation + home + shared section skins).
+
+Started + substantially skinned the second theme, Sabela Lodge (dark-first ebony /
+warm-bone / gold, Cormorant Garamond). Verified non-destructively via
+`?site=vilotest&theme=sabela&preview=1` (renders Sabela's own page_templates under
+the `wielo-sabela` scope; Oceans View untouched).
+
+- Foundation (`e4c2eecc`): `.wielo-sabela` token block + editorial hero/heading scale.
+- Home skins (`3843f283`): suite hover + gold fact chips, feature icon boxes, gallery.
+- Because every Sabela page (home/about/rooms/contact/experiences/gallery/specials/
+  blog) uses the SAME generic blocks, the foundation + shared `.wielo-sabela
+  [data-section-type]` skins carry the design across ALL pages. Verified home +
+  about render on-brand (dark ebony, gold accents, serif display, gold CTAs).
+
+On a dark theme the tokens carry most of the look, so Sabela needs far less section
+CSS than Oceans View. Remaining: per-page polish + optional page_templates copy to
+match the reference verbatim (data). Next themes: marmalade, safari.
+
 ## 2026-07-04 — Oceans View finished: contact-form wiring + nav/eyebrow polish.
 
 - Render-wired the contact form fields (`--el-field-*`) + submit button
