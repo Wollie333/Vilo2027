@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-04 — Room-rate block is a live booking form.
+
+- **Live booking form (`f5cdd3a0`):** the `room_rate` website block is now a working
+  booking form (was a static price + link). Pick dates → server-recalculated
+  availability + price via `/api/site-booking-quote` → the CTA becomes
+  "Reserve · <total>" (deep-links into checkout with THIS room + dates prefilled)
+  or a disabled "Unavailable". Wired the existing `RoomBookingForm` into
+  `RoomRateSection`; `RoomDetail` now carries `websiteId`; `interactive` threaded so
+  the builder preview stays static (no API call).
+- **Styling controls:** `room_rate` exposes element controls (card · heading · price ·
+  date/guest fields · reserve button) matching the `--el-*` vars the form reads; the
+  v2 renderer already emits them scoped per block.
+- Verified LIVE on the vilotest room page (real R 1 900 price, guests capped at the
+  room max, date picker opens). tsc + eslint clean; 215 vitest.
+
 ## 2026-07-04 — Menu system: named menus, out-of-the-box Main menu, working ☰ in canvas.
 
 - **Named-menu model (`6ef11cd6`):** `navigation.menus[]` (each `{id,name,items}`) +
