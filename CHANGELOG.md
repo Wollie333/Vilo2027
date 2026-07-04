@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-04 — Neat gallery + specials checkout locked to the offer.
+
+- **Gallery (`7d31e21b`):** contained in the content band (was full-bleed) so tiles
+  align with the section headings; the mosaic layout now renders a clean equal 2-col
+  grid on phones (was a single photo) while sm+ keeps the hero + 2×2 mosaic. Neat on
+  every size, theme radius/hover intact.
+- **Specials checkout lock (`7cb173f7`):** a special now LOCKS what's bookable. A
+  room-scoped offer shows ONLY its room (checked + disabled, "Included in this offer",
+  scope toggle hidden); compulsory add-ons stay preselected + non-removable. Threaded
+  `special.roomId` page→form. **Test data:** special `…a1` reseeded room-scoped
+  (Vineyard Suite) with compulsory Breakfast hamper + Airport transfer and optional
+  Sunset game drive — view at `/site/book?property=0b222222-…-221&special=0b5ec000-…-a1`.
+  Verified: room locked, both compulsory add-ons checked+disabled, optional
+  checked+removable.
+
 ## 2026-07-04 — Room cards, uniform section rhythm, per-screen hide.
 
 - **Room card regression (`fe1f9565`):** the `.site-band` wrapper added a DOM level,
