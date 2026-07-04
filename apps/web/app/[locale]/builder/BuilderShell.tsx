@@ -2403,6 +2403,24 @@ function Inspector({
                 }
               />
             </div>
+            <ColorRow
+              label="Overlay colour"
+              value={styleVal("overlayColor") ?? ""}
+              overridden={!!styleVal("overlayColor")}
+              onChange={(v) => patchStyle({ overlayColor: v || undefined })}
+              onRevert={() => patchStyle({ overlayColor: undefined })}
+            />
+            <NumRow
+              label="Overlay opacity"
+              value={n.style?.overlayOpacity as number | undefined}
+              min={0}
+              max={100}
+              step={5}
+              suffix="%"
+              overridden={n.style?.overlayOpacity != null}
+              onChange={(v) => patchStyle({ overlayOpacity: v ?? undefined })}
+              onRevert={() => patchStyle({ overlayOpacity: undefined })}
+            />
             <ScaleRow
               label="Corner radius"
               value={styleVal("radius") ?? "none"}

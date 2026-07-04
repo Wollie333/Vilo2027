@@ -186,9 +186,13 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
     | undefined;
   const { background: toneBg, ...toneVars } = tone ?? {};
 
-  // Background video (YouTube/Vimeo) — renders a cover <iframe> behind the content
-  // (needs the section to be a positioned, clipped stacking context).
+  // Background video (YouTube/Vimeo) + overlay scrim — both render behind the
+  // content and need the section to be a positioned, clipped stacking context.
   const bgVideo = node.style?.backgroundVideo?.trim();
+  const overlayColor = node.style?.overlayColor?.trim();
+  const overlayOpacity = node.style?.overlayOpacity;
+  const hasOverlay = !!overlayColor && (overlayOpacity ?? 0) > 0;
+  const positioned = !!bgVideo || hasOverlay;
   const outer: CSSProperties = {
     ...spaceStyle(mergedSpace(node, layer), SECTION_DEFAULT),
     ...(node.borderB ? { borderBottom: node.borderB } : {}),
@@ -196,7 +200,7 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
     // Per-block custom design (Phase 5): background/border/radius/max-width/min-height
     // from `node.style` win over the theme default.
     ...blockFrameStyle(node.style),
-    ...(bgVideo ? { position: "relative", overflow: "hidden" } : {}),
+    ...(positioned ? { position: "relative", overflow: "hidden" } : {}),
   };
   const inner: CSSProperties = {
     ...toneVars,
@@ -207,8 +211,8 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
     flexWrap: node.wrap ? "wrap" : "nowrap",
     gap: node.gap ?? 20,
     alignItems: node.valign ?? "stretch",
-    // Sit above the background video layer.
-    ...(bgVideo ? { position: "relative", zIndex: 1 } : {}),
+    // Sit above the background video / overlay layer.
+    ...(positioned ? { position: "relative", zIndex: 1 } : {}),
   };
 
   // `stack` also needs to fire on the LIVE viewport, not just the builder device
@@ -243,6 +247,19 @@ function renderSection(node: SectionNode, ctx: RenderCtx): ReactNode {
       {hideCss ? <style dangerouslySetInnerHTML={{ __html: hideCss }} /> : null}
       {custom ? <style dangerouslySetInnerHTML={{ __html: custom }} /> : null}
       {bgVideo ? <BackgroundVideo url={bgVideo} /> : null}
+      {hasOverlay ? (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: overlayColor,
+            opacity: (overlayOpacity ?? 0) / 100,
+            zIndex: 0,
+            pointerEvents: "none",
+          }}
+        />
+      ) : null}
       <div className="pd-cols" style={inner}>
         {node.kids.map((c) => renderColumn(c, ctx))}
       </div>

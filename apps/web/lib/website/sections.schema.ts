@@ -916,6 +916,10 @@ export const blockStyleSchema = z.object({
   /** Background VIDEO (YouTube/Vimeo URL) — a silent, looping cover video behind
    *  the content. When set it renders INSTEAD of `backgroundImage`. */
   backgroundVideo: z.string().max(500).optional(),
+  /** Overlay scrim over the background image/video (colour + 0–100 opacity) so
+   *  content stays legible. Renders between the background and the content. */
+  overlayColor: z.string().max(40).optional(),
+  overlayOpacity: z.number().min(0).max(100).optional(),
   desktop: blockViewportStyle,
   tablet: blockViewportStyle,
   mobile: blockViewportStyle,
