@@ -90,62 +90,89 @@ export function GalleryLightbox({
 
   // Directory-style hero mosaic: one large image + a 2×2 grid of thumbnails and
   // a "Show all N photos" button. Any tile opens the same fullscreen lightbox.
+  // The hero spans half the grid at EVERY size (was full-width + hidden thumbs on
+  // mobile — which showed just one photo); the thumbnails now fill the other half
+  // on mobile too, so the mosaic reads as designed on phones.
   const mosaic = layout === "mosaic" && count > 0;
-  const heroSpan = count > 1 ? "sm:col-span-2" : "col-span-4";
+  const heroSpan = count > 1 ? "col-span-2" : "col-span-4";
 
   return (
     <>
       {mosaic ? (
-        <div
-          className="relative grid h-[340px] grid-cols-4 grid-rows-2 overflow-hidden sm:h-[460px]"
-          style={{ ...galleryTileStyle, gap: gapPx }}
-        >
-          <button
-            type="button"
-            onClick={() => setOpenIndex(0)}
-            aria-label={images[0].caption || "View photo 1"}
-            className={`group relative col-span-4 row-span-2 cursor-zoom-in overflow-hidden ${heroSpan}`}
+        <>
+          {/* Mobile: a clean equal 2-col grid — the hero mosaic needs width to
+            breathe, so on phones every photo shows at the same size instead. */}
+          <div className="grid grid-cols-2 sm:hidden" style={{ gap: gapPx }}>
+            {images.slice(0, 6).map((img, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setOpenIndex(i)}
+                aria-label={img.caption || `View photo ${i + 1}`}
+                className="group relative cursor-zoom-in overflow-hidden"
+                style={galleryTileStyle}
+              >
+                <SiteImg
+                  src={img.url}
+                  alt={img.caption ?? ""}
+                  sizes="50vw"
+                  className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                />
+              </button>
+            ))}
+          </div>
+          {/* sm+: the designed directory-style hero mosaic. */}
+          <div
+            className="relative hidden h-[460px] grid-cols-4 grid-rows-2 overflow-hidden sm:grid"
+            style={{ ...galleryTileStyle, gap: gapPx }}
           >
-            <SiteImg
-              src={images[0].url}
-              alt={images[0].caption ?? ""}
-              priority
-              sizes="(min-width: 640px) 50vw, 100vw"
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-            />
-          </button>
-          {images.slice(1, 5).map((img, i) => (
             <button
-              key={i}
               type="button"
-              onClick={() => setOpenIndex(i + 1)}
-              aria-label={img.caption || `View photo ${i + 2}`}
-              className="group relative hidden cursor-zoom-in overflow-hidden sm:block"
-              style={{ background: "var(--site-bg)" }}
+              onClick={() => setOpenIndex(0)}
+              aria-label={images[0].caption || "View photo 1"}
+              className={`group relative col-span-4 row-span-2 cursor-zoom-in overflow-hidden ${heroSpan}`}
             >
               <SiteImg
-                src={img.url}
-                alt={img.caption ?? ""}
-                sizes="25vw"
+                src={images[0].url}
+                alt={images[0].caption ?? ""}
+                priority
+                sizes="(min-width: 640px) 50vw, 100vw"
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
               />
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setOpenIndex(0)}
-            style={{
-              background: "var(--site-surface)",
-              borderColor: "var(--site-line)",
-              color: "var(--site-ink)",
-              borderRadius: "var(--site-radius)",
-            }}
-            className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 border px-4 py-2 text-sm font-medium shadow-lift transition hover:opacity-90"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            View all {count} photo{count === 1 ? "" : "s"}
-          </button>
-        </div>
+            {images.slice(1, 5).map((img, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setOpenIndex(i + 1)}
+                aria-label={img.caption || `View photo ${i + 2}`}
+                className="group relative block cursor-zoom-in overflow-hidden"
+                style={{ background: "var(--site-bg)" }}
+              >
+                <SiteImg
+                  src={img.url}
+                  alt={img.caption ?? ""}
+                  sizes="25vw"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setOpenIndex(0)}
+              style={{
+                background: "var(--site-surface)",
+                borderColor: "var(--site-line)",
+                color: "var(--site-ink)",
+                borderRadius: "var(--site-radius)",
+              }}
+              className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 border px-4 py-2 text-sm font-medium shadow-lift transition hover:opacity-90"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              View all {count} photo{count === 1 ? "" : "s"}
+            </button>
+          </div>
+        </>
       ) : (
         <div className={`grid ${cols}`} style={{ gap: gapPx }}>
           {images.map((img, i) => (

@@ -180,8 +180,10 @@ function SectionWrap({
 }
 
 // Sections that render edge-to-edge (own full-bleed background + internal padding)
-// — they must NOT be clamped/gutter-padded by the content band.
-const FULL_BLEED_SECTIONS = new Set(["hero", "gallery", "cta"]);
+// — they must NOT be clamped/gutter-padded by the content band. The gallery IS
+// banded so its tiles align with every other section's content (neat, not a
+// full-bleed strip that mismatches the contained headings above it).
+const FULL_BLEED_SECTIONS = new Set(["hero", "cta"]);
 // Centred content band: a mobile-safe horizontal gutter (never flush to the edge)
 // plus a max-width so text doesn't over-stretch on wide screens (matches the v2
 // renderer's 1180px content width). `paddingBlock` gives every content section the
