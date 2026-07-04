@@ -287,7 +287,17 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
 
 ---
 
-## 8. Progress log (Oceans View)
+## 8. Progress log (Oceans View — COMPLETE)
+
+**Oceans View is done** (2026-07-04): all 8 builder-doc pages pixel-perfect +
+per-element host-editable; the skin is wired into the elements (§5b) across every
+registry block used; system routes token-themed; final polish landed (transparent
+nav over the hero via `navigation.header.transparentOverHero`, coral intro
+eyebrow). Boundary: `contact_form`/`form` are legacy non-registry blocks
+(render-wired only — inspector controls need promoting them to V2 widgets).
+
+Detail:
+
 
 - **Home — DONE** (`6ae16f4a`, 2026-07-03). Every section per §3; added the
   reusable `sand`/`navy` tones + `highlights` `tiles` variant. Live-verified.

@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-04 — Oceans View finished: contact-form wiring + nav/eyebrow polish.
+
+- Render-wired the contact form fields (`--el-field-*`) + submit button
+  (`--el-button-*`). Boundary noted: contact_form/form are legacy non-registry
+  blocks, so inspector element controls need promoting them to V2 widgets.
+- Polish: intro story eyebrow now defaults coral (`--site-intro-eyebrow-fg`);
+  enabled `navigation.header.transparentOverHero` on the fixture so the header is
+  transparent over the hero as in the reference. Verified live.
+- **Oceans View theme complete**: 8 builder-doc pages pixel-perfect + per-element
+  editable, skin wired into elements, system routes token-themed.
+
 ## 2026-07-04 — Wire intro + cta + SiteButton into per-element controls (`cbc719fc`).
 
 Completes the element-wiring pass for the prominent blocks used across the pages.
