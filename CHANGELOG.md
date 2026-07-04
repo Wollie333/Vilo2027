@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-07-04 — Load each theme's display webfont on the public site (`4072a517`).
+
+Real bug: the public `/site` route never loaded theme display fonts (only the
+builder-preview did), so every themed site fell back to system fonts — Safari's
+Cormorant Garamond rendered as Georgia, Oceans View's Bricolage as Trebuchet. New
+`themeFontKeys()` + `<SiteFontLinks>` (in SiteThemeRoot) emit the Google Fonts
+stylesheet for the theme's effective font keys (elegant→Cormorant · grotesk→
+Bricolage+Manrope · homely→Gloock+Karla). Verified: safari now loads/renders
+Cormorant Garamond, oceansview Bricolage+Manrope (both `document.fonts` loaded).
+
 ## 2026-07-04 — Sabela theme skinned (foundation + home + shared section skins).
 
 Started + substantially skinned the second theme, Sabela Lodge (dark-first ebony /
