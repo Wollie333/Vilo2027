@@ -910,6 +910,9 @@ const blockViewportStyle = z
 export const blockStyleSchema = z.object({
   /** Background colour override (CSS colour) applied across all viewports. */
   background: z.string().max(40).optional(),
+  /** Background IMAGE (asset path or URL) — cover/centre, sits under the content.
+   *  Applied by the renderers; pairs with an optional scrim via `background`. */
+  backgroundImage: z.string().max(500).optional(),
   desktop: blockViewportStyle,
   tablet: blockViewportStyle,
   mobile: blockViewportStyle,

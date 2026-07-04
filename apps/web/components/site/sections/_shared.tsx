@@ -145,6 +145,14 @@ const BLOCK_MINHEIGHT_CSS = {
 /** Global (all-viewport) frame rules: margin, border, radius, max-width. */
 function frameRules(style: BlockStyle): string {
   const out: string[] = [];
+  if (style.backgroundImage) {
+    out.push(
+      `background-image:url("${style.backgroundImage}")`,
+      "background-size:cover",
+      "background-position:center",
+      "background-repeat:no-repeat",
+    );
+  }
   if (style.marginTop) out.push(`margin-top:${BLOCK_PAD[style.marginTop]}px`);
   if (style.marginBottom)
     out.push(`margin-bottom:${BLOCK_PAD[style.marginBottom]}px`);
@@ -173,6 +181,14 @@ export function blockFrameStyle(style?: BlockStyle): CSSProperties {
   if (!style) return {};
   const out: CSSProperties = {};
   if (style.background) out.background = style.background;
+  // Background image (cover/centre). A `background` colour set alongside acts as a
+  // scrim/fallback under it (e.g. "rgba(0,0,0,.4)"), so text stays legible.
+  if (style.backgroundImage) {
+    out.backgroundImage = `url("${style.backgroundImage}")`;
+    out.backgroundSize = "cover";
+    out.backgroundPosition = "center";
+    out.backgroundRepeat = "no-repeat";
+  }
   if (style.border && style.border !== "none") {
     const color = BLOCK_BORDER_COLOR_VAR[style.borderColor ?? "line"];
     out.border = `${BLOCK_BORDER_PX[style.border]}px solid ${color}`;

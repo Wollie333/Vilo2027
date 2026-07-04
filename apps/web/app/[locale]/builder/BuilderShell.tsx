@@ -2315,6 +2315,14 @@ function Inspector({
               onChange={(v) => patchStyle({ background: v || undefined })}
               onRevert={() => patchStyle({ background: undefined })}
             />
+            <TextRow
+              label="Background image"
+              value={styleVal("backgroundImage")}
+              placeholder="Paste an image URL"
+              onChange={(v) =>
+                patchStyle({ backgroundImage: v.trim() || undefined })
+              }
+            />
             <ScaleRow
               label="Corner radius"
               value={styleVal("radius") ?? "none"}
