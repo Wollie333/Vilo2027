@@ -1,7 +1,13 @@
-import { getAmenityIndex } from "@/lib/taxonomy/getAmenities";
+import { getAmenityCatalog } from "@/lib/taxonomy/getAmenities";
+import { buildAmenityCategories } from "@/lib/taxonomy/groupAmenities";
+import { AmenitiesCategorized } from "@/components/listing/AmenitiesCategorized";
 
-import { AmenitiesDisclosure, type AmenityItem } from "./AmenitiesDisclosure";
-
+/**
+ * Marketplace listing amenities — grouped by admin-managed category (Booking.com
+ * style) in Vilo green. A host's selected keys are matched against the published
+ * catalog; keys not in the catalog (legacy/custom) fall into an "Other" bucket so
+ * nothing is dropped.
+ */
 export async function AmenitiesList({ keys }: { keys: string[] }) {
   if (keys.length === 0) {
     return (
@@ -11,23 +17,8 @@ export async function AmenitiesList({ keys }: { keys: string[] }) {
     );
   }
 
-  const catalog = await getAmenityIndex();
+  const catalog = await getAmenityCatalog();
+  const categories = buildAmenityCategories(catalog, keys);
 
-  const items: AmenityItem[] = keys.map((k) => {
-    const entry = catalog.get(k);
-    return {
-      key: k,
-      label: entry?.label ?? humanize(k),
-      icon: entry?.icon ?? "check-circle-2",
-    };
-  });
-
-  return <AmenitiesDisclosure items={items} />;
-}
-
-function humanize(key: string): string {
-  return key
-    .split("_")
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(" ");
+  return <AmenitiesCategorized categories={categories} />;
 }
