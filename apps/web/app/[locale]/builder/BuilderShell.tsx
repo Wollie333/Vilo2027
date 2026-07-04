@@ -2388,6 +2388,21 @@ function Inspector({
                 }
               />
             </div>
+            <div className="ctl">
+              <div className="ctl-l">
+                <label>Background video</label>
+              </div>
+              <input
+                className="inp"
+                value={styleVal("backgroundVideo") ?? ""}
+                placeholder="YouTube / Vimeo URL — plays instead of the image"
+                onChange={(e) =>
+                  patchStyle({
+                    backgroundVideo: e.target.value.trim() || undefined,
+                  })
+                }
+              />
+            </div>
             <ScaleRow
               label="Corner radius"
               value={styleVal("radius") ?? "none"}

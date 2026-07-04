@@ -1,22 +1,9 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
+import { toEmbed } from "@/lib/website/videoEmbed";
 
 import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "video" }>["props"];
-
-/** Turn a YouTube / Vimeo share link into an embeddable URL (or null). */
-function toEmbed(url: string): string | null {
-  const u = url.trim();
-  if (!u) return null;
-  const yt = u.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/,
-  );
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
-  const vimeo = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
-  if (/(?:youtube\.com\/embed|player\.vimeo\.com)/.test(u)) return u;
-  return null;
-}
 
 /** Free-form embedded video (responsive 16:9). */
 export function VideoSection({ props }: { props: Props }) {

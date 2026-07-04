@@ -913,6 +913,9 @@ export const blockStyleSchema = z.object({
   /** Background IMAGE (asset path or URL) — cover/centre, sits under the content.
    *  Applied by the renderers; pairs with an optional scrim via `background`. */
   backgroundImage: z.string().max(500).optional(),
+  /** Background VIDEO (YouTube/Vimeo URL) — a silent, looping cover video behind
+   *  the content. When set it renders INSTEAD of `backgroundImage`. */
+  backgroundVideo: z.string().max(500).optional(),
   desktop: blockViewportStyle,
   tablet: blockViewportStyle,
   mobile: blockViewportStyle,
