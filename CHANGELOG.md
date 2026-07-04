@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-04 — Oceans View refinement pass (all 8 pages) + specials checkout preselect.
+
+Walked every Oceans View page over the vilotest fixture (`?site=vilotest&theme=oceansview`),
+fixing the concrete defects found; committed per page, all pushed to main.
+
+- **Specials → checkout preselect:** the offer's bundled add-ons now load + preselect
+  on `/site/book` (compulsory → "(included)", optional → qty 1); room preselected via
+  `initial.roomId`. `page.tsx` loads `special_addons`; `SiteCheckoutForm` seeds `addonQty`
+  from the offer. Verified live (seeded a compulsory + optional add-on, then reverted).
+- **Home:** highlight cards showed lucide icon *names* as raw text ("Waves"/"Utensils"/
+  "Sparkles") — the render treats `item.icon` as a glyph. Swapped Oceans seed to emoji +
+  added an idempotent name→emoji normaliser to `enrich-theme-templates.mjs` (also fixed the
+  same latent bug on Safari + Sabela).
+- **Experiences:** highlights already carried a photo per item but rendered as flat cards —
+  promoted to the image-backed `tiles` variant in the enrich pass (guarded: only when every
+  item has an image).
+- **Specials:** the auto savings badge was hardcoded emerald green (off-theme) and doubled
+  the host's own "20% off" badge — drove it off `--site-secondary` (coral) with `--el-savings-*`
+  hooks + hid it when the custom badge already states the same %.
+- **Journal (blog):** index + post routes omitted `navigation={ctx.navigation}`, so they fell
+  back to the default centred footer instead of the themed Explore/Stay columns — threaded it
+  through both.
+- **About / Rooms / Contact / Gallery:** reviewed, no changes needed (room detail was just
+  pixel-perfected last session; "0%" on About is the "Booking fees" stat, not a placeholder).
+
 ## 2026-07-04 — Oceans focus: rich footer; specials-404 diagnosed (money-critical).
 
 - Footer: the generic minimal footer became the rich reference layout (Explore/Stay
