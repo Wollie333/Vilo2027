@@ -459,6 +459,7 @@ export default async function SiteBookPage({
             : undefined
         }
         previewPages={previewPages}
+        pageHasHero={false}
       >
         {checkout}
       </SiteChrome>

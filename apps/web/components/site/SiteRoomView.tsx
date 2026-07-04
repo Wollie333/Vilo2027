@@ -184,6 +184,7 @@ export async function SiteRoomView({
               : undefined
           }
           previewPages={previewPages}
+          pageHasHero={false}
         >
           <nav
             aria-label="Breadcrumb"
