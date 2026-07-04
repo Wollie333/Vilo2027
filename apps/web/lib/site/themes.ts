@@ -328,6 +328,42 @@ export type SiteThemeConfig = {
   font?: SiteFont;
 };
 
+/**
+ * The active theme's colours as a flat swatch list — the preset circles every
+ * builder colour picker shows (Business Principle #6: host-site pickers offer the
+ * ACTIVE THEME's palette). Order: the host's saved brand swatches (Brand Studio),
+ * then the resolved palette roles, then white/black. Deduped (case-insensitive),
+ * capped so the popover stays compact.
+ */
+export function themeSwatches(theme?: SiteThemeConfig): string[] {
+  const p = theme?.base?.palette;
+  const c = theme?.colors;
+  const raw = [
+    ...(theme?.palette ?? []),
+    c?.accent ?? p?.accent,
+    c?.ink ?? p?.ink,
+    c?.surface ?? p?.surface,
+    c?.bg ?? p?.bg,
+    c?.line ?? p?.line,
+    c?.secondary ?? p?.secondary,
+    p?.accentInk,
+    "#FFFFFF",
+    "#000000",
+  ];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of raw) {
+    const val = typeof v === "string" ? v.trim() : "";
+    if (!val) continue;
+    const k = val.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(val);
+    if (out.length >= 12) break;
+  }
+  return out;
+}
+
 function resolvePreset(key?: string): SitePreset {
   if (key && key in SITE_PRESETS) {
     return SITE_PRESETS[key as SitePresetKey];

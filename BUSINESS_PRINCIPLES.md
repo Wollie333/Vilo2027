@@ -247,3 +247,43 @@ implementations slowly diverge until one breaks silently.
 5. **Cross-cutting concerns use shared infrastructure.** Notifications, feature
    gates, audit logs — all flow through the existing pipelines, never parallel
    ones.
+
+---
+
+## Principle #6 — Two colour worlds: host sites are theme-scoped, Vilo surfaces are Vilo-branded
+
+**Date:** 2026-07-05
+**Status:** Active
+
+### The principle
+
+There are two distinct colour worlds, and they never bleed into each other:
+
+1. **A host's website (the website CMS).** Every rendered element — sections,
+   blocks, menus, buttons, booking cards, amenities, icons, accents — is **scoped
+   to that host's active theme colours, always.** A host's site is *their* brand;
+   Wielo green never appears on it unless it happens to be their chosen palette.
+   Builder colour pickers offer the **active theme's palette** first (plus a custom
+   option).
+
+2. **The Vilo directory, the app system, and the host dashboard.** These always
+   default to the **Wielo/Vilo brand colours.** They are Wielo surfaces, not a
+   host's, so they carry Wielo's identity regardless of any host theme.
+
+### Why this matters
+
+The website CMS is a white-label product: a host who builds their site expects it
+to look like *their* business, not like Wielo. Conversely, the marketplace,
+dashboard, and platform chrome are Wielo's shopfront and must read as Wielo. Mixing
+the two — Wielo green on a host's site, or a host's accent on the directory —
+breaks the brand promise on both sides.
+
+### How to apply it
+
+- In `apps/web/components/site/*` and the website builder, resolve colours from the
+  **theme** (`theme.base.palette` / `theme.colors` / `--site-*` vars). Colour
+  pickers seed their preset circles from the active theme's palette.
+- In the marketplace (`/property`, `/`), the dashboard, and admin, use the Wielo
+  **brand tokens** (`--brand-*`, Vilo green `#10b981`).
+- A shared component used on both (e.g. `AmenitiesCategorized`) stays
+  colour-agnostic via CSS vars and lets each caller supply the right world's colours.

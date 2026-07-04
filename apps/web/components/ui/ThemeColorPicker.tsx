@@ -45,6 +45,8 @@ export function ThemeColorPicker({
 
   const current = (value ?? fallback) || "#000000";
   const eq = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+  // A value not among the theme circles = a custom colour (highlights the custom chip).
+  const customActive = !!value && !swatches.some((s) => eq(s, value));
 
   const sectionLabel = {
     fontSize: 10,
@@ -87,7 +89,8 @@ export function ThemeColorPicker({
           style={{
             position: "absolute",
             zIndex: 60,
-            top: "calc(100% + 8px)",
+            // Opens ABOVE the swatch (a small modal right above the trigger).
+            bottom: "calc(100% + 8px)",
             [align]: 0,
             width: 208,
             background: "#fff",
@@ -97,44 +100,56 @@ export function ThemeColorPicker({
             padding: 12,
           }}
         >
-          {swatches.length ? (
-            <div style={{ marginBottom: 12 }}>
-              <p style={sectionLabel}>Theme colours</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {swatches.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    title={c}
-                    onClick={() => {
-                      onChange(c);
-                      setOpen(false);
-                    }}
-                    style={chip(c, !!value && eq(value, c))}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <p style={sectionLabel}>Custom</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input
-              type="color"
-              value={current}
-              onChange={(e) => onChange(e.target.value)}
-              aria-label="Custom colour"
+          <p style={sectionLabel}>Theme colours</p>
+          {/* Theme circles, ending with a rainbow CUSTOM circle (opens the native
+              picker) — the single row the founder specified. */}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 8,
+              marginBottom: 10,
+            }}
+          >
+            {swatches.map((c) => (
+              <button
+                key={c}
+                type="button"
+                title={c}
+                onClick={() => {
+                  onChange(c);
+                  setOpen(false);
+                }}
+                style={chip(c, !!value && eq(value, c))}
+              />
+            ))}
+            <label
+              title="Custom colour"
               style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                border: "1px solid var(--line)",
-                padding: 0,
-                background: "none",
-                cursor: "pointer",
+                ...chip(customActive ? current : "#fff", customActive),
+                position: "relative",
                 overflow: "hidden",
-                flexShrink: 0,
+                // rainbow ring so it reads as "any colour" when not yet chosen
+                background: customActive
+                  ? current
+                  : "conic-gradient(from 0deg,#f43f5e,#f59e0b,#22c55e,#3b82f6,#a855f7,#f43f5e)",
               }}
-            />
+            >
+              <input
+                type="color"
+                value={/^#[0-9a-f]{6}$/i.test(current) ? current : "#10b981"}
+                onChange={(e) => onChange(e.target.value)}
+                aria-label="Custom colour"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: 0,
+                  cursor: "pointer",
+                }}
+              />
+            </label>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input
               type="text"
               value={value ?? ""}

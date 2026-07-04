@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  createContext,
   memo,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -142,7 +144,12 @@ const AMENITY_DATA_BLOCKS: ReadonlySet<string> = new Set([
 ]);
 // The `gallery` block edits property_photos (Phase 4b-5).
 const GALLERY_DATA_BLOCKS: ReadonlySet<string> = new Set(["gallery"]);
-import { buildSiteVars, type SiteThemeConfig } from "@/lib/site/themes";
+import {
+  buildSiteVars,
+  themeSwatches,
+  type SiteThemeConfig,
+} from "@/lib/site/themes";
+import { ThemeColorPicker } from "@/components/ui/ThemeColorPicker";
 import type {
   SiteNavigation,
   SiteNamedMenu,
@@ -1072,712 +1079,714 @@ export function BuilderShell({
   } as React.CSSProperties;
 
   return (
-    <div className={rootClass} style={rootStyle}>
-      {/* Floating exit button — only shown in full-screen preview (topbar hidden). */}
-      <button
-        type="button"
-        className="preview-exit"
-        onClick={togglePreview}
-        title="Exit preview"
-      >
-        <Eye size={15} strokeWidth={2} />
-        Exit preview
-      </button>
-      <div className="app">
-        {/* ===== TOPBAR ===== */}
-        <header className="topbar">
-          <button
-            className="tb-ico"
-            title="Exit to Pages"
-            aria-label="Exit the builder, back to Pages"
-            type="button"
-            onClick={() => router.push(exitHref)}
-          >
-            <ArrowLeft size={20} strokeWidth={2} />
-          </button>
-          <div className="tb-logo">
-            <span className="mark">
-              <WieloMark />
-            </span>
-            Wielo
-          </div>
-          <div className="tb-div" />
-          <div className="tb-doc">
+    <BuilderSwatchesContext.Provider value={themeSwatches(workTheme)}>
+      <div className={rootClass} style={rootStyle}>
+        {/* Floating exit button — only shown in full-screen preview (topbar hidden). */}
+        <button
+          type="button"
+          className="preview-exit"
+          onClick={togglePreview}
+          title="Exit preview"
+        >
+          <Eye size={15} strokeWidth={2} />
+          Exit preview
+        </button>
+        <div className="app">
+          {/* ===== TOPBAR ===== */}
+          <header className="topbar">
             <button
-              className={docMenuOpen ? "tb-page open" : "tb-page"}
-              title="Switch document"
+              className="tb-ico"
+              title="Exit to Pages"
+              aria-label="Exit the builder, back to Pages"
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setTplMenuOpen(false);
-                setPubMenuOpen(false);
-                setDocMenuOpen((o) => !o);
-              }}
+              onClick={() => router.push(exitHref)}
             >
-              <span className="dot" />
-              {docName}
-              <span className="docsub">{statusLabel}</span>
-              <ChevronDown
-                size={13}
-                strokeWidth={2.2}
-                style={{ opacity: 0.7 }}
-              />
+              <ArrowLeft size={20} strokeWidth={2} />
             </button>
-            <div className={docMenuOpen ? "tb-doc-menu show" : "tb-doc-menu"}>
-              <div className="dm-h">Editing</div>
-              <button type="button" className="on">
-                <span className="di">
-                  <FileText size={16} strokeWidth={1.8} />
-                </span>
-                <span className="dmt">
-                  <b>Page</b>
-                  <small>{docName}</small>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDocMenuOpen(false);
-                  setNavInitialTab("links");
-                  setNavOpen(true);
-                }}
-              >
-                <span className="di">
-                  <PanelTop size={16} strokeWidth={1.8} />
-                </span>
-                <span className="dmt">
-                  <b>Header &amp; menu</b>
-                  <small>Navigation · site-wide</small>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDocMenuOpen(false);
-                  setNavInitialTab("footer");
-                  setNavOpen(true);
-                }}
-              >
-                <span className="di">
-                  <PanelBottom size={16} strokeWidth={1.8} />
-                </span>
-                <span className="dmt">
-                  <b>Footer</b>
-                  <small>Columns · newsletter</small>
-                </span>
-              </button>
+            <div className="tb-logo">
+              <span className="mark">
+                <WieloMark />
+              </span>
+              Wielo
             </div>
-          </div>
-          <div className="tb-div" />
-          <div className="tb-templates">
-            <button
-              className="tb-tpl-btn"
-              title="Wired-in starter layouts"
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDocMenuOpen(false);
-                setPubMenuOpen(false);
-                setTplMenuOpen((o) => !o);
-              }}
-            >
-              <LayoutGrid size={15} strokeWidth={1.9} />
-              Templates
-              <ChevronDown size={13} strokeWidth={2.2} />
-            </button>
-            <div
-              className={tplMenuOpen ? "tb-menu left show" : "tb-menu left"}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {templates.length === 0 ? (
-                <div className="tm-empty">
-                  No starter layouts for this page. Templates appear when
-                  editing a themed blueprint page.
-                </div>
-              ) : (
-                templates.map((t) => (
-                  <button
-                    key={t.key}
-                    type="button"
-                    onClick={() => loadTemplate(t)}
-                  >
-                    <span className="mi">
-                      <LayoutGrid size={16} strokeWidth={1.8} />
-                    </span>
-                    <span>
-                      <b>{t.label}</b>
-                      <small>Replace the canvas with this starter</small>
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="tb-spacer" />
-
-          <div className="tb-context" title="What you're editing">
-            <MapPin size={13} strokeWidth={2} />
-            <span className="tb-ctx-page">{pageLabelText}</span>
-            {selected?.node ? (
-              <>
-                <span className="tb-ctx-sep">›</span>
-                <span className="tb-ctx-node">
-                  {nodeMeta(selected.node as AnyNode).label}
-                </span>
-              </>
-            ) : (
-              <span className="tb-ctx-hint">· whole page</span>
-            )}
-          </div>
-
-          <div className="tb-spacer" />
-
-          <div className="tb-devs">
-            {DEVICES.map(({ key, label, Icon }) => (
+            <div className="tb-div" />
+            <div className="tb-doc">
               <button
-                key={key}
-                className={device === key ? "tb-dev on" : "tb-dev"}
-                title={label}
-                type="button"
-                onClick={() => setDevice(key)}
-              >
-                <Icon size={18} strokeWidth={1.8} />
-              </button>
-            ))}
-          </div>
-          <div className="tb-div" />
-          <button
-            className="tb-ico"
-            title="Undo (Ctrl+Z)"
-            type="button"
-            onClick={undo}
-            disabled={!canUndo}
-          >
-            <Undo2 size={18} strokeWidth={1.9} />
-          </button>
-          <button
-            className="tb-ico"
-            title="Redo (Ctrl+Shift+Z)"
-            type="button"
-            onClick={redo}
-            disabled={!canRedo}
-          >
-            <Redo2 size={18} strokeWidth={1.9} />
-          </button>
-          <button
-            className="tb-ico"
-            title="Reset to the starter layout"
-            type="button"
-            onClick={() => {
-              setDoc(initialDoc);
-              setSelectedId(null);
-            }}
-          >
-            <RotateCcw size={18} strokeWidth={1.9} />
-          </button>
-          <button
-            className="tb-ico"
-            title="Brand Studio — colours, fonts & logo"
-            type="button"
-            onClick={() => setBrandOpen(true)}
-          >
-            <Palette size={18} strokeWidth={1.9} />
-          </button>
-          <button
-            className="tb-ico"
-            title="Page settings (SEO & tracking)"
-            type="button"
-            onClick={() => setPageSettingsOpen(true)}
-          >
-            <Settings size={18} strokeWidth={1.9} />
-          </button>
-          <div className="tb-div" />
-          <button
-            className="tb-btn ghost"
-            type="button"
-            onClick={togglePreview}
-          >
-            <Eye size={16} strokeWidth={1.9} />
-            {previewing ? "Exit preview" : "Preview"}
-          </button>
-          <div className="tb-publish">
-            <button
-              className="tb-btn solid"
-              type="button"
-              onClick={doPublish}
-              disabled={!persists || publishState === "publishing"}
-              title={
-                persists
-                  ? "Publish this page live"
-                  : "Open a real page to publish"
-              }
-            >
-              <Upload size={16} strokeWidth={2} />
-              {publishState === "publishing"
-                ? "Publishing…"
-                : publishState === "done"
-                  ? "Published ✓"
-                  : "Publish"}
-            </button>
-            <button
-              className="tb-caret"
-              title="Publish options"
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setDocMenuOpen(false);
-                setTplMenuOpen(false);
-                setPubMenuOpen((o) => !o);
-              }}
-            >
-              <ChevronDown size={14} strokeWidth={2.2} />
-            </button>
-            <div
-              className={pubMenuOpen ? "tb-menu show" : "tb-menu"}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button type="button" onClick={doSaveDraft}>
-                <span className="mi">
-                  <Save size={16} strokeWidth={1.9} />
-                </span>
-                <span>
-                  <b>Save draft</b>
-                  <small>Keep working privately</small>
-                </span>
-              </button>
-              <button type="button" onClick={doPublish}>
-                <span className="mi">
-                  <Upload size={16} strokeWidth={1.9} />
-                </span>
-                <span>
-                  <b>Publish now</b>
-                  <small>Push changes live to your site</small>
-                </span>
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* ===== BODY ===== */}
-        <div className="body">
-          {/* LEFT PANEL */}
-          <aside className="panel">
-            <div className="panel-head">
-              <div className="title">
-                {mode === "widgets"
-                  ? "Widgets"
-                  : mode === "navigator"
-                    ? "Navigator"
-                    : selected
-                      ? nodeMeta(selected.node as AnyNode).label
-                      : "Settings"}
-                <small>
-                  {mode === "widgets"
-                    ? "Drag a block onto the page"
-                    : mode === "navigator"
-                      ? "The page structure"
-                      : selected
-                        ? "Editing this block"
-                        : "Nothing selected"}
-                </small>
-              </div>
-            </div>
-
-            <div className="panel-body">
-              {mode === "widgets" && (
-                <WidgetLibrary
-                  query={query}
-                  setQuery={setQuery}
-                  pageKind={pageKind}
-                  onWidgetDragStart={startWidgetDrag}
-                  onSectionDragStart={startSectionDrag}
-                  onWidgetDragEnd={endDrag}
-                />
-              )}
-              {mode === "navigator" && (
-                <Navigator
-                  doc={doc}
-                  selectedId={selectedId}
-                  onSelect={selectNode}
-                />
-              )}
-              {mode === "settings" &&
-                (selected ? (
-                  <Inspector
-                    node={selected.node as AnyNode}
-                    device={device}
-                    onDevice={setDevice}
-                    tab={inspectorTab}
-                    onTabChange={setInspectorTab}
-                    onPatch={patchProps}
-                    onPatchNode={patchNode}
-                    onPatchResp={patchResp}
-                    onDeviceHidden={setDeviceHidden}
-                    rooms={roomOpts}
-                    websiteId={websiteId}
-                    onEditRoomData={
-                      persists &&
-                      ROOM_DATA_BLOCKS.has((selected.node as AnyNode).type)
-                        ? () => setRoomDataOpen(true)
-                        : undefined
-                    }
-                    onEditAmenities={
-                      persists &&
-                      AMENITY_DATA_BLOCKS.has((selected.node as AnyNode).type)
-                        ? () => setAmenityDataOpen(true)
-                        : undefined
-                    }
-                    onEditGallery={
-                      persists &&
-                      GALLERY_DATA_BLOCKS.has((selected.node as AnyNode).type)
-                        ? () => setGalleryDataOpen(true)
-                        : undefined
-                    }
-                  />
-                ) : (
-                  <PanelPlaceholder
-                    Icon={Settings}
-                    title="Nothing selected"
-                    body="Select an element on the canvas to edit its content, style, spacing and per-device overrides in the tabs above."
-                  />
-                ))}
-            </div>
-
-            <div className="panel-foot">
-              <button
-                className={mode === "widgets" ? "foot-ico on" : "foot-ico"}
-                type="button"
-                onClick={() => setMode("widgets")}
-              >
-                <LayoutGrid size={18} strokeWidth={1.7} />
-                Widgets
-              </button>
-              <button
-                className={mode === "navigator" ? "foot-ico on" : "foot-ico"}
-                type="button"
-                onClick={() => setMode("navigator")}
-              >
-                <ListTree size={18} strokeWidth={1.7} />
-                Navigator
-              </button>
-              <button
-                className={mode === "settings" ? "foot-ico on" : "foot-ico"}
-                type="button"
-                onClick={() => setMode("settings")}
-              >
-                <Settings size={18} strokeWidth={1.7} />
-                Settings
-              </button>
-            </div>
-          </aside>
-
-          {/* CANVAS */}
-          <main
-            className="canvas-wrap"
-            ref={canvasRef}
-            onClick={onCanvasClick}
-            onDragOver={onCanvasDragOver}
-            onDrop={onCanvasDrop}
-          >
-            <div className={stageClass} ref={stageRef}>
-              {canvas}
-              <button
-                className="add-sec"
+                className={docMenuOpen ? "tb-page open" : "tb-page"}
+                title="Switch document"
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setStructureOpen(true);
+                  setTplMenuOpen(false);
+                  setPubMenuOpen(false);
+                  setDocMenuOpen((o) => !o);
                 }}
               >
-                <Plus size={17} strokeWidth={2} /> Add section
+                <span className="dot" />
+                {docName}
+                <span className="docsub">{statusLabel}</span>
+                <ChevronDown
+                  size={13}
+                  strokeWidth={2.2}
+                  style={{ opacity: 0.7 }}
+                />
               </button>
+              <div className={docMenuOpen ? "tb-doc-menu show" : "tb-doc-menu"}>
+                <div className="dm-h">Editing</div>
+                <button type="button" className="on">
+                  <span className="di">
+                    <FileText size={16} strokeWidth={1.8} />
+                  </span>
+                  <span className="dmt">
+                    <b>Page</b>
+                    <small>{docName}</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDocMenuOpen(false);
+                    setNavInitialTab("links");
+                    setNavOpen(true);
+                  }}
+                >
+                  <span className="di">
+                    <PanelTop size={16} strokeWidth={1.8} />
+                  </span>
+                  <span className="dmt">
+                    <b>Header &amp; menu</b>
+                    <small>Navigation · site-wide</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDocMenuOpen(false);
+                    setNavInitialTab("footer");
+                    setNavOpen(true);
+                  }}
+                >
+                  <span className="di">
+                    <PanelBottom size={16} strokeWidth={1.8} />
+                  </span>
+                  <span className="dmt">
+                    <b>Footer</b>
+                    <small>Columns · newsletter</small>
+                  </span>
+                </button>
+              </div>
             </div>
-
-            {dropLine && (
-              <div
-                className="dropline-abs"
-                style={{
-                  top: dropLine.top,
-                  left: dropLine.left,
-                  width: dropLine.width,
+            <div className="tb-div" />
+            <div className="tb-templates">
+              <button
+                className="tb-tpl-btn"
+                title="Wired-in starter layouts"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDocMenuOpen(false);
+                  setPubMenuOpen(false);
+                  setTplMenuOpen((o) => !o);
                 }}
-              />
-            )}
-
-            {badge && selected && (
+              >
+                <LayoutGrid size={15} strokeWidth={1.9} />
+                Templates
+                <ChevronDown size={13} strokeWidth={2.2} />
+              </button>
               <div
-                className={badgeClass(badge.kind)}
-                style={{ top: badge.top, left: badge.left }}
+                className={tplMenuOpen ? "tb-menu left show" : "tb-menu left"}
                 onClick={(e) => e.stopPropagation()}
               >
-                <span
-                  className="nb-grip"
-                  draggable
-                  onDragStart={startMoveDrag}
-                  onDragEnd={endDrag}
-                  title="Drag to move"
-                >
-                  <GripVertical size={13} strokeWidth={2} />
-                </span>
-                <span className="nb-lbl">
-                  {nodeMeta(selected.node as AnyNode).label}
-                </span>
-                {(selected.node as AnyNode).type !== "section" && (
-                  <button
-                    className="nb-parent"
-                    type="button"
-                    title="Select the wrapping section (style it)"
-                    onClick={selectParentSection}
-                  >
-                    <ArrowUp size={12} strokeWidth={2.2} />
-                    Section
-                  </button>
+                {templates.length === 0 ? (
+                  <div className="tm-empty">
+                    No starter layouts for this page. Templates appear when
+                    editing a themed blueprint page.
+                  </div>
+                ) : (
+                  templates.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => loadTemplate(t)}
+                    >
+                      <span className="mi">
+                        <LayoutGrid size={16} strokeWidth={1.8} />
+                      </span>
+                      <span>
+                        <b>{t.label}</b>
+                        <small>Replace the canvas with this starter</small>
+                      </span>
+                    </button>
+                  ))
                 )}
-                {isWidgetRequiredOnPage(
-                  (selected.node as AnyNode).type,
-                  pageKind,
-                ) && (
-                  <span
-                    className="nb-lbl"
-                    title="Required on this page"
-                    style={{ background: "rgba(255,255,255,.18)" }}
-                  >
-                    Required
-                  </span>
-                )}
-                <button
-                  title="Move up"
-                  type="button"
-                  onClick={() => doMove(-1)}
-                  disabled={!canMove(-1)}
-                >
-                  <ArrowUp size={14} strokeWidth={2} />
-                </button>
-                <button
-                  title="Move down"
-                  type="button"
-                  onClick={() => doMove(1)}
-                  disabled={!canMove(1)}
-                >
-                  <ArrowDown size={14} strokeWidth={2} />
-                </button>
-                {(selected.node as AnyNode).type === "section" && (
-                  <button
-                    title="Style this section"
-                    type="button"
-                    onClick={openStyleTab}
-                  >
-                    <Settings size={14} strokeWidth={2} />
-                  </button>
-                )}
-                <button title="Duplicate" type="button" onClick={doDuplicate}>
-                  <Copy size={14} strokeWidth={2} />
-                </button>
-                <button title="Delete" type="button" onClick={doDelete}>
-                  <Trash2 size={14} strokeWidth={2} />
-                </button>
               </div>
-            )}
-
-            <div className="dev-label">
-              {device === "tablet"
-                ? "768 px"
-                : device === "mobile"
-                  ? "380 px"
-                  : ""}{" "}
-              · {themeLabel}
             </div>
-          </main>
-        </div>
-      </div>
 
-      {/* structure picker */}
-      <div className={structureOpen ? "scrim show" : "scrim"}>
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <button
-            className="tb-ico"
-            type="button"
-            style={{ float: "right", color: "var(--mute)" }}
-            onClick={() => setStructureOpen(false)}
-            title="Close"
-          >
-            <X size={18} strokeWidth={2} />
-          </button>
-          <h3>Choose a structure</h3>
-          <p>Pick a column layout for your new section.</p>
-          <div className="layouts">
-            {STRUCTURES.map((s) => (
+            <div className="tb-spacer" />
+
+            <div className="tb-context" title="What you're editing">
+              <MapPin size={13} strokeWidth={2} />
+              <span className="tb-ctx-page">{pageLabelText}</span>
+              {selected?.node ? (
+                <>
+                  <span className="tb-ctx-sep">›</span>
+                  <span className="tb-ctx-node">
+                    {nodeMeta(selected.node as AnyNode).label}
+                  </span>
+                </>
+              ) : (
+                <span className="tb-ctx-hint">· whole page</span>
+              )}
+            </div>
+
+            <div className="tb-spacer" />
+
+            <div className="tb-devs">
+              {DEVICES.map(({ key, label, Icon }) => (
+                <button
+                  key={key}
+                  className={device === key ? "tb-dev on" : "tb-dev"}
+                  title={label}
+                  type="button"
+                  onClick={() => setDevice(key)}
+                >
+                  <Icon size={18} strokeWidth={1.8} />
+                </button>
+              ))}
+            </div>
+            <div className="tb-div" />
+            <button
+              className="tb-ico"
+              title="Undo (Ctrl+Z)"
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+            >
+              <Undo2 size={18} strokeWidth={1.9} />
+            </button>
+            <button
+              className="tb-ico"
+              title="Redo (Ctrl+Shift+Z)"
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+            >
+              <Redo2 size={18} strokeWidth={1.9} />
+            </button>
+            <button
+              className="tb-ico"
+              title="Reset to the starter layout"
+              type="button"
+              onClick={() => {
+                setDoc(initialDoc);
+                setSelectedId(null);
+              }}
+            >
+              <RotateCcw size={18} strokeWidth={1.9} />
+            </button>
+            <button
+              className="tb-ico"
+              title="Brand Studio — colours, fonts & logo"
+              type="button"
+              onClick={() => setBrandOpen(true)}
+            >
+              <Palette size={18} strokeWidth={1.9} />
+            </button>
+            <button
+              className="tb-ico"
+              title="Page settings (SEO & tracking)"
+              type="button"
+              onClick={() => setPageSettingsOpen(true)}
+            >
+              <Settings size={18} strokeWidth={1.9} />
+            </button>
+            <div className="tb-div" />
+            <button
+              className="tb-btn ghost"
+              type="button"
+              onClick={togglePreview}
+            >
+              <Eye size={16} strokeWidth={1.9} />
+              {previewing ? "Exit preview" : "Preview"}
+            </button>
+            <div className="tb-publish">
+              <button
+                className="tb-btn solid"
+                type="button"
+                onClick={doPublish}
+                disabled={!persists || publishState === "publishing"}
+                title={
+                  persists
+                    ? "Publish this page live"
+                    : "Open a real page to publish"
+                }
+              >
+                <Upload size={16} strokeWidth={2} />
+                {publishState === "publishing"
+                  ? "Publishing…"
+                  : publishState === "done"
+                    ? "Published ✓"
+                    : "Publish"}
+              </button>
+              <button
+                className="tb-caret"
+                title="Publish options"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDocMenuOpen(false);
+                  setTplMenuOpen(false);
+                  setPubMenuOpen((o) => !o);
+                }}
+              >
+                <ChevronDown size={14} strokeWidth={2.2} />
+              </button>
               <div
-                className="layout"
-                key={s.key}
-                onClick={() => doAddSection(s.spans)}
+                className={pubMenuOpen ? "tb-menu show" : "tb-menu"}
+                onClick={(e) => e.stopPropagation()}
               >
-                <div className="cols">
-                  {s.spans.map((span, i) => (
-                    <i key={i} style={{ flex: span }} />
-                  ))}
-                </div>
-                <span>{s.label}</span>
+                <button type="button" onClick={doSaveDraft}>
+                  <span className="mi">
+                    <Save size={16} strokeWidth={1.9} />
+                  </span>
+                  <span>
+                    <b>Save draft</b>
+                    <small>Keep working privately</small>
+                  </span>
+                </button>
+                <button type="button" onClick={doPublish}>
+                  <span className="mi">
+                    <Upload size={16} strokeWidth={1.9} />
+                  </span>
+                  <span>
+                    <b>Publish now</b>
+                    <small>Push changes live to your site</small>
+                  </span>
+                </button>
               </div>
-            ))}
+            </div>
+          </header>
+
+          {/* ===== BODY ===== */}
+          <div className="body">
+            {/* LEFT PANEL */}
+            <aside className="panel">
+              <div className="panel-head">
+                <div className="title">
+                  {mode === "widgets"
+                    ? "Widgets"
+                    : mode === "navigator"
+                      ? "Navigator"
+                      : selected
+                        ? nodeMeta(selected.node as AnyNode).label
+                        : "Settings"}
+                  <small>
+                    {mode === "widgets"
+                      ? "Drag a block onto the page"
+                      : mode === "navigator"
+                        ? "The page structure"
+                        : selected
+                          ? "Editing this block"
+                          : "Nothing selected"}
+                  </small>
+                </div>
+              </div>
+
+              <div className="panel-body">
+                {mode === "widgets" && (
+                  <WidgetLibrary
+                    query={query}
+                    setQuery={setQuery}
+                    pageKind={pageKind}
+                    onWidgetDragStart={startWidgetDrag}
+                    onSectionDragStart={startSectionDrag}
+                    onWidgetDragEnd={endDrag}
+                  />
+                )}
+                {mode === "navigator" && (
+                  <Navigator
+                    doc={doc}
+                    selectedId={selectedId}
+                    onSelect={selectNode}
+                  />
+                )}
+                {mode === "settings" &&
+                  (selected ? (
+                    <Inspector
+                      node={selected.node as AnyNode}
+                      device={device}
+                      onDevice={setDevice}
+                      tab={inspectorTab}
+                      onTabChange={setInspectorTab}
+                      onPatch={patchProps}
+                      onPatchNode={patchNode}
+                      onPatchResp={patchResp}
+                      onDeviceHidden={setDeviceHidden}
+                      rooms={roomOpts}
+                      websiteId={websiteId}
+                      onEditRoomData={
+                        persists &&
+                        ROOM_DATA_BLOCKS.has((selected.node as AnyNode).type)
+                          ? () => setRoomDataOpen(true)
+                          : undefined
+                      }
+                      onEditAmenities={
+                        persists &&
+                        AMENITY_DATA_BLOCKS.has((selected.node as AnyNode).type)
+                          ? () => setAmenityDataOpen(true)
+                          : undefined
+                      }
+                      onEditGallery={
+                        persists &&
+                        GALLERY_DATA_BLOCKS.has((selected.node as AnyNode).type)
+                          ? () => setGalleryDataOpen(true)
+                          : undefined
+                      }
+                    />
+                  ) : (
+                    <PanelPlaceholder
+                      Icon={Settings}
+                      title="Nothing selected"
+                      body="Select an element on the canvas to edit its content, style, spacing and per-device overrides in the tabs above."
+                    />
+                  ))}
+              </div>
+
+              <div className="panel-foot">
+                <button
+                  className={mode === "widgets" ? "foot-ico on" : "foot-ico"}
+                  type="button"
+                  onClick={() => setMode("widgets")}
+                >
+                  <LayoutGrid size={18} strokeWidth={1.7} />
+                  Widgets
+                </button>
+                <button
+                  className={mode === "navigator" ? "foot-ico on" : "foot-ico"}
+                  type="button"
+                  onClick={() => setMode("navigator")}
+                >
+                  <ListTree size={18} strokeWidth={1.7} />
+                  Navigator
+                </button>
+                <button
+                  className={mode === "settings" ? "foot-ico on" : "foot-ico"}
+                  type="button"
+                  onClick={() => setMode("settings")}
+                >
+                  <Settings size={18} strokeWidth={1.7} />
+                  Settings
+                </button>
+              </div>
+            </aside>
+
+            {/* CANVAS */}
+            <main
+              className="canvas-wrap"
+              ref={canvasRef}
+              onClick={onCanvasClick}
+              onDragOver={onCanvasDragOver}
+              onDrop={onCanvasDrop}
+            >
+              <div className={stageClass} ref={stageRef}>
+                {canvas}
+                <button
+                  className="add-sec"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setStructureOpen(true);
+                  }}
+                >
+                  <Plus size={17} strokeWidth={2} /> Add section
+                </button>
+              </div>
+
+              {dropLine && (
+                <div
+                  className="dropline-abs"
+                  style={{
+                    top: dropLine.top,
+                    left: dropLine.left,
+                    width: dropLine.width,
+                  }}
+                />
+              )}
+
+              {badge && selected && (
+                <div
+                  className={badgeClass(badge.kind)}
+                  style={{ top: badge.top, left: badge.left }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span
+                    className="nb-grip"
+                    draggable
+                    onDragStart={startMoveDrag}
+                    onDragEnd={endDrag}
+                    title="Drag to move"
+                  >
+                    <GripVertical size={13} strokeWidth={2} />
+                  </span>
+                  <span className="nb-lbl">
+                    {nodeMeta(selected.node as AnyNode).label}
+                  </span>
+                  {(selected.node as AnyNode).type !== "section" && (
+                    <button
+                      className="nb-parent"
+                      type="button"
+                      title="Select the wrapping section (style it)"
+                      onClick={selectParentSection}
+                    >
+                      <ArrowUp size={12} strokeWidth={2.2} />
+                      Section
+                    </button>
+                  )}
+                  {isWidgetRequiredOnPage(
+                    (selected.node as AnyNode).type,
+                    pageKind,
+                  ) && (
+                    <span
+                      className="nb-lbl"
+                      title="Required on this page"
+                      style={{ background: "rgba(255,255,255,.18)" }}
+                    >
+                      Required
+                    </span>
+                  )}
+                  <button
+                    title="Move up"
+                    type="button"
+                    onClick={() => doMove(-1)}
+                    disabled={!canMove(-1)}
+                  >
+                    <ArrowUp size={14} strokeWidth={2} />
+                  </button>
+                  <button
+                    title="Move down"
+                    type="button"
+                    onClick={() => doMove(1)}
+                    disabled={!canMove(1)}
+                  >
+                    <ArrowDown size={14} strokeWidth={2} />
+                  </button>
+                  {(selected.node as AnyNode).type === "section" && (
+                    <button
+                      title="Style this section"
+                      type="button"
+                      onClick={openStyleTab}
+                    >
+                      <Settings size={14} strokeWidth={2} />
+                    </button>
+                  )}
+                  <button title="Duplicate" type="button" onClick={doDuplicate}>
+                    <Copy size={14} strokeWidth={2} />
+                  </button>
+                  <button title="Delete" type="button" onClick={doDelete}>
+                    <Trash2 size={14} strokeWidth={2} />
+                  </button>
+                </div>
+              )}
+
+              <div className="dev-label">
+                {device === "tablet"
+                  ? "768 px"
+                  : device === "mobile"
+                    ? "380 px"
+                    : ""}{" "}
+                · {themeLabel}
+              </div>
+            </main>
           </div>
         </div>
-      </div>
 
-      {/* Tweaks FAB — builder chrome theming (self-contained) */}
-      {!tweaksOpen && (
-        <button
-          className="tweaks-fab"
-          type="button"
-          title="Tweaks"
-          onClick={() => setTweaksOpen(true)}
-        >
-          <SlidersHorizontal size={22} strokeWidth={1.8} />
-        </button>
-      )}
-      <div className={tweaksOpen ? "tweaks show" : "tweaks"}>
-        <div className="tweaks-h">
-          <SlidersHorizontal size={17} strokeWidth={1.9} color="#10B981" />
-          <b>Tweaks</b>
+        {/* structure picker */}
+        <div className={structureOpen ? "scrim show" : "scrim"}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="tb-ico"
+              type="button"
+              style={{ float: "right", color: "var(--mute)" }}
+              onClick={() => setStructureOpen(false)}
+              title="Close"
+            >
+              <X size={18} strokeWidth={2} />
+            </button>
+            <h3>Choose a structure</h3>
+            <p>Pick a column layout for your new section.</p>
+            <div className="layouts">
+              {STRUCTURES.map((s) => (
+                <div
+                  className="layout"
+                  key={s.key}
+                  onClick={() => doAddSection(s.spans)}
+                >
+                  <div className="cols">
+                    {s.spans.map((span, i) => (
+                      <i key={i} style={{ flex: span }} />
+                    ))}
+                  </div>
+                  <span>{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Tweaks FAB — builder chrome theming (self-contained) */}
+        {!tweaksOpen && (
           <button
-            className="tb-ico"
+            className="tweaks-fab"
             type="button"
-            style={{ width: 28, height: 28, color: "var(--mute)" }}
-            onClick={() => setTweaksOpen(false)}
-            title="Close"
+            title="Tweaks"
+            onClick={() => setTweaksOpen(true)}
           >
-            <X size={16} strokeWidth={2} />
+            <SlidersHorizontal size={22} strokeWidth={1.8} />
           </button>
+        )}
+        <div className={tweaksOpen ? "tweaks show" : "tweaks"}>
+          <div className="tweaks-h">
+            <SlidersHorizontal size={17} strokeWidth={1.9} color="#10B981" />
+            <b>Tweaks</b>
+            <button
+              className="tb-ico"
+              type="button"
+              style={{ width: 28, height: 28, color: "var(--mute)" }}
+              onClick={() => setTweaksOpen(false)}
+              title="Close"
+            >
+              <X size={16} strokeWidth={2} />
+            </button>
+          </div>
+          <div className="tweaks-b">
+            <p className="tw-l">Builder chrome</p>
+            <div className="seg tw-row">
+              {(["emerald", "light", "dark"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={chrome === v ? "on" : undefined}
+                  onClick={() => setChrome(v)}
+                >
+                  {v[0].toUpperCase() + v.slice(1)}
+                </button>
+              ))}
+            </div>
+            <p className="tw-l">Accent</p>
+            <div className="swatches tw-row" style={{ gap: 8 }}>
+              {ACCENTS.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={accent === v ? "sw on" : "sw"}
+                  style={{ background: v }}
+                  onClick={() => setAccent(v)}
+                  aria-label={`Accent ${v}`}
+                />
+              ))}
+            </div>
+            <p className="tw-l">Panel density</p>
+            <div className="seg tw-row">
+              {(["roomy", "compact"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={density === v ? "on" : undefined}
+                  onClick={() => setDensity(v)}
+                >
+                  {v[0].toUpperCase() + v.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="tweaks-b">
-          <p className="tw-l">Builder chrome</p>
-          <div className="seg tw-row">
-            {(["emerald", "light", "dark"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                className={chrome === v ? "on" : undefined}
-                onClick={() => setChrome(v)}
-              >
-                {v[0].toUpperCase() + v.slice(1)}
-              </button>
-            ))}
-          </div>
-          <p className="tw-l">Accent</p>
-          <div className="swatches tw-row" style={{ gap: 8 }}>
-            {ACCENTS.map((v) => (
-              <button
-                key={v}
-                type="button"
-                className={accent === v ? "sw on" : "sw"}
-                style={{ background: v }}
-                onClick={() => setAccent(v)}
-                aria-label={`Accent ${v}`}
-              />
-            ))}
-          </div>
-          <p className="tw-l">Panel density</p>
-          <div className="seg tw-row">
-            {(["roomy", "compact"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                className={density === v ? "on" : undefined}
-                onClick={() => setDensity(v)}
-              >
-                {v[0].toUpperCase() + v.slice(1)}
-              </button>
-            ))}
-          </div>
+
+        {/* Brand Studio overlay (token-driven; live-previews the real canvas) */}
+        <BrandStudioOverlay
+          open={brandOpen}
+          onClose={() => setBrandOpen(false)}
+          siteLabel={themeLabel}
+          domain={domain}
+          theme={workTheme}
+          onThemeChange={setWorkTheme}
+          brand={brand}
+          onBrandChange={setBrand}
+          doc={doc}
+          persists={persists}
+          onPublish={saveBrand}
+        />
+
+        {/* Nav / Menu builder overlay (locked SSOT — real navigation JSONB) */}
+        <NavBuilderOverlay
+          open={navOpen}
+          onClose={() => setNavOpen(false)}
+          siteLabel={themeLabel}
+          domain={domain}
+          menus={resolveNamedMenus(navigation)}
+          primaryMenuId={resolvePrimaryMenuId(navigation)}
+          onMenusChange={setMenus}
+          onPrimaryMenuChange={setPrimaryMenu}
+          menuStyle={navigation.menuStyle ?? {}}
+          onMenuStyleChange={(ms) =>
+            setNavigation((n) => ({ ...n, menuStyle: ms }))
+          }
+          header={navigation.header ?? {}}
+          onHeaderChange={(h) => setNavigation((n) => ({ ...n, header: h }))}
+          footer={navigation.footer ?? {}}
+          onFooterChange={(f) => setNavigation((n) => ({ ...n, footer: f }))}
+          initialTab={navInitialTab}
+          pages={pages}
+          brand={brand}
+          theme={workTheme}
+          persists={persists}
+          onSave={saveNav}
+          onReset={() => setNavigation(initialNav)}
+        />
+
+        {/* Page Settings overlay (SEO / social / tracking / code) */}
+        <PageSettingsOverlay
+          open={pageSettingsOpen}
+          onClose={() => setPageSettingsOpen(false)}
+          docName={docName}
+          domain={domain}
+          meta={doc.meta as Record<string, unknown>}
+          onPatch={patchMeta}
+          analytics={analytics}
+          onAnalyticsPatch={patchAnalytics}
+        />
+
+        <RoomDataModal
+          open={roomDataOpen}
+          onClose={() => setRoomDataOpen(false)}
+          toast={toast}
+          websiteId={websiteId ?? ""}
+        />
+
+        <AmenitiesDataModal
+          open={amenityDataOpen}
+          onClose={() => setAmenityDataOpen(false)}
+          toast={toast}
+          websiteId={websiteId ?? ""}
+        />
+
+        <GalleryDataModal
+          open={galleryDataOpen}
+          onClose={() => setGalleryDataOpen(false)}
+          toast={toast}
+          websiteId={websiteId ?? ""}
+        />
+
+        {/* Toasts */}
+        <div className="toasts">
+          {toasts.map((t) => (
+            <div className="toast" key={t.id}>
+              <Check size={15} strokeWidth={2.4} color="#10B981" />
+              {t.msg}
+            </div>
+          ))}
         </div>
       </div>
-
-      {/* Brand Studio overlay (token-driven; live-previews the real canvas) */}
-      <BrandStudioOverlay
-        open={brandOpen}
-        onClose={() => setBrandOpen(false)}
-        siteLabel={themeLabel}
-        domain={domain}
-        theme={workTheme}
-        onThemeChange={setWorkTheme}
-        brand={brand}
-        onBrandChange={setBrand}
-        doc={doc}
-        persists={persists}
-        onPublish={saveBrand}
-      />
-
-      {/* Nav / Menu builder overlay (locked SSOT — real navigation JSONB) */}
-      <NavBuilderOverlay
-        open={navOpen}
-        onClose={() => setNavOpen(false)}
-        siteLabel={themeLabel}
-        domain={domain}
-        menus={resolveNamedMenus(navigation)}
-        primaryMenuId={resolvePrimaryMenuId(navigation)}
-        onMenusChange={setMenus}
-        onPrimaryMenuChange={setPrimaryMenu}
-        menuStyle={navigation.menuStyle ?? {}}
-        onMenuStyleChange={(ms) =>
-          setNavigation((n) => ({ ...n, menuStyle: ms }))
-        }
-        header={navigation.header ?? {}}
-        onHeaderChange={(h) => setNavigation((n) => ({ ...n, header: h }))}
-        footer={navigation.footer ?? {}}
-        onFooterChange={(f) => setNavigation((n) => ({ ...n, footer: f }))}
-        initialTab={navInitialTab}
-        pages={pages}
-        brand={brand}
-        theme={workTheme}
-        persists={persists}
-        onSave={saveNav}
-        onReset={() => setNavigation(initialNav)}
-      />
-
-      {/* Page Settings overlay (SEO / social / tracking / code) */}
-      <PageSettingsOverlay
-        open={pageSettingsOpen}
-        onClose={() => setPageSettingsOpen(false)}
-        docName={docName}
-        domain={domain}
-        meta={doc.meta as Record<string, unknown>}
-        onPatch={patchMeta}
-        analytics={analytics}
-        onAnalyticsPatch={patchAnalytics}
-      />
-
-      <RoomDataModal
-        open={roomDataOpen}
-        onClose={() => setRoomDataOpen(false)}
-        toast={toast}
-        websiteId={websiteId ?? ""}
-      />
-
-      <AmenitiesDataModal
-        open={amenityDataOpen}
-        onClose={() => setAmenityDataOpen(false)}
-        toast={toast}
-        websiteId={websiteId ?? ""}
-      />
-
-      <GalleryDataModal
-        open={galleryDataOpen}
-        onClose={() => setGalleryDataOpen(false)}
-        toast={toast}
-        websiteId={websiteId ?? ""}
-      />
-
-      {/* Toasts */}
-      <div className="toasts">
-        {toasts.map((t) => (
-          <div className="toast" key={t.id}>
-            <Check size={15} strokeWidth={2.4} color="#10B981" />
-            {t.msg}
-          </div>
-        ))}
-      </div>
-    </div>
+    </BuilderSwatchesContext.Provider>
   );
 }
 
@@ -2391,12 +2400,12 @@ function Inspector({
               }
             />
             {styleVal("border") && styleVal("border") !== "none" && (
-              <RoleSwatchRow
+              <ColorRow
                 label="Border colour"
-                value={styleVal("borderColor") ?? "line"}
-                roles={BORDER_COLOR_ROLES}
-                onChange={(v) => patchStyle({ borderColor: v })}
-                allowCustom
+                value={styleVal("borderColor") ?? ""}
+                overridden={!!styleVal("borderColor")}
+                onChange={(v) => patchStyle({ borderColor: v || undefined })}
+                onRevert={() => patchStyle({ borderColor: undefined })}
               />
             )}
             <ScaleRow
@@ -2524,11 +2533,6 @@ const TONE_ROLES: [string, string, string][] = [
   ["dark", "Dark", "var(--site-ink)"],
   ["muted", "Muted", "var(--site-line)"],
 ];
-const BORDER_COLOR_ROLES: [string, string, string][] = [
-  ["line", "Line", "var(--site-line)"],
-  ["ink", "Ink", "var(--site-ink)"],
-  ["accent", "Accent", "var(--site-accent)"],
-];
 // Per-block custom design (Phase 5) — write to node.style (blockStyle).
 const RADIUS_OPTS: [string, string][] = [
   ["none", "None"],
@@ -2593,21 +2597,18 @@ function RevertBtn({ onClick }: { onClick: () => void }) {
 
 // ── Per-element styling (Elementor) inspector primitives ──────
 // Theme-token quick-picks for the colour controls (write `var(--site-*)`).
-const EL_SWATCHES: [string, string][] = [
-  ["var(--site-accent)", "Accent"],
-  ["var(--site-ink)", "Ink"],
-  ["var(--site-surface)", "Surface"],
-  ["var(--site-bg)", "Background"],
-  ["var(--site-line)", "Line"],
-  ["var(--site-mute)", "Muted"],
-];
 const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
+// The active theme's palette for every builder colour picker (Business Principle
+// #6: host-site pickers show the active theme's colours). Provided at the shell
+// root so deeply-nested inspector controls (ElementControls) can read it.
+const BuilderSwatchesContext = createContext<string[]>([]);
+
 /**
- * Colour control (Brand-Studio style): a row of round swatches — a "Default (theme)"
- * chip that resets to the theme colour, the theme-palette circles, and a custom
- * colour-picker circle. The value defaults to the theme (empty = inherit) and any
- * override can be reset back to it. Used for text, background and border colours.
+ * Colour control — the app-wide SSOT `ThemeColorPicker`: ONE active swatch that
+ * opens a popover above it with the theme palette as circles + a custom picker.
+ * Value empty = inherit the theme; a set value can be reset back to it. Used for
+ * text, background, border and element colours.
  */
 function ColorRow({
   label,
@@ -2622,45 +2623,20 @@ function ColorRow({
   onChange: (v: string) => void;
   onRevert: () => void;
 }) {
-  const isHex = HEX_RE.test(value);
+  const swatches = useContext(BuilderSwatchesContext);
   return (
     <div className="ctl el-ctl">
       <div className="ctl-l">
         <label>{label}</label>
         {overridden ? <RevertBtn onClick={onRevert} /> : null}
       </div>
-      <div className="swrow">
-        <button
-          type="button"
-          title="Theme default"
-          aria-label="Theme default"
-          className={value ? "swrole" : "swrole on"}
-          data-auto=""
-          onClick={onRevert}
-        />
-        {EL_SWATCHES.map(([cv, cl]) => (
-          <button
-            key={cv}
-            type="button"
-            title={cl}
-            aria-label={cl}
-            className={value === cv ? "swrole on" : "swrole"}
-            style={{ background: cv }}
-            onClick={() => onChange(cv)}
-          />
-        ))}
-        <label
-          className={isHex ? "swrole swcustom on" : "swrole swcustom"}
-          title="Custom colour"
-          style={isHex ? { background: value } : undefined}
-        >
-          <input
-            type="color"
-            value={isHex ? value : "#888888"}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </label>
-      </div>
+      <ThemeColorPicker
+        value={value || undefined}
+        fallback={value || "#000000"}
+        swatches={swatches}
+        onChange={onChange}
+        onReset={onRevert}
+      />
     </div>
   );
 }

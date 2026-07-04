@@ -35,7 +35,8 @@ import type {
   SiteMenuDeviceStyle,
   SiteNavigation,
 } from "@/lib/site/types";
-import type { SiteThemeConfig } from "@/lib/site/themes";
+import { themeSwatches, type SiteThemeConfig } from "@/lib/site/themes";
+import { ThemeColorPicker } from "@/components/ui/ThemeColorPicker";
 import type { Brand } from "./BrandStudioOverlay";
 
 type NavHeader = NonNullable<SiteNavigation["header"]>;
@@ -256,6 +257,9 @@ export function NavBuilderOverlay({
   const name = brand.name || siteLabel;
   const accent =
     theme.colors?.accent || theme.base?.palette.accent || "#C8702E";
+  // The active theme's palette — every colour swatch in this overlay shows these
+  // (Business Principle #6: host-site pickers use the active theme's colours).
+  const themeCols = themeSwatches(theme);
 
   // Resolved preview values for the CURRENT device.
   const rColor = sVal("color", "#F4EEE6");
@@ -995,13 +999,13 @@ export function NavBuilderOverlay({
               <Swatch
                 label="Link colour"
                 value={rColor}
-                palette={["#F4EEE6", "#FFFFFF", accent, "#2C2620", "#052E1F"]}
+                swatches={themeCols}
                 onChange={(v) => setDeviceAware({ color: v })}
               />
               <Swatch
                 label="Hover colour"
                 value={rHover}
-                palette={["#F3C98A", accent, "#FFFFFF", "#2C2620"]}
+                swatches={themeCols}
                 onChange={(v) => setDeviceAware({ hoverColor: v })}
               />
               <SelRow
@@ -1073,25 +1077,25 @@ export function NavBuilderOverlay({
               <Swatch
                 label="Scrolled background"
                 value={header.scrolledBgColor ?? "#FFFFFF"}
-                palette={["#FFFFFF", "#0B2A38", "#052E1F", "#2C2620"]}
+                swatches={themeCols}
                 onChange={(v) => setHeader({ scrolledBgColor: v })}
               />
               <Swatch
                 label="Scrolled link colour"
                 value={menuStyle.scrolledColor ?? "#2C2620"}
-                palette={["#2C2620", "#052E1F", accent, "#FFFFFF"]}
+                swatches={themeCols}
                 onChange={(v) => setBase({ scrolledColor: v })}
               />
               <Swatch
                 label="Scrolled hover colour"
                 value={menuStyle.scrolledHoverColor ?? accent}
-                palette={[accent, "#065F46", "#2C2620", "#052E1F"]}
+                swatches={themeCols}
                 onChange={(v) => setBase({ scrolledHoverColor: v })}
               />
               <Swatch
                 label="Scrolled border colour"
                 value={header.scrolledBorderColor ?? "#E4EFE8"}
-                palette={["#E4EFE8", "#0B2A38", accent, "transparent"]}
+                swatches={themeCols}
                 onChange={(v) => setHeader({ scrolledBorderColor: v })}
               />
             </NavAcc>
@@ -1107,19 +1111,19 @@ export function NavBuilderOverlay({
               <Swatch
                 label="Item colour"
                 value={menuStyle.submenuColor ?? "#3A2E20"}
-                palette={["#3A2E20", "#052E1F", "#2C2620", accent]}
+                swatches={themeCols}
                 onChange={(v) => setBase({ submenuColor: v })}
               />
               <Swatch
                 label="Item hover colour"
                 value={menuStyle.submenuHoverColor ?? "#065F46"}
-                palette={["#065F46", accent, "#2C2620", "#052E1F"]}
+                swatches={themeCols}
                 onChange={(v) => setBase({ submenuHoverColor: v })}
               />
               <Swatch
                 label="Background"
                 value={menuStyle.submenuBg ?? "#FFFFFF"}
-                palette={["#FFFFFF", "#FBF4E6", "#F0FDF4", "#2C2620"]}
+                swatches={themeCols}
                 onChange={(v) => setBase({ submenuBg: v })}
               />
             </NavAcc>
@@ -1138,13 +1142,13 @@ export function NavBuilderOverlay({
               <Swatch
                 label="Overlay background"
                 value={mob.overlayBg ?? "#FFFFFF"}
-                palette={["#FFFFFF", "#0B2A38", "#052E1F", "#2C2620", accent]}
+                swatches={themeCols}
                 onChange={(v) => setMobile({ overlayBg: v })}
               />
               <Swatch
                 label="Link colour"
                 value={mob.color ?? "#052E1F"}
-                palette={["#052E1F", "#2C2620", accent, "#FFFFFF"]}
+                swatches={themeCols}
                 onChange={(v) => setMobile({ color: v })}
               />
               <Rng
@@ -1176,12 +1180,7 @@ export function NavBuilderOverlay({
               <Swatch
                 label="Backdrop tint"
                 value={mob.backdropColor ?? "rgba(0,0,0,0.4)"}
-                palette={[
-                  "rgba(0,0,0,0.4)",
-                  "rgba(0,0,0,0.6)",
-                  "rgba(11,42,56,0.7)",
-                  "rgba(5,46,31,0.6)",
-                ]}
+                swatches={themeCols}
                 onChange={(v) => setMobile({ backdropColor: v })}
               />
               <div
@@ -1214,13 +1213,13 @@ export function NavBuilderOverlay({
               <Swatch
                 label="Icon colour"
                 value={burgerCfg.color ?? "#052E1F"}
-                palette={["#052E1F", "#2C2620", accent, "#FFFFFF"]}
+                swatches={themeCols}
                 onChange={(v) => setBurger({ color: v })}
               />
               <Swatch
                 label="Button background"
                 value={burgerCfg.bg ?? "transparent"}
-                palette={["transparent", "#F0FDF4", accent, "#0B2A38"]}
+                swatches={themeCols}
                 onChange={(v) => setBurger({ bg: v })}
               />
               <Rng
@@ -1284,52 +1283,28 @@ function Ctl({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+// Single-swatch colour field — the app-wide SSOT `ThemeColorPicker` (one active
+// circle → popover above with the theme palette + a custom picker). `swatches` is
+// the active theme's palette (Business Principle #6).
 function Swatch({
   label,
   value,
-  palette,
+  swatches,
   onChange,
 }: {
   label: string;
   value: string;
-  palette: string[];
+  swatches: string[];
   onChange: (v: string) => void;
 }) {
-  const cur = value.toLowerCase();
-  const inPalette = palette.some((c) => c.toLowerCase() === cur);
-  // Native colour input needs a #rrggbb value; fall back when the current value is
-  // a token/rgba/blank so the picker still opens.
-  const hex = /^#[0-9a-f]{6}$/i.test(value) ? value : "#10b981";
-  const customActive = !!value && !inPalette;
   return (
     <Ctl label={label}>
-      <div className="bse-swgrid">
-        {palette.map((c) => (
-          <button
-            key={c}
-            type="button"
-            className={cur === c.toLowerCase() ? "bse-sw on" : "bse-sw"}
-            style={{ background: c }}
-            onClick={() => onChange(c)}
-            aria-label={c}
-          />
-        ))}
-        {/* Custom colour — a rainbow circle that opens the native picker; shows the
-            chosen colour once set. Lets the host pick ANY colour, not just presets. */}
-        <label
-          className={
-            customActive ? "bse-sw bse-sw-custom on" : "bse-sw bse-sw-custom"
-          }
-          title="Custom colour"
-          style={customActive ? { background: value } : undefined}
-        >
-          <input
-            type="color"
-            value={hex}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </label>
-      </div>
+      <ThemeColorPicker
+        value={value || undefined}
+        fallback={value || "#000000"}
+        swatches={swatches}
+        onChange={onChange}
+      />
     </Ctl>
   );
 }
