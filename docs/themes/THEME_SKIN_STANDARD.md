@@ -313,6 +313,13 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   Fixed a general responsive gap: multi-column `stack` sections now emit a
   stacking media query so they collapse on live phones (was builder-device only).
   Live-verified on `/rooms/olive-room`, desktop + mobile.
+- **Search / Checkout / Thank-you — token-themed** (2026-07-04). Fixed system
+  routes (`app/[locale]/site/book`, `…/thank-you`; search_results is a flat page
+  reached mid-flow). All render inside `SiteThemeRoot` + `SiteChrome` with
+  `--site-*`, so they're on-brand automatically (verified in code). They're
+  transactional FLOWS, not builder docs, and redirect without a live booking
+  session — so per-theme restructuring is out of the skin model and can't be
+  preview-verified safely. Left inheriting the theme (functional + on-brand).
 - **Specials / Experiences / Gallery — DONE** (2026-07-04). Pure block reuse +
   data reseed, no code change: page-head hero + `specials_preview` (live offers,
   aqua "Book this offer" per ref) + CTA; hero + `highlights` "tiles" (image) +

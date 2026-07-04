@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-04 — Oceans View theme functionally complete (system routes token-themed).
+
+The transactional system routes (search results, checkout/`book`, thank-you) are
+confirmed on-brand: each renders inside `SiteThemeRoot` + `SiteChrome` with
+`--site-*`, so they inherit the Oceans View look automatically. They're functional
+FLOWS (not builder docs) and redirect without a live booking session, so per-theme
+restructuring is out of the skin model — left inheriting the theme, like `/blog`.
+
+Oceans View status: all 8 builder-doc marketing pages pixel-perfect + host-editable;
+the skin is wired into per-element controls (hero/showcase/blog-featured/tiles);
+`/blog` grid skinned; system routes token-themed. Next: replay the recipe for the
+other themes (safari/sabela/marmalade).
+
 ## 2026-07-04 — Specials / Experiences / Gallery pages + element wiring propagated.
 
 - Specials, Experiences and Gallery rebuilt to their references from already-
