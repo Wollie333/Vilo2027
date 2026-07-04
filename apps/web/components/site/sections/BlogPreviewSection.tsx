@@ -104,7 +104,7 @@ export function BlogPreviewSection({
             <div>
               {posts[0].date ? (
                 <span
-                  style={{ color: "var(--site-secondary)" }}
+                  style={{ color: "var(--el-meta-fg, var(--site-secondary))" }}
                   className="text-xs font-bold uppercase tracking-[0.14em]"
                 >
                   Featured · {posts[0].date}
@@ -113,10 +113,11 @@ export function BlogPreviewSection({
               <h3
                 style={{
                   fontFamily: "var(--site-font-heading)",
-                  fontWeight: "var(--site-weight-heading)" as unknown as number,
-                  fontSize: "clamp(1.8rem, 4vw, 3rem)",
-                  lineHeight: 1.02,
-                  color: "var(--site-ink)",
+                  fontWeight:
+                    "var(--el-title-weight, var(--site-weight-heading))" as unknown as number,
+                  fontSize: "var(--el-title-size, clamp(1.8rem, 4vw, 3rem))",
+                  lineHeight: "var(--el-title-lh, 1.02)" as unknown as number,
+                  color: "var(--el-title-fg, var(--site-ink))",
                 }}
                 className="mt-3 transition-opacity group-hover:opacity-80"
               >
@@ -124,8 +125,11 @@ export function BlogPreviewSection({
               </h3>
               {posts[0].excerpt ? (
                 <p
-                  style={{ color: "var(--site-mute)" }}
-                  className="mt-4 max-w-[52ch] text-lg leading-relaxed"
+                  style={{
+                    color: "var(--el-excerpt-fg, var(--site-mute))",
+                    fontSize: "var(--el-excerpt-size, 1.125rem)",
+                  }}
+                  className="mt-4 max-w-[52ch] leading-relaxed"
                 >
                   {posts[0].excerpt}
                 </p>

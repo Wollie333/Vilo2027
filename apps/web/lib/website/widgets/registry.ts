@@ -999,6 +999,8 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         controls: ["bg", "color", "border", "radius"],
       },
       { key: "badge", label: "Badge", controls: ["bg", "color", "radius"] },
+      // Showcase-only: the coral "Sleeps 2 · Sea view" facts tag above the name.
+      { key: "tag", label: "Tag", controls: ["color", "size", "weight"] },
     ],
   },
   amenities: {

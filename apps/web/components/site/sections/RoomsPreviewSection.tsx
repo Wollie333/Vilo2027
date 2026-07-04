@@ -204,9 +204,11 @@ function RoomShowcase({ rooms, cta }: { rooms: RoomCardData[]; cta: string }) {
                   }}
                 >
                   <div
-                    className="text-2xl font-bold leading-none"
+                    className="leading-none"
                     style={{
-                      color: "var(--site-secondary)",
+                      color: "var(--el-price-fg, var(--site-secondary))",
+                      fontSize: "var(--el-price-size, 1.5rem)",
+                      fontWeight: "var(--el-price-weight, 700)",
                       fontFamily: "var(--site-font-heading)",
                     }}
                   >
@@ -225,7 +227,7 @@ function RoomShowcase({ rooms, cta }: { rooms: RoomCardData[]; cta: string }) {
               {room.facts && room.facts.length > 0 ? (
                 <div
                   className="site-room-tag text-xs font-bold uppercase tracking-[0.14em]"
-                  style={{ color: "var(--site-secondary)" }}
+                  style={{ color: "var(--el-tag-fg, var(--site-secondary))" }}
                 >
                   {room.facts.slice(0, 2).join(" · ")}
                 </div>
@@ -234,11 +236,13 @@ function RoomShowcase({ rooms, cta }: { rooms: RoomCardData[]; cta: string }) {
                 className="site-room-name mt-3"
                 style={{
                   fontFamily: "var(--site-font-heading)",
-                  fontWeight: "var(--site-weight-heading)" as unknown as number,
-                  fontSize: "clamp(1.9rem, 4vw, 3rem)",
-                  lineHeight: "1.02",
-                  letterSpacing: "var(--site-tracking-heading)",
-                  color: "var(--site-ink)",
+                  fontWeight:
+                    "var(--el-title-weight, var(--site-weight-heading))" as unknown as number,
+                  fontSize: "var(--el-title-size, clamp(1.9rem, 4vw, 3rem))",
+                  lineHeight: "var(--el-title-lh, 1.02)" as unknown as number,
+                  letterSpacing:
+                    "var(--el-title-ls, var(--site-tracking-heading))",
+                  color: "var(--el-title-fg, var(--site-ink))",
                 }}
               >
                 {room.detailHref ? (
@@ -255,7 +259,10 @@ function RoomShowcase({ rooms, cta }: { rooms: RoomCardData[]; cta: string }) {
               {room.description ? (
                 <p
                   className="mt-4 max-w-[52ch] leading-relaxed"
-                  style={{ color: "var(--site-mute)" }}
+                  style={{
+                    color: "var(--el-desc-fg, var(--site-mute))",
+                    fontSize: "var(--el-desc-size, 1rem)",
+                  }}
                 >
                   {room.description}
                 </p>
@@ -298,10 +305,13 @@ function RoomShowcase({ rooms, cta }: { rooms: RoomCardData[]; cta: string }) {
                   data-wielo-book=""
                   className="inline-flex items-center justify-center px-7 py-3.5 text-sm font-semibold transition-opacity hover:opacity-90"
                   style={{
-                    background: "var(--site-btn-primary-bg)",
-                    color: "var(--site-btn-primary-color)",
-                    border: "var(--site-btn-primary-border)",
-                    borderRadius: "var(--site-btn-primary-radius)",
+                    background:
+                      "var(--el-button-bg, var(--site-btn-primary-bg))",
+                    color: "var(--el-button-fg, var(--site-btn-primary-color))",
+                    border:
+                      "var(--el-button-bd, var(--site-btn-primary-border))",
+                    borderRadius:
+                      "var(--el-button-radius, var(--site-btn-primary-radius))",
                   }}
                 >
                   {bookLabel}

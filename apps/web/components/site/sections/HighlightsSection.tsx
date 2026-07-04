@@ -96,6 +96,8 @@ export function HighlightsSection({ props }: { props: Props }) {
                 >
                   {item.title}
                 </h3>
+                {/* title/body already read `--el-*` — the tiles variant is
+                    host-editable via the highlights "title"/"body" elements. */}
                 {item.body ? (
                   <p
                     style={{
