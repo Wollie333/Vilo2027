@@ -172,6 +172,16 @@ pixel-perfect — adapt the values, keep the structure.
 inline theme default you must override (and never over an `--el-*` hook). Keep
 every selector under `.wielo-<slug>`.
 
+**NEVER set an `--el-*` slot in the skin.** A block reads `var(--el-value-fg,
+<theme default>)`; the host's per-element edit sets `--el-value-fg` at
+`[data-node-id]` (specificity 0,1,0). A skin rule at `.wielo-x
+[data-section-type]` is (0,2,0) — so if the skin sets `--el-value-fg`, it beats
+the host's edit and editability breaks. To recolour a block by default, rely on
+the component's own fallback, or style the element's own property (e.g.
+`.wielo-x [data-section-type="stats"] .value { color: … }`) — not its `--el-*`
+variable. (Learned when the stats skin's `--el-value-fg` blocked the About page's
+coral-number override.)
+
 ---
 
 ## 6. Bake this into the reference design (so skinning is fast)
@@ -265,6 +275,12 @@ the §3 mapping → write a `.wielo-<slug>` skin block → verify. No components
   Fixed a general responsive gap: multi-column `stack` sections now emit a
   stacking media query so they collapse on live phones (was builder-device only).
   Live-verified on `/rooms/olive-room`, desktop + mobile.
+- **About — DONE** (2026-07-03). Pure reuse of skinned blocks: page-head hero,
+  intro "story" (coral "2014" badge), navy stats (coral numbers via a per-element
+  override), values icon-tiles (`highlights` grid), sand founder pull-quote
+  (`intro` "lead" + text elements), CTA banner. Fixed a skin bug — removed the
+  stats `--el-value-fg` slot so the coral per-element override wins (see the
+  "NEVER set an `--el-*` slot" rule). Live-verified `/about`.
 - Prior foundation: `f4c49eed` (skin scaffolding + `data-section-type` hooks),
   `4b5ea727` (hero), `c6b0c36f` (cta coral).
 - **Next:** Rooms → Room detail → About → Contact → Journal → Specials →

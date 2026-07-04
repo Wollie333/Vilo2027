@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-03 — Oceans View about page + stats el-slot fix (`775f9e51`).
+
+- About page rebuilt to its reference entirely from already-skinned, editable
+  blocks (no new skin CSS): page-head hero, intro "story" with a coral "2014"
+  badge, navy stats with coral numbers, values icon-tiles, a sand founder
+  pull-quote, and the closing CTA banner.
+- Fix: the stats skin set `--el-value-fg` on `[data-section-type="stats"]`, which
+  occupies the host's per-element slot (a `[data-node-id]` override at 0,1,0 loses
+  to the skin's 0,2,0) — so the About page's coral-number override was ignored.
+  Removed the rule; the component already defaults to the aqua accent, and the
+  per-element override now wins (About coral, home aqua). Rule for skins: never
+  set an `--el-*` slot.
+- Live-verified `/about` (coral stats) and `/` (aqua stats unchanged).
+
 ## 2026-07-03 — Oceans View room detail: 2-col sticky booking layout (`cc428f8f`).
 
 - Room-detail page rebuilt to its reference with generic room-scoped blocks in a
