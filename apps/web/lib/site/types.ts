@@ -142,6 +142,8 @@ export type SiteMenuStyle = {
   mobile?: SiteMenuDeviceStyle & {
     overlayBg?: string;
     backdropColor?: string;
+    /** Colour for the drawer's dropdown/submenu (nested child links). */
+    submenuColor?: string;
   };
 };
 /** Per-page menu/header override — appearance + style scoped to one page key. */

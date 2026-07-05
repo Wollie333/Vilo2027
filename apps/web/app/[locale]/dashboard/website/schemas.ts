@@ -879,6 +879,8 @@ export const menuStyleSchema = z
       .extend({
         overlayBg: z.string().trim().max(40).optional(),
         backdropColor: z.string().trim().max(40).optional(),
+        // The drawer's expandable dropdown/submenu (nested child links).
+        submenuColor: z.string().trim().max(40).optional(),
       })
       .optional(),
   })

@@ -1443,6 +1443,12 @@ export function NavBuilderOverlay({
                 swatches={themeCols}
                 onChange={(v) => setMobile({ backdropColor: v })}
               />
+              <Swatch
+                label="Dropdown link colour"
+                value={mob.submenuColor ?? "#6B7280"}
+                swatches={themeCols}
+                onChange={(v) => setMobile({ submenuColor: v })}
+              />
               <div
                 style={{
                   fontSize: 11,

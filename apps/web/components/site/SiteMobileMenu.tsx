@@ -43,6 +43,8 @@ export function SiteMobileMenu({
     weight?: "normal" | "medium" | "semibold" | "bold" | null;
     uppercase?: boolean | null;
     backdropColor?: string | null;
+    /** Colour for the drawer's dropdown/submenu (nested child links). */
+    submenuColor?: string | null;
   };
   className?: string;
 }) {
@@ -53,6 +55,8 @@ export function SiteMobileMenu({
   const drawerBg = mobile?.overlayBg?.trim() || "var(--site-bg)";
   const linkColor = mobile?.color?.trim() || "var(--site-ink)";
   const backdrop = mobile?.backdropColor?.trim() || "rgba(0,0,0,0.4)";
+  // The drawer's dropdown/submenu (nested child links); host override → theme mute.
+  const subColor = mobile?.submenuColor?.trim() || "var(--site-mute)";
   const linkType = {
     color: linkColor,
     ...(mobile?.fontSize ? { fontSize: mobile.fontSize } : {}),
@@ -183,7 +187,7 @@ export function SiteMobileMenu({
                           child.children && child.children.length > 0 ? (
                             <div key={child.id} className="py-1">
                               <div
-                                style={{ color: "var(--site-mute)" }}
+                                style={{ color: subColor }}
                                 className="px-3 pb-0.5 text-[11px] font-semibold uppercase tracking-wide opacity-70"
                               >
                                 {child.label}
@@ -197,7 +201,7 @@ export function SiteMobileMenu({
                                     g.newTab ? "noopener noreferrer" : undefined
                                   }
                                   onClick={() => setOpen(false)}
-                                  style={{ color: "var(--site-mute)" }}
+                                  style={{ color: subColor }}
                                   className="block rounded-[var(--site-radius)] px-3 py-2.5 text-[15px] font-medium transition-colors hover:bg-[var(--site-surface)]"
                                 >
                                   {g.label}
@@ -213,7 +217,7 @@ export function SiteMobileMenu({
                                 child.newTab ? "noopener noreferrer" : undefined
                               }
                               onClick={() => setOpen(false)}
-                              style={{ color: "var(--site-mute)" }}
+                              style={{ color: subColor }}
                               className="block rounded-[var(--site-radius)] px-3 py-2.5 text-[15px] font-medium transition-colors hover:bg-[var(--site-surface)]"
                             >
                               {child.label}
