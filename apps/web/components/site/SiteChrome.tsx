@@ -554,11 +554,11 @@ function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
   const sHover = style?.scrolledHoverColor?.trim();
   if (sColor)
     rules.push(
-      `[data-scrolled="true"] .wielo-hmenu a,[data-scrolled="true"] .wielo-hmenu button{color:${sColor}}`,
+      `[data-scrolled=true] .wielo-hmenu a,[data-scrolled=true] .wielo-hmenu button{color:${sColor}}`,
     );
   if (sHover)
     rules.push(
-      `[data-scrolled="true"] .wielo-hmenu a:hover,[data-scrolled="true"] .wielo-hmenu button:hover{color:${sHover}}`,
+      `[data-scrolled=true] .wielo-hmenu a:hover,[data-scrolled=true] .wielo-hmenu button:hover{color:${sHover}}`,
     );
   // Dropdown submenu (.wielo-submenu). The panel inherits --wielo-submenu-bg
   // (defaults to --site-surface via the inline fallback in MenuNav).
@@ -582,11 +582,11 @@ function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
   // (0,3,1) than the base dropdown rule so it always wins when scrolled.
   if (style?.scrolledSubmenuBg?.trim())
     rules.push(
-      `[data-scrolled="true"] .wielo-hmenu{--wielo-submenu-bg:${style.scrolledSubmenuBg.trim()}}`,
+      `[data-scrolled=true] .wielo-hmenu{--wielo-submenu-bg:${style.scrolledSubmenuBg.trim()}}`,
     );
   if (style?.scrolledSubmenuColor?.trim())
     rules.push(
-      `[data-scrolled="true"] .wielo-hmenu .wielo-submenu a{color:${style.scrolledSubmenuColor.trim()}}`,
+      `[data-scrolled=true] .wielo-hmenu .wielo-submenu a{color:${style.scrolledSubmenuColor.trim()}}`,
     );
   return rules.join("");
 }
