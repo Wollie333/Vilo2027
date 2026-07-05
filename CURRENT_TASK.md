@@ -2,7 +2,46 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-05 #3, **Styling+media epic + fixes — ALL PUSHED to `main`**, `9fa73e8c` latest)
+## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-05 #6, **Builder V3 brief captured — START HERE**)
+
+> **NEXT SESSION: execute `docs/features/BUILDER_V3_ELEMENTS_AND_SYSTEM_PAGES_PLAN.md`.**
+> The founder gave a big batch of builder + system-page + CMS-UI issues (2026-07-05).
+> Nothing in that plan is started yet — it's the full spec/issue log. Do the groups in
+> the order the plan suggests; each ends green (tsc + lint + 229 vitest) + commit + push
+> + verify canvas AND live (Principle #9; dev harnesses `/dev/rooms|search|chrome`).
+>
+> Quick summary of the four groups:
+> 1. **System pages = the real live pages.** Remove the `/checkout` system row; seed the
+>    real one as **`/book`** (live checkout = `app/[locale]/site/book` + `SiteCheckoutForm`).
+>    Add a **Booking form element** + **Thank you element** — dynamic data from the system,
+>    theme-skinned default, host edits STYLING only (field borders, add-on cards, title,
+>    price colour, summary box…). Elementor/WooCommerce-block model. Components exist.
+> 2. **Elements vs Sections refactor (the big one).** Basic elements (Button/Video/…) must
+>    become TRUE standalone ELEMENTS that auto-wrap in a section on drop — NOT bare
+>    sections with huge padding/white space. Refine Section + Inner Section (Layout cat)
+>    to own padding/margin + column/flex alignment (Elementor). Video element = no default
+>    padding/margin + a size control (today it renders as a video *section*).
+> 3. **CMS panel UI (all tabs).** Row `⋯` actions dropdown (Edit/Delete/Duplicate) is
+>    clipped/disappears → fix (portal/z-index/overflow). Stray WHITE bg behind/between
+>    tabs + tables → make uniform light-grey (transparent), on EVERY tab.
+> 4. **Builder UX.** Collapsible widget-category headings. DELETE of an element/section →
+>    sidebar goes to Widgets (deselect already does via `8bd394e7`; wire the delete path).
+
+### ✅ Previous session shipped (2026-07-05 #4/#5, all on `main`)
+
+Search-results slices 2–4 (room-based) · blog authors (host default + render fallback) ·
+blog image alt/title (WYSIWYG modal + on-image delete) + dropdown legibility · header
+scrolled-state (solid bg/border + robust tracking + hydration fix) · **Principle #9**
+(verify canvas AND live) + **Principle #10** (mobile-first) · local dev harnesses
+(`/dev/chrome|search|rooms`) · nav CTA-stays-put + dropdown-in-canvas + shadow default ·
+**9-item batch:** room grid responsive (container queries) · sidebar→Widgets on deselect ·
+image aspect/object-fit controls · unified colour picker on ALL controls · fixed-menu
+contained to canvas · Brand Studio logo upload · publish policy default-detection ·
+special-checkout out-of-range UX. (Latest `main` ≈ `3970c9dc`.)
+
+---
+
+## ▶▶▶ SAVE POINT — (2026-07-05 #3, **Styling+media epic + fixes — ALL PUSHED to `main`**, `9fa73e8c` latest)
 
 > Huge multi-part session. Everything below is on `main`. Pick up the REMAINING work
 > (search-results slices 2–4 + a few small items). Builder no-auth demo: `/en/builder?theme=oceansview[&nav=links|header|footer]`.

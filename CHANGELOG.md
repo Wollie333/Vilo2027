@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-05 #6 — Builder V3 brief captured (save point, not yet built).
+
+Founder handed a large batch of builder + system-page + CMS-UI issues. Recorded the full
+issue log + plan in `docs/features/BUILDER_V3_ELEMENTS_AND_SYSTEM_PAGES_PLAN.md` and set
+the resume anchor in `CURRENT_TASK.md` (top). Four groups, all TODO next session:
+1. System pages = real live pages: remove `/checkout` row, seed `/book`; add styleable
+   Booking-form + Thank-you elements (dynamic data, theme skin, host overrides styling).
+2. Elements-vs-Sections refactor: basic elements become true elements (auto-wrapped in a
+   section on drop, no giant band); refine Section/Inner-Section padding/margin + flex;
+   video element standalone + size control.
+3. CMS panel UI: fix clipped row `⋯` actions menu; make the stray white bg uniform grey
+   on every tab.
+4. Builder UX: collapsible widget-category headings; delete→Widgets panel.
+
+## 2026-07-05 #5 — 9-item builder/UX batch + Principles #9/#10 + dev harnesses.
+
+All on `main`. Mobile-first Principle #10 + verify-canvas-and-live Principle #9. Room +
+search grids container-responsive (`.wielo-cq-grid`). Sidebar returns to Widgets on
+deselect. Image aspect-ratio + object-fit controls. Unified `ThemeColorPicker` on ALL
+colour controls (was a token swatch on `kind:"color"`). Fixed-position menus contained
+to the canvas frame (transform on `.stage`). Brand Studio logo upload under Identity.
+Publish policy gate counts a default cancellation policy. Special checkout deactivates
++ warns when dates leave the offer window. No-auth dev harnesses `/dev/{chrome,search,
+rooms}`. Also (earlier in the day): blog authors, blog image alt/title modal + on-image
+delete, dropdown legibility, header scrolled-state fixes, nav CTA-stays-put.
+
 ## 2026-07-05 #4 — Search results slices 2–4 (room-based live results + form wiring).
 
 Completes the website search-results feature (`docs/features/SEARCH_RESULTS_PLAN.md`).
