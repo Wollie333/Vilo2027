@@ -55,6 +55,25 @@ export type WidgetControl =
   // Image control: upload a custom image (website-assets bucket) or paste a URL.
   // Stores the resolved asset URL. Used for el_image + any image field.
   | { kind: "image"; key: string; label: string }
+  // Repeater: edit an array-of-objects prop (e.g. highlights cards) — each item
+  // gets the given sub-fields (text/textarea/icon/image) plus add/remove/reorder.
+  | {
+      kind: "items";
+      key: string;
+      label: string;
+      fields: Array<
+        | { kind: "text"; key: string; label: string; placeholder?: string }
+        | { kind: "textarea"; key: string; label: string }
+        | { kind: "icon"; key: string; label: string }
+        | { kind: "image"; key: string; label: string }
+      >;
+      /** Values for a newly-added item. */
+      newItem?: Record<string, unknown>;
+      /** Optional cap on the number of items. */
+      max?: number;
+      /** Label for the add button (e.g. "Add card"). */
+      addLabel?: string;
+    }
   // Dynamic select of the site's live rooms (options injected by the builder).
   | { kind: "roompicker"; key: string; label: string }
   // A small uppercase section label that groups the controls beneath it (e.g.
@@ -690,6 +709,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "headline", label: "Headline" },
       { kind: "textarea", key: "subheadline", label: "Subheadline" },
+      { kind: "image", key: "image_path", label: "Background image" },
       { kind: "text", key: "cta_label", label: "Button label" },
       { kind: "text", key: "cta_href", label: "Button link" },
       ALIGN_CTL(),
@@ -776,8 +796,18 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     content: [
       { kind: "text", key: "heading", label: "Heading" },
       {
-        kind: "hint",
-        text: "Restyle via Style & Advanced; per-item editing lands in a later slice.",
+        kind: "items",
+        key: "items",
+        label: "Cards",
+        max: 12,
+        addLabel: "Add card",
+        newItem: { title: "New highlight", body: "" },
+        fields: [
+          { kind: "icon", key: "icon", label: "Icon" },
+          { kind: "image", key: "image_path", label: "Image (tiles variant)" },
+          { kind: "text", key: "title", label: "Title" },
+          { kind: "textarea", key: "body", label: "Body" },
+        ],
       },
     ],
     elements: [
@@ -866,6 +896,7 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
       { kind: "text", key: "heading", label: "Heading" },
       { kind: "text", key: "name", label: "Host name" },
       { kind: "textarea", key: "body", label: "Bio" },
+      { kind: "image", key: "photo_path", label: "Photo" },
     ],
     elements: [
       { key: "photo", label: "Photo", controls: ["radius"] },

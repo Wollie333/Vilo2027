@@ -679,6 +679,82 @@
   background: rgba(255, 255, 255, 0.32);
 }
 
+/* Repeater editor (items control) — per-item cards (e.g. highlights). */
+.wb .items-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wb .item-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--light);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.wb .item-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wb .item-card-head > span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mute);
+}
+.wb .item-card-actions {
+  display: flex;
+  gap: 2px;
+}
+.wb .item-card-actions button {
+  width: 24px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mute);
+  transition: 0.12s;
+}
+.wb .item-card-actions button:hover:not(:disabled) {
+  background: var(--panel);
+  color: var(--ink);
+}
+.wb .item-card-actions button.del:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+.wb .item-card-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.wb .items-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--secondary);
+  border: 1px dashed var(--line-2);
+  border-radius: 9px;
+  background: none;
+  cursor: pointer;
+  transition: 0.12s;
+}
+.wb .items-add:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--light);
+}
+.wb .items-add:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* On-canvas section settings popover (the badge gear). Anchored to the badge,
    floats over the canvas, and hosts the SAME inspector as the side panel. */
 .wb .nb-inspector {

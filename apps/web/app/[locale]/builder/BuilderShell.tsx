@@ -3208,6 +3208,121 @@ const ALIGN_OPTS: [string, string][] = [
   ["right", "Right"],
 ];
 
+// Repeater editor for an array-of-objects prop (e.g. highlights cards). Each item
+// gets the control's sub-fields (text/textarea/icon/image → the same MediaField/
+// IconPicker the single controls use, so images open the media-library modal).
+function ItemsControl({
+  ctl,
+  value,
+  onChange,
+  websiteId,
+}: {
+  ctl: Extract<WidgetControl, { kind: "items" }>;
+  value: unknown[];
+  onChange: (v: unknown) => void;
+  websiteId?: string;
+}) {
+  const items = value as Array<Record<string, unknown>>;
+  const txt = (v: unknown) => (typeof v === "string" ? v : "");
+  const patch = (i: number, key: string, v: unknown) =>
+    onChange(items.map((it, j) => (j === i ? { ...it, [key]: v } : it)));
+  const remove = (i: number) => onChange(items.filter((_, j) => j !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    const next = [...items];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+  const add = () => {
+    if (ctl.max && items.length >= ctl.max) return;
+    onChange([...items, { ...(ctl.newItem ?? {}) }]);
+  };
+  return (
+    <div className="ctl">
+      <div className="ctl-l">
+        <label>{ctl.label}</label>
+      </div>
+      <div className="items-editor">
+        {items.map((it, i) => (
+          <div className="item-card" key={i}>
+            <div className="item-card-head">
+              <span>#{i + 1}</span>
+              <div className="item-card-actions">
+                <button
+                  type="button"
+                  title="Move up"
+                  disabled={i === 0}
+                  onClick={() => move(i, -1)}
+                >
+                  <ArrowUp size={13} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  title="Move down"
+                  disabled={i === items.length - 1}
+                  onClick={() => move(i, 1)}
+                >
+                  <ArrowDown size={13} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  className="del"
+                  title="Remove"
+                  onClick={() => remove(i)}
+                >
+                  <Trash2 size={13} strokeWidth={2} />
+                </button>
+              </div>
+            </div>
+            {ctl.fields.map((f) => (
+              <div className="ctl" key={f.key}>
+                <div className="ctl-l">
+                  <label>{f.label}</label>
+                </div>
+                {f.kind === "text" ? (
+                  <input
+                    className="inp"
+                    value={txt(it[f.key])}
+                    placeholder={f.placeholder}
+                    onChange={(e) => patch(i, f.key, e.target.value)}
+                  />
+                ) : f.kind === "textarea" ? (
+                  <textarea
+                    className="inp"
+                    value={txt(it[f.key])}
+                    onChange={(e) => patch(i, f.key, e.target.value)}
+                  />
+                ) : f.kind === "icon" ? (
+                  <IconPicker
+                    value={txt(it[f.key])}
+                    onChange={(v) => patch(i, f.key, v)}
+                    websiteId={websiteId}
+                  />
+                ) : (
+                  <MediaField
+                    value={txt(it[f.key])}
+                    onChange={(v) => patch(i, f.key, v)}
+                    websiteId={websiteId}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+        <button
+          type="button"
+          className="items-add"
+          onClick={add}
+          disabled={!!ctl.max && items.length >= ctl.max}
+        >
+          <Plus size={14} strokeWidth={2} /> {ctl.addLabel ?? "Add item"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Control({
   ctl,
   value,
@@ -3301,6 +3416,15 @@ function Control({
             websiteId={websiteId}
           />
         </div>
+      );
+    case "items":
+      return (
+        <ItemsControl
+          ctl={ctl}
+          value={Array.isArray(value) ? value : []}
+          onChange={set}
+          websiteId={websiteId}
+        />
       );
     case "roompicker":
       return (
