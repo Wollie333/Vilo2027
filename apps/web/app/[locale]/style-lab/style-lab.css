@@ -1,0 +1,99 @@
+/* Layout for the styling-controls review page (/[locale]/style-lab). */
+.sl-root {
+  min-height: 100vh;
+  background: #eef2f1;
+  padding: 32px clamp(16px, 4vw, 48px) 80px;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+.sl-top {
+  max-width: 1200px;
+  margin: 0 auto 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.sl-top h1 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+.sl-top p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #475569;
+  max-width: 640px;
+  margin: 0;
+}
+.sl-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #0f766e;
+  background: #ccfbf1;
+  border: 1px solid #99f6e4;
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.sl-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.sl-card {
+  background: #fff;
+  border: 1px solid #e4efe8;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: visible;
+}
+.sl-card-head {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #eef2f1;
+}
+.sl-card-head h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 5px;
+}
+.sl-card-head p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0;
+}
+.sl-card-body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sl-readout {
+  font-size: 11px;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+.sl-readout code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: 5px;
+  color: #0f172a;
+}

@@ -327,3 +327,52 @@ The sequence, every time:
 - After each phase: build/lint/test green → commit → **push to `main`** → next phase.
 - Don't batch several phases into one unverified push, and don't start a feature by
   writing code before the plan exists.
+
+---
+
+## Principle #8 — Website-CMS styling is WYSIWYG: edit → canvas updates instantly → publish makes it live
+
+**Date:** 2026-07-05
+**Status:** Active
+**Scope:** The website CMS / builder feature only (page, navigation, header,
+footer, and any future builders that edit a host's site). It does **not** govern
+non-CMS admin forms.
+
+### The principle
+
+**Every styling edit made in any website builder updates the canvas in real time,
+and the exact same change goes live on publish.** There is no styling control that
+"saves but doesn't show," and none that shows in the canvas but fails to reach the
+published site. What the host sees while editing is what visitors get.
+
+Concretely, for every styling control (colour, spacing, typography, background
+image/video, borders, shadows, overlays, per-device overrides, menu/header/footer
+styling, element styling — everywhere):
+
+1. **Edit → canvas reflects it immediately.** The moment the control changes, the
+   builder canvas re-renders with the new value (e.g. an uploaded background image
+   appears on the section at once; a colour change recolours the block instantly).
+2. **Publish → the change is live.** The same value is persisted and rendered on
+   the public site with no drift between the canvas preview and production.
+
+### Why this matters
+
+- WYSIWYG is the whole promise of a visual builder. A control that doesn't move the
+  canvas reads as broken and erodes trust in every other control.
+- The canvas and the live site share ONE render path (`SiteChrome` + the token/
+  `--el-*` renderer), so "shows in canvas" and "works when published" are the same
+  guarantee — reinforces Principle #5 (One Source of Truth).
+
+### How to apply it
+
+- New styling control? It is not done until the canvas updates live AND a publish
+  round-trips the value to the public site. Verify BOTH before marking complete.
+- Build styling controls from the **unified styling-control library** (the single
+  source of truth for control UI — sliders, colour pickers, media, toggles, etc.)
+  so behaviour and look stay uniform across every builder.
+- Wire controls to the same state the canvas renders from; never to a write-only
+  side channel. If a control can't show its effect in the canvas, that's a bug to
+  fix, not a limitation to ship.
+- Popovers/modals for styling controls (colour picker, media picker, etc.) must
+  render above all canvas and card content (portal + high z-index) so they're never
+  clipped by a card's `overflow`.
