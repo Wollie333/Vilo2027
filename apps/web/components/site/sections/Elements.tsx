@@ -167,13 +167,24 @@ export function ElImageSection({
   if (props.shadow && props.shadow !== "auto") {
     imgStyle.boxShadow = EL_IMG_SHADOW[props.shadow] ?? undefined;
   }
+  // Size + display rule: a fixed aspect ratio makes the box a set shape and the
+  // display rule (object-fit) controls how the image fills it (cover = crop to
+  // fill, contain = fit whole, fill = stretch), always centered. "auto" keeps the
+  // image's natural ratio (object-fit is then a no-op).
+  const aspect = props.aspect && props.aspect !== "auto" ? props.aspect : null;
+  const fit = props.objectFit ?? "cover";
+  if (aspect) {
+    imgStyle.aspectRatio = aspect.replace("/", " / ");
+    imgStyle.objectFit = fit;
+    imgStyle.objectPosition = "center";
+  }
   const img = (
     <SiteImg
       src={src}
       alt={props.alt ?? ""}
       title={props.title || undefined}
       style={imgStyle}
-      className="h-auto w-full object-cover"
+      className="h-auto w-full"
       sizes="(min-width: 768px) 768px, 100vw"
     />
   );

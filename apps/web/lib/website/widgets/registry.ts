@@ -414,6 +414,29 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
         ],
       },
       {
+        kind: "seg",
+        key: "aspect",
+        label: "Shape (aspect ratio)",
+        options: [
+          ["auto", "Auto"],
+          ["16/9", "16:9"],
+          ["4/3", "4:3"],
+          ["3/2", "3:2"],
+          ["1/1", "Square"],
+          ["3/4", "Portrait"],
+        ],
+      },
+      {
+        kind: "seg",
+        key: "objectFit",
+        label: "Display rule",
+        options: [
+          ["cover", "Cover (crop)"],
+          ["contain", "Contain (fit)"],
+          ["fill", "Fill (stretch)"],
+        ],
+      },
+      {
         kind: "scale",
         key: "radius",
         label: "Corner radius",

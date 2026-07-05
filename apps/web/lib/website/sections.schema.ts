@@ -734,6 +734,18 @@ const elTextProps = z.object({
 
 export const EL_IMAGE_SHADOW = ["auto", "none", "sm", "md", "lg"] as const;
 export type ElImageShadow = (typeof EL_IMAGE_SHADOW)[number];
+// Display rule (how the image fills its box) + the box aspect ratio it fills.
+export const EL_IMAGE_FIT = ["cover", "contain", "fill"] as const;
+export type ElImageFit = (typeof EL_IMAGE_FIT)[number];
+export const EL_IMAGE_ASPECT = [
+  "auto",
+  "16/9",
+  "4/3",
+  "1/1",
+  "3/4",
+  "3/2",
+] as const;
+export type ElImageAspect = (typeof EL_IMAGE_ASPECT)[number];
 
 const elImageProps = z.object({
   image_path: z.string().optional(),
@@ -744,6 +756,12 @@ const elImageProps = z.object({
   href: z.string().max(500).optional(),
   width: z.enum(["narrow", "medium", "full"]).default("full"),
   align: z.enum(ELEMENT_ALIGN).default("center"),
+  /** Box aspect ratio — "auto" keeps the image's natural ratio; a fixed ratio
+   *  (16/9, 1/1, …) makes the display rule below meaningful (crop/fit). */
+  aspect: z.enum(EL_IMAGE_ASPECT).optional(),
+  /** Display rule when a fixed aspect is set: cover (crop to fill), contain
+   *  (fit whole image), or fill (stretch). Centered by default. */
+  objectFit: z.enum(EL_IMAGE_FIT).optional(),
   // Per-image style overrides (else inherit the theme's --site-img-*). radius is px
   // as a scale string ("auto" = theme); shadow is a preset depth.
   radius: z.string().max(6).optional(),
