@@ -55,6 +55,15 @@ export const SECTION_TYPES = [
   // Search-results template (system page): a search form + a list of available
   // properties for the chosen dates, each deep-linking into checkout.
   "search_results",
+  // Checkout system page (/book): the on-site booking FORM element. Data is
+  // dynamic (rooms/price/add-ons/availability resolve server-side); the host
+  // styles only. The live /book route renders the real SiteCheckoutForm; a
+  // theme-skinned demo shows in the builder canvas so it stays style-editable.
+  "booking_form",
+  // Thank-you system page (/book/thank-you): the post-payment booking
+  // CONFIRMATION element. Dynamic booking data (reference/dates/total); the host
+  // styles only. Same demo-in-canvas / real-render-on-route split as booking_form.
+  "booking_confirmation",
   "availability_calendar",
   "rate_table",
   // Editable rates blocks (manual content — no live pricing dependency).
@@ -602,6 +611,22 @@ const bookingSearchProps = z.object({
 // the chosen dates. Reads the bookable-property set (same data as booking_search)
 // and quotes each live; props are display-only.
 const searchResultsProps = z.object({
+  heading,
+  body: z.string().max(600).optional(),
+});
+
+// Checkout (booking form) — the on-site booking form element. All booking DATA
+// (rooms/price/add-ons/availability/payment) resolves server-side on the live
+// /book route; these props are display-only chrome the host may relabel.
+const bookingFormProps = z.object({
+  heading,
+  body: z.string().max(600).optional(),
+});
+
+// Thank-you (booking confirmation) — the post-payment confirmation element. The
+// dynamic booking (reference/dates/guests/total + EFT details) is injected by
+// the live /book/thank-you route; these props are display-only.
+const bookingConfirmationProps = z.object({
   heading,
   body: z.string().max(600).optional(),
 });
@@ -1197,6 +1222,16 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("search_results"),
     props: searchResultsProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("booking_form"),
+    props: bookingFormProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("booking_confirmation"),
+    props: bookingConfirmationProps,
   }),
   z.object({
     ...sectionBase,

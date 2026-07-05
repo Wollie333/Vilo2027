@@ -362,6 +362,28 @@ export function newSection(type: SectionType): WebsiteSection {
           body: "Here’s what’s open for your dates.",
         },
       };
+    case "booking_form":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Complete your booking",
+          body: "Choose your dates and add-ons — your price is confirmed securely.",
+        },
+      };
+    case "booking_confirmation":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "You're booked in 🎉",
+          body: "A confirmation is on its way to your email.",
+        },
+      };
     case "availability_calendar":
       return {
         id,

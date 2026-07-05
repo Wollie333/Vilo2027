@@ -113,6 +113,90 @@ async function ensureSearchResultsPage(
   });
 }
 
+/**
+ * Ensure the website has its `checkout` system page — the REAL on-site checkout
+ * (live route `/book`). Its slug is `book` so the Pages-manager row reads `/book`
+ * (the actual live URL, per the founder) and editing it edits the real page. It's
+ * seeded with a single styleable `booking_form` element; the live route renders
+ * the real interactive SiteCheckoutForm and applies this page's saved --el-*
+ * styling. Idempotent — backfills sites made before the feature.
+ */
+async function ensureCheckoutPage(
+  supabase: SupabaseClient,
+  websiteId: string,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("website_id", websiteId)
+    .eq("kind", "checkout")
+    .maybeSingle();
+  if (existing) return;
+
+  const sections = [
+    {
+      id: crypto.randomUUID(),
+      type: "booking_form",
+      enabled: true,
+      props: {
+        heading: "Complete your booking",
+        body: "Choose your dates and add-ons — your price is confirmed securely.",
+      },
+    },
+  ];
+  await supabase.from("website_pages").insert({
+    website_id: websiteId,
+    kind: "checkout",
+    slug: "book",
+    title: "Checkout",
+    show_in_nav: false,
+    nav_order: 902,
+    draft_sections: sections,
+    published_sections: sections,
+  });
+}
+
+/**
+ * Ensure the website has its `thank-you` system page — the REAL post-payment
+ * landing (live route `/book/thank-you`, slug `book/thank-you`). Seeded with a
+ * single styleable `booking_confirmation` element; the live route renders the
+ * real confirmation and applies this page's saved --el-* styling. Idempotent.
+ */
+async function ensureThankYouPage(
+  supabase: SupabaseClient,
+  websiteId: string,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("website_id", websiteId)
+    .eq("kind", "thank-you")
+    .maybeSingle();
+  if (existing) return;
+
+  const sections = [
+    {
+      id: crypto.randomUUID(),
+      type: "booking_confirmation",
+      enabled: true,
+      props: {
+        heading: "You're booked in 🎉",
+        body: "A confirmation is on its way to your email.",
+      },
+    },
+  ];
+  await supabase.from("website_pages").insert({
+    website_id: websiteId,
+    kind: "thank-you",
+    slug: "book/thank-you",
+    title: "Thank you",
+    show_in_nav: false,
+    nav_order: 903,
+    draft_sections: sections,
+    published_sections: sections,
+  });
+}
+
 export type PageListItem = {
   id: string;
   kind: string;
@@ -173,6 +257,8 @@ export async function loadPagesList(
 
   await ensureRoomDetailPage(supabase, websiteId, site.theme?.preset ?? null);
   await ensureSearchResultsPage(supabase, websiteId);
+  await ensureCheckoutPage(supabase, websiteId);
+  await ensureThankYouPage(supabase, websiteId);
 
   const { data: rows } = await supabase
     .from("website_pages")

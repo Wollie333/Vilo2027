@@ -37,6 +37,10 @@ import { VideoSection } from "./sections/VideoSection";
 import { TrustSection } from "./sections/TrustSection";
 import { BookingSearchSection } from "./sections/BookingSearchSection";
 import { SearchResultsSection } from "./sections/SearchResultsSection";
+import {
+  BookingFormSection,
+  BookingConfirmationSection,
+} from "./sections/BookingSystemSections";
 import { AvailabilityCalendarSection } from "./sections/AvailabilityCalendarSection";
 import { RateTableSection } from "./sections/RateTableSection";
 import {
@@ -388,6 +392,10 @@ export function GenericSection({
           interactive={interactive}
         />
       );
+    case "booking_form":
+      return <BookingFormSection props={section.props} />;
+    case "booking_confirmation":
+      return <BookingConfirmationSection props={section.props} />;
     case "availability_calendar":
       return (
         <AvailabilityCalendarSection

@@ -33,8 +33,6 @@ import {
   NavLeaf,
   SocialLeaf,
   RoomCardLeaf,
-  BookingFormLeaf,
-  BookingConfirmationLeaf,
 } from "./NewLeaves";
 
 // Builder V2 — the token-driven PageDoc renderer.
@@ -376,10 +374,6 @@ function WidgetLeaf({ node, ctx }: { node: WidgetNode; ctx: RenderCtx }) {
   switch (node.type) {
     case "el_icon":
       return <IconLeaf props={node.props} variant={node.variant} />;
-    case "booking_form":
-      return <BookingFormLeaf props={node.props} />;
-    case "booking_confirmation":
-      return <BookingConfirmationLeaf props={node.props} />;
     case "el_room_card":
       return (
         <RoomCardLeaf

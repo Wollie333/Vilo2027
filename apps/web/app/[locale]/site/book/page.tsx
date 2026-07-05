@@ -15,6 +15,8 @@ import {
   resolveSiteRef,
   siteBookHref,
 } from "@/lib/site/loadSitePage";
+import { loadSystemPageStyle } from "@/lib/site/systemPageStyle";
+import { BookingStyleOverlay } from "@/components/site/BookingStyleOverlay";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -208,17 +210,26 @@ export default async function SiteBookPage({
   // Payment rails — card when the host has connected Paystack, EFT when a valid
   // default account exists. Both resolved server-side, THEN gated by the host's
   // per-website toggles (Settings → Booking payment methods; default on).
-  const [cardPaystack, eftHasAccount, siteRow] = await Promise.all([
-    property.business_id
-      ? getHostPaystackForBusiness(property.business_id)
-      : Promise.resolve(null),
-    hostHasValidEft(property.host_id),
-    admin
-      .from("host_websites")
-      .select("settings")
-      .eq("id", ctx.websiteId)
-      .maybeSingle(),
-  ]);
+  const [cardPaystack, eftHasAccount, siteRow, bookingStyle] =
+    await Promise.all([
+      property.business_id
+        ? getHostPaystackForBusiness(property.business_id)
+        : Promise.resolve(null),
+      hostHasValidEft(property.host_id),
+      admin
+        .from("host_websites")
+        .select("settings")
+        .eq("id", ctx.websiteId)
+        .maybeSingle(),
+      // The host-editable styling of the checkout's `booking_form` element (from
+      // the `checkout` builder page). Applied as an overlay around the real form.
+      loadSystemPageStyle({
+        websiteId: ctx.websiteId,
+        kind: "checkout",
+        widgetType: "booking_form",
+        preview: ctx.preview,
+      }),
+    ]);
   const pay =
     (
       siteRow.data?.settings as {
@@ -461,7 +472,9 @@ export default async function SiteBookPage({
         previewPages={previewPages}
         pageHasHero={false}
       >
-        {checkout}
+        <BookingStyleOverlay node={bookingStyle} sectionType="booking_form">
+          {checkout}
+        </BookingStyleOverlay>
       </SiteChrome>
     </SiteThemeRoot>
   );
