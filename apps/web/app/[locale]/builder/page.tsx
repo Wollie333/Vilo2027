@@ -288,6 +288,29 @@ export default async function BuilderPage({
         id: `demo-${i}`,
         label: p.label,
         href: p.href,
+        // Give one item a dropdown so the menu preview shows a real dropdown
+        // (chevron + hover submenu) to style/test in the canvas.
+        ...(i === 1
+          ? {
+              children: [
+                {
+                  id: "demo-sub-1",
+                  label: "Garden Suite",
+                  href: "/rooms/garden-suite",
+                },
+                {
+                  id: "demo-sub-2",
+                  label: "Family Cottage",
+                  href: "/rooms/family-cottage",
+                },
+                {
+                  id: "demo-sub-3",
+                  label: "The Loft",
+                  href: "/rooms/the-loft",
+                },
+              ],
+            }
+          : {}),
       }),
     ),
   };

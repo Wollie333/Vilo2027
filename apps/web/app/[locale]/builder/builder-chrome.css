@@ -3051,14 +3051,21 @@
   align-items: center;
   gap: 20px;
   padding: 22px 34px;
+  /* Header bottom-border (solid state) — mirrors the live StickyHeader. */
+  border-bottom: var(--nbar-border-w, 1px) solid var(--nbar-border, transparent);
   transition:
     background 0.28s ease,
     box-shadow 0.28s ease,
+    border-color 0.28s ease,
     padding 0.28s ease;
 }
 /* Scrolled state — the bar turns solid + adopts the "Scrolled state" colours. */
 .wb .np-bar[data-scrolled="true"] {
   background: var(--nbar-scrolled-bg, #fff);
+  border-bottom-color: var(
+    --nbar-scrolled-border,
+    var(--nbar-border, transparent)
+  );
   box-shadow: var(--nbar-shadow, 0 1px 0 rgba(10, 20, 15, 0.1));
   padding-top: 16px;
   padding-bottom: 16px;
@@ -3156,6 +3163,10 @@
 }
 .wb .np-nav .nl {
   position: relative;
+  /* inline-flex so a dropdown parent's chevron sits INLINE next to the label
+     (a plain span let the block SVG wrap under the link and broke the nav). */
+  display: inline-flex;
+  align-items: center;
   color: var(--nlink);
   font-size: var(--nsize);
   font-weight: var(--nweight, 600);
@@ -3177,6 +3188,41 @@
 .wb .np-nav .nl .cx {
   margin-left: 4px;
   opacity: 0.7;
+  flex: none;
+}
+/* Hover dropdown preview — shows the submenu links + their styling in the canvas
+   so a dropdown parent's menu can be seen and tested while editing. */
+.wb .np-nav .nl .np-sub {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 190px;
+  display: none;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--nsub-bg, #fff);
+  border: 1px solid rgba(10, 20, 15, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(10, 20, 15, 0.16);
+  z-index: 20;
+}
+.wb .np-nav .nl.has-sub:hover .np-sub {
+  display: flex;
+}
+.wb .np-nav .nl .np-sub-link {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--nsub-color, #2c2620);
+  border-radius: 6px;
+  white-space: nowrap;
+  text-align: left;
+  text-transform: none;
+}
+.wb .np-nav .nl .np-sub-link:hover {
+  color: var(--nsub-hover, var(--naccent));
+  background: rgba(10, 20, 15, 0.05);
 }
 .wb .np-reserve {
   margin-left: 8px;

@@ -921,6 +921,27 @@ export function NavBuilderOverlay({
                       theme.base?.palette.ink ??
                       "#2C2620",
                     "--nbar-scrolled-bg": header.scrolledBgColor ?? "#ffffff",
+                    // Header bottom-border — solid state + scrolled state (mirrors
+                    // the live StickyHeader borderColor / scrolledBorderColor).
+                    "--nbar-border":
+                      header.borderColor?.trim() || "transparent",
+                    "--nbar-border-w":
+                      header.borderWidth != null
+                        ? `${header.borderWidth}px`
+                        : "1px",
+                    "--nbar-scrolled-border":
+                      header.scrolledBorderColor?.trim() ||
+                      header.borderColor?.trim() ||
+                      "transparent",
+                    // Dropdown/submenu styling (so the hover dropdown preview shows
+                    // the submenu colours from the "Dropdown menu" panel).
+                    "--nsub-bg": menuStyle.submenuBg?.trim() || "#ffffff",
+                    "--nsub-color":
+                      menuStyle.submenuColor?.trim() ||
+                      theme.base?.palette.ink ||
+                      "#2C2620",
+                    "--nsub-hover":
+                      menuStyle.submenuHoverColor?.trim() || accent,
                     // Scrolled drop-shadow — the mock bar lifts once scrolled.
                     // Off → keep the subtle hairline the bar always had.
                     "--nbar-shadow": header.scrolledShadow
@@ -991,21 +1012,41 @@ export function NavBuilderOverlay({
                         )}
                         {device !== "mobile" && (
                           <nav className={navCls}>
-                            {menu.map((it, i) => (
-                              <span
-                                key={it.id}
-                                className={i === 0 ? "nl active" : "nl"}
-                              >
-                                {it.label}
-                                {it.children && it.children.length > 0 && (
-                                  <ChevronDown
-                                    className="cx"
-                                    size={13}
-                                    strokeWidth={2.2}
-                                  />
-                                )}
-                              </span>
-                            ))}
+                            {menu.map((it, i) => {
+                              const kids = it.children ?? [];
+                              const hasKids = kids.length > 0;
+                              return (
+                                <span
+                                  key={it.id}
+                                  className={`${i === 0 ? "nl active" : "nl"}${
+                                    hasKids ? "has-sub" : ""
+                                  }`}
+                                >
+                                  {it.label}
+                                  {hasKids && (
+                                    <ChevronDown
+                                      className="cx"
+                                      size={13}
+                                      strokeWidth={2.2}
+                                    />
+                                  )}
+                                  {/* Hover dropdown preview — lets the host see +
+                                      test the submenu styling in the canvas. */}
+                                  {hasKids && (
+                                    <span className="np-sub">
+                                      {kids.map((c) => (
+                                        <span
+                                          key={c.id}
+                                          className="np-sub-link"
+                                        >
+                                          {c.label}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
                             {showCta && (
                               <span className="np-reserve">{ctaLabel}</span>
                             )}
