@@ -403,6 +403,8 @@ export const saveBuilderBrandSchema = z.object({
     name: z.string().max(120).optional(),
     tagline: z.string().max(200).optional(),
     monogram: z.string().max(4).optional(),
+    /** website-assets storage path (or absolute URL) of the uploaded logo. */
+    logoPath: z.string().max(300).optional(),
     socials: z
       .object({
         instagram: z.string().max(200).optional(),

@@ -35,6 +35,7 @@ type RawBrand = {
   name?: string | null;
   tagline?: string | null;
   monogram?: string | null;
+  logo_path?: string | null;
   socials?: { instagram?: string | null; facebook?: string | null } | null;
 };
 
@@ -73,6 +74,7 @@ function toBuilderBrand(raw: RawBrand | null | undefined): BuilderBrand {
     name: raw?.name ?? undefined,
     tagline: raw?.tagline ?? undefined,
     monogram: raw?.monogram ?? undefined,
+    logoPath: raw?.logo_path ?? undefined,
     socials: {
       instagram: raw?.socials?.instagram ?? undefined,
       facebook: raw?.socials?.facebook ?? undefined,

@@ -1370,6 +1370,8 @@ export async function saveBuilderBrandAction(
   if (brand.name !== undefined) mergedBrand.name = brand.name;
   if (brand.tagline !== undefined) mergedBrand.tagline = brand.tagline;
   if (brand.monogram !== undefined) mergedBrand.monogram = brand.monogram;
+  if (brand.logoPath !== undefined)
+    mergedBrand.logo_path = brand.logoPath || undefined;
 
   const { error } = await supabase
     .from("host_websites")

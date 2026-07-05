@@ -518,6 +518,7 @@ export function BuilderShell({
           name: brand.name,
           tagline: brand.tagline,
           monogram: brand.monogram,
+          logoPath: brand.logoPath,
           socials: brand.socials,
         },
       });
@@ -1757,6 +1758,7 @@ export function BuilderShell({
             onBrandChange={setBrand}
             doc={doc}
             navigation={navigation}
+            websiteId={websiteId}
             persists={persists}
             onPublish={saveBrand}
           />

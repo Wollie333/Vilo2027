@@ -41,6 +41,8 @@ import {
   type SiteShadow,
 } from "@/lib/site/themes";
 import { ThemeColorPicker } from "@/components/ui/ThemeColorPicker";
+import { MediaField } from "./MediaField";
+import { websiteAssetUrl } from "@/lib/website/assets";
 
 // Builder V2 — Phase 4c: Brand Studio overlay (token-driven).
 //
@@ -55,6 +57,8 @@ export type Brand = {
   name?: string;
   tagline?: string;
   monogram?: string;
+  /** Uploaded logo — website-assets storage path (or absolute URL). */
+  logoPath?: string;
   socials?: {
     instagram?: string;
     facebook?: string;
@@ -102,6 +106,7 @@ export function BrandStudioOverlay({
   onBrandChange,
   doc,
   navigation,
+  websiteId,
   persists,
   onPublish,
 }: {
@@ -114,6 +119,8 @@ export function BrandStudioOverlay({
   brand: Brand;
   onBrandChange: (next: Brand) => void;
   doc: PageDoc;
+  /** Site id — enables the logo upload / media-library picker. */
+  websiteId?: string;
   /** Site navigation → the brand-studio canvas renders the real header/menu/footer
    *  so the host sees the nav styled with their brand while designing. */
   navigation?: SiteNavigation;
@@ -310,6 +317,13 @@ export function BrandStudioOverlay({
                 maxLength={44}
                 value={brand.tagline ?? ""}
                 onChange={(e) => setBrand({ tagline: e.target.value })}
+              />
+            </Ctl>
+            <Ctl label="Logo" hint="upload or pick from your media library">
+              <MediaField
+                value={brand.logoPath ?? ""}
+                onChange={(v) => setBrand({ logoPath: v ?? "" })}
+                websiteId={websiteId}
               />
             </Ctl>
             <Ctl label="Logo monogram">
@@ -660,6 +674,8 @@ export function BrandStudioOverlay({
                       name: brand.name?.trim() || siteLabel,
                       tagline: brand.tagline ?? null,
                       monogram: brand.monogram ?? null,
+                      logoUrl: websiteAssetUrl(brand.logoPath) ?? null,
+                      logoStyle: brand.logoPath ? "mark" : undefined,
                       socials: brand.socials as SiteBrand["socials"],
                     }}
                     nav={(navigation?.menu ?? []).map((m) => ({
