@@ -362,7 +362,7 @@ export function PostEditor({
 
   return (
     <div
-      className={`wielo-builder${preview ? "previewing" : ""}`}
+      className={preview ? "wielo-builder previewing" : "wielo-builder"}
       style={{
         height: "100vh",
         display: "flex",
@@ -722,6 +722,25 @@ export function PostEditor({
                     />
                   </div>
                   <div className="seo-prev">
+                    {/* Share/SEO image: the featured image is used automatically
+                        (set it in the Featured image picker on the Content tab). */}
+                    <div
+                      style={{
+                        height: 132,
+                        borderRadius: 8,
+                        marginBottom: 8,
+                        background: coverUrl
+                          ? `#0000 url("${coverUrl}") center/cover no-repeat`
+                          : "repeating-conic-gradient(#e5e7eb 0% 25%, #f3f4f6 0% 50%) 0 / 16px 16px",
+                        display: coverUrl ? undefined : "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 11,
+                        color: "#9ca3af",
+                      }}
+                    >
+                      {coverUrl ? null : "Add a featured image →"}
+                    </div>
                     <div className="su">
                       {subdomain}/blog/{savedSlug || slugPlaceholder}
                     </div>
