@@ -586,6 +586,12 @@
   align-self: flex-start;
   transition: max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  /* Containing block for position:fixed descendants (the mobile menu drawer, a
+     transparent-over-hero header, etc.) so they render INSIDE the canvas/header
+     preview and are clipped by overflow:hidden — instead of `fixed` escaping to
+     the viewport and overlaying the whole builder. (position:relative only
+     contains `absolute`; a transform is what creates a fixed containing block.) */
+  transform: translateZ(0);
 }
 .wb .stage.tablet {
   max-width: 768px;
