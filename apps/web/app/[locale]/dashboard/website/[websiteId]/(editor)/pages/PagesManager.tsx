@@ -359,12 +359,19 @@ function PageRow({
   const router = useRouter();
   const [dup, startDup] = useTransition();
   const live = page.publishedCount > 0;
+  // System-page rows show the REAL live route they map to (Builder V3 Group 1):
+  // the checkout runs on /book and its thank-you on /book/thank-you — not the
+  // legacy /checkout · /thank-you slugs. Other pages use their own slug.
   const path =
     page.kind === "home"
       ? "/"
       : page.kind === "room_detail"
         ? "/rooms/…"
-        : `/${page.slug}`;
+        : page.kind === "checkout"
+          ? "/book"
+          : page.kind === "thank-you"
+            ? "/book/thank-you"
+            : `/${page.slug}`;
 
   function onDuplicateClick() {
     startDup(async () => {
