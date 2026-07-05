@@ -560,27 +560,33 @@ function menuStyleCss(style: SiteNavigation["menuStyle"]): string {
     rules.push(
       `[data-scrolled="true"] .wielo-hmenu a:hover,[data-scrolled="true"] .wielo-hmenu button:hover{color:${sHover}}`,
     );
-  // Dropdown submenu (.wielo-submenu). The panel inherits --wielo-submenu-bg;
-  // submenu links come AFTER the top-level rule so they win on equal specificity.
+  // Dropdown submenu (.wielo-submenu). The panel inherits --wielo-submenu-bg
+  // (defaults to --site-surface via the inline fallback in MenuNav).
   if (style?.submenuBg?.trim())
     rules.push(`.wielo-hmenu{--wielo-submenu-bg:${style.submenuBg.trim()}}`);
-  if (style?.submenuColor?.trim())
-    rules.push(`.wielo-submenu a{color:${style.submenuColor.trim()}}`);
-  if (style?.submenuHoverColor?.trim())
-    rules.push(
-      `.wielo-submenu a:hover{color:${style.submenuHoverColor.trim()}}`,
-    );
+  // Dropdown links ALWAYS get an explicit, legible colour scoped to the dropdown
+  // panel — they must NEVER inherit the top-level header colour. That colour is
+  // often light/white for a transparent-over-hero header (invisible on the light
+  // dropdown panel), and once scrolled the higher-specificity [data-scrolled]
+  // rule would bleed in too. The `.wielo-hmenu` prefix lifts this to (0,2,1) so it
+  // ties the scrolled top-level rule and, emitted later, wins. Host colour → default.
+  const submenuColor = style?.submenuColor?.trim() || "var(--site-ink)";
+  const submenuHover =
+    style?.submenuHoverColor?.trim() || "var(--site-accent, var(--site-ink))";
+  rules.push(`.wielo-hmenu .wielo-submenu a{color:${submenuColor}}`);
+  rules.push(
+    `.wielo-hmenu .wielo-submenu a:hover{color:${submenuHover};opacity:1}`,
+  );
   // Scrolled-state dropdown — once a transparent-over-hero header turns solid
-  // ([data-scrolled]), the dropdown panel + links can switch colours to stay
-  // legible against the scrolled bar. Emitted after the base submenu rules so
-  // they win on equal specificity when scrolled.
+  // ([data-scrolled]) the panel + links can switch colours. Higher specificity
+  // (0,3,1) than the base dropdown rule so it always wins when scrolled.
   if (style?.scrolledSubmenuBg?.trim())
     rules.push(
       `[data-scrolled="true"] .wielo-hmenu{--wielo-submenu-bg:${style.scrolledSubmenuBg.trim()}}`,
     );
   if (style?.scrolledSubmenuColor?.trim())
     rules.push(
-      `[data-scrolled="true"] .wielo-submenu a{color:${style.scrolledSubmenuColor.trim()}}`,
+      `[data-scrolled="true"] .wielo-hmenu .wielo-submenu a{color:${style.scrolledSubmenuColor.trim()}}`,
     );
   return rules.join("");
 }
