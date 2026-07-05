@@ -10,6 +10,18 @@
 > the order the plan suggests; each ends green (tsc + lint + 229 vitest) + commit + push
 > + verify canvas AND live (Principle #9; dev harnesses `/dev/rooms|search|chrome`).
 >
+> **PROGRESS (2026-07-05 #6):** ✅ **Group 3 DONE** (`a78bbfc8`) — Pages row `⋯`
+> menu now portals to `<body>` (fixed-position, escapes the section's
+> `overflow:hidden`); `.wielo-cms` root bg `#fff`→`transparent` so the ambient
+> `#fbfbfb` shows through uniformly on ALL tabs (cards keep their own white).
+> Verified live in the real CMS (Pages + Settings) as the vilotest host.
+> ✅ **Group 4 DONE** (`e4168724`) — collapsible palette headings (Layout +
+> both categories + each group; chevron rotates; search force-expands) +
+> delete-selected-node returns the side panel to Widgets (`selectNode(null)`).
+> Verified in the oceansview builder demo. ⏳ **Groups 2 + 1 REMAIN** (the big
+> ones): Group 2 = elements-vs-sections refactor, Group 1 = /book + thank-you
+> system pages. Do Group 2 first.
+>
 > Quick summary of the four groups:
 > 1. **System pages = the real live pages.** Remove the `/checkout` system row; seed the
 >    real one as **`/book`** (live checkout = `app/[locale]/site/book` + `SiteCheckoutForm`).

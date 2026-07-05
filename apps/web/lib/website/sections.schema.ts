@@ -549,11 +549,14 @@ const pricingProps = z.object({
   footnote: z.string().max(300).optional(),
 });
 
-// Free-form embedded video (YouTube / Vimeo URL).
+// Free-form embedded video (YouTube / Vimeo URL). Renders as a BARE element (the
+// wrapping section owns the band/padding) with its own size control (Builder V3
+// Group 2.3) — narrow / medium / full width, centred within the section.
 const videoProps = z.object({
   heading,
   url: z.string().max(500),
   caption: z.string().max(300).optional(),
+  width: z.enum(["narrow", "medium", "full"]).optional(),
 });
 
 // Trust signals (Phase 6A) — free-form badges (awards / certifications /

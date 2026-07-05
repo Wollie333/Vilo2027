@@ -694,13 +694,23 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     group: "basic",
     label: "Video",
     icon: "Play",
-    defaults: { heading: "", url: "", caption: "" },
+    defaults: { heading: "", url: "", caption: "", width: "full" },
     content: [
       {
         kind: "text",
         key: "url",
         label: "Video URL",
         placeholder: "YouTube / Vimeo",
+      },
+      {
+        kind: "seg",
+        key: "width",
+        label: "Size",
+        options: [
+          ["narrow", "Narrow"],
+          ["medium", "Medium"],
+          ["full", "Full"],
+        ],
       },
       { kind: "text", key: "caption", label: "Caption" },
     ],
