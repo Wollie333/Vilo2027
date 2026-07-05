@@ -60,11 +60,18 @@ type Scope = "whole_listing" | "rooms";
 const isPerNight = (m: PricingModel) =>
   m === "per_night" || m === "per_guest_per_night";
 
+// Fields read the host's saved `--el-field-*` styling (set on the checkout page's
+// `booking_form` node, applied by BookingStyleOverlay on the live route) and fall
+// back to the theme tokens when unset — so styling the "Fields" element in the
+// builder restyles the real inputs live, with zero change when the host hasn't
+// touched it. (Builder V3 Group 1 — close the live styling gap.)
 const fieldStyle: CSSProperties = {
-  background: "var(--site-bg)",
-  borderColor: "var(--site-line)",
-  color: "var(--site-ink)",
-  borderRadius: "var(--site-radius)",
+  background: "var(--el-field-bg, var(--site-bg))",
+  // Full border shorthand from --el-field-bd (elementVarsCss emits `Npx solid C`);
+  // falls back to the theme line. Inline wins over the `border` utility class below.
+  border: "var(--el-field-bd, 1px solid var(--site-line))",
+  color: "var(--el-field-fg, var(--site-ink))",
+  borderRadius: "var(--el-field-radius, var(--site-radius))",
 };
 const inputCls = "w-full border px-3 py-2.5 text-sm outline-none";
 
@@ -560,7 +567,17 @@ export function SiteCheckoutForm({
             : "Please don’t close this page."
         }
       />
-      <SectionHeading className="mb-2">Book {propertyName}</SectionHeading>
+      <SectionHeading
+        className="mb-2"
+        style={{
+          color: "var(--el-title-fg, var(--site-ink))",
+          fontSize: "var(--el-title-size, var(--site-h2))",
+          fontWeight:
+            "var(--el-title-weight, var(--site-weight-heading))" as unknown as number,
+        }}
+      >
+        Book {propertyName}
+      </SectionHeading>
       <Muted className="mb-8 text-center text-base">
         Reserve your stay directly — no booking fees.
       </Muted>
@@ -906,10 +923,15 @@ export function SiteCheckoutForm({
                       <div
                         key={a.id}
                         style={{
-                          borderColor: on
-                            ? "var(--site-accent)"
-                            : "var(--site-line)",
-                          borderRadius: "var(--site-radius)",
+                          // Add-on cards read the host's `--el-addon-*` styling
+                          // (Builder V3 Group 1); the selected state keeps the
+                          // accent highlight so the picker still reads clearly.
+                          background: "var(--el-addon-bg, transparent)",
+                          border: on
+                            ? "1px solid var(--site-accent)"
+                            : "var(--el-addon-bd, 1px solid var(--site-line))",
+                          borderRadius:
+                            "var(--el-addon-radius, var(--site-radius))",
                         }}
                         className="flex flex-col border p-3 transition"
                       >
@@ -1096,9 +1118,19 @@ export function SiteCheckoutForm({
              Summary and the room-detail booking dock behave identically. (Grid
              item → self-start so it's natural height and can stick.) */}
         <div className="wielo-book-card-sticky wielo-book-card-selfstart">
-          <Card className="p-6">
+          {/* Summary box reads the host's `--el-summary-*` styling (falls back to
+              the Card/theme defaults when unset — Builder V3 Group 1 live styling). */}
+          <Card
+            className="p-6"
+            style={{
+              background: "var(--el-summary-bg, var(--site-surface))",
+              border: "var(--el-summary-bd, var(--site-card-border))",
+              borderRadius: "var(--el-summary-radius, var(--site-card-radius))",
+              color: "var(--el-summary-fg, var(--site-ink))",
+            }}
+          >
             <h3
-              style={{ color: "var(--site-ink)" }}
+              style={{ color: "var(--el-summary-fg, var(--site-ink))" }}
               className="text-base font-semibold"
             >
               Summary
@@ -1181,7 +1213,12 @@ export function SiteCheckoutForm({
                   Total
                 </span>
                 <span
-                  style={{ color: "var(--site-ink)" }}
+                  style={{
+                    color: "var(--el-price-fg, var(--site-ink))",
+                    fontSize: "var(--el-price-size, 1.125rem)",
+                    fontWeight:
+                      "var(--el-price-weight, 700)" as unknown as number,
+                  }}
                   className="text-lg font-bold"
                 >
                   {quoting
@@ -1272,10 +1309,13 @@ export function SiteCheckoutForm({
               onClick={onSubmit}
               disabled={formInvalid || submitting}
               style={{
-                background: "var(--site-btn-primary-bg)",
-                color: "var(--site-btn-primary-color)",
-                border: "var(--site-btn-primary-border)",
-                borderRadius: "var(--site-btn-primary-radius)",
+                // Pay button reads the host's `--el-button-*` styling (Builder V3
+                // Group 1); falls back to the theme's primary-button tokens.
+                background: "var(--el-button-bg, var(--site-btn-primary-bg))",
+                color: "var(--el-button-fg, var(--site-btn-primary-color))",
+                border: "var(--el-button-bd, var(--site-btn-primary-border))",
+                borderRadius:
+                  "var(--el-button-radius, var(--site-btn-primary-radius))",
               }}
               className="mt-5 inline-flex w-full items-center justify-center px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
             >

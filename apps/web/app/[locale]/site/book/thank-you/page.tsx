@@ -205,7 +205,15 @@ export default async function SiteThankYouPage({
           sectionType="booking_confirmation"
         >
           <SectionShell width="narrow">
-            <SectionHeading className="mb-3">
+            <SectionHeading
+              className="mb-3"
+              style={{
+                color: "var(--el-title-fg, var(--site-ink))",
+                fontSize: "var(--el-title-size, var(--site-h2))",
+                fontWeight:
+                  "var(--el-title-weight, var(--site-weight-heading))" as unknown as number,
+              }}
+            >
               {isConfirmed
                 ? "You're booked in 🎉"
                 : isEftPending
@@ -220,7 +228,15 @@ export default async function SiteThankYouPage({
                   : "This can take a moment. We'll email your confirmation as soon as it's settled."}
             </Muted>
 
-            <Card className="p-6">
+            <Card
+              className="p-6"
+              style={{
+                background: "var(--el-card-bg, var(--site-surface))",
+                border: "var(--el-card-bd, var(--site-card-border))",
+                borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+                boxShadow: "var(--el-card-shadow, var(--site-card-shadow))",
+              }}
+            >
               <div className="space-y-2.5 text-sm">
                 <Row label="Reference">{booking.reference ?? "—"}</Row>
                 <Row label="Dates">
@@ -234,13 +250,18 @@ export default async function SiteThankYouPage({
                   className="mt-2 flex items-center justify-between border-t pt-3"
                 >
                   <span
-                    style={{ color: "var(--site-ink)" }}
+                    style={{ color: "var(--el-total-fg, var(--site-ink))" }}
                     className="font-semibold"
                   >
                     Total
                   </span>
                   <span
-                    style={{ color: "var(--site-ink)" }}
+                    style={{
+                      color: "var(--el-total-fg, var(--site-ink))",
+                      fontSize: "var(--el-total-size, 1.125rem)",
+                      fontWeight:
+                        "var(--el-total-weight, 700)" as unknown as number,
+                    }}
                     className="text-lg font-bold"
                   >
                     {money(total, currency)}
@@ -250,11 +271,19 @@ export default async function SiteThankYouPage({
 
               {eft ? (
                 <div
-                  style={{ borderColor: "var(--site-line)" }}
+                  style={{
+                    // Banking-details box reads the host's `--el-bank-*` styling;
+                    // defaults to the current top-divider look (transparent, no
+                    // radius) so unstyled bookings render exactly as before.
+                    borderColor: "var(--site-line)",
+                    background: "var(--el-bank-bg, transparent)",
+                    color: "var(--el-bank-fg, var(--site-ink))",
+                    borderRadius: "var(--el-bank-radius, 0px)",
+                  }}
                   className="mt-5 border-t pt-5"
                 >
                   <h3
-                    style={{ color: "var(--site-ink)" }}
+                    style={{ color: "var(--el-bank-fg, var(--site-ink))" }}
                     className="mb-3 text-sm font-semibold"
                   >
                     Banking details
@@ -284,11 +313,16 @@ function Row({
   label: string;
   children: React.ReactNode;
 }) {
+  // Detail rows read the host's `--el-row-*` styling (Builder V3 Group 1); the
+  // label uses the muted tone, the value the row colour — both with theme fallbacks.
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div
+      className="flex items-center justify-between gap-3"
+      style={{ fontSize: "var(--el-row-size, inherit)" }}
+    >
       <span style={{ color: "var(--site-mute)" }}>{label}</span>
       <span
-        style={{ color: "var(--site-ink)" }}
+        style={{ color: "var(--el-row-fg, var(--site-ink))" }}
         className="text-right font-medium"
       >
         {children}

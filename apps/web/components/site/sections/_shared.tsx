@@ -529,10 +529,13 @@ export function SectionHeading({
   children,
   centered = true,
   className = "",
+  style,
 }: {
   children: ReactNode;
   centered?: boolean;
   className?: string;
+  /** Optional overrides spread AFTER the theme defaults (no effect when omitted). */
+  style?: CSSProperties;
 }) {
   return (
     <h2
@@ -543,6 +546,7 @@ export function SectionHeading({
         lineHeight: "var(--site-leading-heading)" as unknown as number,
         letterSpacing: "var(--site-tracking-heading)",
         color: "var(--site-ink)",
+        ...style,
       }}
       className={`${centered ? "text-center" : ""} ${className}`}
     >
