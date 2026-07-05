@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-05 #8 — Builder V3 Group 1 done: booking elements + live styling.
+
+Reconciled parallel booking-element work into one implementation and closed the live
+styling gap (all on `main`).
+
+- **Reconciled** the styling-overlay approach (`5a8f5fb0`): `booking_form` (checkout) +
+  `booking_confirmation` (thank-you) are section types → `BookingSystemSections` (a
+  theme-skinned, `--el-*`-styleable DEMO in the builder canvas). The live `/book` +
+  `/book/thank-you` routes load the builder page's saved styling (`systemPageStyle.ts`)
+  and wrap the UNCHANGED real `SiteCheckoutForm` / confirmation in `<BookingStyleOverlay>`
+  (renders children untouched when unstyled → checkout never depends on it). `loadPagesList`
+  seeds both pages. Page-Manager path remap → `/book`, `/book/thank-you` (`da18082e`).
+- **Live styling gap closed** (`bfc6fa94`): the real form + thank-you card now read the
+  granular `--el-*` vars (field/title/summary/price/add-on/button; card/row/total/bank),
+  all additive `var(--el-*, <fallback>)` → zero behavioural change.
+- **`SiteCheckoutForm` behaviour is byte-for-byte identical** — payment + SPECIALS flow
+  untouched. Verified live on vilotest: `?special=…` shows "OFFER APPLIED · Midweek retreat"
+  exactly as before, and the real form applies the host's styling (field→red, button→blue,
+  title→green). tsc + lint + 231 vitest green.
+
 ## 2026-07-05 #7 — Builder V3 Groups 2, 3, 4 shipped (Group 1 remains).
 
 Executed 3 of the 4 Builder V3 groups; all on `main`, each verified in the real

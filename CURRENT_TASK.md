@@ -43,12 +43,16 @@
 >   real checkout renders; `?special=…` shows "OFFER APPLIED · Midweek retreat" with
 >   window/length/stock identical to before; builder canvas renders the demo. tsc+lint+231
 >   green. Page-Manager path remap (`/book`, `/book/thank-you`) also shipped (`da18082e`).
->   ⚠️ **KNOWN GAP (safe follow-up):** the live overlay applies the block frame + custom CSS
->   + button (`SiteButton` reads `--el-button-*`) + device visibility, but the granular
->   `--el-field/title/summary/price/addon` vars only affect the builder DEMO — the real
->   `SiteCheckoutForm` doesn't read them yet (kept byte-for-byte). Closing it = additive
->   `var(--el-field-bg, var(--site-bg))`-style fallbacks in `SiteCheckoutForm` (central
->   `fieldStyle` L63-68 + title/summary/price/addon spots) — zero functional change.
+>   ✅ **GAP CLOSED** (`bfc6fa94`): the real `SiteCheckoutForm` + thank-you card now read
+>   the granular `--el-*` vars — field (`--el-field-*`), title (`--el-title-*`), summary
+>   box (`--el-summary-*`), total (`--el-price-*`/`--el-total-*`), add-on cards
+>   (`--el-addon-*`, selected-state accent kept), pay button (`--el-button-*`); thank-you
+>   card/row/bank too. All additive `var(--el-*, <theme fallback>)` → zero behavioural
+>   change; specials/payment logic byte-for-byte identical. `SectionHeading` gained an
+>   optional `style` prop (spread after defaults). VERIFIED on live `/book`: the special
+>   checkout renders unchanged AND the real form consumes the vars the overlay sets
+>   (field white→red, button teal→blue, title dark→green via injection on the live page;
+>   the overlay emits those exact vars from the published node). Group 1 fully done.
 >
 > ---
 > _(historical) Group 1 was originally scoped as:_ approach = **"styling overlay first (safer)"** (founder
