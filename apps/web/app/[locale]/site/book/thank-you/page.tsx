@@ -3,12 +3,7 @@ import { notFound } from "next/navigation";
 
 import { FirePurchase } from "@/components/site/FirePurchase";
 import { SiteChrome } from "@/components/site/SiteChrome";
-import {
-  SectionShell,
-  SectionHeading,
-  Muted,
-  Card,
-} from "@/components/site/sections/_shared";
+import { BookingConfirmationCard } from "@/components/site/BookingConfirmationCard";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
 import {
@@ -204,129 +199,48 @@ export default async function SiteThankYouPage({
           node={bookingStyle}
           sectionType="booking_confirmation"
         >
-          <SectionShell width="narrow">
-            <SectionHeading
-              className="mb-3"
-              style={{
-                color: "var(--el-title-fg, var(--site-ink))",
-                fontSize: "var(--el-title-size, var(--site-h2))",
-                fontWeight:
-                  "var(--el-title-weight, var(--site-weight-heading))" as unknown as number,
-              }}
-            >
-              {isConfirmed
+          <BookingConfirmationCard
+            heading={
+              isConfirmed
                 ? "You're booked in 🎉"
                 : isEftPending
                   ? "Almost there — complete your transfer"
-                  : "We're confirming your payment"}
-            </SectionHeading>
-            <Muted className="mb-8 text-center text-base">
-              {isConfirmed
+                  : "We're confirming your payment"
+            }
+            message={
+              isConfirmed
                 ? `Thanks${booking.guest_name ? `, ${booking.guest_name.split(" ")[0]}` : ""} — a confirmation is on its way to your email.`
                 : isEftPending
                   ? "Your booking is reserved. Transfer the amount below using your booking reference and the host will confirm once it reflects."
-                  : "This can take a moment. We'll email your confirmation as soon as it's settled."}
-            </Muted>
-
-            <Card
-              className="p-6"
-              style={{
-                background: "var(--el-card-bg, var(--site-surface))",
-                border: "var(--el-card-bd, var(--site-card-border))",
-                borderRadius: "var(--el-card-radius, var(--site-card-radius))",
-                boxShadow: "var(--el-card-shadow, var(--site-card-shadow))",
-              }}
-            >
-              <div className="space-y-2.5 text-sm">
-                <Row label="Reference">{booking.reference ?? "—"}</Row>
-                <Row label="Dates">
-                  {booking.check_in && booking.check_out
+                  : "This can take a moment. We'll email your confirmation as soon as it's settled."
+            }
+            rows={[
+              { label: "Reference", value: booking.reference ?? "—" },
+              {
+                label: "Dates",
+                value:
+                  booking.check_in && booking.check_out
                     ? `${booking.check_in} → ${booking.check_out}`
-                    : "—"}
-                </Row>
-                <Row label="Guests">{booking.guests_count ?? "—"}</Row>
-                <div
-                  style={{ borderColor: "var(--site-line)" }}
-                  className="mt-2 flex items-center justify-between border-t pt-3"
-                >
-                  <span
-                    style={{ color: "var(--el-total-fg, var(--site-ink))" }}
-                    className="font-semibold"
-                  >
-                    Total
-                  </span>
-                  <span
-                    style={{
-                      color: "var(--el-total-fg, var(--site-ink))",
-                      fontSize: "var(--el-total-size, 1.125rem)",
-                      fontWeight:
-                        "var(--el-total-weight, 700)" as unknown as number,
-                    }}
-                    className="text-lg font-bold"
-                  >
-                    {money(total, currency)}
-                  </span>
-                </div>
-              </div>
-
-              {eft ? (
-                <div
-                  style={{
-                    // Banking-details box reads the host's `--el-bank-*` styling;
-                    // defaults to the current top-divider look (transparent, no
-                    // radius) so unstyled bookings render exactly as before.
-                    borderColor: "var(--site-line)",
-                    background: "var(--el-bank-bg, transparent)",
-                    color: "var(--el-bank-fg, var(--site-ink))",
-                    borderRadius: "var(--el-bank-radius, 0px)",
-                  }}
-                  className="mt-5 border-t pt-5"
-                >
-                  <h3
-                    style={{ color: "var(--el-bank-fg, var(--site-ink))" }}
-                    className="mb-3 text-sm font-semibold"
-                  >
-                    Banking details
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <Row label="Account holder">{eft.account_holder}</Row>
-                    <Row label="Bank">{eft.bank_name}</Row>
-                    <Row label="Account number">{eft.account_number}</Row>
-                    <Row label="Branch code">{eft.branch_code}</Row>
-                    <Row label="Account type">{eft.account_type}</Row>
-                    <Row label="Use reference">{booking.reference ?? "—"}</Row>
-                  </div>
-                </div>
-              ) : null}
-            </Card>
-          </SectionShell>
+                    : "—",
+              },
+              { label: "Guests", value: String(booking.guests_count ?? "—") },
+            ]}
+            total={money(total, currency) ?? "—"}
+            eft={
+              eft
+                ? [
+                    { label: "Account holder", value: eft.account_holder },
+                    { label: "Bank", value: eft.bank_name },
+                    { label: "Account number", value: eft.account_number },
+                    { label: "Branch code", value: eft.branch_code },
+                    { label: "Account type", value: eft.account_type },
+                    { label: "Use reference", value: booking.reference ?? "—" },
+                  ]
+                : null
+            }
+          />
         </BookingStyleOverlay>
       </SiteChrome>
     </SiteThemeRoot>
-  );
-}
-
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  // Detail rows read the host's `--el-row-*` styling (Builder V3 Group 1); the
-  // label uses the muted tone, the value the row colour — both with theme fallbacks.
-  return (
-    <div
-      className="flex items-center justify-between gap-3"
-      style={{ fontSize: "var(--el-row-size, inherit)" }}
-    >
-      <span style={{ color: "var(--site-mute)" }}>{label}</span>
-      <span
-        style={{ color: "var(--el-row-fg, var(--site-ink))" }}
-        className="text-right font-medium"
-      >
-        {children}
-      </span>
-    </div>
   );
 }

@@ -393,7 +393,7 @@ export function GenericSection({
         />
       );
     case "booking_form":
-      return <BookingFormSection props={section.props} />;
+      return <BookingFormSection />;
     case "booking_confirmation":
       return <BookingConfirmationSection props={section.props} />;
     case "availability_calendar":

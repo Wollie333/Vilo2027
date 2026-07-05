@@ -172,6 +172,26 @@ function searchResultsSpine(): Section[] {
   ];
 }
 
+// Checkout (/book) + thank-you (/book/thank-you) system pages: a single styleable
+// booking element. The DATA + logic are the live route's (SiteCheckoutForm /
+// confirmation); the seeded element only carries the host's --el-* styling.
+function checkoutSpine(): Section[] {
+  return [
+    s("booking_form", {
+      heading: "Complete your booking",
+      body: "Choose your dates and add-ons — your price is confirmed securely.",
+    }),
+  ];
+}
+function thankYouSpine(): Section[] {
+  return [
+    s("booking_confirmation", {
+      heading: "You're booked in 🎉",
+      body: "A confirmation is on its way to your email.",
+    }),
+  ];
+}
+
 /** One required Class-1 page in the canonical set. `build` returns its default
  * section spine, used only when the active theme's blueprint omits this kind. */
 type StandardPageDef = {
@@ -248,9 +268,10 @@ export const REQUIRED_STANDARD_PAGES: StandardPageDef[] = [
 ];
 
 /** System templates every theme must also ship (THEME_CONTRACT.md Class 2). These
- * are NOT shown in the nav and are edit-only in the Page Manager. Checkout +
- * thank-you + room_detail are seeded by the theme blueprint / lazily; search_results
- * is new, so it's guaranteed here. */
+ * are NOT shown in the nav and are edit-only in the Page Manager. room_detail is
+ * seeded lazily by its own flow; search_results + checkout (/book) + thank-you
+ * (/book/thank-you) are guaranteed here so a new website always has the real,
+ * host-styleable booking system pages. */
 export const SYSTEM_STANDARD_PAGES: StandardPageDef[] = [
   {
     kind: "search_results",
@@ -259,6 +280,24 @@ export const SYSTEM_STANDARD_PAGES: StandardPageDef[] = [
     nav_label: "Search results",
     order: 900,
     build: searchResultsSpine,
+  },
+  {
+    // The REAL on-site checkout — live route `/book`; the row edits its styling.
+    kind: "checkout",
+    slug: "book",
+    title: "Checkout",
+    nav_label: "Checkout",
+    order: 901,
+    build: checkoutSpine,
+  },
+  {
+    // The REAL post-payment landing — live route `/book/thank-you`.
+    kind: "thank-you",
+    slug: "book/thank-you",
+    title: "Thank you",
+    nav_label: "Thank you",
+    order: 902,
+    build: thankYouSpine,
   },
 ];
 

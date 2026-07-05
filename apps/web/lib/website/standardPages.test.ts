@@ -54,18 +54,23 @@ describe("mergeStandardPages", () => {
     for (const original of themePages) {
       expect(merged).toContain(original);
     }
-    // The missing required marketing pages + the system search-results page.
+    // The missing required marketing pages + the system pages (search_results +
+    // the checkout/thank-you booking system pages).
     const added = merged.filter((p) => !themePages.includes(p));
     expect(added.map((p) => p.kind).sort()).toEqual([
+      "checkout",
       "experiences",
       "gallery",
       "search_results",
       "specials",
+      "thank-you",
     ]);
-    // The system page is never in the nav; the marketing ones are.
-    const sr = added.find((p) => p.kind === "search_results");
-    expect(sr?.show_in_nav).toBe(false);
-    for (const a of added.filter((p) => p.kind !== "search_results")) {
+    // System pages are never in the nav; the marketing ones are.
+    const systemKinds = new Set(["search_results", "checkout", "thank-you"]);
+    for (const sys of added.filter((p) => systemKinds.has(p.kind))) {
+      expect(sys.show_in_nav).toBe(false);
+    }
+    for (const a of added.filter((p) => !systemKinds.has(p.kind))) {
       expect(a.show_in_nav).toBe(true);
       expect(a.nav_order).toBeGreaterThan(4);
     }

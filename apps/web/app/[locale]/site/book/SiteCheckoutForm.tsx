@@ -147,6 +147,7 @@ export function SiteCheckoutForm({
   cancellation,
   initial,
   special,
+  preview = false,
 }: {
   websiteId: string;
   propertyId: string;
@@ -193,6 +194,11 @@ export function SiteCheckoutForm({
     remaining?: number | null;
     bookBy?: string | null;
   };
+  /** Builder-only: render the real form as an INERT preview — no quote/submit
+   *  network, no Turnstile, pay button disabled. The builder's `booking_form`
+   *  system-page element renders this so the host styles the ACTUAL checkout;
+   *  the live /book route omits it (default false → unchanged behaviour). */
+  preview?: boolean;
 }) {
   const canWhole = bookingMode !== "rooms_only" && basePrice != null;
   const canRooms = rooms.length > 0;
@@ -339,6 +345,17 @@ export function SiteCheckoutForm({
 
   // Live, server-recalculated quote (debounced).
   useEffect(() => {
+    // Builder preview: never hit the quote API. Show a static demo total so the
+    // summary reads like a real booking (the host is styling, not pricing).
+    if (preview) {
+      setQuote({
+        available: true,
+        total: 3900,
+        nights: 3,
+        couponApplied: false,
+      });
+      return;
+    }
     // SPECIAL mode: the offer price is fixed by the offer, not the room quote —
     // show the server-computed offer total (the create call re-prices + redeems).
     // But only while the offer is ACTIVE for the chosen dates; if the guest moved
@@ -406,6 +423,7 @@ export function SiteCheckoutForm({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    preview,
     canQuote,
     scope,
     checkIn,
@@ -1296,9 +1314,12 @@ export function SiteCheckoutForm({
               </span>
             </label>
 
-            <div className="mt-4">
-              <TurnstileWidget onVerify={setTsToken} resetSignal={tsNonce} />
-            </div>
+            {/* No bot-challenge in the builder preview (would load an external script). */}
+            {preview ? null : (
+              <div className="mt-4">
+                <TurnstileWidget onVerify={setTsToken} resetSignal={tsNonce} />
+              </div>
+            )}
 
             {error ? (
               <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
@@ -1307,7 +1328,7 @@ export function SiteCheckoutForm({
             <button
               type="button"
               onClick={onSubmit}
-              disabled={formInvalid || submitting}
+              disabled={preview || formInvalid || submitting}
               style={{
                 // Pay button reads the host's `--el-button-*` styling (Builder V3
                 // Group 1); falls back to the theme's primary-button tokens.

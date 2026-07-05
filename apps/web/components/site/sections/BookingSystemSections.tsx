@@ -1,185 +1,151 @@
-import type { CSSProperties } from "react";
+import dynamic from "next/dynamic";
 
 import type { WebsiteSection } from "@/lib/website/sections.schema";
+import type {
+  CheckoutRoom,
+  CheckoutAddon,
+} from "@/app/[locale]/site/book/SiteCheckoutForm";
 
-import { SectionShell, Muted } from "./_shared";
+import { BookingConfirmationCard } from "../BookingConfirmationCard";
 
-// Builder V3 — system-page booking elements (checkout + thank-you).
+// Builder V3 — the checkout + thank-you SYSTEM-PAGE elements, as shown in the
+// builder canvas. These render the REAL live components (the same SiteCheckoutForm
+// the /book route ships, and the shared BookingConfirmationCard the thank-you route
+// ships) in an INERT preview with generic demo data — so the host styles the ACTUAL
+// page, not a look-alike. The live routes render the same components with real data
+// and apply the host's saved `--el-*` styling via BookingStyleOverlay.
 //
-// These render a THEME-SKINNED DEMO of the real booking form / confirmation so
-// the host can see + style them on the builder canvas (via each block's
-// `--el-<key>-*` element vars, with `--site-*` fallbacks so an unstyled block
-// still matches the active theme). The LIVE /book + /book/thank-you routes render
-// the real interactive `SiteCheckoutForm` / confirmation directly and apply the
-// host's saved styling as an overlay — these demos never handle real bookings.
-//
-// Pure presentational server components (no state, no data): the "dynamic" fields
-// are illustrative placeholders that mirror the real layout's anatomy.
+// SiteCheckoutForm is lazy-loaded (it's a large client component) so the checkout
+// bundle never lands in every guest-facing site page — booking_form only ever
+// renders here, in the builder.
+const SiteCheckoutForm = dynamic(() =>
+  import("@/app/[locale]/site/book/SiteCheckoutForm").then((m) => ({
+    default: m.SiteCheckoutForm,
+  })),
+);
 
-type BookingFormProps = Extract<
-  WebsiteSection,
-  { type: "booking_form" }
->["props"];
 type BookingConfirmationProps = Extract<
   WebsiteSection,
   { type: "booking_confirmation" }
 >["props"];
 
-// Shared frame for a styleable card (reads the `card` element vars).
-const cardStyle: CSSProperties = {
-  background: "var(--el-card-bg, var(--site-surface, #fff))",
-  border: "var(--el-card-bd, 1px solid var(--site-line, #e5e7eb))",
-  borderRadius: "var(--el-card-radius, var(--site-card-radius, 16px))",
-  boxShadow: "var(--el-card-shadow, 0 8px 24px rgba(0,0,0,0.06))",
-  padding: "var(--el-card-py, 28px) var(--el-card-px, 28px)",
-  marginTop: "var(--el-card-mt, 0px)",
-  marginBottom: "var(--el-card-mb, 0px)",
-};
+// Generic demo data for the checkout preview — realistic rooms/add-ons so the host
+// sees the true form anatomy. All booking DATA is dynamic on the live route; this
+// is purely for the builder canvas.
+const DEMO_ROOMS: CheckoutRoom[] = [
+  {
+    id: "demo-olive",
+    name: "Olive Room",
+    price: 1300,
+    currency: "ZAR",
+    maxGuests: 2,
+    minGuests: 1,
+    minNights: 1,
+  },
+  {
+    id: "demo-vineyard",
+    name: "Vineyard Suite",
+    price: 1900,
+    currency: "ZAR",
+    maxGuests: 3,
+    minGuests: 1,
+    minNights: 1,
+  },
+  {
+    id: "demo-loft",
+    name: "Mountain Loft",
+    price: 2100,
+    currency: "ZAR",
+    maxGuests: 4,
+    minGuests: 1,
+    minNights: 2,
+  },
+];
 
-const titleStyle: CSSProperties = {
-  fontFamily: "var(--site-font-heading)",
-  color: "var(--el-title-fg, var(--site-ink, #111827))",
-  fontSize: "var(--el-title-size, 1.6rem)",
-  fontWeight: "var(--el-title-weight, 700)",
-};
-
-const fieldStyle: CSSProperties = {
-  background: "var(--el-field-bg, var(--site-bg, #fff))",
-  color: "var(--el-field-fg, var(--site-ink, #111827))",
-  border: "var(--el-field-bd, 1px solid var(--site-line, #e5e7eb))",
-  borderRadius: "var(--el-field-radius, var(--site-radius, 10px))",
-};
-const fieldCls = "flex flex-col gap-1.5 px-3.5 py-2.5 text-sm";
-
-function FieldBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={fieldStyle} className={fieldCls}>
-      <span
-        style={{ color: "var(--site-mute, #6b7280)" }}
-        className="text-[11px] font-medium uppercase tracking-wide"
-      >
-        {label}
-      </span>
-      <span className="font-medium">{value}</span>
-    </div>
-  );
-}
+const DEMO_ADDONS: CheckoutAddon[] = [
+  {
+    id: "demo-breakfast",
+    name: "Breakfast hamper",
+    description: "Farm eggs, estate olives, fresh bread and good coffee.",
+    imageUrl: null,
+    pricingModel: "per_guest_per_night",
+    unitPrice: 180,
+    currency: "ZAR",
+    minQuantity: 1,
+    maxQuantity: null,
+    allowCustom: false,
+    stock: null,
+    isRequired: false,
+    roomIds: null,
+  },
+  {
+    id: "demo-game-drive",
+    name: "Sunset game drive",
+    description:
+      "Two hours on the reserve with a guide as the light goes gold.",
+    imageUrl: null,
+    pricingModel: "per_guest",
+    unitPrice: 650,
+    currency: "ZAR",
+    minQuantity: 1,
+    maxQuantity: null,
+    allowCustom: false,
+    stock: null,
+    isRequired: false,
+    roomIds: null,
+  },
+  {
+    id: "demo-transfer",
+    name: "Airport transfer",
+    description: "Private return transfer from Cape Town International.",
+    imageUrl: null,
+    pricingModel: "per_stay",
+    unitPrice: 1400,
+    currency: "ZAR",
+    minQuantity: 1,
+    maxQuantity: 1,
+    allowCustom: false,
+    stock: null,
+    isRequired: false,
+    roomIds: null,
+  },
+];
 
 /**
- * Checkout (/book) demo — the on-site booking form's anatomy: title, date/guest
- * fields, room + add-on cards, a price summary box and the pay button. Each part
- * reads its `--el-<key>-*` vars so the builder's Style tab restyles it live.
+ * Checkout (/book) builder element — renders the REAL SiteCheckoutForm as an inert
+ * preview (no network, no submit, pay button disabled) with demo data, wrapped so
+ * canvas clicks select the node instead of interacting with the form. `props` is
+ * accepted for the registry contract but the form's copy is intrinsic.
  */
-export function BookingFormSection({ props }: { props: BookingFormProps }) {
-  const heading = props.heading?.trim() || "Complete your booking";
-  const body = props.body?.trim();
+export function BookingFormSection() {
   return (
-    <SectionShell width="narrow">
-      <div style={cardStyle} data-el="booking-form">
-        <h2 style={titleStyle}>{heading}</h2>
-        {body ? <Muted className="mt-1.5 text-sm">{body}</Muted> : null}
-
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <FieldBox label="Check in" value="Select date" />
-          <FieldBox label="Check out" value="Select date" />
-          <FieldBox label="Guests" value="2 guests" />
-          <FieldBox label="Room" value="Any room" />
-        </div>
-
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {["Breakfast basket", "Airport transfer"].map((name) => (
-            <div
-              key={name}
-              style={{
-                background: "var(--el-addon-bg, var(--site-bg, #fafafa))",
-                border:
-                  "var(--el-addon-bd, 1px solid var(--site-line, #e5e7eb))",
-                borderRadius: "var(--el-addon-radius, 12px)",
-              }}
-              className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
-            >
-              <span className="font-medium">{name}</span>
-              <span style={{ color: "var(--site-mute, #6b7280)" }}>+ R150</span>
-            </div>
-          ))}
-        </div>
-
-        <div
-          style={{
-            background: "var(--el-summary-bg, var(--site-bg, #fafafa))",
-            color: "var(--el-summary-fg, var(--site-ink, #111827))",
-            border: "var(--el-summary-bd, 1px solid var(--site-line, #e5e7eb))",
-            borderRadius: "var(--el-summary-radius, 14px)",
-          }}
-          className="mt-6 space-y-2 p-4 text-sm"
-        >
-          <div className="flex items-center justify-between">
-            <span style={{ color: "var(--site-mute, #6b7280)" }}>
-              3 nights · Garden Room
-            </span>
-            <span>R3 600</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span style={{ color: "var(--site-mute, #6b7280)" }}>Add-ons</span>
-            <span>R300</span>
-          </div>
-          <div
-            style={{ borderColor: "var(--site-line, #e5e7eb)" }}
-            className="flex items-center justify-between border-t pt-2.5"
-          >
-            <span className="font-semibold">Total</span>
-            <span
-              style={{
-                color: "var(--el-price-fg, var(--site-ink, #111827))",
-                fontSize: "var(--el-price-size, 1.25rem)",
-                fontWeight: "var(--el-price-weight, 700)",
-              }}
-            >
-              R3 900
-            </span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          disabled
-          style={{
-            background: "var(--el-button-bg, var(--site-accent, #10b981))",
-            color: "var(--el-button-fg, var(--site-accent-ink, #fff))",
-            border: "var(--el-button-bd, none)",
-            borderRadius: "var(--el-button-radius, var(--site-radius, 10px))",
-            padding: "var(--el-button-py, 14px) var(--el-button-px, 20px)",
-          }}
-          className="mt-6 w-full text-center text-sm font-semibold"
-        >
-          Pay &amp; confirm booking
-        </button>
-      </div>
-    </SectionShell>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span style={{ color: "var(--site-mute, #6b7280)" }}>{label}</span>
-      <span
-        style={{
-          color: "var(--el-row-fg, var(--site-ink, #111827))",
-          fontSize: "var(--el-row-size, 0.875rem)",
+    <div style={{ pointerEvents: "none" }}>
+      <SiteCheckoutForm
+        preview
+        websiteId="demo"
+        propertyId="demo"
+        propertyName="Olive Grove Guesthouse"
+        currency="ZAR"
+        maxGuests={6}
+        basePrice={1850}
+        bookingMode="whole_and_rooms"
+        rooms={DEMO_ROOMS}
+        addons={DEMO_ADDONS}
+        cardAvailable
+        eftAvailable
+        cancellation={{
+          title: "Moderate cancellation",
+          note: "Free cancellation up to 7 days before check-in.",
         }}
-        className="text-right font-medium"
-      >
-        {value}
-      </span>
+        initial={{ from: "", to: "", guests: 2, roomId: null, scope: null }}
+      />
     </div>
   );
 }
 
 /**
- * Thank-you (/book/thank-you) demo — the post-payment confirmation's anatomy:
- * title + message, the booking detail rows, the total, and the EFT banking-details
- * box. Each part reads its `--el-<key>-*` vars for the builder's Style tab.
+ * Thank-you (/book/thank-you) builder element — renders the SAME shared
+ * BookingConfirmationCard the live route ships, with demo booking data.
  */
 export function BookingConfirmationSection({
   props,
@@ -187,55 +153,19 @@ export function BookingConfirmationSection({
   props: BookingConfirmationProps;
 }) {
   const heading = props.heading?.trim() || "You're booked in 🎉";
-  const body =
+  const message =
     props.body?.trim() || "A confirmation is on its way to your email.";
   return (
-    <SectionShell width="narrow">
-      <h2 style={{ ...titleStyle, textAlign: "center" }}>{heading}</h2>
-      <Muted className="mb-6 mt-2 text-center text-base">{body}</Muted>
-
-      <div style={cardStyle} data-el="booking-confirmation">
-        <div className="space-y-2.5 text-sm">
-          <Row label="Reference" value="WLO-4827" />
-          <Row label="Dates" value="12 Aug → 15 Aug" />
-          <Row label="Guests" value="2" />
-          <div
-            style={{ borderColor: "var(--site-line, #e5e7eb)" }}
-            className="mt-2 flex items-center justify-between border-t pt-3"
-          >
-            <span
-              style={{ color: "var(--el-total-fg, var(--site-ink, #111827))" }}
-              className="font-semibold"
-            >
-              Total
-            </span>
-            <span
-              style={{
-                color: "var(--el-total-fg, var(--site-ink, #111827))",
-                fontSize: "var(--el-total-size, 1.125rem)",
-                fontWeight: "var(--el-total-weight, 700)",
-              }}
-            >
-              R3 900
-            </span>
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: "var(--el-bank-bg, var(--site-bg, #fafafa))",
-            color: "var(--el-bank-fg, var(--site-ink, #111827))",
-            border: "var(--el-bank-bd, 1px solid var(--site-line, #e5e7eb))",
-            borderRadius: "var(--el-bank-radius, 12px)",
-          }}
-          className="mt-5 space-y-2 p-4 text-sm"
-        >
-          <h3 className="mb-1 text-sm font-semibold">Banking details</h3>
-          <Row label="Account holder" value="Your Guesthouse" />
-          <Row label="Bank" value="Standard Bank" />
-          <Row label="Use reference" value="WLO-4827" />
-        </div>
-      </div>
-    </SectionShell>
+    <BookingConfirmationCard
+      heading={heading}
+      message={message}
+      rows={[
+        { label: "Reference", value: "WLO-4827" },
+        { label: "Dates", value: "12 Aug → 15 Aug" },
+        { label: "Guests", value: "2" },
+      ]}
+      total="R 3,900"
+      eft={null}
+    />
   );
 }

@@ -1617,8 +1617,9 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     group: "system",
     label: "Booking Form",
     icon: "CalendarCheck",
-    autoPopulate: true,
-    dataKey: "booking_form",
+    // No autoPopulate/dataKey: the builder preview renders the REAL SiteCheckoutForm
+    // with a static demo dataset (not host SiteData); the live /book route owns the
+    // real data. The host edits STYLING only (the `elements` below).
     pageKinds: ["checkout"],
     defaults: {
       heading: "Complete your booking",
@@ -1672,8 +1673,8 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     group: "system",
     label: "Booking Confirmation",
     icon: "BadgeCheck",
-    autoPopulate: true,
-    dataKey: "booking_confirmation",
+    // No autoPopulate/dataKey — the builder renders the shared confirmation card
+    // with demo data; the live thank-you route owns the real booking. Styling only.
     pageKinds: ["thank-you"],
     defaults: {
       heading: "You're booked in 🎉",
