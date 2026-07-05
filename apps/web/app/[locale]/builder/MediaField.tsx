@@ -8,6 +8,7 @@ import {
 } from "@/app/[locale]/dashboard/website/actions";
 import { createClient } from "@/lib/supabase/client";
 import { websiteAssetUrl } from "@/lib/website/assets";
+import { useMediaPicker } from "@/components/builder/controls/MediaPicker";
 
 // Reusable image control for the builder: upload a custom image (into the shared
 // `website-assets` bucket, same chain as IconPicker) or paste a URL. Stores the
@@ -36,6 +37,9 @@ export function MediaField({
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const src = value ? (websiteAssetUrl(value) ?? value) : "";
+  // When the builder's media-library provider is mounted, the button opens the
+  // "upload OR pick from library" modal instead of a bare file input.
+  const openPicker = useMediaPicker();
 
   async function upload(file: File) {
     setErr(null);
@@ -101,9 +105,13 @@ export function MediaField({
           type="button"
           style={btn}
           disabled={uploading}
-          onClick={() => fileRef.current?.click()}
+          onClick={() =>
+            openPicker
+              ? openPicker({ value, onPick: (u) => onChange(u) })
+              : fileRef.current?.click()
+          }
         >
-          {uploading ? "Uploading…" : src ? "Replace" : "Upload image"}
+          {uploading ? "Uploading…" : src ? "Change image" : "Add image"}
         </button>
         {src ? (
           <button type="button" style={btn} onClick={() => onChange("")}>
