@@ -409,61 +409,65 @@ export function SearchResultsSection({
         <Muted className="mb-6 text-center text-base">{props.body}</Muted>
       ) : null}
 
-      {/* search form — a clear gap below it so the result cards never touch it */}
-      <Card className="mx-auto mb-10 max-w-3xl md:mb-12">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void runSearch();
-          }}
-          className="grid gap-4 p-5 sm:grid-cols-[2fr_1fr_1fr]"
-        >
-          <Labelled label="Dates">
-            <ThemedDateRange
-              from={checkIn}
-              to={checkOut}
-              onChange={(f, t) => {
-                setCheckIn(f);
-                setCheckOut(t);
-              }}
-              accent="var(--site-accent, var(--accent, #0a7d4b))"
-              ink="var(--site-ink, var(--ink, #16241d))"
-              mute="var(--site-mute, var(--ink-soft, #6b7a72))"
-              line="var(--site-line, var(--line, #e3e8e5))"
-              surface="var(--site-surface, var(--bg-2, #fff))"
-              radius="var(--site-radius, 10px)"
-            />
-          </Labelled>
-          <Labelled label="Guests">
-            <input
-              type="number"
-              value={guests}
-              min={1}
-              max={40}
-              onChange={(e) =>
-                setGuests(Math.max(1, Number(e.target.value) || 1))
-              }
-              style={fieldStyle}
-              className={inputCls}
-            />
-          </Labelled>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              disabled={!live || !checkIn || !checkOut || loading}
-              style={{
-                background: "var(--site-btn-primary-bg)",
-                color: "var(--site-btn-primary-color)",
-                border: "var(--site-btn-primary-border)",
-                borderRadius: "var(--site-btn-primary-radius)",
-              }}
-              className="inline-flex w-full items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
-            >
-              {loading ? "Searching…" : "Search"}
-            </button>
-          </div>
-        </form>
-      </Card>
+      {/* search form — wrapped so the bottom gap is real: the Card sets an inline
+          margin-bottom (--el-card-mb) that would override a mb-* class on itself,
+          so the gap that keeps result cards off the search box lives on this div. */}
+      <div className="mx-auto mb-12 max-w-3xl md:mb-16">
+        <Card className="max-w-3xl">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void runSearch();
+            }}
+            className="grid gap-4 p-5 sm:grid-cols-[2fr_1fr_1fr]"
+          >
+            <Labelled label="Dates">
+              <ThemedDateRange
+                from={checkIn}
+                to={checkOut}
+                onChange={(f, t) => {
+                  setCheckIn(f);
+                  setCheckOut(t);
+                }}
+                accent="var(--site-accent, var(--accent, #0a7d4b))"
+                ink="var(--site-ink, var(--ink, #16241d))"
+                mute="var(--site-mute, var(--ink-soft, #6b7a72))"
+                line="var(--site-line, var(--line, #e3e8e5))"
+                surface="var(--site-surface, var(--bg-2, #fff))"
+                radius="var(--site-radius, 10px)"
+              />
+            </Labelled>
+            <Labelled label="Guests">
+              <input
+                type="number"
+                value={guests}
+                min={1}
+                max={40}
+                onChange={(e) =>
+                  setGuests(Math.max(1, Number(e.target.value) || 1))
+                }
+                style={fieldStyle}
+                className={inputCls}
+              />
+            </Labelled>
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={!live || !checkIn || !checkOut || loading}
+                style={{
+                  background: "var(--site-btn-primary-bg)",
+                  color: "var(--site-btn-primary-color)",
+                  border: "var(--site-btn-primary-border)",
+                  borderRadius: "var(--site-btn-primary-radius)",
+                }}
+                className="inline-flex w-full items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                {loading ? "Searching…" : "Search"}
+              </button>
+            </div>
+          </form>
+        </Card>
+      </div>
 
       {/* results */}
       {!interactive ? (

@@ -1011,46 +1011,55 @@ export function NavBuilderOverlay({
                           </div>
                         )}
                         {device !== "mobile" && (
-                          <nav className={navCls}>
-                            {menu.map((it, i) => {
-                              const kids = it.children ?? [];
-                              const hasKids = kids.length > 0;
-                              return (
-                                <span
-                                  key={it.id}
-                                  className={`${i === 0 ? "nl active" : "nl"}${
-                                    hasKids ? "has-sub" : ""
-                                  }`}
-                                >
-                                  {it.label}
-                                  {hasKids && (
-                                    <ChevronDown
-                                      className="cx"
-                                      size={13}
-                                      strokeWidth={2.2}
-                                    />
-                                  )}
-                                  {/* Hover dropdown preview — lets the host see +
-                                      test the submenu styling in the canvas. */}
-                                  {hasKids && (
-                                    <span className="np-sub">
-                                      {kids.map((c) => (
-                                        <span
-                                          key={c.id}
-                                          className="np-sub-link"
-                                        >
-                                          {c.label}
-                                        </span>
-                                      ))}
-                                    </span>
-                                  )}
-                                </span>
-                              );
-                            })}
+                          <>
+                            <nav className={navCls}>
+                              {menu.map((it, i) => {
+                                const kids = it.children ?? [];
+                                const hasKids = kids.length > 0;
+                                // Array-join (not template concat) so a leading
+                                // space can't be stripped by the formatter →
+                                // classes stay separate (nl / active / has-sub).
+                                const nlClass = [
+                                  "nl",
+                                  i === 0 && "active",
+                                  hasKids && "has-sub",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ");
+                                return (
+                                  <span key={it.id} className={nlClass}>
+                                    {it.label}
+                                    {hasKids && (
+                                      <ChevronDown
+                                        className="cx"
+                                        size={13}
+                                        strokeWidth={2.2}
+                                      />
+                                    )}
+                                    {/* Hover dropdown preview — see + test the
+                                        submenu styling in the canvas. */}
+                                    {hasKids && (
+                                      <span className="np-sub">
+                                        {kids.map((c) => (
+                                          <span
+                                            key={c.id}
+                                            className="np-sub-link"
+                                          >
+                                            {c.label}
+                                          </span>
+                                        ))}
+                                      </span>
+                                    )}
+                                  </span>
+                                );
+                              })}
+                            </nav>
+                            {/* CTA is OUTSIDE the nav → it stays pinned right; the
+                                menu alignment moves ONLY the nav links. */}
                             {showCta && (
                               <span className="np-reserve">{ctaLabel}</span>
                             )}
-                          </nav>
+                          </>
                         )}
                         {device === "mobile" && (
                           <button

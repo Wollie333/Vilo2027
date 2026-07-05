@@ -33,6 +33,8 @@ export default async function DevChromePage({
 
   const transparent = searchParams?.transparent === "1";
   const shadow = searchParams?.shadow === "1";
+  const shadowColor = searchParams?.shadowColor || "rgba(0,0,0,0.18)";
+  const shadowSize = Number(searchParams?.shadowSize) || 18;
   const scrolledBg = searchParams?.scrolledBg || "#0E2C3A";
   const scrolledColor = searchParams?.scrolledColor || "#ffffff";
   const scrolledBorder =
@@ -61,6 +63,12 @@ export default async function DevChromePage({
       scrolledHoverColor: scrolledColor,
       submenuColor: "#0E2C3A",
       submenuHoverColor: "#0a7d4b",
+      align:
+        searchParams?.align === "center"
+          ? "center"
+          : searchParams?.align === "end"
+            ? "end"
+            : "start",
     },
     header: {
       sticky: true,
@@ -69,7 +77,8 @@ export default async function DevChromePage({
       scrolledBgColor: scrolledBg,
       scrolledBorderColor: scrolledBorder,
       scrolledShadow: shadow,
-      scrolledShadowColor: "rgba(0,0,0,0.18)",
+      scrolledShadowColor: shadowColor,
+      scrolledShadowSize: shadowSize,
     },
     footer: {
       columns: [

@@ -3148,18 +3148,20 @@
   color: #fff;
   font-size: 20px;
 }
+/* The nav fills the middle band between the (left) logo and the (right) CTA; its
+   alignment moves ONLY the links via justify-content — the logo + CTA stay put. */
 .wb .np-nav {
-  margin-left: auto;
+  flex: 1;
   display: flex;
   align-items: center;
   gap: var(--ngap, 4px);
+  justify-content: flex-end;
 }
 .wb .np-nav.al-center {
-  margin: 0 auto;
+  justify-content: center;
 }
 .wb .np-nav.al-start {
-  margin-right: auto;
-  margin-left: 20px;
+  justify-content: flex-start;
 }
 .wb .np-nav .nl {
   position: relative;
