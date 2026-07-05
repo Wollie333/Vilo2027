@@ -1283,6 +1283,17 @@ export function SiteChrome({
   // callers that don't compute it keep the prior behaviour.
   const transparentOver = pageTransparent && !topBar?.enabled && pageHasHero;
   const headerDark = transparentOver || darkChrome;
+  // Any scrolled-state styling → the (solid) header must track scroll so those
+  // styles actually apply on scroll (canvas + live). Menu scrolled colours count.
+  const hasScrolledStyle = Boolean(
+    navigation.header?.scrolledBgColor ||
+    navigation.header?.scrolledBorderColor ||
+    navigation.header?.scrolledShadow ||
+    mergedMenuStyle?.scrolledColor ||
+    mergedMenuStyle?.scrolledHoverColor ||
+    mergedMenuStyle?.scrolledSubmenuColor ||
+    mergedMenuStyle?.scrolledSubmenuBg,
+  );
   const boxed = layout === "boxed";
   // The shared Wielo theme-preview bar (single source of truth across all themes).
   const showBar = Boolean(
@@ -1354,6 +1365,7 @@ export function SiteChrome({
           scrolledShadowSize={navigation.header?.scrolledShadowSize}
           borderColor={navigation.header?.borderColor}
           borderWidth={navigation.header?.borderWidth}
+          trackScroll={hasScrolledStyle}
           textColor={mergedMenuStyle?.color}
           topOffset={showBar ? 44 : 0}
         >

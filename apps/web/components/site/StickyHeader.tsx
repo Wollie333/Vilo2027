@@ -1,6 +1,24 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+
+/** Nearest scrollable ancestor (the builder canvas scrolls a container; the live
+ *  site scrolls the window). Returns null → use window. */
+function scrollParent(node: HTMLElement | null): HTMLElement | null {
+  let el = node?.parentElement ?? null;
+  while (el) {
+    const s = getComputedStyle(el);
+    if (/(auto|scroll|overlay)/.test(`${s.overflowY} ${s.overflow}`)) return el;
+    el = el.parentElement;
+  }
+  return null;
+}
 
 /**
  * Site header shell. Normally a solid (optionally sticky) bar. When
@@ -20,6 +38,7 @@ export function StickyHeader({
   scrolledShadowSize,
   borderColor,
   borderWidth,
+  trackScroll,
   textColor,
   topOffset = 0,
   children,
@@ -42,6 +61,10 @@ export function StickyHeader({
   borderColor?: string | null;
   /** Solid-header bottom border width (px); blank → 1. */
   borderWidth?: number | null;
+  /** Track scroll (toggle [data-scrolled]) even on a solid bar — set when ANY
+   *  scrolled-state styling exists (scrolled menu colour, bg, border, shadow), so
+   *  those styles actually take effect on scroll. */
+  trackScroll?: boolean;
   /** Header text/menu colour (the host's menu colour). Drives logo + menu so it
    *  stays legible on a custom/transparent background. Blank → sensible default. */
   textColor?: string | null;
@@ -50,17 +73,28 @@ export function StickyHeader({
   children: ReactNode;
 }) {
   const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
 
-  // The transparent bar always needs the scroll listener (to fade to solid). A
-  // solid sticky bar only needs it when a scrolled-shadow is enabled (to lift on
-  // scroll). Otherwise skip it — nothing changes on scroll.
-  const wantsScroll = transparent || (sticky && !!scrolledShadow);
+  // Track scroll when the header transitions on scroll: a transparent bar always
+  // does (fade to solid); a solid bar does when it has ANY scrolled-state styling
+  // (menu colour / bg / border / shadow) so those styles actually apply.
+  const wantsScroll =
+    transparent || (sticky && !!(scrolledShadow || trackScroll));
   useEffect(() => {
     if (!wantsScroll) return;
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    // Listen to the ACTUAL scroller: the window on the live site, or the canvas
+    // container in the builder (so the scrolled state previews there too).
+    const scroller = scrollParent(headerRef.current);
+    const read = () =>
+      setScrolled((scroller ? scroller.scrollTop : window.scrollY || 0) > 24);
+    read();
+    const target: Window | HTMLElement = scroller ?? window;
+    target.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("resize", read);
+    return () => {
+      target.removeEventListener("scroll", read);
+      window.removeEventListener("resize", read);
+    };
   }, [wantsScroll]);
 
   const text = textColor?.trim();
@@ -92,6 +126,7 @@ export function StickyHeader({
     }
     return (
       <header
+        ref={headerRef}
         data-scrolled={scrolled ? "true" : "false"}
         style={style}
         className={
@@ -107,6 +142,7 @@ export function StickyHeader({
   // defaults to white (legible over a hero photo) but the host's menu colour wins.
   return (
     <header
+      ref={headerRef}
       // The menu's scrolled-state colours (menuStyle.scrolledColor/…) key off this.
       data-scrolled={scrolled ? "true" : "false"}
       style={
