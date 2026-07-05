@@ -115,8 +115,10 @@ export async function SiteRoomView({
               aria-label="Breadcrumb"
               style={{
                 color: "var(--site-mute)",
-                maxWidth: 1180,
-                paddingInline: "clamp(20px, 4vw, 32px)",
+                // Match the section band EXACTLY (1180 inner + 24px gutter) so the
+                // breadcrumb text starts at the same x as the content/photo below.
+                maxWidth: 1180 + 48,
+                paddingInline: 24,
               }}
               className="mx-auto w-full pt-8 text-sm"
             >
