@@ -30,9 +30,37 @@
 >     `onRootDragOver` full-stage-width drop line). Verified: Button dropped at page
 >     bottom → sections 8→9, element alone in a new section, compact (no huge band),
 >     element selected. tsc + lint + **231** vitest green.
-> - ⏳ **Group 1 REMAINS** — /book + thank-you system pages become the REAL editable
->   live pages with a styleable Booking-form element + Thank-you element. Largest
->   piece (routing + live-page editing). START HERE next session.
+> - 🔶 **Group 1 IN PROGRESS** — approach = **"styling overlay first (safer)"** (founder
+>   chose this over full page-doc render; the full-render upgrade is spawned as a
+>   background task chip). ✅ **Builder half DONE + pushed** (`1eb11742`): two new
+>   system-page elements — **booking_form** (checkout, pageKinds `["checkout"]`) +
+>   **booking_confirmation** (thank-you). Registered in `pageDoc.schema` (WIDGET_TYPES +
+>   NEW_WIDGET_TYPES), `registry.ts` (per-part `elements`: Heading/Form fields/Add-on
+>   cards/Summary box/Total price/Reserve button, and confirmation equivalents), rendered
+>   as faithful STATIC previews in `NewLeaves.tsx` (`BookingFormLeaf`/`BookingConfirmationLeaf`)
+>   that read the SAME `--el-<key>-*` vars the live routes will read, wired into
+>   `PageDocRenderer` WidgetLeaf. **Verified in the real builder** (vilotest checkout page
+>   `43e85476…` + thank-you `695b2f80…`): offered only on their page kind, render the
+>   preview, expose all controls, and the leaf consumes the vars (field bg white→red,
+>   button teal→blue).
+>   ⏳ **REMAINING (live half):**
+>     1. **Seed** the checkout + thank-you page docs with a `booking_form` /
+>        `booking_confirmation` node by default (so the host has one to style + the route
+>        has one to read). Check `standardPages.ts` SYSTEM set + `mergeStandardPages`.
+>     2. **Thread `--el-<key>-*`** into the REAL `SiteCheckoutForm.tsx` (central hook:
+>        `fieldStyle` L63-68 → field; SiteButton already reads `--el-button-*`; then title/
+>        summary/price/addon spots) and the thank-you page card — additive, `--site-*`
+>        fallback, ZERO functional change.
+>     3. **Wire the live routes** `app/[locale]/site/book/page.tsx` +
+>        `book/thank-you/page.tsx`: load the checkout/thank-you page doc, find the booking
+>        node, emit `elementVarsCss('[data-node-id="…"]', node)` as a scoped `<style>` on a
+>        wrapper around the form/card so the saved styling applies live.
+>     4. **Page Manager path remap** — show the checkout row as `/book` + thank-you as
+>        `/book/thank-you` (PageRow path special-case; keeps DB kind).
+>     5. **Live-verify** via a publish round-trip (style in builder → publish checkout →
+>        load `/book` on vilotest → see the styled real form). NOTE: screenshots were
+>        timing out on the heavy checkout builder page this session — use DOM `preview_eval`
+>        + `preview_inspect` for evidence.
 >
 > GOTCHA re-confirmed this session: HMR is unreliable for registry/schema/drag-logic
 > changes — after editing those, RESTART the preview server (and clear `.next` for

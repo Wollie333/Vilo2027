@@ -29,9 +29,17 @@ CMS / builder canvas per Principle #9.
     page-root drop (`insertWidgetAsSection` / `insertRootSection`, unit-tested;
     `onRootDragOver` full-width drop line at the nearest section boundary). 231
     vitest green.
-- **Group 1 (system pages /book + thank-you) still TODO** — the largest piece; the
-  next session starts there (`docs/features/BUILDER_V3_ELEMENTS_AND_SYSTEM_PAGES_PLAN.md`
-  Group 1 + `CURRENT_TASK.md` top).
+- **Group 1 (system pages /book + thank-you) — builder half shipped** (`1eb11742`),
+  approach = "styling overlay first" (founder's choice; full page-doc render spawned as
+  a background task). New `booking_form` (checkout) + `booking_confirmation` (thank-you)
+  elements — pageKinds-gated, per-part `--el-*` styling controls (Heading/Form fields/
+  Add-on cards/Summary box/Total price/Reserve button + confirmation equivalents),
+  rendered as faithful previews (`NewLeaves`) that read the same vars the live routes
+  will. Verified in the real builder (vilotest checkout + thank-you pages). REMAINING
+  (live half): seed the page docs with the element; thread `--el-*` into the real
+  SiteCheckoutForm + thank-you card; wire /book + /book/thank-you to emit the saved
+  styling; Page-Manager path remap; live-verify via a publish round-trip. Full plan in
+  `CURRENT_TASK.md` top.
 
 ## 2026-07-05 #6 — Builder V3 brief captured (save point, not yet built).
 
