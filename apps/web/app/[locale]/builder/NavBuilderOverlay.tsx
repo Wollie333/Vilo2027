@@ -36,9 +36,12 @@ import type {
   SiteMenuStyle,
   SiteMenuDeviceStyle,
   SiteNavigation,
+  SiteBrand,
 } from "@/lib/site/types";
 import { themeSwatches, type SiteThemeConfig } from "@/lib/site/themes";
 import { ThemeColorPicker } from "@/components/ui/ThemeColorPicker";
+import { FooterColumns } from "@/components/site/SiteChrome";
+import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import type { Brand } from "./BrandStudioOverlay";
 
 type NavHeader = NonNullable<SiteNavigation["header"]>;
@@ -930,7 +933,28 @@ export function NavBuilderOverlay({
                 }
               >
                 {leftTab === "footer" ? (
-                  <FooterPreview footer={footer} name={name} />
+                  // Render the REAL themed footer (same FooterColumns component +
+                  // SiteThemeRoot the live site uses) so the footer builder canvas
+                  // matches the published footer exactly.
+                  <SiteThemeRoot theme={theme}>
+                    <footer
+                      style={{
+                        background: "var(--site-surface)",
+                        borderTop: "1px solid var(--site-line)",
+                      }}
+                    >
+                      <FooterColumns
+                        brand={{
+                          name,
+                          tagline: brand.tagline ?? null,
+                          monogram: brand.monogram ?? null,
+                          socials: brand.socials as SiteBrand["socials"],
+                        }}
+                        columns={footer.columns ?? []}
+                        copyright={footer.copyright}
+                      />
+                    </footer>
+                  </SiteThemeRoot>
                 ) : (
                   <>
                     <div className="np-hero">
@@ -1930,45 +1954,6 @@ function FootAddLink({ onAdd }: { onAdd: (label: string) => void }) {
         <Plus size={15} strokeWidth={2} />
         Add
       </button>
-    </div>
-  );
-}
-
-function FooterPreview({ footer, name }: { footer: NavFooter; name: string }) {
-  const cols = footer.columns ?? [];
-  const news = footer.newsletter ?? {};
-  return (
-    <div className="np-footwrap">
-      <div className="np-foot-cols">
-        {cols.length === 0 && (
-          <div className="np-foot-col">
-            <h5>Explore</h5>
-            <a>Add columns in the panel →</a>
-          </div>
-        )}
-        {cols.map((col) => (
-          <div className="np-foot-col" key={col.id}>
-            <h5>{col.heading || "Column"}</h5>
-            {col.links.map((lk) => (
-              <a key={lk.id}>{lk.label}</a>
-            ))}
-          </div>
-        ))}
-        {news.enabled && (
-          <div className="np-foot-news">
-            <h5>{news.heading || "Join the list"}</h5>
-            <p>{news.body || "A note now and then — no spam."}</p>
-            <div className="row">
-              <input placeholder="you@email.com" readOnly />
-              <span className="sub">Sign up</span>
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="np-foot-base">
-        <span>{footer.copyright?.trim() || `© ${name}`}</span>
-        {footer.showPoweredBy !== false && <span>· Powered by Wielo</span>}
-      </div>
     </div>
   );
 }

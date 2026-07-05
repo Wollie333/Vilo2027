@@ -1090,7 +1090,7 @@ function FooterInner({
 }
 
 /** Widget-column footer (host-built). Brand + social, then custom link columns. */
-function FooterColumns({
+export function FooterColumns({
   brand,
   columns,
   copyright,
