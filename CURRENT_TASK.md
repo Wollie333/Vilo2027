@@ -30,7 +30,22 @@
 >     `onRootDragOver` full-stage-width drop line). Verified: Button dropped at page
 >     bottom → sections 8→9, element alone in a new section, compact (no huge band),
 >     element selected. tsc + lint + **231** vitest green.
-> - ✅ **Group 1 RECONCILED + shipped** (`5a8f5fb0`) — the parallel booking work (a
+> - ✅ **Group 1 — system page now renders the REAL /book page** (`8d733159`, 2026-07-06).
+>   Founder correction: the earlier builder DEMO (a static `BookingSystemSections` mock)
+>   was "useless — not the live page." Now the builder's `booking_form` element renders the
+>   SAME `SiteCheckoutForm` the live `/book` ships, in an INERT preview (new additive
+>   `preview` prop skips the quote API + Turnstile + disables the pay button; wrapped in
+>   `pointer-events:none`; lazy-loaded via `next/dynamic` so it's not in guest bundles).
+>   Thank-you shares ONE `components/site/BookingConfirmationCard.tsx` between the live
+>   route + the builder element. checkout (slug `book`) + thank-you (slug `book/thank-you`)
+>   added to `SYSTEM_STANDARD_PAGES` → seeded at WEBSITE CREATION. registry: dropped
+>   autoPopulate/dataKey (static demo, not host data). VERIFIED: builder Checkout page shows
+>   the real 2-col form (Olive Grove, rooms, add-ons, summary, Your details) matching the
+>   live screenshot, inert (no `/api/site-booking-quote`), Style controls restyle it
+>   (field→red, title→green); live `/book` + `?special` (Midweek retreat) unchanged;
+>   thank-you builder shows the shared card. tsc+lint+231 green. Plan:
+>   `~/.claude/plans/scalable-dazzling-snowglobe.md`.
+> - ✅ **(superseded) Group 1 reconcile** (`5a8f5fb0`) — the parallel booking work (a
 >   background-task worktree built a fuller styling-overlay version) was merged into ONE
 >   coherent impl on main; my earlier custom-leaf half was reverted. `booking_form`
 >   (checkout) + `booking_confirmation` (thank-you) are SECTION types → `SectionRenderer`
