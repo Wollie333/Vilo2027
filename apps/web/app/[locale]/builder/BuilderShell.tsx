@@ -2235,6 +2235,22 @@ function Inspector({
   const def = WIDGET_DEFS[node.type as keyof typeof WIDGET_DEFS];
   const props = ("props" in node ? node.props : {}) as Record<string, unknown>;
   const n = node as unknown as NodeFields;
+  // Layout (flex) fields — only sections + columns carry these. Sections own the
+  // column ROW (valign / gap / wrap / stack); columns own how their children stack
+  // (dir / justify / align / gap / wrap). Surfaced as the "Layout" control group so
+  // the Layout-category blocks own spacing + alignment (Builder V3 Group 2.2).
+  const lay = node as unknown as {
+    type: string;
+    valign?: string;
+    gap?: number;
+    wrap?: boolean;
+    stack?: string;
+    dir?: string;
+    justify?: string;
+    align?: string;
+  };
+  const isSection = node.type === "section";
+  const isColumn = node.type === "column";
 
   const isDev = device !== "desktop"; // editing a per-device override layer
   const resp = n.responsive?.[device];
@@ -2449,6 +2465,100 @@ function Inspector({
 
         {tab === "style" && (
           <>
+            {/* Layout (flex) — sections + columns own the alignment + gap of their
+                children (Elementor container model). Padding/margin live on the
+                Advanced tab; these control DIRECTION + ALIGNMENT + GAP. */}
+            {(isSection || isColumn) && (
+              <>
+                <div className="ctl-group" style={{ marginTop: 0 }}>
+                  Layout
+                </div>
+                {isColumn && (
+                  <SegRow
+                    label="Direction"
+                    value={lay.dir ?? "column"}
+                    options={[
+                      ["column", "Stack"],
+                      ["row", "Row"],
+                    ]}
+                    onChange={(v) => onPatchNode({ dir: v })}
+                  />
+                )}
+                {isColumn && (
+                  <SegRow
+                    label="Justify"
+                    value={lay.justify ?? "flex-start"}
+                    options={[
+                      ["flex-start", "Start"],
+                      ["center", "Center"],
+                      ["flex-end", "End"],
+                      ["space-between", "Space"],
+                    ]}
+                    onChange={(v) => onPatchNode({ justify: v })}
+                  />
+                )}
+                {isColumn && (
+                  <SegRow
+                    label="Align"
+                    value={lay.align ?? "stretch"}
+                    options={[
+                      ["stretch", "Fill"],
+                      ["flex-start", "Start"],
+                      ["center", "Center"],
+                      ["flex-end", "End"],
+                    ]}
+                    onChange={(v) => onPatchNode({ align: v })}
+                  />
+                )}
+                {isSection && (
+                  <SegRow
+                    label="Vertical align"
+                    value={lay.valign ?? "stretch"}
+                    options={[
+                      ["stretch", "Fill"],
+                      ["flex-start", "Top"],
+                      ["center", "Center"],
+                      ["flex-end", "Bottom"],
+                    ]}
+                    onChange={(v) => onPatchNode({ valign: v })}
+                  />
+                )}
+                <NumRow
+                  label="Gap"
+                  value={lay.gap}
+                  min={0}
+                  max={80}
+                  suffix="px"
+                  overridden={lay.gap != null}
+                  onChange={(v) => onPatchNode({ gap: v ?? undefined })}
+                  onRevert={() => onPatchNode({ gap: undefined })}
+                />
+                <SegRow
+                  label="Wrap"
+                  value={lay.wrap ? "on" : "off"}
+                  options={[
+                    ["off", "No wrap"],
+                    ["on", "Wrap"],
+                  ]}
+                  onChange={(v) => onPatchNode({ wrap: v === "on" })}
+                />
+                {isSection && (
+                  <SegRow
+                    label="Stack on"
+                    value={lay.stack ?? "none"}
+                    options={[
+                      ["none", "Never"],
+                      ["tablet", "Tablet"],
+                      ["mobile", "Mobile"],
+                    ]}
+                    onChange={(v) =>
+                      onPatchNode({ stack: v === "none" ? undefined : v })
+                    }
+                  />
+                )}
+                <div className="ctl-group">Background &amp; frame</div>
+              </>
+            )}
             {/* Element-specific style controls (colour · size · spacing …) —
                 declared per widget so every element's styling lives HERE, not in
                 the Content tab. */}
