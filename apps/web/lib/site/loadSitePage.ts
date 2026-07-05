@@ -2656,6 +2656,42 @@ export async function loadSiteRoomPage(
   return { room, sections, data, roomsHref };
 }
 
+/**
+ * The site's host as a fallback blog author (name + photo + bio), pulled from the
+ * `hosts` row for this site's business. Used so a post with no author assigned
+ * still shows a real byline/author block — the "host is the default author"
+ * default. Returns null when the host has no display name.
+ */
+async function loadSiteHostAuthor(
+  sb: ReturnType<typeof createAdminClient>,
+  ctx: SiteContext,
+): Promise<{
+  name: string;
+  avatarPath: string | null;
+  bio: string | null;
+} | null> {
+  const { data: biz } = await sb
+    .from("businesses")
+    .select("host:hosts ( display_name, avatar_url, bio )")
+    .eq("id", ctx.businessId)
+    .maybeSingle();
+  const raw = (biz as { host?: unknown } | null)?.host;
+  const host = (Array.isArray(raw) ? raw[0] : raw) as
+    | {
+        display_name: string | null;
+        avatar_url: string | null;
+        bio: string | null;
+      }
+    | undefined;
+  const name = host?.display_name?.trim();
+  if (!name) return null;
+  return {
+    name,
+    avatarPath: host?.avatar_url?.trim() || null,
+    bio: host?.bio?.trim() || null,
+  };
+}
+
 /** Load a single published blog post by slug (for the blog detail page). */
 export async function loadSiteBlogPost(
   ctx: SiteContext,
@@ -2715,6 +2751,23 @@ export async function loadSiteBlogPost(
     })
     .filter((t): t is { name: string; slug: string } => t !== null)
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Author: the assigned reusable profile (Phase 8) wins, then the legacy
+  // free-text name. When a post has NO author set, fall back to the site's host
+  // profile (name/photo/bio) so the byline + author block still show a real
+  // person — matching the "host is the default author" default.
+  let authorName: string | null = post.author?.name ?? post.author_name;
+  let authorBio: string | null = post.author?.bio ?? null;
+  let authorAvatarPath: string | null = post.author?.avatar_path ?? null;
+  if (!authorName) {
+    const hostAuthor = await loadSiteHostAuthor(sb, ctx);
+    if (hostAuthor) {
+      authorName = hostAuthor.name;
+      authorBio = hostAuthor.bio;
+      authorAvatarPath = hostAuthor.avatarPath;
+    }
+  }
+
   return {
     title: post.title,
     bodyHtml: sanitiseListingHtml(post.body_html ?? ""),
@@ -2722,11 +2775,10 @@ export async function loadSiteBlogPost(
     // blog_preview); returning the raw path broke the detail-page cover image.
     coverUrl: websiteAssetUrl(post.cover_path ?? undefined) ?? null,
     date: (post.publish_at ?? post.created_at)?.slice(0, 10) ?? null,
-    // Reusable author profile (Phase 8) wins; fall back to the legacy free-text name.
-    authorName: post.author?.name ?? post.author_name,
-    authorBio: post.author?.bio ?? null,
-    authorAvatarUrl:
-      websiteAssetUrl(post.author?.avatar_path ?? undefined) ?? null,
+    authorName,
+    authorBio,
+    // websiteAssetUrl passes absolute URLs (e.g. the host avatar) through as-is.
+    authorAvatarUrl: websiteAssetUrl(authorAvatarPath ?? undefined) ?? null,
     excerpt: post.excerpt,
     tags,
     headCode: post.seo?.headCode?.trim() || "",
@@ -2762,6 +2814,9 @@ export async function loadSiteBlogIndex(
     .order("featured", { ascending: false, nullsFirst: true })
     .order("publish_at", { ascending: false, nullsFirst: false });
 
+  // Host fallback so author-less posts still show a byline (matches the detail page).
+  const hostName = (await loadSiteHostAuthor(sb, ctx))?.name ?? null;
+
   return (posts ?? []).map((p) => {
     const row = p as {
       title: string;
@@ -2782,7 +2837,7 @@ export async function loadSiteBlogIndex(
       excerpt: row.excerpt,
       coverUrl: websiteAssetUrl(row.cover_path ?? undefined) ?? null,
       date: (row.publish_at ?? row.created_at)?.slice(0, 10) ?? null,
-      authorName: authorObj?.name ?? row.author_name,
+      authorName: authorObj?.name ?? row.author_name ?? hostName,
       featured: row.featured ?? false,
     };
   });
@@ -2871,6 +2926,9 @@ export async function loadSiteBlogByTag(
     .order("featured", { ascending: false, nullsFirst: true })
     .order("publish_at", { ascending: false, nullsFirst: false });
 
+  // Host fallback so author-less posts still show a byline (matches the detail page).
+  const hostName = (await loadSiteHostAuthor(sb, ctx))?.name ?? null;
+
   const mapped: BlogIndexPost[] = (posts ?? []).map((p) => {
     const row = p as {
       title: string;
@@ -2890,7 +2948,7 @@ export async function loadSiteBlogByTag(
       excerpt: row.excerpt,
       coverUrl: websiteAssetUrl(row.cover_path ?? undefined) ?? null,
       date: (row.publish_at ?? row.created_at)?.slice(0, 10) ?? null,
-      authorName: authorObj?.name ?? row.author_name,
+      authorName: authorObj?.name ?? row.author_name ?? hostName,
       featured: row.featured ?? false,
     };
   });
