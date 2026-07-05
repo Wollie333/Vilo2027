@@ -2,7 +2,75 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-05, **Website-builder upgrades — ALL PUSHED to `main`**)
+## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-05 #3, **Styling+media epic + fixes — ALL PUSHED to `main`**, `9fa73e8c` latest)
+
+> Huge multi-part session. Everything below is on `main`. Pick up the REMAINING work
+> (search-results slices 2–4 + a few small items). Builder no-auth demo: `/en/builder?theme=oceansview[&nav=links|header|footer]`.
+> Verify with `apps/web/node_modules/.bin/tsc --noEmit -p tsconfig.json` + `next lint`
+> (NOT `pnpm build` while the preview server runs — corrupts `.next`).
+
+### ✅ Shipped this session (all pushed)
+
+- **Unified styling-control library (SSOT)** `components/builder/controls/` (ColorControl w/
+  transparent circle + opacity + portal z-index 9999; Slider/Toggle/Segmented/Select/Number/
+  Media/Spacing) + review page `/style-lab`. `ThemeColorPicker` now delegates to it → every
+  colour picker app-wide upgraded at once. **Business Principle #8** (WYSIWYG styling) added.
+- **Media-library modal** (upload OR pick from library) on EVERY image control — `MediaLibraryModal`
+  + `MediaPickerProvider` + `useMediaPicker`; `MediaField`/`MediaControl` open it. Applied to
+  page/section bg, hero, host-bio, **highlights per-card (new `items` repeater)**, social-share
+  (Page Settings). **Universal background image + VIDEO + overlay on every block/element**
+  (`renderWidget` now mirrors `renderSection`).
+- **Room button**: style via `--el-button-*` element + always-centered; wording stays dynamic.
+- **Nav/consistency**: footer builder canvas = real live footer; mobile-drawer dropdown colour;
+  header border colour+width; two-highlights labels show variant; element styling standardised
+  (headings no stray L/R padding).
+- **Brand Studio**: content-link hover control (`theme.links`, scoped to content); canvas shows
+  real header/menu; socials → 6 networks.
+- **Room-detail**: header forced solid; breadcrumb aligned to the photo's left edge.
+- **Scrolled-state fix (IMPORTANT)**: `StickyHeader` now tracks scroll whenever ANY scrolled
+  styling exists (not just transparent) AND listens to the header's scroll PARENT (canvas
+  container in builder, window on live) → scrolled colours now apply on canvas + live.
+- **Builder tweaks moved to the Settings tab** (chrome/accent/density; FAB removed).
+- **Heroless-page headers fixed** (`pageHasHero={false}`): blog list/tag/post + both thank-you
+  pages (were invisible transparent headers).
+- **Blog**: preview button fixed (className-space gotcha [[commit-formatter-strips-className-space]]);
+  SEO preview card now shows the featured image (auto share image).
+- **Search results — Slice 1**: designed `ResultCard` (image/badge/facts/price/Book-now;
+  unavailable dimmed) + the search-results page is now PREVIEWABLE in the builder (demo cards);
+  live path shows all matches available-first. Spacing between search box + cards bumped.
+
+### ⏳ REMAINING — pick up here
+
+1. **Search results slices 2–4** (plan: `docs/features/SEARCH_RESULTS_PLAN.md`):
+   - **Slice 2** — live **ROOM-based** results (per-room availability + price for the dates; ALL
+     rooms, available first, unavailable indicated). Today the live path is PROPERTY-based
+     (`SearchResultsSection` + `/api/website-quote` + `quoteWebsiteStay`). Reuse per-room
+     availability RPC + `computeStayPricing`; render via the new `ResultCard`.
+   - **Slice 3** — every "Check availability" form redirects to `siteSearchHref` (`/search-results`)
+     with `?from=&to=&guests=` (single-property too, not only multi).
+   - **Slice 4** — "Book now" → `siteBookHref({roomId,from,to,guests})` (`/book?...`); checkout
+     already prefills dates. Verify on a real test host (rooms + bookings).
+2. **System-page "featured block" has no images by default** (founder) — AMBIGUOUS: confirm which
+   page + block (blog_preview featured variant? search cards? a hero on a system page?) and whether
+   it's a builder-demo gap or a real-data fallback (add a stock fallback image when an item has no
+   cover). Demo blog posts DO have images (`sampleSite` `coverUrl: IMG("b*")`); addons are
+   intentionally imageless.
+3. **Blog — separate manual SEO/share image** (optional): today the SEO card auto-uses the featured
+   image. A separate manual override needs a new post column (small migration) — do only if founder
+   still wants it distinct from featured.
+
+### Key files
+- Controls SSOT: `apps/web/components/builder/controls/*` + `/style-lab`.
+- Media: `MediaLibraryModal.tsx`, `MediaPickerProvider.tsx`, `MediaField.tsx`, `MediaPicker.tsx`.
+- Search: `components/site/sections/SearchResultsSection.tsx`, `lib/website/bookingFunnel.ts`
+  (`quoteWebsiteStay`), `lib/site/loadSitePage.ts` (`siteBookHref`/`siteSearchHref`/room loaders),
+  `app/api/website-quote/route.ts`, `docs/features/SEARCH_RESULTS_PLAN.md`.
+- Header/scrolled: `components/site/StickyHeader.tsx` (scroll-parent + trackScroll), `SiteChrome.tsx`.
+- Blog editor: `app/[locale]/website-editor/[websiteId]/blog/[postId]/PostEditor.tsx`.
+
+---
+
+## ▶▶▶ SAVE POINT — (2026-07-05, **Website-builder upgrades — ALL PUSHED to `main`**)
 
 > **WORKFLOW (Business Principle #7):** plan first (against the codebase) → phase into
 > small tasks → after each phase, green build/lint/tests → **commit + push to `main`**.

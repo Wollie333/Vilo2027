@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-05 #3 — Styling+media epic, WYSIWYG fixes, blog + search-results slice 1.
+
+Large multi-part session; all pushed to `main` (`9fa73e8c`). Resume anchor in
+`CURRENT_TASK.md` (top). Plans: `docs/features/STYLING_MEDIA_EPIC_PLAN.md`,
+`docs/features/SEARCH_RESULTS_PLAN.md`.
+
+- **Unified styling-control library (SSOT)** + `/style-lab` review page; `ThemeColorPicker`
+  delegates to `ColorControl` (transparent circle + opacity + portal z-index 9999) → all colour
+  pickers upgraded. Business Principle #8 (WYSIWYG styling).
+- **Media-library modal** (upload OR pick from library) on every image control; universal
+  background image + **video** + overlay on every block/element; highlights per-card `items`
+  repeater; social-share upload.
+- **Consistency**: footer builder canvas = real footer; mobile-drawer dropdown colour; header
+  border colour+width; heading element padding standardised; two-highlights labels show variant.
+- **Brand Studio**: content-link hover (`theme.links`); canvas shows real header/menu; 6 socials.
+- **Scrolled-state fix**: `StickyHeader` tracks scroll for any scrolled styling + listens to the
+  scroll PARENT (canvas container / window) → scrolled colours apply on canvas + live.
+- **Builder tweaks moved to the Settings tab** (FAB removed).
+- **Heroless-page headers** solid (`pageHasHero={false}`): blog list/tag/post + thank-you pages.
+  **Room-detail** breadcrumb aligned to the photo edge.
+- **Blog**: preview button fixed (className-space gotcha); SEO card shows the featured image.
+- **Search results — Slice 1**: designed `ResultCard` + previewable in the builder (demo);
+  available-first ordering, unavailable dimmed. Slices 2–4 (room-based data, redirect, checkout
+  prefill) remain — see the plan doc.
+
 ## 2026-07-05 #2 — Menu nesting, scrolled-state, on-canvas gear, room links, room-header fix.
 
 Website-builder batch (tasks B/C/D/E/6a). All pushed to `main`; resume anchor in
