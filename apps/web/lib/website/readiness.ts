@@ -187,13 +187,22 @@ async function loadHasPolicy(
 ): Promise<boolean> {
   const { data: policies } = await supabase
     .from("policies")
-    .select("id")
+    .select("id, is_default")
     .eq("host_id", hostId)
     .eq("status", "active")
     .is("deleted_at", null)
     .eq("type", "cancellation");
-  const policyIds = (policies ?? []).map((p) => p.id as string);
-  if (policyIds.length === 0) return false;
+  const active = (policies ?? []) as {
+    id: string;
+    is_default: boolean | null;
+  }[];
+  if (active.length === 0) return false;
+  // A DEFAULT cancellation policy applies to every property without needing an
+  // explicit property_policies assignment — so it satisfies readiness on its own.
+  // (This is what the Policy Manager sets up "property-wide"; requiring an explicit
+  // assignment wrongly prompted hosts to "set up a policy" they already had.)
+  if (active.some((p) => p.is_default)) return true;
+  const policyIds = active.map((p) => p.id);
 
   const { data: props } = await supabase
     .from("properties")

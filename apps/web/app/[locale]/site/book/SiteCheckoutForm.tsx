@@ -284,6 +284,22 @@ export function SiteCheckoutForm({
     );
   }, [checkIn, checkOut, datesValid]);
 
+  // Is the special still valid for the CURRENTLY-chosen dates? A flexible offer is
+  // only active while the stay sits inside its window; picking dates outside the
+  // window deactivates the offer (normal prices apply) and we flag it in the UI.
+  // A fixed-date offer can't be changed, so it's always active.
+  const specialActive = useMemo(() => {
+    if (!special) return false;
+    if (special.dateMode === "fixed") return true;
+    if (!datesValid) return true; // no dates chosen yet — don't warn prematurely
+    const ws = special.windowStart;
+    const we = special.windowEnd;
+    if (!ws || !we) return true;
+    return checkIn >= ws && checkOut <= we;
+  }, [special, datesValid, checkIn, checkOut]);
+  // True only when a special is set but the chosen dates fall outside its range.
+  const specialOutOfRange = Boolean(special) && !specialActive;
+
   // Add-ons available for the current selection (property-wide, or scoped to a
   // selected room). Required ones are always shown as "included".
   const visibleAddons = useMemo(
@@ -318,7 +334,9 @@ export function SiteCheckoutForm({
   useEffect(() => {
     // SPECIAL mode: the offer price is fixed by the offer, not the room quote —
     // show the server-computed offer total (the create call re-prices + redeems).
-    if (special) {
+    // But only while the offer is ACTIVE for the chosen dates; if the guest moved
+    // the dates outside the offer window, fall through to the normal room quote.
+    if (special && specialActive) {
       const n = nightsBetween(checkIn, checkOut) || 1;
       setQuote({
         available: true,
@@ -392,6 +410,8 @@ export function SiteCheckoutForm({
     roomGuestsKey,
     selectedAddonsKey,
     coupon,
+    special,
+    specialActive,
   ]);
 
   function toggleRoom(r: CheckoutRoom) {
@@ -467,7 +487,9 @@ export function SiteCheckoutForm({
           website_id: websiteId,
           property_id: propertyId,
           // A special routes to the offer path server-side (offer-rate + redemption).
-          special_id: special?.id,
+          // Only claim the offer when its dates still qualify; out-of-range → a
+          // normal booking at normal prices (the server also re-validates).
+          special_id: special && specialActive ? special.id : undefined,
           scope,
           room_ids: scope === "rooms" ? selectedRoomIds : undefined,
           room_guests:
@@ -581,11 +603,16 @@ export function SiteCheckoutForm({
                 className="mx-auto mb-8 flex max-w-3xl flex-col items-center gap-2 border px-5 py-4 text-center"
               >
                 <span
-                  style={{ color: "var(--site-accent)" }}
+                  style={{
+                    color: specialOutOfRange ? "#be123c" : "var(--site-accent)",
+                  }}
                   className="text-xs font-bold uppercase tracking-[0.14em]"
                 >
-                  Offer applied
-                  {special.savingsLabel ? ` · ${special.savingsLabel}` : ""}
+                  {specialOutOfRange
+                    ? "Offer not active for these dates"
+                    : `Offer applied${
+                        special.savingsLabel ? ` · ${special.savingsLabel}` : ""
+                      }`}
                 </span>
                 <span
                   style={{ color: "var(--site-ink)" }}
@@ -616,15 +643,36 @@ export function SiteCheckoutForm({
                     ))}
                   </div>
                 ) : null}
-                <span style={{ color: "var(--site-mute)" }} className="text-sm">
-                  {fixed
-                    ? "Your stay dates are set below."
-                    : validRange
-                      ? "Pick your check-in and check-out inside the valid window above."
-                      : "Pick your dates above."}{" "}
-                  The offer rate is applied automatically — nothing changes at
-                  payment.
-                </span>
+                {specialOutOfRange ? (
+                  <div
+                    style={{
+                      background: "var(--site-bg)",
+                      borderColor: "#e11d48",
+                      color: "#be123c",
+                      borderRadius: "var(--site-radius)",
+                    }}
+                    className="mt-1 w-full border px-4 py-2.5 text-sm font-medium"
+                  >
+                    ⚠ This offer isn’t active for your chosen dates — you’ll be
+                    charged normal prices.{" "}
+                    {validRange
+                      ? `Pick dates inside ${validRange} to use the offer.`
+                      : "Pick dates inside the offer window to use it."}
+                  </div>
+                ) : (
+                  <span
+                    style={{ color: "var(--site-mute)" }}
+                    className="text-sm"
+                  >
+                    {fixed
+                      ? "Your stay dates are set below."
+                      : validRange
+                        ? "Pick your check-in and check-out inside the valid window above."
+                        : "Pick your dates above."}{" "}
+                    The offer rate is applied automatically — nothing changes at
+                    payment.
+                  </span>
+                )}
               </div>
             );
           })()
@@ -672,20 +720,44 @@ export function SiteCheckoutForm({
                   </p>
                 </div>
               ) : (
-                <ThemedDateRange
-                  from={checkIn}
-                  to={checkOut}
-                  onChange={(f, t) => {
-                    setCheckIn(f);
-                    setCheckOut(t);
-                  }}
-                  accent="var(--site-accent)"
-                  ink="var(--site-ink)"
-                  mute="var(--site-mute)"
-                  line="var(--site-line)"
-                  surface="var(--site-surface)"
-                  radius="var(--site-radius)"
-                />
+                <div
+                  // Highlight the date field when a special is set but the dates
+                  // now fall outside its range, so the guest sees WHERE to fix it.
+                  style={
+                    specialOutOfRange
+                      ? {
+                          boxShadow: "0 0 0 2px #e11d48",
+                          borderRadius: "var(--site-radius)",
+                        }
+                      : undefined
+                  }
+                  className={
+                    specialOutOfRange ? "rounded-[var(--site-radius)]" : ""
+                  }
+                >
+                  <ThemedDateRange
+                    from={checkIn}
+                    to={checkOut}
+                    onChange={(f, t) => {
+                      setCheckIn(f);
+                      setCheckOut(t);
+                    }}
+                    accent="var(--site-accent)"
+                    ink="var(--site-ink)"
+                    mute="var(--site-mute)"
+                    line="var(--site-line)"
+                    surface="var(--site-surface)"
+                    radius="var(--site-radius)"
+                  />
+                  {specialOutOfRange ? (
+                    <p
+                      style={{ color: "#be123c" }}
+                      className="mt-1.5 text-xs font-medium"
+                    >
+                      These dates are outside the offer — normal prices apply.
+                    </p>
+                  ) : null}
+                </div>
               )}
             </Group>
 
