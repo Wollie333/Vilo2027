@@ -8,13 +8,21 @@ import {
   type ReactNode,
 } from "react";
 
-/** Nearest scrollable ancestor (the builder canvas scrolls a container; the live
- *  site scrolls the window). Returns null → use window. */
+/** Nearest ACTUALLY-scrollable ancestor (the builder canvas scrolls a container;
+ *  the live site scrolls the window). Requires both a scrolling overflow AND real
+ *  overflow (scrollHeight > clientHeight) so a wrapper with `overflow-x:hidden`
+ *  (whose computed `overflow-y` becomes `auto` but never scrolls) isn't mistaken
+ *  for the scroller. Returns null → use the window. */
 function scrollParent(node: HTMLElement | null): HTMLElement | null {
   let el = node?.parentElement ?? null;
   while (el) {
     const s = getComputedStyle(el);
-    if (/(auto|scroll|overlay)/.test(`${s.overflowY} ${s.overflow}`)) return el;
+    if (
+      /(auto|scroll|overlay)/.test(`${s.overflowY} ${s.overflow}`) &&
+      el.scrollHeight > el.clientHeight
+    ) {
+      return el;
+    }
     el = el.parentElement;
   }
   return null;
@@ -82,17 +90,27 @@ export function StickyHeader({
     transparent || (sticky && !!(scrolledShadow || trackScroll));
   useEffect(() => {
     if (!wantsScroll) return;
-    // Listen to the ACTUAL scroller: the window on the live site, or the canvas
-    // container in the builder (so the scrolled state previews there too).
+    // The scroller is the window on the live site, or the canvas container in the
+    // builder. Listen to BOTH (and read whichever actually moved) so the scrolled
+    // state fires regardless of which one owns the scroll — robust to wrappers.
     const scroller = scrollParent(headerRef.current);
-    const read = () =>
-      setScrolled((scroller ? scroller.scrollTop : window.scrollY || 0) > 24);
+    const read = () => {
+      const top = Math.max(
+        scroller ? scroller.scrollTop : 0,
+        window.scrollY || 0,
+        document.documentElement.scrollTop || 0,
+      );
+      setScrolled(top > 24);
+    };
     read();
-    const target: Window | HTMLElement = scroller ?? window;
-    target.addEventListener("scroll", read, { passive: true });
+    const targets: Array<Window | HTMLElement> = scroller
+      ? [scroller, window]
+      : [window];
+    for (const t of targets)
+      t.addEventListener("scroll", read, { passive: true });
     window.addEventListener("resize", read);
     return () => {
-      target.removeEventListener("scroll", read);
+      for (const t of targets) t.removeEventListener("scroll", read);
       window.removeEventListener("resize", read);
     };
   }, [wantsScroll]);
@@ -110,15 +128,23 @@ export function StickyHeader({
     // Solid bar. A custom background → drive the text colour too (so e.g. a black
     // bar gets a readable menu/logo) — text wins via the host's menu colour.
     const customBg = bgColor?.trim();
+    const scrolledBg = scrolledBgColor?.trim();
+    const scrolledBorder = scrolledBorderColor?.trim();
+    // Once scrolled, a solid bar swaps to its scrolled background/border (when the
+    // host set one) — so the scrolled state is visible on a normal solid header,
+    // not only on a transparent-over-hero one.
     const style: CSSProperties = {
-      background: customBg || "var(--site-surface)",
+      background: (scrolled && scrolledBg) || customBg || "var(--site-surface)",
       borderColor:
+        (scrolled && scrolledBorder) ||
         borderColor?.trim() ||
-        scrolledBorderColor?.trim() ||
+        scrolledBorder ||
         "var(--site-line)",
       ...(borderWidth != null ? { borderBottomWidth: borderWidth } : null),
       ...(liftShadow ? { boxShadow: liftShadow } : null),
       ...(topOffset ? { top: topOffset } : null),
+      transition:
+        "background-color .25s ease, border-color .25s ease, box-shadow .25s ease",
     };
     if (text) {
       (style as Record<string, string>)["--site-ink"] = text;
