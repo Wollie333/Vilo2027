@@ -318,6 +318,14 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
   const hideCss = deviceHideCss(sel, node);
   // Advanced tab custom CSS — emitted AFTER elCss so it overrides the element styling.
   const custom = customCssScoped(sel, node.customCss);
+  // Background video (YouTube/Vimeo) + overlay scrim — supported on ANY block/element,
+  // not just sections. Both sit BEHIND the content; the block becomes a positioned,
+  // clipped stacking context and the content sits above at z-index 1.
+  const bgVideo = node.style?.backgroundVideo?.trim();
+  const overlayColor = node.style?.overlayColor?.trim();
+  const overlayOpacity = node.style?.overlayOpacity;
+  const hasOverlay = !!overlayColor && (overlayOpacity ?? 0) > 0;
+  const positioned = !!bgVideo || hasOverlay;
   return (
     <div
       key={node.id}
@@ -327,6 +335,7 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
         ...spaceStyle(mergedSpace(node, layer), ZERO),
         // Per-block custom design (Phase 5): frame this block from `node.style`.
         ...blockFrameStyle(node.style),
+        ...(positioned ? { position: "relative", overflow: "hidden" } : {}),
       }}
       data-node-id={node.id}
       data-node-kind="widget"
@@ -338,9 +347,25 @@ function renderWidget(node: WidgetNode, ctx: RenderCtx): ReactNode {
       {elCss ? <style dangerouslySetInnerHTML={{ __html: elCss }} /> : null}
       {hideCss ? <style dangerouslySetInnerHTML={{ __html: hideCss }} /> : null}
       {custom ? <style dangerouslySetInnerHTML={{ __html: custom }} /> : null}
-      <SectionBoundary resetKey={effNode} fallbackLabel={ctx.errorLabel}>
-        <WidgetLeaf node={effNode} ctx={ctx} />
-      </SectionBoundary>
+      {bgVideo ? <BackgroundVideo url={bgVideo} /> : null}
+      {hasOverlay ? (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: overlayColor,
+            opacity: (overlayOpacity ?? 0) / 100,
+            zIndex: 0,
+            pointerEvents: "none",
+          }}
+        />
+      ) : null}
+      <div style={positioned ? { position: "relative", zIndex: 1 } : undefined}>
+        <SectionBoundary resetKey={effNode} fallbackLabel={ctx.errorLabel}>
+          <WidgetLeaf node={effNode} ctx={ctx} />
+        </SectionBoundary>
+      </div>
     </div>
   );
 }
