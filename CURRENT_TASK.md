@@ -33,35 +33,37 @@
 - **Business Principles #6** (theme vs Vilo colour worlds) + **#7** (plan → phased save
   points) added to `BUSINESS_PRINCIPLES.md`.
 
-### ⏳ Outstanding — NOT started (do in this order)
+### ✅ Outstanding batch — DONE this session (2026-07-05 #2, all pushed to `main`)
 
-- **B — menu styling not applying.** The MOBILE drawer (`menuStyle.mobile`:
-  overlayBg/color/fontSize/weight/uppercase/backdropColor) + DROPDOWN/submenu
-  (`menuStyle.submenuColor/submenuHoverColor/submenuBg`) styles don't show in the
-  builder canvas, on the live site, or after publish. `menuStyleCss` (SiteChrome
-  ~535-574) emits `.wielo-submenu`/`[data-scrolled]` CSS; `SiteMobileMenu` reads the
-  `mobile` prop. DEBUG the emit→consume gap (props threaded? `<style>` reaching DOM?).
-- **C — menu builder features:** (1) header renders ONLY the primary/active menu
-  (verify `navigation.menu` = primary mirror reaches SiteChrome); (2) individual
-  ROOM-PAGE links selectable in the menu; (3) **drag-to-INDENT** a link so it becomes
-  a dropdown child of the link above (WordPress-style) in `NavBuilderOverlay` Links tab
-  (`SiteMenuItem.children`); (4) link-row action icons: dropdown chevron + delete
-  always **light grey**, **Vilo-green** hover on the dropdown, **light-red** hover on
-  delete (`.lact`/`.lact.del` in NavBuilderOverlay ~link row).
-- **D — scrolled state:** a scrolled-state DROPDOWN style
-  (`[data-scrolled="true"] .wielo-submenu`) + a scrolled HEADER SHADOW control
-  (`navigation.header.scrolledShadow…` → boxShadow in `StickyHeader` when scrolled).
-- **E — gear icon on the section highlight (NEW, founder idea).** In the builder canvas,
-  the selected SECTION shows a blue highlight/badge — add a **gear icon** on it that
-  opens/surfaces that section's controls (settings/inspector) ON the section, instead
-  of only in the side panel. See `BuilderShell` selected-node badge
-  (`badgeClass`/node-badge, the floating badge with move/duplicate/delete).
-- **6 — per-page header/footer + v2 room header bug.** (a) IMMEDIATE: the LIVE
-  v2 room-detail (`SiteRoomView` v2 path ~L89, `pageStartsWithHero(result.doc)`) still
-  renders the transparent-over-hero header over a heroless page → green/invisible header
-  + breadcrumb overlap; make it solid (pageHasHero false for room_detail docs). Same for
-  any heroless v2 page. (b) FEATURE (needs its own plan doc): named HEADER + FOOTER
-  instances (like named menus) that the host assigns PER PAGE.
+- **B — menu styling.** Root cause found: the whole chain (control→state→schema→
+  save→DB→live/canvas render) was already correctly wired; submenu styling simply
+  had **no target** because there was no way to create dropdown CHILDREN. Fixed by
+  C(3) below. Verified live: submenu links carry no inline colour so
+  `.wielo-submenu a{color}` wins; mobile-drawer chain confirmed (both `HeaderInner`
+  bands pass `mobileStyle`, `SiteMobileMenu` consumes `menuStyle.mobile`).
+- **C(3)+C(4)** (`5b7d3565`) — Links editor flattens the menu to depth-tagged rows +
+  rebuilds the tree: one algorithm does reorder, **drag-right-to-indent** (or an
+  indent/outdent button) → dropdown child, and block-move of a parent+children.
+  Row icons now always light-grey, chevron→green hover, delete→red hover.
+- **C(1)** — verified: `SiteChrome` renders `navigation.menu` (the primary mirror
+  kept synced by `setMenus`/`setPrimaryMenu`); header shows ONLY the primary. No change.
+- **C(2)** (`60eca930`) — nav "Quick-add a room page" selector; real hosts get their
+  live rooms via `roomMenuLinks(ctx)`, demo lists `DEMO_ROOMS`; adds `/rooms/<slug>` link.
+- **D** (`2ee5b10e`) — scrolled header **drop-shadow** (`header.scrolledShadow`+colour+
+  size; `StickyHeader` runs the scroll listener for solid sticky too) + scrolled-state
+  **dropdown colours** (`menuStyle.scrolledSubmenuBg/Color` → `[data-scrolled] .wielo-submenu`).
+- **E** (`fcec0907`) — section badge **gear** opens the section's full inspector in an
+  **on-canvas popover** anchored to the section (shared `renderInspector()`); Esc/X/
+  selection-change close it.
+- **6a** (`1fff958b`) — v2 room-detail header forced SOLID (`pageHasHero={false}`); it
+  opens with the breadcrumb, never a dark hero, so the transparent header was invisible.
+
+### ⏳ Remaining
+
+- **6b — named HEADER + FOOTER instances, assigned PER PAGE** (like named menus).
+  LARGE feature; **plan written** at `docs/features/NAMED_HEADER_FOOTER_PLAN.md`
+  (4 phases, option-A per-page assignment, mirrors `namedMenus.ts`). Not started —
+  pick it up from that plan.
 
 ### Recon already done (maps in prior agent runs / memories)
 

@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-05 #2 — Menu nesting, scrolled-state, on-canvas gear, room links, room-header fix.
+
+Website-builder batch (tasks B/C/D/E/6a). All pushed to `main`; resume anchor in
+`CURRENT_TASK.md` (top). 6b (named header/footer per page) planned but not started —
+see `docs/features/NAMED_HEADER_FOOTER_PLAN.md`.
+
+- **Menu dropdown nesting** (`5b7d3565`, C3/C4) — the Links editor flattens the menu to
+  depth-tagged rows and rebuilds the tree, so one algorithm handles reorder,
+  **drag-right-to-indent** (or an indent/outdent button) into a dropdown child, and
+  block-moving a parent with its children. Row action icons: always light-grey, chevron
+  hovers Vilo-green, delete hovers light-red. This unblocked **task B** — submenu styling
+  had nothing to target before because dropdown children couldn't be created; the emit +
+  `.wielo-submenu` render were already correct (verified live: no inline colour override).
+- **Room-detail header fix** (`1fff958b`, 6a) — the v2 room-detail path forced
+  `pageHasHero={false}`; it opens with the breadcrumb (light text), never a dark hero, so
+  the transparent-over-hero header rendered invisible + overlapped. Matches the bespoke path.
+- **Scrolled-state additions** (`2ee5b10e`, D) — header **drop-shadow on scroll**
+  (`header.scrolledShadow`+colour+size; `StickyHeader` now runs the scroll listener for a
+  solid sticky bar too) and scrolled-state **dropdown colours**
+  (`menuStyle.scrolledSubmenuBg/Color` → `[data-scrolled] .wielo-submenu`). Applied on the
+  live site + both canvases (real `StickyHeader` and the nav-overlay `--nbar-*` mock).
+- **On-canvas section gear** (`fcec0907`, E) — the selected-section badge gear opens the
+  section's full inspector in a floating popover anchored ON the section (shared
+  `renderInspector()` so it's identically wired to the side panel); Esc / X / selection-
+  change close it.
+- **Quick-add room pages** (`60eca930`, C2) — nav Links tab "Quick-add a room page"
+  selector; real hosts get their live visible rooms via `roomMenuLinks(ctx)`, demo lists
+  `DEMO_ROOMS`; picking one adds a `/rooms/<slug>` menu link.
+- **C1 verified** — `SiteChrome` renders only `navigation.menu` (the primary mirror); no
+  change needed.
+
 ## 2026-07-05 — SAVE POINT: colour picker SSOT, builder media, profile block, principles.
 
 Resume anchor for the next session in `CURRENT_TASK.md` (top). All pushed to `main`.
