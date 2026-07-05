@@ -265,18 +265,22 @@ export function PostEditor({
   }
 
   // ── Save / delete ──────────────────────────────────────────
-  function onSave() {
+  // `targetStatus` lets the header buttons commit an EXPLICIT status: the primary
+  // button publishes (or schedules), the secondary saves a draft. Without it we
+  // keep the post's current status (used by e.g. autosave-style callers).
+  function onSave(targetStatus?: Post["status"]) {
     if (!post.title.trim()) {
       toast.error(t("blogTitleRequired"));
       return;
     }
+    const raw = targetStatus ?? post.status;
+    const status: "draft" | "scheduled" | "published" =
+      raw === "published"
+        ? "published"
+        : raw === "scheduled"
+          ? "scheduled"
+          : "draft";
     startSave(async () => {
-      const status =
-        post.status === "published"
-          ? "published"
-          : post.status === "scheduled"
-            ? "scheduled"
-            : "draft";
       const res = await saveBlogPostAction({
         websiteId,
         postId: post.id,
@@ -305,8 +309,12 @@ export function PostEditor({
         );
         return;
       }
+      // Reflect the committed status locally so the badge/button update at once.
+      if (status !== post.status) patch({ status });
       setSavedSlug(slugify(post.slug || post.title) || savedSlug);
-      toast.success(t("blogPostSaved"));
+      toast.success(
+        status === "published" ? t("blogPostPublished") : t("blogPostSaved"),
+      );
       router.refresh();
     });
   }
@@ -421,11 +429,25 @@ export function PostEditor({
             <Eye style={{ width: 15, height: 15 }} />
             {t("previewCta")}
           </button>
+          {/* Save without going live — only meaningful before a post is published. */}
+          {post.status !== "published" ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => onSave("draft")}
+              disabled={saving || !dirty}
+            >
+              {t("blogSaveDraft")}
+            </button>
+          ) : null}
+          {/* Primary action = go live: publish now (or schedule / update). */}
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            onClick={onSave}
-            disabled={saving || !dirty}
+            onClick={() =>
+              onSave(post.status === "scheduled" ? "scheduled" : "published")
+            }
+            disabled={saving || (post.status === "published" && !dirty)}
           >
             {saving ? (
               <Loader2
