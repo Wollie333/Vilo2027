@@ -101,6 +101,8 @@ import {
   addSection,
   insertWidget,
   insertSection,
+  insertWidgetAsSection,
+  insertRootSection,
   moveNodeInto,
   updateNodeProps,
   updateNode,
@@ -858,9 +860,13 @@ export function BuilderShell({
     | { kind: "move"; id: string }
     | null
   >(null);
-  const dropRef = useRef<{ columnId: string; beforeId: string | null } | null>(
-    null,
-  );
+  // A drop target is EITHER inside a column (before a sibling / appended) OR at
+  // the page ROOT (auto-wrap an element in a new top-level section — Group 2.1).
+  const dropRef = useRef<
+    | { columnId: string; beforeId: string | null }
+    | { root: true; beforeSectionId: string | null }
+    | null
+  >(null);
   const dropColRef = useRef<HTMLElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [dropLine, setDropLine] = useState<{
@@ -917,7 +923,15 @@ export function BuilderShell({
         sec?.querySelector<HTMLElement>('[data-node-kind="column"]') ?? null;
     }
     if (!col) {
-      if (dropRef.current) clearDrop();
+      // No column under the cursor → a PAGE-ROOT drop (empty page, the gap
+      // between sections, or the space below the last one). A NEW element / layout
+      // block auto-wraps in a fresh top-level section here (Group 2.1); a MOVE
+      // still needs a real column, so it just clears.
+      if (dragRef.current.kind === "move") {
+        if (dropRef.current) clearDrop();
+        return;
+      }
+      onRootDragOver(e);
       return;
     }
     e.preventDefault(); // allow the drop
@@ -943,7 +957,12 @@ export function BuilderShell({
       }
     }
     const prev = dropRef.current;
-    if (prev && prev.columnId === columnId && prev.beforeId === beforeId)
+    if (
+      prev &&
+      "columnId" in prev &&
+      prev.columnId === columnId &&
+      prev.beforeId === beforeId
+    )
       return;
     if (dropColRef.current !== col) {
       dropColRef.current?.classList.remove("wb-drop-over");
@@ -972,6 +991,58 @@ export function BuilderShell({
     setDropLine({ top, left, width });
   };
 
+  // Page-ROOT drag-over: the cursor is over the page background (not any column).
+  // Find the top-level section boundary nearest the cursor and show a full-width
+  // drop line there; the drop auto-wraps the element in a new section (Group 2.1).
+  const onRootDragOver = (e: React.DragEvent) => {
+    const wrap = canvasRef.current;
+    const stage = stageRef.current;
+    if (!wrap || !stage) {
+      if (dropRef.current) clearDrop();
+      return;
+    }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    // Top-level page sections only (skip nested inner-sections + chrome).
+    const sections = [
+      ...stage.querySelectorAll<HTMLElement>('[data-node-kind="section"]'),
+    ].filter((s) => !s.parentElement?.closest('[data-node-kind="column"]'));
+    let beforeSectionId: string | null = null;
+    let beforeEl: HTMLElement | null = null;
+    for (const s of sections) {
+      const r = s.getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) {
+        beforeSectionId = s.dataset.nodeId ?? null;
+        beforeEl = s;
+        break;
+      }
+    }
+    const prev = dropRef.current;
+    if (prev && "root" in prev && prev.beforeSectionId === beforeSectionId)
+      return;
+    // Clear any column highlight from a previous hover-over-column.
+    dropColRef.current?.classList.remove("wb-drop-over");
+    dropColRef.current = null;
+    dropRef.current = { root: true, beforeSectionId };
+    const wr = wrap.getBoundingClientRect();
+    const sr = stage.getBoundingClientRect();
+    const left = sr.left - wr.left + wrap.scrollLeft + 8;
+    const width = sr.width - 16;
+    let top: number;
+    if (beforeEl) {
+      top = beforeEl.getBoundingClientRect().top - wr.top + wrap.scrollTop - 2;
+    } else if (sections.length) {
+      top =
+        sections[sections.length - 1].getBoundingClientRect().bottom -
+        wr.top +
+        wrap.scrollTop -
+        2;
+    } else {
+      top = sr.top - wr.top + wrap.scrollTop + 8;
+    }
+    setDropLine({ top, left, width });
+  };
+
   const onCanvasDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const drag = dragRef.current;
@@ -980,6 +1051,28 @@ export function BuilderShell({
     dragRef.current = null;
     setDragging(false);
     if (!drag || !drop) return;
+    // ── ROOT drop: auto-wrap in a new top-level section (Group 2.1) ──
+    if ("root" in drop) {
+      if (drag.kind === "new") {
+        const { doc: next, newId } = insertWidgetAsSection(
+          doc,
+          drop.beforeSectionId,
+          drag.type,
+        );
+        setDoc(next);
+        setSelectedId(newId); // select the ELEMENT the host added, not the wrapper
+      } else if (drag.kind === "new-section") {
+        const { doc: next, newId } = insertRootSection(
+          doc,
+          drop.beforeSectionId,
+          drag.spans,
+        );
+        setDoc(next);
+        setSelectedId(newId);
+      }
+      return;
+    }
+    // ── COLUMN drop: insert into / reorder within an existing column ──
     if (drag.kind === "new") {
       const { doc: next, newId } = insertWidget(
         doc,

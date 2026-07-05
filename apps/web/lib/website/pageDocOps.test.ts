@@ -8,6 +8,8 @@ import {
   addSection,
   insertWidget,
   insertSection,
+  insertWidgetAsSection,
+  insertRootSection,
   moveNodeInto,
   updateNodeProps,
   updateNode,
@@ -293,5 +295,44 @@ describe("pageDocOps", () => {
     };
     expect(node.responsive?.mobile).toBeUndefined();
     expect(pageDocSchema.safeParse(b).success).toBe(true);
+  });
+
+  it("insertWidgetAsSection auto-wraps an element in a new top-level section", () => {
+    const doc = sampleDoc(); // [s1, s2]
+    // Append (beforeSectionId null) → new section becomes root.kids[2].
+    const { doc: appended, newId } = insertWidgetAsSection(
+      doc,
+      null,
+      "el_button",
+    );
+    expect(appended.root.kids).toHaveLength(3);
+    const wrap = appended.root.kids[2];
+    expect(wrap.type).toBe("section");
+    expect(wrap.kids).toHaveLength(1); // one column
+    expect(wrap.kids[0].kids).toHaveLength(1); // holding one widget
+    const widget = wrap.kids[0].kids[0] as { id: string; type: string };
+    expect(widget.type).toBe("el_button");
+    // newId is the WIDGET (the element the host added), not the wrapper section.
+    expect(newId).toBe(widget.id);
+    expect(newId).not.toBe(wrap.id);
+    expect(pageDocSchema.safeParse(appended).success).toBe(true);
+
+    // Insert before s2 → the wrapper lands at index 1 (between s1 and s2).
+    const { doc: mid } = insertWidgetAsSection(doc, "s2", "el_heading");
+    expect(mid.root.kids.map((s) => s.id).indexOf("s2")).toBe(2);
+    expect(mid.root.kids[1].type).toBe("section");
+  });
+
+  it("insertRootSection inserts a top-level section at a position (vs addSection appending)", () => {
+    const doc = sampleDoc();
+    const { doc: mid, newId } = insertRootSection(doc, "s1", [6, 6]);
+    // Inserted BEFORE s1 → new section is root.kids[0]; s1 shifts to index 1.
+    expect(mid.root.kids[0].id).toBe(newId);
+    expect(mid.root.kids[1].id).toBe("s1");
+    expect(mid.root.kids[0].kids).toHaveLength(2); // two columns from [6,6]
+    // Null beforeSectionId → appended at the end.
+    const { doc: end } = insertRootSection(doc, null, [12]);
+    expect(end.root.kids).toHaveLength(3);
+    expect(pageDocSchema.safeParse(end).success).toBe(true);
   });
 });

@@ -5,7 +5,12 @@
 // doc (deep-cloned) so the client store can `setDoc(op(doc, …))` and let React
 // diff. Kept framework-free + unit-tested so the builder store stays thin.
 import type { PageDoc, SectionNode, WidgetType } from "./pageDoc.schema";
-import { newSection, newWidget, reidNode } from "./widgets/factories";
+import {
+  newColumn,
+  newSection,
+  newWidget,
+  reidNode,
+} from "./widgets/factories";
 
 // A node anywhere in the tree (section / column / widget) — all carry `id`, and
 // containers additionally carry `kids`.
@@ -162,6 +167,57 @@ export function addSection(
   const next = clone(doc);
   const section: SectionNode = newSection(spans);
   next.root.kids.push(section);
+  return { doc: next, newId: section.id };
+}
+
+/** Index of a top-level section by id, or -1. */
+function rootSectionIndex(
+  doc: PageDoc,
+  beforeSectionId: string | null,
+): number {
+  if (!beforeSectionId) return -1;
+  return doc.root.kids.findIndex((s) => s.id === beforeSectionId);
+}
+
+/**
+ * Drop a NEW basic element at the PAGE ROOT: auto-wrap it in a fresh single-column
+ * section inserted at the top level (before `beforeSectionId`, or appended when
+ * null). This is the Elementor "drop a lone element and it lands inside a section"
+ * behaviour (Builder V3 Group 2.1) — the host adds an ELEMENT, the system supplies
+ * the wrapping section. Returns { doc, newId } where newId is the WIDGET so the
+ * builder selects the element the host actually added (not the wrapper section).
+ */
+export function insertWidgetAsSection(
+  doc: PageDoc,
+  beforeSectionId: string | null,
+  type: WidgetType,
+): { doc: PageDoc; newId: string } {
+  const next = clone(doc);
+  const widget = newWidget(type);
+  const section = newSection([12]);
+  section.kids[0] = newColumn(12, [widget]);
+  const idx = rootSectionIndex(next, beforeSectionId);
+  if (idx < 0) next.root.kids.push(section);
+  else next.root.kids.splice(idx, 0, section);
+  return { doc: next, newId: widget.id };
+}
+
+/**
+ * Insert a NEW top-level section (its own column layout) at the page root, before
+ * `beforeSectionId` (append when null) — the root-drop counterpart to {@link
+ * addSection} (which only appends). Powers dropping a Section / Inner Section
+ * layout block onto the page background rather than into an existing column.
+ */
+export function insertRootSection(
+  doc: PageDoc,
+  beforeSectionId: string | null,
+  spans: number[],
+): { doc: PageDoc; newId: string } {
+  const next = clone(doc);
+  const section = newSection(spans);
+  const idx = rootSectionIndex(next, beforeSectionId);
+  if (idx < 0) next.root.kids.push(section);
+  else next.root.kids.splice(idx, 0, section);
   return { doc: next, newId: section.id };
 }
 
