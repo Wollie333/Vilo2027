@@ -1669,8 +1669,11 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     defaults: { cta_label: "Reserve now" },
     content: [
       { kind: "text", key: "heading", label: "Heading" },
-      { kind: "text", key: "cta_label", label: "Button label" },
       { kind: "text", key: "note", label: "Note" },
+      {
+        kind: "hint",
+        text: "The button label is automatic (Select dates → Checking → Unavailable → price). Style the button via the 'Reserve button' element in the Style tab — the wording stays dynamic.",
+      },
     ],
     elements: ROOM_BOOKING_ELEMENTS,
   },
