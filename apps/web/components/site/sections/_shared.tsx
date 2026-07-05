@@ -4,7 +4,6 @@ import type {
   BlockSpace,
   BlockStyle,
   ElButtonSize,
-  ElColor,
   ElSize,
   ElementStyle,
   ElWeight,
@@ -685,18 +684,16 @@ export function elTransform(t: string | undefined): {
     ? { textTransform: t as CSSProperties["textTransform"] }
     : {};
 }
-/** Element colour override (theme role), or `fallback` when "default"/unset. */
-export function elColor(color: ElColor | undefined, fallback: string): string {
-  switch (color) {
-    case "muted":
-      return "var(--site-mute)";
-    case "accent":
-      return "var(--site-accent)";
-    case "secondary":
-      return "var(--site-secondary)";
-    default:
-      return fallback;
-  }
+/** Element colour override → a CSS colour. Accepts a legacy theme-role token
+ *  (muted/accent/secondary) OR a raw value from the unified colour picker
+ *  (hex/rgba/`var(--site-*)`), which passes through as-is. "default"/unset →
+ *  `fallback` (inherit the theme). */
+export function elColor(color: string | undefined, fallback: string): string {
+  if (!color || color === "default") return fallback;
+  if (color === "muted") return "var(--site-mute)";
+  if (color === "accent") return "var(--site-accent)";
+  if (color === "secondary") return "var(--site-secondary)";
+  return color; // raw colour from the ThemeColorPicker
 }
 
 export function Card({

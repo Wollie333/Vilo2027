@@ -9,7 +9,6 @@
 // Kept in the widgets module (not sections.schema.ts) because only the new
 // builder consumes them; the legacy flat model never renders them.
 import { z } from "zod";
-import { EL_COLOR } from "../sections.schema";
 
 const ALIGN = ["left", "center", "right"] as const;
 
@@ -19,7 +18,7 @@ export const elIconProps = z.object({
   glyph: z.string().max(500).default("★"), // emoji/char OR uploaded image/SVG URL/path
   title: z.string().max(120).default("A little something"),
   body: z.string().max(600).default("Say what makes it special."),
-  color: z.enum(EL_COLOR).default("accent"),
+  color: z.string().max(60).default("accent"),
   align: z.enum(ALIGN).default("center"),
   // Glyph size in px (scale string; "auto" = the default 34px).
   icon_size: z.string().max(6).optional(),
@@ -53,7 +52,7 @@ export const elNavProps = z.object({
   source: z.enum(["menu", "custom"]).default("menu"),
   menu_key: z.string().max(60).optional(),
   items: z.string().max(600).optional(),
-  color: z.enum(EL_COLOR).default("default"),
+  color: z.string().max(60).default("default"),
   align: z.enum(ALIGN).default("center"),
 });
 
@@ -62,7 +61,7 @@ export const SOCIAL_VARIANTS = ["round", "rounded"] as const;
 export const elSocialProps = z.object({
   source: z.enum(["brand", "custom"]).default("brand"),
   networks: z.string().max(300).optional(),
-  color: z.enum(EL_COLOR).default("default"),
+  color: z.string().max(60).default("default"),
   align: z.enum(ALIGN).default("left"),
   // Icon chip size in px (scale string; "auto" = the default 38px).
   icon_size: z.string().max(6).optional(),

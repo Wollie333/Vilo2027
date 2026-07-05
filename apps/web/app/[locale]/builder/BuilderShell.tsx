@@ -3180,12 +3180,6 @@ const num = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
 // Text/icon colour roles — MUST match `elColor()` (default · muted · accent ·
 // secondary). Each carries the swatch colour shown in the picker; "default"
 // inherits the theme so it renders as an "auto" chip, not a solid fill.
-const COLOR_TOKENS: [string, string, string][] = [
-  ["default", "Theme default", ""],
-  ["muted", "Muted", "var(--site-mute)"],
-  ["accent", "Accent", "var(--site-accent)"],
-  ["secondary", "Secondary", "var(--site-secondary)"],
-];
 const ALIGN_OPTS: [string, string][] = [
   ["left", "Left"],
   ["center", "Center"],
@@ -3326,6 +3320,8 @@ function Control({
   /** Site id — enables the icon control's image/SVG upload. */
   websiteId?: string;
 }) {
+  // Active theme palette for the colour picker (same SSOT the element controls use).
+  const swatches = useContext(BuilderSwatchesContext);
   if (ctl.kind === "hint") return <div className="hint">{ctl.text}</div>;
   if (ctl.kind === "group") return <div className="ctl-group">{ctl.label}</div>;
   const set = onChange ?? (() => {});
@@ -3450,26 +3446,20 @@ function Control({
       );
     }
     case "color":
+      // Unified colour component (SSOT ThemeColorPicker): theme-palette circles +
+      // a custom picker with opacity — same control the element styling uses, so
+      // EVERY colour control across all blocks/elements is consistent. Legacy role
+      // tokens (accent/muted/…) still resolve via elColor at render time.
       return (
         <div className="ctl">
           {label}
-          <div className="swrow">
-            {COLOR_TOKENS.map(([v, l, css]) => {
-              const on = str(value) === v || (!value && v === "default");
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  title={l}
-                  aria-label={l}
-                  className={on ? "swrole on" : "swrole"}
-                  data-auto={v === "default" ? "" : undefined}
-                  style={css ? { background: css } : undefined}
-                  onClick={() => set(v)}
-                />
-              );
-            })}
-          </div>
+          <ThemeColorPicker
+            value={str(value) || undefined}
+            fallback={str(value) || "#000000"}
+            swatches={swatches}
+            onChange={(v) => set(v)}
+            onReset={onRevert ?? (() => set(""))}
+          />
         </div>
       );
     case "scale": {

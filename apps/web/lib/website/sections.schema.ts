@@ -719,7 +719,7 @@ const elHeadingProps = z.object({
   align: z.enum(ELEMENT_ALIGN).default("left"),
   size: z.enum(EL_SIZE).default("auto"),
   weight: z.enum(EL_WEIGHT).default("auto"),
-  color: z.enum(EL_COLOR).default("default"),
+  color: z.string().max(60).default("default"),
   ...elTypographyExtras,
 });
 
@@ -728,7 +728,7 @@ const elTextProps = z.object({
   align: z.enum(ELEMENT_ALIGN).default("left"),
   size: z.enum(EL_SIZE).default("auto"),
   weight: z.enum(EL_WEIGHT).default("auto"),
-  color: z.enum(EL_COLOR).default("default"),
+  color: z.string().max(60).default("default"),
   ...elTypographyExtras,
 });
 
@@ -789,7 +789,7 @@ const elDividerProps = z.object({
   thickness: z.enum(EL_DIVIDER_THICKNESS).default("thin"),
   width: z.enum(["narrow", "full"]).default("full"),
   // Line colour (theme role); default = --site-line.
-  color: z.enum(EL_COLOR).optional(),
+  color: z.string().max(60).optional(),
 });
 
 // List element — one item per line in `items` (newline-separated, edited as a
@@ -803,8 +803,8 @@ const elListProps = z.object({
   columns: z.enum(["1", "2"]).default("1"),
   size: z.enum(EL_SIZE).default("auto"),
   weight: z.enum(EL_WEIGHT).default("auto"),
-  color: z.enum(EL_COLOR).default("default"),
-  markerColor: z.enum(EL_COLOR).optional(),
+  color: z.string().max(60).default("default"),
+  markerColor: z.string().max(60).optional(),
 });
 
 // ── Columns container ─────────────────────────────────────────
@@ -833,7 +833,7 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
     align: z.enum(ELEMENT_ALIGN).optional(),
     size: z.enum(EL_SIZE).optional(),
     weight: z.enum(EL_WEIGHT).optional(),
-    color: z.enum(EL_COLOR).optional(),
+    color: z.string().max(60).optional(),
   }),
   z.object({
     ...blockBase,
@@ -842,7 +842,7 @@ const columnBlockSchema = z.discriminatedUnion("kind", [
     align: z.enum(ELEMENT_ALIGN).optional(),
     size: z.enum(EL_SIZE).optional(),
     weight: z.enum(EL_WEIGHT).optional(),
-    color: z.enum(EL_COLOR).optional(),
+    color: z.string().max(60).optional(),
   }),
   z.object({
     ...blockBase,
