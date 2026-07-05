@@ -30,7 +30,7 @@ so the host can open the search-results page and edit the card/section STYLE. No
 network. Available-first ordering + an "Unavailable" state shown on demo cards so the
 design of both states is editable.
 
-### Slice 2 — Room-based results data + design (live)
+### Slice 2 — Room-based results data + design (live) ✅ (2026-07-05 #4)
 - Loader: for the site's visible rooms, compute per-room availability + price for
   the searched dates. Single-property site → the property's rooms; multi-property →
   all rooms across bookable properties. Reuse the availability RPC per room
@@ -40,12 +40,12 @@ design of both states is editable.
   greyed + "Not available for these dates" + Book disabled.
 - Per-element styling (card/image/title/price/button/badge) so it's builder-editable.
 
-### Slice 3 — Live 'Check availability' → results page
+### Slice 3 — Live 'Check availability' → results page ✅ (2026-07-05 #4)
 Ensure every availability form (BookingSearch / availbar / hero search) navigates to
 `siteSearchHref` with `?from=&to=&guests=` on submit (single-property too, not only
 multi-property). The results page reads the query + auto-runs the search.
 
-### Slice 4 — Book now → checkout with dates pre-filled
+### Slice 4 — Book now → checkout with dates pre-filled ✅ (2026-07-05 #4)
 Each available room card's "Book now" → `siteBookHref({roomId, from, to, guests})`
 (→ `/book?room=&from=&to=&guests=`). Checkout prefills dates (already supported);
 dates remain editable there.

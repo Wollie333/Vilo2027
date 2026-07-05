@@ -1430,6 +1430,86 @@ async function loadRateTable(
 }
 
 /**
+ * The site's visible ROOMS as designed search-result cards (image + facts +
+ * detail/book links), for the search-results page. Resolves the same visible-room
+ * set as rooms_preview (frozen snapshot rows, else live website_rooms) ⨝ live
+ * property_rooms. Per-room availability + the priced total for the searched dates
+ * are computed at search time by /api/website-search — this only carries the
+ * static card data. `bookHref` is the base checkout link (dates appended
+ * client-side at search time).
+ */
+async function loadSearchRooms(sb: Sb, ctx: SiteContext): Promise<RoomCard[]> {
+  const { overrides, ordered } = await orderedVisibleRooms(sb, ctx);
+  if (ordered.length === 0) return [];
+
+  const roomIds = ordered.map((o) => o.roomId);
+  const slugByRoom = roomSlugMap(ordered);
+  const [{ data: prRows }, { data: rphotos }] = await Promise.all([
+    sb
+      .from("property_rooms")
+      .select(
+        "id, name, description, base_price, currency, property_id, is_active, deleted_at, max_guests, bedrooms, bed_type, has_ensuite_bathroom, room_size_sqm, view_type",
+      )
+      .in("id", roomIds),
+    sb
+      .from("property_photos")
+      .select("url, room_id, sort_order")
+      .in("room_id", roomIds)
+      .order("sort_order", { ascending: true }),
+  ]);
+  const roomById = new Map(
+    (prRows ?? []).map((r) => [(r as { id: string }).id, r]),
+  );
+  const photoByRoom = new Map<string, string>();
+  for (const p of rphotos ?? []) {
+    const rid = (p as { room_id: string | null }).room_id;
+    if (rid && !photoByRoom.has(rid))
+      photoByRoom.set(rid, (p as { url: string }).url);
+  }
+  const ovById = new Map(overrides.map((o) => [o.room_id, o]));
+
+  return ordered
+    .map((o): RoomCard | null => {
+      const room = roomById.get(o.roomId) as {
+        id: string;
+        name: string;
+        description: string | null;
+        base_price: number | string | null;
+        currency: string | null;
+        property_id: string;
+        is_active: boolean | null;
+        deleted_at: string | null;
+        max_guests: number | null;
+        bedrooms: number | null;
+        bed_type: string | null;
+        has_ensuite_bathroom: boolean | null;
+        room_size_sqm: number | null;
+        view_type: string | null;
+      } | null;
+      if (!room || room.is_active === false || room.deleted_at) return null;
+      const ov = ovById.get(o.roomId);
+      const price = ov?.display_price ?? room.base_price;
+      const slug = slugByRoom.get(o.roomId);
+      return {
+        id: room.id,
+        name: o.name,
+        price: price == null ? null : Number(price),
+        currency: ov?.display_currency || room.currency || "ZAR",
+        description: ov?.display_desc?.trim() || room.description,
+        imageUrl: photoByRoom.get(room.id) ?? null,
+        bookHref: siteBookHref(ctx, {
+          propertyId: room.property_id,
+          roomId: room.id,
+        }),
+        detailHref: slug ? siteRoomHref(ctx, slug) : undefined,
+        facts: roomFacts(room),
+        propertyId: room.property_id,
+      };
+    })
+    .filter((r): r is RoomCard => r !== null);
+}
+
+/**
  * The host's configured seasonal pricing for the site's properties, aggregated
  * into a display-only list for the editable Seasonal pricing block (source
  * "auto"). Reads the live `property_seasonal_pricing` rules (listing_id keeps its
@@ -1544,7 +1624,11 @@ export async function assembleSiteDataByType(
   ) {
     const funnel = await loadBookableProperties(sb, ctx);
     if (types.has("booking_search")) out.booking_search = funnel;
-    if (types.has("search_results")) out.search_results = funnel;
+    if (types.has("search_results")) {
+      // Search results are ROOM-based: carry the site's visible rooms as cards
+      // (availability + price resolve live via /api/website-search at search time).
+      out.search_results = { ...funnel, rooms: await loadSearchRooms(sb, ctx) };
+    }
     if (types.has("availability_calendar")) out.availability_calendar = funnel;
   }
   if (types.has("rate_table")) {

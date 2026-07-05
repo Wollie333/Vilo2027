@@ -39,31 +39,35 @@
   unavailable dimmed) + the search-results page is now PREVIEWABLE in the builder (demo cards);
   live path shows all matches available-first. Spacing between search box + cards bumped.
 
+### ✅ Search results slices 2–4 — DONE (2026-07-05 #4)
+
+Room-based live results shipped (plan: `docs/features/SEARCH_RESULTS_PLAN.md`, all slices ✅).
+`loadSearchRooms` attaches the site's visible `RoomCard[]` to `search_results` data;
+`searchWebsiteRooms` + `/api/website-search` return per-room availability + a server-recalculated
+single-room total (anti-tamper: room must belong to a visible property). `SearchResultsSection`
+room mode shows ALL rooms (available first) with priced totals after a date search; property
+path kept as fallback. BookingSearch "See all rooms" link now single-property too; hero-search
+default href → `/search-results`. Book-now appends `from/to/guests`. tsc+lint+229 tests green.
+⚠️ Live room-mode path not yet exercised against a published host with rooms+bookings — smoke-test
+on a real test host (host@vilotest.com) when convenient.
+
 ### ⏳ REMAINING — pick up here
 
-1. **Search results slices 2–4** (plan: `docs/features/SEARCH_RESULTS_PLAN.md`):
-   - **Slice 2** — live **ROOM-based** results (per-room availability + price for the dates; ALL
-     rooms, available first, unavailable indicated). Today the live path is PROPERTY-based
-     (`SearchResultsSection` + `/api/website-quote` + `quoteWebsiteStay`). Reuse per-room
-     availability RPC + `computeStayPricing`; render via the new `ResultCard`.
-   - **Slice 3** — every "Check availability" form redirects to `siteSearchHref` (`/search-results`)
-     with `?from=&to=&guests=` (single-property too, not only multi).
-   - **Slice 4** — "Book now" → `siteBookHref({roomId,from,to,guests})` (`/book?...`); checkout
-     already prefills dates. Verify on a real test host (rooms + bookings).
-2. **System-page "featured block" has no images by default** (founder) — AMBIGUOUS: confirm which
+1. **System-page "featured block" has no images by default** (founder) — AMBIGUOUS: confirm which
    page + block (blog_preview featured variant? search cards? a hero on a system page?) and whether
    it's a builder-demo gap or a real-data fallback (add a stock fallback image when an item has no
    cover). Demo blog posts DO have images (`sampleSite` `coverUrl: IMG("b*")`); addons are
    intentionally imageless.
-3. **Blog — separate manual SEO/share image** (optional): today the SEO card auto-uses the featured
+2. **Blog — separate manual SEO/share image** (optional): today the SEO card auto-uses the featured
    image. A separate manual override needs a new post column (small migration) — do only if founder
    still wants it distinct from featured.
 
 ### Key files
 - Controls SSOT: `apps/web/components/builder/controls/*` + `/style-lab`.
 - Media: `MediaLibraryModal.tsx`, `MediaPickerProvider.tsx`, `MediaField.tsx`, `MediaPicker.tsx`.
-- Search: `components/site/sections/SearchResultsSection.tsx`, `lib/website/bookingFunnel.ts`
-  (`quoteWebsiteStay`), `lib/site/loadSitePage.ts` (`siteBookHref`/`siteSearchHref`/room loaders),
+- Search: `components/site/sections/SearchResultsSection.tsx` (room + property modes),
+  `lib/website/bookingFunnel.ts` (`searchWebsiteRooms`/`quoteWebsiteStay`), `lib/site/loadSitePage.ts`
+  (`loadSearchRooms`/`siteBookHref`/`siteSearchHref`), `app/api/website-search/route.ts` +
   `app/api/website-quote/route.ts`, `docs/features/SEARCH_RESULTS_PLAN.md`.
 - Header/scrolled: `components/site/StickyHeader.tsx` (scroll-parent + trackScroll), `SiteChrome.tsx`.
 - Blog editor: `app/[locale]/website-editor/[websiteId]/blog/[postId]/PostEditor.tsx`.

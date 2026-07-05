@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-05 #4 — Search results slices 2–4 (room-based live results + form wiring).
+
+Completes the website search-results feature (`docs/features/SEARCH_RESULTS_PLAN.md`).
+Verified: tsc clean, `next lint` clean, 229 vitest pass, `/api/website-search` responds,
+builder renders. Room-mode live path exercised by real host data.
+
+- **Slice 2 — room-based live results.** `search_results` data now carries the site's visible
+  ROOMS (`loadSearchRooms` → `RoomCard[]`, attached in the loader). New server fn
+  `searchWebsiteRooms` + `/api/website-search` route: for each requested room (anti-tamper —
+  must belong to a *visible* property of the site) returns `room_is_available` + a
+  SERVER-RECALCULATED single-room stay total (`computeStayPricing` rooms scope). Never trusts
+  the client. `SearchResultsSection` gains room mode: shows ALL visible rooms (available first),
+  nightly-from before a search → priced total + availability badge after. Property-based path
+  kept as fallback (sites with properties but no per-room channel set).
+- **Slice 3 — forms reach the results page.** BookingSearch "See all available rooms" link now
+  shows for single- AND multi-property (was multi-only); hero-search default href → the site's
+  `/search-results` (was the marketplace `/explore`).
+- **Slice 4 — Book now → checkout with dates.** Each room card's Book-now deep-links to
+  `siteBookHref` (property+room) with the searched `from/to/guests` appended; checkout prefills.
+
 ## 2026-07-05 #3 — Styling+media epic, WYSIWYG fixes, blog + search-results slice 1.
 
 Large multi-part session; all pushed to `main` (`9fa73e8c`). Resume anchor in

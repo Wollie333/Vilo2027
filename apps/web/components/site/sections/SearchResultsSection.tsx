@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
-import type { BookableProperty, BookingFunnelData } from "@/lib/site/types";
+import type {
+  BookableProperty,
+  BookingFunnelData,
+  RoomCard,
+} from "@/lib/site/types";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
@@ -26,6 +30,20 @@ type Match = {
   currency: string;
   bookHref: string;
 };
+
+// Per-room availability + priced total, keyed by room id, from /api/website-search.
+type RoomQuote = {
+  available: boolean;
+  total: number | null;
+  currency: string;
+  nights: number;
+};
+
+/** Append the searched dates/guests to a room's base checkout link. */
+function withStay(href: string, from: string, to: string, guests: number) {
+  const sep = href.includes("?") ? "&" : "?";
+  return `${href}${sep}from=${from}&to=${to}&guests=${guests}`;
+}
 
 function money(total: number, currency: string) {
   try {
@@ -209,7 +227,11 @@ export function SearchResultsSection({
   interactive?: boolean;
 }) {
   const properties = useMemo(() => data?.properties ?? [], [data]);
+  const rooms = useMemo<RoomCard[]>(() => data?.rooms ?? [], [data]);
   const websiteId = data?.websiteId;
+  // Room-based results when the site has visible rooms; otherwise fall back to the
+  // legacy property-based path (multi-property sites with no per-room channel set).
+  const roomMode = rooms.length > 0;
 
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
@@ -217,11 +239,68 @@ export function SearchResultsSection({
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [roomQuotes, setRoomQuotes] = useState<Record<string, RoomQuote>>({});
   const [error, setError] = useState("");
 
-  const live = interactive && Boolean(websiteId) && properties.length > 0;
+  const live =
+    interactive &&
+    Boolean(websiteId) &&
+    (properties.length > 0 || rooms.length > 0);
+
+  // Room search — one request quotes every visible room server-side (availability
+  // + a re-priced total per room). The client never computes price.
+  async function runRoomSearch(ci = checkIn, co = checkOut, g = guests) {
+    if (!live || !ci || !co || co <= ci) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/website-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          website_id: websiteId,
+          room_ids: rooms.map((r) => r.id),
+          check_in: ci,
+          check_out: co,
+          guests: g,
+        }),
+      });
+      const json = (await res.json()) as
+        | {
+            ok: true;
+            results: {
+              room_id: string;
+              available: boolean;
+              total: number | null;
+              currency: string;
+              nights: number;
+            }[];
+          }
+        | { ok: false; error: string };
+      if (json.ok) {
+        const map: Record<string, RoomQuote> = {};
+        for (const r of json.results) {
+          map[r.room_id] = {
+            available: r.available,
+            total: r.total,
+            currency: r.currency,
+            nights: r.nights,
+          };
+        }
+        setRoomQuotes(map);
+      } else {
+        setError(json.error);
+      }
+    } catch {
+      setError("Couldn't reach the server. Please try again.");
+    } finally {
+      setLoading(false);
+      setSearched(true);
+    }
+  }
 
   async function runSearch(ci = checkIn, co = checkOut, g = guests) {
+    if (roomMode) return runRoomSearch(ci, co, g);
     if (!live || !ci || !co || co <= ci) return;
     setLoading(true);
     setError("");
@@ -290,6 +369,36 @@ export function SearchResultsSection({
     // Run once on mount for the URL-provided dates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live]);
+
+  // Room cards merged with their live quote (available + priced), available first.
+  const roomResults: ResultCardData[] = useMemo(() => {
+    const cards = rooms.map((r): ResultCardData => {
+      const q = roomQuotes[r.id];
+      const available = q ? q.available : true;
+      return {
+        id: r.id,
+        name: r.name,
+        imageUrl: r.imageUrl,
+        facts: r.facts,
+        priceLabel:
+          q && q.total != null
+            ? money(q.total, q.currency)
+            : r.price != null
+              ? `${money(r.price, r.currency ?? "ZAR")} / night`
+              : null,
+        subLabel:
+          q && q.total != null
+            ? `${q.nights} ${q.nights === 1 ? "night" : "nights"}`
+            : null,
+        available,
+        bookHref:
+          checkIn && checkOut
+            ? withStay(r.bookHref, checkIn, checkOut, guests)
+            : r.bookHref,
+      };
+    });
+    return cards.sort((a, b) => Number(b.available) - Number(a.available));
+  }, [rooms, roomQuotes, checkIn, checkOut, guests]);
 
   return (
     <SectionShell surface>
@@ -367,6 +476,22 @@ export function SearchResultsSection({
         </div>
       ) : error ? (
         <p className="text-center text-sm font-medium text-red-600">{error}</p>
+      ) : roomMode ? (
+        // ROOM-based: show ALL visible rooms (available first). Before a search
+        // they list their nightly-from price; after one, each carries the priced
+        // total + availability for the chosen dates (unavailable dimmed + badged).
+        <>
+          {!searched ? (
+            <Muted className="mb-6 text-center text-sm">
+              Enter your dates to see live prices &amp; availability.
+            </Muted>
+          ) : null}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {roomResults.map((r) => (
+              <ResultCard key={r.id} r={r} />
+            ))}
+          </div>
+        </>
       ) : !searched ? (
         <Muted className="text-center text-sm">
           Enter your dates to see what’s available.

@@ -230,9 +230,9 @@ export function BookingSearchSection({
 
           <QuoteResult state={state} />
 
-          {/* Multi-property sites: jump to the full results page for these dates. */}
+          {/* Jump to the full room-by-room results page for these dates (shown
+              for single- AND multi-property sites once a quote has run). */}
           {state.kind === "result" &&
-          choices.length > 1 &&
           data?.searchHref &&
           checkIn &&
           checkOut ? (
@@ -241,7 +241,7 @@ export function BookingSearchSection({
               style={{ color: "var(--site-accent)" }}
               className="block text-center text-sm font-semibold underline underline-offset-2"
             >
-              See all available stays
+              See all available rooms
             </a>
           ) : null}
 

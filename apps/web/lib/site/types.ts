@@ -485,6 +485,12 @@ export type BookingFunnelData = {
   /** Absolute path to the system search-results page (booking_search links here
    *  when the site has more than one bookable property). */
   searchHref?: string;
+  /** The site's visible ROOMS (search-results only) — resolved at page load with
+   *  their hrefs/images/facts. Per-room availability + a server-recalculated
+   *  price for the searched dates come from /api/website-search at search time
+   *  (never trusted client-side). `bookHref` is the base checkout link (property
+   *  + room); the searched dates/guests are appended client-side. */
+  rooms?: RoomCard[];
 };
 
 /** One row of the live rate table (display-only — booking re-prices server-side). */

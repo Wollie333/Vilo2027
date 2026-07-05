@@ -63,6 +63,29 @@ export type WebsiteAvailabilityResult =
   | { ok: true; unavailable: string[] }
   | { ok: false; error: string };
 
+export const websiteSearchSchema = z.object({
+  website_id: z.string().uuid(),
+  room_ids: z.array(z.string().uuid()).min(1).max(60),
+  check_in: iso,
+  check_out: iso,
+  guests: z.number().int().min(1).max(50),
+});
+export type WebsiteSearchInput = z.infer<typeof websiteSearchSchema>;
+
+/** Per-room availability + a server-recalculated stay price for the search page. */
+export type RoomSearchResult = {
+  room_id: string;
+  available: boolean;
+  /** Server-recalculated whole-stay total for this one room (null if unpriceable). */
+  total: number | null;
+  currency: string;
+  nights: number;
+};
+
+export type WebsiteSearchResult =
+  | { ok: true; nights: number; results: RoomSearchResult[] }
+  | { ok: false; error: string };
+
 export type AdminClient = ReturnType<typeof createAdminClient>;
 
 /**
@@ -259,4 +282,81 @@ export async function websiteAvailability(
     }
   }
   return { ok: true, unavailable: [...unavailable] };
+}
+
+/**
+ * Room-based search for the website search-results page. For each requested room
+ * (all validated to belong to a *visible* property of the given site — anti-tamper),
+ * returns its availability for the dates (`room_is_available`) plus a
+ * SERVER-RECALCULATED single-room stay price (the same `computeStayPricing` engine
+ * the checkout uses). Rooms the client asked for that aren't bookable on this site
+ * are silently dropped. Never throws.
+ */
+export async function searchWebsiteRooms(
+  body: unknown,
+): Promise<WebsiteSearchResult> {
+  const parsed = websiteSearchSchema.safeParse(body);
+  if (!parsed.success) {
+    return { ok: false, error: "Pick valid dates and number of guests." };
+  }
+  const input = parsed.data;
+  const nights = nightsBetween(input.check_in, input.check_out);
+  if (nights <= 0) {
+    return { ok: false, error: "Check-out must be after check-in." };
+  }
+
+  const admin = createAdminClient();
+
+  // Anti-tamper: the visible property members of this site …
+  const { data: members } = await admin
+    .from("website_properties")
+    .select("property_id")
+    .eq("website_id", input.website_id)
+    .eq("is_visible", true);
+  const visibleProps = new Set(
+    (members ?? []).map((m) => (m as { property_id: string }).property_id),
+  );
+  if (visibleProps.size === 0) return { ok: true, nights, results: [] };
+
+  // … then only the requested rooms that live under one of those properties and
+  // are still active. A room whose property isn't a visible member is dropped.
+  const { data: roomRows } = await admin
+    .from("property_rooms")
+    .select("id, property_id")
+    .in("id", input.room_ids)
+    .is("deleted_at", null)
+    .eq("is_active", true);
+  const rooms = (roomRows ?? [])
+    .map((r) => r as { id: string; property_id: string })
+    .filter((r) => visibleProps.has(r.property_id));
+
+  const results = await Promise.all(
+    rooms.map(async (room): Promise<RoomSearchResult> => {
+      const [{ data: available }, priced] = await Promise.all([
+        admin.rpc("room_is_available", {
+          p_listing_id: room.property_id,
+          p_room_id: room.id,
+          p_check_in: input.check_in,
+          p_check_out: input.check_out,
+        }),
+        computeStayPricing(admin, {
+          property_id: room.property_id,
+          check_in: input.check_in,
+          check_out: input.check_out,
+          scope: "rooms",
+          guests: input.guests,
+          rooms: [{ room_id: room.id, guests: input.guests }],
+        }),
+      ]);
+      return {
+        room_id: room.id,
+        available: available === true,
+        total: priced.ok ? priced.data.total : null,
+        currency: priced.ok ? priced.data.currency : "ZAR",
+        nights,
+      };
+    }),
+  );
+
+  return { ok: true, nights, results };
 }

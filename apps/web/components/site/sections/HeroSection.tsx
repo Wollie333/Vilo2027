@@ -324,7 +324,7 @@ export function HeroSection({
         {isSearch ? (
           <div className="mt-8">
             <HeroSearchBar
-              href={props.cta_href || "/explore"}
+              href={props.cta_href || "/search-results"}
               onDark={onDark}
               interactive={interactive}
             />
