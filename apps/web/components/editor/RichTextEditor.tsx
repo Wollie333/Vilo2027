@@ -10,7 +10,6 @@ import {
   Heading3,
   ImagePlus,
   Italic,
-  Library,
   Link2,
   List,
   ListOrdered,
@@ -287,9 +286,30 @@ function Toolbar({
         <Redo2 className="h-3.5 w-3.5" />
       </button>
 
-      {onImageUpload ? (
+      {onImageUpload || onPickFromLibrary ? (
+        <span aria-hidden className="mx-1 h-5 w-px bg-brand-line" />
+      ) : null}
+
+      {/* A media picker is available → ONE "Insert image" button opens the single
+          media modal (upload OR choose from the library). Otherwise fall back to a
+          plain direct-upload button (other editors with no library). */}
+      {onPickFromLibrary ? (
+        <button
+          type="button"
+          onClick={onBrowse}
+          disabled={disabled || browsing}
+          aria-label="Insert image"
+          title="Insert image"
+          className="inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute transition-colors hover:bg-white hover:text-brand-ink disabled:opacity-50"
+        >
+          {browsing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <ImagePlus className="h-3.5 w-3.5" />
+          )}
+        </button>
+      ) : onImageUpload ? (
         <>
-          <span aria-hidden className="mx-1 h-5 w-px bg-brand-line" />
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
@@ -316,23 +336,6 @@ function Toolbar({
             }}
           />
         </>
-      ) : null}
-
-      {onPickFromLibrary ? (
-        <button
-          type="button"
-          onClick={onBrowse}
-          disabled={disabled || browsing}
-          aria-label="Insert image from library"
-          title="Insert image from library"
-          className="inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute transition-colors hover:bg-white hover:text-brand-ink disabled:opacity-50"
-        >
-          {browsing ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Library className="h-3.5 w-3.5" />
-          )}
-        </button>
       ) : null}
     </div>
   );

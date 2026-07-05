@@ -2463,6 +2463,15 @@ export async function saveBlogPostAction(
     if (!author) return { ok: false, error: "invalid" };
   }
 
+  // A published/scheduled post must carry an author. Default to the host — seed
+  // the host author from their profile if none is set — and only block when the
+  // host has no profile name to seed from.
+  let finalAuthorId = authorId || null;
+  if ((status === "published" || status === "scheduled") && !finalAuthorId) {
+    finalAuthorId = await ensureHostAuthor(supabase, websiteId, own.hostId);
+    if (!finalAuthorId) return { ok: false, error: "author_required" };
+  }
+
   const desiredSlug = slugify(slug || title);
   const finalSlug = await uniquePostSlug(
     supabase,
@@ -2503,7 +2512,7 @@ export async function saveBlogPostAction(
       cover_path: coverPath || null,
       excerpt: finalExcerpt || null,
       body_html: bodyHtml || null,
-      author_id: authorId || null,
+      author_id: finalAuthorId,
       seo: {
         title: seoTitle || undefined,
         description: seoDescription || undefined,

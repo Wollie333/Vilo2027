@@ -298,7 +298,11 @@ export function PostEditor({
         pixelEvent: post.pixelEvent as (typeof PAGE_PIXEL_EVENTS)[number],
       });
       if (!res.ok) {
-        toast.error(t("saveError"));
+        toast.error(
+          res.error === "author_required"
+            ? t("blogAuthorRequired")
+            : t("saveError"),
+        );
         return;
       }
       setSavedSlug(slugify(post.slug || post.title) || savedSlug);

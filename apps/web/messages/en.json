@@ -2048,6 +2048,7 @@
     "blogAuthorName": "Name",
     "blogAuthorsSaved": "Authors saved.",
     "blogAuthorNameRequired": "Give each author a name.",
+    "blogAuthorRequired": "This post needs an author to publish. Set your profile name or add an author under Categories & authors.",
     "blogNoAuthor": "No author",
     "blogNoAuthorsHint": "Add an author in the Blog tab to attribute this post.",
     "blogCategory": "Category",
