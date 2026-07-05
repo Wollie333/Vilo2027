@@ -113,8 +113,12 @@ export async function SiteRoomView({
           >
             <nav
               aria-label="Breadcrumb"
-              style={{ color: "var(--site-mute)" }}
-              className="mx-auto w-full max-w-5xl px-5 pt-8 text-sm"
+              style={{
+                color: "var(--site-mute)",
+                maxWidth: 1180,
+                paddingInline: "clamp(20px, 4vw, 32px)",
+              }}
+              className="mx-auto w-full pt-8 text-sm"
             >
               <ol className="flex flex-wrap items-center gap-1.5">
                 <li>

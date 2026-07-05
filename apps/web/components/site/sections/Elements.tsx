@@ -30,7 +30,14 @@ const justify = (a: Align) =>
       ? "justify-end"
       : "justify-start";
 
-/** Shared element wrapper — page gutters + content max-width + tight rhythm. */
+/**
+ * Shared element wrapper — a thin, FULL-WIDTH block with a tight vertical rhythm.
+ * It intentionally owns NO horizontal gutter or max-width: the parent section
+ * already provides the content band (max-width 1180 + gutter), so every element
+ * (heading, text, image, button…) aligns to the SAME edge as sibling content and
+ * `text-align` alone drives left/center/right — no stray left/right padding, so
+ * headings look identical whichever way they're aligned. (Standardised styling.)
+ */
 function ElBlock({
   children,
   className = "",
@@ -38,11 +45,7 @@ function ElBlock({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <div className="px-5">
-      <div className={`mx-auto max-w-5xl py-3 ${className}`}>{children}</div>
-    </div>
-  );
+  return <div className={`py-3 ${className}`}>{children}</div>;
 }
 
 // ── Heading ───────────────────────────────────────────────────
