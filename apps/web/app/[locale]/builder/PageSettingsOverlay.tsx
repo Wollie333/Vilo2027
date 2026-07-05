@@ -13,6 +13,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { MediaField } from "./MediaField";
+
 // Builder V2 — Phase 4b: Page Settings overlay (SEO / social / tracking / code).
 //
 // A pixel-faithful port of the prototype's `.ps-modal`: a centred modal with a
@@ -151,6 +153,7 @@ export function PageSettingsOverlay({
   onPatch,
   analytics,
   onAnalyticsPatch,
+  websiteId,
 }: {
   open: boolean;
   onClose: () => void;
@@ -158,6 +161,8 @@ export function PageSettingsOverlay({
   domain: string;
   meta: Meta;
   onPatch: (patch: Meta) => void;
+  /** Enables the share-image upload (media library). */
+  websiteId?: string;
   /** Site-wide analytics IDs (shared by every page). */
   analytics: BuilderAnalytics;
   /** Patch the site-wide analytics record (persists to settings.analytics). */
@@ -225,7 +230,12 @@ export function PageSettingsOverlay({
           <div className="ps-body">
             {tab === "seo" && <SeoTab meta={meta} domain={domain} set={set} />}
             {tab === "social" && (
-              <SocialTab meta={meta} domain={domain} set={set} />
+              <SocialTab
+                meta={meta}
+                domain={domain}
+                set={set}
+                websiteId={websiteId}
+              />
             )}
             {tab === "tracking" && (
               <TrackingTab analytics={analytics} setA={setA} />
@@ -332,10 +342,12 @@ function SocialTab({
   meta,
   domain,
   set,
+  websiteId,
 }: {
   meta: Meta;
   domain: string;
   set: (k: string, v: unknown) => void;
+  websiteId?: string;
 }) {
   const ogTitle = str(meta, "ogTitle") || str(meta, "seoTitle");
   const ogDesc = str(meta, "ogDesc") || str(meta, "metaDesc");
@@ -376,11 +388,11 @@ function SocialTab({
             onChange={(e) => set("ogDesc", e.target.value)}
           />
         </Field>
-        <Field label="Share image URL">
-          <input
-            className="inp"
+        <Field label="Share image">
+          <MediaField
             value={ogImage}
-            onChange={(e) => set("ogImage", e.target.value)}
+            onChange={(v) => set("ogImage", v)}
+            websiteId={websiteId}
           />
         </Field>
         <Field label="Twitter card">

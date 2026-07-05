@@ -1824,6 +1824,7 @@ export function BuilderShell({
             onPatch={patchMeta}
             analytics={analytics}
             onAnalyticsPatch={patchAnalytics}
+            websiteId={websiteId}
           />
 
           <RoomDataModal
