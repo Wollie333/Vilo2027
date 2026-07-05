@@ -1352,6 +1352,8 @@ export function SiteChrome({
           scrolledShadow={navigation.header?.scrolledShadow}
           scrolledShadowColor={navigation.header?.scrolledShadowColor}
           scrolledShadowSize={navigation.header?.scrolledShadowSize}
+          borderColor={navigation.header?.borderColor}
+          borderWidth={navigation.header?.borderWidth}
           textColor={mergedMenuStyle?.color}
           topOffset={showBar ? 44 : 0}
         >

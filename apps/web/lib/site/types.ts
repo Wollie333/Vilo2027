@@ -195,6 +195,9 @@ export type SiteNavigation = {
     scrolledShadow?: boolean | null;
     scrolledShadowColor?: string | null;
     scrolledShadowSize?: number | null;
+    /** Header bottom-border (solid state) — colour + width; blank → theme hairline. */
+    borderColor?: string | null;
+    borderWidth?: number | null;
     /** Mobile ☰ icon design. */
     burger?: {
       color?: string;

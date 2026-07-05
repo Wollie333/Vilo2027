@@ -957,6 +957,9 @@ export const navigationSchema = z.object({
       scrolledShadow: z.boolean().optional(),
       scrolledShadowColor: z.string().trim().max(40).optional(),
       scrolledShadowSize: z.number().int().min(0).max(60).optional(),
+      // Header bottom-border (solid state) — colour + width. Blank → theme hairline.
+      borderColor: z.string().trim().max(40).optional(),
+      borderWidth: z.number().int().min(0).max(8).optional(),
       // When the full menu collapses to a ☰ button: on phones only ("mobile"),
       // on tablets too ("tablet"), or never (always show the full inline menu).
       menuCollapse: z.enum(["mobile", "tablet", "never"]).default("mobile"),

@@ -18,6 +18,8 @@ export function StickyHeader({
   scrolledShadow,
   scrolledShadowColor,
   scrolledShadowSize,
+  borderColor,
+  borderWidth,
   textColor,
   topOffset = 0,
   children,
@@ -36,6 +38,10 @@ export function StickyHeader({
   scrolledShadowColor?: string | null;
   /** Shadow blur (px); blank → 18. */
   scrolledShadowSize?: number | null;
+  /** Solid-header bottom border colour; blank → theme hairline. */
+  borderColor?: string | null;
+  /** Solid-header bottom border width (px); blank → 1. */
+  borderWidth?: number | null;
   /** Header text/menu colour (the host's menu colour). Drives logo + menu so it
    *  stays legible on a custom/transparent background. Blank → sensible default. */
   textColor?: string | null;
@@ -72,7 +78,11 @@ export function StickyHeader({
     const customBg = bgColor?.trim();
     const style: CSSProperties = {
       background: customBg || "var(--site-surface)",
-      borderColor: scrolledBorderColor?.trim() || "var(--site-line)",
+      borderColor:
+        borderColor?.trim() ||
+        scrolledBorderColor?.trim() ||
+        "var(--site-line)",
+      ...(borderWidth != null ? { borderBottomWidth: borderWidth } : null),
       ...(liftShadow ? { boxShadow: liftShadow } : null),
       ...(topOffset ? { top: topOffset } : null),
     };

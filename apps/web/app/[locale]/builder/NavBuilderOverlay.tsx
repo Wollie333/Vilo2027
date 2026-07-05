@@ -1323,6 +1323,20 @@ export function NavBuilderOverlay({
                 swatches={themeCols}
                 onChange={(v) => setHeader({ scrolledBorderColor: v })}
               />
+              <Swatch
+                label="Header border colour"
+                value={header.borderColor ?? "#E4EFE8"}
+                swatches={themeCols}
+                onChange={(v) => setHeader({ borderColor: v })}
+              />
+              <Rng
+                label="Header border width"
+                min={0}
+                max={8}
+                value={header.borderWidth ?? 1}
+                suffix="px"
+                onChange={(v) => setHeader({ borderWidth: v })}
+              />
               <ToggleRow
                 label="Drop-shadow on scroll"
                 value={!!header.scrolledShadow}
