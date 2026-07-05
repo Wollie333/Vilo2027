@@ -421,3 +421,32 @@ That is a blocker to RESOLVE, not an excuse to skip. Do whatever it takes:
 - Reinforces Principle #5 (One Source of Truth) and Principle #8 (WYSIWYG): the
   canvas and live share one render path, so verifying both is the proof that the
   shared path — not a bespoke preview — carries the change.
+
+---
+
+## Principle #10 — Mobile-first, fully responsive, always
+
+**Founder directive: everything we code and add to the website — every block,
+element, section, widget, control, page and piece of chrome — is MOBILE-FIRST and
+must be FULLY RESPONSIVE at every breakpoint, always. No exceptions.**
+
+### The rule
+
+- Design and build for the smallest screen first, then enhance up (Tailwind's
+  `sm:`/`md:`/`lg:` are additive from a mobile base — never desktop-first with
+  `max-*` hacks).
+- Every grid/list (rooms grid, results, galleries, cards, amenity lists, footers,
+  menus) collapses cleanly: 1 column on phones → 2 on tablets → 3+ on desktop, with
+  no overflow, no horizontal scroll, no touching/overlapping cards.
+- Images use responsive sizing (`max-width:100%`, `object-fit`, `sizes`), text
+  wraps, tap targets are ≥44px, and nothing is clipped or cut off on a 360px phone.
+- The builder canvas + the live site must BOTH look correct at mobile, tablet and
+  desktop (ties into Principle #9 — verify at all three widths, canvas AND live).
+
+### How to apply it
+
+- A new component is NOT done until it has been checked at phone (~375px), tablet
+  (~768px) and desktop (~1280px) widths — resize the preview and confirm.
+- Never ship a fixed-width or desktop-only layout. If a grid has `grid-cols-3`, it
+  MUST also have a mobile base (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`).
+- Reuse the shared responsive section/card primitives; don't hand-roll widths.
