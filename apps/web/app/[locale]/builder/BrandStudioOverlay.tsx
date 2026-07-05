@@ -22,6 +22,7 @@ import {
   Youtube,
   Linkedin,
   Globe,
+  Link2 as LinkIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,11 +34,13 @@ import type { SiteBrand, SiteNavigation } from "@/lib/site/types";
 import type { PageDoc } from "@/lib/website/pageDoc.schema";
 import {
   SITE_PRESETS,
+  themeSwatches,
   type SiteThemeConfig,
   type SiteFont,
   type SiteRadius,
   type SiteShadow,
 } from "@/lib/site/themes";
+import { ThemeColorPicker } from "@/components/ui/ThemeColorPicker";
 
 // Builder V2 — Phase 4c: Brand Studio overlay (token-driven).
 //
@@ -574,6 +577,38 @@ export function BrandStudioOverlay({
                   </button>
                 ))}
               </div>
+            </Ctl>
+          </Acc>
+
+          <Acc
+            i={6}
+            openAcc={openAcc}
+            toggle={toggleAcc}
+            Icon={LinkIcon}
+            title="Links"
+            sub="Content link colour & hover"
+          >
+            <Ctl label="Link colour" hint="body / prose links">
+              <ThemeColorPicker
+                value={theme.links?.color}
+                fallback={theme.colors?.accent ?? "#0F766E"}
+                swatches={themeSwatches(theme)}
+                onChange={(v) => patch({ links: { ...theme.links, color: v } })}
+                onReset={() => patch({ links: { ...theme.links, color: "" } })}
+              />
+            </Ctl>
+            <Ctl label="Link hover colour">
+              <ThemeColorPicker
+                value={theme.links?.hoverColor}
+                fallback={theme.colors?.accent ?? "#0F766E"}
+                swatches={themeSwatches(theme)}
+                onChange={(v) =>
+                  patch({ links: { ...theme.links, hoverColor: v } })
+                }
+                onReset={() =>
+                  patch({ links: { ...theme.links, hoverColor: "" } })
+                }
+              />
             </Ctl>
           </Acc>
         </aside>

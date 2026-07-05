@@ -2050,8 +2050,16 @@ function nodeMeta(
     ?.trim()
     .slice(0, 18);
   const base = def?.label ?? node.type;
+  // Include the variant (e.g. Grid / Tiles) so two blocks of the SAME type — like
+  // the home page's two highlights blocks — are distinguishable in the navigator,
+  // badge and inspector header even when their heading is the same or empty.
+  const variant =
+    typeof node.variant === "string" && node.variant
+      ? (def?.variants?.find(([v]) => v === node.variant)?.[1] ?? node.variant)
+      : "";
+  const detail = [variant, snippet].filter(Boolean).join(" · ");
   return {
-    label: snippet ? `${base} · ${snippet}` : base,
+    label: detail ? `${base} · ${detail}` : base,
     Icon: WIDGET_ICONS[def?.icon ?? ""] ?? Square,
   };
 }

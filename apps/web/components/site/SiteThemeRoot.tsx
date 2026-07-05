@@ -39,6 +39,20 @@ export function SiteThemeRoot({
   // they keep the green fallback.
   const accent =
     (vars as Record<string, string | undefined>)["--site-accent"] || undefined;
+  // Content-link styling (Brand Studio → Links). Scoped to CONTENT (`main …`) and
+  // excludes booking/CTA buttons, so the header menu + buttons keep their own
+  // colours. Only emitted when the host sets a link colour/hover.
+  const linkColor = theme?.links?.color?.trim();
+  const linkHover = theme?.links?.hoverColor?.trim();
+  const linkCss =
+    linkColor || linkHover
+      ? ".wielo-site-root main a:not([data-wielo-book]):not(.wielo-btn)" +
+        (linkColor ? `{color:${linkColor}}` : "{}") +
+        (linkHover
+          ? ".wielo-site-root main a:not([data-wielo-book]):not(.wielo-btn):hover" +
+            `{color:${linkHover}}`
+          : "")
+      : "";
   return (
     <div
       style={{
@@ -51,10 +65,14 @@ export function SiteThemeRoot({
         lineHeight: "var(--site-leading-body)" as unknown as number,
         letterSpacing: "var(--site-tracking-body)",
       }}
-      className={[className, skinClass].filter(Boolean).join(" ") || undefined}
+      className={
+        ["wielo-site-root", className, skinClass].filter(Boolean).join(" ") ||
+        undefined
+      }
     >
       <SiteFontLinks theme={theme} />
       {accent ? <style>{`:root{--wielo-toploader:${accent}}`}</style> : null}
+      {linkCss ? <style>{linkCss}</style> : null}
       {children}
     </div>
   );

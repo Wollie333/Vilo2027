@@ -320,6 +320,8 @@ export type SiteThemeConfig = {
   heroLayout?: SiteHeroLayout;
   social?: SiteSocial;
   iconColor?: string; // feature-icon colour; absent ⇒ accent
+  /** Content link styling (body/prose links; NOT the header menu or buttons). */
+  links?: { color?: string; hoverColor?: string };
   header?: SiteHeaderConfig; // header layout (desktop + mobile)
   footer?: SiteFooterConfig; // footer layout (desktop + mobile)
   // Legacy flat keys (pre-Brand-Studio dev rows). Read as a fallback so old
