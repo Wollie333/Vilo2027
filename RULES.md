@@ -219,8 +219,21 @@ If you notice `ARCHITECTURE.md` has a wrong folder name, or `supabase_database.m
 
 ## 8. Before Calling Any Task Done
 
+> **THE RULE (founder directive, non-negotiable — see BUSINESS_PRINCIPLES.md
+> Principle #9): you are NEVER done until the change is SEEN working in BOTH the
+> builder canvas AND the live/published render.** Green build/lint/tests are
+> necessary but NOT sufficient. "It should work", "the logic is correct", or "I
+> couldn't reach live" are NOT done. Verify both surfaces with real evidence
+> (screenshot / DOM inspect / computed style) because a component can diverge
+> between a builder's bespoke preview and the shared live render path. If you
+> genuinely can't reach one surface, that's a blocker to resolve (build a harness
+> / ask for a test URL up front) — never report "done"; mark it NOT verified and
+> say so loudly.
+
 Run through this checklist every time:
 
+- [ ] **SEEN working in the builder canvas** (real evidence, not assumption)
+- [ ] **SEEN working on the live/published render** — canvas ≠ live must be proven
 - [ ] Does it match the acceptance criteria in `CURRENT_TASK.md`?
 - [ ] `pnpm build` passes — zero errors
 - [ ] `pnpm lint` passes — zero warnings

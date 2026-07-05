@@ -93,6 +93,14 @@ Read these when working in a specific domain:
 - Use the LEAST amount of code that correctly solves the problem
 
 ### Before Marking Any Task Done
+- **NEVER "done" until the change is SEEN working in BOTH the builder canvas AND
+  the live/published render** — founder directive, non-negotiable (BUSINESS_PRINCIPLES.md
+  Principle #9, RULES.md §8). Green build/lint/tests are necessary but NOT sufficient.
+  "Should work" / "logic is correct" / "couldn't reach live" ≠ done. Verify BOTH with
+  real evidence (screenshot / DOM inspect / computed style); a component can diverge
+  between a builder's bespoke preview and the shared live render path. Can't reach a
+  surface? Resolve it (build a harness / ask for a test URL up front) — never report
+  "done"; mark it NOT verified and say so loudly.
 - `pnpm build` passes — zero errors
 - `pnpm lint` passes — zero warnings
 - No `console.log` in committed code

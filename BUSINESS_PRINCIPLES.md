@@ -376,3 +376,48 @@ styling, element styling — everywhere):
 - Popovers/modals for styling controls (colour picker, media picker, etc.) must
   render above all canvas and card content (portal + high z-index) so they're never
   clipped by a card's `overflow`.
+
+---
+
+## Principle #9 — Not done until the change is SEEN in BOTH the canvas AND live
+
+**Founder directive (do not ask again): a task is not complete — and must never be
+reported as complete — until the change has been VISUALLY VERIFIED working in BOTH
+the builder canvas AND the live/published site.** "It typecheck's / lint's / tests
+pass" is necessary but NOT sufficient. "It should work" / "the logic is correct" /
+"I couldn't reach live" are not acceptable stopping points.
+
+### The rule
+
+For any change a user could see (UI, styling, layout, header/footer, sections,
+blog, search, funnel, chrome — anything rendered):
+
+1. **Verify in the canvas** — drive the builder/preview and confirm the change
+   actually renders (screenshot / DOM inspect / computed style — real evidence,
+   not assumption).
+2. **Verify on live** — confirm the SAME change on the published/live render path.
+   Canvas ≠ live has bitten us repeatedly (e.g. the header scrolled state showed in
+   the nav overlay's bespoke preview but not on the real `StickyHeader` used by the
+   canvas page + live). Both paths must be checked because a component can diverge.
+3. Only then report done — and say explicitly what was verified and how.
+
+### If you can't reach one of the two environments
+
+That is a blocker to RESOLVE, not an excuse to skip. Do whatever it takes:
+
+- Reproduce the render locally (build a minimal harness / preview route / fixture
+  that exercises the SAME component the live site uses).
+- If a real login / published tenant / test URL is genuinely required, ASK the
+  founder for it up front and keep it on hand — don't finish the task blind.
+- Never hand back work with "verify it yourself on a real site" as the only check.
+  If verification is truly impossible this session, say so LOUDLY at the top of the
+  response and mark the task **NOT verified / incomplete** — never "done."
+
+### Why this matters
+
+- Shipping "green but unseen" changes has repeatedly produced regressions the
+  founder had to catch (scrolled state, search results design, blog publish).
+  Every one would have been caught by actually looking at both surfaces.
+- Reinforces Principle #5 (One Source of Truth) and Principle #8 (WYSIWYG): the
+  canvas and live share one render path, so verifying both is the proof that the
+  shared path — not a bespoke preview — carries the change.
