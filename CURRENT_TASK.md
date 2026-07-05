@@ -30,7 +30,28 @@
 >     `onRootDragOver` full-stage-width drop line). Verified: Button dropped at page
 >     bottom → sections 8→9, element alone in a new section, compact (no huge band),
 >     element selected. tsc + lint + **231** vitest green.
-> - 🔶 **Group 1 IN PROGRESS** — approach = **"styling overlay first (safer)"** (founder
+> - ✅ **Group 1 RECONCILED + shipped** (`5a8f5fb0`) — the parallel booking work (a
+>   background-task worktree built a fuller styling-overlay version) was merged into ONE
+>   coherent impl on main; my earlier custom-leaf half was reverted. `booking_form`
+>   (checkout) + `booking_confirmation` (thank-you) are SECTION types → `SectionRenderer`
+>   → `BookingSystemSections` (theme-skinned `--el-*` DEMO in the builder canvas). Live
+>   `site/book/page.tsx` + `book/thank-you/page.tsx` load the builder page's saved styling
+>   (`lib/site/systemPageStyle.ts`) and wrap the UNCHANGED real form/card in
+>   `<BookingStyleOverlay>` (renders children untouched when no styling → checkout never
+>   depends on it). `loadPagesList` seeds both pages. **`SiteCheckoutForm` is byte-for-byte
+>   unchanged → payment + SPECIALS logic untouched.** VERIFIED live on vilotest: `/book`
+>   real checkout renders; `?special=…` shows "OFFER APPLIED · Midweek retreat" with
+>   window/length/stock identical to before; builder canvas renders the demo. tsc+lint+231
+>   green. Page-Manager path remap (`/book`, `/book/thank-you`) also shipped (`da18082e`).
+>   ⚠️ **KNOWN GAP (safe follow-up):** the live overlay applies the block frame + custom CSS
+>   + button (`SiteButton` reads `--el-button-*`) + device visibility, but the granular
+>   `--el-field/title/summary/price/addon` vars only affect the builder DEMO — the real
+>   `SiteCheckoutForm` doesn't read them yet (kept byte-for-byte). Closing it = additive
+>   `var(--el-field-bg, var(--site-bg))`-style fallbacks in `SiteCheckoutForm` (central
+>   `fieldStyle` L63-68 + title/summary/price/addon spots) — zero functional change.
+>
+> ---
+> _(historical) Group 1 was originally scoped as:_ approach = **"styling overlay first (safer)"** (founder
 >   chose this over full page-doc render; the full-render upgrade is spawned as a
 >   background task chip). ✅ **Builder half DONE + pushed** (`1eb11742`): two new
 >   system-page elements — **booking_form** (checkout, pageKinds `["checkout"]`) +
