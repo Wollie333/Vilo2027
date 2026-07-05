@@ -394,7 +394,8 @@
 .wb .lib-group {
   padding: 4px 14px 14px;
 }
-.wb .lib-group h4 {
+.wb .lib-group h4,
+.wb .lib-glabel {
   font-family: var(--jak);
   font-size: 10px;
   font-weight: 700;
@@ -403,15 +404,59 @@
   color: var(--mute);
   margin: 10px 4px 9px;
 }
+/* Collapsible group heading (Builder V3 4a): button wrapping the label + chevron. */
+.wb .lib-h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 8px;
+}
+.wb .lib-h4:hover .lib-glabel {
+  color: var(--ink);
+}
+.wb .lib-h4 .lib-chev {
+  margin-right: 4px;
+}
 /* Two top-level library categories: Wielo Elements · Wielo Blocks. */
 .wb .lib-cat {
   border-top: 1px solid var(--line);
 }
 .wb .lib-cat-h {
-  padding: 14px 18px 2px;
+  padding: 14px 18px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.wb .lib-cat-h:hover .lib-cat-t {
+  color: var(--primary);
+}
+.wb .lib-cat-txt {
   display: flex;
   flex-direction: column;
   gap: 1px;
+  min-width: 0;
+}
+/* Chevron shared by category + group headers — points down when open, right
+   (rotated) when the section is collapsed. */
+.wb .lib-chev {
+  color: var(--mute);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.wb .lib-chev[data-collapsed="true"] {
+  transform: rotate(-90deg);
 }
 .wb .lib-cat-t {
   font-family: var(--jak);

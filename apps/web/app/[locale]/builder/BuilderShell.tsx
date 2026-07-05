@@ -832,7 +832,9 @@ export function BuilderShell({
       return;
     }
     setDoc(next);
-    setSelectedId(null);
+    // Return the side panel to the Widgets list (not the now-empty Settings tab)
+    // — same reset as deselecting. (Builder V3 Group 4b.)
+    selectNode(null);
   };
   const doDuplicate = () => {
     if (!selectedId) return;
@@ -1881,6 +1883,18 @@ function WidgetLibrary({
   const layoutBlocks = LAYOUT_BLOCKS.filter(
     (b) => !q || b.label.toLowerCase().includes(q),
   );
+  // Collapsible palette headings (Builder V3 Group 4a). One Set keyed by a
+  // stable id per heading ("layout", "cat:<label>", "group:<group>"). While the
+  // host is searching we force every group open so results are never hidden.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const isOpen = (id: string) => Boolean(q) || !collapsed.has(id);
+  const toggle = (id: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   return (
     <>
       <div className="lib-search">
@@ -1895,27 +1909,42 @@ function WidgetLibrary({
       </div>
       {layoutBlocks.length > 0 && (
         <div className="lib-group">
-          <h4>Layout</h4>
-          <div className="wgrid">
-            {layoutBlocks.map((b) => {
-              const Icon = WIDGET_ICONS[b.icon] ?? Square;
-              return (
-                <div
-                  className="widget"
-                  key={b.key}
-                  title={b.label}
-                  draggable
-                  onDragStart={(e) => onSectionDragStart(b.spans, e)}
-                  onDragEnd={onWidgetDragEnd}
-                >
-                  <span className="wi">
-                    <Icon size={19} strokeWidth={1.8} />
-                  </span>
-                  <span>{b.label}</span>
-                </div>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            className="lib-h4"
+            aria-expanded={isOpen("layout")}
+            onClick={() => toggle("layout")}
+          >
+            <span className="lib-glabel">Layout</span>
+            <ChevronDown
+              className="lib-chev"
+              data-collapsed={!isOpen("layout")}
+              size={14}
+              strokeWidth={2.2}
+            />
+          </button>
+          {isOpen("layout") && (
+            <div className="wgrid">
+              {layoutBlocks.map((b) => {
+                const Icon = WIDGET_ICONS[b.icon] ?? Square;
+                return (
+                  <div
+                    className="widget"
+                    key={b.key}
+                    title={b.label}
+                    draggable
+                    onDragStart={(e) => onSectionDragStart(b.spans, e)}
+                    onDragEnd={onWidgetDragEnd}
+                  >
+                    <span className="wi">
+                      <Icon size={19} strokeWidth={1.8} />
+                    </span>
+                    <span>{b.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
       {WIDGET_CATEGORIES.map((cat) => {
@@ -1933,69 +1962,101 @@ function WidgetLibrary({
           }))
           .filter((g) => g.defs.length > 0);
         if (groupSections.length === 0) return null;
+        const catId = `cat:${cat.label}`;
         return (
           <div className="lib-cat" key={cat.label}>
-            <div className="lib-cat-h">
-              <span className="lib-cat-t">{cat.label}</span>
-              <span className="lib-cat-s">{cat.hint}</span>
-            </div>
-            {groupSections.map(({ group, label, defs }) => (
-              <div className="lib-group" key={group}>
-                <h4>{label}</h4>
-                <div className="wgrid">
-                  {defs.map((d) => {
-                    const Icon = WIDGET_ICONS[d.icon] ?? Square;
-                    const required = isWidgetRequiredOnPage(
-                      d.type as WidgetType,
-                      pageKind,
-                    );
-                    return (
-                      <div
-                        className="widget"
-                        key={d.type}
-                        title={
-                          required
-                            ? `${d.label} — required on this page`
-                            : d.label
-                        }
-                        draggable
-                        onDragStart={(e) =>
-                          onWidgetDragStart(d.type as WidgetType, e)
-                        }
-                        onDragEnd={onWidgetDragEnd}
-                        style={required ? { position: "relative" } : undefined}
-                      >
-                        {required && (
-                          <span
-                            aria-label="Required on this page"
-                            style={{
-                              position: "absolute",
-                              top: 3,
-                              right: 3,
-                              fontSize: 8,
-                              fontWeight: 800,
-                              letterSpacing: ".04em",
-                              textTransform: "uppercase",
-                              background: "var(--secondary, #064E3B)",
-                              color: "#fff",
-                              borderRadius: 3,
-                              padding: "1px 3px",
-                              lineHeight: 1.3,
-                            }}
+            <button
+              type="button"
+              className="lib-cat-h"
+              aria-expanded={isOpen(catId)}
+              onClick={() => toggle(catId)}
+            >
+              <span className="lib-cat-txt">
+                <span className="lib-cat-t">{cat.label}</span>
+                <span className="lib-cat-s">{cat.hint}</span>
+              </span>
+              <ChevronDown
+                className="lib-chev"
+                data-collapsed={!isOpen(catId)}
+                size={15}
+                strokeWidth={2.2}
+              />
+            </button>
+            {isOpen(catId) &&
+              groupSections.map(({ group, label, defs }) => (
+                <div className="lib-group" key={group}>
+                  <button
+                    type="button"
+                    className="lib-h4"
+                    aria-expanded={isOpen(`group:${group}`)}
+                    onClick={() => toggle(`group:${group}`)}
+                  >
+                    <span className="lib-glabel">{label}</span>
+                    <ChevronDown
+                      className="lib-chev"
+                      data-collapsed={!isOpen(`group:${group}`)}
+                      size={14}
+                      strokeWidth={2.2}
+                    />
+                  </button>
+                  {isOpen(`group:${group}`) && (
+                    <div className="wgrid">
+                      {defs.map((d) => {
+                        const Icon = WIDGET_ICONS[d.icon] ?? Square;
+                        const required = isWidgetRequiredOnPage(
+                          d.type as WidgetType,
+                          pageKind,
+                        );
+                        return (
+                          <div
+                            className="widget"
+                            key={d.type}
+                            title={
+                              required
+                                ? `${d.label} — required on this page`
+                                : d.label
+                            }
+                            draggable
+                            onDragStart={(e) =>
+                              onWidgetDragStart(d.type as WidgetType, e)
+                            }
+                            onDragEnd={onWidgetDragEnd}
+                            style={
+                              required ? { position: "relative" } : undefined
+                            }
                           >
-                            Req
-                          </span>
-                        )}
-                        <span className="wi">
-                          <Icon size={19} strokeWidth={1.8} />
-                        </span>
-                        <span>{d.label}</span>
-                      </div>
-                    );
-                  })}
+                            {required && (
+                              <span
+                                aria-label="Required on this page"
+                                style={{
+                                  position: "absolute",
+                                  top: 3,
+                                  right: 3,
+                                  fontSize: 8,
+                                  fontWeight: 800,
+                                  letterSpacing: ".04em",
+                                  textTransform: "uppercase",
+                                  background: "var(--secondary, #064E3B)",
+                                  color: "#fff",
+                                  borderRadius: 3,
+                                  padding: "1px 3px",
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                Req
+                              </span>
+                            )}
+                            <span className="wi">
+                              <Icon size={19} strokeWidth={1.8} />
+                            </span>
+                            <span>{d.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         );
       })}
