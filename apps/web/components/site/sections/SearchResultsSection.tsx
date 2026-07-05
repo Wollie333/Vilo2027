@@ -401,7 +401,7 @@ export function SearchResultsSection({
   }, [rooms, roomQuotes, checkIn, checkOut, guests]);
 
   return (
-    <SectionShell surface>
+    <SectionShell tightTop>
       {props.heading ? (
         <SectionHeading className="mb-3">{props.heading}</SectionHeading>
       ) : null}
@@ -409,8 +409,8 @@ export function SearchResultsSection({
         <Muted className="mb-6 text-center text-base">{props.body}</Muted>
       ) : null}
 
-      {/* search form */}
-      <Card className="mx-auto mb-12 max-w-3xl md:mb-14">
+      {/* search form — a clear gap below it so the result cards never touch it */}
+      <Card className="mx-auto mb-10 max-w-3xl md:mb-12">
         <form
           onSubmit={(e) => {
             e.preventDefault();

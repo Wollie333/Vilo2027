@@ -500,18 +500,22 @@ export function SectionShell({
   surface = false,
   width = "wide",
   id,
+  tightTop = false,
 }: {
   children: ReactNode;
   /** Paint a raised surface background instead of the page background. */
   surface?: boolean;
   width?: "wide" | "narrow";
   id?: string;
+  /** Trim the top padding — for a page-TOP section (e.g. search results) that
+   *  sits directly under a solid header, so its heading doesn't float too low. */
+  tightTop?: boolean;
 }) {
   return (
     <section
       id={id}
       style={surface ? { background: "var(--site-surface)" } : undefined}
-      className="px-5 py-16 md:py-20"
+      className={`px-5 pb-16 md:pb-20 ${tightTop ? "pt-8 md:pt-10" : "pt-16 md:pt-20"}`}
     >
       <div
         className={`mx-auto w-full ${width === "narrow" ? "max-w-2xl" : "max-w-5xl"}`}
