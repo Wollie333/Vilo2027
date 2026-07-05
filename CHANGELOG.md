@@ -5,6 +5,43 @@
 
 ---
 
+## 2026-07-05 #8 — Builder V3 Group 1 LIVE HALF: system-page styling overlay.
+
+Completed the "styling overlay first" live half on top of the builder half
+(`1eb11742`). The `checkout` (`/book`) + `thank-you` (`/book/thank-you`) system
+pages are now seeded + the live routes read and apply the host's saved styling —
+while `SiteCheckoutForm` stays **byte-for-byte identical** (only the render
+wrapper changed). Verified in the builder canvas AND live on vilotest per
+Principle #9 (DOM `preview_inspect`/`preview_eval`, screenshots timed out on the
+heavy page).
+
+- **Seed (step 1)** — `loadPagesList.ts` gains `ensureCheckoutPage` /
+  `ensureThankYouPage` (lazy + idempotent, like `ensureRoomDetailPage`): every
+  site gets an editable `/book` + Thank-you page whose default doc is a **PageDoc**
+  (v2) wrapping one `booking_form` / `booking_confirmation` widget node — seeded as
+  a PageDoc (not a flat section) because these are `NEW_WIDGET_TYPES`.
+- **Live routes (step 3)** — new `lib/site/systemPageStyle.ts` (`loadSystemPageStyle`
+  resolves the booking node's `style` / `elements` / `customCss` from the page's
+  published (public) or draft (preview) doc; handles PageDoc + legacy flat) + new
+  `components/site/BookingStyleOverlay.tsx` (emits the SAME `elementVarsCss` /
+  `blockFrameStyle` / `customCssScoped` / `deviceHideCss` the builder canvas uses,
+  as a scoped wrapper). Wired into `site/book/page.tsx` +
+  `site/book/thank-you/page.tsx`; **passthrough when no node** so checkout never
+  depends on it.
+- **Dev harness** — `/[locale]/dev/book` renders both elements through the real
+  `PageDocRenderer` (default + `--el-*`-overridden) for auth-free canvas checks.
+- **Verified** — canvas: `NewLeaves` demo renders + `--el-button-bg` override
+  reaches it (`#b45309`). Live `/book`: renders + quotes real vilotest data
+  (rooms/add-ons); preview (styled draft) applies `background:#f0fdf4` + emits the
+  `--el-*` vars; public (neutral) is clean passthrough. Live thank-you: styled doc
+  applies `#eff6ff`, confirmation renders (Reference + Total). tsc + lint + **231**
+  vitest green.
+- **DEFERRED (step 2)** — threading `--el-<key>-*` into `SiteCheckoutForm.tsx` /
+  the thank-you card so fine-grained sub-parts (field borders, price colour,
+  summary box) restyle live. Skipped to honor the session's byte-for-byte
+  constraint; block-level styling + custom CSS + the emitted vars are all in place,
+  so step 2 is purely additive var-reads with `--site-*` fallbacks.
+
 ## 2026-07-05 #7 — Builder V3 Groups 2, 3, 4 shipped (Group 1 remains).
 
 Executed 3 of the 4 Builder V3 groups; all on `main`, each verified in the real

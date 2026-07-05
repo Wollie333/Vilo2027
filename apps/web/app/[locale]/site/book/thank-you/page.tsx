@@ -16,6 +16,8 @@ import {
   resolveSiteRef,
   siteBookHref,
 } from "@/lib/site/loadSitePage";
+import { loadSystemPageStyle } from "@/lib/site/systemPageStyle";
+import { BookingStyleOverlay } from "@/components/site/BookingStyleOverlay";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -149,6 +151,15 @@ export default async function SiteThankYouPage({
 
   // Purchase event (dynamic value + currency) — fired once the booking is paid.
   // Null until confirmed, so EFT-pending / processing states don't count a sale.
+  // Host-editable styling of the thank-you's `booking_confirmation` element (from
+  // the `thank-you` builder page). Applied as an overlay around the real card.
+  const bookingStyle = await loadSystemPageStyle({
+    websiteId: ctx.websiteId,
+    kind: "thank-you",
+    widgetType: "booking_confirmation",
+    preview: ctx.preview,
+  });
+
   const purchase =
     isConfirmed && total != null
       ? {
@@ -189,73 +200,78 @@ export default async function SiteThankYouPage({
         pageHasHero={false}
       >
         <FirePurchase purchase={purchase} />
-        <SectionShell width="narrow">
-          <SectionHeading className="mb-3">
-            {isConfirmed
-              ? "You're booked in 🎉"
-              : isEftPending
-                ? "Almost there — complete your transfer"
-                : "We're confirming your payment"}
-          </SectionHeading>
-          <Muted className="mb-8 text-center text-base">
-            {isConfirmed
-              ? `Thanks${booking.guest_name ? `, ${booking.guest_name.split(" ")[0]}` : ""} — a confirmation is on its way to your email.`
-              : isEftPending
-                ? "Your booking is reserved. Transfer the amount below using your booking reference and the host will confirm once it reflects."
-                : "This can take a moment. We'll email your confirmation as soon as it's settled."}
-          </Muted>
+        <BookingStyleOverlay
+          node={bookingStyle}
+          sectionType="booking_confirmation"
+        >
+          <SectionShell width="narrow">
+            <SectionHeading className="mb-3">
+              {isConfirmed
+                ? "You're booked in 🎉"
+                : isEftPending
+                  ? "Almost there — complete your transfer"
+                  : "We're confirming your payment"}
+            </SectionHeading>
+            <Muted className="mb-8 text-center text-base">
+              {isConfirmed
+                ? `Thanks${booking.guest_name ? `, ${booking.guest_name.split(" ")[0]}` : ""} — a confirmation is on its way to your email.`
+                : isEftPending
+                  ? "Your booking is reserved. Transfer the amount below using your booking reference and the host will confirm once it reflects."
+                  : "This can take a moment. We'll email your confirmation as soon as it's settled."}
+            </Muted>
 
-          <Card className="p-6">
-            <div className="space-y-2.5 text-sm">
-              <Row label="Reference">{booking.reference ?? "—"}</Row>
-              <Row label="Dates">
-                {booking.check_in && booking.check_out
-                  ? `${booking.check_in} → ${booking.check_out}`
-                  : "—"}
-              </Row>
-              <Row label="Guests">{booking.guests_count ?? "—"}</Row>
-              <div
-                style={{ borderColor: "var(--site-line)" }}
-                className="mt-2 flex items-center justify-between border-t pt-3"
-              >
-                <span
-                  style={{ color: "var(--site-ink)" }}
-                  className="font-semibold"
+            <Card className="p-6">
+              <div className="space-y-2.5 text-sm">
+                <Row label="Reference">{booking.reference ?? "—"}</Row>
+                <Row label="Dates">
+                  {booking.check_in && booking.check_out
+                    ? `${booking.check_in} → ${booking.check_out}`
+                    : "—"}
+                </Row>
+                <Row label="Guests">{booking.guests_count ?? "—"}</Row>
+                <div
+                  style={{ borderColor: "var(--site-line)" }}
+                  className="mt-2 flex items-center justify-between border-t pt-3"
                 >
-                  Total
-                </span>
-                <span
-                  style={{ color: "var(--site-ink)" }}
-                  className="text-lg font-bold"
-                >
-                  {money(total, currency)}
-                </span>
-              </div>
-            </div>
-
-            {eft ? (
-              <div
-                style={{ borderColor: "var(--site-line)" }}
-                className="mt-5 border-t pt-5"
-              >
-                <h3
-                  style={{ color: "var(--site-ink)" }}
-                  className="mb-3 text-sm font-semibold"
-                >
-                  Banking details
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <Row label="Account holder">{eft.account_holder}</Row>
-                  <Row label="Bank">{eft.bank_name}</Row>
-                  <Row label="Account number">{eft.account_number}</Row>
-                  <Row label="Branch code">{eft.branch_code}</Row>
-                  <Row label="Account type">{eft.account_type}</Row>
-                  <Row label="Use reference">{booking.reference ?? "—"}</Row>
+                  <span
+                    style={{ color: "var(--site-ink)" }}
+                    className="font-semibold"
+                  >
+                    Total
+                  </span>
+                  <span
+                    style={{ color: "var(--site-ink)" }}
+                    className="text-lg font-bold"
+                  >
+                    {money(total, currency)}
+                  </span>
                 </div>
               </div>
-            ) : null}
-          </Card>
-        </SectionShell>
+
+              {eft ? (
+                <div
+                  style={{ borderColor: "var(--site-line)" }}
+                  className="mt-5 border-t pt-5"
+                >
+                  <h3
+                    style={{ color: "var(--site-ink)" }}
+                    className="mb-3 text-sm font-semibold"
+                  >
+                    Banking details
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <Row label="Account holder">{eft.account_holder}</Row>
+                    <Row label="Bank">{eft.bank_name}</Row>
+                    <Row label="Account number">{eft.account_number}</Row>
+                    <Row label="Branch code">{eft.branch_code}</Row>
+                    <Row label="Account type">{eft.account_type}</Row>
+                    <Row label="Use reference">{booking.reference ?? "—"}</Row>
+                  </div>
+                </div>
+              ) : null}
+            </Card>
+          </SectionShell>
+        </BookingStyleOverlay>
       </SiteChrome>
     </SiteThemeRoot>
   );

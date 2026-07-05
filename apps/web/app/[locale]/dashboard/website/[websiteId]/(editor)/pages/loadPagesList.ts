@@ -113,6 +113,108 @@ async function ensureSearchResultsPage(
   });
 }
 
+/** A single-element PageDoc (v2) wrapping one system widget in a section+column,
+ *  so it renders through PageDocRenderer + NewLeaves in the builder canvas and its
+ *  styling is host-editable. `booking_form` / `booking_confirmation` are widget
+ *  types (NEW_WIDGET_TYPES), so they must be seeded as a PageDoc, not a flat
+ *  section array (parseSectionsLoose would drop an unknown section type). */
+function singleWidgetDoc(
+  type: "booking_form" | "booking_confirmation",
+  props: Record<string, unknown>,
+) {
+  return {
+    v: 2,
+    meta: {},
+    root: {
+      id: crypto.randomUUID(),
+      type: "root",
+      kids: [
+        {
+          id: crypto.randomUUID(),
+          type: "section",
+          kids: [
+            {
+              id: crypto.randomUUID(),
+              type: "column",
+              span: 12,
+              kids: [{ id: crypto.randomUUID(), type, props }],
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Ensure the website has its `checkout` system page — the REAL on-site checkout
+ * (live route `/book`). Seeded with a single styleable `booking_form` element; the
+ * live route renders the real interactive SiteCheckoutForm and applies this page's
+ * saved styling as an overlay. The Pages manager maps kind `checkout` → `/book`.
+ * Idempotent (created lazily like room_detail / search_results).
+ */
+async function ensureCheckoutPage(
+  supabase: SupabaseClient,
+  websiteId: string,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("website_id", websiteId)
+    .eq("kind", "checkout")
+    .maybeSingle();
+  if (existing) return;
+
+  const doc = singleWidgetDoc("booking_form", {
+    heading: "Complete your booking",
+    body: "Choose your dates and add-ons — your price is confirmed securely.",
+  });
+  await supabase.from("website_pages").insert({
+    website_id: websiteId,
+    kind: "checkout",
+    slug: "book",
+    title: "Checkout",
+    show_in_nav: false,
+    nav_order: 902,
+    draft_sections: doc,
+    published_sections: doc,
+  });
+}
+
+/**
+ * Ensure the website has its `thank-you` system page — the REAL post-payment
+ * landing (live route `/book/thank-you`). Seeded with a single styleable
+ * `booking_confirmation` element; the live route renders the real confirmation and
+ * applies this page's saved styling. Idempotent.
+ */
+async function ensureThankYouPage(
+  supabase: SupabaseClient,
+  websiteId: string,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("website_id", websiteId)
+    .eq("kind", "thank-you")
+    .maybeSingle();
+  if (existing) return;
+
+  const doc = singleWidgetDoc("booking_confirmation", {
+    heading: "You're booked in 🎉",
+    body: "A confirmation is on its way to your email.",
+  });
+  await supabase.from("website_pages").insert({
+    website_id: websiteId,
+    kind: "thank-you",
+    slug: "book/thank-you",
+    title: "Thank you",
+    show_in_nav: false,
+    nav_order: 903,
+    draft_sections: doc,
+    published_sections: doc,
+  });
+}
+
 export type PageListItem = {
   id: string;
   kind: string;
@@ -173,6 +275,8 @@ export async function loadPagesList(
 
   await ensureRoomDetailPage(supabase, websiteId, site.theme?.preset ?? null);
   await ensureSearchResultsPage(supabase, websiteId);
+  await ensureCheckoutPage(supabase, websiteId);
+  await ensureThankYouPage(supabase, websiteId);
 
   const { data: rows } = await supabase
     .from("website_pages")

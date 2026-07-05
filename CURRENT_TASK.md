@@ -43,24 +43,34 @@
 >   `43e85476…` + thank-you `695b2f80…`): offered only on their page kind, render the
 >   preview, expose all controls, and the leaf consumes the vars (field bg white→red,
 >   button teal→blue).
->   ⏳ **REMAINING (live half):**
->     1. **Seed** the checkout + thank-you page docs with a `booking_form` /
->        `booking_confirmation` node by default (so the host has one to style + the route
->        has one to read). Check `standardPages.ts` SYSTEM set + `mergeStandardPages`.
->     2. **Thread `--el-<key>-*`** into the REAL `SiteCheckoutForm.tsx` (central hook:
->        `fieldStyle` L63-68 → field; SiteButton already reads `--el-button-*`; then title/
->        summary/price/addon spots) and the thank-you page card — additive, `--site-*`
->        fallback, ZERO functional change.
->     3. **Wire the live routes** `app/[locale]/site/book/page.tsx` +
->        `book/thank-you/page.tsx`: load the checkout/thank-you page doc, find the booking
->        node, emit `elementVarsCss('[data-node-id="…"]', node)` as a scoped `<style>` on a
->        wrapper around the form/card so the saved styling applies live.
->     4. **Page Manager path remap** — show the checkout row as `/book` + thank-you as
->        `/book/thank-you` (PageRow path special-case; keeps DB kind).
->     5. **Live-verify** via a publish round-trip (style in builder → publish checkout →
->        load `/book` on vilotest → see the styled real form). NOTE: screenshots were
->        timing out on the heavy checkout builder page this session — use DOM `preview_eval`
->        + `preview_inspect` for evidence.
+>   **LIVE HALF (2026-07-05 #8) — steps 1/3/5 DONE, 4 already done, 2 DEFERRED:**
+>     1. ✅ **Seed** — `loadPagesList.ts` `ensureCheckoutPage`/`ensureThankYouPage`
+>        (lazy+idempotent, like room_detail/search_results) seed a **PageDoc** wrapping
+>        one `booking_form`/`booking_confirmation` widget node (must be a PageDoc — they're
+>        NEW_WIDGET_TYPES; a flat section is dropped by `parseSectionsLoose`).
+>     2. ⏳ **DEFERRED — thread `--el-<key>-*` into `SiteCheckoutForm.tsx`** (`fieldStyle`
+>        L63-68 → field; title/summary/price/addon; SiteButton already reads `--el-button-*`)
+>        + the thank-you card. Skipped to honor THIS session's **byte-for-byte identical**
+>        constraint on SiteCheckoutForm. It's purely additive var-reads w/ `--site-*`
+>        fallback → the piece needed for fine-grained sub-part styling to show LIVE. Ask the
+>        founder before doing (byte-for-byte vs. the recorded plan wanting it).
+>     3. ✅ **Wire live routes** — `lib/site/systemPageStyle.ts` (`loadSystemPageStyle`:
+>        resolves the booking node's style/elements/customCss from published (public) or
+>        draft (preview); PageDoc + flat) + `components/site/BookingStyleOverlay.tsx` (scoped
+>        `elementVarsCss`/`blockFrameStyle`/`customCssScoped`/`deviceHideCss` wrapper);
+>        wired into `site/book/page.tsx` + `book/thank-you/page.tsx`, passthrough when null.
+>     4. ✅ **Page Manager path remap** — was already done on main (`da18082e`: kind
+>        `checkout`→`/book`, `thank-you`→`/book/thank-you`).
+>     5. ✅ **Live-verified** on vilotest (DOM `preview_inspect`/`preview_eval`): canvas
+>        (`/dev/book`) renders `NewLeaves` demo + `--el-button-bg` override reaches it; live
+>        `/book` renders+quotes real data, preview(styled draft) applies `#f0fdf4`+emits
+>        `--el-*`, public(neutral) clean passthrough; thank-you applies `#eff6ff`+renders.
+>
+> ⚠️ NOTE (2026-07-05 #8): this session started from a STALE branch base (before
+> `1eb11742`/`f794f891`/`da18082e`) and independently re-built the canvas half via a
+> DIFFERENT approach (SECTION_TYPES/GenericSection). That duplicate was DISCARDED —
+> the branch was reset onto `origin/main` and ONLY the live half kept. Lesson: `git fetch`
+> + check `origin/main` before building on a Builder-V3 branch (parallel sessions active).
 >
 > GOTCHA re-confirmed this session: HMR is unreliable for registry/schema/drag-logic
 > changes — after editing those, RESTART the preview server (and clear `.next` for
