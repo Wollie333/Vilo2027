@@ -171,6 +171,7 @@ export function ElImageSection({
     <SiteImg
       src={src}
       alt={props.alt ?? ""}
+      title={props.title || undefined}
       style={imgStyle}
       className="h-auto w-full object-cover"
       sizes="(min-width: 768px) 768px, 100vw"

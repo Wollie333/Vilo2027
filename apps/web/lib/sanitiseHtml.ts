@@ -46,7 +46,11 @@ const ALLOWED_TAGS = [
 export function sanitiseListingHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: ALLOWED_TAGS,
-    allowedAttributes: { img: ["src", "alt"], a: ["href", "target", "rel"] },
+    allowedAttributes: {
+      // `title` kept alongside `alt` so blog images keep their SEO/tooltip text.
+      img: ["src", "alt", "title"],
+      a: ["href", "target", "rel"],
+    },
     disallowedTagsMode: "discard",
     allowedSchemes: [],
     allowedSchemesByTag: {

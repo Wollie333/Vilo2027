@@ -738,6 +738,8 @@ export type ElImageShadow = (typeof EL_IMAGE_SHADOW)[number];
 const elImageProps = z.object({
   image_path: z.string().optional(),
   alt: z.string().max(200).optional(),
+  /** HTML `title` — a hover tooltip + extra SEO hint (distinct from alt). */
+  title: z.string().max(200).optional(),
   caption: z.string().max(300).optional(),
   href: z.string().max(500).optional(),
   width: z.enum(["narrow", "medium", "full"]).default("full"),

@@ -119,6 +119,82 @@ export function RichTextEditor({
           </div>
         ) : null}
       </div>
+      {onImageUpload || onPickFromLibrary ? (
+        <ImageSettings editor={editor} />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Inline "Image settings" panel: appears whenever an image in the editor is
+ * selected (click it) and lets the author edit its Alt text (SEO) + Title
+ * (hover tooltip). Updates the selected node's attributes live — no `.focus()`
+ * on change so the text inputs keep focus while typing.
+ */
+function ImageSettings({ editor }: { editor: Editor | null }) {
+  const [attrs, setAttrs] = useState<{ alt: string; title: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!editor) return;
+    const sync = () => {
+      if (editor.isActive("image")) {
+        const a = editor.getAttributes("image");
+        setAttrs({ alt: a.alt ?? "", title: a.title ?? "" });
+      } else {
+        setAttrs(null);
+      }
+    };
+    sync();
+    editor.on("selectionUpdate", sync);
+    editor.on("transaction", sync);
+    return () => {
+      editor.off("selectionUpdate", sync);
+      editor.off("transaction", sync);
+    };
+  }, [editor]);
+
+  if (!editor || !attrs) return null;
+
+  const update = (patch: Partial<{ alt: string; title: string }>) => {
+    setAttrs((prev) => (prev ? { ...prev, ...patch } : prev));
+    // No focus() — keep the DOM focus on the input the author is typing in.
+    editor.chain().updateAttributes("image", patch).run();
+  };
+
+  return (
+    <div className="space-y-2 rounded border border-brand-line bg-brand-light/40 p-3">
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-ink">
+        <ImagePlus className="h-3.5 w-3.5" /> Image settings
+      </div>
+      <label className="block">
+        <span className="mb-1 block text-[11px] font-medium text-brand-mute">
+          Alt text (SEO)
+        </span>
+        <input
+          type="text"
+          value={attrs.alt}
+          onChange={(e) => update({ alt: e.target.value })}
+          placeholder="Describe the image for search engines + screen readers"
+          maxLength={200}
+          className="w-full rounded border border-brand-line px-2 py-1.5 text-sm text-brand-ink outline-none focus:border-brand-primary"
+        />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-[11px] font-medium text-brand-mute">
+          Image title (tooltip)
+        </span>
+        <input
+          type="text"
+          value={attrs.title}
+          onChange={(e) => update({ title: e.target.value })}
+          placeholder="Shown when a visitor hovers the image"
+          maxLength={200}
+          className="w-full rounded border border-brand-line px-2 py-1.5 text-sm text-brand-ink outline-none focus:border-brand-primary"
+        />
+      </label>
     </div>
   );
 }

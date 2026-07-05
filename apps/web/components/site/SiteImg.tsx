@@ -20,6 +20,7 @@ import {
 export function SiteImg({
   src,
   alt,
+  title,
   className,
   style,
   sizes = "100vw",
@@ -31,6 +32,8 @@ export function SiteImg({
 }: {
   src?: string | null;
   alt: string;
+  /** Optional `title` attribute (tooltip / extra SEO hint). */
+  title?: string;
   className?: string;
   style?: CSSProperties;
   /** Responsive `sizes` hint (CSS lengths) — drives srcset selection. */
@@ -59,6 +62,7 @@ export function SiteImg({
       srcSet={srcSet || undefined}
       sizes={srcSet ? sizes : undefined}
       alt={alt}
+      title={title || undefined}
       width={width}
       height={height}
       loading={priority ? "eager" : "lazy"}

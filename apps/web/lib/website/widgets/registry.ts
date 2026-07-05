@@ -395,7 +395,8 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     // (image_path uses the upload/pick MediaField — see the `image` control kind)
     content: [
       { kind: "image", key: "image_path", label: "Image" },
-      { kind: "text", key: "alt", label: "Alt text" },
+      { kind: "text", key: "alt", label: "Alt text (SEO)" },
+      { kind: "text", key: "title", label: "Image title (tooltip)" },
       {
         kind: "hint",
         text: "In the builder, click the image to upload from your media library.",
