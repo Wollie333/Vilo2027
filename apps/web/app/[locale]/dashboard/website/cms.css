@@ -22,7 +22,11 @@
 }
 .wielo-cms {
   font-family: "Inter", system-ui, sans-serif;
-  background: #fff;
+  /* Transparent so the ambient dashboard grey (#fbfbfb) shows through uniformly
+     behind/between the tabs and tables. Cards, sections and rows that need a
+     white surface set `background: #fff` on themselves. (Builder V3 Group 3b —
+     kill the stray white patches on every CMS tab.) */
+  background: transparent;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }

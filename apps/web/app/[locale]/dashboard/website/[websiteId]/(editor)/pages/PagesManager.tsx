@@ -18,6 +18,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
@@ -472,13 +473,41 @@ function RowMenu({
 }) {
   const t = useTranslations("website");
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  // Fixed-viewport coords for the portalled menu. The row lives inside a
+  // `overflow: hidden` section (renderTable), so an absolutely-positioned menu
+  // gets clipped — especially on the last row. Portal it to <body> and position
+  // it against the button's rect so it escapes every clip/stacking context.
+  const [coords, setCoords] = useState<{ top: number; right: number } | null>(
+    null,
+  );
+
+  const MENU_W = 192; // w-48
+
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const place = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      setCoords({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
+      const target = e.target as Node;
+      if (btnRef.current?.contains(target) || menuRef.current?.contains(target))
+        return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -492,8 +521,9 @@ function RowMenu({
   };
 
   return (
-    <div ref={ref} className="relative" style={{ height: 32 }}>
+    <div className="relative" style={{ height: 32 }}>
       <button
+        ref={btnRef}
         type="button"
         className="icon-btn"
         style={{ height: 32, width: 32 }}
@@ -512,40 +542,54 @@ function RowMenu({
           <MoreHorizontal style={{ width: 17, height: 17 }} />
         )}
       </button>
-      {open ? (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-1 w-48 overflow-hidden rounded-[12px] border bg-white py-1"
-          style={{
-            borderColor: "var(--line)",
-            top: "100%",
-            boxShadow: "0 18px 40px -18px rgba(6,78,59,.45)",
-          }}
-        >
-          <button type="button" className="rm-item" onClick={stop(onDuplicate)}>
-            <Copy style={{ width: 15, height: 15 }} />
-            {t("duplicatePage")}
-          </button>
-          <button type="button" className="rm-item" onClick={stop(onToggleNav)}>
-            {inNav ? (
-              <EyeOff style={{ width: 15, height: 15 }} />
-            ) : (
-              <Eye style={{ width: 15, height: 15 }} />
-            )}
-            {inNav ? t("hideFromNav") : t("showInNav")}
-          </button>
-          {canDelete ? (
-            <button
-              type="button"
-              className="rm-item rm-danger"
-              onClick={stop(onDelete)}
+      {open && coords
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              className="wielo-cms fixed z-[9999] w-48 overflow-hidden rounded-[12px] border bg-white py-1"
+              style={{
+                top: coords.top,
+                right: coords.right,
+                width: MENU_W,
+                borderColor: "var(--line)",
+                boxShadow: "0 18px 40px -18px rgba(6,78,59,.45)",
+              }}
             >
-              <Trash2 style={{ width: 15, height: 15 }} />
-              {t("deletePage")}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+              <button
+                type="button"
+                className="rm-item"
+                onClick={stop(onDuplicate)}
+              >
+                <Copy style={{ width: 15, height: 15 }} />
+                {t("duplicatePage")}
+              </button>
+              <button
+                type="button"
+                className="rm-item"
+                onClick={stop(onToggleNav)}
+              >
+                {inNav ? (
+                  <EyeOff style={{ width: 15, height: 15 }} />
+                ) : (
+                  <Eye style={{ width: 15, height: 15 }} />
+                )}
+                {inNav ? t("hideFromNav") : t("showInNav")}
+              </button>
+              {canDelete ? (
+                <button
+                  type="button"
+                  className="rm-item rm-danger"
+                  onClick={stop(onDelete)}
+                >
+                  <Trash2 style={{ width: 15, height: 15 }} />
+                  {t("deletePage")}
+                </button>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
