@@ -81,6 +81,7 @@ export default async function SiteBlogIndexPage({
             : undefined
         }
         previewPages={previewPages}
+        pageHasHero={false}
       >
         <section className="mx-auto w-full max-w-5xl px-5 py-16 md:py-20">
           <h1

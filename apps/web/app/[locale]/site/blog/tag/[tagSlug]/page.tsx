@@ -71,6 +71,7 @@ export default async function SiteBlogTagPage({
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
+        pageHasHero={false}
       >
         <section className="mx-auto w-full max-w-5xl px-5 py-16 md:py-20">
           <a

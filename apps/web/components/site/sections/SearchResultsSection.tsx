@@ -301,7 +301,7 @@ export function SearchResultsSection({
       ) : null}
 
       {/* search form */}
-      <Card className="mx-auto mb-8 max-w-3xl">
+      <Card className="mx-auto mb-12 max-w-3xl md:mb-14">
         <form
           onSubmit={(e) => {
             e.preventDefault();

@@ -151,6 +151,7 @@ export default async function SiteFormThankYouPage({
             : undefined
         }
         previewPages={previewPages}
+        pageHasHero={false}
       >
         {!ctx.preview ? <FirePixelEvent event={goalCopy.event} /> : null}
         <SectionShell width="narrow">

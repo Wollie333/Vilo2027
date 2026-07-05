@@ -186,6 +186,7 @@ export default async function SiteThankYouPage({
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
+        pageHasHero={false}
       >
         <FirePurchase purchase={purchase} />
         <SectionShell width="narrow">

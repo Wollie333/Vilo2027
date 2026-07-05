@@ -143,6 +143,7 @@ export default async function SiteBlogPostPage({
               : undefined
           }
           previewPages={previewPages}
+          pageHasHero={false}
         >
           <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">
             <a
