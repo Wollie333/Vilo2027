@@ -10,17 +10,33 @@
 > the order the plan suggests; each ends green (tsc + lint + 229 vitest) + commit + push
 > + verify canvas AND live (Principle #9; dev harnesses `/dev/rooms|search|chrome`).
 >
-> **PROGRESS (2026-07-05 #6):** ✅ **Group 3 DONE** (`a78bbfc8`) — Pages row `⋯`
-> menu now portals to `<body>` (fixed-position, escapes the section's
-> `overflow:hidden`); `.wielo-cms` root bg `#fff`→`transparent` so the ambient
-> `#fbfbfb` shows through uniformly on ALL tabs (cards keep their own white).
-> Verified live in the real CMS (Pages + Settings) as the vilotest host.
-> ✅ **Group 4 DONE** (`e4168724`) — collapsible palette headings (Layout +
-> both categories + each group; chevron rotates; search force-expands) +
-> delete-selected-node returns the side panel to Widgets (`selectNode(null)`).
-> Verified in the oceansview builder demo. ⏳ **Groups 2 + 1 REMAIN** (the big
-> ones): Group 2 = elements-vs-sections refactor, Group 1 = /book + thank-you
-> system pages. Do Group 2 first.
+> **PROGRESS (2026-07-05 #6): Groups 2, 3, 4 ALL DONE + pushed. Only Group 1 remains.**
+> - ✅ **Group 3** (`a78bbfc8`) — Pages row `⋯` menu portals to `<body>` (escapes
+>   the section `overflow:hidden` clip); `.wielo-cms` root bg `#fff`→`transparent`
+>   so ambient `#fbfbfb` shows uniformly on ALL tabs (cards keep white). Verified
+>   live in the real CMS (Pages + Settings) as the vilotest host.
+> - ✅ **Group 4** (`e4168724`) — collapsible palette headings (Layout + both
+>   categories + each group; chevron rotates; search force-expands) + delete →
+>   Widgets panel (`selectNode(null)`). Verified in the oceansview builder demo.
+> - ✅ **Group 2** (the big one) — all 3 slices:
+>   - 2.3 video (`dd5be19b`): bare render (no SectionShell band) + Size control
+>     (Narrow/Medium/Full). Verified: Full→max-width:100%, Narrow→512px.
+>   - 2.2 (`99e1aef1`): section + column **Layout** controls in the inspector Style
+>     tab (section: valign/gap/wrap/stack; column: dir/justify/align/gap/wrap) — all
+>     schema fields existed + were rendered, just had no UI. Verified: gap 20→64px,
+>     direction→flex-direction:row.
+>   - 2.1 (`74d5dcb4`): basic elements **auto-wrap in a new top-level section** on a
+>     page-ROOT drop (`insertWidgetAsSection`/`insertRootSection`, unit-tested;
+>     `onRootDragOver` full-stage-width drop line). Verified: Button dropped at page
+>     bottom → sections 8→9, element alone in a new section, compact (no huge band),
+>     element selected. tsc + lint + **231** vitest green.
+> - ⏳ **Group 1 REMAINS** — /book + thank-you system pages become the REAL editable
+>   live pages with a styleable Booking-form element + Thank-you element. Largest
+>   piece (routing + live-page editing). START HERE next session.
+>
+> GOTCHA re-confirmed this session: HMR is unreliable for registry/schema/drag-logic
+> changes — after editing those, RESTART the preview server (and clear `.next` for
+> drag-logic changes) before verifying, else you'll test a stale bundle.
 >
 > Quick summary of the four groups:
 > 1. **System pages = the real live pages.** Remove the `/checkout` system row; seed the

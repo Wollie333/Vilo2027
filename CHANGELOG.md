@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-05 #7 — Builder V3 Groups 2, 3, 4 shipped (Group 1 remains).
+
+Executed 3 of the 4 Builder V3 groups; all on `main`, each verified in the real
+CMS / builder canvas per Principle #9.
+
+- **Group 3 — CMS UI** (`a78bbfc8`): Pages row `⋯` actions menu now portals to
+  `<body>` with fixed positioning so it escapes the section's `overflow:hidden`
+  clip (was cut off on the last row). `.wielo-cms` root background `#fff` →
+  `transparent` so the ambient dashboard grey (`#fbfbfb`) shows through uniformly
+  behind/between the tabs + tables on EVERY tab; cards keep their own white.
+- **Group 4 — Builder UX** (`e4168724`): every widget-palette heading (Layout +
+  the two categories + each group) is a collapsible button with a rotating
+  chevron (search force-expands); deleting the selected node returns the side
+  panel to Widgets (`selectNode(null)`).
+- **Group 2 — elements vs sections** (3 slices):
+  - 2.3 (`dd5be19b`): Video renders as a BARE element (no `SectionShell` band) +
+    a Size control (Narrow 32rem / Medium 48rem / Full).
+  - 2.2 (`99e1aef1`): section + column **Layout** controls in the inspector
+    (section: vertical-align/gap/wrap/stack; column: direction/justify/align/gap/
+    wrap) — surfacing schema fields the renderer already read.
+  - 2.1 (`74d5dcb4`): basic elements **auto-wrap in a new top-level section** on a
+    page-root drop (`insertWidgetAsSection` / `insertRootSection`, unit-tested;
+    `onRootDragOver` full-width drop line at the nearest section boundary). 231
+    vitest green.
+- **Group 1 (system pages /book + thank-you) still TODO** — the largest piece; the
+  next session starts there (`docs/features/BUILDER_V3_ELEMENTS_AND_SYSTEM_PAGES_PLAN.md`
+  Group 1 + `CURRENT_TASK.md` top).
+
 ## 2026-07-05 #6 — Builder V3 brief captured (save point, not yet built).
 
 Founder handed a large batch of builder + system-page + CMS-UI issues. Recorded the full
