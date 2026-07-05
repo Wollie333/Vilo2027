@@ -31,6 +31,7 @@ import {
   parseColor,
   type ParsedColor,
 } from "./colorUtils";
+import { useMediaPicker } from "./MediaPicker";
 import "./controls.css";
 
 // The active theme's palette circles (Business Principle #6). Provided by the host
@@ -511,12 +512,16 @@ export function MediaControl({
   label?: string;
   value: string | undefined;
   onChange: (v: string | undefined) => void;
-  /** Uploads a picked file and resolves to its URL. Omit to allow URL-only. */
+  /** Uploads a picked file and resolves to its URL (inline fallback when no
+   *  media-library provider is mounted). Omit to allow URL-only. */
   onUpload?: (file: File) => Promise<string | null>;
   hint?: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  // When a provider is mounted, the button opens the shared media-library modal
+  // (upload OR pick from library) instead of a bare file input.
+  const openPicker = useMediaPicker();
 
   const pick = async (file: File | undefined) => {
     if (!file || !onUpload) return;
@@ -528,6 +533,14 @@ export function MediaControl({
       setBusy(false);
     }
   };
+
+  const primary = () => {
+    if (openPicker)
+      openPicker({ value, onPick: (url) => onChange(url || undefined) });
+    else fileRef.current?.click();
+  };
+
+  const showPrimary = Boolean(openPicker || onUpload);
 
   const body = (
     <div className="uc-media">
@@ -548,23 +561,33 @@ export function MediaControl({
         ) : null}
       </div>
       <div className="uc-media-actions">
-        {onUpload ? (
+        {showPrimary ? (
           <>
             <button
               type="button"
               className="uc-btn"
               disabled={busy}
-              onClick={() => fileRef.current?.click()}
+              onClick={primary}
             >
-              {busy ? "Uploading…" : value ? "Replace" : "Upload"}
+              {busy
+                ? "Uploading…"
+                : openPicker
+                  ? value
+                    ? "Change image"
+                    : "Add image"
+                  : value
+                    ? "Replace"
+                    : "Upload"}
             </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(e) => pick(e.target.files?.[0])}
-            />
+            {!openPicker && onUpload ? (
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => pick(e.target.files?.[0])}
+              />
+            ) : null}
           </>
         ) : null}
         <input
