@@ -37,7 +37,6 @@ import {
   Plus,
   X,
   GripVertical,
-  SlidersHorizontal,
   Save,
   FileText,
   PanelTop,
@@ -347,7 +346,6 @@ export function BuilderShell({
   const [docMenuOpen, setDocMenuOpen] = useState(false);
   const [tplMenuOpen, setTplMenuOpen] = useState(false);
   const [pubMenuOpen, setPubMenuOpen] = useState(false);
-  const [tweaksOpen, setTweaksOpen] = useState(false);
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
   const [brandOpen, setBrandOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(autoOpenNav);
@@ -1477,11 +1475,53 @@ export function BuilderShell({
                     (selected ? (
                       renderInspector()
                     ) : (
-                      <PanelPlaceholder
-                        Icon={Settings}
-                        title="Nothing selected"
-                        body="Select an element on the canvas to edit its content, style, spacing and per-device overrides in the tabs above."
-                      />
+                      // Nothing selected → the builder tweaks (moved here from the
+                      // floating FAB): chrome theme, accent + panel density.
+                      <div className="settings-tweaks">
+                        <p className="tw-hint">
+                          Select a block on the canvas to edit its content,
+                          style &amp; spacing. Meanwhile, tweak the builder:
+                        </p>
+                        <p className="tw-l">Builder chrome</p>
+                        <div className="seg tw-row">
+                          {(["emerald", "light", "dark"] as const).map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              className={chrome === v ? "on" : undefined}
+                              onClick={() => setChrome(v)}
+                            >
+                              {v[0].toUpperCase() + v.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="tw-l">Accent</p>
+                        <div className="swatches tw-row" style={{ gap: 8 }}>
+                          {ACCENTS.map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              className={accent === v ? "sw on" : "sw"}
+                              style={{ background: v }}
+                              onClick={() => setAccent(v)}
+                              aria-label={`Accent ${v}`}
+                            />
+                          ))}
+                        </div>
+                        <p className="tw-l">Panel density</p>
+                        <div className="seg tw-row">
+                          {(["roomy", "compact"] as const).map((v) => (
+                            <button
+                              key={v}
+                              type="button"
+                              className={density === v ? "on" : undefined}
+                              onClick={() => setDensity(v)}
+                            >
+                              {v[0].toUpperCase() + v.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                 </div>
 
@@ -1698,74 +1738,6 @@ export function BuilderShell({
                     </div>
                     <span>{s.label}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Tweaks FAB — builder chrome theming (self-contained) */}
-          {!tweaksOpen && (
-            <button
-              className="tweaks-fab"
-              type="button"
-              title="Tweaks"
-              onClick={() => setTweaksOpen(true)}
-            >
-              <SlidersHorizontal size={22} strokeWidth={1.8} />
-            </button>
-          )}
-          <div className={tweaksOpen ? "tweaks show" : "tweaks"}>
-            <div className="tweaks-h">
-              <SlidersHorizontal size={17} strokeWidth={1.9} color="#10B981" />
-              <b>Tweaks</b>
-              <button
-                className="tb-ico"
-                type="button"
-                style={{ width: 28, height: 28, color: "var(--mute)" }}
-                onClick={() => setTweaksOpen(false)}
-                title="Close"
-              >
-                <X size={16} strokeWidth={2} />
-              </button>
-            </div>
-            <div className="tweaks-b">
-              <p className="tw-l">Builder chrome</p>
-              <div className="seg tw-row">
-                {(["emerald", "light", "dark"] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={chrome === v ? "on" : undefined}
-                    onClick={() => setChrome(v)}
-                  >
-                    {v[0].toUpperCase() + v.slice(1)}
-                  </button>
-                ))}
-              </div>
-              <p className="tw-l">Accent</p>
-              <div className="swatches tw-row" style={{ gap: 8 }}>
-                {ACCENTS.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={accent === v ? "sw on" : "sw"}
-                    style={{ background: v }}
-                    onClick={() => setAccent(v)}
-                    aria-label={`Accent ${v}`}
-                  />
-                ))}
-              </div>
-              <p className="tw-l">Panel density</p>
-              <div className="seg tw-row">
-                {(["roomy", "compact"] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={density === v ? "on" : undefined}
-                    onClick={() => setDensity(v)}
-                  >
-                    {v[0].toUpperCase() + v.slice(1)}
-                  </button>
                 ))}
               </div>
             </div>
@@ -3556,24 +3528,4 @@ function Control({
     default:
       return null;
   }
-}
-
-function PanelPlaceholder({
-  Icon,
-  title,
-  body,
-}: {
-  Icon: LucideIcon;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="panel-ph">
-      <div className="ph-ic">
-        <Icon size={24} strokeWidth={1.7} />
-      </div>
-      <b>{title}</b>
-      <p>{body}</p>
-    </div>
-  );
 }

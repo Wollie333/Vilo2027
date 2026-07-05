@@ -1798,6 +1798,16 @@
 .wb .tweaks-b {
   padding: 14px 15px;
 }
+/* Builder tweaks moved into the Settings tab (shown when nothing is selected). */
+.wb .settings-tweaks {
+  padding: 16px 15px;
+}
+.wb .settings-tweaks .tw-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--mute);
+  margin: 0 0 16px;
+}
 .wb .tw-l {
   font-size: 10.5px;
   font-weight: 800;
