@@ -407,6 +407,10 @@ export const saveBuilderBrandSchema = z.object({
       .object({
         instagram: z.string().max(200).optional(),
         facebook: z.string().max(200).optional(),
+        x: z.string().max(200).optional(),
+        youtube: z.string().max(200).optional(),
+        linkedin: z.string().max(200).optional(),
+        website: z.string().max(200).optional(),
       })
       .partial()
       .optional(),

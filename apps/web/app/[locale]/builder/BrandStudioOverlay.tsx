@@ -18,11 +18,18 @@ import {
   Share2,
   Instagram,
   Facebook,
+  Twitter,
+  Youtube,
+  Linkedin,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
+import { SiteChrome } from "@/components/site/SiteChrome";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
+import { pageStartsWithHero } from "@/lib/website/pageDocOps";
+import type { SiteBrand, SiteNavigation } from "@/lib/site/types";
 import type { PageDoc } from "@/lib/website/pageDoc.schema";
 import {
   SITE_PRESETS,
@@ -45,7 +52,14 @@ export type Brand = {
   name?: string;
   tagline?: string;
   monogram?: string;
-  socials?: { instagram?: string; facebook?: string };
+  socials?: {
+    instagram?: string;
+    facebook?: string;
+    x?: string;
+    youtube?: string;
+    linkedin?: string;
+    website?: string;
+  };
 };
 
 const FONTS: [SiteFont, string][] = [
@@ -84,6 +98,7 @@ export function BrandStudioOverlay({
   brand,
   onBrandChange,
   doc,
+  navigation,
   persists,
   onPublish,
 }: {
@@ -96,6 +111,9 @@ export function BrandStudioOverlay({
   brand: Brand;
   onBrandChange: (next: Brand) => void;
   doc: PageDoc;
+  /** Site navigation → the brand-studio canvas renders the real header/menu/footer
+   *  so the host sees the nav styled with their brand while designing. */
+  navigation?: SiteNavigation;
   persists: boolean;
   onPublish: (mode: "draft" | "publish") => void;
 }) {
@@ -515,28 +533,28 @@ export function BrandStudioOverlay({
             sub="Footer links & icons"
           >
             <Ctl label="Channels" hint="blank = hidden">
-              <div className="bse-soc">
-                <span className="ic">
-                  <Instagram size={16} strokeWidth={1.8} />
-                </span>
-                <input
-                  className="bse-input"
-                  placeholder="instagram handle"
-                  value={brand.socials?.instagram ?? ""}
-                  onChange={(e) => setSocial({ instagram: e.target.value })}
-                />
-              </div>
-              <div className="bse-soc">
-                <span className="ic">
-                  <Facebook size={16} strokeWidth={1.8} />
-                </span>
-                <input
-                  className="bse-input"
-                  placeholder="facebook page"
-                  value={brand.socials?.facebook ?? ""}
-                  onChange={(e) => setSocial({ facebook: e.target.value })}
-                />
-              </div>
+              {(
+                [
+                  ["instagram", Instagram, "instagram.com/you"],
+                  ["facebook", Facebook, "facebook.com/you"],
+                  ["x", Twitter, "x.com/you"],
+                  ["youtube", Youtube, "youtube.com/@you"],
+                  ["linkedin", Linkedin, "linkedin.com/company/you"],
+                  ["website", Globe, "yourwebsite.com"],
+                ] as [keyof NonNullable<Brand["socials"]>, LucideIcon, string][]
+              ).map(([key, Icon, placeholder]) => (
+                <div className="bse-soc" key={key}>
+                  <span className="ic">
+                    <Icon size={16} strokeWidth={1.8} />
+                  </span>
+                  <input
+                    className="bse-input"
+                    placeholder={placeholder}
+                    value={brand.socials?.[key] ?? ""}
+                    onChange={(e) => setSocial({ [key]: e.target.value })}
+                  />
+                </div>
+              ))}
             </Ctl>
             <Ctl label="Icon shape">
               <div className="bse-seg">
@@ -602,7 +620,26 @@ export function BrandStudioOverlay({
             >
               {open && (
                 <SiteThemeRoot theme={theme}>
-                  <PageDocRenderer doc={doc} device={device} brand={brand} />
+                  <SiteChrome
+                    brand={{
+                      name: brand.name?.trim() || siteLabel,
+                      tagline: brand.tagline ?? null,
+                      monogram: brand.monogram ?? null,
+                      socials: brand.socials as SiteBrand["socials"],
+                    }}
+                    nav={(navigation?.menu ?? []).map((m) => ({
+                      label: m.label,
+                      href: m.href,
+                    }))}
+                    navigation={navigation ?? {}}
+                    header={theme.header}
+                    footer={theme.footer}
+                    previewDevice={device === "mobile" ? "phone" : "desktop"}
+                    pageHasHero={pageStartsWithHero(doc)}
+                    chromeInert
+                  >
+                    <PageDocRenderer doc={doc} device={device} brand={brand} />
+                  </SiteChrome>
                 </SiteThemeRoot>
               )}
             </div>

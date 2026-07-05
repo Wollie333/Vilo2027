@@ -1782,6 +1782,7 @@ export function BuilderShell({
             brand={brand}
             onBrandChange={setBrand}
             doc={doc}
+            navigation={navigation}
             persists={persists}
             onPublish={saveBrand}
           />
