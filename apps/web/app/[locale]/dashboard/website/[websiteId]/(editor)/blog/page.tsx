@@ -20,6 +20,7 @@ export default async function WebsiteBlogPage({
       initialPosts={data.posts}
       initialCategories={data.categories}
       initialAuthors={data.authors}
+      hostAuthor={data.hostAuthor}
     />
   );
 }

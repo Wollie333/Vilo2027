@@ -2320,6 +2320,50 @@ async function uniquePostSlug(
  * Create a blank draft post and return its id so the caller can open the editor.
  * Seeds a unique placeholder slug; the host renames it (and the slug) on save.
  */
+/**
+ * The default blog author for a site: the host themselves. Returns the id of the
+ * site's first author (lowest sort_order) if any exist; otherwise seeds one from
+ * the host's public profile (display name + avatar + bio) so every new post is
+ * bylined to the host by default. Returns null only when the host has no usable
+ * profile name yet (so we leave the post author-less rather than create a blank
+ * author). The host can add/rename/replace authors in the blog manager afterwards.
+ */
+async function ensureHostAuthor(
+  supabase: ReturnType<typeof createServerClient>,
+  websiteId: string,
+  hostId: string,
+): Promise<string | null> {
+  const { data: existing } = await supabase
+    .from("website_blog_authors")
+    .select("id")
+    .eq("website_id", websiteId)
+    .order("sort_order", { ascending: true })
+    .limit(1);
+  if (existing && existing.length > 0) return existing[0].id;
+
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("display_name, avatar_url, bio")
+    .eq("id", hostId)
+    .maybeSingle();
+  const name = host?.display_name?.trim();
+  if (!name) return null;
+
+  const { data: created } = await supabase
+    .from("website_blog_authors")
+    .insert({
+      website_id: websiteId,
+      name,
+      // hosts.avatar_url is an absolute URL; websiteAssetUrl passes it through.
+      avatar_path: host?.avatar_url?.trim() || null,
+      bio: host?.bio?.trim() || null,
+      sort_order: 0,
+    })
+    .select("id")
+    .single();
+  return created?.id ?? null;
+}
+
 export async function createBlogPostAction(
   websiteId: string,
 ): Promise<CreateResult> {
@@ -2330,6 +2374,8 @@ export async function createBlogPostAction(
 
   const supabase = createServerClient();
   const slug = await uniquePostSlug(supabase, websiteId, "untitled-post");
+  // Default the byline to the host (seeding a host author on the first post).
+  const authorId = await ensureHostAuthor(supabase, websiteId, own.hostId);
 
   const { data: post, error } = await supabase
     .from("website_blog_posts")
@@ -2338,6 +2384,7 @@ export async function createBlogPostAction(
       title: "Untitled post",
       slug,
       status: "draft",
+      author_id: authorId,
     })
     .select("id")
     .single();

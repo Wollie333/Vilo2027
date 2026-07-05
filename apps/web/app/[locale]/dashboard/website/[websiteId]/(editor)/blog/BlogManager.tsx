@@ -84,11 +84,13 @@ export function BlogManager({
   initialPosts,
   initialCategories,
   initialAuthors,
+  hostAuthor,
 }: {
   websiteId: string;
   initialPosts: BlogPostRow[];
   initialCategories: BlogCategoryStat[];
   initialAuthors: BlogAuthorRow[];
+  hostAuthor: Omit<BlogAuthorRow, "id"> | null;
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -284,6 +286,7 @@ export function BlogManager({
           websiteId={websiteId}
           initialCategories={initialCategories}
           initialAuthors={initialAuthors}
+          hostAuthor={hostAuthor}
           onClose={() => setManageOpen(false)}
           onSaved={() => router.refresh()}
         />
@@ -571,6 +574,7 @@ function ManageModal({
   websiteId,
   initialCategories,
   initialAuthors,
+  hostAuthor,
   onClose,
   onSaved,
 }: {
@@ -578,12 +582,19 @@ function ManageModal({
   websiteId: string;
   initialCategories: BlogCategoryStat[];
   initialAuthors: BlogAuthorRow[];
+  hostAuthor: Omit<BlogAuthorRow, "id"> | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [categories, setCategories] =
     useState<BlogCategoryStat[]>(initialCategories);
-  const [authors, setAuthors] = useState<BlogAuthorRow[]>(initialAuthors);
+  // No authors yet → prefill the host's own profile as the first author, so the
+  // host is the default byline (they can edit/rename or add more, then Save).
+  const [authors, setAuthors] = useState<BlogAuthorRow[]>(
+    initialAuthors.length === 0 && hostAuthor
+      ? [{ id: "", ...hostAuthor }]
+      : initialAuthors,
+  );
   const [savingCats, startSaveCats] = useTransition();
   const [savingAuthors, startSaveAuthors] = useTransition();
 

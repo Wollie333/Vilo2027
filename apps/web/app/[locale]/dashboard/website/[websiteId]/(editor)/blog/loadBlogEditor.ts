@@ -39,6 +39,9 @@ export type BlogEditorData = {
   categories: BlogCategoryStat[];
   authors: BlogAuthorRow[];
   posts: BlogPostRow[];
+  /** The host's own profile as a default author (name/photo/bio) — used to
+   *  prefill the author editor the first time, before any author exists. */
+  hostAuthor: Omit<BlogAuthorRow, "id"> | null;
 };
 
 /**
@@ -61,28 +64,38 @@ export async function loadBlogEditor(
     .maybeSingle();
   if (!site) return null;
 
-  const [{ data: cats }, { data: authorRows }, { data: posts }] =
-    await Promise.all([
-      supabase
-        .from("website_blog_categories")
-        .select("id, name, slug")
-        .eq("website_id", site.id)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("website_blog_authors")
-        .select("id, name, avatar_path, bio")
-        .eq("website_id", site.id)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("website_blog_posts")
-        .select(
-          "id, title, slug, status, featured, seo, cover_path, publish_at, updated_at, category:website_blog_categories ( id, name ), author:website_blog_authors ( id, name )",
-        )
-        .eq("website_id", site.id)
-        .is("deleted_at", null)
-        .order("featured", { ascending: false })
-        .order("updated_at", { ascending: false }),
-    ]);
+  const [
+    { data: cats },
+    { data: authorRows },
+    { data: posts },
+    { data: host },
+  ] = await Promise.all([
+    supabase
+      .from("website_blog_categories")
+      .select("id, name, slug")
+      .eq("website_id", site.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("website_blog_authors")
+      .select("id, name, avatar_path, bio")
+      .eq("website_id", site.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("website_blog_posts")
+      .select(
+        "id, title, slug, status, featured, seo, cover_path, publish_at, updated_at, category:website_blog_categories ( id, name ), author:website_blog_authors ( id, name )",
+      )
+      .eq("website_id", site.id)
+      .is("deleted_at", null)
+      .order("featured", { ascending: false })
+      .order("updated_at", { ascending: false }),
+    // The host's own profile — the default first author (name/photo/bio).
+    supabase
+      .from("hosts")
+      .select("display_name, avatar_url, bio")
+      .eq("id", hostId)
+      .maybeSingle(),
+  ]);
 
   const authors: BlogAuthorRow[] = (authorRows ?? []).map((a) => ({
     id: a.id,
@@ -90,6 +103,17 @@ export async function loadBlogEditor(
     avatarPath: a.avatar_path ?? "",
     bio: a.bio ?? "",
   }));
+
+  // hosts.avatar_url is an absolute URL; websiteAssetUrl passes it through so it
+  // renders as-is in the author photo field + on the published post.
+  const hostName = host?.display_name?.trim();
+  const hostAuthor: Omit<BlogAuthorRow, "id"> | null = hostName
+    ? {
+        name: hostName,
+        avatarPath: host?.avatar_url?.trim() || "",
+        bio: host?.bio?.trim() || "",
+      }
+    : null;
 
   const postRows: BlogPostRow[] = (posts ?? []).map((p) => {
     const category = p.category as unknown as {
@@ -133,5 +157,6 @@ export async function loadBlogEditor(
     categories,
     authors,
     posts: postRows,
+    hostAuthor,
   };
 }
