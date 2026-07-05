@@ -473,10 +473,12 @@ export function SearchResultsSection({
       {!interactive ? (
         // Builder preview: designed demo cards (available first + one unavailable)
         // so the host can preview + style the results without a live search.
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {DEMO_RESULTS.map((r) => (
-            <ResultCard key={r.id} r={r} />
-          ))}
+        <div className="wielo-cq-grid">
+          <div className="wielo-cq-grid-inner">
+            {DEMO_RESULTS.map((r) => (
+              <ResultCard key={r.id} r={r} />
+            ))}
+          </div>
         </div>
       ) : error ? (
         <p className="text-center text-sm font-medium text-red-600">{error}</p>
@@ -490,10 +492,12 @@ export function SearchResultsSection({
               Enter your dates to see live prices &amp; availability.
             </Muted>
           ) : null}
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {roomResults.map((r) => (
-              <ResultCard key={r.id} r={r} />
-            ))}
+          <div className="wielo-cq-grid">
+            <div className="wielo-cq-grid-inner">
+              {roomResults.map((r) => (
+                <ResultCard key={r.id} r={r} />
+              ))}
+            </div>
           </div>
         </>
       ) : !searched ? (
@@ -506,23 +510,25 @@ export function SearchResultsSection({
         </Muted>
       ) : (
         // ALL results, available first; unavailable shown dimmed with a badge.
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {[...matches]
-            .sort((a, b) => Number(b.available) - Number(a.available))
-            .map((m) => (
-              <ResultCard
-                key={m.property.id}
-                r={{
-                  id: m.property.id,
-                  name: m.property.name,
-                  priceLabel:
-                    m.total != null ? money(m.total, m.currency) : null,
-                  subLabel: `${m.nights} ${m.nights === 1 ? "night" : "nights"}`,
-                  available: m.available,
-                  bookHref: m.bookHref,
-                }}
-              />
-            ))}
+        <div className="wielo-cq-grid">
+          <div className="wielo-cq-grid-inner">
+            {[...matches]
+              .sort((a, b) => Number(b.available) - Number(a.available))
+              .map((m) => (
+                <ResultCard
+                  key={m.property.id}
+                  r={{
+                    id: m.property.id,
+                    name: m.property.name,
+                    priceLabel:
+                      m.total != null ? money(m.total, m.currency) : null,
+                    subLabel: `${m.nights} ${m.nights === 1 ? "night" : "nights"}`,
+                    available: m.available,
+                    bookHref: m.bookHref,
+                  }}
+                />
+              ))}
+          </div>
         </div>
       )}
     </SectionShell>

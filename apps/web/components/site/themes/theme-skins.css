@@ -1,4 +1,28 @@
 /*
+ * Container-responsive card grid (mobile-first). Reflows by its OWN width, not the
+ * viewport — so it collapses correctly inside the builder canvas device frame AND
+ * on the live site. Used by the rooms grid + any card grid. Principle #10.
+ */
+.wielo-cq-grid {
+  container-type: inline-size;
+}
+.wielo-cq-grid > .wielo-cq-grid-inner {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr; /* mobile-first: 1 column */
+}
+@container (min-width: 560px) {
+  .wielo-cq-grid > .wielo-cq-grid-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (min-width: 900px) {
+  .wielo-cq-grid > .wielo-cq-grid-inner {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/*
  * PER-THEME SKINS
  * ---------------
  * Each host theme is a *skin* over the SAME builder blocks. The block structure

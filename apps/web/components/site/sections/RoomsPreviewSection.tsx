@@ -337,17 +337,34 @@ function RoomGrid({
   cta: string;
   layout?: "grid" | "list" | "carousel";
 }) {
-  const cols =
-    layout === "list"
-      ? "grid-cols-1"
-      : layout === "carousel"
-        ? "grid-flow-col auto-cols-[85%] overflow-x-auto sm:auto-cols-[45%] lg:auto-cols-[31%]"
-        : "sm:grid-cols-2 lg:grid-cols-3";
+  // Carousel + list keep their bespoke layouts; the default grid uses the
+  // container-responsive `wielo-cq-grid` so it reflows by container width (1 → 2 →
+  // 3 columns) in BOTH the builder canvas frame and on live — mobile-first.
+  if (layout === "carousel") {
+    return (
+      <div className="grid auto-cols-[85%] grid-flow-col gap-5 overflow-x-auto sm:auto-cols-[45%] lg:auto-cols-[31%]">
+        {rooms.map((room) => (
+          <RoomCardView key={room.id} room={room} cta={cta} />
+        ))}
+      </div>
+    );
+  }
+  if (layout === "list") {
+    return (
+      <div className="grid grid-cols-1 gap-5">
+        {rooms.map((room) => (
+          <RoomCardView key={room.id} room={room} cta={cta} />
+        ))}
+      </div>
+    );
+  }
   return (
-    <div className={`grid gap-5 ${cols}`}>
-      {rooms.map((room) => (
-        <RoomCardView key={room.id} room={room} cta={cta} />
-      ))}
+    <div className="wielo-cq-grid">
+      <div className="wielo-cq-grid-inner">
+        {rooms.map((room) => (
+          <RoomCardView key={room.id} room={room} cta={cta} />
+        ))}
+      </div>
     </div>
   );
 }

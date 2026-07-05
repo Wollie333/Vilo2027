@@ -684,10 +684,12 @@ export function BuilderShell({
     setSelectedId(null);
   };
 
-  // Select a node and open its inspector (Settings). Null just deselects.
+  // Select a node → open its inspector (Settings). Deselecting (null) returns the
+  // side panel to the Widgets list, so the blocks are always there to drag when
+  // nothing is selected (never leaves the empty Settings tab showing).
   const selectNode = useCallback((id: string | null) => {
     setSelectedId(id);
-    if (id) setMode("settings");
+    setMode(id ? "settings" : "widgets");
   }, []);
 
   // Section gear → surface the section's inspector in an on-canvas popover
