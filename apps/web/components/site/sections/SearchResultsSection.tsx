@@ -39,6 +39,157 @@ function money(total: number, currency: string) {
   }
 }
 
+// A single result card (room or property). Available → image + price + a Book-now
+// deep-link; unavailable → dimmed with a clear "not available" badge + disabled
+// button (so ALL rooms show, available first). Styling via --site-*/--el-* so it's
+// theme-scoped + builder-editable. Shared by the live results AND the builder demo.
+export type ResultCardData = {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+  facts?: string[];
+  priceLabel?: string | null;
+  subLabel?: string | null;
+  available: boolean;
+  bookHref?: string;
+};
+
+function ResultCard({ r }: { r: ResultCardData }) {
+  const on = r.available;
+  return (
+    <Card
+      className="flex flex-col overflow-hidden"
+      style={{
+        opacity: on ? 1 : 0.72,
+        background: "var(--el-card-bg, var(--site-surface))",
+        borderRadius: "var(--el-card-radius, var(--site-card-radius))",
+      }}
+    >
+      <div
+        className="relative aspect-[4/3] w-full bg-cover bg-center"
+        style={{
+          backgroundImage: r.imageUrl ? `url("${r.imageUrl}")` : undefined,
+          background: r.imageUrl ? undefined : "var(--site-bg)",
+          filter: on ? undefined : "grayscale(1)",
+        }}
+      >
+        <span
+          className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold"
+          style={{
+            background: on
+              ? "var(--el-badge-bg, var(--site-accent))"
+              : "rgba(17,24,39,0.72)",
+            color: on
+              ? "var(--el-badge-fg, var(--site-accent-ink,#fff))"
+              : "#fff",
+          }}
+        >
+          {on ? "Available" : "Not available"}
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col p-5">
+        <h3
+          style={{
+            fontFamily: "var(--site-font-heading)",
+            color: "var(--el-title-fg, var(--site-ink))",
+          }}
+          className="text-lg font-semibold"
+        >
+          {r.name}
+        </h3>
+        {r.facts?.length ? (
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            {r.facts.map((f) => (
+              <span
+                key={f}
+                style={{ color: "var(--site-mute)" }}
+                className="text-xs"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        <div className="mt-2 flex items-baseline gap-2">
+          <span
+            style={{ color: "var(--el-price-fg, var(--site-ink))" }}
+            className="text-base font-semibold"
+          >
+            {r.priceLabel ?? (on ? "Available" : "—")}
+          </span>
+          {r.subLabel ? (
+            <span style={{ color: "var(--site-mute)" }} className="text-xs">
+              · {r.subLabel}
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-4 flex flex-1 items-end">
+          {on && r.bookHref ? (
+            <a
+              href={r.bookHref}
+              data-wielo-book
+              style={{
+                background: "var(--el-button-bg, var(--site-btn-primary-bg))",
+                color: "var(--el-button-fg, var(--site-btn-primary-color))",
+                border: "var(--el-button-bd, var(--site-btn-primary-border))",
+                borderRadius:
+                  "var(--el-button-radius, var(--site-btn-primary-radius))",
+              }}
+              className="inline-flex w-full items-center justify-center px-4 py-2.5 text-center text-sm font-semibold transition-opacity hover:opacity-90"
+            >
+              Book now
+            </a>
+          ) : (
+            <span
+              style={{
+                background: "var(--site-line)",
+                color: "var(--site-mute)",
+                borderRadius: "var(--site-btn-primary-radius)",
+              }}
+              className="inline-flex w-full cursor-not-allowed items-center justify-center px-4 py-2.5 text-center text-sm font-semibold"
+            >
+              Not available for these dates
+            </span>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// Designed DEMO results for the builder preview (no network). Two available rooms
+// then one unavailable, so BOTH card states are visible + style-editable.
+const DEMO_RESULTS: ResultCardData[] = [
+  {
+    id: "d1",
+    name: "Garden Suite",
+    imageUrl: "https://picsum.photos/seed/wielo-sr1/640/480",
+    facts: ["Sleeps 2", "Private stoep", "Fireplace"],
+    priceLabel: "R 1 850",
+    subLabel: "3 nights",
+    available: true,
+    bookHref: "#",
+  },
+  {
+    id: "d2",
+    name: "Family Cottage",
+    imageUrl: "https://picsum.photos/seed/wielo-sr2/640/480",
+    facts: ["Sleeps 4", "Full kitchen", "Garden views"],
+    priceLabel: "R 2 200",
+    subLabel: "3 nights",
+    available: true,
+    bookHref: "#",
+  },
+  {
+    id: "d3",
+    name: "The Loft",
+    imageUrl: "https://picsum.photos/seed/wielo-sr3/640/480",
+    facts: ["Sleeps 2", "Cosy", "Pet friendly"],
+    priceLabel: null,
+    available: false,
+  },
+];
+
 /**
  * Search-results template (system page `search_results`). A self-contained search
  * form (dates + guests, pre-filled from the URL query) that quotes EVERY bookable
@@ -140,8 +291,6 @@ export function SearchResultsSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live]);
 
-  const available = matches.filter((m) => m.available);
-
   return (
     <SectionShell surface>
       {props.heading ? (
@@ -208,64 +357,43 @@ export function SearchResultsSection({
       </Card>
 
       {/* results */}
-      {error ? (
+      {!interactive ? (
+        // Builder preview: designed demo cards (available first + one unavailable)
+        // so the host can preview + style the results without a live search.
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {DEMO_RESULTS.map((r) => (
+            <ResultCard key={r.id} r={r} />
+          ))}
+        </div>
+      ) : error ? (
         <p className="text-center text-sm font-medium text-red-600">{error}</p>
       ) : !searched ? (
         <Muted className="text-center text-sm">
-          {live
-            ? "Enter your dates to see what’s available."
-            : "Live availability appears here on your published site."}
+          Enter your dates to see what’s available.
         </Muted>
-      ) : available.length === 0 ? (
+      ) : matches.length === 0 ? (
         <Muted className="text-center text-sm">
-          No availability for those dates — try different dates.
+          No rooms match those dates — try different dates.
         </Muted>
       ) : (
+        // ALL results, available first; unavailable shown dimmed with a badge.
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {available.map((m) => (
-            <Card key={m.property.id} className="flex flex-col p-5">
-              <h3
-                style={{
-                  fontFamily: "var(--site-font-heading)",
-                  color: "var(--site-ink)",
+          {[...matches]
+            .sort((a, b) => Number(b.available) - Number(a.available))
+            .map((m) => (
+              <ResultCard
+                key={m.property.id}
+                r={{
+                  id: m.property.id,
+                  name: m.property.name,
+                  priceLabel:
+                    m.total != null ? money(m.total, m.currency) : null,
+                  subLabel: `${m.nights} ${m.nights === 1 ? "night" : "nights"}`,
+                  available: m.available,
+                  bookHref: m.bookHref,
                 }}
-                className="text-lg font-semibold"
-              >
-                {m.property.name}
-              </h3>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span
-                  style={{ color: "var(--site-ink)" }}
-                  className="text-base font-semibold"
-                >
-                  {m.total != null ? money(m.total, m.currency) : "Available"}
-                </span>
-                <span style={{ color: "var(--site-mute)" }} className="text-xs">
-                  {m.total != null
-                    ? `· ${m.nights} ${m.nights === 1 ? "night" : "nights"}`
-                    : `· ${m.nights} ${m.nights === 1 ? "night" : "nights"}`}
-                </span>
-              </div>
-              <p style={{ color: "var(--site-mute)" }} className="mt-1 text-xs">
-                Final price confirmed at checkout.
-              </p>
-              <div className="mt-4 flex flex-1 items-end">
-                <a
-                  href={m.bookHref}
-                  data-wielo-book
-                  style={{
-                    background: "var(--site-btn-primary-bg)",
-                    color: "var(--site-btn-primary-color)",
-                    border: "var(--site-btn-primary-border)",
-                    borderRadius: "var(--site-btn-primary-radius)",
-                  }}
-                  className="inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
-                >
-                  Book this stay
-                </a>
-              </div>
-            </Card>
-          ))}
+              />
+            ))}
         </div>
       )}
     </SectionShell>
