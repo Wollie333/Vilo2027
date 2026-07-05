@@ -86,6 +86,11 @@ export const WIDGET_TYPES = [
   "room_amenities", // room_detail
   "room_rate", // room_detail
   "room_policies", // room_detail
+  // Booking system pages — the REAL /book + /book/thank-you routes. The element is
+  // a styleable SKIN over the live checkout / confirmation (dynamic data from the
+  // route; host overrides styling only). See Builder V3 Group 1.
+  "booking_form", // checkout page (/book)
+  "booking_confirmation", // thank-you page (/book/thank-you)
 ] as const;
 export type WidgetType = (typeof WIDGET_TYPES)[number];
 
@@ -96,6 +101,10 @@ export const NEW_WIDGET_TYPES = [
   "el_logo",
   "el_nav",
   "el_social",
+  // System-page booking elements — render via a custom leaf (NewLeaves), NOT
+  // GenericSection, so they draw the checkout / confirmation skin directly.
+  "booking_form",
+  "booking_confirmation",
 ] as const;
 
 // ── Renderable widget vocabulary (schema) vs library vocabulary (registry) ──

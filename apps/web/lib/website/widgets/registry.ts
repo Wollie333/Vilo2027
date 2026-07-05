@@ -211,6 +211,50 @@ const ROOM_BOOKING_ELEMENTS: ElementDef[] = [
     controls: ["bg", "color", "border", "radius"],
   },
 ];
+// Booking FORM (/book checkout) — keys match the `--el-<key>-*` vars SiteCheckoutForm
+// reads (heading · input fields · add-on cards · summary/total box · price · button).
+const BOOKING_FORM_ELEMENTS: ElementDef[] = [
+  { key: "title", label: "Heading", controls: ["color", "size", "weight"] },
+  {
+    key: "field",
+    label: "Form fields",
+    controls: ["bg", "color", "border", "radius"],
+  },
+  {
+    key: "addon",
+    label: "Add-on cards",
+    controls: ["bg", "border", "radius"],
+  },
+  {
+    key: "summary",
+    label: "Summary box",
+    controls: ["bg", "border", "radius", "shadow"],
+  },
+  { key: "price", label: "Total price", controls: ["color", "size", "weight"] },
+  {
+    key: "button",
+    label: "Reserve button",
+    controls: ["bg", "color", "border", "radius"],
+  },
+];
+// Booking CONFIRMATION (/book/thank-you) — heading · summary card · row label +
+// value · total price · button. Same `--el-<key>-*` vars the thank-you page reads.
+const BOOKING_CONFIRMATION_ELEMENTS: ElementDef[] = [
+  { key: "title", label: "Heading", controls: ["color", "size", "weight"] },
+  {
+    key: "card",
+    label: "Summary card",
+    controls: ["bg", "border", "radius", "shadow"],
+  },
+  { key: "label", label: "Row label", controls: ["color", "size"] },
+  { key: "value", label: "Row value", controls: ["color", "size", "weight"] },
+  { key: "price", label: "Total price", controls: ["color", "size", "weight"] },
+  {
+    key: "button",
+    label: "Button",
+    controls: ["bg", "color", "border", "radius"],
+  },
+];
 
 // Brand-safe typography scales shared by the text elements — presented as
 // labelled sliders (see the "scale" control). "Auto" inherits the theme (a
@@ -1726,6 +1770,43 @@ export const WIDGET_DEFS: Record<WidgetType, WidgetDef> = {
     defaults: { heading: "Things to know" },
     content: [{ kind: "text", key: "heading", label: "Heading" }],
     elements: POLICY_ELEMENTS,
+  },
+  // ── Booking system pages (the REAL /book + thank-you routes) ──
+  // The DATA (rooms, add-ons, pricing, payment rails, confirmation) is driven by
+  // the route; the host edits STYLING only via the per-part elements below
+  // (WooCommerce-block model). The live checkout / confirmation reads the SAME
+  // `--el-<key>-*` vars, so styling here previews exactly what ships.
+  booking_form: {
+    type: "booking_form",
+    group: "system",
+    label: "Booking Form",
+    icon: "CalendarCheck",
+    pageKinds: ["checkout"],
+    defaults: { heading: "Complete your booking" },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      {
+        kind: "hint",
+        text: "The dates, rooms, add-ons, pricing and payment options are live from your property — you style them here, guests can't be shown the wrong price (every total is recalculated server-side).",
+      },
+    ],
+    elements: BOOKING_FORM_ELEMENTS,
+  },
+  booking_confirmation: {
+    type: "booking_confirmation",
+    group: "system",
+    label: "Thank You",
+    icon: "PartyPopper",
+    pageKinds: ["thank-you"],
+    defaults: { heading: "You're booked in 🎉" },
+    content: [
+      { kind: "text", key: "heading", label: "Heading" },
+      {
+        kind: "hint",
+        text: "The booking reference, dates, total and (for EFT) banking details are live from the confirmed booking. Style the card + text here.",
+      },
+    ],
+    elements: BOOKING_CONFIRMATION_ELEMENTS,
   },
 };
 

@@ -269,6 +269,305 @@ function money(price: number | null | undefined, currency?: string | null) {
   }
 }
 
+// ── Booking form (checkout /book) ─────────────────────────────
+// A faithful STATIC preview of the on-site checkout, for the builder canvas. The
+// LIVE /book route renders the real interactive SiteCheckoutForm, which reads the
+// SAME `--el-<key>-*` vars — so styling here previews exactly what ships. Data
+// (rooms/add-ons/pricing/payment) is route-driven; the host styles only.
+const bookingField: CSSProperties = {
+  background: "var(--el-field-bg, var(--site-bg))",
+  border: "var(--el-field-bd, 1px solid var(--site-line))",
+  color: "var(--el-field-fg, var(--site-ink))",
+  borderRadius: "var(--el-field-radius, var(--site-radius, 10px))",
+  padding: "10px 12px",
+  fontSize: 13,
+};
+
+export function BookingFormLeaf({ props }: { props: Record<string, unknown> }) {
+  const heading = String(props.heading ?? "Complete your booking");
+  const addonCard: CSSProperties = {
+    background: "var(--el-addon-bg, var(--site-surface))",
+    border: "var(--el-addon-bd, 1px solid var(--site-line))",
+    borderRadius: "var(--el-addon-radius, var(--site-radius, 10px))",
+    padding: 12,
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+  };
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto", width: "100%" }}>
+      <h2
+        style={{
+          fontFamily: "var(--site-font-heading)",
+          fontSize: "var(--el-title-size, var(--site-h3))",
+          fontWeight:
+            "var(--el-title-weight, var(--site-weight-heading))" as unknown as number,
+          color: "var(--el-title-fg, var(--site-ink))",
+          margin: "0 0 18px",
+        }}
+      >
+        {heading}
+      </h2>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <label style={{ display: "grid", gap: 5 }}>
+          <FieldLabel>Check in</FieldLabel>
+          <div style={bookingField}>Select date</div>
+        </label>
+        <label style={{ display: "grid", gap: 5 }}>
+          <FieldLabel>Check out</FieldLabel>
+          <div style={bookingField}>Select date</div>
+        </label>
+        <label style={{ display: "grid", gap: 5 }}>
+          <FieldLabel>Guests</FieldLabel>
+          <div style={bookingField}>2 guests</div>
+        </label>
+        <label style={{ display: "grid", gap: 5 }}>
+          <FieldLabel>Full name</FieldLabel>
+          <div style={bookingField}>Your name</div>
+        </label>
+      </div>
+      <FieldLabel style={{ marginBottom: 8 }}>Add extras</FieldLabel>
+      <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+        {["Airport transfer", "Breakfast basket"].map((a) => (
+          <div key={a} style={addonCard}>
+            <span
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                background: "var(--site-line)",
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                flex: 1,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--site-ink)",
+              }}
+            >
+              {a}
+            </span>
+            <span style={{ fontSize: 13, color: "var(--site-mute)" }}>
+              + R250
+            </span>
+          </div>
+        ))}
+      </div>
+      <div
+        style={{
+          background: "var(--el-summary-bg, var(--site-surface))",
+          border: "var(--el-summary-bd, 1px solid var(--site-line))",
+          borderRadius: "var(--el-summary-radius, var(--site-radius, 12px))",
+          boxShadow: "var(--el-summary-shadow, none)",
+          padding: 16,
+        }}
+      >
+        <SummaryRow label="2 nights">R2,900</SummaryRow>
+        <SummaryRow label="Airport transfer">R250</SummaryRow>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderTop: "1px solid var(--site-line)",
+            marginTop: 10,
+            paddingTop: 12,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "var(--site-ink)" }}>
+            Total
+          </span>
+          <span
+            style={{
+              fontSize: "var(--el-price-size, 1.15rem)",
+              fontWeight: "var(--el-price-weight, 700)" as unknown as number,
+              color: "var(--el-price-fg, var(--site-ink))",
+            }}
+          >
+            R3,150
+          </span>
+        </div>
+        <button
+          type="button"
+          disabled
+          style={{
+            marginTop: 14,
+            width: "100%",
+            padding: "12px 16px",
+            background: "var(--el-button-bg, var(--site-accent))",
+            color: "var(--el-button-fg, var(--site-accentInk, #fff))",
+            border: "var(--el-button-bd, none)",
+            borderRadius: "var(--el-button-radius, var(--site-radius, 10px))",
+            fontWeight: 700,
+            fontSize: 14,
+            cursor: "default",
+          }}
+        >
+          Reserve now
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FieldLabel({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: CSSProperties;
+}) {
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+        color: "var(--site-mute)",
+        ...style,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function SummaryRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 13,
+        color: "var(--site-mute)",
+        marginBottom: 6,
+      }}
+    >
+      <span>{label}</span>
+      <span style={{ color: "var(--site-ink)" }}>{children}</span>
+    </div>
+  );
+}
+
+// ── Booking confirmation (thank-you /book/thank-you) ──────────
+// Static preview of the confirmed-booking card; the live route reads the same
+// `--el-<key>-*` vars. Data (reference/dates/total/banking) is route-driven.
+export function BookingConfirmationLeaf({
+  props,
+}: {
+  props: Record<string, unknown>;
+}) {
+  const heading = String(props.heading ?? "You're booked in 🎉");
+  const rows: [string, string][] = [
+    ["Reference", "WLO-4821"],
+    ["Dates", "12 Aug → 14 Aug"],
+    ["Guests", "2"],
+  ];
+  return (
+    <div style={{ maxWidth: 520, margin: "0 auto", width: "100%" }}>
+      <h2
+        style={{
+          fontFamily: "var(--site-font-heading)",
+          fontSize: "var(--el-title-size, var(--site-h3))",
+          fontWeight:
+            "var(--el-title-weight, var(--site-weight-heading))" as unknown as number,
+          color: "var(--el-title-fg, var(--site-ink))",
+          textAlign: "center",
+          margin: "0 0 8px",
+        }}
+      >
+        {heading}
+      </h2>
+      <p
+        style={{
+          textAlign: "center",
+          color: "var(--site-mute)",
+          margin: "0 0 24px",
+        }}
+      >
+        A confirmation is on its way to your email.
+      </p>
+      <div
+        style={{
+          background: "var(--el-card-bg, var(--site-surface))",
+          border: "var(--el-card-bd, 1px solid var(--site-line))",
+          borderRadius: "var(--el-card-radius, var(--site-radius, 12px))",
+          boxShadow: "var(--el-card-shadow, none)",
+          padding: 24,
+        }}
+      >
+        {rows.map(([label, value]) => (
+          <div
+            key={label}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 10,
+            }}
+          >
+            <span
+              style={{
+                fontSize: "var(--el-label-size, 0.875rem)",
+                color: "var(--el-label-fg, var(--site-mute))",
+              }}
+            >
+              {label}
+            </span>
+            <span
+              style={{
+                fontSize: "var(--el-value-size, 0.875rem)",
+                fontWeight: "var(--el-value-weight, 500)" as unknown as number,
+                color: "var(--el-value-fg, var(--site-ink))",
+              }}
+            >
+              {value}
+            </span>
+          </div>
+        ))}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderTop: "1px solid var(--site-line)",
+            marginTop: 6,
+            paddingTop: 12,
+          }}
+        >
+          <span style={{ fontWeight: 600, color: "var(--site-ink)" }}>
+            Total
+          </span>
+          <span
+            style={{
+              fontSize: "var(--el-price-size, 1.15rem)",
+              fontWeight: "var(--el-price-weight, 700)" as unknown as number,
+              color: "var(--el-price-fg, var(--site-ink))",
+            }}
+          >
+            R3,150
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function RoomCardLeaf({
   props,
   variant,
