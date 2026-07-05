@@ -120,7 +120,7 @@ export function StickyHeader({
   const liftShadow =
     scrolledShadow && scrolled
       ? `0 4px ${scrolledShadowSize ?? 18}px 0 ${
-          scrolledShadowColor?.trim() || "rgba(0,0,0,0.12)"
+          scrolledShadowColor?.trim() || "rgba(0,0,0,0.22)"
         }`
       : undefined;
 

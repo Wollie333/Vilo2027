@@ -947,7 +947,7 @@ export function NavBuilderOverlay({
                     "--nbar-shadow": header.scrolledShadow
                       ? `0 4px ${header.scrolledShadowSize ?? 18}px 0 ${
                           header.scrolledShadowColor?.trim() ||
-                          "rgba(0,0,0,0.12)"
+                          "rgba(0,0,0,0.22)"
                         }`
                       : "0 1px 0 rgba(10,20,15,0.1)",
                   } as React.CSSProperties
@@ -1396,7 +1396,7 @@ export function NavBuilderOverlay({
                 <>
                   <Swatch
                     label="Shadow colour"
-                    value={header.scrolledShadowColor ?? "rgba(0,0,0,0.12)"}
+                    value={header.scrolledShadowColor ?? "rgba(0,0,0,0.22)"}
                     swatches={themeCols}
                     onChange={(v) => setHeader({ scrolledShadowColor: v })}
                   />

@@ -33,7 +33,8 @@ export default async function DevChromePage({
 
   const transparent = searchParams?.transparent === "1";
   const shadow = searchParams?.shadow === "1";
-  const shadowColor = searchParams?.shadowColor || "rgba(0,0,0,0.18)";
+  // No default here → StickyHeader uses its own default shadow colour.
+  const shadowColor = searchParams?.shadowColor || undefined;
   const shadowSize = Number(searchParams?.shadowSize) || 18;
   const scrolledBg = searchParams?.scrolledBg || "#0E2C3A";
   const scrolledColor = searchParams?.scrolledColor || "#ffffff";
