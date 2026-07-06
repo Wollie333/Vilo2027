@@ -114,7 +114,11 @@ export type MainDashboardData = {
   }[];
 };
 
-function NeedIcon({ kind }: { kind: "clock" | "message" | "badge" | "money" }) {
+function NeedIcon({
+  kind,
+}: {
+  kind: "clock" | "message" | "badge" | "money" | "review";
+}) {
   if (kind === "message")
     return <MessageSquare className="h-[18px] w-[18px]" />;
   if (kind === "badge") return <BadgeCheck className="h-[18px] w-[18px]" />;
