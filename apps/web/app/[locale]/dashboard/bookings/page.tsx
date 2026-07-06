@@ -51,6 +51,11 @@ type RawBooking = {
   reference: string;
   status: string;
   payment_status: string;
+  payment_method: string | null;
+  balance_due: number | null;
+  special_id: string | null;
+  special_requests: string | null;
+  special: { title: string | null } | { title: string | null }[] | null;
   scope: string;
   origin: string;
   channel: string | null;
@@ -94,7 +99,7 @@ export default async function BookingsListPage() {
         supabase
           .from("bookings")
           .select(
-            "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, checked_in_at, checked_out_at, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:properties!inner ( id, name, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
+            "id, reference, status, payment_status, payment_method, balance_due, special_id, special_requests, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, checked_in_at, checked_out_at, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:properties!inner ( id, name, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url ), special:specials ( title )",
           )
           .eq("host_id", myHostId)
           .order("created_at", { ascending: false })
@@ -134,6 +139,12 @@ export default async function BookingsListPage() {
       reference: b.reference,
       status: b.status,
       paymentStatus: b.payment_status,
+      paymentMethod: b.payment_method,
+      balanceDue: b.balance_due == null ? null : Number(b.balance_due),
+      specialTitle:
+        (Array.isArray(b.special) ? b.special[0]?.title : b.special?.title) ??
+        null,
+      specialRequests: b.special_requests,
       origin: b.origin,
       channel: b.channel,
       scope: b.scope,

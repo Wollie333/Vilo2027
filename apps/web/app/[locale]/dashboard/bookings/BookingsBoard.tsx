@@ -20,10 +20,13 @@ import {
   Layers,
   Mail,
   Menu,
+  MessageSquare,
   MoreHorizontal,
   Phone,
+  PlaneLanding,
   Plus,
   Rows3,
+  Tag,
   TrendingDown,
   TrendingUp,
   X,
@@ -40,6 +43,10 @@ export type BookingRow = {
   reference: string;
   status: string;
   paymentStatus: string;
+  paymentMethod: string | null;
+  balanceDue: number | null;
+  specialTitle: string | null;
+  specialRequests: string | null;
   origin: string;
   channel: string | null;
   scope: string;
@@ -1107,6 +1114,54 @@ function BookingRowItem({
   );
 }
 
+// Where the stay sits relative to today — the single most useful "at a glance"
+// signal for a host (who's arriving, who's in the house, who's gone). Computed
+// client-side (the drawer only renders on user click, so no hydration concern).
+function arrivalContext(
+  row: BookingRow,
+): { label: string; cls: string } | null {
+  if (CANCELLED.has(row.status)) return null;
+  if (row.checkedOutAt)
+    return { label: "Checked out", cls: "bg-brand-light text-brand-mute" };
+  if (row.checkedInAt)
+    return {
+      label: "In-house now",
+      cls: "bg-status-completed/10 text-status-completed",
+    };
+  if (!row.checkIn) return null;
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const days = Math.round((dts(row.checkIn) - today.getTime()) / DAY);
+  if (days < 0) return null;
+  if (days === 0)
+    return { label: "Arrives today", cls: "bg-amber-100 text-amber-800" };
+  if (days === 1)
+    return { label: "Arrives tomorrow", cls: "bg-amber-100 text-amber-800" };
+  return { label: `Arrives in ${days} days`, cls: "bg-sky-100 text-sky-800" };
+}
+
+// Ordinal for a guest's Nth stay (2 → "2nd", 3 → "3rd", 11 → "11th").
+function ordinalStay(n: number): string {
+  const rem100 = n % 100;
+  const rem10 = n % 10;
+  let suffix = "th";
+  if (rem100 < 11 || rem100 > 13) {
+    if (rem10 === 1) suffix = "st";
+    else if (rem10 === 2) suffix = "nd";
+    else if (rem10 === 3) suffix = "rd";
+  }
+  return `${n}${suffix}`;
+}
+
+function paymentMethodLabel(method: string | null): string | null {
+  if (!method) return null;
+  const m = method.toLowerCase();
+  if (m === "eft") return "Manual EFT";
+  if (m === "paystack") return "Card · Paystack";
+  if (m === "paypal") return "PayPal";
+  return method.charAt(0).toUpperCase() + method.slice(1);
+}
+
 // ── Detail drawer ──────────────────────────────────────────────────────────
 function BookingDrawer({
   row,
@@ -1135,6 +1190,16 @@ function BookingDrawer({
       ? (row.nights ??
         Math.max(1, Math.round((dts(row.checkOut) - dts(row.checkIn)) / DAY)))
       : null;
+  const arrival = row ? arrivalContext(row) : null;
+  const payMethod = row ? paymentMethodLabel(row.paymentMethod) : null;
+  // Outstanding balance owed to the host — the number a host most wants to see.
+  const balanceDue =
+    row && row.balanceDue != null && row.balanceDue > 0.005
+      ? row.balanceDue
+      : null;
+  const isSpecial =
+    !!row && (row.origin === "special_booked" || !!row.specialTitle);
+  const returning = !!row && row.stayIndex >= 2;
 
   return (
     <>
@@ -1186,6 +1251,11 @@ function BookingDrawer({
                   <div className="mt-0.5 truncate text-[12px] text-brand-mute">
                     {row.guestEmail ?? "No email on file"}
                   </div>
+                  {row.guestPhone ? (
+                    <div className="mt-0.5 truncate text-[12px] text-brand-mute">
+                      {row.guestPhone}
+                    </div>
+                  ) : null}
                 </div>
                 <span
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${tone.cls}`}
@@ -1194,6 +1264,37 @@ function BookingDrawer({
                   {tag.label}
                 </span>
               </div>
+
+              {/* context strip — the at-a-glance signals a host scans first */}
+              {arrival || isSpecial || returning ? (
+                <div className="flex flex-wrap items-center gap-1.5 border-b border-brand-line px-5 py-3">
+                  {arrival ? (
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-[11px] font-semibold ${arrival.cls}`}
+                    >
+                      <PlaneLanding className="h-3 w-3" />
+                      {arrival.label}
+                    </span>
+                  ) : null}
+                  {isSpecial ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2 py-0.5 text-[11px] font-semibold text-brand-secondary"
+                      title={row.specialTitle ?? undefined}
+                    >
+                      <Tag className="h-3 w-3" />
+                      {row.specialTitle
+                        ? `Special · ${row.specialTitle}`
+                        : "Special offer"}
+                    </span>
+                  ) : null}
+                  {returning ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2 py-0.5 text-[11px] font-semibold text-brand-mute">
+                      <BadgeCheck className="h-3 w-3" />
+                      Returning · {ordinalStay(row.stayIndex)} stay
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
 
               {/* quick actions */}
               <div className="grid grid-cols-3 gap-2 border-b border-brand-line px-5 py-4">
@@ -1284,6 +1385,9 @@ function BookingDrawer({
                       </span>
                     }
                   />
+                  {payMethod ? (
+                    <DrawerRow label="Method" value={payMethod} />
+                  ) : null}
                   <DrawerRow
                     label="Booked"
                     value={fmtDay(row.createdAt.slice(0, 10))}
@@ -1294,6 +1398,20 @@ function BookingDrawer({
                       <span className="font-display">
                         {formatMoney(row.totalAmount, row.currency)}
                       </span>
+                    }
+                  />
+                  <DrawerRow
+                    label="Balance due"
+                    value={
+                      balanceDue ? (
+                        <span className="font-display font-bold text-status-cancelled">
+                          {formatMoney(balanceDue, row.currency)}
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-status-confirmed">
+                          Paid in full
+                        </span>
+                      )
                     }
                   />
                 </dl>
@@ -1308,6 +1426,18 @@ function BookingDrawer({
                   <span className="capitalize">{payHintOf(row)}</span>
                 </div>
               </div>
+
+              {/* guest requests — host-important context the host should not miss */}
+              {row.specialRequests && row.specialRequests.trim() ? (
+                <div className="border-t border-brand-line px-5 py-4">
+                  <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
+                    <MessageSquare className="h-3 w-3" /> Guest requests
+                  </div>
+                  <p className="whitespace-pre-line text-[12.5px] leading-relaxed text-brand-ink">
+                    {row.specialRequests.trim()}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div className="flex shrink-0 items-center gap-2 border-t border-brand-line bg-white px-5 py-3">

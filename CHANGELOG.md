@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-06 #10 — Enriched bookings quick-view drawer (full context at a glance).
+
+Founder ask: the booking quick view didn't give full context — host-important data
+was missing. Enriched the drawer (`BookingsBoard.tsx`) with:
+
+- **Context strip** (the scan-first signals): arrival timing ("Arrives in N days" /
+  "In-house now" / "Checked out", computed client-side), a **Special · <deal title>**
+  badge for offer bookings, and a **Returning · Nth stay** badge.
+- **Guest**: added the phone number under the email.
+- **Payment**: added **Method** (Manual EFT / Card · Paystack / …) and a prominent
+  **Balance due** row (red amount owed, or green "Paid in full").
+- **Guest requests**: a new section surfacing the guest's special requests when present.
+
+Data layer (`bookings/page.tsx`): the board query now also loads `payment_method`,
+`balance_due`, `special_requests`, and the special `title` (join), threaded onto
+`BookingRow`. Verified live in the drawer on both a special booking (badge + title +
+EFT + R4200 balance) and a regular booking (phone shown, no special badge).
+
 ## 2026-07-06 #9 — Show the guest email on the booking record.
 
 Founder ask: print the guest's booking email next to their name. Added it in two
