@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-06 #8 — Host notification names the special that was booked.
+
+Follow-up to #7: the generic "New booking request · A guest · your listing" now
+tells the host a SPECIAL was booked. Added optional `special_title` to `BookingRefs`
+and made the `booking_request_host` in-app + push renderers special-aware ("New
+special booking" · `<guest> booked "<deal>" · <property>`). `notifyHostOfSiteBooking`
+takes an optional context and the site special path passes the deal title + guest
+first name + property. Verified live via `/api/site-booking`: notification read
+**"New special booking — Thabo booked "Stargazer Weekend (fixed dates)" · Karoo Sky
+Guesthouse"** in the host's notifications UI. (Test booking cleaned up.)
+
 ## 2026-07-06 #7 — Website special booking: host notification + correct channel.
 
 Booking a SPECIAL on a host website (`createSiteSpecialBooking`) had two gaps vs the

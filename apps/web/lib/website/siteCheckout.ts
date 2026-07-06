@@ -45,6 +45,13 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 async function notifyHostOfSiteBooking(
   admin: ReturnType<typeof createAdminClient>,
   bookingId: string,
+  /** Extra context for the copy. `specialTitle` set → the host is told a SPECIAL
+   *  (offer) was booked, with its title, instead of a plain room request. */
+  ctx?: {
+    specialTitle?: string | null;
+    guestFirstName?: string | null;
+    listingName?: string | null;
+  },
 ): Promise<void> {
   try {
     const { data: bk } = await admin
@@ -65,7 +72,14 @@ async function notifyHostOfSiteBooking(
     await dispatchEvent({
       kind: "booking_request_host",
       recipientUserId: userId,
-      refs: { booking_id: bookingId },
+      refs: {
+        booking_id: bookingId,
+        ...(ctx?.specialTitle ? { special_title: ctx.specialTitle } : {}),
+        ...(ctx?.guestFirstName
+          ? { guest_first_name: ctx.guestFirstName }
+          : {}),
+        ...(ctx?.listingName ? { listing_name: ctx.listingName } : {}),
+      },
       supabase: admin,
     });
   } catch {
@@ -390,7 +404,7 @@ export async function createSiteSpecialBooking(
   const { data: special } = await admin
     .from("specials")
     .select(
-      "id, host_id, business_id, property_id, room_id, currency, status, deleted_at, show_on_website, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, max_guests, quantity, redemptions_used, go_live_at, book_by, cancellation_policy_id",
+      "id, title, host_id, business_id, property_id, room_id, currency, status, deleted_at, show_on_website, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, max_guests, quantity, redemptions_used, go_live_at, book_by, cancellation_policy_id",
     )
     .eq("id", d.special_id)
     .maybeSingle();
@@ -757,9 +771,13 @@ export async function createSiteSpecialBooking(
     },
   });
 
-  // Notify the host of the new website special booking (same as the room checkout).
+  // Notify the host — tell them a SPECIAL was booked (title + guest + property).
   if (result.ok) {
-    await notifyHostOfSiteBooking(admin, result.bookingId);
+    await notifyHostOfSiteBooking(admin, result.bookingId, {
+      specialTitle: special.title,
+      guestFirstName: d.guest_name.trim().split(/\s+/)[0] || null,
+      listingName: property.name,
+    });
   }
 
   return result.ok

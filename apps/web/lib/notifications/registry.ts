@@ -29,6 +29,9 @@ export type BookingRefs = {
   check_in?: string;
   check_out?: string;
   check_in_time?: string;
+  /** Set when the booking redeemed a SPECIAL/offer — surfaces the deal title so
+   *  the host notification says a special was booked, not a plain room request. */
+  special_title?: string;
 };
 
 export type EftRefs = {
@@ -161,17 +164,21 @@ export const NOTIFICATION_REGISTRY = {
     emailTemplate: "booking_request_host",
     refKeys: ["booking_id"],
     push: (r) => ({
-      title: "New booking request",
+      title: r.special_title ? "New special booking" : "New booking request",
       body: clip(
-        `${r.guest_first_name ?? "A guest"} wants to book ${r.listing_name ?? "your listing"}`,
+        r.special_title
+          ? `${r.guest_first_name ?? "A guest"} booked your “${r.special_title}” special at ${r.listing_name ?? "your listing"}`
+          : `${r.guest_first_name ?? "A guest"} wants to book ${r.listing_name ?? "your listing"}`,
       ),
       data: link("/dashboard/bookings/[id]", { id: r.booking_id }),
       sound: "default",
       priority: "high",
     }),
     inApp: (r) => ({
-      title: "New booking request",
-      body: `${r.guest_first_name ?? "A guest"} · ${r.listing_name ?? "your listing"}`,
+      title: r.special_title ? "New special booking" : "New booking request",
+      body: r.special_title
+        ? `${r.guest_first_name ?? "A guest"} booked “${r.special_title}” · ${r.listing_name ?? "your listing"}`
+        : `${r.guest_first_name ?? "A guest"} · ${r.listing_name ?? "your listing"}`,
       link: `/dashboard/bookings/${r.booking_id}`,
     }),
     dedupeKey: (r) => `booking_request:${r.booking_id}`,
