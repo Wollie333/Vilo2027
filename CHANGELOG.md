@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-06 #6 — Room-detail page: kill the duplicate booking form.
+
+Generated host sites rendered TWO booking widgets on a room page: a big full-width
+`RoomBookingForm` (from the flat template's required `room_rate` block) in the content
+column AND the sticky `RoomBookingDock` in the right rail. The sticky dock IS the
+booking widget for this layout, so the inline `room_rate` form is a duplicate. Fixed
+in `SiteRoomView.tsx`: `contentSections` now also excludes `room_rate` (parallel to
+how `room_gallery` is pulled out), leaving only the sticky dock. `room_rate` stays in
+the template so the required-widget contract still holds if the page is later authored
+as a PageDoc.
+
+- **Verified live** on the real generated site (`karoo.wielo.site`, host@wielotest.com):
+  Milkyway Room + Aloe Suite, published AND `preview=1` — 1 sticky dock, 0 date widgets
+  in the content column, big-form note gone. No new console errors.
+- **Scope note:** this fixes the generated/flat render path. The builder *editing*
+  canvas renders room_detail through `PageDocRenderer` (a different path) — that
+  divergence is part of the website-builder/wizard issues to tackle next.
+
 ## 2026-07-06 #5 — Seasonal pricing for the seeded host.
 
 Added 3 `property_seasonal_pricing` rules to `seed-single-host.mjs`: Festive Peak

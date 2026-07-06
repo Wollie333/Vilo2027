@@ -47,8 +47,15 @@ export async function SiteRoomView({
 
   // Listing-style layout: the room gallery runs full-width up top, the rest of the
   // sections sit in the content column beside the sticky booking dock.
+  // The sticky `RoomBookingDock` (right rail) IS the booking widget for this layout,
+  // so the flat template's `room_rate` block (a full-width RoomBookingForm) would be
+  // a SECOND, duplicate booking form in the content column — drop it here. room_rate
+  // stays in the template (keeps the required-widget contract if the page is later
+  // authored as a PageDoc); it's just not rendered inline beside the dock.
   const gallerySections = sections.filter((s) => s.type === "room_gallery");
-  const contentSections = sections.filter((s) => s.type !== "room_gallery");
+  const contentSections = sections.filter(
+    (s) => s.type !== "room_gallery" && s.type !== "room_rate",
+  );
 
   let jsonLdGraph: Record<string, unknown>[] = [];
   if (!ctx.preview) {
