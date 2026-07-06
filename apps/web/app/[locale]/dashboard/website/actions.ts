@@ -599,6 +599,8 @@ export async function createWebsiteWithWizardAction(
     logoPath,
     contactEmail,
     contactPhone,
+    paymentsVisibility,
+    visiblePolicyIds,
   } = parsed.data;
 
   const subErr = validateSubdomain(subdomain);
@@ -671,6 +673,13 @@ export async function createWebsiteWithWizardAction(
         ...(base ? { base } : {}),
         colors: { accent },
         palette: paletteSwatches,
+      },
+      // Per-site payment/policy visibility from the Payments & policies step.
+      // The checkout reads settings.payments; the policies block reads
+      // settings.policies (see AGENT_RULES §3.4 / WEBSITE_SETUP_WIZARD_V2_PLAN).
+      settings: {
+        payments: paymentsVisibility ?? {},
+        policies: visiblePolicyIds ?? [],
       },
     })
     .select("id")

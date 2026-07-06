@@ -29,6 +29,35 @@ export const WIZARD_DEFAULT_PAGES: readonly WizardPage[] = [
   { kind: "contact", include: true },
 ] as const;
 
+/** The three real supported payment methods (spec-locked — no PayFast/cash). */
+export type WizardPaymentKey = "paystack" | "paypal" | "eft";
+
+/**
+ * A payment method as surfaced in the confirm-and-activate step. `status`:
+ * "active" = configured & ready; "review" = missing required config. Labels +
+ * descriptions are i18n in the component (the method set is fixed).
+ */
+export type WizardPaymentMethod = {
+  key: WizardPaymentKey;
+  status: "active" | "review";
+  /** Deep link to the account editor for this method. */
+  editHref: string;
+};
+
+/** A policy as surfaced in the confirm-and-activate step. */
+export type WizardPolicy = {
+  /** Stable key (policy id, or type when unconfigured). */
+  key: string;
+  type: string;
+  name: string;
+  /** One-line human summary (times, cancellation preset, …). */
+  summary: string;
+  /** False when the policy type isn't configured yet (amber "Add" row). */
+  configured: boolean;
+  /** Deep link to the account editor for this policy. */
+  editHref: string;
+};
+
 /** Mutable state collected across the wizard steps before the one-shot create. */
 export type WizardState = {
   siteName: string;
@@ -46,15 +75,23 @@ export type WizardState = {
   customAccent: string;
   /** Ordered page set for the site nav (Pages step). */
   pages: WizardPage[];
+  /** Per-method "show on website" toggles, keyed by WizardPaymentKey. */
+  paymentVisibility: Record<string, boolean>;
+  /** Per-policy "show on website" toggles, keyed by WizardPolicy.key. */
+  policyVisibility: Record<string, boolean>;
 };
 
-/** The data the wizard needs to start (prefill + theme catalogue). */
+/** The data the wizard needs to start (prefill + theme catalogue + account config). */
 export type WizardProps = {
   businessId: string;
   defaultName: string;
   defaultSubdomain: string;
   logoPath: string | null;
   themes: ThemeOption[];
+  /** The host's configured payment methods (confirm-and-activate step). */
+  paymentMethods: WizardPaymentMethod[];
+  /** The property's policies (confirm-and-activate step). */
+  policies: WizardPolicy[];
 };
 
 export function initialWizardState(p: WizardProps): WizardState {
@@ -69,6 +106,14 @@ export function initialWizardState(p: WizardProps): WizardState {
     useCustom: false,
     customAccent: "",
     pages: WIZARD_DEFAULT_PAGES.map((p) => ({ ...p })),
+    // Active methods show on the site by default; ones needing config start off.
+    paymentVisibility: Object.fromEntries(
+      p.paymentMethods.map((m) => [m.key, m.status === "active"]),
+    ),
+    // Configured policies show by default; unconfigured ones start off.
+    policyVisibility: Object.fromEntries(
+      p.policies.map((pol) => [pol.key, pol.configured]),
+    ),
   };
 }
 

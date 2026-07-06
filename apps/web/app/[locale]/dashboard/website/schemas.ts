@@ -78,6 +78,16 @@ export const createWebsiteWizardSchema = z.object({
   logoPath: z.string().trim().max(400).optional(),
   contactEmail: z.string().trim().email().max(160).optional().or(z.literal("")),
   contactPhone: z.string().trim().max(40).optional(),
+  /** Per-site payment-method visibility (Payments & policies step). */
+  paymentsVisibility: z
+    .object({
+      paystack: z.boolean().optional(),
+      paypal: z.boolean().optional(),
+      eft: z.boolean().optional(),
+    })
+    .optional(),
+  /** Ids of the policies the host wants shown on the website. */
+  visiblePolicyIds: z.array(z.string().max(64)).max(50).optional(),
 });
 
 export type CreateWebsiteWizardInput = z.infer<

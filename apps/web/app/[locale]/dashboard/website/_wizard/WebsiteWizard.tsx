@@ -75,6 +75,10 @@ export function WebsiteWizard(props: WizardProps) {
   async function build() {
     setError(null);
     setStep("building");
+    // Only configured, host-shown policies persist as website-visible.
+    const visiblePolicyIds = props.policies
+      .filter((p) => p.configured && state.policyVisibility[p.key])
+      .map((p) => p.key);
     const res = await createWebsiteWithWizardAction({
       businessId: props.businessId,
       subdomain: state.subdomain,
@@ -86,6 +90,12 @@ export function WebsiteWizard(props: WizardProps) {
       logoPath: state.logoPath ?? undefined,
       contactEmail: state.contactEmail || undefined,
       contactPhone: state.contactPhone || undefined,
+      paymentsVisibility: {
+        paystack: state.paymentVisibility.paystack ?? false,
+        paypal: state.paymentVisibility.paypal ?? false,
+        eft: state.paymentVisibility.eft ?? false,
+      },
+      visiblePolicyIds,
     });
     if (res.ok) {
       setCreatedId(res.id);
@@ -166,6 +176,10 @@ export function WebsiteWizard(props: WizardProps) {
           ) : null}
           {step === "payments" ? (
             <StepPayments
+              paymentMethods={props.paymentMethods}
+              policies={props.policies}
+              state={state}
+              update={update}
               onNext={() => setStep("pages")}
               onBack={() => setStep("colors")}
             />
@@ -181,6 +195,8 @@ export function WebsiteWizard(props: WizardProps) {
           {step === "review" ? (
             <StepReview
               themes={props.themes}
+              paymentMethods={props.paymentMethods}
+              policies={props.policies}
               state={state}
               onBuild={build}
               onBack={() => setStep("pages")}
@@ -202,7 +218,12 @@ export function WebsiteWizard(props: WizardProps) {
       </div>
 
       {dismissable ? (
-        <WizardSidebar themes={props.themes} state={state} />
+        <WizardSidebar
+          themes={props.themes}
+          paymentMethods={props.paymentMethods}
+          policies={props.policies}
+          state={state}
+        />
       ) : null}
     </div>
   );

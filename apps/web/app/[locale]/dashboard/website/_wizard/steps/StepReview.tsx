@@ -4,18 +4,25 @@ import { useTranslations } from "next-intl";
 
 import type { ThemeOption } from "@/lib/site/themes.server";
 
-import type { WizardState } from "../wizardState";
+import type {
+  WizardPaymentMethod,
+  WizardPolicy,
+  WizardState,
+} from "../wizardState";
 
 // Review step: a summary of everything the wizard will build, then the single
-// "Build my site" CTA. Payment/policy counts fill in once the Payments step is
-// wired to account data (later phase); skin + pages are live now.
+// "Build my site" CTA.
 export function StepReview({
   themes,
+  paymentMethods,
+  policies,
   state,
   onBuild,
   onBack,
 }: {
   themes: ThemeOption[];
+  paymentMethods: WizardPaymentMethod[];
+  policies: WizardPolicy[];
   state: WizardState;
   onBuild: () => void;
   onBack: () => void;
@@ -24,6 +31,12 @@ export function StepReview({
   const theme = themes.find((x) => x.id === state.themeId) ?? themes[0];
   const included = state.pages.filter((p) => p.include);
   const pageNames = included.map((p) => t(`wizardPage_${p.kind}`)).join(", ");
+  const paymentsOn = paymentMethods.filter(
+    (m) => state.paymentVisibility[m.key],
+  ).length;
+  const policiesOn = policies.filter(
+    (p) => p.configured && state.policyVisibility[p.key],
+  ).length;
 
   return (
     <div className="space-y-5">
@@ -54,6 +67,22 @@ export function StepReview({
           </p>
           <p className="mt-0.5 text-[12px] leading-snug text-brand-mute">
             {pageNames}
+          </p>
+        </div>
+        <div className="rounded-card border border-brand-line px-4 py-3.5">
+          <p className="text-[11.5px] font-semibold uppercase tracking-wide text-brand-mute">
+            {t("wizardReviewPayments")}
+          </p>
+          <p className="mt-1 text-[15px] font-semibold text-brand-ink">
+            {paymentsOn}
+          </p>
+        </div>
+        <div className="rounded-card border border-brand-line px-4 py-3.5">
+          <p className="text-[11.5px] font-semibold uppercase tracking-wide text-brand-mute">
+            {t("wizardReviewPolicies")}
+          </p>
+          <p className="mt-1 text-[15px] font-semibold text-brand-ink">
+            {policiesOn}
           </p>
         </div>
       </div>

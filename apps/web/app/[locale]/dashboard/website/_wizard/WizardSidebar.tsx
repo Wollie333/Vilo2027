@@ -5,16 +5,24 @@ import { useTranslations } from "next-intl";
 import { generatePalettes, isHexColor } from "@/lib/site/palettes";
 import type { ThemeOption } from "@/lib/site/themes.server";
 
-import { themeBaseAccent, type WizardState } from "./wizardState";
+import {
+  themeBaseAccent,
+  type WizardPaymentMethod,
+  type WizardPolicy,
+  type WizardState,
+} from "./wizardState";
 
 // The live "Site build" status panel that sits beside the steps (spec: the
-// sidebar updates in real time as the host makes choices). Skin + pages are
-// live now; payments/policies fill in once their step is wired to account data.
+// sidebar updates in real time as the host makes choices).
 export function WizardSidebar({
   themes,
+  paymentMethods,
+  policies,
   state,
 }: {
   themes: ThemeOption[];
+  paymentMethods: WizardPaymentMethod[];
+  policies: WizardPolicy[];
   state: WizardState;
 }) {
   const t = useTranslations("website");
@@ -30,6 +38,12 @@ export function WizardSidebar({
 
   const included = state.pages.filter((p) => p.include);
   const pageNames = included.map((p) => t(`wizardPage_${p.kind}`)).join(", ");
+  const paymentsOn = paymentMethods.filter(
+    (m) => state.paymentVisibility[m.key],
+  ).length;
+  const policiesOn = policies.filter(
+    (p) => p.configured && state.policyVisibility[p.key],
+  ).length;
 
   return (
     <aside className="lg:sticky lg:top-4">
@@ -72,13 +86,13 @@ export function WizardSidebar({
 
           <Row
             label={t("wizardReviewPayments")}
-            value={t("wizardSidePending")}
-            muted
+            value={String(paymentsOn)}
+            muted={paymentsOn === 0}
           />
           <Row
             label={t("wizardReviewPolicies")}
-            value={t("wizardSidePending")}
-            muted
+            value={String(policiesOn)}
+            muted={policiesOn === 0}
           />
         </dl>
       </div>

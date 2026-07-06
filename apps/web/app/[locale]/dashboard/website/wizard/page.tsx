@@ -7,6 +7,10 @@ import { loadActiveThemes } from "@/lib/site/themes.server";
 import { createServerClient } from "@/lib/supabase/server";
 import { deriveSubdomain } from "@/lib/website/subdomain";
 
+import {
+  loadWizardPaymentMethods,
+  loadWizardPolicies,
+} from "../_wizard/loadWizardAccount";
 import { WebsiteWizard } from "../_wizard/WebsiteWizard";
 
 export const dynamic = "force-dynamic";
@@ -71,9 +75,11 @@ export default async function WebsiteWizardPage({
     .maybeSingle();
   if (existing) redirect(`/dashboard/website/${existing.id}`);
 
-  const [t, themes] = await Promise.all([
+  const [t, themes, paymentMethods, policies] = await Promise.all([
     getTranslations("website"),
     loadActiveThemes(),
+    loadWizardPaymentMethods(supabase, host.id, target.id),
+    loadWizardPolicies(supabase, host.id),
   ]);
   const name = target.trading_name?.trim() || t("metaTitle");
 
@@ -93,6 +99,8 @@ export default async function WebsiteWizardPage({
         defaultSubdomain={deriveSubdomain(name)}
         logoPath={target.logo_path}
         themes={themes}
+        paymentMethods={paymentMethods}
+        policies={policies}
       />
     </div>
   );
