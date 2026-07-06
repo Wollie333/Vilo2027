@@ -1,7 +1,7 @@
 # Vilo Platform — Business Principles
 
 **Version:** 1.0
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-07-06
 
 This file records Wielo's **foundational business principles** — the durable
 strategic rules that shape how the product is built, regardless of which feature
@@ -450,3 +450,59 @@ must be FULLY RESPONSIVE at every breakpoint, always. No exceptions.**
 - Never ship a fixed-width or desktop-only layout. If a grid has `grid-cols-3`, it
   MUST also have a mobile base (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`).
 - Reuse the shared responsive section/card primitives; don't hand-roll widths.
+
+---
+
+## Principle #11 — A "clean wipe" deletes USER data only, never functionality data
+
+**Date:** 2026-07-06
+**Status:** Active
+
+### The principle
+
+**When the founder asks for a "clean wipe" / "blank slate" / "fresh app with no
+users," it means delete all USER data and nothing else.** The goal is a
+fresh-install web app with zero users and zero user data so we can test from
+scratch — it is **never** a request to remove the data the app needs to function.
+
+Two categories, and only one of them is ever wiped:
+
+1. **User data — DELETE.** Everything a user (host, guest, staff, admin person)
+   creates or owns: accounts (`auth.users`, `user_profiles`), hosts, listings,
+   bookings, payments, quotes/invoices, host websites + pages + blog + media,
+   specials, reviews, conversations/messages, looking-for posts, affiliates,
+   businesses, subscriptions, guest CRM, notifications, sessions. If a real person
+   generated it, it goes.
+
+2. **Functionality / reference data — NEVER DELETE.** The seed/config data the app
+   relies on to build pages and run at all: `site_themes` (and any theme
+   templates), `plans` / `plan_prices` / `plan_features`, `amenity_catalog` /
+   `amenity_groups`, `listing_categories` and other taxonomies, `special_categories`,
+   help-center content (`help_*`), notification templates
+   (`notification_categories` / `notification_events`), admin RBAC definitions
+   (`admin_roles` / `admin_permissions` / `admin_role_permissions`),
+   `platform_settings` / platform integrations / services, `fx_rates`. Wiping any of
+   these breaks the app (e.g. no themes → sites can't render). They must survive
+   every wipe.
+
+### Why this matters
+
+The whole point of a wipe is a *working* fresh app to test on. Deleting
+functionality data defeats the purpose — you get a broken app, not a clean one.
+"Clean" means clean of users, not stripped of the platform's furniture.
+
+### How to apply it
+
+- **Wipe from the user roots, not by "delete everything except a list."** The safe,
+  provable method: `TRUNCATE public.hosts, public.user_profiles RESTART IDENTITY
+  CASCADE;` then `DELETE FROM auth.users;`. `TRUNCATE ... CASCADE` only follows FKs
+  that *point at* those roots (their child rows), so reference/config tables — which
+  are *parents*, never children — are physically incapable of being caught in the
+  cascade. This makes "never delete functionality data" a structural guarantee, not
+  a hand-maintained allow-list that can drift.
+- **Verify both sides after any wipe** (ties into Principle #9): user tables → 0
+  rows and `auth.users` empty; reference tables still populated
+  (`site_themes`, `plans`, `amenity_catalog`, etc.); and the app still boots on the
+  blank slate. Never report a wipe done until the app is seen working fresh.
+- **If ever in doubt whether a table is user or functionality data, ask the founder
+  before deleting it** — don't guess and risk breaking the app.
