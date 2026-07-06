@@ -350,6 +350,51 @@ async function main() {
     }
   }
 
+  // 4d. Seasonal pricing rules (property_seasonal_pricing): a mix of an absolute
+  //     peak, a percent off-peak, and a room-scoped rule — priority-ordered.
+  await up("property_seasonal_pricing", [
+    {
+      id: "0b888888-8888-4888-8888-888888888851",
+      property_id: PROPERTY,
+      room_id: null,
+      label: "Festive Peak",
+      start_date: "2026-12-15",
+      end_date: "2027-01-10",
+      adjustment_type: "absolute",
+      adjustment_value: 2400,
+      currency: "ZAR",
+      min_nights: 3,
+      priority: 10,
+      is_active: true,
+    },
+    {
+      id: "0b888888-8888-4888-8888-888888888852",
+      property_id: PROPERTY,
+      room_id: null,
+      label: "Winter Off-Peak (−15%)",
+      start_date: "2026-07-01",
+      end_date: "2026-08-31",
+      adjustment_type: "percent",
+      adjustment_value: -15,
+      currency: "ZAR",
+      priority: 1,
+      is_active: true,
+    },
+    {
+      id: "0b888888-8888-4888-8888-888888888853",
+      property_id: PROPERTY,
+      room_id: ROOM_2, // Aloe Suite only
+      label: "Aloe Suite spring peak",
+      start_date: "2026-09-20",
+      end_date: "2026-10-05",
+      adjustment_type: "absolute",
+      adjustment_value: 2000,
+      currency: "ZAR",
+      priority: 5,
+      is_active: true,
+    },
+  ]);
+
   // 5. THREE add-ons (with uploaded bucket images) + link each to the property.
   await uploadAddonImage(A1_IMG, uimg("1452195100486-9cc805987862"));
   await uploadAddonImage(A2_IMG, uimg("1533089860892-a7c6f0a88666"));
@@ -510,6 +555,7 @@ async function main() {
   console.log("   Host login: %s / %s", HOST_EMAIL, HOST_PASSWORD);
   console.log("   1 property, 3 rooms, 3 add-ons, 3 specials (1 fixed-date), 1 coupon (KAROO10).");
   console.log("   All rooms/add-ons/specials have small stock images.");
+  console.log("   3 seasonal pricing rules (absolute peak, percent off-peak, room-scoped).");
   console.log("   No website created — build/test that manually.");
 }
 

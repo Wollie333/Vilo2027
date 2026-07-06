@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-07-06 #5 — Seasonal pricing for the seeded host.
+
+Added 3 `property_seasonal_pricing` rules to `seed-single-host.mjs`: Festive Peak
+(absolute R2400/night, Dec 15–Jan 10, min 3 nights, priority 10), Winter Off-Peak
+(percent −15%, Jul–Aug, priority 1), and an Aloe-Suite-scoped spring peak (absolute
+R2000, `room_id` set, priority 5). Verified live: dashboard Seasonal Pricing shows
+"Seasons set: 3 covering 78 nights" with all three rules on the rate calendar.
+
 ## 2026-07-06 #4 — Marketing header labels stay inline (nav + auth buttons).
 
 Multi-word labels were wrapping to two lines — "Property types" / "Guest requests"
