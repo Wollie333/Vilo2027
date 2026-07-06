@@ -1003,6 +1003,14 @@ function BookingRowItem({
               <span className="font-mono text-[10px]">{row.reference}</span>
             </div>
           ) : null}
+          {row.guestEmail ? (
+            <div
+              className="mt-0.5 truncate text-[11px] text-brand-mute"
+              title={row.guestEmail}
+            >
+              {row.guestEmail}
+            </div>
+          ) : null}
         </div>
       </div>
 

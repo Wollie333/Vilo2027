@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-07-06 #9 — Show the guest email on the booking record.
+
+Founder ask: print the guest's booking email next to their name. Added it in two
+places: the booking DETAIL header (`BookingDetail.tsx` — a `mailto:` link with a Mail
+icon in the meta row beside the name/reference) and each bookings LIST row
+(`BookingsBoard.tsx` — a compact muted line under the name). Both guard on a present
+email. Verified live on booking BK-0018: header + list show `gerki@gmail.com`.
+
 ## 2026-07-06 #8 — Host notification names the special that was booked.
 
 Follow-up to #7: the generic "New booking request · A guest · your listing" now

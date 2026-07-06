@@ -18,6 +18,7 @@ import {
   KeyRound,
   Languages,
   Link2,
+  Mail,
   MailCheck,
   MapPin,
   MessageSquare,
@@ -479,6 +480,19 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                   <span className="font-mono text-[11px] text-brand-ink">
                     {d.reference}
                   </span>
+                  {d.guestEmail ? (
+                    <>
+                      <span className="h-1 w-1 rounded-full bg-brand-line" />
+                      <a
+                        href={`mailto:${d.guestEmail}`}
+                        className="inline-flex max-w-full items-center gap-1.5 hover:text-brand-ink hover:underline"
+                        title={d.guestEmail}
+                      >
+                        <Mail className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{d.guestEmail}</span>
+                      </a>
+                    </>
+                  ) : null}
                   <span className="h-1 w-1 rounded-full bg-brand-line" />
                   <span className="inline-flex items-center gap-1.5">
                     <MapPin className="h-3.5 w-3.5" /> {d.listingName}
