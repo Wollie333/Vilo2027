@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-06 #12 — Overview refinement #2: week-at-a-glance + review nudge.
+
+Second, lighter pass on the Overview (no new top bands — kept it uncluttered):
+
+- **Next-7-days strip** inside the "Upcoming stays" card — 7 compact day cells
+  (today highlighted) showing arrivals (green ↓), departures (amber ↑) and an
+  in-house dot per day. Driven by a `next7` window query (stays overlapping the
+  coming week).
+- **Reviews awaiting reply** — a new "Needs your attention" item counting published
+  reviews with no host response (`host_response IS NULL`), linking to /dashboard/reviews.
+
+Verified live: inserted a throwaway confirmed stay (Tue→Thu) and the strip correctly
+showed TUE "1↓", WED "•", THU "1↑"; removed it afterwards (dashboard back to clean).
+
 ## 2026-07-06 #11 — Enriched host Overview for daily management.
 
 Kept the existing dashboard design; added three host-management layers (matching the

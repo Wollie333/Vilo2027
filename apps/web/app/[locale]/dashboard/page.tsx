@@ -190,6 +190,8 @@ export default async function DashboardPage({
     unread,
     opsToday,
     eftOutstanding,
+    next7,
+    reviewsToReply,
   ] = await Promise.all([
     throwOnError(
       supabase
@@ -288,6 +290,28 @@ export default async function DashboardPage({
         .eq("host_id", host.id)
         .in("status", ["pending_eft", "pending_eft_review"]),
       "dashboard/eft-outstanding",
+    ),
+    // Next-7-days window — any active stay overlapping the coming week (drives the
+    // week-at-a-glance strip). Overlap: starts on/before day 7 AND ends after today.
+    throwOnError(
+      supabase
+        .from("bookings")
+        .select("check_in, check_out")
+        .eq("host_id", host.id)
+        .in("status", ["confirmed", "checked_in"])
+        .lte("check_in", isoDate(new Date(Date.now() + 6 * DAY)))
+        .gt("check_out", today),
+      "dashboard/next7",
+    ),
+    // Published reviews still awaiting the host's reply (reputation management).
+    throwOnErrorWithCount(
+      supabase
+        .from("reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", host.id)
+        .eq("is_published", true)
+        .is("host_response", null),
+      "dashboard/reviews-to-reply",
     ),
   ]);
   const pendingCount = pending.count;
@@ -425,8 +449,46 @@ export default async function DashboardPage({
     0,
   );
 
+  // Week-at-a-glance — arrivals / departures / occupied per day for the next 7.
+  const winRows = (next7 ?? []) as unknown as {
+    check_in: string | null;
+    check_out: string | null;
+  }[];
+  const week7 = Array.from({ length: 7 }, (_, i) => {
+    const dStr = isoDate(new Date(Date.now() + i * DAY));
+    const dd = new Date(`${dStr}T12:00:00Z`);
+    let arrivals = 0;
+    let departures = 0;
+    let occupied = 0;
+    for (const b of winRows) {
+      if (b.check_in === dStr) arrivals++;
+      if (b.check_out === dStr) departures++;
+      if (b.check_in && b.check_out && b.check_in <= dStr && dStr < b.check_out)
+        occupied++;
+    }
+    return {
+      weekday: dd.toLocaleDateString("en-ZA", { weekday: "short" }),
+      day: Number(dStr.slice(8, 10)),
+      arrivals,
+      departures,
+      occupied,
+      isToday: i === 0,
+    };
+  });
+
   // Needs attention.
   const needs: MainDashboardData["needs"] = [];
+  const reviewsCount = reviewsToReply.count ?? 0;
+  if (reviewsCount > 0)
+    needs.push({
+      id: "reviews",
+      tone: "accent",
+      icon: "review",
+      title: `Reply to ${reviewsCount} guest review${reviewsCount === 1 ? "" : "s"}`,
+      sub: "A thoughtful reply builds trust with future guests",
+      tag: { label: "Reply", tone: "indigo" },
+      href: "/dashboard/reviews",
+    });
   if (eftCount > 0)
     needs.push({
       id: "eft",
@@ -497,6 +559,7 @@ export default async function DashboardPage({
     },
     needs,
     todayOps,
+    week7,
     upcoming: upcomingRows.map((b) => {
       const guestName =
         b.guest?.full_name ?? b.guest_name ?? b.guest_email ?? "Guest";

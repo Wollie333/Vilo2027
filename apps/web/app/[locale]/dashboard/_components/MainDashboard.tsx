@@ -60,7 +60,7 @@ export type MainDashboardData = {
   needs: {
     id: string;
     tone: "amber" | "red" | "accent";
-    icon: "clock" | "message" | "badge" | "money";
+    icon: "clock" | "message" | "badge" | "money" | "review";
     title: string;
     sub: string;
     tag: { label: string; tone: ToneKey };
@@ -71,6 +71,14 @@ export type MainDashboardData = {
     departures: { count: number; names: string[] };
     inHouse: { count: number; names: string[] };
   };
+  week7: {
+    weekday: string;
+    day: number;
+    arrivals: number;
+    departures: number;
+    occupied: number;
+    isToday: boolean;
+  }[];
   upcoming: {
     id: string;
     guest: string;
@@ -111,6 +119,7 @@ function NeedIcon({ kind }: { kind: "clock" | "message" | "badge" | "money" }) {
     return <MessageSquare className="h-[18px] w-[18px]" />;
   if (kind === "badge") return <BadgeCheck className="h-[18px] w-[18px]" />;
   if (kind === "money") return <Banknote className="h-[18px] w-[18px]" />;
+  if (kind === "review") return <Star className="h-[18px] w-[18px]" />;
   return <Clock3 className="h-[18px] w-[18px]" />;
 }
 
@@ -337,6 +346,48 @@ export function MainDashboard({ data: d }: { data: MainDashboardData }) {
               >
                 All bookings <ArrowRight className="h-3.5 w-3.5" />
               </Link>
+            </div>
+            {/* week-at-a-glance — arrivals (green) / departures (amber) per day */}
+            <div className="grid grid-cols-7 gap-1 border-b border-brand-line px-3 py-3">
+              {d.week7.map((day, i) => (
+                <div
+                  key={i}
+                  className={`rounded-[9px] py-1.5 text-center ${day.isToday ? "bg-brand-accent" : "bg-[#FAFCFB]"}`}
+                  title={`${day.arrivals} in · ${day.departures} out · ${day.occupied} staying`}
+                >
+                  <div className="text-[9px] font-semibold uppercase tracking-wide text-brand-mute">
+                    {day.weekday}
+                  </div>
+                  <div
+                    className={`text-[13px] font-bold ${day.isToday ? "text-brand-secondary" : "text-brand-ink"}`}
+                  >
+                    {day.day}
+                  </div>
+                  <div className="mt-1 flex min-h-[12px] items-center justify-center gap-1 text-[9px] font-bold leading-none">
+                    {day.arrivals > 0 ? (
+                      <span className="text-status-confirmed">
+                        {day.arrivals}↓
+                      </span>
+                    ) : null}
+                    {day.departures > 0 ? (
+                      <span className="text-status-pending">
+                        {day.departures}↑
+                      </span>
+                    ) : null}
+                    {day.arrivals === 0 && day.departures === 0 ? (
+                      <span
+                        className={
+                          day.occupied > 0
+                            ? "text-status-inhouse"
+                            : "text-brand-line"
+                        }
+                      >
+                        {day.occupied > 0 ? "•" : "–"}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="space-y-2.5 p-2.5">
               {d.upcoming.length === 0 ? (
