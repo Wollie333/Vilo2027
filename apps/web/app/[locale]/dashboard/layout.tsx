@@ -174,7 +174,7 @@ export default async function DashboardLayout({
           />
         }
         banner={<BroadcastBanner />}
-        bottomNav={<MobileBottomNav />}
+        bottomNav={<MobileBottomNav canLookingFor={canLookingFor} />}
       >
         {children}
       </ClassicShellFrame>

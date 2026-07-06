@@ -198,6 +198,28 @@ const FOOTER: GmailNavItem[] = [
   },
 ];
 
+/**
+ * The full dashboard IA, grouped, for the mobile "More" sheet — so a host on a
+ * phone can reach ANY page, not just the 4 bottom-bar tabs. Mirrors the sidebar
+ * groups (single source of truth); Looking For is included only when the host has
+ * access. Footer items (Staff/Settings/Help) become the "Account" group.
+ */
+export function mobileNavGroups(opts?: {
+  canLookingFor?: boolean;
+}): GmailNavSection[] {
+  return [
+    { label: "Dashboard", items: DAILY },
+    { label: "Properties", items: PROPERTIES },
+    ...(opts?.canLookingFor
+      ? [{ label: "Looking For", items: LOOKING_FOR } as GmailNavSection]
+      : []),
+    { label: "Channels", items: CHANNELS },
+    { label: "Finances", items: FINANCES },
+    { label: "Insights", items: INSIGHTS },
+    { label: "Account", items: FOOTER },
+  ];
+}
+
 export function Sidebar({
   host,
   plan,

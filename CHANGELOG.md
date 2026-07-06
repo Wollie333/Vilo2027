@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-06 #13 — Mobile "More" opens the full page directory.
+
+On phones/tablets the bottom-nav "More" tab just linked to Settings — a host couldn't
+reach most pages. Now "More" opens a bottom sheet ("All pages") listing EVERY dashboard
+page, grouped exactly like the desktop sidebar (Dashboard · Properties · Looking For ·
+Channels · Finances · Insights · Account), 2-column tiles with icons + active state.
+
+- Extracted `mobileNavGroups()` from `Sidebar.tsx` (single source of truth — the sheet
+  and sidebar can't drift). Looking For shown only when `canLookingFor`.
+- `MobileBottomNav` rewritten: 4 primary tabs + a "More" button that toggles the sheet
+  (Escape/backdrop/route-change close it); "More" reads active on any non-primary page.
+  Layout passes `canLookingFor`.
+- Verified live at 375px: sheet shows all 31 pages; tapping one (Payments) navigates and
+  closes the sheet; "More" then shows active.
+
 ## 2026-07-06 #12 — Overview refinement #2: week-at-a-glance + review nudge.
 
 Second, lighter pass on the Overview (no new top bands — kept it uncluttered):
