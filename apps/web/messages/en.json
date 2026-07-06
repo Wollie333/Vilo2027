@@ -604,6 +604,8 @@
     "wizardPage_specials": "Specials",
     "wizardPage_blog": "Journal",
     "wizardPage_contact": "Contact",
+    "wizardNavPreview": "Nav preview",
+    "wizardRoomsSubmenu": "Rooms menu (auto-updates with your rooms)",
     "wizardReviewTitle": "Review & build",
     "wizardReviewBody": "Here's what we'll build. You can customise everything in the page builder after launch.",
     "wizardReviewSkin": "Skin",

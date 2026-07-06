@@ -29,6 +29,12 @@ export const WIZARD_DEFAULT_PAGES: readonly WizardPage[] = [
   { kind: "contact", include: true },
 ] as const;
 
+/** A room for the nav preview's auto-generated Rooms submenu. */
+export type WizardRoom = {
+  name: string;
+  slug: string;
+};
+
 /** The three real supported payment methods (spec-locked — no PayFast/cash). */
 export type WizardPaymentKey = "paystack" | "paypal" | "eft";
 
@@ -92,6 +98,8 @@ export type WizardProps = {
   paymentMethods: WizardPaymentMethod[];
   /** The property's policies (confirm-and-activate step). */
   policies: WizardPolicy[];
+  /** The host's rooms (Pages step nav preview → Rooms submenu). */
+  rooms: WizardRoom[];
 };
 
 export function initialWizardState(p: WizardProps): WizardState {

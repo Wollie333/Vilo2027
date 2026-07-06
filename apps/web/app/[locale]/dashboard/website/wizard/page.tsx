@@ -10,6 +10,7 @@ import { deriveSubdomain } from "@/lib/website/subdomain";
 import {
   loadWizardPaymentMethods,
   loadWizardPolicies,
+  loadWizardRooms,
 } from "../_wizard/loadWizardAccount";
 import { WebsiteWizard } from "../_wizard/WebsiteWizard";
 
@@ -75,11 +76,12 @@ export default async function WebsiteWizardPage({
     .maybeSingle();
   if (existing) redirect(`/dashboard/website/${existing.id}`);
 
-  const [t, themes, paymentMethods, policies] = await Promise.all([
+  const [t, themes, paymentMethods, policies, rooms] = await Promise.all([
     getTranslations("website"),
     loadActiveThemes(),
     loadWizardPaymentMethods(supabase, host.id, target.id),
     loadWizardPolicies(supabase, host.id),
+    loadWizardRooms(supabase, target.id),
   ]);
   const name = target.trading_name?.trim() || t("metaTitle");
 
@@ -101,6 +103,7 @@ export default async function WebsiteWizardPage({
         themes={themes}
         paymentMethods={paymentMethods}
         policies={policies}
+        rooms={rooms}
       />
     </div>
   );

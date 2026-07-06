@@ -198,6 +198,7 @@ export function WebsiteWizard(props: WizardProps) {
           {step === "pages" ? (
             <StepPages
               state={state}
+              rooms={props.rooms}
               update={update}
               onNext={() => setStep("review")}
               onBack={() => setStep("payments")}

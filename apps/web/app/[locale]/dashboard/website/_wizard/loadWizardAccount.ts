@@ -2,7 +2,13 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { WizardPaymentMethod, WizardPolicy } from "./wizardState";
+import { slugify } from "@/lib/help/slug";
+
+import type {
+  WizardPaymentMethod,
+  WizardPolicy,
+  WizardRoom,
+} from "./wizardState";
 
 // Account config surfaced in the wizard's confirm-and-activate step. Edits open
 // the existing account editors (banking / policies) in a new tab so wizard
@@ -126,6 +132,37 @@ export async function loadWizardPolicies(
   }));
 
   return [...configured, ...missing];
+}
+
+/**
+ * The business's active rooms, ordered, for the Pages-step nav preview (the
+ * Rooms item auto-generates one submenu link per room). Slug derived from name.
+ */
+export async function loadWizardRooms(
+  supabase: SupabaseClient,
+  businessId: string,
+): Promise<WizardRoom[]> {
+  const { data: props } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("business_id", businessId)
+    .is("deleted_at", null);
+  const ids = (props ?? []).map((p) => (p as { id: string }).id);
+  if (ids.length === 0) return [];
+
+  const { data: rooms } = await supabase
+    .from("property_rooms")
+    .select("name, sort_order")
+    .in("property_id", ids)
+    .eq("is_active", true)
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: true })
+    .limit(50);
+
+  return (rooms ?? []).map((r) => {
+    const name = (r as { name: string }).name;
+    return { name, slug: slugify(name) };
+  });
 }
 
 function fallbackSummary(p: PolicyRow): string {

@@ -3,6 +3,7 @@ import { loadActiveThemes } from "@/lib/site/themes.server";
 import type {
   WizardPaymentMethod,
   WizardPolicy,
+  WizardRoom,
 } from "../../dashboard/website/_wizard/wizardState";
 import { WizardHarness } from "./WizardHarness";
 
@@ -56,6 +57,12 @@ const DEMO_POLICIES: WizardPolicy[] = [
   },
 ];
 
+const DEMO_ROOMS: WizardRoom[] = [
+  { name: "Garden Room", slug: "garden-room" },
+  { name: "Deluxe King Suite", slug: "deluxe-king-suite" },
+  { name: "Forest View Double", slug: "forest-view-double" },
+];
+
 export default async function DevWizardPage() {
   const themes = await loadActiveThemes();
   return (
@@ -67,6 +74,7 @@ export default async function DevWizardPage() {
       themes={themes}
       paymentMethods={DEMO_PAYMENTS}
       policies={DEMO_POLICIES}
+      rooms={DEMO_ROOMS}
     />
   );
 }
