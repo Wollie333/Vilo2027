@@ -3,6 +3,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
 import { getBrandName } from "@/lib/brand";
+import { formatMoney } from "@/lib/format";
 import { fetchGettingStartedState } from "@/lib/help/queries";
 import { throwOnError, throwOnErrorWithCount } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
@@ -187,6 +188,8 @@ export default async function DashboardPage({
     listings,
     pending,
     unread,
+    opsToday,
+    eftOutstanding,
   ] = await Promise.all([
     throwOnError(
       supabase
@@ -263,6 +266,28 @@ export default async function DashboardPage({
         .eq("host_id", host.id)
         .gt("unread_host", 0),
       "dashboard/unread-count",
+    ),
+    // Today's operations — arrivals/departures/in-house in one pull (the daily
+    // heartbeat a host manages by). Active bookings touching today, or in-house.
+    throwOnError(
+      supabase
+        .from("bookings")
+        .select(
+          "id, status, check_in, check_out, guest_name, guest_email, guest:user_profiles!bookings_guest_id_fkey ( full_name )",
+        )
+        .eq("host_id", host.id)
+        .in("status", ["confirmed", "checked_in"])
+        .or(`check_in.eq.${today},check_out.eq.${today},status.eq.checked_in`),
+      "dashboard/ops-today",
+    ),
+    // Money to collect — bookings awaiting a manual EFT the host must confirm.
+    throwOnError(
+      supabase
+        .from("bookings")
+        .select("id, total_amount, balance_due, currency")
+        .eq("host_id", host.id)
+        .in("status", ["pending_eft", "pending_eft_review"]),
+      "dashboard/eft-outstanding",
     ),
   ]);
   const pendingCount = pending.count;
@@ -364,8 +389,54 @@ export default async function DashboardPage({
         ? { label: "Confirmed", tone: "green" }
         : { label: "Pending", tone: "amber" };
 
+  // Today's operations — split the single pull into arrivals / departures /
+  // in-house (the daily heartbeat a host runs their day by).
+  type OpsRow = {
+    id: string;
+    status: string;
+    check_in: string | null;
+    check_out: string | null;
+    guest_name: string | null;
+    guest_email: string | null;
+    guest: { full_name: string | null } | null;
+  };
+  const opsRows = (opsToday ?? []) as unknown as OpsRow[];
+  const opsName = (r: OpsRow) =>
+    r.guest?.full_name ?? r.guest_name ?? r.guest_email ?? "Guest";
+  const firstNames = (rows: OpsRow[]) => rows.slice(0, 3).map(opsName);
+  const arrivals = opsRows.filter((r) => r.check_in === today);
+  const departures = opsRows.filter((r) => r.check_out === today);
+  const inHouse = opsRows.filter((r) => r.status === "checked_in");
+  const todayOps = {
+    arrivals: { count: arrivals.length, names: firstNames(arrivals) },
+    departures: { count: departures.length, names: firstNames(departures) },
+    inHouse: { count: inHouse.length, names: firstNames(inHouse) },
+  };
+
+  // Money to collect — manual-EFT bookings awaiting confirmation.
+  const eftRows = (eftOutstanding ?? []) as unknown as {
+    total_amount: number;
+    balance_due: number | null;
+    currency: string;
+  }[];
+  const eftCount = eftRows.length;
+  const eftToCollect = eftRows.reduce(
+    (a, b) => a + Number(b.balance_due ?? b.total_amount),
+    0,
+  );
+
   // Needs attention.
   const needs: MainDashboardData["needs"] = [];
+  if (eftCount > 0)
+    needs.push({
+      id: "eft",
+      tone: "amber",
+      icon: "money",
+      title: `Collect ${formatMoney(eftToCollect, currency)} from ${eftCount} EFT booking${eftCount === 1 ? "" : "s"}`,
+      sub: "Confirm the transfer to lock these stays",
+      tag: { label: "Collect", tone: "amber" },
+      href: "/dashboard/bookings?seg=pending",
+    });
   if ((pendingCount ?? 0) > 0)
     needs.push({
       id: "pending",
@@ -425,6 +496,7 @@ export default async function DashboardPage({
         : null,
     },
     needs,
+    todayOps,
     upcoming: upcomingRows.map((b) => {
       const guestName =
         b.guest?.full_name ?? b.guest_name ?? b.guest_email ?? "Guest";

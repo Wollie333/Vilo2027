@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-06 #11 — Enriched host Overview for daily management.
+
+Kept the existing dashboard design; added three host-management layers (matching the
+card aesthetic):
+
+- **Today's operations band** — Arriving today / In-house now / Departing today, each
+  with a count + guest names + deep link to the matching bookings segment. Built from
+  one `bookings` pull (`check_in`/`check_out` = today, or `checked_in`).
+- **Quick actions** row — one-tap into Calendar · Specials · Coupons · Add-ons · Guests
+  · Payments.
+- **Money to collect** — a new "Needs your attention" item summing outstanding
+  manual-EFT bookings ("Collect R X from N EFT booking(s)").
+
+Data: `dashboard/page.tsx` adds `ops-today` + `eft-outstanding` queries and threads
+`todayOps` onto `MainDashboardData`. Verified live (desktop + mobile, no overflow):
+the Karoo host shows the ops band (all "Nobody scheduled" — next arrival is Aug 1),
+quick actions, and "Collect R 4 200 from 1 EFT booking".
+
 ## 2026-07-06 #10 — Enriched bookings quick-view drawer (full context at a glance).
 
 Founder ask: the booking quick view didn't give full context — host-important data

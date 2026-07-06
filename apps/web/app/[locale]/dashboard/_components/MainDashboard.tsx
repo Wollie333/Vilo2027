@@ -1,13 +1,22 @@
 import {
   ArrowRight,
   BadgeCheck,
+  Banknote,
   Calendar,
   ChevronRight,
   Clock3,
+  DoorOpen,
+  LogIn,
+  LogOut,
   MessageSquare,
+  Package,
   Plus,
   Star,
+  Tag,
+  Ticket,
   TrendingUp,
+  Users,
+  Wallet,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
@@ -51,12 +60,17 @@ export type MainDashboardData = {
   needs: {
     id: string;
     tone: "amber" | "red" | "accent";
-    icon: "clock" | "message" | "badge";
+    icon: "clock" | "message" | "badge" | "money";
     title: string;
     sub: string;
     tag: { label: string; tone: ToneKey };
     href: string;
   }[];
+  todayOps: {
+    arrivals: { count: number; names: string[] };
+    departures: { count: number; names: string[] };
+    inHouse: { count: number; names: string[] };
+  };
   upcoming: {
     id: string;
     guest: string;
@@ -92,10 +106,11 @@ export type MainDashboardData = {
   }[];
 };
 
-function NeedIcon({ kind }: { kind: "clock" | "message" | "badge" }) {
+function NeedIcon({ kind }: { kind: "clock" | "message" | "badge" | "money" }) {
   if (kind === "message")
     return <MessageSquare className="h-[18px] w-[18px]" />;
   if (kind === "badge") return <BadgeCheck className="h-[18px] w-[18px]" />;
+  if (kind === "money") return <Banknote className="h-[18px] w-[18px]" />;
   return <Clock3 className="h-[18px] w-[18px]" />;
 }
 
@@ -207,6 +222,52 @@ export function MainDashboard({ data: d }: { data: MainDashboardData }) {
             </div>
           )}
         </div>
+      </section>
+
+      {/* today's operations — the daily heartbeat */}
+      <section className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-[16px] border border-brand-line bg-brand-line sm:grid-cols-3">
+        <OpsTile
+          icon={<LogIn className="h-4 w-4" />}
+          tone="green"
+          label="Arriving today"
+          count={d.todayOps.arrivals.count}
+          names={d.todayOps.arrivals.names}
+          href="/dashboard/bookings?seg=upcoming"
+        />
+        <OpsTile
+          icon={<DoorOpen className="h-4 w-4" />}
+          tone="sky"
+          label="In-house now"
+          count={d.todayOps.inHouse.count}
+          names={d.todayOps.inHouse.names}
+          href="/dashboard/bookings?seg=inhouse"
+        />
+        <OpsTile
+          icon={<LogOut className="h-4 w-4" />}
+          tone="amber"
+          label="Departing today"
+          count={d.todayOps.departures.count}
+          names={d.todayOps.departures.names}
+          href="/dashboard/bookings?seg=checkingout"
+        />
+      </section>
+
+      {/* quick actions — one-tap into the things a host manages */}
+      <section className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        <QuickAction
+          icon={Calendar}
+          label="Calendar"
+          href="/dashboard/calendar"
+        />
+        <QuickAction icon={Tag} label="Specials" href="/dashboard/specials" />
+        <QuickAction icon={Ticket} label="Coupons" href="/dashboard/coupons" />
+        <QuickAction icon={Package} label="Add-ons" href="/dashboard/addons" />
+        <QuickAction icon={Users} label="Guests" href="/dashboard/guests" />
+        <QuickAction
+          icon={Wallet}
+          label="Payments"
+          href="/dashboard/payments"
+        />
       </section>
 
       {/* main grid */}
@@ -502,6 +563,82 @@ export function MainDashboard({ data: d }: { data: MainDashboardData }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function OpsTile({
+  icon,
+  tone,
+  label,
+  count,
+  names,
+  href,
+}: {
+  icon: React.ReactNode;
+  tone: "green" | "sky" | "amber";
+  label: string;
+  count: number;
+  names: string[];
+  href: string;
+}) {
+  const toneCls =
+    tone === "green"
+      ? "bg-status-confirmed/10 text-status-confirmed"
+      : tone === "sky"
+        ? "bg-status-inhouse/10 text-status-inhouse"
+        : "bg-status-pending/10 text-status-pending";
+  const summary =
+    count === 0
+      ? "Nobody scheduled"
+      : names.slice(0, 2).join(", ") +
+        (count > names.slice(0, 2).length
+          ? ` +${count - names.slice(0, 2).length} more`
+          : "");
+  return (
+    <Link
+      href={href}
+      className="group flex items-center gap-3 bg-white p-4 transition-colors hover:bg-[#FAFCFB]"
+    >
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] ${toneCls}`}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-display text-[20px] font-bold leading-none text-brand-ink">
+            {count}
+          </span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-brand-mute">
+            {label}
+          </span>
+        </div>
+        <div className="mt-1 truncate text-[12px] text-brand-mute">
+          {summary}
+        </div>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-brand-line transition-colors group-hover:text-brand-mute" />
+    </Link>
+  );
+}
+
+function QuickAction({
+  icon: Icon,
+  label,
+  href,
+}: {
+  icon: typeof Calendar;
+  label: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center justify-center gap-1.5 rounded-[13px] border border-brand-line bg-white py-3.5 text-brand-ink shadow-card transition hover:border-[#CDE6D8] hover:bg-[#FAFCFB]"
+    >
+      <Icon className="h-[18px] w-[18px] text-brand-secondary" />
+      <span className="text-[11.5px] font-semibold">{label}</span>
+    </Link>
   );
 }
 
