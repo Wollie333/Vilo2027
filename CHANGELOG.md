@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-06 #3 — Stock images on all seeded rooms / add-ons / specials.
+
+Extended `seed-single-host.mjs` so nothing renders imageless (small `w=400` thumbs).
+
+- **Rooms** → a `property_photos` row each (`room_id` set) + `featured_photo_id`/`room_size_sqm`.
+- **Specials** → `hero_image_path` = Unsplash URL (`websiteAssetUrl` passes absolute URLs through).
+- **Add-ons** → their page resolves `image_path` via `storage.getPublicUrl("addon-images")`,
+  so raw URLs won't render; the script now downloads a small JPEG and uploads it to the
+  public `addon-images` bucket, then stores the bucket path. Only `images.unsplash.com` +
+  `*.supabase.co` are allowlisted for `next/image`, so all sources honour that.
+- **Verified live:** add-ons page shows 3 bucket images (400px, not broken), rooms page 3
+  thumbnails, specials 3 hero thumbnails — 0 broken across all three.
+
 ## 2026-07-06 #2 — Seed one fully-verified host for manual testing.
 
 New re-runnable script `apps/web/scripts/seed-single-host.mjs` (service-role, fixed

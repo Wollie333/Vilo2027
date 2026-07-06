@@ -53,6 +53,31 @@ const PHOTO = "0b777777-7777-4777-8777-777777777701";
 
 const nowIso = () => new Date().toISOString();
 
+// Small free stock images (Unsplash, w=400 → light thumbnails). Only
+// images.unsplash.com and *.supabase.co are allowlisted for next/image.
+const uimg = (id, w = 400) =>
+  `https://images.unsplash.com/photo-${id}?w=${w}&q=60&auto=format&fit=crop`;
+
+// Room featured-photo ids.
+const RPHOTO_1 = "0b777777-7777-4777-8777-7777777777a1";
+const RPHOTO_2 = "0b777777-7777-4777-8777-7777777777a2";
+const RPHOTO_3 = "0b777777-7777-4777-8777-7777777777a3";
+
+// Add-on images must live in the public `addon-images` bucket — the add-ons page
+// resolves image_path via storage.getPublicUrl(), so a raw URL won't render.
+async function uploadAddonImage(path, srcUrl) {
+  const res = await fetch(srcUrl);
+  if (!res.ok) throw new Error(`fetch ${srcUrl}: ${res.status}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const { error } = await admin.storage
+    .from("addon-images")
+    .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+  if (error) throw new Error(`upload ${path}: ${error.message}`);
+}
+const A1_IMG = `${HOST_ID}/addon-welcome-platter.jpg`;
+const A2_IMG = `${HOST_ID}/addon-farm-breakfast.jpg`;
+const A3_IMG = `${HOST_ID}/addon-stargazing.jpg`;
+
 async function findUserByEmail(email) {
   let page = 1;
   while (page <= 20) {
@@ -304,7 +329,31 @@ async function main() {
     },
   ]);
 
-  // 5. THREE add-ons + link each to the property so they surface at checkout.
+  // 4b. A small cover photo per room + point each room at it.
+  await up("property_photos", [
+    { id: RPHOTO_1, property_id: PROPERTY, room_id: ROOM_1, storage_path: `listing-photos/${PROPERTY}/r1.jpg`, url: uimg("1522708323590-d24dbb6b0267"), sort_order: 1, caption: "Milkyway Room" },
+    { id: RPHOTO_2, property_id: PROPERTY, room_id: ROOM_2, storage_path: `listing-photos/${PROPERTY}/r2.jpg`, url: uimg("1631049307264-da0ec9d70304"), sort_order: 2, caption: "Aloe Suite" },
+    { id: RPHOTO_3, property_id: PROPERTY, room_id: ROOM_3, storage_path: `listing-photos/${PROPERTY}/r3.jpg`, url: uimg("1560448204-e02f11c3d0e2"), sort_order: 3, caption: "Klein Cottage Room" },
+  ]);
+  {
+    const pairs = [
+      [ROOM_1, RPHOTO_1, 20],
+      [ROOM_2, RPHOTO_2, 28],
+      [ROOM_3, RPHOTO_3, 16],
+    ];
+    for (const [roomId, photoId, sqm] of pairs) {
+      const { error } = await admin
+        .from("property_rooms")
+        .update({ featured_photo_id: photoId, room_size_sqm: sqm })
+        .eq("id", roomId);
+      if (error) throw new Error(`set room featured photo: ${error.message}`);
+    }
+  }
+
+  // 5. THREE add-ons (with uploaded bucket images) + link each to the property.
+  await uploadAddonImage(A1_IMG, uimg("1452195100486-9cc805987862"));
+  await uploadAddonImage(A2_IMG, uimg("1533089860892-a7c6f0a88666"));
+  await uploadAddonImage(A3_IMG, uimg("1419242902214-272b3f66ee7a"));
   await up("addons", [
     {
       id: ADDON_1,
@@ -314,6 +363,7 @@ async function main() {
       pricing_model: "per_stay",
       unit_price: 450,
       currency: "ZAR",
+      image_path: A1_IMG,
     },
     {
       id: ADDON_2,
@@ -323,6 +373,7 @@ async function main() {
       pricing_model: "per_guest_per_night",
       unit_price: 140,
       currency: "ZAR",
+      image_path: A2_IMG,
     },
     {
       id: ADDON_3,
@@ -332,6 +383,7 @@ async function main() {
       pricing_model: "per_night",
       unit_price: 350,
       currency: "ZAR",
+      image_path: A3_IMG,
     },
   ]);
   await up("property_addons", [
@@ -354,6 +406,7 @@ async function main() {
       title: "Stargazer Weekend (fixed dates)",
       description: "Locked 3-night getaway over the new-moon weekend — whole guesthouse.",
       badge: "New moon",
+      hero_image_path: uimg("1419242902214-272b3f66ee7a", 800),
       date_mode: "fixed",
       fixed_check_in: "2026-08-01",
       fixed_check_out: "2026-08-04",
@@ -381,6 +434,7 @@ async function main() {
       title: "Midweek Escape (flexible)",
       description: "Any 2+ nights, Sun–Thu, through spring — book the whole house at a reduced nightly rate.",
       badge: "Midweek",
+      hero_image_path: uimg("1566073771259-6a8506099945", 800),
       date_mode: "flexible",
       window_start: "2026-07-10",
       window_end: "2026-11-30",
@@ -410,6 +464,7 @@ async function main() {
       title: "Milkyway Room Flash (single room)",
       description: "Two nights in the Milkyway Room for a flat weekend price.",
       badge: "Room deal",
+      hero_image_path: uimg("1522708323590-d24dbb6b0267", 800),
       date_mode: "flexible",
       window_start: "2026-07-10",
       window_end: "2026-10-31",
@@ -454,6 +509,7 @@ async function main() {
   console.log("\n✅ Single-host seed complete.");
   console.log("   Host login: %s / %s", HOST_EMAIL, HOST_PASSWORD);
   console.log("   1 property, 3 rooms, 3 add-ons, 3 specials (1 fixed-date), 1 coupon (KAROO10).");
+  console.log("   All rooms/add-ons/specials have small stock images.");
   console.log("   No website created — build/test that manually.");
 }
 
