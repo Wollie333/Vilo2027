@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-06 — Data wipe: fresh "no users" slate for testing.
+
+One-off data-only migration (`20260706120000_wipe_all_accounts_data.sql`) applied to the
+linked cloud project via `supabase db push`.
+
+- `TRUNCATE public.hosts, public.user_profiles RESTART IDENTITY CASCADE;` cleared the entire
+  host + guest data graph (listings, bookings, payments, quotes/invoices, host_websites +
+  pages, specials, reviews, conversations/messages, looking_for_*, affiliates, businesses,
+  subscriptions, …). `DELETE FROM auth.users;` cleared Supabase auth (sessions/identities
+  cascade).
+- **Reference/config preserved** (CASCADE only follows FKs pointing AT the roots): verified
+  `site_themes`=4, `plans`=4, `amenity_catalog`=102, `amenity_groups`=16, `special_categories`=8,
+  `notification_events`=4, `help_categories`=14.
+- **Verified:** all account/guest tables → 0 rows; `auth.users` → `[]`; web app boots on the
+  blank slate (home renders 200, no client errors; stale-cookie refresh-token rejection is the
+  expected logout of the deleted session).
+- Note: `plan_features` / `help_articles` / `platform_settings` already read 0 before the wipe
+  (not in the cascade notices) — pre-existing, not caused by this operation.
+
 ## 2026-07-05 #8 — Builder V3 Group 1 done: booking elements + live styling.
 
 Reconciled parallel booking-element work into one implementation and closed the live
