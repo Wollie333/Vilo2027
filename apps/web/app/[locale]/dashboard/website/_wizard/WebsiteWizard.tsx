@@ -75,10 +75,21 @@ export function WebsiteWizard(props: WizardProps) {
   async function build() {
     setError(null);
     setStep("building");
-    // Only configured, host-shown policies persist as website-visible.
-    const visiblePolicyIds = props.policies
-      .filter((p) => p.configured && state.policyVisibility[p.key])
-      .map((p) => p.key);
+    // A policy TYPE is hidden only when the host has configured policies of that
+    // type AND turned them all off (opt-out — never hides property-column
+    // policies the host has no library entry for). The site's "things to know"
+    // block drops those types.
+    const byType = new Map<string, { any: boolean; shown: boolean }>();
+    for (const p of props.policies) {
+      if (!p.configured) continue;
+      const e = byType.get(p.type) ?? { any: false, shown: false };
+      e.any = true;
+      if (state.policyVisibility[p.key]) e.shown = true;
+      byType.set(p.type, e);
+    }
+    const hiddenPolicyTypes = [...byType.entries()]
+      .filter(([, e]) => e.any && !e.shown)
+      .map(([type]) => type);
     const res = await createWebsiteWithWizardAction({
       businessId: props.businessId,
       subdomain: state.subdomain,
@@ -95,7 +106,7 @@ export function WebsiteWizard(props: WizardProps) {
         paypal: state.paymentVisibility.paypal ?? false,
         eft: state.paymentVisibility.eft ?? false,
       },
-      visiblePolicyIds,
+      hiddenPolicyTypes,
     });
     if (res.ok) {
       setCreatedId(res.id);

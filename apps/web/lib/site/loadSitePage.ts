@@ -128,6 +128,12 @@ export type SiteContext = {
   publishedRoomRows: SnapshotRoom[] | null;
   /** Frozen per-property rooms-section overrides; null in preview (read live). */
   publishedPropertyOverrides: Record<string, PropertyOverride> | null;
+  /**
+   * Policy types the host hid from the website (wizard "show on website"
+   * toggles → `settings.policies`). Opt-out: empty = show everything. A "things
+   * to know" line is dropped when its type is listed here.
+   */
+  policyHiddenTypes: string[];
 };
 
 export type SitePageMeta = {
@@ -280,6 +286,13 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
     heading?: string;
     intro?: string;
   };
+  // Policy types the host hid on this site (wizard toggles → settings.policies).
+  // Opt-out list: absent/not-an-array → hide nothing (show all policies).
+  const rawPolicyVis = (site.settings as { policies?: unknown } | null)
+    ?.policies;
+  const policyHiddenTypes = Array.isArray(rawPolicyVis)
+    ? rawPolicyVis.filter((x): x is string => typeof x === "string")
+    : [];
 
   // Resolve the pop-up's embedded form live (its content stays current, like
   // rooms/blog) when one is referenced.
@@ -379,6 +392,7 @@ const loadSiteContextCached = cache(async function loadSiteContextInner(
     propertyIds,
     publishedRoomRows,
     publishedPropertyOverrides,
+    policyHiddenTypes,
   };
 
   // Auto-rooms menu: fill the flagged item's dropdown with the site's current
@@ -2012,13 +2026,22 @@ export async function assembleSiteDataByType(
         const [h, m] = t.split(":");
         return h && m ? `${h.padStart(2, "0")}:${m}` : t;
       };
+      // Drop "things to know" lines whose policy type the host hid (wizard).
+      const hidden = ctx.policyHiddenTypes;
+      const showCancellation = !hidden.includes("cancellation");
+      const showCheckInOut = !hidden.includes("check_in_out");
+      const showHouseRules = !hidden.includes("house_rules");
       const bag: RoomPolicies = {
-        cancellation: propRow?.cancellation_policy_label?.trim() || null,
-        checkIn: fmtTime(propRow?.check_in_time),
-        checkOut: fmtTime(propRow?.check_out_time),
-        houseRules: propRow?.house_rules?.trim() || null,
-        children: propRow?.allow_children ?? null,
-        pets: propRow?.allow_pets ?? null,
+        cancellation: showCancellation
+          ? propRow?.cancellation_policy_label?.trim() || null
+          : null,
+        checkIn: showCheckInOut ? fmtTime(propRow?.check_in_time) : null,
+        checkOut: showCheckInOut ? fmtTime(propRow?.check_out_time) : null,
+        houseRules: showHouseRules
+          ? propRow?.house_rules?.trim() || null
+          : null,
+        children: showHouseRules ? (propRow?.allow_children ?? null) : null,
+        pets: showHouseRules ? (propRow?.allow_pets ?? null) : null,
       };
       const hasPolicies =
         !!bag.cancellation ||
@@ -2332,13 +2355,27 @@ export async function loadRoomDetail(
     const [h, m] = t.split(":");
     return h && m ? `${h.padStart(2, "0")}:${m}` : t;
   };
+  // Drop lines whose policy type the host hid on the website (wizard toggles).
+  const hiddenP = ctx.policyHiddenTypes;
   const policies = {
-    cancellation: propRow?.cancellation_policy_label?.trim() || null,
-    checkIn: fmtTime(propRow?.check_in_time),
-    checkOut: fmtTime(propRow?.check_out_time),
-    houseRules: propRow?.house_rules?.trim() || null,
-    children: propRow?.allow_children ?? null,
-    pets: propRow?.allow_pets ?? null,
+    cancellation: hiddenP.includes("cancellation")
+      ? null
+      : propRow?.cancellation_policy_label?.trim() || null,
+    checkIn: hiddenP.includes("check_in_out")
+      ? null
+      : fmtTime(propRow?.check_in_time),
+    checkOut: hiddenP.includes("check_in_out")
+      ? null
+      : fmtTime(propRow?.check_out_time),
+    houseRules: hiddenP.includes("house_rules")
+      ? null
+      : propRow?.house_rules?.trim() || null,
+    children: hiddenP.includes("house_rules")
+      ? null
+      : (propRow?.allow_children ?? null),
+    pets: hiddenP.includes("house_rules")
+      ? null
+      : (propRow?.allow_pets ?? null),
   };
   const hasPolicies =
     !!policies.cancellation ||

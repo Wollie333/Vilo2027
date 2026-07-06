@@ -600,7 +600,7 @@ export async function createWebsiteWithWizardAction(
     contactEmail,
     contactPhone,
     paymentsVisibility,
-    visiblePolicyIds,
+    hiddenPolicyTypes,
   } = parsed.data;
 
   const subErr = validateSubdomain(subdomain);
@@ -675,11 +675,12 @@ export async function createWebsiteWithWizardAction(
         palette: paletteSwatches,
       },
       // Per-site payment/policy visibility from the Payments & policies step.
-      // The checkout reads settings.payments; the policies block reads
-      // settings.policies (see AGENT_RULES §3.4 / WEBSITE_SETUP_WIZARD_V2_PLAN).
+      // Checkout reads settings.payments; the "things to know" policy block
+      // hides the types in settings.policies (opt-out list; see
+      // WEBSITE_SETUP_WIZARD_V2_PLAN §5 G-POLVIS).
       settings: {
         payments: paymentsVisibility ?? {},
-        policies: visiblePolicyIds ?? [],
+        policies: hiddenPolicyTypes ?? [],
       },
     })
     .select("id")

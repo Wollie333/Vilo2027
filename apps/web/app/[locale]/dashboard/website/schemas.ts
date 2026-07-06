@@ -86,8 +86,8 @@ export const createWebsiteWizardSchema = z.object({
       eft: z.boolean().optional(),
     })
     .optional(),
-  /** Ids of the policies the host wants shown on the website. */
-  visiblePolicyIds: z.array(z.string().max(64)).max(50).optional(),
+  /** Policy types the host hid from the website (opt-out; empty = show all). */
+  hiddenPolicyTypes: z.array(z.string().max(40)).max(20).optional(),
 });
 
 export type CreateWebsiteWizardInput = z.infer<
