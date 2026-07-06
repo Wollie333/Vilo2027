@@ -35,6 +35,44 @@ const numOrNull = (v: unknown): number | null => {
 };
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
+/**
+ * Notify the host of a new booking made on their own website so they can manage
+ * it (confirm a manual EFT, prep the stay…). Shared by BOTH on-site checkout
+ * paths — the room checkout and the special (offer) checkout — so neither can
+ * silently skip it. Best-effort: a notification failure must NEVER fail the
+ * booking or the payment redirect.
+ */
+async function notifyHostOfSiteBooking(
+  admin: ReturnType<typeof createAdminClient>,
+  bookingId: string,
+): Promise<void> {
+  try {
+    const { data: bk } = await admin
+      .from("bookings")
+      .select("host_id")
+      .eq("id", bookingId)
+      .maybeSingle();
+    const hostRecordId = (bk as { host_id: string | null } | null)?.host_id;
+    if (!hostRecordId) return;
+    const { data: host } = await admin
+      .from("hosts")
+      .select("user_id")
+      .eq("id", hostRecordId)
+      .maybeSingle();
+    const userId = (host as { user_id: string | null } | null)?.user_id;
+    if (!userId) return;
+    const { dispatchEvent } = await import("@/lib/notifications/dispatch");
+    await dispatchEvent({
+      kind: "booking_request_host",
+      recipientUserId: userId,
+      refs: { booking_id: bookingId },
+      supabase: admin,
+    });
+  } catch {
+    // non-blocking
+  }
+}
+
 // Server-side logic for the ON-SITE website checkout (Phase 6B/c). Two
 // session-less, membership-gated entry points used by the tenant-domain checkout:
 //   • siteBookingQuote  — a live, server-recalculated price + availability
@@ -246,34 +284,7 @@ export async function createSiteBooking(
   // manual EFT, prep the stay…). Best-effort — a notification failure must never
   // fail the booking or the payment redirect.
   if (result.ok) {
-    try {
-      const { data: bk } = await admin
-        .from("bookings")
-        .select("host_id")
-        .eq("id", result.bookingId)
-        .maybeSingle();
-      const hostRecordId = (bk as { host_id: string | null } | null)?.host_id;
-      if (hostRecordId) {
-        const { data: host } = await admin
-          .from("hosts")
-          .select("user_id")
-          .eq("id", hostRecordId)
-          .maybeSingle();
-        const userId = (host as { user_id: string | null } | null)?.user_id;
-        if (userId) {
-          const { dispatchEvent } =
-            await import("@/lib/notifications/dispatch");
-          await dispatchEvent({
-            kind: "booking_request_host",
-            recipientUserId: userId,
-            refs: { booking_id: result.bookingId },
-            supabase: admin,
-          });
-        }
-      }
-    } catch {
-      // non-blocking
-    }
+    await notifyHostOfSiteBooking(admin, result.bookingId);
 
     // Log the booking into the Forms submissions area so the host sees website
     // bookings alongside form leads (source 'checkout', form_id null, linked to
@@ -667,6 +678,10 @@ export async function createSiteSpecialBooking(
       guest_id: identity.guestId,
       special_id: special.id,
       booked_via: "website",
+      // The dashboard's channel badge reads the `channel` column; without this it
+      // defaults to 'direct' and mislabels a website special as a "Wielo" booking.
+      // Mirrors the room checkout (createBookingCore channel:"website").
+      channel: "website",
       origin: "special_booked",
       check_in: checkIn,
       check_out: checkOut,
@@ -741,6 +756,11 @@ export async function createSiteSpecialBooking(
       returnTo,
     },
   });
+
+  // Notify the host of the new website special booking (same as the room checkout).
+  if (result.ok) {
+    await notifyHostOfSiteBooking(admin, result.bookingId);
+  }
 
   return result.ok
     ? { ok: true, bookingId: result.bookingId, redirectTo: result.redirectTo }

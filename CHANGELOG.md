@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-06 #7 — Website special booking: host notification + correct channel.
+
+Booking a SPECIAL on a host website (`createSiteSpecialBooking`) had two gaps vs the
+regular room checkout (`createSiteBooking`):
+
+- **No host notification.** The room checkout dispatches `booking_request_host`; the
+  special path skipped it. Extracted a shared `notifyHostOfSiteBooking()` helper and
+  called it from BOTH paths (One Source of Truth — they can't drift again).
+- **Channel mislabelled "Wielo".** The dashboard badge reads the `channel` column. The
+  special insert set only `booked_via:"website"`, leaving `channel` at its `direct`
+  default → badge fell through to "Wielo". Added `channel:"website"` (mirrors the room
+  checkout's `createBookingCore channel:"website"`).
+
+Verified live by booking the fixed-date special through the real `/api/site-booking`
+endpoint (EFT): booking row `channel=website`, dashboard badge shows blue **"Website"**,
+and a **"New booking request"** notification appears in the host's notifications UI.
+(Test booking + notification cleaned up afterwards; special redemption released.)
+
 ## 2026-07-06 #6 — Room-detail page: kill the duplicate booking form.
 
 Generated host sites rendered TWO booking widgets on a room page: a big full-width
