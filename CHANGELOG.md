@@ -5,6 +5,13 @@
 
 ---
 
+## 2026-07-06 #4 — Marketing header nav labels stay inline.
+
+Multi-word nav labels ("Property types", "Guest requests") were wrapping to two
+lines. Added `shrink-0 whitespace-nowrap` to each desktop nav `<Link>` in
+`SiteHeader.tsx` so every label stays on one line. Verified live at 1280/1440 —
+all 5 labels single-line, no header overflow.
+
 ## 2026-07-06 #3 — Stock images on all seeded rooms / add-ons / specials.
 
 Extended `seed-single-host.mjs` so nothing renders imageless (small `w=400` thumbs).

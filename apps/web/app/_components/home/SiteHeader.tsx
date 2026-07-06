@@ -173,7 +173,7 @@ export function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="hover:text-brand-ink"
+                className="shrink-0 whitespace-nowrap hover:text-brand-ink"
               >
                 {t(item.key)}
               </Link>
