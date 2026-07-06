@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-06 #2 — Seed one fully-verified host for manual testing.
+
+New re-runnable script `apps/web/scripts/seed-single-host.mjs` (service-role, fixed
+UUIDs, upsert) — run: `node --env-file=.env.local scripts/seed-single-host.mjs`.
+
+- **Host** `host@wielotest.com` / `WieloTest123!` — verified + superhost + phone/payout
+  verified, active, **business plan**, default business enriched (branded doc numbering),
+  EFT banking. **No website** (host_websites = 0 — founder tests that manually).
+- **1 property** (Karoo Sky Guesthouse, flexible mode, published) holding **3 rooms**;
+  **3 add-ons** all linked via `property_addons` (surface at checkout); **3 specials**
+  deliberately different — #1 FIXED dates + flat total (for checkout testing), #2 flexible
+  window + per-night, #3 flexible + flat on a single room; **1 coupon** `KAROO10` (10% order).
+- **Feature unlock:** `plan_features` is empty and newer features (add-ons, website) are
+  product-gated, so the tier alone didn't open them. Added per-host `host_feature_overrides`
+  (`is_enabled=true`, resolved FIRST by `check_feature_permission`) for all gated keys —
+  the pre-MVP §3.4 smoke-test unlock. Add-ons page went from "on the Pro plan" gate → all
+  3 add-ons visible.
+- **Verified live:** logged in as the host → `/dashboard`; Specials shows "LIVE NOW 3 /
+  Bookable by guests" + all 3 (top-deal = the fixed-date one); Rooms shows all 3; Add-ons
+  unlocked with all 3; Coupons shows KAROO10 (10%). DB counts: 1 host, 1 property, 3 rooms,
+  3 add-ons, 3 specials, 1 coupon, 0 websites.
+
 ## 2026-07-06 — Data wipe: fresh "no users" slate for testing.
 
 One-off data-only migration (`20260706120000_wipe_all_accounts_data.sql`) applied to the
