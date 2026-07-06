@@ -5,12 +5,14 @@
 
 ---
 
-## 2026-07-06 #4 — Marketing header nav labels stay inline.
+## 2026-07-06 #4 — Marketing header labels stay inline (nav + auth buttons).
 
-Multi-word nav labels ("Property types", "Guest requests") were wrapping to two
-lines. Added `shrink-0 whitespace-nowrap` to each desktop nav `<Link>` in
-`SiteHeader.tsx` so every label stays on one line. Verified live at 1280/1440 —
-all 5 labels single-line, no header overflow.
+Multi-word labels were wrapping to two lines — "Property types" / "Guest requests"
+in the nav, and "Saved" / "Sign in" / "Join Wielo" in the logged-out auth cluster.
+Added `shrink-0 whitespace-nowrap` to each desktop nav `<Link>` and to the three
+logged-out buttons in `SiteHeader.tsx` so every label stays single-line. Verified
+live at 1280/1440, both logged-in and logged-out — all labels single-line, no
+header overflow.
 
 ## 2026-07-06 #3 — Stock images on all seeded rooms / add-ons / specials.
 

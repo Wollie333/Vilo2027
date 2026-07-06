@@ -192,20 +192,20 @@ export function SiteHeader() {
               <>
                 <button
                   type="button"
-                  className="hidden items-center gap-1.5 rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
+                  className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
                 >
                   <Heart className="h-4 w-4" />
                   {t("saved")}
                 </button>
                 <Link
                   href="/login"
-                  className="hidden rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
+                  className="hidden shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
                 >
                   {t("signIn")}
                 </Link>
                 <Link
                   href="/signup"
-                  className="hidden items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary sm:inline-flex"
+                  className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary sm:inline-flex"
                 >
                   {t("join", { brand })}
                 </Link>
