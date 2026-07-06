@@ -1,5 +1,34 @@
 import type { ThemeOption } from "@/lib/site/themes.server";
 
+/**
+ * The six pages the wizard builds, in canonical order (spec-locked — no extra
+ * Experiences/Gallery pages; hosts add extras manually in the builder later).
+ * `blog` is surfaced to the host as "Journal".
+ */
+export type WizardPageKind =
+  | "home"
+  | "about"
+  | "rooms"
+  | "specials"
+  | "blog"
+  | "contact";
+
+/** A page row in the Pages step: its kind + whether it's included in the nav. */
+export type WizardPage = {
+  kind: WizardPageKind;
+  include: boolean;
+};
+
+/** Canonical page set + default order — every page included by default. */
+export const WIZARD_DEFAULT_PAGES: readonly WizardPage[] = [
+  { kind: "home", include: true },
+  { kind: "about", include: true },
+  { kind: "rooms", include: true },
+  { kind: "specials", include: true },
+  { kind: "blog", include: true },
+  { kind: "contact", include: true },
+] as const;
+
 /** Mutable state collected across the wizard steps before the one-shot create. */
 export type WizardState = {
   siteName: string;
@@ -15,6 +44,8 @@ export type WizardState = {
   useCustom: boolean;
   /** Custom accent hex (used when useCustom). */
   customAccent: string;
+  /** Ordered page set for the site nav (Pages step). */
+  pages: WizardPage[];
 };
 
 /** The data the wizard needs to start (prefill + theme catalogue). */
@@ -37,6 +68,7 @@ export function initialWizardState(p: WizardProps): WizardState {
     paletteIndex: 0,
     useCustom: false,
     customAccent: "",
+    pages: WIZARD_DEFAULT_PAGES.map((p) => ({ ...p })),
   };
 }
 

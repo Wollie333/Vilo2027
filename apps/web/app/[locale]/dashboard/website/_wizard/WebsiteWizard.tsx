@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 import type { ReadinessItem } from "@/lib/website/readiness";
@@ -11,15 +12,35 @@ import { StepBasics } from "./steps/StepBasics";
 import { StepBuilding } from "./steps/StepBuilding";
 import { StepColors } from "./steps/StepColors";
 import { StepDone } from "./steps/StepDone";
+import { StepPages } from "./steps/StepPages";
+import { StepPayments } from "./steps/StepPayments";
+import { StepReview } from "./steps/StepReview";
 import { StepTheme } from "./steps/StepTheme";
+import { WizardSidebar } from "./WizardSidebar";
 import {
   initialWizardState,
   type WizardProps,
   type WizardState,
 } from "./wizardState";
 
-type Step = "basics" | "theme" | "colors" | "building" | "done";
-const ORDER: Step[] = ["basics", "theme", "colors", "building", "done"];
+type Step =
+  | "basics"
+  | "theme"
+  | "colors"
+  | "payments"
+  | "pages"
+  | "review"
+  | "building"
+  | "done";
+/** The user-facing steps shown as progress dots (build/done are the go-live tail). */
+const NAV_STEPS: Step[] = [
+  "basics",
+  "theme",
+  "colors",
+  "payments",
+  "pages",
+  "review",
+];
 
 const ERROR_KEY: Record<string, string> = {
   too_short: "errTooShort",
@@ -31,12 +52,9 @@ const ERROR_KEY: Record<string, string> = {
   business_not_found: "errBusinessNotFound",
 };
 
-export function WebsiteWizard({
-  open,
-  onClose,
-  ...props
-}: WizardProps & { open: boolean; onClose: () => void }) {
+export function WebsiteWizard(props: WizardProps) {
   const t = useTranslations("website");
+  const router = useRouter();
   const [step, setStep] = useState<Step>("basics");
   const [state, setState] = useState<WizardState>(() =>
     initialWizardState(props),
@@ -48,7 +66,8 @@ export function WebsiteWizard({
   const [published, setPublished] = useState(true);
   const [missing, setMissing] = useState<ReadinessItem[]>([]);
 
-  if (!open) return null;
+  // Leaving the wizard returns to the website landing (the create surface).
+  const close = () => router.push("/dashboard/website");
 
   const update = (patch: Partial<WizardState>) =>
     setState((prev) => ({ ...prev, ...patch }));
@@ -78,22 +97,26 @@ export function WebsiteWizard({
     }
   }
 
-  const stepIndex = ORDER.indexOf(step);
+  // Highlight dots up to the current nav step; during the build/done tail every
+  // nav step reads as complete.
+  const navIndex = NAV_STEPS.includes(step)
+    ? NAV_STEPS.indexOf(step)
+    : NAV_STEPS.length;
   const dismissable = step !== "building" && step !== "done";
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-stretch justify-center bg-black/50 p-0 sm:items-center sm:p-6">
-      <div className="flex w-full max-w-3xl flex-col overflow-hidden bg-white shadow-2xl sm:max-h-[90vh] sm:rounded-2xl">
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="flex w-full flex-col overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
         {/* header */}
         <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
           <div className="flex items-center gap-2">
-            {ORDER.slice(0, 5).map((s, i) => (
+            {NAV_STEPS.map((s, i) => (
               <span
                 key={s}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === stepIndex
+                  i === navIndex
                     ? "w-6 bg-brand-primary"
-                    : i < stepIndex
+                    : i < navIndex
                       ? "w-1.5 bg-brand-primary"
                       : "w-1.5 bg-brand-line"
                 }`}
@@ -103,7 +126,7 @@ export function WebsiteWizard({
           {dismissable ? (
             <button
               type="button"
-              onClick={onClose}
+              onClick={close}
               aria-label={t("cancel")}
               className="rounded-full p-1 text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
             >
@@ -115,7 +138,7 @@ export function WebsiteWizard({
         </div>
 
         {/* body */}
-        <div className="thin overflow-y-auto px-5 py-5 sm:px-7 sm:py-6">
+        <div className="px-5 py-5 sm:px-7 sm:py-6">
           {step === "basics" ? (
             <StepBasics
               state={state}
@@ -137,8 +160,30 @@ export function WebsiteWizard({
               themes={props.themes}
               state={state}
               update={update}
-              onCreate={build}
+              onNext={() => setStep("payments")}
               onBack={() => setStep("theme")}
+            />
+          ) : null}
+          {step === "payments" ? (
+            <StepPayments
+              onNext={() => setStep("pages")}
+              onBack={() => setStep("colors")}
+            />
+          ) : null}
+          {step === "pages" ? (
+            <StepPages
+              state={state}
+              update={update}
+              onNext={() => setStep("review")}
+              onBack={() => setStep("payments")}
+            />
+          ) : null}
+          {step === "review" ? (
+            <StepReview
+              themes={props.themes}
+              state={state}
+              onBuild={build}
+              onBack={() => setStep("pages")}
             />
           ) : null}
           {step === "building" ? (
@@ -150,11 +195,15 @@ export function WebsiteWizard({
               subdomain={state.subdomain}
               published={published}
               missing={missing}
-              onClose={onClose}
+              onClose={close}
             />
           ) : null}
         </div>
       </div>
+
+      {dismissable ? (
+        <WizardSidebar themes={props.themes} state={state} />
+      ) : null}
     </div>
   );
 }

@@ -14,13 +14,13 @@ export function StepColors({
   themes,
   state,
   update,
-  onCreate,
+  onNext,
   onBack,
 }: {
   themes: ThemeOption[];
   state: WizardState;
   update: (patch: Partial<WizardState>) => void;
-  onCreate: () => void;
+  onNext: () => void;
   onBack: () => void;
 }) {
   const t = useTranslations("website");
@@ -144,10 +144,10 @@ export function StepColors({
         </button>
         <button
           type="button"
-          onClick={onCreate}
+          onClick={onNext}
           className="rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
         >
-          {t("wizardCreate")}
+          {t("wizardNext")}
         </button>
       </div>
     </div>

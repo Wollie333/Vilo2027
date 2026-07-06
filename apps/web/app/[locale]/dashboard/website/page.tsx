@@ -5,13 +5,11 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { hostHasFeature } from "@/lib/products/featureGate";
-import { loadActiveThemes } from "@/lib/site/themes.server";
 import { createServerClient } from "@/lib/supabase/server";
 import {
   checkWebsiteReadiness,
   type ReadinessItem,
 } from "@/lib/website/readiness";
-import { deriveSubdomain } from "@/lib/website/subdomain";
 
 import { CreateWebsiteButton } from "./_components/CreateWebsiteButton";
 import { ReadinessChecklist } from "./_components/ReadinessChecklist";
@@ -107,10 +105,6 @@ export default async function WebsiteLandingPage() {
     if (only) redirect(`/dashboard/website/${only.id}`);
   }
 
-  // Theme catalogue for the setup wizard (only needed when a create affordance shows).
-  const needsCreate = businesses.some((b) => !siteByBusiness.has(b.id));
-  const themes = needsCreate ? await loadActiveThemes() : [];
-
   return (
     <div className="space-y-6">
       <WebsiteHero title={t("heading")} subtitle={t("subheading")} />
@@ -151,9 +145,6 @@ export default async function WebsiteLandingPage() {
                   <CreateWebsiteButton
                     businessId={biz.id}
                     businessName={name}
-                    defaultSubdomain={deriveSubdomain(name)}
-                    logoPath={biz.logo_path}
-                    themes={themes}
                   />
                 )}
               </div>
