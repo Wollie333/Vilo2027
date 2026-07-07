@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-07 #2 — Hands-off calendar syncing (pg_cron worker).
+
+Calendar import was manual-only ("Sync now" / on-add). Now every active feed
+re-imports automatically so hosts never touch it.
+
+- **Shared core (`apps/web/lib/ical-sync.ts` `syncFeed`):** extracted the
+  fetch → SSRF guard → parse → non-destructive `import_ical_blocks` RPC → status
+  stamp out of `syncIcalFeedAction` into one session-less function. The manual
+  action and the cron now run the *same* code — they can't drift. (Action is now
+  ownership-check → `syncFeed`; behaviour identical.)
+- **Worker (`/api/ical-sync-worker`):** bearer-gated (`ICAL_SYNC_WORKER_SECRET`)
+  Node route. Selects due feeds — `status IN ('active','error')` (errored feeds
+  self-heal, not permanently skipped) AND `last_sync_at` older than 3h
+  (`ICAL_SYNC_MIN_INTERVAL_MINUTES`, default 180) — and re-imports each with a
+  concurrency pool of 5, ≤25 feeds/tick. Returns `{due,synced,failed,imported}`.
+- **Cron (`migration 20260707120000`, APPLIED to cloud):** pg_cron job
+  `sync-ical-feeds` every 15 min, mirrors the email-worker pattern — reads
+  `app.ical_sync_worker_url` / `app.ical_sync_worker_secret`, only wakes the
+  worker when a feed is actually due, inert (NOTICE) until those settings are set.
+- **Verified live** (`scripts/smoke-ical-cron.mjs`, 7/7 against the dev server +
+  cloud DB): wrong secret → 401; valid → 200; a never-synced feed IS picked up
+  and synced; a feed synced <3h ago is left untouched. ical suite 37/37; tsc +
+  lint clean.
+- **To go live in prod (ops, one-time):** set `ICAL_SYNC_WORKER_SECRET` in Vercel
+  + the two `app.ical_sync_worker_*` DB settings (see ENV_VARS.md). Also still
+  pending from #1: `ICAL_TOKEN_SECRET` in Vercel for export feeds.
+
 ## 2026-07-07 — Calendar sync: end-to-end double-booking proof + export PII fix.
 
 Resumed the calendar-sync verification. Proved BOTH directions against the linked cloud

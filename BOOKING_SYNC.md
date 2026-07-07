@@ -225,6 +225,18 @@ END:VCALENDAR
 
 ### `ical-sync-all` — Re-sync all active import feeds
 
+> **AS IMPLEMENTED (2026-07-07):** shipped as a Next.js route handler
+> **`/api/ical-sync-worker`** (not a Deno Edge Function — same rationale as the
+> email worker, DECISIONS.md 2026-05-25) that both orchestrates *and* imports:
+> it selects due feeds and runs the shared core `apps/web/lib/ical-sync.ts`
+> `syncFeed()` inline for each (a small concurrency pool of 5, ≤25 feeds/tick),
+> so there is no separate per-feed `ical-import` call. "Due" = `status IN
+> ('active','error')` (errored feeds self-heal — they are NOT permanently
+> skipped) AND `last_sync_at` older than 3h (env `ICAL_SYNC_MIN_INTERVAL_MINUTES`).
+> Bearer-gated on `ICAL_SYNC_WORKER_SECRET`. pg_cron job `sync-ical-feeds`
+> (migration `20260707120000`) wakes it every 15 min only when a feed is due,
+> reading `app.ical_sync_worker_url` / `app.ical_sync_worker_secret`.
+
 **Method:** `POST` (internal — called by pg_cron every 15 minutes)
 **Auth:** Service role
 

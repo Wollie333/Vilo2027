@@ -31,6 +31,7 @@ This file documents every environment variable used across the platform, what it
 | `BANKING_CIPHER_KEY` | Server only | — | ✅ | ✅ |
 | `PAYMENT_CIPHER_KEY` | Server only | — | ✅ | ✅ |
 | `ICAL_TOKEN_SECRET` | Server only | — | — | ✅ |
+| `ICAL_SYNC_WORKER_SECRET` | Server only | — | — | Staging/Prod |
 | `NEXT_PUBLIC_ROOT_DOMAIN` | ✅ | — | — | Website CMS |
 | `VERCEL_TOKEN` | Server only | — | ✅ | Custom domains |
 | `VERCEL_PROJECT_ID` | Server only | — | ✅ | Custom domains |
@@ -249,6 +250,21 @@ rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 - **Used in:** Next.js server runtime only — `apps/web/lib/ical.ts` (`signListingToken` / `verifyListingToken`) and the export route handler.
 - **Environments:** All
 - ⚠️ **Server-side only and REQUIRED for iCal export. There is deliberately NO fallback to `SUPABASE_SERVICE_ROLE_KEY` — the platform's most powerful secret must never derive public feed tokens. If unset, `signListingToken` throws and iCal export is unavailable.**
+
+### `ICAL_SYNC_WORKER_SECRET`
+- **What:** Shared bearer the `/api/ical-sync-worker` route requires on every POST. The `sync-ical-feeds` pg_cron job sends it as `Authorization: Bearer …` every 15 min to re-import all active/errored feeds (this is what makes calendar sync hands-off — without it hosts must click "Sync now").
+- **Format:** 32+ random bytes, hex — `openssl rand -hex 32`
+- **Where to set:**
+  1. **Vercel** (Production + Preview env) — the route reads `process.env.ICAL_SYNC_WORKER_SECRET`.
+  2. **Supabase** — one-time SQL via the Dashboard SQL Editor (managed-postgres blocks `ALTER DATABASE`, so use Vault OR the DB settings the cron reads). Migration `20260707120000_ical_sync_cron.sql` reads two DB-level settings:
+     ```sql
+     ALTER DATABASE postgres SET app.ical_sync_worker_url    = 'https://vilo2027.vercel.app/api/ical-sync-worker';
+     ALTER DATABASE postgres SET app.ical_sync_worker_secret = '<the same hex value as Vercel>';
+     ```
+     If either is unset the cron tick is a no-op (NOTICE logged) — the job stays inert until wired.
+- **Optional companion:** `ICAL_SYNC_MIN_INTERVAL_MINUTES` (default `180`) — how stale a feed must be before the worker re-syncs it. Keep it in step with the `interval '3 hours'` gate in the cron migration.
+- **Used in:** Route handler (Next.js) + pg_cron job (Postgres).
+- **Environments:** Staging/Prod required for hands-off syncing. Local dev: omit to leave the cron inert (manual "Sync now" still works). ⚠️ Server-side only.
 
 ---
 

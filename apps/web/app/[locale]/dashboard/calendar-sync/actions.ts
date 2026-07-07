@@ -5,11 +5,7 @@ import { z } from "zod";
 
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertFetchableUrl } from "@/lib/security/ssrf";
-import { parseIcal, rangesToDates } from "@/lib/ical-parser";
-
-/** Cap imported dates per feed so a giant/hostile feed can't flood blocked_dates. */
-const MAX_IMPORTED_DATES = 1000;
+import { syncFeed } from "@/lib/ical-sync";
 
 type Result = { ok: true; imported?: number } | { ok: false; error: string };
 
@@ -130,83 +126,16 @@ export async function syncIcalFeedAction(input: {
 
   const { data: feed } = await supabase
     .from("ical_feeds")
-    .select("id, property_id, url, status")
+    .select("id, property_id, url")
     .eq("id", parsed.data.feedId)
     .maybeSingle();
   if (!feed) return { ok: false, error: "Feed not found." };
 
+  // Shared, session-less core (fetch + SSRF guard + parse + non-destructive RPC
+  // write + status stamp) — identical to what the hands-off cron worker runs.
   const admin = createAdminClient();
-
-  // 1. Fetch — SSRF guard first (reject private/loopback/metadata hosts).
-  let body: string;
-  try {
-    await assertFetchableUrl(feed.url);
-    const res = await fetch(feed.url, {
-      // 30s timeout via AbortController
-      signal: AbortSignal.timeout(30_000),
-      headers: { "User-Agent": "Wielo-CalendarSync/1.0" },
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(`Upstream returned ${res.status}`);
-    body = await res.text();
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Unknown error fetching feed";
-    await admin
-      .from("ical_feeds")
-      .update({
-        status: "error",
-        last_sync_at: new Date().toISOString(),
-        last_error: message.slice(0, 500),
-      })
-      .eq("id", feed.id);
-    revalidatePath("/dashboard/calendar-sync");
-    return { ok: false, error: `Couldn't fetch feed: ${message}` };
-  }
-
-  // 2. Parse (cap dates so a hostile feed can't flood blocked_dates)
-  const ranges = parseIcal(body);
-  const dates = rangesToDates(ranges).slice(0, MAX_IMPORTED_DATES);
-
-  // 3. Write atomically + NON-destructively via the RPC: it replaces only this
-  // feed's own source='ical' rows and inserts the new dates with ON CONFLICT DO
-  // NOTHING (a manual / booking / quote_hold block on the same date always wins).
-  // (A plain upsert here previously failed — there is no (property_id,date)
-  // unique key, only the expression index the RPC targets.)
-  const { data: inserted, error: rpcError } = await admin.rpc(
-    "import_ical_blocks",
-    {
-      p_feed_id: feed.id,
-      p_property_id: feed.property_id,
-      p_dates: dates,
-    },
-  );
-  if (rpcError) {
-    await admin
-      .from("ical_feeds")
-      .update({
-        status: "error",
-        last_sync_at: new Date().toISOString(),
-        last_error: rpcError.message.slice(0, 500),
-      })
-      .eq("id", feed.id);
-    revalidatePath("/dashboard/calendar-sync");
-    return { ok: false, error: `Couldn't write blocks: ${rpcError.message}` };
-  }
-
-  // Rows this feed actually blocks (dates already held by a real Wielo block are
-  // skipped by DO NOTHING and not counted).
-  const importedCount = typeof inserted === "number" ? inserted : dates.length;
-  await admin
-    .from("ical_feeds")
-    .update({
-      status: "active",
-      last_sync_at: new Date().toISOString(),
-      last_error: null,
-      imported_count: importedCount,
-    })
-    .eq("id", feed.id);
+  const result = await syncFeed(admin, feed);
 
   revalidatePath("/dashboard/calendar-sync");
-  return { ok: true, imported: importedCount };
+  return result;
 }
