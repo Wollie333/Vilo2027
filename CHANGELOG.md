@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-07 #3 — Calendar-sync UI: prominent last-sync freshness.
+
+The per-feed status was a tiny grey absolute timestamp ("Last synced 2026/07/07,
+13:00:00"). Replaced with a prominent, colour-coded, self-updating relative line so
+a host can tell at a glance whether a feed is current.
+
+- `FeedManager` per feed now shows one freshness line, coloured by state:
+  **green** "Synced 8 min ago · 12 dates blocked" (fresh), **amber** "Synced 5 hours
+  ago · …" (stale — older than the 3h auto-sync window, a nudge that it hasn't
+  refreshed), **neutral** "Never synced — hit Sync to import", **red** "Sync failed ·
+  tried 22 min ago" (+ the error detail below). Matching icon-box tint + icon.
+- Relative time ticks every minute client-side (`useNow`); SSR renders a stable date
+  fallback to avoid hydration mismatch; the absolute timestamp is on hover (title).
+- Extracted the per-feed row into a `FeedRow` component; no server/behaviour change.
+- **Verified live** (logged in as the test host, real render): all four states
+  confirmed via DOM inspection — green `status-confirmed`, amber `status-pending`,
+  neutral `brand-light`, red `status-cancelled` — plus screenshot. build + tsc + lint
+  clean.
+
 ## 2026-07-07 #2 — Hands-off calendar syncing (pg_cron worker).
 
 Calendar import was manual-only ("Sync now" / on-add). Now every active feed

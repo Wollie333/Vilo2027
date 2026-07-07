@@ -3,13 +3,14 @@
 import {
   AlertTriangle,
   Check,
+  Clock,
   Loader2,
   Plus,
   RotateCw,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { modal } from "@/components/ui/modal-host";
@@ -31,6 +32,33 @@ export type Feed = {
 };
 
 const SOURCE_PRESETS = ["Airbnb", "Booking.com", "VRBO", "Google", "Other"];
+
+// A feed is "stale" once its last sync is older than the auto-sync window (3h,
+// matching the sync-ical-feeds cron). Stale + auto-sync-on shouldn't happen, so
+// amber here is a useful nudge (feed hasn't refreshed — Sync, or check the cron).
+const STALE_MS = 3 * 60 * 60 * 1000;
+
+/** Live clock that ticks each minute; null until mounted (avoids SSR mismatch). */
+function useNow(intervalMs = 60_000): number | null {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+function relativeTime(iso: string, now: number): string {
+  const diff = Math.max(0, now - new Date(iso).getTime());
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hour${hr === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hr / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
 
 export function FeedManager({
   listingId,
@@ -124,89 +152,16 @@ export function FeedManager({
         </div>
       ) : null}
 
-      {feeds.map((feed) => {
-        const isPending = pendingFeedId === feed.id && pending;
-        return (
-          <article
-            key={feed.id}
-            className="rounded-card border border-brand-line bg-white p-4 shadow-card"
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${
-                  feed.status === "error"
-                    ? "bg-status-cancelled/10 text-status-cancelled"
-                    : "bg-brand-accent text-brand-primary"
-                }`}
-              >
-                {feed.status === "error" ? (
-                  <AlertTriangle className="h-4 w-4" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-brand-ink">
-                    {feed.source_label}
-                  </span>
-                  {feed.status === "error" ? (
-                    <span className="inline-flex items-center rounded-pill border border-status-cancelled/30 bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-medium text-status-cancelled">
-                      Error
-                    </span>
-                  ) : feed.last_sync_at ? (
-                    <span className="inline-flex items-center rounded-pill border border-status-confirmed/30 bg-status-confirmed/10 px-2 py-0.5 text-[10px] font-medium text-status-confirmed">
-                      {feed.imported_count} dates blocked
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-mute">
-                      Never synced
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 break-all font-mono text-[11px] text-brand-mute">
-                  {feed.url}
-                </div>
-                {feed.last_sync_at ? (
-                  <div className="mt-1 text-[11px] text-brand-mute">
-                    Last synced{" "}
-                    {new Date(feed.last_sync_at).toLocaleString("en-ZA")}
-                  </div>
-                ) : null}
-                {feed.last_error ? (
-                  <div className="mt-2 text-[11px] text-status-cancelled">
-                    {feed.last_error}
-                  </div>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => syncNow(feed.id)}
-                  disabled={pending}
-                  className="inline-flex items-center gap-1 rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light disabled:opacity-60"
-                >
-                  {isPending && pendingFeedId === feed.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RotateCw className="h-3.5 w-3.5" />
-                  )}
-                  Sync
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(feed.id)}
-                  disabled={pending}
-                  aria-label="Remove feed"
-                  className="rounded p-2 text-brand-mute transition-colors hover:bg-brand-light hover:text-status-cancelled disabled:opacity-60"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          </article>
-        );
-      })}
+      {feeds.map((feed) => (
+        <FeedRow
+          key={feed.id}
+          feed={feed}
+          pending={pending}
+          isPending={pendingFeedId === feed.id && pending}
+          onSync={() => syncNow(feed.id)}
+          onRemove={() => remove(feed.id)}
+        />
+      ))}
 
       {adding ? (
         <div className="space-y-3 rounded-card border border-brand-line bg-brand-light/50 p-4 shadow-card">
@@ -271,5 +226,153 @@ export function FeedManager({
         </button>
       ) : null}
     </div>
+  );
+}
+
+function FeedRow({
+  feed,
+  pending,
+  isPending,
+  onSync,
+  onRemove,
+}: {
+  feed: Feed;
+  pending: boolean;
+  isPending: boolean;
+  onSync: () => void;
+  onRemove: () => void;
+}) {
+  const now = useNow();
+  const synced = feed.status !== "error" && feed.last_sync_at != null;
+  const stale =
+    synced &&
+    now != null &&
+    now - new Date(feed.last_sync_at as string).getTime() >= STALE_MS;
+
+  const boxTone =
+    feed.status === "error"
+      ? "bg-status-cancelled/10 text-status-cancelled"
+      : !synced
+        ? "bg-brand-light text-brand-mute"
+        : stale
+          ? "bg-status-pending/10 text-status-pending"
+          : "bg-status-confirmed/10 text-status-confirmed";
+
+  return (
+    <article className="rounded-card border border-brand-line bg-white p-4 shadow-card">
+      <div className="flex items-start gap-3">
+        <div
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded ${boxTone}`}
+        >
+          {feed.status === "error" ? (
+            <AlertTriangle className="h-4 w-4" />
+          ) : stale || !synced ? (
+            <Clock className="h-4 w-4" />
+          ) : (
+            <Check className="h-4 w-4" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-brand-ink">{feed.source_label}</div>
+          <div className="mt-0.5">
+            <SyncFreshness feed={feed} now={now} stale={stale} />
+          </div>
+          <div className="mt-1 break-all font-mono text-[11px] text-brand-mute">
+            {feed.url}
+          </div>
+          {feed.last_error ? (
+            <div className="mt-1.5 text-[11px] text-status-cancelled">
+              {feed.last_error}
+            </div>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onSync}
+            disabled={pending}
+            className="inline-flex items-center gap-1 rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light disabled:opacity-60"
+          >
+            {isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RotateCw className="h-3.5 w-3.5" />
+            )}
+            Sync
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            disabled={pending}
+            aria-label="Remove feed"
+            className="rounded p-2 text-brand-mute transition-colors hover:bg-brand-light hover:text-status-cancelled disabled:opacity-60"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/** Prominent, colour-coded last-sync line: relative time + freshness + count. */
+function SyncFreshness({
+  feed,
+  now,
+  stale,
+}: {
+  feed: Feed;
+  now: number | null;
+  stale: boolean;
+}) {
+  if (feed.status === "error") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[12px] font-medium text-status-cancelled">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        Sync failed
+        {feed.last_sync_at ? (
+          <span
+            className="font-normal text-brand-mute"
+            title={feed.last_sync_at}
+          >
+            · tried{" "}
+            {now === null
+              ? feed.last_sync_at.slice(0, 10)
+              : relativeTime(feed.last_sync_at, now)}
+          </span>
+        ) : null}
+      </span>
+    );
+  }
+
+  if (!feed.last_sync_at) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-mute">
+        <Clock className="h-3.5 w-3.5" />
+        Never synced — hit Sync to import
+      </span>
+    );
+  }
+
+  const tone = stale ? "text-status-pending" : "text-status-confirmed";
+  return (
+    <span
+      className={`inline-flex flex-wrap items-center gap-x-1 text-[12px] font-medium ${tone}`}
+      title={feed.last_sync_at}
+    >
+      {stale ? (
+        <Clock className="h-3.5 w-3.5" />
+      ) : (
+        <Check className="h-3.5 w-3.5" />
+      )}
+      Synced{" "}
+      {now === null
+        ? feed.last_sync_at.slice(0, 10)
+        : relativeTime(feed.last_sync_at, now)}
+      <span className="font-normal text-brand-mute">
+        · {feed.imported_count} date{feed.imported_count === 1 ? "" : "s"}{" "}
+        blocked
+      </span>
+    </span>
   );
 }
