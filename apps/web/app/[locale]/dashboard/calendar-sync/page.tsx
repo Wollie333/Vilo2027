@@ -154,19 +154,6 @@ export default async function CalendarSyncPage() {
           </div>
         )}
       </section>
-
-      <p className="text-[12px] text-brand-mute">
-        Imports respect{" "}
-        <Link
-          href="/booking-management"
-          className="text-brand-primary underline-offset-2 hover:underline"
-        >
-          AGENT_RULES §2.5
-        </Link>{" "}
-        — {brandName} only touches dates it originally imported. Manual blocks
-        and {brandName}
-        bookings are never overwritten by a sync.
-      </p>
     </div>
   );
 }
