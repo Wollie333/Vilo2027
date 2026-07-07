@@ -256,12 +256,20 @@ rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 - **Format:** 32+ random bytes, hex — `openssl rand -hex 32`
 - **Where to set:**
   1. **Vercel** (Production + Preview env) — the route reads `process.env.ICAL_SYNC_WORKER_SECRET`.
-  2. **Supabase** — one-time SQL via the Dashboard SQL Editor (managed-postgres blocks `ALTER DATABASE`, so use Vault OR the DB settings the cron reads). Migration `20260707120000_ical_sync_cron.sql` reads two DB-level settings:
+  2. **Supabase Vault** — one-time SQL via the Dashboard SQL Editor. Managed Postgres blocks `ALTER DATABASE ... SET` (42501), so the cron (migration `20260707130000_ical_sync_cron_use_vault.sql`) reads from `vault.decrypted_secrets` — same pattern as the email worker:
      ```sql
-     ALTER DATABASE postgres SET app.ical_sync_worker_url    = 'https://vilo2027.vercel.app/api/ical-sync-worker';
-     ALTER DATABASE postgres SET app.ical_sync_worker_secret = '<the same hex value as Vercel>';
+     SELECT vault.create_secret(
+       'https://vilo2027.vercel.app/api/ical-sync-worker',
+       'ical_sync_worker_url',
+       'Public URL the sync-ical-feeds cron POSTs to'
+     );
+     SELECT vault.create_secret(
+       '<the same hex value as Vercel ICAL_SYNC_WORKER_SECRET>',
+       'ical_sync_worker_secret',
+       'Shared bearer the /api/ical-sync-worker route requires'
+     );
      ```
-     If either is unset the cron tick is a no-op (NOTICE logged) — the job stays inert until wired.
+     Rotate with `vault.update_secret(<id>, <new_value>)`. If either secret is unset the cron tick is a no-op (NOTICE logged) — the job stays inert until wired.
 - **Optional companion:** `ICAL_SYNC_MIN_INTERVAL_MINUTES` (default `180`) — how stale a feed must be before the worker re-syncs it. Keep it in step with the `interval '3 hours'` gate in the cron migration.
 - **Used in:** Route handler (Next.js) + pg_cron job (Postgres).
 - **Environments:** Staging/Prod required for hands-off syncing. Local dev: omit to leave the cron inert (manual "Sync now" still works). ⚠️ Server-side only.
