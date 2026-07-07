@@ -5,7 +5,10 @@ import { FirePurchase } from "@/components/site/FirePurchase";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { BookingConfirmationCard } from "@/components/site/BookingConfirmationCard";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
-import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
+import {
+  capturePayPalOrderForBooking,
+  confirmHostCardPaymentByReference,
+} from "@/lib/payments/pay-booking";
 import {
   loadSiteContext,
   resolveSiteRef,
@@ -18,7 +21,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-type SP = { site?: string; b?: string; reference?: string; trxref?: string };
+type SP = {
+  site?: string;
+  b?: string;
+  reference?: string;
+  trxref?: string;
+  // PayPal appends ?token=<orderId>&PayerID=… to the return URL.
+  token?: string;
+  paypal?: string;
+};
 
 type EftDetails = {
   account_holder: string;
@@ -119,6 +130,32 @@ export default async function SiteThankYouPage({
     } catch {
       // Leave the booking as-is; the webhook backstop will settle it and the
       // page shows the processing state.
+    }
+  }
+
+  // PayPal just returned (approval → ?token=<orderId>) — capture on the host's
+  // app and settle the booking (idempotent). A cancel (?paypal=cancel) has no
+  // token, so the booking stays pending and the expire cron cleans it up.
+  const paypalOrderId = sp?.token?.trim();
+  if (
+    booking.payment_method === "paypal" &&
+    paypalOrderId &&
+    booking.status !== "confirmed"
+  ) {
+    try {
+      await capturePayPalOrderForBooking({
+        orderId: paypalOrderId,
+        hostId: booking.host_id,
+        bookingId: booking.id,
+      });
+      const { data: refreshed } = await admin
+        .from("bookings")
+        .select(select)
+        .eq("id", bookingId)
+        .maybeSingle<BookingRow>();
+      if (refreshed) booking = refreshed;
+    } catch {
+      // Leave the booking as-is; the page shows the processing state.
     }
   }
 

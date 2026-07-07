@@ -133,6 +133,7 @@ export function BookingFormSection() {
         addons={DEMO_ADDONS}
         cardAvailable
         eftAvailable
+        paypalAvailable
         cancellation={{
           title: "Moderate cancellation",
           note: "Free cancellation up to 7 days before check-in.",

@@ -251,7 +251,7 @@ export async function createSiteBooking(
   // this rejects a crafted request that tries to use a hidden rail. Default-on:
   // a method is only blocked when the host explicitly disabled it.
   const method = (body as { payment_method?: unknown }).payment_method;
-  if (method === "paystack" || method === "eft") {
+  if (method === "paystack" || method === "eft" || method === "paypal") {
     const { data: site } = await admin
       .from("host_websites")
       .select("settings")
@@ -260,7 +260,7 @@ export async function createSiteBooking(
     const payCfg =
       (
         site?.settings as {
-          payments?: { paystack?: boolean; eft?: boolean };
+          payments?: { paystack?: boolean; eft?: boolean; paypal?: boolean };
         } | null
       )?.payments ?? {};
     if (method === "paystack" && payCfg.paystack === false) {
@@ -271,6 +271,9 @@ export async function createSiteBooking(
     }
     if (method === "eft" && payCfg.eft === false) {
       return { ok: false, error: "EFT isn't available for this site." };
+    }
+    if (method === "paypal" && payCfg.paypal === false) {
+      return { ok: false, error: "PayPal isn't available for this site." };
     }
   }
 

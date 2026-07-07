@@ -31,7 +31,7 @@ export const createBookingSchema = z
     children: z.coerce.number().int().min(0).max(50).optional().default(0),
     infants: z.coerce.number().int().min(0).max(50).optional().default(0),
     pets: z.coerce.number().int().min(0).max(50).optional().default(0),
-    payment_method: z.enum(["paystack", "eft"]),
+    payment_method: z.enum(["paystack", "eft", "paypal"]),
     // Guest contact details — snapshotted onto the booking so the host's
     // booking card shows complete info even for a brand-new guest account.
     guest_name: z.string().trim().min(1).max(120).optional(),

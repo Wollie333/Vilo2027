@@ -1,8 +1,14 @@
 import "server-only";
 
 import { round2 } from "@/lib/format";
+import { convertZarToUsd } from "@/lib/fx";
+import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { hostHasValidEft } from "@/lib/payments/eft";
+import {
+  getHostPayPal,
+  getHostPayPalForBusiness,
+} from "@/lib/payments/host-paypal";
 import {
   getHostPaystack,
   getHostPaystackForBusiness,
@@ -67,7 +73,7 @@ export type PayableBooking = {
  */
 export async function startBookingPayment(opts: {
   booking: PayableBooking;
-  method: "paystack" | "eft";
+  method: "paystack" | "eft" | "paypal";
   amount: "deposit" | "full";
   /** Payer email — Paystack requires one (guest session email or the booking's
    * stored guest_email for an anonymous pay-link). */
@@ -144,6 +150,62 @@ export async function startBookingPayment(opts: {
       .update({ status: "pending_eft" })
       .eq("id", booking.id);
     return { ok: true, redirectTo: returnTo };
+  }
+
+  // PayPal — create a CAPTURE-intent order on the BUSINESS's own PayPal app.
+  // Charged in USD (converted from the ZAR total via the cached FX rate); the
+  // order is captured when the payer returns (see capturePayPalOrderForBooking,
+  // called from the thank-you page). The payment row stays in ZAR so the ledger
+  // is consistent; the USD amount + rate live in provider_response for audit.
+  if (method === "paypal") {
+    const businessId = await bookingBusinessId(admin, booking.id);
+    const creds = businessId
+      ? await getHostPayPalForBusiness(businessId)
+      : await getHostPayPal(booking.host_id);
+    try {
+      if (!creds) throw new Error("Host has no connected PayPal.");
+      const usd = await convertZarToUsd(payNow);
+      if (!(usd > 0)) throw new Error("Could not convert the amount to USD.");
+      const sep = returnTo.includes("?") ? "&" : "?";
+      const order = await createPayPalOrder({
+        amount: usd,
+        currency: "USD",
+        description: `${booking.listing_name} · ${booking.reference}`,
+        returnUrl: `${origin}${returnTo}`,
+        cancelUrl: `${origin}${returnTo}${sep}paypal=cancel`,
+        creds,
+      });
+      if (!order) throw new Error("PayPal order creation failed.");
+      await admin
+        .from("payments")
+        .update({
+          provider_reference: order.orderId,
+          provider_response: {
+            usd_amount: usd,
+            zar_amount: payNow,
+            currency: "USD",
+          },
+        })
+        .eq("id", payment.id);
+      return { ok: true, redirectTo: order.approveUrl };
+    } catch {
+      // Gateway fallback: switch to EFT if the host has a valid account.
+      if (await hostHasValidEft(booking.host_id)) {
+        await admin
+          .from("bookings")
+          .update({ payment_method: "eft", status: "pending_eft" })
+          .eq("id", booking.id);
+        await admin
+          .from("payments")
+          .update({ method: "eft" })
+          .eq("id", payment.id);
+        return { ok: true, redirectTo: returnTo };
+      }
+      return {
+        ok: false,
+        error: "Couldn't reach PayPal. Try again in a moment.",
+      };
+    }
   }
 
   // Card — initialise on the BUSINESS's own Paystack account (the business that
@@ -276,6 +338,79 @@ export async function confirmHostCardPaymentByReference(opts: {
 
   // First-time confirmation → drop a "payment received, booking confirmed" card
   // into the guest's thread so they can jump to their trip + invoice/receipt.
+  if (confirmed && confirmed.length > 0) {
+    await postPaymentConfirmedCard(admin, opts.bookingId);
+  }
+
+  return true;
+}
+
+/**
+ * Capture a host-account PayPal order when the payer returns from PayPal (the
+ * thank-you page calls this with the ?token order id). Captures on the host's
+ * own PayPal app (the platform never sees it), flips the matching pending
+ * payment row to completed, WIRES INTO THE LEDGER (recomputeBookingPaymentState)
+ * for balance + payment_status rather than setting them by hand, then confirms a
+ * still-pending booking so the invoice/date-block triggers fire. Idempotent: a
+ * second return (or a payment already completed) re-confirms without a second
+ * capture.
+ *
+ * Returns true when the booking is paid + confirmed after this call.
+ */
+export async function capturePayPalOrderForBooking(opts: {
+  orderId: string;
+  hostId: string;
+  bookingId: string;
+}): Promise<boolean> {
+  const admin = createAdminClient();
+  // Capture with the BUSINESS's PayPal app (the one the order was created on),
+  // falling back to the host's default business.
+  const businessId = await bookingBusinessId(admin, opts.bookingId);
+  const creds = businessId
+    ? await getHostPayPalForBusiness(businessId)
+    : await getHostPayPal(opts.hostId);
+  if (!creds) return false;
+
+  // The pending payment row created at order time (keyed by the order id).
+  const { data: paymentRow } = await admin
+    .from("payments")
+    .select("id, status")
+    .eq("provider_reference", opts.orderId)
+    .maybeSingle();
+
+  if (paymentRow?.status === "pending") {
+    const cap = await capturePayPalOrder(opts.orderId, creds);
+    if (!cap || cap.status !== "COMPLETED") return false;
+    // Flip the existing pending row — never insert a duplicate.
+    await admin
+      .from("payments")
+      .update({ status: "completed", captured_at: new Date().toISOString() })
+      .eq("provider_reference", opts.orderId)
+      .eq("status", "pending");
+  } else if (paymentRow?.status !== "completed") {
+    // No pending row and not already completed → nothing we can settle.
+    return false;
+  }
+
+  // Ledger owns balance_due + payment_status.
+  await recomputeBookingPaymentState(admin, opts.bookingId);
+
+  // Confirm the booking (pending → confirmed) so the invoice + date-blocking
+  // triggers run. Same reasoning as the Paystack path: surface a confirm error
+  // rather than leaving a paid booking stuck 'pending'; `.select()` tells us
+  // whether THIS call performed the transition so the card posts exactly once.
+  const { data: confirmed, error: confirmErr } = await admin
+    .from("bookings")
+    .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
+    .eq("id", opts.bookingId)
+    .eq("status", "pending")
+    .select("id");
+  if (confirmErr) {
+    throw new Error(
+      `PayPal captured but booking ${opts.bookingId} failed to confirm: ${confirmErr.message}`,
+    );
+  }
+
   if (confirmed && confirmed.length > 0) {
     await postPaymentConfirmedCard(admin, opts.bookingId);
   }

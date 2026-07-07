@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { hostHasValidEft } from "@/lib/payments/eft";
+import { getHostPayPalForBusiness } from "@/lib/payments/host-paypal";
 import { getHostPaystackForBusiness } from "@/lib/payments/host-paystack";
 import {
   cancellationNote,
@@ -210,10 +211,13 @@ export default async function SiteBookPage({
   // Payment rails — card when the host has connected Paystack, EFT when a valid
   // default account exists. Both resolved server-side, THEN gated by the host's
   // per-website toggles (Settings → Booking payment methods; default on).
-  const [cardPaystack, eftHasAccount, siteRow, bookingStyle] =
+  const [cardPaystack, hostPayPal, eftHasAccount, siteRow, bookingStyle] =
     await Promise.all([
       property.business_id
         ? getHostPaystackForBusiness(property.business_id)
+        : Promise.resolve(null),
+      property.business_id
+        ? getHostPayPalForBusiness(property.business_id)
         : Promise.resolve(null),
       hostHasValidEft(property.host_id),
       admin
@@ -233,11 +237,12 @@ export default async function SiteBookPage({
   const pay =
     (
       siteRow.data?.settings as {
-        payments?: { paystack?: boolean; eft?: boolean };
+        payments?: { paystack?: boolean; eft?: boolean; paypal?: boolean };
       } | null
     )?.payments ?? {};
   const cardAvailable = Boolean(cardPaystack) && pay.paystack !== false;
   const eftAvailable = eftHasAccount && pay.eft !== false;
+  const paypalAvailable = Boolean(hostPayPal) && pay.paypal !== false;
 
   // Cancellation note (best-effort) via the policy resolver RPC.
   let cancellation: { title: string; note: string } | null = null;
@@ -412,6 +417,7 @@ export default async function SiteBookPage({
       addons={specialAddons ?? addons}
       cardAvailable={cardAvailable}
       eftAvailable={eftAvailable}
+      paypalAvailable={paypalAvailable}
       cancellation={cancellation}
       special={
         special

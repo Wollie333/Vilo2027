@@ -75,7 +75,7 @@ export type PersistBookingInput = {
   /** Everything startBookingPayment needs except id/reference (filled here). */
   payable: Omit<PayableBooking, "id" | "reference">;
   payment: {
-    method: "paystack" | "eft";
+    method: "paystack" | "eft" | "paypal";
     amount?: "deposit" | "full";
     email: string;
     origin: string;

@@ -144,6 +144,7 @@ export function SiteCheckoutForm({
   addons,
   cardAvailable,
   eftAvailable,
+  paypalAvailable,
   cancellation,
   initial,
   special,
@@ -160,6 +161,7 @@ export function SiteCheckoutForm({
   addons: CheckoutAddon[];
   cardAvailable: boolean;
   eftAvailable: boolean;
+  paypalAvailable: boolean;
   cancellation: { title: string; note: string } | null;
   initial: {
     from: string;
@@ -261,8 +263,8 @@ export function SiteCheckoutForm({
   });
   const [coupon, setCoupon] = useState("");
 
-  const [method, setMethod] = useState<"paystack" | "eft">(
-    cardAvailable ? "paystack" : "eft",
+  const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
+    cardAvailable ? "paystack" : paypalAvailable ? "paypal" : "eft",
   );
   const [ack, setAck] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
@@ -491,7 +493,7 @@ export function SiteCheckoutForm({
     !name.trim() ||
     !email.trim() ||
     !ack ||
-    (!cardAvailable && !eftAvailable) ||
+    (!cardAvailable && !eftAvailable && !paypalAvailable) ||
     (turnstileEnabled() && !tsToken);
 
   async function onSubmit() {
@@ -1250,7 +1252,7 @@ export function SiteCheckoutForm({
             </div>
 
             {/* Payment method */}
-            {cardAvailable || eftAvailable ? (
+            {cardAvailable || eftAvailable || paypalAvailable ? (
               <div className="mt-5 space-y-2">
                 {cardAvailable ? (
                   <PayChoice
@@ -1258,6 +1260,14 @@ export function SiteCheckoutForm({
                     onClick={() => setMethod("paystack")}
                     title="Pay by card"
                     sub="Secure card payment"
+                  />
+                ) : null}
+                {paypalAvailable ? (
+                  <PayChoice
+                    active={method === "paypal"}
+                    onClick={() => setMethod("paypal")}
+                    title="PayPal"
+                    sub="Pay in USD with PayPal"
                   />
                 ) : null}
                 {eftAvailable ? (
@@ -1275,7 +1285,9 @@ export function SiteCheckoutForm({
                 >
                   {method === "eft"
                     ? "We’ll reserve your stay and email the bank details to complete your transfer."
-                    : "You’ll finish securely on the card-payment page, then return here."}
+                    : method === "paypal"
+                      ? "You’ll finish securely on PayPal (charged in USD at today’s rate), then return here."
+                      : "You’ll finish securely on the card-payment page, then return here."}
                 </p>
               </div>
             ) : (
