@@ -29,7 +29,10 @@ export type Feed = {
   last_sync_at: string | null;
   last_error: string | null;
   imported_count: number;
+  room_id: string | null;
 };
+
+type Room = { id: string; name: string };
 
 // Each preset rides the same iCal engine — the only per-channel difference is
 // where the host copies their export URL from. SA channels included: SafariNow +
@@ -45,7 +48,7 @@ const SOURCE_GUIDES: Record<string, { hint: string; placeholder: string }> = {
     placeholder: "https://ical.booking.com/v1/export?t=…",
   },
   SafariNow: {
-    hint: "SafariNow exposes an iCal link per room/unit — add one feed per room.",
+    hint: "SafariNow exposes an iCal link per room/unit — add one feed per room and set 'Applies to' to that room so it only blocks that room.",
     placeholder: "https://www.safarinow.com/…/ical/…",
   },
   "LekkeSlaap (via NightsBridge)": {
@@ -106,16 +109,22 @@ function relativeTime(iso: string, now: number): string {
 export function FeedManager({
   listingId,
   feeds,
+  rooms,
 }: {
   listingId: string;
   feeds: Feed[];
+  rooms: Room[];
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
   const [sourceLabel, setSourceLabel] = useState("Airbnb");
+  const [roomId, setRoomId] = useState(""); // "" = whole listing
   const [pending, start] = useTransition();
   const [pendingFeedId, setPendingFeedId] = useState<string | null>(null);
+
+  const roomName = (id: string | null) =>
+    id ? (rooms.find((r) => r.id === id)?.name ?? null) : null;
 
   function add() {
     if (!/^https?:\/\//i.test(url)) {
@@ -127,11 +136,13 @@ export function FeedManager({
         listingId,
         url: url.trim(),
         sourceLabel,
+        roomId: roomId || undefined,
       });
       if (result.ok) {
         toast.success("Feed added — hit Sync to import.");
         setAdding(false);
         setUrl("");
+        setRoomId("");
         router.refresh();
       } else {
         toast.error(result.error);
@@ -199,6 +210,7 @@ export function FeedManager({
         <FeedRow
           key={feed.id}
           feed={feed}
+          roomName={roomName(feed.room_id)}
           pending={pending}
           isPending={pendingFeedId === feed.id && pending}
           onSync={() => syncNow(feed.id)}
@@ -239,6 +251,30 @@ export function FeedManager({
               />
             </label>
           </div>
+          {rooms.length > 0 ? (
+            <label className="block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Applies to
+              </span>
+              <select
+                value={roomId}
+                onChange={(e) => setRoomId(e.target.value)}
+                className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink sm:w-72"
+              >
+                <option value="">Whole listing (all rooms)</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-[11px] text-brand-mute">
+                Pick a room for a per-room calendar (e.g. one SafariNow unit) so
+                it only blocks that room — otherwise the feed blocks the whole
+                listing.
+              </span>
+            </label>
+          ) : null}
           {SOURCE_GUIDES[sourceLabel] ? (
             <p className="text-[12px] leading-relaxed text-brand-mute">
               <span className="font-medium text-brand-ink">
@@ -285,12 +321,14 @@ export function FeedManager({
 
 function FeedRow({
   feed,
+  roomName,
   pending,
   isPending,
   onSync,
   onRemove,
 }: {
   feed: Feed;
+  roomName: string | null;
   pending: boolean;
   isPending: boolean;
   onSync: () => void;
@@ -327,7 +365,14 @@ function FeedRow({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-medium text-brand-ink">{feed.source_label}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-brand-ink">
+              {feed.source_label}
+            </span>
+            <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-mute">
+              {roomName ?? "Whole listing"}
+            </span>
+          </div>
           <div className="mt-0.5">
             <SyncFreshness feed={feed} now={now} stale={stale} />
           </div>

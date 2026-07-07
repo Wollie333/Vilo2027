@@ -57,7 +57,7 @@ export async function POST(req: Request) {
   // 'disabled' feeds are the explicit opt-out and are never touched.
   const { data: feeds, error } = await admin
     .from("ical_feeds")
-    .select("id, property_id, url")
+    .select("id, property_id, url, room_id")
     .in("status", ["active", "error"])
     .or(`last_sync_at.is.null,last_sync_at.lt.${cutoff}`)
     .order("last_sync_at", { ascending: true, nullsFirst: true })

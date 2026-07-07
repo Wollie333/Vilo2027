@@ -24,6 +24,8 @@ export type SyncFeedInput = {
   id: string;
   property_id: string;
   url: string;
+  // NULL/undefined = whole-listing feed; set = block only this room.
+  room_id?: string | null;
 };
 
 export type SyncFeedResult =
@@ -80,6 +82,7 @@ export async function syncFeed(
       p_feed_id: feed.id,
       p_property_id: feed.property_id,
       p_dates: dates,
+      p_room_id: feed.room_id ?? null,
     },
   );
   if (rpcError) {

@@ -50,6 +50,7 @@ export function parseIcal(text: string): ParsedRange[] {
   let start: string | null = null;
   let end: string | null = null;
   let summary = "";
+  let cancelled = false;
 
   for (const raw of lines) {
     const line = raw.trim();
@@ -58,10 +59,14 @@ export function parseIcal(text: string): ParsedRange[] {
       start = null;
       end = null;
       summary = "";
+      cancelled = false;
       continue;
     }
     if (line === "END:VEVENT") {
-      if (inEvent && start) {
+      // Skip cancelled reservations — some feeds keep a STATUS:CANCELLED
+      // tombstone for freed dates; blocking those would falsely mark a now-open
+      // night as unavailable (lost bookings).
+      if (inEvent && start && !cancelled) {
         // Default to one-day if DTEND missing.
         const effectiveEnd = end ?? addDays(start, 1);
         ranges.push({ start, end: effectiveEnd, summary });
@@ -84,6 +89,8 @@ export function parseIcal(text: string): ParsedRange[] {
       end = isoFromIcal(value);
     } else if (key === "SUMMARY") {
       summary = value.replace(/\\,/g, ",").replace(/\\n/g, " ").trim();
+    } else if (key === "STATUS") {
+      cancelled = value.trim().toUpperCase() === "CANCELLED";
     }
   }
 

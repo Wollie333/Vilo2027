@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-07 #5 — Calendar sync: close the last MVP gaps (cancelled events + per-room feeds).
+
+Two correctness gaps that would have lost bookings (both failed "safe" — over-blocking,
+not double-booking — but real):
+
+- **Cancelled reservations no longer block.** `parseIcal` now honours `STATUS:CANCELLED`
+  and drops those events — a feed's tombstone for a freed night won't falsely mark it
+  unavailable. (Flipped the "known gap" test to assert it's dropped.)
+- **Per-room feed scoping.** Per-room OTA calendars (SafariNow, or an Airbnb "listing"
+  that's really one room) used to block the WHOLE property — wrong for multi-room hosts
+  (e.g. the test property has 4 rooms). Feeds now carry an optional `room_id`
+  (migration `20260707140000`, applied to cloud): default NULL = whole listing (today's
+  behaviour); set = blocks only that room. The import RPC gained a defaulted 4th arg
+  (`p_room_id`) so existing 3-arg callers are untouched. The availability engine already
+  supported room-scoped blocks (`room_is_available` / `listing_is_available_whole`,
+  migration 20260524) — no booking-logic change. New "Applies to" room picker in the
+  add-feed form (only shown when the listing has rooms) + a room chip on each feed row.
+- **Verified live end-to-end:** DB-level proof that a room-scoped import blocks only that
+  room (room A blocked, room B available, whole-listing refused, exclusive-end respected);
+  UI shows the picker (Whole listing + all rooms) and per-feed room chips. Full suite
+  37/37 incl. DB guard; import/export/cron smoke all green with the 4-arg RPC; build +
+  tsc + lint clean.
+
+This closes the code side of "MVP-ready". Remaining before live users is ops + one
+real-feed check: set the prod secrets (Vercel + Vault, see ENV_VARS.md §5b), then a real
+Airbnb/NightsBridge feed round-tripped in prod.
+
 ## 2026-07-07 #4 — Calendar sync: SA channel presets (SafariNow / LekkeSlaap / NightsBridge / Afristay).
 
 These channels all speak iCal (SafariNow + Afristay directly; LekkeSlaap distributes

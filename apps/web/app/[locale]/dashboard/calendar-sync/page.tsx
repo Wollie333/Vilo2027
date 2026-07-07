@@ -58,7 +58,7 @@ export default async function CalendarSyncPage() {
   const { data: feedsRaw } = await supabase
     .from("ical_feeds")
     .select(
-      "id, property_id, source_label, url, status, last_sync_at, last_error, imported_count",
+      "id, property_id, source_label, url, status, last_sync_at, last_error, imported_count, room_id",
     )
     .order("created_at", { ascending: false });
 
@@ -71,6 +71,30 @@ export default async function CalendarSyncPage() {
   }
 
   const listingList = listings ?? [];
+
+  // Rooms per listing — a feed can optionally block just one room (per-room OTA
+  // calendars). Whole-listing feeds (no room) stay the default.
+  const { data: roomsRaw } = await supabase
+    .from("property_rooms")
+    .select("id, name, property_id")
+    .in(
+      "property_id",
+      listingList.map((l) => l.id),
+    )
+    .is("deleted_at", null)
+    .eq("is_active", true)
+    .order("sort_order");
+
+  const roomsByListing = new Map<string, Array<{ id: string; name: string }>>();
+  for (const r of (roomsRaw as Array<{
+    id: string;
+    name: string;
+    property_id: string;
+  }> | null) ?? []) {
+    const arr = roomsByListing.get(r.property_id) ?? [];
+    arr.push({ id: r.id, name: r.name });
+    roomsByListing.set(r.property_id, arr);
+  }
 
   return (
     <div className="space-y-6">
@@ -150,6 +174,7 @@ export default async function CalendarSyncPage() {
                 <FeedManager
                   listingId={listing.id}
                   feeds={feedsByListing.get(listing.id) ?? []}
+                  rooms={roomsByListing.get(listing.id) ?? []}
                 />
               </article>
             ))}

@@ -13,6 +13,8 @@ const addFeedSchema = z.object({
   listingId: z.string().uuid(),
   url: z.string().url().max(1000),
   sourceLabel: z.string().min(1).max(40),
+  // Optional: scope this feed to one room. Omitted/undefined = whole listing.
+  roomId: z.string().uuid().optional(),
 });
 
 const idSchema = z.object({ feedId: z.string().uuid() });
@@ -43,6 +45,7 @@ export async function addIcalFeedAction(input: {
   listingId: string;
   url: string;
   sourceLabel: string;
+  roomId?: string;
 }): Promise<Result> {
   const parsed = addFeedSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid feed details." };
@@ -51,10 +54,24 @@ export async function addIcalFeedAction(input: {
   if (!owner.ok) return owner;
 
   const supabase = createServerClient();
+
+  // If a room was chosen, it must belong to this listing (defence — the picker
+  // only offers own rooms, but the admin-free insert shouldn't trust the client).
+  if (parsed.data.roomId) {
+    const { data: room } = await supabase
+      .from("property_rooms")
+      .select("id")
+      .eq("id", parsed.data.roomId)
+      .eq("property_id", parsed.data.listingId)
+      .maybeSingle();
+    if (!room) return { ok: false, error: "That room isn't on this listing." };
+  }
+
   const { error } = await supabase.from("ical_feeds").insert({
     property_id: parsed.data.listingId,
     url: parsed.data.url,
     source_label: parsed.data.sourceLabel,
+    room_id: parsed.data.roomId ?? null,
     status: "active",
   });
   if (error) {
@@ -126,7 +143,7 @@ export async function syncIcalFeedAction(input: {
 
   const { data: feed } = await supabase
     .from("ical_feeds")
-    .select("id, property_id, url")
+    .select("id, property_id, url, room_id")
     .eq("id", parsed.data.feedId)
     .maybeSingle();
   if (!feed) return { ok: false, error: "Feed not found." };

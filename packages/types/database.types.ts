@@ -3965,6 +3965,7 @@ export type Database = {
           last_error: string | null
           last_sync_at: string | null
           property_id: string
+          room_id: string | null
           source_label: string
           status: string
           updated_at: string
@@ -3977,6 +3978,7 @@ export type Database = {
           last_error?: string | null
           last_sync_at?: string | null
           property_id: string
+          room_id?: string | null
           source_label: string
           status?: string
           updated_at?: string
@@ -3989,6 +3991,7 @@ export type Database = {
           last_error?: string | null
           last_sync_at?: string | null
           property_id?: string
+          room_id?: string | null
           source_label?: string
           status?: string
           updated_at?: string
@@ -10813,7 +10816,12 @@ export type Database = {
       guest_gkey_for_email: { Args: { p_email: string }; Returns: string }
       has_admin_permission: { Args: { p_key: string }; Returns: boolean }
       import_ical_blocks: {
-        Args: { p_dates: string[]; p_feed_id: string; p_property_id: string }
+        Args: {
+          p_dates: string[]
+          p_feed_id: string
+          p_property_id: string
+          p_room_id?: string
+        }
         Returns: number
       }
       increment_help_article_view: {

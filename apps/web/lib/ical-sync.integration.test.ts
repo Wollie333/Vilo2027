@@ -127,8 +127,8 @@ const LODGIFY = ics([
 ]);
 
 // A cancelled event — Airbnb/Booking generally DROP freed dates, but some feeds
-// keep a STATUS:CANCELLED tombstone. The parser does not read STATUS, so this
-// documents current behaviour (the range IS still parsed). See the assertion.
+// keep a STATUS:CANCELLED tombstone. The parser now honours STATUS and drops it
+// (blocking a freed night would lose bookings). See the assertion.
 const WITH_CANCELLED = ics([
   "BEGIN:VCALENDAR",
   "VERSION:2.0",
@@ -202,10 +202,8 @@ describe("feed fidelity — real OTA export formats", () => {
     );
   });
 
-  it("KNOWN GAP: STATUS:CANCELLED is NOT filtered (range still parsed)", () => {
-    // Documents current behaviour so a future fix is a deliberate change, not a
-    // surprise. If we start honouring STATUS:CANCELLED, flip this expectation.
-    expect(parseIcal(WITH_CANCELLED)).toHaveLength(1);
+  it("STATUS:CANCELLED events are dropped (freed dates never falsely block)", () => {
+    expect(parseIcal(WITH_CANCELLED)).toHaveLength(0);
   });
 });
 
