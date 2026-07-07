@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { hostHasValidEft } from "@/lib/payments/eft";
@@ -478,6 +479,33 @@ export default async function SiteBookPage({
         previewPages={previewPages}
         pageHasHero={false}
       >
+        {/* Meta InitiateCheckout — reaching the checkout starts the funnel. On a
+            host micro-site the ONLY pixel loaded is the host's own (the Wielo
+            platform pixel is suppressed on tenant renders), so this fires to the
+            host's pixel. Consent-gated like the site's other events; skipped in
+            preview. */}
+        {!ctx.preview ? (
+          <FirePixelEvent
+            event="InitiateCheckout"
+            // Gate on the HOST's own consent setting so InitiateCheckout fires
+            // under the exact same condition their pixel loads (SiteMarketing
+            // loads the pixel immediately when the host turned the gate off, and
+            // only after accept when it's on).
+            consentRequired={ctx.analytics?.cookieConsent?.enabled !== false}
+            params={{
+              content_type: "product",
+              content_ids: [property.id],
+              content_name: property.name,
+              currency: special?.currency ?? property.currency ?? "ZAR",
+              num_items: 1,
+              ...(special?.total != null
+                ? { value: special.total }
+                : property.base_price != null
+                  ? { value: Number(property.base_price) }
+                  : {}),
+            }}
+          />
+        ) : null}
         <BookingStyleOverlay node={bookingStyle} sectionType="booking_form">
           {checkout}
         </BookingStyleOverlay>

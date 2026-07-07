@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import {
   cancellationNote,
   getListingPolicySummary,
@@ -191,6 +192,26 @@ export default async function SpecialBookingPage({
   return (
     <div className="bg-white text-brand-ink">
       <SiteHeader />
+      {/* Meta InitiateCheckout — DIRECTORY (Wielo) side → fires the Wielo pixel.
+          A deal has a known price, so we can send a real value. */}
+      <FirePixelEvent
+        event="InitiateCheckout"
+        consentRequired={false}
+        params={{
+          content_type: "product",
+          content_ids: [property.id],
+          content_name: property.name,
+          currency: special.currency,
+          num_items: 1,
+          ...(special.flat_total != null
+            ? { value: Number(special.flat_total) }
+            : special.per_night_price != null
+              ? { value: Number(special.per_night_price) }
+              : special.was_price != null
+                ? { value: Number(special.was_price) }
+                : {}),
+        }}
+      />
       <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
         <SpecialBookingForm
           specialId={special.id}
