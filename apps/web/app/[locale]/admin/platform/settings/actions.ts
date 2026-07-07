@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { withAdminAudit } from "@/lib/admin";
+import { encryptSecret } from "@/lib/crypto/payments";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 
 // Fixed sentinel id for the branding platform_settings (audit target_id is a
@@ -240,8 +241,10 @@ export const saveMetaIntegrationAction = withAdminAudit<
       updated_at: new Date().toISOString(),
     };
     // Only overwrite the token when a new one is supplied (write-only secret).
+    // Encrypt at the app layer (AES-256-GCM via PAYMENT_CIPHER_KEY) like the
+    // payment-gateway secrets; meta-capi.ts decrypts it server-side to call Meta.
     if (meta_capi_access_token) {
-      row.meta_capi_access_token = meta_capi_access_token;
+      row.meta_capi_access_token = encryptSecret(meta_capi_access_token);
     }
     const { error } = await service
       .from("platform_integrations")

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
+import { decryptSecret } from "@/lib/crypto/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Meta Conversions API (server-side events). Fires alongside the browser Pixel
@@ -52,7 +53,9 @@ async function getCapiConfig(): Promise<CapiConfig> {
     }
     return {
       pixelId: data.meta_pixel_id,
-      token: data.meta_capi_access_token,
+      // Stored encrypted (app-layer) by the admin action; round-trips plaintext
+      // transparently when PAYMENT_CIPHER_KEY is unset.
+      token: decryptSecret(data.meta_capi_access_token),
       testEventCode: data.meta_test_event_code ?? null,
     };
   } catch {
