@@ -4,7 +4,9 @@ import {
   REQUIRED_STANDARD_PAGES,
   SYSTEM_STANDARD_PAGES,
   mergeStandardPages,
+  selectWizardPages,
   standardPageTemplates,
+  type WizardPageSel,
 } from "./standardPages";
 import type { ThemePageTemplate } from "@/lib/site/themes.server";
 
@@ -80,6 +82,75 @@ describe("mergeStandardPages", () => {
     const themePages: ThemePageTemplate[] = [mk("specials", 0)];
     const merged = mergeStandardPages(themePages, "X");
     expect(merged.filter((p) => p.kind === "specials")).toHaveLength(1);
+  });
+});
+
+describe("selectWizardPages", () => {
+  // The wizard's default 6-page selection, all included, in guide order.
+  const allOn: WizardPageSel[] = [
+    { kind: "home", include: true },
+    { kind: "about", include: true },
+    { kind: "rooms", include: true },
+    { kind: "specials", include: true },
+    { kind: "blog", include: true },
+    { kind: "contact", include: true },
+  ];
+
+  it("restricts to the 6 guide pages + system pages, dropping experiences/gallery", () => {
+    const merged = mergeStandardPages([], "Olive Grove"); // full standard set
+    const out = selectWizardPages(merged, allOn, "Olive Grove");
+    const kinds = out.map((p) => p.kind);
+    // No experiences/gallery.
+    expect(kinds).not.toContain("experiences");
+    expect(kinds).not.toContain("gallery");
+    // All six guide kinds present (blog synthesised — the standard set has none).
+    for (const k of ["home", "about", "rooms", "specials", "blog", "contact"]) {
+      expect(kinds).toContain(k);
+    }
+    // System pages kept, never in nav.
+    for (const k of ["search_results", "checkout", "thank-you"]) {
+      const sys = out.find((p) => p.kind === k);
+      expect(sys?.show_in_nav).toBe(false);
+    }
+  });
+
+  it("applies the host's order and inclusion to nav_order/show_in_nav", () => {
+    const merged = mergeStandardPages([], "X");
+    // Contact moved to 2nd; specials toggled off.
+    const sel: WizardPageSel[] = [
+      { kind: "home", include: true },
+      { kind: "contact", include: true },
+      { kind: "about", include: true },
+      { kind: "rooms", include: true },
+      { kind: "specials", include: false },
+      { kind: "blog", include: true },
+    ];
+    const out = selectWizardPages(merged, sel, "X");
+    const nav = out
+      .filter((p) => p.show_in_nav)
+      .sort((a, b) => a.nav_order - b.nav_order)
+      .map((p) => p.kind);
+    expect(nav).toEqual(["home", "contact", "about", "rooms", "blog"]);
+    // Specials is still seeded, just hidden from nav (recoverable later).
+    expect(out.find((p) => p.kind === "specials")?.show_in_nav).toBe(false);
+  });
+
+  it("uses the theme's own blog page when present instead of synthesising one", () => {
+    const themeBlog = mk("blog", 4);
+    themeBlog.nav_label = "Stories";
+    const merged = mergeStandardPages([mk("home", 0), themeBlog], "X");
+    const out = selectWizardPages(merged, allOn, "X");
+    const blog = out.find((p) => p.kind === "blog");
+    expect(blog?.nav_label).toBe("Stories");
+  });
+
+  it("titles the home page with the site name", () => {
+    const out = selectWizardPages(
+      mergeStandardPages([], "Karoo Sky"),
+      allOn,
+      "Karoo Sky",
+    );
+    expect(out.find((p) => p.kind === "home")?.title).toBe("Karoo Sky");
   });
 });
 

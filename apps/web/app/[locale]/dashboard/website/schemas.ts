@@ -88,6 +88,16 @@ export const createWebsiteWizardSchema = z.object({
     .optional(),
   /** Policy types the host hid from the website (opt-out; empty = show all). */
   hiddenPolicyTypes: z.array(z.string().max(40)).max(20).optional(),
+  /** Ordered page set from the Pages step (kind + include) → nav order/visibility. */
+  pages: z
+    .array(
+      z.object({
+        kind: z.enum(["home", "about", "rooms", "specials", "blog", "contact"]),
+        include: z.boolean(),
+      }),
+    )
+    .max(6)
+    .optional(),
 });
 
 export type CreateWebsiteWizardInput = z.infer<

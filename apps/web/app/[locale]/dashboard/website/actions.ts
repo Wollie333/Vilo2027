@@ -19,7 +19,9 @@ import {
 import { generatePalettes, resolvePaletteAccent } from "@/lib/site/palettes";
 import {
   mergeStandardPages,
+  selectWizardPages,
   standardPageTemplates,
+  type WizardPageSel,
 } from "@/lib/website/standardPages";
 import { missingRequiredFromRaw } from "@/lib/website/pageContract";
 import {
@@ -499,9 +501,12 @@ async function seedWebsiteContent(
     siteName: string;
     businessId: string;
     theme: ThemeBundle | null;
+    /** Setup-wizard page selection: restricts to the 6 guide pages + applies the
+     *  host's order/inclusion. Omit (legacy card) to seed the full standard set. */
+    wizardPages?: WizardPageSel[];
   },
 ): Promise<void> {
-  const { siteId, siteName, businessId, theme } = opts;
+  const { siteId, siteName, businessId, theme, wizardPages } = opts;
 
   // Seed the 4 default forms (contact / quote / booking / subscribe) so the site
   // is a working site out of the box — the host can drag any into a page via the
@@ -526,7 +531,12 @@ async function seedWebsiteContent(
   // any required page it omits (Specials/Experiences/Gallery/etc.) is filled with
   // a default spine that still renders in the theme's scoped CSS. An empty
   // blueprint yields the full standard set.
-  const templates = mergeStandardPages(theme?.pageTemplates ?? [], siteName);
+  const merged = mergeStandardPages(theme?.pageTemplates ?? [], siteName);
+  // Wizard: restrict to the 6 guide pages + apply the host's order/inclusion.
+  // Legacy card (no wizardPages): keep the full standard set.
+  const templates = wizardPages
+    ? selectWizardPages(merged, wizardPages, siteName)
+    : merged;
   await supabase.from("website_pages").insert(
     templates.map((tpl) => ({
       website_id: siteId,
@@ -601,6 +611,7 @@ export async function createWebsiteWithWizardAction(
     contactPhone,
     paymentsVisibility,
     hiddenPolicyTypes,
+    pages,
   } = parsed.data;
 
   const subErr = validateSubdomain(subdomain);
@@ -692,6 +703,7 @@ export async function createWebsiteWithWizardAction(
     siteName: siteName.trim(),
     businessId,
     theme: bundle,
+    wizardPages: pages,
   });
 
   // Auto-publish — copy draft→published per page + freeze the snapshot + set

@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import type { ThemeOption } from "@/lib/site/themes.server";
@@ -85,6 +86,29 @@ export function StepReview({
             {policiesOn}
           </p>
         </div>
+      </div>
+
+      {/* What gets built */}
+      <div className="rounded-card border border-brand-line bg-brand-light/30 px-4 py-3.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+          {t("wizardReviewChecklistTitle")}
+        </p>
+        <ul className="mt-2 space-y-1.5">
+          {[
+            t("wizardReviewCheck1", { skin: theme?.name ?? "" }),
+            t("wizardReviewCheck2"),
+            t("wizardReviewCheck3"),
+            t("wizardReviewCheck4"),
+          ].map((line) => (
+            <li
+              key={line}
+              className="flex items-start gap-2 text-[13px] text-brand-ink"
+            >
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="flex items-center justify-between pt-1">

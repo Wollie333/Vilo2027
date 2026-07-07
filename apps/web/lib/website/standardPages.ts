@@ -362,3 +362,80 @@ export function mergeStandardPages(
 
   return [...themePages, ...missingNav, ...missingSystem];
 }
+
+// --- Setup-wizard page selection --------------------------------------------
+// The wizard builds ONLY the six guide pages (spec-locked; no Experiences/Gallery
+// — hosts add extras manually later), in the host's chosen order.
+
+/** A page row from the wizard's Pages step. */
+export type WizardPageSel = { kind: string; include: boolean };
+
+/** The six guide pages the wizard can build (`blog` is shown as "Journal"). */
+const WIZARD_GUIDE_KINDS = [
+  "home",
+  "about",
+  "rooms",
+  "specials",
+  "blog",
+  "contact",
+];
+/** System pages always seeded (never in nav): search + booking checkout/thanks. */
+const WIZARD_SYSTEM_KINDS = ["search_results", "checkout", "thank-you"];
+
+/** A minimal Journal (blog) page, used when the theme ships none. */
+function blogTemplate(): ThemePageTemplate {
+  return {
+    kind: "blog",
+    slug: "blog",
+    title: "Journal",
+    nav_label: "Journal",
+    nav_order: 50,
+    show_in_nav: true,
+    sections: [
+      s("intro", {
+        heading: "Journal",
+        body: "News, stories and updates from us.",
+      }),
+      s("blog_preview", { heading: "Latest posts" }),
+    ],
+  };
+}
+
+/**
+ * Restrict the merged theme pages to the wizard's guide set and apply the host's
+ * order + include toggles. Guide pages come out in the wizard's order with
+ * `show_in_nav` from the toggle (off = seeded but hidden from nav, recoverable in
+ * the Pages manager); system pages follow, never in nav. Experiences/Gallery and
+ * any other theme pages are dropped. A Journal page is synthesised when the guide
+ * includes it but the theme ships none.
+ */
+export function selectWizardPages(
+  mergedTemplates: ThemePageTemplate[],
+  wizardPages: WizardPageSel[],
+  siteName: string,
+): ThemePageTemplate[] {
+  const byKind = new Map(mergedTemplates.map((t) => [t.kind, t]));
+  if (wizardPages.some((p) => p.kind === "blog") && !byKind.has("blog")) {
+    byKind.set("blog", blogTemplate());
+  }
+
+  const out: ThemePageTemplate[] = [];
+  wizardPages.forEach((wp, i) => {
+    if (!WIZARD_GUIDE_KINDS.includes(wp.kind)) return;
+    const tpl = byKind.get(wp.kind);
+    if (!tpl) return;
+    out.push({
+      ...tpl,
+      title: wp.kind === "home" ? siteName : tpl.title,
+      nav_order: i,
+      show_in_nav: wp.include,
+    });
+  });
+
+  for (const t of mergedTemplates) {
+    if (WIZARD_SYSTEM_KINDS.includes(t.kind)) {
+      out.push({ ...t, show_in_nav: false });
+    }
+  }
+  return out;
+}

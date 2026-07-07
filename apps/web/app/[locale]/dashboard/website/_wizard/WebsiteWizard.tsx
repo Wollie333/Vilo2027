@@ -107,6 +107,7 @@ export function WebsiteWizard(props: WizardProps) {
         eft: state.paymentVisibility.eft ?? false,
       },
       hiddenPolicyTypes,
+      pages: state.pages.map((p) => ({ kind: p.kind, include: p.include })),
     });
     if (res.ok) {
       setCreatedId(res.id);
