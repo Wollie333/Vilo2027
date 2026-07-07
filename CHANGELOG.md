@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-07 #9 — Full Meta funnel (ViewContent/AddPaymentInfo) + best-practice params.
+
+Completed the Meta funnel across both surfaces (website = host pixel, directory = Wielo
+pixel), and brought every commerce event up to Meta's spec:
+
+- **ViewContent** on detail pages: `property/[slug]` + `deal/[slug]` (Wielo) and the host
+  micro-site room detail via `SiteRoomView` (host, preview + consent gated).
+- **AddPaymentInfo** fires once on first payment-method pick: `SiteCheckoutForm` (host),
+  `BookingForm` + `SpecialBookingForm` (Wielo). Added a `propertyId` prop to
+  SpecialBookingForm so content_ids match the deal's other events.
+- **New `lib/analytics/pixel.ts`**: `commerceParams()` adds Meta's `contents` array
+  (`[{id, quantity, item_price}]`) + content_ids/content_name/currency/value/num_items to
+  ViewContent, InitiateCheckout, AddPaymentInfo AND Purchase (firePurchase now sends
+  contents). Every event carries an `eventID` for browser↔CAPI dedup (Purchase keeps its
+  stable txn ref; others get a per-occurrence id). `FirePixelEvent` now fires EXACTLY ONCE
+  per mount (ref guard kills the StrictMode/re-render double) + retries the fbq call ~3s.
+
+Verified live (directory): ViewContent beacon fires ONCE with
+`cd[contents]=[{id,quantity,item_price:1600}]` + value + `eid=ViewContent.<uuid>`;
+AddPaymentInfo fires once on select with contents + value=4380 + payment_method. Host-side
+identical wiring (fires on live tenant renders). type-check + lint + 244 vitest + build green.
+
 ## 2026-07-07 #8 — InitiateCheckout event on every checkout, right pixel per owner.
 
 Wired the Meta `InitiateCheckout` standard event onto all three checkout entry points,
