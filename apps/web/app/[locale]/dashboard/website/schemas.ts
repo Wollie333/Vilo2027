@@ -692,6 +692,11 @@ export const websiteSettingsSchema = z.object({
   cookieConsentEnabled: z.boolean().default(true),
   cookieConsentMessage: z.string().trim().max(300).default(""),
   privacyPolicyHref: z.string().trim().max(300).default(""),
+  // Meta Conversions API (server-side). The token is a SECRET — stored encrypted
+  // in a server-only column (never in settings.analytics), write-only from the
+  // form (blank = keep the current token). Uses metaPixelId above as the pixel.
+  metaCapiToken: z.string().trim().max(400).default(""),
+  metaCapiEnabled: z.boolean().default(false),
   // Blog index config — the heading + intro shown atop the generic-theme blog
   // listing page (`/blog`). Stored under `settings.blog`. Blank inherits the
   // built-in defaults ("Blog" / "News, stories and local guides"). The Safari

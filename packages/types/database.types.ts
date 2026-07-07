@@ -3781,6 +3781,8 @@ export type Database = {
           domain_status: string
           host_id: string
           id: string
+          meta_capi_access_token: string | null
+          meta_capi_enabled: boolean
           navigation: Json
           published_at: string | null
           published_snapshot: Json | null
@@ -3804,6 +3806,8 @@ export type Database = {
           domain_status?: string
           host_id: string
           id?: string
+          meta_capi_access_token?: string | null
+          meta_capi_enabled?: boolean
           navigation?: Json
           published_at?: string | null
           published_snapshot?: Json | null
@@ -3827,6 +3831,8 @@ export type Database = {
           domain_status?: string
           host_id?: string
           id?: string
+          meta_capi_access_token?: string | null
+          meta_capi_enabled?: boolean
           navigation?: Json
           published_at?: string | null
           published_snapshot?: Json | null

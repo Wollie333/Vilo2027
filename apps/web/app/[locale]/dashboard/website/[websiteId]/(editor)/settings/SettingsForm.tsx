@@ -69,6 +69,9 @@ type SettingsState = {
   cookieConsentEnabled: boolean;
   cookieConsentMessage: string;
   privacyPolicyHref: string;
+  metaCapiEnabled: boolean;
+  /** True when a CAPI token is already on file (the token itself never leaves the server). */
+  capiTokenSet: boolean;
   blogHeading: string;
   blogIntro: string;
 };
@@ -185,6 +188,8 @@ export function SettingsForm({
   // Favicon persists independently on upload (like Brand Studio); keep its URL in
   // local state just to reflect the current image — it isn't part of the Save.
   const [favicon, setFavicon] = useState<string | null>(faviconUrl);
+  // CAPI token — write-only; blank keeps the current token (never loaded here).
+  const [capiToken, setCapiToken] = useState("");
   const [saving, startSave] = useTransition();
   const [lifecycle, startLifecycle] = useTransition();
 
@@ -238,6 +243,8 @@ export function SettingsForm({
         cookieConsentEnabled: state.cookieConsentEnabled,
         cookieConsentMessage: state.cookieConsentMessage.trim(),
         privacyPolicyHref: state.privacyPolicyHref.trim(),
+        metaCapiToken: capiToken.trim(),
+        metaCapiEnabled: state.metaCapiEnabled,
         blogHeading: state.blogHeading.trim(),
         blogIntro: state.blogIntro.trim(),
       });
@@ -248,6 +255,7 @@ export function SettingsForm({
         return;
       }
       toast.success(t("settingsSaved"));
+      setCapiToken("");
       router.refresh();
     });
   }
@@ -778,6 +786,36 @@ export function SettingsForm({
               />
             </Setrow>
           </>
+        ) : null}
+        <Setrow
+          title="Meta Conversions API"
+          desc="Send server-side Purchase events (deduped with your Meta Pixel above) — better match rates, survives ad-blockers. Uses your Meta Pixel ID."
+        >
+          <Sw
+            on={state.metaCapiEnabled}
+            onChange={(v) => set("metaCapiEnabled", v)}
+          />
+        </Setrow>
+        {state.metaCapiEnabled ? (
+          <Setrow
+            title="CAPI access token"
+            desc="Meta Events Manager → Settings → Conversions API → Generate access token. Stored encrypted, never shown again."
+            col
+          >
+            <input
+              type="password"
+              className="field mono"
+              value={capiToken}
+              autoComplete="off"
+              placeholder={
+                state.capiTokenSet
+                  ? "•••••••••• (a token is on file — leave blank to keep it)"
+                  : "Paste your CAPI access token"
+              }
+              maxLength={400}
+              onChange={(e) => setCapiToken(e.target.value)}
+            />
+          </Setrow>
         ) : null}
       </Sblock>
 

@@ -1,10 +1,14 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { FirePurchase } from "@/components/site/FirePurchase";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { BookingConfirmationCard } from "@/components/site/BookingConfirmationCard";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
+import {
+  getHostWebsiteCapi,
+  sendCapiPurchase,
+} from "@/lib/integrations/meta-capi";
 import {
   capturePayPalOrderForBooking,
   confirmHostCardPaymentByReference,
@@ -53,6 +57,9 @@ type BookingRow = {
   host_id: string;
   property_id: string;
   guest_name: string | null;
+  guest_email: string | null;
+  guest_phone: string | null;
+  capi_purchase_sent_at: string | null;
 };
 
 function money(total: number | null, currency: string) {
@@ -96,7 +103,7 @@ export default async function SiteThankYouPage({
 
   const admin = createAdminClient();
   const select =
-    "id, reference, status, payment_status, payment_method, total_amount, currency, check_in, check_out, guests_count, host_id, property_id, guest_name";
+    "id, reference, status, payment_status, payment_method, total_amount, currency, check_in, check_out, guests_count, host_id, property_id, guest_name, guest_email, guest_phone, capi_purchase_sent_at";
 
   let { data: booking } = await admin
     .from("bookings")
@@ -211,6 +218,57 @@ export default async function SiteThankYouPage({
           ],
         }
       : null;
+
+  // Meta CAPI (server-side) Purchase — fires the HOST's own pixel via their own
+  // CAPI token (Website → Settings), deduped against their browser Purchase via
+  // event_id = booking.reference. Once per booking (reuses capi_purchase_sent_at;
+  // a website booking never touches Wielo's CAPI). Best-effort.
+  if (purchase && !ctx.preview && !booking.capi_purchase_sent_at) {
+    try {
+      const creds = await getHostWebsiteCapi(ctx.websiteId);
+      if (creds) {
+        const c = await cookies();
+        const fwd = h.get("x-forwarded-for") ?? "";
+        const clientIp =
+          fwd.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+        const host = h.get("x-forwarded-host") || h.get("host") || "";
+        const scheme =
+          host.startsWith("localhost") || host.startsWith("127.")
+            ? "http"
+            : "https";
+        const sent = await sendCapiPurchase(
+          {
+            eventId: purchase.transactionId,
+            eventSourceUrl: host ? `${scheme}://${host}/book/thank-you` : "",
+            email: booking.guest_email,
+            phone: booking.guest_phone,
+            clientIp,
+            userAgent: h.get("user-agent"),
+            fbp: c.get("_fbp")?.value ?? null,
+            fbc: c.get("_fbc")?.value ?? null,
+            value: purchase.value,
+            currency: purchase.currency,
+            contentIds: purchase.contentIds,
+            contents: purchase.items.map((i) => ({
+              id: i.item_id,
+              quantity: i.quantity,
+              item_price: i.price,
+            })),
+            numItems: purchase.numItems,
+          },
+          creds,
+        );
+        if (sent) {
+          await admin
+            .from("bookings")
+            .update({ capi_purchase_sent_at: new Date().toISOString() })
+            .eq("id", booking.id);
+        }
+      }
+    } catch {
+      // best-effort — the host's browser pixel still fires
+    }
+  }
 
   return (
     <SiteThemeRoot theme={ctx.theme}>

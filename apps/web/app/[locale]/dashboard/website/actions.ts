@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { encryptSecret } from "@/lib/crypto/payments";
 import { requireHost } from "@/lib/host/current";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import type { SitePreset } from "@/lib/site/themes";
@@ -3011,6 +3012,8 @@ export async function saveWebsiteSettingsAction(
     cookieConsentEnabled,
     cookieConsentMessage,
     privacyPolicyHref,
+    metaCapiToken,
+    metaCapiEnabled,
     blogHeading,
     blogIntro,
   } = parsed.data;
@@ -3098,9 +3101,20 @@ export async function saveWebsiteSettingsAction(
     },
   };
 
+  // Meta CAPI: enabled flag always; the token is write-only + encrypted at rest,
+  // and lives in a server-only column (never in the client-exposed settings).
+  const websiteUpdate: Record<string, unknown> = {
+    settings,
+    brand,
+    meta_capi_enabled: metaCapiEnabled,
+  };
+  if (metaCapiToken) {
+    websiteUpdate.meta_capi_access_token = encryptSecret(metaCapiToken);
+  }
+
   const { error } = await supabase
     .from("host_websites")
-    .update({ settings, brand })
+    .update(websiteUpdate as never)
     .eq("id", websiteId);
   if (error) return { ok: false, error: "save_failed" };
 

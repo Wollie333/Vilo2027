@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { listWebsiteFormsAction } from "@/app/[locale]/dashboard/website/actions";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { loadWebsiteEditorData } from "../../loadWebsiteEditorData";
@@ -19,6 +20,15 @@ export default async function WebsiteSettingsPage({
     listWebsiteFormsAction(websiteId),
   ]);
   if (!data) notFound();
+
+  // CAPI config (server-only). loadWebsiteEditorData already asserted ownership;
+  // we surface only the enabled flag + whether a token is on file — never the
+  // token itself.
+  const { data: capiRow } = await createAdminClient()
+    .from("host_websites")
+    .select("meta_capi_enabled, meta_capi_access_token")
+    .eq("id", websiteId)
+    .maybeSingle();
 
   const forms = formsRes.ok ? formsRes.forms : [];
 
@@ -116,6 +126,8 @@ export default async function WebsiteSettingsPage({
         cookieConsentEnabled: consent.enabled !== false,
         cookieConsentMessage: consent.message ?? "",
         privacyPolicyHref: consent.privacyHref ?? "",
+        metaCapiEnabled: capiRow?.meta_capi_enabled === true,
+        capiTokenSet: Boolean(capiRow?.meta_capi_access_token),
         blogHeading: blog.heading ?? "",
         blogIntro: blog.intro ?? "",
       }}

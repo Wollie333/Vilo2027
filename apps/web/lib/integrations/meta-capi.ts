@@ -63,6 +63,44 @@ async function getCapiConfig(): Promise<CapiConfig> {
   }
 }
 
+/**
+ * Resolve a HOST website's own CAPI credentials (server-only). The browser pixel
+ * id is public (settings.analytics.metaPixel); the token is the encrypted,
+ * server-only column. Returns null unless CAPI is enabled AND a token + pixel id
+ * are set. Never exposes the token to the client.
+ */
+export async function getHostWebsiteCapi(
+  websiteId: string,
+): Promise<{
+  pixelId: string;
+  token: string;
+  testEventCode: string | null;
+} | null> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("host_websites")
+      .select("settings, meta_capi_access_token, meta_capi_enabled")
+      .eq("id", websiteId)
+      .maybeSingle();
+    if (!data || !data.meta_capi_enabled || !data.meta_capi_access_token) {
+      return null;
+    }
+    const pixelId = (
+      (data.settings as { analytics?: { metaPixel?: string } } | null)
+        ?.analytics?.metaPixel ?? ""
+    ).trim();
+    if (!pixelId) return null;
+    return {
+      pixelId,
+      token: decryptSecret(data.meta_capi_access_token),
+      testEventCode: null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export type CapiPurchaseInput = {
   /** MUST equal the browser Pixel's event id (booking.reference) so Meta dedupes. */
   eventId: string;
@@ -87,10 +125,19 @@ export type CapiPurchaseInput = {
  * configured/enabled. Callers gate the "already sent" marker on the return so a
  * transient failure retries on the next page load.
  */
+export type CapiCreds = {
+  pixelId: string;
+  token: string;
+  testEventCode: string | null;
+};
+
 export async function sendCapiPurchase(
   input: CapiPurchaseInput,
+  // Explicit credentials (per-host website CAPI). Omit to use the WIELO platform
+  // config from platform_integrations (directory bookings).
+  creds?: CapiCreds,
 ): Promise<boolean> {
-  const cfg = await getCapiConfig();
+  const cfg = creds ?? (await getCapiConfig());
   if (!cfg) return false;
 
   const userData: Record<string, unknown> = {};
