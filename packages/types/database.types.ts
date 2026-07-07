@@ -1296,6 +1296,7 @@ export type Database = {
           cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          capi_purchase_sent_at: string | null
           channel: string | null
           check_in: string | null
           check_out: string | null
@@ -1360,6 +1361,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          capi_purchase_sent_at?: string | null
           channel?: string | null
           check_in?: string | null
           check_out?: string | null
@@ -1424,6 +1426,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          capi_purchase_sent_at?: string | null
           channel?: string | null
           check_in?: string | null
           check_out?: string | null

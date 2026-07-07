@@ -50,6 +50,7 @@ export default async function PlatformSettingsPage() {
         pixelEnabled={meta.pixelEnabled}
         testEventCode={meta.testEventCode ?? ""}
         capiTokenSet={meta.capiTokenSet}
+        capiEnabled={meta.capiEnabled}
       />
 
       <TrackingIdsForm

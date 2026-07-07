@@ -198,6 +198,11 @@ const metaIntegrationSchema = z.object({
     .default(""),
   meta_pixel_enabled: z.boolean(),
   meta_test_event_code: z.string().trim().max(40).optional().default(""),
+  // Conversions API (server-side). The token is write-only: a blank value keeps
+  // the current token (never sent back to the client), so the admin toggles CAPI
+  // off with the enabled flag rather than by clearing the field.
+  meta_capi_access_token: z.string().trim().max(400).optional().default(""),
+  meta_capi_enabled: z.boolean().optional().default(false),
   reason: z.string().optional(),
 });
 
@@ -219,21 +224,39 @@ export const saveMetaIntegrationAction = withAdminAudit<
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
     }
-    const { meta_pixel_id, meta_pixel_enabled, meta_test_event_code } =
-      parsed.data;
-    const { error } = await service.from("platform_integrations").upsert({
+    const {
+      meta_pixel_id,
+      meta_pixel_enabled,
+      meta_test_event_code,
+      meta_capi_access_token,
+      meta_capi_enabled,
+    } = parsed.data;
+    const row: Record<string, unknown> = {
       id: true,
       meta_pixel_id: meta_pixel_id || null,
       meta_pixel_enabled,
       meta_test_event_code: meta_test_event_code || null,
+      meta_capi_enabled,
       updated_at: new Date().toISOString(),
-    });
+    };
+    // Only overwrite the token when a new one is supplied (write-only secret).
+    if (meta_capi_access_token) {
+      row.meta_capi_access_token = meta_capi_access_token;
+    }
+    const { error } = await service
+      .from("platform_integrations")
+      .upsert(row as never);
     if (error) throw new Error(error.message);
     // Pixel id is read by the root layout — revalidate the whole tree.
     revalidatePath("/", "layout");
     return {
       result: { ok: true },
-      after: { meta_pixel_id, meta_pixel_enabled },
+      after: {
+        meta_pixel_id,
+        meta_pixel_enabled,
+        meta_capi_enabled,
+        capi_token_updated: Boolean(meta_capi_access_token),
+      },
     };
   },
 );

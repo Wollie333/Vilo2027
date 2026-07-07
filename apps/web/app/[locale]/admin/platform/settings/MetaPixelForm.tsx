@@ -12,22 +12,28 @@ export function MetaPixelForm({
   pixelEnabled: initialEnabled,
   testEventCode: initialTest,
   capiTokenSet,
+  capiEnabled: initialCapiEnabled,
 }: {
   pixelId: string;
   pixelEnabled: boolean;
   testEventCode: string;
   capiTokenSet: boolean;
+  capiEnabled: boolean;
 }) {
   const router = useRouter();
   const [pixelId, setPixelId] = useState(initialId);
   const [enabled, setEnabled] = useState(initialEnabled);
   const [testCode, setTestCode] = useState(initialTest);
+  const [capiEnabled, setCapiEnabled] = useState(initialCapiEnabled);
+  const [capiToken, setCapiToken] = useState(""); // write-only; blank = keep
   const [pending, start] = useTransition();
 
   const dirty =
     pixelId.trim() !== initialId.trim() ||
     enabled !== initialEnabled ||
-    testCode.trim() !== initialTest.trim();
+    testCode.trim() !== initialTest.trim() ||
+    capiEnabled !== initialCapiEnabled ||
+    capiToken.trim().length > 0;
 
   function save() {
     if (pending || !dirty) return;
@@ -37,8 +43,11 @@ export function MetaPixelForm({
           meta_pixel_id: pixelId.trim(),
           meta_pixel_enabled: enabled,
           meta_test_event_code: testCode.trim(),
+          meta_capi_enabled: capiEnabled,
+          meta_capi_access_token: capiToken.trim(),
         });
         toast.success("Meta Pixel settings saved");
+        setCapiToken("");
         router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not save.");
@@ -124,19 +133,54 @@ export function MetaPixelForm({
         </button>
       </div>
 
-      {/* Conversions API — plumbed, wired later. */}
-      <div className="mt-5 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 p-4">
+      {/* Conversions API (server-side) — deduped against the browser pixel. */}
+      <div className="mt-5 rounded-[10px] border border-brand-line bg-brand-light/40 p-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
           <Lock className="h-3.5 w-3.5 text-brand-mute" />
           Conversions API (server-side)
-          <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-secondary">
-            Coming soon
-          </span>
         </div>
         <p className="mt-1 text-[12px] text-brand-mute">
-          Each Purchase already carries a stable event ID so the server-side
-          Conversions API can dedupe against the browser pixel when it ships.
-          {capiTokenSet ? " An access token is on file." : ""}
+          Sends a server-side <span className="font-medium">Purchase</span> to
+          Meta for every confirmed directory booking, deduped against the
+          browser pixel via a shared event ID — better match rates + survives
+          ad-blockers.
+        </p>
+
+        <label className="mt-3 block">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            Access token
+          </span>
+          <input
+            type="password"
+            value={capiToken}
+            onChange={(e) => setCapiToken(e.target.value)}
+            autoComplete="off"
+            placeholder={
+              capiTokenSet
+                ? "•••••••••• (a token is on file — leave blank to keep it)"
+                : "Paste the Conversions API token"
+            }
+            className={inputCls}
+          />
+          <span className="mt-1 block text-[11px] text-brand-mute">
+            Meta Events Manager → Settings → Conversions API → Generate access
+            token. Stored encrypted server-side, never shown again.
+          </span>
+        </label>
+
+        <label className="mt-3 flex items-center gap-2.5">
+          <input
+            type="checkbox"
+            checked={capiEnabled}
+            onChange={(e) => setCapiEnabled(e.target.checked)}
+            className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary/30"
+          />
+          <span className="text-sm font-medium text-brand-ink">
+            Conversions API enabled
+          </span>
+        </label>
+        <p className="mt-1.5 text-[11px] text-brand-mute">
+          Uses the same test event code above for Meta&apos;s Test Events tool.
         </p>
       </div>
     </div>

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { getBrandName } from "@/lib/brand";
+import { sendCapiPurchase } from "@/lib/integrations/meta-capi";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
 import {
   capturePayPalOrderForBooking,
@@ -98,7 +100,7 @@ export default async function BookingSuccessPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, listing:properties!inner ( id, host_id, business_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
+      "id, reference, status, payment_status, payment_method, scope, channel, capi_purchase_sent_at, guest_phone, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, listing:properties!inner ( id, host_id, business_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -418,6 +420,57 @@ export default async function BookingSuccessPage({
         ],
       }
     : null;
+
+  // Meta CAPI (server-side) Purchase — DIRECTORY (Wielo) bookings only, deduped
+  // against the browser pixel via event_id = booking.reference. Fires exactly
+  // once (stamped on success). Website bookings use the host's own pixel, never
+  // Wielo's CAPI. Best-effort: never breaks the confirmation page.
+  if (
+    purchase &&
+    booking.channel !== "website" &&
+    !booking.capi_purchase_sent_at
+  ) {
+    try {
+      const h = await headers();
+      const c = await cookies();
+      const fwd = h.get("x-forwarded-for") ?? "";
+      const clientIp = fwd.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+      const host = h.get("x-forwarded-host") || h.get("host") || "";
+      const scheme =
+        host.startsWith("localhost") || host.startsWith("127.")
+          ? "http"
+          : "https";
+      const sent = await sendCapiPurchase({
+        eventId: purchase.transactionId,
+        eventSourceUrl: host
+          ? `${scheme}://${host}/booking/${booking.id}/success`
+          : "",
+        email: user.email,
+        phone: booking.guest_phone ?? profile?.phone ?? null,
+        clientIp,
+        userAgent: h.get("user-agent"),
+        fbp: c.get("_fbp")?.value ?? null,
+        fbc: c.get("_fbc")?.value ?? null,
+        value: purchase.value,
+        currency: purchase.currency,
+        contentIds: purchase.contentIds,
+        contents: purchase.items.map((i) => ({
+          id: i.item_id,
+          quantity: i.quantity,
+          item_price: i.price,
+        })),
+        numItems: purchase.numItems,
+      });
+      if (sent) {
+        await admin
+          .from("bookings")
+          .update({ capi_purchase_sent_at: new Date().toISOString() })
+          .eq("id", booking.id);
+      }
+    } catch {
+      // best-effort — the browser pixel still fires; retry on next load
+    }
+  }
 
   const data: ConfirmationData = {
     bookingId: booking.id,
