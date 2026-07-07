@@ -4,13 +4,17 @@ import {
   Archive,
   ArchiveRestore,
   BadgeCheck,
+  Clock,
   Copy,
   CreditCard,
   ExternalLink,
+  Mail,
   Phone,
   ReceiptText,
+  Repeat,
   Send,
   Star,
+  StickyNote,
   X,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -81,6 +85,15 @@ export type ThreadContext = {
     email: string | null;
     phone: string | null;
     avatarUrl: string | null;
+    /** Guest profile created_at → "guest since". */
+    since: string | null;
+  } | null;
+  /** This guest's history with THIS host (repeat-guest signal + lifetime value). */
+  guestStats: {
+    stays: number;
+    upcoming: number;
+    totalSpent: number;
+    currency: string;
   } | null;
   listing: {
     id: string;
@@ -104,6 +117,8 @@ export type ThreadContext = {
     paymentStatus: string | null;
     payToken: string | null;
     currency: string;
+    specialRequests: string | null;
+    createdAt: string | null;
   } | null;
 };
 
@@ -627,7 +642,10 @@ function DetailsDrawer({
           {/* Stay details */}
           {context.booking ? (
             <div className="px-5 pb-5">
-              <DrawerHeading>Stay details</DrawerHeading>
+              <div className="mb-2 flex items-center justify-between">
+                <DrawerHeading>Stay details</DrawerHeading>
+                <StatusPill status={context.booking.status} />
+              </div>
               <dl>
                 <DrawerRow label="Check in">
                   {fmtDate(context.booking.checkIn)}
@@ -649,12 +667,55 @@ function DetailsDrawer({
                     )}
                   </span>
                 </DrawerRow>
+                {/* Payment state — paid so far vs balance still outstanding. */}
+                {(() => {
+                  const total = context.booking.total ?? 0;
+                  const balance = context.booking.balanceDue ?? 0;
+                  const paid = Math.max(0, total - balance);
+                  if (total <= 0) return null;
+                  return balance > 0 ? (
+                    <>
+                      <DrawerRow label="Paid">
+                        {formatMoney(paid, context.booking.currency)}
+                      </DrawerRow>
+                      <DrawerRow label="Balance due">
+                        <span className="text-status-pending">
+                          {formatMoney(balance, context.booking.currency)}
+                        </span>
+                      </DrawerRow>
+                    </>
+                  ) : (
+                    <DrawerRow label="Payment">
+                      <span className="inline-flex items-center gap-1 text-status-confirmed">
+                        <BadgeCheck className="h-3.5 w-3.5" /> Paid in full
+                      </span>
+                    </DrawerRow>
+                  );
+                })()}
                 <DrawerRow label="Reference">
                   <span className="font-mono text-[12px]">
                     {context.booking.reference}
                   </span>
                 </DrawerRow>
+                {context.booking.createdAt ? (
+                  <DrawerRow label="Booked">
+                    {fmtDate(context.booking.createdAt)}
+                  </DrawerRow>
+                ) : null}
               </dl>
+
+              {/* Special requests — a guest note the host should not miss. */}
+              {context.booking.specialRequests ? (
+                <div className="mt-3 rounded-card border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                    <StickyNote className="h-3.5 w-3.5" /> Special requests
+                  </div>
+                  <p className="mt-1.5 text-[12.5px] leading-snug text-amber-900">
+                    {context.booking.specialRequests}
+                  </p>
+                </div>
+              ) : null}
+
               <Link
                 href={`/dashboard/bookings/${context.booking.id}`}
                 className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-brand-primary text-sm font-semibold text-white hover:bg-brand-secondary"
@@ -681,8 +742,15 @@ function DetailsDrawer({
                 size={40}
               />
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-brand-ink">
-                  {context.guest?.fullName || "Guest"}
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-sm font-semibold text-brand-ink">
+                    {context.guest?.fullName || "Guest"}
+                  </span>
+                  {context.guestStats && context.guestStats.stays > 1 ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
+                      <Repeat className="h-3 w-3" /> Repeat guest
+                    </span>
+                  ) : null}
                 </div>
                 {context.guest?.email ? (
                   <div className="truncate text-[12px] text-brand-mute">
@@ -691,7 +759,52 @@ function DetailsDrawer({
                 ) : null}
               </div>
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2.5 text-[12px] text-brand-mute">
+
+            {/* Lifetime history with this host — the repeat-guest / value signal. */}
+            {context.guestStats && context.guestStats.stays > 0 ? (
+              <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line">
+                <GuestStat
+                  value={String(context.guestStats.stays)}
+                  label={context.guestStats.stays === 1 ? "stay" : "stays"}
+                />
+                <GuestStat
+                  value={formatMoney(
+                    context.guestStats.totalSpent,
+                    context.guestStats.currency,
+                  )}
+                  label="lifetime"
+                />
+                <GuestStat
+                  value={
+                    context.guestStats.upcoming > 0
+                      ? String(context.guestStats.upcoming)
+                      : "—"
+                  }
+                  label="upcoming"
+                />
+              </div>
+            ) : context.guestStats ? (
+              <div className="mt-3 rounded-card border border-brand-line bg-brand-light/40 px-3 py-2 text-[12px] text-brand-mute">
+                First time booking with you.
+              </div>
+            ) : null}
+
+            <div className="mt-3 space-y-1 text-[12px] text-brand-mute">
+              {context.guest?.since ? (
+                <div className="flex items-center gap-1.5">
+                  <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
+                  Guest since {fmtMonthYear(context.guest.since)}
+                </div>
+              ) : null}
+              {context.guestLastSeenAt ? (
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-brand-mute" />
+                  Last seen {timeAgo(context.guestLastSeenAt)}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
               {context.guest?.phone ? (
                 <a
                   href={`https://wa.me/${context.guest.phone.replace(/[^0-9]/g, "")}`}
@@ -702,10 +815,14 @@ function DetailsDrawer({
                   <Phone className="h-3.5 w-3.5 text-brand-primary" /> WhatsApp
                 </a>
               ) : null}
-              <span className="inline-flex items-center gap-1">
-                <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" /> Wielo
-                direct
-              </span>
+              {context.guest?.email ? (
+                <a
+                  href={`mailto:${context.guest.email}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-brand-line px-3 py-1.5 font-medium text-brand-ink hover:bg-brand-light"
+                >
+                  <Mail className="h-3.5 w-3.5 text-brand-primary" /> Email
+                </a>
+              ) : null}
             </div>
           </div>
         </div>
@@ -804,4 +921,88 @@ function DrawerRow({
       <dd className="text-right font-semibold text-brand-ink">{children}</dd>
     </div>
   );
+}
+
+// Booking-status pill for the details drawer.
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    confirmed: {
+      label: "Confirmed",
+      cls: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+    checked_in: {
+      label: "In-house",
+      cls: "border-sky-200 bg-sky-50 text-sky-600",
+    },
+    checked_out: {
+      label: "Checked out",
+      cls: "border-indigo-200 bg-indigo-50 text-indigo-600",
+    },
+    completed: {
+      label: "Completed",
+      cls: "border-indigo-200 bg-indigo-50 text-indigo-600",
+    },
+    pending: {
+      label: "Pending",
+      cls: "border-amber-200 bg-amber-50 text-amber-700",
+    },
+    pending_eft: {
+      label: "Awaiting EFT",
+      cls: "border-amber-200 bg-amber-50 text-amber-700",
+    },
+    pending_eft_review: {
+      label: "Verify EFT",
+      cls: "border-amber-200 bg-amber-50 text-amber-700",
+    },
+  };
+  const cancelled = /^cancelled|declined|expired|no_show/.test(status);
+  const s =
+    map[status] ??
+    (cancelled
+      ? { label: "Cancelled", cls: "border-red-200 bg-red-50 text-red-600" }
+      : {
+          label: status.replace(/_/g, " "),
+          cls: "border-brand-line bg-brand-light text-brand-mute",
+        });
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-semibold capitalize ${s.cls}`}
+    >
+      {s.label}
+    </span>
+  );
+}
+
+function GuestStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="bg-white px-2 py-2 text-center">
+      <div className="truncate font-display text-[13px] font-bold text-brand-ink">
+        {value}
+      </div>
+      <div className="mt-0.5 text-[10px] uppercase tracking-wide text-brand-mute">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function fmtMonthYear(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-ZA", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function timeAgo(iso: string): string {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  return new Date(iso).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+  });
 }

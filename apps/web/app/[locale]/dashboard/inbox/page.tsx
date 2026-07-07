@@ -182,9 +182,9 @@ export default async function InboxPage({
         .select(
           `
             id, status, is_enquiry, pinned, created_at, guest_last_seen_at,
-            guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
+            guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url, created_at ),
             listing:properties ( id, name, slug, city, province, max_guests, bedrooms ),
-            booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, payment_status, pay_token, currency )
+            booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, payment_status, pay_token, currency, special_requests, created_at )
           `,
         )
         .eq("id", selectedId)
@@ -262,6 +262,7 @@ export default async function InboxPage({
         email: string | null;
         phone: string | null;
         avatar_url: string | null;
+        created_at: string | null;
       } | null;
       listing: {
         id: string;
@@ -285,8 +286,41 @@ export default async function InboxPage({
         payment_status: string | null;
         pay_token: string | null;
         currency: string;
+        special_requests: string | null;
+        created_at: string | null;
       } | null;
     } | null;
+
+    // Guest history with THIS host — repeat-guest signal + lifetime value. Only
+    // for a signed-up guest (enquiries from anonymous website forms have none).
+    let guestStats: ThreadContext["guestStats"] = null;
+    if (ctx?.guest?.id) {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: gb } = await supabase
+        .from("bookings")
+        .select("total_amount, currency, status, check_in")
+        .eq("host_id", host.id)
+        .eq("guest_id", ctx.guest.id)
+        .is("deleted_at", null);
+      const rows = (gb ?? []) as {
+        total_amount: string | number | null;
+        currency: string | null;
+        status: string;
+        check_in: string | null;
+      }[];
+      const realised = new Set(["confirmed", "checked_in", "completed"]);
+      const stays = rows.filter((b) => realised.has(b.status));
+      guestStats = {
+        stays: stays.length,
+        upcoming: stays.filter(
+          (b) =>
+            (b.status === "confirmed" || b.status === "checked_in") &&
+            (b.check_in ?? "") >= today,
+        ).length,
+        totalSpent: stays.reduce((a, b) => a + Number(b.total_amount ?? 0), 0),
+        currency: rows[0]?.currency ?? "ZAR",
+      };
+    }
 
     if (ctx) {
       context = {
@@ -295,6 +329,7 @@ export default async function InboxPage({
         isEnquiry: ctx.is_enquiry,
         pinned: ctx.pinned ?? false,
         guestLastSeenAt: ctx.guest_last_seen_at ?? null,
+        guestStats,
         guest: ctx.guest
           ? {
               id: ctx.guest.id,
@@ -302,6 +337,7 @@ export default async function InboxPage({
               email: ctx.guest.email,
               phone: ctx.guest.phone,
               avatarUrl: ctx.guest.avatar_url,
+              since: ctx.guest.created_at,
             }
           : null,
         listing: ctx.listing
@@ -335,6 +371,8 @@ export default async function InboxPage({
               paymentStatus: ctx.booking.payment_status,
               payToken: ctx.booking.pay_token,
               currency: ctx.booking.currency,
+              specialRequests: ctx.booking.special_requests,
+              createdAt: ctx.booking.created_at,
             }
           : null,
       };
