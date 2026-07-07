@@ -31,7 +31,50 @@ export type Feed = {
   imported_count: number;
 };
 
-const SOURCE_PRESETS = ["Airbnb", "Booking.com", "VRBO", "Google", "Other"];
+// Each preset rides the same iCal engine — the only per-channel difference is
+// where the host copies their export URL from. SA channels included: SafariNow +
+// Afristay expose iCal directly; LekkeSlaap distributes through NightsBridge, so
+// its calendar comes in via the host's NightsBridge iCal link.
+const SOURCE_GUIDES: Record<string, { hint: string; placeholder: string }> = {
+  Airbnb: {
+    hint: "Airbnb → your listing → Calendar → Availability → Connect calendars → Export calendar.",
+    placeholder: "https://www.airbnb.com/calendar/ical/12345.ics?s=…",
+  },
+  "Booking.com": {
+    hint: "Booking.com Extranet → Rates & Availability → Sync calendars → Export.",
+    placeholder: "https://ical.booking.com/v1/export?t=…",
+  },
+  SafariNow: {
+    hint: "SafariNow exposes an iCal link per room/unit — add one feed per room.",
+    placeholder: "https://www.safarinow.com/…/ical/…",
+  },
+  "LekkeSlaap (via NightsBridge)": {
+    hint: "LekkeSlaap distributes through NightsBridge — paste your NightsBridge iCal link (it covers LekkeSlaap too).",
+    placeholder: "https://www.nightsbridge.co.za/…/ical/…",
+  },
+  NightsBridge: {
+    hint: "NightsBridge → Web Info → Room Type Info → open the Room → iCal Link → copy the read link.",
+    placeholder: "https://www.nightsbridge.co.za/…/ical/…",
+  },
+  Afristay: {
+    hint: "Afristay → property calendar → Sync calendars → copy the export (iCal) URL.",
+    placeholder: "https://www.afristay.com/…/ical/…",
+  },
+  VRBO: {
+    hint: "VRBO → Calendar → Import & export → Export calendar.",
+    placeholder: "https://www.vrbo.com/icalendar/….ics",
+  },
+  Google: {
+    hint: "Google Calendar → Settings → the calendar → Integrate calendar → Secret address in iCal format.",
+    placeholder: "https://calendar.google.com/calendar/ical/…/basic.ics",
+  },
+  Other: {
+    hint: "Paste any public iCal (.ics) URL that exports blocked/booked dates.",
+    placeholder: "https://…/calendar.ics",
+  },
+};
+
+const SOURCE_PRESETS = Object.keys(SOURCE_GUIDES);
 
 // A feed is "stale" once its last sync is older than the auto-sync window (3h,
 // matching the sync-ical-feeds cron). Stale + auto-sync-on shouldn't happen, so
@@ -188,11 +231,22 @@ export function FeedManager({
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://calendar.airbnb.com/calendar/ical/…"
+                placeholder={
+                  SOURCE_GUIDES[sourceLabel]?.placeholder ??
+                  "https://…/calendar.ics"
+                }
                 className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
               />
             </label>
           </div>
+          {SOURCE_GUIDES[sourceLabel] ? (
+            <p className="text-[12px] leading-relaxed text-brand-mute">
+              <span className="font-medium text-brand-ink">
+                Where to find it:
+              </span>{" "}
+              {SOURCE_GUIDES[sourceLabel].hint}
+            </p>
+          ) : null}
           <div className="flex items-center gap-2">
             <button
               type="button"

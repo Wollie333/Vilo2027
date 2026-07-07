@@ -79,8 +79,9 @@ export default async function CalendarSyncPage() {
           Calendar sync
         </h1>
         <p className="mt-1 text-sm text-brand-mute">
-          Two-way iCal between {brandName} and Airbnb / Booking.com / Google /
-          Apple. Both directions live.
+          Two-way iCal between {brandName} and Airbnb / Booking.com / SafariNow
+          / NightsBridge (incl. LekkeSlaap) / Afristay / Google / Apple. Both
+          directions live.
         </p>
       </header>
 
@@ -116,7 +117,8 @@ export default async function CalendarSyncPage() {
             Import — pull external blocks in
           </h2>
           <p className="mt-1 text-[13px] text-brand-mute">
-            Add an Airbnb or Booking.com calendar URL per listing. Hit{" "}
+            Add a calendar URL per listing — Airbnb, Booking.com, SafariNow,
+            NightsBridge (which also covers LekkeSlaap), Afristay and more. Hit{" "}
             <strong>Sync</strong> to pull immediately, or wait for the scheduled
             re-sync.
           </p>

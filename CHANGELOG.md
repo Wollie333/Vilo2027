@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-07 #4 — Calendar sync: SA channel presets (SafariNow / LekkeSlaap / NightsBridge / Afristay).
+
+These channels all speak iCal (SafariNow + Afristay directly; LekkeSlaap distributes
+via NightsBridge, which exposes an iCal read link), so they ride the existing sync
+engine with zero backend work — they just needed to be surfaced.
+
+- `FeedManager` "Source" dropdown expanded from Airbnb/Booking/VRBO/Google/Other to
+  also include **SafariNow, LekkeSlaap (via NightsBridge), NightsBridge, Afristay**.
+  New `SOURCE_GUIDES` map drives a per-channel **"Where to find it:"** hint + a
+  channel-specific URL placeholder that both update live when the source changes.
+- Page copy (header + import intro) broadened to name the SA channels.
+- Verified live: dropdown shows all 9 presets; switching to NightsBridge updates the
+  hint to its exact path + the nightsbridge.co.za placeholder. tsc + lint clean.
+- Deeper two-way NightsBridge **API** integration (rates/inventory/reservations) is
+  scoped separately in `docs/features/NIGHTSBRIDGE_API_INTEGRATION_PLAN.md`.
+
 ## 2026-07-07 #3 — Calendar-sync UI: prominent last-sync freshness.
 
 The per-feed status was a tiny grey absolute timestamp ("Last synced 2026/07/07,
