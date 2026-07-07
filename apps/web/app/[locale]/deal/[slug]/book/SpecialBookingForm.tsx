@@ -59,6 +59,7 @@ type Props = {
   cancellationNote: string | null;
   hasEftBanking: boolean;
   hasPaystack: boolean;
+  hasPaypal: boolean;
   isAuthenticated: boolean;
   guestEmail: string;
   guestName: string;
@@ -100,11 +101,12 @@ export function SpecialBookingForm(props: Props) {
   const [password, setPassword] = useState("");
   const [requests, setRequests] = useState("");
 
-  const methods: ("paystack" | "eft")[] = [
+  const methods: ("paystack" | "eft" | "paypal")[] = [
     ...(props.hasPaystack ? (["paystack"] as const) : []),
+    ...(props.hasPaypal ? (["paypal"] as const) : []),
     ...(props.hasEftBanking ? (["eft"] as const) : []),
   ];
-  const [method, setMethod] = useState<"paystack" | "eft">(
+  const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
     methods[0] ?? "paystack",
   );
   const [ack, setAck] = useState(false);
@@ -536,7 +538,11 @@ export function SpecialBookingForm(props: Props) {
                         checked={method === m}
                         onChange={() => setMethod(m)}
                       />
-                      {m === "paystack" ? t("bkPayCard") : t("bkPayEft")}
+                      {m === "paystack"
+                        ? t("bkPayCard")
+                        : m === "paypal"
+                          ? "PayPal (USD)"
+                          : t("bkPayEft")}
                     </label>
                   ))}
                 </div>

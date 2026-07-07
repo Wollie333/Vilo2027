@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, CreditCard, Loader2 } from "lucide-react";
+import { Banknote, CreditCard, Loader2, Wallet } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -14,18 +14,24 @@ export function PayForm({
   total,
   deposit,
   eftAvailable,
+  cardAvailable = true,
+  paypalAvailable = false,
 }: {
   bookingId: string;
   currency: string;
   total: number;
   deposit: number | null; // null when there's no separate deposit
   eftAvailable: boolean;
+  cardAvailable?: boolean;
+  paypalAvailable?: boolean;
 }) {
   // Default to the deposit when the host set one.
   const [amount, setAmount] = useState<"deposit" | "full">(
     deposit != null ? "deposit" : "full",
   );
-  const [method, setMethod] = useState<"paystack" | "eft">("paystack");
+  const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
+    cardAvailable ? "paystack" : paypalAvailable ? "paypal" : "eft",
+  );
   const [pending, setPending] = useState(false);
 
   const payNow = amount === "deposit" && deposit != null ? deposit : total;
@@ -84,13 +90,24 @@ export function PayForm({
           Payment method
         </div>
         <div className="mt-3 space-y-2.5">
-          <MethodOption
-            active={method === "paystack"}
-            onClick={() => setMethod("paystack")}
-            icon={<CreditCard className="h-4 w-4" />}
-            label="Card"
-            note="Secure card payment via Paystack"
-          />
+          {cardAvailable ? (
+            <MethodOption
+              active={method === "paystack"}
+              onClick={() => setMethod("paystack")}
+              icon={<CreditCard className="h-4 w-4" />}
+              label="Card"
+              note="Secure card payment via Paystack"
+            />
+          ) : null}
+          {paypalAvailable ? (
+            <MethodOption
+              active={method === "paypal"}
+              onClick={() => setMethod("paypal")}
+              icon={<Wallet className="h-4 w-4" />}
+              label="PayPal"
+              note="Pay in USD with your PayPal account or card"
+            />
+          ) : null}
           {eftAvailable ? (
             <MethodOption
               active={method === "eft"}

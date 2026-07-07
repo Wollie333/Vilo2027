@@ -5,7 +5,10 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { getBrandName } from "@/lib/brand";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
-import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
+import {
+  capturePayPalOrderForBooking,
+  confirmHostCardPaymentByReference,
+} from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -79,7 +82,8 @@ export default async function BookingSuccessPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams?: { reference?: string };
+  // reference = Paystack return; token = PayPal return (?token=<orderId>).
+  searchParams?: { reference?: string; token?: string };
 }) {
   const supabase = createServerClient();
   const brandName = await getBrandName();
@@ -106,14 +110,36 @@ export default async function BookingSuccessPage({
   // For direct-host card payments this — not a platform webhook — is the
   // authoritative confirmation.
   const reference = searchParams?.reference;
+  const paypalToken = searchParams?.token;
+  const hostId = (booking.listing as unknown as { host_id: string }).host_id;
   if (booking.status === "pending" && reference && reference.length > 0) {
-    const hostId = (booking.listing as unknown as { host_id: string }).host_id;
     await confirmHostCardPaymentByReference({
       reference,
       hostId,
       bookingId: booking.id,
     });
     // Re-fetch the latest row.
+    const { data: refreshed } = await supabase
+      .from("bookings")
+      .select("status, payment_status")
+      .eq("id", booking.id)
+      .single();
+    if (refreshed) {
+      booking.status = refreshed.status;
+      booking.payment_status = refreshed.payment_status;
+    }
+  } else if (
+    booking.status === "pending" &&
+    booking.payment_method === "paypal" &&
+    paypalToken &&
+    paypalToken.length > 0
+  ) {
+    // PayPal return — capture the approved order on the host's app + settle.
+    await capturePayPalOrderForBooking({
+      orderId: paypalToken,
+      hostId,
+      bookingId: booking.id,
+    });
     const { data: refreshed } = await supabase
       .from("bookings")
       .select("status, payment_status")
@@ -294,8 +320,8 @@ export default async function BookingSuccessPage({
   // ── Payment rails the guest can still use (only meaningful while unpaid) ──
   // EFT banking resolves from the listing's business (Phase 3a), with the
   // host's default account as the fallback. Card is offered only when the host
-  // has a connected Paystack account. PayPal is not yet a guest checkout rail,
-  // so it is intentionally not surfaced here.
+  // has a connected Paystack account. Re-payment (incl. PayPal) happens on the
+  // /booking/[id]/pay surface, which surfaces every rail the host offers.
   const BANK_COLS =
     "bank_name, account_holder, account_number, account_type, branch_code";
   const [bankBiz, bankHost, hostPaystack] = await Promise.all([

@@ -20,7 +20,7 @@ export const createSpecialBookingSchema = z.object({
 
   guests: z.coerce.number().int().min(1).max(100),
 
-  payment_method: z.enum(["paystack", "eft"]),
+  payment_method: z.enum(["paystack", "eft", "paypal"]),
 
   // Contact snapshot so the host's booking card is complete even for a brand-new
   // guest account (created inline at checkout).

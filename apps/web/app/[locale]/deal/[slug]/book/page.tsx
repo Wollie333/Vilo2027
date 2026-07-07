@@ -12,6 +12,10 @@ import {
   getHostPaystack,
   getHostPaystackForBusiness,
 } from "@/lib/payments/host-paystack";
+import {
+  getHostPayPal,
+  getHostPayPalForBusiness,
+} from "@/lib/payments/host-paypal";
 import { specialCategoryLabel } from "@/lib/specials/categories";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -145,6 +149,9 @@ export default async function SpecialBookingPage({
   const hasPaystack = !!(property.business_id
     ? await getHostPaystackForBusiness(property.business_id)
     : await getHostPaystack(property.host_id));
+  const hasPaypal = !!(property.business_id
+    ? await getHostPayPalForBusiness(property.business_id)
+    : await getHostPayPal(property.host_id));
 
   // Host attribution.
   const { data: hostRow } = await supabase
@@ -234,6 +241,7 @@ export default async function SpecialBookingPage({
           cancellationNote={note?.note ?? null}
           hasEftBanking={hasEftBanking}
           hasPaystack={hasPaystack}
+          hasPaypal={hasPaypal}
           isAuthenticated={!!user}
           guestEmail={user?.email ?? ""}
           guestName={guestName}

@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Loader2, Lock } from "lucide-react";
+import { CreditCard, Loader2, Lock, Wallet } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -53,17 +53,33 @@ function loadPaystack(): Promise<PaystackPopCtor | null> {
 export function PayNowPanel({
   token,
   amountLabel,
+  cardAvailable = true,
+  paypalAvailable = false,
 }: {
   token: string;
   amountLabel: string;
+  cardAvailable?: boolean;
+  paypalAvailable?: boolean;
 }) {
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<null | "paystack" | "paypal">(null);
+
+  async function payWithPayPal() {
+    setPending("paypal");
+    const res = await initializePayByTokenAction(token, "paypal");
+    if (!res.ok) {
+      setPending(null);
+      toast.error(res.error);
+      return;
+    }
+    // PayPal returns an approval URL (no accessCode) — hand off to PayPal.
+    window.location.href = res.redirectTo;
+  }
 
   async function pay() {
-    setPending(true);
-    const res = await initializePayByTokenAction(token);
+    setPending("paystack");
+    const res = await initializePayByTokenAction(token, "paystack");
     if (!res.ok) {
-      setPending(false);
+      setPending(null);
       toast.error(res.error);
       return;
     }
@@ -91,9 +107,9 @@ export function PayNowPanel({
         onSuccess: () => {
           window.location.href = confirmUrl;
         },
-        onCancel: () => setPending(false),
+        onCancel: () => setPending(null),
         onError: () => {
-          setPending(false);
+          setPending(null);
           toast.error("Payment could not be completed. Please try again.");
         },
       });
@@ -104,22 +120,47 @@ export function PayNowPanel({
 
   return (
     <div className="space-y-3">
-      <button
-        type="button"
-        onClick={pay}
-        disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-2 rounded bg-brand-primary py-3.5 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <CreditCard className="h-4 w-4" />
-        )}
-        {pending ? "Opening secure checkout…" : `Pay ${amountLabel} by card`}
-      </button>
+      {cardAvailable ? (
+        <button
+          type="button"
+          onClick={pay}
+          disabled={!!pending}
+          className="inline-flex w-full items-center justify-center gap-2 rounded bg-brand-primary py-3.5 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {pending === "paystack" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CreditCard className="h-4 w-4" />
+          )}
+          {pending === "paystack"
+            ? "Opening secure checkout…"
+            : `Pay ${amountLabel} by card`}
+        </button>
+      ) : null}
+      {paypalAvailable ? (
+        <button
+          type="button"
+          onClick={payWithPayPal}
+          disabled={!!pending}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded py-3.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            cardAvailable
+              ? "border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
+              : "bg-brand-primary text-white shadow-glow hover:bg-brand-primary/90"
+          }`}
+        >
+          {pending === "paypal" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Wallet className="h-4 w-4" />
+          )}
+          {pending === "paypal"
+            ? "Redirecting to PayPal…"
+            : `Pay ${amountLabel} with PayPal`}
+        </button>
+      ) : null}
       <p className="inline-flex w-full items-center justify-center gap-1.5 text-[11px] text-brand-mute">
-        <Lock className="h-3 w-3" /> Secured by Paystack · Visa, Mastercard &
-        instant EFT
+        <Lock className="h-3 w-3" /> Secured payment · your card details never
+        touch our servers
       </p>
     </div>
   );

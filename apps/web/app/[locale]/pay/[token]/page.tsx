@@ -17,8 +17,15 @@ import {
   getHostPaystack,
   getHostPaystackForBusiness,
 } from "@/lib/payments/host-paystack";
+import {
+  getHostPayPal,
+  getHostPayPalForBusiness,
+} from "@/lib/payments/host-paypal";
 import { sumCompletedPaid } from "@/lib/payments/ledger";
-import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
+import {
+  capturePayPalOrderForBooking,
+  confirmHostCardPaymentByReference,
+} from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { PayNowPanel } from "./PayNowPanel";
@@ -56,7 +63,8 @@ export default async function PayPage({
   searchParams,
 }: {
   params: { token: string };
-  searchParams?: { reference?: string };
+  // reference = Paystack return; token = PayPal return (?token=<orderId>).
+  searchParams?: { reference?: string; token?: string };
 }) {
   const admin = createAdminClient();
   const brandName = await getBrandName();
@@ -97,9 +105,26 @@ export default async function PayPage({
 
   // Returned from Paystack → confirm with the host key + the ledger (idempotent).
   const reference = searchParams?.reference;
+  const paypalToken = searchParams?.token;
   if (booking.payment_status !== "completed" && reference) {
     await confirmHostCardPaymentByReference({
       reference,
+      hostId: listing.host_id,
+      bookingId: booking.id,
+    });
+    const { data: refreshed } = await admin
+      .from("bookings")
+      .select("status, payment_status")
+      .eq("id", booking.id)
+      .single();
+    if (refreshed) {
+      booking.status = refreshed.status;
+      booking.payment_status = refreshed.payment_status;
+    }
+  } else if (booking.payment_status !== "completed" && paypalToken) {
+    // Returned from PayPal → capture the approved order + settle (idempotent).
+    await capturePayPalOrderForBooking({
+      orderId: paypalToken,
       hostId: listing.host_id,
       bookingId: booking.id,
     });
@@ -136,6 +161,12 @@ export default async function PayPage({
       : await getHostPaystack(listing.host_id)
     : null;
   const hasCard = !!hostPaystack;
+  const hostPaypal = payable
+    ? listing.business_id
+      ? await getHostPayPalForBusiness(listing.business_id)
+      : await getHostPayPal(listing.host_id)
+    : null;
+  const hasPaypal = !!hostPaypal;
   const party = payable
     ? await getHostParty(
         admin,
@@ -322,10 +353,12 @@ export default async function PayPage({
                   Your booking is confirmed once the transfer is verified.
                 </p>
               </div>
-            ) : hasCard ? (
+            ) : hasCard || hasPaypal ? (
               <PayNowPanel
                 token={params.token}
                 amountLabel={formatMoney(outstanding, currency)}
+                cardAvailable={hasCard}
+                paypalAvailable={hasPaypal}
               />
             ) : (
               <div className="rounded-card border border-brand-line bg-brand-light/40 px-5 py-6 text-center text-sm text-brand-mute">

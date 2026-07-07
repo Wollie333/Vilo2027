@@ -16,7 +16,10 @@ export type PayResult =
 // public /pay/[token] link stay in lockstep. Returns a URL to navigate to.
 export async function initializePaymentForBookingAction(
   bookingId: string,
-  opts: { method: "paystack" | "eft"; amount: "deposit" | "full" },
+  opts: {
+    method: "paystack" | "eft" | "paypal";
+    amount: "deposit" | "full";
+  },
 ): Promise<PayResult> {
   const supabase = createServerClient();
   const {

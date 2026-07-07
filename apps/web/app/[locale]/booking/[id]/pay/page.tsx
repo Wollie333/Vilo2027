@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { hostHasValidEft } from "@/lib/payments/eft";
+import { getHostPayPal } from "@/lib/payments/host-paypal";
+import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PayForm } from "./PayForm";
@@ -41,7 +43,13 @@ export default async function BookingPayPage({
     Array.isArray(booking.listing) ? booking.listing[0] : booking.listing
   ) as { name: string; host_id: string } | null;
 
-  const eftAvailable = listing ? await hostHasValidEft(listing.host_id) : false;
+  const [eftAvailable, cardAvailable, paypalAvailable] = listing
+    ? await Promise.all([
+        hostHasValidEft(listing.host_id),
+        getHostPaystack(listing.host_id).then(Boolean),
+        getHostPayPal(listing.host_id).then(Boolean),
+      ])
+    : [false, false, false];
 
   const total = Number(booking.total_amount);
   const deposit = Number(booking.deposit_amount ?? 0);
@@ -65,6 +73,8 @@ export default async function BookingPayPage({
         total={total}
         deposit={hasDeposit ? deposit : null}
         eftAvailable={eftAvailable}
+        cardAvailable={cardAvailable}
+        paypalAvailable={paypalAvailable}
       />
     </div>
   );

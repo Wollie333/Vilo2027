@@ -22,6 +22,7 @@ import {
   User as UserIcon,
   UserPlus,
   Users,
+  Wallet,
   Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -216,6 +217,7 @@ export function BookingForm({
   availableAddons,
   hasEftBanking,
   hasPaystack,
+  hasPaypal,
   seasonalRules,
   wholeListingDiscountPct,
   weeklyDiscountPct,
@@ -271,6 +273,7 @@ export function BookingForm({
   availableAddons: AvailableAddon[];
   hasEftBanking: boolean;
   hasPaystack: boolean;
+  hasPaypal: boolean;
   seasonalRules: SeasonalRule[];
   wholeListingDiscountPct: number | null;
   weeklyDiscountPct: number | null;
@@ -379,8 +382,8 @@ export function BookingForm({
   // ── Payment method state ──────────────────────────────────────
   // Card is only available when the host has connected their own Paystack;
   // otherwise the guest pays by EFT. Default to whichever the host offers.
-  const [method, setMethod] = useState<"paystack" | "eft">(
-    hasPaystack ? "paystack" : "eft",
+  const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
+    hasPaystack ? "paystack" : hasPaypal ? "paypal" : "eft",
   );
 
   // Explicit acceptance of the cancellation policy + platform terms/privacy.
@@ -960,6 +963,17 @@ export function BookingForm({
             sub: "Visa, Mastercard & instant EFT · secured by Paystack",
             Icon: CreditCard,
             cards: ["visa", "mc"] as const,
+          },
+        ]
+      : []),
+    ...(hasPaypal
+      ? [
+          {
+            id: "paypal" as const,
+            label: "PayPal",
+            sub: "Pay in USD with your PayPal account or card",
+            Icon: Wallet,
+            cards: undefined,
           },
         ]
       : []),
@@ -2148,6 +2162,37 @@ export function BookingForm({
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </section>
+      ) : method === "paypal" ? (
+        <section className={cardLabel}>
+          <div className="flex items-center justify-between border-b border-brand-line px-5 py-4">
+            <div className="font-display font-semibold text-brand-ink">
+              Secure PayPal payment
+            </div>
+            <div className="inline-flex items-center gap-1.5 text-[11px] text-brand-mute">
+              <Lock className="h-3 w-3" /> Encrypted with PayPal
+            </div>
+          </div>
+          <div className="flex items-start gap-4 p-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+              <Wallet className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <div className="font-display font-semibold text-brand-ink">
+                You&rsquo;ll finish on PayPal
+              </div>
+              <p className="mt-1.5 text-sm leading-relaxed text-brand-mute">
+                When you tap{" "}
+                <span className="font-medium text-brand-ink">
+                  Pay {formatMoney(total, currency)}
+                </span>{" "}
+                below, you&rsquo;ll be taken to PayPal to approve the payment
+                (charged in USD at today&rsquo;s rate). {brandName} never sees
+                or stores your card number, and you won&rsquo;t be charged a
+                booking fee.
+              </p>
             </div>
           </div>
         </section>

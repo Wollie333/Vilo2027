@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
@@ -70,6 +70,11 @@ export default async function RootLayout({
     getActiveMetaPixelId(),
   ]);
   const displayCurrency = cookies().get("vilo_display_ccy")?.value ?? null;
+  // On a host's own micro-site (tenant domain), the host's OWN pixel is loaded
+  // by SiteMarketing. Do NOT also load the Wielo platform pixel there, or a
+  // host-website booking would cross-fire onto Wielo's pixel. The Wielo pixel is
+  // for the marketplace/app surfaces only (directory listing bookings etc.).
+  const isHostSite = !!headers().get("x-wielo-site-host");
   return (
     <html
       lang={locale}
@@ -90,7 +95,9 @@ export default async function RootLayout({
           crawlSpeed={180}
           speed={220}
         />
-        {metaPixelId ? <MetaPixel pixelId={metaPixelId} /> : null}
+        {metaPixelId && !isHostSite ? (
+          <MetaPixel pixelId={metaPixelId} />
+        ) : null}
         <NextIntlClientProvider locale={locale} messages={messages}>
           <BrandProvider value={branding}>
             <CurrencyProvider initialCurrency={displayCurrency} rates={rates}>

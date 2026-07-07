@@ -9,6 +9,10 @@ import {
   getHostPaystackForBusiness,
 } from "@/lib/payments/host-paystack";
 import {
+  getHostPayPal,
+  getHostPayPalForBusiness,
+} from "@/lib/payments/host-paypal";
+import {
   cancellationNote,
   getListingPolicySummary,
 } from "@/lib/policy/listing-summary";
@@ -268,6 +272,13 @@ export default async function BookingPage({
     ? await getHostPaystackForBusiness(listing.business_id)
     : await getHostPaystack(listing.host_id));
 
+  // Whether the host can take PayPal right now (their own connected PayPal app,
+  // charged in USD). Same direct-host model as Paystack; the booking action +
+  // startBookingPayment enforce/resolve it server-side.
+  const hasPaypal = !!(listing.business_id
+    ? await getHostPayPalForBusiness(listing.business_id)
+    : await getHostPayPal(listing.host_id));
+
   // Host identity for the "You're booking with …" attribution in the summary.
   const { data: hostRow } = await supabase
     .from("hosts")
@@ -433,6 +444,7 @@ export default async function BookingPage({
           availableAddons={availableAddons}
           hasEftBanking={hasEftBanking}
           hasPaystack={hasPaystack}
+          hasPaypal={hasPaypal}
           seasonalRules={seasonalRules}
           wholeListingDiscountPct={
             listing.whole_property_discount_pct == null

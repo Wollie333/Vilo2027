@@ -15,6 +15,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // startBookingPayment core, so this stays in lockstep with the signed-in flow.
 export async function initializePayByTokenAction(
   token: string,
+  method: "paystack" | "eft" | "paypal" = "paystack",
 ): Promise<StartBookingPaymentResult> {
   if (!token || token.length < 10) {
     return { ok: false, error: "This payment link is no longer valid." };
@@ -56,7 +57,7 @@ export async function initializePayByTokenAction(
       listing_name: listing.name,
       host_id: listing.host_id,
     },
-    method: "paystack",
+    method,
     amount: "full",
     email: booking.guest_email,
     origin: headers().get("origin") ?? "",
