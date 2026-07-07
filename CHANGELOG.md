@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-07 #11 — Meta Conversions API (server-side Purchase, deduped + token editable).
+
+Wired server-side CAPI for the Wielo directory — fires a Purchase to Meta alongside the
+browser pixel with a matching `event_id` so Meta dedupes (better match rates, survives
+ad-blockers).
+
+- `lib/integrations/meta-capi.ts` `sendCapiPurchase()`: POSTs to Meta Graph v21.0 with
+  SHA-256-hashed em/ph + client ip/ua + `_fbp`/`_fbc` cookies + custom_data (value/currency/
+  content_ids/contents/num_items). Reads the token server-only; best-effort (never throws).
+- `booking/[id]/success` fires it for DIRECTORY bookings only (`channel != website`), once
+  per booking (`bookings.capi_purchase_sent_at` marker, migration `20260707170000` applied
+  to cloud), `event_id = booking.reference` to match the browser Purchase.
+- Admin: the Meta Pixel form's Conversions API section is now EDITABLE (was "coming soon") —
+  write-only access-token field (never sent to client) + enabled toggle, shared test code.
+- Token is encrypted at rest (AES-256-GCM via `encryptSecret`, same as payment secrets).
+
+Verified: CAPI payload validated against Meta's REAL Graph API (fake token → code 190 auth
+error = Meta parsed the event fine); admin form renders + saves the token + enabled flag
+(write-only, no clobber). type-check + lint + build green. NOT verified E2E: a real event in
+Meta Events Manager needs a valid CAPI token (now pasteable) + a confirmed directory booking.
+
 ## 2026-07-07 #10 — Platform tracking-IDs admin panel (GA4/GTM/TikTok/Google Ads).
 
 Platform Settings → "Analytics & other pixels": paste any tracking id and it loads
