@@ -27,13 +27,14 @@ export type ActionResult<T = undefined> =
 
 // ─── Step 1: create the auth user + sign them in ─────────────────
 //
-// Soft email verification (see lib/auth/verifyEmail.ts): we create the user
-// UNCONFIRMED via the admin `generateLink({ type: 'signup' })` call — which
-// both provisions the account (with password) and hands back a confirmation
-// token — then email that token via our Resend pipeline and sign the user in
-// so they can finish onboarding. A persistent in-app banner nags until they
-// click the link. This is hardened with an IP rate limit, Turnstile, and a
-// breached-password check before any account is created.
+// Soft email verification (see lib/auth/verifyEmail.ts): GoTrue auto-confirms
+// on this project, so its email_confirmed_at is useless as a "proved they own
+// the inbox" signal. We create the account, track verification ourselves in
+// user_profiles.email_verified_at (left null here), email a signed confirm
+// link via Resend, and sign the user in so they can finish onboarding. A
+// persistent in-app banner nags until they click the link. Hardened with an IP
+// rate limit, Turnstile, and a breached-password check before any account is
+// created.
 
 export async function createAccountAction(
   input: AccountInput,
