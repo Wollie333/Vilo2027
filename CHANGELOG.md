@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-07 #13 — Signup hardening (MVP-ready): verification, bot/rate limits, passwords, consent.
+
+Hardened the public guest + host signup flows for real users. Five layers, all verified live
+(fresh guest signup end-to-end + DB checks on the linked cloud project).
+
+- **Soft email verification.** Signup no longer silently pre-confirms. Because this GoTrue
+  project auto-confirms (`enable_confirmations = false`), `auth.users.email_confirmed_at` is
+  useless as a "proved they own the inbox" signal — so we track it ourselves in
+  `user_profiles.email_verified_at` (migration `20260707200000`). Account creation leaves it
+  null and sends a branded confirmation email (Resend, best-effort) carrying a stateless
+  HMAC-signed token; `/verify-email` validates it and stamps the column. A persistent amber
+  banner (dashboard + portal) nags until verified, with a Resend button. Users still complete
+  onboarding meanwhile (they're signed in). New `lib/auth/verifyEmail.ts`,
+  `app/verify-email/route.ts`, `resendVerificationEmailAction`; `verify-email` added to the
+  middleware FUNCTIONAL allowlist.
+- **Turnstile on signup.** The existing Cloudflare widget + `verifyTurnstile` now guard both
+  account-creation actions (inert until `TURNSTILE_SECRET_KEY` is set, like checkout).
+- **Rate limiting.** IP-keyed throttle (`checkSignupRateLimit`, 8/hr) — the admin `createUser`
+  path bypasses Supabase's built-in per-IP limit. Backed by `signup_rate_limits` (salted IP
+  hash, service-role only; migration `20260707190000`). Fail-open.
+- **Stronger passwords.** Shared `passwordSchema` (rejects common/trivial + requires variety)
+  across host/guest/register/reset; server-side HIBP k-anonymity breach check (best-effort,
+  never blocks on outage); live strength meter in both wizards + the invite form.
+- **Terms consent persisted.** `terms_accepted_at` + `terms_version` (`lib/auth/consent.ts`,
+  migration `20260707190000`) stamped at signup for POPIA/legal record.
+
+Both migrations applied to cloud + `database.types.ts` regenerated. `pnpm build` + `pnpm lint`
+green. Verified live: strength meter reacts, signup creates the account + advances, banner
+shows for the unverified user and disappears after the verify link stamps the flag, rate-limit
+ledger records attempts.
+
 ## 2026-07-07 #12 — Host-side Meta Conversions API (per-host, on the website feature).
 
 Hosts now get the same server-side CAPI on their OWN website that Wielo has on the directory

@@ -3,8 +3,10 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { isBreachedPassword } from "@/lib/auth/password";
 import { resolvePostAuthDestination } from "@/lib/auth/postAuth";
 import { safeNextPath } from "@/lib/auth/safeNext";
+import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -64,6 +66,17 @@ export async function registerAction(
       ok: false,
       error: "Please check the form and try again.",
       fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  // Reject known-breached passwords (best-effort; never blocks on outage).
+  if (await isBreachedPassword(parsed.data.password)) {
+    return {
+      ok: false,
+      error: "That password has appeared in a data breach.",
+      fieldErrors: {
+        password: ["Please choose a password that hasn't been in a breach."],
+      },
     };
   }
 
@@ -189,6 +202,50 @@ export async function resetPasswordAction(
 
   const destination = await resolvePostAuthDestination(user.id, null);
   redirect(destination);
+}
+
+/**
+ * Resend the email-verification link to the currently signed-in user. Drives
+ * the in-app "verify your email" banner. No-ops (returns ok) if they're already
+ * confirmed so the button can't be used to spam a confirmed inbox.
+ */
+export async function resendVerificationEmailAction(): Promise<AuthActionResult> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) {
+    return { ok: false, error: "Your session expired — sign in again." };
+  }
+
+  // Already verified (app-level flag)? No-op so the button can't spam a
+  // confirmed inbox.
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("email_verified_at")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profile?.email_verified_at) {
+    return { ok: true };
+  }
+
+  const origin = headers().get("origin") ?? "";
+  const firstName =
+    (user.user_metadata?.full_name as string | undefined)?.split(" ")[0] ??
+    null;
+  const res = await sendVerificationEmail({
+    userId: user.id,
+    email: user.email,
+    origin,
+    firstName,
+  });
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: "Could not send the email right now. Please try again shortly.",
+    };
+  }
+  return { ok: true };
 }
 
 function friendlyAuthError(message: string): string {

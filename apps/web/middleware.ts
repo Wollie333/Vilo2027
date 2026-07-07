@@ -11,7 +11,7 @@ const handleI18n = createMiddleware(routing);
 // api workers, the iCal feed, the Supabase auth callback, unsubscribe, the
 // quote PDF handler, and the affiliate referral link (/r/<slug>). These still
 // get Supabase session refresh, exactly as before.
-const FUNCTIONAL = /^\/(api|ical|auth|unsubscribe|quote|r)(\/|$)/;
+const FUNCTIONAL = /^\/(api|ical|auth|verify-email|unsubscribe|quote|r)(\/|$)/;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

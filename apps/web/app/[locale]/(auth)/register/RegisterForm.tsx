@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
 import { registerAction } from "../actions";
 import { registerSchema, type RegisterInput } from "../schemas";
@@ -116,6 +117,10 @@ export function RegisterForm() {
                       {...field}
                     />
                   </FormControl>
+                  <PasswordStrengthMeter
+                    password={field.value ?? ""}
+                    email={form.getValues("email")}
+                  />
                   <FormMessage />
                 </FormItem>
               )}

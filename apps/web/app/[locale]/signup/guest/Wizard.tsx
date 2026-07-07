@@ -23,8 +23,13 @@ import { Link } from "@/i18n/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
+import {
+  TurnstileWidget,
+  turnstileEnabled,
+} from "@/components/site/TurnstileWidget";
 import { composePhone, DEFAULT_COUNTRY } from "@/lib/phone/dialCodes";
 import { combineName } from "@/lib/profile/name";
 
@@ -142,6 +147,9 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
     initialData(prefilledEmail),
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Turnstile bot-check token for account creation (inert when unconfigured).
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [createPending, startCreate] = useTransition();
   const [finalizePending, startFinalize] = useTransition();
 
@@ -192,17 +200,27 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
       setErrors(zodIssuesToFieldErrors(parsed.error.issues));
       return;
     }
+    if (turnstileEnabled() && !captchaToken) {
+      toast.error("Please complete the verification challenge.");
+      return;
+    }
     setErrors({});
     startCreate(async () => {
-      const result = await createGuestAccountAction({
-        first_name: data.firstName,
-        surname: data.surname,
-        email: data.email,
-        password: data.password,
-        terms: data.terms,
-      });
+      const result = await createGuestAccountAction(
+        {
+          first_name: data.firstName,
+          surname: data.surname,
+          email: data.email,
+          password: data.password,
+          terms: data.terms,
+        },
+        captchaToken,
+      );
       if (!result.ok) {
         toast.error(result.error);
+        // The token is single-use — force a fresh challenge before a retry.
+        setCaptchaReset((n) => n + 1);
+        setCaptchaToken(null);
         return;
       }
       advance();
@@ -265,6 +283,8 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
             errors={errors}
             pending={createPending}
             stepIndex={currentIndex}
+            onCaptcha={setCaptchaToken}
+            captchaReset={captchaReset}
           />
         );
       case "about":
@@ -524,12 +544,16 @@ function StepAccount({
   errors,
   pending,
   stepIndex,
+  onCaptcha,
+  captchaReset = 0,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
   errors: Record<string, string>;
   pending: boolean;
   stepIndex: number;
+  onCaptcha?: (token: string | null) => void;
+  captchaReset?: number;
 }) {
   const brandName = useBrandName();
   return (
@@ -619,6 +643,7 @@ function StepAccount({
               )}
             </button>
           </div>
+          <PasswordStrengthMeter password={data.password} email={data.email} />
         </FormField>
 
         <div>
@@ -652,6 +677,10 @@ function StepAccount({
             <div className="mt-1.5 text-xs text-red-600">{errors.terms}</div>
           ) : null}
         </div>
+
+        {onCaptcha ? (
+          <TurnstileWidget onVerify={onCaptcha} resetSignal={captchaReset} />
+        ) : null}
       </div>
     </div>
   );

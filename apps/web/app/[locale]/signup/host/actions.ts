@@ -1,7 +1,14 @@
 "use server";
 
+import { headers } from "next/headers";
+
 import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
+import { TERMS_VERSION } from "@/lib/auth/consent";
+import { isBreachedPassword } from "@/lib/auth/password";
+import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
+import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
+import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -20,14 +27,17 @@ export type ActionResult<T = undefined> =
 
 // ─── Step 1: create the auth user + sign them in ─────────────────
 //
-// Uses the admin client to create with email_confirm = true so the founder
-// can smoke-test the whole onboarding without needing to click a verification
-// email. When real-user email verification is required later, flip this to
-// regular `supabase.auth.signUp` and require the user to come back via the
-// confirm link.
+// Soft email verification (see lib/auth/verifyEmail.ts): we create the user
+// UNCONFIRMED via the admin `generateLink({ type: 'signup' })` call — which
+// both provisions the account (with password) and hands back a confirmation
+// token — then email that token via our Resend pipeline and sign the user in
+// so they can finish onboarding. A persistent in-app banner nags until they
+// click the link. This is hardened with an IP rate limit, Turnstile, and a
+// breached-password check before any account is created.
 
 export async function createAccountAction(
   input: AccountInput,
+  captchaToken?: string | null,
 ): Promise<ActionResult> {
   const parsed = accountSchema.safeParse(input);
   if (!parsed.success) {
@@ -37,19 +47,56 @@ export async function createAccountAction(
   const d = parsed.data;
   const full_name = combineName(d.first_name, d.surname);
 
+  const hdrs = headers();
+  const origin = hdrs.get("origin") ?? "";
+  const ip = clientIpFromHeaders(hdrs);
+
+  // 1. Rate limit — the admin create path bypasses Supabase's per-IP throttle.
+  const limit = await checkSignupRateLimit(ip);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "Too many signups from this network. Please try again later.",
+    };
+  }
+
+  // 2. Bot check (inert until TURNSTILE_SECRET_KEY is set).
+  const captcha = await verifyTurnstile(captchaToken, ip);
+  if (!captcha.ok) {
+    return {
+      ok: false,
+      error: "Couldn't verify you're human. Refresh and try again.",
+    };
+  }
+
+  // 3. Reject known-breached passwords (best-effort; never blocks on outage).
+  if (await isBreachedPassword(d.password)) {
+    return {
+      ok: false,
+      error:
+        "That password has appeared in a data breach. Please choose a different one.",
+    };
+  }
+
   const admin = createAdminClient();
 
-  // Create user with email pre-confirmed.
-  const { error: createErr } = await admin.auth.admin.createUser({
-    email: d.email,
-    password: d.password,
-    email_confirm: true,
-    user_metadata: { full_name },
-  });
-  if (createErr) {
+  // 4. Provision the user. GoTrue auto-confirms on this project, so we create
+  //    them confirmed (guaranteed password sign-in for the wizard) and track
+  //    "has proven they own the inbox" ourselves via email_verified_at below.
+  const { data: created, error: createErr } = await admin.auth.admin.createUser(
+    {
+      email: d.email,
+      password: d.password,
+      email_confirm: true,
+      user_metadata: { full_name },
+    },
+  );
+  if (createErr || !created?.user) {
+    const msg = createErr?.message?.toLowerCase() ?? "";
     if (
-      createErr.message.toLowerCase().includes("already") ||
-      createErr.message.toLowerCase().includes("registered")
+      msg.includes("already") ||
+      msg.includes("registered") ||
+      msg.includes("exists")
     ) {
       return {
         ok: false,
@@ -59,8 +106,9 @@ export async function createAccountAction(
     }
     return { ok: false, error: "Could not create your account. Try again." };
   }
+  const newUserId = created.user.id;
 
-  // Sign them in immediately so the wizard can continue under their session.
+  // 5. Sign them in so the wizard can continue under their session.
   const supabase = createServerClient();
   const { error: signInErr } = await supabase.auth.signInWithPassword({
     email: d.email,
@@ -73,12 +121,29 @@ export async function createAccountAction(
     };
   }
 
+  // 6. Record legal consent (the wizard forced the Terms + Privacy checkbox).
+  //    email_verified_at stays null → the soft "confirm your email" banner shows
+  //    until they click the link in step 7's email.
+  await admin
+    .from("user_profiles")
+    .update({
+      full_name,
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: TERMS_VERSION,
+    })
+    .eq("id", newUserId);
+
+  // 7. Send the confirmation email (best-effort — inert without a Resend key).
+  await sendVerificationEmail({
+    userId: newUserId,
+    email: d.email,
+    origin,
+    firstName: d.first_name,
+  });
+
   // Attribute this signup to a referring affiliate if a vilo_ref cookie is set.
   // Keyed on the user — the host row is created later in finalizeOnboardingAction.
-  const {
-    data: { user: newUser },
-  } = await supabase.auth.getUser();
-  if (newUser) await bindAffiliateReferral(newUser.id);
+  await bindAffiliateReferral(newUserId);
 
   return { ok: true };
 }

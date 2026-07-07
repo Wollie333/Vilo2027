@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { passwordSchema } from "@/lib/auth/password";
+
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),
   password: z.string().min(1, "Enter your password."),
@@ -14,10 +16,7 @@ export const registerSchema = z
       .trim()
       .toLowerCase()
       .email("Enter a valid email address."),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters.")
-      .max(72, "Password is too long."),
+    password: passwordSchema,
     confirmPassword: z.string(),
     acceptTerms: z.boolean().refine((value) => value === true, {
       message: "You must accept the terms to continue.",
@@ -38,10 +37,7 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z
   .object({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters.")
-      .max(72, "Password is too long."),
+    password: passwordSchema,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {

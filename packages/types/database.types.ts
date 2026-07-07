@@ -8615,6 +8615,24 @@ export type Database = {
           },
         ]
       }
+      signup_rate_limits: {
+        Row: {
+          created_at: string
+          id: string
+          ip_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_hash?: string
+        }
+        Relationships: []
+      }
       site_themes: {
         Row: {
           base: Json
@@ -9343,6 +9361,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           email: string | null
+          email_verified_at: string | null
           full_name: string | null
           id: string
           id_verified_at: string | null
@@ -9354,6 +9373,8 @@ export type Database = {
           phone_verified_at: string | null
           preferred_cities: string[]
           role: string
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string
         }
         Insert: {
@@ -9363,6 +9384,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           email?: string | null
+          email_verified_at?: string | null
           full_name?: string | null
           id: string
           id_verified_at?: string | null
@@ -9374,6 +9396,8 @@ export type Database = {
           phone_verified_at?: string | null
           preferred_cities?: string[]
           role?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Update: {
@@ -9383,6 +9407,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           email?: string | null
+          email_verified_at?: string | null
           full_name?: string | null
           id?: string
           id_verified_at?: string | null
@@ -9394,6 +9419,8 @@ export type Database = {
           phone_verified_at?: string | null
           preferred_cities?: string[]
           role?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Relationships: []

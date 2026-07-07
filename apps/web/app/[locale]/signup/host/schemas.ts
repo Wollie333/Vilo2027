@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { passwordSchema } from "@/lib/auth/password";
 import { nameFields } from "@/lib/profile/name";
 
 // ─── Display data ─────────────────────────────────────────────
@@ -117,10 +118,7 @@ export const PLANS = [
 export const accountSchema = z.object({
   ...nameFields,
   email: z.string().trim().toLowerCase().email("Enter a valid email."),
-  password: z
-    .string()
-    .min(8, "Min 8 characters.")
-    .max(72, "Password is too long."),
+  password: passwordSchema,
   terms: z.boolean().refine((v) => v === true, {
     message: "Please accept the terms to continue.",
   }),

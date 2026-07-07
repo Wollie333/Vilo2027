@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/app/_components/AppHeader";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
+import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import { AvatarMenu } from "@/app/[locale]/dashboard/_components/AvatarMenu";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -46,7 +47,7 @@ export default async function PortalLayout({
       .maybeSingle(),
     supabase
       .from("user_profiles")
-      .select("full_name, avatar_url, role")
+      .select("full_name, avatar_url, role, email_verified_at")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
@@ -129,6 +130,12 @@ export default async function PortalLayout({
           hostBlurb={hostBlurb}
           unreadNotifications={unreadNotifications ?? 0}
         />
+      }
+      banner={
+        !(profile as { email_verified_at?: string | null } | null)
+          ?.email_verified_at ? (
+          <VerifyEmailBanner email={user.email ?? ""} />
+        ) : undefined
       }
     >
       {children}

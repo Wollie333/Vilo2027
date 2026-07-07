@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
+import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -42,7 +43,7 @@ export default async function DashboardLayout({
         .maybeSingle(),
       supabase
         .from("user_profiles")
-        .select("role, avatar_url")
+        .select("role, avatar_url, email_verified_at")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -173,7 +174,15 @@ export default async function DashboardLayout({
             canLookingFor={canLookingFor}
           />
         }
-        banner={<BroadcastBanner />}
+        banner={
+          <>
+            {!(profileRow as { email_verified_at?: string | null } | null)
+              ?.email_verified_at ? (
+              <VerifyEmailBanner email={user.email ?? ""} />
+            ) : null}
+            <BroadcastBanner />
+          </>
+        }
         bottomNav={<MobileBottomNav canLookingFor={canLookingFor} />}
       >
         {children}

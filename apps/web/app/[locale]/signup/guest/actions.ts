@@ -1,9 +1,15 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
+import { TERMS_VERSION } from "@/lib/auth/consent";
+import { isBreachedPassword } from "@/lib/auth/password";
+import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
+import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
 import { combineName } from "@/lib/profile/name";
+import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -19,10 +25,12 @@ export type ActionResult<T = undefined> =
   | { ok: false; error: string };
 
 // ─── Step 1: create the auth user + sign them in ─────────────────
-// Same shape as the host equivalent but never inserts a hosts row.
+// Same shape + hardening as the host equivalent but never inserts a hosts row.
+// See host/actions.ts createAccountAction for the soft-verification rationale.
 
 export async function createGuestAccountAction(
   input: AccountInput,
+  captchaToken?: string | null,
 ): Promise<ActionResult> {
   const parsed = accountSchema.safeParse(input);
   if (!parsed.success) {
@@ -32,17 +40,55 @@ export async function createGuestAccountAction(
   const d = parsed.data;
   const full_name = combineName(d.first_name, d.surname);
 
+  const hdrs = headers();
+  const origin = hdrs.get("origin") ?? "";
+  const ip = clientIpFromHeaders(hdrs);
+
+  // 1. Rate limit — the admin create path bypasses Supabase's per-IP throttle.
+  const limit = await checkSignupRateLimit(ip);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: "Too many signups from this network. Please try again later.",
+    };
+  }
+
+  // 2. Bot check (inert until TURNSTILE_SECRET_KEY is set).
+  const captcha = await verifyTurnstile(captchaToken, ip);
+  if (!captcha.ok) {
+    return {
+      ok: false,
+      error: "Couldn't verify you're human. Refresh and try again.",
+    };
+  }
+
+  // 3. Reject known-breached passwords (best-effort; never blocks on outage).
+  if (await isBreachedPassword(d.password)) {
+    return {
+      ok: false,
+      error:
+        "That password has appeared in a data breach. Please choose a different one.",
+    };
+  }
+
   const admin = createAdminClient();
-  const { error: createErr } = await admin.auth.admin.createUser({
-    email: d.email,
-    password: d.password,
-    email_confirm: true,
-    user_metadata: { full_name },
-  });
-  if (createErr) {
+
+  // 4. Provision the user (confirmed for guaranteed sign-in; inbox ownership is
+  //    tracked via email_verified_at — see host/actions.ts).
+  const { data: created, error: createErr } = await admin.auth.admin.createUser(
+    {
+      email: d.email,
+      password: d.password,
+      email_confirm: true,
+      user_metadata: { full_name },
+    },
+  );
+  if (createErr || !created?.user) {
+    const msg = createErr?.message?.toLowerCase() ?? "";
     if (
-      createErr.message.toLowerCase().includes("already") ||
-      createErr.message.toLowerCase().includes("registered")
+      msg.includes("already") ||
+      msg.includes("registered") ||
+      msg.includes("exists")
     ) {
       return {
         ok: false,
@@ -52,7 +98,9 @@ export async function createGuestAccountAction(
     }
     return { ok: false, error: "Could not create your account. Try again." };
   }
+  const newUserId = created.user.id;
 
+  // 5. Sign them in so the wizard can continue.
   const supabase = createServerClient();
   const { error: signInErr } = await supabase.auth.signInWithPassword({
     email: d.email,
@@ -65,20 +113,29 @@ export async function createGuestAccountAction(
     };
   }
 
-  // Seed user_profiles with the name so /portal greets them correctly even if
-  // they bail before the finalize step. The handle_new_user trigger should
-  // have already inserted the row; we just write the name.
-  const {
-    data: { user: newUser },
-  } = await supabase.auth.getUser();
-  if (newUser) {
-    await supabase
-      .from("user_profiles")
-      .update({ full_name, role: "guest" })
-      .eq("id", newUser.id);
-    // Attribute this signup to a referring affiliate if a vilo_ref cookie is set.
-    await bindAffiliateReferral(newUser.id);
-  }
+  // 6. Seed the name + role + legal consent so /portal greets them even if they
+  //    bail before finalize. handle_new_user already inserted the profile row.
+  //    email_verified_at stays null → soft banner shows until they confirm.
+  await admin
+    .from("user_profiles")
+    .update({
+      full_name,
+      role: "guest",
+      terms_accepted_at: new Date().toISOString(),
+      terms_version: TERMS_VERSION,
+    })
+    .eq("id", newUserId);
+
+  // 7. Send the confirmation email (best-effort — inert without a Resend key).
+  await sendVerificationEmail({
+    userId: newUserId,
+    email: d.email,
+    origin,
+    firstName: d.first_name,
+  });
+
+  // Attribute this signup to a referring affiliate if a vilo_ref cookie is set.
+  await bindAffiliateReferral(newUserId);
 
   return { ok: true };
 }
