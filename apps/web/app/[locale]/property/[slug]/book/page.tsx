@@ -5,6 +5,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
+import { commerceParams } from "@/lib/analytics/pixel";
 import {
   getHostPaystack,
   getHostPaystackForBusiness,
@@ -409,16 +410,14 @@ export default async function BookingPage({
       <FirePixelEvent
         event="InitiateCheckout"
         consentRequired={false}
-        params={{
-          content_type: "product",
-          content_ids: [listing.id],
-          content_name: listing.name,
+        params={commerceParams({
+          contentIds: [listing.id],
+          contentName: listing.name,
           currency: listing.currency,
-          num_items: 1,
           ...(listing.base_price != null
             ? { value: Number(listing.base_price) }
             : {}),
-        }}
+        })}
       />
 
       <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">

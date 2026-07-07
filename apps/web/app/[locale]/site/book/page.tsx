@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
+import { commerceParams } from "@/lib/analytics/pixel";
 import { hostHasValidEft } from "@/lib/payments/eft";
 import { getHostPayPalForBusiness } from "@/lib/payments/host-paypal";
 import { getHostPaystackForBusiness } from "@/lib/payments/host-paystack";
@@ -492,18 +493,16 @@ export default async function SiteBookPage({
             // loads the pixel immediately when the host turned the gate off, and
             // only after accept when it's on).
             consentRequired={ctx.analytics?.cookieConsent?.enabled !== false}
-            params={{
-              content_type: "product",
-              content_ids: [property.id],
-              content_name: property.name,
+            params={commerceParams({
+              contentIds: [property.id],
+              contentName: property.name,
               currency: special?.currency ?? property.currency ?? "ZAR",
-              num_items: 1,
               ...(special?.total != null
                 ? { value: special.total }
                 : property.base_price != null
                   ? { value: Number(property.base_price) }
                   : {}),
-            }}
+            })}
           />
         ) : null}
         <BookingStyleOverlay node={bookingStyle} sectionType="booking_form">

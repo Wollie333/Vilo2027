@@ -60,7 +60,10 @@ export function firePurchase(purchase: PurchaseEvent | null | undefined): void {
     },
   });
 
-  // Meta Pixel — fires only when the admin-configured pixel is loaded.
+  // Meta Pixel — fires only when the admin-configured pixel is loaded. Sends the
+  // `contents` array (per-line id/quantity/price) Meta uses for dynamic ads +
+  // value optimisation, alongside content_ids. eventID = the transaction ref so
+  // a refresh (or a future CAPI server event) dedupes.
   if (typeof window.fbq === "function") {
     window.fbq(
       "track",
@@ -71,6 +74,11 @@ export function firePurchase(purchase: PurchaseEvent | null | undefined): void {
         content_type: "product",
         content_name: purchase.contentName,
         content_ids: purchase.contentIds,
+        contents: purchase.items.map((i) => ({
+          id: i.item_id,
+          quantity: i.quantity,
+          item_price: i.price,
+        })),
         num_items: purchase.numItems,
       },
       { eventID: purchase.transactionId },

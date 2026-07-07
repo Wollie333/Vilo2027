@@ -2,13 +2,14 @@
 
 import { Loader2, Lock, Tag } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 
 import {
   computeAddonSubtotal,
   defaultAddonQuantity,
   type PricingModel,
 } from "../../../dashboard/addons/schemas";
+import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
 import { formatMoney } from "@/lib/format";
 
 import { createCheckoutGuestAccountAction } from "../../../property/[slug]/book/actions";
@@ -26,6 +27,7 @@ export type SpecialAddonOption = {
 
 type Props = {
   specialId: string;
+  propertyId: string;
   slug: string;
   bookedVia: "platform" | "website";
   title: string;
@@ -109,6 +111,23 @@ export function SpecialBookingForm(props: Props) {
   const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
     methods[0] ?? "paystack",
   );
+  // Meta AddPaymentInfo — fires once on first payment-method pick. DIRECTORY
+  // (Wielo) checkout → reaches the Wielo pixel.
+  const apiFiredRef = useRef(false);
+  function selectMethod(m: "paystack" | "eft" | "paypal") {
+    setMethod(m);
+    if (apiFiredRef.current) return;
+    apiFiredRef.current = true;
+    firePixelEvent("AddPaymentInfo", {
+      ...commerceParams({
+        contentIds: [props.propertyId],
+        contentName: props.propertyName,
+        currency: props.currency,
+        ...(estimate.total > 0 ? { value: estimate.total } : {}),
+      }),
+      payment_method: m,
+    });
+  }
   const [ack, setAck] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
@@ -536,7 +555,7 @@ export function SpecialBookingForm(props: Props) {
                         type="radio"
                         name="method"
                         checked={method === m}
-                        onChange={() => setMethod(m)}
+                        onChange={() => selectMethod(m)}
                       />
                       {m === "paystack"
                         ? t("bkPayCard")

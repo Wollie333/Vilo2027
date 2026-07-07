@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
+import { commerceParams } from "@/lib/analytics/pixel";
 import {
   cancellationNote,
   getListingPolicySummary,
@@ -197,12 +198,10 @@ export default async function SpecialBookingPage({
       <FirePixelEvent
         event="InitiateCheckout"
         consentRequired={false}
-        params={{
-          content_type: "product",
-          content_ids: [property.id],
-          content_name: property.name,
+        params={commerceParams({
+          contentIds: [property.id],
+          contentName: property.name,
           currency: special.currency,
-          num_items: 1,
           ...(special.flat_total != null
             ? { value: Number(special.flat_total) }
             : special.per_night_price != null
@@ -210,11 +209,12 @@ export default async function SpecialBookingPage({
               : special.was_price != null
                 ? { value: Number(special.was_price) }
                 : {}),
-        }}
+        })}
       />
       <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
         <SpecialBookingForm
           specialId={special.id}
+          propertyId={property.id}
           slug={params.slug}
           bookedVia={bookedVia}
           title={special.title}

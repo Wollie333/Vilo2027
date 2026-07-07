@@ -27,11 +27,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { PolicyDialog } from "@/components/policy/PolicyDialog";
+import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
 import { formatMoney } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
@@ -385,6 +386,9 @@ export function BookingForm({
   const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
     hasPaystack ? "paystack" : hasPaypal ? "paypal" : "eft",
   );
+  // Meta AddPaymentInfo — fires once on the first payment-method pick. This is
+  // the DIRECTORY (Wielo) checkout, so it reaches the Wielo pixel.
+  const apiFiredRef = useRef(false);
 
   // Explicit acceptance of the cancellation policy + platform terms/privacy.
   // Required before the booking can be confirmed (recorded on the booking).
@@ -2073,7 +2077,21 @@ export function BookingForm({
             <button
               type="button"
               key={m.id}
-              onClick={() => setMethod(m.id)}
+              onClick={() => {
+                setMethod(m.id);
+                if (!apiFiredRef.current) {
+                  apiFiredRef.current = true;
+                  firePixelEvent("AddPaymentInfo", {
+                    ...commerceParams({
+                      contentIds: [listingId],
+                      contentName: listingName,
+                      currency,
+                      ...(total > 0 ? { value: total } : {}),
+                    }),
+                    payment_method: m.id,
+                  });
+                }
+              }}
               disabled={isPending}
               className={`flex w-full items-center gap-4 rounded-card border bg-white px-5 py-4 text-left transition ${
                 on

@@ -21,6 +21,8 @@ import { notFound } from "next/navigation";
 import { Money } from "@/components/currency/Money";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { FirePixelEvent } from "@/components/site/FirePixelEvent";
+import { commerceParams } from "@/lib/analytics/pixel";
 import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 import { nightsBetween } from "@/lib/pricing/engine";
@@ -336,6 +338,18 @@ export default async function SpecialDetailPage({
     <div className="bg-white text-brand-ink">
       <SpecialTracker specialId={special.id} />
       <SiteHeader />
+
+      {/* Meta ViewContent — DIRECTORY (Wielo) deal detail → Wielo pixel. */}
+      <FirePixelEvent
+        event="ViewContent"
+        consentRequired={false}
+        params={commerceParams({
+          contentIds: [property.id],
+          contentName: property.name,
+          currency: special.currency,
+          ...(amount != null ? { value: amount } : {}),
+        })}
+      />
 
       <main className="mx-auto max-w-[1180px] px-5 pb-28 pt-6 lg:px-8 lg:pb-14">
         {/* Breadcrumb + actions */}

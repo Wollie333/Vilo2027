@@ -1,50 +1,43 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
+import { firePixelEventWithRetry, newEventId } from "@/lib/analytics/pixel";
 import { useConsentGranted } from "@/lib/site/consent";
 
 /**
- * Fires a standard Meta Pixel event (e.g. Lead / Subscribe) + a GA4/GTM dataLayer
- * push, once consent is granted. Used by the per-page Events + conversion-goal
- * thank-you pages so each goal records its own event. POPIA: gated behind
- * cookie-consent (pass `consentRequired={false}` when the host disabled the gate,
- * else it waits for accept). No-ops when the pixel isn't loaded. `dataLayer` +
- * `fbq` are declared globally in lib/analytics/purchase.
+ * Fires a standard Meta Pixel event (ViewContent / InitiateCheckout / Lead /
+ * Subscribe …) + a GA4/GTM dataLayer push, ONCE, on page load. POPIA: gated
+ * behind cookie-consent (pass `consentRequired={false}` when the host disabled
+ * the gate, or on the Wielo app where the platform pixel isn't consent-gated).
+ * No-ops when the pixel isn't loaded; the fbq call retries for ~3s in case the
+ * pixel script is still loading (it loads async + only after consent).
+ *
+ * Fires exactly once per mount (a ref guards against StrictMode's double-invoke
+ * and any re-render), and carries an `eventID` for browser↔CAPI dedup — pass a
+ * stable `eventId` for refresh-safe events, else a per-mount id is generated.
  */
 export function FirePixelEvent({
   event,
   params,
   consentRequired = true,
+  eventId,
 }: {
   event: string;
   params?: Record<string, unknown>;
   consentRequired?: boolean;
+  /** Stable id for refresh-safe dedup; omit to generate one per mount. */
+  eventId?: string;
 }) {
   const granted = useConsentGranted(consentRequired);
+  const firedRef = useRef(false);
+  const idRef = useRef<string>();
+  if (!idRef.current) idRef.current = eventId ?? newEventId(event);
+
   useEffect(() => {
-    if (!event || !granted) return;
-    // GA4/GTM dataLayer push — immediate + reliable.
-    window.dataLayer = window.dataLayer ?? [];
-    window.dataLayer.push({
-      event: `vilo_${event.toLowerCase()}`,
-      ...(params ?? {}),
-    });
-    // The Meta pixel (fbq) loads only after cookie-consent + an async script, so
-    // it may not exist on mount. Fire as soon as it appears (poll ~3s), then stop.
-    const fire = () => {
-      if (typeof window.fbq === "function") {
-        window.fbq("track", event, params ?? {});
-        return true;
-      }
-      return false;
-    };
-    if (fire()) return;
-    let tries = 0;
-    const iv = window.setInterval(() => {
-      if (fire() || (tries += 1) > 30) window.clearInterval(iv);
-    }, 100);
-    return () => window.clearInterval(iv);
+    if (!event || !granted || firedRef.current) return;
+    firedRef.current = true;
+    firePixelEventWithRetry(event, params ?? {}, idRef.current);
   }, [event, params, granted]);
   return null;
 }

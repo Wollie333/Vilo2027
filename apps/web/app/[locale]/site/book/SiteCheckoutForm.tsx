@@ -3,11 +3,13 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
 
+import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
 import { nightsBetween } from "@/lib/pricing";
 
 import {
@@ -266,6 +268,25 @@ export function SiteCheckoutForm({
   const [method, setMethod] = useState<"paystack" | "eft" | "paypal">(
     cardAvailable ? "paystack" : paypalAvailable ? "paypal" : "eft",
   );
+
+  // Meta AddPaymentInfo — fires once, the first time the guest picks a payment
+  // method. On a host micro-site the only pixel loaded is the host's own, so
+  // this reaches the HOST's pixel (best-practice commerce params + eventID).
+  const apiFiredRef = useRef(false);
+  function selectMethod(m: "paystack" | "eft" | "paypal") {
+    setMethod(m);
+    if (apiFiredRef.current) return;
+    apiFiredRef.current = true;
+    firePixelEvent("AddPaymentInfo", {
+      ...commerceParams({
+        contentIds: [propertyId],
+        contentName: propertyName,
+        currency,
+        ...(quote?.total != null ? { value: quote.total } : {}),
+      }),
+      payment_method: m,
+    });
+  }
   const [ack, setAck] = useState(false);
   const [policyOpen, setPolicyOpen] = useState(false);
   const [tsToken, setTsToken] = useState<string | null>(null);
@@ -1257,7 +1278,7 @@ export function SiteCheckoutForm({
                 {cardAvailable ? (
                   <PayChoice
                     active={method === "paystack"}
-                    onClick={() => setMethod("paystack")}
+                    onClick={() => selectMethod("paystack")}
                     title="Pay by card"
                     sub="Secure card payment"
                   />
@@ -1265,7 +1286,7 @@ export function SiteCheckoutForm({
                 {paypalAvailable ? (
                   <PayChoice
                     active={method === "paypal"}
-                    onClick={() => setMethod("paypal")}
+                    onClick={() => selectMethod("paypal")}
                     title="PayPal"
                     sub="Pay in USD with PayPal"
                   />
@@ -1273,7 +1294,7 @@ export function SiteCheckoutForm({
                 {eftAvailable ? (
                   <PayChoice
                     active={method === "eft"}
-                    onClick={() => setMethod("eft")}
+                    onClick={() => selectMethod("eft")}
                     title="Bank transfer (EFT)"
                     sub="Pay by manual EFT"
                   />

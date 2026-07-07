@@ -14,6 +14,8 @@ import { getTranslations } from "next-intl/server";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { FirePixelEvent } from "@/components/site/FirePixelEvent";
+import { commerceParams } from "@/lib/analytics/pixel";
 import { ThingsToKnow } from "@/components/policy/ThingsToKnow";
 import { getBrandName } from "@/lib/brand";
 import {
@@ -521,6 +523,20 @@ export default async function ListingDetailPage({
   return (
     <div className="bg-white text-brand-ink">
       <SiteHeader />
+
+      {/* Meta ViewContent — DIRECTORY (Wielo) listing detail → Wielo pixel. */}
+      <FirePixelEvent
+        event="ViewContent"
+        consentRequired={false}
+        params={commerceParams({
+          contentIds: [listing.id],
+          contentName: listing.name,
+          currency: listing.currency,
+          ...(listing.base_price != null && Number(listing.base_price) > 0
+            ? { value: Number(listing.base_price) }
+            : {}),
+        })}
+      />
 
       <ListingHero
         country={listing.country}

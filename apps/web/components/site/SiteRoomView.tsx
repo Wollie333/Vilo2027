@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { commerceParams } from "@/lib/analytics/pixel";
 import {
   buildSitePreviewPages,
   loadSiteContext,
@@ -10,6 +11,7 @@ import {
 import { buildRoomJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 
+import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
 import { RoomBookingDock } from "./RoomBookingDock";
 import { RoomDockLayout } from "./RoomDockLayout";
@@ -83,6 +85,28 @@ export async function SiteRoomView({
     ? await buildSitePreviewPages(ctx)
     : undefined;
 
+  // Meta ViewContent — WEBSITE feature (host micro-site) → fires the HOST's own
+  // pixel (the Wielo platform pixel is suppressed on tenant renders). Gated on
+  // the host's own consent setting + skipped in preview.
+  const viewContentPropertyId = ctx.propertyIds.find((id): id is string =>
+    Boolean(id),
+  );
+  const viewContent =
+    !ctx.preview && viewContentPropertyId ? (
+      <FirePixelEvent
+        event="ViewContent"
+        consentRequired={ctx.analytics?.cookieConsent?.enabled !== false}
+        params={commerceParams({
+          contentIds: [viewContentPropertyId],
+          contentName: room.name ?? undefined,
+          currency: room.currency ?? "ZAR",
+          ...(room.price != null && Number(room.price) > 0
+            ? { value: Number(room.price) }
+            : {}),
+        })}
+      />
+    ) : null;
+
   // Builder V2: a PageDoc room-detail template renders through the ONE token
   // renderer inside the generic chrome (the intended cutover behaviour — bypasses
   // the bespoke per-theme room layers below). The active room is already injected
@@ -91,6 +115,7 @@ export async function SiteRoomView({
     return (
       <>
         <JsonLd graph={jsonLdGraph} />
+        {viewContent}
         <SiteThemeRoot theme={ctx.theme}>
           <SiteChrome
             brand={ctx.brand}
@@ -179,6 +204,7 @@ export async function SiteRoomView({
   return (
     <>
       <JsonLd graph={jsonLdGraph} />
+      {viewContent}
       <SiteThemeRoot theme={ctx.theme}>
         <SiteChrome
           brand={ctx.brand}
