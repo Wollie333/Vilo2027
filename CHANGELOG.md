@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-07 #10 — Platform tracking-IDs admin panel (GA4/GTM/TikTok/Google Ads).
+
+Platform Settings → "Analytics & other pixels": paste any tracking id and it loads
+site-wide on the Wielo app + directory, no redeploy (complements the Meta Pixel form).
+
+- Migration `20260707160000`: `platform_integrations` gains `ga4_measurement_id`,
+  `gtm_container_id`, `tiktok_pixel_id`, `google_ads_id` (presence = active; Meta keeps
+  its enabled toggle). Applied to cloud + types regenerated.
+- `TrackingIdsForm` + `saveTrackingIdsAction` (admin-audited, `platform.settings`) — touches
+  only its own columns so it never clobbers the Meta pixel fields.
+- Extracted the vendor script injectors (GA4/GoogleAds/GTM/TikTok/Meta) from `SiteMarketing`
+  into shared `components/analytics/trackers.ts`; new `PlatformMarketing` loader reuses them.
+- Root layout renders `PlatformMarketing` (replacing the single MetaPixel) via
+  `getPlatformTracking()` — STILL suppressed on host micro-sites (`x-wielo-site-host`) so
+  Wielo's pixels never fire on a host's own site. Deleted the unused MetaPixel component.
+
+Verified live: admin section renders + pre-fills; save persists (GA4 → G-SAVED9999) without
+touching the Meta/other fields; all four scripts (GA4 gtag/js, GTM gtm.js, TikTok events.js,
+Meta fbevents) inject on the Wielo app from the admin-set ids. type-check + lint + build green.
+
 ## 2026-07-07 #9 — Full Meta funnel (ViewContent/AddPaymentInfo) + best-practice params.
 
 Completed the Meta funnel across both surfaces (website = host pixel, directory = Wielo
