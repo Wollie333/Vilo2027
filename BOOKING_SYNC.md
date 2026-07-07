@@ -1,9 +1,43 @@
 # Vilo Platform — Booking Sync (iCal / External Calendar Integration)
 
 **Version:** 1.0
-**Last Updated:** May 2026
+**Last Updated:** 2026-07-07
 **MVP Phase:** Phase 2 (Weeks 4–6)
 **Companion Docs:** `supabase_database.md` Domain 2, `PHASE_PLAN.md`, `AGENT_RULES.md`
+
+---
+
+## ✅ MVP STATUS: READY (2026-07-07)
+
+Calendar sync is **MVP-ready and live in production.** Both directions built, tested
+end-to-end against the linked cloud DB + live prod endpoints, and switched on.
+
+**Proven (real evidence, not "should work"):**
+- **No double-booking guard** — imported blocks reject overlapping bookings; the
+  exclusive-checkout day stays bookable; imports are **non-destructive** (a real Wielo
+  booking / manual / quote_hold block is never overwritten). DB-guard suite 14/14 vs cloud.
+- **Import** — manual "Sync now" + hands-off `sync-ical-feeds` pg_cron (every 15 min) →
+  `/api/ical-sync-worker`. Prod worker verified live (wrong secret → 401, real → 200).
+- **Export** — token-gated `/ical/[property_id]/[token].ics`, generic SUMMARY only (no
+  guest PII / manual-block reason leak). Prod configured (bad token → 401).
+- **Per-room scoping** — feeds optionally block one room (`room_id`); default = whole
+  listing. `STATUS:CANCELLED` events dropped. Both proven live.
+- **SA channels** — SafariNow / NightsBridge (covers LekkeSlaap) / Afristay ride the iCal
+  engine as presets, with per-channel "where to find it" hints.
+
+**Prod switches (all set 2026-07-07):** `ICAL_TOKEN_SECRET` + `ICAL_SYNC_WORKER_SECRET`
+in Vercel; Vault secrets `ical_sync_worker_url` / `ical_sync_worker_secret`.
+
+**Only remaining real-world confirmation (usage, not a gap):** round-trip one *actual*
+OTA feed (Airbnb/Booking/NightsBridge) through prod and watch it auto-sync — every
+automated test used synthetic/`example.com` data.
+
+**Live smoke/tests:** `apps/web/lib/ical-sync.integration.test.ts` (DB guard, gate with
+`RUN_ICAL_INTEGRATION=1`); `scripts/smoke-ical-{import,export,cron}.mjs`.
+
+> **Deeper (post-MVP):** two-way NightsBridge **API** sync (rates/inventory/reservations)
+> is scoped in `docs/features/NIGHTSBRIDGE_API_INTEGRATION_PLAN.md` — gated on a
+> commercial partner agreement.
 
 ---
 

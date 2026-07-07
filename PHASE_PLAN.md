@@ -71,8 +71,15 @@ Pure React Email components — no runtime collisions with any other track.
 
 ---
 
-#### Track 3 — Booking Sync (iCal)
+#### Track 3 — Booking Sync (iCal) — ✅ MVP-READY (2026-07-07)
 Self-contained Phase 2 module. Carves one route out of Track 1's dashboard.
+
+> **Status: shipped + live in prod.** See BOOKING_SYNC.md "MVP STATUS: READY" for the
+> proof. As-built diverged from the original scaffold below: it's **Next.js routes, not
+> Deno Edge Functions** (`/api/ical-sync-worker` + `/ical/[property_id]/[token]` + the
+> `syncIcalFeedAction` server action sharing `lib/ical-sync.ts`), the cron is pg_cron →
+> the worker reading Vault, and the table is `ical_feeds` (`property_id`, optional
+> `room_id`). No `supabase/functions/ical-*` were built.
 
 **Owns:**
 - `supabase/functions/ical-import/`
