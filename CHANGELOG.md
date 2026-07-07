@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-07 #7 — Payments on EVERY booking surface + Wielo/host pixel isolation.
+
+Make-or-break follow-up: host payment methods must work on every surface, not just
+the website checkout. Extended PayPal (Paystack + EFT already worked) to all surfaces
+so a host connecting PayPal lights it up everywhere:
+
+- **Marketplace listing** (`property/[slug]/book` — the dashboard "direct booking link"
+  destination) + **deal** (`deal/[slug]/book`): PayPal option + method body in the
+  pickers, `getHostPayPalForBusiness` availability, deal schema enum.
+- **Shared return page** `booking/[id]/success`: now captures the PayPal `?token` order
+  (was Paystack `?reference` only) — covers property, deal + pay flows.
+- **Pay-existing** (`booking/[id]/pay`) + **shareable pay link** (`pay/[token]`, which
+  hardcoded Paystack): PayPal picker/button + `?token` capture. The `pay/[token]` action
+  now takes a method param.
+- All resolve PayPal identically (host's own PayPal app, USD via FX) → one connect,
+  everywhere.
+
+**Pixel ownership per surface** (founder requirement): host website thank-you fires the
+HOST's pixel (SiteMarketing), Wielo directory/marketplace success fires the WIELO
+platform pixel — both already wired. **Fixed a cross-fire**: the root-layout Wielo
+platform pixel was also rendering on host micro-site (tenant) routes, so a host-website
+purchase leaked onto Wielo's pixel. Now suppressed when the `x-wielo-site-host` header is
+present → host sites load ONLY the host pixel, app/marketplace ONLY Wielo's.
+
+Verified live: PayPal renders + selects on `property/[slug]/book` (screenshot) and
+`/pay/[token]`; pixel isolation proven by curl (Wielo id present 2× on the app page, 0×
+with the site header). type-check + lint + 244 vitest + production build all green.
+NOT verified E2E: a real PayPal approval+capture needs a host PayPal sandbox app's
+credentials (deal + `booking/[id]/pay` share the identical, type-checked wiring).
+
 ## 2026-07-07 #6 — Booking feature: close the last MVP gaps + wire PayPal.
 
 Audited the whole booking surface (guest checkout, host management, payments) — it was
