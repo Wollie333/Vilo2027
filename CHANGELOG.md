@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-07 — Calendar sync: end-to-end double-booking proof + export PII fix.
+
+Resumed the calendar-sync verification. Proved BOTH directions against the linked cloud
+DB / a live server, and fixed a real privacy leak found while doing so.
+
+- **Import guard (external OTA → Wielo), verified live:** the gated DB suite
+  (`RUN_ICAL_INTEGRATION=1`) imports the real Airbnb range via `import_ical_blocks`,
+  then asserts `listing_is_available_whole` REJECTS every booking overlapping the block
+  (full span + both straddling edges), the exclusive-DTEND checkout day stays bookable,
+  and a manual block on an imported night survives re-sync. This is the no-double-booking
+  guarantee — 14/14 green against cloud.
+- **Export leak FIX (`lib/ical.ts`):** `collapseConsecutiveDates` emitted a manual
+  block's free-text `reason` as the outbound `SUMMARY`, exposing host notes on the
+  public token-gated feed. It now always emits a generic `"Booked"` / `"Blocked"`
+  (room name kept — it's public listing data), per BOOKING_SYNC.md §"No guest data
+  exported" / §"Data Privacy". Updated the two tests that had encoded the old behaviour.
+- **New standing tests:** `lib/ical-sync.integration.test.ts` (feed fidelity for
+  Airbnb/Booking/VRBO/Google/Lodgify + export round-trip + HMAC token + gated DB guard)
+  and `scripts/smoke-ical-export.mjs` (live export smoke — companion to
+  `smoke-ical-import.mjs`; 200/text-calendar, blocked night present, no PII leak,
+  forged token → 401). Both pass live.
+- Full ical suite 37/37 (incl. DB guard); tsc + lint clean; live export
+  `✅ EXPORT LIVE CHECKS PASSED`.
+- **Not done (ops, unchanged):** no 15-min auto-sync cron — import is still manual
+  ("Sync now" / on-add). `ICAL_TOKEN_SECRET` must be set in Vercel for prod export feeds.
+
 ## 2026-07-06 #13 — Mobile "More" opens the full page directory.
 
 On phones/tablets the bottom-nav "More" tab just linked to Settings — a host couldn't

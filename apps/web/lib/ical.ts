@@ -158,9 +158,12 @@ export function collapseConsecutiveDates(
       const end = new Date(`${runEnd.date}T00:00:00Z`);
       end.setUTCDate(end.getUTCDate() + 1);
       const endIso = end.toISOString().slice(0, 10);
-      const baseSummary = runStart.booking_id
-        ? "Booked"
-        : runStart.reason || "Blocked";
+      // Outbound SUMMARY must be GENERIC — never echo the manual block's
+      // free-text `reason` onto this public, token-gated feed. A host reason is
+      // untrusted free text (could be a guest name, phone number, or private
+      // note) and BOOKING_SYNC.md §"No guest data exported" / §"Data Privacy"
+      // mandates a generic summary. `reason` is intentionally unused here.
+      const baseSummary = runStart.booking_id ? "Booked" : "Blocked";
       const summary =
         roomKey.length > 0 ? `${baseSummary}: ${roomKey}` : baseSummary;
       out.push({

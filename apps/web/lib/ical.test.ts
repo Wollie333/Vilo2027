@@ -110,7 +110,8 @@ describe("collapseConsecutiveDates", () => {
       { date: "2099-06-14", booking_id: null, reason: "Maintenance" },
     ]);
     expect(out).toHaveLength(2);
-    expect(out[0].summary).toBe("Maintenance");
+    // Manual-block reason is never exported — the summary is generic "Blocked".
+    expect(out[0].summary).toBe("Blocked");
   });
 
   it("splits when the kind changes (booking vs manual)", () => {
