@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-07 #8 — InitiateCheckout event on every checkout, right pixel per owner.
+
+Wired the Meta `InitiateCheckout` standard event onto all three checkout entry points,
+firing the correct pixel per the ownership boundary (website feature = host pixel,
+directory listing = Wielo pixel):
+
+- `site/book` (host micro-site) → host pixel (Wielo already suppressed on tenant renders).
+  Gated on `!preview` AND the host's own `analytics.cookieConsent.enabled` so it fires
+  under the exact condition their pixel loads — a consent-gate-OFF host was otherwise
+  loading the pixel but never firing the event (SiteMarketing sets consent state without
+  writing the localStorage flag the default gate reads).
+- `property/[slug]/book` + `deal/[slug]/book` (directory) → Wielo pixel, not consent-gated
+  (matches the Wielo pixel's PageView/Purchase). Deal sends its known price as `value`.
+- All send `content_ids`(=listing id)/`content_name`/`currency`/`value`/`num_items` so
+  InitiateCheckout → Purchase share `content_ids` for funnel attribution.
+
+Verified live: directory checkout fires `facebook.com/tr?id=<wielo>&ev=InitiateCheckout`
+with the right params (network capture). Host-side uses identical preview+consent-gated
+wiring; fires on live tenant renders (localhost `?site=` is always preview). Dev
+double-fire = React StrictMode (prod fires once). type-check + lint + 244 vitest + build green.
+
 ## 2026-07-07 #7 — Payments on EVERY booking surface + Wielo/host pixel isolation.
 
 Make-or-break follow-up: host payment methods must work on every surface, not just
