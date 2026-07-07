@@ -408,19 +408,53 @@ export function BookingsBoard({
   const [openId, setOpenId] = useState<string | null>(null);
   const compact = density === "compact";
 
-  useEffect(() => setPage(1), [tab, sort]);
+  // Listing + channel filters (were static chips). "all" = no filter.
+  const [listingFilter, setListingFilter] = useState<string>("all");
+  const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [listingOpen, setListingOpen] = useState(false);
+  const [channelOpen, setChannelOpen] = useState(false);
+
+  useEffect(() => setPage(1), [tab, sort, listingFilter, channelFilter]);
+
+  // Distinct listings + channels present in the loaded rows, for the dropdowns.
+  // Channels are keyed by their display name — channelMeta collapses
+  // channel+origin into one label, so the filter matches exactly what the row
+  // badge shows.
+  const listingOptions = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of rows) if (r.listingName) s.add(r.listingName);
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+  const channelOptions = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of rows) s.add(channelMeta(r.channel, r.origin).name);
+    return Array.from(s).sort((a, b) => a.localeCompare(b));
+  }, [rows]);
+
+  // Apply the listing + channel filters first; tab counts and the table both
+  // derive from this base so the badges reflect the active filters.
+  const base = useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          (listingFilter === "all" || r.listingName === listingFilter) &&
+          (channelFilter === "all" ||
+            channelMeta(r.channel, r.origin).name === channelFilter),
+      ),
+    [rows, listingFilter, channelFilter],
+  );
 
   const tabCounts = useMemo(() => {
     const c = {} as Record<TabKey, number>;
     for (const t of TABS) c[t.key] = 0;
-    for (const r of rows)
+    for (const r of base)
       for (const t of TABS) if (matchesTab(r, t.key, today)) c[t.key] += 1;
     return c;
-  }, [rows, today]);
+  }, [base, today]);
 
   const filtered = useMemo(
-    () => rows.filter((r) => matchesTab(r, tab, today)),
-    [rows, tab, today],
+    () => base.filter((r) => matchesTab(r, tab, today)),
+    [base, tab, today],
   );
 
   // Sort (group mode orders by date bucket then check-in).
@@ -590,13 +624,110 @@ export function BookingsBoard({
 
         {/* filter row */}
         <div className="flex flex-wrap items-center gap-2 border-b border-brand-line bg-[#FBFDFC] px-4 py-2.5">
-          <span className="inline-flex h-9 items-center gap-1.5 rounded-[9px] border border-brand-primary bg-brand-light px-3 text-[12.5px] font-medium text-brand-secondary">
-            <HomeIcon className="h-3.5 w-3.5" /> All{" "}
-            {listingCount > 0 ? listingCount : ""} listings
-          </span>
-          <span className="inline-flex h-9 items-center gap-1.5 rounded-[9px] border border-brand-line bg-white px-3 text-[12.5px] font-medium text-brand-mute">
-            <GitBranch className="h-3.5 w-3.5" /> All channels
-          </span>
+          <div className="relative">
+            <button
+              onClick={() => setListingOpen((v) => !v)}
+              onBlur={() => setTimeout(() => setListingOpen(false), 150)}
+              className={`inline-flex h-9 items-center gap-1.5 rounded-[9px] border px-3 text-[12.5px] font-medium ${
+                listingFilter === "all"
+                  ? "border-brand-line bg-white text-brand-mute hover:bg-brand-light"
+                  : "border-brand-primary bg-brand-light text-brand-secondary"
+              }`}
+            >
+              <HomeIcon className="h-3.5 w-3.5" />
+              {listingFilter === "all"
+                ? `All ${listingCount > 0 ? listingCount : ""} listings`
+                : listingFilter}
+            </button>
+            {listingOpen ? (
+              <div className="absolute left-0 top-[calc(100%+6px)] z-30 max-h-[280px] min-w-[220px] overflow-y-auto rounded-xl border border-brand-line bg-white p-1.5 shadow-lift">
+                <button
+                  onMouseDown={() => setListingFilter("all")}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] ${
+                    listingFilter === "all"
+                      ? "font-bold text-brand-secondary"
+                      : "font-medium text-brand-ink hover:bg-brand-light"
+                  }`}
+                >
+                  <HomeIcon className="h-4 w-4 text-brand-mute" />
+                  All listings
+                  {listingFilter === "all" ? (
+                    <Check className="ml-auto h-4 w-4 text-brand-primary" />
+                  ) : null}
+                </button>
+                {listingOptions.map((name) => {
+                  const on = listingFilter === name;
+                  return (
+                    <button
+                      key={name}
+                      onMouseDown={() => setListingFilter(name)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] ${
+                        on
+                          ? "font-bold text-brand-secondary"
+                          : "font-medium text-brand-ink hover:bg-brand-light"
+                      }`}
+                    >
+                      <span className="truncate">{name}</span>
+                      {on ? (
+                        <Check className="ml-auto h-4 w-4 shrink-0 text-brand-primary" />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setChannelOpen((v) => !v)}
+              onBlur={() => setTimeout(() => setChannelOpen(false), 150)}
+              className={`inline-flex h-9 items-center gap-1.5 rounded-[9px] border px-3 text-[12.5px] font-medium ${
+                channelFilter === "all"
+                  ? "border-brand-line bg-white text-brand-mute hover:bg-brand-light"
+                  : "border-brand-primary bg-brand-light text-brand-secondary"
+              }`}
+            >
+              <GitBranch className="h-3.5 w-3.5" />
+              {channelFilter === "all" ? "All channels" : channelFilter}
+            </button>
+            {channelOpen ? (
+              <div className="absolute left-0 top-[calc(100%+6px)] z-30 max-h-[280px] min-w-[200px] overflow-y-auto rounded-xl border border-brand-line bg-white p-1.5 shadow-lift">
+                <button
+                  onMouseDown={() => setChannelFilter("all")}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] ${
+                    channelFilter === "all"
+                      ? "font-bold text-brand-secondary"
+                      : "font-medium text-brand-ink hover:bg-brand-light"
+                  }`}
+                >
+                  <GitBranch className="h-4 w-4 text-brand-mute" />
+                  All channels
+                  {channelFilter === "all" ? (
+                    <Check className="ml-auto h-4 w-4 text-brand-primary" />
+                  ) : null}
+                </button>
+                {channelOptions.map((name) => {
+                  const on = channelFilter === name;
+                  return (
+                    <button
+                      key={name}
+                      onMouseDown={() => setChannelFilter(name)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] ${
+                        on
+                          ? "font-bold text-brand-secondary"
+                          : "font-medium text-brand-ink hover:bg-brand-light"
+                      }`}
+                    >
+                      <span className="truncate">{name}</span>
+                      {on ? (
+                        <Check className="ml-auto h-4 w-4 shrink-0 text-brand-primary" />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
 
           <div className="ml-auto flex items-center gap-2">
             <div className="inline-flex items-center rounded-[9px] border border-brand-line bg-white p-0.5">

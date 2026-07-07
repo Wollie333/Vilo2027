@@ -40,7 +40,7 @@ type Transition = {
 };
 
 const TRANSITIONS: Record<
-  "confirm" | "decline" | "cancel" | "checkIn" | "checkOut",
+  "confirm" | "decline" | "cancel" | "checkIn" | "checkOut" | "noShow",
   Transition
 > = {
   confirm: {
@@ -67,6 +67,13 @@ const TRANSITIONS: Record<
     from: ["checked_in"] as const,
     to: "completed",
     setField: { checked_out_at: "now" },
+  },
+  // No-show: a confirmed guest never arrived. The dates stay blocked (the stay
+  // period was reserved and the host may retain payment per policy — no calendar
+  // release, no auto-refund), and the guest is not notified.
+  noShow: {
+    from: ["confirmed"] as const,
+    to: "no_show",
   },
 };
 
@@ -210,6 +217,9 @@ export async function checkInBookingAction(bookingId: string) {
 }
 export async function checkOutBookingAction(bookingId: string) {
   return applyTransition(bookingId, "checkOut");
+}
+export async function markNoShowBookingAction(bookingId: string) {
+  return applyTransition(bookingId, "noShow");
 }
 
 // Sets the guest-facing welcome note on a booking (bookings.host_message),

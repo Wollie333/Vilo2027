@@ -38,10 +38,13 @@ export const createBookingSchema = z
     guest_email: z.string().trim().email().max(160).optional(),
     guest_phone: z.string().trim().max(40).optional(),
     special_requests: z.string().trim().max(1000).optional(),
-    // Optional party manifest — adding party members is optional, but each named
-    // guest needs a name AND email so they become their own contactable guest
-    // record (host_contacts is deduped by email). Phone stays optional. The
-    // client drops fully-empty rows before submit; partial rows are rejected.
+    // Optional party manifest — adding party members is optional, and each row
+    // needs only a name (matches the "Email (optional)" UI). If an email IS
+    // given it must be valid; a named member WITH an email becomes their own
+    // contactable guest record (deduped by email), while an emailless member is
+    // stored on the booking but skipped by party materialisation
+    // (_materialize_booking_party CONTINUEs on a blank email). Phone stays
+    // optional. The client drops fully-empty rows before submit.
     additional_guests: z
       .array(
         z.object({
@@ -49,8 +52,10 @@ export const createBookingSchema = z
           email: z
             .string()
             .trim()
-            .email("Each guest needs a valid email.")
-            .max(160),
+            .email("Enter a valid email or leave it blank.")
+            .max(160)
+            .optional()
+            .or(z.literal("")),
           phone: z.string().trim().max(40).optional().or(z.literal("")),
         }),
       )

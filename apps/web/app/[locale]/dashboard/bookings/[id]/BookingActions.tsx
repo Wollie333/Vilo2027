@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, DoorClosed, DoorOpen, X } from "lucide-react";
+import { Check, DoorClosed, DoorOpen, UserX, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -14,6 +14,7 @@ import {
   checkOutBookingAction,
   confirmBookingAction,
   declineBookingAction,
+  markNoShowBookingAction,
   previewCancelRefundAction,
 } from "../actions";
 
@@ -42,7 +43,7 @@ export function BookingActions({
   );
 
   function run(
-    kind: "confirm" | "decline" | "cancel" | "checkIn" | "checkOut",
+    kind: "confirm" | "decline" | "cancel" | "checkIn" | "checkOut" | "noShow",
   ) {
     start(async () => {
       const map = {
@@ -51,6 +52,7 @@ export function BookingActions({
         cancel: cancelBookingAction,
         checkIn: checkInBookingAction,
         checkOut: checkOutBookingAction,
+        noShow: markNoShowBookingAction,
       } as const;
       const result = await map[kind](bookingId);
       if (result.ok) {
@@ -60,6 +62,7 @@ export function BookingActions({
           cancel: "Booking cancelled",
           checkIn: "Guest checked in",
           checkOut: "Guest checked out",
+          noShow: "Marked as no-show",
         }[kind];
         toast.success(msg);
       } else {
@@ -114,6 +117,26 @@ export function BookingActions({
         >
           <DoorOpen className="h-4 w-4" />
           Mark check-in
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={async () => {
+            const ok = await modal.destructive({
+              title: "Mark this booking as a no-show?",
+              description:
+                "Use this when the guest never arrived. The dates stay blocked and no automatic refund is issued — settle any refund via the guest's policy if needed.",
+              confirmLabel: "Mark no-show",
+            });
+            if (ok) {
+              run("noShow");
+            }
+          }}
+          disabled={pending}
+          className="gap-1.5"
+        >
+          <UserX className="h-4 w-4" />
+          No-show
         </Button>
         <Button
           type="button"
