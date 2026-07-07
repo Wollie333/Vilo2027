@@ -62,6 +62,7 @@ type WizardData = {
   fullName: string;
   email: string;
   password: string;
+  confirmPassword: string;
   showPassword: boolean;
   terms: boolean;
   phone: string;
@@ -82,6 +83,7 @@ function initialData(prefilledEmail: string | null): WizardData {
     fullName: "",
     email: prefilledEmail ?? "",
     password: "",
+    confirmPassword: "",
     showPassword: false,
     terms: false,
     phone: "",
@@ -198,6 +200,10 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
     });
     if (!parsed.success) {
       setErrors(zodIssuesToFieldErrors(parsed.error.issues));
+      return;
+    }
+    if (data.confirmPassword !== data.password) {
+      setErrors({ confirmPassword: "Passwords do not match." });
       return;
     }
     if (turnstileEnabled() && !captchaToken) {
@@ -644,6 +650,17 @@ function StepAccount({
             </button>
           </div>
           <PasswordStrengthMeter password={data.password} email={data.email} />
+        </FormField>
+
+        <FormField label="Confirm password" error={errors.confirmPassword}>
+          <TextInput
+            type={data.showPassword ? "text" : "password"}
+            value={data.confirmPassword}
+            onChange={(e) => patch({ confirmPassword: e.target.value })}
+            placeholder="Re-enter your password"
+            disabled={pending}
+            autoComplete="new-password"
+          />
         </FormField>
 
         <div>

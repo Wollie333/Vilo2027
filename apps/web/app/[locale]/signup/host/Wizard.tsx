@@ -76,6 +76,7 @@ type WizardData = {
   fullName: string;
   email: string;
   password: string;
+  confirmPassword: string;
   showPassword: boolean;
   terms: boolean;
   // about
@@ -129,6 +130,7 @@ function initialData(prefilled: Prefilled): WizardData {
     fullName: prefilled.fullName ?? "",
     email: prefilled.email ?? "",
     password: "",
+    confirmPassword: "",
     showPassword: false,
     terms: prefilled.email !== null, // returning user → terms already accepted at first signup
     phone: splitDialCode(prefilled.phone).national,
@@ -351,6 +353,10 @@ export function Wizard({
     });
     if (!parsed.success) {
       setErrors(zodIssuesToFieldErrors(parsed.error.issues));
+      return;
+    }
+    if (data.confirmPassword !== data.password) {
+      setErrors({ confirmPassword: "Passwords do not match." });
       return;
     }
     if (turnstileEnabled() && !captchaToken) {
@@ -847,9 +853,6 @@ function StepAccount({
   captchaReset?: number;
 }) {
   const brandName = useBrandName();
-  function notifyOAuthSoon() {
-    toast.info("Email signup is the only option during the MVP build.");
-  }
   return (
     <div className="wielo-step-enter">
       <StepHeading
@@ -859,59 +862,6 @@ function StepAccount({
       />
 
       <div className="mt-7 space-y-5">
-        {/* OAuth — visual only during MVP build */}
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={notifyOAuthSoon}
-            disabled={pending}
-            className="inline-flex items-center justify-center gap-2 rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-light/60 disabled:opacity-60"
-          >
-            <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden>
-              <path
-                fill="#FFC107"
-                d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"
-              />
-              <path
-                fill="#FF3D00"
-                d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 7.1 29.3 5 24 5 16.3 5 9.7 9.3 6.3 14.7z"
-              />
-              <path
-                fill="#4CAF50"
-                d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.4 26.7 36 24 36c-5.3 0-9.7-3.5-11.3-8.4l-6.6 5.1C9.6 38.6 16.2 44 24 44z"
-              />
-              <path
-                fill="#1976D2"
-                d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.1 5.6l6.2 5.2C40.5 35.9 44 30.5 44 24c0-1.2-.1-2.3-.4-3.5z"
-              />
-            </svg>
-            Continue with Google
-          </button>
-          <button
-            type="button"
-            onClick={notifyOAuthSoon}
-            disabled={pending}
-            className="inline-flex items-center justify-center gap-2 rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-light/60 disabled:opacity-60"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-4 w-4 fill-current"
-              aria-hidden
-            >
-              <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.95 1.57-2.96 1.49-.12-1.1.486-2.27 1.16-3.05.755-.88 2.05-1.55 2.97-1.52zM20.5 17.16c-.39.9-.86 1.76-1.41 2.55-.74 1.07-1.74 2.4-2.97 2.42-1.1.02-1.39-.71-2.88-.7-1.49.01-1.81.72-2.91.71-1.24-.01-2.18-1.19-2.92-2.26-2.08-3.01-3.69-8.53-1.54-12.26.93-1.6 2.6-2.62 4.4-2.65 1.21-.02 2.35.81 3.09.81.74 0 2.13-1 3.6-.85.61.03 2.31.25 3.4 1.86-.09.05-2.04 1.2-2.02 3.56.02 2.82 2.47 3.76 2.5 3.78-.02.06-.39 1.34-1.34 2.74z" />
-            </svg>
-            Continue with Apple
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-brand-line" />
-          <span className="text-[11px] uppercase tracking-wider text-brand-mute">
-            or with email
-          </span>
-          <div className="h-px flex-1 bg-brand-line" />
-        </div>
-
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField label="Name" error={errors.firstName}>
             <TextInput
@@ -987,6 +937,17 @@ function StepAccount({
             </button>
           </div>
           <PasswordStrengthMeter password={data.password} email={data.email} />
+        </FormField>
+
+        <FormField label="Confirm password" error={errors.confirmPassword}>
+          <TextInput
+            type={data.showPassword ? "text" : "password"}
+            value={data.confirmPassword}
+            onChange={(e) => patch({ confirmPassword: e.target.value })}
+            placeholder="Re-enter your password"
+            disabled={pending}
+            autoComplete="new-password"
+          />
         </FormField>
 
         <div>
