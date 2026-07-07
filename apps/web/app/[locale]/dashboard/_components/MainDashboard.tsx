@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   Banknote,
   Calendar,
+  CalendarPlus,
   ChevronRight,
   Clock3,
   DoorOpen,
@@ -18,6 +19,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
 import { formatMoney } from "@/lib/format";
@@ -60,7 +62,7 @@ export type MainDashboardData = {
   needs: {
     id: string;
     tone: "amber" | "red" | "accent";
-    icon: "clock" | "message" | "badge" | "money" | "review";
+    icon: "clock" | "message" | "badge" | "money" | "review" | "booking";
     title: string;
     sub: string;
     tag: { label: string; tone: ToneKey };
@@ -117,13 +119,14 @@ export type MainDashboardData = {
 function NeedIcon({
   kind,
 }: {
-  kind: "clock" | "message" | "badge" | "money" | "review";
+  kind: "clock" | "message" | "badge" | "money" | "review" | "booking";
 }) {
   if (kind === "message")
     return <MessageSquare className="h-[18px] w-[18px]" />;
   if (kind === "badge") return <BadgeCheck className="h-[18px] w-[18px]" />;
   if (kind === "money") return <Banknote className="h-[18px] w-[18px]" />;
   if (kind === "review") return <Star className="h-[18px] w-[18px]" />;
+  if (kind === "booking") return <CalendarPlus className="h-[18px] w-[18px]" />;
   return <Clock3 className="h-[18px] w-[18px]" />;
 }
 
@@ -159,12 +162,24 @@ export function MainDashboard({ data: d }: { data: MainDashboardData }) {
             {d.dateLabel}
           </div>
         </div>
-        <Link
-          href="/dashboard/bookings/new"
-          className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
-        >
-          <Plus className="h-4 w-4" /> New booking
-        </Link>
+        {/* quick-jump icon buttons + primary action */}
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          {QUICK_ACTIONS.map((q) => (
+            <IconButton
+              key={q.label}
+              icon={q.icon}
+              label={q.label}
+              href={q.href}
+            />
+          ))}
+          <span className="mx-1 hidden h-6 w-px bg-brand-line sm:block" />
+          <Link
+            href="/dashboard/bookings/new"
+            className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
+          >
+            <Plus className="h-4 w-4" /> New booking
+          </Link>
+        </div>
       </div>
 
       {/* stat band */}
@@ -262,24 +277,6 @@ export function MainDashboard({ data: d }: { data: MainDashboardData }) {
           count={d.todayOps.departures.count}
           names={d.todayOps.departures.names}
           href="/dashboard/bookings?seg=checkingout"
-        />
-      </section>
-
-      {/* quick actions — one-tap into the things a host manages */}
-      <section className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
-        <QuickAction
-          icon={Calendar}
-          label="Calendar"
-          href="/dashboard/calendar"
-        />
-        <QuickAction icon={Tag} label="Specials" href="/dashboard/specials" />
-        <QuickAction icon={Ticket} label="Coupons" href="/dashboard/coupons" />
-        <QuickAction icon={Package} label="Add-ons" href="/dashboard/addons" />
-        <QuickAction icon={Users} label="Guests" href="/dashboard/guests" />
-        <QuickAction
-          icon={Wallet}
-          label="Payments"
-          href="/dashboard/payments"
         />
       </section>
 
@@ -677,22 +674,33 @@ function OpsTile({
   );
 }
 
-function QuickAction({
+// Quick-jump destinations shown as small icon buttons in the header.
+const QUICK_ACTIONS: { icon: LucideIcon; label: string; href: string }[] = [
+  { icon: Calendar, label: "Calendar", href: "/dashboard/calendar" },
+  { icon: Tag, label: "Specials", href: "/dashboard/specials" },
+  { icon: Ticket, label: "Coupons", href: "/dashboard/coupons" },
+  { icon: Package, label: "Add-ons", href: "/dashboard/addons" },
+  { icon: Users, label: "Guests", href: "/dashboard/guests" },
+  { icon: Wallet, label: "Payments", href: "/dashboard/payments" },
+];
+
+function IconButton({
   icon: Icon,
   label,
   href,
 }: {
-  icon: typeof Calendar;
+  icon: LucideIcon;
   label: string;
   href: string;
 }) {
   return (
     <Link
       href={href}
-      className="flex flex-col items-center justify-center gap-1.5 rounded-[13px] border border-brand-line bg-white py-3.5 text-brand-ink shadow-card transition hover:border-[#CDE6D8] hover:bg-[#FAFCFB]"
+      title={label}
+      aria-label={label}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-brand-line bg-white text-brand-secondary shadow-card transition hover:border-[#CDE6D8] hover:bg-[#FAFCFB] hover:text-brand-primary"
     >
-      <Icon className="h-[18px] w-[18px] text-brand-secondary" />
-      <span className="text-[11.5px] font-semibold">{label}</span>
+      <Icon className="h-[18px] w-[18px]" />
     </Link>
   );
 }

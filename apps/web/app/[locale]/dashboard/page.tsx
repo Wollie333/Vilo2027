@@ -176,6 +176,9 @@ export default async function DashboardPage({
   );
   const today = isoDate(now);
   const ninetyAgo = isoDate(new Date(Date.now() - 90 * DAY));
+  // Recent-activity window for the "needs attention" event feed (new bookings +
+  // payments received in the last few days).
+  const threeDaysAgo = new Date(Date.now() - 3 * DAY).toISOString();
 
   // Wrapped in throwOnError so a broken embed / schema drift surfaces (server
   // log + error boundary) instead of silently rendering zero KPIs.
@@ -192,6 +195,7 @@ export default async function DashboardPage({
     eftOutstanding,
     next7,
     reviewsToReply,
+    recentActivity,
   ] = await Promise.all([
     throwOnError(
       supabase
@@ -313,6 +317,20 @@ export default async function DashboardPage({
         .is("host_response", null),
       "dashboard/reviews-to-reply",
     ),
+    // Recent activity — bookings just created OR just paid (last 3 days) → the
+    // "needs attention" event feed. Cancelled/declined filtered out in JS.
+    throwOnError(
+      supabase
+        .from("bookings")
+        .select(
+          "id, guest_name, guest_email, total_amount, currency, check_in, check_out, status, payment_status, created_at, confirmed_at, listing:properties!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
+        )
+        .eq("host_id", host.id)
+        .or(`created_at.gte.${threeDaysAgo},confirmed_at.gte.${threeDaysAgo}`)
+        .order("created_at", { ascending: false })
+        .limit(12),
+      "dashboard/recent-activity",
+    ),
   ]);
   const pendingCount = pending.count;
   const unreadCount = unread.count;
@@ -350,7 +368,9 @@ export default async function DashboardPage({
     0,
   );
   const occupancyPct =
-    totalNights > 0 ? Math.round((bookedNights / totalNights) * 100) : null;
+    totalNights > 0
+      ? Math.min(100, Math.round((bookedNights / totalNights) * 100))
+      : null;
 
   // Per-listing occupancy (this month).
   const nightsByListing = new Map<string, number>();
@@ -519,6 +539,84 @@ export default async function DashboardPage({
       tag: { label: "Reply", tone: "red" },
       href: "/dashboard/inbox",
     });
+
+  // Recent-event feed — blended in AFTER the action items (urgent-first), then
+  // the freshest events. Each booking yields at most one event: a payment-just-
+  // received wins over a just-created row (the money event is the headline).
+  const CANCELLED_STATUSES = new Set([
+    "cancelled",
+    "cancelled_host",
+    "cancelled_guest",
+    "declined",
+    "expired",
+    "no_show",
+  ]);
+  type ActivityRow = {
+    id: string;
+    guest_name: string | null;
+    guest_email: string | null;
+    total_amount: number;
+    check_in: string | null;
+    check_out: string | null;
+    status: string;
+    payment_status: string | null;
+    created_at: string;
+    confirmed_at: string | null;
+    listing: { name: string } | null;
+    guest: { full_name: string | null } | null;
+  };
+  // A recent booking only counts as a "new booking" event when it's a confirmed
+  // reservation — pending / pending_eft are already covered by the aggregate
+  // action items above, so they must not double-surface here.
+  const EVENT_BOOKING_STATUSES = new Set([
+    "confirmed",
+    "checked_in",
+    "completed",
+  ]);
+  const activityRows = (
+    (recentActivity ?? []) as unknown as ActivityRow[]
+  ).filter((r) => !CANCELLED_STATUSES.has(r.status));
+  const events: { at: string; need: (typeof needs)[number] }[] = [];
+  for (const r of activityRows) {
+    const guest =
+      r.guest?.full_name ?? r.guest_name ?? r.guest_email ?? "Guest";
+    const paidRecently =
+      r.payment_status === "completed" &&
+      r.confirmed_at != null &&
+      r.confirmed_at >= threeDaysAgo;
+    if (paidRecently) {
+      events.push({
+        at: r.confirmed_at as string,
+        need: {
+          id: `pay-${r.id}`,
+          tone: "accent",
+          icon: "money",
+          title: `Payment received · ${formatMoney(Number(r.total_amount), currency)}`,
+          sub: `${guest} · ${r.listing?.name ?? "Listing"}`,
+          tag: { label: "Paid", tone: "green" },
+          href: `/dashboard/bookings/${r.id}`,
+        },
+      });
+    } else if (
+      r.created_at >= threeDaysAgo &&
+      EVENT_BOOKING_STATUSES.has(r.status)
+    ) {
+      events.push({
+        at: r.created_at,
+        need: {
+          id: `new-${r.id}`,
+          tone: "accent",
+          icon: "booking",
+          title: `New booking · ${guest} · ${formatMoney(Number(r.total_amount), currency)}`,
+          sub: `${r.listing?.name ?? "Listing"} · ${fmtRange(r.check_in, r.check_out)}`,
+          tag: { label: "New", tone: "green" },
+          href: `/dashboard/bookings/${r.id}`,
+        },
+      });
+    }
+  }
+  events.sort((a, b) => (a.at < b.at ? 1 : -1));
+  for (const e of events.slice(0, 4)) needs.push(e.need);
 
   const data: MainDashboardData = {
     firstName,
