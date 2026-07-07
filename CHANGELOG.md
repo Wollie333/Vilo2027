@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-07 #12 — Host-side Meta Conversions API (per-host, on the website feature).
+
+Hosts now get the same server-side CAPI on their OWN website that Wielo has on the directory
+— a server-side Purchase to the host's own pixel + token, deduped against their browser
+Purchase (`event_id = booking.reference`).
+
+- Migration `20260707180000`: `host_websites` gains `meta_capi_access_token` (encrypted,
+  server-only column) + `meta_capi_enabled`. The token NEVER goes in `settings.analytics`
+  (that's client-exposed via `ctx.analytics`); only the public pixel id is read from there.
+  Applied to cloud + types regenerated.
+- `meta-capi.ts`: `sendCapiPurchase()` now takes optional explicit creds (per-host);
+  `getHostWebsiteCapi(websiteId)` resolves them (pixel from `settings.analytics.metaPixel`,
+  decrypted token) — null unless enabled + token + pixel all set.
+- `site/book/thank-you` fires it for confirmed website bookings, once per booking (reuses
+  `capi_purchase_sent_at`), `!preview`-gated, best-effort.
+- Host UI: Website → Settings → Analytics gains a "Meta Conversions API" toggle + a write-only
+  token field (encrypted at rest via `encryptSecret`, never loaded back to the client). The
+  save writes the server-only columns, not `settings`.
+
+Verified live: the host settings form renders the toggle + token field; enabling reveals the
+input; a save persists (enabled + encrypted token) without exposing the token. Sender is the
+same one validated against Meta's real Graph API. type-check + lint + build green. NOT verified
+E2E: the fire is `!preview`-gated (localhost `?site=` is preview) — needs a live tenant domain
++ the host's real pixel + CAPI token + a confirmed website booking.
+
 ## 2026-07-07 #11 — Meta Conversions API (server-side Purchase, deduped + token editable).
 
 Wired server-side CAPI for the Wielo directory — fires a Purchase to Meta alongside the
