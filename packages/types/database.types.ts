@@ -4005,6 +4005,13 @@ export type Database = {
             referencedRelation: "properties"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ical_feeds_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "property_rooms"
+            referencedColumns: ["id"]
+          },
         ]
       }
       impersonation_sessions: {
@@ -5518,30 +5525,42 @@ export type Database = {
       }
       platform_integrations: {
         Row: {
+          ga4_measurement_id: string | null
+          google_ads_id: string | null
+          gtm_container_id: string | null
           id: boolean
           meta_capi_access_token: string | null
           meta_capi_enabled: boolean
           meta_pixel_enabled: boolean
           meta_pixel_id: string | null
           meta_test_event_code: string | null
+          tiktok_pixel_id: string | null
           updated_at: string
         }
         Insert: {
+          ga4_measurement_id?: string | null
+          google_ads_id?: string | null
+          gtm_container_id?: string | null
           id?: boolean
           meta_capi_access_token?: string | null
           meta_capi_enabled?: boolean
           meta_pixel_enabled?: boolean
           meta_pixel_id?: string | null
           meta_test_event_code?: string | null
+          tiktok_pixel_id?: string | null
           updated_at?: string
         }
         Update: {
+          ga4_measurement_id?: string | null
+          google_ads_id?: string | null
+          gtm_container_id?: string | null
           id?: boolean
           meta_capi_access_token?: string | null
           meta_capi_enabled?: boolean
           meta_pixel_enabled?: boolean
           meta_pixel_id?: string | null
           meta_test_event_code?: string | null
+          tiktok_pixel_id?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -6,7 +6,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import NextTopLoader from "nextjs-toploader";
 
-import { MetaPixel } from "@/components/analytics/MetaPixel";
+import { PlatformMarketing } from "@/components/analytics/PlatformMarketing";
 import { BrandProvider } from "@/components/brand/BrandProvider";
 import { CurrencyProvider } from "@/components/currency/CurrencyProvider";
 import { BusyHost } from "@/components/ui/busy-host";
@@ -15,7 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { routing } from "@/i18n/routing";
 import { getBranding, getBrandName } from "@/lib/brand";
 import { getDisplayRates } from "@/lib/fx";
-import { getActiveMetaPixelId } from "@/lib/integrations/meta";
+import { getPlatformTracking } from "@/lib/integrations/meta";
 
 import { CookieBanner } from "../_components/CookieBanner";
 import "../globals.css";
@@ -63,12 +63,13 @@ export default async function RootLayout({
   // Enable static rendering for this request's locale.
   setRequestLocale(locale);
 
-  const [branding, rates, messages, metaPixelId] = await Promise.all([
+  const [branding, rates, messages, platformTracking] = await Promise.all([
     getBranding(),
     getDisplayRates(),
     getMessages(),
-    getActiveMetaPixelId(),
+    getPlatformTracking(),
   ]);
+  const hasPlatformTracking = Object.values(platformTracking).some(Boolean);
   const displayCurrency = cookies().get("vilo_display_ccy")?.value ?? null;
   // On a host's own micro-site (tenant domain), the host's OWN pixel is loaded
   // by SiteMarketing. Do NOT also load the Wielo platform pixel there, or a
@@ -95,8 +96,8 @@ export default async function RootLayout({
           crawlSpeed={180}
           speed={220}
         />
-        {metaPixelId && !isHostSite ? (
-          <MetaPixel pixelId={metaPixelId} />
+        {hasPlatformTracking && !isHostSite ? (
+          <PlatformMarketing tracking={platformTracking} />
         ) : null}
         <NextIntlClientProvider locale={locale} messages={messages}>
           <BrandProvider value={branding}>

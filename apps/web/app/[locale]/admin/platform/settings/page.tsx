@@ -7,6 +7,7 @@ import { getLegalDocuments } from "@/lib/legal";
 import { BrandingForm } from "./BrandNameForm";
 import { LegalDocsForm } from "./LegalDocsForm";
 import { MetaPixelForm } from "./MetaPixelForm";
+import { TrackingIdsForm } from "./TrackingIdsForm";
 import { WieloBusinessForm } from "./WieloBusinessForm";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +50,15 @@ export default async function PlatformSettingsPage() {
         pixelEnabled={meta.pixelEnabled}
         testEventCode={meta.testEventCode ?? ""}
         capiTokenSet={meta.capiTokenSet}
+      />
+
+      <TrackingIdsForm
+        initial={{
+          ga4: meta.ga4 ?? "",
+          gtm: meta.gtm ?? "",
+          tiktok: meta.tiktok ?? "",
+          googleAds: meta.googleAds ?? "",
+        }}
       />
 
       <section>

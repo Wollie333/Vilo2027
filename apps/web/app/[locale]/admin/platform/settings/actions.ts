@@ -237,3 +237,77 @@ export const saveMetaIntegrationAction = withAdminAudit<
     };
   },
 );
+
+// ─── Other platform tracking ids (GA4 / GTM / TikTok / Google Ads) ──
+// Presence of an id = active; the founder can paste them without a redeploy.
+// They load site-wide on the Wielo app (never on host micro-sites). Same
+// singleton row as the Meta pixel; only these columns are touched, so the two
+// forms don't clobber each other.
+const trackingIdsSchema = z.object({
+  ga4_measurement_id: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^(G-[A-Z0-9]+)?$/i, "GA4 ids look like G-XXXXXXXXXX.")
+    .optional()
+    .default(""),
+  gtm_container_id: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^(GTM-[A-Z0-9]+)?$/i, "GTM ids look like GTM-XXXXXXX.")
+    .optional()
+    .default(""),
+  tiktok_pixel_id: z.string().trim().max(60).optional().default(""),
+  google_ads_id: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^(AW-[A-Z0-9]+)?$/i, "Google Ads ids look like AW-XXXXXXXXX.")
+    .optional()
+    .default(""),
+  reason: z.string().optional(),
+});
+
+export const saveTrackingIdsAction = withAdminAudit<
+  z.infer<typeof trackingIdsSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "platform.settings",
+    actionName: "platform.settings.tracking_ids",
+    targetType: "platform_setting",
+    getTargetId: () => META_INTEGRATION_ID,
+  },
+  async (args, service) => {
+    const parsed = trackingIdsSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const {
+      ga4_measurement_id,
+      gtm_container_id,
+      tiktok_pixel_id,
+      google_ads_id,
+    } = parsed.data;
+    const { error } = await service.from("platform_integrations").upsert({
+      id: true,
+      ga4_measurement_id: ga4_measurement_id || null,
+      gtm_container_id: gtm_container_id || null,
+      tiktok_pixel_id: tiktok_pixel_id || null,
+      google_ads_id: google_ads_id || null,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/", "layout");
+    return {
+      result: { ok: true },
+      after: {
+        ga4_measurement_id,
+        gtm_container_id,
+        tiktok_pixel_id,
+        google_ads_id,
+      },
+    };
+  },
+);
