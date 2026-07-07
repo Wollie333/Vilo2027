@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-07-07 #6 — Booking feature: close the last MVP gaps + wire PayPal.
+
+Audited the whole booking surface (guest checkout, host management, payments) — it was
+~90% MVP-complete and live (server-authoritative pricing, availability RPCs, Paystack +
+EFT with signed webhooks + idempotency, full host board + lifecycle, availability
+calendar). Closed the remaining gaps:
+
+- **No-show workflow** (`195dd84a`) — `no_show` existed in the DB + rendered but nothing
+  could set it. Added a confirmed→no_show transition (dates stay blocked, no auto-refund)
+  + a host "No-show" action with a destructive confirm. Verified live: BK-9101
+  Confirmed→No-show persisted and dropped all further actions.
+- **Working board filters** (`195dd84a`) — the listing + channel chips were static;
+  wired them to real dropdowns that filter the table + tab counts. Verified live
+  (selecting "Manual" filtered the rows).
+- **Party-guest email optional** (`195dd84a`) — the checkout labelled additional-guest
+  email "optional" but the schema required it, silently failing the submit. Made it
+  optional (materialisation already skips blank-email members).
+- **Check-in reminder wired** (`c1da3f02`) — `check_in_reminder_host` was defined + seeded
+  but never dispatched. Added a Bearer-gated `/api/checkin-reminder-worker` (finds
+  confirmed bookings checking in tomorrow, idempotent via `notification_delivery_log`) +
+  an hourly `drain-checkin-reminders` pg_cron (Vault soft-skip pattern, migration
+  `20260707150000` applied to cloud). Activation: set the `checkin_reminder_worker_url`
+  Vault secret. Verified locally (401 gate + 200 happy path).
+- **PayPal wired into the on-site checkout** (`73b312ed`) — was lib-only. Added a
+  host-owned PayPal rail (0% to Wielo, charged in USD via FX): `host-paypal.ts` resolver,
+  a `startBookingPayment` paypal branch (CAPTURE order + EFT fallback),
+  `capturePayPalOrderForBooking` (mirrors the Paystack confirm), thank-you `?token`
+  capture, and the picker/enforcement/availability wiring. Verified live: the Karoo Sky
+  Stays checkout renders + selects the PayPal option with the USD explainer. NOT verified
+  E2E: a real approval + capture needs a host PayPal sandbox app's credentials.
+- **Not changed (by design):** the `checked_out` code references are harmless no-op
+  branches that alias to the `completed` display — removing them across ~8 files is
+  cosmetic churn with regression risk and no user benefit.
+
+type-check + lint clean; 244 vitest pass throughout.
+
 ## 2026-07-07 #5 — Calendar sync: close the last MVP gaps (cancelled events + per-room feeds).
 
 Two correctness gaps that would have lost bookings (both failed "safe" — over-blocking,
