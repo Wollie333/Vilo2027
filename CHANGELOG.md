@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-08 #18 — Admin Wielo revenue ledger → full host-ledger parity (docs, balance, styling).
+
+Brought `/admin/subscriptions/revenue` to the same rules, styling and functionality as the host
+ledger (`/dashboard/ledger`), including a **downloadable document on every transaction** (founder ask).
+- **Wielo credit-note / refund / adjustment documents** (migration `20260708130000`): new
+  `wielo_credit_notes` table + `next_wielo_credit_note_number()` (`WIELO-CN…`) + a
+  `trg_mint_wielo_credit_note` trigger that mints ONE document for every completed non-charge
+  ledger row (refund / goodwill credit / signed adjustment), the sibling of the existing
+  `wielo_invoices` mint. So every ledger row now has a downloadable doc (charge → invoice,
+  else → credit note). Hosted page `/wielo-credit-note/[token]` (FinancialDocument) + `/pdf`
+  (renderCreditNotePdf). `CreditNoteDocument` gained additive optional props (`docKind`, `toLabel`,
+  `totalLabel`, `positive`) so the one PDF paper serves Refund / Credit note / Adjustment with the
+  right title + sign; host credit notes render byte-identically (defaults preserved).
+- **Model** (`lib/billing/wielo-ledger.ts`): `WieloTxn` gained `doc` (invoice/credit-note join by
+  `ledger_id`) + a running per-user `balance` (what the user owes Wielo — a paid charge nets to
+  zero; an unpaid charge, goodwill credit or signed adjustment moves it). Added `since`/`until`
+  date-range filtering.
+- **Renderer + board**: new `components/finance/AdminLedgerList.tsx` (WieloTxn-typed sibling of the
+  shared `LedgerList` — same Transaction/Date/User/Type/For/Amount/Balance/Document/⋯ columns,
+  tags, money signs and running-balance styling) + `AdminLedgerBoard.tsx` (host-style shell: KPI
+  cards, type filter tabs with counts, env/user/plan/status/**date-range** filters, search, and a
+  **CSV export** of the filtered ledger). `revenue/page.tsx` reworked onto the board; ManualEntryForm
+  kept (now mints a document on completion).
+- **Verified live** (temporarily elevated the test host to super_admin to reach the finance-gated
+  page, then revoked): all 5 rows render with host-parity styling — refund `(R 200)`/"settled",
+  credit `(R 150)`/"R 150 credit", adjustment `R 100`/"R 50 credit", two `R 599` Starter charges
+  "settled" with product-name resolution; every row's document downloads (refund/adjustment/invoice
+  PDFs valid `%PDF`); refund hosted page screenshot confirms the paper. tsc + lint + `pnpm build`
+  green.
+
 ## 2026-07-08 #17 — Admin dashboard cleanup + Part 2 wiring (invoices, consent, feature enforcement).
 
 Two-part founder request: clean up the super-admin pages, then wire several system settings.

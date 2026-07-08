@@ -135,6 +135,53 @@ export function wieloIssuerLines(snap: Partial<WieloBusinessProfile>): {
   return { name, lines };
 }
 
+// The three non-charge Wielo document kinds, and how each is titled/toned across
+// the hosted page, the PDF and the ledger's Document column. `positive` flips a
+// document that ADDS money (an upward adjustment) to a "+" in ink; everything
+// else reads as money out ("−", red/indigo). Kept here so the page, the PDF and
+// the ledger stay in lockstep.
+export type WieloCreditNoteKind = "refund" | "credit" | "adjustment";
+
+export function wieloCreditNoteLabels(
+  kind: WieloCreditNoteKind,
+  signedAmount: number,
+): {
+  docKind: string; // document title
+  toLabel: string; // party heading
+  totalLabel: string; // grand-total row
+  statusTone: "red" | "indigo" | "amber"; // hosted-page status pill
+  positive: boolean; // upward money movement
+} {
+  if (kind === "refund") {
+    return {
+      docKind: "Refund",
+      toLabel: "Refunded to",
+      totalLabel: "Total refunded",
+      statusTone: "red",
+      positive: false,
+    };
+  }
+  if (kind === "credit") {
+    return {
+      docKind: "Credit note",
+      toLabel: "Credited to",
+      totalLabel: "Total credited",
+      statusTone: "indigo",
+      positive: false,
+    };
+  }
+  // adjustment — signed: a positive one adds to the account, a negative one
+  // reduces it.
+  const up = signedAmount >= 0;
+  return {
+    docKind: "Adjustment",
+    toLabel: "Account holder",
+    totalLabel: "Total adjustment",
+    statusTone: "amber",
+    positive: up,
+  };
+}
+
 // Map a frozen wielo_snapshot to the PDF InvoiceBusiness shape (issuer block).
 export function wieloSnapshotToBusiness(
   snap: Partial<WieloBusinessProfile>,

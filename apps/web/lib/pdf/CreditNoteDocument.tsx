@@ -10,6 +10,16 @@ export type CreditNoteProps = {
   issuedAt: string;
   invoiceNumber?: string | null;
   reason?: string | null;
+  /** Document title (default "Credit note"). Lets the same paper serve a
+   *  Wielo refund / adjustment without a new PDF component. */
+  docKind?: string;
+  /** Party heading (default "Credited to" → "Refunded to" for refunds). */
+  toLabel?: string;
+  /** Grand-total row label (default "Total credited"). */
+  totalLabel?: string;
+  /** A positive money movement (an upward adjustment) — prints "+" in ink rather
+   *  than the default "−" in red. */
+  positive?: boolean;
   host: {
     displayName: string | null;
     handle: string | null;
@@ -50,8 +60,13 @@ export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
             }
           />
           <View style={styles.docMeta}>
-            <Text style={[styles.docKind, { color: "#B91C1C" }]}>
-              Credit note
+            <Text
+              style={[
+                styles.docKind,
+                { color: note.positive ? "#065F46" : "#B91C1C" },
+              ]}
+            >
+              {note.docKind ?? "Credit note"}
             </Text>
             <Text style={styles.docNumber}>{note.creditNoteNumber}</Text>
             <Text style={styles.docDate}>
@@ -91,7 +106,9 @@ export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
             ) : null}
           </View>
           <View style={styles.col}>
-            <Text style={styles.sectionLabel}>Credited to</Text>
+            <Text style={styles.sectionLabel}>
+              {note.toLabel ?? "Credited to"}
+            </Text>
             <Text style={styles.partyName}>{note.guest.name ?? "—"}</Text>
             {note.guest.email ? (
               <Text style={styles.partyLine}>{note.guest.email}</Text>
@@ -104,7 +121,9 @@ export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
 
         <View style={styles.tableHeader}>
           <Text style={[styles.th, styles.colDesc]}>Description</Text>
-          <Text style={[styles.th, styles.colTotal]}>Credited</Text>
+          <Text style={[styles.th, styles.colTotal]}>
+            {note.positive ? "Amount" : "Credited"}
+          </Text>
         </View>
         {note.lines.map((line, i) => (
           <View key={i} style={styles.tableRow}>
@@ -117,9 +136,17 @@ export function CreditNoteDocument({ note }: { note: CreditNoteProps }) {
 
         <View style={styles.totalsBlock}>
           <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>Total credited</Text>
-            <Text style={[styles.grandTotalValue, { color: "#B91C1C" }]}>
-              −{formatMoney(note.total, note.currency)}
+            <Text style={styles.grandTotalLabel}>
+              {note.totalLabel ?? "Total credited"}
+            </Text>
+            <Text
+              style={[
+                styles.grandTotalValue,
+                { color: note.positive ? "#065F46" : "#B91C1C" },
+              ]}
+            >
+              {note.positive ? "+" : "−"}
+              {formatMoney(note.total, note.currency)}
             </Text>
           </View>
         </View>

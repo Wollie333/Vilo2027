@@ -2,6 +2,37 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-08 #18) — Admin Wielo revenue ledger = host-ledger parity ✅ DONE + verified live
+
+**Done this session** (`/admin/subscriptions/revenue` now mirrors `/dashboard/ledger`):
+- Migration `20260708130000_wielo_credit_notes.sql` **applied to prod** + types regenerated.
+  New `wielo_credit_notes` table + `next_wielo_credit_note_number()` + `trg_mint_wielo_credit_note`
+  → every completed refund/credit/adjustment ledger row mints ONE downloadable doc (sibling of the
+  `wielo_invoices` charge-invoice mint). Hosted page `/wielo-credit-note/[token]` + `/pdf`.
+- `CreditNoteDocument` generalised with additive optional props (`docKind`/`toLabel`/`totalLabel`/
+  `positive`) — one PDF paper serves Refund/Credit/Adjustment; host credit notes unchanged.
+- `lib/billing/wielo-ledger.ts` `WieloTxn` gained `doc` + running per-user `balance` (what the user
+  owes Wielo) + `since`/`until` date filter.
+- New `components/finance/AdminLedgerList.tsx` + `AdminLedgerBoard.tsx` (host-parity: KPI cards,
+  type tabs w/ counts, env/user/plan/status/date-range filters, search, **CSV export**, Document
+  column). `revenue/page.tsx` reworked onto them; ManualEntryForm kept.
+- **Verified live** on the real admin page (temp-elevated the test host, then revoked): 5 rows,
+  correct balances, product-name "For" labels, every doc downloads; refund hosted page screenshot ✓.
+  tsc + lint + `pnpm build` green. Plan doc: `docs/features/ADMIN_LEDGER_PARITY_PLAN.md`.
+
+**Founder decisions taken this session** (asked up-front): build real refund/credit/adjustment PDFs
+now (done); Balance = "what the user owes Wielo" (host-ledger semantic); add CSV export (done);
+date-range filter for the period control (done, no Wielo month-close).
+
+**Left in prod as demo data** (test env, clearly `TEST:`-labelled, attributed to host@wielotest):
+3 manual entries (refund R200 / credit R150 / adjustment +R100) + their WIELO-CN docs. Delete via
+the ledger if unwanted.
+
+**Possible follow-ons:** per-row refund/void admin action (ManualEntryForm already covers manual
+credit/adjustment); a Wielo-level month-close/period table (out of v1 scope).
+
+---
+
 ## ▶▶▶ SAVE POINT — RESUME HERE (2026-07-05 #6, **Builder V3 brief captured — START HERE**)
 
 > **NEXT SESSION: execute `docs/features/BUILDER_V3_ELEMENTS_AND_SYSTEM_PAGES_PLAN.md`.**

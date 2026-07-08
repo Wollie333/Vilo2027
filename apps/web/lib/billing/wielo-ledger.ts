@@ -10,6 +10,16 @@ export type WieloTxnType = "charge" | "refund" | "credit" | "adjustment";
 export type WieloTxnStatus = "pending" | "completed" | "failed";
 export type WieloEnvironment = "test" | "live";
 
+// The downloadable document behind a ledger row: a Wielo invoice (charges) or a
+// Wielo credit note / refund / adjustment (everything else). Mirrors the host
+// ledger's TxnDoc so the shared Document column renders identically.
+export type WieloDoc = {
+  kind: "invoice" | "credit_note" | "refund" | "adjustment";
+  number: string;
+  viewPath: string;
+  pdfPath: string;
+};
+
 export type WieloTxn = {
   id: string;
   date: string;
@@ -29,6 +39,12 @@ export type WieloTxn = {
   userEmail: string | null;
   hostId: string | null;
   hostHandle: string | null;
+  /** The linked downloadable document (invoice / credit note), or null. */
+  doc: WieloDoc | null;
+  /** Running balance the user owes Wielo AFTER this entry (+owes / −credit),
+   * computed per user oldest→newest. A paid charge nets to zero; an unpaid
+   * (pending) charge, a goodwill credit or a signed adjustment move it. */
+  balance: number;
 };
 
 export type WieloLedgerFilter = {
@@ -81,7 +97,7 @@ export async function fetchWieloLedger(
   const { data, error } = await q;
   if (error) throw new Error(`fetchWieloLedger: ${error.message}`);
 
-  return (data ?? []).map((r) => {
+  const rows: WieloTxn[] = (data ?? []).map((r) => {
     const payer = Array.isArray(r.payer) ? r.payer[0] : r.payer;
     const host = Array.isArray(r.host) ? r.host[0] : r.host;
     return {
@@ -105,8 +121,84 @@ export async function fetchWieloLedger(
       userEmail: payer?.email ?? null,
       hostId: r.host_id,
       hostHandle: host?.handle ?? null,
+      doc: null,
+      balance: 0,
     };
   });
+
+  await attachDocuments(admin, rows);
+  computeBalances(rows);
+  return rows;
+}
+
+// ── Documents ────────────────────────────────────────────────────────────
+// Every ledger row has exactly one downloadable document: a Wielo invoice for
+// charges, a Wielo credit note (refund / credit / adjustment) for the rest.
+// Both are minted by DB triggers keyed on ledger_id, so we join on that.
+async function attachDocuments(admin: Db, rows: WieloTxn[]): Promise<void> {
+  const ledgerIds = rows.map((r) => r.id);
+  if (ledgerIds.length === 0) return;
+
+  const [{ data: invoices }, { data: notes }] = await Promise.all([
+    admin
+      .from("wielo_invoices")
+      .select("ledger_id, invoice_number, hosted_token")
+      .in("ledger_id", ledgerIds),
+    admin
+      .from("wielo_credit_notes")
+      .select("ledger_id, kind, credit_note_number, hosted_token")
+      .in("ledger_id", ledgerIds),
+  ]);
+
+  const byLedger = new Map<string, WieloDoc>();
+  for (const inv of invoices ?? []) {
+    if (!inv.ledger_id || !inv.hosted_token) continue;
+    byLedger.set(inv.ledger_id, {
+      kind: "invoice",
+      number: inv.invoice_number,
+      viewPath: `/wielo-invoice/${inv.hosted_token}`,
+      pdfPath: `/wielo-invoice/${inv.hosted_token}/pdf`,
+    });
+  }
+  for (const cn of notes ?? []) {
+    if (!cn.ledger_id || !cn.hosted_token) continue;
+    byLedger.set(cn.ledger_id, {
+      kind:
+        cn.kind === "refund"
+          ? "refund"
+          : cn.kind === "adjustment"
+            ? "adjustment"
+            : "credit_note",
+      number: cn.credit_note_number,
+      viewPath: `/wielo-credit-note/${cn.hosted_token}`,
+      pdfPath: `/wielo-credit-note/${cn.hosted_token}/pdf`,
+    });
+  }
+  for (const r of rows) r.doc = byLedger.get(r.id) ?? null;
+}
+
+// ── Running per-user balance (what the user owes Wielo) ────────────────────
+// Mirrors the host ledger's per-guest balance, but from Wielo's side. A charge
+// only counts while it's unpaid (pending) — a completed charge is billed AND
+// settled in the same row, so it nets to zero. Goodwill credits and signed
+// adjustments move the balance; a refund is a settled cash-out (no debt change).
+function owedContribution(t: WieloTxn): number {
+  if (t.status === "pending" && t.type === "charge") return t.amount; // owes
+  if (t.status !== "completed") return 0;
+  if (t.type === "credit") return t.amount; // signed negative → credit
+  if (t.type === "adjustment") return t.amount; // signed correction
+  return 0; // completed charge (paid) / refund (cash out)
+}
+
+function computeBalances(rows: WieloTxn[]): void {
+  const asc = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+  const byUser: Record<string, number> = {};
+  for (const e of asc) {
+    const key = e.userId ?? "_";
+    const run = (byUser[key] ?? 0) + owedContribution(e);
+    byUser[key] = run;
+    e.balance = Math.round(run * 100) / 100;
+  }
 }
 
 export function wieloLedgerStats(rows: WieloTxn[]): WieloLedgerStats {

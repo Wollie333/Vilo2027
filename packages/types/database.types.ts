@@ -5517,16 +5517,19 @@ export type Database = {
       platform_counters: {
         Row: {
           id: boolean
+          last_credit_note_number: number
           last_invoice_number: number
           updated_at: string
         }
         Insert: {
           id?: boolean
+          last_credit_note_number?: number
           last_invoice_number?: number
           updated_at?: string
         }
         Update: {
           id?: boolean
+          last_credit_note_number?: number
           last_invoice_number?: number
           updated_at?: string
         }
@@ -10088,6 +10091,90 @@ export type Database = {
           },
         ]
       }
+      wielo_credit_notes: {
+        Row: {
+          buyer_snapshot: Json
+          created_at: string
+          credit_note_number: string
+          currency: string
+          environment: string
+          hosted_token: string
+          id: string
+          issued_at: string
+          kind: string
+          ledger_id: string | null
+          line_items: Json
+          pdf_storage_path: string | null
+          reason: string | null
+          signed_amount: number
+          status: string
+          subtotal: number
+          total_amount: number
+          user_id: string | null
+          vat_amount: number
+          wielo_snapshot: Json
+        }
+        Insert: {
+          buyer_snapshot: Json
+          created_at?: string
+          credit_note_number: string
+          currency?: string
+          environment?: string
+          hosted_token?: string
+          id?: string
+          issued_at?: string
+          kind: string
+          ledger_id?: string | null
+          line_items?: Json
+          pdf_storage_path?: string | null
+          reason?: string | null
+          signed_amount?: number
+          status?: string
+          subtotal?: number
+          total_amount?: number
+          user_id?: string | null
+          vat_amount?: number
+          wielo_snapshot: Json
+        }
+        Update: {
+          buyer_snapshot?: Json
+          created_at?: string
+          credit_note_number?: string
+          currency?: string
+          environment?: string
+          hosted_token?: string
+          id?: string
+          issued_at?: string
+          kind?: string
+          ledger_id?: string | null
+          line_items?: Json
+          pdf_storage_path?: string | null
+          reason?: string | null
+          signed_amount?: number
+          status?: string
+          subtotal?: number
+          total_amount?: number
+          user_id?: string | null
+          vat_amount?: number
+          wielo_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wielo_credit_notes_ledger_id_fkey"
+            columns: ["ledger_id"]
+            isOneToOne: false
+            referencedRelation: "platform_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wielo_credit_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wielo_invoices: {
         Row: {
           buyer_snapshot: Json
@@ -10923,6 +11010,7 @@ export type Database = {
       next_quote_number: { Args: { p_business_id: string }; Returns: string }
       next_receipt_number: { Args: { p_business_id: string }; Returns: string }
       next_refund_number: { Args: { p_business_id: string }; Returns: string }
+      next_wielo_credit_note_number: { Args: never; Returns: string }
       next_wielo_invoice_number: { Args: never; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
