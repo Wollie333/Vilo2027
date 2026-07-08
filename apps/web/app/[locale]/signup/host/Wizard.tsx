@@ -18,6 +18,7 @@ import { Link } from "@/i18n/navigation";
 import {
   cloneElement,
   isValidElement,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -25,6 +26,12 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import {
+  commerceParams,
+  firePixelEvent,
+  firePixelEventWithRetry,
+  newEventId,
+} from "@/lib/analytics/pixel";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
@@ -309,6 +316,20 @@ export function Wizard({
   const current = STEPS[currentIndex];
   const isLast = currentIndex === STEPS.length - 1;
 
+  // ViewContent — top of the host signup funnel (fires once on mount; the
+  // platform pixel loads async so we retry until fbq is ready).
+  useEffect(() => {
+    firePixelEventWithRetry(
+      "ViewContent",
+      commerceParams({
+        contentIds: ["host_signup"],
+        contentName: "Host signup",
+        currency: "ZAR",
+      }),
+      newEventId("vc"),
+    );
+  }, []);
+
   function patch(p: Partial<WizardData>) {
     setData((d) => ({ ...d, ...p }));
     // Clear errors for any field the user is editing so they fade as the
@@ -472,6 +493,19 @@ export function Wizard({
           toast.error(co.error);
           return;
         }
+        // InitiateCheckout — the host is committing to the paid plan and being
+        // handed to Paystack. content_ids stays stable through to Purchase.
+        firePixelEvent(
+          "InitiateCheckout",
+          commerceParams({
+            contentIds: [chosen.slug],
+            contentName: chosen.name,
+            currency: "ZAR",
+            value: chosen.price,
+            numItems: 1,
+          }),
+          newEventId("ic"),
+        );
         window.location.href = co.url;
         return;
       }

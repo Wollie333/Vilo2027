@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-08 #14 — Fix Paystack signup-checkout redirect + signup funnel pixel events.
+
+- **The bug:** after a successful (test) Paystack payment the host was never redirected to
+  the thank-you page. `startProductPaystack` built Paystack's `callback_url` from
+  `NEXT_PUBLIC_SITE_URL` — which isn't set (only `NEXT_PUBLIC_APP_URL` is), and would be the
+  wrong port under the dev autoPort anyway — so the callback was a **relative** path Paystack
+  can't redirect to. Fix: thread the real request `origin` from the server actions
+  (`startSignupCheckoutAction`, `startProductPaystackAction`) through
+  `startProductCheckoutDirect` → `startProductPaystack`, with a `resolveSiteBase()` fallback
+  (`origin || NEXT_PUBLIC_SITE_URL || NEXT_PUBLIC_APP_URL`). Verified: the action now returns
+  a valid `https://checkout.paystack.com/...` URL (init succeeds with an absolute callback).
+- **Purchase pixel** on the thank-you page was already wired (`Receipt.tsx` → `firePurchase`,
+  platform `fbq` Purchase + GA4/GTM) — it just never fired because the redirect never landed
+  there. Fixing the callback restores it.
+- **ViewContent** now fires on mount of the host + guest signup wizards (funnel top), and
+  **InitiateCheckout** fires when a host commits to a paid plan (right before the Paystack
+  hand-off), both via the existing `lib/analytics/pixel.ts` helpers on the Wielo platform
+  pixel. Verified `vilo_viewcontent` in `dataLayer`. content_ids stay stable through to the
+  Receipt Purchase for browser↔CAPI dedupe.
+- NOTE: server-side CAPI Purchase for subscription orders is still browser-pixel only (no
+  `product_orders` sent-at marker like bookings have) — optional follow-up for iOS/adblock
+  dedupe.
+
 ## 2026-07-07 #13 — Signup hardening (MVP-ready): verification, bot/rate limits, passwords, consent.
 
 Hardened the public guest + host signup flows for real users. Five layers, all verified live

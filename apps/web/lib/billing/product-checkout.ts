@@ -19,16 +19,34 @@ function token(): string {
   return uuid.replace(/-/g, "");
 }
 
+// Absolute base URL for links Paystack (or the browser) must resolve. The
+// request `origin` (threaded from the calling server action) is authoritative —
+// env vars are unreliable here: the dev server runs on an autoPort so a hardcoded
+// localhost:3000 would be wrong, and NEXT_PUBLIC_SITE_URL isn't always set. This
+// was the bug: an empty base made Paystack's callback_url relative, so a
+// successful test payment never redirected back to the thank-you page.
+function resolveSiteBase(origin?: string | null): string {
+  return (
+    origin ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    ""
+  );
+}
+
 export type CreateOrderResult =
   | { ok: true; token: string; url: string }
   | { ok: false; error: string };
 
 // Create a pending order for a product + a pay-link to send the user.
-export async function createProductOrder(input: {
-  productId: string;
-  email: string;
-  createdBy: string | null;
-}): Promise<CreateOrderResult> {
+export async function createProductOrder(
+  input: {
+    productId: string;
+    email: string;
+    createdBy: string | null;
+  },
+  origin?: string | null,
+): Promise<CreateOrderResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
     .from("products")
@@ -60,7 +78,7 @@ export async function createProductOrder(input: {
   });
   if (error) return { ok: false, error: error.message };
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const siteUrl = resolveSiteBase(origin);
   return {
     ok: true,
     token: payToken,
@@ -72,6 +90,7 @@ export async function createProductOrder(input: {
 export async function startProductPurchaseBySlug(
   slug: string,
   email: string,
+  origin?: string | null,
 ): Promise<CreateOrderResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
@@ -82,7 +101,10 @@ export async function startProductPurchaseBySlug(
   if (!product || !product.is_active) {
     return { ok: false, error: "This product isn't available." };
   }
-  return createProductOrder({ productId: product.id, email, createdBy: null });
+  return createProductOrder(
+    { productId: product.id, email, createdBy: null },
+    origin,
+  );
 }
 
 // Self-serve subscription checkout that jumps STRAIGHT to the Paystack card form
@@ -93,8 +115,9 @@ export async function startProductPurchaseBySlug(
 export async function startProductCheckoutDirect(
   slug: string,
   email: string,
+  origin?: string | null,
 ): Promise<CreateOrderResult> {
-  const order = await startProductPurchaseBySlug(slug, email);
+  const order = await startProductPurchaseBySlug(slug, email, origin);
   if (!order.ok) return order;
 
   // Card available = product offers Paystack AND the platform has it enabled.
@@ -118,7 +141,7 @@ export async function startProductCheckoutDirect(
     methods.includes("paystack") && !!settings?.paystack_enabled;
 
   if (cardAvailable) {
-    const pay = await startProductPaystack(order.token);
+    const pay = await startProductPaystack(order.token, origin);
     if (pay.ok) {
       return { ok: true, token: order.token, url: pay.authorizationUrl };
     }
@@ -154,11 +177,10 @@ export async function purchaseProductBySlug(
     const r = await fulfilFreeProductBySlug(slug, email, origin);
     return r.ok ? { ok: true, url: r.loginUrl, free: true } : r;
   }
-  const r = await createProductOrder({
-    productId: product.id,
-    email,
-    createdBy: null,
-  });
+  const r = await createProductOrder(
+    { productId: product.id, email, createdBy: null },
+    origin,
+  );
   return r.ok ? { ok: true, url: r.url, free: false } : r;
 }
 
@@ -295,6 +317,7 @@ function envFromSecret(secret: string): "test" | "live" {
 // confirm-on-return path and the webhook can both flip it to completed.
 export async function startProductPaystack(
   payToken: string,
+  origin?: string | null,
 ): Promise<PaystackStartResult> {
   const admin = createAdminClient();
   const { data: order } = await admin
@@ -312,7 +335,7 @@ export async function startProductPaystack(
 
   const environment = envFromSecret(secret);
   const reference = `prod_${order.id}_${Date.now()}`;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const siteUrl = resolveSiteBase(origin);
   try {
     const res = await initializeTransaction({
       amount: Number(order.amount),

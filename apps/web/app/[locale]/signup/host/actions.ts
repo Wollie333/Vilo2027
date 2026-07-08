@@ -224,7 +224,10 @@ export async function startSignupCheckoutAction(
   }
   // Goes straight to the Paystack card form when card is available (skips the
   // redundant /pay/product summary page); falls back to that page for EFT-only.
-  const r = await startProductCheckoutDirect(slug, user.email);
+  // Pass the request origin so Paystack's callback_url is absolute (dev autoPort
+  // + unset NEXT_PUBLIC_SITE_URL made it relative → no redirect after payment).
+  const origin = headers().get("origin");
+  const r = await startProductCheckoutDirect(slug, user.email, origin);
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, url: r.url };
 }

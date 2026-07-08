@@ -20,9 +20,14 @@ import {
   Upload,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import {
+  commerceParams,
+  firePixelEventWithRetry,
+  newEventId,
+} from "@/lib/analytics/pixel";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
@@ -157,6 +162,19 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
 
   const current = STEPS[currentIndex];
   const isLast = currentIndex === STEPS.length - 1;
+
+  // ViewContent — top of the guest signup funnel (fires once on mount).
+  useEffect(() => {
+    firePixelEventWithRetry(
+      "ViewContent",
+      commerceParams({
+        contentIds: ["guest_signup"],
+        contentName: "Guest signup",
+        currency: "ZAR",
+      }),
+      newEventId("vc"),
+    );
+  }, []);
 
   function patch(p: Partial<WizardData>) {
     setData((d) => ({ ...d, ...p }));
