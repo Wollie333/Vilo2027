@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Clock,
   Crown,
+  Download,
   History,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -93,6 +94,7 @@ export default async function SettingsSubscriptionPage() {
     plans,
     products,
     { data: billingRaw },
+    { data: wieloInvoices },
   ] = await Promise.all([
     supabase
       .from("subscriptions")
@@ -119,7 +121,17 @@ export default async function SettingsSubscriptionPage() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10),
+    // Downloadable invoice per purchase (own-row RLS). Matched to a ledger row
+    // by ledger_id so each billing line can link to its Wielo invoice PDF.
+    supabase.from("wielo_invoices").select("ledger_id, hosted_token").limit(50),
   ]);
+
+  const invoiceByLedger = new Map<string, string>();
+  for (const inv of wieloInvoices ?? []) {
+    if (inv.ledger_id && inv.hosted_token) {
+      invoiceByLedger.set(inv.ledger_id, inv.hosted_token);
+    }
+  }
 
   const sub = subRaw as {
     id: string;
@@ -304,6 +316,7 @@ export default async function SettingsSubscriptionPage() {
             <ul className="divide-y divide-brand-line">
               {billingRaw.map((b) => {
                 const amt = Number(b.amount);
+                const invoiceToken = invoiceByLedger.get(b.id);
                 return (
                   <li
                     key={b.id}
@@ -324,9 +337,19 @@ export default async function SettingsSubscriptionPage() {
                       {amt < 0 ? "−" : ""}
                       {formatZar(Math.abs(amt))}
                     </span>
-                    <span className="w-full text-right font-mono text-[11px] text-brand-mute sm:w-auto">
+                    <span className="font-mono text-[11px] text-brand-mute">
                       {new Date(b.created_at).toLocaleDateString("en-ZA")}
                     </span>
+                    {invoiceToken ? (
+                      <a
+                        href={`/wielo-invoice/${invoiceToken}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[12px] font-semibold text-brand-secondary hover:underline"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Invoice
+                      </a>
+                    ) : null}
                   </li>
                 );
               })}
