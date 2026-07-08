@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-08 #17 — Admin dashboard cleanup + Part 2 wiring (invoices, consent, feature enforcement).
+
+Two-part founder request: clean up the super-admin pages, then wire several system settings.
+- **Tabbed platform settings** (`6c7f62bd`): `/admin/platform/settings` split into route-based
+  underline tabs (matching host settings) — General · Business · **Payments** · Legal · Tracking.
+  The Payments tab reuses the products payment form on the same `platform_payment_settings` row
+  (two-way bound) and holds Wielo's EFT bank account.
+- **Admin overview redesign** (`44164b3b`): `/admin` rebuilt to the host-dashboard look (stat band,
+  tone-coded attention tiles, growth band, cards). Fixed money KPIs showing R0 as "Free".
+- **EFT bank details on invoices** (`31d128ae`): unpaid Wielo invoices print the platform EFT bank
+  account as "Payment details" (hosted page + PDF). Consent version now derived from the admin
+  legal doc versions instead of a hardcoded constant.
+- **Feature-scope enforcement** (`071b29a2`): dropped the pre-MVP short-circuits in `featureGate.ts`
+  + `specials/gate.ts` so `product_features` (admin-assigned per product) actually gates hosts.
+  Beta grants all → full access; Starter grants none of website/specials/looking-for → gated.
+  **Supersedes the CLAUDE.md "open on free pre-MVP" policy.** `plan_features` is empty; gating is
+  purely product-driven. NOTE: assign website/specials features to Starter in admin if that paid
+  tier should include them.
+
 ## 2026-07-08 #16 — Signup funnel pixels, fresh product reads, Tracking hub, product-driven subscriptions.
 
 Continuation of the signup-hardening work plus two founder-requested features.
