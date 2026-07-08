@@ -511,77 +511,90 @@ export function ProductEditor({
             Save the product first, then assign which features it unlocks.
           </p>
         ) : (
-          <div className="divide-y divide-brand-line">
-            {featureCatalog.map((feat) => {
-              const st = features[feat.key] ?? {
-                isEnabled: false,
-                limitValue: null,
-              };
-              const hasQty = feat.scope !== "toggle";
-              return (
-                <div key={feat.key} className="flex items-center gap-3 py-2.5">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13px] font-medium text-brand-ink">
-                        {feat.label}
-                      </span>
-                      {feat.scope === "per_business" ? (
-                        <span className="rounded-pill bg-brand-light px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
-                          per business
+          <div className="overflow-hidden rounded-card border border-brand-line bg-white">
+            <ul className="divide-y divide-brand-line">
+              {featureCatalog.map((feat) => {
+                const st = features[feat.key] ?? {
+                  isEnabled: false,
+                  limitValue: null,
+                };
+                const on = st.isEnabled;
+                const hasQty = feat.scope !== "toggle";
+                return (
+                  <li
+                    key={feat.key}
+                    className="flex items-center gap-4 px-5 py-3.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-semibold text-brand-ink">
+                          {feat.label}
                         </span>
-                      ) : null}
+                        {feat.scope === "per_business" ? (
+                          <span className="rounded-pill bg-brand-light px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
+                            per business
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-0.5 font-mono text-[11px] text-brand-mute">
+                        {feat.key}
+                      </div>
                     </div>
-                    <div className="font-mono text-[10.5px] text-brand-mute">
-                      {feat.key}
-                    </div>
-                  </div>
-                  {/* Quantity for capacity + per-business features (blank = unlimited). */}
-                  {st.isEnabled && hasQty ? (
-                    <label className="flex items-center gap-1.5 text-[10.5px] text-brand-mute">
-                      {feat.scope === "per_business" ? "Per biz" : "Qty"}
-                      <input
-                        type="number"
-                        min={0}
-                        value={st.limitValue ?? ""}
-                        placeholder="∞"
-                        onChange={(e) => {
-                          const v = e.target.value.trim();
-                          setFeatures((s) => ({
-                            ...s,
-                            [feat.key]: {
+                    {/* Quantity for capacity + per-business features (blank = unlimited). */}
+                    {on && hasQty ? (
+                      <label className="flex items-center gap-1.5 text-[10.5px] text-brand-mute">
+                        {feat.scope === "per_business" ? "Per biz" : "Qty"}
+                        <input
+                          type="number"
+                          min={0}
+                          value={st.limitValue ?? ""}
+                          placeholder="∞"
+                          onChange={(e) => {
+                            const v = e.target.value.trim();
+                            setFeatures((s) => ({
+                              ...s,
+                              [feat.key]: {
+                                ...st,
+                                limitValue: v === "" ? null : Number(v),
+                              },
+                            }));
+                          }}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim();
+                            saveFeature(feat.key, {
                               ...st,
                               limitValue: v === "" ? null : Number(v),
-                            },
-                          }));
-                        }}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          saveFeature(feat.key, {
-                            ...st,
-                            limitValue: v === "" ? null : Number(v),
-                          });
-                        }}
-                        className="w-16 rounded-md border border-brand-line px-2 py-1 text-center font-mono text-[12px] focus:border-brand-primary focus:outline-none"
+                            });
+                          }}
+                          className="w-16 rounded-md border border-brand-line px-2 py-1 text-center font-mono text-[12px] focus:border-brand-primary focus:outline-none"
+                        />
+                      </label>
+                    ) : null}
+                    {savingFeat === feat.key ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-mute" />
+                    ) : null}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={on}
+                      aria-label={feat.label}
+                      onClick={() =>
+                        saveFeature(feat.key, { ...st, isEnabled: !on })
+                      }
+                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                        on ? "bg-brand-primary" : "bg-brand-line"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                          on ? "left-[22px]" : "left-0.5"
+                        }`}
                       />
-                    </label>
-                  ) : null}
-                  {savingFeat === feat.key ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-mute" />
-                  ) : null}
-                  <input
-                    type="checkbox"
-                    checked={st.isEnabled}
-                    onChange={(e) =>
-                      saveFeature(feat.key, {
-                        ...st,
-                        isEnabled: e.target.checked,
-                      })
-                    }
-                    className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-                  />
-                </div>
-              );
-            })}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
       </section>
