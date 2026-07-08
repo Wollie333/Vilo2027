@@ -1,7 +1,6 @@
 import "server-only";
 
 import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
-import { getAllPlans } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Enterprise reporting model for Wielo-as-a-business. One server-side builder
@@ -109,15 +108,19 @@ export async function buildPlatformReport(
   const periodStart = rangeStart(range, nowMs).toISOString();
 
   const [
-    plans,
+    { data: productRows },
     { data: subs },
     wieloRows,
     { data: profiles },
     { data: bookingRows },
     { count: activeListings },
   ] = await Promise.all([
-    getAllPlans(),
-    service.from("subscriptions").select("plan, billing_cycle, status"),
+    // The product catalog — the REAL price a host pays. A free product (e.g. a
+    // beta tier) costs R0 even if it grants a paid plan tier for feature access.
+    service.from("products").select("id, name, price, billing_cycle"),
+    service
+      .from("subscriptions")
+      .select("product_id, plan, billing_cycle, status"),
     // Live revenue only — Paystack test-key transactions never count toward
     // business KPIs (the admin Payments tab has a Test filter to inspect them).
     fetchWieloLedger(service, { limit: 10_000, environment: "live" }),
@@ -136,33 +139,36 @@ export async function buildPlatformReport(
       .eq("is_published", true),
   ]);
 
-  // ── Revenue / subscriptions ──
-  const priceMap = new Map(plans.map((p) => [p.key, p]));
+  // ── Revenue / subscriptions ── (product-driven, not plan-tier)
+  // MRR + paying hosts + the plan mix reflect the actual PRODUCT each host is on.
+  // A host on a free product contributes R0 and is NOT a paying host, even if the
+  // product grants a paid plan tier for feature gating.
+  const productById = new Map(
+    (productRows ?? []).map((p) => [p.id as string, p]),
+  );
   let mrr = 0;
   let payingHosts = 0;
   let trials = 0;
   let churned = 0;
-  const planCount: Record<string, number> = {};
-  const planMrr: Record<string, number> = {};
+  const prodCount: Record<string, number> = {};
+  const prodMrr: Record<string, number> = {};
   const statusCount: Record<string, number> = {};
-  for (const p of plans) {
-    planCount[p.key] = 0;
-    planMrr[p.key] = 0;
-  }
   for (const s of subs ?? []) {
     const status = (s.status as string) ?? "unknown";
     statusCount[status] = (statusCount[status] ?? 0) + 1;
-    if (s.plan) planCount[s.plan] = (planCount[s.plan] ?? 0) + 1;
     if (status === "trialing") trials += 1;
     if (status === "cancelled" || status === "expired") churned += 1;
-    if (status === "active") {
-      const pd = priceMap.get(s.plan as string);
-      if (pd && !pd.isFree) {
-        const m = s.billing_cycle === "annual" ? pd.annual / 12 : pd.monthly;
-        mrr += m;
-        if (s.plan) planMrr[s.plan] = (planMrr[s.plan] ?? 0) + m;
-        payingHosts += 1;
-      }
+
+    const prod = s.product_id ? productById.get(s.product_id as string) : null;
+    const price = prod ? Number(prod.price ?? 0) : 0;
+    const key = (s.product_id as string) ?? "none";
+    prodCount[key] = (prodCount[key] ?? 0) + 1;
+
+    if (status === "active" && price > 0) {
+      const m = prod?.billing_cycle === "annual" ? price / 12 : price;
+      mrr += m;
+      prodMrr[key] = (prodMrr[key] ?? 0) + m;
+      payingHosts += 1;
     }
   }
   const arr = mrr * 12;
@@ -228,14 +234,24 @@ export async function buildPlatformReport(
     else if (u.role === "guest") months[idx].guests += 1;
   }
 
-  const planSlices: PlanSlice[] = plans
+  const planSlices: PlanSlice[] = (productRows ?? [])
     .map((p) => ({
-      key: p.key,
-      name: p.name,
-      count: planCount[p.key] ?? 0,
-      mrr: Math.round(planMrr[p.key] ?? 0),
+      key: p.id as string,
+      name: p.name as string,
+      count: prodCount[p.id as string] ?? 0,
+      mrr: Math.round(prodMrr[p.id as string] ?? 0),
     }))
-    .filter((p) => p.count > 0);
+    .filter((p) => p.count > 0)
+    .sort((a, b) => b.mrr - a.mrr);
+  // Subscriptions not linked to a product (legacy/none) — surface honestly.
+  if ((prodCount["none"] ?? 0) > 0) {
+    planSlices.push({
+      key: "none",
+      name: "No product",
+      count: prodCount["none"],
+      mrr: 0,
+    });
+  }
 
   const statusFunnel = Object.entries(statusCount)
     .map(([status, count]) => ({ status, count }))
