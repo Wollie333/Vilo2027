@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  getPlatformInvoiceBanking,
   wieloSnapshotToBusiness,
   type WieloBusinessProfile,
 } from "@/lib/billing/wielo-invoice";
@@ -40,6 +41,11 @@ export async function GET(
   const lines = (
     Array.isArray(invoice.line_items) ? invoice.line_items : []
   ) as LineItem[];
+  // Unpaid → include Wielo's EFT bank details as payment instructions.
+  const banking =
+    invoice.status === "paid"
+      ? null
+      : await getPlatformInvoiceBanking(invoice.invoice_number);
 
   const buffer = await renderInvoicePdf({
     invoiceNumber: invoice.invoice_number,
@@ -50,7 +56,7 @@ export async function GET(
       handle: null,
       email: snap.email ?? null,
       phone: null,
-      banking: null,
+      banking,
       business: wieloSnapshotToBusiness(snap),
     },
     guest: {

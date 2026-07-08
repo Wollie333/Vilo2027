@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
-import { TERMS_VERSION } from "@/lib/auth/consent";
+import { getConsentVersion } from "@/lib/auth/consent";
 import { isBreachedPassword } from "@/lib/auth/password";
 import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
 import {
@@ -128,7 +128,7 @@ export async function createGuestAccountAction(
       full_name,
       role: "guest",
       terms_accepted_at: new Date().toISOString(),
-      terms_version: TERMS_VERSION,
+      terms_version: await getConsentVersion(),
     })
     .eq("id", newUserId);
 

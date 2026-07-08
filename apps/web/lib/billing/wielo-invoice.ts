@@ -69,6 +69,48 @@ export const getWieloBusinessProfile = cache(
   },
 );
 
+export type InvoiceBankingBlock = {
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  accountType: string;
+  branchCode: string;
+  swiftCode: string | null;
+  reference: string | null;
+};
+
+// Wielo's own bank account (platform_payment_settings EFT fields), rendered as
+// "Payment details" on UNPAID Wielo invoices so a host paying by EFT knows where
+// to send it. Returns null when EFT isn't enabled or no bank name is set. The
+// reference defaults to the invoice number when no hint is configured. Read live
+// (not frozen) — you always want to pay the CURRENT account.
+export async function getPlatformInvoiceBanking(
+  referenceFallback?: string | null,
+): Promise<InvoiceBankingBlock | null> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("platform_payment_settings")
+      .select(
+        "eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
+      )
+      .eq("id", true)
+      .maybeSingle();
+    if (!data?.eft_enabled || !data.eft_bank_name?.trim()) return null;
+    return {
+      bankName: data.eft_bank_name.trim(),
+      accountHolder: data.eft_account_name?.trim() ?? "",
+      accountNumber: data.eft_account_number?.trim() ?? "",
+      accountType: "",
+      branchCode: data.eft_branch_code?.trim() ?? "",
+      swiftCode: null,
+      reference: data.eft_reference_hint?.trim() || referenceFallback || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // Turn a frozen wielo_snapshot (or the live profile) into the issuer party shown
 // on the FinancialDocument: a name + address/identity lines.
 export function wieloIssuerLines(snap: Partial<WieloBusinessProfile>): {
