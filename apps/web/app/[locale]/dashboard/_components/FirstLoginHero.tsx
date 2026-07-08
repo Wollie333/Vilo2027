@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Link2, Play } from "lucide-react";
+import { ArrowRight, Check, Link2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
 import { getBrandName } from "@/lib/brand";
@@ -89,13 +89,7 @@ export async function FirstLoginHero({ firstName, handle, steps }: Props) {
                 Finish setting up
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                href="/dashboard/help"
-                className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
-              >
-                <Play className="h-4 w-4" />
-                Watch 2-min tour
-              </Link>
+              {/* Help & docs tour link hidden for MVP. */}
             </div>
           </div>
         </div>

@@ -16,7 +16,6 @@ import {
   Home as HomeIcon,
   Images,
   LayoutDashboard,
-  LifeBuoy,
   List,
   MessageSquare,
   PackagePlus,
@@ -32,7 +31,6 @@ import {
   Sparkles,
   Star,
   Ticket,
-  UserCog,
   Users,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -192,17 +190,11 @@ const INSIGHTS: GmailNavItem[] = [
 ];
 
 const FOOTER: GmailNavItem[] = [
-  { href: "/dashboard/staff", label: "Staff", icon: UserCog },
+  // Staff and Help & docs hidden for MVP (re-enable both later).
   {
     href: "/dashboard/settings",
     label: "Settings",
     icon: Settings,
-    match: "prefix",
-  },
-  {
-    href: "/dashboard/help",
-    label: "Help & docs",
-    icon: LifeBuoy,
     match: "prefix",
   },
 ];

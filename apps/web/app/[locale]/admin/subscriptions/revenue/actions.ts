@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -122,14 +121,23 @@ export const createWieloPaymentLinkAction = withAdminAudit<
       throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
     }
     const admin = await requirePermission("subscriptions.edit");
-    const origin = headers().get("origin");
+    // A payment link is SHARED with the host — it must be the canonical PUBLIC
+    // URL that actually works when they click it, never a localhost/dev origin.
+    // Prefer the configured app URL in production; ignore a localhost value (dev)
+    // and fall back to the brand domain so a link generated locally is still real.
+    const envUrl =
+      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
+    const base =
+      !envUrl || /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(envUrl)
+        ? "https://wielo.co.za"
+        : envUrl;
     const r = await createProductOrder(
       {
         productId: parsed.data.productId,
         email: parsed.data.email,
         createdBy: admin.userId,
       },
-      origin,
+      base,
     );
     if (!r.ok) throw new Error(r.error);
     return {

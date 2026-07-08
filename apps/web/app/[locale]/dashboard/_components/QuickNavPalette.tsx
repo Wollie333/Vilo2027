@@ -12,7 +12,6 @@ import {
   FileText,
   Home as HomeIcon,
   LayoutDashboard,
-  LifeBuoy,
   Lock,
   MessageSquare,
   PackagePlus,
@@ -21,7 +20,6 @@ import {
   RotateCw,
   Settings,
   Star,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -109,12 +107,7 @@ const CONNECT: Route[] = [
     icon: RotateCw,
     keywords: ["ical", "import"],
   },
-  {
-    href: "/dashboard/staff",
-    label: "Staff",
-    icon: Users,
-    keywords: ["team", "co-host"],
-  },
+  // Staff hidden for MVP.
 ];
 
 const TOOLS: Route[] = [
@@ -177,12 +170,7 @@ const SETTINGS: Route[] = [
     icon: Lock,
     keywords: ["popia", "export", "delete account"],
   },
-  {
-    href: "/dashboard/help",
-    label: "Help & docs",
-    icon: LifeBuoy,
-    keywords: ["support"],
-  },
+  // Help & docs hidden for MVP.
 ];
 
 type PaletteCtx = {

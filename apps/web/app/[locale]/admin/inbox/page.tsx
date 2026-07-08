@@ -1,6 +1,7 @@
 import { requirePermission } from "@/lib/admin";
 import type { ChatMessage } from "@/components/inbox/ChatMessageWall";
 import { ensureWieloSupportUser } from "@/lib/inbox/platform-thread";
+import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -107,6 +108,7 @@ export default async function AdminInboxPage({
       { data: sub },
       { count: listings },
       { data: led },
+      products,
     ] = await Promise.all([
       sel.hostUserId
         ? service
@@ -117,7 +119,7 @@ export default async function AdminInboxPage({
         : Promise.resolve({ data: null }),
       service
         .from("subscriptions")
-        .select("plan, status, billing_cycle, current_period_end")
+        .select("plan, status, billing_cycle, current_period_end, product_id")
         .eq("host_id", sel.hostId)
         .maybeSingle(),
       service
@@ -132,10 +134,26 @@ export default async function AdminInboxPage({
             .eq("user_id", sel.hostUserId)
             .eq("status", "completed")
         : Promise.resolve({ data: null }),
+      getSubscriptionProducts(),
     ]);
 
     const ledRows = (led ?? []) as { amount: number; currency: string }[];
     const netToWielo = ledRows.reduce((a, r) => a + Number(r.amount), 0);
+
+    // Show the REAL product name (e.g. "Starter"), resolved from the linked
+    // product, else the plan tier's product name, else the raw plan.
+    const planLabels: Record<string, string> = {};
+    const productById = new Map<string, string>();
+    for (const p of products) {
+      productById.set(p.id, p.name);
+      if (p.planKey && !(p.planKey in planLabels))
+        planLabels[p.planKey] = p.name;
+    }
+    const subProductId = (sub as { product_id?: string | null } | null)
+      ?.product_id;
+    const planDisplay =
+      (subProductId ? productById.get(subProductId) : null) ??
+      (sub?.plan ? (planLabels[sub.plan] ?? sub.plan) : null);
 
     hostDetails = {
       hostId: sel.hostId,
@@ -146,7 +164,7 @@ export default async function AdminInboxPage({
       email: profile?.email ?? null,
       phone: (profile as { phone?: string | null } | null)?.phone ?? null,
       memberSince: profile?.created_at ?? null,
-      plan: sub?.plan ?? null,
+      plan: planDisplay,
       planStatus: sub?.status ?? null,
       billingCycle: sub?.billing_cycle ?? null,
       renewsAt: sub?.current_period_end ?? null,

@@ -105,12 +105,7 @@ export function OnboardingDashboard({
               >
                 Finish setting up <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                href="/dashboard/help"
-                className="inline-flex h-11 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 text-[14px] font-medium text-brand-ink transition hover:bg-brand-light"
-              >
-                <BookOpen className="h-4 w-4 text-brand-primary" /> Host guide
-              </Link>
+              {/* Help & docs "Host guide" link hidden for MVP. */}
             </div>
           </div>
 
@@ -265,12 +260,7 @@ export function OnboardingDashboard({
             </div>
             <div className="p-2">
               <TourButton variant="row" />
-              <SupportLink
-                href="/dashboard/help"
-                icon={BookOpen}
-                title="Host starter guide"
-                sub="Pricing, photos & policies that convert"
-              />
+              {/* Help & docs "Host starter guide" link hidden for MVP. */}
               <SupportLink
                 href="/dashboard/inbox"
                 icon={MessageCircle}

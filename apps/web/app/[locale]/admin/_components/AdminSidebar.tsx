@@ -4,19 +4,15 @@ import {
   Activity,
   BadgePercent,
   BarChart3,
-  BookOpen,
   CreditCard,
   FileText,
   Flag,
   Gauge,
   Home as HomeIcon,
   Inbox,
-  KeyRound,
   Layers,
-  LifeBuoy,
   Mail,
   Megaphone,
-  MessageSquarePlus,
   Package,
   Send,
   ShieldAlert,
@@ -24,7 +20,6 @@ import {
   Star,
   Tag,
   Users,
-  Video,
   Wallet,
 } from "lucide-react";
 
@@ -37,28 +32,23 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 const OPERATIONS: GmailNavItem[] = [
   { href: "/admin", label: "Overview", icon: Gauge, match: "exact" },
+  // One unified Users hub — every Wielo user (hosts + guests + staff). The old
+  // separate "Hosts" tab is gone; filter by type inside Users instead.
+  { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
   {
-    // Support inbox — the host↔Wielo message channel.
+    // Support inbox — the host↔Wielo message channel. Sits right under Users.
     href: "/admin/inbox",
     label: "Inbox",
     icon: Inbox,
     match: "prefix",
   },
-  // One unified Users hub — every Wielo user (hosts + guests + staff). The old
-  // separate "Hosts" tab is gone; filter by type inside Users instead.
-  { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
   {
     href: "/admin/properties",
     label: "Listings",
     icon: HomeIcon,
     match: "prefix",
   },
-  {
-    href: "/admin/hosts/staff",
-    label: "Host staff",
-    icon: Users,
-    match: "prefix",
-  },
+  // Host staff hidden for MVP (see the staff feature).
 ];
 
 const FINANCE: GmailNavItem[] = [
@@ -105,51 +95,7 @@ const MODERATION: GmailNavItem[] = [
   },
 ];
 
-const SUPPORT: GmailNavItem[] = [
-  {
-    href: "/admin/help",
-    label: "Help overview",
-    icon: LifeBuoy,
-    match: "exact",
-  },
-  {
-    href: "/admin/help/articles",
-    label: "Articles",
-    icon: BookOpen,
-    match: "prefix",
-  },
-  { href: "/admin/help/videos", label: "Videos", icon: Video, match: "prefix" },
-  {
-    href: "/admin/help/faqs",
-    label: "FAQs",
-    icon: MessageSquarePlus,
-    match: "prefix",
-  },
-  {
-    href: "/admin/help/categories",
-    label: "Categories",
-    icon: FileText,
-    match: "prefix",
-  },
-  {
-    href: "/admin/help/status",
-    label: "System status",
-    icon: Activity,
-    match: "prefix",
-  },
-  {
-    href: "/admin/help/settings",
-    label: "Help settings",
-    icon: KeyRound,
-    match: "prefix",
-  },
-  {
-    href: "/admin/help/suggestions",
-    label: "Suggestions",
-    icon: MessageSquarePlus,
-    match: "prefix",
-  },
-];
+// Help centre (SUPPORT) group removed for MVP — Help & docs is hidden site-wide.
 
 const PLATFORM: GmailNavItem[] = [
   { href: "/admin/platform/settings", label: "Settings", icon: FileText },
@@ -190,12 +136,7 @@ const PLATFORM: GmailNavItem[] = [
     icon: Mail,
     match: "prefix",
   },
-  {
-    href: "/admin/platform/staff",
-    label: "Platform staff",
-    icon: KeyRound,
-    match: "prefix",
-  },
+  // Platform staff hidden for MVP (staff feature disabled site-wide).
   {
     href: "/admin/audit",
     label: "Audit log",
@@ -255,14 +196,7 @@ export function AdminSidebar({
     { items: vis(OPERATIONS) },
     { label: "Finance", items: vis(FINANCE) },
     { label: "Moderation", items: vis(MODERATION) },
-    // The two long groups collapse by default so the rail isn't overwhelming —
-    // they auto-open when you're inside them.
-    {
-      label: "Help centre",
-      items: vis(SUPPORT),
-      collapsible: true,
-      defaultOpen: false,
-    },
+    // Help centre hidden for MVP (Help & docs disabled site-wide).
     {
       label: "Platform",
       items: vis(PLATFORM),

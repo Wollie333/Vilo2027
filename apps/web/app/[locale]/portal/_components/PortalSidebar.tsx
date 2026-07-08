@@ -6,7 +6,6 @@ import {
   Compass,
   FileText,
   LayoutDashboard,
-  LifeBuoy,
   LogOut,
   Luggage,
   MessageSquare,
@@ -110,7 +109,7 @@ export function PortalSidebar({
       icon: Settings,
       match: "prefix",
     },
-    { href: "/help", label: "Help & docs", icon: LifeBuoy, match: "prefix" },
+    // Help & docs hidden for MVP.
     {
       label: "Sign out",
       icon: LogOut,

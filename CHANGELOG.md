@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-08 #23 — Nav cleanup (Inbox under Users, hide Help & Staff), real pay-link URL, real product in Details.
+
+Founder MVP tidy-ups.
+- **Admin nav**: moved **Inbox** directly under **Users** in the sidebar.
+- **Hide Help & docs site-wide** (re-enable later): removed the host sidebar "Help & docs", the admin
+  "Help centre" group, the quick-nav palette entry, the portal sidebar "Help & docs", and the
+  onboarding/first-login "Host guide" / tour CTAs. Routes remain; just unlinked.
+- **Hide Staff site-wide for MVP**: removed the host "Staff" nav + quick-nav entry, the admin
+  "Host staff" and "Platform staff" nav items.
+- **Payment link uses a REAL URL**: the ledger's Send-payment-link now builds the canonical public
+  URL (`NEXT_PUBLIC_APP_URL`, ignoring a localhost dev value, falling back to the brand domain) so a
+  link shared with a host works — never a `localhost` link. Verified: generates
+  `https://wielo.co.za/pay/product/…` locally; in prod it's the deployed domain.
+- **Details drawer wires in the real product + amounts**: the admin inbox Details panel now shows the
+  host's real **product name** (e.g. "Starter", resolved from the subscription's product / plan key)
+  and the real **net paid to Wielo** from `platform_ledger`. Verified live (Wollie · Starter · R599).
+- tsc + lint + build green.
+
 ## 2026-07-08 #22 — Admin inbox polish: full-bleed, enriched Details drawer, unread highlight.
 
 Follow-up to #21 per founder feedback.
