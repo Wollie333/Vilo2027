@@ -161,11 +161,9 @@ export function ConversationRow({
     <Link
       href={href}
       className={`flex gap-3 border-l-[3px] px-4 py-3 transition ${
-        active
+        active || isUnread
           ? "border-l-brand-primary bg-[#F0FDF4]"
-          : isUnread
-            ? "border-l-brand-primary bg-[#F0FDF4]/60 hover:bg-[#F0FDF4]"
-            : "border-l-transparent hover:bg-[#F7FBF8]"
+          : "border-l-transparent hover:bg-[#F7FBF8]"
       }`}
     >
       <InboxAvatar

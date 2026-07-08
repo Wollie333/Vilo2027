@@ -3,7 +3,11 @@ import type { ChatMessage } from "@/components/inbox/ChatMessageWall";
 import { ensureWieloSupportUser } from "@/lib/inbox/platform-thread";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { AdminInboxView, type AdminConversation } from "./AdminInboxView";
+import {
+  AdminInboxView,
+  type AdminConversation,
+  type HostDetails,
+} from "./AdminInboxView";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +75,9 @@ export default async function AdminInboxPage({
     null;
 
   let messages: ChatMessage[] = [];
+  let hostDetails: HostDetails | null = null;
   if (selectedId) {
+    const sel = conversations.find((c) => c.id === selectedId)!;
     const { data: msgs } = await service
       .from("messages")
       .select(
@@ -94,6 +100,60 @@ export default async function AdminInboxPage({
       attachmentUrl: m.attachment_url,
       attachmentFilename: m.attachment_filename,
     }));
+
+    // Enrich the Details panel with this host's account snapshot.
+    const [
+      { data: profile },
+      { data: sub },
+      { count: listings },
+      { data: led },
+    ] = await Promise.all([
+      sel.hostUserId
+        ? service
+            .from("user_profiles")
+            .select("email, phone, created_at")
+            .eq("id", sel.hostUserId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      service
+        .from("subscriptions")
+        .select("plan, status, billing_cycle, current_period_end")
+        .eq("host_id", sel.hostId)
+        .maybeSingle(),
+      service
+        .from("properties")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", sel.hostId)
+        .is("deleted_at", null),
+      sel.hostUserId
+        ? service
+            .from("platform_ledger")
+            .select("amount, currency, type, status")
+            .eq("user_id", sel.hostUserId)
+            .eq("status", "completed")
+        : Promise.resolve({ data: null }),
+    ]);
+
+    const ledRows = (led ?? []) as { amount: number; currency: string }[];
+    const netToWielo = ledRows.reduce((a, r) => a + Number(r.amount), 0);
+
+    hostDetails = {
+      hostId: sel.hostId,
+      userId: sel.hostUserId,
+      name: sel.hostName,
+      handle: sel.hostHandle,
+      avatarUrl: sel.hostAvatarUrl,
+      email: profile?.email ?? null,
+      phone: (profile as { phone?: string | null } | null)?.phone ?? null,
+      memberSince: profile?.created_at ?? null,
+      plan: sub?.plan ?? null,
+      planStatus: sub?.status ?? null,
+      billingCycle: sub?.billing_cycle ?? null,
+      renewsAt: sub?.current_period_end ?? null,
+      listings: listings ?? 0,
+      netToWielo,
+      currency: ledRows[0]?.currency ?? "ZAR",
+    };
   }
 
   return (
@@ -102,6 +162,7 @@ export default async function AdminInboxPage({
       selectedId={selectedId}
       messages={messages}
       selfId={supportUserId}
+      hostDetails={hostDetails}
     />
   );
 }

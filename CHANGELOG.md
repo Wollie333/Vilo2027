@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-08 #22 — Admin inbox polish: full-bleed, enriched Details drawer, unread highlight.
+
+Follow-up to #21 per founder feedback.
+- **Full-bleed** `/admin/inbox`: added it to the shared `FULL_BLEED_ROUTES` so the support inbox
+  owns the whole content area (two-pane fills the viewport) exactly like the host inbox — the admin
+  layout already uses the same `ClassicShellFrame`. `AdminInboxView` reworked to the same full-bleed
+  two-pane structure as `InboxView` (list aside + thread pane, no padded wrapper).
+- **Enriched Details drawer**: the admin thread now has a "Details" button opening a slide-over with
+  the host's account snapshot — avatar/name/email, WhatsApp + Email, Plan + status, billing cycle,
+  renews-on, listings, **net Paid to Wielo** (from `platform_ledger`), member-since, and quick links
+  to the user record + the ledger (filtered to that host).
+- **Unread highlight is now the default prominent style**: `ConversationRow` gives an unread row the
+  same green left-border + fill as the active row (was a lighter tint) — applies across host, guest
+  and admin inboxes (shared component).
+- Verified live: admin inbox is full-bleed; Details drawer shows the host snapshot (Pro · Monthly ·
+  1 listing · R349 paid · member since); thread + reply intact. tsc + lint + build green.
+
 ## 2026-07-08 #21 — Host↔Wielo support inbox (wired into the existing inbox) + admin send.
 
 Founder ask: an always-present "Wielo" thread in every host's inbox that the admin can message

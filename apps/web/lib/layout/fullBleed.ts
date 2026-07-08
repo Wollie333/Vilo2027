@@ -28,6 +28,10 @@
 export const FULL_BLEED_ROUTES = new Set<string>([
   "/dashboard/inbox",
   "/portal/inbox",
+  // The admin support inbox is the same two-pane message centre as the host
+  // inbox — it owns the whole content area. Thread selection uses a ?c= query
+  // param, so the pathname stays /admin/inbox (exact match works).
+  "/admin/inbox",
 ]);
 
 export function isFullBleedRoute(pathname: string | null): boolean {
