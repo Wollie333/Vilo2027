@@ -8,6 +8,25 @@ import { AdminReasonRequired } from "./errors";
 import { getActiveImpersonationTargetId } from "./impersonation";
 import { type PermissionKey, requirePermission } from "./requirePermission";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// `admin_audit_log.ip_address` is a Postgres `inet`, which only accepts a bare
+// IPv4/IPv6 address. `x-forwarded-for` can carry a :port, a hostname or a comma
+// list (esp. in dev / behind proxies) — any of which make the insert fail. Return
+// a clean address or null so the audit write never breaks on it.
+function normalizeIp(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const v = raw.trim();
+  const m4 = v.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?::\d+)?$/);
+  if (m4) {
+    const octets = m4.slice(1, 5);
+    return octets.every((o) => Number(o) <= 255) ? octets.join(".") : null;
+  }
+  if (v.includes(":") && /^[0-9a-fA-F:]+(?:\.\d{1,3}){0,3}$/.test(v)) return v;
+  return null;
+}
+
 type AuditTargetType =
   | "host"
   | "guest"
@@ -111,26 +130,47 @@ export function withAdminAudit<TArgs extends { reason?: string }, TResult>(
     const { result, after } = await fn(args, service);
 
     const h = headers();
-    const ip =
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip");
+    const ip = normalizeIp(
+      h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip"),
+    );
     const userAgent = h.get("user-agent");
     const impersonating = getActiveImpersonationTargetId();
+    // target_id is a uuid column. `getTargetId` can return a value that arrives
+    // Promise-wrapped (server-action arg passing) — resolve it, then coerce a
+    // non-uuid (email/slug) or non-string to null. The real value is always kept
+    // in payload.args regardless.
+    const resolvedTarget: unknown = await Promise.resolve(
+      config.getTargetId(args),
+    );
+    const targetId =
+      typeof resolvedTarget === "string" && UUID_RE.test(resolvedTarget)
+        ? resolvedTarget
+        : null;
 
-    await service.from("admin_audit_log").insert({
+    const row = {
       admin_id: admin.userId,
       impersonating,
       action: config.actionName,
       target_type: config.targetType,
-      target_id: config.getTargetId(args),
-      payload: {
-        before,
-        after,
-        args,
-        reason: args.reason ?? null,
-      },
-      ip_address: ip,
+      target_id: targetId,
+      payload: { before, after, args, reason: args.reason ?? null },
       user_agent: userAgent,
-    });
+    };
+    // Never silently drop an audit write. If the inet cast still fails on an odd
+    // forwarded value, retry once without the ip so the row is still recorded.
+    const { error: auditErr } = await service
+      .from("admin_audit_log")
+      .insert({ ...row, ip_address: ip });
+    if (auditErr) {
+      const { error: retryErr } = await service
+        .from("admin_audit_log")
+        .insert(row);
+      if (retryErr) {
+        console.error(
+          `[admin-audit] failed to record ${config.actionName}: ${retryErr.message}`,
+        );
+      }
+    }
 
     return result;
   };

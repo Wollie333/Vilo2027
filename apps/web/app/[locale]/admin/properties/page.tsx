@@ -1,13 +1,21 @@
+import {
+  BedDouble,
+  Images,
+  CalendarCheck,
+  ShieldCheck,
+  Star,
+} from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Search } from "lucide-react";
 
+import { requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
-import { requirePermission } from "@/lib/admin";
 
-import { AdminTable, type AdminColumn } from "../_components/AdminTable";
 import { AdminKpiCard } from "../_components/AdminKpiCard";
 import { AdminSegments } from "../_components/AdminSegments";
+import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+import { ListingActions } from "./ListingActions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +29,20 @@ function isStatus(v: string | undefined): v is (typeof STATUSES)[number] {
   return STATUSES.includes((v ?? "") as (typeof STATUSES)[number]);
 }
 
+// Strip characters that carry meaning in a PostgREST `.or()` filter so a search
+// term can't inject extra conditions (e.g. "x,is_published.eq.false").
+function sanitizeSearch(q: string): string {
+  return q
+    .replace(/[,()\\*%]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
+function rand(n: number): string {
+  return "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
+}
+
 export default async function AdminListingsPage({
   searchParams,
 }: {
@@ -29,6 +51,7 @@ export default async function AdminListingsPage({
   await requirePermission("listings.edit");
 
   const q = (searchParams?.q ?? "").trim();
+  const qSafe = sanitizeSearch(q);
   const status: (typeof STATUSES)[number] = isStatus(searchParams?.status)
     ? (searchParams!.status as (typeof STATUSES)[number])
     : "all";
@@ -39,8 +62,8 @@ export default async function AdminListingsPage({
     .select(
       `
       id, name, slug, property_type, is_published, is_featured, city, province,
-      base_price, currency, created_at,
-      host:hosts ( id, handle, display_name )
+      base_price, currency, avg_rating, total_reviews, created_at,
+      host:hosts ( id, handle, display_name, is_verified )
     `,
       { count: "exact" },
     )
@@ -48,8 +71,10 @@ export default async function AdminListingsPage({
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
 
-  if (q) {
-    query = query.or(`name.ilike.%${q}%,city.ilike.%${q}%`);
+  if (qSafe) {
+    query = query.or(
+      `name.ilike.%${qSafe}%,city.ilike.%${qSafe}%,slug.ilike.%${qSafe}%`,
+    );
   }
   if (status === "published") query = query.eq("is_published", true);
   else if (status === "draft") query = query.eq("is_published", false);
@@ -60,6 +85,12 @@ export default async function AdminListingsPage({
     "admin/listings",
   );
 
+  type HostRel = {
+    id: string;
+    handle: string;
+    display_name: string;
+    is_verified: boolean;
+  };
   type Row = {
     id: string;
     name: string;
@@ -71,14 +102,54 @@ export default async function AdminListingsPage({
     province: string | null;
     base_price: number;
     currency: string;
+    avg_rating: number | null;
+    total_reviews: number | null;
     created_at: string;
-    host:
-      | { id: string; handle: string; display_name: string }
-      | { id: string; handle: string; display_name: string }[]
-      | null;
+    host: HostRel | HostRel[] | null;
+    rooms: number;
+    photos: number;
+    bookings: number;
   };
 
-  const list = (rows as Row[] | null) ?? [];
+  const base =
+    (rows as Omit<Row, "rooms" | "photos" | "bookings">[] | null) ?? [];
+  const listedIds = base.map((l) => l.id);
+
+  // Enrichment — rooms / photos / bookings counts for the visible page (batched).
+  const roomsBy = new Map<string, number>();
+  const photosBy = new Map<string, number>();
+  const bookingsBy = new Map<string, number>();
+  if (listedIds.length > 0) {
+    const [{ data: roomRows }, { data: photoRows }, { data: bookingRows }] =
+      await Promise.all([
+        service
+          .from("property_rooms")
+          .select("property_id")
+          .in("property_id", listedIds),
+        service
+          .from("property_photos")
+          .select("property_id")
+          .in("property_id", listedIds),
+        service
+          .from("bookings")
+          .select("property_id")
+          .in("property_id", listedIds),
+      ]);
+    for (const r of roomRows ?? [])
+      roomsBy.set(r.property_id, (roomsBy.get(r.property_id) ?? 0) + 1);
+    for (const r of photoRows ?? [])
+      photosBy.set(r.property_id, (photosBy.get(r.property_id) ?? 0) + 1);
+    for (const r of bookingRows ?? [])
+      if (r.property_id)
+        bookingsBy.set(r.property_id, (bookingsBy.get(r.property_id) ?? 0) + 1);
+  }
+
+  const list: Row[] = base.map((l) => ({
+    ...l,
+    rooms: roomsBy.get(l.id) ?? 0,
+    photos: photosBy.get(l.id) ?? 0,
+    bookings: bookingsBy.get(l.id) ?? 0,
+  }));
 
   // KPI + segment counts (all non-deleted listings).
   const { data: allRows } = await service
@@ -104,6 +175,7 @@ export default async function AdminListingsPage({
           <div className="truncate font-medium text-brand-ink">{l.name}</div>
           <div className="truncate text-[11px] uppercase tracking-wider text-brand-mute">
             {l.property_type}
+            {l.city ? ` · ${l.city}` : ""}
           </div>
         </div>
       ),
@@ -113,61 +185,97 @@ export default async function AdminListingsPage({
       cell: (l) => {
         const host = Array.isArray(l.host) ? l.host[0] : l.host;
         return host ? (
-          <Link
-            href={`/admin/hosts/${host.id}`}
-            className="text-[12px] text-brand-primary hover:underline"
-          >
-            {host.display_name}
-          </Link>
+          <span className="inline-flex items-center gap-1.5">
+            <Link
+              href={`/admin/hosts/${host.id}`}
+              className="text-[12px] text-brand-primary hover:underline"
+            >
+              {host.display_name}
+            </Link>
+            {host.is_verified ? (
+              <ShieldCheck
+                className="h-3.5 w-3.5 text-brand-primary"
+                aria-label="Verified host"
+              />
+            ) : null}
+          </span>
         ) : (
           <span className="text-brand-mute">—</span>
         );
       },
     },
     {
-      header: "Location",
+      header: "Content",
       cell: (l) => (
-        <span className="text-[12px] text-brand-mute">
-          {[l.city, l.province].filter(Boolean).join(", ") || "—"}
+        <div className="flex items-center gap-3 text-[12px] text-brand-mute">
+          <span className="inline-flex items-center gap-1" title="Rooms">
+            <BedDouble className="h-3.5 w-3.5" /> {l.rooms}
+          </span>
+          <span
+            className={`inline-flex items-center gap-1 ${l.photos === 0 ? "text-status-pending" : ""}`}
+            title="Photos"
+          >
+            <Images className="h-3.5 w-3.5" /> {l.photos}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Bookings",
+      align: "right",
+      cell: (l) => (
+        <span className="num inline-flex items-center justify-end gap-1 text-[12px] text-brand-mute">
+          <CalendarCheck className="h-3.5 w-3.5" /> {l.bookings}
         </span>
       ),
+    },
+    {
+      header: "Rating",
+      cell: (l) =>
+        (l.total_reviews ?? 0) > 0 ? (
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-ink">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            {Number(l.avg_rating ?? 0).toFixed(1)}
+            <span className="text-brand-mute">({l.total_reviews})</span>
+          </span>
+        ) : (
+          <span className="text-[12px] text-brand-mute">—</span>
+        ),
     },
     {
       header: "From",
       align: "right",
       cell: (l) => (
         <span className="num font-medium text-brand-ink">
-          R{" "}
-          {Math.round(Number(l.base_price))
-            .toLocaleString("en-ZA")
-            .replace(/,/g, " ")}
+          {rand(Number(l.base_price))}
         </span>
       ),
     },
     {
       header: "Status",
-      cell: (l) =>
-        l.is_featured ? (
-          <Pill tone="primary">Featured</Pill>
-        ) : l.is_published ? (
-          <Pill tone="good">Published</Pill>
-        ) : (
-          <Pill tone="pending">Draft</Pill>
-        ),
+      cell: (l) => (
+        <div className="flex flex-wrap items-center gap-1">
+          {l.is_published ? (
+            <Pill tone="good">Published</Pill>
+          ) : (
+            <Pill tone="pending">Draft</Pill>
+          )}
+          {l.is_featured ? <Pill tone="primary">Featured</Pill> : null}
+        </div>
+      ),
     },
     {
       header: "",
       align: "right",
-      cell: (l) =>
-        l.slug ? (
-          <Link
-            href={`/property/${l.slug}`}
-            target="_blank"
-            className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
-          >
-            View
-          </Link>
-        ) : null,
+      cell: (l) => (
+        <ListingActions
+          listingId={l.id}
+          slug={l.slug}
+          isPublished={l.is_published}
+          isFeatured={l.is_featured}
+          name={l.name}
+        />
+      ),
     },
   ];
 
@@ -178,7 +286,8 @@ export default async function AdminListingsPage({
           Listings
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          Every accommodation listing on the platform.
+          Every accommodation listing on the platform — moderate, feature or
+          take one offline.
         </p>
       </header>
 
@@ -222,7 +331,7 @@ export default async function AdminListingsPage({
                 type="search"
                 name="q"
                 defaultValue={q}
-                placeholder="Search name or city…"
+                placeholder="Search name, city or handle…"
                 className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
               />
             </div>
