@@ -69,6 +69,50 @@ export default async function AdminUsersPage({
 
   const list = (rows as UserRow[] | null) ?? [];
 
+  // Resolve each host's subscription plan for the Plan column — prefer the
+  // product name (the catalog they're on), else the plan tier. Guests have none.
+  const planByUser = new Map<string, string>();
+  const listedIds = list.map((u) => u.id);
+  if (listedIds.length > 0) {
+    const { data: hostRows } = await service
+      .from("hosts")
+      .select("id, user_id")
+      .in("user_id", listedIds)
+      .is("deleted_at", null);
+    const userByHost = new Map(
+      (hostRows ?? []).map((h) => [h.id as string, h.user_id as string]),
+    );
+    const hostIds = (hostRows ?? []).map((h) => h.id as string);
+    if (hostIds.length > 0) {
+      const { data: subs } = await service
+        .from("subscriptions")
+        .select("host_id, plan, product_id")
+        .in("host_id", hostIds);
+      const productIds = [
+        ...new Set(
+          (subs ?? []).map((s) => s.product_id).filter(Boolean) as string[],
+        ),
+      ];
+      const { data: products } = productIds.length
+        ? await service.from("products").select("id, name").in("id", productIds)
+        : { data: [] as { id: string; name: string }[] };
+      const productName = new Map(
+        (products ?? []).map((p) => [p.id as string, p.name as string]),
+      );
+      for (const s of subs ?? []) {
+        const uid = userByHost.get(s.host_id as string);
+        if (!uid) continue;
+        const label =
+          (s.product_id ? productName.get(s.product_id as string) : null) ??
+          (s.plan
+            ? (s.plan as string).charAt(0).toUpperCase() +
+              (s.plan as string).slice(1)
+            : "Free");
+        planByUser.set(uid, label);
+      }
+    }
+  }
+
   // KPI + segment counts (all non-deleted users).
   const { data: allRows } = await service
     .from("user_profiles")
@@ -117,6 +161,24 @@ export default async function AdminUsersPage({
       ),
     },
     { header: "Role", cell: (u) => <RolePill role={u.role} /> },
+    {
+      header: "Plan",
+      cell: (u) => {
+        const plan = planByUser.get(u.id);
+        if (plan) {
+          return (
+            <span className="inline-flex items-center rounded-pill border border-brand-primary/20 bg-brand-accent px-2 py-0.5 text-[10px] font-semibold text-brand-primary">
+              {plan}
+            </span>
+          );
+        }
+        return (
+          <span className="text-[12px] text-brand-mute">
+            {u.role === "host" ? "Free" : "—"}
+          </span>
+        );
+      },
+    },
     {
       header: "Joined",
       cell: (u) => (
