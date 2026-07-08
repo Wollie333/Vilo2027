@@ -7,7 +7,10 @@ import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
 import { TERMS_VERSION } from "@/lib/auth/consent";
 import { isBreachedPassword } from "@/lib/auth/password";
 import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
-import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
+import {
+  sendExistingAccountNotice,
+  sendVerificationEmail,
+} from "@/lib/auth/verifyEmail";
 import { combineName } from "@/lib/profile/name";
 import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -90,10 +93,13 @@ export async function createGuestAccountAction(
       msg.includes("registered") ||
       msg.includes("exists")
     ) {
+      // Anti-enumeration: don't confirm the email is registered. Email the real
+      // owner a heads-up instead, and return a neutral, non-committal message.
+      await sendExistingAccountNotice({ email: d.email, origin });
       return {
         ok: false,
         error:
-          "An account with this email already exists. Sign in instead, or use a different email.",
+          "We couldn't complete your signup. If you already have an account, sign in or reset your password.",
       };
     }
     return { ok: false, error: "Could not create your account. Try again." };

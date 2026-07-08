@@ -111,6 +111,57 @@ export async function sendVerificationEmail(input: {
   return { ok: res.ok };
 }
 
+function existingAccountHtml(input: {
+  brandName: string;
+  signInLink: string;
+  resetLink: string;
+}): string {
+  return `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937;">
+    <h1 style="font-size:20px;font-weight:700;color:#064E3B;margin:0 0 16px;">You already have an account</h1>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hi there,</p>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 24px;">
+      Someone (hopefully you) just tried to sign up for ${input.brandName} with this email
+      address — but you already have an account. There's nothing new to set up; just sign in.
+    </p>
+    <a href="${input.signInLink}" style="display:inline-block;background:#10B981;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:8px;">
+      Sign in
+    </a>
+    <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:24px 0 0;">
+      Forgot your password? <a href="${input.resetLink}" style="color:#10B981;">Reset it here</a>.
+    </p>
+    <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:16px 0 0;">
+      If this wasn't you, you can safely ignore this email — no one can access your account without
+      your password.
+    </p>
+  </div>`;
+}
+
+/**
+ * Anti-enumeration: when someone tries to sign up with an email that already
+ * has an account, we DON'T confirm existence to the browser — instead we email
+ * the real owner a heads-up (+ a sign-in / reset link). Best-effort; inert
+ * without a Resend key. The signup rate limit caps how often this can fire, so
+ * it can't be used to email-bomb an inbox.
+ */
+export async function sendExistingAccountNotice(input: {
+  email: string;
+  origin: string;
+}): Promise<{ ok: boolean }> {
+  if (!input.origin || !input.email) return { ok: false };
+  const brandName = await getBrandName();
+  const res = await sendTransactionalEmail({
+    to: input.email,
+    subject: `You already have a ${brandName} account`,
+    html: existingAccountHtml({
+      brandName,
+      signInLink: `${input.origin}/login`,
+      resetLink: `${input.origin}/forgot-password`,
+    }),
+  });
+  return { ok: res.ok };
+}
+
 /** Stamp a user's profile as verified. Idempotent. */
 export async function markEmailVerified(userId: string): Promise<boolean> {
   try {
