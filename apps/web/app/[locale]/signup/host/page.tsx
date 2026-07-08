@@ -28,6 +28,13 @@ export type PaidReceipt = {
   email: string;
   plan: "free" | "basic" | "pro" | "business";
   billingCycle: "monthly" | "annual";
+  // Purchase-pixel payload (fired on the wizard Welcome step). transactionId is
+  // stable (invoice number, else order id) so a refresh / future CAPI dedupes.
+  transactionId: string;
+  amount: number;
+  currency: string;
+  productId: string | null;
+  productName: string;
 };
 
 export default async function HostSignupPage({
@@ -62,7 +69,9 @@ export default async function HostSignupPage({
     const admin = createAdminClient();
     const { data: order } = await admin
       .from("product_orders")
-      .select("status, payer_email, payer_user_id, product_id")
+      .select(
+        "id, status, payer_email, payer_user_id, product_id, product_name, amount, currency",
+      )
       .eq("pay_token", paidToken)
       .maybeSingle();
     const belongs =
@@ -77,18 +86,25 @@ export default async function HostSignupPage({
         .is("deleted_at", null)
         .maybeSingle();
       if (host) {
-        const [{ data: sub }, { data: profile }] = await Promise.all([
-          admin
-            .from("subscriptions")
-            .select("plan, billing_cycle")
-            .eq("host_id", host.id)
-            .maybeSingle(),
-          admin
-            .from("user_profiles")
-            .select("full_name")
-            .eq("id", user.id)
-            .maybeSingle(),
-        ]);
+        const [{ data: sub }, { data: profile }, { data: invoices }] =
+          await Promise.all([
+            admin
+              .from("subscriptions")
+              .select("plan, billing_cycle")
+              .eq("host_id", host.id)
+              .maybeSingle(),
+            admin
+              .from("user_profiles")
+              .select("full_name")
+              .eq("id", user.id)
+              .maybeSingle(),
+            admin
+              .from("wielo_invoices")
+              .select("invoice_number")
+              .eq("order_id", order.id)
+              .order("created_at", { ascending: false })
+              .limit(1),
+          ]);
         const plan = (sub?.plan ?? "free") as PaidReceipt["plan"];
         const billingCycle = (
           sub?.billing_cycle === "annual" ? "annual" : "monthly"
@@ -100,6 +116,11 @@ export default async function HostSignupPage({
           email: user.email ?? "",
           plan,
           billingCycle,
+          transactionId: invoices?.[0]?.invoice_number ?? order.id,
+          amount: Number(order.amount),
+          currency: order.currency,
+          productId: order.product_id,
+          productName: order.product_name,
         };
       }
     }

@@ -32,6 +32,7 @@ import {
   firePixelEventWithRetry,
   newEventId,
 } from "@/lib/analytics/pixel";
+import { firePurchase } from "@/lib/analytics/purchase";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { CountryDialCodeSelect } from "@/components/form/CountryDialCodeSelect";
@@ -281,6 +282,11 @@ export function Wizard({
     email: string;
     plan: "free" | "basic" | "pro" | "business";
     billingCycle: "monthly" | "annual";
+    transactionId: string;
+    amount: number;
+    currency: string;
+    productId: string | null;
+    productName: string;
   } | null;
   // A safe relative path to return to after onboarding (e.g. a Looking-For
   // quote the guest started before signing up). Honoured by the final CTA so
@@ -345,9 +351,30 @@ export function Wizard({
   const current = STEPS[currentIndex];
   const isLast = currentIndex === STEPS.length - 1;
 
-  // ViewContent — top of the host signup funnel (fires once on mount; the
-  // platform pixel loads async so we retry until fbq is ready).
+  // Funnel events. A paid-signup RETURN lands on the Welcome step → fire
+  // Purchase (this is now the thank-you page; the standalone /pay/product
+  // Receipt is bypassed for signup). Otherwise it's a fresh signup view →
+  // fire ViewContent. firePurchase self-dedupes per transactionId.
   useEffect(() => {
+    if (paidReceipt) {
+      firePurchase({
+        transactionId: paidReceipt.transactionId,
+        value: paidReceipt.amount,
+        currency: paidReceipt.currency,
+        contentName: paidReceipt.productName,
+        contentIds: [paidReceipt.productId ?? paidReceipt.transactionId],
+        numItems: 1,
+        items: [
+          {
+            item_id: paidReceipt.productId ?? paidReceipt.transactionId,
+            item_name: paidReceipt.productName,
+            price: paidReceipt.amount,
+            quantity: 1,
+          },
+        ],
+      });
+      return;
+    }
     firePixelEventWithRetry(
       "ViewContent",
       commerceParams({
@@ -357,7 +384,7 @@ export function Wizard({
       }),
       newEventId("vc"),
     );
-  }, []);
+  }, [paidReceipt]);
 
   function patch(p: Partial<WizardData>) {
     setData((d) => ({ ...d, ...p }));
@@ -432,6 +459,12 @@ export function Wizard({
         setCaptchaToken(null);
         return;
       }
+      // CompleteRegistration — the auth account now exists (they're registered).
+      firePixelEvent(
+        "CompleteRegistration",
+        { content_name: "Host signup", status: true, currency: "ZAR" },
+        newEventId("cr"),
+      );
       advance();
     });
   }

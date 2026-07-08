@@ -25,6 +25,7 @@ import { toast } from "sonner";
 
 import {
   commerceParams,
+  firePixelEvent,
   firePixelEventWithRetry,
   newEventId,
 } from "@/lib/analytics/pixel";
@@ -247,6 +248,12 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
         setCaptchaToken(null);
         return;
       }
+      // CompleteRegistration — the guest account now exists.
+      firePixelEvent(
+        "CompleteRegistration",
+        { content_name: "Guest signup", status: true, currency: "ZAR" },
+        newEventId("cr"),
+      );
       advance();
     });
   }
