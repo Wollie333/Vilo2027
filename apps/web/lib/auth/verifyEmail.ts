@@ -94,10 +94,13 @@ export async function sendVerificationEmail(input: {
   origin: string;
   firstName?: string | null;
 }): Promise<{ ok: boolean }> {
-  if (!input.origin || !input.email) return { ok: false };
+  // Fall back to NEXT_PUBLIC_APP_URL when the request origin header is missing
+  // (some proxy/edge setups), so the link can't silently fail to build in prod.
+  const base = input.origin || process.env.NEXT_PUBLIC_APP_URL || "";
+  if (!base || !input.email) return { ok: false };
   const brandName = await getBrandName();
   const token = createVerificationToken(input.userId);
-  const link = `${input.origin}/verify-email?token=${encodeURIComponent(token)}`;
+  const link = `${base}/verify-email?token=${encodeURIComponent(token)}`;
   const res = await sendTransactionalEmail({
     to: input.email,
     subject: `Confirm your email — ${brandName}`,
@@ -148,15 +151,16 @@ export async function sendExistingAccountNotice(input: {
   email: string;
   origin: string;
 }): Promise<{ ok: boolean }> {
-  if (!input.origin || !input.email) return { ok: false };
+  const base = input.origin || process.env.NEXT_PUBLIC_APP_URL || "";
+  if (!base || !input.email) return { ok: false };
   const brandName = await getBrandName();
   const res = await sendTransactionalEmail({
     to: input.email,
     subject: `You already have a ${brandName} account`,
     html: existingAccountHtml({
       brandName,
-      signInLink: `${input.origin}/login`,
-      resetLink: `${input.origin}/forgot-password`,
+      signInLink: `${base}/login`,
+      resetLink: `${base}/forgot-password`,
     }),
   });
   return { ok: res.ok };
