@@ -20,6 +20,7 @@ import {
   List,
   MessageSquare,
   PackagePlus,
+  Radar,
   Receipt,
   RotateCcw,
   RotateCw,
@@ -172,6 +173,14 @@ const LOOKING_FOR: GmailNavItem[] = [
 
 const INSIGHTS: GmailNavItem[] = [
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
+  // Tracking hub — the host adds their own pixels / analytics IDs (Meta Pixel,
+  // GA4, GTM, TikTok, Google Ads) + Meta Conversions API for their public site.
+  {
+    href: "/dashboard/tracking",
+    label: "Tracking",
+    icon: Radar,
+    match: "prefix",
+  },
   // The affiliate programme lives in the universal portal area (open to every
   // user). Hosts reach it via this cross-workspace link.
   {
