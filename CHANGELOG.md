@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-08 #19 — Unified short document numbering (INV / RPT / REF / CN / Q / BK) across host + Wielo.
+
+Founder ask: every financial document follows one short scheme `PREFIX-0001`.
+- Migration `20260708140000`: renamed the host generators — receipt `RCT-`→`RPT-`,
+  refund `RF-`→`REF-`, credit note `CR-`→`CN-` (invoice `INV-`, quote `Q-`, booking `BK-`
+  unchanged). Put the **Wielo** revenue documents on the SAME global per-type sequences as the
+  host docs: `mint_wielo_invoice` now draws `next_invoice_number()` (→ `INV-`), and
+  `mint_wielo_credit_note` draws `next_refund_number()` for refunds (→ `REF-`) /
+  `next_credit_note_number()` for credits + adjustments (→ `CN-`). Dropped the Wielo-only
+  `WIELO-INV2026-` / `WIELO-CN2026-` generators. Numbers are now globally unique regardless of
+  which system issued them (they double as payment references).
+- Renumbered the existing test docs onto the shared sequences and updated the stale
+  `test-booking-flows.mjs` M-journey assertions (they still expected the pre-2026-06-29 long
+  per-business format) to the short scheme.
+- **Verified live**: a fresh manual credit minted `CN-0003` (trigger uses the new generator);
+  the admin ledger Document column now reads `INV-0019/0020`, `REF-0001`, `CN-0001/0002/0003`;
+  the renumbered refund hosted page + PDF resolve as `REF-0001` (a stale dev fetch-cache render
+  was a `.next/cache` artifact, gone after clearing it — prod renders fresh). tsc + lint + build green.
+
 ## 2026-07-08 #18 — Admin Wielo revenue ledger → full host-ledger parity (docs, balance, styling).
 
 Brought `/admin/subscriptions/revenue` to the same rules, styling and functionality as the host

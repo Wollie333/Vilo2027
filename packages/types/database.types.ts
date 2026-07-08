@@ -11010,8 +11010,6 @@ export type Database = {
       next_quote_number: { Args: { p_business_id: string }; Returns: string }
       next_receipt_number: { Args: { p_business_id: string }; Returns: string }
       next_refund_number: { Args: { p_business_id: string }; Returns: string }
-      next_wielo_credit_note_number: { Args: never; Returns: string }
-      next_wielo_invoice_number: { Args: never; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

@@ -2,6 +2,23 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-08 #19) — Unified short document numbering ✅ DONE + verified live
+
+Founder ask: all financial docs follow one short scheme `PREFIX-0001`. Migration
+`20260708140000_unified_doc_numbering.sql` (applied to prod):
+- Host generator prefix renames: receipt `RCT-`→`RPT-`, refund `RF-`→`REF-`, credit note
+  `CR-`→`CN-` (invoice `INV-`, quote `Q-`, booking `BK-` unchanged).
+- Wielo revenue docs now share the SAME global sequences: `mint_wielo_invoice` → `next_invoice_number()`
+  (`INV-`); `mint_wielo_credit_note` → `next_refund_number()` for refunds (`REF-`) /
+  `next_credit_note_number()` for credit + adjustment (`CN-`). Dropped `next_wielo_invoice_number()` +
+  `next_wielo_credit_note_number()`.
+- Renumbered existing test docs onto the shared sequences; fixed stale `test-booking-flows.mjs`
+  numbering assertions. Verified live: fresh manual credit → `CN-0003`; ledger Document column reads
+  `INV-0019/0020` · `REF-0001` · `CN-0001/0002/0003`; refund hosted page/PDF resolve `REF-0001`.
+  tsc + lint + build green.
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-08 #18) — Admin Wielo revenue ledger = host-ledger parity ✅ DONE + verified live
 
 **Done this session** (`/admin/subscriptions/revenue` now mirrors `/dashboard/ledger`):

@@ -211,8 +211,8 @@ async function main() {
     },
   ]);
 
-  // 2b. Business details — drives the branded document numbering
-  // (INV-/Q-/CR-/RF- use the trading name) and the invoice/quote PDF header.
+  // 2b. Business details — drives the document PDF header (issuer). Numbering is
+  // global short (INV-/Q-/CN-/REF-/RPT-/BK-), not per-business.
   // The host-insert trigger already created a default `businesses` row; enrich it.
   {
     const { error } = await admin
