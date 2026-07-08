@@ -39,10 +39,26 @@ export default async function AdminRevenuePage({
     plan?: string;
     status?: string;
     type?: string;
+    env?: string;
   };
 }) {
   await requirePermission("subscriptions.edit");
   const service = createAdminClient();
+
+  // Env: default to the platform's active Paystack mode so test transactions
+  // show in the ledger while you're testing; flips to live at launch. ?env wins.
+  const { data: paySettings } = await service
+    .from("platform_payment_settings")
+    .select("paystack_mode")
+    .eq("id", true)
+    .maybeSingle();
+  const envParam = (searchParams?.env ?? "").trim();
+  const envFilter: "live" | "test" | "all" =
+    envParam === "test" || envParam === "all" || envParam === "live"
+      ? (envParam as "live" | "test" | "all")
+      : paySettings?.paystack_mode === "test"
+        ? "test"
+        : "live";
 
   const planFilter = (searchParams?.plan ?? "").trim();
   const userEmail = (searchParams?.user ?? "").trim();
@@ -75,8 +91,7 @@ export default async function AdminRevenuePage({
       plan: planFilter || undefined,
       status: statusFilter === "all" ? undefined : statusFilter,
       type: typeFilter === "all" ? undefined : typeFilter,
-      // Live revenue only — test-key transactions are inspected via Payments.
-      environment: "live",
+      environment: envFilter === "all" ? undefined : envFilter,
     }),
     getAllPlans(),
     getSubscriptionProducts(),
@@ -92,6 +107,13 @@ export default async function AdminRevenuePage({
   // price only for subscriptions not yet linked to a product. Annual /12.
   const planPrice = new Map(plans.map((p) => [p.key, p]));
   const productPrice = new Map(products.map((p) => [p.id, p]));
+  // Plan tier → product name, so a ledger row reads "Starter" not "pro".
+  const productByTier = new Map<string, string>();
+  for (const p of products) {
+    if (p.planKey && !productByTier.has(p.planKey)) {
+      productByTier.set(p.planKey, p.name);
+    }
+  }
   let mrr = 0;
   let payingHosts = 0;
   for (const s of subs ?? []) {
@@ -117,9 +139,20 @@ export default async function AdminRevenuePage({
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-display text-2xl font-bold text-brand-ink">
-          Wielo revenue ledger
-        </h1>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h1 className="font-display text-2xl font-bold text-brand-ink">
+            Wielo revenue ledger
+          </h1>
+          {envFilter === "test" ? (
+            <span className="inline-flex items-center rounded-pill border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+              Test
+            </span>
+          ) : envFilter === "all" ? (
+            <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+              Test + Live
+            </span>
+          ) : null}
+        </div>
         <p className="mt-1 text-[13px] text-brand-mute">
           Every transaction between a user and Wielo — product &amp;
           subscription purchases, refunds, credits and manual adjustments,
@@ -199,6 +232,15 @@ export default async function AdminRevenuePage({
             </option>
           ))}
         </select>
+        <select
+          name="env"
+          defaultValue={envFilter}
+          className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
+        >
+          <option value="live">Live</option>
+          <option value="test">Test</option>
+          <option value="all">Test + Live</option>
+        </select>
         <button
           type="submit"
           className="rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary"
@@ -245,7 +287,7 @@ export default async function AdminRevenuePage({
                   </div>
                   <div className="truncate text-[11px] text-brand-mute">
                     {fmtDate(t.date)}
-                    {t.plan ? ` · ${t.plan}` : ""}
+                    {t.plan ? ` · ${productByTier.get(t.plan) ?? t.plan}` : ""}
                     {t.billingCycle ? ` · ${t.billingCycle}` : ""}
                     {t.provider ? ` · ${t.provider}` : ""}
                     {t.status !== "completed" ? ` · ${t.status}` : ""}
