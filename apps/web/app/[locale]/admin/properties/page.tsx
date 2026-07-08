@@ -12,8 +12,8 @@ import { requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 
-import { AdminKpiCard } from "../_components/AdminKpiCard";
 import { AdminSegments } from "../_components/AdminSegments";
+import { AdminStatBand } from "../_components/AdminStatBand";
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
 import { ListingActions } from "./ListingActions";
 
@@ -291,13 +291,30 @@ export default async function AdminListingsPage({
         </p>
       </header>
 
-      {/* KPI strip */}
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <AdminKpiCard label="Total listings" value={total} />
-        <AdminKpiCard label="Published" value={published} />
-        <AdminKpiCard label="Draft" value={draft} />
-        <AdminKpiCard label="Featured" value={featured} />
-      </section>
+      {/* KPI band — matches the overview's seamless stat tiles. */}
+      <AdminStatBand
+        cols={4}
+        stats={[
+          { label: "Total listings", value: total, href: "/admin/properties" },
+          {
+            label: "Published",
+            value: published,
+            href: "/admin/properties?status=published",
+          },
+          {
+            label: "Draft",
+            value: draft,
+            tone: draft > 0 ? "amber" : "default",
+            href: "/admin/properties?status=draft",
+          },
+          {
+            label: "Featured",
+            value: featured,
+            tone: "primary",
+            href: "/admin/properties?status=featured",
+          },
+        ]}
+      />
 
       <AdminTable
         columns={columns}

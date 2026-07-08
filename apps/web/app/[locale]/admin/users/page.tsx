@@ -6,8 +6,8 @@ import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
-import { AdminKpiCard } from "../_components/AdminKpiCard";
 import { AdminSegments } from "../_components/AdminSegments";
+import { AdminStatBand } from "../_components/AdminStatBand";
 
 type UserRow = {
   id: string;
@@ -212,17 +212,21 @@ export default async function AdminUsersPage({
         </p>
       </header>
 
-      {/* KPI strip */}
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <AdminKpiCard
-          label="Total users"
-          value={total}
-          sub={`+${new30} in 30 days`}
-        />
-        <AdminKpiCard label="Hosts" value={hosts} />
-        <AdminKpiCard label="Guests" value={guests} />
-        <AdminKpiCard label="Suspended" value={suspended} />
-      </section>
+      {/* KPI band — matches the overview's seamless stat tiles. */}
+      <AdminStatBand
+        cols={4}
+        stats={[
+          { label: "Total users", value: total, sub: `+${new30} in 30 days` },
+          { label: "Hosts", value: hosts, href: "/admin/users?seg=host" },
+          { label: "Guests", value: guests, href: "/admin/users?seg=guest" },
+          {
+            label: "Suspended",
+            value: suspended,
+            tone: suspended > 0 ? "amber" : "default",
+            href: "/admin/users?seg=suspended",
+          },
+        ]}
+      />
 
       <AdminTable
         columns={columns}
