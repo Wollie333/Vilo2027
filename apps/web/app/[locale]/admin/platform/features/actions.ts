@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import {
+  CANONICAL_GUEST_PERMISSIONS,
+  GUEST_PERMISSION_SETTING_KEY,
+} from "@/lib/guests/permissions";
 
 // plan_features has no per-row meaning to the audit target_id (uuid) — like the
 // platform-settings actions we use a stable sentinel uuid and carry the real
@@ -62,6 +66,59 @@ export const upsertPlanFeatureAction = withAdminAudit<
     return { result: { ok: true }, after: data };
   },
 );
+
+// ─── Global guest permissions ──────────────────────────────────
+// Guests have no plan/product, so their capabilities are one GLOBAL set stored
+// in platform_settings (key `guest_permissions`, jsonb { [key]: boolean }). The
+// gate (lib/guests/permissions.ts) reads it live; missing key = allowed.
+const GUEST_PERMS_TARGET = "00000000-0000-0000-0000-0000006e5700";
+
+const guestPermsSchema = z.object({
+  permissions: z.record(z.string(), z.boolean()),
+  reason: z.string().optional(),
+});
+
+export const saveGuestPermissionsAction = withAdminAudit<
+  z.infer<typeof guestPermsSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "platform.features",
+    actionName: "platform.features.guest_permissions",
+    targetType: "platform_setting",
+    getTargetId: () => GUEST_PERMS_TARGET,
+  },
+  async (args, service) => {
+    const parsed = guestPermsSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    // Persist only known catalog keys, coerced to booleans.
+    const known = new Set(CANONICAL_GUEST_PERMISSIONS.map((p) => p.key));
+    const value: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(parsed.data.permissions)) {
+      if (known.has(k)) value[k] = Boolean(v);
+    }
+    const { error } = await service
+      .from("platform_settings")
+      .upsert(
+        { key: GUEST_PERMISSION_SETTING_KEY, value },
+        { onConflict: "key" },
+      );
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/platform/features");
+    return { result: { ok: true }, after: { keys: Object.keys(value).length } };
+  },
+);
+
+export async function saveGuestPermissions(
+  permissions: Record<string, boolean>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await saveGuestPermissionsAction({ permissions });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
+}
 
 // ─── Per-host feature override ─────────────────────────────────
 const overrideSchema = z.object({

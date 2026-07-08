@@ -1,15 +1,21 @@
-import { AlertTriangle } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 import { requirePermission } from "@/lib/admin";
+import {
+  CANONICAL_GUEST_PERMISSIONS,
+  getGuestPermissions,
+} from "@/lib/guests/permissions";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { AudienceTabs } from "./AudienceTabs";
 import {
   FeatureMatrix,
   type CellState,
   type MatrixFeature,
   type MatrixPlan,
 } from "./FeatureMatrix";
+import { GuestPermissionsForm } from "./GuestPermissionsForm";
 import { HostOverrideForm } from "./HostOverrideForm";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +24,12 @@ export default async function FeatureFlagsPage() {
   await requirePermission("platform.features");
   const service = createAdminClient();
 
-  const [plansRaw, { data: featureRows }] = await Promise.all([
+  const [plansRaw, { data: featureRows }, guestPerms] = await Promise.all([
     getAllPlans(),
     service
       .from("plan_features")
       .select("plan, feature_key, is_enabled, limit_value, description"),
+    getGuestPermissions(),
   ]);
 
   const plans: MatrixPlan[] = plansRaw.map((p) => ({
@@ -51,30 +58,18 @@ export default async function FeatureFlagsPage() {
     };
   }
 
-  return (
+  const hostView = (
     <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-bold text-brand-ink">
-          Feature permissions
-        </h1>
-        <p className="mt-1 text-sm text-brand-mute">
-          Control exactly which features each plan unlocks. Toggle a cell to
-          grant/revoke; set a number on a{" "}
+      <div className="flex items-start gap-2.5 rounded-card border border-brand-line bg-[#F6FAF7] px-4 py-3 text-[13px] text-brand-dark">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+        <div>
+          <span className="font-semibold">Gates are enforced.</span> Host access
+          is resolved live: host override → the host&apos;s product features
+          (Products → features) → this plan matrix as a fallback → deny. Edit a
+          cell to grant/revoke; set a number on a{" "}
           <span className="font-mono">_limit</span>/
           <span className="font-mono">_seats</span> feature to cap it (blank =
-          unlimited). Changes save instantly and gates read this live.
-        </p>
-      </header>
-
-      {/* Pre-MVP open-on-free banner (AGENT_RULES §3.4). */}
-      <div className="flex items-start gap-2.5 rounded-card border border-amber-300 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-        <div>
-          <span className="font-semibold">Pre-MVP: gates are open.</span>{" "}
-          Feature checks currently short-circuit to allow everyone through so
-          the founder can smoke-test. Editing this matrix changes the stored
-          permissions, but they won&apos;t be enforced until the open-on-free
-          switch is flipped when live billing lands.
+          unlimited).
         </div>
       </div>
 
@@ -91,6 +86,30 @@ export default async function FeatureFlagsPage() {
         </p>
         <HostOverrideForm featureKeys={features.map((f) => f.key)} />
       </section>
+    </div>
+  );
+
+  const guestView = (
+    <GuestPermissionsForm
+      catalog={CANONICAL_GUEST_PERMISSIONS}
+      initial={guestPerms}
+    />
+  );
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <h1 className="font-display text-2xl font-bold text-brand-ink">
+          Feature permissions
+        </h1>
+        <p className="mt-1 text-sm text-brand-mute">
+          Control what each audience can do. <strong>Hosts</strong> unlock
+          features by plan/product; <strong>Guests</strong> share one global
+          permission set. Changes save instantly and gates read this live.
+        </p>
+      </header>
+
+      <AudienceTabs host={hostView} guest={guestView} />
     </div>
   );
 }

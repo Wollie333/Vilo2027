@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import { guestCan } from "@/lib/guests/permissions";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { revalidatePath } from "next/cache";
 
@@ -92,6 +93,15 @@ export async function createRequestAction(input: CreateRequestInput) {
 
   if (!user || user.id !== input.guest_id) {
     return { success: false, error: "Not authenticated" };
+  }
+
+  // Global guest permission gate (admin-controlled in Feature permissions →
+  // Guests). Off = posting is disabled platform-wide.
+  if (!(await guestCan("looking_for_post"))) {
+    return {
+      success: false,
+      error: "Posting requests is currently unavailable.",
+    };
   }
 
   // Check quota

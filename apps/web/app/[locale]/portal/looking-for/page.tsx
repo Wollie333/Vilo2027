@@ -23,6 +23,7 @@ function formatDistanceToNow(date: Date) {
 }
 
 import { createServerClient } from "@/lib/supabase/server";
+import { guestCan } from "@/lib/guests/permissions";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 
@@ -65,6 +66,10 @@ export default async function GuestLookingForPage() {
     .eq("guest_id", user.id)
     .order("created_at", { ascending: false });
 
+  // Global guest permission (admin: Feature permissions → Guests). When off,
+  // hide the post CTAs — the action is gated too, so this is UX only.
+  const canPost = await guestCan("looking_for_post");
+
   // Get counts by status
   const activeCount = posts?.filter((p) => p.status === "active").length ?? 0;
   const fulfilledCount =
@@ -88,12 +93,14 @@ export default async function GuestLookingForPage() {
             </p>
           </div>
         </div>
-        <Button asChild className="gap-1.5">
-          <Link href="/portal/looking-for/new">
-            <Plus className="h-4 w-4" />
-            Post a Request
-          </Link>
-        </Button>
+        {canPost ? (
+          <Button asChild className="gap-1.5">
+            <Link href="/portal/looking-for/new">
+              <Plus className="h-4 w-4" />
+              Post a Request
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
       {/* Stats */}
@@ -139,12 +146,14 @@ export default async function GuestLookingForPage() {
           <p className="mt-2 text-sm text-brand-mute">
             Post what you&apos;re looking for and hosts will send you quotes.
           </p>
-          <Button asChild className="mt-4 gap-1.5">
-            <Link href="/portal/looking-for/new">
-              <Plus className="h-4 w-4" />
-              Post Your First Request
-            </Link>
-          </Button>
+          {canPost ? (
+            <Button asChild className="mt-4 gap-1.5">
+              <Link href="/portal/looking-for/new">
+                <Plus className="h-4 w-4" />
+                Post Your First Request
+              </Link>
+            </Button>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-3">
