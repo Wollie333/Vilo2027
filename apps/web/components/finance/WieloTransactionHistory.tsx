@@ -38,19 +38,30 @@ export async function WieloTransactionHistory({
   description?: string;
 }) {
   const supabase = createServerClient();
-  const [{ data: ledger }, { data: invoices }] = await Promise.all([
-    supabase
-      .from("platform_ledger")
-      .select(
-        "id, created_at, type, status, amount, currency, environment, reason, plan, billing_cycle",
-      )
-      .order("created_at", { ascending: false })
-      .limit(200),
-    supabase
-      .from("wielo_invoices")
-      .select("ledger_id, hosted_token, invoice_number")
-      .limit(200),
-  ]);
+  const [{ data: ledger }, { data: invoices }, { data: productRows }] =
+    await Promise.all([
+      supabase
+        .from("platform_ledger")
+        .select(
+          "id, created_at, type, status, amount, currency, environment, reason, plan, billing_cycle",
+        )
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase
+        .from("wielo_invoices")
+        .select("ledger_id, hosted_token, invoice_number")
+        .limit(200),
+      supabase.from("products").select("name, plan_key, slug"),
+    ]);
+
+  // Map a plan tier → its product name so a row reads "Starter", not "pro".
+  const productByTier = new Map<string, string>();
+  for (const p of productRows ?? []) {
+    const key = (p.plan_key ?? p.slug) as string | null;
+    if (key && !productByTier.has(key)) {
+      productByTier.set(key, p.name as string);
+    }
+  }
 
   const invByLedger = new Map<
     string,
@@ -68,8 +79,10 @@ export async function WieloTransactionHistory({
   const rows = (ledger ?? []) as LedgerRow[];
 
   const describe = (r: LedgerRow): string => {
-    if (r.plan)
-      return `${r.plan}${r.billing_cycle ? ` · ${r.billing_cycle}` : ""}`;
+    if (r.plan) {
+      const name = productByTier.get(r.plan) ?? r.plan;
+      return `${name}${r.billing_cycle ? ` · ${r.billing_cycle}` : ""}`;
+    }
     return r.reason ?? "Purchase";
   };
 

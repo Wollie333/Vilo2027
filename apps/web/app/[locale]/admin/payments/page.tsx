@@ -61,16 +61,27 @@ export default async function AdminPaymentsPage({
     ? (searchParams!.type as (typeof TYPES)[number])
     : "all";
   const service = createAdminClient();
-  const [all, plans, { data: paySettings }] = await Promise.all([
-    fetchWieloLedger(service, { limit: 10_000 }),
-    getAllPlans(),
-    service
-      .from("platform_payment_settings")
-      .select("paystack_mode")
-      .eq("id", true)
-      .maybeSingle(),
-  ]);
+  const [all, plans, { data: paySettings }, { data: productRows }] =
+    await Promise.all([
+      fetchWieloLedger(service, { limit: 10_000 }),
+      getAllPlans(),
+      service
+        .from("platform_payment_settings")
+        .select("paystack_mode")
+        .eq("id", true)
+        .maybeSingle(),
+      service.from("products").select("name, plan_key, slug"),
+    ]);
   const planName = new Map(plans.map((p) => [p.key, p.name]));
+  // Map a plan tier → its PRODUCT name so the Product column reads the real
+  // product (e.g. "Starter") rather than the underlying plan tier ("Pro").
+  const productByTier = new Map<string, string>();
+  for (const p of productRows ?? []) {
+    const key = (p.plan_key ?? p.slug) as string | null;
+    if (key && !productByTier.has(key)) {
+      productByTier.set(key, p.name as string);
+    }
+  }
 
   // Default the env view to the platform's active Paystack mode — while you're
   // in TEST mode the tab shows your test transactions without switching filters;
@@ -103,10 +114,12 @@ export default async function AdminPaymentsPage({
   const list = filtered.slice(0, PAGE_SIZE);
 
   const productLabel = (r: WieloTxn): string => {
-    if (r.plan)
-      return `${planName.get(r.plan) ?? r.plan}${
-        r.billingCycle ? ` · ${r.billingCycle}` : ""
-      }`;
+    // Prefer the actual product name (product-driven); fall back to the plan
+    // tier name, then the free-text reason.
+    const name = r.plan
+      ? (productByTier.get(r.plan) ?? planName.get(r.plan) ?? r.plan)
+      : null;
+    if (name) return `${name}${r.billingCycle ? ` · ${r.billingCycle}` : ""}`;
     return r.reason ?? "—";
   };
 
