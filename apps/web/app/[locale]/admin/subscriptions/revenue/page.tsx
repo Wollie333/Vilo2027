@@ -91,10 +91,17 @@ export default async function AdminRevenuePage({
   // not yet linked to a product. Annual /12.
   const planPrice = new Map(plans.map((p) => [p.key, p]));
   const productPrice = new Map(products.map((p) => [p.id, p]));
-  // Plan tier → product name, so a ledger row reads "Starter" not "pro".
+  // Plan tier → product name, so a ledger row reads "Starter" not "pro". Also
+  // the product filter options — the REAL subscription products (value = the
+  // plan key stored on the ledger row), deduped, so the dropdown mirrors the
+  // live catalog rather than the legacy plan tiers.
   const planLabels: Record<string, string> = {};
+  const productFilters: { key: string; name: string }[] = [];
   for (const p of products) {
-    if (p.planKey && !(p.planKey in planLabels)) planLabels[p.planKey] = p.name;
+    if (p.planKey && !(p.planKey in planLabels)) {
+      planLabels[p.planKey] = p.name;
+      productFilters.push({ key: p.planKey, name: p.name });
+    }
   }
   let mrr = 0;
   let payingHosts = 0;
@@ -133,7 +140,7 @@ export default async function AdminRevenuePage({
         kpis={kpis}
         currency={currency}
         planLabels={planLabels}
-        plans={plans.map((p) => ({ key: p.key, name: p.name }))}
+        products={productFilters}
         env={envFilter}
         userEmail={userEmail}
         plan={planFilter}

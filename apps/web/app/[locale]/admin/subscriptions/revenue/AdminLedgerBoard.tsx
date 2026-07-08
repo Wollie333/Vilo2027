@@ -1,7 +1,7 @@
 "use client";
 
-import { Download, ScrollText, Search } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { Download, ScrollText, Search, X } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { AdminLedgerList } from "@/components/finance/AdminLedgerList";
@@ -29,12 +29,11 @@ const TABS: {
   { key: "charge", label: "Charges", match: (t) => t === "charge" },
   { key: "refund", label: "Refunds", match: (t) => t === "refund" },
   { key: "credit", label: "Credits", match: (t) => t === "credit" },
-  {
-    key: "adjustment",
-    label: "Adjustments",
-    match: (t) => t === "adjustment",
-  },
+  { key: "adjustment", label: "Adjustments", match: (t) => t === "adjustment" },
 ];
+
+const SELECT_CLS =
+  "rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none";
 
 // Everything an admin might type to find a Wielo transaction.
 function searchBlob(e: WieloTxn, planLabels: Record<string, string>): string {
@@ -71,7 +70,7 @@ export function AdminLedgerBoard({
   kpis,
   currency,
   planLabels,
-  plans,
+  products,
   env,
   userEmail,
   plan,
@@ -83,7 +82,8 @@ export function AdminLedgerBoard({
   kpis: WieloKpis;
   currency: string;
   planLabels: Record<string, string>;
-  plans: { key: string; name: string }[];
+  /** Real subscription products for the filter (value = plan key, label = name). */
+  products: { key: string; name: string }[];
   env: EnvFilter;
   userEmail: string;
   plan: string;
@@ -91,8 +91,30 @@ export function AdminLedgerBoard({
   dateFrom: string;
   dateTo: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [tab, setTab] = useState("all");
   const [search, setSearch] = useState("");
+  const [emailInput, setEmailInput] = useState(userEmail);
+
+  // The env / product / status / user / date filters are a SERVER scope — they
+  // change the fetched set (and therefore the running balances + KPIs), so
+  // changing one navigates with new query params and the page re-fetches. This
+  // mirrors the host ledger's business filter (change → navigate, no button).
+  function pushParams(next: Record<string, string>) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [k, v] of Object.entries(next)) {
+      if (v) params.set(k, v);
+      else params.delete(k);
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  const hasServerFilter = Boolean(
+    userEmail || plan || status !== "all" || dateFrom || dateTo,
+  );
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -187,6 +209,19 @@ export function AdminLedgerBoard({
             hosts and isn&apos;t shown here.
           </p>
         </div>
+        {/* Environment scope — top-right, mirrors the host ledger's Periods control. */}
+        <div className="ml-auto">
+          <select
+            value={env}
+            onChange={(e) => pushParams({ env: e.target.value })}
+            className={`${SELECT_CLS} font-semibold`}
+            title="Environment"
+          >
+            <option value="live">Live</option>
+            <option value="test">Test</option>
+            <option value="all">Test + Live</option>
+          </select>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -215,94 +250,9 @@ export function AdminLedgerBoard({
         <Kpi label="Paying hosts" value={String(kpis.payingHosts)} tone="ink" />
       </div>
 
-      {/* Server-side scope: env / user / plan / status / date range. Submitting
-          re-fetches the ledger (these change running balances + KPIs). */}
-      <form
-        action="/admin/subscriptions/revenue"
-        method="get"
-        className="mb-4 flex flex-wrap items-end gap-2"
-      >
-        <Labelled label="User email">
-          <input
-            type="text"
-            name="user"
-            defaultValue={userEmail}
-            placeholder="host@example.com"
-            className="min-w-[13rem] rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none"
-          />
-        </Labelled>
-        <Labelled label="Plan">
-          <select
-            name="plan"
-            defaultValue={plan}
-            className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none"
-          >
-            <option value="">All plans</option>
-            {plans.map((p) => (
-              <option key={p.key} value={p.key}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </Labelled>
-        <Labelled label="Status">
-          <select
-            name="status"
-            defaultValue={status}
-            className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none"
-          >
-            {(["all", "completed", "pending", "failed"] as const).map((s) => (
-              <option key={s} value={s}>
-                {s === "all" ? "All statuses" : s}
-              </option>
-            ))}
-          </select>
-        </Labelled>
-        <Labelled label="From">
-          <input
-            type="date"
-            name="from"
-            defaultValue={dateFrom}
-            className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none"
-          />
-        </Labelled>
-        <Labelled label="To">
-          <input
-            type="date"
-            name="to"
-            defaultValue={dateTo}
-            className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none"
-          />
-        </Labelled>
-        <Labelled label="Environment">
-          <select
-            name="env"
-            defaultValue={env}
-            className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-semibold text-brand-ink focus:border-brand-primary focus:outline-none"
-          >
-            <option value="live">Live</option>
-            <option value="test">Test</option>
-            <option value="all">Test + Live</option>
-          </select>
-        </Labelled>
-        <button
-          type="submit"
-          className="rounded-[10px] bg-brand-primary px-4 py-2 text-[12.5px] font-semibold text-white transition hover:bg-brand-secondary"
-        >
-          Apply
-        </button>
-        {userEmail || plan || status !== "all" || dateFrom || dateTo ? (
-          <Link
-            href="/admin/subscriptions/revenue"
-            className="pb-2 text-[12px] font-medium text-brand-primary underline-offset-2 hover:underline"
-          >
-            Clear
-          </Link>
-        ) : null}
-      </form>
-
-      {/* Type tabs (client) + search + CSV */}
-      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+      {/* Filters — one clean row like the host ledger: type tabs (client) on the
+          left, product / status scope selects (navigate → re-fetch) on the right. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2.5">
         <div className="flex flex-wrap gap-1.5">
           {TABS.map((t) => (
             <button
@@ -322,7 +272,39 @@ export function AdminLedgerBoard({
             </button>
           ))}
         </div>
-        <div className="relative ml-auto">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <select
+            value={plan}
+            onChange={(e) => pushParams({ plan: e.target.value })}
+            className={SELECT_CLS}
+            title="Product"
+          >
+            <option value="">All products</option>
+            {products.map((p) => (
+              <option key={p.key} value={p.key}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={status}
+            onChange={(e) => pushParams({ status: e.target.value })}
+            className={SELECT_CLS}
+            title="Status"
+          >
+            {(["all", "completed", "pending", "failed"] as const).map((s) => (
+              <option key={s} value={s}>
+                {s === "all" ? "All statuses" : s}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Row 2 — search (client) + user / date scope + CSV, like the host's
+          search row. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
           <input
             value={search}
@@ -331,11 +313,55 @@ export function AdminLedgerBoard({
             className="w-60 rounded-[10px] border border-brand-line bg-white py-2 pl-8 pr-3 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none"
           />
         </div>
+        <input
+          type="text"
+          value={emailInput}
+          onChange={(e) => setEmailInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") pushParams({ user: emailInput.trim() });
+          }}
+          onBlur={() => {
+            if (emailInput.trim() !== userEmail)
+              pushParams({ user: emailInput.trim() });
+          }}
+          placeholder="Filter by user email…"
+          className="w-52 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none"
+        />
+        <label className="flex items-center gap-1.5 text-[12.5px] text-brand-mute">
+          From
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => pushParams({ from: e.target.value })}
+            className={SELECT_CLS}
+          />
+        </label>
+        <label className="flex items-center gap-1.5 text-[12.5px] text-brand-mute">
+          To
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => pushParams({ to: e.target.value })}
+            className={SELECT_CLS}
+          />
+        </label>
+        {hasServerFilter ? (
+          <button
+            type="button"
+            onClick={() => {
+              setEmailInput("");
+              pushParams({ user: "", plan: "", status: "", from: "", to: "" });
+            }}
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary underline-offset-2 hover:underline"
+          >
+            <X className="h-3.5 w-3.5" /> Clear
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={exportCsv}
           disabled={rows.length === 0}
-          className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
           title="Download the filtered ledger as CSV"
         >
           <Download className="h-4 w-4 text-brand-mute" />
@@ -349,23 +375,6 @@ export function AdminLedgerBoard({
         what each user owes Wielo (or their credit) after that entry.
       </p>
     </div>
-  );
-}
-
-function Labelled({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }
 

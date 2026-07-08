@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-08 #20 — Admin ledger matches the host ledger look + product-driven filters.
+
+Founder feedback: the admin Wielo ledger didn't look like the host ledger, and its filter should
+use the real products.
+- **Layout parity** (`AdminLedgerBoard`): replaced the bulky labelled server-filter form + "Apply"
+  button with the host ledger's clean layout — pill type-tabs on the left with product/status
+  scope selects on the right (change → navigate → re-fetch, like the host business filter), an
+  environment select top-right where the host's Periods control sits, and a second row with search
+  (client) + user-email + From/To date inputs + a Clear link + CSV. Same `ScrollText` header icon,
+  KPI cards and pill styling as the host.
+- **Product-driven filter**: the plan dropdown now lists the REAL subscription products (from
+  `getSubscriptionProducts` — Beta, Starter), value = the product's plan key, deduped, instead of
+  the legacy `getAllPlans` tiers. Selecting a product filters the ledger server-side on that key.
+- **Verified live**: admin ledger now reads like the host ledger; the product dropdown shows
+  Beta/Starter; selecting Starter filtered to the 2 `INV-` charges and recalculated the tabs
+  (Charges 2) + KPIs (Collected R1198, Net R1198). tsc + lint + build green.
+
 ## 2026-07-08 #19 — Unified short document numbering (INV / RPT / REF / CN / Q / BK) across host + Wielo.
 
 Founder ask: every financial document follows one short scheme `PREFIX-0001`.

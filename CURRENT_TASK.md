@@ -2,6 +2,18 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-08 #20) — Admin ledger = host-ledger look + product-driven filters ✅ DONE
+
+Founder feedback fixes on `/admin/subscriptions/revenue`:
+- `AdminLedgerBoard` filters reworked to the HOST ledger layout: dropped the labelled form + Apply;
+  now pill tabs + product/status selects (navigate on change), env select top-right, and a search /
+  user-email / From-To / Clear / CSV row. Same header icon + KPI + pill styling as the host.
+- Product filter now driven by REAL products (`getSubscriptionProducts` → Beta/Starter, value =
+  plan key), not the legacy `getAllPlans` tiers. Verified live: selecting Starter filters to the 2
+  INV- charges + recalculates tabs/KPIs. tsc + lint + build green.
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-08 #19) — Unified short document numbering ✅ DONE + verified live
 
 Founder ask: all financial docs follow one short scheme `PREFIX-0001`. Migration
