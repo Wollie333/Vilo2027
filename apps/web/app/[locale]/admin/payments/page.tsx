@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin";
 
+import { AdminStatBand } from "../_components/AdminStatBand";
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
 
 export const dynamic = "force-dynamic";
@@ -195,12 +196,19 @@ export default async function AdminPaymentsPage({
         ) : null}
       </header>
 
-      {/* KPI tiles */}
-      <section className="grid gap-3 sm:grid-cols-3">
-        <Kpi label="Collected" value={formatMoney(stats.collected, "ZAR")} />
-        <Kpi label="Pending" value={formatMoney(stats.pending, "ZAR")} />
-        <Kpi label="Refunded" value={formatMoney(stats.refunded, "ZAR")} />
-      </section>
+      {/* KPI band */}
+      <AdminStatBand
+        cols={3}
+        stats={[
+          { label: "Collected", value: formatMoney(stats.collected, "ZAR") },
+          {
+            label: "Pending",
+            value: formatMoney(stats.pending, "ZAR"),
+            tone: stats.pending > 0 ? "amber" : "default",
+          },
+          { label: "Refunded", value: formatMoney(stats.refunded, "ZAR") },
+        ]}
+      />
 
       <form
         action="/admin/payments"
@@ -270,19 +278,6 @@ export default async function AdminPaymentsPage({
           Showing first {PAGE_SIZE} of {total}. Narrow your search to see more.
         </p>
       ) : null}
-    </div>
-  );
-}
-
-function Kpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-        {label}
-      </div>
-      <div className="num mt-1 font-display text-xl font-bold text-brand-ink">
-        {value}
-      </div>
     </div>
   );
 }

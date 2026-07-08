@@ -5,6 +5,7 @@ import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 import { getAllPlans } from "@/lib/plans/getPlans";
 
+import { AdminStatBand } from "../_components/AdminStatBand";
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
 import { SubsTabs } from "./_SubsTabs";
 
@@ -175,21 +176,13 @@ export default async function AdminSubscriptionsPage({
 
       <SubsTabs />
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {allPlans.map((p) => (
-          <div
-            key={p.key}
-            className="rounded-card border border-brand-line bg-white p-4 shadow-card"
-          >
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-              {p.name}
-            </div>
-            <div className="num mt-1 font-display text-xl font-bold text-brand-ink">
-              {dist[p.key] ?? 0}
-            </div>
-          </div>
-        ))}
-      </section>
+      <AdminStatBand
+        cols={allPlans.length >= 6 ? 6 : allPlans.length >= 5 ? 5 : 4}
+        stats={allPlans.map((p) => ({
+          label: p.name,
+          value: dist[p.key] ?? 0,
+        }))}
+      />
 
       <form
         action="/admin/subscriptions"
