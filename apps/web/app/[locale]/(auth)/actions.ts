@@ -7,6 +7,7 @@ import { isBreachedPassword } from "@/lib/auth/password";
 import { resolvePostAuthDestination } from "@/lib/auth/postAuth";
 import { safeNextPath } from "@/lib/auth/safeNext";
 import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -80,33 +81,54 @@ export async function registerAction(
     };
   }
 
-  const supabase = createServerClient();
-  const origin = headers().get("origin") ?? "";
-
   // Only honour same-origin relative next paths (open-redirect guard).
   const safeNext = safeNextPath(next);
-  const confirmUrl = safeNext
-    ? `${origin}/auth/confirm?next=${encodeURIComponent(safeNext)}`
-    : `${origin}/auth/confirm`;
 
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      emailRedirectTo: confirmUrl,
+  // Create the account with the admin API + email_confirm, exactly like the
+  // public signup wizards. The non-admin `supabase.auth.signUp` returns NO
+  // session on this project (GoTrue requires confirmation for that path) — and
+  // with no auth SMTP configured, an invitee would be left unconfirmed,
+  // session-less, and unable to proceed. Admin-create sidesteps that so the
+  // staff-invite handoff completes: guaranteed session → land back on
+  // /staff/accept/<token> (carried in `next`) → click Accept → staff row.
+  const admin = createAdminClient();
+  const { data: created, error: createErr } = await admin.auth.admin.createUser(
+    {
+      email: parsed.data.email,
+      password: parsed.data.password,
+      email_confirm: true,
     },
-  });
-
-  if (error) {
-    return { ok: false, error: friendlyAuthError(error.message) };
+  );
+  if (createErr || !created?.user) {
+    const msg = createErr?.message?.toLowerCase() ?? "";
+    if (
+      msg.includes("already") ||
+      msg.includes("registered") ||
+      msg.includes("exists")
+    ) {
+      return {
+        ok: false,
+        error:
+          "An account with this email already exists. Try signing in instead.",
+      };
+    }
+    return { ok: false, error: "Could not create your account. Try again." };
   }
 
-  const needsVerification = !data.session;
-  const params = new URLSearchParams();
-  if (needsVerification) params.set("verify", "1");
-  if (safeNext) params.set("next", safeNext);
-  const qs = params.toString();
-  redirect(`/login${qs ? `?${qs}` : ""}`);
+  const supabase = createServerClient();
+  const { error: signInErr } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+  if (signInErr) {
+    return {
+      ok: false,
+      error: "Account was created but sign-in failed. Try signing in manually.",
+    };
+  }
+
+  const dest = await resolvePostAuthDestination(created.user.id, safeNext);
+  redirect(dest);
 }
 
 export async function signOutAction(): Promise<void> {
