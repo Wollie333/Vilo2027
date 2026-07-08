@@ -60,16 +60,26 @@ export default async function AdminPaymentsPage({
   const type: (typeof TYPES)[number] = isType(searchParams?.type)
     ? (searchParams!.type as (typeof TYPES)[number])
     : "all";
-  const env: (typeof ENVS)[number] = isEnv(searchParams?.env)
-    ? (searchParams!.env as (typeof ENVS)[number])
-    : "live";
-
   const service = createAdminClient();
-  const [all, plans] = await Promise.all([
+  const [all, plans, { data: paySettings }] = await Promise.all([
     fetchWieloLedger(service, { limit: 10_000 }),
     getAllPlans(),
+    service
+      .from("platform_payment_settings")
+      .select("paystack_mode")
+      .eq("id", true)
+      .maybeSingle(),
   ]);
   const planName = new Map(plans.map((p) => [p.key, p.name]));
+
+  // Default the env view to the platform's active Paystack mode — while you're
+  // in TEST mode the tab shows your test transactions without switching filters;
+  // it flips to live automatically once you go live.
+  const env: (typeof ENVS)[number] = isEnv(searchParams?.env)
+    ? (searchParams!.env as (typeof ENVS)[number])
+    : paySettings?.paystack_mode === "test"
+      ? "test"
+      : "live";
 
   // Scope to the chosen environment first so KPIs + table never mix test money
   // into the live numbers (live is the default).
