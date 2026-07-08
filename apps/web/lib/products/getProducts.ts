@@ -21,6 +21,8 @@ export type CatalogProduct = {
   billingCycle: string | null;
   trialDays: number;
   slug: string | null;
+  /** Feature tier this product grants (plans.key); falls back to slug. */
+  planKey: string | null;
   setupFee: number;
   setupFeeLabel: string | null;
   isRecommended: boolean;
@@ -40,7 +42,7 @@ async function load(): Promise<CatalogProduct[]> {
   const { data } = await db
     .from("products")
     .select(
-      "id, name, description, type, price, currency, billing_cycle, trial_days, slug, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods",
+      "id, name, description, type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods",
     )
     .eq("type", "subscription")
     .eq("is_active", true)
@@ -56,6 +58,7 @@ async function load(): Promise<CatalogProduct[]> {
     billingCycle: p.billing_cycle ?? "monthly",
     trialDays: p.trial_days ?? 0,
     slug: p.slug ?? null,
+    planKey: p.plan_key ?? p.slug ?? null,
     setupFee: Number(p.setup_fee ?? 0),
     setupFeeLabel: p.setup_fee_label ?? null,
     isRecommended: p.is_recommended ?? false,

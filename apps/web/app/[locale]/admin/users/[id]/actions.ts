@@ -455,7 +455,7 @@ export const setUserProductAction = withAdminAudit<
 
     const { data: product } = await service
       .from("products")
-      .select("id, slug, type, billing_cycle")
+      .select("id, slug, type, billing_cycle, plan_key")
       .eq("id", productId)
       .maybeSingle();
     if (!product) throw new Error("Product not found.");
@@ -463,8 +463,9 @@ export const setUserProductAction = withAdminAudit<
       throw new Error("Only subscription products can be set as a plan.");
     }
 
-    // Map the product's slug to a plan key when one exists (drives gating);
-    // otherwise keep the current plan so the FK stays valid.
+    // Map the product to a plan key (drives gating): prefer its explicit
+    // plan_key, else its slug when that's a plan key; otherwise keep the current
+    // plan so the FK stays valid.
     const { data: existing } = await service
       .from("subscriptions")
       .select("id, plan")
@@ -472,11 +473,12 @@ export const setUserProductAction = withAdminAudit<
       .maybeSingle();
 
     let plan = existing?.plan ?? "free";
-    if (product.slug) {
+    const desiredKey = product.plan_key ?? product.slug;
+    if (desiredKey) {
       const { data: planRow } = await service
         .from("plans")
         .select("key")
-        .eq("key", product.slug)
+        .eq("key", desiredKey)
         .maybeSingle();
       if (planRow) plan = planRow.key;
     }

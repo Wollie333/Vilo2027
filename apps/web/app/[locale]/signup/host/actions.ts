@@ -416,15 +416,15 @@ export async function finalizeOnboardingAction(
         resolvedProductId = order.product_id;
         const { data: prod } = await admin
           .from("products")
-          .select("slug")
+          .select("slug, plan_key")
           .eq("id", order.product_id)
           .maybeSingle();
-        const slug = prod?.slug ?? null;
-        if (slug) {
+        const desiredKey = prod?.plan_key ?? prod?.slug ?? null;
+        if (desiredKey) {
           const { data: planRow } = await admin
             .from("plans")
             .select("key")
-            .eq("key", slug)
+            .eq("key", desiredKey)
             .maybeSingle();
           if (planRow) resolvedPlan = planRow.key as typeof resolvedPlan;
         }

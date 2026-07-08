@@ -9,6 +9,7 @@ import {
 import { Link } from "@/i18n/navigation";
 
 import { getPlans } from "@/lib/plans/getPlans";
+import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { CancelButton } from "./CancelButton";
@@ -86,37 +87,44 @@ export default async function SettingsSubscriptionPage() {
     );
   }
 
-  const [{ data: subRaw }, { data: historyRaw }, plans, { data: billingRaw }] =
-    await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select(
-          "id, plan, billing_cycle, status, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason",
-        )
-        .eq("host_id", host.id)
-        .maybeSingle(),
-      supabase
-        .from("subscription_history")
-        .select(
-          "id, event, from_plan, to_plan, from_status, to_status, notes, created_at",
-        )
-        .eq("host_id", host.id)
-        .order("created_at", { ascending: false })
-        .limit(10),
-      getPlans(),
-      // The host's own Wielo billing rows (own-row RLS). Shows what they've paid
-      // Wielo for their subscription/services.
-      supabase
-        .from("platform_ledger")
-        .select("id, type, status, amount, currency, reason, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10),
-    ]);
+  const [
+    { data: subRaw },
+    { data: historyRaw },
+    plans,
+    products,
+    { data: billingRaw },
+  ] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select(
+        "id, plan, product_id, billing_cycle, status, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason",
+      )
+      .eq("host_id", host.id)
+      .maybeSingle(),
+    supabase
+      .from("subscription_history")
+      .select(
+        "id, event, from_plan, to_plan, from_status, to_status, notes, created_at",
+      )
+      .eq("host_id", host.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    getPlans(),
+    getSubscriptionProducts(),
+    // The host's own Wielo billing rows (own-row RLS). Shows what they've paid
+    // Wielo for their subscription/services.
+    supabase
+      .from("platform_ledger")
+      .select("id, type, status, amount, currency, reason, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
 
   const sub = subRaw as {
     id: string;
     plan: PlanKey;
+    product_id: string | null;
     billing_cycle: "monthly" | "annual" | null;
     status: string;
     trial_ends_at: string | null;
@@ -130,6 +138,13 @@ export default async function SettingsSubscriptionPage() {
   const currentPlan: PlanKey = sub?.plan ?? "free";
   const currentCycle: "monthly" | "annual" | null = sub?.billing_cycle ?? null;
   const planDef = findPlan(plans, currentPlan);
+  // The product the host is on (the catalog they see). Falls back to the plan
+  // tier's name for any legacy sub not yet linked to a product.
+  const currentProduct = products.find((p) => p.id === sub?.product_id) ?? null;
+  const currentName = currentProduct?.name ?? planDef?.name ?? "Free";
+  const currentIsFree = currentProduct
+    ? currentProduct.isFree
+    : (planDef?.isFree ?? true);
   const now = new Date();
   const trialDaysLeft =
     sub?.status === "trialing" ? daysBetween(now, sub.trial_ends_at) : null;
@@ -155,7 +170,7 @@ export default async function SettingsSubscriptionPage() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <div className="font-display text-lg font-semibold text-brand-ink">
-                {planDef?.name ?? "Free"} plan
+                {currentName}
               </div>
               <StatusPill status={sub?.status ?? "active"} />
               {sub?.cancel_at_period_end ? (
@@ -165,15 +180,20 @@ export default async function SettingsSubscriptionPage() {
                 </span>
               ) : null}
             </div>
-            <p className="mt-1 text-sm text-brand-mute">{planDef?.tagline}</p>
+            <p className="mt-1 text-sm text-brand-mute">
+              {currentProduct?.description ?? planDef?.tagline}
+            </p>
 
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <Detail label="Billing">
-                {currentPlan === "free"
+                {currentIsFree
                   ? "No charges"
-                  : currentCycle === "annual"
-                    ? `${formatZar(planDef?.annual ?? 0)} / year`
-                    : `${formatZar(planDef?.monthly ?? 0)} / month`}
+                  : `${formatZar(currentProduct?.price ?? planDef?.monthly ?? 0)} / ${
+                      (currentProduct?.billingCycle ?? currentCycle) ===
+                      "annual"
+                        ? "year"
+                        : "month"
+                    }`}
               </Detail>
               {sub?.status === "trialing" ? (
                 <Detail label="Trial ends">
@@ -187,13 +207,13 @@ export default async function SettingsSubscriptionPage() {
               ) : (
                 <Detail label="Renews">
                   {formatDate(sub?.current_period_end) ??
-                    (currentPlan === "free" ? "Never (free)" : "—")}
+                    (currentIsFree ? "Never (free)" : "—")}
                 </Detail>
               )}
               <Detail label="Cycle">
-                {currentPlan === "free"
+                {currentIsFree
                   ? "—"
-                  : currentCycle === "annual"
+                  : (currentProduct?.billingCycle ?? currentCycle) === "annual"
                     ? "Annual"
                     : "Monthly"}
               </Detail>
@@ -212,7 +232,7 @@ export default async function SettingsSubscriptionPage() {
               </div>
             ) : null}
 
-            {sub && sub.plan !== "free" ? (
+            {sub && !currentIsFree ? (
               <div className="mt-5">
                 <CancelButton
                   scheduledForCancel={sub.cancel_at_period_end}
@@ -224,11 +244,10 @@ export default async function SettingsSubscriptionPage() {
         </div>
       </section>
 
-      {/* ─── Plan picker ─────────────────────────────────────────── */}
+      {/* ─── Plan picker (the admin PRODUCTS catalog) ────────────── */}
       <PlanPicker
-        plans={plans}
-        currentPlan={currentPlan}
-        currentCycle={currentCycle}
+        products={products}
+        currentProductId={sub?.product_id ?? null}
       />
 
       {/* ─── Audit feed ──────────────────────────────────────────── */}

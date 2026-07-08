@@ -6284,6 +6284,7 @@ export type Database = {
           is_visible: boolean
           name: string
           payment_methods: string[]
+          plan_key: string | null
           price: number
           setup_fee: number
           setup_fee_affiliate_type: string
@@ -6311,6 +6312,7 @@ export type Database = {
           is_visible?: boolean
           name: string
           payment_methods?: string[]
+          plan_key?: string | null
           price?: number
           setup_fee?: number
           setup_fee_affiliate_type?: string
@@ -6338,6 +6340,7 @@ export type Database = {
           is_visible?: boolean
           name?: string
           payment_methods?: string[]
+          plan_key?: string | null
           price?: number
           setup_fee?: number
           setup_fee_affiliate_type?: string

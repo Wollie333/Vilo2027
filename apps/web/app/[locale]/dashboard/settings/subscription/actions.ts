@@ -1,14 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 
 import {
   isPlatformBillingConfigured,
   startSubscriptionCheckout,
 } from "@/lib/billing/platform-billing";
+import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
 import { requireHost as getMyHostId } from "@/lib/host/current";
 import { getPlan } from "@/lib/plans/getPlans";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 const CYCLE_VALUES = ["monthly", "annual"] as const;
@@ -212,6 +215,112 @@ export async function startPlanCheckoutAction(input: {
   });
   if (!res.ok) return { ok: false, error: res.error };
   return { ok: true, redirectUrl: res.authorizationUrl };
+}
+
+/**
+ * Product-driven switch used by the settings tab (the catalog now shows the
+ * admin PRODUCTS, not plan tiers). The PRODUCT price decides whether a charge is
+ * due; the product's plan_key decides the feature tier. So a FREE product that
+ * grants a paid tier (e.g. a beta product → full access) switches with no charge.
+ *
+ *  - Paid product + billing configured → product checkout (charges the product
+ *    price); the return/webhook activates via activateMappedPlan.
+ *  - Free product, or billing not wired yet (pre-MVP) → state-only activation:
+ *    set product_id + the mapped plan directly so gates re-evaluate now.
+ */
+const switchProductSchema = z.object({ productId: z.string().uuid() });
+
+export async function switchToProductAction(input: {
+  productId: string;
+}): Promise<CheckoutResult> {
+  const parsed = switchProductSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid product." };
+
+  const host = await getMyHostId();
+  if (!host.ok) return host;
+
+  // Product is a public catalog row — read with the admin client so an inactive
+  // product a host is already on still resolves.
+  const admin = createAdminClient();
+  const { data: product } = await admin
+    .from("products")
+    .select("id, slug, type, price, billing_cycle, plan_key, is_active")
+    .eq("id", parsed.data.productId)
+    .maybeSingle();
+  if (!product || product.type !== "subscription" || !product.is_active) {
+    return { ok: false, error: "That product isn't available." };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { ok: false, error: "Please sign in." };
+
+  const { data: existing } = await supabase
+    .from("subscriptions")
+    .select("id, plan, product_id")
+    .eq("host_id", host.hostId)
+    .maybeSingle();
+
+  if (existing?.product_id === product.id) {
+    return { ok: false, error: "You're already on this plan." };
+  }
+
+  // Resolve the feature tier the product grants (plan_key, else slug if it's a
+  // real plan key). Fall back to the current plan so the FK stays valid.
+  let plan = existing?.plan ?? "free";
+  const desiredKey = product.plan_key ?? product.slug;
+  if (desiredKey && (await getPlan(desiredKey))) plan = desiredKey;
+
+  const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+  const paid = Number(product.price) > 0;
+
+  // A paid product with live billing → real checkout (charges the product price).
+  if (paid && (await isPlatformBillingConfigured()) && product.slug) {
+    const origin = headers().get("origin");
+    const r = await startProductCheckoutDirect(
+      product.slug,
+      user.email,
+      origin,
+      false,
+    );
+    if (!r.ok) return { ok: false, error: r.error };
+    if (r.url) return { ok: true, redirectUrl: r.url };
+    // No URL back (shouldn't happen) — fall through to a state-only switch.
+  }
+
+  // Free product, or billing not wired → activate immediately (no charge). A
+  // free grant has no billing period (never expires); a state-only paid switch
+  // opens a period at the chosen cycle.
+  const now = new Date();
+  const patch = {
+    product_id: product.id,
+    plan,
+    billing_cycle: cycle,
+    status: "active" as const,
+    trial_ends_at: null,
+    current_period_start: now.toISOString(),
+    current_period_end: paid
+      ? newPeriodEndFrom(now, cycle).toISOString()
+      : null,
+    cancel_at_period_end: false,
+    cancelled_at: null,
+    cancellation_reason: null,
+  };
+  const { error } = existing
+    ? await supabase.from("subscriptions").update(patch).eq("id", existing.id)
+    : await supabase
+        .from("subscriptions")
+        .insert({ host_id: host.hostId, ...patch });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/settings/subscription");
+  return { ok: true };
+}
+
+function newPeriodEndFrom(start: Date, cycle: "monthly" | "annual"): Date {
+  return cycle === "annual" ? addMonths(start, 12) : addMonths(start, 1);
 }
 
 const cancelSchema = z.object({

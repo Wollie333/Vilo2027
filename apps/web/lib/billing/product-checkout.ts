@@ -417,7 +417,7 @@ async function activateMappedPlan(
   if (!payerUserId || !productId) return;
   const { data: product } = await admin
     .from("products")
-    .select("type, slug, billing_cycle")
+    .select("type, slug, billing_cycle, plan_key")
     .eq("id", productId)
     .maybeSingle();
   if (!product || product.type !== "subscription") return;
@@ -435,14 +435,16 @@ async function activateMappedPlan(
     .eq("host_id", host.id)
     .maybeSingle();
 
-  // Keep `plan` a valid plans.key: use the product slug only when a matching
-  // plan exists, else preserve the current plan (or default to 'free').
+  // Keep `plan` a valid plans.key: prefer the product's explicit plan_key (the
+  // feature tier it grants), else fall back to its slug when that's a plan key,
+  // else preserve the current plan (or default to 'free').
   let plan = sub?.plan ?? "free";
-  if (product.slug) {
+  const desiredKey = product.plan_key ?? product.slug;
+  if (desiredKey) {
     const { data: planRow } = await admin
       .from("plans")
       .select("key")
-      .eq("key", product.slug)
+      .eq("key", desiredKey)
       .maybeSingle();
     if (planRow) plan = planRow.key;
   }

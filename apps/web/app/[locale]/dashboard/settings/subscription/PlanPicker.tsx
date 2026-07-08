@@ -6,133 +6,87 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import type { CatalogProduct } from "@/lib/products/getProducts";
 
-import { startPlanCheckoutAction, switchPlanAction } from "./actions";
-import { formatZar, type PlanDef, type PlanKey } from "./plans";
+import { switchToProductAction } from "./actions";
+import { formatZar } from "./plans";
 
 type Props = {
-  plans: ReadonlyArray<PlanDef>;
-  currentPlan: PlanKey;
-  currentCycle: "monthly" | "annual" | null;
+  // The admin PRODUCTS catalog (exactly what's active + visible) — the source of
+  // truth for what a host can be on. Mirrors the signup wizard's toolkit step.
+  products: ReadonlyArray<CatalogProduct>;
+  currentProductId: string | null;
 };
 
-export function PlanPicker({ plans, currentPlan, currentCycle }: Props) {
+const CYCLE_LABEL: Record<string, string> = {
+  weekly: "week",
+  monthly: "month",
+  quarterly: "quarter",
+  biannual: "6 months",
+  annual: "year",
+};
+
+export function PlanPicker({ products, currentProductId }: Props) {
   const router = useRouter();
   const brandName = useBrandName();
-  const [cycle, setCycle] = useState<"monthly" | "annual">(
-    currentCycle ?? "monthly",
-  );
-  const [pendingPlan, setPendingPlan] = useState<PlanKey | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  const currentIsFree =
-    plans.find((p) => p.key === currentPlan)?.isFree ?? true;
-
-  function switchTo(plan: PlanDef) {
-    if (plan.key === currentPlan && (plan.isFree || cycle === currentCycle)) {
-      toast.info("Already on this plan.");
+  function switchTo(product: CatalogProduct) {
+    if (product.id === currentProductId) {
+      toast.info("You're already on this plan.");
       return;
     }
-    setPendingPlan(plan.key);
+    setPendingId(product.id);
     start(async () => {
-      // Paid plans go through the checkout action (which decides trial vs charge
-      // vs state-only); free plans switch directly.
-      if (!plan.isFree) {
-        const res = await startPlanCheckoutAction({ plan: plan.key, cycle });
-        if (res.ok && res.redirectUrl) {
-          // Hand off to Paystack — the webhook activates on payment.
-          window.location.href = res.redirectUrl;
-          return;
-        }
-        setPendingPlan(null);
-        if (res.ok) {
-          toast.success(`Switched to ${plan.name} (${cycle}).`);
-          router.refresh();
-        } else {
-          toast.error(res.error);
-        }
+      const res = await switchToProductAction({ productId: product.id });
+      if (res.ok && res.redirectUrl) {
+        // Paid product → hand off to Paystack; activation lands on return.
+        window.location.href = res.redirectUrl;
         return;
       }
-
-      const result = await switchPlanAction({ plan: plan.key, cycle: null });
-      setPendingPlan(null);
-      if (result.ok) {
-        toast.success(`Switched to ${plan.name}.`);
+      setPendingId(null);
+      if (res.ok) {
+        toast.success(`Switched to ${product.name}.`);
         router.refresh();
       } else {
-        toast.error(result.error);
+        toast.error(res.error);
       }
     });
   }
 
+  if (products.length === 0) {
+    return (
+      <section className="rounded-card border border-dashed border-brand-line bg-white p-6 text-sm text-brand-mute shadow-card">
+        No plans are available right now. Check back soon.
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-base font-bold text-brand-ink">
-          Switch plan
-        </h2>
-        <div
-          role="tablist"
-          aria-label="Billing cycle"
-          className="inline-flex items-center rounded-pill border border-brand-line bg-white p-1 text-xs font-medium"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={cycle === "monthly"}
-            onClick={() => setCycle("monthly")}
-            className={`rounded-pill px-3 py-1.5 transition-colors ${
-              cycle === "monthly"
-                ? "bg-brand-primary text-white shadow-sm"
-                : "text-brand-mute hover:text-brand-ink"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={cycle === "annual"}
-            onClick={() => setCycle("annual")}
-            className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 transition-colors ${
-              cycle === "annual"
-                ? "bg-brand-primary text-white shadow-sm"
-                : "text-brand-mute hover:text-brand-ink"
-            }`}
-          >
-            Annual
-            <span
-              className={`rounded-pill px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                cycle === "annual"
-                  ? "bg-white/20 text-white"
-                  : "bg-brand-accent text-brand-primary"
-              }`}
-            >
-              Save 17%
-            </span>
-          </button>
-        </div>
-      </div>
+      <h2 className="font-display text-base font-bold text-brand-ink">
+        Switch plan
+      </h2>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {plans.map((plan) => {
-          const isCurrent =
-            plan.key === currentPlan && (plan.isFree || cycle === currentCycle);
-          const showMonthly =
-            cycle === "monthly" ? plan.monthly : Math.round(plan.annual / 12);
-          const showAnnual = plan.annual;
-          const submitting = pendingPlan === plan.key && pending;
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {products.map((p) => {
+          const isCurrent = p.id === currentProductId;
+          const cycle = CYCLE_LABEL[p.billingCycle ?? "monthly"] ?? "month";
+          const submitting = pendingId === p.id && pending;
 
           return (
             <div
-              key={plan.key}
+              key={p.id}
               className={`relative flex flex-col rounded-card border bg-white p-5 shadow-card transition-shadow ${
-                plan.recommended
+                isCurrent
                   ? "border-brand-primary ring-1 ring-brand-primary/30"
-                  : "border-brand-line"
+                  : p.isRecommended
+                    ? "border-brand-primary/60"
+                    : "border-brand-line"
               }`}
             >
-              {plan.recommended ? (
+              {p.isRecommended ? (
                 <span className="absolute -top-2 right-4 inline-flex items-center gap-1 rounded-pill bg-brand-primary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white shadow-sm">
                   <Sparkles className="h-3 w-3" />
                   Popular
@@ -140,41 +94,32 @@ export function PlanPicker({ plans, currentPlan, currentCycle }: Props) {
               ) : null}
 
               <div className="font-display text-base font-semibold text-brand-ink">
-                {plan.name}
+                {p.name}
               </div>
-              <p className="mt-1 text-[12.5px] text-brand-mute">
-                {plan.tagline}
-              </p>
+              {p.description ? (
+                <p className="mt-1 min-h-[32px] text-[12.5px] text-brand-mute">
+                  {p.description}
+                </p>
+              ) : null}
 
               <div className="mt-4">
-                {plan.isFree ? (
+                {p.isFree ? (
                   <div className="font-display text-2xl font-bold text-brand-ink">
                     Free
                   </div>
                 ) : (
-                  <>
-                    <div className="font-display text-2xl font-bold text-brand-ink">
-                      {formatZar(showMonthly)}
-                      <span className="text-sm font-medium text-brand-mute">
-                        {" "}
-                        / month
-                      </span>
-                    </div>
-                    {cycle === "annual" ? (
-                      <div className="text-[11px] text-brand-mute">
-                        Billed yearly: {formatZar(showAnnual)}
-                      </div>
-                    ) : (
-                      <div className="text-[11px] text-brand-mute">
-                        Or annual: {formatZar(showAnnual)} / year
-                      </div>
-                    )}
-                  </>
+                  <div className="font-display text-2xl font-bold text-brand-ink">
+                    {formatZar(p.price)}
+                    <span className="text-sm font-medium text-brand-mute">
+                      {" "}
+                      / {cycle}
+                    </span>
+                  </div>
                 )}
               </div>
 
-              <ul className="mt-4 space-y-2 text-[13px] text-brand-dark">
-                {plan.bullets.map((b) => (
+              <ul className="mt-4 flex-1 space-y-2 text-[13px] text-brand-dark">
+                {p.bullets.map((b) => (
                   <li key={b} className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
                     <span>{b.replace("Wielo", brandName)}</span>
@@ -184,10 +129,10 @@ export function PlanPicker({ plans, currentPlan, currentCycle }: Props) {
 
               <button
                 type="button"
-                onClick={() => switchTo(plan)}
+                onClick={() => switchTo(p)}
                 disabled={isCurrent || pending}
                 className={`mt-5 inline-flex items-center justify-center gap-2 rounded px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                  plan.recommended
+                  p.isRecommended && !isCurrent
                     ? "bg-brand-primary text-white hover:bg-brand-secondary"
                     : "border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
                 }`}
@@ -197,11 +142,9 @@ export function PlanPicker({ plans, currentPlan, currentCycle }: Props) {
                 ) : null}
                 {isCurrent
                   ? "Current plan"
-                  : plan.isFree
-                    ? `Downgrade to ${plan.name}`
-                    : currentIsFree
-                      ? `Start ${plan.name} trial`
-                      : `Switch to ${plan.name}`}
+                  : p.isFree
+                    ? `Switch to ${p.name}`
+                    : `Get ${p.name}`}
               </button>
             </div>
           );
@@ -209,10 +152,8 @@ export function PlanPicker({ plans, currentPlan, currentCycle }: Props) {
       </div>
 
       <p className="text-[12px] text-brand-mute">
-        Switching is instant. Paid plans include a free trial when you upgrade
-        from Free. Real card billing connects when the Paystack and PayPal
-        webhooks go live — until then your plan record is the source of truth
-        for feature gates.
+        Switching is instant. Paid plans hand off to secure checkout; your
+        features update as soon as payment is confirmed.
       </p>
     </section>
   );
