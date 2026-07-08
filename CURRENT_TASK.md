@@ -2,6 +2,24 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-08 #24) — NEXT: Admin ledger · inbox · payments · affiliate — PLAN SAVED, start fresh
+
+**Read `docs/features/ADMIN_LEDGER_INBOX_PAYMENTS_PLAN.md` FIRST.** Founder batch (not built yet):
+portal Inbox nav (rename Messages→Inbox, under Overview) · rich pay-link inbox CARD (payment_link
+system message) · beautiful standalone product pay page (mirror guest `/pay/[token]`) · pay-link
+picker must include ALL sellable products (the one_off/not-visible "Wielo StayFlow Web-design"
+can't be picked today) · payment parity manual/Paystack/**PayPal** on the Wielo ledger · automatic
+ledger+docs+balance when a real Paystack/manual payment lands · **affiliate commissions (owed) +
+payouts (paid) as records on the SAME Wielo ledger** (adapter/union model — decision in the plan).
+Build order + gotchas in the plan. Verify live host+admin (temp `platform_staff` grant→revoke);
+commit+push each slice. #23 changelog covers the last shipped work (nav cleanup / real pay-link URL /
+details enrichment).
+
+Since #21: also shipped #22 (admin inbox full-bleed + Details drawer + unread highlight) and #23
+(nav cleanup, real pay-link URL, real product/amount in Details) — all DONE + pushed.
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-08 #21) — Host↔Wielo support inbox ✅ DONE + verified live
 
 Always-present "Wielo Support" thread in every host's EXISTING inbox + admin send, reusing the
