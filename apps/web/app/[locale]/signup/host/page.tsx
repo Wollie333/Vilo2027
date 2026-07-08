@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { safeNextPath } from "@/lib/auth/safeNext";
+import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
 import { getBrandName } from "@/lib/brand";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,10 +21,25 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
+export type PaidReceipt = {
+  hostId: string;
+  handle: string;
+  fullName: string;
+  email: string;
+  plan: "free" | "basic" | "pro" | "business";
+  billingCycle: "monthly" | "annual";
+};
+
 export default async function HostSignupPage({
   searchParams,
 }: {
-  searchParams?: { order?: string; next?: string };
+  searchParams?: {
+    order?: string;
+    next?: string;
+    paid_token?: string;
+    reference?: string;
+    trxref?: string;
+  };
 }) {
   // A quote (or other) intent to return to after onboarding. Same-origin guard.
   const nextPath = safeNextPath(searchParams?.next);
@@ -32,6 +48,62 @@ export default async function HostSignupPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // ── Paystack return from a pay-during-signup checkout ────────────
+  // Paystack sends the host back here (?paid_token=…&reference=…) instead of the
+  // standalone /pay/product page, so the wizard can render its OWN Welcome step.
+  // Settle the payment server-side (primary path; webhook is the backstop), then
+  // build the receipt data so the wizard opens on its final step.
+  let paidReceipt: PaidReceipt | null = null;
+  const paidToken = (searchParams?.paid_token ?? "").trim();
+  const reference = searchParams?.reference ?? searchParams?.trxref;
+  if (paidToken && user) {
+    if (reference) await confirmProductOrderByReference(reference);
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("product_orders")
+      .select("status, payer_email, payer_user_id, product_id")
+      .eq("pay_token", paidToken)
+      .maybeSingle();
+    const belongs =
+      order?.payer_user_id === user.id ||
+      (order?.payer_email ?? "").toLowerCase() ===
+        (user.email ?? "").toLowerCase();
+    if (order && order.status === "paid" && belongs) {
+      const { data: host } = await admin
+        .from("hosts")
+        .select("id, handle")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (host) {
+        const [{ data: sub }, { data: profile }] = await Promise.all([
+          admin
+            .from("subscriptions")
+            .select("plan, billing_cycle")
+            .eq("host_id", host.id)
+            .maybeSingle(),
+          admin
+            .from("user_profiles")
+            .select("full_name")
+            .eq("id", user.id)
+            .maybeSingle(),
+        ]);
+        const plan = (sub?.plan ?? "free") as PaidReceipt["plan"];
+        const billingCycle = (
+          sub?.billing_cycle === "annual" ? "annual" : "monthly"
+        ) as PaidReceipt["billingCycle"];
+        paidReceipt = {
+          hostId: host.id,
+          handle: host.handle,
+          fullName: profile?.full_name ?? user.email ?? "",
+          email: user.email ?? "",
+          plan,
+          billingCycle,
+        };
+      }
+    }
+  }
 
   // If they arrived from a paid product link (/p/[slug] → pay → here), load the
   // paid order so the wizard can lock the toolkit step to that purchase and the
@@ -68,8 +140,9 @@ export default async function HostSignupPage({
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (existingHost) {
+    if (existingHost && !paidReceipt) {
       // Already a host — honour the pending intent (e.g. a quote) if present.
+      // Exception: a paid-signup return renders the wizard's Welcome step below.
       redirect(nextPath ?? "/dashboard");
     }
 
@@ -125,6 +198,7 @@ export default async function HostSignupPage({
       purchasedProductName={purchasedProductName}
       purchasedOrderToken={purchasedOrderToken}
       purchasedEmail={purchasedEmail}
+      paidReceipt={paidReceipt}
       next={nextPath}
     />
   );

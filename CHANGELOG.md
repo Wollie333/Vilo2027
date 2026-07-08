@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-08 #15 — Paid-signup Paystack return lands on the wizard's own Welcome step.
+
+After #14 fixed the redirect, a paying host landed on the standalone `/pay/product/[token]`
+Receipt — a different design from the wizard's built-in Welcome/receipt step. Now the
+signup-initiated checkout tells Paystack to return to the wizard instead:
+- `startProductPaystack` takes a `signupReturn` flag (threaded from `startSignupCheckoutAction`)
+  → callback becomes `/signup/host?paid_token=…` instead of `/pay/product/…`. The standalone
+  `/pay/product` flow (buy-first via `/p/[slug]`, PayButton) is unchanged.
+- `signup/host/page.tsx` handles the return: settles the payment
+  (`confirmProductOrderByReference`, webhook is the backstop), then builds a `PaidReceipt`
+  (host handle, plan, billing cycle from the subscription, name/email) and passes it to the
+  wizard. The "already a host → /dashboard" guard is skipped on a paid return.
+- `Wizard` accepts `paidReceipt`: opens on the final Welcome step with `data` + `finalizeResult`
+  seeded, so it renders the same branded receipt (Order confirmed · plan · VAT breakdown ·
+  WIELO-… order ref · Go to dashboard).
+- Verified live: paid `pro` return renders the wizard Welcome step (stepper 5/5, "Thanks …
+  You're in.", Pro R599/mo receipt) — not the standalone page, not a dashboard redirect.
+
 ## 2026-07-08 #14 — Fix Paystack signup-checkout redirect + signup funnel pixel events.
 
 - **The bug:** after a successful (test) Paystack payment the host was never redirected to

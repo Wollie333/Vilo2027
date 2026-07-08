@@ -227,7 +227,9 @@ export async function startSignupCheckoutAction(
   // Pass the request origin so Paystack's callback_url is absolute (dev autoPort
   // + unset NEXT_PUBLIC_SITE_URL made it relative → no redirect after payment).
   const origin = headers().get("origin");
-  const r = await startProductCheckoutDirect(slug, user.email, origin);
+  // signupReturn=true → Paystack returns to the wizard's own Welcome/receipt
+  // step (/signup/host?paid_token=…), not the standalone /pay/product page.
+  const r = await startProductCheckoutDirect(slug, user.email, origin, true);
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, url: r.url };
 }

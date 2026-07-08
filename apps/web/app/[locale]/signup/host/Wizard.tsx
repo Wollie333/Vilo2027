@@ -248,6 +248,7 @@ export function Wizard({
   purchasedProductName = null,
   purchasedOrderToken = null,
   purchasedEmail = null,
+  paidReceipt = null,
   next = null,
 }: {
   prefilledEmail: string | null;
@@ -271,6 +272,16 @@ export function Wizard({
   purchasedProductName?: string | null;
   purchasedOrderToken?: string | null;
   purchasedEmail?: string | null;
+  // Set when the host is returning from Paystack after paying DURING signup.
+  // The wizard jumps straight to its Welcome/receipt step, seeded from this.
+  paidReceipt?: {
+    hostId: string;
+    handle: string;
+    fullName: string;
+    email: string;
+    plan: "free" | "basic" | "pro" | "business";
+    billingCycle: "monthly" | "annual";
+  } | null;
   // A safe relative path to return to after onboarding (e.g. a Looking-For
   // quote the guest started before signing up). Honoured by the final CTA so
   // their original intent survives the whole signup journey.
@@ -280,12 +291,14 @@ export function Wizard({
   // Returning users (already signed in) skip Step 1. A product buyer is NOT yet
   // authenticated, so they still go through account creation — we only prefill
   // the email they paid with.
-  const startIndex = prefilledEmail ? 1 : 0;
+  // A paid-signup return jumps straight to the final Welcome/receipt step.
+  const welcomeIndex = STEPS.length - 1;
+  const startIndex = paidReceipt ? welcomeIndex : prefilledEmail ? 1 : 0;
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [data, setData] = useState<WizardData>(() => {
     const base = initialData({
-      email: prefilledEmail,
-      fullName: prefilledFullName,
+      email: paidReceipt?.email ?? prefilledEmail,
+      fullName: paidReceipt?.fullName ?? prefilledFullName,
       phone: prefilledPhone,
       bio: prefilledBio,
       avatarUrl: prefilledAvatar,
@@ -294,6 +307,12 @@ export function Wizard({
     });
     // Default the toolkit selection to the first product (sorted; Free is first).
     base.productSlug = products[0]?.slug ?? null;
+    // Seed the receipt fields when returning from a completed payment.
+    if (paidReceipt) {
+      base.plan = paidReceipt.plan;
+      base.billingCycle = paidReceipt.billingCycle;
+      return base;
+    }
     // Prefill (but don't auto-accept terms for) a product buyer's paid email.
     if (!prefilledEmail && purchasedEmail) {
       return { ...base, email: purchasedEmail };
@@ -309,9 +328,19 @@ export function Wizard({
   const [createPending, startCreate] = useTransition();
   const [finalizePending, startFinalize] = useTransition();
   // Returned by finalizeOnboardingAction — drives the receipt on the
-  // Welcome step (host id for the order reference + confirmed plan).
+  // Welcome step (host id for the order reference + confirmed plan). Seeded
+  // from paidReceipt when returning from a completed Paystack payment.
   const [finalizeResult, setFinalizeResult] =
-    useState<FinalizeOnboardingData | null>(null);
+    useState<FinalizeOnboardingData | null>(
+      paidReceipt
+        ? {
+            host_id: paidReceipt.hostId,
+            handle: paidReceipt.handle,
+            plan: paidReceipt.plan,
+            billing_cycle: paidReceipt.billingCycle,
+          }
+        : null,
+    );
 
   const current = STEPS[currentIndex];
   const isLast = currentIndex === STEPS.length - 1;

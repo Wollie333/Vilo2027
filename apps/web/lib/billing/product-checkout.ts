@@ -116,6 +116,7 @@ export async function startProductCheckoutDirect(
   slug: string,
   email: string,
   origin?: string | null,
+  signupReturn?: boolean,
 ): Promise<CreateOrderResult> {
   const order = await startProductPurchaseBySlug(slug, email, origin);
   if (!order.ok) return order;
@@ -141,7 +142,7 @@ export async function startProductCheckoutDirect(
     methods.includes("paystack") && !!settings?.paystack_enabled;
 
   if (cardAvailable) {
-    const pay = await startProductPaystack(order.token, origin);
+    const pay = await startProductPaystack(order.token, origin, signupReturn);
     if (pay.ok) {
       return { ok: true, token: order.token, url: pay.authorizationUrl };
     }
@@ -318,6 +319,9 @@ function envFromSecret(secret: string): "test" | "live" {
 export async function startProductPaystack(
   payToken: string,
   origin?: string | null,
+  // When true, Paystack returns to the signup wizard (which renders its own
+  // Welcome/receipt step) instead of the standalone /pay/product thank-you page.
+  signupReturn?: boolean,
 ): Promise<PaystackStartResult> {
   const admin = createAdminClient();
   const { data: order } = await admin
@@ -336,12 +340,15 @@ export async function startProductPaystack(
   const environment = envFromSecret(secret);
   const reference = `prod_${order.id}_${Date.now()}`;
   const siteUrl = resolveSiteBase(origin);
+  const callbackPath = signupReturn
+    ? `/signup/host?paid_token=${payToken}`
+    : `/pay/product/${payToken}`;
   try {
     const res = await initializeTransaction({
       amount: Number(order.amount),
       currency: order.currency,
       email: order.payer_email,
-      callbackUrl: `${siteUrl}/pay/product/${payToken}`,
+      callbackUrl: `${siteUrl}${callbackPath}`,
       reference,
       metadata: {
         purpose: "product",
