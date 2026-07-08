@@ -1,13 +1,15 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
-
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Read model for the public product catalog (pricing page + signup). Reads the
 // DB `products` table — the single source of truth the admin Products hub edits.
-// Cached under the "products" tag; call revalidateTag("products") after edits.
+// Read FRESH on every call (no cache) so every surface always mirrors exactly
+// what's active + visible in admin, even when the catalog is changed directly
+// in the DB (a cached read went stale in that case and showed retired tiers).
 
+// Retained so admin mutations can keep calling revalidateTag() harmlessly; no
+// cache is attached to it anymore.
 export const PRODUCTS_CACHE_TAG = "products";
 
 export type CatalogProduct = {
@@ -65,19 +67,8 @@ async function load(): Promise<CatalogProduct[]> {
   }));
 }
 
-// Visible, active subscription products for the pricing page + signup.
-export const getSubscriptionProducts = unstable_cache(
-  load,
-  ["subscription-products"],
-  {
-    tags: [PRODUCTS_CACHE_TAG],
-  },
-);
-
-// Uncached read — always mirrors the live `products` table. Used by the signup
-// wizard (a force-dynamic page) so the toolkit step shows EXACTLY what is active
-// + visible in the admin, even when the catalog was changed outside the admin UI
-// (which is when the tag-based cache above can go stale).
-export function getSubscriptionProductsFresh(): Promise<CatalogProduct[]> {
+// Visible, active subscription products for the pricing page + signup. Uncached
+// — always reflects the live `products` table.
+export function getSubscriptionProducts(): Promise<CatalogProduct[]> {
   return load();
 }

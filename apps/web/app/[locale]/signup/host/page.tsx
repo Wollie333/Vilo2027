@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { safeNextPath } from "@/lib/auth/safeNext";
 import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
 import { getBrandName } from "@/lib/brand";
-import { getSubscriptionProductsFresh } from "@/lib/products/getProducts";
+import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
@@ -186,9 +186,9 @@ export default async function HostSignupPage({
     }
   }
 
-  // Real subscription products to pick from in the toolkit step. Read fresh
-  // (uncached) so it always reflects exactly what's active + visible in admin.
-  const products = await getSubscriptionProductsFresh();
+  // Real subscription products to pick from in the toolkit step (read fresh so
+  // it always reflects exactly what's active + visible in admin).
+  const products = await getSubscriptionProducts();
 
   // Flatten the category tree to accommodation leaves only (skip the
   // Accommodation root). MVP lists accommodation only.
