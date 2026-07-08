@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-08 #16 — Signup funnel pixels, fresh product reads, Tracking hub, product-driven subscriptions.
+
+Continuation of the signup-hardening work plus two founder-requested features.
+- **Signup pixels** (`379da68c`): Purchase now fires on the wizard Welcome step for a paid
+  signup (keyed to the invoice number for dedupe/CAPI); CompleteRegistration fires on both
+  host + guest account creation. E2E-verified live with the Paystack test key.
+- **Products read fresh everywhere** (`844ced38` → `a0c121f2`): `getSubscriptionProducts` was
+  `unstable_cache` and went stale on direct-DB catalog edits (showed retired Free/Pro/Business).
+  Made it uncached so signup, pitch deck and admin always mirror the live `products` table.
+  Verified: both surfaces render exactly the active+visible rows (Beta R0 + Starter R599).
+- **Tracking hub** (`f1fd7bf2`): new `/dashboard/tracking` under Insights — a host manages
+  their own pixels/analytics (Meta Pixel + Conversions API token, GA4, GTM, TikTok, Google
+  Ads, cookie consent) in one place, writing the same `settings.analytics` + `meta_capi_*`
+  the website builder uses. Ownership-checked. Verified live: renders + saves + persists.
+- **Product-driven subscription tab** (`2093182f`): the host Subscription settings tab now
+  shows exactly the admin Products (not the old plans catalog). Added `products.plan_key`
+  (migration `20260708120000`) so a product grants a tier its slug doesn't name — Beta
+  (free) → business/full access, Starter → pro. All three activation paths prefer plan_key.
+  New `switchToProductAction` keys the charge off the PRODUCT price (free product activates
+  with no charge even when it grants a paid tier; paid runs the existing Paystack product
+  checkout). Backfilled + linked existing subs. Verified live: tab shows Beta + Starter;
+  free switch to Beta persists as plan=business, no charge/expiry.
+- **Ops:** granted super_admin to `wollie@manamarketing.co.za`; wiped all users except it +
+  `host@wielotest.com` (Karoo test host) and their data.
+
 ## 2026-07-08 #15 — Paid-signup Paystack return lands on the wizard's own Welcome step.
 
 After #14 fixed the redirect, a paying host landed on the standalone `/pay/product/[token]`
