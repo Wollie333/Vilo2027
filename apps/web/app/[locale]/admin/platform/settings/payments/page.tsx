@@ -5,6 +5,8 @@ import {
 } from "@/app/[locale]/admin/products/payments/PaymentSettingsForm";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { TestDataCard } from "./TestDataCard";
+
 export const dynamic = "force-dynamic";
 
 // Payments tab — how Wielo collects money for its own products (Paystack cards +
@@ -13,13 +15,33 @@ export const dynamic = "force-dynamic";
 // The EFT section holds Wielo's bank account details (also printed on invoices).
 export default async function PlatformPaymentSettingsPage() {
   const service = createAdminClient();
-  const { data } = await service
-    .from("platform_payment_settings")
-    .select(
-      "paystack_enabled, paystack_mode, paystack_secret_key, paystack_public_key, paystack_test_secret_key, paystack_test_public_key, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
-    )
-    .eq("id", true)
-    .maybeSingle();
+  const [{ data }, ledgerCount, invoiceCount, orderCount] = await Promise.all([
+    service
+      .from("platform_payment_settings")
+      .select(
+        "paystack_enabled, paystack_mode, paystack_secret_key, paystack_public_key, paystack_test_secret_key, paystack_test_public_key, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
+      )
+      .eq("id", true)
+      .maybeSingle(),
+    service
+      .from("platform_ledger")
+      .select("id", { count: "exact", head: true })
+      .eq("environment", "test"),
+    service
+      .from("wielo_invoices")
+      .select("id", { count: "exact", head: true })
+      .eq("environment", "test"),
+    service
+      .from("product_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("environment", "test"),
+  ]);
+
+  const testCounts = {
+    ledger: ledgerCount.count ?? 0,
+    invoices: invoiceCount.count ?? 0,
+    orders: orderCount.count ?? 0,
+  };
 
   const initial: PaymentSettings = {
     paystackEnabled: data?.paystack_enabled ?? false,
@@ -53,6 +75,10 @@ export default async function PlatformPaymentSettingsPage() {
         Wielo invoices as EFT payment instructions.
       </p>
       <PaymentSettingsForm initial={initial} />
+
+      <div className="pt-2">
+        <TestDataCard counts={testCounts} />
+      </div>
     </div>
   );
 }
