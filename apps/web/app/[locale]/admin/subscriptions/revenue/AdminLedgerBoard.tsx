@@ -1,12 +1,26 @@
 "use client";
 
-import { Download, ScrollText, Search, X } from "lucide-react";
+import {
+  CreditCard,
+  Download,
+  FileMinus,
+  Link2,
+  RotateCcw,
+  Search,
+  X,
+} from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { AdminLedgerList } from "@/components/finance/AdminLedgerList";
 import { formatMoney } from "@/lib/format";
 import type { WieloTxn, WieloTxnType } from "@/lib/billing/wielo-ledger";
+
+import {
+  WieloFinanceModals,
+  type WieloFinanceAction,
+  type WieloFinanceRequest,
+} from "./WieloFinanceModals";
 
 export type WieloKpis = {
   mrr: number;
@@ -71,6 +85,7 @@ export function AdminLedgerBoard({
   currency,
   planLabels,
   products,
+  payableProducts,
   env,
   userEmail,
   plan,
@@ -84,6 +99,13 @@ export function AdminLedgerBoard({
   planLabels: Record<string, string>;
   /** Real subscription products for the filter (value = plan key, label = name). */
   products: { key: string; name: string }[];
+  /** Payable products for the pay-link picker (id + price). */
+  payableProducts: {
+    id: string;
+    name: string;
+    price: number;
+    currency: string;
+  }[];
   env: EnvFilter;
   userEmail: string;
   plan: string;
@@ -98,6 +120,23 @@ export function AdminLedgerBoard({
   const [tab, setTab] = useState("all");
   const [search, setSearch] = useState("");
   const [emailInput, setEmailInput] = useState(userEmail);
+  // Finance action modals (record payment / refund / credit / adjustment / link).
+  const [financeReq, setFinanceReq] = useState<WieloFinanceRequest | null>(
+    null,
+  );
+  function openAction(action: WieloFinanceAction, email = "") {
+    setFinanceReq({ action, email });
+  }
+
+  // Unique users seen in the ledger — feeds the modal's email datalist.
+  const users = useMemo(() => {
+    const seen = new Map<string, string | null>();
+    for (const e of entries) {
+      if (e.userEmail && !seen.has(e.userEmail))
+        seen.set(e.userEmail, e.userName);
+    }
+    return [...seen.entries()].map(([email, name]) => ({ email, name }));
+  }, [entries]);
 
   // The env / product / status / user / date filters are a SERVER scope — they
   // change the fetched set (and therefore the running balances + KPIs), so
@@ -184,46 +223,6 @@ export function AdminLedgerBoard({
 
   return (
     <div className="w-full">
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-brand-secondary text-white">
-          <ScrollText className="h-5 w-5" />
-        </div>
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-[22px] font-extrabold tracking-tight text-brand-ink">
-              Wielo revenue ledger
-            </h1>
-            {env === "test" ? (
-              <span className="inline-flex items-center rounded-pill border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-amber-700">
-                Test
-              </span>
-            ) : env === "all" ? (
-              <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                Test + Live
-              </span>
-            ) : null}
-          </div>
-          <p className="text-[12.5px] text-brand-mute">
-            Every transaction between a user and Wielo — subscriptions,
-            products, refunds, credits and adjustments. Booking money goes to
-            hosts and isn&apos;t shown here.
-          </p>
-        </div>
-        {/* Environment scope — top-right, mirrors the host ledger's Periods control. */}
-        <div className="ml-auto">
-          <select
-            value={env}
-            onChange={(e) => pushParams({ env: e.target.value })}
-            className={`${SELECT_CLS} font-semibold`}
-            title="Environment"
-          >
-            <option value="live">Live</option>
-            <option value="test">Test</option>
-            <option value="all">Test + Live</option>
-          </select>
-        </div>
-      </div>
-
       {/* KPIs */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Kpi
@@ -250,6 +249,47 @@ export function AdminLedgerBoard({
         <Kpi label="Paying hosts" value={String(kpis.payingHosts)} tone="ink" />
       </div>
 
+      {/* Finance actions — the platform-side sibling of the guest record's
+          finance toolbar. Each opens a host-scoped modal (record payment /
+          refund / credit / adjustment / send payment link). */}
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => openAction("payment", userEmail)}
+          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
+        >
+          <CreditCard className="h-4 w-4" /> Record payment
+        </button>
+        <button
+          type="button"
+          onClick={() => openAction("refund", userEmail)}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+        >
+          <RotateCcw className="h-4 w-4 text-brand-mute" /> Issue refund
+        </button>
+        <button
+          type="button"
+          onClick={() => openAction("credit", userEmail)}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+        >
+          <FileMinus className="h-4 w-4 text-brand-mute" /> Credit note
+        </button>
+        <button
+          type="button"
+          onClick={() => openAction("adjustment", userEmail)}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+        >
+          <FileMinus className="h-4 w-4 text-brand-mute" /> Adjustment
+        </button>
+        <button
+          type="button"
+          onClick={() => openAction("link", userEmail)}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+        >
+          <Link2 className="h-4 w-4 text-brand-mute" /> Send payment link
+        </button>
+      </div>
+
       {/* Filters — one clean row like the host ledger: type tabs (client) on the
           left, product / status scope selects (navigate → re-fetch) on the right. */}
       <div className="mb-3 flex flex-wrap items-center gap-2.5">
@@ -273,6 +313,16 @@ export function AdminLedgerBoard({
           ))}
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <select
+            value={env}
+            onChange={(e) => pushParams({ env: e.target.value })}
+            className={`${SELECT_CLS} font-semibold`}
+            title="Environment"
+          >
+            <option value="live">Live</option>
+            <option value="test">Test</option>
+            <option value="all">Test + Live</option>
+          </select>
           <select
             value={plan}
             onChange={(e) => pushParams({ plan: e.target.value })}
@@ -369,11 +419,22 @@ export function AdminLedgerBoard({
         </button>
       </div>
 
-      <AdminLedgerList entries={rows} planLabels={planLabels} />
+      <AdminLedgerList
+        entries={rows}
+        planLabels={planLabels}
+        onAction={(action, txn) => openAction(action, txn.userEmail ?? "")}
+      />
       <p className="mt-3 text-[11.5px] text-brand-mute">
         Showing {rows.length} of {entries.length} transactions · Balance shows
         what each user owes Wielo (or their credit) after that entry.
       </p>
+
+      <WieloFinanceModals
+        request={financeReq}
+        users={users}
+        products={payableProducts}
+        onClose={() => setFinanceReq(null)}
+      />
     </div>
   );
 }

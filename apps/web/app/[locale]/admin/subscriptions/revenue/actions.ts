@@ -1,9 +1,11 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { createProductOrder } from "@/lib/billing/product-checkout";
 
 const LEDGER_TARGET = "00000000-0000-0000-0000-00000001ed6e";
 
@@ -89,5 +91,50 @@ export const recordManualLedgerEntryAction = withAdminAudit<
 
     revalidatePath("/admin/subscriptions/revenue");
     return { result: { ok: true }, after: data };
+  },
+);
+
+// Generate a Wielo payment link for a user to pay for a product (subscription).
+// Reuses the product-order pay flow: creates a pending order + tokenised
+// /pay/product/[token] link (Paystack + EFT), which mints the invoice + ledger
+// row on payment. Super-admin only, audited.
+const paymentLinkSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email."),
+  productId: z.string().uuid("Pick a product."),
+  // Unused by the flow, but lets the withAdminAudit generic (TArgs extends
+  // { reason?: string }) accept these args.
+  reason: z.string().optional(),
+});
+
+export const createWieloPaymentLinkAction = withAdminAudit<
+  z.infer<typeof paymentLinkSchema>,
+  { ok: true; url: string; token: string }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "subscriptions.payment_link.create",
+    targetType: "platform_ledger",
+    getTargetId: (args) => args.email,
+  },
+  async (args) => {
+    const parsed = paymentLinkSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const admin = await requirePermission("subscriptions.edit");
+    const origin = headers().get("origin");
+    const r = await createProductOrder(
+      {
+        productId: parsed.data.productId,
+        email: parsed.data.email,
+        createdBy: admin.userId,
+      },
+      origin,
+    );
+    if (!r.ok) throw new Error(r.error);
+    return {
+      result: { ok: true, url: r.url, token: r.token },
+      after: { token: r.token, email: parsed.data.email },
+    };
   },
 );

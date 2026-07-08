@@ -5,8 +5,11 @@ import {
   ChevronUp,
   Copy,
   Download,
+  FileMinus,
   FileText,
+  Link2,
   MoreHorizontal,
+  RotateCcw,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -93,12 +96,15 @@ export function AdminLedgerList({
   planLabels,
   emptyLabel = "No transactions match your filters.",
   minWidth = 900,
+  onAction,
 }: {
   entries: WieloTxn[];
   /** Plan key → product name, so a row reads "Starter" not "pro". */
   planLabels: Record<string, string>;
   emptyLabel?: string;
   minWidth?: number;
+  /** Open a host-scoped finance action for this row (refund / credit / link). */
+  onAction?: (action: "refund" | "credit" | "link", txn: WieloTxn) => void;
 }) {
   const [menu, setMenu] = useState<{
     entry: WieloTxn;
@@ -350,6 +356,46 @@ export function AdminLedgerList({
               style={{ top: menu.y + 6, left: Math.max(8, menu.x - 208) }}
               onClick={(ev) => ev.stopPropagation()}
             >
+              {onAction ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const t = menu.entry;
+                      setMenu(null);
+                      onAction("refund", t);
+                    }}
+                    className={MENU_ITEM}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-brand-mute" />
+                    Issue refund
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const t = menu.entry;
+                      setMenu(null);
+                      onAction("credit", t);
+                    }}
+                    className={MENU_ITEM}
+                  >
+                    <FileMinus className="h-3.5 w-3.5 text-brand-mute" />
+                    Give credit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const t = menu.entry;
+                      setMenu(null);
+                      onAction("link", t);
+                    }}
+                    className={MENU_ITEM}
+                  >
+                    <Link2 className="h-3.5 w-3.5 text-brand-mute" />
+                    Send payment link
+                  </button>
+                </>
+              ) : null}
               {menu.entry.doc ? (
                 <>
                   <Link
@@ -380,11 +426,11 @@ export function AdminLedgerList({
                     Copy link
                   </button>
                 </>
-              ) : (
+              ) : !onAction ? (
                 <div className="px-3 py-2 text-[12px] text-brand-mute">
                   No document for this entry
                 </div>
-              )}
+              ) : null}
             </div>,
             document.body,
           )

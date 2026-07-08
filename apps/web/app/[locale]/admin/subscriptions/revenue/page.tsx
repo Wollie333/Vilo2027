@@ -4,8 +4,8 @@ import { getAllPlans } from "@/lib/plans/getPlans";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { SubsTabs } from "../_SubsTabs";
 import { AdminLedgerBoard, type WieloKpis } from "./AdminLedgerBoard";
-import { ManualEntryForm } from "./ManualEntryForm";
 
 export const dynamic = "force-dynamic";
 
@@ -135,12 +135,42 @@ export default async function AdminRevenuePage({
 
   return (
     <div className="space-y-6">
+      <header className="flex flex-wrap items-center gap-2.5">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-brand-ink">
+            Wielo revenue ledger
+          </h1>
+          <p className="mt-1 text-[13px] text-brand-mute">
+            Every transaction between a user and Wielo — subscriptions,
+            products, refunds, credits and adjustments. Booking money goes to
+            hosts and isn&apos;t shown here.
+          </p>
+        </div>
+        {envFilter === "test" ? (
+          <span className="inline-flex items-center rounded-pill border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+            Test
+          </span>
+        ) : envFilter === "all" ? (
+          <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            Test + Live
+          </span>
+        ) : null}
+      </header>
+
+      <SubsTabs />
+
       <AdminLedgerBoard
         entries={rows}
         kpis={kpis}
         currency={currency}
         planLabels={planLabels}
         products={productFilters}
+        payableProducts={products.map((p) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          currency: p.currency,
+        }))}
         env={envFilter}
         userEmail={userEmail}
         plan={planFilter}
@@ -148,20 +178,6 @@ export default async function AdminRevenuePage({
         dateFrom={dateFrom}
         dateTo={dateTo}
       />
-
-      {/* Post a manual entry — goodwill credit / write-off / off-platform charge
-          / correction. Audited. Mints a Wielo document on completion. */}
-      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <h2 className="font-display text-base font-bold text-brand-ink">
-          Post a manual entry
-        </h2>
-        <p className="mb-4 mt-1 text-[13px] text-brand-mute">
-          Record a goodwill credit, write-off, off-platform charge or correction
-          against a host&apos;s Wielo account. Audited, and mints a downloadable
-          document.
-        </p>
-        <ManualEntryForm />
-      </section>
     </div>
   );
 }
