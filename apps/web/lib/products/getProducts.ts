@@ -73,3 +73,11 @@ export const getSubscriptionProducts = unstable_cache(
     tags: [PRODUCTS_CACHE_TAG],
   },
 );
+
+// Uncached read — always mirrors the live `products` table. Used by the signup
+// wizard (a force-dynamic page) so the toolkit step shows EXACTLY what is active
+// + visible in the admin, even when the catalog was changed outside the admin UI
+// (which is when the tag-based cache above can go stale).
+export function getSubscriptionProductsFresh(): Promise<CatalogProduct[]> {
+  return load();
+}
