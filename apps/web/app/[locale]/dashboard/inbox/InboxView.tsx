@@ -56,6 +56,7 @@ export type ConversationRow = {
   status: "open" | "resolved" | "archived";
   isEnquiry: boolean;
   source: string | null;
+  channel: "guest" | "platform";
   unreadCount: number;
   pinned: boolean;
   lastMessageAt: string | null;
@@ -77,6 +78,7 @@ export type ThreadContext = {
   conversationId: string;
   status: "open" | "resolved" | "archived";
   isEnquiry: boolean;
+  channel: "guest" | "platform";
   pinned: boolean;
   guestLastSeenAt: string | null;
   guest: {
@@ -149,7 +151,11 @@ function chipFor(c: {
   source: string | null;
   status: string;
   bookingStatus: string | null;
+  channel?: "guest" | "platform" | null;
 }): { tone: ChatChipTone; label: string } | null {
+  // The Wielo support thread is always identifiable, whatever its status.
+  if (c.channel === "platform")
+    return { tone: "green", label: "Wielo Support" };
   if (c.status === "archived") return { tone: "neutral", label: "Archived" };
   // A website contact-form enquiry — distinct sky chip from a quote enquiry.
   if (c.source === "website") return { tone: "sky", label: "Website enquiry" };
@@ -560,14 +566,18 @@ function DetailsDrawer({
   onClose: () => void;
   context: ThreadContext;
 }) {
-  const refLabel = context.booking
-    ? "Wielo booking"
-    : context.isEnquiry
-      ? "Wielo enquiry"
-      : "Wielo conversation";
-  const refValue =
-    context.booking?.reference ??
-    `WIELO-${context.conversationId.slice(0, 8).toUpperCase()}`;
+  const isPlatform = context.channel === "platform";
+  const refLabel = isPlatform
+    ? "Wielo Support"
+    : context.booking
+      ? "Wielo booking"
+      : context.isEnquiry
+        ? "Wielo enquiry"
+        : "Wielo conversation";
+  const refValue = isPlatform
+    ? "Direct line"
+    : (context.booking?.reference ??
+      `WIELO-${context.conversationId.slice(0, 8).toUpperCase()}`);
 
   const listingMeta = context.listing
     ? [
@@ -615,8 +625,24 @@ function DetailsDrawer({
         </div>
 
         <div className="thin-scroll flex-1 overflow-y-auto">
+          {/* Wielo support thread — no guest/booking context; a short note. */}
+          {isPlatform ? (
+            <div className="px-5 py-5">
+              <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+                <div className="font-display text-[14px] font-semibold text-brand-ink">
+                  Wielo Support
+                </div>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-brand-mute">
+                  This is your private line with the Wielo team — billing,
+                  subscription and account help. Reply anytime; we&apos;ll get
+                  back to you here.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {/* Listing card */}
-          {context.listing ? (
+          {!isPlatform && context.listing ? (
             <div className="px-5 pb-5 pt-5">
               <div className="rounded-card border border-brand-line p-3.5">
                 <div className="font-display text-[14px] font-semibold text-brand-ink">
@@ -731,100 +757,103 @@ function DetailsDrawer({
           ) : null}
 
           {/* Guest */}
-          <div className="px-5 pb-6">
-            <DrawerHeading>Guest</DrawerHeading>
-            <div className="flex items-center gap-3 py-1">
-              <InboxAvatar
-                name={
-                  context.guest?.fullName ?? context.guest?.email ?? "Guest"
-                }
-                imageUrl={context.guest?.avatarUrl ?? null}
-                size={40}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-semibold text-brand-ink">
-                    {context.guest?.fullName || "Guest"}
-                  </span>
-                  {context.guestStats && context.guestStats.stays > 1 ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
-                      <Repeat className="h-3 w-3" /> Repeat guest
+          {!isPlatform ? (
+            <div className="px-5 pb-6">
+              <DrawerHeading>Guest</DrawerHeading>
+              <div className="flex items-center gap-3 py-1">
+                <InboxAvatar
+                  name={
+                    context.guest?.fullName ?? context.guest?.email ?? "Guest"
+                  }
+                  imageUrl={context.guest?.avatarUrl ?? null}
+                  size={40}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold text-brand-ink">
+                      {context.guest?.fullName || "Guest"}
                     </span>
+                    {context.guestStats && context.guestStats.stays > 1 ? (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
+                        <Repeat className="h-3 w-3" /> Repeat guest
+                      </span>
+                    ) : null}
+                  </div>
+                  {context.guest?.email ? (
+                    <div className="truncate text-[12px] text-brand-mute">
+                      {context.guest.email}
+                    </div>
                   ) : null}
                 </div>
-                {context.guest?.email ? (
-                  <div className="truncate text-[12px] text-brand-mute">
-                    {context.guest.email}
+              </div>
+
+              {/* Lifetime history with this host — the repeat-guest / value signal. */}
+              {context.guestStats && context.guestStats.stays > 0 ? (
+                <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line">
+                  <GuestStat
+                    value={String(context.guestStats.stays)}
+                    label={context.guestStats.stays === 1 ? "stay" : "stays"}
+                  />
+                  <GuestStat
+                    value={formatMoney(
+                      context.guestStats.totalSpent,
+                      context.guestStats.currency,
+                    )}
+                    label="lifetime"
+                  />
+                  <GuestStat
+                    value={
+                      context.guestStats.upcoming > 0
+                        ? String(context.guestStats.upcoming)
+                        : "—"
+                    }
+                    label="upcoming"
+                  />
+                </div>
+              ) : context.guestStats ? (
+                <div className="mt-3 rounded-card border border-brand-line bg-brand-light/40 px-3 py-2 text-[12px] text-brand-mute">
+                  First time booking with you.
+                </div>
+              ) : null}
+
+              <div className="mt-3 space-y-1 text-[12px] text-brand-mute">
+                {context.guest?.since ? (
+                  <div className="flex items-center gap-1.5">
+                    <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
+                    Guest since {fmtMonthYear(context.guest.since)}
+                  </div>
+                ) : null}
+                {context.guestLastSeenAt ? (
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-brand-mute" />
+                    Last seen {timeAgo(context.guestLastSeenAt)}
                   </div>
                 ) : null}
               </div>
-            </div>
 
-            {/* Lifetime history with this host — the repeat-guest / value signal. */}
-            {context.guestStats && context.guestStats.stays > 0 ? (
-              <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line">
-                <GuestStat
-                  value={String(context.guestStats.stays)}
-                  label={context.guestStats.stays === 1 ? "stay" : "stays"}
-                />
-                <GuestStat
-                  value={formatMoney(
-                    context.guestStats.totalSpent,
-                    context.guestStats.currency,
-                  )}
-                  label="lifetime"
-                />
-                <GuestStat
-                  value={
-                    context.guestStats.upcoming > 0
-                      ? String(context.guestStats.upcoming)
-                      : "—"
-                  }
-                  label="upcoming"
-                />
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
+                {context.guest?.phone ? (
+                  <a
+                    href={`https://wa.me/${context.guest.phone.replace(/[^0-9]/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-brand-line px-3 py-1.5 font-medium text-brand-ink hover:bg-brand-light"
+                  >
+                    <Phone className="h-3.5 w-3.5 text-brand-primary" />{" "}
+                    WhatsApp
+                  </a>
+                ) : null}
+                {context.guest?.email ? (
+                  <a
+                    href={`mailto:${context.guest.email}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-brand-line px-3 py-1.5 font-medium text-brand-ink hover:bg-brand-light"
+                  >
+                    <Mail className="h-3.5 w-3.5 text-brand-primary" /> Email
+                  </a>
+                ) : null}
               </div>
-            ) : context.guestStats ? (
-              <div className="mt-3 rounded-card border border-brand-line bg-brand-light/40 px-3 py-2 text-[12px] text-brand-mute">
-                First time booking with you.
-              </div>
-            ) : null}
-
-            <div className="mt-3 space-y-1 text-[12px] text-brand-mute">
-              {context.guest?.since ? (
-                <div className="flex items-center gap-1.5">
-                  <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
-                  Guest since {fmtMonthYear(context.guest.since)}
-                </div>
-              ) : null}
-              {context.guestLastSeenAt ? (
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-brand-mute" />
-                  Last seen {timeAgo(context.guestLastSeenAt)}
-                </div>
-              ) : null}
             </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px]">
-              {context.guest?.phone ? (
-                <a
-                  href={`https://wa.me/${context.guest.phone.replace(/[^0-9]/g, "")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-brand-line px-3 py-1.5 font-medium text-brand-ink hover:bg-brand-light"
-                >
-                  <Phone className="h-3.5 w-3.5 text-brand-primary" /> WhatsApp
-                </a>
-              ) : null}
-              {context.guest?.email ? (
-                <a
-                  href={`mailto:${context.guest.email}`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-brand-line px-3 py-1.5 font-medium text-brand-ink hover:bg-brand-light"
-                >
-                  <Mail className="h-3.5 w-3.5 text-brand-primary" /> Email
-                </a>
-              ) : null}
-            </div>
-          </div>
+          ) : null}
         </div>
       </aside>
     </>

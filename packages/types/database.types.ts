@@ -1792,6 +1792,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           booking_id: string | null
+          channel: string
           created_at: string
           follow_up_at: string | null
           guest_id: string
@@ -1815,6 +1816,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           booking_id?: string | null
+          channel?: string
           created_at?: string
           follow_up_at?: string | null
           guest_id: string
@@ -1838,6 +1840,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           booking_id?: string | null
+          channel?: string
           created_at?: string
           follow_up_at?: string | null
           guest_id?: string

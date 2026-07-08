@@ -2,6 +2,24 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-08 #21) — Host↔Wielo support inbox ✅ DONE + verified live
+
+Always-present "Wielo Support" thread in every host's EXISTING inbox + admin send, reusing the
+guest↔host inbox (not a parallel system). Designed to become the general Support inbox.
+- Migration `20260708150000`: `conversations.channel` ('guest'|'platform'). Platform thread =
+  host_id + guest_id=`Wielo Support` account + channel='platform'. Reuses messages + unread trigger.
+- `lib/inbox/platform-thread.ts`: ensureWieloSupportUser (cached in platform_settings), ensureWieloThread
+  (find-or-create, pinned, seeded welcome; called on host inbox load), adminPostToHostThread,
+  resolveHostByEmail. Admin messages post AS "Wielo Support".
+- Host `/dashboard/inbox`: pinned Wielo Support thread + green chip; drawer shows a Wielo note
+  (guest/booking suppressed for channel='platform'). Admin `/admin/inbox` (in admin nav): built on the
+  SAME chat components; list + reply + mark-read. Ledger "Send payment link → Send to host's inbox".
+- Verified live both sides (welcome → host reply → admin reply → pay-link to inbox). tsc+lint+build green.
+- FOLLOW-UPS: richer pay-link CARD in the thread (currently a text message w/ URL); host push/email
+  notification on a new Wielo message; multi-admin attribution (all post as Wielo Support today).
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-08 #20) — Admin ledger = host-ledger look + product-driven filters ✅ DONE
 
 Founder feedback fixes on `/admin/subscriptions/revenue`:

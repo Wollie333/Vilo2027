@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileMinus,
   Link2,
+  MessageSquare,
   RotateCcw,
   SlidersHorizontal,
 } from "lucide-react";
@@ -19,6 +20,8 @@ import {
   FormModalFooter,
 } from "@/components/ui/form-modal";
 import { formatMoney } from "@/lib/format";
+
+import { adminSendPlatformMessageByEmailAction } from "@/app/[locale]/admin/inbox/actions";
 
 import {
   createWieloPaymentLinkAction,
@@ -100,6 +103,7 @@ export function WieloFinanceModals({
   const [productId, setProductId] = useState("");
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [sentToInbox, setSentToInbox] = useState(false);
 
   useEffect(() => {
     if (!request) return;
@@ -122,6 +126,24 @@ export function WieloFinanceModals({
     } catch {
       toast.error("Couldn't copy — select and copy the link manually.");
     }
+  }
+
+  // Post the created link into the host's Wielo inbox thread (two-way support
+  // channel) so they can pay straight from chat.
+  function sendToInbox() {
+    if (!link || !email.trim()) return;
+    start(async () => {
+      const r = await adminSendPlatformMessageByEmailAction({
+        email: email.trim(),
+        body: `💳 Here's your Wielo payment link:\n${link}`,
+      });
+      if (r.ok) {
+        setSentToInbox(true);
+        toast.success("Sent to the host's inbox.");
+      } else {
+        toast.error(r.error);
+      }
+    });
   }
 
   function submitLedger(type: "charge" | "refund" | "credit" | "adjustment") {
@@ -277,9 +299,23 @@ export function WieloFinanceModals({
                     {copied ? "Copied" : "Copy"}
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={sendToInbox}
+                  disabled={pending || sentToInbox}
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-[8px] bg-brand-primary px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+                >
+                  {sentToInbox ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <MessageSquare className="h-3.5 w-3.5" />
+                  )}
+                  {sentToInbox ? "Sent to inbox" : "Send to host's inbox"}
+                </button>
                 <p className="mt-2 text-[11px] text-brand-mute">
                   The host pays by card or EFT. Once paid, the invoice + ledger
-                  row appear here automatically.
+                  row appear here automatically. &ldquo;Send to inbox&rdquo;
+                  posts it into their pinned Wielo thread.
                 </p>
               </div>
             ) : null}

@@ -10,6 +10,7 @@ import {
   Flag,
   Gauge,
   Home as HomeIcon,
+  Inbox,
   KeyRound,
   Layers,
   LifeBuoy,
@@ -36,6 +37,13 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 const OPERATIONS: GmailNavItem[] = [
   { href: "/admin", label: "Overview", icon: Gauge, match: "exact" },
+  {
+    // Support inbox — the host↔Wielo message channel.
+    href: "/admin/inbox",
+    label: "Inbox",
+    icon: Inbox,
+    match: "prefix",
+  },
   // One unified Users hub — every Wielo user (hosts + guests + staff). The old
   // separate "Hosts" tab is gone; filter by type inside Users instead.
   { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
@@ -200,6 +208,7 @@ const PLATFORM: GmailNavItem[] = [
 // (admin_permissions); items absent here are always shown. super_admin holds
 // every key, so it sees the full rail; narrower roles only see what they can open.
 const NAV_PERM: Record<string, string> = {
+  "/admin/inbox": "notifications.send_individual",
   "/admin/users": "users.view",
   "/admin/properties": "listings.edit",
   "/admin/hosts/staff": "hosts.verify",

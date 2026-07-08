@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-08 #21 — Host↔Wielo support inbox (wired into the existing inbox) + admin send.
+
+Founder ask: an always-present "Wielo" thread in every host's inbox that the admin can message
+through — reusing the existing guest↔host inbox (not a parallel system), and designed to be the
+general Support inbox later.
+- **Reuses `conversations`/`messages`** via a new `channel` column (migration `20260708150000`):
+  a platform thread = host_id (the host) + guest_id (a fixed **"Wielo Support"** account) +
+  `channel='platform'`. It therefore shows up in the host's existing inbox (queried by host_id),
+  renders with the shared chat UI, and the existing unread trigger routes counts correctly
+  (Wielo→host message bumps the host's unread; host reply bumps the Wielo/admin side). Guest↔host
+  messaging is untouched.
+- **Always present + pinned + seeded**: `lib/inbox/platform-thread.ts` find-or-creates the host's
+  Wielo thread on inbox load (pinned, with a welcome message), and owns the Wielo Support participant
+  (created like a lead identity, cached in `platform_settings`).
+- **Host side**: the pinned "Wielo Support" thread appears in `/dashboard/inbox` with a green chip
+  and the same composer; the details drawer shows a short Wielo note (guest/booking panels suppressed
+  via a new `channel` on ConversationRow/ThreadContext).
+- **Admin side**: new `/admin/inbox` ("Support inbox", added to the admin nav) built on the SAME
+  chat components (ConversationList / ChatThreadHeader / ChatMessageWall / ChatComposer) for identical
+  styling; lists every host thread, reply pane, mark-read. Admin messages post AS "Wielo Support" so
+  the host sees one branded counterparty.
+- **Ledger integration**: the revenue ledger's "Send payment link" modal gained **Send to host's
+  inbox**, posting the pay link into the host's Wielo thread (`adminSendPlatformMessageByEmailAction`).
+- **Verified live** (test host as host + temp super_admin): host inbox shows the pinned Wielo Support
+  thread + welcome; host reply → admin `/admin/inbox` shows it unread → admin reply → both threads
+  update; "Send to host's inbox" posted the pay link into the thread. tsc + lint + build green.
+
 ## 2026-07-08 #20 — Admin ledger matches the host ledger look + product-driven filters.
 
 Founder feedback: the admin Wielo ledger didn't look like the host ledger, and its filter should

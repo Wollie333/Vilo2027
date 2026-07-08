@@ -1,0 +1,182 @@
+import "server-only";
+
+import type { createAdminClient } from "@/lib/supabase/admin";
+
+// The host↔Wielo (platform / support) inbox thread. Reuses the existing
+// conversations/messages tables: a platform conversation is a normal row with
+// channel='platform', host_id = the host, guest_id = the fixed "Wielo Support"
+// account — so it appears in the host's existing inbox and renders with the same
+// chat UI. This module owns (a) the Wielo Support participant and (b) the
+// find-or-create of a host's always-present, pinned Wielo thread.
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+const WIELO_SUPPORT_EMAIL = "support@wielo.co.za";
+const WIELO_SUPPORT_NAME = "Wielo Support";
+const SUPPORT_SETTINGS_KEY = "wielo_support_user_id";
+
+const WELCOME_BODY =
+  "👋 This is your direct line to the Wielo team. Ask us anything about your subscription, billing or account — just reply here and we'll get back to you.";
+
+// The user_profiles id that represents "Wielo" as the counterparty on every
+// platform thread. Resolved once and cached in platform_settings so the same
+// account is reused (and can be swapped to a dedicated support account later).
+// Created like a lead identity (auth user + profile) the first time.
+export async function ensureWieloSupportUser(admin: Admin): Promise<string> {
+  // 1) Cached in settings?
+  const { data: setting } = await admin
+    .from("platform_settings")
+    .select("value")
+    .eq("key", SUPPORT_SETTINGS_KEY)
+    .maybeSingle();
+  const cached =
+    setting?.value && typeof setting.value === "object"
+      ? (setting.value as { id?: string }).id
+      : typeof setting?.value === "string"
+        ? (setting.value as string)
+        : null;
+  if (cached) {
+    const { data: exists } = await admin
+      .from("user_profiles")
+      .select("id")
+      .eq("id", cached)
+      .maybeSingle();
+    if (exists) return exists.id as string;
+  }
+
+  // 2) Existing profile by the support email?
+  const { data: byEmail } = await admin
+    .from("user_profiles")
+    .select("id")
+    .ilike("email", WIELO_SUPPORT_EMAIL)
+    .maybeSingle();
+  let id = byEmail?.id as string | undefined;
+
+  // 3) Create the account (auth user + profile) if it doesn't exist yet.
+  if (!id) {
+    const { data: created, error } = await admin.auth.admin.createUser({
+      email: WIELO_SUPPORT_EMAIL,
+      email_confirm: true,
+      user_metadata: { full_name: WIELO_SUPPORT_NAME },
+    });
+    if (error || !created.user) {
+      throw new Error(
+        `ensureWieloSupportUser: ${error?.message ?? "could not create support account"}`,
+      );
+    }
+    id = created.user.id;
+    await admin
+      .from("user_profiles")
+      .update({ full_name: WIELO_SUPPORT_NAME, role: "guest", is_lead: false })
+      .eq("id", id);
+  }
+
+  // 4) Cache it.
+  await admin
+    .from("platform_settings")
+    .upsert(
+      { key: SUPPORT_SETTINGS_KEY, value: { id } },
+      { onConflict: "key" },
+    );
+
+  return id;
+}
+
+// Find-or-create a host's platform (Wielo) conversation. Always pinned so it
+// stays at the top of the host's inbox, and seeded with a welcome message the
+// first time so it's never empty. Idempotent — returns the existing thread on
+// subsequent calls. Pass the host row + its owner user id.
+export async function ensureWieloThread(
+  admin: Admin,
+  host: { id: string; userId: string },
+): Promise<string> {
+  const { data: existing } = await admin
+    .from("conversations")
+    .select("id")
+    .eq("host_id", host.id)
+    .eq("channel", "platform")
+    .maybeSingle();
+  if (existing) return existing.id as string;
+
+  const supportId = await ensureWieloSupportUser(admin);
+
+  const { data: conv, error } = await admin
+    .from("conversations")
+    .insert({
+      host_id: host.id,
+      guest_id: supportId,
+      channel: "platform",
+      status: "open",
+      is_enquiry: false,
+      pinned: true,
+    })
+    .select("id")
+    .single();
+  if (error || !conv) {
+    throw new Error(
+      `ensureWieloThread: ${error?.message ?? "could not create thread"}`,
+    );
+  }
+
+  // Seed the welcome from the Wielo side. The AFTER-INSERT message trigger sets
+  // last_message_* and bumps unread_host (sender isn't the host).
+  await admin.from("messages").insert({
+    conversation_id: conv.id,
+    sender_id: supportId,
+    body: WELCOME_BODY,
+    read_by_host: false,
+    read_by_guest: true,
+  });
+
+  return conv.id as string;
+}
+
+// Resolve a host (id + owner user id) from an email — the host's owner account.
+export async function resolveHostByEmail(
+  admin: Admin,
+  email: string,
+): Promise<{ id: string; userId: string; name: string | null } | null> {
+  const { data: profile } = await admin
+    .from("user_profiles")
+    .select("id")
+    .ilike("email", email.trim())
+    .maybeSingle();
+  if (!profile) return null;
+  const { data: host } = await admin
+    .from("hosts")
+    .select("id, display_name")
+    .eq("user_id", profile.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!host) return null;
+  return {
+    id: host.id as string,
+    userId: profile.id as string,
+    name: (host.display_name as string) ?? null,
+  };
+}
+
+// Post a message from the Wielo/admin side into a host's platform thread
+// (ensuring the thread exists). read_by_guest=true (the Wielo side authored it),
+// read_by_host=false → the unread trigger bumps the host's badge.
+export async function adminPostToHostThread(
+  admin: Admin,
+  args: {
+    host: { id: string; userId: string };
+    body: string;
+  },
+): Promise<string> {
+  const conversationId = await ensureWieloThread(admin, args.host);
+  const supportId = await ensureWieloSupportUser(admin);
+  // Post AS "Wielo Support" (not the individual admin) so the host always sees a
+  // single branded counterparty and both inboxes align consistently.
+  const { error } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: supportId,
+    body: args.body,
+    read_by_host: false,
+    read_by_guest: true,
+  });
+  if (error) throw new Error(`adminPostToHostThread: ${error.message}`);
+  return conversationId;
+}

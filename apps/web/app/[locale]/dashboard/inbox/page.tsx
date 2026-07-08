@@ -12,6 +12,8 @@ import {
   mapBookingRow,
   mapQuoteRow,
 } from "@/components/inbox/quote-thread";
+import { ensureWieloThread } from "@/lib/inbox/platform-thread";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -88,13 +90,26 @@ export default async function InboxPage({
 
   const initialFilter = parseFilter(searchParams?.f);
 
+  // Ensure this host's always-present, pinned "Wielo Support" thread exists (and
+  // is seeded) so their direct line to the Wielo team is always in the inbox.
+  // Uses the service role (creating the thread/participant needs it); failure
+  // here must never block the inbox from loading.
+  try {
+    await ensureWieloThread(createAdminClient(), {
+      id: host.id,
+      userId: user.id,
+    });
+  } catch {
+    /* non-fatal — the rest of the inbox still renders */
+  }
+
   // Conversation list — newest first, pinned floated up. Filtering/search runs
   // client-side over this slice (the inbox is a chat centre, not a table).
   const { data: convRows } = await supabase
     .from("conversations")
     .select(
       `
-        id, status, is_enquiry, source, unread_host, pinned,
+        id, status, is_enquiry, source, channel, unread_host, pinned,
         last_message_at, last_message_preview, created_at,
         property_id,
         guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, avatar_url ),
@@ -113,6 +128,7 @@ export default async function InboxPage({
     status: string;
     is_enquiry: boolean;
     source: string | null;
+    channel: string | null;
     unread_host: number;
     pinned: boolean;
     last_message_at: string | null;
@@ -142,6 +158,9 @@ export default async function InboxPage({
     status: c.status as "open" | "resolved" | "archived",
     isEnquiry: c.is_enquiry,
     source: c.source,
+    channel: (c.channel === "platform" ? "platform" : "guest") as
+      | "guest"
+      | "platform",
     unreadCount: c.unread_host ?? 0,
     pinned: c.pinned ?? false,
     lastMessageAt: c.last_message_at,
@@ -181,7 +200,7 @@ export default async function InboxPage({
         .from("conversations")
         .select(
           `
-            id, status, is_enquiry, pinned, created_at, guest_last_seen_at,
+            id, status, is_enquiry, channel, pinned, created_at, guest_last_seen_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url, created_at ),
             listing:properties ( id, name, slug, city, province, max_guests, bedrooms ),
             booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, payment_status, pay_token, currency, special_requests, created_at )
@@ -253,6 +272,7 @@ export default async function InboxPage({
       id: string;
       status: string;
       is_enquiry: boolean;
+      channel: string | null;
       pinned: boolean;
       created_at: string;
       guest_last_seen_at: string | null;
@@ -327,6 +347,9 @@ export default async function InboxPage({
         conversationId: ctx.id,
         status: ctx.status as "open" | "resolved" | "archived",
         isEnquiry: ctx.is_enquiry,
+        channel: (ctx.channel === "platform" ? "platform" : "guest") as
+          | "guest"
+          | "platform",
         pinned: ctx.pinned ?? false,
         guestLastSeenAt: ctx.guest_last_seen_at ?? null,
         guestStats,
