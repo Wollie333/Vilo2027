@@ -71,7 +71,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/format";
-import { daysRemaining, proratedAmount } from "@/lib/billing/proration";
+import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
 import type { Txn } from "@/lib/finance/transactions";
 
 import {
@@ -1737,14 +1737,56 @@ function ProductsPanel({
     (r) => r.productType === "membership" && isLive(r.status),
   );
 
-  function activate(productId: string) {
+  // Charge-confirm dialog: activating a PAID product posts a money document.
+  // A membership SWITCH is a pro-rated upgrade (bill only the unused
+  // difference); a fresh activation / service add bills the full price.
+  type CatalogProduct = UserRecordData["products"][number];
+  const [charge, setCharge] = useState<{
+    product: CatalogProduct;
+    amount: number;
+    isUpgrade: boolean;
+  } | null>(null);
+
+  function previewDelta(p: CatalogProduct): {
+    amount: number;
+    isUpgrade: boolean;
+  } {
+    if (p.isFree || p.price <= 0) return { amount: 0, isUpgrade: false };
+    if (
+      p.productType === "membership" &&
+      activeMembership &&
+      activeMembership.productId !== p.id
+    ) {
+      const amount = proratedAmount(
+        Math.max(0, p.price - (activeMembership.price ?? 0)),
+        activeMembership.currentPeriodStart,
+        activeMembership.currentPeriodEnd,
+      );
+      return { amount, isUpgrade: true };
+    }
+    return { amount: round2(p.price), isUpgrade: false };
+  }
+
+  function onCatalogClick(p: CatalogProduct) {
+    const { amount, isUpgrade } = previewDelta(p);
+    // A charge is due → confirm how to bill it; otherwise activate straight away.
+    if (amount > 0) setCharge({ product: p, amount, isUpgrade });
+    else activate(p.id, "none");
+  }
+
+  function activate(productId: string, mode: "paid" | "none") {
     if (!hostId) return;
     setBusyId(productId);
     start(async () => {
-      const r = await setUserProduct({ hostId, productId });
+      const r = await setUserProduct({ hostId, productId, charge: mode });
       setBusyId(null);
       if (r.ok) {
-        toast.success("Product added to this account.");
+        setCharge(null);
+        toast.success(
+          mode === "paid"
+            ? "Activated — charge posted to the ledger."
+            : "Product added to this account.",
+        );
         router.refresh();
       } else {
         toast.error(r.error);
@@ -1823,10 +1865,10 @@ function ProductsPanel({
             <Button
               size="sm"
               disabled={pending || !hostId}
-              onClick={() => activate(p.id)}
+              onClick={() => onCatalogClick(p)}
             >
               {busyId === p.id
-                ? "Adding…"
+                ? "Working…"
                 : canSwitchMembership
                   ? "Switch to this"
                   : isMembership
@@ -1985,6 +2027,55 @@ function ProductsPanel({
           </div>
         )}
       </div>
+
+      {/* Charge-confirm: a paid upgrade/add posts a money document */}
+      <FormModal
+        open={!!charge}
+        onOpenChange={(o) => (o ? null : setCharge(null))}
+        title={charge?.isUpgrade ? "Upgrade membership" : "Add to account"}
+        description="Activating a paid product records a charge on the Wielo ledger."
+      >
+        {charge ? (
+          <div className="space-y-4">
+            <Lbl label={charge.isUpgrade ? "Switch to" : "Product"}>
+              <div className="rounded-md border border-brand-line bg-brand-light/40 px-3 py-2 text-[13px] font-medium text-brand-ink">
+                {charge.product.name}
+              </div>
+            </Lbl>
+            <div className="rounded-md border border-brand-primary/30 bg-brand-primary/5 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                {charge.isUpgrade ? "Pro-rated upgrade" : "Charge"}
+              </div>
+              <div className="mt-0.5 font-display text-xl font-bold text-brand-ink">
+                {formatMoney(charge.amount, charge.product.currency ?? "ZAR")}
+              </div>
+              <p className="mt-1 text-[12px] text-brand-mute">
+                {charge.isUpgrade
+                  ? "Only the unused difference vs the current membership is billed. "
+                  : ""}
+                Marking paid posts a completed charge + invoice to the ledger
+                and the user&apos;s transaction history.
+              </p>
+            </div>
+          </div>
+        ) : null}
+        <FormModalFooter>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => charge && activate(charge.product.id, "none")}
+            className="text-[13px] font-medium text-brand-mute hover:text-brand-ink disabled:opacity-50"
+          >
+            Activate without charging
+          </button>
+          <Button
+            disabled={pending || !charge}
+            onClick={() => charge && activate(charge.product.id, "paid")}
+          >
+            {pending ? "Working…" : "Mark as paid now"}
+          </Button>
+        </FormModalFooter>
+      </FormModal>
     </div>
   );
 }

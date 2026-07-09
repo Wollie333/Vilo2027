@@ -9,7 +9,7 @@ import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { daysRemaining, proratedAmount } from "@/lib/billing/proration";
+import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
@@ -651,6 +651,10 @@ export const requestSupportAccessAction = withAdminAudit<
 const setProductSchema = z.object({
   hostId: z.string().uuid(),
   productId: z.string().uuid(),
+  // How to bill a paid upgrade/add: "paid" posts a COMPLETED pro-rated charge
+  // (invoice mints); "none" (default) just activates (free product, or the admin
+  // isn't collecting now). The custom-amount pay-link option is Phase 4a-2b.
+  charge: z.enum(["paid", "none"]).optional(),
   reason: z.string().optional(),
 });
 
@@ -667,11 +671,13 @@ export const setUserProductAction = withAdminAudit<
   async (args, service) => {
     const parsed = setProductSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid input.");
-    const { hostId, productId } = parsed.data;
+    const { hostId, productId, charge } = parsed.data;
 
     const { data: product } = await service
       .from("products")
-      .select("id, slug, product_type, billing_cycle, plan_key")
+      .select(
+        "id, name, slug, product_type, billing_cycle, plan_key, price, currency",
+      )
       .eq("id", productId)
       .maybeSingle();
     if (!product) throw new Error("Product not found.");
@@ -681,6 +687,8 @@ export const setUserProductAction = withAdminAudit<
       );
     }
     const isMembership = product.product_type === "membership";
+    const newPrice = Number(product.price ?? 0);
+    const currency = product.currency ?? "ZAR";
 
     // Find THIS product's subscription (renew it) rather than assuming one row.
     const { data: existing } = await service
@@ -690,6 +698,37 @@ export const setUserProductAction = withAdminAudit<
       .eq("product_id", productId)
       .maybeSingle();
 
+    // Switching membership (no row yet for this product): find the active
+    // membership being replaced — its price + billing window drive the pro-rated
+    // UPGRADE charge (bill only the unused difference) and the new sub inherits
+    // that window so the cycle continues rather than resetting.
+    let carryStart: string | null = null;
+    let carryEnd: string | null = null;
+    let oldPrice = 0;
+    let switchingMembership = false;
+    if (!existing && isMembership) {
+      const { data: activeMems } = await service
+        .from("subscriptions")
+        .select(
+          "id, current_period_start, current_period_end, product:products ( product_type, price )",
+        )
+        .eq("host_id", hostId)
+        .in("status", ["trialing", "active", "past_due"]);
+      const oldMem = (activeMems ?? []).find(
+        (r) =>
+          (r.product as { product_type?: string } | null)?.product_type ===
+          "membership",
+      );
+      if (oldMem) {
+        switchingMembership = true;
+        carryStart = oldMem.current_period_start;
+        carryEnd = oldMem.current_period_end;
+        oldPrice = Number(
+          (oldMem.product as { price?: number } | null)?.price ?? 0,
+        );
+      }
+    }
+
     const plan = await derivePlanKey(
       service,
       product,
@@ -697,13 +736,15 @@ export const setUserProductAction = withAdminAudit<
     );
     const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
     const now = new Date().toISOString();
+    // A mid-cycle membership upgrade keeps the existing billing window; a fresh
+    // activation / service add / renewal starts a new one.
     const patch = {
       product_id: product.id,
       plan,
       billing_cycle: cycle,
       status: "active" as const,
-      current_period_start: now,
-      current_period_end: addMonthsIso(cycle === "annual" ? 12 : 1),
+      current_period_start: carryStart ?? now,
+      current_period_end: carryEnd ?? addMonthsIso(cycle === "annual" ? 12 : 1),
       updated_at: now,
     };
 
@@ -724,7 +765,56 @@ export const setUserProductAction = withAdminAudit<
       if (error) throw new Error(error.message);
     }
 
+    // ─── Auto-ledger: a paid upgrade/add posts a COMPLETED charge for the
+    // pro-rated delta (invoice mints via trigger). Delta = (new − old) × unused
+    // fraction for a mid-cycle membership upgrade, else the full new price for a
+    // fresh activation / service add / renewal. Server-recomputed (never trusts
+    // the client's preview).
+    if (charge === "paid" && newPrice > 0) {
+      // A membership SWITCH bills only the pro-rated difference over the unused
+      // window; a fresh activation / service add / renewal bills the full price.
+      const chargeAmount = switchingMembership
+        ? proratedAmount(Math.max(0, newPrice - oldPrice), carryStart, carryEnd)
+        : round2(newPrice);
+      if (chargeAmount > 0) {
+        const { data: hostRow } = await service
+          .from("hosts")
+          .select("user_id")
+          .eq("id", hostId)
+          .maybeSingle();
+        const admin = await requirePermission("subscriptions.edit");
+        const { data: led, error: ledErr } = await service
+          .from("platform_ledger")
+          .insert({
+            user_id: hostRow?.user_id ?? null,
+            host_id: hostId,
+            product_id: product.id,
+            type: "charge",
+            status: "completed",
+            amount: chargeAmount,
+            currency,
+            provider: "manual",
+            reason: switchingMembership
+              ? `Pro-rated upgrade to ${product.name}`
+              : `Activated ${product.name}`,
+            created_by: admin.userId,
+            paid_at: now,
+          })
+          .select("id")
+          .single();
+        if (ledErr) throw new Error(ledErr.message);
+        // A charge against a referred host accrues affiliate commission too
+        // (idempotent RPC; no-ops for an unreferred payer).
+        if (led?.id) {
+          await service.rpc("accrue_affiliate_commission", {
+            p_ledger_id: led.id,
+          });
+        }
+      }
+    }
+
     revalidatePath(`/admin/users`);
+    revalidatePath("/admin/subscriptions/revenue");
     return { result: { ok: true }, after: { hostId, ...patch } };
   },
 );
@@ -1248,6 +1338,7 @@ export async function requestSupportAccess(input: {
 export async function setUserProduct(input: {
   hostId: string;
   productId: string;
+  charge?: "paid" | "none";
 }) {
   return wrap(() => setUserProductAction(input));
 }
