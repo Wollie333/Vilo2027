@@ -363,7 +363,8 @@ type Dialog =
 const TAB_ALIASES: Record<string, string> = {
   products: "finance",
   ledger: "finance",
-  referrals: "finance",
+  referrals: "affiliate",
+  affiliates: "affiliate",
   catalog: "business",
   website: "business",
   reviews: "guests",
@@ -447,6 +448,11 @@ export function UserRecord({ data }: { data: UserRecordData }) {
           },
         ]
       : []),
+    {
+      key: "affiliate",
+      label: "Affiliate",
+      count: data.referrals.length || undefined,
+    },
     {
       key: "guests",
       label: "Reviews & guests",
@@ -534,11 +540,11 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                     onRequestSupport={() => setDialog("support")}
                   />
                 </GroupSection>
-                <GroupSection title="Affiliate & referrals">
-                  <ReferralsPanel data={data} />
-                </GroupSection>
               </div>
             ) : null}
+
+            {/* Affiliate — the user's own affiliate account, referrals + payouts */}
+            {tab === "affiliate" ? <ReferralsPanel data={data} /> : null}
 
             {/* Business & catalogue — entity, add-ons, policies, website */}
             {tab === "business" ? (
