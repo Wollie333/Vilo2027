@@ -21,6 +21,8 @@ export type CatalogProduct = {
   billingCycle: string | null;
   trialDays: number;
   slug: string | null;
+  /** membership | service (both subscription-like). */
+  productType: string;
   /** Feature tier this product grants (plans.key); falls back to slug. */
   planKey: string | null;
   setupFee: number;
@@ -42,9 +44,9 @@ async function load(): Promise<CatalogProduct[]> {
   const { data } = await db
     .from("products")
     .select(
-      "id, name, description, type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods",
+      "id, name, description, product_type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods",
     )
-    .eq("type", "subscription")
+    .in("product_type", ["membership", "service"])
     .eq("is_active", true)
     .eq("is_visible", true)
     .order("sort_order", { ascending: true });
@@ -58,6 +60,7 @@ async function load(): Promise<CatalogProduct[]> {
     billingCycle: p.billing_cycle ?? "monthly",
     trialDays: p.trial_days ?? 0,
     slug: p.slug ?? null,
+    productType: p.product_type ?? "membership",
     planKey: p.plan_key ?? p.slug ?? null,
     setupFee: Number(p.setup_fee ?? 0),
     setupFeeLabel: p.setup_fee_label ?? null,
@@ -81,33 +84,38 @@ export type SellableProduct = {
   name: string;
   price: number;
   currency: string;
-  /** 'subscription' | 'one_off' — lets callers group/label by type. */
-  type: string;
+  /** membership | service | product. */
+  productType: string;
   /** Feature tier this product grants (plans.key), for matching legacy plan-keyed
-   * ledger rows to their product. Null for one-off products. */
+   * ledger rows to their product. Null for once-off products. */
   planKey: string | null;
 };
 
 // Every product that admin can SELL internally (e.g. send as a pay link on the
-// Wielo ledger): active, ANY type (subscription + one_off), and IGNORING
-// is_visible — visibility only gates the PUBLIC pricing page, not internal
-// selling. Uncached, mirrors the live catalog. See ADMIN_LEDGER_INBOX_PAYMENTS
-// _PLAN §4.
+// Wielo ledger): active, ANY product_type (membership + service + product), and
+// IGNORING is_visible — visibility only gates the PUBLIC pricing page, not
+// internal selling. Uncached, mirrors the live catalog.
 export async function getSellableProducts(): Promise<SellableProduct[]> {
   const db = createAdminClient();
   const { data } = await db
     .from("products")
-    .select("id, name, price, currency, type, plan_key, slug, sort_order")
+    .select(
+      "id, name, price, currency, product_type, plan_key, slug, sort_order",
+    )
     .eq("is_active", true)
-    .order("type", { ascending: true })
+    .order("product_type", { ascending: true })
     .order("sort_order", { ascending: true });
 
-  return (data ?? []).map((p) => ({
-    id: p.id,
-    name: p.name,
-    price: Number(p.price ?? 0),
-    currency: p.currency ?? "ZAR",
-    type: p.type ?? "subscription",
-    planKey: p.type === "subscription" ? (p.plan_key ?? p.slug ?? null) : null,
-  }));
+  return (data ?? []).map((p) => {
+    const productType = p.product_type ?? "membership";
+    return {
+      id: p.id,
+      name: p.name,
+      price: Number(p.price ?? 0),
+      currency: p.currency ?? "ZAR",
+      productType,
+      planKey:
+        productType !== "product" ? (p.plan_key ?? p.slug ?? null) : null,
+    };
+  });
 }

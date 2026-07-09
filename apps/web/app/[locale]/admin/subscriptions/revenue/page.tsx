@@ -116,7 +116,7 @@ export default async function AdminRevenuePage({
   const productFilters = sellableProducts.map((p) => ({
     key: p.id,
     name: p.name,
-    type: p.type,
+    productType: p.productType,
   }));
   let mrr = 0;
   let payingHosts = 0;
@@ -186,7 +186,7 @@ export default async function AdminRevenuePage({
           name: p.name,
           price: p.price,
           currency: p.currency,
-          type: p.type,
+          productType: p.productType,
         }))}
         env={envFilter}
         userEmail={userEmail}

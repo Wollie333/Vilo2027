@@ -13,7 +13,9 @@ const upsertSchema = z.object({
   id: z.string().uuid().optional().nullable(),
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(4000).optional().nullable(),
-  type: z.enum(["subscription", "one_off"]),
+  // membership (Wielo sub) | service (subscription service) | product (once-off).
+  // membership + service are "subscription-like" (billing cycle, plan tier).
+  productType: z.enum(["membership", "service", "product"]),
   price: z.number().min(0).max(10_000_000),
   currency: z.string().trim().min(3).max(3).default("ZAR"),
   billingCycle: z
@@ -97,14 +99,15 @@ export const upsertProductAction = withAdminAudit<
       slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
     }
 
+    // `type` is a GENERATED column derived from product_type — write product_type.
+    const isSubLike = d.productType !== "product";
     const row = {
       name: d.name,
       description: d.description ?? null,
-      type: d.type,
+      product_type: d.productType,
       price: d.price,
       currency: d.currency,
-      billing_cycle:
-        d.type === "subscription" ? (d.billingCycle ?? "monthly") : null,
+      billing_cycle: isSubLike ? (d.billingCycle ?? "monthly") : null,
       is_active: d.isActive,
       is_visible: d.isVisible,
       is_recommended: d.isRecommended,
@@ -117,7 +120,7 @@ export const upsertProductAction = withAdminAudit<
         d.affiliateDuration === "months"
           ? (d.affiliateDurationMonths ?? 1)
           : null,
-      setup_fee: d.type === "subscription" ? d.setupFee : 0,
+      setup_fee: isSubLike ? d.setupFee : 0,
       setup_fee_label: d.setupFeeLabel ?? null,
       setup_fee_affiliate_type: d.setupFeeAffiliateType,
       setup_fee_affiliate_value: d.setupFeeAffiliateValue,

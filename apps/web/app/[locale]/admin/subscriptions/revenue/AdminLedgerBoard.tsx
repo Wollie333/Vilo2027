@@ -54,6 +54,13 @@ const TABS: {
 const SELECT_CLS =
   "rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none";
 
+// The three product types, in display order, for grouping product dropdowns.
+export const PRODUCT_TYPE_GROUPS: { key: string; label: string }[] = [
+  { key: "membership", label: "Memberships" },
+  { key: "service", label: "Services" },
+  { key: "product", label: "Once-off products" },
+];
+
 // Everything an admin might type to find a Wielo transaction.
 function searchBlob(
   e: WieloTxn,
@@ -111,14 +118,14 @@ export function AdminLedgerBoard({
   /** product_id → name, for the "For" column on product-keyed rows. */
   productLabels: Record<string, string>;
   /** Every sellable product for the filter (value = product_id, label = name). */
-  products: { key: string; name: string; type: string }[];
-  /** Payable products for the pay-link picker (id + price + type). */
+  products: { key: string; name: string; productType: string }[];
+  /** Payable products for the pay-link picker (id + price + product type). */
   payableProducts: {
     id: string;
     name: string;
     price: number;
     currency: string;
-    type: string;
+    productType: string;
   }[];
   env: EnvFilter;
   userEmail: string;
@@ -348,18 +355,11 @@ export function AdminLedgerBoard({
             title="Product"
           >
             <option value="">All products</option>
-            {["subscription", "one_off"].map((group) => {
-              const inGroup = products.filter((p) =>
-                group === "subscription"
-                  ? p.type === "subscription"
-                  : p.type !== "subscription",
-              );
+            {PRODUCT_TYPE_GROUPS.map(({ key, label }) => {
+              const inGroup = products.filter((p) => p.productType === key);
               if (inGroup.length === 0) return null;
               return (
-                <optgroup
-                  key={group}
-                  label={group === "subscription" ? "Subscriptions" : "One-off"}
-                >
+                <optgroup key={key} label={label}>
                   {inGroup.map((p) => (
                     <option key={p.key} value={p.key}>
                       {p.name}

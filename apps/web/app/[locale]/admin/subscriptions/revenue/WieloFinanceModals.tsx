@@ -27,6 +27,7 @@ import {
   createWieloPaymentLinkAction,
   recordManualLedgerEntryAction,
 } from "./actions";
+import { PRODUCT_TYPE_GROUPS } from "./AdminLedgerBoard";
 
 // The admin Wielo ledger's finance actions, in modals — the platform-side
 // sibling of the guest record's GuestFinanceModals. Each is scoped to a USER
@@ -88,13 +89,13 @@ export function WieloFinanceModals({
   request: WieloFinanceRequest | null;
   /** Known users (from the ledger) for the email datalist. */
   users: { email: string; name: string | null }[];
-  /** Payable products for the pay-link picker (subscription + one-off). */
+  /** Payable products for the pay-link picker (membership/service/product). */
   products: {
     id: string;
     name: string;
     price: number;
     currency: string;
-    type: string;
+    productType: string;
   }[];
   onClose: () => void;
 }) {
@@ -279,20 +280,11 @@ export function WieloFinanceModals({
                 {products.length === 0 ? (
                   <option value="">No products available</option>
                 ) : null}
-                {["subscription", "one_off"].map((group) => {
-                  const inGroup = products.filter((p) =>
-                    group === "subscription"
-                      ? p.type === "subscription"
-                      : p.type !== "subscription",
-                  );
+                {PRODUCT_TYPE_GROUPS.map(({ key, label }) => {
+                  const inGroup = products.filter((p) => p.productType === key);
                   if (inGroup.length === 0) return null;
                   return (
-                    <optgroup
-                      key={group}
-                      label={
-                        group === "subscription" ? "Subscriptions" : "One-off"
-                      }
-                    >
+                    <optgroup key={key} label={label}>
                       {inGroup.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name} — {formatMoney(p.price, p.currency)}

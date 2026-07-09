@@ -19,7 +19,7 @@ export type EditorProduct = {
   id: string | null;
   name: string;
   description: string;
-  type: "subscription" | "one_off";
+  productType: "membership" | "service" | "product";
   price: number;
   currency: string;
   billingCycle: "weekly" | "monthly" | "quarterly" | "biannual" | "annual";
@@ -87,10 +87,10 @@ export function ProductEditor({
         id: f.id,
         name: f.name.trim(),
         description: f.description.trim() || null,
-        type: f.type,
+        productType: f.productType,
         price: f.price,
         currency: f.currency.trim().toUpperCase() || "ZAR",
-        billingCycle: f.type === "subscription" ? f.billingCycle : null,
+        billingCycle: f.productType !== "product" ? f.billingCycle : null,
         isActive: f.isActive,
         isRecommended: f.isRecommended,
         sortOrder: f.sortOrder,
@@ -101,7 +101,7 @@ export function ProductEditor({
           f.affiliateDuration === "months"
             ? (f.affiliateDurationMonths ?? 1)
             : null,
-        setupFee: f.type === "subscription" ? f.setupFee : 0,
+        setupFee: f.productType !== "product" ? f.setupFee : 0,
         setupFeeLabel: f.setupFeeLabel.trim() || null,
         setupFeeAffiliateType: f.setupFeeAffiliateType,
         setupFeeAffiliateValue:
@@ -201,17 +201,21 @@ export function ProductEditor({
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Type">
             <select
-              value={f.type}
+              value={f.productType}
               onChange={(e) =>
-                set("type", e.target.value as EditorProduct["type"])
+                set(
+                  "productType",
+                  e.target.value as EditorProduct["productType"],
+                )
               }
               className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
             >
-              <option value="subscription">Subscription</option>
-              <option value="one_off">Once-off</option>
+              <option value="membership">Membership (Wielo plan)</option>
+              <option value="service">Service (subscription)</option>
+              <option value="product">Product (once-off)</option>
             </select>
           </Field>
-          {f.type === "subscription" ? (
+          {f.productType !== "product" ? (
             <Field label="Duration">
               <select
                 value={f.billingCycle}
@@ -248,7 +252,7 @@ export function ProductEditor({
               className="font-mono uppercase"
             />
           </Field>
-          {f.type === "subscription" ? (
+          {f.productType !== "product" ? (
             <Field label="Trial days (0 = none)">
               <Input
                 type="number"
@@ -299,7 +303,7 @@ export function ProductEditor({
       </section>
 
       {/* Setup fee — once-off charge bundled with a subscription */}
-      {f.type === "subscription" ? (
+      {f.productType !== "product" ? (
         <section className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
           <div>
             <h2 className="font-display text-sm font-bold text-brand-ink">
@@ -374,7 +378,7 @@ export function ProductEditor({
       {/* Referral commission — on the subscription / product price */}
       <section className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
         <h2 className="font-display text-sm font-bold text-brand-ink">
-          {f.type === "subscription"
+          {f.productType !== "product"
             ? "Subscription commission"
             : "Referral commission"}
         </h2>
@@ -412,7 +416,7 @@ export function ProductEditor({
           ) : null}
         </div>
         {/* Commission duration — only meaningful for recurring subscriptions */}
-        {f.type === "subscription" && f.affiliateType !== "none" ? (
+        {f.productType !== "product" && f.affiliateType !== "none" ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Pay commission for">
               <select

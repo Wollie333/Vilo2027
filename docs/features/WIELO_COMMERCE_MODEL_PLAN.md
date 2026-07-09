@@ -78,8 +78,18 @@ never a silent state flip:
   transaction history.
 - Wire this into `adminUpdateSubscription` / `setUserProduct`: detect the delta
   (old product/price → new) and post the corresponding ledger entry + document.
-- **Decision:** pro-ration policy + whether downgrades refund vs credit vs
-  schedule-at-period-end.
+- **DECISION (founder 2026-07-09):** on downgrade, DEFAULT to a **credit note**,
+  but let the admin CHOOSE **refund or credit note** at the moment they enforce the
+  downgrade (a small choice in the downgrade/manage-subscription confirm). Record
+  the chosen document on the live ledger.
+- **DECISION (founder 2026-07-09):** the admin also chooses the **timing** of any
+  change — **enforce immediately** OR **at the end of the current cycle**
+  (schedule the change to apply at `current_period_end`). So the manage-subscription
+  confirm has: document (credit note / refund) + timing (now / end of cycle). An
+  end-of-cycle change is stored as a pending scheduled change and applied by the
+  billing worker/cron at period end (then it posts the ledger entry + doc).
+- **Open decision:** pro-ration policy on an IMMEDIATE change (full amount vs
+  pro-rated unused portion).
 
 ## 5. Guest transaction history in settings
 - Guests + hosts can see their Wielo purchases: `product_orders` + `wielo_invoices`

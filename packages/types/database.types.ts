@@ -6304,6 +6304,7 @@ export type Database = {
           payment_methods: string[]
           plan_key: string | null
           price: number
+          product_type: string
           setup_fee: number
           setup_fee_affiliate_type: string
           setup_fee_affiliate_value: number
@@ -6311,7 +6312,7 @@ export type Database = {
           slug: string | null
           sort_order: number
           trial_days: number
-          type: string
+          type: string | null
           updated_at: string
         }
         Insert: {
@@ -6332,6 +6333,7 @@ export type Database = {
           payment_methods?: string[]
           plan_key?: string | null
           price?: number
+          product_type: string
           setup_fee?: number
           setup_fee_affiliate_type?: string
           setup_fee_affiliate_value?: number
@@ -6339,7 +6341,7 @@ export type Database = {
           slug?: string | null
           sort_order?: number
           trial_days?: number
-          type?: string
+          type?: string | null
           updated_at?: string
         }
         Update: {
@@ -6360,6 +6362,7 @@ export type Database = {
           payment_methods?: string[]
           plan_key?: string | null
           price?: number
+          product_type?: string
           setup_fee?: number
           setup_fee_affiliate_type?: string
           setup_fee_affiliate_value?: number
@@ -6367,7 +6370,7 @@ export type Database = {
           slug?: string | null
           sort_order?: number
           trial_days?: number
-          type?: string
+          type?: string | null
           updated_at?: string
         }
         Relationships: []

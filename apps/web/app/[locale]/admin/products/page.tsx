@@ -25,7 +25,7 @@ export default async function AdminProductsPage() {
     service
       .from("products")
       .select(
-        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, affiliate_type, affiliate_value, sort_order",
+        "id, name, description, product_type, price, currency, billing_cycle, is_active, is_recommended, affiliate_type, affiliate_value, sort_order",
       )
       .order("sort_order", { ascending: true }),
     service
@@ -85,7 +85,11 @@ export default async function AdminProductsPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-                  {p.type === "subscription" ? "subscription" : "once-off"}
+                  {p.product_type === "membership"
+                    ? "membership"
+                    : p.product_type === "service"
+                      ? "service"
+                      : "once-off"}
                 </span>
                 {!p.is_active ? (
                   <span className="inline-flex items-center rounded-pill border border-status-cancelled/30 bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-status-cancelled">
@@ -101,7 +105,7 @@ export default async function AdminProductsPage() {
             ) : null}
             <div className="mt-3 font-display text-lg font-bold text-brand-ink">
               {formatZar(Number(p.price))}
-              {p.type === "subscription" ? (
+              {p.product_type !== "product" ? (
                 <span className="ml-1.5 text-[11px] font-medium text-brand-mute">
                   / {CYCLE_LABEL[p.billing_cycle ?? "monthly"] ?? "mo"}
                 </span>
