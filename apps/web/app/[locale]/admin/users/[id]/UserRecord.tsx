@@ -8,7 +8,9 @@ import {
   Calendar,
   CalendarCheck,
   CreditCard,
+  Download,
   ExternalLink,
+  FileText,
   Gift,
   Home,
   KeyRound,
@@ -82,6 +84,7 @@ import {
   adminUpdateAddon,
   adminUpdateBusiness,
   adminUpdateSubscription,
+  enableAffiliate,
   setUserProduct,
   changeUserRole,
   reinstateUser,
@@ -305,6 +308,25 @@ export type UserRecordData = {
     available: number;
     paid: number;
   } | null;
+  affiliateCommissions: {
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    entryType: string;
+    productName: string;
+    createdAt: string;
+  }[];
+  affiliatePayouts: {
+    id: string;
+    net: number;
+    gross: number;
+    currency: string;
+    method: string | null;
+    status: string;
+    createdAt: string;
+    processedAt: string | null;
+  }[];
   dataRequests: {
     id: string;
     type: string;
@@ -361,7 +383,6 @@ type Dialog =
 // Old per-panel tab keys fold into the consolidated groups (keeps existing
 // deep-links working: ?tab=catalog → Business, ?tab=ledger → Finance, …).
 const TAB_ALIASES: Record<string, string> = {
-  products: "finance",
   ledger: "finance",
   referrals: "affiliate",
   affiliates: "affiliate",
@@ -438,6 +459,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
     ...(host
       ? [{ key: "listings", label: "Listings", count: data.listings.length }]
       : []),
+    ...(host ? [{ key: "products", label: "Products" }] : []),
     { key: "finance", label: "Finance" },
     ...(host
       ? [
@@ -523,24 +545,20 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             ) : null}
             {tab === "listings" ? <ListingsPanel data={data} /> : null}
 
-            {/* Finance — subscription/products, Wielo + booking ledger, affiliate */}
+            {/* Products — the user's subscription + purchased products */}
+            {tab === "products" && host ? (
+              <ProductsPanel
+                data={data}
+                onManage={() => setDialog("managesub")}
+              />
+            ) : null}
+
+            {/* Finance — the Wielo + booking ledger */}
             {tab === "finance" ? (
-              <div className="space-y-10">
-                {host ? (
-                  <GroupSection title="Subscription & products">
-                    <ProductsPanel
-                      data={data}
-                      onManage={() => setDialog("managesub")}
-                    />
-                  </GroupSection>
-                ) : null}
-                <GroupSection title="Ledger">
-                  <LedgerPanel
-                    data={data}
-                    onRequestSupport={() => setDialog("support")}
-                  />
-                </GroupSection>
-              </div>
+              <LedgerPanel
+                data={data}
+                onRequestSupport={() => setDialog("support")}
+              />
             ) : null}
 
             {/* Affiliate — the user's own affiliate account, referrals + payouts */}
@@ -2951,6 +2969,19 @@ function ReferralsPanel({ data }: { data: UserRecordData }) {
   const [payout, setPayout] = useState(false);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("recent");
+  const [enabling, startEnable] = useTransition();
+
+  function enableAsAffiliate() {
+    startEnable(async () => {
+      const r = await enableAffiliate(data.user.id);
+      if (r.ok) {
+        toast.success(`Affiliate account created (/r/${r.slug}).`);
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -2977,10 +3008,20 @@ function ReferralsPanel({ data }: { data: UserRecordData }) {
     return (
       <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
         <Gift className="mx-auto h-6 w-6 text-brand-line" />
-        <p className="mt-3 text-[13px] text-brand-mute">
-          This user isn&apos;t an affiliate yet. When they refer others, the
-          people they bring to Wielo will appear here.
+        <p className="mx-auto mt-3 max-w-md text-[13px] text-brand-mute">
+          This user isn&apos;t an affiliate yet. Enable the affiliate programme
+          to give them a unique referral link and start earning commission on
+          the products they refer.
         </p>
+        <button
+          type="button"
+          onClick={enableAsAffiliate}
+          disabled={enabling}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+        >
+          <Gift className="h-4 w-4" />
+          {enabling ? "Enabling…" : "Enable as affiliate"}
+        </button>
       </div>
     );
   }
@@ -3148,6 +3189,127 @@ function ReferralsPanel({ data }: { data: UserRecordData }) {
         />
       </div>
 
+      {/* Commissions — each with a downloadable statement (COM-) */}
+      {data.affiliateCommissions.length > 0 ? (
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-brand-mute" />
+            <h3 className="font-display text-[15px] font-bold text-brand-ink">
+              Commissions
+            </h3>
+            <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+              {data.affiliateCommissions.length}
+            </span>
+          </div>
+          <div className="overflow-hidden rounded-card border border-brand-line bg-white">
+            <table className="w-full text-[13px]">
+              <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+                <tr>
+                  <th className="px-4 py-2.5">Date</th>
+                  <th className="px-4 py-2.5">For</th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5 text-right">Amount</th>
+                  <th className="px-4 py-2.5 text-right">Statement</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-line">
+                {data.affiliateCommissions.map((c) => (
+                  <tr key={c.id} className="hover:bg-brand-light/40">
+                    <td className="px-4 py-2.5 text-[12px] text-brand-mute">
+                      {fmtDate(c.createdAt)}
+                    </td>
+                    <td className="px-4 py-2.5 text-brand-ink">
+                      {c.productName}
+                      {c.entryType === "clawback" ? (
+                        <span className="ml-1.5 text-[11px] text-red-600">
+                          clawback
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <AffiliateStatusPill status={c.status} />
+                    </td>
+                    <td
+                      className={`num px-4 py-2.5 text-right font-semibold ${
+                        c.amount < 0 ? "text-red-600" : "text-brand-ink"
+                      }`}
+                    >
+                      {formatMoney(c.amount, c.currency)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <a
+                        href={`/wielo-commission/${c.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded border border-brand-line px-2 py-1 text-[11px] font-medium text-brand-secondary transition hover:bg-brand-accent"
+                      >
+                        <Download className="h-3 w-3" /> PDF
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Payouts — each with a downloadable remittance advice (RMT-) */}
+      {data.affiliatePayouts.length > 0 ? (
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-brand-mute" />
+            <h3 className="font-display text-[15px] font-bold text-brand-ink">
+              Payouts
+            </h3>
+            <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+              {data.affiliatePayouts.length}
+            </span>
+          </div>
+          <div className="overflow-hidden rounded-card border border-brand-line bg-white">
+            <table className="w-full text-[13px]">
+              <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+                <tr>
+                  <th className="px-4 py-2.5">Date</th>
+                  <th className="px-4 py-2.5">Method</th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5 text-right">Net paid</th>
+                  <th className="px-4 py-2.5 text-right">Remittance</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-line">
+                {data.affiliatePayouts.map((p) => (
+                  <tr key={p.id} className="hover:bg-brand-light/40">
+                    <td className="px-4 py-2.5 text-[12px] text-brand-mute">
+                      {fmtDate(p.processedAt ?? p.createdAt)}
+                    </td>
+                    <td className="px-4 py-2.5 capitalize text-brand-ink">
+                      {p.method ?? "—"}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <AffiliateStatusPill status={p.status} />
+                    </td>
+                    <td className="num px-4 py-2.5 text-right font-semibold text-brand-ink">
+                      {formatMoney(p.net, p.currency)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <a
+                        href={`/wielo-commission/payout_${p.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded border border-brand-line px-2 py-1 text-[11px] font-medium text-brand-secondary transition hover:bg-brand-accent"
+                      >
+                        <Download className="h-3 w-3" /> PDF
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
       {stats ? (
         <AffiliatePayoutModal
           open={payout}
@@ -3163,6 +3325,25 @@ function ReferralsPanel({ data }: { data: UserRecordData }) {
         />
       ) : null}
     </div>
+  );
+}
+
+// Small status pill shared by the commission + payout tables.
+function AffiliateStatusPill({ status }: { status: string }) {
+  const cls =
+    status === "paid" || status === "completed"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : status === "cleared"
+        ? "border-indigo-200 bg-indigo-50 text-indigo-600"
+        : status === "voided" || status === "failed"
+          ? "border-red-200 bg-red-50 text-red-600"
+          : "border-amber-200 bg-amber-50 text-amber-700";
+  return (
+    <span
+      className={`inline-flex rounded-pill border px-2 py-0.5 text-[10.5px] font-semibold capitalize ${cls}`}
+    >
+      {status}
+    </span>
   );
 }
 

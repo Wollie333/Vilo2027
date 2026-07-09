@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { createServerClient } from "@/lib/supabase/server";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
@@ -1053,6 +1054,87 @@ export async function adminPayoutAffiliate(input: {
   try {
     const r = await adminPayoutAffiliateAction(input);
     return { ok: true, net: r.net };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
+}
+
+// ─── Enable a user as an affiliate (admin) ───────────────────────────
+// Creates the affiliate_accounts row for a user who isn't one yet, mirroring the
+// portal self-enrol (unique slug, active, current terms/currency). Idempotent.
+const enableAffiliateSchema = z.object({
+  userId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+export const enableAffiliateAction = withAdminAudit<
+  z.infer<typeof enableAffiliateSchema>,
+  { ok: true; slug: string }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "affiliate.admin_enable",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+  },
+  async (args, service) => {
+    const parsed = enableAffiliateSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid request.");
+    const { userId } = parsed.data;
+
+    const existing = await getAffiliateForUser(service, userId);
+    if (existing) {
+      return {
+        result: { ok: true, slug: existing.slug },
+        after: { slug: existing.slug, existed: true },
+      };
+    }
+
+    const [{ data: settings }, { data: profile }] = await Promise.all([
+      service
+        .from("affiliate_settings")
+        .select("terms_version, currency")
+        .eq("id", true)
+        .maybeSingle(),
+      service
+        .from("user_profiles")
+        .select("full_name, email")
+        .eq("id", userId)
+        .maybeSingle(),
+    ]);
+    const base =
+      profile?.full_name || profile?.email?.split("@")[0] || "affiliate";
+    const slug = await findFreeSlug(service, base);
+
+    const { error } = await service.from("affiliate_accounts").insert({
+      user_id: userId,
+      slug,
+      status: "active",
+      terms_version: settings?.terms_version ?? "v1",
+      currency: settings?.currency ?? "ZAR",
+    });
+    if (error) {
+      const created = await getAffiliateForUser(service, userId);
+      if (created) {
+        return {
+          result: { ok: true, slug: created.slug },
+          after: { slug: created.slug, existed: true },
+        };
+      }
+      throw new Error("Could not create the affiliate account.");
+    }
+
+    revalidatePath(`/admin/users/${userId}`);
+    return { result: { ok: true, slug }, after: { slug } };
+  },
+);
+
+export async function enableAffiliate(
+  userId: string,
+): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
+  try {
+    const r = await enableAffiliateAction({ userId });
+    return { ok: true, slug: r.slug };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };
   }

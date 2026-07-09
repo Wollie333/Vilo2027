@@ -482,6 +482,8 @@ export default async function AdminUserDetailPage({
     affiliateSlug: referralBundle.slug,
     affiliateStats: referralBundle.stats,
     referrals: referralBundle.referrals,
+    affiliateCommissions: referralBundle.commissions,
+    affiliatePayouts: referralBundle.payouts,
     dataRequests: (dataReqRows ?? []).map((d) => ({
       id: d.id,
       type: d.request_type,
@@ -603,15 +605,30 @@ async function loadReferrals(
   slug: string | null;
   stats: UserRecordData["affiliateStats"];
   referrals: UserRecordData["referrals"];
+  commissions: UserRecordData["affiliateCommissions"];
+  payouts: UserRecordData["affiliatePayouts"];
 }> {
   const { data: account } = await service
     .from("affiliate_accounts")
     .select("id, slug, currency, status, default_payout_method")
     .eq("user_id", userId)
     .maybeSingle();
-  if (!account) return { slug: null, stats: null, referrals: [] };
+  if (!account)
+    return {
+      slug: null,
+      stats: null,
+      referrals: [],
+      commissions: [],
+      payouts: [],
+    };
 
-  const [{ data: refs }, { count: clicks }, balance] = await Promise.all([
+  const [
+    { data: refs },
+    { count: clicks },
+    balance,
+    { data: commissionRows },
+    { data: payoutRows },
+  ] = await Promise.all([
     service
       .from("affiliate_referrals")
       .select("id, referred_user_id, bound_at")
@@ -622,7 +639,61 @@ async function loadReferrals(
       .select("id", { count: "exact", head: true })
       .eq("affiliate_id", account.id),
     getAffiliateBalance(service, account.id).catch(() => null),
+    service
+      .from("affiliate_commissions")
+      .select(
+        "id, commission_amount, currency, status, entry_type, product_id, created_at",
+      )
+      .eq("affiliate_id", account.id)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    service
+      .from("affiliate_payouts")
+      .select(
+        "id, net_amount, gross_amount, currency, method, status, created_at, processed_at",
+      )
+      .eq("affiliate_id", account.id)
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
+
+  // Product names for the commissions list (statement each).
+  const commProductIds = [
+    ...new Set((commissionRows ?? []).map((c) => c.product_id).filter(Boolean)),
+  ] as string[];
+  const { data: commProducts } = commProductIds.length
+    ? await service.from("products").select("id, name").in("id", commProductIds)
+    : { data: [] as { id: string; name: string }[] };
+  const commProductName = new Map(
+    (commProducts ?? []).map((p) => [p.id, p.name]),
+  );
+
+  const commissionList: UserRecordData["affiliateCommissions"] = (
+    commissionRows ?? []
+  ).map((c) => ({
+    id: c.id,
+    amount: Number(c.commission_amount),
+    currency: c.currency ?? account.currency,
+    status: c.status,
+    entryType: c.entry_type,
+    productName: c.product_id
+      ? (commProductName.get(c.product_id) ?? "Product")
+      : "Referral",
+    createdAt: c.created_at,
+  }));
+
+  const payouts: UserRecordData["affiliatePayouts"] = (payoutRows ?? []).map(
+    (p) => ({
+      id: p.id,
+      net: Number(p.net_amount),
+      gross: Number(p.gross_amount ?? p.net_amount),
+      currency: p.currency ?? account.currency,
+      method: p.method ?? null,
+      status: p.status,
+      createdAt: p.created_at,
+      processedAt: p.processed_at,
+    }),
+  );
 
   const stats: UserRecordData["affiliateStats"] = {
     accountId: account.id,
@@ -638,7 +709,13 @@ async function loadReferrals(
   };
 
   if (!refs || refs.length === 0) {
-    return { slug: account.slug, stats, referrals: [] };
+    return {
+      slug: account.slug,
+      stats,
+      referrals: [],
+      commissions: commissionList,
+      payouts,
+    };
   }
 
   const referredIds = refs.map((r) => r.referred_user_id);
@@ -721,5 +798,11 @@ async function loadReferrals(
     };
   });
 
-  return { slug: account.slug, stats, referrals };
+  return {
+    slug: account.slug,
+    stats,
+    referrals,
+    commissions: commissionList,
+    payouts,
+  };
 }
