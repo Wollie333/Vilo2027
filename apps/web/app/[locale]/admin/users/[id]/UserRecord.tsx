@@ -31,6 +31,7 @@ import {
   Trash2,
   UserCog,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
@@ -1358,24 +1359,266 @@ function RowLink({
 
 function OverviewPanel({ data }: { data: UserRecordData }) {
   const { user, host } = data;
+  const s = data.subscription;
+  const aff = data.affiliateStats;
+
+  const paidToWielo = data.wieloLedger
+    .filter((t) => t.type === "charge" && t.status === "completed")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const accountState = user.deleted_at
+    ? { label: "Deleted", cls: "border-red-200 bg-red-50 text-red-600" }
+    : !user.is_active
+      ? { label: "Suspended", cls: "border-red-200 bg-red-50 text-red-600" }
+      : user.is_lead
+        ? {
+            label: "Unclaimed",
+            cls: "border-amber-200 bg-amber-50 text-amber-700",
+          }
+        : {
+            label: "Active",
+            cls: "border-emerald-200 bg-emerald-50 text-emerald-700",
+          };
+
+  const memberDays = user.created_at
+    ? Math.max(
+        0,
+        Math.round(
+          (Date.now() - new Date(user.created_at).getTime()) / 86_400_000,
+        ),
+      )
+    : null;
+
+  const stats: {
+    label: string;
+    value: string;
+    sub?: string;
+    icon: LucideIcon;
+  }[] = [];
+  if (host) {
+    stats.push({
+      label: "Listings",
+      value: String(data.counts.listings),
+      icon: Home,
+    });
+    stats.push({
+      label: "Bookings hosted",
+      value: String(host.total_bookings ?? 0),
+      icon: CalendarCheck,
+    });
+    stats.push({
+      label: "Rating",
+      value: host.avg_rating ? host.avg_rating.toFixed(1) : "—",
+      sub: `${host.total_reviews ?? 0} reviews`,
+      icon: Star,
+    });
+  }
+  stats.push({
+    label: "Trips booked",
+    value: String(data.counts.bookingsAsGuest),
+    icon: Calendar,
+  });
+  stats.push({
+    label: "Paid to Wielo",
+    value: formatMoney(paidToWielo, "ZAR"),
+    icon: CreditCard,
+  });
+  if (aff) {
+    stats.push({
+      label: "Affiliate earned",
+      value: formatMoney(aff.earned, aff.currency),
+      sub: `${aff.signups} signups`,
+      icon: Gift,
+    });
+  }
+
   return (
-    <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
-      <dl className="grid gap-3 sm:grid-cols-2">
-        <Fact k="Email" v={user.email} mono />
-        <Fact k="Phone" v={user.phone} mono />
-        <Fact k="Role" v={user.role} />
-        <Fact
-          k="Account"
-          v={user.is_lead ? "Passwordless (unclaimed)" : "Claimed"}
-        />
-        <Fact k="Country" v={user.country} />
-        <Fact k="Joined" v={fmtDate(user.created_at)} />
-        {host ? <Fact k="Host handle" v={`@${host.handle}`} /> : null}
-        {host ? (
-          <Fact k="Bookings as host" v={String(host.total_bookings ?? 0)} />
+    <div className="space-y-5">
+      {/* Status + verification chips */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span
+          className={`inline-flex items-center gap-1 rounded-pill border px-2.5 py-0.5 text-[11px] font-semibold ${accountState.cls}`}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+          {accountState.label}
+        </span>
+        <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold capitalize text-brand-mute">
+          {user.role ?? "guest"}
+        </span>
+        {host?.is_verified ? (
+          <Chip icon={BadgeCheck} label="Verified host" tone="good" />
         ) : null}
-      </dl>
-    </section>
+        {user.phone_verified_at ? (
+          <Chip icon={Phone} label="Phone verified" tone="good" />
+        ) : null}
+        {user.id_verified_at ? (
+          <Chip icon={Shield} label="ID verified" tone="good" />
+        ) : null}
+        {aff ? (
+          <Chip icon={Gift} label={`Affiliate · /r/${data.affiliateSlug}`} />
+        ) : null}
+      </div>
+
+      {/* Stat band */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line sm:grid-cols-3 lg:grid-cols-6">
+        {stats.map((st) => (
+          <div key={st.label} className="bg-white p-4">
+            <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+              <st.icon className="h-3.5 w-3.5" /> {st.label}
+            </div>
+            <div className="num mt-1.5 font-display text-[20px] font-bold leading-none text-brand-ink">
+              {st.value}
+            </div>
+            {st.sub ? (
+              <div className="mt-1 text-[11px] text-brand-mute">{st.sub}</div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+
+      {/* Details + highlights */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Snapshot facts */}
+        <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <h3 className="mb-3 font-display text-[14px] font-bold text-brand-ink">
+            Account
+          </h3>
+          <dl className="space-y-2.5">
+            <IconFact icon={Mail} k="Email" v={user.email} mono />
+            <IconFact icon={Phone} k="Phone" v={user.phone} mono />
+            <IconFact icon={Globe} k="Country" v={user.country} />
+            <IconFact
+              icon={Calendar}
+              k="Joined"
+              v={
+                user.created_at
+                  ? `${fmtDate(user.created_at)}${
+                      memberDays != null ? ` · ${memberDays}d ago` : ""
+                    }`
+                  : null
+              }
+            />
+            {host ? (
+              <IconFact icon={Home} k="Host handle" v={`@${host.handle}`} />
+            ) : null}
+            <IconFact
+              icon={KeyRound}
+              k="Account"
+              v={user.is_lead ? "Passwordless (unclaimed)" : "Claimed"}
+            />
+          </dl>
+        </section>
+
+        {/* Subscription / affiliate highlight */}
+        <div className="space-y-5">
+          {host ? (
+            <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <h3 className="mb-3 font-display text-[14px] font-bold text-brand-ink">
+                Subscription
+              </h3>
+              {s ? (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-lg font-bold capitalize text-brand-ink">
+                      {s.plan}
+                    </span>
+                    <SubStatusPill status={s.status} />
+                  </div>
+                  <dl className="grid grid-cols-2 gap-2.5">
+                    <IconFact icon={CreditCard} k="Cycle" v={s.billing_cycle} />
+                    <IconFact
+                      icon={Calendar}
+                      k="Renews"
+                      v={fmtDate(s.current_period_end)}
+                    />
+                  </dl>
+                </div>
+              ) : (
+                <p className="text-[13px] text-brand-mute">
+                  No subscription on file yet.
+                </p>
+              )}
+            </section>
+          ) : null}
+
+          {aff ? (
+            <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <h3 className="mb-3 flex items-center gap-1.5 font-display text-[14px] font-bold text-brand-ink">
+                <Gift className="h-4 w-4 text-brand-mute" /> Affiliate
+              </h3>
+              <div className="font-mono text-[12px] text-brand-mute">
+                /r/{data.affiliateSlug}
+              </div>
+              <dl className="mt-3 grid grid-cols-3 gap-2.5">
+                <IconFact icon={Users} k="Signups" v={String(aff.signups)} />
+                <IconFact
+                  icon={CreditCard}
+                  k="Available"
+                  v={formatMoney(aff.available, aff.currency)}
+                />
+                <IconFact
+                  icon={BadgeCheck}
+                  k="Paid out"
+                  v={formatMoney(aff.paid, aff.currency)}
+                />
+              </dl>
+            </section>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// A small labelled chip with an icon, for the overview status row.
+function Chip({
+  icon: Icon,
+  label,
+  tone = "neutral",
+}: {
+  icon: LucideIcon;
+  label: string;
+  tone?: "good" | "neutral";
+}) {
+  const cls =
+    tone === "good"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "border-brand-line bg-brand-light text-brand-mute";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-pill border px-2.5 py-0.5 text-[11px] font-semibold ${cls}`}
+    >
+      <Icon className="h-3 w-3" /> {label}
+    </span>
+  );
+}
+
+// A fact row with a leading icon (richer than the bare Fact dl).
+function IconFact({
+  icon: Icon,
+  k,
+  v,
+  mono,
+}: {
+  icon: LucideIcon;
+  k: string;
+  v: string | null;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-2">
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-mute" />
+      <div className="min-w-0">
+        <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+          {k}
+        </dt>
+        <dd
+          className={`truncate text-[13px] text-brand-ink ${mono ? "font-mono" : ""}`}
+        >
+          {v || "—"}
+        </dd>
+      </div>
+    </div>
   );
 }
 
