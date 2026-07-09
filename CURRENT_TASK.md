@@ -2,6 +2,37 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-09 #25) — Ledger · inbox · payments · affiliate batch ✅ ALL 7 DONE + live
+
+Executed `docs/features/ADMIN_LEDGER_INBOX_PAYMENTS_PLAN.md` end to end. `pnpm build` +
+tsc + lint green. Verified live via a temp `platform_staff` super_admin grant on the test
+host (revoked after). Commits: `8508ed44` (#1–#4), `3fabbe27` (#5), plus the #7 commit.
+
+- **#1** Portal sidebar: "Messages"→"Inbox", moved under Overview. ✓ live.
+- **#2** Pay-link → host Wielo thread now posts a rich `payment_link` SYSTEM card ("Payment
+  request from Wielo" + Pay now), not plain text. `adminSendPaymentLinkToInboxAction` +
+  `adminPostPaymentLinkToHostThread`; `ChatMessageWall` gains `platformThread`. ✓ live.
+- **#3** `/pay/product/[token]` redesigned to mirror the guest pay page. ✓ live.
+- **#4** Pay-link picker uses `getSellableProducts()` (any type, ignore is_visible) → one-off
+  "Wielo StayFlow Web-design" now selectable; grouped Subscriptions/One-off. ✓ live.
+- **#5** Platform PayPal for product orders (migration `20260709120000` adds paypal cols,
+  secret via encryptSecret; `getPlatformPayPal`; `startProductPayPal`/`capturePayPalProductOrder`;
+  pay-page button + admin config form + product-editor method). Method-on-row already showed
+  PayPal. **OPEN E2E STEP:** actual approval+capture needs real Wielo PayPal SANDBOX creds
+  (founder to enter at /admin/products/payments). Flow UI-verified + reaches PayPal API.
+- **#6** Automation verified: webhook ACTIVE v9, test mode; a real Paystack TEST payment
+  settled the StayFlow R5999 order → paid → completed ledger → invoice, fully automatic.
+  Pending charges surface as "awaiting".
+- **#7** Affiliate on the SAME ledger via adapter/UNION (affiliate tables stay SSOT): new
+  `commission_owed`/`commission_paid` WieloTxn types, own **Affiliate** tab, per-affiliate
+  "Wielo owes R X" balance, excluded from revenue KPIs; commission-statement/remittance PDF
+  at `/wielo-commission/[id]`(+`/pdf`). ✓ live (seeded+removed test affiliate data).
+
+See memory [[project-ledger-payments-affiliate-plan]] for the PayPal-creds finish step +
+affiliate-seed gotchas.
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-08 #24) — NEXT: Admin ledger · inbox · payments · affiliate — PLAN SAVED, start fresh
 
 **Read `docs/features/ADMIN_LEDGER_INBOX_PAYMENTS_PLAN.md` FIRST.** Founder batch (not built yet):
