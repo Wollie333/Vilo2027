@@ -23,8 +23,10 @@ export type MonthlyPoint = {
 export type PlanSlice = {
   key: string;
   name: string;
-  count: number;
-  mrr: number;
+  /** subscription = active subs + MRR; one_off = units sold + collected total. */
+  type: "subscription" | "one_off";
+  count: number; // active subs (subscription) OR units sold (one_off)
+  mrr: number; // MRR (subscription) OR total collected (one_off)
 };
 
 export type PlatformReport = {
@@ -100,9 +102,14 @@ const MONTH_LABELS = [
   "Dec",
 ];
 
+export type ReportEnv = "live" | "test" | "all";
+
 export async function buildPlatformReport(
   range: ReportRange = "12m",
   nowMs: number = Date.now(),
+  // Which ledger environment feeds the revenue figures. Default "live" (the real
+  // business view); "test"/"all" let the founder see test purchases while building.
+  env: ReportEnv = "live",
 ): Promise<PlatformReport> {
   const service = createAdminClient();
   const periodStart = rangeStart(range, nowMs).toISOString();
@@ -117,13 +124,17 @@ export async function buildPlatformReport(
   ] = await Promise.all([
     // The product catalog — the REAL price a host pays. A free product (e.g. a
     // beta tier) costs R0 even if it grants a paid plan tier for feature access.
-    service.from("products").select("id, name, price, billing_cycle"),
+    service.from("products").select("id, name, price, billing_cycle, type"),
     service
       .from("subscriptions")
       .select("product_id, plan, billing_cycle, status"),
-    // Live revenue only — Paystack test-key transactions never count toward
-    // business KPIs (the admin Payments tab has a Test filter to inspect them).
-    fetchWieloLedger(service, { limit: 10_000, environment: "live" }),
+    // Revenue rows for the selected environment. Default "live" — test-key
+    // transactions are excluded from the real business view, but the founder can
+    // flip the Overview to Test/All to see them while building.
+    fetchWieloLedger(service, {
+      limit: 10_000,
+      environment: env === "all" ? undefined : env,
+    }),
     service
       .from("user_profiles")
       .select("role, created_at")
@@ -234,20 +245,56 @@ export async function buildPlatformReport(
     else if (u.role === "guest") months[idx].guests += 1;
   }
 
+  // One-off sales: paid product_orders (any product), grouped, env-scoped —
+  // so a one-off product (e.g. a web-design package) that has no subscription
+  // still appears in the Products list with units sold + revenue collected.
+  let ordersQ = service
+    .from("product_orders")
+    .select("product_id, product_name, amount, environment")
+    .eq("status", "paid");
+  if (env !== "all") ordersQ = ordersQ.eq("environment", env);
+  const { data: paidOrders } = await ordersQ;
+  const oneOffUnits: Record<string, number> = {};
+  const oneOffRevenue: Record<string, number> = {};
+  const oneOffName: Record<string, string> = {};
+  for (const o of paidOrders ?? []) {
+    const prod = o.product_id ? productById.get(o.product_id as string) : null;
+    // Only one-off products here; subscription revenue is the MRR model above.
+    if (prod && prod.type === "subscription") continue;
+    const key = (o.product_id as string) ?? `name:${o.product_name}`;
+    oneOffUnits[key] = (oneOffUnits[key] ?? 0) + 1;
+    oneOffRevenue[key] = (oneOffRevenue[key] ?? 0) + Number(o.amount ?? 0);
+    oneOffName[key] =
+      (prod?.name as string) ?? (o.product_name as string) ?? "Product";
+  }
+
   const planSlices: PlanSlice[] = (productRows ?? [])
+    .filter((p) => (p.type ?? "subscription") === "subscription")
     .map((p) => ({
       key: p.id as string,
       name: p.name as string,
+      type: "subscription" as const,
       count: prodCount[p.id as string] ?? 0,
       mrr: Math.round(prodMrr[p.id as string] ?? 0),
     }))
-    .filter((p) => p.count > 0)
-    .sort((a, b) => b.mrr - a.mrr);
+    .filter((p) => p.count > 0);
+  // One-off products with sales.
+  for (const key of Object.keys(oneOffUnits)) {
+    planSlices.push({
+      key,
+      name: oneOffName[key],
+      type: "one_off",
+      count: oneOffUnits[key],
+      mrr: Math.round(oneOffRevenue[key] ?? 0),
+    });
+  }
+  planSlices.sort((a, b) => b.mrr - a.mrr);
   // Subscriptions not linked to a product (legacy/none) — surface honestly.
   if ((prodCount["none"] ?? 0) > 0) {
     planSlices.push({
       key: "none",
       name: "No product",
+      type: "subscription",
       count: prodCount["none"],
       mrr: 0,
     });
@@ -301,4 +348,8 @@ export async function buildPlatformReport(
 
 export function isReportRange(v: string | undefined): v is ReportRange {
   return v === "30d" || v === "90d" || v === "6m" || v === "12m" || v === "ytd";
+}
+
+export function isReportEnv(v: string | undefined): v is ReportEnv {
+  return v === "live" || v === "test" || v === "all";
 }

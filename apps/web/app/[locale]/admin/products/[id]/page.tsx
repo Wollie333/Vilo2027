@@ -65,7 +65,9 @@ export default async function AdminProductEditorPage({
       setupFeeAffiliateType: "none",
       setupFeeAffiliateValue: 0,
       bullets: [],
-      paymentMethods: ["paystack"],
+      // EFT is on by default (the fallback rail); admin can deactivate it per
+      // product. Card (Paystack) is on too; PayPal is opt-in (needs setup).
+      paymentMethods: ["paystack", "eft"],
       trialDays: 0,
       isVisible: true,
       slug: null,

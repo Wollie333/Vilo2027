@@ -16,7 +16,11 @@ import {
 
 import { Link } from "@/i18n/navigation";
 import { hasPermission } from "@/lib/admin";
-import { buildPlatformReport } from "@/lib/billing/platform-report";
+import {
+  buildPlatformReport,
+  isReportEnv,
+  type ReportEnv,
+} from "@/lib/billing/platform-report";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -26,8 +30,16 @@ export const dynamic = "force-dynamic";
 // dashboard (seamless stat band + attention tiles + clean cards) so it reads
 // calm, not like a wall of KPI boxes. Headline numbers come from
 // buildPlatformReport (shared with /admin/reporting + the PDF) so they can't drift.
-export default async function AdminOverviewPage() {
+export default async function AdminOverviewPage({
+  searchParams,
+}: {
+  searchParams?: { env?: string };
+}) {
   const service = createAdminClient();
+
+  const env: ReportEnv = isReportEnv(searchParams?.env)
+    ? searchParams.env
+    : "live";
 
   const [
     report,
@@ -36,7 +48,7 @@ export default async function AdminOverviewPage() {
     { count: openDataReqs },
     { data: auditRows },
   ] = await Promise.all([
-    buildPlatformReport("30d"),
+    buildPlatformReport("30d", Date.now(), env),
     service
       .from("reviews")
       .select("id", { count: "exact", head: true })
@@ -110,9 +122,40 @@ export default async function AdminOverviewPage() {
           </h1>
           <div className="mt-1.5 text-[12.5px] text-brand-mute">
             {dateLabel} · how Wielo-the-business is doing
+            {env !== "live" ? (
+              <span className="ml-1.5 font-semibold text-status-pending">
+                · {env === "test" ? "test" : "test + live"} revenue view
+              </span>
+            ) : null}
           </div>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          {canFinancials ? (
+            <div className="mr-1 inline-flex items-center rounded-pill border border-brand-line bg-white p-0.5">
+              {(["live", "test", "all"] as const).map((e) => (
+                <Link
+                  key={e}
+                  href={e === "live" ? "/admin" : `/admin?env=${e}`}
+                  className={`rounded-pill px-2.5 py-1 text-[11.5px] font-semibold capitalize transition-colors ${
+                    env === e
+                      ? e === "test"
+                        ? "bg-status-pending text-white"
+                        : "bg-brand-primary text-white"
+                      : "text-brand-mute hover:text-brand-ink"
+                  }`}
+                  title={
+                    e === "live"
+                      ? "Live revenue only"
+                      : e === "test"
+                        ? "Test-mode transactions"
+                        : "Test + live"
+                  }
+                >
+                  {e === "all" ? "Test + Live" : e}
+                </Link>
+              ))}
+            </div>
+          ) : null}
           {QUICK_ACTIONS.map((q) => (
             <IconButton
               key={q.href}
@@ -234,16 +277,16 @@ export default async function AdminOverviewPage() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {canFinancials && report.plans.length > 0 ? (
           <Card
-            title="Plan mix"
-            actionHref="/admin/subscriptions/plans"
-            actionLabel="Manage plans"
+            title="Products"
+            actionHref="/admin/products"
+            actionLabel="Manage products"
           >
             <table className="w-full text-[13px]">
               <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
                 <tr>
-                  <th className="px-4 py-2.5">Plan</th>
-                  <th className="px-4 py-2.5 text-right">Subs</th>
-                  <th className="px-4 py-2.5 text-right">MRR</th>
+                  <th className="px-4 py-2.5">Product</th>
+                  <th className="px-4 py-2.5 text-right">Active / sold</th>
+                  <th className="px-4 py-2.5 text-right">MRR / revenue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-line">
@@ -251,6 +294,15 @@ export default async function AdminOverviewPage() {
                   <tr key={p.key} className="hover:bg-brand-light/40">
                     <td className="px-4 py-2.5 font-medium text-brand-ink">
                       {p.name}
+                      <span
+                        className={`ml-1.5 inline-flex rounded-pill border px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide ${
+                          p.type === "one_off"
+                            ? "border-violet-200 bg-violet-50 text-violet-700"
+                            : "border-brand-line bg-brand-light text-brand-mute"
+                        }`}
+                      >
+                        {p.type === "one_off" ? "one-off" : "sub"}
+                      </span>
                     </td>
                     <td className="num px-4 py-2.5 text-right text-brand-mute">
                       {p.count.toLocaleString()}
