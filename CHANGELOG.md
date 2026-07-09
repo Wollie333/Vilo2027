@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-09 #31 — Commerce model Phase 4b: schedule membership changes for end of cycle.
+
+Any membership change can be enforced now or scheduled for the current period end (founder decision).
+Commerce Phase 4 (auto-ledger + timing) is complete. tsc + lint + build green; verified live + by direct
+engine calls (temp grant → revoked; all test data restored).
+
+- Migration `20260709160000`: `subscription_scheduled_changes` table (cancel/switch, effective_at,
+  one-pending-per-sub, owner RLS) + `apply_due_subscription_changes()` + an hourly pure-SQL pg_cron.
+- Cancel timing (Manage dialog) + switch timing (catalog dialog): end-of-cycle records a scheduled change
+  instead of applying now; the cron applies due changes (cancel → cancelled; switch → move to the target
+  product, retiring any other active membership, fresh period). No credit on an end-of-cycle cancel.
+- `cancelScheduledChangeAction` + an Undo affordance; the sub card shows a "Scheduled: … on <date>" banner.
+- Also (`1f8daaa4`): standardised every inbox system-message card on the gradient upgrade-card design via
+  a reusable `InboxSystemCard` (tones brand/amber/rose/sky).
+
 ## 2026-07-09 #30 — Commerce model Phase 4a-2b: upgrade pay-link (deferred activation + inbox card).
 
 Founder change mid-session: a "Send pay-link" upgrade now DEFERS activation (the plan switches on only

@@ -2,7 +2,57 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-09 #30) — Phase 4a-2b upgrade pay-link (deferred activation + inbox card) ✅ DONE + verified live. NEXT = Phase 4b (end-of-cycle timing)
+## ▶▶▶ SAVE POINT (2026-07-09 #31) — Phase 4b end-of-cycle timing (scheduled changes + cron) ✅ DONE + verified live. Commerce Phase 4 COMPLETE. NEXT = Phase 5 (guest txn history)
+
+**Read [[project-wielo-commerce-model]] + `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` §4.** `pnpm build` +
+tsc + lint GREEN. Pushed to main (`ee250394`). Working tree clean. Sole super_admin =
+wollie@manamarketing.co.za (temp grant revoked). Verified live via preview + direct engine calls.
+
+**Founder decision (#31): ANY membership change is schedulable** — enforce NOW or at end of the current
+cycle. Also standardised all inbox system cards on the gradient upgrade-card design (`1f8daaa4`,
+`InboxSystemCard`, tones brand/amber/rose/sky).
+
+**DONE this session (#31) — `ee250394`:**
+- Migration `20260709160000`: new `subscription_scheduled_changes` table (kind cancel|switch,
+  target_product_id, effective_at, status, one-pending-per-sub unique index, owner-read RLS) +
+  `apply_due_subscription_changes()` SQL function + an hourly **pure-SQL pg_cron**
+  `apply-subscription-changes` (in-DB, like the other state-transition crons). Types regenerated.
+- `adminUpdateSubscriptionAction`: CANCEL gains `timing: now | end_of_cycle`. End-of-cycle records a
+  scheduled `cancel` (+ `cancel_at_period_end=true`), sub stays active, NO credit (full period used).
+  Manage dialog "When to cancel" toggle; the credit/refund block only shows for an immediate cancel.
+- `setUserProductAction`: membership SWITCH gains `timing`. End-of-cycle records a scheduled `switch`
+  (no activation/charge now; clears stale cancel flag). Catalog dialog "When to apply" toggle; a
+  same-price/cheaper switch (downgrade) now ALSO opens the dialog so it can be scheduled ("Switch now").
+- `cancelScheduledChangeAction` + an **Undo** on the sub card, which shows a "Scheduled: cancels /
+  switches to X on <date>" banner. Loader threads the pending change per subscription.
+
+**Live proof (#31):** Manage→cancel end-of-cycle → sub stays active + `cancel_at_period_end` + banner
+"cancels on 08 Aug 2026"; catalog Beta switch end-of-cycle → scheduled `switch`→Beta (superseded the
+cancel — one-pending rule holds); Undo cleared it. Engine `apply_due_subscription_changes()` proven by
+direct call for BOTH cancel (→cancelled) and switch (→Beta active, fresh period, retire others).
+
+**NEXT — Phase 5 (guest transaction history):** show a buyer's Wielo purchases (`product_orders` +
+`wielo_invoices` + credit notes/refunds, downloadable docs) in `/portal/settings` (guest) +
+`/dashboard/settings` (host). Ties to PRODUCT_PURCHASE_LIFECYCLE_PLAN.md. Then AFFILIATE_HARDENING_PLAN
+(LAST).
+
+**Known/left as-is:** a scheduled SWITCH applies at period end with a FRESH period + does NOT auto-charge
+the new cycle (renewal billing is a separate concern; Paystack recurring isn't re-pointed on admin plan
+changes — a pre-existing gap). Deferred-activation upgrade pay-link (from #30) also starts a fresh period
+on payment. Auto credit/refund/charge ledger rows are `environment=NULL` (like all manual entries) → show
+under the ledger's **Test+Live** filter. **Still deferred:** redeploy `supabase functions deploy
+paystack-webhook` (carries the `activate_on_pay` guard from #30).
+
+GOTCHAS: restart preview after **server-action** edits (HMR misses them; preview_start may "reuse" a
+stale process → stop it first, then start); pure-SQL pg_cron pattern = `cron.unschedule(...) where exists
+... ; cron.schedule(name, sched, $cron$ ... $cron$)`; commit-msg hook rejects a capitalised subject word
+(lead lowercase — "phase 4b" not "Phase 4b"); `supabase db query` batch returns only the LAST select;
+test host `0b111111-1111-4111-8111-111111111111`, user `1899ee6c-…`, Starter sub `…1111111111aa`, Beta
+product `4bff856d-…` (price 0); `pnpm build` corrupts `.next` while a preview is up — stop it + `rm -rf .next`.
+
+---
+
+## ▶▶▶ SAVE POINT (2026-07-09 #30) — Phase 4a-2b upgrade pay-link (deferred activation + inbox card) ✅ DONE + verified live. (superseded by #31)
 
 **Read [[project-wielo-commerce-model]] + `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` §4.** `pnpm build` +
 tsc + lint GREEN. Pushed to main (`3f8931e4`). Working tree clean. Sole super_admin =
