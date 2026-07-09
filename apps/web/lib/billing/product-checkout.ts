@@ -8,6 +8,7 @@ import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
 import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { notifyAdmins } from "@/lib/admin/notify";
+import { setPayCardStatus } from "@/lib/inbox/platform-thread";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Wielo product checkout — mirrors the host booking pay-link, but for Wielo's own
@@ -599,6 +600,12 @@ export async function recordProductEftIntent(
       orderId: order.id,
       href: userId ? `/admin/users/${userId}?tab=finance` : "/admin/payments",
     });
+    // Reflect it back to the buyer: their inbox pay card → "pending payment".
+    await setPayCardStatus(admin, {
+      userId,
+      payToken,
+      status: "pending",
+    });
   }
   await admin
     .from("product_orders")
@@ -825,6 +832,13 @@ export async function confirmProductOrderByReference(
     await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
   }
 
+  // Reflect it back to the buyer: their inbox pay card → "payment received".
+  await setPayCardStatus(admin, {
+    userId: order.payer_user_id,
+    payToken: order.pay_token,
+    status: "received",
+  });
+
   return {
     ok: true,
     status: "paid",
@@ -929,6 +943,13 @@ export async function capturePayPalProductOrder(
   if (order.activate_on_pay !== false) {
     await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
   }
+
+  // Reflect it back to the buyer: their inbox pay card → "payment received".
+  await setPayCardStatus(admin, {
+    userId: order.payer_user_id,
+    payToken: order.pay_token,
+    status: "received",
+  });
 
   return {
     ok: true,

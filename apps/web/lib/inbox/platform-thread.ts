@@ -257,6 +257,50 @@ export async function adminPostUpgradeCardToHostThread(
   return conversationId;
 }
 
+// Flip a buyer's pay CARD in their Wielo thread to reflect the payment's state:
+// "pending" (EFT details shown → awaiting the transfer) or "received" (settled).
+// Matches the card by the order's pay-token in its attachment_url; no-op if the
+// buyer has no host/thread/card (best-effort — never breaks the money path).
+export async function setPayCardStatus(
+  admin: Admin,
+  args: {
+    userId: string | null;
+    payToken: string;
+    status: "pending" | "received";
+  },
+): Promise<void> {
+  try {
+    if (!args.userId) return;
+    const { data: host } = await admin
+      .from("hosts")
+      .select("id")
+      .eq("user_id", args.userId)
+      .maybeSingle();
+    if (!host) return;
+    const { data: conv } = await admin
+      .from("conversations")
+      .select("id")
+      .eq("host_id", host.id)
+      .eq("channel", "platform")
+      .maybeSingle();
+    if (!conv) return;
+    const event =
+      args.status === "received" ? "payment_received" : "payment_pending";
+    await admin
+      .from("messages")
+      .update({ system_event: event, is_system_message: true })
+      .eq("conversation_id", conv.id)
+      .in("system_event", [
+        "payment_link",
+        "subscription_upgrade",
+        "payment_pending",
+      ])
+      .ilike("attachment_url", `%/pay/product/${args.payToken}%`);
+  } catch {
+    // best-effort
+  }
+}
+
 // Post a payment link into a host's Wielo thread as a rich `payment_link` SYSTEM
 // message so ChatMessageWall renders the pay CARD (icon + product/amount line +
 // Pay button) rather than a plain text URL. Posted AS "Wielo Support".

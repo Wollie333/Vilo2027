@@ -278,6 +278,64 @@ export function ChatMessageWall({
               );
             }
 
+            // Payment pending — the pay card flips to this once the buyer picks
+            // EFT (bank details shown, transfer awaited). Keeps a button so they
+            // can still complete or switch method.
+            if (m.isSystem && m.systemEvent === "payment_pending") {
+              const payerView = platformThread || viewer !== "host";
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <InboxSystemCard
+                    tone="amber"
+                    icon={<Clock className="h-5 w-5" />}
+                    title={payerView ? "Payment pending" : "Awaiting payment"}
+                    action={
+                      m.attachmentUrl
+                        ? {
+                            href: m.attachmentUrl,
+                            label: payerView ? "Complete payment" : "View",
+                            icon: <CreditCard className="h-4 w-4" />,
+                          }
+                        : undefined
+                    }
+                    footer={fmtClock(m.createdAt)}
+                  >
+                    <p className="text-[13px] leading-relaxed text-brand-ink">
+                      {payerView
+                        ? "We're awaiting your EFT — it'll be confirmed here once it reflects."
+                        : "The buyer chose EFT — awaiting the transfer."}
+                    </p>
+                    {m.body ? (
+                      <p className="mt-1 text-[12px] text-brand-mute">
+                        {m.body}
+                      </p>
+                    ) : null}
+                  </InboxSystemCard>
+                </div>
+              );
+            }
+
+            // Payment received — the pay card's final state once the order
+            // settles (card / PayPal captured, or the EFT is marked received).
+            if (m.isSystem && m.systemEvent === "payment_received") {
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <InboxSystemCard
+                    tone="brand"
+                    icon={<CheckCheck className="h-5 w-5" />}
+                    title="Payment received"
+                    footer={fmtClock(m.createdAt)}
+                  >
+                    <p className="text-[13px] leading-relaxed text-brand-ink">
+                      Thank you — your payment is confirmed.
+                    </p>
+                  </InboxSystemCard>
+                </div>
+              );
+            }
+
             // Subscription upgrade — the buyer taps to pay the pro-rated
             // difference; the plan activates once the payment succeeds.
             if (m.isSystem && m.systemEvent === "subscription_upgrade") {
