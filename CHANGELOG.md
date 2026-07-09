@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-09 #29 — Commerce model Phase 4a: auto-ledger on admin subscription change (immediate).
+
+When an admin changes a user's subscription, the money now moves automatically with the right document —
+never a silent state flip. Founder decisions (this session): admin **chooses each time** on upgrade
+(mark-paid vs pay-link); **pro-rated DELTA**; **ship immediate-only** (end-of-cycle timing deferred to
+4b). Verified live end-to-end (temp admin grant → revoked; all test data restored). tsc + lint + build green.
+
+- **`lib/billing/proration.ts`** (new): server-authoritative `unusedFraction` / `proratedAmount` /
+  `round2` / `daysRemaining`. The UI previews the same maths; the action recomputes before writing.
+- **Phase 4a-1 — cancel → pro-rated credit note / refund** (`2c24639d`): `adminUpdateSubscriptionAction`,
+  on status→`cancelled` of a live PAID sub, posts a signed-negative `credit` (default) | `refund`
+  `platform_ledger` row for the unused portion (mirrors `recordManualLedgerEntryAction`); the mint
+  trigger produces the CN/REF doc on the revenue ledger + txn history. Manage dialog gained a
+  credit/refund select + live pro-rated preview. Live: cancel R599 Starter (30 unused days) → −R577.29
+  `credit` → **CN-0006**.
+- **Phase 4a-2a — upgrade / add → pro-rated charge + invoice** (`94793c02`): `setUserProductAction`
+  gained a `charge` mode. A membership SWITCH bills only (new−old)×unused fraction and the new sub
+  **inherits the old billing window** (cycle continues, not reset); a fresh activation / service add
+  bills the full price. Posts a manual completed `charge` (invoice mints via trigger) + accrues
+  affiliate. Catalog Switch/Add opens a charge-confirm dialog (live delta preview; "Mark as paid now" /
+  "Activate without charging"); free / zero-delta activations skip it. Live: Starter→Beta previewed R385
+  → Beta active (window preserved, Starter retired) → R385.37 `charge` → **INV-0022**.
+- **NEXT:** 4a-2b custom-amount pay-link ("Send pay-link" upgrade option — payment-code, confirm schema
+  first); 4b end-of-cycle timing (scheduled change + billing cron); Phase 5 guest txn history.
+
 ## 2026-07-09 #28 — Host self-serve: pause + cancel-request→paused (notifies Wielo inbox).
 
 Founder rule: a host can **pause** their membership, and a **cancel request** does NOT hard-cancel —

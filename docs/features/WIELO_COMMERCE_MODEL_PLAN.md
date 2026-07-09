@@ -67,6 +67,16 @@ Rule: **no ledger/order transaction without a user.** By default every buyer is 
   product/subscription charge. Audit + fix any existing orphan rows.
 
 ## 4. Admin changes auto-record on the ledger (with the right document)
+
+> **STATUS (2026-07-09, #29): Phase 4a IMMEDIATE changes DONE + live-verified.**
+> `lib/billing/proration.ts` + cancel→pro-rated credit/refund (`2c24639d`) +
+> upgrade/add→pro-rated charge+invoice (`94793c02`). Founder locked: admin
+> **chooses each time** (mark-paid vs pay-link), **pro-rated DELTA**, **ship
+> immediate-only** first. REMAINING: **4a-2b** = the "Send pay-link" upgrade
+> option (needs a non-activating custom-amount pay order — payment code, confirm
+> schema first); **4b** = the now-vs-end-of-cycle timing (scheduled change +
+> billing cron). See CURRENT_TASK #29 + [[project-wielo-commerce-model]].
+
 When an admin adjusts a user's subscription/product, run the money automations —
 never a silent state flip:
 - **Upgrade / add** (membership↔higher, add a service/product) → a **charge** +
@@ -98,8 +108,12 @@ never a silent state flip:
   paths + add-service/product + a **Pause** control + a **Request cancellation**
   control (→ sets `paused`, signals admin, e.g. via the Wielo inbox thread); a
   cheaper-membership option is disabled with a "contact support" affordance.
-- **Open decision:** pro-ration policy on an IMMEDIATE change (full amount vs
-  pro-rated unused portion).
+- **RESOLVED (founder 2026-07-09, #29):** pro-ration on an IMMEDIATE change =
+  **pro-rated DELTA** — an upgrade bills (new − old price) × the unused fraction
+  of the current window (the new sub inherits that window); a cancel credits
+  old price × unused fraction; a fresh activation / service add bills the full
+  price. Also: the admin **chooses each time** how to bill an upgrade (mark-paid
+  now vs send pay-link), and immediate-only shipped first (end-of-cycle = 4b).
 
 ## 5. Guest transaction history in settings
 - Guests + hosts can see their Wielo purchases: `product_orders` + `wielo_invoices`

@@ -2,6 +2,60 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-09 #29) — Phase 4a auto-ledger on admin change (IMMEDIATE) ✅ DONE + verified live. NEXT = Phase 4a-2b (custom-amount pay-link) then 4b (end-of-cycle timing)
+
+**Read [[project-wielo-commerce-model]] + `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` §4.** `pnpm build` +
+tsc + lint GREEN. Pushed to main. Working tree clean. Sole super_admin = wollie@manamarketing.co.za
+(temp grant on the test host revoked). Verified live end-to-end via the preview server.
+
+**Founder DECISIONS locked this session (AskUserQuestion):** on an admin UPGRADE the admin **chooses
+each time** — "Mark as paid now" vs "Send pay-link"; pro-ration = **pro-rated DELTA** ((new−old)×unused
+fraction; cancel credit = old×unused); **ship IMMEDIATE-only now** (end-of-cycle timing = separate 4b);
+"Send pay-link" needs a **custom-amount pay-link** (the existing rail only bills a product's FULL price
+and activates on pay — can't collect a partial delta), built as 4a-2b.
+
+**DONE this session (#29):**
+- **`lib/billing/proration.ts`** (new): `unusedFraction` / `proratedAmount` / `round2` / `daysRemaining`
+  — server-authoritative pro-ration; the UI previews the same maths.
+- **Phase 4a-1 — cancel → pro-rated credit/refund** (`2c24639d`): `adminUpdateSubscriptionAction`, on
+  status→`cancelled` of a live PAID sub, posts a signed-negative `credit` (default) | `refund`
+  `platform_ledger` row for the UNUSED portion (mirrors `recordManualLedgerEntryAction`); the mint
+  trigger makes the CN/REF doc. Manage dialog gained a credit/refund select + live pro-rated preview.
+  *Live proof:* cancel test Starter (R599, 30 unused days) → `credit` −R577.29 → auto-minted **CN-0006**,
+  rendered on `/admin/subscriptions/revenue` (Test+Live filter).
+- **Phase 4a-2a — upgrade/add → pro-rated charge** (`94793c02`): `setUserProductAction` gained a
+  `charge` mode (`paid`|`none`). A membership SWITCH = pro-rated upgrade (bill (new−old)×unused; new sub
+  **inherits the old billing window** so the cycle continues, not resets); fresh activation / service
+  add = full price. Posts a manual **completed `charge`** (invoice mints) + accrues affiliate. Catalog
+  Switch/Add opens a **charge-confirm dialog** (live delta preview; "Mark as paid now" / "Activate
+  without charging"); free / zero-delta activations skip it. *Live proof:* Starter→Beta (Beta temp-priced
+  above Starter) previewed R385 → Beta active w/ window preserved (Starter retired) → completed `charge`
+  R385.37 "Pro-rated upgrade to Beta" → auto-minted **INV-0022**. All test data + Beta price restored.
+
+**NEXT — Phase 4a-2b (custom-amount pay-link):** the "Send pay-link" upgrade option. Needs infra: a
+non-activating, custom-amount pay order (the delta) so the buyer pays a clickable link that settles a
+pending charge WITHOUT re-activating (the tier is already active). Likely = add `activate_on_pay boolean
+default true` + optional amount/label to `product_orders`/`createProductOrder`, guard `activateMappedPlan`
+in the 3 settle paths (confirm/capture/webhook), thread the pay-URL back to the admin dialog. **Payment
+code — confirm the schema + approach with founder before building.** **Then Phase 4b (end-of-cycle
+timing):** admin picks now vs end-of-cycle; scheduled change stored (new column/table) + billing cron
+applies at `current_period_end`, then posts the ledger entry + doc. **Then Phase 5** (guest txn history
+in `/portal/settings` + `/dashboard/settings`).
+
+**Known/left as-is:** auto credit/refund/charge rows are `environment=NULL` (like ALL manual entries), so
+they show under the ledger's **Test+Live** filter, not Test or Live alone — consistent with
+`recordManualLedgerEntryAction`. A membership switch to a CHEAPER tier via catalog "Switch" charges
+nothing (delta=0); downgrades route through the Manage→cancel credit flow. **Still deferred from #27:**
+redeploy `supabase functions deploy paystack-webhook` (safe while single-sub).
+
+GOTCHAS: restart the preview after **server-action** edits (HMR misses them) → new autoPort; cookies are
+per-HOST not per-port (session survived a restart on this machine); `supabase db query` batch returns
+only the LAST select's rows; `wielo_credit_notes`/`wielo_invoices` ARE deletable (service role, pre-MVP);
+test host `0b111111-1111-4111-8111-111111111111`, user `1899ee6c-…`, Starter sub `…1111111111aa`, Beta
+product `4bff856d-…` (price 0). `pnpm build` corrupts `.next` while a preview dev server is up — stop it first.
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-09 #28) — Host self-serve pause + cancel-request→paused ✅ DONE + verified live. NEXT = Phase 4
 
 **Read [[project-host-membership-pause-cancel]] + [[project-wielo-commerce-model]].** `pnpm build` +
