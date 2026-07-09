@@ -47,6 +47,9 @@ export async function createProductOrder(
     productId: string;
     email: string;
     createdBy: string | null;
+    // Optional buyer details captured at checkout — stored on the (guest) user.
+    name?: string | null;
+    phone?: string | null;
   },
   origin?: string | null,
 ): Promise<CreateOrderResult> {
@@ -60,19 +63,23 @@ export async function createProductOrder(
     return { ok: false, error: "Product not found or inactive." };
   }
 
-  // Link to an existing Wielo account if the email matches one.
-  const { data: payer } = await admin
-    .from("user_profiles")
-    .select("id")
-    .ilike("email", input.email)
-    .maybeSingle();
+  // Guest-first: an order ALWAYS belongs to a user — find the account by email or
+  // create a guest lead — so no transaction is ever orphaned and the buyer's
+  // contact is kept even if they never pay.
+  const email = input.email.trim().toLowerCase();
+  const lead = await findOrCreateLeadIdentity(admin, {
+    email,
+    name: input.name?.trim() || email.split("@")[0],
+    phone: input.phone ?? null,
+  });
+  const payerUserId = lead?.guestId ?? null;
 
   const payToken = token();
   const { error } = await admin.from("product_orders").insert({
     product_id: product.id,
     product_name: product.name,
-    payer_email: input.email.toLowerCase(),
-    payer_user_id: payer?.id ?? null,
+    payer_email: email,
+    payer_user_id: payerUserId,
     amount: Number(product.price),
     currency: product.currency,
     status: "pending",
@@ -94,6 +101,7 @@ export async function startProductPurchaseBySlug(
   slug: string,
   email: string,
   origin?: string | null,
+  buyer?: { name?: string | null; phone?: string | null },
 ): Promise<CreateOrderResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
@@ -105,7 +113,13 @@ export async function startProductPurchaseBySlug(
     return { ok: false, error: "This product isn't available." };
   }
   return createProductOrder(
-    { productId: product.id, email, createdBy: null },
+    {
+      productId: product.id,
+      email,
+      createdBy: null,
+      name: buyer?.name ?? null,
+      phone: buyer?.phone ?? null,
+    },
     origin,
   );
 }

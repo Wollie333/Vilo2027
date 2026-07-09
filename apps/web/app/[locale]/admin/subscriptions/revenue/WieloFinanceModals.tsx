@@ -105,6 +105,8 @@ export function WieloFinanceModals({
   const action = request?.action ?? null;
 
   const [email, setEmail] = useState("");
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerPhone, setBuyerPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [productId, setProductId] = useState("");
@@ -115,6 +117,8 @@ export function WieloFinanceModals({
   useEffect(() => {
     if (!request) return;
     setEmail(request.email ?? "");
+    setBuyerName("");
+    setBuyerPhone("");
     setAmount("");
     setReason("");
     setProductId(products[0]?.id ?? "");
@@ -205,6 +209,8 @@ export function WieloFinanceModals({
         const r = await createWieloPaymentLinkAction({
           email: email.trim(),
           productId,
+          name: buyerName.trim() || null,
+          phone: buyerPhone.trim() || null,
         });
         setLink(r.url);
         toast.success("Payment link created — copy and send it.");
@@ -295,6 +301,30 @@ export function WieloFinanceModals({
                 })}
               </select>
             </label>
+            {!link ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className={labelCls}>Buyer name (optional)</span>
+                  <input
+                    type="text"
+                    value={buyerName}
+                    onChange={(e) => setBuyerName(e.target.value)}
+                    placeholder="Full name"
+                    className={fieldCls}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelCls}>Buyer phone (optional)</span>
+                  <input
+                    type="tel"
+                    value={buyerPhone}
+                    onChange={(e) => setBuyerPhone(e.target.value)}
+                    placeholder="+27…"
+                    className={fieldCls}
+                  />
+                </label>
+              </div>
+            ) : null}
             {link ? (
               <div className="rounded-[10px] border border-brand-line bg-brand-light/50 p-3">
                 <div className={labelCls}>Payment link — send to the host</div>

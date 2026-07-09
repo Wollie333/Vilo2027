@@ -100,6 +100,9 @@ export const recordManualLedgerEntryAction = withAdminAudit<
 const paymentLinkSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email."),
   productId: z.string().uuid("Pick a product."),
+  // Optional buyer details — stored on the (guest) user created for the order.
+  name: z.string().trim().max(120).optional().nullable(),
+  phone: z.string().trim().max(40).optional().nullable(),
   // Unused by the flow, but lets the withAdminAudit generic (TArgs extends
   // { reason?: string }) accept these args.
   reason: z.string().optional(),
@@ -136,6 +139,8 @@ export const createWieloPaymentLinkAction = withAdminAudit<
         productId: parsed.data.productId,
         email: parsed.data.email,
         createdBy: admin.userId,
+        name: parsed.data.name ?? null,
+        phone: parsed.data.phone ?? null,
       },
       base,
     );
