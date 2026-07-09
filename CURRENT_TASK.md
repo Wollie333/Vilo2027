@@ -2,7 +2,46 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-09 #27) — Commerce model Phase 3b (admin multi-sub surfaces) ✅ DONE + verified live. NEXT = Phase 4
+## ▶▶▶ SAVE POINT (2026-07-09 #28) — Host self-serve pause + cancel-request→paused ✅ DONE + verified live. NEXT = Phase 4
+
+**Read [[project-host-membership-pause-cancel]] + [[project-wielo-commerce-model]].** `pnpm build` +
+tsc + lint GREEN. Pushed to main. Working tree clean. Sole super_admin = wollie@manamarketing.co.za
+(temp grant on the test host revoked; test cards removed after verification).
+
+**DONE this session (#28) — host membership pause/cancel-request:**
+- Founder rule: host can **pause** their membership; a **cancel request** does NOT hard-cancel —
+  membership → **`paused`** and Wielo is **notified** (card in the host's Wielo Support thread) so a
+  human handles the real cancel manually. (Founder: "just be notified so a manual process can manage
+  the cancellation manually" — notification only, not a parallel status flag.)
+- `dashboard/settings/subscription/actions.ts`: `pauseSubscriptionAction`, `requestCancellationAction`
+  (both post a card via new `hostPostToWieloThread`), `reactivateSubscriptionAction` un-pauses; removed
+  dead-end `cancelSubscriptionAction`. All host self-serve sub lookups now **membership-scoped**
+  (`membershipSubId` helper) — multi-sub safe (host may hold membership + services).
+- `components/inbox/ChatMessageWall.tsx`: `subscription_paused` (amber) + `cancellation_requested`
+  (red) render as cards. `lib/inbox/platform-thread.ts`: `hostPostToWieloThread({..., systemEvent})`.
+- `CancelButton.tsx` → Pause / Request cancellation / Resume controls; `subscription/page.tsx` derives
+  the membership row + `paused` status pill.
+- Live proof: Pause → paused + card in /admin/inbox; Resume → active; Request cancellation → paused +
+  card. Verified both cards render in the admin host thread; test data cleaned up.
+
+**Still deferred from #27:** redeploy `supabase functions deploy paystack-webhook` (safe while single-sub).
+
+**NEXT — Phase 4 (auto-ledger on admin change):** admin upgrade/add → charge + invoice; downgrade →
+**credit note by default, admin CHOOSES refund vs credit note** + **timing now vs end-of-cycle**.
+Auto-record on the live ledger with the doc, keyed by (host_id, product_id). Wire into
+`adminUpdateSubscriptionAction` / `setUserProductAction` (detect old→new delta). Founder DECISIONS in
+plan §4. When a host has REQUESTED cancellation (membership `paused` + a `cancellation_requested` card
+in their Wielo thread), the admin actions the real cancel + credit-note/refund there. Then Phase 5
+(guest txn history in `/portal/settings` + `/dashboard/settings`).
+
+GOTCHAS: preview cookies are per-PORT (a new preview port = re-login); use **preview_* tools** (not
+claude-in-chrome); `supabase db query` batch returns only the LAST select's rows; deleting inbox
+messages leaves `conversations.unread_*`/`last_message_*` stale (reset them); test host `0b111111-…`,
+user `1899ee6c-…`, Starter sub `0b111111-…aa`.
+
+---
+
+## ▶▶▶ SAVE POINT (2026-07-09 #27) — Commerce model Phase 3b (admin multi-sub surfaces) ✅ DONE. (superseded by #28)
 
 **Read `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` + memory [[project-wielo-commerce-model]] FIRST.**
 `pnpm build` + tsc + lint GREEN. All pushed to main. Working tree clean. Sole super_admin =

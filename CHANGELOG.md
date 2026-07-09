@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-09 #28 — Host self-serve: pause + cancel-request→paused (notifies Wielo inbox).
+
+Founder rule: a host can **pause** their membership, and a **cancel request** does NOT hard-cancel —
+the membership goes to **`paused`** and Wielo is **notified** (a card in the host's Wielo Support
+thread) so a human manages the real cancellation manually. Verified live (temp admin grant → revoked;
+test cards removed after). tsc + lint + build green.
+
+- **Host actions** (`dashboard/settings/subscription/actions.ts`): new `pauseSubscriptionAction`
+  (active→paused) + `requestCancellationAction` (→paused, posts a `cancellation_requested` card to the
+  host's Wielo thread); `reactivateSubscriptionAction` now also un-pauses (paused→active). Replaced the
+  dead-end `cancelSubscriptionAction`. All host self-serve lookups are now **membership-scoped** via a
+  new `membershipSubId` helper (a host can hold membership + services — no more `.eq(host_id).maybeSingle()`).
+- **Cards** (`ChatMessageWall.tsx`): renders `subscription_paused` (amber pause) + `cancellation_requested`
+  (red X) system messages as cards. New host-side poster `hostPostToWieloThread` (posts as the host,
+  read_by_guest=false → bumps the admin/Wielo unread) with an optional `systemEvent` for the card.
+- **Host UI** (`CancelButton.tsx` → controls; `subscription/page.tsx`): active membership shows **Pause
+  membership** + **Request cancellation**; paused shows **Resume membership** + an "on hold" note.
+  Membership row is derived from all host subs (multi-sub safe); `paused` gets a status pill.
+- Live proof: Pause → `paused` + "Membership paused" card in `/admin/inbox`; Resume → `active`;
+  Request cancellation → `paused` + "Cancellation requested" card. Both cards shown to admin.
+
 ## 2026-07-09 #27 — Commerce model Phase 3b: admin surfaces multi-subscription.
 
 Made the admin user-record + webhook honour the multi-subscription model (1 membership + N

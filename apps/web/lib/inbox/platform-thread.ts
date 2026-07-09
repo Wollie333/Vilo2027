@@ -181,6 +181,34 @@ export async function adminPostToHostThread(
   return conversationId;
 }
 
+// Post a message into a host's Wielo thread FROM the host side (e.g. a self-serve
+// cancellation request). sender = the host's owner user; read_by_host=true (they
+// sent it), read_by_guest=false → the unread trigger bumps the Wielo/admin side so
+// it surfaces as unread in /admin/inbox.
+export async function hostPostToWieloThread(
+  admin: Admin,
+  args: {
+    host: { id: string; userId: string };
+    body: string;
+    // Optional rich system card (e.g. "subscription_paused",
+    // "cancellation_requested") — ChatMessageWall renders these as a card.
+    systemEvent?: string;
+  },
+): Promise<string> {
+  const conversationId = await ensureWieloThread(admin, args.host);
+  const { error } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: args.host.userId,
+    body: args.body,
+    is_system_message: !!args.systemEvent,
+    system_event: args.systemEvent ?? null,
+    read_by_host: true,
+    read_by_guest: false,
+  });
+  if (error) throw new Error(`hostPostToWieloThread: ${error.message}`);
+  return conversationId;
+}
+
 // Post a payment link into a host's Wielo thread as a rich `payment_link` SYSTEM
 // message so ChatMessageWall renders the pay CARD (icon + product/amount line +
 // Pay button) rather than a plain text URL. Posted AS "Wielo Support".

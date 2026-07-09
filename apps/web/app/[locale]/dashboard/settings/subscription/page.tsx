@@ -96,13 +96,15 @@ export default async function SettingsSubscriptionPage() {
     { data: billingRaw },
     { data: wieloInvoices },
   ] = await Promise.all([
+    // A host may hold 1 membership + N services; this page manages the MEMBERSHIP.
+    // Fetch all rows (+ product_type) and pick the membership below.
     supabase
       .from("subscriptions")
       .select(
-        "id, plan, product_id, billing_cycle, status, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason",
+        "id, plan, product_id, billing_cycle, status, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason, product:products ( product_type )",
       )
       .eq("host_id", host.id)
-      .maybeSingle(),
+      .order("created_at", { ascending: true }),
     supabase
       .from("subscription_history")
       .select(
@@ -133,7 +135,7 @@ export default async function SettingsSubscriptionPage() {
     }
   }
 
-  const sub = subRaw as {
+  type SubRow = {
     id: string;
     plan: PlanKey;
     product_id: string | null;
@@ -145,7 +147,19 @@ export default async function SettingsSubscriptionPage() {
     cancel_at_period_end: boolean;
     cancelled_at: string | null;
     cancellation_reason: string | null;
-  } | null;
+    product:
+      | { product_type: string | null }
+      | { product_type: string | null }[]
+      | null;
+  };
+  const subRows = (subRaw as SubRow[] | null) ?? [];
+  const pt = (r: SubRow): string | null => {
+    const p = Array.isArray(r.product) ? r.product[0] : r.product;
+    return p?.product_type ?? null;
+  };
+  // The MEMBERSHIP row is the one this page manages (fall back to the first sub).
+  const sub: SubRow | null =
+    subRows.find((r) => pt(r) === "membership") ?? subRows[0] ?? null;
 
   const currentPlan: PlanKey = sub?.plan ?? "free";
   const currentCycle: "monthly" | "annual" | null = sub?.billing_cycle ?? null;
@@ -247,8 +261,8 @@ export default async function SettingsSubscriptionPage() {
             {sub && !currentIsFree ? (
               <div className="mt-5">
                 <CancelButton
+                  status={sub.status}
                   scheduledForCancel={sub.cancel_at_period_end}
-                  currentPeriodEnd={sub.current_period_end}
                 />
               </div>
             ) : null}
@@ -398,6 +412,7 @@ function StatusPill({ status }: { status: string }) {
       "bg-status-pending/10 text-status-pending border-status-pending/30",
     restricted:
       "bg-status-cancelled/10 text-status-cancelled border-status-cancelled/30",
+    paused: "bg-status-pending/10 text-status-pending border-status-pending/30",
     cancelled: "bg-brand-light text-brand-mute border-brand-line",
     expired: "bg-brand-light text-brand-mute border-brand-line",
   };

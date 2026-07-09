@@ -7,6 +7,8 @@ import {
   CreditCard,
   KeyRound,
   Paperclip,
+  PauseCircle,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
@@ -308,6 +310,55 @@ export function ChatMessageWall({
                           pending={m.pending}
                         />
                       ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Subscription lifecycle request (host paused / requested cancellation)
+            // — a card in the Wielo Support thread so admin can action it manually.
+            if (
+              m.isSystem &&
+              (m.systemEvent === "subscription_paused" ||
+                m.systemEvent === "cancellation_requested")
+            ) {
+              const cancelReq = m.systemEvent === "cancellation_requested";
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <div
+                    className={`mx-auto my-1 max-w-[420px] rounded-card border bg-white p-4 shadow-sm ${
+                      cancelReq
+                        ? "border-status-cancelled/30"
+                        : "border-status-pending/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`flex h-7 w-7 items-center justify-center rounded-full text-white ${
+                          cancelReq
+                            ? "bg-status-cancelled"
+                            : "bg-status-pending"
+                        }`}
+                      >
+                        {cancelReq ? (
+                          <XCircle className="h-4 w-4" />
+                        ) : (
+                          <PauseCircle className="h-4 w-4" />
+                        )}
+                      </span>
+                      <span className="font-display text-[14px] font-bold text-brand-ink">
+                        {cancelReq
+                          ? "Cancellation requested"
+                          : "Membership paused"}
+                      </span>
+                    </div>
+                    <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-brand-ink">
+                      {m.body}
+                    </p>
+                    <div className="mt-1.5 text-right font-mono text-[10.5px] text-brand-mute">
+                      {fmtClock(m.createdAt)}
                     </div>
                   </div>
                 </div>

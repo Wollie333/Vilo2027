@@ -10,11 +10,39 @@ import {
 } from "@/lib/billing/platform-billing";
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
 import { requireHost as getMyHostId } from "@/lib/host/current";
+import { hostPostToWieloThread } from "@/lib/inbox/platform-thread";
 import { getPlan } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 const CYCLE_VALUES = ["monthly", "annual"] as const;
+
+// A host may now hold 1 membership + N services. Every self-serve plan control
+// (switch / pause / cancel) acts on the MEMBERSHIP row — resolve its id first so
+// we never `.maybeSingle()` across several subscriptions. Falls back to the sole
+// (or first) sub for legacy single-sub accounts.
+async function membershipSubId(
+  supabase: ReturnType<typeof createServerClient>,
+  hostId: string,
+): Promise<string | null> {
+  const { data: rows } = await supabase
+    .from("subscriptions")
+    .select("id, product_id")
+    .eq("host_id", hostId);
+  if (!rows || rows.length === 0) return null;
+  const pids = rows.map((r) => r.product_id).filter((x): x is string => !!x);
+  if (pids.length) {
+    const { data: mems } = await supabase
+      .from("products")
+      .select("id")
+      .in("id", pids)
+      .eq("product_type", "membership");
+    const memIds = new Set((mems ?? []).map((m) => m.id));
+    const found = rows.find((r) => r.product_id && memIds.has(r.product_id));
+    if (found) return found.id;
+  }
+  return rows[0].id;
+}
 
 // Plan key is validated against the DB catalog (custom plans allowed), not a
 // fixed enum — so the admin can add/rename plans without code changes.
@@ -71,14 +99,17 @@ export async function switchPlanAction(input: {
 
   const supabase = createServerClient();
 
-  // Fetch existing sub (host_manage_own_sub policy gates this).
-  const { data: existing } = await supabase
-    .from("subscriptions")
-    .select(
-      "id, plan, status, trial_ends_at, current_period_end, billing_cycle",
-    )
-    .eq("host_id", host.hostId)
-    .maybeSingle();
+  // Fetch the host's MEMBERSHIP sub (host_manage_own_sub policy gates this).
+  const subId = await membershipSubId(supabase, host.hostId);
+  const { data: existing } = subId
+    ? await supabase
+        .from("subscriptions")
+        .select(
+          "id, plan, status, trial_ends_at, current_period_end, billing_cycle",
+        )
+        .eq("id", subId)
+        .maybeSingle()
+    : { data: null };
 
   const now = new Date();
 
@@ -192,11 +223,14 @@ export async function startPlanCheckoutAction(input: {
   if (!host.ok) return host;
 
   const supabase = createServerClient();
-  const { data: existing } = await supabase
-    .from("subscriptions")
-    .select("plan, trial_ends_at")
-    .eq("host_id", host.hostId)
-    .maybeSingle();
+  const subId = await membershipSubId(supabase, host.hostId);
+  const { data: existing } = subId
+    ? await supabase
+        .from("subscriptions")
+        .select("plan, trial_ends_at")
+        .eq("id", subId)
+        .maybeSingle()
+    : { data: null };
 
   const everTrialed = existing?.trial_ends_at != null;
   const fromPaid = existing ? !(await getPlan(existing.plan))?.isFree : false;
@@ -257,11 +291,14 @@ export async function switchToProductAction(input: {
   } = await supabase.auth.getUser();
   if (!user?.email) return { ok: false, error: "Please sign in." };
 
-  const { data: existing } = await supabase
-    .from("subscriptions")
-    .select("id, plan, product_id")
-    .eq("host_id", host.hostId)
-    .maybeSingle();
+  const subId = await membershipSubId(supabase, host.hostId);
+  const { data: existing } = subId
+    ? await supabase
+        .from("subscriptions")
+        .select("id, plan, product_id")
+        .eq("id", subId)
+        .maybeSingle()
+    : { data: null };
 
   if (existing?.product_id === product.id) {
     return { ok: false, error: "You're already on this plan." };
@@ -343,36 +380,104 @@ function newPeriodEndFrom(start: Date, cycle: "monthly" | "annual"): Date {
   return cycle === "annual" ? addMonths(start, 12) : addMonths(start, 1);
 }
 
-// Cancellation is a downgrade — admin-only (it triggers the credit-note/refund
-// decision that's Wielo's call). Hosts are routed to Wielo support instead of
-// self-cancelling; kept as a guard in case the action is invoked directly.
-export async function cancelSubscriptionAction(): Promise<ActionResult> {
+// Host self-serve PAUSE: put the membership on hold (status → paused). Reversible
+// via reactivate. Only from a live state. Posts a card into the host's Wielo
+// Support thread so admin sees it.
+export async function pauseSubscriptionAction(): Promise<ActionResult> {
   const host = await getMyHostId();
   if (!host.ok) return host;
-  return {
-    ok: false,
-    error: "Cancellations are handled by Wielo support — message us to cancel.",
-  };
+
+  const supabase = createServerClient();
+  const subId = await membershipSubId(supabase, host.hostId);
+  if (!subId) return { ok: false, error: "No subscription on file." };
+  const { data: existing } = await supabase
+    .from("subscriptions")
+    .select("id, status")
+    .eq("id", subId)
+    .maybeSingle();
+  if (!existing) return { ok: false, error: "No subscription on file." };
+  if (!["trialing", "active", "past_due"].includes(existing.status)) {
+    return { ok: false, error: "Only an active membership can be paused." };
+  }
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({ status: "paused" })
+    .eq("id", existing.id);
+  if (error) return { ok: false, error: error.message };
+
+  // Notify Wielo (a card in the host's support thread) — admin-client post so it
+  // isn't gated by the host's inbox RLS.
+  try {
+    await hostPostToWieloThread(createAdminClient(), {
+      host: { id: host.hostId, userId: host.userId },
+      body: "I've paused my membership. It's on hold for now.",
+      systemEvent: "subscription_paused",
+    });
+  } catch {
+    // Non-fatal: the pause succeeded even if the notification post fails.
+  }
+
+  revalidatePath("/dashboard/settings/subscription");
+  return { ok: true };
 }
 
+// Host self-serve CANCELLATION REQUEST: does NOT hard-cancel. The membership goes
+// to `paused` and Wielo is NOTIFIED (a card in the host's support thread) so a
+// human manages the real cancellation (credit-note/refund + timing) manually.
+export async function requestCancellationAction(): Promise<ActionResult> {
+  const host = await getMyHostId();
+  if (!host.ok) return host;
+
+  const supabase = createServerClient();
+  const subId = await membershipSubId(supabase, host.hostId);
+  if (!subId) return { ok: false, error: "No subscription on file." };
+
+  const { error } = await supabase
+    .from("subscriptions")
+    .update({ status: "paused" })
+    .eq("id", subId);
+  if (error) return { ok: false, error: error.message };
+
+  try {
+    await hostPostToWieloThread(createAdminClient(), {
+      host: { id: host.hostId, userId: host.userId },
+      body: "I'd like to cancel my membership. Please help me close it off.",
+      systemEvent: "cancellation_requested",
+    });
+  } catch {
+    // Non-fatal: the request (paused) stands even if the notification post fails.
+  }
+
+  revalidatePath("/dashboard/settings/subscription");
+  return { ok: true };
+}
+
+// Resume a paused membership OR revert a scheduled cancel — back to active.
 export async function reactivateSubscriptionAction(): Promise<ActionResult> {
   const host = await getMyHostId();
   if (!host.ok) return host;
 
   const supabase = createServerClient();
+  const subId = await membershipSubId(supabase, host.hostId);
+  if (!subId) return { ok: false, error: "No subscription on file." };
   const { data: existing } = await supabase
     .from("subscriptions")
-    .select("id, cancel_at_period_end")
-    .eq("host_id", host.hostId)
+    .select("id, status, cancel_at_period_end")
+    .eq("id", subId)
     .maybeSingle();
   if (!existing) return { ok: false, error: "No subscription on file." };
-  if (!existing.cancel_at_period_end) {
-    return { ok: false, error: "Subscription isn't scheduled to cancel." };
+  if (existing.status !== "paused" && !existing.cancel_at_period_end) {
+    return {
+      ok: false,
+      error: "Subscription isn't paused or scheduled to cancel.",
+    };
   }
 
   const { error } = await supabase
     .from("subscriptions")
     .update({
+      status: "active",
       cancel_at_period_end: false,
       cancelled_at: null,
       cancellation_reason: null,
