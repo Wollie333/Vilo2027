@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-09 #35 — Admin: sell once-off products from a user's Products tab.
+
+The Products-tab catalog only listed subscriptions, so once-off products (e.g. Wielo StayFlow Web-design)
+never appeared. Now `getInternalCatalog()` loads ALL active product types (ignores is_visible) and the tab
+shows a "Products (one-off)" section with a **Sell** flow: `sellProductAction` "Mark as paid now" records
+a completed sale (paid order + manual charge → invoice mints + affiliate) or "Send pay-link" creates a
+pending order + pay-link + a pay card in the buyer's Wielo inbox. Guests work too (order only). Verified
+live: StayFlow shows under Products (one-off); mark-paid → R5999 charge + INV-0023; pay-link → link +
+inbox card. (Note: "Test Concierge Service" was investigated first — it's already fully removed from the
+DB/code; only the real products remain.)
+
 ## 2026-07-09 #34 — Inbox: buyer pay card flips to "payment pending" / "payment received".
 
 Completes the transactional-notification loop: when a buyer picks EFT (bank details shown), their inbox

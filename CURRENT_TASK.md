@@ -30,6 +30,13 @@ card, 4b end-of-cycle scheduled changes + cron. Migrations `20260709150000`/`160
   **"Payment pending"** on EFT-intent and **"Payment received"** on card/PayPal settle;
   `payment_pending`/`payment_received` renderers in ChatMessageWall.
 
+**Also shipped after #34 (`adfd9bc2`) — sell once-off products:** the admin user Products tab now shows
+a **"Products (one-off)"** section (via new `getInternalCatalog()` — all active product types, ignores
+is_visible) with a **Sell** flow: `sellProductAction` mark-paid (paid order + completed manual charge →
+invoice mints + affiliate) or send-pay-link (order + link + inbox pay card; guests get order only). ("Test
+Concierge Service" was already fully removed from DB/code — only the real products remain: Starter, Beta,
+Wielo StayFlow Web-design.)
+
 **NEXT — Phase 5 (guest transaction history):** show a buyer's Wielo purchases (`product_orders` +
 `wielo_invoices` + credit notes/refunds, downloadable docs) in `/portal/settings` (guest) +
 `/dashboard/settings` (host). Ties to PRODUCT_PURCHASE_LIFECYCLE_PLAN.md. Then affiliate hardening (LAST).
