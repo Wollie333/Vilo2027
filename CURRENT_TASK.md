@@ -2,7 +2,53 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-09 #31) — Phase 4b end-of-cycle timing (scheduled changes + cron) ✅ DONE + verified live. Commerce Phase 4 COMPLETE. NEXT = Phase 5 (guest txn history)
+## ▶▶▶ SAVE POINT (2026-07-09 #34) — Commerce Phase 4 COMPLETE + admin batch (uniform records · Latest-actions notifications · pay-card status) ✅ DONE + verified live. NEXT = Phase 5 (guest txn history)
+
+**Read [[project-wielo-commerce-model]] + [[reference-admin-notifications]] FIRST.** `pnpm build` + tsc +
+lint GREEN. All pushed to main (latest `e0b202d9`). Working tree clean. Sole super_admin =
+wollie@manamarketing.co.za (temp grant revoked). Everything below verified live via the preview.
+
+**Commerce Phase 4 is COMPLETE** (see #31 detail below + [[project-wielo-commerce-model]]): 4a immediate
+auto-ledger (cancel→credit/refund, upgrade→charge), 4a-2b upgrade pay-link w/ deferred activation + inbox
+card, 4b end-of-cycle scheduled changes + cron. Migrations `20260709150000`/`160000`.
+
+**Admin batch shipped after Phase 4 (this stretch):**
+- **Standardised inbox cards** (`1f8daaa4`): one `InboxSystemCard` (gradient header, tones
+  brand/amber/rose/sky) for ALL system messages (payment/upgrade/access/pause/cancel/enquiry).
+- **Guest Products tab + per-user Wielo ledger + portal listing menu** (`d4d4cec0`): guest records get
+  the Products tab (activating a product provisions them as a host via `lib/hosts/ensureHostForUser`;
+  `setUserProductAction` takes `userId`); Finance tab renders the user↔Wielo ledger via `AdminLedgerList`
+  (booking-ledger styling) with a **Wielo/Bookings pill toggle**; admin listings ⋯ menu portalled to
+  `<body>` (fixed z-[60]).
+- **Uniform user records + "Latest actions" notifications** (`bb1da4c2`): every user record shows the
+  SAME 9 tabs (guest or host; empty states for guests). New `admin_notifications` table (migration
+  `20260709170000`, finance|support, staff-read RLS) + `lib/admin/notify.ts` `notifyAdmins`, emitted on
+  payment-init (`recordProductEftIntent`, `startProductPaystack`) + host pause/cancel-request; the admin
+  dashboard "Recent admin activity" card is replaced by a **"Latest actions"** feed (category icon,
+  unread dots, deep links).
+- **Buyer pay card status flip** (`e0b202d9`): `setPayCardStatus` flips the buyer's inbox pay card to
+  **"Payment pending"** on EFT-intent and **"Payment received"** on card/PayPal settle;
+  `payment_pending`/`payment_received` renderers in ChatMessageWall.
+
+**NEXT — Phase 5 (guest transaction history):** show a buyer's Wielo purchases (`product_orders` +
+`wielo_invoices` + credit notes/refunds, downloadable docs) in `/portal/settings` (guest) +
+`/dashboard/settings` (host). Ties to PRODUCT_PURCHASE_LIFECYCLE_PLAN.md. Then affiliate hardening (LAST).
+
+**Deferred / TODO (small):** (1) EFT **marked-received** (manual admin settle) doesn't yet flip the pay
+card to "Payment received" — only card/PayPal settle does; wire the EFT-settle admin action to
+`setPayCardStatus(...,'received')`. (2) redeploy `supabase functions deploy paystack-webhook` (carries
+the `activate_on_pay` guard). (3) admin notification **emit** is wired + the feed verified, but a full
+click-to-pay E2E of the card-init insert wasn't driven (EFT one WAS driven live).
+
+GOTCHAS: restart preview after **server-action** edits (HMR misses them; preview_start may reuse a stale
+process → stop first); `supabase db query` batch returns only the LAST select; commit-msg hook rejects a
+capitalised subject word (lead lowercase); `pnpm build` corrupts `.next` while a preview is up → stop +
+`rm -rf .next`; test host `0b111111-1111-4111-8111-111111111111` / user `1899ee6c-…` / Wielo thread
+`daa1cb9e-…` / support user `2befa19e-…`; a guest test = `gerku@gmail.com` `7fcab608-…` (revert host after).
+
+---
+
+## ▶▶▶ SAVE POINT (2026-07-09 #31) — Phase 4b end-of-cycle timing (scheduled changes + cron) ✅ DONE + verified live. Commerce Phase 4 COMPLETE. (superseded by #34)
 
 **Read [[project-wielo-commerce-model]] + `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` §4.** `pnpm build` +
 tsc + lint GREEN. Pushed to main (`ee250394`). Working tree clean. Sole super_admin =

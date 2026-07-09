@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-07-09 #34 — Inbox: buyer pay card flips to "payment pending" / "payment received".
+
+Completes the transactional-notification loop: when a buyer picks EFT (bank details shown), their inbox
+pay card flips to a "Payment pending" card; on settle (card/PayPal) it flips to "Payment received".
+`setPayCardStatus` (platform-thread) matches the card by the order's pay-token in its attachment_url and
+swaps its `system_event`; emitted from `recordProductEftIntent` (pending) + the settle paths (received);
+new `payment_pending` / `payment_received` renderers in ChatMessageWall (via InboxSystemCard). Verified
+live end-to-end (clicked Pay-with-EFT → pending charge + admin notification + amber pending card).
+Note: EFT marked-received (manual admin settle) doesn't yet flip the card to received (only card/PayPal).
+
 ## 2026-07-09 #33 — Admin: uniform user records + transactional "Latest actions" notifications.
 
 Two founder requests. tsc + lint + build green; verified live (grant → revoked; seeded feed + guest tabs).
