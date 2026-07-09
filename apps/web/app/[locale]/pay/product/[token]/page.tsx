@@ -3,13 +3,16 @@ import { notFound } from "next/navigation";
 
 import { Building2, Hash, Mail, Package } from "lucide-react";
 
-import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
+import {
+  capturePayPalProductOrder,
+  confirmProductOrderByReference,
+} from "@/lib/billing/product-checkout";
 import { getWieloBusinessProfile } from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { PayButton } from "./PayButton";
+import { PayButton, PayPalButton } from "./PayButton";
 import { Receipt } from "./Receipt";
 
 export const metadata: Metadata = {
@@ -24,16 +27,20 @@ export default async function ProductPayPage({
   searchParams,
 }: {
   params: { token: string };
-  searchParams: { reference?: string; trxref?: string };
+  // reference/trxref = Paystack return; token = PayPal return (?token=<orderId>).
+  searchParams: { reference?: string; trxref?: string; token?: string };
 }) {
   const service = createAdminClient();
 
-  // Primary settle path: Paystack redirects back here with ?reference=…&trxref=…
-  // Confirm server-side BEFORE reading the order so the page renders the paid
-  // state immediately (the webhook is only an idempotent backstop).
+  // Primary settle path: Paystack redirects back with ?reference=…&trxref=…;
+  // PayPal returns with ?token=<orderId>. Settle server-side BEFORE reading the
+  // order so the page renders the paid state immediately (the webhook is only an
+  // idempotent backstop for Paystack).
   const reference = searchParams.reference ?? searchParams.trxref;
   if (reference) {
     await confirmProductOrderByReference(reference);
+  } else if (searchParams.token) {
+    await capturePayPalProductOrder(searchParams.token);
   }
 
   const { data: order } = await service
@@ -57,7 +64,7 @@ export default async function ProductPayPage({
       service
         .from("platform_payment_settings")
         .select(
-          "paystack_enabled, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
+          "paystack_enabled, paypal_enabled, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
         )
         .eq("id", true)
         .maybeSingle(),
@@ -70,6 +77,7 @@ export default async function ProductPayPage({
     : ["paystack"];
   const showPaystack =
     methods.includes("paystack") && settings?.paystack_enabled;
+  const showPaypal = methods.includes("paypal") && settings?.paypal_enabled;
   const showEft = methods.includes("eft") && settings?.eft_enabled;
   const paid = order.status === "paid";
 
@@ -123,7 +131,7 @@ export default async function ProductPayPage({
   const currency = order.currency ?? "ZAR";
   const amount = Number(order.amount);
   const issuerName = issuer.legal_name?.trim() || brandName;
-  const noMethod = !showPaystack && !showEft;
+  const noMethod = !showPaystack && !showPaypal && !showEft;
 
   return (
     // Standalone payment page — mirrors the guest booking pay page, but for a
@@ -188,6 +196,10 @@ export default async function ProductPayPage({
           </div>
 
           {showPaystack ? <PayButton token={params.token} /> : null}
+
+          {showPaypal ? (
+            <PayPalButton token={params.token} secondary={showPaystack} />
+          ) : null}
 
           {showEft ? (
             <div className="rounded-card border border-brand-line bg-white">

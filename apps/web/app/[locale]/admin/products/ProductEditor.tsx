@@ -35,7 +35,7 @@ export type EditorProduct = {
   setupFeeAffiliateType: "none" | "amount" | "percent";
   setupFeeAffiliateValue: number;
   bullets: string[];
-  paymentMethods: ("paystack" | "eft")[];
+  paymentMethods: ("paystack" | "paypal" | "eft")[];
   trialDays: number;
   isVisible: boolean;
   slug: string | null;
@@ -273,7 +273,7 @@ export function ProductEditor({
           in Payment settings.
         </p>
         <div className="flex flex-wrap gap-4">
-          {(["paystack", "eft"] as const).map((m) => (
+          {(["paystack", "paypal", "eft"] as const).map((m) => (
             <label key={m} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -288,7 +288,11 @@ export function ProductEditor({
                 }
                 className="rounded border-brand-line"
               />
-              {m === "paystack" ? "Paystack (card)" : "Manual EFT"}
+              {m === "paystack"
+                ? "Paystack (card)"
+                : m === "paypal"
+                  ? "PayPal"
+                  : "Manual EFT"}
             </label>
           ))}
         </div>

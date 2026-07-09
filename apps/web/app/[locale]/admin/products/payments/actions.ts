@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { withAdminAudit } from "@/lib/admin";
+import { encryptSecret } from "@/lib/crypto/payments";
 
 const PAY_SETTINGS_TARGET = "00000000-0000-0000-0000-0000000a7000";
 
@@ -15,6 +16,11 @@ const schema = z.object({
   paystackPublicKey: z.string().trim().max(200).optional().nullable(),
   paystackTestSecretKey: z.string().trim().max(200).optional().nullable(),
   paystackTestPublicKey: z.string().trim().max(200).optional().nullable(),
+  paypalEnabled: z.boolean(),
+  paypalEnvironment: z.enum(["live", "test"]),
+  paypalClientId: z.string().trim().max(200).optional().nullable(),
+  // Blank = keep the existing secret (we never echo it back to the client).
+  paypalSecret: z.string().trim().max(400).optional().nullable(),
   eftEnabled: z.boolean(),
   eftBankName: z.string().trim().max(120).optional().nullable(),
   eftAccountName: z.string().trim().max(120).optional().nullable(),
@@ -46,6 +52,9 @@ export const savePaymentSettingsAction = withAdminAudit<
       paystack_mode: d.paystackMode,
       paystack_public_key: d.paystackPublicKey || null,
       paystack_test_public_key: d.paystackTestPublicKey || null,
+      paypal_enabled: d.paypalEnabled,
+      paypal_environment: d.paypalEnvironment,
+      paypal_client_id: d.paypalClientId || null,
       eft_enabled: d.eftEnabled,
       eft_bank_name: d.eftBankName || null,
       eft_account_name: d.eftAccountName || null,
@@ -61,6 +70,11 @@ export const savePaymentSettingsAction = withAdminAudit<
     if (d.paystackTestSecretKey && d.paystackTestSecretKey.length > 0) {
       patch.paystack_test_secret_key = d.paystackTestSecretKey;
     }
+    // PayPal secret: encrypt at rest (AES-256-GCM, or plaintext passthrough when
+    // PAYMENT_CIPHER_KEY is unset — same as host gateway secrets). Blank = keep.
+    if (d.paypalSecret && d.paypalSecret.length > 0) {
+      patch.paypal_secret_cipher = encryptSecret(d.paypalSecret);
+    }
 
     const { error } = await service
       .from("platform_payment_settings")
@@ -71,7 +85,11 @@ export const savePaymentSettingsAction = withAdminAudit<
     revalidatePath("/admin/products/payments");
     return {
       result: { ok: true },
-      after: { paystack: d.paystackEnabled, eft: d.eftEnabled },
+      after: {
+        paystack: d.paystackEnabled,
+        paypal: d.paypalEnabled,
+        eft: d.eftEnabled,
+      },
     };
   },
 );

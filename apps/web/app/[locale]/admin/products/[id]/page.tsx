@@ -112,7 +112,10 @@ export default async function AdminProductEditorPage({
       paymentMethods: (Array.isArray(data.payment_methods)
         ? data.payment_methods
         : ["paystack"]
-      ).filter((m): m is "paystack" | "eft" => m === "paystack" || m === "eft"),
+      ).filter(
+        (m): m is "paystack" | "paypal" | "eft" =>
+          m === "paystack" || m === "paypal" || m === "eft",
+      ),
       trialDays: data.trial_days ?? 0,
       isVisible: data.is_visible ?? true,
       slug: data.slug ?? null,

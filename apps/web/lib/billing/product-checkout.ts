@@ -2,7 +2,10 @@ import "server-only";
 
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
+import { convertZarToUsd } from "@/lib/fx";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
+import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
+import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -393,6 +396,81 @@ export async function startProductPaystack(
   }
 }
 
+export type PayPalStartResult =
+  | { ok: true; approveUrl: string }
+  | { ok: false; error: string };
+
+// Start a PayPal checkout for a Wielo product order on Wielo's OWN PayPal app.
+// Mirrors startProductPaystack (same pending-ledger anchor keyed by
+// provider_reference = the PayPal order id), but PayPal is the international
+// rail: the order is created in USD (converted from the ZAR amount), while the
+// order + ledger stay in ZAR. The order is captured when the payer returns to
+// /pay/product/[token]?token=<orderId> (see capturePayPalProductOrder).
+export async function startProductPayPal(
+  payToken: string,
+  origin?: string | null,
+): Promise<PayPalStartResult> {
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("product_orders")
+    .select(
+      "id, product_id, payer_user_id, amount, currency, status, pay_token",
+    )
+    .eq("pay_token", payToken)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status === "paid") return { ok: false, error: "Already paid." };
+
+  const creds = await getPlatformPayPal();
+  if (!creds) return { ok: false, error: "PayPal isn't configured." };
+
+  const siteUrl = resolveSiteBase(origin);
+  const returnPath = `/pay/product/${payToken}`;
+  try {
+    const usd = await convertZarToUsd(Number(order.amount));
+    if (!(usd > 0)) throw new Error("Could not convert the amount to USD.");
+    const paypalOrder = await createPayPalOrder({
+      amount: usd,
+      currency: "USD",
+      description: `Wielo · ${order.id.slice(0, 8)}`,
+      returnUrl: `${siteUrl}${returnPath}`,
+      cancelUrl: `${siteUrl}${returnPath}?paypal=cancel`,
+      creds,
+    });
+    if (!paypalOrder) throw new Error("PayPal order creation failed.");
+
+    await admin
+      .from("product_orders")
+      .update({
+        provider_reference: paypalOrder.orderId,
+        method: "paypal",
+        environment: creds.env,
+      })
+      .eq("id", order.id);
+
+    // Pending revenue row (idempotency anchor for the capture flip). Kept in ZAR
+    // for a consistent ledger; the USD amount lives on the PayPal order.
+    await admin.from("platform_ledger").insert({
+      user_id: order.payer_user_id,
+      product_id: order.product_id,
+      type: "charge",
+      status: "pending",
+      amount: Number(order.amount),
+      currency: order.currency,
+      provider: "paypal",
+      provider_reference: paypalOrder.orderId,
+      environment: creds.env,
+      reason: "Product purchase",
+    });
+    return { ok: true, approveUrl: paypalOrder.approveUrl };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Couldn't start PayPal checkout.",
+    };
+  }
+}
+
 function addMonths(d: Date, n: number): string {
   const x = new Date(d);
   x.setUTCMonth(x.getUTCMonth() + n);
@@ -555,6 +633,108 @@ export async function confirmProductOrderByReference(
       .from("platform_ledger")
       .select("id")
       .eq("provider_reference", reference)
+      .maybeSingle();
+    if (row?.id) {
+      await admin.rpc("accrue_affiliate_commission", { p_ledger_id: row.id });
+    }
+  } catch {
+    // Commission accrual must never break settlement.
+  }
+
+  await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
+
+  return {
+    ok: true,
+    status: "paid",
+    payToken: order.pay_token,
+    alreadyPaid: false,
+  };
+}
+
+// Settle a product order from the public pay page on return from PayPal
+// (?token=<orderId>). The PayPal sibling of confirmProductOrderByReference:
+// capture the approved order on Wielo's OWN PayPal app, then flip the order +
+// the pending platform_ledger row to completed (invoice mints via trigger),
+// accrue affiliate commission, and activate any mapped plan. Idempotent: a
+// second call (order already paid) no-ops.
+export async function capturePayPalProductOrder(
+  orderId: string,
+): Promise<ConfirmProductResult> {
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("product_orders")
+    .select(
+      "id, product_id, payer_user_id, amount, currency, status, pay_token, environment",
+    )
+    .eq("provider_reference", orderId)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status === "paid") {
+    return {
+      ok: true,
+      status: "paid",
+      payToken: order.pay_token,
+      alreadyPaid: true,
+    };
+  }
+
+  const creds = await getPlatformPayPal();
+  if (!creds) return { ok: false, error: "PayPal isn't configured." };
+
+  const cap = await capturePayPalOrder(orderId, creds);
+  if (!cap || cap.status !== "COMPLETED") {
+    return { ok: false, error: "Payment not confirmed yet." };
+  }
+
+  const environment = order.environment ?? creds.env;
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  await admin
+    .from("product_orders")
+    .update({
+      status: "paid",
+      paid_at: nowIso,
+      method: "paypal",
+      environment,
+    })
+    .eq("id", order.id);
+
+  // Flip the pending revenue row to completed (or insert if it's missing).
+  const { data: led } = await admin
+    .from("platform_ledger")
+    .select("id, status")
+    .eq("provider_reference", orderId)
+    .maybeSingle();
+  if (led) {
+    if (led.status !== "completed") {
+      await admin
+        .from("platform_ledger")
+        .update({ status: "completed", paid_at: nowIso, environment })
+        .eq("id", led.id);
+    }
+  } else {
+    await admin.from("platform_ledger").insert({
+      user_id: order.payer_user_id,
+      product_id: order.product_id,
+      type: "charge",
+      status: "completed",
+      amount: Number(order.amount),
+      currency: order.currency,
+      provider: "paypal",
+      provider_reference: orderId,
+      environment,
+      paid_at: nowIso,
+      reason: "Product purchase",
+    });
+  }
+
+  // Accrue affiliate commission if the payer was referred (idempotent RPC).
+  try {
+    const { data: row } = await admin
+      .from("platform_ledger")
+      .select("id")
+      .eq("provider_reference", orderId)
       .maybeSingle();
     if (row?.id) {
       await admin.rpc("accrue_affiliate_commission", { p_ledger_id: row.id });

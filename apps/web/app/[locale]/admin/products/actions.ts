@@ -39,7 +39,9 @@ const upsertSchema = z.object({
   setupFeeAffiliateType: z.enum(["none", "amount", "percent"]).default("none"),
   setupFeeAffiliateValue: z.number().min(0).max(10_000_000).default(0),
   bullets: z.array(z.string().trim().min(1).max(200)).max(20),
-  paymentMethods: z.array(z.enum(["paystack", "eft"])).default(["paystack"]),
+  paymentMethods: z
+    .array(z.enum(["paystack", "paypal", "eft"]))
+    .default(["paystack"]),
   trialDays: z.number().int().min(0).max(365).default(0),
   isVisible: z.boolean().default(true),
   reason: z.string().optional(),

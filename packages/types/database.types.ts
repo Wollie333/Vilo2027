@@ -5723,6 +5723,10 @@ export type Database = {
           eft_enabled: boolean
           eft_reference_hint: string | null
           id: boolean
+          paypal_client_id: string | null
+          paypal_enabled: boolean
+          paypal_environment: string
+          paypal_secret_cipher: string | null
           paystack_enabled: boolean
           paystack_mode: string
           paystack_public_key: string | null
@@ -5739,6 +5743,10 @@ export type Database = {
           eft_enabled?: boolean
           eft_reference_hint?: string | null
           id?: boolean
+          paypal_client_id?: string | null
+          paypal_enabled?: boolean
+          paypal_environment?: string
+          paypal_secret_cipher?: string | null
           paystack_enabled?: boolean
           paystack_mode?: string
           paystack_public_key?: string | null
@@ -5755,6 +5763,10 @@ export type Database = {
           eft_enabled?: boolean
           eft_reference_hint?: string | null
           id?: boolean
+          paypal_client_id?: string | null
+          paypal_enabled?: boolean
+          paypal_environment?: string
+          paypal_secret_cipher?: string | null
           paystack_enabled?: boolean
           paystack_mode?: string
           paystack_public_key?: string | null

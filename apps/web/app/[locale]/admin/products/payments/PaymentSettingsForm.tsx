@@ -16,6 +16,10 @@ export type PaymentSettings = {
   paystackPublicKey: string;
   hasTestSecret: boolean;
   paystackTestPublicKey: string;
+  paypalEnabled: boolean;
+  paypalEnvironment: "live" | "test";
+  paypalClientId: string;
+  hasPaypalSecret: boolean;
   eftEnabled: boolean;
   eftBankName: string;
   eftAccountName: string;
@@ -29,6 +33,7 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
   const [f, setF] = useState(initial);
   const [secret, setSecret] = useState("");
   const [testSecret, setTestSecret] = useState("");
+  const [paypalSecret, setPaypalSecret] = useState("");
   const [pending, start] = useTransition();
 
   function set<K extends keyof PaymentSettings>(k: K, v: PaymentSettings[K]) {
@@ -44,6 +49,10 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
         paystackPublicKey: f.paystackPublicKey.trim() || null,
         paystackTestSecretKey: testSecret.trim() || null,
         paystackTestPublicKey: f.paystackTestPublicKey.trim() || null,
+        paypalEnabled: f.paypalEnabled,
+        paypalEnvironment: f.paypalEnvironment,
+        paypalClientId: f.paypalClientId.trim() || null,
+        paypalSecret: paypalSecret.trim() || null,
         eftEnabled: f.eftEnabled,
         eftBankName: f.eftBankName.trim() || null,
         eftAccountName: f.eftAccountName.trim() || null,
@@ -55,6 +64,7 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
         toast.success("Payment settings saved.");
         setSecret("");
         setTestSecret("");
+        setPaypalSecret("");
         router.refresh();
       } else {
         toast.error(r.error);
@@ -167,6 +177,74 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
             />
           </Field>
         </div>
+      </section>
+
+      {/* PayPal (Wielo's own account) */}
+      <section className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <label className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
+          <input
+            type="checkbox"
+            checked={f.paypalEnabled}
+            onChange={(e) => set("paypalEnabled", e.target.checked)}
+            className="rounded border-brand-line"
+          />
+          PayPal for Wielo
+        </label>
+        <p className="text-[12px] text-brand-mute">
+          Wielo&apos;s own PayPal app. PayPal is the international rail —
+          products are charged in USD (converted from the ZAR price). The client
+          secret is stored encrypted and never shown again.
+        </p>
+
+        {/* Environment — sandbox vs live */}
+        <div className="space-y-1.5">
+          <span className="block text-[11.5px] font-semibold uppercase tracking-wider text-brand-mute">
+            Environment
+          </span>
+          <div className="inline-flex rounded-pill border border-brand-line bg-brand-light p-0.5">
+            {(["live", "test"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => set("paypalEnvironment", m)}
+                className={`rounded-pill px-3.5 py-1.5 text-[12.5px] font-semibold capitalize transition-colors ${
+                  f.paypalEnvironment === m
+                    ? m === "test"
+                      ? "bg-status-pending text-white"
+                      : "bg-brand-primary text-white"
+                    : "text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {m === "test" ? "Sandbox" : "Live"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Field label="Client ID">
+          <Input
+            value={f.paypalClientId}
+            onChange={(e) => set("paypalClientId", e.target.value)}
+            placeholder="PayPal app client ID"
+            className="font-mono"
+          />
+        </Field>
+        <Field
+          label="Client secret"
+          hint={
+            f.hasPaypalSecret
+              ? "A secret is set. Leave blank to keep it, or paste a new one."
+              : "Paste the PayPal app client secret."
+          }
+        >
+          <Input
+            type="password"
+            value={paypalSecret}
+            onChange={(e) => setPaypalSecret(e.target.value)}
+            placeholder={f.hasPaypalSecret ? "•••••••• (set)" : "PayPal secret"}
+            className="font-mono"
+          />
+        </Field>
       </section>
 
       {/* EFT */}
