@@ -350,10 +350,14 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   if (order.payer_user_id && order.product_id) {
     const { data: product } = await supabase
       .from("products")
-      .select("type, slug, billing_cycle")
+      .select("product_type, slug, billing_cycle, plan_key")
       .eq("id", order.product_id)
       .maybeSingle();
-    if (product && product.type === "subscription") {
+    // Multi-subscription: membership | service become subscriptions (once-off
+    // `product` lives in product_orders only). A host holds one membership + N
+    // services, so key the row by (host_id, product_id) — never one-per-host.
+    if (product && product.product_type !== "product") {
+      const isMembership = product.product_type === "membership";
       const { data: host } = await supabase
         .from("hosts")
         .select("id")
@@ -366,16 +370,18 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
           .from("subscriptions")
           .select("id, plan")
           .eq("host_id", host.id)
+          .eq("product_id", order.product_id)
           .maybeSingle();
 
-        // Keep `plan` a valid plans.key (FK): product slug only if it matches a
-        // plan, else preserve the current plan (or default to 'free').
+        // Keep `plan` a valid plans.key (FK): the product's plan_key/slug only
+        // if it matches a plan, else preserve the current plan (or 'free').
         let plan = sub?.plan ?? "free";
-        if (product.slug) {
+        const desiredKey = product.plan_key ?? product.slug;
+        if (desiredKey) {
           const { data: planRow } = await supabase
             .from("plans")
             .select("key")
-            .eq("key", product.slug)
+            .eq("key", desiredKey)
             .maybeSingle();
           if (planRow) plan = planRow.key;
         }
@@ -391,12 +397,101 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
         if (sub) {
           await supabase.from("subscriptions").update(patch).eq("id", sub.id);
         } else {
+          // A NEW membership: retire any other active membership first so the
+          // one-per-host trigger doesn't reject the insert.
+          if (isMembership) {
+            await retireOtherMemberships(supabase, host.id, order.product_id);
+          }
           await supabase
             .from("subscriptions")
             .insert({ host_id: host.id, ...patch });
         }
       }
     }
+  }
+}
+
+// Find the subscription a membership billing event applies to. Prefer the
+// (host_id, product_id) row; else fall back to the host's membership-type
+// subscription; else the first row. Avoids maybeSingle() throwing when a host
+// holds several subscriptions.
+// deno-lint-ignore no-explicit-any
+async function findHostSubscription(
+  supabase: any,
+  hostId: string,
+  productId: string | null,
+) {
+  if (productId) {
+    const { data } = await supabase
+      .from("subscriptions")
+      .select("id, failed_payment_count")
+      .eq("host_id", hostId)
+      .eq("product_id", productId)
+      .maybeSingle();
+    if (data) return data;
+  }
+  const { data: rows } = await supabase
+    .from("subscriptions")
+    .select("id, failed_payment_count, product_id")
+    .eq("host_id", hostId);
+  if (!rows || rows.length === 0) return null;
+  // deno-lint-ignore no-explicit-any
+  const pids = rows
+    .map((r: any) => r.product_id)
+    .filter((x: string | null) => !!x);
+  if (pids.length) {
+    const { data: mems } = await supabase
+      .from("products")
+      .select("id")
+      .in("id", pids)
+      .eq("product_type", "membership");
+    // deno-lint-ignore no-explicit-any
+    const memIds = new Set((mems ?? []).map((m: any) => m.id));
+    // deno-lint-ignore no-explicit-any
+    const found = rows.find(
+      (r: any) => r.product_id && memIds.has(r.product_id),
+    );
+    if (found) return found;
+  }
+  return rows[0];
+}
+
+// Retire any active membership OTHER than keepProductId so a membership switch
+// satisfies the one-active-membership-per-host DB trigger. Mirrors the TS
+// activateMappedPlan / admin retireOtherMemberships.
+// deno-lint-ignore no-explicit-any
+async function retireOtherMemberships(
+  supabase: any,
+  hostId: string,
+  keepProductId: string,
+) {
+  const { data: active } = await supabase
+    .from("subscriptions")
+    .select("id, product_id")
+    .eq("host_id", hostId)
+    .in("status", ["trialing", "active", "past_due"]);
+  const pids = (active ?? [])
+    // deno-lint-ignore no-explicit-any
+    .map((s: any) => s.product_id)
+    .filter((x: string | null) => !!x && x !== keepProductId);
+  if (!pids.length) return;
+  const { data: mem } = await supabase
+    .from("products")
+    .select("id")
+    .in("id", pids)
+    .eq("product_type", "membership");
+  // deno-lint-ignore no-explicit-any
+  const memIds = new Set((mem ?? []).map((p: any) => p.id));
+  const retire = (active ?? [])
+    // deno-lint-ignore no-explicit-any
+    .filter((s: any) => s.product_id && memIds.has(s.product_id))
+    // deno-lint-ignore no-explicit-any
+    .map((s: any) => s.id);
+  if (retire.length) {
+    await supabase
+      .from("subscriptions")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .in("id", retire);
   }
 }
 
@@ -430,14 +525,23 @@ async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
     .eq("provider_reference", ref)
     .maybeSingle();
 
-  // The host's subscription (host_id is UNIQUE).
-  const { data: sub } = hostId
-    ? await supabase
-        .from("subscriptions")
-        .select("id, failed_payment_count")
-        .eq("host_id", hostId)
-        .maybeSingle()
-    : { data: null };
+  // Native Paystack subscription billing is the MEMBERSHIP plan. Resolve the
+  // product behind `plan` (its slug), then scope the subscription row by
+  // (host_id, product_id) — a host may now hold several subscriptions, so we
+  // must not assume one row per host.
+  let productId: string | null = null;
+  if (plan) {
+    const { data: prod } = await supabase
+      .from("products")
+      .select("id")
+      .eq("slug", plan)
+      .in("product_type", ["membership", "service"])
+      .maybeSingle();
+    productId = prod?.id ?? null;
+  }
+  const sub = hostId
+    ? await findHostSubscription(supabase, hostId, productId)
+    : null;
 
   if (event.event === "charge.success") {
     // Idempotency: already completed → nothing to do.
@@ -476,20 +580,8 @@ async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
     }
 
     if (sub) {
-      // Record the product behind this plan (if one exists) so gating resolves
-      // from product_features and the admin sees the active product. Plan-based
-      // checkout carries only `plan`; the seeded products share its slug.
-      let productId: string | null = null;
-      if (plan) {
-        const { data: prod } = await supabase
-          .from("products")
-          .select("id")
-          .eq("slug", plan)
-          .eq("type", "subscription")
-          .maybeSingle();
-        productId = prod?.id ?? null;
-      }
-
+      // `productId` (resolved above) is the product behind this plan, so gating
+      // resolves from product_features and the admin sees the active product.
       await supabase
         .from("subscriptions")
         .update({

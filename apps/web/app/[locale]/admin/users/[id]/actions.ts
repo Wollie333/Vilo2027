@@ -8,6 +8,7 @@ import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
@@ -312,13 +313,86 @@ export const addAdminUserNoteAction = withAdminAudit<
   },
 );
 
+// ─── Multi-subscription helpers ───────────────────────────────────────
+// A host may hold ONE active membership + MANY active service subscriptions
+// (once-off products live in product_orders only). These helpers key every
+// admin write by (host_id, product_id) — never the single-row assumption —
+// and mirror the settle-path activateMappedPlan so all paths behave alike.
+type SubService = ReturnType<typeof createAdminClient>;
+type SubProduct = {
+  id: string;
+  slug: string | null;
+  product_type: string | null;
+  billing_cycle: string | null;
+  plan_key: string | null;
+};
+
+// Keep subscriptions.plan a valid plans.key (drives legacy gating): prefer the
+// product's explicit plan_key, else its slug when that's a real plan key, else
+// preserve the existing plan (or 'free' for a brand-new subscription).
+async function derivePlanKey(
+  service: SubService,
+  product: SubProduct,
+  fallback: string,
+): Promise<string> {
+  const desiredKey = product.plan_key ?? product.slug;
+  if (!desiredKey) return fallback;
+  const { data: planRow } = await service
+    .from("plans")
+    .select("key")
+    .eq("key", desiredKey)
+    .maybeSingle();
+  return planRow ? planRow.key : fallback;
+}
+
+// The one-membership rule is enforced by a DB trigger (raises on a 2nd active
+// membership). Before activating a membership we retire any OTHER active
+// membership so the write succeeds — a plain switch. The ledger credit/refund
+// on a paid downgrade is handled by the admin manage flow (Phase 4), not here.
+async function retireOtherMemberships(
+  service: SubService,
+  hostId: string,
+  keepProductId: string,
+): Promise<void> {
+  const { data: active } = await service
+    .from("subscriptions")
+    .select("id, product_id")
+    .eq("host_id", hostId)
+    .in("status", ["trialing", "active", "past_due"]);
+  const pids = (active ?? [])
+    .map((s) => s.product_id)
+    .filter((x): x is string => !!x && x !== keepProductId);
+  if (!pids.length) return;
+  const { data: mem } = await service
+    .from("products")
+    .select("id")
+    .in("id", pids)
+    .eq("product_type", "membership");
+  const memIds = new Set((mem ?? []).map((p) => p.id));
+  const retire = (active ?? [])
+    .filter((s) => s.product_id && memIds.has(s.product_id))
+    .map((s) => s.id);
+  if (retire.length) {
+    await service
+      .from("subscriptions")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .in("id", retire);
+  }
+}
+
+function addMonthsIso(n: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString();
+}
+
 // ─── Manually set a host's subscription (plan / cycle / status) ───────
 const subSchema = z.object({
   hostId: z.string().uuid(),
-  // Product-first: when a product is chosen we derive plan + cycle from it. plan/
-  // billingCycle remain for the legacy path (no product selected).
+  // Which subscription to manage — the product it's linked to. A host can hold
+  // several subscriptions (1 membership + N services), so the write MUST target
+  // (host_id, product_id). Legacy callers may omit it (falls back below).
   productId: z.string().uuid().nullable().optional(),
-  plan: z.string().min(1).max(60).optional(),
   billingCycle: z.enum(["monthly", "annual"]).nullable().optional(),
   status: z.enum([
     "trialing",
@@ -347,45 +421,69 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
     if (!parsed.success) throw new Error("Invalid subscription input.");
     const d = parsed.data;
     const now = new Date().toISOString();
+    const activeLike = ["trialing", "active", "past_due"].includes(d.status);
 
-    const { data: existing } = await service
-      .from("subscriptions")
-      .select("id, plan, product_id")
-      .eq("host_id", d.hostId)
-      .maybeSingle();
+    // Resolve the product driving this subscription. When productId is given we
+    // manage THAT subscription; when omitted (legacy) we manage the host's
+    // membership row (or the sole subscription) so old links keep working.
+    let productId: string | null | undefined = d.productId;
+    let existing:
+      | { id: string; plan: string; product_id: string | null }
+      | null
+      | undefined;
 
-    // Product-first: when a real product is chosen, link it + derive the plan
-    // (feature tier) and billing cycle FROM the product — the single source of
-    // truth — so gating (check_feature_permission) resolves correctly. Falls
-    // back to the legacy plan/cycle when no product is selected.
-    const productId: string | null | undefined = d.productId;
-    let plan = d.plan ?? existing?.plan ?? "free";
+    if (productId) {
+      const { data } = await service
+        .from("subscriptions")
+        .select("id, plan, product_id")
+        .eq("host_id", d.hostId)
+        .eq("product_id", productId)
+        .maybeSingle();
+      existing = data;
+    } else {
+      const { data: rows } = await service
+        .from("subscriptions")
+        .select("id, plan, product_id, product:products ( product_type )")
+        .eq("host_id", d.hostId);
+      const membership = (rows ?? []).find(
+        (r) =>
+          (r.product as { product_type?: string } | null)?.product_type ===
+          "membership",
+      );
+      const chosen = membership ?? (rows ?? [])[0] ?? null;
+      existing = chosen
+        ? { id: chosen.id, plan: chosen.plan, product_id: chosen.product_id }
+        : null;
+      productId = existing?.product_id ?? null;
+    }
+
+    // Derive plan (feature tier) + cycle FROM the linked product — the single
+    // source of truth — so gating resolves correctly.
+    let plan = existing?.plan ?? "free";
     let billingCycle: "monthly" | "annual" | null = d.billingCycle ?? null;
+    let isMembership = false;
 
-    if (d.productId) {
+    if (productId) {
       const { data: product } = await service
         .from("products")
-        .select("id, slug, type, billing_cycle, plan_key")
-        .eq("id", d.productId)
+        .select("id, slug, product_type, billing_cycle, plan_key")
+        .eq("id", productId)
         .maybeSingle();
       if (!product) throw new Error("Product not found.");
-      if (product.type !== "subscription") {
-        throw new Error("Only subscription products can be set as a plan.");
+      if (product.product_type === "product") {
+        throw new Error("Once-off products aren't managed as subscriptions.");
       }
-      const desiredKey = product.plan_key ?? product.slug;
-      if (desiredKey) {
-        const { data: planRow } = await service
-          .from("plans")
-          .select("key")
-          .eq("key", desiredKey)
-          .maybeSingle();
-        if (planRow) plan = planRow.key;
-      }
+      isMembership = product.product_type === "membership";
+      plan = await derivePlanKey(service, product, plan);
       billingCycle = product.billing_cycle === "annual" ? "annual" : "monthly";
     }
 
+    // Re-activating a membership must respect the one-per-host rule.
+    if (activeLike && isMembership && productId) {
+      await retireOtherMemberships(service, d.hostId, productId);
+    }
+
     const patch = {
-      // Only touch product_id when the caller sent one (undefined = leave as-is).
       ...(productId !== undefined ? { product_id: productId } : {}),
       plan,
       billing_cycle: billingCycle,
@@ -393,12 +491,23 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
       updated_at: now,
     };
 
-    const { error } = existing
-      ? await service.from("subscriptions").update(patch).eq("id", existing.id)
-      : await service
-          .from("subscriptions")
-          .insert({ host_id: d.hostId, ...patch });
-    if (error) throw new Error(error.message);
+    if (existing) {
+      const { error } = await service
+        .from("subscriptions")
+        .update(patch)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      // No row yet for this product — create it (activating the subscription).
+      const cycle = billingCycle ?? "monthly";
+      const { error } = await service.from("subscriptions").insert({
+        host_id: d.hostId,
+        ...patch,
+        current_period_start: now,
+        current_period_end: addMonthsIso(cycle === "annual" ? 12 : 1),
+      });
+      if (error) throw new Error(error.message);
+    }
 
     revalidatePath(`/admin/users`);
     return { result: { ok: true }, after: { hostId: d.hostId, ...patch } };
@@ -462,18 +571,15 @@ export const requestSupportAccessAction = withAdminAudit<
   },
 );
 
-// ─── Activate a catalog product on a user's subscription ──────────────
+// ─── Activate / add a catalog product on a user's account ─────────────
+// Multi-subscription: activating a MEMBERSHIP switches the host's membership
+// (retiring any other active one); activating a SERVICE adds its own row (many
+// allowed). Keyed by (host_id, product_id) so a host can hold several subs.
 const setProductSchema = z.object({
   hostId: z.string().uuid(),
   productId: z.string().uuid(),
   reason: z.string().optional(),
 });
-
-function addMonthsIso(n: number): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() + n);
-  return d.toISOString();
-}
 
 export const setUserProductAction = withAdminAudit<
   z.infer<typeof setProductSchema>,
@@ -492,34 +598,30 @@ export const setUserProductAction = withAdminAudit<
 
     const { data: product } = await service
       .from("products")
-      .select("id, slug, type, billing_cycle, plan_key")
+      .select("id, slug, product_type, billing_cycle, plan_key")
       .eq("id", productId)
       .maybeSingle();
     if (!product) throw new Error("Product not found.");
-    if (product.type !== "subscription") {
-      throw new Error("Only subscription products can be set as a plan.");
+    if (product.product_type === "product") {
+      throw new Error(
+        "Once-off products are purchased, not activated as a subscription.",
+      );
     }
+    const isMembership = product.product_type === "membership";
 
-    // Map the product to a plan key (drives gating): prefer its explicit
-    // plan_key, else its slug when that's a plan key; otherwise keep the current
-    // plan so the FK stays valid.
+    // Find THIS product's subscription (renew it) rather than assuming one row.
     const { data: existing } = await service
       .from("subscriptions")
       .select("id, plan")
       .eq("host_id", hostId)
+      .eq("product_id", productId)
       .maybeSingle();
 
-    let plan = existing?.plan ?? "free";
-    const desiredKey = product.plan_key ?? product.slug;
-    if (desiredKey) {
-      const { data: planRow } = await service
-        .from("plans")
-        .select("key")
-        .eq("key", desiredKey)
-        .maybeSingle();
-      if (planRow) plan = planRow.key;
-    }
-
+    const plan = await derivePlanKey(
+      service,
+      product,
+      existing?.plan ?? "free",
+    );
     const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
     const now = new Date().toISOString();
     const patch = {
@@ -532,12 +634,22 @@ export const setUserProductAction = withAdminAudit<
       updated_at: now,
     };
 
-    const { error } = existing
-      ? await service.from("subscriptions").update(patch).eq("id", existing.id)
-      : await service
-          .from("subscriptions")
-          .insert({ host_id: hostId, ...patch });
-    if (error) throw new Error(error.message);
+    if (existing) {
+      const { error } = await service
+        .from("subscriptions")
+        .update(patch)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      // New membership → retire any other active membership first (one-per-host).
+      if (isMembership) {
+        await retireOtherMemberships(service, hostId, productId);
+      }
+      const { error } = await service
+        .from("subscriptions")
+        .insert({ host_id: hostId, ...patch });
+      if (error) throw new Error(error.message);
+    }
 
     revalidatePath(`/admin/users`);
     return { result: { ok: true }, after: { hostId, ...patch } };
@@ -1240,7 +1352,6 @@ export async function adminDeletePolicy(hostId: string, policyId: string) {
 export async function adminUpdateSubscription(input: {
   hostId: string;
   productId?: string | null;
-  plan?: string;
   billingCycle?: "monthly" | "annual" | null;
   status:
     | "trialing"

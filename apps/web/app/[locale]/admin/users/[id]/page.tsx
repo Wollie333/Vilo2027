@@ -68,11 +68,11 @@ export default async function AdminUserDetailPage({
       ? service
           .from("subscriptions")
           .select(
-            "plan, status, billing_cycle, trial_ends_at, current_period_end, cancel_at_period_end, product_id",
+            "id, plan, status, billing_cycle, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, product_id, created_at, product:products ( name, product_type, price, currency )",
           )
           .eq("host_id", host.id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] }),
     fetchWieloLedger(service, { userId: user.id, limit: 100 }),
     service
       .from("bookings")
@@ -380,9 +380,104 @@ export default async function AdminUserDetailPage({
     }
   }
 
-  const sub = (subResult as { data: UserRecordData["subscription"] }).data;
+  // Multi-subscription: a host can hold 1 membership + N services. Enrich each
+  // row with its product (name / type / price) for the Products tab.
+  type SubJoinRow = {
+    id: string;
+    plan: string;
+    status: string;
+    billing_cycle: string | null;
+    trial_ends_at: string | null;
+    current_period_start: string | null;
+    current_period_end: string | null;
+    cancel_at_period_end: boolean | null;
+    product_id: string | null;
+    product:
+      | {
+          name: string | null;
+          product_type: string | null;
+          price: number | null;
+          currency: string | null;
+        }
+      | {
+          name: string | null;
+          product_type: string | null;
+          price: number | null;
+          currency: string | null;
+        }[]
+      | null;
+  };
+  const subRows = ((subResult as { data: SubJoinRow[] | null }).data ?? []).map(
+    (r) => {
+      const prod = one(r.product);
+      return {
+        id: r.id,
+        productId: r.product_id,
+        productName: prod?.name ?? null,
+        productType: (prod?.product_type ?? null) as
+          | "membership"
+          | "service"
+          | "product"
+          | null,
+        plan: r.plan,
+        status: r.status,
+        billingCycle: r.billing_cycle,
+        currentPeriodEnd: r.current_period_end,
+        trialEndsAt: r.trial_ends_at,
+        cancelAtPeriodEnd: r.cancel_at_period_end ?? false,
+        price: prod?.price != null ? Number(prod.price) : null,
+        currency: prod?.currency ?? null,
+      };
+    },
+  );
+  // The membership row is the headline subscription (Overview highlight);
+  // fall back to the first row so older single-sub accounts still show.
+  const membershipRow =
+    subRows.find((r) => r.productType === "membership") ?? subRows[0] ?? null;
+  const sub: UserRecordData["subscription"] = membershipRow
+    ? {
+        plan: membershipRow.plan,
+        status: membershipRow.status,
+        billing_cycle: membershipRow.billingCycle,
+        trial_ends_at: membershipRow.trialEndsAt,
+        current_period_end: membershipRow.currentPeriodEnd,
+        cancel_at_period_end: membershipRow.cancelAtPeriodEnd,
+        product_id: membershipRow.productId,
+      }
+    : null;
 
-  // Catalog products for the Products tab (manage the user's subscription).
+  // Once-off product purchases (product_orders whose product is a `product`).
+  // Subscriptions (membership / service) already surface as subscriptions above.
+  const productPurchases: UserRecordData["productPurchases"] = host
+    ? await (async () => {
+        const { data } = await service
+          .from("product_orders")
+          .select(
+            "id, product_name, amount, currency, status, method, paid_at, created_at, product:products ( product_type )",
+          )
+          .eq("payer_user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        return (data ?? [])
+          .filter((o) => {
+            const pt = one(o.product)?.product_type;
+            // Show once-off products (and orphaned orders); a membership/service
+            // order is represented by its subscription row instead.
+            return pt !== "membership" && pt !== "service";
+          })
+          .map((o) => ({
+            id: o.id,
+            productName: o.product_name,
+            amount: Number(o.amount ?? 0),
+            currency: o.currency ?? "ZAR",
+            status: o.status,
+            method: o.method ?? null,
+            date: o.paid_at ?? o.created_at,
+          }));
+      })()
+    : [];
+
+  // Catalog products for the Products tab (manage the user's subscriptions).
   const catalog = host ? await getSubscriptionProducts() : [];
 
   // Referrals this user has made as an affiliate (their affiliate link's signups).
@@ -416,6 +511,8 @@ export default async function AdminUserDetailPage({
         }
       : null,
     subscription: sub,
+    subscriptions: subRows,
+    productPurchases,
     counts: {
       bookingsAsGuest: bookingsAsGuestCount ?? 0,
       refunds: refundsCount ?? 0,
@@ -466,6 +563,7 @@ export default async function AdminUserDetailPage({
       billingCycle: p.billingCycle,
       trialDays: p.trialDays,
       slug: p.slug,
+      productType: p.productType,
       isFree: p.isFree,
       isRecommended: p.isRecommended,
       bullets: p.bullets,

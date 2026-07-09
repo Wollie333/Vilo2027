@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-09 #27 — Commerce model Phase 3b: admin surfaces multi-subscription.
+
+Made the admin user-record + webhook honour the multi-subscription model (1 membership + N
+services + N once-off product purchases) shipped in Phase 3. Verified live (temp super_admin
+grant on the test host → revoked; test service product seeded → removed). tsc + lint + build green.
+
+- **Admin actions key by (host_id, product_id)** (`admin/users/[id]/actions.ts`): `setUserProductAction`
+  and `adminUpdateSubscriptionAction` no longer assume one sub per host (was `.eq(host_id).maybeSingle()`
+  — breaks with several rows). Shared helpers `derivePlanKey` + `retireOtherMemberships`; activating a
+  membership retires any other active membership first (one-per-host trigger); a service adds/updates its
+  own row; Manage/cancel targets exactly that product's subscription. Uses `product_type` (not legacy
+  `type`); rejects managing a once-off `product` as a subscription. Dropped the now-unused `plan` arg.
+- **Loader lists all subs + purchases** (`admin/users/[id]/page.tsx`): loads ALL subscriptions for the
+  host (enriched with product name/type/price via join) + once-off `product_orders` (product_type=`product`).
+  `subscription` (single, for the Overview highlight) is now derived as the membership row.
+- **Products tab rebuilt** (`UserRecord.tsx`): "Subscriptions (N)" lists every sub (membership + services)
+  each with a type badge, status pill, price, renews/trial + a scoped **Manage** dialog; "Product purchases"
+  table for once-off orders; catalog split into **Memberships** (Switch/Active) + **Services** (Add/Active).
+  Manage dialog is scoped to one subscription (read-only product name + status). Overview highlight shows
+  the membership + a "+N services" chip.
+- **paystack-webhook** (`supabase/functions/paystack-webhook`): `processProductEvent` activation mirrors
+  `activateMappedPlan` (product_type, (host_id, product_id) keying, membership retire); `processSubscriptionEvent`
+  resolves the membership product up front and scopes the sub via new `findHostSubscription` (no more
+  host_id `.maybeSingle()`). **Needs redeploy** (`supabase functions deploy paystack-webhook`) — deferred:
+  the live single-sub data still works with the old function, so this is safe to deploy when convenient.
+- Live proof: added a service → host held 2 active subs (membership untouched); cancelled the service via
+  Manage → only the service went `cancelled`; "Switch to this" on another membership → old membership
+  retired first, no trigger error.
+
 ## 2026-07-08 #23 — Nav cleanup (Inbox under Users, hide Help & Staff), real pay-link URL, real product in Details.
 
 Founder MVP tidy-ups.

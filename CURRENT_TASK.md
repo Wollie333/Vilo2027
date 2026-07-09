@@ -2,7 +2,57 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-09 #26) — Wielo commerce model: Phases 1-3 + host upgrade-only ✅ DONE. NEXT = Phase 3b then 4
+## ▶▶▶ SAVE POINT (2026-07-09 #27) — Commerce model Phase 3b (admin multi-sub surfaces) ✅ DONE + verified live. NEXT = Phase 4
+
+**Read `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` + memory [[project-wielo-commerce-model]] FIRST.**
+`pnpm build` + tsc + lint GREEN. All pushed to main. Working tree clean. Sole super_admin =
+wollie@manamarketing.co.za (temp grant on the test host was revoked). Verified live end to end
+via the preview server (see proof below).
+
+**DONE this session (#27) — Phase 3b, all keyed by (host_id, product_id):**
+- **Admin actions** (`app/[locale]/admin/users/[id]/actions.ts`): `setUserProductAction` +
+  `adminUpdateSubscriptionAction` no longer assume one sub/host. Shared helpers `derivePlanKey`
+  + `retireOtherMemberships`; membership activation retires other active memberships first
+  (one-per-host DB trigger); service = own row; Manage/cancel targets exactly that product's
+  sub. `product_type` (not legacy `type`); rejects managing a once-off `product`. Dropped `plan` arg.
+- **Loader** (`app/[locale]/admin/users/[id]/page.tsx`): loads ALL subs (enriched w/ product
+  name/type/price) + once-off `product_orders`; `subscription` (Overview highlight) derived as
+  the membership row. New `UserRecordData.subscriptions[]` + `productPurchases[]`; products gain `productType`.
+- **Products tab** (`UserRecord.tsx`): "Subscriptions (N)" cards (type badge, status, price,
+  renews/trial, scoped Manage) + "Product purchases" table + catalog split Memberships (Switch/Active)
+  / Services (Add/Active). Manage dialog scoped to one sub. Overview shows membership + "+N services".
+- **paystack-webhook**: `processProductEvent` mirrors `activateMappedPlan`; `processSubscriptionEvent`
+  resolves membership product up front + new `findHostSubscription` (no host_id `.maybeSingle()`).
+  ⏳ **ONE outward step left: redeploy** `supabase functions deploy paystack-webhook`. SAFE to defer —
+  live single-sub data still works with the deployed old function; only matters once real multi-sub
+  data exists in prod. (Prod webhook currently uses legacy `type`/one-per-host — fine today.)
+
+**Live proof (#27):** temp super_admin on host@wielotest.com + seeded a "Test Concierge Service"
+service product. Added it → host held 2 active subs (membership untouched). Cancelled it via Manage
+→ only the service went cancelled (membership intact). "Switch to this" (Beta) → old membership
+(Starter) retired first, Beta active, NO trigger error. All test data + grant removed after; host
+restored to its single Starter membership.
+
+**NEXT — Phase 4 (auto-ledger on admin change):** admin upgrade/add → charge + invoice; downgrade →
+**credit note by default, admin CHOOSES refund vs credit note** + **timing now vs end-of-cycle**
+(end-of-cycle = scheduled change applied by billing cron). Auto-record on the live ledger with the
+doc, keyed by (host_id, product_id). Wire into `adminUpdateSubscriptionAction` / `setUserProductAction`
+(detect old→new delta). Founder DECISIONS already captured in the plan §4. Then Phase 5 (guest txn
+history in `/portal/settings` + `/dashboard/settings`).
+
+**Also queued (separate):** PRODUCT_PURCHASE_LIFECYCLE_PLAN.md (on-purchase inbox card + email +
+failed→regenerate — pairs with Phase 5); AFFILIATE_HARDENING_PLAN.md (LAST). PayPal E2E capture still
+needs the founder's sandbox BUYER login.
+
+GOTCHAS: restart the preview after new component files / server-action edits (HMR misses them); use
+the **preview_* tools** (not claude-in-chrome) for this project's dev server; commit-msg hook rejects
+Sentence/PascalCase/UPPER subjects (lead lowercase); verify admin pages via a temp `platform_staff`
+super_admin grant on host@wielotest.com (`1899ee6c-…`) → REVOKE after; `products.payment_methods` is
+`text[]` (use `ARRAY[...]::text[]`), `bullets` is jsonb; a host is `0b111111-…`, its user `1899ee6c-…`.
+
+---
+
+## ▶▶▶ SAVE POINT (2026-07-09 #26) — Wielo commerce model: Phases 1-3 + host upgrade-only ✅ DONE. (superseded by #27)
 
 **Read `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` + memory [[project-wielo-commerce-model]] FIRST.**
 Founder vision: run the whole business off ONE system — memberships, services, once-off

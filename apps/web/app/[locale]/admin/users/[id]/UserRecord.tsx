@@ -166,6 +166,31 @@ export type UserRecordData = {
     cancel_at_period_end: boolean;
     product_id: string | null;
   } | null;
+  // Every subscription the host holds (1 membership + N services), enriched.
+  subscriptions: {
+    id: string;
+    productId: string | null;
+    productName: string | null;
+    productType: "membership" | "service" | "product" | null;
+    plan: string;
+    status: string;
+    billingCycle: string | null;
+    currentPeriodEnd: string | null;
+    trialEndsAt: string | null;
+    cancelAtPeriodEnd: boolean;
+    price: number | null;
+    currency: string | null;
+  }[];
+  // Once-off product purchases (product_orders whose product is a `product`).
+  productPurchases: {
+    id: string;
+    productName: string;
+    amount: number;
+    currency: string;
+    status: string;
+    method: string | null;
+    date: string;
+  }[];
   products: {
     id: string;
     name: string;
@@ -175,6 +200,7 @@ export type UserRecordData = {
     billingCycle: string | null;
     trialDays: number;
     slug: string | null;
+    productType: string;
     isFree: boolean;
     isRecommended: boolean;
     bullets: string[];
@@ -427,12 +453,20 @@ export function UserRecord({ data }: { data: UserRecordData }) {
   const [phone, setPhone] = useState(user.phone ?? "");
   const [role, setRole] = useState(user.role ?? "guest");
   const [reason, setReason] = useState("");
-  const [subProductId, setSubProductId] = useState<string>(
-    data.subscription?.product_id ?? data.products[0]?.id ?? "",
-  );
-  const [subStatus, setSubStatus] = useState<(typeof SUB_STATUSES)[number]>(
-    (data.subscription?.status as (typeof SUB_STATUSES)[number]) ?? "active",
-  );
+  // Manage-subscription dialog is scoped to ONE subscription (a host may hold
+  // several) — opened with that sub's product + status.
+  const [subProductId, setSubProductId] = useState<string>("");
+  const [subStatus, setSubStatus] =
+    useState<(typeof SUB_STATUSES)[number]>("active");
+  const openManage = (productId: string | null, status: string) => {
+    setSubProductId(productId ?? "");
+    setSubStatus(
+      (SUB_STATUSES as readonly string[]).includes(status)
+        ? (status as (typeof SUB_STATUSES)[number])
+        : "active",
+    );
+    setDialog("managesub");
+  };
   const [editBiz, setEditBiz] = useState<BusinessItem | null>(null);
 
   const close = () => {
@@ -545,10 +579,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
 
             {/* Products — the user's subscription + purchased products */}
             {tab === "products" && host ? (
-              <ProductsPanel
-                data={data}
-                onManage={() => setDialog("managesub")}
-              />
+              <ProductsPanel data={data} onManage={openManage} />
             ) : null}
 
             {/* Finance — the Wielo + booking ledger */}
@@ -764,32 +795,19 @@ export function UserRecord({ data }: { data: UserRecordData }) {
         open={dialog === "managesub"}
         onOpenChange={(o) => (o ? null : close())}
         title="Manage subscription"
-        description="Set this host's plan, billing cycle and status (e.g. place on hold)."
+        description="Change this subscription's status (e.g. place on hold or cancel)."
       >
         <div className="space-y-4">
-          <Lbl label="Product">
-            {data.products.length === 0 ? (
-              <div className="rounded-md border border-brand-line bg-brand-light/40 px-3 py-2 text-[12.5px] text-brand-mute">
-                No subscription products configured. Create one in the Products
-                hub.
-              </div>
-            ) : (
-              <select
-                value={subProductId}
-                onChange={(e) => setSubProductId(e.target.value)}
-                className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-              >
-                {data.products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} —{" "}
-                    {p.isFree ? "Free" : formatMoney(p.price, p.currency)}
-                    {p.billingCycle ? ` / ${p.billingCycle}` : ""}
-                  </option>
-                ))}
-              </select>
-            )}
+          <Lbl label="Subscription">
+            <div className="rounded-md border border-brand-line bg-brand-light/40 px-3 py-2 text-[13px] font-medium text-brand-ink">
+              {data.subscriptions.find((r) => r.productId === subProductId)
+                ?.productName ??
+                data.products.find((p) => p.id === subProductId)?.name ??
+                "Subscription"}
+            </div>
             <p className="mt-1 text-[11px] text-brand-mute">
               The plan (feature tier) and billing cycle are set by the product.
+              Cancelling stops feature access for this subscription.
             </p>
           </Lbl>
           <Lbl label="Status">
@@ -1514,11 +1532,25 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
               </h3>
               {s ? (
                 <div className="space-y-2.5">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-display text-lg font-bold capitalize text-brand-ink">
-                      {s.plan}
+                      {data.subscriptions.find(
+                        (r) => r.productType === "membership",
+                      )?.productName ?? s.plan}
                     </span>
                     <SubStatusPill status={s.status} />
+                    {(() => {
+                      const services = data.subscriptions.filter(
+                        (r) =>
+                          r.productType === "service" &&
+                          ["trialing", "active", "past_due"].includes(r.status),
+                      ).length;
+                      return services > 0 ? (
+                        <span className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold text-brand-mute">
+                          +{services} service{services > 1 ? "s" : ""}
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                   <dl className="grid grid-cols-2 gap-2.5">
                     <IconFact icon={CreditCard} k="Cycle" v={s.billing_cycle} />
@@ -1618,27 +1650,35 @@ function IconFact({
   );
 }
 
+const SUB_TYPE_LABEL: Record<string, string> = {
+  membership: "Membership",
+  service: "Service",
+  product: "Product",
+};
+
 function ProductsPanel({
   data,
   onManage,
 }: {
   data: UserRecordData;
-  onManage: () => void;
+  onManage: (productId: string | null, status: string) => void;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
-  const s = data.subscription;
   const hostId = data.host?.id ?? null;
+  const subs = data.subscriptions;
 
-  // A product is "active" on the account if it's the linked product, or (legacy
-  // / plan-mapped) its slug matches the subscription's plan key.
-  const isActive = (p: UserRecordData["products"][number]): boolean => {
-    if (!s) return false;
-    if (s.product_id && p.id === s.product_id) return true;
-    if (!s.product_id && p.slug && p.slug === s.plan) return true;
-    return false;
-  };
+  const LIVE = ["trialing", "active", "past_due"];
+  const isLive = (st: string) => LIVE.includes(st);
+
+  // Which catalog products already sit on the account (a linked subscription).
+  const subByProduct = new Map(
+    subs.filter((r) => r.productId).map((r) => [r.productId as string, r]),
+  );
+  const activeMembership = subs.find(
+    (r) => r.productType === "membership" && isLive(r.status),
+  );
 
   function activate(productId: string) {
     if (!hostId) return;
@@ -1647,7 +1687,7 @@ function ProductsPanel({
       const r = await setUserProduct({ hostId, productId });
       setBusyId(null);
       if (r.ok) {
-        toast.success("Product activated on this account.");
+        toast.success("Product added to this account.");
         router.refresh();
       } else {
         toast.error(r.error);
@@ -1663,122 +1703,228 @@ function ProductsPanel({
     annual: "year",
   };
 
-  return (
-    <div className="space-y-5">
-      {/* Current subscription summary */}
-      <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-              Current subscription
-            </div>
-            {s ? (
-              <div className="mt-1 flex items-center gap-2">
-                <span className="font-display text-lg font-bold text-brand-ink">
-                  {s.plan}
-                </span>
-                <SubStatusPill status={s.status} />
-              </div>
-            ) : (
-              <div className="mt-1 text-sm text-brand-mute">
-                No subscription on file yet.
-              </div>
-            )}
+  const memberships = data.products.filter(
+    (p) => p.productType === "membership",
+  );
+  const services = data.products.filter((p) => p.productType === "service");
+
+  // One catalog card (add / switch / manage). `kind` drives the button label.
+  const renderCatalog = (p: UserRecordData["products"][number]) => {
+    const linked = subByProduct.get(p.id);
+    const onAccount = !!linked && isLive(linked.status);
+    const cycle = cycleLabel[p.billingCycle ?? "monthly"] ?? "month";
+    const isMembership = p.productType === "membership";
+    const canSwitchMembership =
+      isMembership && !onAccount && !!activeMembership;
+    return (
+      <div
+        key={p.id}
+        className={`relative flex flex-col rounded-card border p-5 shadow-card ${
+          onAccount
+            ? "border-brand-primary ring-1 ring-brand-primary"
+            : "border-brand-line"
+        } bg-white`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="font-display text-base font-bold text-brand-ink">
+            {p.name}
           </div>
-          {s ? (
-            <Button size="sm" variant="outline" onClick={onManage}>
-              Manage status &amp; cycle
-            </Button>
+          {onAccount ? (
+            <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-confirmed">
+              <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
+              Active
+            </span>
           ) : null}
         </div>
-        {s ? (
-          <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Fact k="Cycle" v={s.billing_cycle} />
-            <Fact k="Renews" v={fmtDate(s.current_period_end)} />
-            <Fact k="Trial ends" v={fmtDate(s.trial_ends_at)} />
-          </dl>
+        <div className="mt-2 flex items-baseline gap-1">
+          <span className="font-display text-2xl font-bold text-brand-ink">
+            {p.isFree ? "Free" : formatMoney(p.price, p.currency)}
+          </span>
+          {!p.isFree ? (
+            <span className="text-xs text-brand-mute">/{cycle}</span>
+          ) : null}
+        </div>
+        {p.bullets.length > 0 ? (
+          <ul className="mt-3 space-y-1.5">
+            {p.bullets.slice(0, 4).map((b, i) => (
+              <li key={i} className="text-[12px] leading-snug text-brand-mute">
+                • {b}
+              </li>
+            ))}
+          </ul>
         ) : null}
+        <div className="mt-4 flex items-center gap-2 pt-1">
+          {onAccount ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onManage(linked!.productId, linked!.status)}
+            >
+              Manage
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              disabled={pending || !hostId}
+              onClick={() => activate(p.id)}
+            >
+              {busyId === p.id
+                ? "Adding…"
+                : canSwitchMembership
+                  ? "Switch to this"
+                  : isMembership
+                    ? "Activate"
+                    : "Add"}
+            </Button>
+          )}
+          <Link
+            href={`/admin/products/${p.id}`}
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary hover:underline"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Edit
+          </Link>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Active subscriptions — 1 membership + N services */}
+      <section>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            Subscriptions{subs.length ? ` (${subs.length})` : ""}
+          </div>
+        </div>
+        {subs.length === 0 ? (
+          <section className="rounded-card border border-brand-line bg-white p-5 text-sm text-brand-mute shadow-card">
+            No subscriptions on file yet. Add one from the catalog below.
+          </section>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {subs.map((r) => {
+              const cycle = cycleLabel[r.billingCycle ?? "monthly"] ?? "month";
+              return (
+                <div
+                  key={r.id}
+                  className="flex flex-col rounded-card border border-brand-line bg-white p-5 shadow-card"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-base font-bold text-brand-ink">
+                          {r.productName ?? r.plan}
+                        </span>
+                        {r.productType ? (
+                          <span className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-mute">
+                            {SUB_TYPE_LABEL[r.productType] ?? r.productType}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-1">
+                        <SubStatusPill status={r.status} />
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onManage(r.productId, r.status)}
+                    >
+                      Manage
+                    </Button>
+                  </div>
+                  {r.price != null ? (
+                    <div className="mt-3 flex items-baseline gap-1">
+                      <span className="font-display text-xl font-bold text-brand-ink">
+                        {r.price <= 0
+                          ? "Free"
+                          : formatMoney(r.price, r.currency ?? "ZAR")}
+                      </span>
+                      {r.price > 0 ? (
+                        <span className="text-xs text-brand-mute">
+                          /{cycle}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Fact k="Renews" v={fmtDate(r.currentPeriodEnd)} />
+                    <Fact k="Trial ends" v={fmtDate(r.trialEndsAt)} />
+                  </dl>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Product catalog — activate / manage */}
+      {/* Once-off product purchases */}
+      {data.productPurchases.length > 0 ? (
+        <section>
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            Product purchases ({data.productPurchases.length})
+          </div>
+          <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+            <table className="w-full text-[13px]">
+              <tbody>
+                {data.productPurchases.map((o) => (
+                  <tr
+                    key={o.id}
+                    className="border-b border-brand-line last:border-0"
+                  >
+                    <td className="px-4 py-2.5 font-medium text-brand-ink">
+                      {o.productName}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-brand-ink">
+                      {formatMoney(o.amount, o.currency)}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <StatusPill status={o.status} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-brand-mute">
+                      {fmtDate(o.date)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
+      {/* Catalog — add a membership / service */}
       <div>
         <div className="mb-2 text-[12px] text-brand-mute">
-          Products on the system. Click a product to activate it on this
-          account; the active one is marked. Edit a product in the Products hub.
+          Catalog. A host holds one membership + any number of services. Add or
+          switch below; edit a product in the Products hub.
         </div>
         {data.products.length === 0 ? (
           <section className="rounded-card border border-brand-line bg-white p-5 text-sm text-brand-mute shadow-card">
             No subscription products configured yet.
           </section>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {data.products.map((p) => {
-              const active = isActive(p);
-              const cycle = cycleLabel[p.billingCycle ?? "monthly"] ?? "month";
-              return (
-                <div
-                  key={p.id}
-                  className={`relative flex flex-col rounded-card border p-5 shadow-card ${
-                    active
-                      ? "border-brand-primary ring-1 ring-brand-primary"
-                      : "border-brand-line"
-                  } bg-white`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="font-display text-base font-bold text-brand-ink">
-                      {p.name}
-                    </div>
-                    {active ? (
-                      <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-confirmed">
-                        <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
-                        Active
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-1">
-                    <span className="font-display text-2xl font-bold text-brand-ink">
-                      {p.isFree ? "Free" : formatMoney(p.price, p.currency)}
-                    </span>
-                    {!p.isFree ? (
-                      <span className="text-xs text-brand-mute">/{cycle}</span>
-                    ) : null}
-                  </div>
-                  {p.bullets.length > 0 ? (
-                    <ul className="mt-3 space-y-1.5">
-                      {p.bullets.slice(0, 4).map((b, i) => (
-                        <li
-                          key={i}
-                          className="text-[12px] leading-snug text-brand-mute"
-                        >
-                          • {b}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <div className="mt-4 flex items-center gap-2 pt-1">
-                    {active ? (
-                      <Button size="sm" variant="outline" onClick={onManage}>
-                        Manage
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        disabled={pending || !hostId}
-                        onClick={() => activate(p.id)}
-                      >
-                        {busyId === p.id ? "Activating…" : "Activate"}
-                      </Button>
-                    )}
-                    <Link
-                      href={`/admin/products/${p.id}`}
-                      className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary hover:underline"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" /> Edit
-                    </Link>
-                  </div>
+          <div className="space-y-5">
+            {memberships.length > 0 ? (
+              <div>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Memberships
                 </div>
-              );
-            })}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {memberships.map(renderCatalog)}
+                </div>
+              </div>
+            ) : null}
+            {services.length > 0 ? (
+              <div>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Services
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {services.map(renderCatalog)}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
