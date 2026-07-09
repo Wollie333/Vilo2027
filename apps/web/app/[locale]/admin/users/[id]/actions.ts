@@ -315,8 +315,11 @@ export const addAdminUserNoteAction = withAdminAudit<
 // ─── Manually set a host's subscription (plan / cycle / status) ───────
 const subSchema = z.object({
   hostId: z.string().uuid(),
-  plan: z.string().min(1).max(60),
-  billingCycle: z.enum(["monthly", "annual"]).nullable(),
+  // Product-first: when a product is chosen we derive plan + cycle from it. plan/
+  // billingCycle remain for the legacy path (no product selected).
+  productId: z.string().uuid().nullable().optional(),
+  plan: z.string().min(1).max(60).optional(),
+  billingCycle: z.enum(["monthly", "annual"]).nullable().optional(),
   status: z.enum([
     "trialing",
     "active",
@@ -349,13 +352,45 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
 
     const { data: existing } = await service
       .from("subscriptions")
-      .select("id")
+      .select("id, plan, product_id")
       .eq("host_id", d.hostId)
       .maybeSingle();
 
+    // Product-first: when a real product is chosen, link it + derive the plan
+    // (feature tier) and billing cycle FROM the product — the single source of
+    // truth — so gating (check_feature_permission) resolves correctly. Falls
+    // back to the legacy plan/cycle when no product is selected.
+    const productId: string | null | undefined = d.productId;
+    let plan = d.plan ?? existing?.plan ?? "free";
+    let billingCycle: "monthly" | "annual" | null = d.billingCycle ?? null;
+
+    if (d.productId) {
+      const { data: product } = await service
+        .from("products")
+        .select("id, slug, type, billing_cycle, plan_key")
+        .eq("id", d.productId)
+        .maybeSingle();
+      if (!product) throw new Error("Product not found.");
+      if (product.type !== "subscription") {
+        throw new Error("Only subscription products can be set as a plan.");
+      }
+      const desiredKey = product.plan_key ?? product.slug;
+      if (desiredKey) {
+        const { data: planRow } = await service
+          .from("plans")
+          .select("key")
+          .eq("key", desiredKey)
+          .maybeSingle();
+        if (planRow) plan = planRow.key;
+      }
+      billingCycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+    }
+
     const patch = {
-      plan: d.plan,
-      billing_cycle: d.billingCycle,
+      // Only touch product_id when the caller sent one (undefined = leave as-is).
+      ...(productId !== undefined ? { product_id: productId } : {}),
+      plan,
+      billing_cycle: billingCycle,
       status: d.status,
       updated_at: now,
     };
@@ -1208,8 +1243,9 @@ export async function adminDeletePolicy(hostId: string, policyId: string) {
 
 export async function adminUpdateSubscription(input: {
   hostId: string;
-  plan: string;
-  billingCycle: "monthly" | "annual" | null;
+  productId?: string | null;
+  plan?: string;
+  billingCycle?: "monthly" | "annual" | null;
   status:
     | "trialing"
     | "active"

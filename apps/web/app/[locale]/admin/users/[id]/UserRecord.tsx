@@ -427,11 +427,8 @@ export function UserRecord({ data }: { data: UserRecordData }) {
   const [phone, setPhone] = useState(user.phone ?? "");
   const [role, setRole] = useState(user.role ?? "guest");
   const [reason, setReason] = useState("");
-  const [subPlan, setSubPlan] = useState(
-    data.subscription?.plan ?? data.planOptions[0]?.key ?? "free",
-  );
-  const [subCycle, setSubCycle] = useState<"monthly" | "annual">(
-    (data.subscription?.billing_cycle as "monthly" | "annual") ?? "monthly",
+  const [subProductId, setSubProductId] = useState<string>(
+    data.subscription?.product_id ?? data.products[0]?.id ?? "",
   );
   const [subStatus, setSubStatus] = useState<(typeof SUB_STATUSES)[number]>(
     (data.subscription?.status as (typeof SUB_STATUSES)[number]) ?? "active",
@@ -771,30 +768,30 @@ export function UserRecord({ data }: { data: UserRecordData }) {
         description="Set this host's plan, billing cycle and status (e.g. place on hold)."
       >
         <div className="space-y-4">
-          <Lbl label="Plan">
-            <select
-              value={subPlan}
-              onChange={(e) => setSubPlan(e.target.value)}
-              className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-            >
-              {data.planOptions.map((p) => (
-                <option key={p.key} value={p.key}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </Lbl>
-          <Lbl label="Billing cycle">
-            <select
-              value={subCycle}
-              onChange={(e) =>
-                setSubCycle(e.target.value as "monthly" | "annual")
-              }
-              className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="annual">Annual</option>
-            </select>
+          <Lbl label="Product">
+            {data.products.length === 0 ? (
+              <div className="rounded-md border border-brand-line bg-brand-light/40 px-3 py-2 text-[12.5px] text-brand-mute">
+                No subscription products configured. Create one in the Products
+                hub.
+              </div>
+            ) : (
+              <select
+                value={subProductId}
+                onChange={(e) => setSubProductId(e.target.value)}
+                className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+              >
+                {data.products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} —{" "}
+                    {p.isFree ? "Free" : formatMoney(p.price, p.currency)}
+                    {p.billingCycle ? ` / ${p.billingCycle}` : ""}
+                  </option>
+                ))}
+              </select>
+            )}
+            <p className="mt-1 text-[11px] text-brand-mute">
+              The plan (feature tier) and billing cycle are set by the product.
+            </p>
           </Lbl>
           <Lbl label="Status">
             <select
@@ -815,14 +812,13 @@ export function UserRecord({ data }: { data: UserRecordData }) {
         <FormModalFooter>
           <FormModalCancel onClick={close} />
           <Button
-            disabled={pending || !host}
+            disabled={pending || !host || !subProductId}
             onClick={() =>
               host
                 ? run(
                     adminUpdateSubscription({
                       hostId: host.id,
-                      plan: subPlan,
-                      billingCycle: subCycle,
+                      productId: subProductId || null,
                       status: subStatus,
                     }),
                     "Subscription updated.",
