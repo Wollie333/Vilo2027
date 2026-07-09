@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { Link } from "@/i18n/navigation";
 
 import { TOUR_STEPS, type TourPlacement } from "./steps";
-import { isTourDone, markTourDone, onStartTour } from "./tourBus";
+import { markTourDone, onStartTour } from "./tourBus";
 
 const PAD = 8; // spotlight padding around the target
 const GAP = 16; // tooltip gap from the target
@@ -60,18 +60,11 @@ export function DashboardTour() {
     setActive(true);
   }, []);
 
-  // External launch requests + first-visit auto-start.
+  // External launch requests only. The first-visit auto-start was removed — the
+  // tour no longer pops up on first login; it's launched manually via TourButton.
   useEffect(() => {
     const off = onStartTour(start);
-    let timer: number | undefined;
-    if (!isTourDone()) {
-      // Give the sidebar a beat to render before we measure anchors.
-      timer = window.setTimeout(() => setActive(true), 700);
-    }
-    return () => {
-      off();
-      if (timer) clearTimeout(timer);
-    };
+    return () => off();
   }, [start]);
 
   // Measure the active step's anchor and keep it aligned on scroll/resize.
