@@ -44,6 +44,11 @@ const TABS: {
   { key: "refund", label: "Refunds", match: (t) => t === "refund" },
   { key: "credit", label: "Credits", match: (t) => t === "credit" },
   { key: "adjustment", label: "Adjustments", match: (t) => t === "adjustment" },
+  {
+    key: "affiliate",
+    label: "Affiliate",
+    match: (t) => t === "commission_owed" || t === "commission_paid",
+  },
 ];
 
 const SELECT_CLS =

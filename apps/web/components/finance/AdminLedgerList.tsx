@@ -35,6 +35,14 @@ const TYPE_TAG: Record<WieloTxnType, { label: string; cls: string }> = {
     label: "Adjustment",
     cls: "border-amber-200 bg-amber-50 text-amber-700",
   },
+  commission_owed: {
+    label: "Commission",
+    cls: "border-violet-200 bg-violet-50 text-violet-700",
+  },
+  commission_paid: {
+    label: "Payout",
+    cls: "border-teal-200 bg-teal-50 text-teal-700",
+  },
 };
 
 const MENU_ITEM =
@@ -61,6 +69,7 @@ function providerLabel(p: string | null): string {
   if (p === "paypal") return "PayPal";
   if (p === "manual") return "Manual";
   if (p === "eft") return "EFT";
+  if (p === "affiliate") return "Affiliate";
   return p ?? "";
 }
 
@@ -76,6 +85,8 @@ const FOR_CLS: Record<WieloTxnType, string> = {
   refund: "border-red-200 bg-red-50 text-red-600",
   credit: "border-indigo-200 bg-indigo-50 text-indigo-600",
   adjustment: "border-amber-200 bg-amber-50 text-amber-700",
+  commission_owed: "border-violet-200 bg-violet-50 text-violet-700",
+  commission_paid: "border-teal-200 bg-teal-50 text-teal-700",
 };
 
 function amountDisplay(e: WieloTxn): { text: string; cls: string } {
@@ -87,6 +98,8 @@ function amountDisplay(e: WieloTxn): { text: string; cls: string } {
   else if (e.type === "credit") cls = "text-indigo-600";
   else if (e.type === "adjustment")
     cls = neg ? "text-red-600" : "text-brand-ink";
+  else if (e.type === "commission_owed") cls = "text-violet-700";
+  else if (e.type === "commission_paid") cls = "text-teal-700";
   else cls = "text-brand-ink";
   return { text, cls };
 }
@@ -215,6 +228,8 @@ export function AdminLedgerList({
               const amt = amountDisplay(e);
               const isPending = e.status === "pending";
               const failed = e.status === "failed";
+              const isAffiliate =
+                e.type === "commission_owed" || e.type === "commission_paid";
               return (
                 <tr
                   key={e.id}
@@ -297,7 +312,17 @@ export function AdminLedgerList({
                     {amt.text}
                   </td>
                   <td className="num whitespace-nowrap px-2 py-3 text-right">
-                    {isPending && e.type === "charge" ? (
+                    {isAffiliate ? (
+                      Math.abs(e.balance) < 0.5 ? (
+                        <span className="text-brand-mute">settled</span>
+                      ) : e.balance > 0 ? (
+                        <span className="font-semibold text-violet-700">
+                          {formatMoney(e.balance, e.currency)} owed
+                        </span>
+                      ) : (
+                        <span className="text-brand-mute">settled</span>
+                      )
+                    ) : isPending && e.type === "charge" ? (
                       <span className="text-brand-mute">awaiting</span>
                     ) : Math.abs(e.balance) < 0.5 ? (
                       <span className="text-brand-mute">settled</span>
@@ -356,7 +381,9 @@ export function AdminLedgerList({
               style={{ top: menu.y + 6, left: Math.max(8, menu.x - 208) }}
               onClick={(ev) => ev.stopPropagation()}
             >
-              {onAction ? (
+              {onAction &&
+              menu.entry.type !== "commission_owed" &&
+              menu.entry.type !== "commission_paid" ? (
                 <>
                   <button
                     type="button"
