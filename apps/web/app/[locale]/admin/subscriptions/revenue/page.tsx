@@ -19,7 +19,7 @@ export default async function AdminRevenuePage({
 }: {
   searchParams?: {
     user?: string;
-    plan?: string;
+    product?: string;
     status?: string;
     env?: string;
     from?: string;
@@ -44,7 +44,7 @@ export default async function AdminRevenuePage({
         ? "test"
         : "live";
 
-  const planFilter = (searchParams?.plan ?? "").trim();
+  const productParam = (searchParams?.product ?? "").trim();
   const userEmail = (searchParams?.user ?? "").trim();
   const statusFilter = STATUSES.includes(
     (searchParams?.status ?? "") as (typeof STATUSES)[number],
@@ -70,24 +70,30 @@ export default async function AdminRevenuePage({
     userId = u?.id ?? "00000000-0000-0000-0000-000000000000";
   }
 
-  const [rows, plans, products, sellableProducts, { data: subs }] =
-    await Promise.all([
-      fetchWieloLedger(service, {
-        limit: 1000,
-        userId,
-        plan: planFilter || undefined,
-        status: statusFilter === "all" ? undefined : statusFilter,
-        environment: envFilter === "all" ? undefined : envFilter,
-        since: dateFrom || undefined,
-        until: dateTo ? `${dateTo}T23:59:59.999Z` : undefined,
-      }),
-      getAllPlans(),
-      getSubscriptionProducts(),
-      getSellableProducts(),
-      service
-        .from("subscriptions")
-        .select("plan, billing_cycle, status, product_id"),
-    ]);
+  // The full sellable catalog drives the product filter dropdown. Resolve the
+  // selected product first so we can match its product_id AND its legacy plan key.
+  const sellableProducts = await getSellableProducts();
+  const selectedProduct = productParam
+    ? sellableProducts.find((p) => p.id === productParam)
+    : undefined;
+
+  const [rows, plans, products, { data: subs }] = await Promise.all([
+    fetchWieloLedger(service, {
+      limit: 1000,
+      userId,
+      productId: selectedProduct?.id,
+      productPlanKey: selectedProduct?.planKey ?? undefined,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      environment: envFilter === "all" ? undefined : envFilter,
+      since: dateFrom || undefined,
+      until: dateTo ? `${dateTo}T23:59:59.999Z` : undefined,
+    }),
+    getAllPlans(),
+    getSubscriptionProducts(),
+    service
+      .from("subscriptions")
+      .select("plan, billing_cycle, status, product_id"),
+  ]);
 
   const stats = wieloLedgerStats(rows);
 
@@ -96,18 +102,22 @@ export default async function AdminRevenuePage({
   // not yet linked to a product. Annual /12.
   const planPrice = new Map(plans.map((p) => [p.key, p]));
   const productPrice = new Map(products.map((p) => [p.id, p]));
-  // Plan tier → product name, so a ledger row reads "Starter" not "pro". Also
-  // the product filter options — the REAL subscription products (value = the
-  // plan key stored on the ledger row), deduped, so the dropdown mirrors the
-  // live catalog rather than the legacy plan tiers.
+  // Display maps so a ledger row reads "Starter" not "pro" / a bare id:
+  //  - planLabels: legacy plan key → product name (plan-keyed subscription rows).
+  //  - productLabels: product_id → product name (product-keyed rows, incl one-off).
+  // The product FILTER lists EVERY sellable product (subscriptions + one-off),
+  // value = product_id, so the founder can filter by any product they added.
   const planLabels: Record<string, string> = {};
-  const productFilters: { key: string; name: string }[] = [];
-  for (const p of products) {
-    if (p.planKey && !(p.planKey in planLabels)) {
-      planLabels[p.planKey] = p.name;
-      productFilters.push({ key: p.planKey, name: p.name });
-    }
+  const productLabels: Record<string, string> = {};
+  for (const p of sellableProducts) {
+    if (p.planKey) planLabels[p.planKey] = p.name;
+    productLabels[p.id] = p.name;
   }
+  const productFilters = sellableProducts.map((p) => ({
+    key: p.id,
+    name: p.name,
+    type: p.type,
+  }));
   let mrr = 0;
   let payingHosts = 0;
   for (const s of subs ?? []) {
@@ -169,6 +179,7 @@ export default async function AdminRevenuePage({
         kpis={kpis}
         currency={currency}
         planLabels={planLabels}
+        productLabels={productLabels}
         products={productFilters}
         payableProducts={sellableProducts.map((p) => ({
           id: p.id,
@@ -179,7 +190,7 @@ export default async function AdminRevenuePage({
         }))}
         env={envFilter}
         userEmail={userEmail}
-        plan={planFilter}
+        product={productParam}
         status={statusFilter}
         dateFrom={dateFrom}
         dateTo={dateTo}

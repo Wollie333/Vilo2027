@@ -55,7 +55,11 @@ const SELECT_CLS =
   "rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none";
 
 // Everything an admin might type to find a Wielo transaction.
-function searchBlob(e: WieloTxn, planLabels: Record<string, string>): string {
+function searchBlob(
+  e: WieloTxn,
+  planLabels: Record<string, string>,
+  productLabels: Record<string, string>,
+): string {
   const human = new Intl.DateTimeFormat("en-ZA", {
     day: "numeric",
     month: "short",
@@ -67,6 +71,7 @@ function searchBlob(e: WieloTxn, planLabels: Record<string, string>): string {
     e.userEmail,
     e.hostHandle ? `@${e.hostHandle}` : null,
     e.plan ? (planLabels[e.plan] ?? e.plan) : null,
+    e.productId ? (productLabels[e.productId] ?? null) : null,
     e.provider,
     e.providerReference,
     e.doc?.number,
@@ -89,11 +94,12 @@ export function AdminLedgerBoard({
   kpis,
   currency,
   planLabels,
+  productLabels,
   products,
   payableProducts,
   env,
   userEmail,
-  plan,
+  product,
   status,
   dateFrom,
   dateTo,
@@ -102,8 +108,10 @@ export function AdminLedgerBoard({
   kpis: WieloKpis;
   currency: string;
   planLabels: Record<string, string>;
-  /** Real subscription products for the filter (value = plan key, label = name). */
-  products: { key: string; name: string }[];
+  /** product_id → name, for the "For" column on product-keyed rows. */
+  productLabels: Record<string, string>;
+  /** Every sellable product for the filter (value = product_id, label = name). */
+  products: { key: string; name: string; type: string }[];
   /** Payable products for the pay-link picker (id + price + type). */
   payableProducts: {
     id: string;
@@ -114,7 +122,7 @@ export function AdminLedgerBoard({
   }[];
   env: EnvFilter;
   userEmail: string;
-  plan: string;
+  product: string;
   status: StatusFilter;
   dateFrom: string;
   dateTo: string;
@@ -158,7 +166,7 @@ export function AdminLedgerBoard({
   }
 
   const hasServerFilter = Boolean(
-    userEmail || plan || status !== "all" || dateFrom || dateTo,
+    userEmail || product || status !== "all" || dateFrom || dateTo,
   );
 
   const counts = useMemo(() => {
@@ -174,9 +182,9 @@ export function AdminLedgerBoard({
     return entries.filter(
       (e) =>
         (!f || f.match(e.type)) &&
-        (!q || searchBlob(e, planLabels).includes(q)),
+        (!q || searchBlob(e, planLabels, productLabels).includes(q)),
     );
-  }, [entries, tab, search, planLabels]);
+  }, [entries, tab, search, planLabels, productLabels]);
 
   function exportCsv() {
     const header = [
@@ -203,7 +211,11 @@ export function AdminLedgerBoard({
         e.userEmail ?? "",
         e.hostHandle ? `@${e.hostHandle}` : "",
         e.type,
-        e.plan ? (planLabels[e.plan] ?? e.plan) : "",
+        e.plan
+          ? (planLabels[e.plan] ?? e.plan)
+          : e.productId
+            ? (productLabels[e.productId] ?? "")
+            : "",
         e.amount,
         e.currency,
         e.status,
@@ -330,17 +342,32 @@ export function AdminLedgerBoard({
             <option value="all">Test + Live</option>
           </select>
           <select
-            value={plan}
-            onChange={(e) => pushParams({ plan: e.target.value })}
+            value={product}
+            onChange={(e) => pushParams({ product: e.target.value })}
             className={SELECT_CLS}
             title="Product"
           >
             <option value="">All products</option>
-            {products.map((p) => (
-              <option key={p.key} value={p.key}>
-                {p.name}
-              </option>
-            ))}
+            {["subscription", "one_off"].map((group) => {
+              const inGroup = products.filter((p) =>
+                group === "subscription"
+                  ? p.type === "subscription"
+                  : p.type !== "subscription",
+              );
+              if (inGroup.length === 0) return null;
+              return (
+                <optgroup
+                  key={group}
+                  label={group === "subscription" ? "Subscriptions" : "One-off"}
+                >
+                  {inGroup.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.name}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })}
           </select>
           <select
             value={status}
@@ -406,7 +433,13 @@ export function AdminLedgerBoard({
             type="button"
             onClick={() => {
               setEmailInput("");
-              pushParams({ user: "", plan: "", status: "", from: "", to: "" });
+              pushParams({
+                user: "",
+                product: "",
+                status: "",
+                from: "",
+                to: "",
+              });
             }}
             className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary underline-offset-2 hover:underline"
           >
@@ -428,6 +461,7 @@ export function AdminLedgerBoard({
       <AdminLedgerList
         entries={rows}
         planLabels={planLabels}
+        productLabels={productLabels}
         onAction={(action, txn) => openAction(action, txn.userEmail ?? "")}
       />
       <p className="mt-3 text-[11.5px] text-brand-mute">

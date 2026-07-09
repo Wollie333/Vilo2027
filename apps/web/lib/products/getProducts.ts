@@ -83,6 +83,9 @@ export type SellableProduct = {
   currency: string;
   /** 'subscription' | 'one_off' — lets callers group/label by type. */
   type: string;
+  /** Feature tier this product grants (plans.key), for matching legacy plan-keyed
+   * ledger rows to their product. Null for one-off products. */
+  planKey: string | null;
 };
 
 // Every product that admin can SELL internally (e.g. send as a pay link on the
@@ -94,7 +97,7 @@ export async function getSellableProducts(): Promise<SellableProduct[]> {
   const db = createAdminClient();
   const { data } = await db
     .from("products")
-    .select("id, name, price, currency, type, sort_order")
+    .select("id, name, price, currency, type, plan_key, slug, sort_order")
     .eq("is_active", true)
     .order("type", { ascending: true })
     .order("sort_order", { ascending: true });
@@ -105,5 +108,6 @@ export async function getSellableProducts(): Promise<SellableProduct[]> {
     price: Number(p.price ?? 0),
     currency: p.currency ?? "ZAR",
     type: p.type ?? "subscription",
+    planKey: p.type === "subscription" ? (p.plan_key ?? p.slug ?? null) : null,
   }));
 }

@@ -74,8 +74,13 @@ function providerLabel(p: string | null): string {
 }
 
 // What the money was for — the plan/product name, else the provider, else type.
-function forLabel(e: WieloTxn, planLabels: Record<string, string>): string {
+function forLabel(
+  e: WieloTxn,
+  planLabels: Record<string, string>,
+  productLabels: Record<string, string>,
+): string {
   if (e.plan) return planLabels[e.plan] ?? e.plan;
+  if (e.productId) return productLabels[e.productId] ?? "Product";
   if (e.provider === "manual") return "Manual entry";
   return TYPE_TAG[e.type].label;
 }
@@ -107,6 +112,7 @@ function amountDisplay(e: WieloTxn): { text: string; cls: string } {
 export function AdminLedgerList({
   entries,
   planLabels,
+  productLabels = {},
   emptyLabel = "No transactions match your filters.",
   minWidth = 900,
   onAction,
@@ -114,6 +120,8 @@ export function AdminLedgerList({
   entries: WieloTxn[];
   /** Plan key → product name, so a row reads "Starter" not "pro". */
   planLabels: Record<string, string>;
+  /** product_id → product name (for product-keyed / one-off rows). */
+  productLabels?: Record<string, string>;
   emptyLabel?: string;
   minWidth?: number;
   /** Open a host-scoped finance action for this row (refund / credit / link). */
@@ -298,7 +306,7 @@ export function AdminLedgerList({
                     <span
                       className={`inline-flex rounded-pill border px-2 py-0.5 text-[10.5px] font-semibold ${FOR_CLS[e.type]}`}
                     >
-                      {forLabel(e, planLabels)}
+                      {forLabel(e, planLabels, productLabels)}
                     </span>
                     {e.billingCycle ? (
                       <div className="mt-0.5 text-[10.5px] text-brand-mute">

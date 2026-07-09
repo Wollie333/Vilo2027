@@ -54,6 +54,7 @@ export type WieloTxn = {
   environment: WieloEnvironment;
   vatAmount: number | null;
   plan: string | null;
+  productId: string | null;
   billingCycle: string | null;
   provider: string | null;
   providerReference: string | null;
@@ -75,6 +76,10 @@ export type WieloLedgerFilter = {
   userId?: string;
   hostId?: string;
   plan?: string;
+  /** Filter to one product: matches the ledger row's product_id OR (for legacy
+   * plan-keyed subscription charges) its plan. Pass the product's plan key too. */
+  productId?: string;
+  productPlanKey?: string;
   type?: WieloTxnType;
   status?: WieloTxnStatus;
   environment?: WieloEnvironment; // omit = both
@@ -111,7 +116,7 @@ export async function fetchWieloLedger(
       .from("platform_ledger")
       .select(
         `id, created_at, type, status, amount, currency, environment, vat_amount, plan,
-       billing_cycle, provider, provider_reference, reason, user_id, host_id,
+       product_id, billing_cycle, provider, provider_reference, reason, user_id, host_id,
        payer:user_profiles!user_id ( full_name, email ),
        host:hosts!host_id ( handle )`,
       )
@@ -121,6 +126,13 @@ export async function fetchWieloLedger(
     if (filter.userId) q = q.eq("user_id", filter.userId);
     if (filter.hostId) q = q.eq("host_id", filter.hostId);
     if (filter.plan) q = q.eq("plan", filter.plan);
+    // Product filter — match the row's product_id OR its legacy plan key.
+    if (filter.productId) {
+      const clauses = [`product_id.eq.${filter.productId}`];
+      if (filter.productPlanKey)
+        clauses.push(`plan.eq.${filter.productPlanKey}`);
+      q = q.or(clauses.join(","));
+    }
     if (filter.type) q = q.eq("type", filter.type);
     if (filter.status) q = q.eq("status", filter.status);
     if (filter.environment) q = q.eq("environment", filter.environment);
@@ -145,6 +157,7 @@ export async function fetchWieloLedger(
           : "live") as WieloEnvironment,
         vatAmount: r.vat_amount != null ? Number(r.vat_amount) : null,
         plan: r.plan,
+        productId: r.product_id,
         billingCycle: r.billing_cycle,
         provider: r.provider,
         providerReference: r.provider_reference,
@@ -261,6 +274,7 @@ async function fetchAffiliateRows(
       environment: "live",
       vatAmount: null,
       plan: null,
+      productId: null,
       billingCycle: null,
       provider: "affiliate",
       providerReference: c.referred_host_id ?? null,
@@ -300,6 +314,7 @@ async function fetchAffiliateRows(
       environment: "live",
       vatAmount: null,
       plan: null,
+      productId: null,
       billingCycle: null,
       provider: p.provider ?? p.method ?? "affiliate",
       providerReference: p.provider_reference ?? null,
