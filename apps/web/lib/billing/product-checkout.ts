@@ -306,7 +306,15 @@ export async function fulfilFreeProductBySlug(
 }
 
 export type PaystackStartResult =
-  | { ok: true; authorizationUrl: string }
+  | {
+      ok: true;
+      authorizationUrl: string;
+      // For the inline popup (resumeTransaction) so the payer stays on the pay
+      // page instead of a full redirect to checkout.paystack.com. The client
+      // falls back to authorizationUrl if the inline script can't load.
+      accessCode?: string;
+      reference?: string;
+    }
   | { ok: false; error: string };
 
 // Test vs live is derived from the active Paystack secret key prefix, so test-key
@@ -382,7 +390,12 @@ export async function startProductPaystack(
       environment,
       reason: "Product purchase",
     });
-    return { ok: true, authorizationUrl: res.authorization_url };
+    return {
+      ok: true,
+      authorizationUrl: res.authorization_url,
+      accessCode: res.access_code,
+      reference,
+    };
   } catch (e) {
     // Roll back the pending row so a failed init doesn't leave noise.
     await admin
