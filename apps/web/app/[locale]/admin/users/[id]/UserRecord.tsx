@@ -90,6 +90,7 @@ import {
   adminUpdateSubscription,
   cancelScheduledChange,
   enableAffiliate,
+  sellProduct,
   setUserProduct,
   changeUserRole,
   reinstateUser,
@@ -1806,6 +1807,38 @@ function ProductsPanel({
     setChargeTiming("now");
   };
 
+  // Sell a ONCE-OFF product (separate from the subscription charge dialog).
+  const [sell, setSell] = useState<CatalogProduct | null>(null);
+  const [sellLink, setSellLink] = useState<string | null>(null);
+  const closeSell = () => {
+    setSell(null);
+    setSellLink(null);
+  };
+  function doSell(productId: string, mode: "paid" | "paylink") {
+    setBusyId(productId);
+    start(async () => {
+      const r = await sellProduct({
+        hostId: hostId ?? undefined,
+        userId,
+        productId,
+        mode,
+      });
+      setBusyId(null);
+      if (r.ok) {
+        if (mode === "paylink" && r.payUrl) {
+          setSellLink(r.payUrl);
+          toast.success("Pay-link created.");
+        } else {
+          closeSell();
+          toast.success("Product sold — charge posted to the ledger.");
+        }
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
   function previewDelta(p: CatalogProduct): {
     amount: number;
     isUpgrade: boolean;
@@ -1935,6 +1968,55 @@ function ProductsPanel({
     (p) => p.productType === "membership",
   );
   const services = data.products.filter((p) => p.productType === "service");
+  // Once-off products are SOLD (order + charge), not activated as a subscription.
+  const oneOffProducts = data.products.filter(
+    (p) => p.productType === "product",
+  );
+
+  // A once-off product card with a "Sell" button (opens the sell dialog).
+  const renderOneOff = (p: UserRecordData["products"][number]) => (
+    <div
+      key={p.id}
+      className="relative flex flex-col rounded-card border border-brand-line bg-white p-5 shadow-card"
+    >
+      <div className="font-display text-base font-bold text-brand-ink">
+        {p.name}
+      </div>
+      <div className="mt-2 flex items-baseline gap-1">
+        <span className="font-display text-2xl font-bold text-brand-ink">
+          {p.isFree ? "Free" : formatMoney(p.price, p.currency)}
+        </span>
+        <span className="text-xs text-brand-mute">one-off</span>
+      </div>
+      {p.bullets.length > 0 ? (
+        <ul className="mt-3 space-y-1.5">
+          {p.bullets.slice(0, 4).map((b, i) => (
+            <li key={i} className="text-[12px] leading-snug text-brand-mute">
+              • {b}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="mt-4 flex items-center gap-2 pt-1">
+        <Button
+          size="sm"
+          disabled={pending}
+          onClick={() => {
+            setSellLink(null);
+            setSell(p);
+          }}
+        >
+          Sell
+        </Button>
+        <Link
+          href={`/admin/products/${p.id}`}
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary hover:underline"
+        >
+          <ExternalLink className="h-3.5 w-3.5" /> Edit
+        </Link>
+      </div>
+    </div>
+  );
 
   // One catalog card (add / switch / manage). `kind` drives the button label.
   const renderCatalog = (p: UserRecordData["products"][number]) => {
@@ -2172,9 +2254,98 @@ function ProductsPanel({
                 </div>
               </div>
             ) : null}
+            {oneOffProducts.length > 0 ? (
+              <div>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Products (one-off)
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {oneOffProducts.map(renderOneOff)}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
+
+      {/* Sell a once-off product */}
+      <FormModal
+        open={!!sell}
+        onOpenChange={(o) => (o ? null : closeSell())}
+        title="Sell product"
+        description="A once-off sale — record it as paid, or send a pay-link."
+      >
+        {sell ? (
+          <div className="space-y-4">
+            <Lbl label="Product">
+              <div className="rounded-md border border-brand-line bg-brand-light/40 px-3 py-2 text-[13px] font-medium text-brand-ink">
+                {sell.name}
+              </div>
+            </Lbl>
+            <div className="rounded-md border border-brand-primary/30 bg-brand-primary/5 p-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Price
+              </div>
+              <div className="mt-0.5 font-display text-xl font-bold text-brand-ink">
+                {sell.isFree ? "Free" : formatMoney(sell.price, sell.currency)}
+              </div>
+              <p className="mt-1 text-[12px] text-brand-mute">
+                <span className="font-medium text-brand-ink">Mark as paid</span>{" "}
+                records a completed sale + invoice now;{" "}
+                <span className="font-medium text-brand-ink">
+                  send a pay-link
+                </span>{" "}
+                bills the buyer (a pay card lands in their Wielo inbox).
+              </p>
+            </div>
+            {sellLink ? (
+              <div className="rounded-md border border-status-confirmed/30 bg-status-confirmed/5 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Pay-link created
+                </div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={sellLink}
+                    className="min-w-0 flex-1 truncate rounded-md border border-brand-line bg-white px-2 py-1.5 text-[12px] text-brand-ink"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(sellLink);
+                      toast.success("Link copied.");
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        <FormModalFooter>
+          {sellLink ? (
+            <Button onClick={closeSell}>Done</Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                disabled={pending || !sell}
+                onClick={() => sell && doSell(sell.id, "paylink")}
+              >
+                Send pay-link
+              </Button>
+              <Button
+                disabled={pending || !sell}
+                onClick={() => sell && doSell(sell.id, "paid")}
+              >
+                {pending ? "Working…" : "Mark as paid now"}
+              </Button>
+            </>
+          )}
+        </FormModalFooter>
+      </FormModal>
 
       {/* Charge-confirm: a paid upgrade/add posts a money document */}
       <FormModal

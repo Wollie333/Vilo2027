@@ -9,7 +9,7 @@ import { getAffiliateBalance } from "@/lib/affiliate/balance";
 import { fetchWieloLedger } from "@/lib/billing/wielo-ledger";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
 import { getAllPlans } from "@/lib/plans/getPlans";
-import { getSubscriptionProducts } from "@/lib/products/getProducts";
+import { getInternalCatalog } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { UserRecord, type UserRecordData } from "./UserRecord";
@@ -515,10 +515,10 @@ export default async function AdminUserDetailPage({
       })()
     : [];
 
-  // Catalog products for the Products tab (manage the user's subscriptions).
-  // Loaded for everyone — the Products tab shows for guests too so an admin can
-  // sell them a subscription (which provisions them as a host).
-  const catalog = await getSubscriptionProducts();
+  // Catalog products for the Products tab — the FULL internal catalog (memberships,
+  // services AND once-off products) so an admin can activate a subscription OR
+  // sell a once-off product from any user's record.
+  const catalog = await getInternalCatalog();
 
   // Labels for the Wielo ledger "For" column (plan key / product id → name).
   const { data: allProducts } = await service

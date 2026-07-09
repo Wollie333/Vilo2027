@@ -11,7 +11,10 @@ import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
-import { adminPostUpgradeCardToHostThread } from "@/lib/inbox/platform-thread";
+import {
+  adminPostUpgradeCardToHostThread,
+  adminPostPaymentLinkToHostThread,
+} from "@/lib/inbox/platform-thread";
 import { ensureHostForUser } from "@/lib/hosts/ensureHost";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
@@ -1051,6 +1054,131 @@ export const cancelScheduledChangeAction = withAdminAudit<
   },
 );
 
+// ─── Sell a ONCE-OFF product to a user (not a subscription) ──────────
+// A `product` (once-off) is purchased, not activated: "paid" records a completed
+// sale (paid order + completed charge → invoice mints); "paylink" creates a
+// pending order + pay-link and drops it into the buyer's Wielo inbox (hosts).
+const sellSchema = z.object({
+  hostId: z.string().uuid().optional(),
+  userId: z.string().uuid(),
+  productId: z.string().uuid(),
+  mode: z.enum(["paid", "paylink"]),
+  reason: z.string().optional(),
+});
+
+export const sellProductAction = withAdminAudit<
+  z.infer<typeof sellSchema>,
+  { ok: true; payUrl?: string }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "user.sell_product",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+  },
+  async (args, service) => {
+    const parsed = sellSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    const { userId, hostId, productId, mode } = parsed.data;
+
+    const { data: product } = await service
+      .from("products")
+      .select("id, name, price, currency, product_type, is_active")
+      .eq("id", productId)
+      .maybeSingle();
+    if (!product || !product.is_active) {
+      throw new Error("Product not found or inactive.");
+    }
+    if (product.product_type !== "product") {
+      throw new Error("Use the subscription flow for memberships / services.");
+    }
+
+    const { data: prof } = await service
+      .from("user_profiles")
+      .select("email")
+      .eq("id", userId)
+      .maybeSingle();
+    const email = prof?.email;
+    if (!email) throw new Error("This user has no email on file.");
+
+    const price = Number(product.price ?? 0);
+    const currency = product.currency ?? "ZAR";
+    const admin = await requirePermission("subscriptions.edit");
+    const now = new Date().toISOString();
+
+    if (mode === "paylink") {
+      const order = await createProductOrder(
+        { productId, email, createdBy: admin.userId },
+        publicPayBase(),
+      );
+      if (!order.ok) throw new Error(order.error);
+      // Drop a pay card into the buyer's Wielo inbox (hosts have a thread).
+      if (hostId) {
+        try {
+          await adminPostPaymentLinkToHostThread(service, {
+            host: { id: hostId, userId },
+            url: order.url,
+            body: `${product.name} — ${currency} ${price.toFixed(2)} due`,
+          });
+        } catch {
+          // best-effort — the link is still returned to the admin
+        }
+      }
+      revalidatePath(`/admin/users`);
+      return {
+        result: { ok: true, payUrl: order.url },
+        after: { userId, productId },
+      };
+    }
+
+    // mode "paid": record a completed sale.
+    const token = crypto.randomUUID().replace(/-/g, "");
+    const { error: ordErr } = await service.from("product_orders").insert({
+      product_id: product.id,
+      product_name: product.name,
+      payer_email: email,
+      payer_user_id: userId,
+      amount: price,
+      currency,
+      status: "paid",
+      paid_at: now,
+      pay_token: token,
+      created_by: admin.userId,
+    });
+    if (ordErr) throw new Error(ordErr.message);
+
+    if (price > 0) {
+      const { data: led, error: ledErr } = await service
+        .from("platform_ledger")
+        .insert({
+          user_id: userId,
+          host_id: hostId ?? null,
+          product_id: product.id,
+          type: "charge",
+          status: "completed",
+          amount: price,
+          currency,
+          provider: "manual",
+          reason: `Product sale · ${product.name}`,
+          created_by: admin.userId,
+          paid_at: now,
+        })
+        .select("id")
+        .single();
+      if (ledErr) throw new Error(ledErr.message);
+      if (led?.id) {
+        await service.rpc("accrue_affiliate_commission", {
+          p_ledger_id: led.id,
+        });
+      }
+    }
+
+    revalidatePath(`/admin/users`);
+    revalidatePath("/admin/subscriptions/revenue");
+    return { result: { ok: true }, after: { userId, productId } };
+  },
+);
+
 // ─── Edit a host's business (legal entity on their documents) ─────────
 const opt = z.string().trim().max(200).optional().or(z.literal(""));
 const businessSchema = z.object({
@@ -1775,6 +1903,20 @@ export async function cancelScheduledChange(input: {
   changeId: string;
 }) {
   return wrap(() => cancelScheduledChangeAction(input));
+}
+
+export async function sellProduct(input: {
+  hostId?: string;
+  userId: string;
+  productId: string;
+  mode: "paid" | "paylink";
+}): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
+  try {
+    const r = await sellProductAction(input);
+    return { ok: true, payUrl: r.payUrl };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
 }
 
 export async function suspendUser(input: { userId: string; reason: string }) {

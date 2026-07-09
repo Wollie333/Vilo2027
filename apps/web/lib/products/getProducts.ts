@@ -39,17 +39,20 @@ function toBullets(raw: unknown): string[] {
     : [];
 }
 
-async function load(): Promise<CatalogProduct[]> {
+async function load(
+  types: string[] = ["membership", "service"],
+  visibleOnly = true,
+): Promise<CatalogProduct[]> {
   const db = createAdminClient();
-  const { data } = await db
+  let q = db
     .from("products")
     .select(
       "id, name, description, product_type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods",
     )
-    .in("product_type", ["membership", "service"])
-    .eq("is_active", true)
-    .eq("is_visible", true)
-    .order("sort_order", { ascending: true });
+    .in("product_type", types)
+    .eq("is_active", true);
+  if (visibleOnly) q = q.eq("is_visible", true);
+  const { data } = await q.order("sort_order", { ascending: true });
 
   return (data ?? []).map((p) => ({
     id: p.id,
@@ -77,6 +80,14 @@ async function load(): Promise<CatalogProduct[]> {
 // — always reflects the live `products` table.
 export function getSubscriptionProducts(): Promise<CatalogProduct[]> {
   return load();
+}
+
+// The FULL internal catalog an admin can sell from a user's record: active
+// products of EVERY type (membership + service + once-off product), ignoring
+// is_visible (visibility only gates the public pricing page, not internal
+// selling). Uncached.
+export function getInternalCatalog(): Promise<CatalogProduct[]> {
+  return load(["membership", "service", "product"], false);
 }
 
 export type SellableProduct = {
