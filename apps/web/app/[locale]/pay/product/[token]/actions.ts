@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 
 import {
+  capturePayPalProductOrder,
   startProductPaystack,
   startProductPayPal,
 } from "@/lib/billing/product-checkout";
@@ -29,13 +30,27 @@ export async function startProductPaystackAction(
     : { ok: false, error: r.error };
 }
 
-// Public (token-gated) — start PayPal checkout (Wielo's platform PayPal). Returns
-// the approval URL to hand the payer off to; capture happens on their return to
-// /pay/product/[token]?token=<orderId>.
+// Public (token-gated) — CREATE a PayPal order (Wielo's platform PayPal). Used as
+// the JS SDK Smart Buttons `createOrder` callback (returns the PayPal order id so
+// approval opens in a popup, not a top-level redirect to www.paypal.com), and it
+// also returns the approval URL as a redirect fallback.
 export async function startProductPayPalAction(
   token: string,
-): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+): Promise<
+  { ok: true; url: string; orderId: string } | { ok: false; error: string }
+> {
   const origin = headers().get("origin");
   const r = await startProductPayPal(token, origin);
-  return r.ok ? { ok: true, url: r.approveUrl } : { ok: false, error: r.error };
+  return r.ok
+    ? { ok: true, url: r.approveUrl, orderId: r.orderId }
+    : { ok: false, error: r.error };
+}
+
+// Public — CAPTURE an approved PayPal order (the SDK `onApprove` callback). On
+// success the client reloads the pay page into its paid/receipt state.
+export async function capturePayPalProductAction(
+  orderId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const r = await capturePayPalProductOrder(orderId);
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
 }

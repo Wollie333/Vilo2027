@@ -12,7 +12,7 @@ import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { PayButton, PayPalButton } from "./PayButton";
+import { PayButton, PayPalButton, ProductPayPalButtons } from "./PayButton";
 import { Receipt } from "./Receipt";
 
 export const metadata: Metadata = {
@@ -64,7 +64,7 @@ export default async function ProductPayPage({
       service
         .from("platform_payment_settings")
         .select(
-          "paystack_enabled, paypal_enabled, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
+          "paystack_enabled, paypal_enabled, paypal_client_id, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
         )
         .eq("id", true)
         .maybeSingle(),
@@ -198,7 +198,15 @@ export default async function ProductPayPage({
           {showPaystack ? <PayButton token={params.token} /> : null}
 
           {showPaypal ? (
-            <PayPalButton token={params.token} secondary={showPaystack} />
+            settings?.paypal_client_id ? (
+              <ProductPayPalButtons
+                token={params.token}
+                clientId={settings.paypal_client_id}
+                secondary={showPaystack}
+              />
+            ) : (
+              <PayPalButton token={params.token} secondary={showPaystack} />
+            )
           ) : null}
 
           {showEft ? (

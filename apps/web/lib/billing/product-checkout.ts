@@ -410,7 +410,7 @@ export async function startProductPaystack(
 }
 
 export type PayPalStartResult =
-  | { ok: true; approveUrl: string }
+  | { ok: true; approveUrl: string; orderId: string }
   | { ok: false; error: string };
 
 // Start a PayPal checkout for a Wielo product order on Wielo's OWN PayPal app.
@@ -475,7 +475,11 @@ export async function startProductPayPal(
       environment: creds.env,
       reason: "Product purchase",
     });
-    return { ok: true, approveUrl: paypalOrder.approveUrl };
+    return {
+      ok: true,
+      approveUrl: paypalOrder.approveUrl,
+      orderId: paypalOrder.orderId,
+    };
   } catch (e) {
     return {
       ok: false,
