@@ -10,6 +10,8 @@ import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
+import { createProductOrder } from "@/lib/billing/product-checkout";
+import { adminPostUpgradeCardToHostThread } from "@/lib/inbox/platform-thread";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
@@ -387,6 +389,17 @@ function addMonthsIso(n: number): string {
   return d.toISOString();
 }
 
+// The public base for a pay-link SHARED with a user — never a localhost/dev
+// origin. Prefer the configured app URL; ignore a localhost value and fall back
+// to the brand domain so a link generated locally still resolves for the buyer.
+function publicPayBase(): string {
+  const envUrl =
+    process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
+  return !envUrl || /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(envUrl)
+    ? "https://wielo.co.za"
+    : envUrl;
+}
+
 // ─── Manually set a host's subscription (plan / cycle / status) ───────
 const subSchema = z.object({
   hostId: z.string().uuid(),
@@ -651,16 +664,17 @@ export const requestSupportAccessAction = withAdminAudit<
 const setProductSchema = z.object({
   hostId: z.string().uuid(),
   productId: z.string().uuid(),
-  // How to bill a paid upgrade/add: "paid" posts a COMPLETED pro-rated charge
-  // (invoice mints); "none" (default) just activates (free product, or the admin
-  // isn't collecting now). The custom-amount pay-link option is Phase 4a-2b.
-  charge: z.enum(["paid", "none"]).optional(),
+  // How to bill a paid upgrade/add. "paid": post a COMPLETED pro-rated charge
+  // (invoice mints). "paylink": activate now + return a custom-amount pay-link
+  // for the buyer to pay the pro-rated delta (settles WITHOUT re-activating).
+  // "none" (default): just activate (free product, or the admin isn't collecting).
+  charge: z.enum(["paid", "paylink", "none"]).optional(),
   reason: z.string().optional(),
 });
 
 export const setUserProductAction = withAdminAudit<
   z.infer<typeof setProductSchema>,
-  { ok: true }
+  { ok: true; payUrl?: string }
 >(
   {
     permissionKey: "subscriptions.edit",
@@ -706,18 +720,23 @@ export const setUserProductAction = withAdminAudit<
     let carryEnd: string | null = null;
     let oldPrice = 0;
     let switchingMembership = false;
-    if (!existing && isMembership) {
+    if (isMembership) {
+      // The membership being REPLACED = the host's current active membership on
+      // a DIFFERENT product. Its price + window drive the pro-rated upgrade delta
+      // and the new sub inherits that window. Runs whether or not a (cancelled)
+      // row already exists for the target product.
       const { data: activeMems } = await service
         .from("subscriptions")
         .select(
-          "id, current_period_start, current_period_end, product:products ( product_type, price )",
+          "id, product_id, current_period_start, current_period_end, product:products ( product_type, price )",
         )
         .eq("host_id", hostId)
         .in("status", ["trialing", "active", "past_due"]);
       const oldMem = (activeMems ?? []).find(
         (r) =>
+          r.product_id !== productId &&
           (r.product as { product_type?: string } | null)?.product_type ===
-          "membership",
+            "membership",
       );
       if (oldMem) {
         switchingMembership = true;
@@ -748,66 +767,120 @@ export const setUserProductAction = withAdminAudit<
       updated_at: now,
     };
 
-    if (existing) {
-      const { error } = await service
-        .from("subscriptions")
-        .update(patch)
-        .eq("id", existing.id);
-      if (error) throw new Error(error.message);
-    } else {
-      // New membership → retire any other active membership first (one-per-host).
+    // "paylink" DEFERS activation: the tier only becomes active once the buyer
+    // pays the link (the settle path activates it), so we skip the subscription
+    // write here and just create the order + inbox card below. Every other mode
+    // activates immediately.
+    if (charge !== "paylink") {
+      // Activating a membership must respect the one-per-host rule whether we're
+      // renewing/reactivating an existing (possibly cancelled) row OR inserting a
+      // new one — retire any OTHER active membership first, else the DB trigger
+      // rejects the write.
       if (isMembership) {
         await retireOtherMemberships(service, hostId, productId);
       }
-      const { error } = await service
-        .from("subscriptions")
-        .insert({ host_id: hostId, ...patch });
-      if (error) throw new Error(error.message);
+      if (existing) {
+        const { error } = await service
+          .from("subscriptions")
+          .update(patch)
+          .eq("id", existing.id);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await service
+          .from("subscriptions")
+          .insert({ host_id: hostId, ...patch });
+        if (error) throw new Error(error.message);
+      }
     }
 
-    // ─── Auto-ledger: a paid upgrade/add posts a COMPLETED charge for the
-    // pro-rated delta (invoice mints via trigger). Delta = (new − old) × unused
-    // fraction for a mid-cycle membership upgrade, else the full new price for a
-    // fresh activation / service add / renewal. Server-recomputed (never trusts
-    // the client's preview).
-    if (charge === "paid" && newPrice > 0) {
-      // A membership SWITCH bills only the pro-rated difference over the unused
-      // window; a fresh activation / service add / renewal bills the full price.
+    // ─── Auto-ledger: a paid upgrade/add records the money for the pro-rated
+    // delta. Delta = (new − old) × unused fraction for a mid-cycle membership
+    // upgrade, else the full new price for a fresh activation / service add /
+    // renewal. Server-recomputed (never trusts the client's preview). "paid"
+    // posts a COMPLETED charge (invoice mints via trigger). "paylink" creates a
+    // custom-amount order that ACTIVATES the plan on payment + drops an upgrade
+    // card into the buyer's Wielo inbox with a Pay button.
+    let payUrl: string | undefined;
+    if ((charge === "paid" || charge === "paylink") && newPrice > 0) {
       const chargeAmount = switchingMembership
         ? proratedAmount(Math.max(0, newPrice - oldPrice), carryStart, carryEnd)
         : round2(newPrice);
       if (chargeAmount > 0) {
+        const label = switchingMembership
+          ? `Pro-rated upgrade to ${product.name}`
+          : `Activated ${product.name}`;
         const { data: hostRow } = await service
           .from("hosts")
           .select("user_id")
           .eq("id", hostId)
           .maybeSingle();
         const admin = await requirePermission("subscriptions.edit");
-        const { data: led, error: ledErr } = await service
-          .from("platform_ledger")
-          .insert({
-            user_id: hostRow?.user_id ?? null,
-            host_id: hostId,
-            product_id: product.id,
-            type: "charge",
-            status: "completed",
+
+        if (charge === "paid") {
+          const { data: led, error: ledErr } = await service
+            .from("platform_ledger")
+            .insert({
+              user_id: hostRow?.user_id ?? null,
+              host_id: hostId,
+              product_id: product.id,
+              type: "charge",
+              status: "completed",
+              amount: chargeAmount,
+              currency,
+              provider: "manual",
+              reason: label,
+              created_by: admin.userId,
+              paid_at: now,
+            })
+            .select("id")
+            .single();
+          if (ledErr) throw new Error(ledErr.message);
+          // A charge against a referred host accrues affiliate commission too
+          // (idempotent RPC; no-ops for an unreferred payer).
+          if (led?.id) {
+            await service.rpc("accrue_affiliate_commission", {
+              p_ledger_id: led.id,
+            });
+          }
+        } else {
+          // paylink: the tier is NOT active yet — create a custom-amount order
+          // for the delta that ACTIVATES the plan when the buyer pays it, then
+          // drop an upgrade card (with the Pay button) into their Wielo inbox.
+          if (!hostRow?.user_id) {
+            throw new Error("This host has no owner account to bill.");
+          }
+          const { data: prof } = await service
+            .from("user_profiles")
+            .select("email")
+            .eq("id", hostRow.user_id)
+            .maybeSingle();
+          const email = prof?.email;
+          if (!email) {
+            throw new Error("This host has no email to send a pay-link to.");
+          }
+          const order = await createProductOrder(
+            {
+              productId: product.id,
+              email,
+              createdBy: admin.userId,
+              amountOverride: chargeAmount,
+              label,
+              // Payment activates the plan (deferred activation).
+              activateOnPay: true,
+            },
+            publicPayBase(),
+          );
+          if (!order.ok) throw new Error(order.error);
+          payUrl = order.url;
+
+          // Beautiful upgrade card in the buyer's Wielo inbox with a Pay button.
+          await adminPostUpgradeCardToHostThread(service, {
+            host: { id: hostId, userId: hostRow.user_id },
+            url: order.url,
+            productName: product.name ?? "your new plan",
             amount: chargeAmount,
             currency,
-            provider: "manual",
-            reason: switchingMembership
-              ? `Pro-rated upgrade to ${product.name}`
-              : `Activated ${product.name}`,
-            created_by: admin.userId,
-            paid_at: now,
-          })
-          .select("id")
-          .single();
-        if (ledErr) throw new Error(ledErr.message);
-        // A charge against a referred host accrues affiliate commission too
-        // (idempotent RPC; no-ops for an unreferred payer).
-        if (led?.id) {
-          await service.rpc("accrue_affiliate_commission", {
-            p_ledger_id: led.id,
+            isUpgrade: switchingMembership,
           });
         }
       }
@@ -815,7 +888,7 @@ export const setUserProductAction = withAdminAudit<
 
     revalidatePath(`/admin/users`);
     revalidatePath("/admin/subscriptions/revenue");
-    return { result: { ok: true }, after: { hostId, ...patch } };
+    return { result: { ok: true, payUrl }, after: { hostId, ...patch } };
   },
 );
 
@@ -1338,9 +1411,14 @@ export async function requestSupportAccess(input: {
 export async function setUserProduct(input: {
   hostId: string;
   productId: string;
-  charge?: "paid" | "none";
-}) {
-  return wrap(() => setUserProductAction(input));
+  charge?: "paid" | "paylink" | "none";
+}): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
+  try {
+    const r = await setUserProductAction(input);
+    return { ok: true, payUrl: r.payUrl };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
 }
 
 export async function adminUpdateBusiness(input: {

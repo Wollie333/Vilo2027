@@ -50,6 +50,13 @@ export async function createProductOrder(
     // Optional buyer details captured at checkout — stored on the (guest) user.
     name?: string | null;
     phone?: string | null;
+    // Custom-amount top-up (e.g. a pro-rated subscription UPGRADE delta): bill
+    // this amount instead of the product price, label the order accordingly, and
+    // set activateOnPay=false so settling does NOT re-activate the plan (the tier
+    // was already activated at admin time — the link only collects the delta).
+    amountOverride?: number | null;
+    label?: string | null;
+    activateOnPay?: boolean;
   },
   origin?: string | null,
 ): Promise<CreateOrderResult> {
@@ -62,6 +69,10 @@ export async function createProductOrder(
   if (!product || !product.is_active) {
     return { ok: false, error: "Product not found or inactive." };
   }
+  const amount =
+    input.amountOverride != null && input.amountOverride > 0
+      ? Number(input.amountOverride)
+      : Number(product.price);
 
   // Guest-first: an order ALWAYS belongs to a user — find the account by email or
   // create a guest lead — so no transaction is ever orphaned and the buyer's
@@ -77,14 +88,15 @@ export async function createProductOrder(
   const payToken = token();
   const { error } = await admin.from("product_orders").insert({
     product_id: product.id,
-    product_name: product.name,
+    product_name: input.label?.trim() || product.name,
     payer_email: email,
     payer_user_id: payerUserId,
-    amount: Number(product.price),
+    amount,
     currency: product.currency,
     status: "pending",
     pay_token: payToken,
     created_by: input.createdBy,
+    activate_on_pay: input.activateOnPay ?? true,
   });
   if (error) return { ok: false, error: error.message };
 
@@ -639,21 +651,21 @@ async function activateMappedPlan(
     current_period_end: periodEnd,
   };
 
-  if (existing) {
-    await admin.from("subscriptions").update(patch).eq("id", existing.id);
-    return;
-  }
-
-  // A NEW membership: a host may hold only one, so retire any other active
-  // membership first (a simple switch; the ledger credit/refund on a paid
-  // downgrade is handled by the admin manage flow, not the settle path).
+  // A host may hold only one active membership — retire any OTHER active
+  // membership before activating this one, whether we're reactivating an
+  // existing (possibly cancelled) row or inserting a new one (else the DB
+  // trigger rejects the write). The ledger credit/refund on a paid downgrade is
+  // handled by the admin manage flow, not the settle path.
   if (isMembership) {
     const { data: active } = await admin
       .from("subscriptions")
       .select("id, product_id")
       .eq("host_id", host.id)
       .in("status", ["trialing", "active", "past_due"]);
-    const pids = (active ?? [])
+    const others = (active ?? []).filter(
+      (s) => s.product_id && s.product_id !== productId,
+    );
+    const pids = others
       .map((s) => s.product_id)
       .filter((x): x is string => !!x);
     if (pids.length) {
@@ -663,7 +675,7 @@ async function activateMappedPlan(
         .in("id", pids)
         .eq("product_type", "membership");
       const memIds = new Set((memProds ?? []).map((p) => p.id));
-      const retire = (active ?? [])
+      const retire = others
         .filter((s) => s.product_id && memIds.has(s.product_id))
         .map((s) => s.id);
       if (retire.length) {
@@ -674,7 +686,12 @@ async function activateMappedPlan(
       }
     }
   }
-  await admin.from("subscriptions").insert({ host_id: host.id, ...patch });
+
+  if (existing) {
+    await admin.from("subscriptions").update(patch).eq("id", existing.id);
+  } else {
+    await admin.from("subscriptions").insert({ host_id: host.id, ...patch });
+  }
 }
 
 export type ConfirmProductResult =
@@ -694,7 +711,7 @@ export async function confirmProductOrderByReference(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, currency, status, pay_token, environment",
+      "id, product_id, payer_user_id, amount, currency, status, pay_token, environment, activate_on_pay",
     )
     .eq("provider_reference", reference)
     .maybeSingle();
@@ -774,7 +791,11 @@ export async function confirmProductOrderByReference(
     // Commission accrual must never break settlement.
   }
 
-  await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
+  // A custom-amount top-up order (e.g. a pro-rated upgrade delta) only collects
+  // money — the plan was activated at admin time, so don't re-activate it here.
+  if (order.activate_on_pay !== false) {
+    await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
+  }
 
   return {
     ok: true,
@@ -797,7 +818,7 @@ export async function capturePayPalProductOrder(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, currency, status, pay_token, environment",
+      "id, product_id, payer_user_id, amount, currency, status, pay_token, environment, activate_on_pay",
     )
     .eq("provider_reference", orderId)
     .maybeSingle();
@@ -876,7 +897,10 @@ export async function capturePayPalProductOrder(
     // Commission accrual must never break settlement.
   }
 
-  await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
+  // Custom-amount top-up (upgrade delta) → collect only; don't re-activate.
+  if (order.activate_on_pay !== false) {
+    await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
+  }
 
   return {
     ok: true,

@@ -6211,6 +6211,7 @@ export type Database = {
       }
       product_orders: {
         Row: {
+          activate_on_pay: boolean
           amount: number
           created_at: string
           created_by: string | null
@@ -6228,6 +6229,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          activate_on_pay?: boolean
           amount: number
           created_at?: string
           created_by?: string | null
@@ -6245,6 +6247,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          activate_on_pay?: boolean
           amount?: number
           created_at?: string
           created_by?: string | null
@@ -9271,7 +9274,7 @@ export type Database = {
           {
             foreignKeyName: "subscriptions_host_id_fkey"
             columns: ["host_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "hosts"
             referencedColumns: ["id"]
           },

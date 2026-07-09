@@ -1746,6 +1746,13 @@ function ProductsPanel({
     amount: number;
     isUpgrade: boolean;
   } | null>(null);
+  // When the admin picks "Send pay-link", the tier activates and this holds the
+  // generated custom-amount pay-link to copy/send to the buyer.
+  const [payLink, setPayLink] = useState<string | null>(null);
+  const closeCharge = () => {
+    setCharge(null);
+    setPayLink(null);
+  };
 
   function previewDelta(p: CatalogProduct): {
     amount: number;
@@ -1781,13 +1788,41 @@ function ProductsPanel({
       const r = await setUserProduct({ hostId, productId, charge: mode });
       setBusyId(null);
       if (r.ok) {
-        setCharge(null);
+        closeCharge();
         toast.success(
           mode === "paid"
             ? "Activated — charge posted to the ledger."
             : "Product added to this account.",
         );
         router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  // Activate now + generate a custom-amount pay-link for the pro-rated delta; the
+  // dialog stays open to reveal the link for the admin to copy/send.
+  function sendPayLink(productId: string) {
+    if (!hostId) return;
+    setBusyId(productId);
+    start(async () => {
+      const r = await setUserProduct({
+        hostId,
+        productId,
+        charge: "paylink",
+      });
+      setBusyId(null);
+      if (r.ok) {
+        // Deferred activation: the subscription is unchanged until the buyer
+        // pays, so there's nothing to refresh — just reveal the link.
+        if (r.payUrl) {
+          setPayLink(r.payUrl);
+          toast.success("Upgrade card sent to the buyer's inbox.");
+        } else {
+          closeCharge();
+          toast.success("Done.");
+        }
       } else {
         toast.error(r.error);
       }
@@ -2031,7 +2066,7 @@ function ProductsPanel({
       {/* Charge-confirm: a paid upgrade/add posts a money document */}
       <FormModal
         open={!!charge}
-        onOpenChange={(o) => (o ? null : setCharge(null))}
+        onOpenChange={(o) => (o ? null : closeCharge())}
         title={charge?.isUpgrade ? "Upgrade membership" : "Add to account"}
         description="Activating a paid product records a charge on the Wielo ledger."
       >
@@ -2053,27 +2088,73 @@ function ProductsPanel({
                 {charge.isUpgrade
                   ? "Only the unused difference vs the current membership is billed. "
                   : ""}
-                Marking paid posts a completed charge + invoice to the ledger
-                and the user&apos;s transaction history.
+                <span className="font-medium text-brand-ink">Mark as paid</span>{" "}
+                activates now + posts a completed charge;{" "}
+                <span className="font-medium text-brand-ink">
+                  send a pay-link
+                </span>{" "}
+                drops an upgrade card in their inbox — the plan activates once
+                they pay.
               </p>
             </div>
+            {payLink ? (
+              <div className="rounded-md border border-status-confirmed/30 bg-status-confirmed/5 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Upgrade card sent to inbox — link for reference
+                </div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={payLink}
+                    className="min-w-0 flex-1 truncate rounded-md border border-brand-line bg-white px-2 py-1.5 text-[12px] text-brand-ink"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(payLink);
+                      toast.success("Link copied.");
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="mt-1.5 text-[12px] text-brand-mute">
+                  An upgrade card was posted to the buyer&apos;s Wielo inbox
+                  with this link. The plan activates the moment they pay it.
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : null}
         <FormModalFooter>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => charge && activate(charge.product.id, "none")}
-            className="text-[13px] font-medium text-brand-mute hover:text-brand-ink disabled:opacity-50"
-          >
-            Activate without charging
-          </button>
-          <Button
-            disabled={pending || !charge}
-            onClick={() => charge && activate(charge.product.id, "paid")}
-          >
-            {pending ? "Working…" : "Mark as paid now"}
-          </Button>
+          {payLink ? (
+            <Button onClick={closeCharge}>Done</Button>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => charge && activate(charge.product.id, "none")}
+                className="text-[13px] font-medium text-brand-mute hover:text-brand-ink disabled:opacity-50"
+              >
+                Activate without charging
+              </button>
+              <Button
+                variant="outline"
+                disabled={pending || !charge}
+                onClick={() => charge && sendPayLink(charge.product.id)}
+              >
+                Send pay-link
+              </Button>
+              <Button
+                disabled={pending || !charge}
+                onClick={() => charge && activate(charge.product.id, "paid")}
+              >
+                {pending ? "Working…" : "Mark as paid now"}
+              </Button>
+            </>
+          )}
         </FormModalFooter>
       </FormModal>
     </div>

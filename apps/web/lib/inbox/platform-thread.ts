@@ -209,6 +209,54 @@ export async function hostPostToWieloThread(
   return conversationId;
 }
 
+function fmtMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-ZA", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
+// Post a subscription UPGRADE card into a host's Wielo thread: a rich
+// `subscription_upgrade` SYSTEM message (icon + plan + amount + Pay button) that
+// the buyer taps to pay the pro-rated difference. Deferred activation — the plan
+// switches on only once this link is paid. Posted AS "Wielo Support".
+export async function adminPostUpgradeCardToHostThread(
+  admin: Admin,
+  args: {
+    host: { id: string; userId: string };
+    url: string;
+    productName: string;
+    amount: number;
+    currency: string;
+    isUpgrade: boolean;
+  },
+): Promise<string> {
+  const conversationId = await ensureWieloThread(admin, args.host);
+  const supportId = await ensureWieloSupportUser(admin);
+  const money = fmtMoney(args.amount, args.currency);
+  const body = args.isUpgrade
+    ? `You're upgrading to ${args.productName}. Pay ${money} to activate your new plan — it switches on the moment your payment succeeds.`
+    : `Activate ${args.productName} — pay ${money} to switch it on. It takes effect as soon as your payment succeeds.`;
+  const { error } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: supportId,
+    body,
+    is_system_message: true,
+    system_event: "subscription_upgrade",
+    attachment_url: args.url,
+    read_by_host: false,
+    read_by_guest: true,
+  });
+  if (error)
+    throw new Error(`adminPostUpgradeCardToHostThread: ${error.message}`);
+  return conversationId;
+}
+
 // Post a payment link into a host's Wielo thread as a rich `payment_link` SYSTEM
 // message so ChatMessageWall renders the pay CARD (icon + product/amount line +
 // Pay button) rather than a plain text URL. Posted AS "Wielo Support".

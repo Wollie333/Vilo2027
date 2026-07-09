@@ -293,7 +293,7 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   const { data: order } = await supabase
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, currency, status, environment",
+      "id, product_id, payer_user_id, amount, currency, status, environment, activate_on_pay",
     )
     .eq("provider_reference", ref)
     .maybeSingle();
@@ -346,8 +346,14 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   // derived from the product slug when that slug is a real plan, else the host's
   // current plan is preserved. Mirrors the TS confirm path (activateMappedPlan)
   // and admin setUserProductAction. Only when the buyer has a Wielo account +
-  // host (the buy-first flow sets this at signup instead).
-  if (order.payer_user_id && order.product_id) {
+  // host (the buy-first flow sets this at signup instead). A custom-amount
+  // top-up order (activate_on_pay=false, e.g. a pro-rated upgrade delta) only
+  // collects money — the tier was activated at admin time, so never re-activate.
+  if (
+    order.payer_user_id &&
+    order.product_id &&
+    order.activate_on_pay !== false
+  ) {
     const { data: product } = await supabase
       .from("products")
       .select("product_type, slug, billing_cycle, plan_key")
