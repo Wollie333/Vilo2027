@@ -31,6 +31,13 @@ cycle. Also standardised all inbox system cards on the gradient upgrade-card des
 cancel — one-pending rule holds); Undo cleared it. Engine `apply_due_subscription_changes()` proven by
 direct call for BOTH cancel (→cancelled) and switch (→Beta active, fresh period, retire others).
 
+**Also shipped after #31 (`d4d4cec0`) — admin requests:** (1) guest accounts now have the **Products tab**
+— activating a product provisions them as a host (`lib/hosts/ensureHostForUser`; `setUserProductAction`
+takes a `userId`), so admin can sell/convert a guest; (2) the user **Finance tab** renders the user↔Wielo
+ledger via `AdminLedgerList` (booking-ledger styling + running balance + docs) with a pill toggle
+**Wielo account (primary) / Bookings (guests)** — bookings hidden until toggled; (3) admin listings
+(`admin/properties`) ⋯ menu **portalled to body** (fixed z-[60]) so it's no longer clipped. All verified live.
+
 **NEXT — Phase 5 (guest transaction history):** show a buyer's Wielo purchases (`product_orders` +
 `wielo_invoices` + credit notes/refunds, downloadable docs) in `/portal/settings` (guest) +
 `/dashboard/settings` (host). Ties to PRODUCT_PURCHASE_LIFECYCLE_PLAN.md. Then AFFILIATE_HARDENING_PLAN

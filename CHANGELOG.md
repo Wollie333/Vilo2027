@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-09 #32 — Admin: guest Products tab, per-user Wielo ledger toggle, portal listing menu.
+
+Three admin user-record / listings improvements (founder requests). tsc + lint + build green; verified
+live (temp grant → revoked; guest test reverted).
+
+- **Guest Products tab.** The Products tab now shows for guests too. Activating a catalog product from a
+  guest's record provisions them as a host on the spot (new `lib/hosts/ensureHostForUser`) — so an admin
+  can sell a guest a subscription and convert them. `setUserProductAction` accepts a `userId` (resolves /
+  provisions the host when no `hostId`); the catalog loads for everyone.
+- **Per-user Wielo ledger.** The Finance tab renders the user↔Wielo ledger through `AdminLedgerList` (same
+  running-balance + document styling as the booking ledger), scoped to the user, with a pill toggle:
+  "Wielo account" (primary/default) vs "Bookings (guests)" — the booking ledger only renders when toggled
+  to, hidden otherwise.
+- **Listing ⋯ menu z-index.** The admin listings (`admin/properties`) actions menu is portalled to
+  `<body>` (fixed, z-[60]) so the table overflow / row stacking can't clip or hide it.
+
 ## 2026-07-09 #31 — Commerce model Phase 4b: schedule membership changes for end of cycle.
 
 Any membership change can be enforced now or scheduled for the current period end (founder decision).
