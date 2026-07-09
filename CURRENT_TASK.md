@@ -2,7 +2,61 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-09 #29) — Phase 4a auto-ledger on admin change (IMMEDIATE) ✅ DONE + verified live. NEXT = Phase 4a-2b (custom-amount pay-link) then 4b (end-of-cycle timing)
+## ▶▶▶ SAVE POINT (2026-07-09 #30) — Phase 4a-2b upgrade pay-link (deferred activation + inbox card) ✅ DONE + verified live. NEXT = Phase 4b (end-of-cycle timing)
+
+**Read [[project-wielo-commerce-model]] + `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` §4.** `pnpm build` +
+tsc + lint GREEN. Pushed to main (`3f8931e4`). Working tree clean. Sole super_admin =
+wollie@manamarketing.co.za (temp grant revoked). Verified live via preview.
+
+**Founder change mid-session (supersedes the earlier "activate now" answer):** a "Send pay-link" upgrade
+**DEFERS activation** — the membership/plan activates ONLY after the buyer pays. And sending the link
+posts a **beautiful upgrade card** (with a Pay button) into the buyer's Wielo inbox; paying it activates
+the sub.
+
+**DONE this session (#30) — `3f8931e4`:**
+- Migration `20260709150000`: `product_orders.activate_on_pay boolean default true`. Types regenerated.
+- `createProductOrder` gains `amountOverride` / `label` / `activateOnPay`; the Paystack + PayPal settle
+  paths + the Deno paystack-webhook skip `activateMappedPlan` when `activate_on_pay=false`.
+- `setUserProductAction` `charge="paylink"`: SKIPS the subscription write (deferred activation), creates
+  a custom-amount order for the pro-rated delta with `activate_on_pay=TRUE` (payment activates), returns
+  the pay URL, and posts a `subscription_upgrade` inbox card via new
+  `adminPostUpgradeCardToHostThread` (platform-thread.ts). New `ChatMessageWall` card =
+  gradient header + amount + "Pay & activate upgrade" button.
+- Admin charge dialog: "Send pay-link" now says the plan activates on payment + shows the link "sent to
+  inbox" for reference.
+- **Bug fixes surfaced by live testing (also harden 4a-2a):** `setUserProductAction` + `activateMappedPlan`
+  retired OTHER memberships only on the INSERT path → switching to a membership that had a prior
+  (cancelled) row hit the one-per-host trigger; now retire before update OR insert. And the pro-rated
+  "membership being replaced" detection was gated on `!existing`, mis-billing a re-switch at full price;
+  now it detects the current active membership regardless.
+
+**Live proof (#30):** Send pay-link on test host Starter→Beta (Beta temp-priced 999) left the sub
+UNCHANGED (Starter active, Beta cancelled), created a pending order R384.99 `activate_on_pay=true`
+"Pro-rated upgrade to Beta", and posted the upgrade card — rendered in the host inbox with the Pay
+button + correct `wielo.co.za/pay/product/<token>` link (screenshot captured). **NOT driven:** the actual
+card payment completing → activation (standing card-E2E limit); it reuses the proven product-purchase
+settle path (`confirmProductOrderByReference`→`activateMappedPlan`) with `activate_on_pay=true`.
+
+**NEXT — Phase 4b (end-of-cycle timing):** admin picks now vs end-of-cycle for a change; scheduled change
+stored (new column/table) + billing cron applies it at `current_period_end`, then posts the ledger entry
++ doc. **Then Phase 5** (guest txn history in `/portal/settings` + `/dashboard/settings`).
+
+**Known/left as-is:** deferred-activation upgrade bills the pro-rated delta but on payment
+`activateMappedPlan` gives a FRESH period (standard purchase) — the inherited-window nuance only applies
+to the immediate "Mark as paid" path. Auto credit/refund/charge ledger rows are `environment=NULL` (like
+all manual entries) → show under the ledger's **Test+Live** filter. **Still deferred:** redeploy
+`supabase functions deploy paystack-webhook` (now also carries the `activate_on_pay` guard).
+
+GOTCHAS: restart preview after **server-action** edits (HMR misses them; also a Fast-Refresh mid-action
+can ERR_ABORT a server-action POST — reload + retry); cookies are per-HOST not per-port (session survives
+a restart); `supabase db query` batch returns only the LAST select's rows; `wielo_credit_notes` /
+`wielo_invoices` / `product_orders` / `messages` are deletable (service role, pre-MVP); test host
+`0b111111-1111-4111-8111-111111111111`, user `1899ee6c-…`, Starter sub `…1111111111aa`, Beta product
+`4bff856d-…` (price 0). `pnpm build` corrupts `.next` while a preview is up — stop it first.
+
+---
+
+## ▶▶▶ SAVE POINT (2026-07-09 #29) — Phase 4a auto-ledger on admin change (IMMEDIATE) ✅ DONE + verified live. (superseded by #30)
 
 **Read [[project-wielo-commerce-model]] + `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` §4.** `pnpm build` +
 tsc + lint GREEN. Pushed to main. Working tree clean. Sole super_admin = wollie@manamarketing.co.za

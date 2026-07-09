@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-09 #30 — Commerce model Phase 4a-2b: upgrade pay-link (deferred activation + inbox card).
+
+Founder change mid-session: a "Send pay-link" upgrade now DEFERS activation (the plan switches on only
+after the buyer pays) and drops a beautiful upgrade card with a Pay button into the buyer's Wielo inbox.
+tsc + lint + build green; verified live (temp grant → revoked; all test data restored).
+
+- Migration `20260709150000`: `product_orders.activate_on_pay` (default true). `createProductOrder` gains
+  `amountOverride`/`label`/`activateOnPay`; the Paystack + PayPal settle paths + the Deno paystack-webhook
+  skip `activateMappedPlan` when `activate_on_pay=false`.
+- `setUserProductAction` `charge="paylink"`: skips the subscription write (deferred activation), creates a
+  custom-amount order for the pro-rated delta with `activate_on_pay=true`, posts a `subscription_upgrade`
+  inbox card (`adminPostUpgradeCardToHostThread`) + returns the pay URL. New `ChatMessageWall` card =
+  gradient header + amount + "Pay & activate upgrade" button.
+- Fixes (harden 4a-2a too): `setUserProductAction` + `activateMappedPlan` now retire other memberships
+  before the update OR insert (a re-switch to a previously-cancelled membership hit the one-per-host
+  trigger); the pro-rated "replaced membership" detection no longer skips when a target row exists.
+- Live: Send pay-link Starter→Beta left the sub unchanged, made a pending R384.99 order
+  (`activate_on_pay=true`), and posted the upgrade card (rendered in the host inbox with the Pay button).
+  Not driven: the card payment completing → activation (standing card-E2E limit; reuses the proven
+  purchase settle path).
+
 ## 2026-07-09 #29 — Commerce model Phase 4a: auto-ledger on admin subscription change (immediate).
 
 When an admin changes a user's subscription, the money now moves automatically with the right document —
