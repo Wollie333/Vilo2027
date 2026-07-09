@@ -2,7 +2,64 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-09 #34) — Commerce Phase 4 COMPLETE + admin batch (uniform records · Latest-actions notifications · pay-card status) ✅ DONE + verified live. NEXT = Phase 5 (guest txn history)
+## ▶▶▶ SAVE POINT (2026-07-10 #37) — Commerce Phase 4 COMPLETE + full admin user-record batch ✅ DONE + verified live. NEXT = Phase 5 (guest txn history)
+
+**Read [[project-wielo-commerce-model]] + [[reference-admin-notifications]] FIRST.** `pnpm build` + tsc +
+lint GREEN. All pushed to main (latest `c9c34b44`). Working tree clean. Sole super_admin =
+wollie@manamarketing.co.za (temp grant revoked). Everything below verified live via the preview.
+
+**Commerce Phase 4 COMPLETE** ([[project-wielo-commerce-model]]): 4a immediate auto-ledger
+(cancel→credit/refund, upgrade→charge), 4a-2b upgrade pay-link w/ deferred activation + inbox card, 4b
+end-of-cycle scheduled changes + cron. Migrations `20260709150000`/`160000`.
+
+**Admin user-record batch shipped after Phase 4 (all live-verified, in commit order):**
+- Standardised inbox cards → one `InboxSystemCard` (gradient header, tones brand/amber/rose/sky) for ALL
+  system messages (`1f8daaa4`).
+- Guest **Products tab** + host provisioning (`lib/hosts/ensureHostForUser`; `setUserProductAction` takes
+  `userId`); per-user **Wielo ledger** via `AdminLedgerList` w/ Wielo/Bookings **pill toggle**; admin
+  listings ⋯ menu **portalled** to body (`d4d4cec0`).
+- **Uniform user records** — every record shows the SAME 9 tabs (guest or host; empty states) — + admin
+  **"Latest actions"** transactional-notification feed (`admin_notifications` table migration
+  `20260709170000` + `lib/admin/notify.ts`; emits on payment-init/EFT/support; replaced "Recent admin
+  activity") (`bb1da4c2`).
+- Buyer **pay-card status** flip: EFT-intent → "Payment pending", card/PayPal settle → "Payment received"
+  (`setPayCardStatus`) (`e0b202d9`).
+- **Sell once-off products** from the Products tab: new `getInternalCatalog()` (all types) + a "Products
+  (one-off)" section + `sellProductAction` (mark-paid → charge+invoice / send-pay-link → order+inbox card)
+  (`adfd9bc2`).
+- **Finance actions on the user record** (`fa00debb`): Wielo ledger row ⋯ menu enriched (refund/credit/
+  send-pay-link + **Send to inbox / Email to user** via `sendWieloDocToInbox`/`emailWieloDoc`); Finance-tab
+  **header buttons** right of the pills (Wielo tab: Record payment/Refund/Credit note/Adjustment/Payment
+  link via `WieloFinanceModals`; Bookings tab: `LedgerList canManage` unlocks only when the host's support
+  grant is active); Overview stat band got a **Commissions** block next to Trips + **Paid to Wielo** last
+  with a greenish highlight.
+
+**NEXT — Phase 5 (guest transaction history):** show a buyer's Wielo purchases (`product_orders` +
+`wielo_invoices` + credit notes/refunds, downloadable docs) in `/portal/settings` (guest) +
+`/dashboard/settings` (host). Ties to PRODUCT_PURCHASE_LIFECYCLE_PLAN.md. Then affiliate hardening (LAST).
+
+**Deferred / TODO (small):** (1) EFT **marked-received** (manual admin settle) doesn't yet flip the pay
+card to "Payment received" — only card/PayPal settle does; wire the EFT-settle path to
+`setPayCardStatus(...,'received')`. (2) redeploy `supabase functions deploy paystack-webhook` (carries the
+`activate_on_pay` guard). (3) admin-notification **emit** wired + feed verified, but a full click-to-pay
+E2E of the *card-init* insert wasn't driven (the EFT one WAS). (4) **Email to user** ledger action reuses
+`sendTransactionalEmail` (Resend) — inert until Resend keys set; not E2E'd. "Test Concierge Service" is
+fully removed — only real products remain (Starter, Beta, Wielo StayFlow Web-design).
+
+GOTCHAS: restart preview after **server-action** edits (HMR misses them; preview_start may reuse a stale
+process → stop first, then start; a Fast-Refresh mid-action can ERR_ABORT a server-action POST → reload +
+retry); `supabase db query` batch returns only the LAST select's rows; commit-msg hook rejects a
+capitalised subject word (lead lowercase — "phase 4b" not "Phase 4b"); `pnpm build` corrupts `.next` while
+a preview is up → stop it + `rm -rf .next`; `product_orders.method` check only allows `paystack`/`eft` (or
+NULL — don't set `manual`); audit `targetType` must be a valid `AuditTargetType` (use `user`, not
+`product_order`). Test host `0b111111-1111-4111-8111-111111111111` / user `1899ee6c-…` / Wielo thread
+`daa1cb9e-…` / support user `2befa19e-…` / Beta product `4bff856d-…` (price 0); guest test =
+`gerku@gmail.com` `7fcab608-…` (revert host after). Verify admin pages via a temp `platform_staff`
+super_admin grant on `1899ee6c` → REVOKE after.
+
+---
+
+## ▶▶▶ SAVE POINT (2026-07-09 #34) — Commerce Phase 4 COMPLETE + admin batch (uniform records · Latest-actions notifications · pay-card status) ✅ DONE + verified live. (superseded by #37)
 
 **Read [[project-wielo-commerce-model]] + [[reference-admin-notifications]] FIRST.** `pnpm build` + tsc +
 lint GREEN. All pushed to main (latest `e0b202d9`). Working tree clean. Sole super_admin =
