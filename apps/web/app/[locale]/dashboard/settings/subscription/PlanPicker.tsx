@@ -32,9 +32,20 @@ export function PlanPicker({ products, currentProductId }: Props) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  // Upgrade-only: the host can move to a higher-priced plan, but a downgrade (a
+  // cheaper plan) is admin-only. Compare against the current plan's price.
+  const currentPrice =
+    products.find((p) => p.id === currentProductId)?.price ?? 0;
+
   function switchTo(product: CatalogProduct) {
     if (product.id === currentProductId) {
       toast.info("You're already on this plan.");
+      return;
+    }
+    if (product.price < currentPrice) {
+      toast.error(
+        "Downgrades are handled by our team — message Wielo support to move to a lower plan.",
+      );
       return;
     }
     setPendingId(product.id);
@@ -72,6 +83,7 @@ export function PlanPicker({ products, currentProductId }: Props) {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {products.map((p) => {
           const isCurrent = p.id === currentProductId;
+          const isDowngrade = !isCurrent && p.price < currentPrice;
           const cycle = CYCLE_LABEL[p.billingCycle ?? "monthly"] ?? "month";
           const submitting = pendingId === p.id && pending;
 
@@ -127,33 +139,44 @@ export function PlanPicker({ products, currentProductId }: Props) {
                 ))}
               </ul>
 
-              <button
-                type="button"
-                onClick={() => switchTo(p)}
-                disabled={isCurrent || pending}
-                className={`mt-5 inline-flex items-center justify-center gap-2 rounded px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                  p.isRecommended && !isCurrent
-                    ? "bg-brand-primary text-white hover:bg-brand-secondary"
-                    : "border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
-                }`}
-              >
-                {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : null}
-                {isCurrent
-                  ? "Current plan"
-                  : p.isFree
-                    ? `Switch to ${p.name}`
-                    : `Get ${p.name}`}
-              </button>
+              {isDowngrade ? (
+                <a
+                  href="/dashboard/inbox"
+                  className="mt-5 inline-flex items-center justify-center gap-2 rounded border border-brand-line bg-white px-3 py-2 text-sm font-semibold text-brand-mute transition-colors hover:bg-brand-light"
+                  title="Downgrades are handled by Wielo support"
+                >
+                  Contact support to switch
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => switchTo(p)}
+                  disabled={isCurrent || pending}
+                  className={`mt-5 inline-flex items-center justify-center gap-2 rounded px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    p.isRecommended && !isCurrent
+                      ? "bg-brand-primary text-white hover:bg-brand-secondary"
+                      : "border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
+                  }`}
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : null}
+                  {isCurrent
+                    ? "Current plan"
+                    : p.isFree
+                      ? `Switch to ${p.name}`
+                      : `Upgrade to ${p.name}`}
+                </button>
+              )}
             </div>
           );
         })}
       </div>
 
       <p className="text-[12px] text-brand-mute">
-        Switching is instant. Paid plans hand off to secure checkout; your
-        features update as soon as payment is confirmed.
+        Upgrades are instant — paid plans hand off to secure checkout and your
+        features update as soon as payment is confirmed. To move to a lower plan
+        or cancel, message Wielo support.
       </p>
     </section>
   );

@@ -267,6 +267,26 @@ export async function switchToProductAction(input: {
     return { ok: false, error: "You're already on this plan." };
   }
 
+  // Upgrade-only for self-serve hosts: switching to a CHEAPER product is a
+  // downgrade, which is admin-only (it triggers the credit-note/refund decision).
+  // A host may only move UP; downgrades + cancellations go through Wielo support.
+  let currentPrice = 0;
+  if (existing?.product_id) {
+    const { data: cur } = await admin
+      .from("products")
+      .select("price")
+      .eq("id", existing.product_id)
+      .maybeSingle();
+    currentPrice = Number(cur?.price ?? 0);
+  }
+  if (Number(product.price) < currentPrice) {
+    return {
+      ok: false,
+      error:
+        "Downgrades are handled by our team — message Wielo support to move to a lower plan.",
+    };
+  }
+
   // Resolve the feature tier the product grants (plan_key, else slug if it's a
   // real plan key). Fall back to the current plan so the FK stays valid.
   let plan = existing?.plan ?? "free";
@@ -323,42 +343,16 @@ function newPeriodEndFrom(start: Date, cycle: "monthly" | "annual"): Date {
   return cycle === "annual" ? addMonths(start, 12) : addMonths(start, 1);
 }
 
-const cancelSchema = z.object({
-  reason: z.string().max(500).optional().nullable(),
-});
-
-export async function cancelSubscriptionAction(input: {
-  reason?: string | null;
-}): Promise<ActionResult> {
-  const parsed = cancelSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Invalid reason." };
-
+// Cancellation is a downgrade — admin-only (it triggers the credit-note/refund
+// decision that's Wielo's call). Hosts are routed to Wielo support instead of
+// self-cancelling; kept as a guard in case the action is invoked directly.
+export async function cancelSubscriptionAction(): Promise<ActionResult> {
   const host = await getMyHostId();
   if (!host.ok) return host;
-
-  const supabase = createServerClient();
-  const { data: existing } = await supabase
-    .from("subscriptions")
-    .select("id, plan, status")
-    .eq("host_id", host.hostId)
-    .maybeSingle();
-  if (!existing) return { ok: false, error: "No active subscription." };
-  if ((await getPlan(existing.plan))?.isFree) {
-    return { ok: false, error: "You're already on a free plan." };
-  }
-
-  const { error } = await supabase
-    .from("subscriptions")
-    .update({
-      cancel_at_period_end: true,
-      cancelled_at: new Date().toISOString(),
-      cancellation_reason: parsed.data.reason?.trim() || null,
-    })
-    .eq("id", existing.id);
-
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/dashboard/settings/subscription");
-  return { ok: true };
+  return {
+    ok: false,
+    error: "Cancellations are handled by Wielo support — message us to cancel.",
+  };
 }
 
 export async function reactivateSubscriptionAction(): Promise<ActionResult> {

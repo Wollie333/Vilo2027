@@ -88,6 +88,13 @@ never a silent state flip:
   confirm has: document (credit note / refund) + timing (now / end of cycle). An
   end-of-cycle change is stored as a pending scheduled change and applied by the
   billing worker/cron at period end (then it posts the ledger entry + doc).
+- **DECISION (founder 2026-07-09):** the HOST (self-serve) may **UPGRADE** their
+  subscription but **NOT downgrade**. Downgrades + cancellations are **admin-only**
+  (they trigger the credit-note/refund + timing decision above). "Upgrade" = switch
+  the membership to a higher-priced one, or ADD a service/product; "downgrade" =
+  switch to a cheaper membership, or cancel. So the host subscription page offers
+  upgrade paths + add-service/product only; a cheaper option / cancel is disabled
+  with a "contact support" affordance (routes to the Wielo inbox thread).
 - **Open decision:** pro-ration policy on an IMMEDIATE change (full amount vs
   pro-rated unused portion).
 
