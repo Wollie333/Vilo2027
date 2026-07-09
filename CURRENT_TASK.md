@@ -2,6 +2,64 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-09 #26) — Wielo commerce model: Phases 1-3 + host upgrade-only ✅ DONE. NEXT = Phase 3b then 4
+
+**Read `docs/features/WIELO_COMMERCE_MODEL_PLAN.md` + memory [[project-wielo-commerce-model]] FIRST.**
+Founder vision: run the whole business off ONE system — memberships, services, once-off
+products; every buyer captured as a user; every money movement auto-lands on the live
+ledger with the right doc. `pnpm build` + tsc + lint all GREEN. Working tree clean; all
+pushed to main. Grant revoked (sole super_admin = wollie@manamarketing.co.za).
+
+**DONE this session (each verified live + committed):**
+- Earlier batch: ledger product filter over ALL products (`f209f351`); redesigned product
+  pay page; **EFT "Pay with EFT" button** → records a PENDING ledger charge + creates/
+  assigns a guest, then reveals bank details (`10585e2c`); pay-page method fallback→eft;
+  admin sub/product edits unblocked (grant gate kept only on business/banking); manage-sub
+  dialog product-first (`eaca3d4f`); support-access decide-popup Accept/Decline/**Report**
+  (`d339e99c`); admin user record enriched (Overview stat band, Affiliate tab w/
+  commissions+payouts+statement PDFs + enable-as-affiliate, Products/Finance split);
+  PayPal SDK smart-buttons (popup) + Paystack inline popup (fixed sandbox-blocked redirects).
+- **Phase 1 — product types** (`5e878212`): migration `20260709130000` — `product_type`
+  (membership|service|product); legacy `type` now a GENERATED column from it (all old code +
+  Deno webhook keep working). Editor Type selector 3 options; getSubscriptionProducts=
+  membership+service; getSellableProducts exposes productType; list badges + ledger/finance
+  pickers group by the 3 types.
+- **Phase 2 — guest-first** (`703bae96`): `createProductOrder` ALWAYS find-or-creates a
+  guest from the email (name/phone) → NO orphan transactions; admin pay-link modal captures
+  name/phone; backfilled the 2 existing orphan ledger rows (`scripts/backfill-orphan-ledger.mjs`).
+- **Phase 3 — multi-subscription foundation** (`7290acb3`): migration `20260709140000` —
+  drop UNIQUE(host_id); trigger = one active MEMBERSHIP/host; `check_feature_permission`
+  UNIONs across active subs (bool_or / max). Settle-path `activateMappedPlan` keys by
+  (host_id, product_id): service→own sub, membership→renew/switch (retire prior), once-off→
+  no sub. Verified: guard rejects 2nd membership; service adds a 2nd sub; union enables a
+  service-only feature.
+- **Host upgrade-only** (`531b7a0c`): host self-serve can UPGRADE but NOT downgrade/cancel
+  (admin-only). PlanPicker → cheaper = "Contact support to switch"; switchToProductAction +
+  cancelSubscriptionAction blocked server-side → Wielo support.
+
+**NEXT — Phase 3b (admin surfaces multi-sub):** the admin user-record Products tab still
+shows ONE subscription; make it list + manage ALL of a user's subs (1 membership + N
+services) + product purchases; update `setUserProduct` + `adminUpdateSubscription` to key
+by (host_id, product_id); update the Deno **paystack-webhook** subscription activation to
+key by (host_id, product_id) too (needs redeploy).
+**Then Phase 4 (auto-ledger on admin change):** admin upgrade/add → charge+invoice;
+downgrade → **credit note by default, admin CHOOSES refund vs credit note** + **timing now
+vs end-of-cycle** (end-of-cycle = scheduled change applied by billing cron). Auto-record on
+the live ledger with the doc.
+**Phase 5:** guest transaction history in `/portal/settings` + `/dashboard/settings`.
+
+**Also queued (separate):** PRODUCT_PURCHASE_LIFECYCLE_PLAN.md (on-purchase inbox card +
+email + failed→regenerate — pairs with Phase 5); AFFILIATE_HARDENING_PLAN.md (LAST). PayPal
+E2E capture still needs the founder's sandbox BUYER login (creds already configured; rotate
+the secret that's in the chat).
+
+GOTCHAS: restart the preview after new component files / server-action edits (HMR misses
+them); commit-msg hook rejects Sentence/PascalCase/UPPER-case subjects (lead lowercase);
+run scripts from apps/web so `@supabase` resolves; verify admin pages via a temp
+`platform_staff` super_admin grant on host@wielotest.com (`1899ee6c-…`) → REVOKE after.
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-09 #25) — Ledger · inbox · payments · affiliate batch ✅ ALL 7 DONE + live
 
 Executed `docs/features/ADMIN_LEDGER_INBOX_PAYMENTS_PLAN.md` end to end. `pnpm build` +
