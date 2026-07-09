@@ -8,6 +8,10 @@ import {
   Calendar,
   CalendarCheck,
   CreditCard,
+  FileMinus,
+  Link2,
+  RotateCcw,
+  SlidersHorizontal,
   Download,
   ExternalLink,
   FileText,
@@ -66,6 +70,11 @@ import { LedgerList } from "@/components/finance/LedgerList";
 import { AdminLedgerList } from "@/components/finance/AdminLedgerList";
 import type { WieloTxn } from "@/lib/billing/wielo-ledger";
 import {
+  WieloFinanceModals,
+  type WieloFinanceAction,
+  type WieloFinanceRequest,
+} from "@/app/[locale]/admin/subscriptions/revenue/WieloFinanceModals";
+import {
   FormModal,
   FormModalCancel,
   FormModalFooter,
@@ -89,8 +98,10 @@ import {
   adminUpdateBusiness,
   adminUpdateSubscription,
   cancelScheduledChange,
+  emailWieloDoc,
   enableAffiliate,
   sellProduct,
+  sendWieloDocToInbox,
   setUserProduct,
   changeUserRole,
   reinstateUser,
@@ -1510,6 +1521,7 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
     value: string;
     sub?: string;
     icon: LucideIcon;
+    tone?: "green";
   }[] = [];
   if (host) {
     stats.push({
@@ -1534,19 +1546,20 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
     value: String(data.counts.bookingsAsGuest),
     icon: Calendar,
   });
+  // Total affiliate commissions the user has earned (0 if they're not an affiliate).
+  stats.push({
+    label: "Commissions",
+    value: formatMoney(aff?.earned ?? 0, aff?.currency ?? "ZAR"),
+    sub: aff ? `${aff.signups} signups` : undefined,
+    icon: Gift,
+  });
+  // Paid to Wielo is the headline money figure — always last, greenish.
   stats.push({
     label: "Paid to Wielo",
     value: formatMoney(paidToWielo, "ZAR"),
     icon: CreditCard,
+    tone: "green",
   });
-  if (aff) {
-    stats.push({
-      label: "Affiliate earned",
-      value: formatMoney(aff.earned, aff.currency),
-      sub: `${aff.signups} signups`,
-      icon: Gift,
-    });
-  }
 
   return (
     <div className="space-y-5">
@@ -1578,11 +1591,22 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
       {/* Stat band */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line sm:grid-cols-3 lg:grid-cols-6">
         {stats.map((st) => (
-          <div key={st.label} className="bg-white p-4">
-            <div className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+          <div
+            key={st.label}
+            className={`p-4 ${st.tone === "green" ? "bg-brand-primary/5" : "bg-white"}`}
+          >
+            <div
+              className={`flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider ${
+                st.tone === "green" ? "text-brand-primary" : "text-brand-mute"
+              }`}
+            >
               <st.icon className="h-3.5 w-3.5" /> {st.label}
             </div>
-            <div className="num mt-1.5 font-display text-[20px] font-bold leading-none text-brand-ink">
+            <div
+              className={`num mt-1.5 font-display text-[20px] font-bold leading-none ${
+                st.tone === "green" ? "text-brand-primary" : "text-brand-ink"
+              }`}
+            >
               {st.value}
             </div>
             {st.sub ? (
@@ -2726,6 +2750,20 @@ function BookingsPanel({
   );
 }
 
+// Finance-action buttons that sit to the right of the ledger pills.
+const FIN_ACTIONS: {
+  key: WieloFinanceAction;
+  label: string;
+  icon: LucideIcon;
+  primary?: boolean;
+}[] = [
+  { key: "payment", label: "Record payment", icon: CreditCard },
+  { key: "refund", label: "Refund", icon: RotateCcw },
+  { key: "credit", label: "Credit note", icon: FileMinus },
+  { key: "adjustment", label: "Adjustment", icon: SlidersHorizontal },
+  { key: "link", label: "Payment link", icon: Link2, primary: true },
+];
+
 function LedgerPanel({
   data,
   onRequestSupport,
@@ -2733,12 +2771,56 @@ function LedgerPanel({
   data: UserRecordData;
   onRequestSupport: () => void;
 }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
   // The user↔Wielo ledger is the primary view (subscriptions, products, refunds,
   // credits). The user↔user booking ledger (their guests → them) is secondary
   // and only rendered when the admin toggles to it — hidden otherwise.
   const hasBookings = !!(data.host && data.hostFinance);
   const [view, setView] = useState<"wielo" | "bookings">("wielo");
   const showBookings = hasBookings && view === "bookings";
+  // Host-approved support access — gates managing the BOOKING ledger (guest↔host).
+  const supportActive = !!data.support?.active;
+
+  // Wielo finance modals (record / refund / credit / adjustment / pay-link),
+  // scoped to this user (Wielo ↔ them). Reuses the admin revenue modals.
+  const [financeReq, setFinanceReq] = useState<WieloFinanceRequest | null>(
+    null,
+  );
+  const openFinance = (action: WieloFinanceAction) =>
+    setFinanceReq({ action, email: data.user.email ?? "" });
+  const financeProducts = data.products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    currency: p.currency,
+    productType: p.productType ?? "product",
+  }));
+  const financeUsers = data.user.email
+    ? [{ email: data.user.email, name: data.user.full_name }]
+    : [];
+
+  // Share a Wielo document (invoice / CN / refund) with the user.
+  function shareDoc(mode: "inbox" | "email", txn: WieloTxn) {
+    if (!txn.doc?.viewPath) {
+      toast.error("This entry has no document to share.");
+      return;
+    }
+    const url = `${window.location.origin}${txn.doc.viewPath}`;
+    const label = `${txn.doc.kind.replace(/_/g, " ")} ${txn.doc.number}`;
+    start(async () => {
+      const r =
+        mode === "inbox"
+          ? await sendWieloDocToInbox({ userId: data.user.id, url, label })
+          : await emailWieloDoc({ userId: data.user.id, url, label });
+      if (r.ok) {
+        toast.success(mode === "inbox" ? "Sent to their inbox." : "Emailed.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
 
   return (
     <div className="space-y-5">
@@ -2748,29 +2830,65 @@ function LedgerPanel({
         onRequest={onRequestSupport}
       />
 
-      {hasBookings ? (
-        <div className="inline-flex rounded-pill border border-brand-line bg-white p-0.5 text-[13px] font-semibold shadow-card">
-          {(
-            [
-              ["wielo", "Wielo account"],
-              ["bookings", "Bookings (guests)"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setView(key)}
-              className={`rounded-pill px-3.5 py-1.5 transition ${
-                view === key
-                  ? "bg-brand-primary text-white"
-                  : "text-brand-mute hover:text-brand-ink"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      {/* Pills (left) + finance actions (right). Wielo actions manage the user's
+          Wielo account; on the booking ledger the same power is gated by the
+          host's support grant (then row-level manage opens on that ledger). */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {hasBookings ? (
+          <div className="inline-flex rounded-pill border border-brand-line bg-white p-0.5 text-[13px] font-semibold shadow-card">
+            {(
+              [
+                ["wielo", "Wielo account"],
+                ["bookings", "Bookings (guests)"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setView(key)}
+                className={`rounded-pill px-3.5 py-1.5 transition ${
+                  view === key
+                    ? "bg-brand-primary text-white"
+                    : "text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div />
+        )}
+
+        {view === "wielo" ? (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {FIN_ACTIONS.map((a) => (
+              <button
+                key={a.key}
+                type="button"
+                onClick={() => openFinance(a.key)}
+                disabled={pending || !data.user.email}
+                className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[12.5px] font-semibold transition disabled:opacity-50 ${
+                  a.primary
+                    ? "bg-brand-primary text-white hover:bg-brand-secondary"
+                    : "border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
+                }`}
+              >
+                <a.icon className="h-3.5 w-3.5" />
+                {a.label}
+              </button>
+            ))}
+          </div>
+        ) : supportActive ? (
+          <span className="text-[12px] text-brand-mute">
+            Support access active — manage each transaction from its ⋯ menu.
+          </span>
+        ) : (
+          <span className="text-[12px] text-brand-mute">
+            Request the host&apos;s access to manage their bookings ledger.
+          </span>
+        )}
+      </div>
 
       {showBookings ? (
         <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
@@ -2800,6 +2918,7 @@ function LedgerPanel({
             showGuest
             emptyLabel="No booking transactions yet."
             minWidth={720}
+            canManage={supportActive}
           />
         </section>
       ) : (
@@ -2819,9 +2938,23 @@ function LedgerPanel({
             productLabels={data.wieloLabels.productLabels}
             emptyLabel="No transactions with Wielo yet."
             minWidth={760}
+            onAction={(action, txn) =>
+              setFinanceReq({
+                action,
+                email: txn.userEmail ?? data.user.email ?? "",
+              })
+            }
+            onDocShare={shareDoc}
           />
         </section>
       )}
+
+      <WieloFinanceModals
+        request={financeReq}
+        users={financeUsers}
+        products={financeProducts}
+        onClose={() => setFinanceReq(null)}
+      />
     </div>
   );
 }

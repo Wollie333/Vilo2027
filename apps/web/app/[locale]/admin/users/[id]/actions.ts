@@ -14,8 +14,10 @@ import { createProductOrder } from "@/lib/billing/product-checkout";
 import {
   adminPostUpgradeCardToHostThread,
   adminPostPaymentLinkToHostThread,
+  adminPostToHostThread,
 } from "@/lib/inbox/platform-thread";
 import { ensureHostForUser } from "@/lib/hosts/ensureHost";
+import { sendTransactionalEmail } from "@/lib/email/send";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
@@ -1179,6 +1181,77 @@ export const sellProductAction = withAdminAudit<
   },
 );
 
+// ─── Share a Wielo document (invoice / credit note / refund) with the user ──
+// From the user's Wielo ledger: post the doc link into their Wielo inbox thread,
+// or email it to them. Mirrors the booking ledger's "send link / email" actions.
+const docShareSchema = z.object({
+  userId: z.string().uuid(),
+  url: z.string().url(),
+  label: z.string().trim().min(1).max(120),
+  reason: z.string().optional(),
+});
+
+export const sendWieloDocToInboxAction = withAdminAudit<
+  z.infer<typeof docShareSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "user.send_doc_inbox",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+  },
+  async (args, service) => {
+    const parsed = docShareSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    const { userId, url, label } = parsed.data;
+    const { data: host } = await service
+      .from("hosts")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!host)
+      throw new Error("This user has no inbox thread (not a host yet).");
+    await adminPostToHostThread(service, {
+      host: { id: host.id, userId },
+      body: `Here's your ${label}: ${url}`,
+    });
+    return { result: { ok: true }, after: { userId } };
+  },
+);
+
+export const emailWieloDocAction = withAdminAudit<
+  z.infer<typeof docShareSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "user.email_doc",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+  },
+  async (args, service) => {
+    const parsed = docShareSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    const { userId, url, label } = parsed.data;
+    const { data: prof } = await service
+      .from("user_profiles")
+      .select("email, full_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const to = prof?.email;
+    if (!to) throw new Error("This user has no email on file.");
+    const name = (prof?.full_name ?? "there").split(" ")[0] || "there";
+    const res = await sendTransactionalEmail({
+      to,
+      subject: `Your ${label}`,
+      html: `<p>Hi ${name},</p><p>Here's your ${label}:</p><p><a href="${url}">${url}</a></p><p>— Wielo</p>`,
+    });
+    if (!res.ok) throw new Error(res.error ?? "Couldn't send the email.");
+    return { result: { ok: true }, after: { userId } };
+  },
+);
+
 // ─── Edit a host's business (legal entity on their documents) ─────────
 const opt = z.string().trim().max(200).optional().or(z.literal(""));
 const businessSchema = z.object({
@@ -1917,6 +1990,22 @@ export async function sellProduct(input: {
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };
   }
+}
+
+export async function sendWieloDocToInbox(input: {
+  userId: string;
+  url: string;
+  label: string;
+}) {
+  return wrap(() => sendWieloDocToInboxAction(input));
+}
+
+export async function emailWieloDoc(input: {
+  userId: string;
+  url: string;
+  label: string;
+}) {
+  return wrap(() => emailWieloDocAction(input));
 }
 
 export async function suspendUser(input: { userId: string; reason: string }) {

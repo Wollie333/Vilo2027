@@ -8,6 +8,8 @@ import {
   FileMinus,
   FileText,
   Link2,
+  Mail,
+  MessageSquare,
   MoreHorizontal,
   RotateCcw,
 } from "lucide-react";
@@ -116,6 +118,7 @@ export function AdminLedgerList({
   emptyLabel = "No transactions match your filters.",
   minWidth = 900,
   onAction,
+  onDocShare,
 }: {
   entries: WieloTxn[];
   /** Plan key → product name, so a row reads "Starter" not "pro". */
@@ -126,6 +129,8 @@ export function AdminLedgerList({
   minWidth?: number;
   /** Open a host-scoped finance action for this row (refund / credit / link). */
   onAction?: (action: "refund" | "credit" | "link", txn: WieloTxn) => void;
+  /** Share this row's document with the user (Wielo inbox / email). */
+  onDocShare?: (mode: "inbox" | "email", txn: WieloTxn) => void;
 }) {
   const [menu, setMenu] = useState<{
     entry: WieloTxn;
@@ -460,6 +465,34 @@ export function AdminLedgerList({
                     <Copy className="h-3.5 w-3.5 text-brand-mute" />
                     Copy link
                   </button>
+                  {onDocShare ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const t = menu.entry;
+                          setMenu(null);
+                          onDocShare("inbox", t);
+                        }}
+                        className={MENU_ITEM}
+                      >
+                        <MessageSquare className="h-3.5 w-3.5 text-brand-mute" />
+                        Send to inbox
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const t = menu.entry;
+                          setMenu(null);
+                          onDocShare("email", t);
+                        }}
+                        className={MENU_ITEM}
+                      >
+                        <Mail className="h-3.5 w-3.5 text-brand-mute" />
+                        Email to user
+                      </button>
+                    </>
+                  ) : null}
                 </>
               ) : !onAction ? (
                 <div className="px-3 py-2 text-[12px] text-brand-mute">
