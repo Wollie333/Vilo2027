@@ -11,6 +11,7 @@ import {
 import { startProductCheckoutDirect } from "@/lib/billing/product-checkout";
 import { requireHost as getMyHostId } from "@/lib/host/current";
 import { hostPostToWieloThread } from "@/lib/inbox/platform-thread";
+import { notifyAdmins } from "@/lib/admin/notify";
 import { getPlan } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -409,10 +410,20 @@ export async function pauseSubscriptionAction(): Promise<ActionResult> {
   // Notify Wielo (a card in the host's support thread) — admin-client post so it
   // isn't gated by the host's inbox RLS.
   try {
-    await hostPostToWieloThread(createAdminClient(), {
+    const admin = createAdminClient();
+    await hostPostToWieloThread(admin, {
       host: { id: host.hostId, userId: host.userId },
       body: "I've paused my membership. It's on hold for now.",
       systemEvent: "subscription_paused",
+    });
+    await notifyAdmins(admin, {
+      category: "support",
+      kind: "subscription_paused",
+      title: "Membership paused",
+      body: "A host put their membership on hold.",
+      userId: host.userId,
+      hostId: host.hostId,
+      href: `/admin/users/${host.userId}?tab=products`,
     });
   } catch {
     // Non-fatal: the pause succeeded even if the notification post fails.
@@ -440,10 +451,20 @@ export async function requestCancellationAction(): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   try {
-    await hostPostToWieloThread(createAdminClient(), {
+    const admin = createAdminClient();
+    await hostPostToWieloThread(admin, {
       host: { id: host.hostId, userId: host.userId },
       body: "I'd like to cancel my membership. Please help me close it off.",
       systemEvent: "cancellation_requested",
+    });
+    await notifyAdmins(admin, {
+      category: "support",
+      kind: "cancellation_request",
+      title: "Cancellation requested",
+      body: "A host asked to cancel their membership (now paused).",
+      userId: host.userId,
+      hostId: host.hostId,
+      href: `/admin/users/${host.userId}?tab=products`,
     });
   } catch {
     // Non-fatal: the request (paused) stands even if the notification post fails.

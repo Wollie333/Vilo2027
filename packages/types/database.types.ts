@@ -265,6 +265,66 @@ export type Database = {
           },
         ]
       }
+      admin_notifications: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          host_id: string | null
+          href: string | null
+          id: string
+          is_read: boolean
+          kind: string
+          ledger_id: string | null
+          order_id: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          category: string
+          created_at?: string
+          host_id?: string | null
+          href?: string | null
+          id?: string
+          is_read?: boolean
+          kind: string
+          ledger_id?: string | null
+          order_id?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          host_id?: string | null
+          href?: string | null
+          id?: string
+          is_read?: boolean
+          kind?: string
+          ledger_id?: string | null
+          order_id?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_permissions: {
         Row: {
           created_at: string

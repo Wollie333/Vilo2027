@@ -502,23 +502,19 @@ export function UserRecord({ data }: { data: UserRecordData }) {
 
   // Consolidated tab groups (each stacks the related panels). Far fewer top-
   // level tabs; deep-links to the old keys still resolve via TAB_ALIASES.
+  // Every user record shows the SAME tabs (guest or host) — each is just filled
+  // by that user's scope (a guest simply has empty listings / business / etc.).
   const tabs = [
     { key: "overview", label: "Overview" },
     { key: "bookings", label: "Bookings" },
-    ...(host
-      ? [{ key: "listings", label: "Listings", count: data.listings.length }]
-      : []),
+    { key: "listings", label: "Listings", count: data.listings.length },
     { key: "products", label: "Products" },
     { key: "finance", label: "Finance" },
-    ...(host
-      ? [
-          {
-            key: "business",
-            label: "Business & catalogue",
-            count: data.businesses.length + data.addons.length,
-          },
-        ]
-      : []),
+    {
+      key: "business",
+      label: "Business & catalogue",
+      count: data.businesses.length + data.addons.length,
+    },
     {
       key: "affiliate",
       label: "Affiliate",

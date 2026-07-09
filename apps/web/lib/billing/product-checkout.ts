@@ -7,6 +7,7 @@ import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
 import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
+import { notifyAdmins } from "@/lib/admin/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Wielo product checkout — mirrors the host booking pay-link, but for Wielo's own
@@ -364,7 +365,7 @@ export async function startProductPaystack(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_email, payer_user_id, amount, currency, status, pay_token",
+      "id, product_id, product_name, payer_email, payer_user_id, amount, currency, status, pay_token",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -415,6 +416,20 @@ export async function startProductPaystack(
       provider_reference: reference,
       environment,
       reason: "Product purchase",
+    });
+    // Alert staff a card payment is being taken (so nothing is missed).
+    await notifyAdmins(admin, {
+      category: "finance",
+      kind: "payment_initiated",
+      title: "Card payment initiated",
+      body: `${order.product_name ?? "Product"} · ${order.currency} ${Number(
+        order.amount,
+      ).toFixed(2)} · ${order.payer_email ?? "guest"}`,
+      userId: order.payer_user_id,
+      orderId: order.id,
+      href: order.payer_user_id
+        ? `/admin/users/${order.payer_user_id}?tab=finance`
+        : "/admin/payments",
     });
     return {
       ok: true,
@@ -527,7 +542,7 @@ export async function recordProductEftIntent(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, amount, currency, status, environment, payer_email, payer_user_id",
+      "id, product_id, product_name, amount, currency, status, environment, payer_email, payer_user_id",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -570,6 +585,19 @@ export async function recordProductEftIntent(
       provider_reference: ref,
       environment,
       reason: "Product purchase (EFT)",
+    });
+    // Alert staff: an EFT is now awaited and must be settled manually. Only on
+    // first creation so repeated "show bank details" clicks don't spam the feed.
+    await notifyAdmins(admin, {
+      category: "finance",
+      kind: "eft_pending",
+      title: "Pending EFT payment",
+      body: `${order.product_name ?? "Product"} · ${order.currency} ${Number(
+        order.amount,
+      ).toFixed(2)} · ${order.payer_email ?? "guest"}`,
+      userId,
+      orderId: order.id,
+      href: userId ? `/admin/users/${userId}?tab=finance` : "/admin/payments",
     });
   }
   await admin

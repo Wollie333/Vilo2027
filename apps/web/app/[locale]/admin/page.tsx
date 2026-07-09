@@ -5,6 +5,7 @@ import {
   ChevronRight,
   CreditCard,
   Flag,
+  LifeBuoy,
   Megaphone,
   Package,
   ShieldAlert,
@@ -46,7 +47,7 @@ export default async function AdminOverviewPage({
     { count: flaggedReviews },
     { count: pendingRefunds },
     { count: openDataReqs },
-    { data: auditRows },
+    { data: notifRows },
   ] = await Promise.all([
     buildPlatformReport("30d", Date.now(), env),
     service
@@ -61,11 +62,13 @@ export default async function AdminOverviewPage({
       .from("data_requests")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
+    // Latest transactional notifications (finance + support) so staff never miss
+    // a payment being initiated, a pending EFT, or a support / cancel request.
     service
-      .from("admin_audit_log")
-      .select("id, action, target_type, target_id, admin_id, created_at")
+      .from("admin_notifications")
+      .select("id, category, kind, title, body, href, is_read, created_at")
       .order("created_at", { ascending: false })
-      .limit(8),
+      .limit(12),
   ]);
 
   const k = report.kpis;
@@ -322,38 +325,76 @@ export default async function AdminOverviewPage({
           </Card>
         ) : null}
 
-        {canAudit && (
-          <Card
-            title="Recent admin activity"
-            actionHref="/admin/audit"
-            actionLabel="Audit log"
-          >
-            <ul className="divide-y divide-brand-line">
-              {(auditRows ?? []).map((row) => (
-                <li
-                  key={row.id}
-                  className="flex items-center gap-3 px-4 py-2.5 text-[13px]"
+        {/* Latest actions — transactional (finance + support) notifications so
+            staff never miss a payment being initiated, a pending EFT, or a
+            support / cancellation request. Replaces the raw audit feed here (the
+            full audit log is still linked). */}
+        <Card
+          title="Latest actions"
+          actionHref={canAudit ? "/admin/audit" : undefined}
+          actionLabel={canAudit ? "Audit log" : undefined}
+        >
+          <ul className="divide-y divide-brand-line">
+            {(notifRows ?? []).map((n) => {
+              const finance = n.category === "finance";
+              const Icon = finance ? CreditCard : LifeBuoy;
+              const body = (
+                <div
+                  className={`flex items-start gap-3 px-4 py-2.5 text-[13px] ${
+                    n.is_read ? "" : "bg-brand-light/40"
+                  }`}
                 >
-                  <span className="truncate font-mono text-[12px] text-brand-ink">
-                    {row.action}
+                  <span
+                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                      finance
+                        ? "bg-emerald-50 text-emerald-600"
+                        : "bg-sky-50 text-sky-600"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
                   </span>
-                  <span className="truncate text-[12px] text-brand-mute">
-                    {row.target_type}
-                    {row.target_id ? ` · ${row.target_id.slice(0, 8)}` : ""}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {n.is_read ? null : (
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-primary" />
+                      )}
+                      <span className="truncate font-semibold text-brand-ink">
+                        {n.title}
+                      </span>
+                    </div>
+                    {n.body ? (
+                      <div className="truncate text-[12px] text-brand-mute">
+                        {n.body}
+                      </div>
+                    ) : null}
+                  </div>
                   <span className="ml-auto shrink-0 text-[11px] text-brand-mute">
-                    {formatRelative(row.created_at)}
+                    {formatRelative(n.created_at)}
                   </span>
+                </div>
+              );
+              return (
+                <li key={n.id}>
+                  {n.href ? (
+                    <Link
+                      href={n.href}
+                      className="block transition hover:bg-brand-light/60"
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    body
+                  )}
                 </li>
-              ))}
-              {(auditRows ?? []).length === 0 ? (
-                <li className="px-4 py-6 text-center text-[13px] text-brand-mute">
-                  No admin actions logged yet.
-                </li>
-              ) : null}
-            </ul>
-          </Card>
-        )}
+              );
+            })}
+            {(notifRows ?? []).length === 0 ? (
+              <li className="px-4 py-6 text-center text-[13px] text-brand-mute">
+                No financial or support activity yet.
+              </li>
+            ) : null}
+          </ul>
+        </Card>
       </div>
 
       {/* Marketplace context — host↔guest money, NOT Wielo revenue. Quiet footnote. */}
