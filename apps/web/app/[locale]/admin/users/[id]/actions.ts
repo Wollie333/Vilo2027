@@ -12,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
 import { adminPostUpgradeCardToHostThread } from "@/lib/inbox/platform-thread";
+import { ensureHostForUser } from "@/lib/hosts/ensureHost";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
@@ -712,7 +713,10 @@ export const requestSupportAccessAction = withAdminAudit<
 // (retiring any other active one); activating a SERVICE adds its own row (many
 // allowed). Keyed by (host_id, product_id) so a host can hold several subs.
 const setProductSchema = z.object({
-  hostId: z.string().uuid(),
+  // Provide the host directly, OR a userId — a guest with no host is provisioned
+  // as a host on the spot (so an admin can sell a guest a subscription/product).
+  hostId: z.string().uuid().optional(),
+  userId: z.string().uuid().optional(),
   productId: z.string().uuid(),
   // How to bill a paid upgrade/add. "paid": post a COMPLETED pro-rated charge
   // (invoice mints). "paylink": activate now + return a custom-amount pay-link
@@ -733,12 +737,20 @@ export const setUserProductAction = withAdminAudit<
     permissionKey: "subscriptions.edit",
     actionName: "user.set_product",
     targetType: "subscription",
-    getTargetId: (a) => a.hostId,
+    getTargetId: (a) => a.hostId ?? a.userId ?? "",
   },
   async (args, service) => {
     const parsed = setProductSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid input.");
-    const { hostId, productId, charge } = parsed.data;
+    const { productId, charge } = parsed.data;
+
+    // Resolve the host — provisioning one from the user (guest → host) if needed
+    // so a guest account can be sold a subscription/product.
+    let hostId = parsed.data.hostId ?? null;
+    if (!hostId && parsed.data.userId) {
+      hostId = await ensureHostForUser(service, parsed.data.userId);
+    }
+    if (!hostId) throw new Error("No account to attach the product to.");
 
     const { data: product } = await service
       .from("products")
@@ -1556,7 +1568,8 @@ export async function requestSupportAccess(input: {
 }
 
 export async function setUserProduct(input: {
-  hostId: string;
+  hostId?: string;
+  userId?: string;
   productId: string;
   charge?: "paid" | "paylink" | "none";
   timing?: "now" | "end_of_cycle";

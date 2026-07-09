@@ -63,6 +63,8 @@ import {
 } from "@/app/[locale]/dashboard/policies/actions";
 import { CURRENCY_META, DISPLAY_CURRENCIES } from "@/lib/currency";
 import { LedgerList } from "@/components/finance/LedgerList";
+import { AdminLedgerList } from "@/components/finance/AdminLedgerList";
+import type { WieloTxn } from "@/lib/billing/wielo-ledger";
 import {
   FormModal,
   FormModalCancel,
@@ -304,14 +306,11 @@ export type UserRecordData = {
     expiresAt: string | null;
     requestedBy: string | null;
   }[];
-  wieloLedger: {
-    id: string;
-    type: string;
-    status: string;
-    amount: number;
-    reason: string | null;
-    date: string;
-  }[];
+  wieloLedger: WieloTxn[];
+  wieloLabels: {
+    planLabels: Record<string, string>;
+    productLabels: Record<string, string>;
+  };
   relationships: {
     id: string;
     contactId: string;
@@ -509,7 +508,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
     ...(host
       ? [{ key: "listings", label: "Listings", count: data.listings.length }]
       : []),
-    ...(host ? [{ key: "products", label: "Products" }] : []),
+    { key: "products", label: "Products" },
     { key: "finance", label: "Finance" },
     ...(host
       ? [
@@ -595,8 +594,9 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             ) : null}
             {tab === "listings" ? <ListingsPanel data={data} /> : null}
 
-            {/* Products — the user's subscription + purchased products */}
-            {tab === "products" && host ? (
+            {/* Products — the user's subscription + purchased products. Shown
+                for guests too: activating a product provisions them as a host. */}
+            {tab === "products" ? (
               <ProductsPanel data={data} onManage={openManage} />
             ) : null}
 
@@ -1772,6 +1772,9 @@ function ProductsPanel({
   const [pending, start] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const hostId = data.host?.id ?? null;
+  // A guest has no host yet — activating a product provisions one server-side,
+  // so the catalog works off the userId even before they're a host.
+  const userId = data.user.id;
   const subs = data.subscriptions;
 
   const LIVE = ["trialing", "active", "past_due"];
@@ -1859,10 +1862,14 @@ function ProductsPanel({
   }
 
   function activate(productId: string, mode: "paid" | "none") {
-    if (!hostId) return;
     setBusyId(productId);
     start(async () => {
-      const r = await setUserProduct({ hostId, productId, charge: mode });
+      const r = await setUserProduct({
+        hostId: hostId ?? undefined,
+        userId,
+        productId,
+        charge: mode,
+      });
       setBusyId(null);
       if (r.ok) {
         closeCharge();
@@ -1881,11 +1888,11 @@ function ProductsPanel({
   // Activate now + generate a custom-amount pay-link for the pro-rated delta; the
   // dialog stays open to reveal the link for the admin to copy/send.
   function sendPayLink(productId: string) {
-    if (!hostId) return;
     setBusyId(productId);
     start(async () => {
       const r = await setUserProduct({
-        hostId,
+        hostId: hostId ?? undefined,
+        userId,
         productId,
         charge: "paylink",
       });
@@ -1990,7 +1997,7 @@ function ProductsPanel({
           ) : (
             <Button
               size="sm"
-              disabled={pending || !hostId}
+              disabled={pending}
               onClick={() => onCatalogClick(p)}
             >
               {busyId === p.id
@@ -2559,14 +2566,46 @@ function LedgerPanel({
   data: UserRecordData;
   onRequestSupport: () => void;
 }) {
+  // The user↔Wielo ledger is the primary view (subscriptions, products, refunds,
+  // credits). The user↔user booking ledger (their guests → them) is secondary
+  // and only rendered when the admin toggles to it — hidden otherwise.
+  const hasBookings = !!(data.host && data.hostFinance);
+  const [view, setView] = useState<"wielo" | "bookings">("wielo");
+  const showBookings = hasBookings && view === "bookings";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <SupportBanner
         support={data.support}
         isHost={!!data.host}
         onRequest={onRequestSupport}
       />
-      {data.host && data.hostFinance ? (
+
+      {hasBookings ? (
+        <div className="inline-flex rounded-pill border border-brand-line bg-white p-0.5 text-[13px] font-semibold shadow-card">
+          {(
+            [
+              ["wielo", "Wielo account"],
+              ["bookings", "Bookings (guests)"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setView(key)}
+              className={`rounded-pill px-3.5 py-1.5 transition ${
+                view === key
+                  ? "bg-brand-primary text-white"
+                  : "text-brand-mute hover:text-brand-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {showBookings ? (
         <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
           <h3 className="mb-3 font-display text-sm font-bold text-brand-ink">
             Booking ledger (their guests → them)
@@ -2574,19 +2613,19 @@ function LedgerPanel({
           <div className="mb-4 grid gap-3 sm:grid-cols-4">
             <MiniKpi
               label="Collected"
-              value={formatMoney(data.hostFinance.collected, "ZAR")}
+              value={formatMoney(data.hostFinance!.collected, "ZAR")}
             />
             <MiniKpi
               label="Outstanding"
-              value={formatMoney(data.hostFinance.outstanding, "ZAR")}
+              value={formatMoney(data.hostFinance!.outstanding, "ZAR")}
             />
             <MiniKpi
               label="Refunded"
-              value={formatMoney(data.hostFinance.refunded, "ZAR")}
+              value={formatMoney(data.hostFinance!.refunded, "ZAR")}
             />
             <MiniKpi
               label="Net"
-              value={formatMoney(data.hostFinance.net, "ZAR")}
+              value={formatMoney(data.hostFinance!.net, "ZAR")}
             />
           </div>
           <LedgerList
@@ -2596,22 +2635,26 @@ function LedgerPanel({
             minWidth={720}
           />
         </section>
-      ) : null}
-      <Section
-        icon={CreditCard}
-        title="Wielo account (them → Wielo)"
-        count={data.wieloLedger.length}
-        empty="No payments to Wielo yet."
-      >
-        {data.wieloLedger.map((t) => (
-          <RowLink
-            key={t.id}
-            primary={`${t.type[0].toUpperCase()}${t.type.slice(1)}`}
-            secondary={`${fmtDate(t.date)}${t.reason ? ` · ${t.reason}` : ""}${t.status !== "completed" ? ` · ${t.status}` : ""}`}
-            amount={`${t.amount < 0 ? "−" : ""}${formatMoney(Math.abs(t.amount), "ZAR")}`}
+      ) : (
+        <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <h3 className="mb-1 flex items-center gap-2 font-display text-sm font-bold text-brand-ink">
+            <CreditCard className="h-4 w-4 text-brand-mute" />
+            Wielo account (them → Wielo)
+          </h3>
+          <p className="mb-4 text-[12px] text-brand-mute">
+            Subscriptions, products, refunds and credits between this user and
+            Wielo. Balance = what they owe Wielo (or their credit) after each
+            entry.
+          </p>
+          <AdminLedgerList
+            entries={data.wieloLedger}
+            planLabels={data.wieloLabels.planLabels}
+            productLabels={data.wieloLabels.productLabels}
+            emptyLabel="No transactions with Wielo yet."
+            minWidth={760}
           />
-        ))}
-      </Section>
+        </section>
+      )}
     </div>
   );
 }

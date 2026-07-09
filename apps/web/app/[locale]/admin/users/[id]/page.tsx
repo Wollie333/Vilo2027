@@ -516,7 +516,20 @@ export default async function AdminUserDetailPage({
     : [];
 
   // Catalog products for the Products tab (manage the user's subscriptions).
-  const catalog = host ? await getSubscriptionProducts() : [];
+  // Loaded for everyone — the Products tab shows for guests too so an admin can
+  // sell them a subscription (which provisions them as a host).
+  const catalog = await getSubscriptionProducts();
+
+  // Labels for the Wielo ledger "For" column (plan key / product id → name).
+  const { data: allProducts } = await service
+    .from("products")
+    .select("id, name, plan_key");
+  const productLabels: Record<string, string> = {};
+  const planLabels: Record<string, string> = {};
+  for (const p of allProducts ?? []) {
+    if (p.id && p.name) productLabels[p.id] = p.name;
+    if (p.plan_key && p.name) planLabels[p.plan_key] = p.name;
+  }
 
   // Referrals this user has made as an affiliate (their affiliate link's signups).
   const referralBundle = await loadReferrals(service, user.id);
@@ -606,14 +619,8 @@ export default async function AdminUserDetailPage({
       isRecommended: p.isRecommended,
       bullets: p.bullets,
     })),
-    wieloLedger: wieloRows.map((t) => ({
-      id: t.id,
-      type: t.type,
-      status: t.status,
-      amount: t.amount,
-      reason: t.reason,
-      date: t.date,
-    })),
+    wieloLedger: wieloRows,
+    wieloLabels: { planLabels, productLabels },
     relationships: relationshipBundle,
     affiliateSlug: referralBundle.slug,
     affiliateStats: referralBundle.stats,

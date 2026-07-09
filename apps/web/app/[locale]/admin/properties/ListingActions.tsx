@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { setListingFeatured, setListingPublished } from "./actions";
@@ -29,26 +30,47 @@ export function ListingActions({
   name: string;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  // The menu is portalled to <body> and fixed-positioned so the table's scroll
+  // wrapper / row stacking contexts can't clip or cover it (was a low-z-index
+  // absolute menu that vanished behind the table). We anchor it to the button.
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const open = menu !== null;
   const [pending, start] = useTransition();
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    const close = () => setMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenu(null);
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
+
+  function toggle(ev: React.MouseEvent) {
+    ev.stopPropagation();
+    if (open) {
+      setMenu(null);
+      return;
+    }
+    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenu({ x: rect.right, y: rect.bottom });
+  }
 
   function run(
     fn: () => Promise<{ ok: true } | { ok: false; error: string }>,
     ok: string,
   ) {
-    setOpen(false);
+    setMenu(null);
     start(async () => {
       const res = await fn();
       if (res.ok) {
@@ -61,10 +83,7 @@ export function ListingActions({
   }
 
   return (
-    <div
-      ref={ref}
-      className="relative inline-flex items-center justify-end gap-1"
-    >
+    <div className="inline-flex items-center justify-end gap-1">
       {slug ? (
         <a
           href={`/property/${slug}`}
@@ -77,9 +96,10 @@ export function ListingActions({
         </a>
       ) : null}
       <button
+        ref={btnRef}
         type="button"
         aria-label="Listing actions"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         disabled={pending}
         className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-brand-line bg-white text-brand-mute hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
       >
@@ -90,60 +110,72 @@ export function ListingActions({
         )}
       </button>
 
-      {open ? (
-        <div className="absolute right-0 top-9 z-20 w-52 overflow-hidden rounded-card border border-brand-line bg-white py-1 shadow-lg">
-          <MenuItem
-            icon={
-              isFeatured ? (
-                <StarOff className="h-4 w-4" />
-              ) : (
-                <Star className="h-4 w-4" />
-              )
-            }
-            onClick={() =>
-              run(
-                () =>
-                  setListingFeatured({ listingId, isFeatured: !isFeatured }),
-                isFeatured ? "Unfeatured" : "Featured",
-              )
-            }
-          >
-            {isFeatured ? "Unfeature" : "Feature"}
-          </MenuItem>
-          {isPublished ? (
-            <MenuItem
-              tone="danger"
-              icon={<EyeOff className="h-4 w-4" />}
-              onClick={() => {
-                if (
-                  !window.confirm(
-                    `Take "${name}" offline? It will be removed from public search and its page until re-published.`,
+      {menu
+        ? createPortal(
+            <div
+              className="fixed z-[60] w-52 overflow-hidden rounded-card border border-brand-line bg-white py-1 shadow-lift"
+              style={{ top: menu.y + 6, left: Math.max(8, menu.x - 208) }}
+              onClick={(ev) => ev.stopPropagation()}
+            >
+              <MenuItem
+                icon={
+                  isFeatured ? (
+                    <StarOff className="h-4 w-4" />
+                  ) : (
+                    <Star className="h-4 w-4" />
                   )
-                )
-                  return;
-                run(
-                  () => setListingPublished({ listingId, isPublished: false }),
-                  "Listing taken offline",
-                );
-              }}
-            >
-              Take offline
-            </MenuItem>
-          ) : (
-            <MenuItem
-              icon={<Eye className="h-4 w-4" />}
-              onClick={() =>
-                run(
-                  () => setListingPublished({ listingId, isPublished: true }),
-                  "Listing published",
-                )
-              }
-            >
-              Publish
-            </MenuItem>
-          )}
-        </div>
-      ) : null}
+                }
+                onClick={() =>
+                  run(
+                    () =>
+                      setListingFeatured({
+                        listingId,
+                        isFeatured: !isFeatured,
+                      }),
+                    isFeatured ? "Unfeatured" : "Featured",
+                  )
+                }
+              >
+                {isFeatured ? "Unfeature" : "Feature"}
+              </MenuItem>
+              {isPublished ? (
+                <MenuItem
+                  tone="danger"
+                  icon={<EyeOff className="h-4 w-4" />}
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        `Take "${name}" offline? It will be removed from public search and its page until re-published.`,
+                      )
+                    )
+                      return;
+                    run(
+                      () =>
+                        setListingPublished({ listingId, isPublished: false }),
+                      "Listing taken offline",
+                    );
+                  }}
+                >
+                  Take offline
+                </MenuItem>
+              ) : (
+                <MenuItem
+                  icon={<Eye className="h-4 w-4" />}
+                  onClick={() =>
+                    run(
+                      () =>
+                        setListingPublished({ listingId, isPublished: true }),
+                      "Listing published",
+                    )
+                  }
+                >
+                  Publish
+                </MenuItem>
+              )}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
