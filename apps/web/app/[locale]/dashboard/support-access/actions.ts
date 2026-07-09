@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { ensureWieloThread } from "@/lib/inbox/platform-thread";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -47,6 +49,63 @@ export async function respondSupportAccessAction(input: {
     .eq("id", parsed.data.grantId)
     .eq("host_user_id", user.id);
   if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/support-access");
+  return { ok: true };
+}
+
+// The account owner REPORTS a support-access request: auto-decline it AND drop a
+// message into their Wielo support thread so Wielo staff see the flag on their
+// admin inbox. The decline is the security-critical part; a thread-post failure
+// must never block it.
+export async function reportSupportAccessAction(input: {
+  grantId: string;
+}): Promise<Result> {
+  const parsed = z.object({ grantId: z.string().uuid() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createAdminClient();
+  const { data: grant } = await admin
+    .from("admin_support_grants")
+    .select("id, host_id, host_user_id, reason, status")
+    .eq("id", parsed.data.grantId)
+    .eq("host_user_id", user.id)
+    .maybeSingle();
+  if (!grant) return { ok: false, error: "Request not found." };
+
+  const now = new Date().toISOString();
+  const { error } = await admin
+    .from("admin_support_grants")
+    .update({ status: "declined", decided_at: now })
+    .eq("id", grant.id)
+    .eq("host_user_id", user.id);
+  if (error) return { ok: false, error: "Could not decline the request." };
+
+  // Flag it in the Wielo support thread (best-effort). Posted AS the account
+  // owner so Wielo staff see the owner reporting it, unread on their side.
+  try {
+    const conversationId = await ensureWieloThread(admin, {
+      id: grant.host_id as string,
+      userId: user.id,
+    });
+    await admin.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: user.id,
+      body: `🚩 I'm reporting a request to access/edit my financial records — I did not expect it and have declined it. Reason stated by staff: "${
+        grant.reason ?? "—"
+      }". Please investigate who requested this.`,
+      read_by_host: true,
+      read_by_guest: false,
+    });
+  } catch {
+    // Non-blocking: the decline already protected the account.
+  }
 
   revalidatePath("/dashboard/support-access");
   return { ok: true };

@@ -6,7 +6,19 @@ import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SupportAccessRequestModal } from "@/components/notifications/SupportAccessRequestModal";
 import { createClient } from "@/lib/supabase/client";
+
+// A support-access request notification opens a decide-popup instead of
+// navigating; the grant id lives on the payload.
+function grantIdOf(n: {
+  kind: string;
+  payload: Record<string, unknown> | null;
+}) {
+  if (n.kind !== "support_access_request") return null;
+  const id = n.payload?.grant_id;
+  return typeof id === "string" ? id : null;
+}
 
 export type ListNotification = {
   id: string;
@@ -95,6 +107,11 @@ export function NotificationsList({ initial }: Props) {
   const [items, setItems] = React.useState<ListNotification[]>(initial);
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = React.useState<string>("all");
+  const [accessReq, setAccessReq] = React.useState<{
+    grantId: string;
+    title: string;
+    body: string | null;
+  } | null>(null);
 
   // Realtime: keep the list in sync with new rows + read-state changes.
   React.useEffect(() => {
@@ -194,6 +211,13 @@ export function NotificationsList({ initial }: Props) {
 
   function onLinkClick(n: ListNotification) {
     if (!n.read_at) void markRead(n.id);
+    // Support-access requests open a decide-popup (Accept / Decline / Report)
+    // instead of navigating to the settings page.
+    const grantId = grantIdOf(n);
+    if (grantId) {
+      setAccessReq({ grantId, title: n.title, body: n.body });
+      return;
+    }
     if (n.link) router.push(n.link);
   }
 
@@ -350,6 +374,16 @@ export function NotificationsList({ initial }: Props) {
           })}
         </ul>
       )}
+
+      <SupportAccessRequestModal
+        open={!!accessReq}
+        grantId={accessReq?.grantId ?? null}
+        title={accessReq?.title}
+        body={accessReq?.body}
+        onOpenChange={(v) => {
+          if (!v) setAccessReq(null);
+        }}
+      />
     </div>
   );
 }
