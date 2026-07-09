@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-09 #33 — Admin: uniform user records + transactional "Latest actions" notifications.
+
+Two founder requests. tsc + lint + build green; verified live (grant → revoked; seeded feed + guest tabs).
+
+- **Uniform user records.** Every user record shows the SAME tabs whether guest or host (Listings +
+  Business & catalogue no longer host-gated) — filled by the user's scope, empty states for a guest.
+- **Admin transactional notifications.** New `admin_notifications` table (migration `20260709170000`;
+  finance | support, staff-read RLS) + a best-effort `notifyAdmins` helper. Emitted the moment a payment
+  is initiated so staff never miss it: `recordProductEftIntent` → "Pending EFT payment",
+  `startProductPaystack` → "Card payment initiated", host pause / cancel-request → support entries. The
+  admin dashboard's "Recent admin activity" card is replaced by a **"Latest actions"** feed (category
+  icon, unread emphasis, amount/email line, deep link to the user's finance/products tab); the full audit
+  log stays linked. Feed verified live; the emit is wired into the (proven) payment paths as simple
+  inserts — a full click-to-pay E2E of the insert wasn't driven.
+
 ## 2026-07-09 #32 — Admin: guest Products tab, per-user Wielo ledger toggle, portal listing menu.
 
 Three admin user-record / listings improvements (founder requests). tsc + lint + build green; verified

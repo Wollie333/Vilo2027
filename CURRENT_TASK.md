@@ -38,6 +38,16 @@ ledger via `AdminLedgerList` (booking-ledger styling + running balance + docs) w
 **Wielo account (primary) / Bookings (guests)** — bookings hidden until toggled; (3) admin listings
 (`admin/properties`) ⋯ menu **portalled to body** (fixed z-[60]) so it's no longer clipped. All verified live.
 
+**Also shipped after #32 (`bb1da4c2`) — admin requests:** (1) **uniform user records** — every user
+record shows the SAME 9 tabs whether guest or host (Listings + Business & catalogue no longer host-gated;
+empty states for guests); (2) **admin transactional notifications** — new `admin_notifications` table
+(migration `20260709170000`, finance|support, staff-read RLS) + `lib/admin/notify.ts` `notifyAdmins`,
+emitted on payment initiation (`recordProductEftIntent` EFT-pending, `startProductPaystack` card-init) +
+host pause/cancel-request; the admin dashboard "Recent admin activity" card is replaced by a **"Latest
+actions"** feed (category icon, unread dots, deep links). Feed verified live; emit wired but not
+click-to-pay E2E'd. TODO refinement the founder mentioned: also flip the buyer's inbox pay card to
+"pending payment" once EFT details are shown (not yet done).
+
 **NEXT — Phase 5 (guest transaction history):** show a buyer's Wielo purchases (`product_orders` +
 `wielo_invoices` + credit notes/refunds, downloadable docs) in `/portal/settings` (guest) +
 `/dashboard/settings` (host). Ties to PRODUCT_PURCHASE_LIFECYCLE_PLAN.md. Then AFFILIATE_HARDENING_PLAN
