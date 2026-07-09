@@ -37,6 +37,14 @@ invoice mints + affiliate) or send-pay-link (order + link + inbox pay card; gues
 Concierge Service" was already fully removed from DB/code — only the real products remain: Starter, Beta,
 Wielo StayFlow Web-design.)
 
+**Also shipped after #35 (`fa00debb`) — finance actions on the user record:** (1) the user↔Wielo ledger
+row ⋯ menu now matches the booking ledger — refund/credit/send-pay-link (WieloFinanceModals) + **Send to
+inbox / Email to user** (new `sendWieloDocToInbox`/`emailWieloDoc` actions) + open/download/copy; (2)
+**Finance-tab header buttons** right of the pills (Wielo tab: Record payment/Refund/Credit note/Adjustment/
+Payment link via WieloFinanceModals; Bookings tab: LedgerList `canManage` unlocks only when the host's
+support grant is active); (3) **Overview** got a "Commissions" block next to Trips + "Paid to Wielo" moved
+last with a greenish highlight. All verified live.
+
 **NEXT — Phase 5 (guest transaction history):** show a buyer's Wielo purchases (`product_orders` +
 `wielo_invoices` + credit notes/refunds, downloadable docs) in `/portal/settings` (guest) +
 `/dashboard/settings` (host). Ties to PRODUCT_PURCHASE_LIFECYCLE_PLAN.md. Then affiliate hardening (LAST).

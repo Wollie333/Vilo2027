@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-09 #36 — Admin: finance actions on the user record + overview commissions block.
+
+- **Wielo ledger row menu** enriched to match the booking ledger: each row's ⋯ menu now has Issue refund /
+  Give credit / Send payment link (Wielo finance modals) + **Send to inbox / Email to user** for its
+  document (new `sendWieloDocToInbox` / `emailWieloDoc` actions), plus the existing open/download/copy.
+- **Finance-tab header actions** (right of the pills): Wielo tab → Record payment / Refund / Credit note /
+  Adjustment / Payment link (reuses `WieloFinanceModals`, scoped to the user); Bookings tab → the booking
+  ledger's row manage actions (`canManage`) unlock only once the host's support grant is active.
+- **Overview** stat band: a "Commissions" block (total affiliate commissions) next to Trips; "Paid to
+  Wielo" moved last with a greenish highlight.
+- Verified live: enriched ⋯ menu + Send-to-inbox posted a doc link to the Wielo thread; Record-payment
+  opens the modal; header buttons render; Overview shows Commissions + greenish Paid to Wielo.
+
 ## 2026-07-09 #35 — Admin: sell once-off products from a user's Products tab.
 
 The Products-tab catalog only listed subscriptions, so once-off products (e.g. Wielo StayFlow Web-design)
