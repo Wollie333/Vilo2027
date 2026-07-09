@@ -551,6 +551,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
               <ProductsPanel
                 data={data}
                 onManage={() => setDialog("managesub")}
+                onRequestSupport={() => setDialog("support")}
               />
             ) : null}
 
@@ -1625,15 +1626,20 @@ function IconFact({
 function ProductsPanel({
   data,
   onManage,
+  onRequestSupport,
 }: {
   data: UserRecordData;
   onManage: () => void;
+  onRequestSupport: () => void;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const s = data.subscription;
   const hostId = data.host?.id ?? null;
+  // Editing a user's plan/products is a financial write — gated on the host's
+  // active support-access grant (the server enforces this too).
+  const locked = !!data.host && !data.support?.active;
 
   // A product is "active" on the account if it's the linked product, or (legacy
   // / plan-mapped) its slug matches the subscription's plan key.
@@ -1645,7 +1651,7 @@ function ProductsPanel({
   };
 
   function activate(productId: string) {
-    if (!hostId) return;
+    if (!hostId || locked) return;
     setBusyId(productId);
     start(async () => {
       const r = await setUserProduct({ hostId, productId });
@@ -1669,6 +1675,12 @@ function ProductsPanel({
 
   return (
     <div className="space-y-5">
+      <SupportBanner
+        support={data.support}
+        isHost={!!data.host}
+        onRequest={onRequestSupport}
+      />
+
       {/* Current subscription summary */}
       <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1690,7 +1702,13 @@ function ProductsPanel({
             )}
           </div>
           {s ? (
-            <Button size="sm" variant="outline" onClick={onManage}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onManage}
+              disabled={locked}
+              title={locked ? "Request edit access first" : undefined}
+            >
               Manage status &amp; cycle
             </Button>
           ) : null}
@@ -1761,14 +1779,21 @@ function ProductsPanel({
                   ) : null}
                   <div className="mt-4 flex items-center gap-2 pt-1">
                     {active ? (
-                      <Button size="sm" variant="outline" onClick={onManage}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={onManage}
+                        disabled={locked}
+                        title={locked ? "Request edit access first" : undefined}
+                      >
                         Manage
                       </Button>
                     ) : (
                       <Button
                         size="sm"
-                        disabled={pending || !hostId}
+                        disabled={pending || !hostId || locked}
                         onClick={() => activate(p.id)}
+                        title={locked ? "Request edit access first" : undefined}
                       >
                         {busyId === p.id ? "Activating…" : "Activate"}
                       </Button>

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { createServerClient } from "@/lib/supabase/server";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
@@ -342,6 +343,8 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
     const parsed = subSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid subscription input.");
     const d = parsed.data;
+    // Financial write — requires the host's active support-access grant.
+    await assertActiveSupportGrant(service, d.hostId);
     const now = new Date().toISOString();
 
     const { data: existing } = await service
@@ -453,6 +456,8 @@ export const setUserProductAction = withAdminAudit<
     const parsed = setProductSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid input.");
     const { hostId, productId } = parsed.data;
+    // Financial write — requires the host's active support-access grant.
+    await assertActiveSupportGrant(service, hostId);
 
     const { data: product } = await service
       .from("products")
@@ -553,6 +558,15 @@ export const adminUpdateBusinessAction = withAdminAudit<
       );
     }
     const d = parsed.data;
+    // Financial/legal write — requires the host's active support-access grant.
+    // Resolve the business's host to check the grant.
+    const { data: biz } = await service
+      .from("businesses")
+      .select("host_id")
+      .eq("id", d.businessId)
+      .maybeSingle();
+    if (!biz?.host_id) throw new Error("Business not found.");
+    await assertActiveSupportGrant(service, biz.host_id);
     // lat/lng are left untouched — there's no map picker in the admin modal, so
     // we never want to wipe a host's geocoded coordinates.
     const { error, data } = await service
