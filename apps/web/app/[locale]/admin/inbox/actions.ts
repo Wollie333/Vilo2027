@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 
 import { requirePermission } from "@/lib/admin";
 import {
+  adminPostPaymentLinkToHostThread,
   adminPostToHostThread,
   ensureWieloSupportUser,
   resolveHostByEmail,
 } from "@/lib/inbox/platform-thread";
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -44,6 +46,46 @@ export async function adminReplyPlatformAction(input: {
     read_by_guest: true,
   });
   if (error) return { ok: false, error: "Could not send the message." };
+
+  revalidatePath("/admin/inbox");
+  return { ok: true };
+}
+
+// Send a payment link to a host's Wielo thread as a rich `payment_link` system
+// CARD (icon + product/amount line + Pay button) — used by the revenue ledger's
+// "Send to host's inbox" affordance. Distinct from the plain-text sender above.
+export async function adminSendPaymentLinkToInboxAction(input: {
+  email: string;
+  url: string;
+  productName: string;
+  amount: number;
+  currency: string;
+}): Promise<Result> {
+  await requirePermission(INBOX_PERMISSION);
+  const url = input.url.trim();
+  if (!url) return { ok: false, error: "No payment link to send." };
+
+  const service = createAdminClient();
+  const host = await resolveHostByEmail(service, input.email);
+  if (!host) {
+    return { ok: false, error: "That email has no host account to message." };
+  }
+
+  const amountLabel = formatMoney(input.amount, input.currency || "ZAR");
+  const body = `${input.productName} — ${amountLabel} due`;
+
+  try {
+    await adminPostPaymentLinkToHostThread(service, {
+      host: { id: host.id, userId: host.userId },
+      url,
+      body,
+    });
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Could not send the link.",
+    };
+  }
 
   revalidatePath("/admin/inbox");
   return { ok: true };

@@ -503,6 +503,7 @@ function ThreadPane({
         bookingsById={bookingsById}
         otherLastSeenAt={context.guestLastSeenAt}
         emptyText="No messages yet. Send the first reply below."
+        platformThread={context.channel === "platform"}
       />
 
       <ChatComposer

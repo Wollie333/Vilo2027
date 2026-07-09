@@ -26,14 +26,14 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 const MAIN: GmailNavItem[] = [
   { href: "/portal", label: "Overview", icon: LayoutDashboard, match: "exact" },
-  { href: "/portal/trips", label: "My trips", icon: Luggage, match: "prefix" },
-  { href: "/portal/quotes", label: "Quotes", icon: FileText, match: "prefix" },
   {
     href: "/portal/inbox",
-    label: "Messages",
+    label: "Inbox",
     icon: MessageSquare,
     match: "prefix",
   },
+  { href: "/portal/trips", label: "My trips", icon: Luggage, match: "prefix" },
+  { href: "/portal/quotes", label: "Quotes", icon: FileText, match: "prefix" },
   { href: "/portal/reviews", label: "Reviews", icon: Star, match: "prefix" },
   {
     href: "/portal/affiliates",

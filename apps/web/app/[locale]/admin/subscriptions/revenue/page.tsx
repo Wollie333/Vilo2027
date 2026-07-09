@@ -1,7 +1,10 @@
 import { requirePermission } from "@/lib/admin";
 import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
-import { getSubscriptionProducts } from "@/lib/products/getProducts";
+import {
+  getSellableProducts,
+  getSubscriptionProducts,
+} from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { SubsTabs } from "../_SubsTabs";
@@ -67,22 +70,24 @@ export default async function AdminRevenuePage({
     userId = u?.id ?? "00000000-0000-0000-0000-000000000000";
   }
 
-  const [rows, plans, products, { data: subs }] = await Promise.all([
-    fetchWieloLedger(service, {
-      limit: 1000,
-      userId,
-      plan: planFilter || undefined,
-      status: statusFilter === "all" ? undefined : statusFilter,
-      environment: envFilter === "all" ? undefined : envFilter,
-      since: dateFrom || undefined,
-      until: dateTo ? `${dateTo}T23:59:59.999Z` : undefined,
-    }),
-    getAllPlans(),
-    getSubscriptionProducts(),
-    service
-      .from("subscriptions")
-      .select("plan, billing_cycle, status, product_id"),
-  ]);
+  const [rows, plans, products, sellableProducts, { data: subs }] =
+    await Promise.all([
+      fetchWieloLedger(service, {
+        limit: 1000,
+        userId,
+        plan: planFilter || undefined,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        environment: envFilter === "all" ? undefined : envFilter,
+        since: dateFrom || undefined,
+        until: dateTo ? `${dateTo}T23:59:59.999Z` : undefined,
+      }),
+      getAllPlans(),
+      getSubscriptionProducts(),
+      getSellableProducts(),
+      service
+        .from("subscriptions")
+        .select("plan, billing_cycle, status, product_id"),
+    ]);
 
   const stats = wieloLedgerStats(rows);
 
@@ -165,11 +170,12 @@ export default async function AdminRevenuePage({
         currency={currency}
         planLabels={planLabels}
         products={productFilters}
-        payableProducts={products.map((p) => ({
+        payableProducts={sellableProducts.map((p) => ({
           id: p.id,
           name: p.name,
           price: p.price,
           currency: p.currency,
+          type: p.type,
         }))}
         env={envFilter}
         userEmail={userEmail}

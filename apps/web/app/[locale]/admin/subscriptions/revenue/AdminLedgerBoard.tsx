@@ -99,12 +99,13 @@ export function AdminLedgerBoard({
   planLabels: Record<string, string>;
   /** Real subscription products for the filter (value = plan key, label = name). */
   products: { key: string; name: string }[];
-  /** Payable products for the pay-link picker (id + price). */
+  /** Payable products for the pay-link picker (id + price + type). */
   payableProducts: {
     id: string;
     name: string;
     price: number;
     currency: string;
+    type: string;
   }[];
   env: EnvFilter;
   userEmail: string;

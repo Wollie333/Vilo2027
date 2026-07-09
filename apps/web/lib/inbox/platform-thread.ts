@@ -180,3 +180,31 @@ export async function adminPostToHostThread(
   if (error) throw new Error(`adminPostToHostThread: ${error.message}`);
   return conversationId;
 }
+
+// Post a payment link into a host's Wielo thread as a rich `payment_link` SYSTEM
+// message so ChatMessageWall renders the pay CARD (icon + product/amount line +
+// Pay button) rather than a plain text URL. Posted AS "Wielo Support".
+export async function adminPostPaymentLinkToHostThread(
+  admin: Admin,
+  args: {
+    host: { id: string; userId: string };
+    url: string;
+    body: string;
+  },
+): Promise<string> {
+  const conversationId = await ensureWieloThread(admin, args.host);
+  const supportId = await ensureWieloSupportUser(admin);
+  const { error } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: supportId,
+    body: args.body,
+    is_system_message: true,
+    system_event: "payment_link",
+    attachment_url: args.url,
+    read_by_host: false,
+    read_by_guest: true,
+  });
+  if (error)
+    throw new Error(`adminPostPaymentLinkToHostThread: ${error.message}`);
+  return conversationId;
+}

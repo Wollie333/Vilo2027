@@ -1,12 +1,21 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
+import { Building2, Hash, Mail, Package } from "lucide-react";
+
 import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
+import { getWieloBusinessProfile } from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { PayButton } from "./PayButton";
 import { Receipt } from "./Receipt";
+
+export const metadata: Metadata = {
+  title: "Wielo · Secure payment",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 
@@ -36,22 +45,25 @@ export default async function ProductPayPage({
     .maybeSingle();
   if (!order) notFound();
 
-  const [{ data: product }, { data: settings }] = await Promise.all([
-    order.product_id
-      ? service
-          .from("products")
-          .select("payment_methods")
-          .eq("id", order.product_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    service
-      .from("platform_payment_settings")
-      .select(
-        "paystack_enabled, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
-      )
-      .eq("id", true)
-      .maybeSingle(),
-  ]);
+  const [{ data: product }, { data: settings }, brandName, issuer] =
+    await Promise.all([
+      order.product_id
+        ? service
+            .from("products")
+            .select("payment_methods")
+            .eq("id", order.product_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      service
+        .from("platform_payment_settings")
+        .select(
+          "paystack_enabled, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
+        )
+        .eq("id", true)
+        .maybeSingle(),
+      getBrandName(),
+      getWieloBusinessProfile(),
+    ]);
 
   const methods: string[] = Array.isArray(product?.payment_methods)
     ? (product!.payment_methods as string[])
@@ -86,7 +98,6 @@ export default async function ProductPayPage({
       .order("created_at", { ascending: false })
       .limit(1);
     const invoice = invoices?.[0] ?? null;
-    const brandName = await getBrandName();
     return (
       <Receipt
         purchase={{
@@ -109,61 +120,123 @@ export default async function ProductPayPage({
     );
   }
 
-  return (
-    <div className="mx-auto max-w-md px-4 py-12">
-      <div className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-          Pay Wielo
-        </div>
-        <h1 className="mt-1 font-display text-xl font-bold text-brand-ink">
-          {order.product_name}
-        </h1>
-        <div className="mt-2 font-display text-2xl font-bold text-brand-ink">
-          {formatZar(Number(order.amount))}
-        </div>
+  const currency = order.currency ?? "ZAR";
+  const amount = Number(order.amount);
+  const issuerName = issuer.legal_name?.trim() || brandName;
+  const noMethod = !showPaystack && !showEft;
 
-        <div className="mt-6 space-y-5">
+  return (
+    // Standalone payment page — mirrors the guest booking pay page, but for a
+    // Wielo product order. No directory chrome, just product + payment details.
+    <div className="min-h-screen bg-white text-brand-ink">
+      <main className="mx-auto max-w-xl px-5 py-10 lg:py-14">
+        <header className="text-center">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+            {brandName} · Secure payment
+          </div>
+          <h1 className="mt-1 font-display text-2xl font-semibold text-brand-ink">
+            Pay for {order.product_name}
+          </h1>
+        </header>
+
+        {/* Order summary */}
+        <section className="mt-7 overflow-hidden rounded-card border border-brand-line bg-white">
+          <div className="border-b border-brand-line px-5 py-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-brand-light text-brand-secondary">
+                <Package className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 leading-tight">
+                <div className="font-display font-semibold text-brand-ink">
+                  {order.product_name}
+                </div>
+                <div className="mt-0.5 text-[11px] text-brand-mute">
+                  Billed by {issuerName}
+                </div>
+              </div>
+            </div>
+          </div>
+          <dl className="divide-y divide-brand-line text-sm">
+            <div className="flex items-center justify-between px-5 py-3">
+              <dt className="inline-flex items-center gap-2 text-brand-mute">
+                <Mail className="h-4 w-4" /> Billed to
+              </dt>
+              <dd className="text-right font-medium text-brand-ink">
+                {order.payer_email}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between px-5 py-3">
+              <dt className="inline-flex items-center gap-2 text-brand-mute">
+                <Hash className="h-4 w-4" /> Reference
+              </dt>
+              <dd className="font-mono text-xs font-medium text-brand-ink">
+                {order.id.slice(0, 8).toUpperCase()}
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        {/* Amount + action */}
+        <section className="mt-6 space-y-5">
+          <div className="rounded-card border border-brand-line bg-brand-light/40 px-5 py-4">
+            <div className="flex items-end justify-between">
+              <div className="text-sm text-brand-mute">Amount due</div>
+              <div className="font-display text-2xl font-semibold text-brand-ink">
+                {formatMoney(amount, currency)}
+              </div>
+            </div>
+          </div>
+
           {showPaystack ? <PayButton token={params.token} /> : null}
 
           {showEft ? (
-            <div className="rounded-md border border-brand-line bg-brand-light/40 p-4 text-sm">
-              <div className="mb-2 font-semibold text-brand-ink">
-                Or pay by EFT
+            <div className="rounded-card border border-brand-line bg-white">
+              <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3 font-display font-semibold text-brand-ink">
+                <Building2 className="h-4 w-4 text-brand-mute" />
+                Or pay by EFT bank transfer
               </div>
-              <dl className="space-y-1 text-[13px] text-brand-mute">
-                <Row k="Bank" v={settings?.eft_bank_name} />
-                <Row k="Account name" v={settings?.eft_account_name} />
-                <Row k="Account number" v={settings?.eft_account_number} />
-                <Row k="Branch code" v={settings?.eft_branch_code} />
-                <Row
-                  k="Reference"
-                  v={settings?.eft_reference_hint || order.id.slice(0, 8)}
-                />
+              <dl className="divide-y divide-brand-line text-sm">
+                {[
+                  ["Bank", settings?.eft_bank_name],
+                  ["Account name", settings?.eft_account_name],
+                  ["Account number", settings?.eft_account_number],
+                  ["Branch code", settings?.eft_branch_code],
+                  [
+                    "Use as reference",
+                    settings?.eft_reference_hint || order.id.slice(0, 8),
+                  ],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex items-center justify-between px-5 py-2.5"
+                  >
+                    <dt className="text-brand-mute">{label}</dt>
+                    <dd className="text-right font-medium text-brand-ink">
+                      {value ?? "—"}
+                    </dd>
+                  </div>
+                ))}
               </dl>
-              <p className="mt-2 text-[11px] text-brand-mute">
-                Once paid, email proof to Wielo and we&apos;ll confirm your
-                order.
+              <p className="px-5 py-3 text-xs text-brand-mute">
+                Once paid, email proof to {issuerName} and we&apos;ll confirm
+                your order. Your invoice appears here automatically once payment
+                is verified.
               </p>
             </div>
           ) : null}
 
-          {!showPaystack && !showEft ? (
-            <p className="text-sm text-brand-mute">
+          {noMethod ? (
+            <div className="rounded-card border border-brand-line bg-brand-light/40 px-5 py-6 text-center text-sm text-brand-mute">
               No payment method is available for this product yet. Please
-              contact Wielo.
-            </p>
+              contact {issuerName}.
+            </div>
           ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
+        </section>
 
-function Row({ k, v }: { k: string; v: string | null | undefined }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt>{k}</dt>
-      <dd className="font-mono font-medium text-brand-ink">{v ?? "—"}</dd>
+        <p className="mt-8 text-center text-xs text-brand-mute">
+          Secure payment to {issuerName} via {brandName}.
+        </p>
+      </main>
     </div>
   );
 }

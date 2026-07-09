@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/form-modal";
 import { formatMoney } from "@/lib/format";
 
-import { adminSendPlatformMessageByEmailAction } from "@/app/[locale]/admin/inbox/actions";
+import { adminSendPaymentLinkToInboxAction } from "@/app/[locale]/admin/inbox/actions";
 
 import {
   createWieloPaymentLinkAction,
@@ -88,8 +88,14 @@ export function WieloFinanceModals({
   request: WieloFinanceRequest | null;
   /** Known users (from the ledger) for the email datalist. */
   users: { email: string; name: string | null }[];
-  /** Payable subscription products for the pay-link picker. */
-  products: { id: string; name: string; price: number; currency: string }[];
+  /** Payable products for the pay-link picker (subscription + one-off). */
+  products: {
+    id: string;
+    name: string;
+    price: number;
+    currency: string;
+    type: string;
+  }[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -129,13 +135,17 @@ export function WieloFinanceModals({
   }
 
   // Post the created link into the host's Wielo inbox thread (two-way support
-  // channel) so they can pay straight from chat.
+  // channel) as a rich pay CARD so they can pay straight from chat.
   function sendToInbox() {
     if (!link || !email.trim()) return;
+    const product = products.find((p) => p.id === productId);
     start(async () => {
-      const r = await adminSendPlatformMessageByEmailAction({
+      const r = await adminSendPaymentLinkToInboxAction({
         email: email.trim(),
-        body: `💳 Here's your Wielo payment link:\n${link}`,
+        url: link,
+        productName: product?.name ?? "Wielo payment",
+        amount: product?.price ?? 0,
+        currency: product?.currency ?? "ZAR",
       });
       if (r.ok) {
         setSentToInbox(true);
@@ -269,11 +279,28 @@ export function WieloFinanceModals({
                 {products.length === 0 ? (
                   <option value="">No products available</option>
                 ) : null}
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {formatMoney(p.price, p.currency)}
-                  </option>
-                ))}
+                {["subscription", "one_off"].map((group) => {
+                  const inGroup = products.filter((p) =>
+                    group === "subscription"
+                      ? p.type === "subscription"
+                      : p.type !== "subscription",
+                  );
+                  if (inGroup.length === 0) return null;
+                  return (
+                    <optgroup
+                      key={group}
+                      label={
+                        group === "subscription" ? "Subscriptions" : "One-off"
+                      }
+                    >
+                      {inGroup.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} — {formatMoney(p.price, p.currency)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
               </select>
             </label>
             {link ? (

@@ -75,3 +75,35 @@ async function load(): Promise<CatalogProduct[]> {
 export function getSubscriptionProducts(): Promise<CatalogProduct[]> {
   return load();
 }
+
+export type SellableProduct = {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  /** 'subscription' | 'one_off' — lets callers group/label by type. */
+  type: string;
+};
+
+// Every product that admin can SELL internally (e.g. send as a pay link on the
+// Wielo ledger): active, ANY type (subscription + one_off), and IGNORING
+// is_visible — visibility only gates the PUBLIC pricing page, not internal
+// selling. Uncached, mirrors the live catalog. See ADMIN_LEDGER_INBOX_PAYMENTS
+// _PLAN §4.
+export async function getSellableProducts(): Promise<SellableProduct[]> {
+  const db = createAdminClient();
+  const { data } = await db
+    .from("products")
+    .select("id, name, price, currency, type, sort_order")
+    .eq("is_active", true)
+    .order("type", { ascending: true })
+    .order("sort_order", { ascending: true });
+
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: Number(p.price ?? 0),
+    currency: p.currency ?? "ZAR",
+    type: p.type ?? "subscription",
+  }));
+}

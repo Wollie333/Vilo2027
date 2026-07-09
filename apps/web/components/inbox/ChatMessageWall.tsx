@@ -140,6 +140,7 @@ export function ChatMessageWall({
   bookingsById,
   otherLastSeenAt = null,
   emptyText = "No messages yet — say hello.",
+  platformThread = false,
 }: {
   messages: ChatMessage[];
   selfId: string;
@@ -150,6 +151,9 @@ export function ChatMessageWall({
   // counts as delivered once this is at/after the message time.
   otherLastSeenAt?: string | null;
   emptyText?: string;
+  // Host↔Wielo (platform/support) thread. The host is always the payer here, so
+  // pay cards read "Payment request from Wielo" + "Pay now" regardless of viewer.
+  platformThread?: boolean;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const latestIssued = latestIssuedVersionByQuote(messages);
@@ -233,8 +237,11 @@ export function ChatMessageWall({
               );
             }
 
-            // Payment link — a pay card: booking summary + a Pay button.
+            // Payment link — a pay card: booking summary + a Pay button. On the
+            // Wielo (platform) thread the host is always the payer, so the card
+            // reads "Payment request from Wielo" + "Pay now" for both viewers.
             if (m.isSystem && m.systemEvent === "payment_link") {
+              const payerView = platformThread || viewer !== "host";
               return (
                 <div key={m.id}>
                   {dayPill}
@@ -244,12 +251,14 @@ export function ChatMessageWall({
                         <CreditCard className="h-4 w-4" />
                       </span>
                       <span className="font-display text-[14px] font-bold text-brand-ink">
-                        {viewer === "host"
+                        {!payerView
                           ? "Payment link sent"
-                          : "Payment request"}
+                          : platformThread
+                            ? "Payment request from Wielo"
+                            : "Payment request"}
                       </span>
                     </div>
-                    <p className="mt-2 text-[13px] leading-relaxed text-brand-ink">
+                    <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-brand-ink">
                       {m.body}
                     </p>
                     {m.attachmentUrl ? (
@@ -260,7 +269,7 @@ export function ChatMessageWall({
                         className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
                       >
                         <CreditCard className="h-4 w-4" />
-                        {viewer === "host" ? "Open payment page" : "Pay now"}
+                        {!payerView ? "Open payment page" : "Pay now"}
                       </a>
                     ) : null}
                     <div className="mt-1.5 text-right font-mono text-[10.5px] text-brand-mute">

@@ -223,6 +223,7 @@ export function AdminInboxView({
               quotesById={{}}
               bookingsById={{}}
               emptyText="No messages yet — say hello."
+              platformThread
             />
             <ChatComposer
               placeholder={`Reply to ${selected.hostName?.split(" ")[0] ?? "the host"}…`}
