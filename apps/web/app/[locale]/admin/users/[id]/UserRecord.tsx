@@ -71,6 +71,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/format";
+import { daysRemaining, proratedAmount } from "@/lib/billing/proration";
 import type { Txn } from "@/lib/finance/transactions";
 
 import {
@@ -175,6 +176,7 @@ export type UserRecordData = {
     plan: string;
     status: string;
     billingCycle: string | null;
+    currentPeriodStart: string | null;
     currentPeriodEnd: string | null;
     trialEndsAt: string | null;
     cancelAtPeriodEnd: boolean;
@@ -458,6 +460,10 @@ export function UserRecord({ data }: { data: UserRecordData }) {
   const [subProductId, setSubProductId] = useState<string>("");
   const [subStatus, setSubStatus] =
     useState<(typeof SUB_STATUSES)[number]>("active");
+  // On cancelling a paid sub: credit note (default) or refund for the unused part.
+  const [subRefundDoc, setSubRefundDoc] = useState<"credit" | "refund">(
+    "credit",
+  );
   const openManage = (productId: string | null, status: string) => {
     setSubProductId(productId ?? "");
     setSubStatus(
@@ -465,6 +471,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
         ? (status as (typeof SUB_STATUSES)[number])
         : "active",
     );
+    setSubRefundDoc("credit");
     setDialog("managesub");
   };
   const [editBiz, setEditBiz] = useState<BusinessItem | null>(null);
@@ -825,6 +832,53 @@ export function UserRecord({ data }: { data: UserRecordData }) {
               ))}
             </select>
           </Lbl>
+          {(() => {
+            // Cancelling a live PAID sub → offer credit note / refund for the
+            // unused portion (pro-rated). Preview mirrors the server maths.
+            const sub = data.subscriptions.find(
+              (r) => r.productId === subProductId,
+            );
+            if (
+              subStatus !== "cancelled" ||
+              !sub ||
+              !sub.price ||
+              sub.price <= 0 ||
+              !["trialing", "active", "past_due"].includes(sub.status)
+            ) {
+              return null;
+            }
+            const amount = proratedAmount(
+              sub.price,
+              sub.currentPeriodStart,
+              sub.currentPeriodEnd,
+            );
+            if (amount <= 0) return null;
+            const left = daysRemaining(sub.currentPeriodEnd);
+            return (
+              <div className="rounded-md border border-status-cancelled/30 bg-status-cancelled/5 p-3">
+                <Lbl label="Refund the unused portion">
+                  <select
+                    value={subRefundDoc}
+                    onChange={(e) =>
+                      setSubRefundDoc(e.target.value as "credit" | "refund")
+                    }
+                    className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+                  >
+                    <option value="credit">Credit note (default)</option>
+                    <option value="refund">Refund</option>
+                  </select>
+                </Lbl>
+                <p className="mt-1.5 text-[12px] text-brand-mute">
+                  {subRefundDoc === "refund" ? "Refund" : "Credit note"} of{" "}
+                  <span className="font-semibold text-brand-ink">
+                    {formatMoney(amount, sub.currency ?? "ZAR")}
+                  </span>{" "}
+                  for {left} unused day{left === 1 ? "" : "s"} — posts to the
+                  ledger with its document.
+                </p>
+              </div>
+            );
+          })()}
         </div>
         <FormModalFooter>
           <FormModalCancel onClick={close} />
@@ -837,6 +891,9 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                       hostId: host.id,
                       productId: subProductId || null,
                       status: subStatus,
+                      ...(subStatus === "cancelled"
+                        ? { refundDoc: subRefundDoc }
+                        : {}),
                     }),
                     "Subscription updated.",
                   )

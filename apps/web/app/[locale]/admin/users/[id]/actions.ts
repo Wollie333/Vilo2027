@@ -9,6 +9,7 @@ import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { daysRemaining, proratedAmount } from "@/lib/billing/proration";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
@@ -403,6 +404,10 @@ const subSchema = z.object({
     "cancelled",
     "expired",
   ]),
+  // Cancelling a PAID sub posts a pro-rated money document for the unused portion
+  // — a credit note by default, or a refund (admin's choice at the moment of
+  // cancellation). Ignored for non-cancel changes / free subs / no unused value.
+  refundDoc: z.enum(["credit", "refund"]).optional(),
   reason: z.string().optional(),
 });
 
@@ -426,16 +431,23 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
     // Resolve the product driving this subscription. When productId is given we
     // manage THAT subscription; when omitted (legacy) we manage the host's
     // membership row (or the sole subscription) so old links keep working.
+    type ExistingSub = {
+      id: string;
+      plan: string;
+      product_id: string | null;
+      status: string;
+      current_period_start: string | null;
+      current_period_end: string | null;
+    };
+    const SUB_COLS =
+      "id, plan, product_id, status, current_period_start, current_period_end";
     let productId: string | null | undefined = d.productId;
-    let existing:
-      | { id: string; plan: string; product_id: string | null }
-      | null
-      | undefined;
+    let existing: ExistingSub | null | undefined;
 
     if (productId) {
       const { data } = await service
         .from("subscriptions")
-        .select("id, plan, product_id")
+        .select(SUB_COLS)
         .eq("host_id", d.hostId)
         .eq("product_id", productId)
         .maybeSingle();
@@ -443,30 +455,45 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
     } else {
       const { data: rows } = await service
         .from("subscriptions")
-        .select("id, plan, product_id, product:products ( product_type )")
+        .select(`${SUB_COLS}, product:products ( product_type )`)
         .eq("host_id", d.hostId);
       const membership = (rows ?? []).find(
         (r) =>
           (r.product as { product_type?: string } | null)?.product_type ===
           "membership",
       );
-      const chosen = membership ?? (rows ?? [])[0] ?? null;
+      const chosen = (membership ?? (rows ?? [])[0] ?? null) as
+        | (ExistingSub & { product?: unknown })
+        | null;
       existing = chosen
-        ? { id: chosen.id, plan: chosen.plan, product_id: chosen.product_id }
+        ? {
+            id: chosen.id,
+            plan: chosen.plan,
+            product_id: chosen.product_id,
+            status: chosen.status,
+            current_period_start: chosen.current_period_start,
+            current_period_end: chosen.current_period_end,
+          }
         : null;
       productId = existing?.product_id ?? null;
     }
 
     // Derive plan (feature tier) + cycle FROM the linked product — the single
-    // source of truth — so gating resolves correctly.
+    // source of truth — so gating resolves correctly. Also carry the product's
+    // price/name for the pro-rated credit/refund on cancellation.
     let plan = existing?.plan ?? "free";
     let billingCycle: "monthly" | "annual" | null = d.billingCycle ?? null;
     let isMembership = false;
+    let productPrice = 0;
+    let productCurrency = "ZAR";
+    let productName = "subscription";
 
     if (productId) {
       const { data: product } = await service
         .from("products")
-        .select("id, slug, product_type, billing_cycle, plan_key")
+        .select(
+          "id, name, slug, product_type, billing_cycle, plan_key, price, currency",
+        )
         .eq("id", productId)
         .maybeSingle();
       if (!product) throw new Error("Product not found.");
@@ -476,6 +503,9 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
       isMembership = product.product_type === "membership";
       plan = await derivePlanKey(service, product, plan);
       billingCycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+      productPrice = Number(product.price ?? 0);
+      productCurrency = product.currency ?? "ZAR";
+      productName = product.name ?? "subscription";
     }
 
     // Re-activating a membership must respect the one-per-host rule.
@@ -509,7 +539,50 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
       if (error) throw new Error(error.message);
     }
 
+    // ─── Auto-ledger on downgrade: cancelling a PAID sub that was live posts a
+    // pro-rated money document for the UNUSED portion — a credit note by default,
+    // or a refund (admin's choice). The mint triggers turn the ledger row into a
+    // CN/REF doc that shows on the ledger + the user's transaction history.
+    const wasLive =
+      !!existing &&
+      ["trialing", "active", "past_due"].includes(existing.status);
+    if (existing && d.status === "cancelled" && wasLive && productPrice > 0) {
+      const amount = proratedAmount(
+        productPrice,
+        existing.current_period_start,
+        existing.current_period_end,
+      );
+      if (amount > 0) {
+        const docType = d.refundDoc === "refund" ? "refund" : "credit";
+        const { data: hostRow } = await service
+          .from("hosts")
+          .select("user_id")
+          .eq("id", d.hostId)
+          .maybeSingle();
+        const admin = await requirePermission("subscriptions.edit");
+        const left = daysRemaining(existing.current_period_end);
+        const { error: ledErr } = await service.from("platform_ledger").insert({
+          user_id: hostRow?.user_id ?? null,
+          host_id: d.hostId,
+          type: docType,
+          status: "completed",
+          amount: -Math.abs(amount),
+          currency: productCurrency,
+          provider: "manual",
+          reason: `Pro-rated ${
+            docType === "refund" ? "refund" : "credit"
+          } for cancelled ${productName} (${left} day${
+            left === 1 ? "" : "s"
+          } unused)`,
+          created_by: admin.userId,
+          paid_at: now,
+        });
+        if (ledErr) throw new Error(ledErr.message);
+      }
+    }
+
     revalidatePath(`/admin/users`);
+    revalidatePath("/admin/subscriptions/revenue");
     return { result: { ok: true }, after: { hostId: d.hostId, ...patch } };
   },
 );
@@ -1361,6 +1434,7 @@ export async function adminUpdateSubscription(input: {
     | "paused"
     | "cancelled"
     | "expired";
+  refundDoc?: "credit" | "refund";
 }) {
   return wrap(() => adminUpdateSubscriptionAction(input));
 }

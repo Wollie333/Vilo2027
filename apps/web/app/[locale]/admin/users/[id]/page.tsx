@@ -422,6 +422,7 @@ export default async function AdminUserDetailPage({
         plan: r.plan,
         status: r.status,
         billingCycle: r.billing_cycle,
+        currentPeriodStart: r.current_period_start,
         currentPeriodEnd: r.current_period_end,
         trialEndsAt: r.trial_ends_at,
         cancelAtPeriodEnd: r.cancel_at_period_end ?? false,
