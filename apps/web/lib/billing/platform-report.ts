@@ -27,6 +27,8 @@ export type PlanSlice = {
   type: "subscription" | "one_off";
   count: number; // active subs (subscription) OR units sold (one_off)
   mrr: number; // MRR (subscription) OR total collected (one_off)
+  /** True when this row's sales are all test-mode (shows a "test" tag). */
+  testOnly?: boolean;
 };
 
 export type PlatformReport = {
@@ -245,18 +247,19 @@ export async function buildPlatformReport(
     else if (u.role === "guest") months[idx].guests += 1;
   }
 
-  // One-off sales: paid product_orders (any product), grouped, env-scoped —
-  // so a one-off product (e.g. a web-design package) that has no subscription
-  // still appears in the Products list with units sold + revenue collected.
-  let ordersQ = service
+  // One-off sales: EVERY paid product_order (any product), grouped — so a one-off
+  // product (e.g. a web-design package) that has no subscription still appears in
+  // the Products list with units sold + revenue collected. This list is env-
+  // INDEPENDENT (it's the sales catalog); the money KPIs above honour the toggle.
+  // Test-only sales are tagged so a test purchase is still visible + labelled.
+  const { data: paidOrders } = await service
     .from("product_orders")
     .select("product_id, product_name, amount, environment")
     .eq("status", "paid");
-  if (env !== "all") ordersQ = ordersQ.eq("environment", env);
-  const { data: paidOrders } = await ordersQ;
   const oneOffUnits: Record<string, number> = {};
   const oneOffRevenue: Record<string, number> = {};
   const oneOffName: Record<string, string> = {};
+  const oneOffLive: Record<string, number> = {};
   for (const o of paidOrders ?? []) {
     const prod = o.product_id ? productById.get(o.product_id as string) : null;
     // Only one-off products here; subscription revenue is the MRR model above.
@@ -264,6 +267,7 @@ export async function buildPlatformReport(
     const key = (o.product_id as string) ?? `name:${o.product_name}`;
     oneOffUnits[key] = (oneOffUnits[key] ?? 0) + 1;
     oneOffRevenue[key] = (oneOffRevenue[key] ?? 0) + Number(o.amount ?? 0);
+    if (o.environment !== "test") oneOffLive[key] = (oneOffLive[key] ?? 0) + 1;
     oneOffName[key] =
       (prod?.name as string) ?? (o.product_name as string) ?? "Product";
   }
@@ -278,7 +282,7 @@ export async function buildPlatformReport(
       mrr: Math.round(prodMrr[p.id as string] ?? 0),
     }))
     .filter((p) => p.count > 0);
-  // One-off products with sales.
+  // One-off products with sales (env-independent — always shown).
   for (const key of Object.keys(oneOffUnits)) {
     planSlices.push({
       key,
@@ -286,6 +290,7 @@ export async function buildPlatformReport(
       type: "one_off",
       count: oneOffUnits[key],
       mrr: Math.round(oneOffRevenue[key] ?? 0),
+      testOnly: (oneOffLive[key] ?? 0) === 0,
     });
   }
   planSlices.sort((a, b) => b.mrr - a.mrr);

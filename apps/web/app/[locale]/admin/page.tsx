@@ -303,6 +303,11 @@ export default async function AdminOverviewPage({
                       >
                         {p.type === "one_off" ? "one-off" : "sub"}
                       </span>
+                      {p.testOnly ? (
+                        <span className="ml-1 inline-flex rounded-pill border border-status-pending/30 bg-status-pending/10 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-status-pending">
+                          test
+                        </span>
+                      ) : null}
                     </td>
                     <td className="num px-4 py-2.5 text-right text-brand-mute">
                       {p.count.toLocaleString()}
