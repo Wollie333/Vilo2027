@@ -49,6 +49,7 @@ export default async function AdminUserDetailPage({
     { count: bookingsAsGuestCount },
     { count: refundsCount },
     subResult,
+    schedResult,
     wieloRows,
     bookingsAsGuestRes,
     relationshipBundle,
@@ -72,6 +73,15 @@ export default async function AdminUserDetailPage({
           )
           .eq("host_id", host.id)
           .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    host
+      ? service
+          .from("subscription_scheduled_changes")
+          .select(
+            "id, subscription_id, kind, target_product_id, effective_at, target:products!target_product_id ( name )",
+          )
+          .eq("host_id", host.id)
+          .eq("status", "pending")
       : Promise.resolve({ data: [] }),
     fetchWieloLedger(service, { userId: user.id, limit: 100 }),
     service
@@ -407,6 +417,32 @@ export default async function AdminUserDetailPage({
         }[]
       | null;
   };
+  // Pending "apply at end of cycle" scheduled changes, keyed by subscription id.
+  type SchedRow = {
+    id: string;
+    subscription_id: string;
+    kind: "cancel" | "switch";
+    effective_at: string;
+    target: { name: string | null } | { name: string | null }[] | null;
+  };
+  const scheduledBySub: Record<
+    string,
+    {
+      id: string;
+      kind: "cancel" | "switch";
+      effectiveAt: string;
+      targetName: string | null;
+    }
+  > = {};
+  for (const s of (schedResult as { data: SchedRow[] | null }).data ?? []) {
+    scheduledBySub[s.subscription_id] = {
+      id: s.id,
+      kind: s.kind,
+      effectiveAt: s.effective_at,
+      targetName: one(s.target)?.name ?? null,
+    };
+  }
+
   const subRows = ((subResult as { data: SubJoinRow[] | null }).data ?? []).map(
     (r) => {
       const prod = one(r.product);
@@ -428,6 +464,7 @@ export default async function AdminUserDetailPage({
         cancelAtPeriodEnd: r.cancel_at_period_end ?? false,
         price: prod?.price != null ? Number(prod.price) : null,
         currency: prod?.currency ?? null,
+        scheduledChange: scheduledBySub[r.id] ?? null,
       };
     },
   );

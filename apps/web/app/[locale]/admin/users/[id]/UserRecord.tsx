@@ -86,6 +86,7 @@ import {
   adminUpdateAddon,
   adminUpdateBusiness,
   adminUpdateSubscription,
+  cancelScheduledChange,
   enableAffiliate,
   setUserProduct,
   changeUserRole,
@@ -182,6 +183,13 @@ export type UserRecordData = {
     cancelAtPeriodEnd: boolean;
     price: number | null;
     currency: string | null;
+    // A pending "apply at end of cycle" change (cancel or switch), if any.
+    scheduledChange: {
+      id: string;
+      kind: "cancel" | "switch";
+      effectiveAt: string;
+      targetName: string | null;
+    } | null;
   }[];
   // Once-off product purchases (product_orders whose product is a `product`).
   productPurchases: {
@@ -464,6 +472,8 @@ export function UserRecord({ data }: { data: UserRecordData }) {
   const [subRefundDoc, setSubRefundDoc] = useState<"credit" | "refund">(
     "credit",
   );
+  // Timing of a cancellation: now (immediate + credit/refund) or end of cycle.
+  const [subTiming, setSubTiming] = useState<"now" | "end_of_cycle">("now");
   const openManage = (productId: string | null, status: string) => {
     setSubProductId(productId ?? "");
     setSubStatus(
@@ -472,6 +482,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
         : "active",
     );
     setSubRefundDoc("credit");
+    setSubTiming("now");
     setDialog("managesub");
   };
   const [editBiz, setEditBiz] = useState<BusinessItem | null>(null);
@@ -832,14 +843,49 @@ export function UserRecord({ data }: { data: UserRecordData }) {
               ))}
             </select>
           </Lbl>
+          {subStatus === "cancelled"
+            ? (() => {
+                const sub = data.subscriptions.find(
+                  (r) => r.productId === subProductId,
+                );
+                const end = sub?.currentPeriodEnd ?? null;
+                const hasFuture = !!end && new Date(end).getTime() > Date.now();
+                return (
+                  <Lbl label="When to cancel">
+                    <select
+                      value={subTiming}
+                      onChange={(e) =>
+                        setSubTiming(e.target.value as "now" | "end_of_cycle")
+                      }
+                      className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+                    >
+                      <option value="now">Immediately</option>
+                      <option value="end_of_cycle" disabled={!hasFuture}>
+                        {hasFuture
+                          ? `At end of cycle (${fmtDate(end)})`
+                          : "At end of cycle (no period end)"}
+                      </option>
+                    </select>
+                    {subTiming === "end_of_cycle" && hasFuture ? (
+                      <p className="mt-1.5 text-[12px] text-brand-mute">
+                        Stays active until {fmtDate(end)}, then cancels
+                        automatically. No credit — the full paid period is used.
+                      </p>
+                    ) : null}
+                  </Lbl>
+                );
+              })()
+            : null}
           {(() => {
-            // Cancelling a live PAID sub → offer credit note / refund for the
-            // unused portion (pro-rated). Preview mirrors the server maths.
+            // Cancelling a live PAID sub IMMEDIATELY → offer credit note / refund
+            // for the unused portion (pro-rated). Preview mirrors the server
+            // maths. (End-of-cycle cancels carry no credit.)
             const sub = data.subscriptions.find(
               (r) => r.productId === subProductId,
             );
             if (
               subStatus !== "cancelled" ||
+              subTiming !== "now" ||
               !sub ||
               !sub.price ||
               sub.price <= 0 ||
@@ -892,10 +938,12 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                       productId: subProductId || null,
                       status: subStatus,
                       ...(subStatus === "cancelled"
-                        ? { refundDoc: subRefundDoc }
+                        ? { refundDoc: subRefundDoc, timing: subTiming }
                         : {}),
                     }),
-                    "Subscription updated.",
+                    subStatus === "cancelled" && subTiming === "end_of_cycle"
+                      ? "Cancellation scheduled for period end."
+                      : "Subscription updated.",
                   )
                 : undefined
             }
@@ -1749,9 +1797,14 @@ function ProductsPanel({
   // When the admin picks "Send pay-link", the tier activates and this holds the
   // generated custom-amount pay-link to copy/send to the buyer.
   const [payLink, setPayLink] = useState<string | null>(null);
+  // Timing of an UPGRADE: now (charge/pay-link) or scheduled for period end.
+  const [chargeTiming, setChargeTiming] = useState<"now" | "end_of_cycle">(
+    "now",
+  );
   const closeCharge = () => {
     setCharge(null);
     setPayLink(null);
+    setChargeTiming("now");
   };
 
   function previewDelta(p: CatalogProduct): {
@@ -1776,9 +1829,33 @@ function ProductsPanel({
 
   function onCatalogClick(p: CatalogProduct) {
     const { amount, isUpgrade } = previewDelta(p);
-    // A charge is due → confirm how to bill it; otherwise activate straight away.
-    if (amount > 0) setCharge({ product: p, amount, isUpgrade });
+    setChargeTiming("now");
+    // Open the confirm dialog for any membership switch (to offer now vs
+    // end-of-cycle timing — incl. a same-price/cheaper downgrade) or whenever a
+    // charge is due; otherwise (free/zero, non-switch) just activate.
+    if (isUpgrade || amount > 0) setCharge({ product: p, amount, isUpgrade });
     else activate(p.id, "none");
+  }
+
+  // Schedule an upgrade/switch for the current membership's period end.
+  function scheduleSwitch(productId: string) {
+    if (!hostId) return;
+    setBusyId(productId);
+    start(async () => {
+      const r = await setUserProduct({
+        hostId,
+        productId,
+        timing: "end_of_cycle",
+      });
+      setBusyId(null);
+      if (r.ok) {
+        closeCharge();
+        toast.success("Switch scheduled for period end.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
   }
 
   function activate(productId: string, mode: "paid" | "none") {
@@ -1823,6 +1900,20 @@ function ProductsPanel({
           closeCharge();
           toast.success("Done.");
         }
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  // Void a pending "apply at end of cycle" scheduled change.
+  function voidSchedule(changeId: string) {
+    if (!hostId) return;
+    start(async () => {
+      const r = await cancelScheduledChange({ hostId, changeId });
+      if (r.ok) {
+        toast.success("Scheduled change cancelled.");
+        router.refresh();
       } else {
         toast.error(r.error);
       }
@@ -1986,6 +2077,25 @@ function ProductsPanel({
                     <Fact k="Renews" v={fmtDate(r.currentPeriodEnd)} />
                     <Fact k="Trial ends" v={fmtDate(r.trialEndsAt)} />
                   </dl>
+                  {r.scheduledChange ? (
+                    <div className="mt-3 flex items-start justify-between gap-2 rounded-md border border-status-pending/30 bg-status-pending/5 p-2.5">
+                      <p className="text-[12px] leading-snug text-brand-ink">
+                        <span className="font-semibold">Scheduled:</span>{" "}
+                        {r.scheduledChange.kind === "cancel"
+                          ? "cancels"
+                          : `switches to ${r.scheduledChange.targetName ?? "another plan"}`}{" "}
+                        on {fmtDate(r.scheduledChange.effectiveAt)}.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => voidSchedule(r.scheduledChange!.id)}
+                        className="shrink-0 text-[12px] font-medium text-brand-primary hover:underline disabled:opacity-50"
+                      >
+                        Undo
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
@@ -2067,8 +2177,8 @@ function ProductsPanel({
       <FormModal
         open={!!charge}
         onOpenChange={(o) => (o ? null : closeCharge())}
-        title={charge?.isUpgrade ? "Upgrade membership" : "Add to account"}
-        description="Activating a paid product records a charge on the Wielo ledger."
+        title={charge?.isUpgrade ? "Change membership" : "Add to account"}
+        description="Choose how and when to apply this change."
       >
         {charge ? (
           <div className="space-y-4">
@@ -2077,26 +2187,71 @@ function ProductsPanel({
                 {charge.product.name}
               </div>
             </Lbl>
-            <div className="rounded-md border border-brand-primary/30 bg-brand-primary/5 p-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                {charge.isUpgrade ? "Pro-rated upgrade" : "Charge"}
+            {charge.amount > 0 ? (
+              <div className="rounded-md border border-brand-primary/30 bg-brand-primary/5 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                  {charge.isUpgrade ? "Pro-rated upgrade" : "Charge"}
+                </div>
+                <div className="mt-0.5 font-display text-xl font-bold text-brand-ink">
+                  {formatMoney(charge.amount, charge.product.currency ?? "ZAR")}
+                </div>
+                {chargeTiming === "now" ? (
+                  <p className="mt-1 text-[12px] text-brand-mute">
+                    {charge.isUpgrade
+                      ? "Only the unused difference vs the current membership is billed. "
+                      : ""}
+                    <span className="font-medium text-brand-ink">
+                      Mark as paid
+                    </span>{" "}
+                    activates now + posts a completed charge;{" "}
+                    <span className="font-medium text-brand-ink">
+                      send a pay-link
+                    </span>{" "}
+                    drops an upgrade card in their inbox — the plan activates
+                    once they pay.
+                  </p>
+                ) : null}
               </div>
-              <div className="mt-0.5 font-display text-xl font-bold text-brand-ink">
-                {formatMoney(charge.amount, charge.product.currency ?? "ZAR")}
-              </div>
-              <p className="mt-1 text-[12px] text-brand-mute">
-                {charge.isUpgrade
-                  ? "Only the unused difference vs the current membership is billed. "
-                  : ""}
-                <span className="font-medium text-brand-ink">Mark as paid</span>{" "}
-                activates now + posts a completed charge;{" "}
-                <span className="font-medium text-brand-ink">
-                  send a pay-link
-                </span>{" "}
-                drops an upgrade card in their inbox — the plan activates once
-                they pay.
+            ) : (
+              <p className="text-[12px] text-brand-mute">
+                No charge — this plan is the same price or cheaper. Choose when
+                the switch applies below.
               </p>
-            </div>
+            )}
+            {charge.isUpgrade
+              ? (() => {
+                  const end = activeMembership?.currentPeriodEnd ?? null;
+                  const hasFuture =
+                    !!end && new Date(end).getTime() > Date.now();
+                  return (
+                    <Lbl label="When to apply">
+                      <select
+                        value={chargeTiming}
+                        onChange={(e) =>
+                          setChargeTiming(
+                            e.target.value as "now" | "end_of_cycle",
+                          )
+                        }
+                        className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+                      >
+                        <option value="now">Now</option>
+                        <option value="end_of_cycle" disabled={!hasFuture}>
+                          {hasFuture
+                            ? `At end of cycle (${fmtDate(end)})`
+                            : "At end of cycle (no period end)"}
+                        </option>
+                      </select>
+                      {chargeTiming === "end_of_cycle" && hasFuture ? (
+                        <p className="mt-1.5 text-[12px] text-brand-mute">
+                          The switch to {charge.product.name} applies on{" "}
+                          {fmtDate(end)}. Nothing is billed now — the new plan
+                          starts next cycle.
+                        </p>
+                      ) : null}
+                    </Lbl>
+                  );
+                })()
+              : null}
             {payLink ? (
               <div className="rounded-md border border-status-confirmed/30 bg-status-confirmed/5 p-3">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
@@ -2130,6 +2285,26 @@ function ProductsPanel({
         <FormModalFooter>
           {payLink ? (
             <Button onClick={closeCharge}>Done</Button>
+          ) : chargeTiming === "end_of_cycle" ? (
+            <>
+              <FormModalCancel onClick={closeCharge} />
+              <Button
+                disabled={pending || !charge}
+                onClick={() => charge && scheduleSwitch(charge.product.id)}
+              >
+                {pending ? "Working…" : "Schedule switch"}
+              </Button>
+            </>
+          ) : charge && charge.amount <= 0 ? (
+            <>
+              <FormModalCancel onClick={closeCharge} />
+              <Button
+                disabled={pending}
+                onClick={() => activate(charge.product.id, "none")}
+              >
+                {pending ? "Working…" : "Switch now"}
+              </Button>
+            </>
           ) : (
             <>
               <button

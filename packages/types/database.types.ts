@@ -9203,6 +9203,70 @@ export type Database = {
           },
         ]
       }
+      subscription_scheduled_changes: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          created_by: string | null
+          effective_at: string
+          host_id: string
+          id: string
+          kind: string
+          note: string | null
+          status: string
+          subscription_id: string
+          target_product_id: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_at: string
+          host_id: string
+          id?: string
+          kind: string
+          note?: string | null
+          status?: string
+          subscription_id: string
+          target_product_id?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          host_id?: string
+          id?: string
+          kind?: string
+          note?: string | null
+          status?: string
+          subscription_id?: string
+          target_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_scheduled_changes_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_scheduled_changes_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_scheduled_changes_target_product_id_fkey"
+            columns: ["target_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           billing_cycle: string | null
@@ -10527,6 +10591,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      apply_due_subscription_changes: { Args: never; Returns: undefined }
       block_special_dates: {
         Args: {
           p_check_in: string

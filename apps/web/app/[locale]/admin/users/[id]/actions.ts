@@ -421,6 +421,10 @@ const subSchema = z.object({
   // — a credit note by default, or a refund (admin's choice at the moment of
   // cancellation). Ignored for non-cancel changes / free subs / no unused value.
   refundDoc: z.enum(["credit", "refund"]).optional(),
+  // Timing of a CANCEL: "now" cancels immediately (+ pro-rated credit/refund);
+  // "end_of_cycle" schedules the cancellation for current_period_end (the sub
+  // stays active until then; the cron cancels it; no credit — full period used).
+  timing: z.enum(["now", "end_of_cycle"]).optional(),
   reason: z.string().optional(),
 });
 
@@ -519,6 +523,52 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
       productPrice = Number(product.price ?? 0);
       productCurrency = product.currency ?? "ZAR";
       productName = product.name ?? "subscription";
+    }
+
+    // ─── End-of-cycle cancel: schedule it for current_period_end instead of
+    // cancelling now. The sub stays active until then; the hourly cron applies
+    // it. No credit/refund (the full paid period is used). Falls through to an
+    // immediate cancel if there's no future period end to schedule against.
+    const periodEndMs = existing?.current_period_end
+      ? new Date(existing.current_period_end).getTime()
+      : 0;
+    if (
+      existing &&
+      d.status === "cancelled" &&
+      d.timing === "end_of_cycle" &&
+      ["trialing", "active", "past_due"].includes(existing.status) &&
+      periodEndMs > Date.now()
+    ) {
+      const admin = await requirePermission("subscriptions.edit");
+      // At most one pending change per sub — supersede any prior one.
+      await service
+        .from("subscription_scheduled_changes")
+        .update({ status: "superseded" })
+        .eq("subscription_id", existing.id)
+        .eq("status", "pending");
+      const { error: schErr } = await service
+        .from("subscription_scheduled_changes")
+        .insert({
+          subscription_id: existing.id,
+          host_id: d.hostId,
+          kind: "cancel",
+          effective_at: existing.current_period_end,
+          created_by: admin.userId,
+          note: d.reason ?? null,
+        });
+      if (schErr) throw new Error(schErr.message);
+      await service
+        .from("subscriptions")
+        .update({ cancel_at_period_end: true, updated_at: now })
+        .eq("id", existing.id);
+      revalidatePath(`/admin/users`);
+      return {
+        result: { ok: true },
+        after: {
+          hostId: d.hostId,
+          scheduledCancel: existing.current_period_end,
+        },
+      };
     }
 
     // Re-activating a membership must respect the one-per-host rule.
@@ -669,6 +719,9 @@ const setProductSchema = z.object({
   // for the buyer to pay the pro-rated delta (settles WITHOUT re-activating).
   // "none" (default): just activate (free product, or the admin isn't collecting).
   charge: z.enum(["paid", "paylink", "none"]).optional(),
+  // Timing of a membership SWITCH: "end_of_cycle" schedules the switch for the
+  // current membership's period end (the cron applies it) instead of now.
+  timing: z.enum(["now", "end_of_cycle"]).optional(),
   reason: z.string().optional(),
 });
 
@@ -719,6 +772,7 @@ export const setUserProductAction = withAdminAudit<
     let carryStart: string | null = null;
     let carryEnd: string | null = null;
     let oldPrice = 0;
+    let oldSubId: string | null = null;
     let switchingMembership = false;
     if (isMembership) {
       // The membership being REPLACED = the host's current active membership on
@@ -740,6 +794,7 @@ export const setUserProductAction = withAdminAudit<
       );
       if (oldMem) {
         switchingMembership = true;
+        oldSubId = oldMem.id;
         carryStart = oldMem.current_period_start;
         carryEnd = oldMem.current_period_end;
         oldPrice = Number(
@@ -755,6 +810,47 @@ export const setUserProductAction = withAdminAudit<
     );
     const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
     const now = new Date().toISOString();
+
+    // ─── End-of-cycle SWITCH: schedule the membership change for the current
+    // membership's period end (the cron applies it) instead of switching now.
+    // Only for a real membership switch with a future period end; otherwise it
+    // falls through to an immediate change below.
+    if (
+      parsed.data.timing === "end_of_cycle" &&
+      switchingMembership &&
+      oldSubId &&
+      carryEnd &&
+      new Date(carryEnd).getTime() > Date.now()
+    ) {
+      const admin = await requirePermission("subscriptions.edit");
+      await service
+        .from("subscription_scheduled_changes")
+        .update({ status: "superseded" })
+        .eq("subscription_id", oldSubId)
+        .eq("status", "pending");
+      const { error: schErr } = await service
+        .from("subscription_scheduled_changes")
+        .insert({
+          subscription_id: oldSubId,
+          host_id: hostId,
+          kind: "switch",
+          target_product_id: product.id,
+          effective_at: carryEnd,
+          created_by: admin.userId,
+        });
+      if (schErr) throw new Error(schErr.message);
+      // A switch isn't a cancellation — clear any stale cancel-at-period-end flag
+      // (e.g. if this superseded a scheduled cancel).
+      await service
+        .from("subscriptions")
+        .update({ cancel_at_period_end: false, updated_at: now })
+        .eq("id", oldSubId);
+      revalidatePath(`/admin/users`);
+      return {
+        result: { ok: true },
+        after: { hostId, scheduledSwitch: product.id },
+      };
+    }
     // A mid-cycle membership upgrade keeps the existing billing window; a fresh
     // activation / service add / renewal starts a new one.
     const patch = {
@@ -889,6 +985,57 @@ export const setUserProductAction = withAdminAudit<
     revalidatePath(`/admin/users`);
     revalidatePath("/admin/subscriptions/revenue");
     return { result: { ok: true, payUrl }, after: { hostId, ...patch } };
+  },
+);
+
+// ─── Cancel a pending scheduled subscription change ──────────────────
+// Voids an "apply at end of cycle" change before it fires. If it was a
+// scheduled cancellation, the sub's cancel_at_period_end flag is cleared too.
+const cancelSchedSchema = z.object({
+  hostId: z.string().uuid(),
+  changeId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+export const cancelScheduledChangeAction = withAdminAudit<
+  z.infer<typeof cancelSchedSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "user.cancel_scheduled_change",
+    targetType: "subscription",
+    getTargetId: (a) => a.hostId,
+  },
+  async (args, service) => {
+    const parsed = cancelSchedSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    const { hostId, changeId } = parsed.data;
+    const { data: chg } = await service
+      .from("subscription_scheduled_changes")
+      .select("id, subscription_id, kind, status")
+      .eq("id", changeId)
+      .eq("host_id", hostId)
+      .maybeSingle();
+    if (!chg || chg.status !== "pending") {
+      throw new Error("No pending scheduled change to cancel.");
+    }
+    const { error } = await service
+      .from("subscription_scheduled_changes")
+      .update({ status: "cancelled" })
+      .eq("id", changeId);
+    if (error) throw new Error(error.message);
+    if (chg.kind === "cancel") {
+      await service
+        .from("subscriptions")
+        .update({
+          cancel_at_period_end: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", chg.subscription_id);
+    }
+    revalidatePath(`/admin/users`);
+    return { result: { ok: true }, after: { changeId } };
   },
 );
 
@@ -1412,6 +1559,7 @@ export async function setUserProduct(input: {
   hostId: string;
   productId: string;
   charge?: "paid" | "paylink" | "none";
+  timing?: "now" | "end_of_cycle";
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {
     const r = await setUserProductAction(input);
@@ -1604,8 +1752,16 @@ export async function adminUpdateSubscription(input: {
     | "cancelled"
     | "expired";
   refundDoc?: "credit" | "refund";
+  timing?: "now" | "end_of_cycle";
 }) {
   return wrap(() => adminUpdateSubscriptionAction(input));
+}
+
+export async function cancelScheduledChange(input: {
+  hostId: string;
+  changeId: string;
+}) {
+  return wrap(() => cancelScheduledChangeAction(input));
 }
 
 export async function suspendUser(input: { userId: string; reason: string }) {
