@@ -591,10 +591,13 @@ async function activateMappedPlan(
   if (!payerUserId || !productId) return;
   const { data: product } = await admin
     .from("products")
-    .select("type, slug, billing_cycle, plan_key")
+    .select("product_type, slug, billing_cycle, plan_key")
     .eq("id", productId)
     .maybeSingle();
-  if (!product || product.type !== "subscription") return;
+  // Only subscription-like products (membership | service) become subscriptions;
+  // once-off products live in product_orders only.
+  if (!product || product.product_type === "product") return;
+  const isMembership = product.product_type === "membership";
 
   const { data: host } = await admin
     .from("hosts")
@@ -603,16 +606,18 @@ async function activateMappedPlan(
     .maybeSingle();
   if (!host) return;
 
-  const { data: sub } = await admin
+  // Multi-subscription: find THIS product's subscription (renew it) rather than
+  // the host's single sub. A host can hold one membership + many services.
+  const { data: existing } = await admin
     .from("subscriptions")
     .select("id, plan")
     .eq("host_id", host.id)
+    .eq("product_id", productId)
     .maybeSingle();
 
   // Keep `plan` a valid plans.key: prefer the product's explicit plan_key (the
-  // feature tier it grants), else fall back to its slug when that's a plan key,
-  // else preserve the current plan (or default to 'free').
-  let plan = sub?.plan ?? "free";
+  // feature tier it grants), else its slug when that's a plan key, else preserve.
+  let plan = existing?.plan ?? "free";
   const desiredKey = product.plan_key ?? product.slug;
   if (desiredKey) {
     const { data: planRow } = await admin
@@ -633,11 +638,43 @@ async function activateMappedPlan(
     current_period_start: now.toISOString(),
     current_period_end: periodEnd,
   };
-  if (sub) {
-    await admin.from("subscriptions").update(patch).eq("id", sub.id);
-  } else {
-    await admin.from("subscriptions").insert({ host_id: host.id, ...patch });
+
+  if (existing) {
+    await admin.from("subscriptions").update(patch).eq("id", existing.id);
+    return;
   }
+
+  // A NEW membership: a host may hold only one, so retire any other active
+  // membership first (a simple switch; the ledger credit/refund on a paid
+  // downgrade is handled by the admin manage flow, not the settle path).
+  if (isMembership) {
+    const { data: active } = await admin
+      .from("subscriptions")
+      .select("id, product_id")
+      .eq("host_id", host.id)
+      .in("status", ["trialing", "active", "past_due"]);
+    const pids = (active ?? [])
+      .map((s) => s.product_id)
+      .filter((x): x is string => !!x);
+    if (pids.length) {
+      const { data: memProds } = await admin
+        .from("products")
+        .select("id")
+        .in("id", pids)
+        .eq("product_type", "membership");
+      const memIds = new Set((memProds ?? []).map((p) => p.id));
+      const retire = (active ?? [])
+        .filter((s) => s.product_id && memIds.has(s.product_id))
+        .map((s) => s.id);
+      if (retire.length) {
+        await admin
+          .from("subscriptions")
+          .update({ status: "cancelled", updated_at: now.toISOString() })
+          .in("id", retire);
+      }
+    }
+  }
+  await admin.from("subscriptions").insert({ host_id: host.id, ...patch });
 }
 
 export type ConfirmProductResult =
