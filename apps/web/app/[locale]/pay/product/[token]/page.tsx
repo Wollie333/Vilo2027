@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { Building2, Hash, Mail, Package } from "lucide-react";
+import { Hash, Mail, Package } from "lucide-react";
 
 import {
   capturePayPalProductOrder,
@@ -11,6 +11,8 @@ import { getWieloBusinessProfile } from "@/lib/billing/wielo-invoice";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+import { EftPayPanel } from "./EftPayPanel";
 
 import { PayButton, PayPalButton, ProductPayPalButtons } from "./PayButton";
 import { Receipt } from "./Receipt";
@@ -72,9 +74,14 @@ export default async function ProductPayPage({
       getWieloBusinessProfile(),
     ]);
 
-  const methods: string[] = Array.isArray(product?.payment_methods)
-    ? (product!.payment_methods as string[])
-    : ["paystack"];
+  // Strictly the product's accepted methods. If a product has none configured,
+  // fall back to EFT (the universal rail), NEVER paystack — so a card option
+  // never appears on a product the admin didn't enable it for.
+  const methods: string[] =
+    Array.isArray(product?.payment_methods) &&
+    (product!.payment_methods as string[]).length > 0
+      ? (product!.payment_methods as string[])
+      : ["eft"];
   const showPaystack =
     methods.includes("paystack") && settings?.paystack_enabled;
   const showPaypal = methods.includes("paypal") && settings?.paypal_enabled;
@@ -210,39 +217,18 @@ export default async function ProductPayPage({
           ) : null}
 
           {showEft ? (
-            <div className="rounded-card border border-brand-line bg-white">
-              <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3 font-display font-semibold text-brand-ink">
-                <Building2 className="h-4 w-4 text-brand-mute" />
-                Or pay by EFT bank transfer
-              </div>
-              <dl className="divide-y divide-brand-line text-sm">
-                {[
-                  ["Bank", settings?.eft_bank_name],
-                  ["Account name", settings?.eft_account_name],
-                  ["Account number", settings?.eft_account_number],
-                  ["Branch code", settings?.eft_branch_code],
-                  [
-                    "Use as reference",
-                    settings?.eft_reference_hint || order.id.slice(0, 8),
-                  ],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="flex items-center justify-between px-5 py-2.5"
-                  >
-                    <dt className="text-brand-mute">{label}</dt>
-                    <dd className="text-right font-medium text-brand-ink">
-                      {value ?? "—"}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="px-5 py-3 text-xs text-brand-mute">
-                Once paid, email proof to {issuerName} and we&apos;ll confirm
-                your order. Your invoice appears here automatically once payment
-                is verified.
-              </p>
-            </div>
+            <EftPayPanel
+              token={params.token}
+              issuerName={issuerName}
+              secondary={showPaystack || showPaypal}
+              banking={{
+                bankName: settings?.eft_bank_name ?? null,
+                accountName: settings?.eft_account_name ?? null,
+                accountNumber: settings?.eft_account_number ?? null,
+                branchCode: settings?.eft_branch_code ?? null,
+                reference: settings?.eft_reference_hint || order.id.slice(0, 8),
+              }}
+            />
           ) : null}
 
           {noMethod ? (

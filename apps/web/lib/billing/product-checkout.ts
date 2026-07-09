@@ -488,6 +488,71 @@ export async function startProductPayPal(
   }
 }
 
+// Record an EFT payment intent for a product order: the buyer clicked "Pay with
+// EFT", so we (1) ensure a user is assigned to the order — creating a guest lead
+// from their email if none exists, so NO transaction is ever orphaned — and (2)
+// post a PENDING charge to the Wielo ledger keyed by the order (idempotent), so
+// the admin can see + manage the awaited EFT. The bank details are then revealed
+// client-side. Settling happens when the admin marks it received.
+export async function recordProductEftIntent(
+  payToken: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("product_orders")
+    .select(
+      "id, product_id, amount, currency, status, environment, payer_email, payer_user_id",
+    )
+    .eq("pay_token", payToken)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status === "paid") return { ok: true };
+
+  // Assign a user — every transaction must belong to someone. Create a guest
+  // lead from the payer email when the order has no user yet.
+  let userId = order.payer_user_id as string | null;
+  if (!userId && order.payer_email) {
+    const lead = await findOrCreateLeadIdentity(admin, {
+      email: order.payer_email,
+      name: order.payer_email.split("@")[0],
+    });
+    userId = lead?.guestId ?? null;
+    if (userId) {
+      await admin
+        .from("product_orders")
+        .update({ payer_user_id: userId })
+        .eq("id", order.id);
+    }
+  }
+
+  const environment = order.environment ?? "test";
+  const ref = `eft_${order.id}`;
+  const { data: existing } = await admin
+    .from("platform_ledger")
+    .select("id")
+    .eq("provider_reference", ref)
+    .maybeSingle();
+  if (!existing) {
+    await admin.from("platform_ledger").insert({
+      user_id: userId,
+      product_id: order.product_id,
+      type: "charge",
+      status: "pending",
+      amount: Number(order.amount),
+      currency: order.currency,
+      provider: "eft",
+      provider_reference: ref,
+      environment,
+      reason: "Product purchase (EFT)",
+    });
+  }
+  await admin
+    .from("product_orders")
+    .update({ method: "eft", environment })
+    .eq("id", order.id);
+  return { ok: true };
+}
+
 function addMonths(d: Date, n: number): string {
   const x = new Date(d);
   x.setUTCMonth(x.getUTCMonth() + n);

@@ -346,8 +346,6 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
     const parsed = subSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid subscription input.");
     const d = parsed.data;
-    // Financial write — requires the host's active support-access grant.
-    await assertActiveSupportGrant(service, d.hostId);
     const now = new Date().toISOString();
 
     const { data: existing } = await service
@@ -491,8 +489,6 @@ export const setUserProductAction = withAdminAudit<
     const parsed = setProductSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid input.");
     const { hostId, productId } = parsed.data;
-    // Financial write — requires the host's active support-access grant.
-    await assertActiveSupportGrant(service, hostId);
 
     const { data: product } = await service
       .from("products")

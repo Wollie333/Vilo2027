@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import {
   capturePayPalProductOrder,
+  recordProductEftIntent,
   startProductPaystack,
   startProductPayPal,
 } from "@/lib/billing/product-checkout";
@@ -53,4 +54,12 @@ export async function capturePayPalProductAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const r = await capturePayPalProductOrder(orderId);
   return r.ok ? { ok: true } : { ok: false, error: r.error };
+}
+
+// Public — the buyer clicked "Pay with EFT": assign/create the user, post a
+// pending ledger charge, then the client reveals the bank details.
+export async function recordProductEftAction(
+  token: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return recordProductEftIntent(token);
 }
