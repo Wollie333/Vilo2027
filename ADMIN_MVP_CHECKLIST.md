@@ -105,8 +105,12 @@ Verified live + DB:
 
 ## FINANCE
 
-### ⬜ 5. Products — `/admin/products` (+ `/[id]`, `/payments`)
-Product catalog (subs + one-off), Paystack mode badge, product editor.
+### ✅ 5. Products — `/admin/products` (+ `/[id]`, `/payments`) — READY FOR MVP (2026-07-10)
+Verified live + DB:
+- ✅ Product manager renders: TEST MODE (Paystack) badge, Payment settings link, product cards (membership + once-off), New product.
+- ✅ **Product create** (`/admin/products/new` → `products.upsert`) — full editor form; created a test product, **audit `products.upsert` with `target_type=product`** = LIVE PROOF of the `20260710130000` reconcile migration (this audit silently failed before). Deleted the test product after.
+- No console errors.
+- ⚠️ Not deep-tested (sensitive/config): the Paystack **Payment settings** (live/test mode toggle at `/admin/products/payments`) — renders; left untoggled to avoid affecting real payment routing. Flag if you want it exercised.
 
 ### ⬜ 6. Ledger — `/admin/subscriptions/revenue`
 Wielo ledger — AdminLedgerList/Board + running balance + downloadable doc per row. Sibling tabs: `/subscriptions/plans`, `/subscriptions/services` (via _SubsTabs).
