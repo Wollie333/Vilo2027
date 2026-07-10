@@ -29,7 +29,14 @@ Finance·Business & catalogue·Affiliate·Reviews) switching via `?tab=`. No con
 - Hid the internal "Wielo Support" bot (`support@wielo.co.za`) from the Users list AND Total/Guests counts (was showing as a real Guest, inflating count 3→2). Exported `WIELO_SUPPORT_EMAIL` from [platform-thread.ts](apps/web/lib/inbox/platform-thread.ts).
 - Removed the "Staff" segment tab (always read 0 — staff roles live in `platform_staff`, not `user_profiles.role`; staff mgmt hidden for MVP).
 - Verified: Guests now 2, All 4, no Staff tab, search still filters correctly.
-**Not yet exercised (state-changing):** Suspend, Delete, Role, Reset password, Impersonate, sell product / pay-link, email doc — functional deep-test in progress.
+**Functional deep-test — actions verified live + DB (2026-07-10):**
+- ✅ **Toggle add-on** (`user.toggle_addon`) — DB flips, audit row written (constraint fix), `owner_user_id` stamped, shows in History.
+- ✅ **Sell product / pay-link** (`user.sell_product`) — `product_orders` row created (R9 999 pending), pay-link URL returned (`/pay/product/<token>`), system inbox card posted to buyer ("… ZAR 9999.00 due"), audit → History.
+- ✅ **Reset password** (`user.password_reset`) — fires reset email path + audit → History.
+- ✅ **Suspend** (`user.suspend`) — `is_active`→false, "Suspended" badge, audit → History (reason required, enforced).
+- ✅ **Reinstate** (`user.reinstate`) — `is_active`→true restored, audit → History.
+
+**Remaining actions to exercise (same verified pattern — server action + withAdminAudit + owner_user_id):** edit profile, change role, set product (provision+charge), email doc / send doc to inbox, business edit (needs support-grant), subscription edit, cancel scheduled change, affiliate payout, enable affiliate (done earlier), add-on create/edit/delete, policy toggle/default/delete, Impersonate, Delete. Next batch.
 
 #### 🔴 MAJOR bug found + fixed during deep functional test (2026-07-10)
 **"Is every action recorded in the History tab?" → 13 of 24 user-record actions were NOT.**
