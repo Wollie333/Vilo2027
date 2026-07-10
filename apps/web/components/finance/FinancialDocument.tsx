@@ -394,7 +394,7 @@ function BankRow({
     <div className="flex items-baseline justify-between gap-4">
       <dt className="text-brand-mute">{label}</dt>
       <dd
-        className={`${mono ? "num" : ""}text-right font-semibold ${
+        className={`text-right font-semibold ${mono ? "num" : "font-sans"} ${
           emphasize ? "text-brand-secondary" : "text-brand-ink"
         }`}
       >
