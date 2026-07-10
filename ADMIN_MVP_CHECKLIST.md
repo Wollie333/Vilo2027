@@ -242,8 +242,15 @@ The categories hosts assign to specials — power the public `/deals` filter chi
 - 🎨 **FOUNDER-REQUESTED REDESIGN (#44):** replaced the old inline spreadsheet-style editor (`DealCategoriesEditor.tsx`, deleted) with the **same pattern as Listing categories** — a searchable list card (`DealCategoriesTable.tsx`: icon · label · key · sort · SEO indicator · Active/Hidden badge · preview `/deals?category=` · Edit · Delete) + a **full-page editor** (`DealCategoryEditor.tsx`, Basic + SEO & landing sections) at `/new` and `/[id]`. Server actions unchanged. **Verified BOTH canvas + live:** create/edit via the new editor and delete via the new list all write DB + audit; UI screenshot matches the Listing categories design. tsc + next lint green. Commit `1818b84d`.
 - ℹ️ Delete-reason still uses native `window.prompt` — the uniform admin convention (see Tab 14 note / chip `task_b9c3d98d`).
 
-### ⬜ 16. Amenities — `/admin/platform/amenities` (+ groups)
-Amenity catalog + groups editor.
+### ✅ 16. Amenities — `/admin/platform/amenities` (+ groups) — READY FOR MVP (2026-07-10 #44)
+Amenity catalog (102 items across 16 groups) + groups editor. Hosts SELECT from this catalog in the listing editor; it renders on the public listing detail. UI already design-system consistent (grouped section cards + search + Sheet editor with icon picker) — no redesign needed. Verified live end-to-end (throwaway "MVP Test Amenity" + "MVP Test Group", cleaned up):
+- ✅ **Amenity create** (`upsertAmenityAction` → `taxonomy.amenity.upsert`, target_type `amenity_catalog`) — DB row (auto-slug `mvp-test-amenity`, group, published, sort) + audit. **Empirically confirms `amenity_catalog` is in the DB audit constraint** (post-hardening a missing type would have *thrown* and failed the create).
+- ✅ **Amenity edit** (rename + unpublish) — persisted + 2nd upsert audit. Verified the visibility gate: once unpublished it is **excluded from the published set `getAmenityCatalog` serves** to the host picker + public listing (propagation path is code-verified: same `amenity_catalog` table, `revalidateTag("taxonomy")`).
+- ✅ **Amenity delete** — SOFT-delete (`deleted_at`) + audit `taxonomy.amenity.delete` with reason.
+- ✅ **Group create** (`upsertAmenityGroupAction` → `taxonomy.amenity_group.upsert`, target_type `amenity_group`) — DB row + audit; **confirms `amenity_group` in the constraint too**.
+- ✅ **Group delete** — SOFT-delete + audit with reason.
+- ✅ `taxonomy.manage` gate; no console errors on either page.
+- ℹ️ Delete-reason uses native `window.prompt` (uniform admin convention — chip `task_b9c3d98d`).
 
 ### ⬜ 17. Broadcasts — `/admin/broadcasts` (+ new, `/[id]`)
 Platform broadcast banners — create, view, cancel.
