@@ -110,7 +110,7 @@ export default async function AdminUserDetailPage({
     service
       .from("admin_audit_log")
       .select(
-        "id, action, target_type, created_at, impersonating, actor:user_profiles!admin_id ( full_name )",
+        "id, action, target_type, created_at, impersonating, payload, actor:user_profiles!admin_id ( full_name )",
       )
       // Surface entries that target this user directly, impersonate them, or
       // act on something they own (e.g. an admin editing their listing, tagged
@@ -742,6 +742,7 @@ export default async function AdminUserDetailPage({
       actor: one(a.actor)?.full_name ?? null,
       created_at: a.created_at,
       impersonating: a.impersonating,
+      payload: (a.payload as Record<string, unknown> | null) ?? null,
     })),
   };
 

@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-10 #40 — Admin user record: split "Activity & notes" into History / Notes / Data + human-friendly timeline.
+
+- The old "Activity & notes" tab is now **three dedicated tabs**: **History** (the full activity timeline),
+  **Notes** (internal staff notes), and **Data** (data & privacy requests) — Data last.
+- New reusable **[ActivityTimeline](apps/web/components/admin/ActivityTimeline.tsx)** component — one
+  consistent style everywhere: a coloured category icon, plain-English "what happened", an actor badge
+  (Admin / User / Host / System) + name, optional context (reason / "acting as this user" / status), and the
+  date + time. Built-in search + category filter.
+- **Human-friendly humaniser** maps raw `admin_audit_log` action codes + `payload.args` + resolved product
+  names into readable lines — e.g. `user.sell_product` (mode `paylink`) → **"Sent offer: Wielo StayFlow
+  Web-design"**, mode `paid` → **"Sold: …"**; `user.change_role` → "Changed the role to host";
+  `impersonation.start` → "Started impersonating this user", etc. The timeline also folds in the user's own
+  bookings + reviews and the support-access grant lifecycle.
+- Loader now selects the audit `payload`; `UserRecordData.audit[]` carries it. Old `ActivityPanel` /
+  `ActivityList` / `humanizeAuditAction` machinery removed. Deep-link aliases updated
+  (`activity`/`admin` → `history`, `support` → `data`).
+- NOTE: the timeline surfaces everything currently *recorded* — staff/admin actions (audit log) + the user's
+  bookings/reviews + support grants. Logging every user self-service edit (profile/listing changes from the
+  user's own dashboard) would need those mutations instrumented to write audit rows — a follow-up.
+- Verified live as a temp super_admin on `host@wielotest.com` (6 real events incl. "Sent offer" / "Sold" /
+  impersonation). tsc + lint + `pnpm build` green; temp grant revoked.
+
 ## 2026-07-10 #39 — Admin user record: dedicated Website tab + enriched Listings.
 
 - **New "Website" tab** on the admin user record ([admin/users/[id]](apps/web/app/[locale]/admin/users/[id]/UserRecord.tsx)),

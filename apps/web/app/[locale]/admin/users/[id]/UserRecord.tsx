@@ -30,7 +30,6 @@ import {
   ScrollText,
   Search,
   Shield,
-  ShieldAlert,
   Star,
   Trash2,
   UserCog,
@@ -68,6 +67,11 @@ import {
 import { CURRENCY_META, DISPLAY_CURRENCIES } from "@/lib/currency";
 import { LedgerList } from "@/components/finance/LedgerList";
 import { AdminLedgerList } from "@/components/finance/AdminLedgerList";
+import {
+  ActivityTimeline,
+  type ActivityCategory,
+  type ActivityEvent,
+} from "@/components/admin/ActivityTimeline";
 import type { WieloTxn } from "@/lib/billing/wielo-ledger";
 import {
   WieloFinanceModals,
@@ -436,6 +440,7 @@ export type UserRecordData = {
     actor: string | null;
     created_at: string;
     impersonating: string | null;
+    payload: Record<string, unknown> | null;
   }[];
 };
 
@@ -478,9 +483,10 @@ const TAB_ALIASES: Record<string, string> = {
   catalog: "business",
   reviews: "guests",
   relationships: "guests",
-  support: "admin",
-  activity: "admin",
-  notes: "admin",
+  // "Activity & notes" split into dedicated History / Notes / Data tabs.
+  admin: "history",
+  activity: "history",
+  support: "data",
 };
 
 export function UserRecord({ data }: { data: UserRecordData }) {
@@ -582,10 +588,16 @@ export function UserRecord({ data }: { data: UserRecordData }) {
       label: "Reviews & guests",
       count: data.relationships.length || undefined,
     },
+    { key: "history", label: "History" },
     {
-      key: "admin",
-      label: "Activity & notes",
+      key: "notes",
+      label: "Notes",
       count: data.notes.length || undefined,
+    },
+    {
+      key: "data",
+      label: "Data",
+      count: data.dataRequests.length || undefined,
     },
   ];
 
@@ -693,24 +705,21 @@ export function UserRecord({ data }: { data: UserRecordData }) {
               </div>
             ) : null}
 
-            {/* Activity & notes — audit trail, data requests, internal notes */}
-            {tab === "admin" ? (
-              <div className="space-y-10">
-                <GroupSection title="Activity">
-                  <ActivityPanel data={data} />
-                </GroupSection>
-                <GroupSection title="Data & privacy requests">
-                  <SupportPanel data={data} />
-                </GroupSection>
-                <GroupSection title="Internal notes">
-                  <NotesPanel
-                    userId={user.id}
-                    notes={data.notes}
-                    onAdded={() => router.refresh()}
-                  />
-                </GroupSection>
-              </div>
+            {/* History — the full human-friendly timeline of everything that
+                happened on this record (user + admin actions, with who/when). */}
+            {tab === "history" ? <HistoryPanel data={data} /> : null}
+
+            {/* Notes — internal staff notes, its own tab. */}
+            {tab === "notes" ? (
+              <NotesPanel
+                userId={user.id}
+                notes={data.notes}
+                onAdded={() => router.refresh()}
+              />
             ) : null}
+
+            {/* Data — the user's data & privacy requests, last tab. */}
+            {tab === "data" ? <SupportPanel data={data} /> : null}
           </div>
         </div>
       </div>
@@ -4869,235 +4878,204 @@ function SupportPanel({ data }: { data: UserRecordData }) {
   );
 }
 
-type ActivityTone = "edit" | "booking" | "review" | "data" | "support";
-type ActivityItem = {
-  id: string;
-  tone: ActivityTone;
-  what: string;
-  who: string;
-  detail: string | null;
-  date: string;
-};
+// Turn a raw admin_audit_log row into a human-friendly line. Uses payload.args
+// (the action's own arguments) + resolved product names so a row reads like
+// "Sent offer: Beta Membership", not "user.sell_product".
+function humanizeAudit(
+  a: UserRecordData["audit"][number],
+  productLabels: Record<string, string>,
+): { category: ActivityCategory; title: string } {
+  const args = (a.payload?.args ?? {}) as Record<string, unknown>;
+  const productId = typeof args.productId === "string" ? args.productId : null;
+  const productName = productId
+    ? (productLabels[productId] ?? "a product")
+    : null;
+  const roleArg = typeof args.role === "string" ? args.role : null;
+  const statusArg = typeof args.status === "string" ? args.status : null;
+  const mode = typeof args.mode === "string" ? args.mode : null;
 
-// Friendly "what happened" copy for an admin_audit_log action code.
-function humanizeAuditAction(
-  action: string,
-  targetType: string | null,
-): string {
-  const MAP: Record<string, string> = {
-    "listing.edit": "Edited a listing",
-    "user.update": "Updated the profile",
-    "user.suspend": "Suspended the account",
-    "user.unsuspend": "Restored the account",
-    "user.role": "Changed the account role",
-    "user.delete": "Deleted the account",
-    "subscription.update": "Updated the subscription",
-    "subscription.cancel": "Cancelled the subscription",
-    "booking.edit": "Edited a booking",
-    "booking.cancel": "Cancelled a booking",
-    "payment.refund": "Issued a refund",
-    "review.moderate": "Moderated a review",
-    permission_denied: "Permission denied",
-  };
-  if (MAP[action]) return MAP[action];
-  const pretty = action
-    .replace(/[._]/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-  return targetType ? `${pretty} (${targetType})` : pretty;
+  switch (a.action) {
+    case "user.suspend":
+      return { category: "account", title: "Suspended the account" };
+    case "user.reinstate":
+      return { category: "account", title: "Reinstated the account" };
+    case "user.password_reset":
+      return { category: "account", title: "Sent a password reset email" };
+    case "user.update_profile":
+      return { category: "account", title: "Updated the profile" };
+    case "user.change_role":
+      return {
+        category: "account",
+        title: roleArg
+          ? `Changed the role to ${roleArg}`
+          : "Changed the account role",
+      };
+    case "user.delete":
+      return { category: "account", title: "Deleted the account" };
+    case "user.add_note":
+      return { category: "note", title: "Added an internal note" };
+    case "user.update_subscription":
+      return {
+        category: "subscription",
+        title: `Updated the ${productName ?? "subscription"}${
+          statusArg ? ` → ${statusArg}` : ""
+        }`,
+      };
+    case "user.set_product":
+      return {
+        category: "subscription",
+        title: productName
+          ? `Set membership: ${productName}`
+          : "Set a membership / service",
+      };
+    case "user.cancel_scheduled_change":
+      return {
+        category: "subscription",
+        title: "Cancelled a scheduled change",
+      };
+    case "user.sell_product":
+      return {
+        category: "product",
+        title:
+          mode === "paid"
+            ? `Sold: ${productName ?? "a product"}`
+            : `Sent offer: ${productName ?? "a product"}`,
+      };
+    case "user.send_doc_inbox":
+      return { category: "finance", title: "Sent a document to the inbox" };
+    case "user.email_doc":
+      return { category: "finance", title: "Emailed a document to the user" };
+    case "user.update_business":
+      return { category: "business", title: "Updated the business details" };
+    case "user.create_addon":
+      return { category: "business", title: "Created an add-on" };
+    case "user.update_addon":
+      return { category: "business", title: "Updated an add-on" };
+    case "user.toggle_addon":
+      return { category: "business", title: "Enabled / disabled an add-on" };
+    case "user.delete_addon":
+      return { category: "business", title: "Deleted an add-on" };
+    case "user.toggle_policy":
+      return { category: "business", title: "Enabled / disabled a policy" };
+    case "user.set_default_policy":
+      return { category: "business", title: "Set a default policy" };
+    case "user.delete_policy":
+      return { category: "business", title: "Deleted a policy" };
+    case "user.request_support_access":
+      return {
+        category: "support",
+        title: "Requested edit access to this account",
+      };
+    case "impersonation.start":
+      return { category: "account", title: "Started impersonating this user" };
+    case "impersonation.end":
+      return { category: "account", title: "Ended impersonation" };
+    case "affiliate.admin_payout":
+      return { category: "affiliate", title: "Paid an affiliate payout" };
+    case "affiliate.admin_enable":
+      return { category: "affiliate", title: "Enabled the affiliate account" };
+    case "permission_denied":
+      return { category: "system", title: "A blocked action was attempted" };
+    default: {
+      const pretty = a.action
+        .replace(/^user\./, "")
+        .replace(/[._]/g, " ")
+        .replace(/\b\w/, (c) => c.toUpperCase());
+      return {
+        category: "system",
+        title: a.targetType ? `${pretty} (${a.targetType})` : pretty,
+      };
+    }
+  }
 }
 
-function ActivityDot({ tone }: { tone: ActivityTone }) {
-  const cls: Record<ActivityTone, string> = {
-    edit: "bg-brand-primary/10 text-brand-primary",
-    booking: "bg-status-confirmed/10 text-status-confirmed",
-    review: "bg-amber-100 text-amber-600",
-    data: "bg-status-cancelled/10 text-status-cancelled",
-    support: "bg-status-pending/10 text-status-pending",
-  };
-  const Icon =
-    tone === "booking"
-      ? CalendarCheck
-      : tone === "review"
-        ? Star
-        : tone === "data"
-          ? ShieldAlert
-          : tone === "support"
-            ? KeyRound
-            : Pencil;
-  return (
-    <span
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${cls[tone]}`}
-    >
-      <Icon className="h-4 w-4" />
-    </span>
-  );
-}
+// Build the full, sorted history timeline from every recorded event on this
+// record: admin/staff audit actions, the user's own bookings + reviews, and the
+// support-access grant lifecycle. Data requests live in their own Data tab.
+function buildHistory(data: UserRecordData): ActivityEvent[] {
+  const events: ActivityEvent[] = [];
+  const userName = data.user.full_name || data.user.email || "This user";
+  const productLabels = data.wieloLabels?.productLabels ?? {};
 
-function ActivityPanel({ data }: { data: UserRecordData }) {
-  const items: ActivityItem[] = [];
-  for (const b of data.bookingsAsGuest)
-    items.push({
-      id: `bg-${b.id}`,
-      tone: "booking",
-      what: `Booked ${b.listingName}`,
-      who: data.user.full_name ?? "Guest",
-      detail: `${b.reference} · ${b.status}`,
-      date: b.checkIn ?? "",
-    });
-  for (const rv of data.reviewsWritten)
-    items.push({
-      id: `rw-${rv.id}`,
-      tone: "review",
-      what: `Reviewed ${rv.listingName}`,
-      who: data.user.full_name ?? "Guest",
-      detail: `${rv.rating}★`,
-      date: rv.createdAt,
-    });
-  // Admin / support changes — the who/what/when trail (incl. listing edits made
-  // by staff from this very record).
-  for (const a of data.audit)
-    items.push({
+  for (const a of data.audit) {
+    const { category, title } = humanizeAudit(a, productLabels);
+    const reason =
+      typeof a.payload?.reason === "string" ? a.payload.reason : null;
+    const context = [
+      a.impersonating ? "acting as this user" : null,
+      reason ? `“${reason}”` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    events.push({
       id: `au-${a.id}`,
-      tone: "edit",
-      what: humanizeAuditAction(a.action, a.targetType),
-      who: a.actor ?? "Wielo staff",
-      detail: a.impersonating ? "while acting as this user" : "staff action",
-      date: a.created_at,
+      category,
+      title,
+      actor: a.actor ?? "Wielo staff",
+      actorKind: "admin",
+      context: context || null,
+      at: a.created_at,
     });
-  for (const d of data.dataRequests)
-    items.push({
-      id: `dr-${d.id}`,
-      tone: "data",
-      what: `Data ${d.type} request`,
-      who: data.user.full_name ?? "User",
-      detail: d.status,
-      date: d.createdAt,
+  }
+
+  for (const b of data.bookingsAsGuest)
+    events.push({
+      id: `bg-${b.id}`,
+      category: "booking",
+      title: `Booked ${b.listingName}`,
+      actor: userName,
+      actorKind: "user",
+      context: `${b.reference} · ${b.status}`,
+      at: b.checkIn ?? "",
     });
-  // Support-access permission lifecycle — request + the host's decision.
+
+  for (const rv of data.reviewsWritten)
+    events.push({
+      id: `rw-${rv.id}`,
+      category: "review",
+      title: `Reviewed ${rv.listingName}`,
+      actor: userName,
+      actorKind: "user",
+      context: `${rv.rating}★${rv.isPublished ? "" : " · unpublished"}`,
+      at: rv.createdAt,
+    });
+
   for (const g of data.supportGrants) {
-    items.push({
+    events.push({
       id: `sg-req-${g.id}`,
-      tone: "support",
-      what: "Requested edit access",
-      who: g.requestedBy ?? "Wielo support",
-      detail: g.reason ? `“${g.reason}”` : "awaiting host approval",
-      date: g.requestedAt,
+      category: "support",
+      title: "Requested edit access to this account",
+      actor: g.requestedBy ?? "Wielo support",
+      actorKind: "admin",
+      context: g.reason ? `“${g.reason}”` : "awaiting host approval",
+      at: g.requestedAt,
     });
-    if (g.decidedAt) {
-      items.push({
+    if (g.decidedAt)
+      events.push({
         id: `sg-dec-${g.id}`,
-        tone: "support",
-        what: `Host ${g.status} edit access`,
-        who: "Host",
-        detail:
+        category: "support",
+        title: `Host ${g.status} the edit-access request`,
+        actor: "Host",
+        actorKind: "host",
+        context:
           g.status === "approved" && g.expiresAt
             ? `valid until ${fmtDate(g.expiresAt)}`
             : g.status,
-        date: g.decidedAt,
+        at: g.decidedAt,
       });
-    }
   }
-  items.sort((x, y) => (x.date < y.date ? 1 : -1));
 
-  return <ActivityList items={items} />;
+  return events;
 }
 
-const ACTIVITY_TONES: { key: ActivityTone | "all"; label: string }[] = [
-  { key: "all", label: "All activity" },
-  { key: "edit", label: "Staff edits" },
-  { key: "booking", label: "Bookings" },
-  { key: "review", label: "Reviews" },
-  { key: "data", label: "Data requests" },
-  { key: "support", label: "Support access" },
-];
-
-function ActivityList({ items }: { items: ActivityItem[] }) {
-  const [q, setQ] = useState("");
-  const [tone, setTone] = useState<ActivityTone | "all">("all");
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return items.filter((it) => {
-      if (tone !== "all" && it.tone !== tone) return false;
-      if (needle) {
-        const hay = [it.what, it.who, it.detail]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!hay.includes(needle)) return false;
-      }
-      return true;
-    });
-  }, [items, q, tone]);
-
+function HistoryPanel({ data }: { data: UserRecordData }) {
+  const events = useMemo(() => buildHistory(data), [data]);
   return (
-    <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-      <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
-        <Calendar className="h-4 w-4 text-brand-mute" />
-        <span className="font-display text-[15px] font-bold text-brand-ink">
-          Activity &amp; history
-        </span>
-        <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
-          {items.length}
-        </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-brand-line bg-[#FBFDFC] px-4 py-2.5">
-        <div className="flex h-9 min-w-[200px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
-          <Search className="h-4 w-4 text-brand-mute" />
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search activity…"
-            className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
-          />
-        </div>
-        <FilterSelect
-          value={tone}
-          onChange={(v) => setTone(v as ActivityTone | "all")}
-        >
-          {ACTIVITY_TONES.map((t) => (
-            <option key={t.key} value={t.key}>
-              {t.label}
-            </option>
-          ))}
-        </FilterSelect>
-      </div>
-      {filtered.length === 0 ? (
-        <p className="px-5 py-10 text-center text-sm text-brand-mute">
-          No activity matches this filter.
-        </p>
-      ) : (
-        filtered.slice(0, 120).map((it) => (
-          <div
-            key={it.id}
-            className="flex items-start gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
-          >
-            <ActivityDot tone={it.tone} />
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-semibold text-brand-ink">
-                {it.what}
-              </div>
-              <div className="mt-0.5 text-[11.5px] text-brand-mute">
-                by <span className="font-medium text-brand-ink">{it.who}</span>
-                {it.detail ? ` · ${it.detail}` : ""}
-              </div>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="text-[11.5px] font-medium text-brand-ink">
-                {fmtDate(it.date)}
-              </div>
-              <div className="text-[10.5px] text-brand-mute">
-                {fmtTime(it.date)}
-              </div>
-            </div>
-          </div>
-        ))
-      )}
-      <div className="border-t border-brand-line bg-[#FBFDFC] px-4 py-3 text-[12px] tabular-nums text-brand-mute">
-        Showing {Math.min(filtered.length, 120)} of {items.length}
-      </div>
-    </div>
+    <ActivityTimeline
+      events={events}
+      title="History"
+      emptyLabel="No activity has been recorded on this account yet."
+    />
   );
 }
 
