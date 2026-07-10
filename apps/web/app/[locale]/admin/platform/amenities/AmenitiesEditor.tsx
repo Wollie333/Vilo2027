@@ -38,6 +38,7 @@ import { useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 import {
   Sheet,
   SheetContent,
@@ -200,11 +201,18 @@ export function AmenitiesEditor({
     });
   }
 
-  function removeRow(row: AmenityCatalogRow) {
-    const reason = window.prompt(
-      `Delete "${row.label}"? Reason (min 5 chars):`,
-    );
-    if (!reason || reason.trim().length < 5) return;
+  async function removeRow(row: AmenityCatalogRow) {
+    const reason = await modal.prompt({
+      title: `Delete "${row.label}"?`,
+      description:
+        "Hosts will no longer be able to select this amenity on their listings.",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this?",
+      minLength: 5,
+      confirmLabel: "Delete amenity",
+      intent: "destructive",
+    });
+    if (!reason) return;
     setError(null);
     startTransition(async () => {
       const res = await deleteAmenity({ id: row.id, reason });

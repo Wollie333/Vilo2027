@@ -3,6 +3,7 @@
 import { ExternalLink } from "lucide-react";
 import { useTransition } from "react";
 
+import { modal } from "@/components/ui/modal-host";
 import { startImpersonationAction } from "@/app/[locale]/admin/impersonation/actions";
 
 /**
@@ -27,14 +28,20 @@ export function ImpersonateButton({
     <button
       type="button"
       disabled={pending}
-      onClick={() => {
-        const reason = window.prompt(
-          "Reason for viewing as this user (recorded in the audit log):",
-        );
-        if (!reason || !reason.trim()) return;
+      onClick={async () => {
+        const reason = await modal.prompt({
+          title: "View as this user?",
+          description:
+            "You'll act as this user until you exit. This is recorded in the audit log.",
+          label: "Reason (recorded in the audit log)",
+          placeholder: "Why do you need to view as this user?",
+          minLength: 1,
+          confirmLabel: "Start session",
+        });
+        if (!reason) return;
         const fd = new FormData();
         fd.set("targetUserId", userId);
-        fd.set("reason", reason.trim());
+        fd.set("reason", reason);
         start(() => {
           void startImpersonationAction(fd);
         });

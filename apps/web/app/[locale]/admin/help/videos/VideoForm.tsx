@@ -11,6 +11,7 @@ import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { modal } from "@/components/ui/modal-host";
 import { parseVideoEmbed } from "@/lib/help/embed";
 import type {
   HelpAudience,
@@ -93,9 +94,16 @@ export function VideoForm({ mode, defaults, categories }: Props) {
     });
   }
 
-  function remove() {
-    const reason = window.prompt("Reason for deleting (min 5 chars):");
-    if (!reason || reason.trim().length < 5) return;
+  async function remove() {
+    const reason = await modal.prompt({
+      title: "Delete this video?",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this?",
+      minLength: 5,
+      confirmLabel: "Delete video",
+      intent: "destructive",
+    });
+    if (!reason) return;
     startTransition(async () => {
       const res = await deleteHelpVideo({ id: defaults.id, reason });
       if (!res.ok) setError(res.error);

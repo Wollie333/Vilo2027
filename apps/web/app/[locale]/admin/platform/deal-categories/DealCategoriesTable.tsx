@@ -21,6 +21,7 @@ import { Link } from "@/i18n/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 
 import { deleteDealCategory } from "./actions";
 
@@ -68,10 +69,17 @@ export function DealCategoriesTable({ rows }: { rows: DealCategoryRow[] }) {
   }, [list, query]);
 
   async function removeRow(row: DealCategoryRow) {
-    const reason = window.prompt(
-      `Delete "${row.label}"? Reason (min 5 chars):`,
-    );
-    if (!reason || reason.trim().length < 5) return;
+    const reason = await modal.prompt({
+      title: `Delete "${row.label}"?`,
+      description:
+        "This removes the deal category from the /deals filter and the host picker.",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this?",
+      minLength: 5,
+      confirmLabel: "Delete category",
+      intent: "destructive",
+    });
+    if (!reason) return;
     setError(null);
     startTransition(async () => {
       const res = await deleteDealCategory({ id: row.id, reason });

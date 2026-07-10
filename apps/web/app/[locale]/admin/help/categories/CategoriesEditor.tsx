@@ -3,6 +3,7 @@
 import { AlertCircle, Plus, Save, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
+import { modal } from "@/components/ui/modal-host";
 import { HELP_ICON_CHOICES, resolveHelpIcon } from "@/lib/help/icon-map";
 import type { HelpAudience, HelpCategoryRow } from "@/lib/help/types";
 
@@ -80,13 +81,20 @@ export function CategoriesEditor({ rows }: { rows: Row[] }) {
     });
   }
 
-  function removeRow(row: Row) {
+  async function removeRow(row: Row) {
     if (row.__new) {
       setList((prev) => prev.filter((r) => r.id !== row.id));
       return;
     }
-    const reason = window.prompt("Reason for deleting (min 5 chars):");
-    if (!reason || reason.trim().length < 5) return;
+    const reason = await modal.prompt({
+      title: "Delete this help category?",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this?",
+      minLength: 5,
+      confirmLabel: "Delete category",
+      intent: "destructive",
+    });
+    if (!reason) return;
     setError(null);
     startTransition(async () => {
       const res = await deleteHelpCategory({ id: row.id, reason });

@@ -27,6 +27,17 @@ import {
   type ModalIntent,
 } from "./modal";
 
+interface PromptSpec {
+  label?: string;
+  placeholder?: string;
+  defaultValue: string;
+  minLength: number;
+  multiline: boolean;
+  confirmLabel: string;
+  cancelLabel: string;
+  resolve: (value: string | null) => void;
+}
+
 interface ModalRequest {
   id: number;
   intent: ModalIntent;
@@ -36,6 +47,9 @@ interface ModalRequest {
   details?: ModalDetail[];
   actions: ModalAction[];
   dismissible: boolean;
+  /** Present for `modal.prompt()` — the host renders a text input + builds
+   *  its own confirm/cancel actions that carry the entered value. */
+  prompt?: PromptSpec;
 }
 
 // ---- tiny dependency-free external store (useSyncExternalStore) ----
@@ -83,6 +97,25 @@ export interface ConfirmOptions {
   details?: ModalDetail[];
   confirmLabel?: string;
   cancelLabel?: string;
+  icon?: LucideIcon;
+  dismissible?: boolean;
+}
+
+export interface PromptOptions {
+  title: string;
+  description?: React.ReactNode;
+  /** Field label above the input. */
+  label?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  /** Inline-validated minimum trimmed length before confirm enables. */
+  minLength?: number;
+  /** Render a multi-line textarea instead of a single-line input. */
+  multiline?: boolean;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  /** "confirm" (default) or "destructive" for red confirm CTAs (e.g. deletes). */
+  intent?: "confirm" | "destructive";
   icon?: LucideIcon;
   dismissible?: boolean;
 }
@@ -154,6 +187,35 @@ function confirmFor(intent: "confirm" | "destructive") {
     });
 }
 
+/**
+ * Text-input prompt. Resolves to the trimmed entered string, or `null` if the
+ * user cancels/dismisses. The design-system replacement for `window.prompt`.
+ */
+function promptInput(opts: PromptOptions): Promise<string | null> {
+  return new Promise((resolve) => {
+    enqueue({
+      intent: opts.intent ?? "confirm",
+      icon: opts.icon,
+      title: opts.title,
+      description: opts.description,
+      dismissible: opts.dismissible ?? true,
+      // Actions are synthesized per-keystroke by PromptModal so confirm can
+      // carry the live value and disable while the input is too short.
+      actions: [],
+      prompt: {
+        label: opts.label,
+        placeholder: opts.placeholder,
+        defaultValue: opts.defaultValue ?? "",
+        minLength: opts.minLength ?? 0,
+        multiline: opts.multiline ?? false,
+        confirmLabel: opts.confirmLabel ?? "Confirm",
+        cancelLabel: opts.cancelLabel ?? "Cancel",
+        resolve,
+      },
+    });
+  });
+}
+
 /** The imperative modal singleton. */
 export const modal = {
   success: alertFor("success"),
@@ -164,6 +226,8 @@ export const modal = {
   confirm: confirmFor("confirm"),
   /** Destructive confirmation (red CTA). Resolves true if confirmed. */
   destructive: confirmFor("destructive"),
+  /** Text-input prompt. Resolves the entered string, or null if cancelled. */
+  prompt: promptInput,
 };
 
 /**
@@ -179,6 +243,10 @@ export function ModalHost() {
   const current = requests[0];
 
   if (!current) return null;
+
+  if (current.prompt) {
+    return <PromptModal key={current.id} request={current} />;
+  }
 
   return (
     <Modal
@@ -199,6 +267,101 @@ export function ModalHost() {
       details={current.details}
       actions={current.actions}
       dismissible={current.dismissible}
+    />
+  );
+}
+
+/**
+ * Renders a `modal.prompt()` request: a text input with inline min-length
+ * validation and confirm/cancel buttons. Owns the input state so confirm can
+ * carry the live value and stay disabled until the input is long enough.
+ */
+function PromptModal({ request }: { request: ModalRequest }) {
+  const spec = request.prompt as PromptSpec;
+  const [value, setValue] = React.useState(spec.defaultValue);
+  const settled = React.useRef(false);
+
+  const trimmed = value.trim();
+  const valid = trimmed.length >= spec.minLength;
+
+  const finish = React.useCallback(
+    (result: string | null) => {
+      if (settled.current) return;
+      settled.current = true;
+      dismiss(request.id);
+      spec.resolve(result);
+    },
+    [request.id, spec],
+  );
+
+  const fieldClass =
+    "w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none";
+
+  const inputEl = (
+    <div>
+      {spec.label ? (
+        <label className="mb-1.5 block text-[13px] font-medium text-brand-ink">
+          {spec.label}
+        </label>
+      ) : null}
+      {spec.multiline ? (
+        <textarea
+          autoFocus
+          rows={3}
+          value={value}
+          placeholder={spec.placeholder}
+          onChange={(e) => setValue(e.target.value)}
+          className={fieldClass}
+        />
+      ) : (
+        <input
+          autoFocus
+          type="text"
+          value={value}
+          placeholder={spec.placeholder}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && valid) {
+              e.preventDefault();
+              finish(trimmed);
+            }
+          }}
+          className={fieldClass}
+        />
+      )}
+      {spec.minLength > 0 && trimmed.length > 0 && !valid ? (
+        <p className="mt-1 text-[12px] text-red-600">
+          Please enter at least {spec.minLength} characters.
+        </p>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <Modal
+      open
+      onOpenChange={(open) => {
+        if (!open) finish(null);
+      }}
+      intent={request.intent}
+      icon={request.icon}
+      title={request.title}
+      description={request.description}
+      input={inputEl}
+      actions={[
+        {
+          label: spec.cancelLabel,
+          kind: "ghost",
+          onClick: () => finish(null),
+        },
+        {
+          label: spec.confirmLabel,
+          kind: request.intent === "destructive" ? "danger" : "primary",
+          disabled: !valid,
+          onClick: () => finish(trimmed),
+        },
+      ]}
+      dismissible={request.dismissible}
     />
   );
 }

@@ -3,6 +3,7 @@
 import { AlertCircle, Plus, Save, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
+import { modal } from "@/components/ui/modal-host";
 import { HELP_ICON_CHOICES, resolveHelpIcon } from "@/lib/help/icon-map";
 import {
   type HelpStatusComponentStatus,
@@ -97,13 +98,20 @@ export function StatusEditor({ rows }: { rows: HelpStatusRow[] }) {
     });
   }
 
-  function removeRow(row: Row) {
+  async function removeRow(row: Row) {
     if (row.__new) {
       setList((prev) => prev.filter((r) => r.id !== row.id));
       return;
     }
-    const reason = window.prompt("Reason for deleting (min 5 chars):");
-    if (!reason || reason.trim().length < 5) return;
+    const reason = await modal.prompt({
+      title: "Delete this status?",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this?",
+      minLength: 5,
+      confirmLabel: "Delete status",
+      intent: "destructive",
+    });
+    if (!reason) return;
     startTransition(async () => {
       const res = await deleteHelpStatus({ id: row.id, reason });
       if (!res.ok) {

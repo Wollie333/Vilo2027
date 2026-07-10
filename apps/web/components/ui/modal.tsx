@@ -41,6 +41,8 @@ export type ModalButtonKind = "primary" | "ghost" | "danger";
 export interface ModalAction {
   label: string;
   kind?: ModalButtonKind;
+  /** Disable this button (e.g. a prompt's confirm while the input is invalid). */
+  disabled?: boolean;
   /**
    * Click handler. May be async — buttons disable and show a pending state
    * while it resolves. Return `false` to keep the modal open; otherwise it
@@ -102,6 +104,9 @@ export interface ModalProps {
   description?: React.ReactNode;
   /** Optional key/value summary box (booking ref, refund amount, dates …). */
   details?: ModalDetail[];
+  /** Optional interactive content (e.g. a prompt's text input) rendered
+   *  between the details and the footer buttons. */
+  input?: React.ReactNode;
   /** Footer buttons, rendered right-aligned. Always lead with one primary CTA. */
   actions?: ModalAction[];
   /** Allow backdrop click / Esc to dismiss. Default true. */
@@ -119,6 +124,7 @@ export function Modal({
   title,
   description,
   details,
+  input,
   actions,
   dismissible = true,
 }: ModalProps) {
@@ -207,13 +213,15 @@ export function Modal({
             </div>
           ) : null}
 
+          {input ? <div className="mt-5">{input}</div> : null}
+
           {actions && actions.length > 0 ? (
             <div className="mt-5 flex justify-end gap-2">
               {actions.map((action, i) => (
                 <button
                   key={`${action.label}-${i}`}
                   type="button"
-                  disabled={pending}
+                  disabled={pending || action.disabled}
                   className={BTN[action.kind ?? "primary"]}
                   onClick={() => void handleAction(action)}
                 >

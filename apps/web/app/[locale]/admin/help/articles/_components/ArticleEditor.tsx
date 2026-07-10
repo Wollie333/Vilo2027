@@ -14,6 +14,7 @@ import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
+import { modal } from "@/components/ui/modal-host";
 import { slugify } from "@/lib/help/slug";
 import type {
   HelpAudience,
@@ -118,9 +119,15 @@ export function ArticleEditor({ mode, defaults, categories }: Props) {
     });
   }
 
-  function archive() {
-    const reason = window.prompt("Reason for archiving (min 5 chars):");
-    if (!reason || reason.trim().length < 5) return;
+  async function archive() {
+    const reason = await modal.prompt({
+      title: "Archive this article?",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you archiving this?",
+      minLength: 5,
+      confirmLabel: "Archive",
+    });
+    if (!reason) return;
     startTransition(async () => {
       const res = await archiveHelpArticle({ id: defaults.id, reason });
       if (!res.ok) setError(res.error);
@@ -132,9 +139,17 @@ export function ArticleEditor({ mode, defaults, categories }: Props) {
     });
   }
 
-  function softDelete() {
-    const reason = window.prompt("Reason for soft-deleting (min 5 chars):");
-    if (!reason || reason.trim().length < 5) return;
+  async function softDelete() {
+    const reason = await modal.prompt({
+      title: "Delete this article?",
+      description: "It's soft-deleted and can be restored later.",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this?",
+      minLength: 5,
+      confirmLabel: "Delete article",
+      intent: "destructive",
+    });
+    if (!reason) return;
     startTransition(async () => {
       const res = await softDeleteHelpArticle({ id: defaults.id, reason });
       if (!res.ok) setError(res.error);
@@ -142,9 +157,16 @@ export function ArticleEditor({ mode, defaults, categories }: Props) {
     });
   }
 
-  function restore() {
-    const reason = window.prompt("Reason for restoring (min 5 chars):");
-    if (!reason || reason.trim().length < 5) return;
+  async function restore() {
+    const reason = await modal.prompt({
+      title: "Restore this article?",
+      description: "It comes back as a draft.",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you restoring this?",
+      minLength: 5,
+      confirmLabel: "Restore",
+    });
+    if (!reason) return;
     startTransition(async () => {
       const res = await restoreHelpArticle({ id: defaults.id, reason });
       if (!res.ok) setError(res.error);

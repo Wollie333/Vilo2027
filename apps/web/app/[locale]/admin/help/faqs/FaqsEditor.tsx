@@ -4,6 +4,7 @@ import { AlertCircle, Plus, Save, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { modal } from "@/components/ui/modal-host";
 import type {
   HelpAudience,
   HelpCategoryRow,
@@ -90,13 +91,20 @@ export function FaqsEditor({ rows, categories }: Props) {
     });
   }
 
-  function removeRow(row: Row) {
+  async function removeRow(row: Row) {
     if (row.__new) {
       setList((prev) => prev.filter((r) => r.id !== row.id));
       return;
     }
-    const reason = window.prompt("Reason for deleting (min 5 chars):");
-    if (!reason || reason.trim().length < 5) return;
+    const reason = await modal.prompt({
+      title: "Delete this FAQ?",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this?",
+      minLength: 5,
+      confirmLabel: "Delete FAQ",
+      intent: "destructive",
+    });
+    if (!reason) return;
     setError(null);
     startTransition(async () => {
       const res = await deleteHelpFaq({ id: row.id, reason });

@@ -114,10 +114,17 @@ export function CategoriesTable({ rows }: { rows: ListingCategoryRow[] }) {
       });
       return;
     }
-    const reason = window.prompt(
-      `Delete "${row.label}"? Reason (min 5 chars):`,
-    );
-    if (!reason || reason.trim().length < 5) return;
+    const reason = await modal.prompt({
+      title: `Delete "${row.label}"?`,
+      description:
+        "This removes the category from the host wizard, the browse filter and its landing page.",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this?",
+      minLength: 5,
+      confirmLabel: "Delete category",
+      intent: "destructive",
+    });
+    if (!reason) return;
     setError(null);
     startTransition(async () => {
       const res = await deleteCategory({ id: row.id, reason });

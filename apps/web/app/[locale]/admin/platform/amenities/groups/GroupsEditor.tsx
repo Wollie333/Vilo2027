@@ -24,6 +24,7 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 import {
   Sheet,
   SheetContent,
@@ -138,11 +139,18 @@ export function GroupsEditor({ rows }: { rows: AmenityGroupRow[] }) {
     });
   }
 
-  function removeRow(row: AmenityGroupRow) {
-    const reason = window.prompt(
-      `Delete group "${row.label}"? Amenities in this group will need to be reassigned. Reason (min 5 chars):`,
-    );
-    if (!reason || reason.trim().length < 5) return;
+  async function removeRow(row: AmenityGroupRow) {
+    const reason = await modal.prompt({
+      title: `Delete group "${row.label}"?`,
+      description:
+        "Amenities in this group will need to be reassigned to another group.",
+      label: "Reason (recorded in the audit log)",
+      placeholder: "Why are you deleting this group?",
+      minLength: 5,
+      confirmLabel: "Delete group",
+      intent: "destructive",
+    });
+    if (!reason) return;
     setError(null);
     startTransition(async () => {
       const res = await deleteAmenityGroup({ id: row.id, reason });
