@@ -34,6 +34,31 @@ correctness only, fix locally, push to GitHub once all done.
   toggle, add-on create/edit/delete, soft-delete(+restore). History tab went 6 → 19 events.
 - **Still to drive:** impersonate (dev-preview hangs), set_product, affiliate_payout, cancel_scheduled,
   email_doc, policy set_default/delete, change_role. Then Tabs 3–20.
+- **Tabs 3 Inbox / 4 Listings / 5 Products** ✅ verified ready for MVP.
+- **Tab 5 Products — advanced functional deep-test (permissions · commission · pricing):** exercised the REAL
+  enforcement RPCs against the live cloud DB (isolated throwaway host, self-cleaning). **12/12 passed.**
+  `check_feature_permission` genuinely gates from `product_features` (enable / explicit-disable authoritative /
+  qty limits / fall-through / live toggle; precedence host-override > product > plan > default).
+  `accrue_affiliate_commission` computes correctly (percent, fixed, cap-at-net, duration=once cutoff, none).
+- 🔴→✅ **GAP: the "Setup fee (once-off)" editor block was a dead control** — stored but never charged and never
+  paid out (checkout billed price only; the Wizard only *displayed* it). Founder chose "wire it up."
+  **Migration `20260710160000`** adds `setup_fee_amount` to `product_orders` + `platform_ledger`;
+  `createProductOrder` folds the setup fee into `amount` on the **first purchase** of a membership/service only
+  (guarded against once-off / upgrade top-ups / renewals), carried onto every ledger charge write;
+  `accrue_affiliate_commission` now emits **two** rows per charge — `kind=subscription` on the recurring net
+  + `kind=setup_fee` on the setup portion, each at its own configured rate, idempotent per `(ledger, kind)`.
+  Pay page shows a setup-fee line-item. **Verified live:** real pay-link → order `amount=1500` (price 1000 +
+  setup 500), pay page renders the breakdown; commission split proven 5/5. build/lint/tsc green; types regen'd.
+  ⏳ Deno `paystack-webhook` source updated but NOT redeployed (only its rare insert-if-missing fallback uses
+  it; the app-seeded pending row already carries `setup_fee_amount`) — fold into the deferred webhook redeploy.
+- **Setup fee as an invoice LINE ITEM + enriched product cards** (follow-up):
+  - Migration `20260710170000` splits `mint_wielo_invoice_on_ledger_complete` `line_items` into two rows when
+    `setup_fee_amount>0` — product/subscription line + "Setup fee (once-off)" line (subtotal/VAT/total
+    unchanged). Verified live: invoice `INV-0044` renders both rows on the hosted page + PDF (Total paid R1500).
+  - Admin **Product manager cards** now show **"N bought"** (distinct paid-order buyers) + **"M active"**
+    (active/trialing subscribers) + the full commission structure (recurring commission + duration, setup fee +
+    its commission). Verified live — real product Bernie shows "Setup fee R300 · commission 50%".
+  - build + lint + tsc green.
 
 ## 2026-07-10 #40 — Admin user record: split "Activity & notes" into History / Notes / Data + human-friendly timeline.
 

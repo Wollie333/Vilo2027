@@ -17,15 +17,31 @@ const CYCLE_LABEL: Record<string, string> = {
   annual: "yr",
 };
 
+const DURATION_LABEL: Record<string, string> = {
+  once: "first payment",
+  months: "for N months",
+  forever: "recurring",
+};
+
+// A commission value as either a percent or a Rand amount.
+function fmtCommission(type: string, value: number): string {
+  return type === "percent" ? `${value}%` : formatZar(Number(value));
+}
+
 export default async function AdminProductsPage() {
   await requirePermission("subscriptions.edit");
   const service = createAdminClient();
 
-  const [{ data: products }, { data: pay }] = await Promise.all([
+  const [
+    { data: products },
+    { data: pay },
+    { data: paidOrders },
+    { data: activeSubs },
+  ] = await Promise.all([
     service
       .from("products")
       .select(
-        "id, name, description, product_type, price, currency, billing_cycle, is_active, is_recommended, affiliate_type, affiliate_value, sort_order",
+        "id, name, description, product_type, price, currency, billing_cycle, is_active, is_recommended, affiliate_type, affiliate_value, affiliate_duration, setup_fee, setup_fee_affiliate_type, setup_fee_affiliate_value, sort_order",
       )
       .order("sort_order", { ascending: true }),
     service
@@ -33,7 +49,35 @@ export default async function AdminProductsPage() {
       .select("paystack_enabled, paystack_mode")
       .eq("id", true)
       .maybeSingle(),
+    // Units sold = paid product orders (distinct buyer per product).
+    service
+      .from("product_orders")
+      .select("product_id, payer_user_id")
+      .eq("status", "paid"),
+    // Active subscribers per subscription product.
+    service
+      .from("subscriptions")
+      .select("product_id")
+      .in("status", ["trialing", "active"]),
   ]);
+
+  // Per-product tallies: distinct buyers (paid orders) + active subscribers.
+  const soldByProduct = new Map<string, Set<string>>();
+  for (const o of paidOrders ?? []) {
+    if (!o.product_id) continue;
+    const set = soldByProduct.get(o.product_id) ?? new Set<string>();
+    // Distinct by buyer; anonymous (null) orders each count once.
+    set.add(o.payer_user_id ?? `anon-${set.size}`);
+    soldByProduct.set(o.product_id, set);
+  }
+  const activeByProduct = new Map<string, number>();
+  for (const s of activeSubs ?? []) {
+    if (!s.product_id) continue;
+    activeByProduct.set(
+      s.product_id,
+      (activeByProduct.get(s.product_id) ?? 0) + 1,
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -111,12 +155,63 @@ export default async function AdminProductsPage() {
                 </span>
               ) : null}
             </div>
-            {p.affiliate_type !== "none" ? (
-              <div className="mt-1 text-[11px] text-brand-mute">
-                Affiliate:{" "}
-                {p.affiliate_type === "percent"
-                  ? `${p.affiliate_value}%`
-                  : formatZar(Number(p.affiliate_value))}
+
+            {/* Sales tally: distinct buyers + active subscribers */}
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-brand-mute">
+              <span>
+                <span className="font-semibold text-brand-ink">
+                  {soldByProduct.get(p.id)?.size ?? 0}
+                </span>{" "}
+                bought
+              </span>
+              {p.product_type !== "product" ? (
+                <span>
+                  <span className="font-semibold text-brand-ink">
+                    {activeByProduct.get(p.id) ?? 0}
+                  </span>{" "}
+                  active
+                </span>
+              ) : null}
+            </div>
+
+            {/* Commission structure: recurring/referral + setup fee & its commission */}
+            {p.affiliate_type !== "none" || Number(p.setup_fee) > 0 ? (
+              <div className="mt-2 space-y-0.5 border-t border-brand-line pt-2 text-[11px] text-brand-mute">
+                {p.affiliate_type !== "none" ? (
+                  <div>
+                    {p.product_type !== "product"
+                      ? "Sub commission"
+                      : "Commission"}
+                    :{" "}
+                    <span className="font-semibold text-brand-ink">
+                      {fmtCommission(
+                        p.affiliate_type,
+                        Number(p.affiliate_value),
+                      )}
+                    </span>
+                    {p.product_type !== "product"
+                      ? ` · ${
+                          DURATION_LABEL[p.affiliate_duration ?? "once"] ??
+                          "first payment"
+                        }`
+                      : ""}
+                  </div>
+                ) : null}
+                {Number(p.setup_fee) > 0 ? (
+                  <div>
+                    Setup fee:{" "}
+                    <span className="font-semibold text-brand-ink">
+                      {formatZar(Number(p.setup_fee))}
+                    </span>
+                    {p.setup_fee_affiliate_type &&
+                    p.setup_fee_affiliate_type !== "none"
+                      ? ` · commission ${fmtCommission(
+                          p.setup_fee_affiliate_type,
+                          Number(p.setup_fee_affiliate_value),
+                        )}`
+                      : ""}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </Link>

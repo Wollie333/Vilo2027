@@ -65,16 +65,16 @@ export async function createProductOrder(
   const admin = createAdminClient();
   const { data: product } = await admin
     .from("products")
-    .select("id, name, price, currency, is_active")
+    .select("id, name, price, currency, is_active, product_type, setup_fee")
     .eq("id", input.productId)
     .maybeSingle();
   if (!product || !product.is_active) {
     return { ok: false, error: "Product not found or inactive." };
   }
-  const amount =
-    input.amountOverride != null && input.amountOverride > 0
-      ? Number(input.amountOverride)
-      : Number(product.price);
+  const isOverride = input.amountOverride != null && input.amountOverride > 0;
+  const base = isOverride
+    ? Number(input.amountOverride)
+    : Number(product.price);
 
   // Guest-first: an order ALWAYS belongs to a user — find the account by email or
   // create a guest lead — so no transaction is ever orphaned and the buyer's
@@ -87,6 +87,39 @@ export async function createProductOrder(
   });
   const payerUserId = lead?.guestId ?? null;
 
+  // Once-off setup fee: charged with the FIRST payment of a subscription-like
+  // product (membership | service) only — never on a once-off product, never on
+  // a custom-amount top-up (upgrade delta), and never on a renewal/re-purchase
+  // (the buyer already holds an active subscription for this product). Folded
+  // into `amount` and recorded as setup_fee_amount so its commission can be
+  // split off it (see accrue_affiliate_commission).
+  let setupFee = 0;
+  if (
+    product.product_type !== "product" &&
+    !isOverride &&
+    Number(product.setup_fee ?? 0) > 0
+  ) {
+    let firstPurchase = true;
+    if (payerUserId) {
+      const { data: host } = await admin
+        .from("hosts")
+        .select("id")
+        .eq("user_id", payerUserId)
+        .maybeSingle();
+      if (host) {
+        const { count } = await admin
+          .from("subscriptions")
+          .select("id", { count: "exact", head: true })
+          .eq("host_id", host.id)
+          .eq("product_id", product.id)
+          .in("status", ["trialing", "active", "past_due"]);
+        firstPurchase = (count ?? 0) === 0;
+      }
+    }
+    if (firstPurchase) setupFee = Number(product.setup_fee);
+  }
+  const amount = base + setupFee;
+
   const payToken = token();
   const { error } = await admin.from("product_orders").insert({
     product_id: product.id,
@@ -94,6 +127,7 @@ export async function createProductOrder(
     payer_email: email,
     payer_user_id: payerUserId,
     amount,
+    setup_fee_amount: setupFee,
     currency: product.currency,
     status: "pending",
     pay_token: payToken,
@@ -366,7 +400,7 @@ export async function startProductPaystack(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, product_name, payer_email, payer_user_id, amount, currency, status, pay_token",
+      "id, product_id, product_name, payer_email, payer_user_id, amount, setup_fee_amount, currency, status, pay_token",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -412,6 +446,7 @@ export async function startProductPaystack(
       type: "charge",
       status: "pending",
       amount: Number(order.amount),
+      setup_fee_amount: Number(order.setup_fee_amount ?? 0),
       currency: order.currency,
       provider: "paystack",
       provider_reference: reference,
@@ -469,7 +504,7 @@ export async function startProductPayPal(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, currency, status, pay_token",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -511,6 +546,7 @@ export async function startProductPayPal(
       type: "charge",
       status: "pending",
       amount: Number(order.amount),
+      setup_fee_amount: Number(order.setup_fee_amount ?? 0),
       currency: order.currency,
       provider: "paypal",
       provider_reference: paypalOrder.orderId,
@@ -543,7 +579,7 @@ export async function recordProductEftIntent(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, product_name, amount, currency, status, environment, payer_email, payer_user_id",
+      "id, product_id, product_name, amount, setup_fee_amount, currency, status, environment, payer_email, payer_user_id",
     )
     .eq("pay_token", payToken)
     .maybeSingle();
@@ -581,6 +617,7 @@ export async function recordProductEftIntent(
       type: "charge",
       status: "pending",
       amount: Number(order.amount),
+      setup_fee_amount: Number(order.setup_fee_amount ?? 0),
       currency: order.currency,
       provider: "eft",
       provider_reference: ref,
@@ -746,7 +783,7 @@ export async function confirmProductOrderByReference(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, currency, status, pay_token, environment, activate_on_pay",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay",
     )
     .eq("provider_reference", reference)
     .maybeSingle();
@@ -803,6 +840,7 @@ export async function confirmProductOrderByReference(
       type: "charge",
       status: "completed",
       amount: Number(order.amount),
+      setup_fee_amount: Number(order.setup_fee_amount ?? 0),
       currency: order.currency,
       provider: "paystack",
       provider_reference: reference,
@@ -860,7 +898,7 @@ export async function capturePayPalProductOrder(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, currency, status, pay_token, environment, activate_on_pay",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay",
     )
     .eq("provider_reference", orderId)
     .maybeSingle();
@@ -916,6 +954,7 @@ export async function capturePayPalProductOrder(
       type: "charge",
       status: "completed",
       amount: Number(order.amount),
+      setup_fee_amount: Number(order.setup_fee_amount ?? 0),
       currency: order.currency,
       provider: "paypal",
       provider_reference: orderId,

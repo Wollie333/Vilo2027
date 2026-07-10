@@ -5662,6 +5662,7 @@ export type Database = {
           reason: string | null
           reverses_ledger_id: string | null
           service_id: string | null
+          setup_fee_amount: number
           status: string
           subscription_id: string | null
           type: string
@@ -5689,6 +5690,7 @@ export type Database = {
           reason?: string | null
           reverses_ledger_id?: string | null
           service_id?: string | null
+          setup_fee_amount?: number
           status?: string
           subscription_id?: string | null
           type: string
@@ -5716,6 +5718,7 @@ export type Database = {
           reason?: string | null
           reverses_ledger_id?: string | null
           service_id?: string | null
+          setup_fee_amount?: number
           status?: string
           subscription_id?: string | null
           type?: string
@@ -6286,6 +6289,7 @@ export type Database = {
           product_id: string | null
           product_name: string
           provider_reference: string | null
+          setup_fee_amount: number
           status: string
         }
         Insert: {
@@ -6304,6 +6308,7 @@ export type Database = {
           product_id?: string | null
           product_name: string
           provider_reference?: string | null
+          setup_fee_amount?: number
           status?: string
         }
         Update: {
@@ -6322,6 +6327,7 @@ export type Database = {
           product_id?: string | null
           product_name?: string
           provider_reference?: string | null
+          setup_fee_amount?: number
           status?: string
         }
         Relationships: [

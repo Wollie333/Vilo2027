@@ -293,7 +293,7 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   const { data: order } = await supabase
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, currency, status, environment, activate_on_pay",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, environment, activate_on_pay",
     )
     .eq("provider_reference", ref)
     .maybeSingle();
@@ -327,6 +327,7 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
       type: "charge",
       status: "completed",
       amount: Number(order.amount),
+      setup_fee_amount: Number(order.setup_fee_amount ?? 0),
       currency: order.currency,
       provider: "paystack",
       provider_reference: ref,

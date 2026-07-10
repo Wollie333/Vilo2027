@@ -112,6 +112,26 @@ Verified live + DB:
 - No console errors.
 - ⚠️ Not deep-tested (sensitive/config): the Paystack **Payment settings** (live/test mode toggle at `/admin/products/payments`) — renders; left untoggled to avoid affecting real payment routing. Flag if you want it exercised.
 
+#### ✅ ADVANCED FUNCTIONAL DEEP-TEST — permissions · commission · pricing (2026-07-10)
+Founder asked to prove the product **controls actually enforce**, not just persist. Exercised the REAL enforcement RPCs against the live cloud DB (isolated throwaway host, self-cleaning scripts). **12/12 passed.**
+- ✅ **Feature permissions** (`check_feature_permission` ← `product_features`, via `subscriptions.product_id`): enabling a feature grants it (`source:product`); an *explicit disable* on the product is authoritative; quantity limits pass through as `limit_value`; an unset feature falls through to default; toggling a permission off is enforced live. Precedence confirmed: **host-override > product > plan > default-disabled** (the real test host's pre-existing `host_feature_overrides` correctly masked the product layer — that's the RPC working, not a bug).
+- ✅ **Commission %** (`accrue_affiliate_commission` ← `products.affiliate_*`): percent (15% of R1000 → R150), fixed amount (R250), fixed capped at net (R5000 on R1000 → R1000), duration=once blocks renewal accrual, type=none accrues nothing. Base = NET (amount − VAT); rate snapshotted.
+
+#### 🔴→✅ GAP FOUND + WIRED UP: Setup fee was a **dead control** (2026-07-10)
+The editor's entire **"Setup fee (once-off)"** block (amount + label + its own commission %) was stored but **NEVER charged and NEVER paid out** — 3 independent confirmations: `createProductOrder` billed `price` only, `startSubscriptionCheckout` billed `plan.monthly/annual` only, the signup Wizard only *displayed* "R500 setup once-off" as text; migration `20260616000013` said so outright. Founder chose **"wire it up."**
+**Fix (migration `20260710160000` + checkout + accrual RPC + pay page):**
+- `product_orders.setup_fee_amount` + `platform_ledger.setup_fee_amount` (new cols).
+- `createProductOrder` now folds the setup fee into `amount` on the **first purchase** of a membership/service only (never once-off, never an upgrade top-up `amountOverride`, never a renewal — guarded by "buyer already holds an active sub for this product"). Carried onto every `platform_ledger` charge write (paystack/paypal/eft start + confirm/capture insert-if-missing + Deno webhook).
+- `accrue_affiliate_commission` now emits **two** rows from one charge: `kind=subscription` on the recurring net (amount − VAT − setup) + `kind=setup_fee` on the setup portion, each with its own configured rate; independent + idempotent per `(source_ledger_id, kind)`.
+- Pay page (`/pay/product/[token]`) shows a line-item breakdown when a setup fee applies.
+- **Verified live end-to-end:** built a product (price R1000 + setup R500) → generated a pay-link through the **real running server** → order `amount=1500, setup_fee_amount=500`; pay page renders "Setup fee (once-off) R500 · Amount due R1500" (screenshot). Commission split proven 5/5 (recurring R150 on price only + setup R50 = 10% of R500; setup accrues even when recurring is `none`; renewal with setup 0 → no setup commission).
+- `pnpm build` + `pnpm lint` + `tsc` all green; types regenerated.
+- ⏳ **Deno `paystack-webhook` source updated but NOT redeployed** — its setup_fee only affects the rare insert-if-missing fallback (the pending row seeded by the app already carries it), and webhook redeploy was already a deferred founder item. Redeploy with the next webhook push.
+
+#### ✅ Follow-ups (2026-07-10): invoice line items + enriched product cards
+- ✅ **Setup fee is its own INVOICE line item.** Migration `20260710170000` updates `mint_wielo_invoice_on_ledger_complete` to split `line_items` into two rows when `platform_ledger.setup_fee_amount > 0` — the product/subscription line + a dedicated "Setup fee (once-off)" line (invoice subtotal/VAT/total unchanged). **Verified live:** settled a R1000+R500 charge → invoice `INV-0044` line_items = `[{product, R1000}, {Setup fee (once-off), R500}]`; the hosted `/wielo-invoice/[token]` page renders both rows + "Total paid R1500" (screenshot).
+- ✅ **Product manager cards now show sales + full commission structure.** Each card shows **"N bought"** (distinct paid-order buyers) + **"M active"** (active/trialing subscribers), and a commission block: recurring/referral commission + its duration, **plus the setup fee and its commission**. Verified live — real product **Bernie** surfaces "Setup fee: R300 · commission 50%" (inert until this batch); test product showed "1 bought · 1 active · Sub commission 20% · recurring · Setup fee R500 · commission 10%".
+
 ### ⬜ 6. Ledger — `/admin/subscriptions/revenue`
 Wielo ledger — AdminLedgerList/Board + running balance + downloadable doc per row. Sibling tabs: `/subscriptions/plans`, `/subscriptions/services` (via _SubsTabs).
 
