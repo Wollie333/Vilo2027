@@ -1,5 +1,6 @@
 import "server-only";
 
+import { decryptSecret } from "@/lib/crypto/payments";
 import { initializeTransaction } from "@/lib/paystack";
 import { getPlan } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -27,7 +28,9 @@ export async function getPlatformPaystackSecret(): Promise<string | null> {
       data.paystack_mode === "test"
         ? data.paystack_test_secret_key
         : data.paystack_secret_key;
-    if (active) return active;
+    // Decrypt at rest (transparent passthrough for legacy plaintext keys). The
+    // sk_live_/sk_test_ prefix check downstream needs the real key back.
+    if (active) return decryptSecret(active);
   }
   return process.env.PAYSTACK_SECRET_KEY ?? null;
 }

@@ -43,6 +43,47 @@ function matchesSecret(
   return hash === signature;
 }
 
+// Decrypt a payment secret stored by the app (lib/crypto/payments.ts): format
+// `v1.<nonce_b64>.<ct_b64>.<tag_b64>`, AES-256-GCM, key = PAYMENT_CIPHER_KEY
+// (base64 → 32 bytes). A plaintext value (not in that format) passes through
+// unchanged, so legacy plaintext keys keep verifying. Requires PAYMENT_CIPHER_KEY
+// to be set as a function secret once the app starts encrypting Paystack keys.
+async function decryptSecret(
+  stored: string | null | undefined,
+): Promise<string | null> {
+  if (!stored) return null;
+  const parts = stored.split(".");
+  if (!(parts.length === 4 && parts[0] === "v1")) return stored; // plaintext
+  const rawKey = env.get("PAYMENT_CIPHER_KEY");
+  if (!rawKey) return null; // encrypted but no key here → cannot verify
+  try {
+    const b64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+    const keyBytes = b64(rawKey);
+    if (keyBytes.length !== 32) return null;
+    const nonce = b64(parts[1]);
+    const ct = b64(parts[2]);
+    const tag = b64(parts[3]);
+    const combined = new Uint8Array(ct.length + tag.length);
+    combined.set(ct);
+    combined.set(tag, ct.length);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyBytes,
+      { name: "AES-GCM" },
+      false,
+      ["decrypt"],
+    );
+    const pt = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: nonce, tagLength: 128 },
+      key,
+      combined,
+    );
+    return new TextDecoder().decode(pt);
+  } catch {
+    return null;
+  }
+}
+
 // Verify against the env key (bookings) OR the admin-configured platform key
 // (subscriptions/products), since Wielo's own merchant key may be set in DB.
 // deno-lint-ignore no-explicit-any
@@ -61,10 +102,13 @@ async function verifySignature(
       .select("paystack_secret_key, paystack_test_secret_key")
       .eq("id", true)
       .maybeSingle();
-    // Try both live and test secrets so webhooks verify in either mode.
+    // Decrypt (plaintext passes through) then try both live + test secrets so
+    // webhooks verify in either mode.
+    const live = await decryptSecret(data?.paystack_secret_key);
+    const test = await decryptSecret(data?.paystack_test_secret_key);
     return (
-      matchesSecret(rawBody, signature, data?.paystack_secret_key) ||
-      matchesSecret(rawBody, signature, data?.paystack_test_secret_key)
+      matchesSecret(rawBody, signature, live) ||
+      matchesSecret(rawBody, signature, test)
     );
   } catch {
     return false;

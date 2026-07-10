@@ -47,6 +47,41 @@ export const savePaymentSettingsAction = withAdminAudit<
     if (!parsed.success) throw new Error("Invalid input.");
     const d = parsed.data;
 
+    // Existing row — needed both for the mode/key guard below and so a blank
+    // secret keeps the stored one.
+    const { data: existing } = await service
+      .from("platform_payment_settings")
+      .select("paystack_secret_key, paystack_test_secret_key")
+      .eq("id", true)
+      .maybeSingle();
+
+    // Mode/key guard: refuse to enable a Paystack mode that has no secret for it
+    // (neither newly entered, already stored, nor a matching env key). Without
+    // this the reader silently falls back to PAYSTACK_SECRET_KEY and the charged
+    // environment is derived from that key's prefix — so the DB toggle and the
+    // real environment can diverge.
+    if (d.paystackEnabled) {
+      const envKey = process.env.PAYSTACK_SECRET_KEY ?? "";
+      const hasLive =
+        !!d.paystackSecretKey ||
+        !!existing?.paystack_secret_key ||
+        envKey.startsWith("sk_live_");
+      const hasTest =
+        !!d.paystackTestSecretKey ||
+        !!existing?.paystack_test_secret_key ||
+        envKey.startsWith("sk_test_");
+      if (d.paystackMode === "live" && !hasLive) {
+        throw new Error(
+          "You selected Live mode but no live Paystack secret key is set. Enter the live key or switch to Test.",
+        );
+      }
+      if (d.paystackMode === "test" && !hasTest) {
+        throw new Error(
+          "You selected Test mode but no test Paystack secret key is set. Enter the test key or switch to Live.",
+        );
+      }
+    }
+
     const patch: Record<string, unknown> = {
       paystack_enabled: d.paystackEnabled,
       paystack_mode: d.paystackMode,
@@ -64,11 +99,15 @@ export const savePaymentSettingsAction = withAdminAudit<
       updated_at: new Date().toISOString(),
     };
     // Only overwrite each secret when a new one is supplied (blank = keep).
+    // Encrypt at rest (AES-256-GCM via PAYMENT_CIPHER_KEY) like the PayPal
+    // secret — encryptSecret is a transparent no-op when the key is unset, and
+    // the reader + webhook decrypt via decryptSecret (plaintext passes through,
+    // so existing keys keep working until re-saved).
     if (d.paystackSecretKey && d.paystackSecretKey.length > 0) {
-      patch.paystack_secret_key = d.paystackSecretKey;
+      patch.paystack_secret_key = encryptSecret(d.paystackSecretKey);
     }
     if (d.paystackTestSecretKey && d.paystackTestSecretKey.length > 0) {
-      patch.paystack_test_secret_key = d.paystackTestSecretKey;
+      patch.paystack_test_secret_key = encryptSecret(d.paystackTestSecretKey);
     }
     // PayPal secret: encrypt at rest (AES-256-GCM, or plaintext passthrough when
     // PAYMENT_CIPHER_KEY is unset — same as host gateway secrets). Blank = keep.
