@@ -148,7 +148,13 @@ Wielo ledger — AdminLedgerList/Board + running balance + downloadable doc per 
 
 **FEATURE 2 — bank details on every invoice** (founder ask): hosted invoice + PDF now **always** print bank details (was unpaid-only), in a **small light-green bottom-left card**, each detail **stacked** (Bank / Account name / Account no / Branch / SWIFT) always ending **Ref #: <document number>**. Shared `FinancialDocument` + PDF `InvoiceDocument`, so identical on **Wielo→user AND host→guest**; host invoice page de-gated too. Verified live on INV-0045. GOTCHA hit + fixed: pre-commit formatter stripped the `"num "` trailing space → `numtext-right`; fixed with space-safe ternary (`92f33d96`).
 
-**⚠️ Remaining before ✅ READY:** (a) drive filters/tabs/search/CSV exhaustively; (b) **host→guest** invoice bank card verified structurally (typecheck + shared live-proven template) but NOT opened live — no host booking invoice exists in the wiped test DB; (c) full `pnpm build` deferred (a 2nd `next dev` on :3000 shares `.next`; tsc --noEmit + lint both green). **UX note for founder:** a manual ledger entry inserts as `environment=live` (DB default), so it vanishes from a Test-filtered ledger view — switch env to Test+Live to see it. Flag if this should inherit the current Paystack mode instead.
+**Follow-ups shipped (2026-07-10 #43b, pushed `20ffa4e3`):**
+- ✅ **host→guest invoice now verified LIVE** — seeded a paid booking (temp script) → INV-0046 shows the host business + **VAT at the bottom of the FROM block** (VAT 4987654321) + the stacked bank card (Ref #: INV-0046). Wielo invoice INV-0047 (test) likewise showed Wielo VAT at FROM bottom + VAT-split tax invoice.
+- ✅ **VAT number moved to the bottom of the FROM block** on every invoice (host + Wielo, hosted + PDF): `wieloIssuerLines` + `getHostParty` + `InvoiceDocument` now emit Reg then VAT last.
+- ✅ **Manual ledger entries inherit the current Paystack mode** (`recordManualLedgerEntryAction` reads `paystack_mode` → `environment`), so a charge posted in test mode shows in the Test-filtered view (verified live). Fixes the earlier "vanishes from Test view" papercut.
+- ✅ **Full `pnpm build` passes** (EXIT=0, clean `.next`) — the :3000 orphan server was stopped.
+
+**⚠️ Remaining before ✅ READY:** (a) drive filters/tabs/search/CSV exhaustively. **ACTION FOR FOUNDER:** enter Wielo's **real VAT number** in Admin → Platform → Settings (Wielo business details) — the code renders it at the FROM bottom + makes Wielo invoices proper tax invoices; a placeholder was used only for the live test and then blanked.
 
 ### ⬜ 7. Payments — `/admin/payments`
 Payment records + pending refunds.
