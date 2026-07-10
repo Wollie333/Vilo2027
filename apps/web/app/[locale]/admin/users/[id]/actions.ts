@@ -249,13 +249,13 @@ export const changeUserRoleAction = withAdminAudit<
 );
 
 // ─── Delete user ──────────────────────────────────────────────
-// Admin-initiated account deletion must actually remove the user — not just
-// soft-delete the profile. A soft delete leaves the auth.users row in place,
-// so the email still reads as "already registered" and the person can never
-// sign up again. We mirror the GDPR/self-service flow: purge historical rows,
-// then hard-delete the auth user (cascades the profile + every CASCADE child).
-// If RESTRICT FKs (bookings / invoices / audit) block the cascade, fall back to
-// anonymisation, which still frees the email and de-identifies the account.
+// SOFT delete only — the absolute rule (CLAUDE.md / AGENT_RULES §2.1) is that
+// user_profiles / hosts / listings / bookings are NEVER hard-deleted, so the
+// admin action must not purge them. We set deleted_at + deactivate, soft-delete
+// the host row, anonymise PII, and free the real email for re-signup by moving
+// BOTH the profile email and the auth identity to an anon address + banning the
+// auth user (so the account can't sign in). Fully recoverable: clear deleted_at
+// + is_active and restore the email. NEVER call app_purge_user_account here.
 const deleteSchema = z.object({
   userId: z.string().uuid(),
   reason: z.string().min(5).max(500),
@@ -263,7 +263,7 @@ const deleteSchema = z.object({
 
 export const softDeleteUserAction = withAdminAudit<
   z.infer<typeof deleteSchema>,
-  { ok: true; method: "hard_deleted" | "anonymized" }
+  { ok: true; method: "soft_deleted" }
 >(
   {
     permissionKey: "users.delete",
@@ -288,27 +288,11 @@ export const softDeleteUserAction = withAdminAudit<
       );
     }
 
-    // Clear historical / RESTRICT-FK rows first so the auth.users →
-    // user_profiles cascade isn't blocked (pre-MVP policy — see migration
-    // 20260531000021). Non-fatal: if it fails, the delete below falls back.
-    await service.rpc("app_purge_user_account", { p_user_id: args.userId });
-
-    // Hard-delete the auth user → frees the email for re-signup and cascades
-    // the profile, notifications, push tokens, etc.
-    const { error: delErr } = await service.auth.admin.deleteUser(args.userId);
-    if (!delErr) {
-      revalidatePath(`/admin/users/${args.userId}`);
-      revalidatePath("/admin/users");
-      return {
-        result: { ok: true, method: "hard_deleted" },
-        after: { user_id: args.userId, method: "hard_deleted" },
-      };
-    }
-
-    // RESTRICT FKs still reference the account — anonymise instead. This still
-    // releases the real email and de-identifies the profile + auth identity.
+    const now = new Date().toISOString();
     const anonEmail = `deleted+${args.userId}@deleted.invalid`;
-    await service
+
+    // Soft-delete + anonymise the profile (rows stay; recoverable).
+    const { error: profErr } = await service
       .from("user_profiles")
       .update({
         full_name: "Deleted user",
@@ -316,19 +300,32 @@ export const softDeleteUserAction = withAdminAudit<
         phone: null,
         avatar_url: null,
         is_active: false,
-        deleted_at: new Date().toISOString(),
+        deleted_at: now,
       })
       .eq("id", args.userId);
+    if (profErr) throw new Error(profErr.message);
+
+    // Soft-delete the host row too (RLS/triggers depend on deleted_at). Listings
+    // cascade off the host's deleted_at via the existing soft-delete triggers.
+    await service
+      .from("hosts")
+      .update({ deleted_at: now })
+      .eq("user_id", args.userId)
+      .is("deleted_at", null);
+
+    // Free the real email for re-signup and block sign-in — WITHOUT deleting the
+    // auth user (that would cascade-purge the profile + children).
     await service.auth.admin.updateUserById(args.userId, {
       email: anonEmail,
+      ban_duration: "876000h", // ~100y; lifted on restore
       user_metadata: {},
     });
 
     revalidatePath(`/admin/users/${args.userId}`);
     revalidatePath("/admin/users");
     return {
-      result: { ok: true, method: "anonymized" },
-      after: { user_id: args.userId, method: "anonymized" },
+      result: { ok: true, method: "soft_deleted" },
+      after: { user_id: args.userId, method: "soft_deleted" },
     };
   },
 );
