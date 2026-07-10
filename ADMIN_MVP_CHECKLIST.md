@@ -232,8 +232,15 @@ Listing categories CRUD — powers the host wizard, `/explore` browse filter, an
 - ℹ️ **Consistency note (NOT changed — out of scope):** the delete-reason uses native `window.prompt`, which is the **uniform admin convention** (~10 editors: deal-categories, amenities, groups, all help editors, categories) — there's no `modal.prompt()` in the design system. Spawned a follow-up chip (`task_b9c3d98d`) to add `modal.prompt()` and roll it across all sites. Functional as-is.
 - ℹ️ **Pre-existing SEO nuance (NOT a categories bug):** `/c/[slug]` for an unpublished/missing category returns HTTP **200** with a "Category not found" body (soft-404) rather than a hard 404. Lives in the `/c/[slug]` page, not the admin tab.
 
-### ⬜ 15. Deal categories — `/admin/platform/deal-categories`
-Deal category editor.
+### ✅ 15. Deal categories — `/admin/platform/deal-categories` — READY FOR MVP (2026-07-10 #44, redesigned)
+The categories hosts assign to specials — power the public `/deals` filter chips. Verified live end-to-end (throwaway "MVP Test Deal" / "MVP Test Deal 2", cleaned up):
+- ✅ **Create** (`upsertDealCategoryAction` → `taxonomy.deal_category.upsert`, target_type `special_category`) — DB row with auto-generated key, sort, meta_title, icon; audit row. Confirms the `special_category` audit constraint works.
+- ✅ **Side-effect propagation:** an active deal category → `revalidateTag("special-categories")` + revalidatePath `/deals` + `/dashboard/specials` → **appears immediately in the public `/deals` filter chips**; deactivating it **drops it from `/deals`**.
+- ✅ **Edit** (deactivate + sort) — persisted; second `upsert` audit row.
+- ✅ **Delete** (`deleteDealCategoryAction` → `taxonomy.deal_category.delete`) — **SOFT-delete** (`deleted_at`) + audit with reason (min-5-char enforced); row removed from list UI.
+- ✅ `taxonomy.manage` gate; no console errors.
+- 🎨 **FOUNDER-REQUESTED REDESIGN (#44):** replaced the old inline spreadsheet-style editor (`DealCategoriesEditor.tsx`, deleted) with the **same pattern as Listing categories** — a searchable list card (`DealCategoriesTable.tsx`: icon · label · key · sort · SEO indicator · Active/Hidden badge · preview `/deals?category=` · Edit · Delete) + a **full-page editor** (`DealCategoryEditor.tsx`, Basic + SEO & landing sections) at `/new` and `/[id]`. Server actions unchanged. **Verified BOTH canvas + live:** create/edit via the new editor and delete via the new list all write DB + audit; UI screenshot matches the Listing categories design. tsc + next lint green. Commit `1818b84d`.
+- ℹ️ Delete-reason still uses native `window.prompt` — the uniform admin convention (see Tab 14 note / chip `task_b9c3d98d`).
 
 ### ⬜ 16. Amenities — `/admin/platform/amenities` (+ groups)
 Amenity catalog + groups editor.
