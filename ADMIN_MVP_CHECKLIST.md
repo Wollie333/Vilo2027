@@ -94,8 +94,12 @@ Host↔Wielo support threads (channel='platform'). Verified live + DB:
 - No console errors.
 - **Send-payment-link-to-inbox** (`adminSendPaymentLinkToInboxAction`) + send-by-email (`adminSendPlatformMessageByEmailAction`) are triggered from the **Ledger** page's "Send payment link → to inbox" affordance — will exercise in Tab 6.
 
-### ⬜ 4. Listings — `/admin/properties`
-Listing moderation (actions, rooms/photos/bookings/rating, sanitized search).
+### ✅ 4. Listings — `/admin/properties` — READY FOR MVP (2026-07-10)
+Verified live + DB:
+- ✅ Stat band (total/published/draft/featured) + All/Published/Draft/Featured filters + search.
+- ✅ Enriched table: listing name+type+city, host (linked), content (rooms+photos, amber when 0 photos), bookings, rating, price, status badge.
+- ✅ **Row moderation menu** ("Listing actions"): **Feature** verified — `properties.is_featured` flipped true + audit `listing.set_featured` (target_type `listing`). "Take offline"/publish is the same audited pattern (`setListingPublishedAction`). Reverted after test.
+- No console errors. (Search sanitization `sanitizeSearch()` confirmed in code — [[reference-admin-audit-and-listings]].)
 
 ---
 
