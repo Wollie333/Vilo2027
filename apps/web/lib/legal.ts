@@ -1,5 +1,6 @@
 import { cache } from "react";
 
+import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Booking terms + privacy (POPIA) are platform-wide, Wielo-authored documents —
@@ -38,8 +39,13 @@ export const getLegalDocument = cache(
         html?: string | null;
         version?: number;
       };
+      // Sanitise on READ as well as write: historic rows are never
+      // re-sanitised, so if the allowlist is ever tightened this keeps older
+      // stored HTML safe (defence-in-depth; the public page renders it raw).
       const html =
-        typeof v.html === "string" && v.html.trim().length > 0 ? v.html : null;
+        typeof v.html === "string" && v.html.trim().length > 0
+          ? sanitiseListingHtml(v.html)
+          : null;
       const version = typeof v.version === "number" ? v.version : 1;
       return { kind, html, version };
     } catch {

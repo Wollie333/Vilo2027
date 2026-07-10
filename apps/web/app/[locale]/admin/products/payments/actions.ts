@@ -76,11 +76,19 @@ export const savePaymentSettingsAction = withAdminAudit<
       patch.paypal_secret_cipher = encryptSecret(d.paypalSecret);
     }
 
-    const { error } = await service
+    const { data: updated, error } = await service
       .from("platform_payment_settings")
       .update(patch)
-      .eq("id", true);
+      .eq("id", true)
+      .select("id");
     if (error) throw new Error(error.message);
+    // .update matches 0 rows silently if the singleton is missing — surface it
+    // rather than reporting a successful save that persisted nothing.
+    if (!updated || updated.length === 0) {
+      throw new Error(
+        "Payment settings row missing — reseed platform_payment_settings (id=true).",
+      );
+    }
 
     revalidatePath("/admin/products/payments");
     return {

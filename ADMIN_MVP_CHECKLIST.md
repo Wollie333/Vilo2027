@@ -200,8 +200,19 @@ POPIA/GDPR access + erasure queue. Verified live (seeded export + deletion reque
 
 ## PLATFORM (collapsible)
 
-### ⬜ 12. Settings — `/admin/platform/settings`
-Legal docs, brand name, Wielo business details forms.
+### ✅ 12. Settings — `/admin/platform/settings` — READY FOR MVP (2026-07-10 #43, factor-by-factor)
+Platform config brain: General (branding + Meta pixel), Business (Wielo issuer + VAT), Payments (Paystack/PayPal/EFT), Legal (terms/privacy), Tracking (GA4/GTM/TikTok/Ads). Every save is `withAdminAudit` → `platform_settings` / `platform_integrations` / `platform_payment_settings`. Verified each factor **round-trip** (save→persist→audit→consumer takes effect), live + via a deep code audit:
+- ✅ **Branding** (`platform.settings.branding`) — drove a live save (company_location edited → persisted + audit `platform.settings.branding`, reverted). Consumers via `lib/brand.ts` (per-request React `cache()` only, no persistent cache) → titles/nav/footer/invoice issuer; `revalidatePath('/','layout')` is sufficient. Works.
+- ✅ **Wielo business + VAT** (`platform.settings.wielo_business`) — form fields match schema + reader keys exactly; setting `vat_number` flips new invoices to **Tax Invoice** with 15% VAT split (mint trigger reads `wielo_business`). Proven live earlier (INV-0047). Form has the VAT field (blank → founder enters real number).
+- ✅ **Legal** (`platform.settings.legal`) — public `/terms` + `/privacy` read the right keys, fall back to static when null, consent versioning derives live (`t{v}-p{v}`), version bumps ONLY on real change. 🔶→✅ **HARDENED:** now sanitises HTML on **read** too (was write-only) — defence-in-depth for historic rows if the allowlist tightens. `/terms` re-verified rendering.
+- ✅ **Meta pixel + tracking IDs** — 🔴 **CRITICAL clobber question answered: NOT a bug.** Both forms upsert the SAME singleton (`id:true`) but touch **disjoint columns** → PostgREST `ON CONFLICT DO UPDATE SET <only-payload-cols>`. **Verified live:** set pixel=998877, saved tracking GA4=G-CLOB123 → pixel PRESERVED (no clobber), reverted. CAPI token write-only + encrypted + never sent to client; all 5 ids render site-wide via `PlatformMarketing` when enabled (suppressed on host micro-sites).
+- ✅ **Payments** (`platform.payment_settings`) — mode toggle routes to the right keys (`getPlatformPaystackSecret`); **all secrets write-only + blank-keeps-existing** (no blank-wipes-secret path); PayPal secret + CAPI encrypted; EFT details read live for invoices. 🔶→✅ **HARDENED:** payment save was `.update().eq(id,true)` — if the singleton were missing it silently no-ops; now selects + throws so a phantom save surfaces.
+
+**⚠️ FLAGGED to founder (not changed — decisions/architecture):**
+1. **Paystack secret keys stored PLAINTEXT** at rest while PayPal + Meta-CAPI are encrypted (`products/payments/actions.ts:67`). *Partly justified:* the Deno `paystack-webhook` needs the raw key for HMAC and doesn't share `PAYMENT_CIPHER_KEY`. Decision: leave as-is, or move to Vault/env + share the cipher with the Edge Function.
+2. **Paystack env fallback can mask a mode/key mismatch** — if mode=live but only a test key is entered, checkout falls back to `PAYSTACK_SECRET_KEY` and `environment` is derived from the key prefix, so the DB toggle and charged env can diverge (edge case).
+3. First-ever legal publish jumps version 1→2 (cosmetic; the static draft is the notional v1).
+- All saves audited; tsc green; no console/server errors.
 
 ### ⬜ 13. Feature flags — `/admin/platform/features`
 Feature matrix + per-host override.
