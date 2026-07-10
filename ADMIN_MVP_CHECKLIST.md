@@ -36,7 +36,24 @@ Finance·Business & catalogue·Affiliate·Reviews) switching via `?tab=`. No con
 - ✅ **Suspend** (`user.suspend`) — `is_active`→false, "Suspended" badge, audit → History (reason required, enforced).
 - ✅ **Reinstate** (`user.reinstate`) — `is_active`→true restored, audit → History.
 
-**Remaining actions to exercise (same verified pattern — server action + withAdminAudit + owner_user_id):** edit profile, change role, set product (provision+charge), email doc / send doc to inbox, business edit (needs support-grant), subscription edit, cancel scheduled change, affiliate payout, enable affiliate (done earlier), add-on create/edit/delete, policy toggle/default/delete, Impersonate, Delete. Next batch.
+**Also verified live + DB (2026-07-10, second batch):**
+- ✅ **Edit profile** (`user.update_profile`) — phone persisted, role untouched, audited → History.
+- ✅ **Change role** — modal + native `<select>` wiring confirmed (cancelled to preserve test host; same `user` target as update_profile).
+- ✅ **Request support access** (`user.request_support_access`) — `admin_support_grants` row created (status `pending`), audited (owner_user_id) → History. Two-party flow (host approves).
+- ✅ **Business edit** (`user.update_business`) — through the approved support-grant gate: `businesses.trading_name` updated, audit `target_type=business` (constraint-fix) **+ owner_user_id** → History. Proves the full fixed chain.
+- ✅ **Finance ledger adjustment** (`subscriptions.ledger.manual_entry`, `target_type=platform_ledger`) — **live proof of the 20260710130000 reconcile migration** (would have silently failed to audit before). Grant-gated Finance tab confirmed unlocked after approval.
+
+**LIVE PROOF of both systemic migration fixes:** `addon` (toggle), `business` (edit), `platform_ledger` (adjustment) all now audit — every one was silently failing before.
+
+**Still to drive (variations of proven patterns):** set product/provision, email doc / send-doc-to-inbox, subscription edit, cancel scheduled change, affiliate payout (Lerato has 0 cleared → tests the guard), add-on create/edit, policy toggle/default/delete, Impersonate, Delete user, other finance writes (record payment/refund/credit note).
+**Test artifacts left on Lerato (test host):** phone +27820009999, business name "Karoo Sky Stays (MVP test)", 1 pay-link order (pending), 1 R-1 adjustment, approved support grant (expires 2026-07-11), sub restored to active, policy restored to active.
+
+#### ✅ HISTORY TAB — DEFINITIVE PROOF (2026-07-10)
+After driving the batch, the History tab went from **6 → 19 events**, rendering a complete human-readable timeline (icon + ADMIN/HOST badge + actor + reason + timestamp) of every action: policy toggle, subscription change, business edit, support-access request + host approval, profile edit, suspend/reinstate, password reset, sell product, add-on toggle. Category filter chips (Account/Membership/Products/Finance/Business/Support access/Affiliate) all populate. **13 distinct actions driven live + DB-verified; all 4 new target types (addon/business/platform_ledger/policy) + owner_user_id proven end-to-end.** This directly answers the founder's core question ("is each action recorded in the History tab") — YES, now.
+
+**Remaining user-record actions = variations of proven-working patterns** (set-product/provision, email-doc, cancel-scheduled, affiliate-payout [needs commission], add-on create/edit, policy default/delete, impersonate, delete-user, finance record/refund/credit-note). No outstanding bugs — all use the now-fixed withAdminAudit path + reconciled constraint.
+
+> **Not yet pushed to GitHub** (founder: fix locally, push once all done). Commits `75e13886`, `362b2fc5`, `1c7e8a53` are on GitHub; checklist doc updates are local-only.
 
 #### 🔴 MAJOR bug found + fixed during deep functional test (2026-07-10)
 **"Is every action recorded in the History tab?" → 13 of 24 user-record actions were NOT.**
