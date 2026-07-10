@@ -76,6 +76,19 @@ export type AuditConfig<TArgs> = {
   targetType: AuditTargetType;
   /** Derive the target row id from action arguments. */
   getTargetId: (args: TArgs) => string;
+  /**
+   * Optional: resolve the user_profiles id of the user who OWNS the target row
+   * (e.g. the host behind a hostId, or the owner behind a businessId/affiliateId).
+   * Written as a top-level `payload.owner_user_id` so the per-user History tab
+   * — which matches `payload->>owner_user_id` — surfaces actions that target
+   * something the user owns rather than the user row itself. Without this, a
+   * host-scoped action (add-on/policy/subscription/business edit) is audited but
+   * invisible in the owner's History.
+   */
+  getOwnerUserId?: (
+    args: TArgs,
+    service: ReturnType<typeof createAdminClient>,
+  ) => string | null | Promise<string | null>;
   /** Require args.reason to be a non-empty string. */
   requireReason?: boolean;
   /**
@@ -147,13 +160,30 @@ export function withAdminAudit<TArgs extends { reason?: string }, TResult>(
         ? resolvedTarget
         : null;
 
+    // Owner of the target (for the per-user History tab). Resolved after the
+    // mutation so lookups see committed state. A non-uuid simply never matches
+    // the History filter — harmless.
+    const resolvedOwner = config.getOwnerUserId
+      ? await config.getOwnerUserId(args, service)
+      : null;
+    const ownerUserId =
+      typeof resolvedOwner === "string" && UUID_RE.test(resolvedOwner)
+        ? resolvedOwner
+        : null;
+
     const row = {
       admin_id: admin.userId,
       impersonating,
       action: config.actionName,
       target_type: config.targetType,
       target_id: targetId,
-      payload: { before, after, args, reason: args.reason ?? null },
+      payload: {
+        before,
+        after,
+        args,
+        reason: args.reason ?? null,
+        ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
+      },
       user_agent: userAgent,
     };
     // Never silently drop an audit write. If the inet cast still fails on an odd

@@ -29,7 +29,24 @@ Finance·Business & catalogue·Affiliate·Reviews) switching via `?tab=`. No con
 - Hid the internal "Wielo Support" bot (`support@wielo.co.za`) from the Users list AND Total/Guests counts (was showing as a real Guest, inflating count 3→2). Exported `WIELO_SUPPORT_EMAIL` from [platform-thread.ts](apps/web/lib/inbox/platform-thread.ts).
 - Removed the "Staff" segment tab (always read 0 — staff roles live in `platform_staff`, not `user_profiles.role`; staff mgmt hidden for MVP).
 - Verified: Guests now 2, All 4, no Staff tab, search still filters correctly.
-**Not exercised (state-changing / risky on real accounts):** Suspend, Delete, Role, Reset password, Impersonate — wired, left untested. Flag if you want these driven.
+**Not yet exercised (state-changing):** Suspend, Delete, Role, Reset password, Impersonate, sell product / pay-link, email doc — functional deep-test in progress.
+
+#### 🔴 MAJOR bug found + fixed during deep functional test (2026-07-10)
+**"Is every action recorded in the History tab?" → 13 of 24 user-record actions were NOT.**
+Two compounding root causes:
+1. **Audit insert silently failing** for add-on / policy / business / affiliate actions: their `target_type` (`addon`/`policy`/`business`/`affiliate`) violated `admin_audit_log_target_type_check`, so the INSERT threw and `withAdminAudit` swallowed it (`console.error` only). These actions wrote **NO audit row at all** — invisible in the audit log AND History. Verified live: toggling an add-on changed the DB but wrote zero audit rows.
+2. **Host-scoped actions not matching the per-user History filter:** History reads `admin_audit_log` where `target_id = user.id OR payload.owner_user_id = user.id`, but host-scoped actions target `hostId/addonId/...` and never populated `owner_user_id`.
+
+**Fix (all verified live end-to-end):**
+- Migration `20260710120000` adds `addon,policy,business,affiliate` to the target_type constraint (pushed to cloud, migrations in sync).
+- `withAdminAudit` gains optional `getOwnerUserId` → stamps top-level `payload.owner_user_id`.
+- All 13 host-scoped actions now resolve the owning user (via hostId/businessId/affiliateId).
+- **Proof:** toggled an add-on → audit row now written (`target_type: addon`, `owner_user_id: <userId>`) → History tab shows "Enabled / disabled an add-on", count 6→7.
+
+**Follow-up hardening candidates (noted, not yet done):**
+- `withAdminAudit` silently swallows audit-insert failures (`console.error`) — this is why the bug hid for so long. Consider surfacing failures louder for a compliance log.
+- Host-scoped actions `revalidatePath('/admin/users/${hostId}')` use the **hostId**, not the userId route param — wrong path (harmless today only because the client calls `router.refresh()`).
+- Add-on toggle path: confirm behaviour fine; delete uses native `window.confirm` (works, but native dialogs are a UX inconsistency vs the app's modals).
 
 ### ⬜ 3. Inbox — `/admin/inbox`
 Host↔Wielo support threads (channel='platform'). Reuses guest↔host chat components. Send payment link → inbox.

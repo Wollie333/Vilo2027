@@ -22,6 +22,52 @@ import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
 
+type AdminService = ReturnType<typeof createAdminClient>;
+
+// ─── Owner resolvers for the audit trail ─────────────────────────────
+// Host-scoped admin actions (add-ons, policies, subscription, business,
+// affiliate) audit against a hostId/businessId/affiliateId — not the user row.
+// These resolve the owning user_profiles.id so withAdminAudit can stamp
+// payload.owner_user_id, making the action visible in that user's History tab.
+async function ownerUserIdForHost(
+  service: AdminService,
+  hostId: string | null | undefined,
+): Promise<string | null> {
+  if (!hostId) return null;
+  const { data } = await service
+    .from("hosts")
+    .select("user_id")
+    .eq("id", hostId)
+    .maybeSingle();
+  return (data?.user_id as string | undefined) ?? null;
+}
+
+async function ownerUserIdForBusiness(
+  service: AdminService,
+  businessId: string | null | undefined,
+): Promise<string | null> {
+  if (!businessId) return null;
+  const { data } = await service
+    .from("businesses")
+    .select("host_id")
+    .eq("id", businessId)
+    .maybeSingle();
+  return ownerUserIdForHost(service, data?.host_id as string | undefined);
+}
+
+async function ownerUserIdForAffiliate(
+  service: AdminService,
+  affiliateId: string | null | undefined,
+): Promise<string | null> {
+  if (!affiliateId) return null;
+  const { data } = await service
+    .from("affiliate_accounts")
+    .select("user_id")
+    .eq("id", affiliateId)
+    .maybeSingle();
+  return (data?.user_id as string | undefined) ?? null;
+}
+
 const suspendSchema = z.object({
   userId: z.string().uuid(),
   reason: z.string().min(5).max(500),
@@ -443,6 +489,7 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
     actionName: "user.update_subscription",
     targetType: "subscription",
     getTargetId: (a) => a.hostId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     const parsed = subSchema.safeParse(args);
@@ -671,6 +718,7 @@ export const requestSupportAccessAction = withAdminAudit<
     actionName: "user.request_support_access",
     targetType: "user",
     getTargetId: (a) => a.hostId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
     requireReason: true,
   },
   async (args, service) => {
@@ -743,6 +791,8 @@ export const setUserProductAction = withAdminAudit<
     actionName: "user.set_product",
     targetType: "subscription",
     getTargetId: (a) => a.hostId ?? a.userId ?? "",
+    getOwnerUserId: (a, s) =>
+      a.hostId ? ownerUserIdForHost(s, a.hostId) : (a.userId ?? null),
   },
   async (args, service) => {
     const parsed = setProductSchema.safeParse(args);
@@ -1023,6 +1073,7 @@ export const cancelScheduledChangeAction = withAdminAudit<
     actionName: "user.cancel_scheduled_change",
     targetType: "subscription",
     getTargetId: (a) => a.hostId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     const parsed = cancelSchedSchema.safeParse(args);
@@ -1288,6 +1339,7 @@ export const adminUpdateBusinessAction = withAdminAudit<
     actionName: "user.update_business",
     targetType: "business",
     getTargetId: (a) => a.businessId,
+    getOwnerUserId: (a, s) => ownerUserIdForBusiness(s, a.businessId),
   },
   async (args, service) => {
     const parsed = businessSchema.safeParse(args);
@@ -1363,6 +1415,7 @@ export const adminPayoutAffiliateAction = withAdminAudit<
     actionName: "affiliate.admin_payout",
     targetType: "affiliate",
     getTargetId: (a) => a.affiliateId,
+    getOwnerUserId: (a, s) => ownerUserIdForAffiliate(s, a.affiliateId),
   },
   async (args, service) => {
     const parsed = payoutSchema.safeParse(args);
@@ -1450,6 +1503,7 @@ export const adminCreateAddonAction = withAdminAudit<
     actionName: "user.create_addon",
     targetType: "addon",
     getTargetId: (a) => a.hostId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     const parsed = createAddonSchema.safeParse(args);
@@ -1495,6 +1549,7 @@ export const adminUpdateAddonAction = withAdminAudit<
     actionName: "user.update_addon",
     targetType: "addon",
     getTargetId: (a) => a.addonId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     const parsed = updateAddonSchema.safeParse(args);
@@ -1531,6 +1586,7 @@ export const adminToggleAddonAction = withAdminAudit<
     actionName: "user.toggle_addon",
     targetType: "addon",
     getTargetId: (a) => a.addonId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     if (!toggleAddonSchema.safeParse(args).success) {
@@ -1562,6 +1618,7 @@ export const adminDeleteAddonAction = withAdminAudit<
     actionName: "user.delete_addon",
     targetType: "addon",
     getTargetId: (a) => a.addonId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     if (!deleteAddonSchema.safeParse(args).success) {
@@ -1599,6 +1656,7 @@ export const adminTogglePolicyStatusAction = withAdminAudit<
     actionName: "user.toggle_policy",
     targetType: "policy",
     getTargetId: (a) => a.policyId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     if (!policyToggleSchema.safeParse(args).success) {
@@ -1640,6 +1698,7 @@ export const adminSetDefaultPolicyAction = withAdminAudit<
     actionName: "user.set_default_policy",
     targetType: "policy",
     getTargetId: (a) => a.policyId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     if (!policyOpSchema.safeParse(args).success) {
@@ -1679,6 +1738,7 @@ export const adminDeletePolicyAction = withAdminAudit<
     actionName: "user.delete_policy",
     targetType: "policy",
     getTargetId: (a) => a.policyId,
+    getOwnerUserId: (a, s) => ownerUserIdForHost(s, a.hostId),
   },
   async (args, service) => {
     // property_policies / policy_snapshots are ON DELETE RESTRICT — a referenced
