@@ -4,11 +4,34 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { withAdminAudit } from "@/lib/admin";
+import type { createAdminClient } from "@/lib/supabase/admin";
 
 const hideSchema = z.object({
   reviewId: z.string().uuid(),
   reason: z.string().min(5).max(500),
 });
+
+// Resolve the review's owning host → its user_profiles id, so moderating a
+// review is stamped with `payload.owner_user_id` and surfaces in that host's
+// per-user History tab (not just the global audit log). Mirrors the host-scoped
+// audit fix applied across the other admin actions.
+async function reviewOwnerUserId(
+  args: { reviewId: string },
+  service: ReturnType<typeof createAdminClient>,
+): Promise<string | null> {
+  const { data: rev } = await service
+    .from("reviews")
+    .select("host_id")
+    .eq("id", args.reviewId)
+    .maybeSingle();
+  if (!rev?.host_id) return null;
+  const { data: host } = await service
+    .from("hosts")
+    .select("user_id")
+    .eq("id", rev.host_id)
+    .maybeSingle();
+  return host?.user_id ?? null;
+}
 
 export const hideReviewAction = withAdminAudit<
   z.infer<typeof hideSchema>,
@@ -19,6 +42,7 @@ export const hideReviewAction = withAdminAudit<
     actionName: "review.uphold_flag",
     targetType: "review",
     getTargetId: (a) => a.reviewId,
+    getOwnerUserId: reviewOwnerUserId,
     requireReason: true,
   },
   async (args, service) => {
@@ -47,6 +71,7 @@ export const restoreReviewAction = withAdminAudit<
     actionName: "review.reject_flag",
     targetType: "review",
     getTargetId: (a) => a.reviewId,
+    getOwnerUserId: reviewOwnerUserId,
     requireReason: true,
   },
   async (args, service) => {

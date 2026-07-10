@@ -179,8 +179,13 @@ Read-only platform report from `buildPlatformReport(range)`. Verified live:
 
 ## MODERATION
 
-### ⬜ 10. Reviews — `/admin/reviews`
-Review moderation (flag/approve/remove).
+### ✅ 10. Reviews — `/admin/reviews` — READY FOR MVP (2026-07-10 #43)
+Review moderation. Verified live end-to-end (seeded a review on the test host):
+- ✅ Page renders (`reviews.moderate` gate); status tabs (Flagged/Pending/All + counts), filters (host/guest/rating GET form), empty state.
+- ✅ **Uphold flag (hide)** (`hideReviewAction` → `review.uphold_flag`, target_type `review`, reason-required) → review `flagged=true, is_published=false, admin_decision=upheld` + audit row with full payload (args + after + reason).
+- ✅ **Reject flag (restore)** (`restoreReviewAction` → `review.reject_flag`) → `flagged=false, is_published=true, admin_decision=rejected` + audit row.
+- 🔴→✅ **FIX: review moderation now shows in the host's per-user History tab.** Both actions lacked `owner_user_id`, so they audited only to the global log (not the host's History) — same gap the Tab 2 host-scoped fix closed. Added a shared `reviewOwnerUserId` resolver (review→host→user_id) as `getOwnerUserId`. Verified live: after the fix, the audit row carries `owner_user_id` and the host's History tab renders "Review uphold flag (review)" (count → 4). tsc green.
+- GOTCHA confirmed: server-action edits need a dev-server **restart** (HMR won't recompile them). Also `admin_audit_log` has no `reason` column (payload holds it) — a probe query selecting `reason` returns null misleadingly.
 
 ### ⬜ 11. Data requests — `/admin/data-requests`
 GDPR/POPIA data request queue + actions.
