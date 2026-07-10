@@ -279,8 +279,10 @@ Preview + test-send the 26 registered templates, over the notification_queue →
   2. **WelcomeHost diverged** — it was the only template hardcoding its heading/button inline (heading missing 700 weight, button 500 vs the shared 600). Switched it to the shared `Heading` + `Button` — now identical to the other 25. All 26 wrap the shared `Layout` (audited). Commit `2959fd86`.
 - ℹ️ Note: `sent_at` = Resend accepted; inbox delivery/spam not verifiable from here.
 
-### ⬜ 20. Audit log — `/admin/audit`
-admin_audit_log viewer.
+### ✅ 20. Audit log — `/admin/audit` — READY FOR MVP (2026-07-10 #44)
+Immutable read-only viewer of `admin_audit_log` (filters: admin id / action / target type / since; pagination; `audit.view` gate). Verified live (96 entries):
+- ✅ Page renders; filters + pagination wired (GET form); `permission_denied` rows badged red; admin email resolved via FK join. No mutations (INSERT-only table) → nothing to audit here. No console errors.
+- 🔴→✅ **FIX: the "Target type" filter was a stale hardcoded 13-item subset** — so ~26 target types actually written (broadcast, listing_category, amenity_catalog, special_category, product, plan, platform_ledger, addon, policy, business, affiliate, …) **could not be filtered**. Made `AUDIT_TARGET_TYPES` a **runtime const** in `withAdminAudit.ts` (single source of truth — `AuditTargetType` now derives from it; DB CHECK constraint stays a superset), exported via the `@/lib/admin` barrel, and drove the dropdown off it (+ `permission_denied`). **Verified live:** dropdown now lists 39 types; `?target_type=broadcast` returns exactly the 3 broadcast audit rows. tsc + lint green. Commit `07ac48d6`.
 
 ---
 
