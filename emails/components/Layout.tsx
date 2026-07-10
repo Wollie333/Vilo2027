@@ -4,7 +4,6 @@ import {
   Head,
   Hr,
   Html,
-  Img,
   Link,
   Preview,
   Section,
@@ -32,13 +31,13 @@ export default function Layout({ preview, children }: Props) {
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.header}>
-            <Img
-              src={`${APP_URL}/email/wielo-logo.png`}
-              width="96"
-              height="32"
-              alt="Wielo"
-              style={styles.logo}
-            />
+            {/* Text wordmark — matches how the web app presents the brand and,
+                unlike a hosted image, survives email clients that block images
+                by default. Swap for an <Img> only once a logo is hosted at a
+                stable URL. */}
+            <Link href={APP_URL} style={styles.wordmark}>
+              Wielo
+            </Link>
           </Section>
 
           <Section style={styles.content}>{children}</Section>
@@ -87,8 +86,13 @@ const styles = {
   header: {
     padding: "0 0 24px",
   },
-  logo: {
+  wordmark: {
     margin: 0,
+    fontSize: "22px",
+    fontWeight: 700,
+    letterSpacing: "-0.02em",
+    color: BRAND_PRIMARY,
+    textDecoration: "none",
   },
   content: {
     backgroundColor: "#FFFFFF",
