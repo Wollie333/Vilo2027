@@ -1,6 +1,6 @@
 import { Link } from "@/i18n/navigation";
 
-import { requirePermission } from "@/lib/admin";
+import { AUDIT_TARGET_TYPES, requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 
@@ -16,21 +16,9 @@ type SearchParams = {
 
 const PAGE_SIZE = 50;
 
-const TARGET_TYPES = [
-  "host",
-  "guest",
-  "user",
-  "booking",
-  "listing",
-  "review",
-  "subscription",
-  "feature_override",
-  "platform_setting",
-  "platform_staff",
-  "staff_member",
-  "impersonation",
-  "permission_denied",
-] as const;
+// Drive the filter off the single source of truth so it never drifts behind
+// the target types actually being written (was a stale hardcoded subset).
+const TARGET_TYPES = [...AUDIT_TARGET_TYPES].sort();
 
 export default async function AuditLogPage({
   searchParams,

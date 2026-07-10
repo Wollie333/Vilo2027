@@ -28,45 +28,58 @@ function normalizeIp(raw: string | null | undefined): string | null {
   return null;
 }
 
-type AuditTargetType =
-  | "host"
-  | "guest"
-  | "user"
-  | "booking"
-  | "listing"
-  | "business"
-  | "addon"
-  | "policy"
-  | "review"
-  | "subscription"
-  | "plan"
-  | "plan_feature"
-  | "platform_service"
-  | "product"
-  | "product_feature"
-  | "platform_ledger"
-  | "feature_override"
-  | "platform_setting"
-  | "platform_staff"
-  | "staff_member"
-  | "impersonation"
-  | "help_article"
-  | "help_video"
-  | "help_faq"
-  | "help_category"
-  | "help_status"
-  | "help_settings"
-  | "help_article_suggestion"
-  | "broadcast"
-  | "notification_send"
-  | "listing_category"
-  | "amenity_group"
-  | "amenity_catalog"
-  | "affiliate"
-  | "affiliate_payout"
-  | "affiliate_settings"
-  | "marketing_asset"
-  | "special_category";
+/**
+ * Every audit `target_type` the app writes. Single source of truth — the DB
+ * CHECK constraint on admin_audit_log.target_type is kept a superset of this
+ * (see migration 20260710130000), and the /admin/audit filter dropdown is
+ * driven off this array so it never drifts behind the values in use.
+ *
+ * `permission_denied` is included because requirePermission() writes it
+ * directly (outside withAdminAudit) — it's still a real, filterable target.
+ */
+export const AUDIT_TARGET_TYPES = [
+  "host",
+  "guest",
+  "user",
+  "booking",
+  "listing",
+  "business",
+  "addon",
+  "policy",
+  "review",
+  "subscription",
+  "plan",
+  "plan_feature",
+  "platform_service",
+  "product",
+  "product_feature",
+  "platform_ledger",
+  "feature_override",
+  "platform_setting",
+  "platform_staff",
+  "staff_member",
+  "impersonation",
+  "help_article",
+  "help_video",
+  "help_faq",
+  "help_category",
+  "help_status",
+  "help_settings",
+  "help_article_suggestion",
+  "broadcast",
+  "notification_send",
+  "listing_category",
+  "amenity_group",
+  "amenity_catalog",
+  "affiliate",
+  "affiliate_payout",
+  "affiliate_settings",
+  "marketing_asset",
+  "special_category",
+  "permission_denied",
+] as const;
+
+type AuditTargetType = (typeof AUDIT_TARGET_TYPES)[number];
 
 export type AuditConfig<TArgs> = {
   /** Permission key the caller must hold. */

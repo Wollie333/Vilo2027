@@ -19,6 +19,7 @@ export {
   readImpersonationCookie,
 } from "./impersonation";
 export {
+  AUDIT_TARGET_TYPES,
   type AuditConfig,
   type AuditedAction,
   withAdminAudit,
