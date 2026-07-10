@@ -260,8 +260,13 @@ Site-wide announcements (severity info/warning/critical × audience). Verified l
 - ✅ tsc + next lint green; no console errors.
 - ⚙️ **Drive note:** this form uses react-hook-form; `preview_fill` doesn't register with RHF — must set the value via the native setter + dispatch `input`+`change` events, else `handleSubmit` sees empty state and silently blocks.
 
-### ⬜ 18. Send to users — `/admin/notifications/sent` (+ send)
-Push/in-app notification composer + sent history.
+### ✅ 18. Send to users — `/admin/notifications/sent` (+ send) — READY FOR MVP (2026-07-10 #44)
+Direct notification composer (multi-recipient) + sent history. Verified live end-to-end (throwaway send to the test host, cleaned up):
+- ✅ **User typeahead picker** (`searchUsersAction`, `notifications.send_individual`) — server-side search found "Lerato Nkosi / host@wielotest.com"; chip-select works.
+- ✅ **Send** (`sendIndividualNotificationAction`) — inserts `admin_message_batches` (recipient_count=1 via the generated column, channels ["email","in_app"], created_by=admin), audits `notification.send` (target_type `notification_send`), and **actually fanned out** — an `in_app_notifications` row (kind `admin_individual_message`) was delivered to the recipient's bell. Sent-history page renders the batch with the correct recipient count.
+- ✅ No duplicate-insert issue here — `sendIndividualWrapped`'s inner fn does NOT re-insert (correct version of the "wrapper for audit" pattern, unlike the broadcast bug just fixed).
+- ✅ Gates: `notifications.send_individual` (send) + `notifications.view_history` (sent list). No console errors.
+- ⚙️ Drive note: SendForm is controlled `useState` + a Radix Popover/cmdk picker — drive the typeahead by typing into the cmdk input (native setter + input event), wait ~200ms debounce, click the `[cmdk-item]`.
 
 ### ⬜ 19. Email templates — `/admin/emails` (+ `/[type]`)
 Preview + test-send the 26 email templates.
