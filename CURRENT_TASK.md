@@ -2,7 +2,42 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-10 #37) — Commerce Phase 4 COMPLETE + full admin user-record batch ✅ DONE + verified live. NEXT = Phase 5 (guest txn history)
+## ▶▶▶ SAVE POINT (2026-07-10 #38) — Commerce Phase 5 (guest transaction history) ✅ DONE + verified live on BOTH surfaces. NEXT = affiliate hardening (LAST)
+
+**Read [[project-wielo-commerce-model]] FIRST.** `pnpm build` + tsc + lint GREEN. Working tree committed to
+main. Everything below verified live via preview as `host@wielotest.com`.
+
+**Commerce Phase 5 COMPLETE — guest transaction history.** The buyer-facing
+`components/finance/WieloTransactionHistory.tsx` (rendered by `/dashboard/settings/transactions` for hosts
+AND `/portal/settings/transactions` for guests — both nav tabs already wired) now joins
+**`wielo_credit_notes`** alongside `wielo_invoices`, so EVERY ledger row shows its downloadable doc: charge
+→ **Invoice**, refund → **Refund**, credit → **Credit note**, adjustment → **Adjustment** (previously only
+invoice rows had a doc; the rest showed "—"). All three reads RLS-scoped to `auth.uid()` via existing
+`*_own_read` policies. Pending pay-links / EFT intents already post a pending `platform_ledger` row keyed to
+the buyer → they surface as "pending" here (no separate `product_orders` read needed). Money-back amounts
+render emerald; column header = **Document**; copy = "…invoices and credit notes". Live-verified as
+`host@wielotest.com` (Invoice R599 · Refund −R200 · Credit note −R150 · Adjustment R100 · 2 pending) — all 4
+doc PDFs return `200 application/pdf`; confirmed on both the host settings tab and the guest portal tab.
+
+**NEXT — affiliate hardening (LAST).** See [[project-affiliate-hardening-plan]] /
+`docs/features/AFFILIATE_HARDENING_PLAN.md` (per-product config UI, accrual coverage, unique-link UX,
+refunds/payout hardening).
+
+**Deferred / TODO (carried from #37, unchanged):** (1) EFT **marked-received** (manual admin settle)
+doesn't yet flip the buyer pay card to "Payment received" — wire the EFT-settle path to
+`setPayCardStatus(...,'received')`. (2) redeploy `supabase functions deploy paystack-webhook` (carries the
+`activate_on_pay` guard). (3) full click-to-pay E2E of the *card-init* admin-notification insert not driven
+(EFT one WAS). (4) **Email to user** ledger action inert until Resend keys set; not E2E'd.
+
+GOTCHAS (carried): restart preview after **server-action** edits (HMR misses them); `supabase db query`
+batch returns only the LAST select's rows; commit-msg hook rejects a capitalised subject word; `pnpm build`
+corrupts `.next` while a preview is up → stop it first. Test host `host@wielotest.com` / user
+`1899ee6c-…` has ready-made ledger docs (1 invoice + refund/credit/adjustment credit notes) for verifying
+this tab.
+
+---
+
+## ▶▶▶ SAVE POINT (2026-07-10 #37) — Commerce Phase 4 COMPLETE + full admin user-record batch ✅ DONE + verified live. (superseded by #38)
 
 **Read [[project-wielo-commerce-model]] + [[reference-admin-notifications]] FIRST.** `pnpm build` + tsc +
 lint GREEN. All pushed to main (latest `c9c34b44`). Working tree clean. Sole super_admin =

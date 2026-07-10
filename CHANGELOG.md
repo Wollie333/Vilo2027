@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-10 #38 — Commerce Phase 5: guest transaction history now shows credit notes / refunds docs.
+
+- **Phase 5 (guest transaction history) DONE** ([[project-wielo-commerce-model]]). The buyer-facing
+  `WieloTransactionHistory` (rendered on both `/dashboard/settings/transactions` for hosts and
+  `/portal/settings/transactions` for guests) now joins **`wielo_credit_notes`** in addition to
+  `wielo_invoices`, so every ledger row shows its matching downloadable document — a charge → **Invoice**,
+  a refund → **Refund**, a goodwill credit → **Credit note**, a signed correction → **Adjustment**.
+  Previously only invoice-backed charge rows had a document; refund/credit/adjustment rows showed "—".
+- All three reads (`platform_ledger` / `wielo_invoices` / `wielo_credit_notes`) are RLS-scoped to
+  `auth.uid()` via their existing `*_own_read` policies — a user only ever sees their own transactions.
+- Pending purchases (unpaid pay-links / EFT intents) already post a pending `platform_ledger` row keyed to
+  the buyer, so they surface here as "pending" until they settle — no separate `product_orders` read needed.
+- Non-charge (money-back) amounts render in emerald; the column header is now **Document**; copy updated to
+  "…downloadable invoices and credit notes."
+- Verified live on BOTH surfaces as `host@wielotest.com` (real data: Invoice R599, Refund −R200, Credit note
+  −R150, Adjustment R100, 2 pending charges) — all 4 doc PDFs return `200 application/pdf`. tsc + lint +
+  `pnpm build` green.
+
 ## 2026-07-09 #36 — Admin: finance actions on the user record + overview commissions block.
 
 - **Wielo ledger row menu** enriched to match the booking ledger: each row's ⋯ menu now has Issue refund /

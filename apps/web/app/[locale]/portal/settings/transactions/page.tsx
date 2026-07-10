@@ -12,7 +12,7 @@ export default function PortalTransactionsPage() {
   return (
     <WieloTransactionHistory
       heading="Transaction history"
-      description="Your payments to Wielo, with downloadable invoices."
+      description="Your payments to Wielo, with downloadable invoices and credit notes."
     />
   );
 }

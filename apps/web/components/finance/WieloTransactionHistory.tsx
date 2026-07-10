@@ -5,9 +5,14 @@ import { createServerClient } from "@/lib/supabase/server";
 
 // Wielo platform transaction history for the SIGNED-IN user (host or guest).
 // Single source of truth for both the host settings tab and the guest portal
-// tab. Reads platform_ledger + wielo_invoices, both scoped to auth.uid() by RLS
-// (platform_ledger_own_read / wielo_invoices_own_read) — a user only ever sees
-// their own purchases from Wielo, with downloadable invoices.
+// tab. Reads platform_ledger + wielo_invoices + wielo_credit_notes, all scoped
+// to auth.uid() by RLS (platform_ledger_own_read / wielo_invoices_own_read /
+// wielo_credit_notes_own_read) — a user only ever sees their own transactions
+// with Wielo, with the matching downloadable document per row: a charge → its
+// invoice, a refund / credit / adjustment → its credit note. Pending purchases
+// (unpaid pay-links / EFT intents) already post a pending ledger row, so they
+// appear here as "pending" until they settle. Mirrors the admin per-user Wielo
+// ledger's Document column (lib/billing/wielo-ledger.ts), scoped by RLS.
 
 type LedgerRow = {
   id: string;
@@ -22,6 +27,14 @@ type LedgerRow = {
   billing_cycle: string | null;
 };
 
+// The one downloadable document behind a ledger row: an invoice for a charge, a
+// credit note / refund / adjustment for the rest. Minted by DB triggers keyed on
+// ledger_id, so we join on that.
+type LedgerDoc = {
+  label: string;
+  href: string;
+};
+
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-ZA", {
     day: "numeric",
@@ -32,27 +45,35 @@ function fmtDate(iso: string): string {
 
 export async function WieloTransactionHistory({
   heading = "Transaction history",
-  description = "Your payments for subscriptions and products, with downloadable invoices.",
+  description = "Your payments for subscriptions and products, with downloadable invoices and credit notes.",
 }: {
   heading?: string;
   description?: string;
 }) {
   const supabase = createServerClient();
-  const [{ data: ledger }, { data: invoices }, { data: productRows }] =
-    await Promise.all([
-      supabase
-        .from("platform_ledger")
-        .select(
-          "id, created_at, type, status, amount, currency, environment, reason, plan, billing_cycle",
-        )
-        .order("created_at", { ascending: false })
-        .limit(200),
-      supabase
-        .from("wielo_invoices")
-        .select("ledger_id, hosted_token, invoice_number")
-        .limit(200),
-      supabase.from("products").select("name, plan_key, slug"),
-    ]);
+  const [
+    { data: ledger },
+    { data: invoices },
+    { data: notes },
+    { data: productRows },
+  ] = await Promise.all([
+    supabase
+      .from("platform_ledger")
+      .select(
+        "id, created_at, type, status, amount, currency, environment, reason, plan, billing_cycle",
+      )
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("wielo_invoices")
+      .select("ledger_id, hosted_token, invoice_number")
+      .limit(200),
+    supabase
+      .from("wielo_credit_notes")
+      .select("ledger_id, hosted_token, credit_note_number, kind")
+      .limit(200),
+    supabase.from("products").select("name, plan_key, slug"),
+  ]);
 
   // Map a plan tier → its product name so a row reads "Starter", not "pro".
   const productByTier = new Map<string, string>();
@@ -63,17 +84,28 @@ export async function WieloTransactionHistory({
     }
   }
 
-  const invByLedger = new Map<
-    string,
-    { hosted_token: string; invoice_number: string }
-  >();
+  // One document per ledger row: a charge → its invoice, a refund / credit /
+  // adjustment → its credit note. Invoices win if a row somehow has both.
+  const docByLedger = new Map<string, LedgerDoc>();
+  for (const cn of notes ?? []) {
+    if (!cn.ledger_id || !cn.hosted_token) continue;
+    const label =
+      cn.kind === "refund"
+        ? "Refund"
+        : cn.kind === "adjustment"
+          ? "Adjustment"
+          : "Credit note";
+    docByLedger.set(cn.ledger_id, {
+      label,
+      href: `/wielo-credit-note/${cn.hosted_token}/pdf`,
+    });
+  }
   for (const inv of invoices ?? []) {
-    if (inv.ledger_id) {
-      invByLedger.set(inv.ledger_id, {
-        hosted_token: inv.hosted_token,
-        invoice_number: inv.invoice_number,
-      });
-    }
+    if (!inv.ledger_id || !inv.hosted_token) continue;
+    docByLedger.set(inv.ledger_id, {
+      label: "Invoice",
+      href: `/wielo-invoice/${inv.hosted_token}/pdf`,
+    });
   }
 
   const rows = (ledger ?? []) as LedgerRow[];
@@ -83,7 +115,12 @@ export async function WieloTransactionHistory({
       const name = productByTier.get(r.plan) ?? r.plan;
       return `${name}${r.billing_cycle ? ` · ${r.billing_cycle}` : ""}`;
     }
-    return r.reason ?? "Purchase";
+    if (r.reason) return r.reason;
+    // Non-charge rows without a stored reason fall back to a type label.
+    if (r.type === "refund") return "Refund";
+    if (r.type === "credit") return "Credit";
+    if (r.type === "adjustment") return "Adjustment";
+    return "Purchase";
   };
 
   return (
@@ -111,12 +148,12 @@ export async function WieloTransactionHistory({
                 <th className="px-4 py-3">Description</th>
                 <th className="px-4 py-3 text-right">Amount</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Invoice</th>
+                <th className="px-4 py-3 text-right">Document</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => {
-                const inv = invByLedger.get(r.id);
+                const doc = docByLedger.get(r.id);
                 return (
                   <tr
                     key={r.id}
@@ -135,21 +172,25 @@ export async function WieloTransactionHistory({
                         </span>
                       ) : null}
                     </td>
-                    <td className="num whitespace-nowrap px-4 py-3 text-right font-medium text-brand-ink">
+                    <td
+                      className={`num whitespace-nowrap px-4 py-3 text-right font-medium ${
+                        r.amount < 0 ? "text-emerald-600" : "text-brand-ink"
+                      }`}
+                    >
                       {formatMoney(r.amount, r.currency)}
                     </td>
                     <td className="px-4 py-3">
                       <StatusPill status={r.status} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      {inv ? (
+                      {doc ? (
                         <a
-                          href={`/wielo-invoice/${inv.hosted_token}/pdf`}
+                          href={doc.href}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-secondary hover:underline"
                         >
-                          <Download className="h-3.5 w-3.5" /> Invoice
+                          <Download className="h-3.5 w-3.5" /> {doc.label}
                         </a>
                       ) : (
                         <span className="text-[12px] text-brand-mute">—</span>
