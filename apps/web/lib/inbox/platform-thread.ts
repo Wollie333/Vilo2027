@@ -11,7 +11,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-const WIELO_SUPPORT_EMAIL = "support@wielo.co.za";
+export const WIELO_SUPPORT_EMAIL = "support@wielo.co.za";
 const WIELO_SUPPORT_NAME = "Wielo Support";
 const SUPPORT_SETTINGS_KEY = "wielo_support_user_id";
 

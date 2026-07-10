@@ -4,6 +4,7 @@ import { Search, User } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
+import { WIELO_SUPPORT_EMAIL } from "@/lib/inbox/platform-thread";
 
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
 import { AdminSegments } from "../_components/AdminSegments";
@@ -25,7 +26,10 @@ export const dynamic = "force-dynamic";
 type SearchParams = { q?: string; seg?: string };
 
 const PAGE_SIZE = 50;
-const SEGMENTS = ["all", "guest", "host", "staff", "suspended"] as const;
+// "staff" segment intentionally omitted for MVP: platform-staff management is
+// hidden site-wide, and staff/admin roles live in the platform_staff table
+// (not user_profiles.role), so the tab would always read empty.
+const SEGMENTS = ["all", "guest", "host", "suspended"] as const;
 
 function isSeg(s: string | undefined): s is (typeof SEGMENTS)[number] {
   return SEGMENTS.includes((s ?? "") as (typeof SEGMENTS)[number]);
@@ -51,6 +55,9 @@ export default async function AdminUsersPage({
       { count: "exact" },
     )
     .is("deleted_at", null)
+    // Hide the internal "Wielo Support" inbox bot — it's a system account, not a
+    // real user. (email is null OR != support) preserves null-email rows.
+    .or(`email.is.null,email.neq.${WIELO_SUPPORT_EMAIL}`)
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
 
@@ -59,7 +66,6 @@ export default async function AdminUsersPage({
   }
   if (seg === "guest") query = query.eq("role", "guest");
   else if (seg === "host") query = query.eq("role", "host");
-  else if (seg === "staff") query = query.in("role", ["staff", "super_admin"]);
   else if (seg === "suspended") query = query.eq("is_active", false);
 
   const { data: rows, count } = await throwOnErrorWithCount(
@@ -113,23 +119,22 @@ export default async function AdminUsersPage({
     }
   }
 
-  // KPI + segment counts (all non-deleted users).
+  // KPI + segment counts (all non-deleted users, excluding the Wielo Support bot).
   const { data: allRows } = await service
     .from("user_profiles")
-    .select("role, is_active, created_at")
+    .select("role, is_active, created_at, email")
     .is("deleted_at", null);
   const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
   let total = 0;
   let hosts = 0;
   let guests = 0;
-  let staff = 0;
   let suspended = 0;
   let new30 = 0;
   for (const u of allRows ?? []) {
+    if (u.email === WIELO_SUPPORT_EMAIL) continue;
     total += 1;
     if (u.role === "host") hosts += 1;
     else if (u.role === "guest") guests += 1;
-    if (u.role === "staff" || u.role === "super_admin") staff += 1;
     if (u.is_active === false) suspended += 1;
     if (u.created_at && u.created_at >= since30) new30 += 1;
   }
@@ -241,7 +246,6 @@ export default async function AdminUsersPage({
               { key: "all", label: "All", count: total },
               { key: "guest", label: "Guests", count: guests },
               { key: "host", label: "Hosts", count: hosts },
-              { key: "staff", label: "Staff", count: staff },
               { key: "suspended", label: "Suspended", count: suspended },
             ]}
           />
