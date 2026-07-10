@@ -83,6 +83,7 @@ import {
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
+import { modal } from "@/components/ui/modal-host";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/format";
@@ -3162,14 +3163,14 @@ function CatalogPanel({ data }: { data: UserRecordData }) {
       } else toast.error(r.error ?? "Failed.");
     });
   };
-  const remove = (a: AddonItem) => {
+  const remove = async (a: AddonItem) => {
     if (!hostId) return;
-    if (
-      !window.confirm(
-        `Delete “${a.name}”? It will be detached from ${a.listingsCount} listing(s).`,
-      )
-    )
-      return;
+    const ok = await modal.destructive({
+      title: `Delete “${a.name}”?`,
+      description: `It will be detached from ${a.listingsCount} listing(s).`,
+      confirmLabel: "Delete add-on",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await adminDeleteAddon(hostId, a.id);
       if (r.ok) {
@@ -3324,16 +3325,18 @@ function CatalogPanel({ data }: { data: UserRecordData }) {
                 } else toast.error(r.error ?? "Failed.");
               });
             };
-            const removePolicy = () => {
+            const removePolicy = async () => {
               if (!hostId) return;
-              if (
-                !window.confirm(
+              const ok = await modal.destructive({
+                title: `Delete “${p.name}”?`,
+                description:
                   p.assignmentsCount > 0
-                    ? `“${p.name}” is on ${p.assignmentsCount} listing(s); it will be archived (not deleted).`
-                    : `Delete “${p.name}”?`,
-                )
-              )
-                return;
+                    ? `It is on ${p.assignmentsCount} listing(s); it will be archived (not deleted).`
+                    : undefined,
+                confirmLabel:
+                  p.assignmentsCount > 0 ? "Archive policy" : "Delete policy",
+              });
+              if (!ok) return;
               start(async () => {
                 const r = await adminDeletePolicy(hostId, p.id);
                 if (r.ok) {

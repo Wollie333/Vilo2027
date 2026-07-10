@@ -50,10 +50,11 @@ Two compounding root causes:
 - All 13 host-scoped actions now resolve the owning user (via hostId/businessId/affiliateId).
 - **Proof:** toggled an add-on → audit row now written (`target_type: addon`, `owner_user_id: <userId>`) → History tab shows "Enabled / disabled an add-on", count 6→7.
 
-**Follow-up hardening candidates (noted, not yet done):**
-- `withAdminAudit` silently swallows audit-insert failures (`console.error`) — this is why the bug hid for so long. Consider surfacing failures louder for a compliance log.
-- Host-scoped actions `revalidatePath('/admin/users/${hostId}')` use the **hostId**, not the userId route param — wrong path (harmless today only because the client calls `router.refresh()`).
-- Add-on toggle path: confirm behaviour fine; delete uses native `window.confirm` (works, but native dialogs are a UX inconsistency vs the app's modals).
+**Follow-up hardening — ALL FIXED (2026-07-10, commit pending):**
+- ✅ **`withAdminAudit` no longer hides audit failures** — throws in dev/test (logs in prod) so a target_type/constraint/RLS mismatch surfaces immediately instead of silently dropping the row.
+- ✅ **Bigger constraint reconcile** — auditing the whole `AuditTargetType` union vs the DB constraint revealed **~23 MORE admin actions** (Products `product`/`product_feature`, Plans `plan`/`plan_feature`, Services `platform_service`, Ledger `platform_ledger`, Affiliates `affiliate_payout`/`affiliate_settings`, Marketing `marketing_asset`, Deal-cats `special_category`) whose audit writes were ALSO silently failing. Migration `20260710130000` makes the constraint a full superset of the union → **no admin action can silently fail to audit again.** (Affects Finance + Platform + Affiliate tabs not yet reached.)
+- ✅ **Correct `revalidatePath`** — the wrapper now revalidates `/admin/users/${ownerUserId}` after host-scoped actions (the per-action calls used the wrong hostId path).
+- ✅ **Native `window.confirm` → design-system modal** — add-on + policy deletes now use `modal.destructive()` (verified live: styled Cancel/Delete modal).
 
 ### ⬜ 3. Inbox — `/admin/inbox`
 Host↔Wielo support threads (channel='platform'). Reuses guest↔host chat components. Send payment link → inbox.

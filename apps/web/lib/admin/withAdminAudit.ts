@@ -1,5 +1,6 @@
 import "server-only";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -199,8 +200,25 @@ export function withAdminAudit<TArgs extends { reason?: string }, TResult>(
         console.error(
           `[admin-audit] failed to record ${config.actionName}: ${retryErr.message}`,
         );
+        // Fail LOUD in dev/test so a target_type / constraint / RLS mismatch can
+        // never again hide (this is exactly how the add-on/policy/etc audit gap
+        // went unnoticed). In production we log + continue so a transient audit
+        // hiccup doesn't block the admin action (which has already committed).
+        if (process.env.NODE_ENV !== "production") {
+          throw new Error(
+            `[admin-audit] ${config.actionName} was NOT recorded: ${retryErr.message}. ` +
+              `The action itself succeeded. Check admin_audit_log_target_type_check ` +
+              `covers target_type="${config.targetType}" and RLS allows the insert.`,
+          );
+        }
       }
     }
+
+    // Keep the owner's user-record page fresh after a host-scoped action (add-on,
+    // policy, subscription, business, affiliate). The per-action revalidatePath
+    // calls target the hostId, which is NOT the /admin/users/[id] route param —
+    // revalidate the real owner path here so the History/tabs update.
+    if (ownerUserId) revalidatePath(`/admin/users/${ownerUserId}`);
 
     return result;
   };
