@@ -214,8 +214,12 @@ Platform config brain: General (branding + Meta pixel), Business (Wielo issuer +
 3. First-ever legal publish jumps version 1→2 (cosmetic; the static draft is the notional v1) — left as-is.
 - All saves audited; tsc green; no console/server errors.
 
-### ⬜ 13. Feature flags — `/admin/platform/features`
-Feature matrix + per-host override.
+### ✅ 13. Feature flags — `/admin/platform/features` — READY FOR MVP (2026-07-10 #43, redesigned)
+Feature access chain: **host override → the host's PRODUCT features (`product_features`, per-product) → deny**. Verified live:
+- 🔴→✅ **Root-cause bug + FOUNDER REDESIGN:** the page's feature matrix + host-override dropdown were sourced ONLY from `plan_features`, which is **EMPTY (0 rows)** — features are now product-driven (`product_features`, 66 rows). So the override dropdown was empty → **no host override could be created**. Founder chose **"remove the matrix entirely"** (products are the source of truth for tier features). Rewrote the page: dropped the misleading editable plan matrix + its `upsertPlanFeatureAction` + `FeatureMatrix.tsx`; the tab is now **per-host overrides + guest permissions + a banner/link pointing to Products** ("tier features are set per product"). Override feature catalog = union of plan+product keys (26).
+- ✅ **Per-host override** (`createHostOverrideAction` → `platform.features.host_override`, target_type `feature_override`, reason-required) — drove live: `host_feature_overrides` row written + audit + **`check_feature_permission(p_host_id, p_feature_key)` returns `{source:"override", is_enabled:true}`** = the override actually GATES with correct precedence. Cleaned up the test override.
+- ✅ **Guest permissions** (`saveGuestPermissionsAction` → `platform.features.guest_permissions`) — global set in `platform_settings`; Guests tab renders 6 toggles + save (same proven withAdminAudit pattern). Guests have no product so this is their only feature layer.
+- tsc green; the RPC precedence (override>product>plan>default) was already proven live in Tab 5.
 
 ### ⬜ 14. Categories — `/admin/platform/categories`
 Listing categories CRUD.

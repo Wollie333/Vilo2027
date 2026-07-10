@@ -9,63 +9,10 @@ import {
   GUEST_PERMISSION_SETTING_KEY,
 } from "@/lib/guests/permissions";
 
-// plan_features has no per-row meaning to the audit target_id (uuid) — like the
-// platform-settings actions we use a stable sentinel uuid and carry the real
-// (plan, feature_key) in payload.args.
+// Per-host override audit target — plan_features/host_feature_overrides have no
+// per-row meaning to the audit target_id (uuid), so we use a stable sentinel uuid
+// and carry the real (host, feature_key) in payload.args.
 const FEATURE_MATRIX_TARGET = "00000000-0000-0000-0000-00000000fea7";
-
-const upsertSchema = z.object({
-  plan: z.string().min(1).max(60),
-  featureKey: z.string().min(1).max(80),
-  isEnabled: z.boolean(),
-  // null = unlimited (or N/A for boolean features).
-  limitValue: z.number().int().min(0).nullable(),
-  description: z.string().max(200).optional().nullable(),
-  reason: z.string().optional(),
-});
-
-// Set a single (plan × feature) cell in the permission matrix. Super-admin only,
-// audited. Gates read plan_features live, so the change takes effect immediately
-// (subject to the pre-MVP open-on-free short-circuit — see AGENT_RULES §3.4).
-export const upsertPlanFeatureAction = withAdminAudit<
-  z.infer<typeof upsertSchema>,
-  { ok: true }
->(
-  {
-    permissionKey: "platform.features",
-    actionName: "platform.features.upsert",
-    targetType: "plan_feature",
-    getTargetId: () => FEATURE_MATRIX_TARGET,
-  },
-  async (args, service) => {
-    const parsed = upsertSchema.safeParse(args);
-    if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
-    }
-    const { plan, featureKey, isEnabled, limitValue, description } =
-      parsed.data;
-
-    const { data, error } = await service
-      .from("plan_features")
-      .upsert(
-        {
-          plan,
-          feature_key: featureKey,
-          is_enabled: isEnabled,
-          limit_value: limitValue,
-          ...(description != null ? { description } : {}),
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "plan,feature_key" },
-      )
-      .select("plan, feature_key, is_enabled, limit_value")
-      .single();
-    if (error) throw new Error(error.message);
-
-    revalidatePath("/admin/platform/features");
-    return { result: { ok: true }, after: data };
-  },
-);
 
 // ─── Global guest permissions ──────────────────────────────────
 // Guests have no plan/product, so their capabilities are one GLOBAL set stored
