@@ -30,30 +30,16 @@ const createBroadcastWrapped = withAdminAudit<
     getTargetId: (a) => a.__targetId,
   },
   async (args, service) => {
-    const requiresAck = args.severity === "critical" ? true : args.requires_ack;
-    const { data, error } = await service
+    // The broadcast row is already inserted by runCreateBroadcast (which sets
+    // created_by to the calling admin's id — something this wrapped fn can't
+    // see). We must NOT insert again; we only read the row back so the audit
+    // captures its real after-state.
+    const { data } = await service
       .from("broadcast_announcements")
-      .insert({
-        created_by: undefined as unknown as string, // overwritten below
-        severity: args.severity,
-        audience: args.audience,
-        title: args.title,
-        body: args.body,
-        link_url: args.link_url || null,
-        link_label: args.link_label || null,
-        requires_ack: requiresAck,
-        starts_at: args.starts_at || new Date().toISOString(),
-        ends_at: args.ends_at || null,
-      })
       .select("*")
-      .single();
-
-    if (error || !data) {
-      return {
-        result: { ok: false, error: error?.message ?? "Insert failed." },
-      };
-    }
-    return { result: { ok: true, id: data.id as string }, after: data };
+      .eq("id", args.__targetId)
+      .maybeSingle();
+    return { result: { ok: true, id: args.__targetId }, after: data };
   },
 );
 
