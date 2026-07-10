@@ -156,8 +156,13 @@ Wielo ledger — AdminLedgerList/Board + running balance + downloadable doc per 
 
 **Filters/tabs/search/CSV — verified live (#43c):** type tabs filter + counts (Refunds → 3 refund rows); status server-filter re-fetch (pending → 9); env test/all/live; product dropdown; user-email filter; date-range (same pushParams); client search (CN-0008 → 1 row); CSV export (15 cols, 26 rows, correct data). **ACTION FOR FOUNDER:** enter Wielo's **real VAT number** in Admin → Platform → Settings (Wielo business details) — the code renders it at the FROM bottom + makes Wielo invoices proper tax invoices; a placeholder was used only for the live test and then blanked.
 
-### ⬜ 7. Payments — `/admin/payments`
-Payment records + pending refunds.
+### ✅ 7. Payments — `/admin/payments` — READY FOR MVP (2026-07-10 #43)
+Read-only records view of every payment users make to Wielo (reads the SAME `fetchWieloLedger` SSOT hardened in Tab 6 — no forked logic). Verified live:
+- ✅ Renders for super_admin (`payments.view` gate); h1 + explainer + Test-mode banner.
+- ✅ KPI band: Collected R20 315 · Pending R26 392 (amber) · Refunded R1 149 (env-scoped via `wieloLedgerStats`).
+- ✅ GET-form filters re-fetch: env (live/test/all, defaults to Paystack mode), type (refund → 3 REFUND rows), status, free-text search (user/email/plan/reference). Env column shows only when env=all.
+- ✅ Table columns (Amount/Status/Type/Product/User/Provider/Date) render with data; product name resolves via `productByTier`; pagination note (first 50 of N).
+- ✅ No console errors. **No mutations on this page** (refunds/credits are issued from the Ledger tab / user record) → nothing to audit here. Scope note: this is Wielo revenue only; host↔guest booking refund_requests live elsewhere (Overview "pending refunds" tile deep-links to them).
 
 ### ⬜ 8. Affiliates — `/admin/affiliates` (+ marketing, settings, terms)
 Affiliate admin panel, marketing manager, settings, terms editor. **(Affiliate hardening is the LAST planned batch.)**
