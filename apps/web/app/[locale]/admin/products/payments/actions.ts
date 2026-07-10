@@ -26,6 +26,7 @@ const schema = z.object({
   eftAccountName: z.string().trim().max(120).optional().nullable(),
   eftAccountNumber: z.string().trim().max(60).optional().nullable(),
   eftBranchCode: z.string().trim().max(40).optional().nullable(),
+  eftSwiftCode: z.string().trim().max(20).optional().nullable(),
   eftReferenceHint: z.string().trim().max(200).optional().nullable(),
   reason: z.string().optional(),
 });
@@ -95,6 +96,7 @@ export const savePaymentSettingsAction = withAdminAudit<
       eft_account_name: d.eftAccountName || null,
       eft_account_number: d.eftAccountNumber || null,
       eft_branch_code: d.eftBranchCode || null,
+      eft_swift_code: d.eftSwiftCode || null,
       eft_reference_hint: d.eftReferenceHint || null,
       updated_at: new Date().toISOString(),
     };

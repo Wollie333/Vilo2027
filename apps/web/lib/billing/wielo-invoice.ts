@@ -92,7 +92,7 @@ export async function getPlatformInvoiceBanking(
     const { data } = await admin
       .from("platform_payment_settings")
       .select(
-        "eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
+        "eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_swift_code, eft_reference_hint",
       )
       .eq("id", true)
       .maybeSingle();
@@ -103,7 +103,7 @@ export async function getPlatformInvoiceBanking(
       accountNumber: data.eft_account_number?.trim() ?? "",
       accountType: "",
       branchCode: data.eft_branch_code?.trim() ?? "",
-      swiftCode: null,
+      swiftCode: data.eft_swift_code?.trim() || null,
       reference: data.eft_reference_hint?.trim() || referenceFallback || null,
     };
   } catch {

@@ -5785,6 +5785,7 @@ export type Database = {
           eft_branch_code: string | null
           eft_enabled: boolean
           eft_reference_hint: string | null
+          eft_swift_code: string | null
           id: boolean
           paypal_client_id: string | null
           paypal_enabled: boolean
@@ -5805,6 +5806,7 @@ export type Database = {
           eft_branch_code?: string | null
           eft_enabled?: boolean
           eft_reference_hint?: string | null
+          eft_swift_code?: string | null
           id?: boolean
           paypal_client_id?: string | null
           paypal_enabled?: boolean
@@ -5825,6 +5827,7 @@ export type Database = {
           eft_branch_code?: string | null
           eft_enabled?: boolean
           eft_reference_hint?: string | null
+          eft_swift_code?: string | null
           id?: boolean
           paypal_client_id?: string | null
           paypal_enabled?: boolean

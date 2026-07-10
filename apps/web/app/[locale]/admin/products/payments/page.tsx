@@ -19,7 +19,7 @@ export default async function AdminPaymentSettingsPage() {
   const { data } = await service
     .from("platform_payment_settings")
     .select(
-      "paystack_enabled, paystack_mode, paystack_secret_key, paystack_public_key, paystack_test_secret_key, paystack_test_public_key, paypal_enabled, paypal_environment, paypal_client_id, paypal_secret_cipher, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
+      "paystack_enabled, paystack_mode, paystack_secret_key, paystack_public_key, paystack_test_secret_key, paystack_test_public_key, paypal_enabled, paypal_environment, paypal_client_id, paypal_secret_cipher, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_swift_code, eft_reference_hint",
     )
     .eq("id", true)
     .maybeSingle();
@@ -40,6 +40,7 @@ export default async function AdminPaymentSettingsPage() {
     eftAccountName: data?.eft_account_name ?? "",
     eftAccountNumber: data?.eft_account_number ?? "",
     eftBranchCode: data?.eft_branch_code ?? "",
+    eftSwiftCode: data?.eft_swift_code ?? "",
     eftReferenceHint: data?.eft_reference_hint ?? "",
   };
 

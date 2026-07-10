@@ -25,6 +25,7 @@ export type PaymentSettings = {
   eftAccountName: string;
   eftAccountNumber: string;
   eftBranchCode: string;
+  eftSwiftCode: string;
   eftReferenceHint: string;
 };
 
@@ -58,6 +59,7 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
         eftAccountName: f.eftAccountName.trim() || null,
         eftAccountNumber: f.eftAccountNumber.trim() || null,
         eftBranchCode: f.eftBranchCode.trim() || null,
+        eftSwiftCode: f.eftSwiftCode.trim() || null,
         eftReferenceHint: f.eftReferenceHint.trim() || null,
       });
       if (r.ok) {
@@ -283,6 +285,14 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
               value={f.eftBranchCode}
               onChange={(e) => set("eftBranchCode", e.target.value)}
               className="font-mono"
+            />
+          </Field>
+          <Field label="SWIFT / BIC code">
+            <Input
+              value={f.eftSwiftCode}
+              onChange={(e) => set("eftSwiftCode", e.target.value)}
+              placeholder="e.g. SBZAZAJJ"
+              className="font-mono uppercase"
             />
           </Field>
         </div>
