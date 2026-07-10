@@ -167,8 +167,13 @@ Read-only records view of every payment users make to Wielo (reads the SAME `fet
 ### ⬜ 8. Affiliates — `/admin/affiliates` (+ marketing, settings, terms)
 Affiliate admin panel, marketing manager, settings, terms editor. **(Affiliate hardening is the LAST planned batch.)**
 
-### ⬜ 9. Reporting — `/admin/reporting` (+ pdf)
-Platform report: revenue area chart, user growth, plan donut, PDF export.
+### ✅ 9. Reporting — `/admin/reporting` (+ pdf) — READY FOR MVP (2026-07-10 #43)
+Read-only platform report from `buildPlatformReport(range)`. Verified live:
+- ✅ Renders for super_admin (`subscriptions.edit`); dark hero with MRR/ARR/Paying hosts/ARPU.
+- ✅ Charts populate (24 chart SVGs): RevenueAreaChart, PlanDonutChart, UserGrowthChart; retention & funnel (trials/conversion/churn/status); growth & GMV KPIs.
+- ✅ Range filter (30D/90D/6M/12M/YTD) re-fetches (all 200); revenue KPIs period-aware.
+- ✅ **PDF export** (`/admin/reporting/pdf?range=`) returns 200 `application/pdf` (valid %PDF); PDF renderer has no formatting bug.
+- 🔴→✅ **BUG FOUND + FIXED:** every money KPI used the plan-pricing `formatZar` helper, which renders **0 as "Free"** → "Outstanding: Free" (and any zero MRR/GMV/refunded). Replaced with a report-local `zar()` that shows "R 0". Verified live (Outstanding now "R 0", no "Free" on the page). tsc + no server errors (the transient `formatZar is not defined` in logs was an HMR intermediate state during the edit).
 
 ---
 

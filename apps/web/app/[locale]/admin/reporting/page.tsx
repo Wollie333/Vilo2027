@@ -1,6 +1,5 @@
 import { Download } from "lucide-react";
 
-import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
 import { Link } from "@/i18n/navigation";
 import { requirePermission } from "@/lib/admin";
 import {
@@ -15,6 +14,12 @@ import { RevenueAreaChart } from "./_components/RevenueAreaChart";
 import { UserGrowthChart } from "./_components/UserGrowthChart";
 
 export const dynamic = "force-dynamic";
+
+// Money on a financial report — unlike the plan-pricing helper, a zero value is
+// "R 0", never "Free" (there's nothing free about R0 outstanding/refunded/MRR).
+function zar(amount: number): string {
+  return `R ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+}
 
 const RANGES: { key: ReportRange; label: string }[] = [
   { key: "30d", label: "30D" },
@@ -67,10 +72,10 @@ export default async function AdminReportingPage({
 
         {/* Headline metrics inside the hero */}
         <div className="mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-card bg-white/10 sm:grid-cols-4">
-          <HeroStat label="MRR" value={formatZar(k.mrr)} />
-          <HeroStat label="ARR" value={formatZar(k.arr)} />
+          <HeroStat label="MRR" value={zar(k.mrr)} />
+          <HeroStat label="ARR" value={zar(k.arr)} />
           <HeroStat label="Paying hosts" value={String(k.payingHosts)} />
-          <HeroStat label="ARPU" value={formatZar(k.arpu)} />
+          <HeroStat label="ARPU" value={zar(k.arpu)} />
         </div>
       </section>
 
@@ -100,14 +105,14 @@ export default async function AdminReportingPage({
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <AdminKpiCard
           label={`Collected · ${report.rangeLabel}`}
-          value={formatZar(k.collectedPeriod)}
+          value={zar(k.collectedPeriod)}
         />
         <AdminKpiCard
           label="Collected · all-time"
-          value={formatZar(k.collectedAllTime)}
+          value={zar(k.collectedAllTime)}
         />
-        <AdminKpiCard label="Outstanding" value={formatZar(k.outstanding)} />
-        <AdminKpiCard label="Refunded" value={formatZar(k.refunded)} />
+        <AdminKpiCard label="Outstanding" value={zar(k.outstanding)} />
+        <AdminKpiCard label="Refunded" value={zar(k.refunded)} />
       </section>
 
       {/* Charts */}
@@ -186,7 +191,7 @@ export default async function AdminReportingPage({
             value={k.newUsersPeriod}
           />
           <AdminKpiCard label="Active listings" value={k.activeListings} />
-          <AdminKpiCard label="GMV processed" value={formatZar(k.gmv)} />
+          <AdminKpiCard label="GMV processed" value={zar(k.gmv)} />
         </div>
         <p className="mt-3 text-[11px] text-brand-mute">
           GMV = booking value flowing host↔guest
