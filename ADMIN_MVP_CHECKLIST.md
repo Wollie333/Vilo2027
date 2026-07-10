@@ -268,8 +268,16 @@ Direct notification composer (multi-recipient) + sent history. Verified live end
 - ✅ Gates: `notifications.send_individual` (send) + `notifications.view_history` (sent list). No console errors.
 - ⚙️ Drive note: SendForm is controlled `useState` + a Radix Popover/cmdk picker — drive the typeahead by typing into the cmdk input (native setter + input event), wait ~200ms debounce, click the `[cmdk-item]`.
 
-### ⬜ 19. Email templates — `/admin/emails` (+ `/[type]`)
-Preview + test-send the 26 email templates.
+### ✅ 19. Email templates — `/admin/emails` (+ `/[type]`) — READY FOR MVP (2026-07-10 #44)
+Preview + test-send the 26 registered templates, over the notification_queue → cron → Resend pipeline. Verified live + audited:
+- ✅ **List** renders all 26 templates + live queue stats (pending/sent24h/failed24h). **Detail preview** (`renderPreviewAction`) renders template HTML in an iframe (verified live on booking_confirmed_guest + welcome_host).
+- ✅ **All 26 render** — added `registry.render.test.tsx` (renders each template with its sample payload, asserts non-empty HTML + string subject). 27/27 green — guards against a broken/unsendable template.
+- ✅ **Send pipeline verified end-to-end IN PROD:** the drain worker (`lib/email/drain.ts`) atomically claims a batch (`claim_email_queue_batch`, SKIP LOCKED, 300s stale-reclaim → no double-send), runs the per-type resolver (DB hydration; payload overrides), re-checks the recipient's email pref at send time, resolves recipient (custom→payload.recipient_email / guest→user_profiles.email / host→hosts→profile.email), injects `brand_name` from `getBrandName()` (→ "Wielo"), and sends via Resend. **A real `booking_confirmed_guest` email was successfully sent today** (queue row `sent_at` set). Cron = Supabase pg_cron (`20260525000006/07`, Vault `email_worker_url`/`secret`), not vercel.json.
+- ✅ **Test-send** (`sendTestEmailAction` → `email.test_send` audit, reason ≥5) — wired correctly; locally returns the graceful "RESEND_API_KEY is not set" error (RESEND is prod-only per memory), so the degradation path is clean.
+- 🔴→✅ **STYLING FIXES (founder ask — "emails must follow the same styling; brand is Wielo"):**
+  1. **Broken logo in every email** — `Layout.tsx` referenced `${APP_URL}/email/wielo-logo.png`, but **no such asset exists** (no PNGs in `public` at all; the web app itself uses a text wordmark). Every email showed a broken image. Replaced with a styled **"Wielo" text wordmark** (emerald, matches the app + survives image-blocking clients).
+  2. **WelcomeHost diverged** — it was the only template hardcoding its heading/button inline (heading missing 700 weight, button 500 vs the shared 600). Switched it to the shared `Heading` + `Button` — now identical to the other 25. All 26 wrap the shared `Layout` (audited). Commit `2959fd86`.
+- ℹ️ Note: `sent_at` = Resend accepted; inbox delivery/spam not verifiable from here.
 
 ### ⬜ 20. Audit log — `/admin/audit`
 admin_audit_log viewer.
