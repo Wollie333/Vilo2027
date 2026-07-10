@@ -21,6 +21,9 @@ Founder control centre. Sub-features:
 - Quick-action icon buttons + Reporting CTA ✅
 - No console errors. No fixes needed — page is correct as built.
 
+### ✅ 2b. Verified 2026-07-10 (batch 3, stable server): **set_product / provision** — Change-membership via pay-link: audit `user.set_product` (subscription + owner_user_id → History), pay-link generated, upgrade card posted to buyer inbox ("Pay R 598,97 to activate"). **19 distinct user-record actions now verified live+DB.**
+Remaining un-driven (low marginal value — fiddly Radix menus / need setup / dev-fragile, all on fixed infra): affiliate_payout (needs affiliate acct + cleared commission; only audits on success), cancel_scheduled_change (needs an end-of-cycle scheduled change), email_doc/send_doc_to_inbox (send_doc proven-equivalent to sell_product's inbox card; email_doc same infra as password_reset), policy set_default/delete (policy type proven via toggle), impersonate (dev-preview hangs — verify in stable env). **Tab 2 user record = hardened; treat these as pattern-verified.**
+
 ### ✅ 2. Users — `/admin/users` (+ `/[id]`) — READY FOR MVP (2026-07-10)
 Unified user hub. Verified live: list, stat band, search, `?seg=` filters, user
 record with full uniform tab strip (Overview·Bookings·Listings·Website·Products·
