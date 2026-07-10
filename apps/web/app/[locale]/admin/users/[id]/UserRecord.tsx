@@ -235,9 +235,50 @@ export type UserRecordData = {
     name: string;
     location: string;
     isPublished: boolean;
+    isFeatured: boolean;
+    isSuspended: boolean;
     price: number;
     currency: string;
     slug: string | null;
+    typeLabel: string;
+    bedrooms: number | null;
+    bathrooms: number | null;
+    maxGuests: number | null;
+    totalBookings: number;
+    totalReviews: number;
+    avgRating: number | null;
+    publishedAt: string | null;
+    createdAt: string | null;
+  }[];
+  websites: {
+    id: string;
+    businessId: string;
+    businessName: string;
+    subdomain: string;
+    customDomain: string | null;
+    domainStatus: string;
+    sslStatus: string;
+    status: string;
+    brandName: string | null;
+    brandTagline: string | null;
+    themePreset: string | null;
+    themeAccent: string | null;
+    themeFont: string | null;
+    seoTitle: string | null;
+    publishedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    pageCount: number;
+    publishedPageCount: number;
+    pages: {
+      id: string;
+      kind: string;
+      slug: string;
+      title: string | null;
+      navLabel: string | null;
+      showInNav: boolean;
+      isPublished: boolean;
+    }[];
   }[];
   businesses: {
     id: string;
@@ -435,7 +476,6 @@ const TAB_ALIASES: Record<string, string> = {
   referrals: "affiliate",
   affiliates: "affiliate",
   catalog: "business",
-  website: "business",
   reviews: "guests",
   relationships: "guests",
   support: "admin",
@@ -520,6 +560,11 @@ export function UserRecord({ data }: { data: UserRecordData }) {
     { key: "overview", label: "Overview" },
     { key: "bookings", label: "Bookings" },
     { key: "listings", label: "Listings", count: data.listings.length },
+    {
+      key: "website",
+      label: "Website",
+      count: data.websites.length || undefined,
+    },
     { key: "products", label: "Products" },
     { key: "finance", label: "Finance" },
     {
@@ -602,6 +647,10 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             ) : null}
             {tab === "listings" ? <ListingsPanel data={data} /> : null}
 
+            {/* Website — the host's builder site(s): domain, theme, pages,
+                publish state. Its own tab, right of Listings. */}
+            {tab === "website" ? <WebsitePanel data={data} /> : null}
+
             {/* Products — the user's subscription + purchased products. Shown
                 for guests too: activating a product provisions them as a host. */}
             {tab === "products" ? (
@@ -619,7 +668,8 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             {/* Affiliate — the user's own affiliate account, referrals + payouts */}
             {tab === "affiliate" ? <ReferralsPanel data={data} /> : null}
 
-            {/* Business & catalogue — entity, add-ons, policies, website */}
+            {/* Business & catalogue — entity, add-ons, policies. (Website now
+                lives in its own dedicated tab, right of Listings.) */}
             {tab === "business" ? (
               <div className="space-y-10">
                 <GroupSection title="Businesses">
@@ -627,9 +677,6 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                 </GroupSection>
                 <GroupSection title="Add-ons & policies">
                   <CatalogPanel data={data} />
-                </GroupSection>
-                <GroupSection title="Website">
-                  <WebsitePanel data={data} />
                 </GroupSection>
               </div>
             ) : null}
@@ -2967,15 +3014,77 @@ function ListingsPanel({ data }: { data: UserRecordData }) {
       count={data.listings.length}
       empty="No listings."
     >
-      {data.listings.map((l) => (
-        <RowLink
-          key={l.id}
-          href={`/admin/users/${data.user.id}/listings/${l.id}/edit`}
-          primary={l.name}
-          secondary={`${l.location || "—"} · from ${formatMoney(l.price, l.currency)}`}
-          status={l.isPublished ? "published" : "draft"}
-        />
-      ))}
+      {data.listings.map((l) => {
+        const roomBits = [
+          l.bedrooms != null ? `${l.bedrooms} bed` : null,
+          l.bathrooms != null ? `${l.bathrooms} bath` : null,
+          l.maxGuests != null ? `sleeps ${l.maxGuests}` : null,
+        ].filter(Boolean);
+        return (
+          <Link
+            key={l.id}
+            href={`/admin/users/${data.user.id}/properties/${l.id}/edit`}
+            className="flex items-start gap-3 border-t border-brand-line px-5 py-3.5 first:border-t-0 hover:bg-brand-light/50"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="truncate text-[13px] font-semibold text-brand-ink">
+                  {l.name}
+                </span>
+                {l.typeLabel ? (
+                  <span className="shrink-0 rounded-pill border border-brand-line bg-brand-light px-2 py-px text-[10px] font-semibold capitalize text-brand-mute">
+                    {l.typeLabel}
+                  </span>
+                ) : null}
+                {l.isFeatured ? (
+                  <span className="shrink-0 rounded-pill border border-amber-200 bg-amber-50 px-2 py-px text-[10px] font-semibold text-amber-700">
+                    Featured
+                  </span>
+                ) : null}
+                {l.isSuspended ? (
+                  <span className="shrink-0 rounded-pill border border-red-200 bg-red-50 px-2 py-px text-[10px] font-semibold text-red-600">
+                    Suspended
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-0.5 flex items-center gap-1 text-[11.5px] text-brand-mute">
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span className="truncate">{l.location || "—"}</span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] text-brand-mute">
+                <span className="font-semibold text-brand-ink">
+                  {formatMoney(l.price, l.currency)}
+                </span>
+                {roomBits.length ? <span>{roomBits.join(" · ")}</span> : null}
+                <span className="inline-flex items-center gap-1">
+                  <CalendarCheck className="h-3 w-3" /> {l.totalBookings}{" "}
+                  booking
+                  {l.totalBookings === 1 ? "" : "s"}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Star className="h-3 w-3" />
+                  {l.avgRating != null
+                    ? `${l.avgRating.toFixed(1)} (${l.totalReviews})`
+                    : `No reviews`}
+                </span>
+                {l.createdAt ? <span>Added {fmtDate(l.createdAt)}</span> : null}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span
+                className={`rounded-pill border px-2 py-0.5 text-[11px] font-semibold ${
+                  l.isPublished
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-brand-line bg-brand-light text-brand-mute"
+                }`}
+              >
+                {l.isPublished ? "Published" : "Draft"}
+              </span>
+              <ArrowRight className="mt-0.5 h-4 w-4 text-brand-mute" />
+            </div>
+          </Link>
+        );
+      })}
     </Section>
   );
 }
@@ -3568,39 +3677,216 @@ function AddonEditModal({
   );
 }
 
+const WEBSITE_STATUS_STYLE: Record<string, string> = {
+  published: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  unpublished: "border-amber-200 bg-amber-50 text-amber-700",
+  draft: "border-brand-line bg-brand-light text-brand-mute",
+};
+const PAGE_KIND_LABEL: Record<string, string> = {
+  home: "Home",
+  about: "About",
+  rooms: "Rooms",
+  contact: "Contact",
+  custom: "Page",
+};
+
 function WebsitePanel({ data }: { data: UserRecordData }) {
-  const handle = data.host?.handle ?? null;
-  return (
-    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-      <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
-        <Globe className="h-4 w-4 text-brand-mute" />
-        <span className="font-display text-[15px] font-bold text-brand-ink">
-          Website
-        </span>
-        <span className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-brand-mute">
-          Coming soon
-        </span>
-      </div>
-      <div className="px-6 py-12 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-pill bg-brand-light">
-          <Globe className="h-6 w-6 text-brand-mute" />
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "wielo.site";
+  const sites = data.websites;
+
+  if (sites.length === 0) {
+    const handle = data.host?.handle ?? null;
+    return (
+      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+        <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
+          <Globe className="h-4 w-4 text-brand-mute" />
+          <span className="font-display text-[15px] font-bold text-brand-ink">
+            Website
+          </span>
         </div>
-        <h3 className="mt-4 font-display text-base font-bold text-brand-ink">
-          Host website builder
-        </h3>
-        <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-brand-mute">
-          A future feature: each host will get a hosted, branded website for
-          their listings and direct bookings. This tab will let you manage that
-          site — domain, theme, pages and publish state — from the admin.
-        </p>
-        {handle ? (
-          <p className="mt-3 text-[12px] text-brand-mute">
-            Reserved handle:{" "}
-            <span className="font-mono text-brand-ink">@{handle}</span>
+        <div className="px-6 py-12 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-pill bg-brand-light">
+            <Globe className="h-6 w-6 text-brand-mute" />
+          </div>
+          <h3 className="mt-4 font-display text-base font-bold text-brand-ink">
+            No website yet
+          </h3>
+          <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-brand-mute">
+            This user hasn&apos;t created a builder website. A host can create
+            one per business from Dashboard → Website.
           </p>
-        ) : null}
-      </div>
-    </section>
+          {handle ? (
+            <p className="mt-3 text-[12px] text-brand-mute">
+              Reserved handle:{" "}
+              <span className="font-mono text-brand-ink">@{handle}</span>
+            </p>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {sites.map((s) => {
+        const subUrl = `${s.subdomain}.${rootDomain}`;
+        const hasCustom = !!s.customDomain;
+        const liveHost =
+          hasCustom && s.domainStatus === "active" ? s.customDomain! : subUrl;
+        const statusStyle =
+          WEBSITE_STATUS_STYLE[s.status] ?? WEBSITE_STATUS_STYLE.draft;
+        return (
+          <section
+            key={s.id}
+            className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card"
+          >
+            <div className="flex flex-wrap items-center gap-2 border-b border-brand-line px-5 py-3.5">
+              <Globe className="h-4 w-4 text-brand-mute" />
+              <span className="font-display text-[15px] font-bold text-brand-ink">
+                {s.brandName?.trim() || s.businessName}
+              </span>
+              <span
+                className={`rounded-pill border px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide ${statusStyle}`}
+              >
+                {s.status}
+              </span>
+              <a
+                href={`https://${liveHost}`}
+                target="_blank"
+                rel="noreferrer"
+                className="ml-auto inline-flex items-center gap-1.5 rounded-pill border border-brand-line px-2.5 py-1 text-[12px] font-semibold text-brand-secondary hover:bg-brand-light"
+              >
+                Visit site <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+
+            <dl className="grid grid-cols-1 gap-px bg-brand-line sm:grid-cols-2">
+              <WebsiteFact label="Business" value={s.businessName} />
+              <WebsiteFact
+                label="Address"
+                value={
+                  <a
+                    href={`https://${subUrl}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-mono text-[12px] text-brand-secondary hover:underline"
+                  >
+                    {subUrl}
+                  </a>
+                }
+              />
+              <WebsiteFact
+                label="Custom domain"
+                value={
+                  hasCustom ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[12px] text-brand-ink">
+                        {s.customDomain}
+                      </span>
+                      <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10px] font-semibold capitalize text-brand-mute">
+                        DNS {s.domainStatus}
+                      </span>
+                      <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10px] font-semibold capitalize text-brand-mute">
+                        SSL {s.sslStatus}
+                      </span>
+                    </span>
+                  ) : (
+                    "—"
+                  )
+                }
+              />
+              <WebsiteFact
+                label="Theme"
+                value={
+                  [s.themePreset, s.themeFont ? `${s.themeFont} font` : null]
+                    .filter(Boolean)
+                    .join(" · ") || "Default"
+                }
+              />
+              {s.brandTagline ? (
+                <WebsiteFact label="Tagline" value={s.brandTagline} />
+              ) : null}
+              {s.seoTitle ? (
+                <WebsiteFact label="SEO title" value={s.seoTitle} />
+              ) : null}
+              <WebsiteFact
+                label="Published"
+                value={s.publishedAt ? fmtDate(s.publishedAt) : "Not published"}
+              />
+              <WebsiteFact
+                label="Last updated"
+                value={`${fmtDate(s.updatedAt)}${
+                  fmtTime(s.updatedAt) ? ` · ${fmtTime(s.updatedAt)}` : ""
+                }`}
+              />
+            </dl>
+
+            <div className="border-t border-brand-line px-5 py-3">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                <FileText className="h-3.5 w-3.5" />
+                Pages
+                <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px normal-case tabular-nums tracking-normal">
+                  {s.publishedPageCount}/{s.pageCount} live
+                </span>
+              </div>
+              {s.pages.length === 0 ? (
+                <p className="mt-2 text-[12px] text-brand-mute">No pages.</p>
+              ) : (
+                <ul className="mt-2 divide-y divide-brand-line">
+                  {s.pages.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex items-center gap-2.5 py-2 text-[12.5px]"
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          p.isPublished ? "bg-emerald-500" : "bg-brand-line"
+                        }`}
+                        title={p.isPublished ? "Published" : "Draft"}
+                      />
+                      <span className="font-medium text-brand-ink">
+                        {p.navLabel?.trim() ||
+                          p.title?.trim() ||
+                          PAGE_KIND_LABEL[p.kind] ||
+                          p.kind}
+                      </span>
+                      <span className="font-mono text-[11px] text-brand-mute">
+                        /{p.slug}
+                      </span>
+                      <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10px] font-semibold capitalize text-brand-mute">
+                        {PAGE_KIND_LABEL[p.kind] ?? p.kind}
+                      </span>
+                      {!p.showInNav ? (
+                        <span className="text-[10px] uppercase tracking-wide text-brand-mute">
+                          hidden
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function WebsiteFact({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white px-5 py-2.5">
+      <dt className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+        {label}
+      </dt>
+      <dd className="mt-0.5 text-[13px] text-brand-ink">{value}</dd>
+    </div>
   );
 }
 

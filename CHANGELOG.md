@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-10 #39 — Admin user record: dedicated Website tab + enriched Listings.
+
+- **New "Website" tab** on the admin user record ([admin/users/[id]](apps/web/app/[locale]/admin/users/[id]/UserRecord.tsx)),
+  placed immediately **right of Listings**. Houses the user's builder site(s) — one card per
+  `host_websites` row — with the live address (`<subdomain>.<root>`), custom-domain + DNS/SSL status,
+  publish state (draft/published/unpublished), theme (preset/font), brand name/tagline, SEO title,
+  published/last-updated dates, a **Visit site** link, and the full **page list** (nav label · slug · kind ·
+  hidden flag) with a `published/total live` count. Loaded via `host_websites` + `website_pages` in the
+  admin loader (`page.tsx`); new `websites[]` on `UserRecordData`.
+- **Enriched Listings tab** — each listing now shows its type (Guesthouse/experience/etc.), bedrooms /
+  bathrooms / sleeps, total bookings, avg rating (review count), added date, and Featured / Suspended /
+  Published state — from the denormalised `properties` columns (`total_bookings`, `avg_rating`, `bedrooms`,
+  …). Row now links to the correct `…/properties/<id>/edit` editor.
+- **Removed the Website section** from the "Business & catalogue" tab (it now lives under the dedicated
+  Website tab); dropped the stale `website → business` deep-link alias.
+- Verified live as a temp super_admin on `host@wielotest.com` (real data: "Karoo Sky Stays" site — published,
+  `karoo.wielo.site`, oceansview theme, 9/9 pages live; "Karoo Sky Guesthouse" listing — Guesthouse, 3 bed /
+  3 bath / sleeps 6, published). tsc + lint + `pnpm build` green; temp grant revoked.
+
 ## 2026-07-10 #38 — Commerce Phase 5: guest transaction history now shows credit notes / refunds docs.
 
 - **Phase 5 (guest transaction history) DONE** ([[project-wielo-commerce-model]]). The buyer-facing

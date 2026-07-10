@@ -133,6 +133,7 @@ export default async function AdminUserDetailPage({
   let policies: UserRecordData["policies"] = [];
   let hostFinance: UserRecordData["hostFinance"] = null;
   let hostTxns: UserRecordData["hostTxns"] = [];
+  let websites: UserRecordData["websites"] = [];
   let listingsCount = 0;
 
   if (host) {
@@ -146,7 +147,7 @@ export default async function AdminUserDetailPage({
       service
         .from("properties")
         .select(
-          "id, name, city, province, is_published, base_price, currency, slug",
+          "id, name, city, province, is_published, is_featured, is_suspended, base_price, currency, slug, property_type, accommodation_type, experience_type, bedrooms, bathrooms, max_guests, total_bookings, total_reviews, avg_rating, published_at, created_at",
           {
             count: "exact",
           },
@@ -195,9 +196,27 @@ export default async function AdminUserDetailPage({
       name: l.name,
       location: [l.city, l.province].filter(Boolean).join(", "),
       isPublished: l.is_published ?? false,
+      isFeatured: l.is_featured ?? false,
+      isSuspended: l.is_suspended ?? false,
       price: Number(l.base_price ?? 0),
       currency: l.currency ?? "ZAR",
       slug: l.slug,
+      typeLabel: (
+        l.accommodation_type ||
+        l.experience_type ||
+        l.property_type ||
+        ""
+      )
+        .toString()
+        .replace(/_/g, " "),
+      bedrooms: l.bedrooms ?? null,
+      bathrooms: l.bathrooms ?? null,
+      maxGuests: l.max_guests ?? null,
+      totalBookings: Number(l.total_bookings ?? 0),
+      totalReviews: Number(l.total_reviews ?? 0),
+      avgRating: l.avg_rating != null ? Number(l.avg_rating) : null,
+      publishedAt: l.published_at ?? null,
+      createdAt: l.created_at ?? null,
     }));
     businesses = (brows ?? []).map((b) => ({
       id: b.id,
@@ -324,6 +343,81 @@ export default async function AdminUserDetailPage({
       updatedAt: p.updated_at,
       assignmentsCount: policyAttach.get(p.id) ?? 0,
     }));
+
+    // Websites — the host's builder sites (one per business), with per-page
+    // counts, for the dedicated Website tab. Names come from the businesses
+    // already loaded above.
+    const bizNameById = new Map(businesses.map((b) => [b.id, b.name]));
+    const { data: siteRows } = await service
+      .from("host_websites")
+      .select(
+        "id, business_id, subdomain, custom_domain, domain_status, ssl_status, status, brand, theme, seo, published_at, created_at, updated_at",
+      )
+      .eq("host_id", host.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true });
+
+    const siteIds = (siteRows ?? []).map((s) => s.id);
+    const { data: pageRows } = siteIds.length
+      ? await service
+          .from("website_pages")
+          .select(
+            "id, website_id, kind, slug, title, nav_label, nav_order, show_in_nav, published_sections",
+          )
+          .in("website_id", siteIds)
+          .order("nav_order", { ascending: true })
+      : { data: [] as Record<string, unknown>[] };
+
+    const pagesBySite = new Map<
+      string,
+      UserRecordData["websites"][number]["pages"]
+    >();
+    for (const pg of pageRows ?? []) {
+      const wid = pg.website_id as string;
+      const published =
+        Array.isArray(pg.published_sections) &&
+        (pg.published_sections as unknown[]).length > 0;
+      const list = pagesBySite.get(wid) ?? [];
+      list.push({
+        id: pg.id as string,
+        kind: (pg.kind as string) ?? "custom",
+        slug: (pg.slug as string) ?? "",
+        title: (pg.title as string | null) ?? null,
+        navLabel: (pg.nav_label as string | null) ?? null,
+        showInNav: (pg.show_in_nav as boolean) ?? true,
+        isPublished: published,
+      });
+      pagesBySite.set(wid, list);
+    }
+
+    websites = (siteRows ?? []).map((s) => {
+      const brand = (s.brand ?? {}) as Record<string, unknown>;
+      const theme = (s.theme ?? {}) as Record<string, unknown>;
+      const seo = (s.seo ?? {}) as Record<string, unknown>;
+      const pages = pagesBySite.get(s.id) ?? [];
+      return {
+        id: s.id,
+        businessId: s.business_id,
+        businessName: bizNameById.get(s.business_id) ?? "Business",
+        subdomain: s.subdomain,
+        customDomain: s.custom_domain ?? null,
+        domainStatus: s.domain_status ?? "none",
+        sslStatus: s.ssl_status ?? "none",
+        status: s.status ?? "draft",
+        brandName: (brand.name as string | null) ?? null,
+        brandTagline: (brand.tagline as string | null) ?? null,
+        themePreset: (theme.preset as string | null) ?? null,
+        themeAccent: (theme.accent as string | null) ?? null,
+        themeFont: (theme.font as string | null) ?? null,
+        seoTitle: (seo.title as string | null) ?? null,
+        publishedAt: s.published_at ?? null,
+        createdAt: s.created_at,
+        updatedAt: s.updated_at,
+        pageCount: pages.length,
+        publishedPageCount: pages.filter((p) => p.isPublished).length,
+        pages,
+      };
+    });
 
     try {
       const txns = await fetchHostTransactions(service, { hostId: host.id });
@@ -570,6 +664,7 @@ export default async function AdminUserDetailPage({
       listings: listingsCount,
     },
     listings,
+    websites,
     businesses,
     addons,
     policies,
