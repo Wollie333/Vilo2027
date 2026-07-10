@@ -221,8 +221,16 @@ Feature access chain: **host override → the host's PRODUCT features (`product_
 - ✅ **Guest permissions** (`saveGuestPermissionsAction` → `platform.features.guest_permissions`) — global set in `platform_settings`; Guests tab renders 6 toggles + save (same proven withAdminAudit pattern). Guests have no product so this is their only feature layer.
 - tsc green; the RPC precedence (override>product>plan>default) was already proven live in Tab 5.
 
-### ⬜ 14. Categories — `/admin/platform/categories`
-Listing categories CRUD.
+### ✅ 14. Categories — `/admin/platform/categories` — READY FOR MVP (2026-07-10 #44)
+Listing categories CRUD — powers the host wizard, `/explore` browse filter, and every `/c/[slug]` SEO landing page. Verified live end-to-end (throwaway "MVP Test Cabin", cleaned up):
+- ✅ **Create** (`upsertCategoryAction` → `taxonomy.category.upsert`, target_type `listing_category`) — DB row written with auto-generated slug (`mvp-test-cabin`), parent, sort, meta_title; audit row by wollie. **Proves the target_type constraint accepts `listing_category`** (systemic audit-fail class stays closed).
+- ✅ **Side-effect propagation (the real bar):** publishing → `revalidateTag("taxonomy")` + revalidatePath `/explore` + `/c/[slug]` → the new category is **live immediately** on `/c/mvp-test-cabin` (200, meta_title rendered in `<title>`) AND appears in the `/explore` browse chips.
+- ✅ **Edit** (unpublish + sort 100→105) — persisted; second `upsert` audit row; unpublish propagated: category **dropped from `/explore`** and `/c/mvp-test-cabin` now renders "Category not found".
+- ✅ **Delete** (leaf, `deleteCategoryAction` → `taxonomy.category.delete`) — **SOFT-delete** (`deleted_at` set, row preserved) + audit with the reason in payload (min-5-char reason enforced); row removed from the list UI.
+- ✅ **Parent-delete guard** — deleting the "Accommodation" root (has children) is blocked by a design-system `modal.warning` ("Can't delete this category"); root NOT deleted.
+- ✅ `taxonomy.manage` permission gate; no console errors.
+- ℹ️ **Consistency note (NOT changed — out of scope):** the delete-reason uses native `window.prompt`, which is the **uniform admin convention** (~10 editors: deal-categories, amenities, groups, all help editors, categories) — there's no `modal.prompt()` in the design system. Spawned a follow-up chip (`task_b9c3d98d`) to add `modal.prompt()` and roll it across all sites. Functional as-is.
+- ℹ️ **Pre-existing SEO nuance (NOT a categories bug):** `/c/[slug]` for an unpublished/missing category returns HTTP **200** with a "Category not found" body (soft-404) rather than a hard 404. Lives in the `/c/[slug]` page, not the admin tab.
 
 ### ⬜ 15. Deal categories — `/admin/platform/deal-categories`
 Deal category editor.
