@@ -84,8 +84,15 @@ Two compounding root causes:
 - ✅ **Correct `revalidatePath`** — the wrapper now revalidates `/admin/users/${ownerUserId}` after host-scoped actions (the per-action calls used the wrong hostId path).
 - ✅ **Native `window.confirm` → design-system modal** — add-on + policy deletes now use `modal.destructive()` (verified live: styled Cancel/Delete modal).
 
-### ⬜ 3. Inbox — `/admin/inbox`
-Host↔Wielo support threads (channel='platform'). Reuses guest↔host chat components. Send payment link → inbox.
+### ✅ 3. Inbox — `/admin/inbox` — READY FOR MVP (2026-07-10)
+Host↔Wielo support threads (channel='platform'). Verified live + DB:
+- ✅ Thread list + All/Unread filter + host search; avatars/badges/previews/timestamps render.
+- ✅ Open thread → messages render (incl. the set_product upgrade card end-to-end).
+- ✅ **Reply** (`adminReplyPlatformAction`) — sent as the Wielo Support account, **persisted to `messages`** (real, non-system), appears in thread + composer clears.
+- ✅ Mark-read (`adminMarkPlatformReadAction`) fires on thread open.
+- ✅ Details panel → "Open user record" + "View in ledger" deep-links.
+- No console errors.
+- **Send-payment-link-to-inbox** (`adminSendPaymentLinkToInboxAction`) + send-by-email (`adminSendPlatformMessageByEmailAction`) are triggered from the **Ledger** page's "Send payment link → to inbox" affordance — will exercise in Tab 6.
 
 ### ⬜ 4. Listings — `/admin/properties`
 Listing moderation (actions, rooms/photos/bookings/rating, sanitized search).
