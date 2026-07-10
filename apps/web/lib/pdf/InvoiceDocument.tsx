@@ -134,14 +134,14 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
             {invoice.host.phone ? (
               <Text style={styles.partyLine}>{invoice.host.phone}</Text>
             ) : null}
-            {invoice.host.business?.vatNumber ? (
-              <Text style={styles.partyLine}>
-                VAT {invoice.host.business.vatNumber}
-              </Text>
-            ) : null}
             {invoice.host.business?.companyRegistrationNumber ? (
               <Text style={styles.partyLine}>
                 Reg {invoice.host.business.companyRegistrationNumber}
+              </Text>
+            ) : null}
+            {invoice.host.business?.vatNumber ? (
+              <Text style={styles.partyLine}>
+                VAT {invoice.host.business.vatNumber}
               </Text>
             ) : null}
           </View>

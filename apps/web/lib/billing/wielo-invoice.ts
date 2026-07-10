@@ -125,11 +125,12 @@ export function wieloIssuerLines(snap: Partial<WieloBusinessProfile>): {
     snap.country && snap.country.trim() && snap.country.trim() !== "ZA"
       ? snap.country
       : null,
-    snap.vat_number?.trim() ? `VAT ${snap.vat_number.trim()}` : null,
+    snap.email?.trim() || null,
+    // Company identifiers always sit at the bottom of the FROM block.
     snap.company_reg_number?.trim()
       ? `Reg ${snap.company_reg_number.trim()}`
       : null,
-    snap.email?.trim() || null,
+    snap.vat_number?.trim() ? `VAT ${snap.vat_number.trim()}` : null,
   ].filter((l): l is string => !!l && l.trim().length > 0);
   if (lines.length === 0) lines.push(DEFAULT_COMPANY_LOCATION);
   return { name, lines };

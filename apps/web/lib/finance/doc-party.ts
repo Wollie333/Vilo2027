@@ -116,14 +116,15 @@ export async function getHostParty(
   lines.push(...addr);
   if (email) lines.push(email);
   if (phone) lines.push(phone);
+  // Company identifiers always sit at the bottom of the FROM block, VAT last.
   // Per-listing VAT identity when supplied, else the business default.
   const vatToShow =
     listingVatNumber !== undefined
       ? listingVatNumber?.trim() || null
       : (biz?.vat_number ?? null);
-  if (vatToShow) lines.push(`VAT ${vatToShow}`);
   if (biz?.company_registration_number)
     lines.push(`Reg ${biz.company_registration_number}`);
+  if (vatToShow) lines.push(`VAT ${vatToShow}`);
 
   let banking: DocBanking | null = null;
   if (bank?.account_number) {

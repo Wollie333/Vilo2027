@@ -62,6 +62,16 @@ export const recordManualLedgerEntryAction = withAdminAudit<
 
     const admin = await requirePermission("subscriptions.edit");
 
+    // Inherit the platform's current Paystack mode so a manual entry posted while
+    // testing shows up in the Test-filtered ledger view (instead of always being
+    // 'live' via the column default and vanishing from the test scope).
+    const { data: paySettings } = await service
+      .from("platform_payment_settings")
+      .select("paystack_mode")
+      .eq("id", true)
+      .maybeSingle();
+    const environment = paySettings?.paystack_mode === "test" ? "test" : "live";
+
     const { data, error } = await service
       .from("platform_ledger")
       .insert({
@@ -71,6 +81,7 @@ export const recordManualLedgerEntryAction = withAdminAudit<
         status: "completed",
         amount: signed,
         currency,
+        environment,
         provider: "manual",
         reason,
         created_by: admin.userId,
