@@ -4,6 +4,22 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { withAdminAudit } from "@/lib/admin";
+import type { createAdminClient } from "@/lib/supabase/admin";
+
+// A data request targets a user's own data, so stamp the audit with
+// `payload.owner_user_id` = the request's user, making every action surface in
+// that user's per-user History tab (not just the global audit log).
+async function dsrOwnerUserId(
+  args: { requestId: string },
+  service: ReturnType<typeof createAdminClient>,
+): Promise<string | null> {
+  const { data } = await service
+    .from("data_requests")
+    .select("user_id")
+    .eq("id", args.requestId)
+    .maybeSingle();
+  return data?.user_id ?? null;
+}
 
 const completeSchema = z.object({
   requestId: z.string().uuid(),
@@ -29,6 +45,7 @@ export const markProcessingAction = withAdminAudit<
     actionName: "data_request.mark_processing",
     targetType: "user",
     getTargetId: (a) => a.requestId,
+    getOwnerUserId: dsrOwnerUserId,
     requireReason: true,
   },
   async (args, service) => {
@@ -53,6 +70,7 @@ export const markCompleteAction = withAdminAudit<
     actionName: "data_request.complete",
     targetType: "user",
     getTargetId: (a) => a.requestId,
+    getOwnerUserId: dsrOwnerUserId,
     requireReason: true,
   },
   async (args, service) => {
@@ -80,6 +98,7 @@ export const rejectRequestAction = withAdminAudit<
     actionName: "data_request.reject",
     targetType: "user",
     getTargetId: (a) => a.requestId,
+    getOwnerUserId: dsrOwnerUserId,
     requireReason: true,
   },
   async (args, service) => {
@@ -197,6 +216,7 @@ export const fulfillExportAction = withAdminAudit<
     actionName: "data_request.export_fulfilled",
     targetType: "user",
     getTargetId: (a) => a.requestId,
+    getOwnerUserId: dsrOwnerUserId,
     requireReason: true,
   },
   async (args, service) => {
@@ -247,13 +267,14 @@ export async function fulfillExport(input: {
 
 export const fulfillDeletionAction = withAdminAudit<
   z.infer<typeof completeSchema>,
-  { ok: true; method: "hard_deleted" | "anonymized" }
+  { ok: true; method: "anonymized" }
 >(
   {
     permissionKey: "users.suspend",
     actionName: "data_request.deletion_fulfilled",
     targetType: "user",
     getTargetId: (a) => a.requestId,
+    getOwnerUserId: dsrOwnerUserId,
     requireReason: true,
   },
   async (args, service) => {
@@ -266,20 +287,16 @@ export const fulfillDeletionAction = withAdminAudit<
       throw new Error("Not a deletion request.");
     const userId = req.user_id;
 
-    // Try a clean hard delete first (cascades the user + any clean child rows,
-    // INCLUDING this data_requests row). If RESTRICT FKs block it — bookings /
-    // invoices / payments / audit history — fall back to anonymisation, which
-    // satisfies erasure while keeping accounting + audit records intact.
-    const { error: delErr } = await service.auth.admin.deleteUser(userId);
-    if (!delErr) {
-      return {
-        result: { ok: true, method: "hard_deleted" },
-        after: { user_id: userId, method: "hard_deleted" },
-      };
-    }
-
+    // POPIA/GDPR erasure via ANONYMISATION — never a hard delete. Hard-deleting
+    // user_profiles/hosts is forbidden (AGENT_RULES §2.1 / CLAUDE.md) and would
+    // purge accounting + audit records behind RESTRICT FKs; anonymisation
+    // satisfies the right to erasure while keeping those records intact, and is
+    // fully recoverable (clear deleted_at + unban) if the request is disputed.
+    const now = new Date().toISOString();
     const anonEmail = `deleted+${userId}@deleted.invalid`;
-    await service
+
+    // Soft-delete + anonymise the profile (rows stay; recoverable).
+    const { error: profErr } = await service
       .from("user_profiles")
       .update({
         full_name: "Deleted user",
@@ -287,25 +304,37 @@ export const fulfillDeletionAction = withAdminAudit<
         phone: null,
         avatar_url: null,
         is_active: false,
-        deleted_at: new Date().toISOString(),
+        deleted_at: now,
       })
       .eq("id", userId);
-    // Scrub the auth identity too (email + metadata).
+    if (profErr) throw new Error(profErr.message);
+
+    // Soft-delete the host row too (listings cascade off its deleted_at).
+    await service
+      .from("hosts")
+      .update({ deleted_at: now })
+      .eq("user_id", userId)
+      .is("deleted_at", null);
+
+    // Free the email + block sign-in WITHOUT deleting the auth user (that would
+    // cascade-purge the profile + children).
     try {
       await service.auth.admin.updateUserById(userId, {
         email: anonEmail,
+        ban_duration: "876000h", // ~100y; lifted on restore
         user_metadata: {},
       });
     } catch {
       // non-blocking — the profile is already de-identified
     }
+
     await service
       .from("data_requests")
-      .update({ status: "completed", fulfilled_at: new Date().toISOString() })
+      .update({ status: "completed", fulfilled_at: now })
       .eq("id", args.requestId);
 
     return {
-      result: { ok: true, method: "anonymized" },
+      result: { ok: true, method: "anonymized" as const },
       after: { user_id: userId, method: "anonymized" },
     };
   },

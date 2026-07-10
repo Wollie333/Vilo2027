@@ -187,8 +187,14 @@ Review moderation. Verified live end-to-end (seeded a review on the test host):
 - 🔴→✅ **FIX: review moderation now shows in the host's per-user History tab.** Both actions lacked `owner_user_id`, so they audited only to the global log (not the host's History) — same gap the Tab 2 host-scoped fix closed. Added a shared `reviewOwnerUserId` resolver (review→host→user_id) as `getOwnerUserId`. Verified live: after the fix, the audit row carries `owner_user_id` and the host's History tab renders "Review uphold flag (review)" (count → 4). tsc green.
 - GOTCHA confirmed: server-action edits need a dev-server **restart** (HMR won't recompile them). Also `admin_audit_log` has no `reason` column (payload holds it) — a probe query selecting `reason` returns null misleadingly.
 
-### ⬜ 11. Data requests — `/admin/data-requests`
-GDPR/POPIA data request queue + actions.
+### ✅ 11. Data requests — `/admin/data-requests` — READY FOR MVP (2026-07-10 #43)
+POPIA/GDPR access + erasure queue. Verified live (seeded export + deletion requests):
+- ✅ Page renders (`users.view` gate); status tabs (Pending/Processing/Completed/All + counts), export/deletion cards, empty state.
+- ✅ **Mark processing** (`data_request.mark_processing`) → status=processing (Pending 3→2, Processing 1). Audited.
+- ✅ **Fulfil export** (`data_request.export_fulfilled`) → builds the **real POPIA/GDPR JSON export** (7.6 KB: profile/bookings/reviews/host), client-downloads it, marks completed. Audited.
+- ✅ **Reject** (`data_request.reject`) → status=rejected + rejected_reason. Audited.
+- 🔴→✅ **CRITICAL FIX — deletion fulfilment was a HARD delete.** `fulfillDeletion` called `auth.admin.deleteUser` FIRST (purging user_profiles/hosts via cascade), only anonymising if RESTRICT FKs blocked — violating the never-hard-delete rule (AGENT_RULES §2.1 / CLAUDE.md) and repeating the earlier "Delete user" purge bug. Rewrote to **always anonymise** (soft-delete profile + host `deleted_at` + scrub PII + ban the auth user ~100y, never delete it). **Verified live on a throwaway user:** profile + auth user both still EXIST (banned_until 2126, email `deleted+…@deleted.invalid`, deleted_at set), request completed — satisfies erasure, preserves accounting/audit, fully recoverable.
+- ✅ **All 5 actions now stamp `owner_user_id`** (shared `dsrOwnerUserId`) → data-request actions surface in the affected user's History tab (was global-audit only). tsc green.
 
 ---
 

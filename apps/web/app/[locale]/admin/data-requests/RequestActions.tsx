@@ -64,11 +64,7 @@ export function RequestActions({
         } else {
           const res = await fulfillDeletion(input);
           if (res.ok) {
-            toast.success(
-              res.method === "hard_deleted"
-                ? "User hard-deleted."
-                : "User anonymised (had records).",
-            );
+            toast.success("Deletion fulfilled — user anonymised (erasure).");
           } else {
             toast.error(res.error);
             return;
