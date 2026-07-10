@@ -51,6 +51,14 @@ Finance·Business & catalogue·Affiliate·Reviews) switching via `?tab=`. No con
 #### ✅ HISTORY TAB — DEFINITIVE PROOF (2026-07-10)
 After driving the batch, the History tab went from **6 → 19 events**, rendering a complete human-readable timeline (icon + ADMIN/HOST badge + actor + reason + timestamp) of every action: policy toggle, subscription change, business edit, support-access request + host approval, profile edit, suspend/reinstate, password reset, sell product, add-on toggle. Category filter chips (Account/Membership/Products/Finance/Business/Support access/Affiliate) all populate. **13 distinct actions driven live + DB-verified; all 4 new target types (addon/business/platform_ledger/policy) + owner_user_id proven end-to-end.** This directly answers the founder's core question ("is each action recorded in the History tab") — YES, now.
 
+#### 🔴🔴 CRITICAL bug found + fixed: "Delete user" was a PERMANENT PURGE (2026-07-10, local commit `225869d7`)
+The admin **Delete user** action's modal promised *"Soft-delete (recoverable). The account is hidden and deactivated"* — but the code called `app_purge_user_account` (force-clears bookings/finance RESTRICT-FK rows) then `auth.admin.deleteUser` → a **permanent hard purge**. Verified live: it destroyed the entire test host (auth 404, user_profiles/hosts/all rows gone). **Violated the CLAUDE.md absolute rule** (never hard-delete user_profiles/hosts/listings/bookings).
+**Fix (founder-approved "true soft-delete"):** set `deleted_at` + `is_active=false` + anonymize PII, soft-delete the `hosts` row, and free the email + block sign-in by anonymizing/banning the auth user **without deleting it**. Recoverable by clearing `deleted_at`.
+**Verified live:** re-drove Delete on the (re-seeded) host → all rows KEPT (profile `deleted_at` set + email anon + is_active false; host `deleted_at` set; auth user preserved, not 404). Then restored cleanly.
+**Test host restored** via `apps/web/scripts/seed-single-host.mjs` (new user_id `72811b8e-…`, host_id unchanged `0b1111…`). ⚠️ Seed script `node --env-file=.env.local scripts/seed-single-host.mjs` occasionally fails with "fetch failed" — just retry.
+
+**Actions verified live this batch:** add-on create/edit/delete (full CRUD), soft-delete (fixed) + restore. Add-on toggle, policy toggle already done.
+
 **Remaining user-record actions = variations of proven-working patterns** (set-product/provision, email-doc, cancel-scheduled, affiliate-payout [needs commission], add-on create/edit, policy default/delete, impersonate, delete-user, finance record/refund/credit-note). No outstanding bugs — all use the now-fixed withAdminAudit path + reconciled constraint.
 
 > **Not yet pushed to GitHub** (founder: fix locally, push once all done). Commits `75e13886`, `362b2fc5`, `1c7e8a53` are on GitHub; checklist doc updates are local-only.

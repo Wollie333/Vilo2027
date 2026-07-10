@@ -2,6 +2,41 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-10 #39) — ADMIN MVP HARDENING (tab-by-tab deep functional test). IN PROGRESS.
+
+**Read [[admin-mvp-hardening-checklist]] + `ADMIN_MVP_CHECKLIST.md` FIRST.** Founder directive: go tab-by-tab
+through the 20 admin sidebar tabs, deep functional-test EVERY action (does it perform + fire side-effect
+(email/paylink/ledger) + log to the **History tab**), refine/fix as we go, mark each "Ready for MVP".
+**No 0.major changes — refinement + correctness only.** Founder pref THIS session: **fix locally, DON'T push
+to GitHub until all done** (I drive the preview as super_admin `wollie@manamarketing.co.za`).
+
+**DONE + verified this session:**
+- ✅ Tab 1 Overview · ✅ Tab 2 Users list (hid Wielo Support bot + removed dead Staff tab — `75e13886`, pushed).
+- 🔶 Tab 2 user record — DEEPLY hardened, ~18 actions verified live+DB. THREE bugs found+fixed:
+  1. 13/24 actions missing from History (audit `target_type` CHECK rejected addon/policy/business/affiliate → silent-swallow; + host-scoped actions never set `payload.owner_user_id`). Fix: migrations `20260710120000`+`130000` (full `AuditTargetType` superset) + `withAdminAudit.getOwnerUserId`. `362b2fc5`+`1c7e8a53` (pushed).
+  2. ~23 MORE actions app-wide silently un-audited (product/plan/platform_ledger/affiliate_payout/marketing_asset/etc.) — same migration fixes it. Plus 3 hardening fixes (audit fails LOUD in dev; correct revalidatePath; native confirm→`modal.destructive`).
+  3. 🔴 CRITICAL: **"Delete user" was a permanent PURGE** (app_purge_user_account + auth.admin.deleteUser) despite modal "Soft-delete (recoverable)". Fixed → TRUE soft-delete (deleted_at + anonymize + ban auth, keep rows). **Local commit `225869d7` — NOT pushed.**
+
+**⚠️ Test host was PURGED then re-seeded** → **NEW user_id = `72811b8e-c8f6-466b-a379-e7418050db2a`** (host_id
+unchanged `0b111111-1111-4111-8111-111111111111`; login `host@wielotest.com` / `WieloTest123!`). Re-seed cmd:
+`cd apps/web && node --env-file=.env.local scripts/seed-single-host.mjs` (retry on "fetch failed").
+
+**NEXT (resume here):** finish driving the leftover user-record action variations — impersonate (dev-preview
+HANGS on redirect; proven in a prior session — verify in a stable env), set_product/provision, affiliate_payout
+(guard), cancel_scheduled_change, email_doc/send_doc_to_inbox (fiddly Radix per-row Actions menu), policy
+set_default/delete, change_role. THEN mark Tab 2 ✅ and move to **Tab 3 Inbox** → Tabs 4–20.
+
+**Unpushed local commits:** `225869d7` (soft-delete fix), `99bfef06` (docs). Push all when founder says done.
+
+**GOTCHAS this session:** dev server for the heavy record route (5300-line UserRecord.tsx) is UNSTABLE — dies
+often, 15-48s cold compiles (warm with an authed `curl` before driving); modal inputs flicker on entrance
+(same-tick retry filler, or `preview_fill`, or simple `el.value=` — the native-setter `.call` throws
+"Illegal invocation" cross-realm intermittently); session cookie expires across restarts → re-login as wollie;
+DB truth via service-role REST (`SUPABASE_SERVICE_ROLE_KEY` in apps/web/.env.local). `app_purge_user_account`
+RPC still exists (guest GDPR self-serve path) — do NOT wire it back into admin delete.
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-10 #38) — Commerce Phase 5 (guest transaction history) ✅ DONE + verified live on BOTH surfaces. NEXT = affiliate hardening (LAST)
 
 **Read [[project-wielo-commerce-model]] FIRST.** `pnpm build` + tsc + lint GREEN. Working tree committed to

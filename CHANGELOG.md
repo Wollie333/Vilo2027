@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-10 #41 — Admin MVP hardening (tab-by-tab deep functional test) — IN PROGRESS.
+
+Tab-by-tab deep functional test of the 20 admin sidebar tabs (does every action perform + fire its
+side-effect + log to the History tab). Tracking: `ADMIN_MVP_CHECKLIST.md`. Founder directive: refinement +
+correctness only, fix locally, push to GitHub once all done.
+
+- **Tab 1 Overview** ✅ verified. **Tab 2 Users list** ✅ — hid the internal "Wielo Support" bot + removed the
+  always-empty "Staff" segment (`75e13886`, pushed).
+- **Tab 2 user record — 3 bugs found + fixed, ~18 actions verified live + DB:**
+  - **History-invisibility (13 of 24 actions):** the `admin_audit_log_target_type_check` CHECK rejected
+    `addon`/`policy`/`business`/`affiliate` so those audit inserts threw and `withAdminAudit` swallowed them;
+    host-scoped actions also never set `payload.owner_user_id` (which the History tab matches on). Fix:
+    migration `20260710120000` + `withAdminAudit.getOwnerUserId` on all 13 (`362b2fc5`, pushed).
+  - **~23 more actions app-wide silently un-audited:** the constraint had drifted far behind the code's
+    `AuditTargetType` union (product/plan/platform_service/platform_ledger/affiliate_payout/affiliate_settings/
+    marketing_asset/special_category/…). Migration `20260710130000` makes it a full superset. Plus: audit
+    failures now throw in dev/test (never silent again), `withAdminAudit` revalidates the correct
+    `/admin/users/${ownerUserId}` path, and add-on/policy deletes use `modal.destructive()` not native
+    `window.confirm` (`1c7e8a53`, pushed).
+  - 🔴 **CRITICAL — "Delete user" was a permanent purge:** it ran `app_purge_user_account` +
+    `auth.admin.deleteUser` (destroying bookings/finance/auth) while the modal promised "Soft-delete
+    (recoverable)". Rewrote to a TRUE soft-delete (deleted_at + anonymize PII + soft-delete host row + ban the
+    auth user without deleting it) — recoverable, matches the modal, obeys the never-hard-delete rule.
+    **Local commit `225869d7` — not yet pushed.** Verified live (rows kept), test host re-seeded.
+- **Verified live + DB:** toggle add-on, sell product/pay-link, reset password (email), suspend/reinstate,
+  edit profile, request+approve support access, business edit, ledger adjustment, subscription edit, policy
+  toggle, add-on create/edit/delete, soft-delete(+restore). History tab went 6 → 19 events.
+- **Still to drive:** impersonate (dev-preview hangs), set_product, affiliate_payout, cancel_scheduled,
+  email_doc, policy set_default/delete, change_role. Then Tabs 3–20.
+
 ## 2026-07-10 #40 — Admin user record: split "Activity & notes" into History / Notes / Data + human-friendly timeline.
 
 - The old "Activity & notes" tab is now **three dedicated tabs**: **History** (the full activity timeline),
