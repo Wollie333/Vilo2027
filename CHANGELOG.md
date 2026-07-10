@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-10 #44 (save point) — Admin MVP hardening: Tabs 14–20 READY (all platform tabs), 5 fixes + a redesign + email hardening.
+
+Finished the tab-by-tab deep functional test of the platform section. **Tabs 14, 15, 16, 17, 18, 19, 20 now READY** —
+so **all 19 in-scope sidebar tabs (1–7, 9–20) are READY**; only **Tab 8 Affiliates** remains (the deferred last batch).
+Full per-tab detail in `ADMIN_MVP_CHECKLIST.md`. All pushed to origin/main @ `7adcb404`. `pnpm build` passes (EXIT=0).
+
+- **Tab 14 Categories** — CRUD verified live: create/edit/delete write DB + audit (`listing_category`) and
+  publishing propagates live to `/c/[slug]` + `/explore`; parent-delete guard works.
+- **Tab 15 Deal categories** — CRUD verified (audit `special_category`; active cat propagates to `/deals`).
+  **Founder-requested REDESIGN:** replaced the inline spreadsheet editor with the same pattern as Listing
+  categories — a searchable list card + a full-page editor (Basic + SEO) at `/new` and `/[id]`.
+- **Tab 16 Amenities (+ groups)** — amenity + group create/edit/delete verified (audit `amenity_catalog` /
+  `amenity_group`); unpublish gates the published catalog the host picker + public listing read.
+- **Tab 17 Broadcasts** — create (+ in-app fanout) + cancel verified. **Fix:** the create path re-inserted a
+  duplicate broadcast row (only avoided by a NOT-NULL failure that was swallowed, leaving the audit after-state
+  empty) — now reads the inserted row back instead.
+- **Tab 18 Send to users** — individual send verified end-to-end: batch row + audit + real in-app delivery to
+  the recipient's bell + sent-history row.
+- **Tab 19 Email templates** — preview of all 26 + the notification_queue → cron → Resend pipeline audited; a real
+  `booking_confirmed_guest` email was confirmed sent today. **Founder ask (styling + brand = Wielo):** fixed the
+  broken email logo (referenced a PNG that never existed → **"Wielo" text wordmark**) and WelcomeHost's divergent
+  hardcoded heading/button (→ shared components); added a test that renders all 26 templates (27/27).
+- **Tab 20 Audit log** — viewer + filters verified. **Fix:** the "Target type" filter was a stale hardcoded
+  13-item subset — made `AUDIT_TARGET_TYPES` a runtime SSOT and drove the dropdown off it (now 39 types, every
+  written target is filterable).
+
 ## 2026-07-10 #43 (save point) — Admin MVP hardening: Tabs 6–13 (7 tabs READY), 5 bug fixes, 4 features.
 
 Continued the tab-by-tab deep functional test. **Tabs 6, 7, 9, 10, 11, 12, 13 now READY** (on top of 1–5).
