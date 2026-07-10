@@ -252,8 +252,13 @@ Amenity catalog (102 items across 16 groups) + groups editor. Hosts SELECT from 
 - ✅ `taxonomy.manage` gate; no console errors on either page.
 - ℹ️ Delete-reason uses native `window.prompt` (uniform admin convention — chip `task_b9c3d98d`).
 
-### ⬜ 17. Broadcasts — `/admin/broadcasts` (+ new, `/[id]`)
-Platform broadcast banners — create, view, cancel.
+### ✅ 17. Broadcasts — `/admin/broadcasts` (+ new, `/[id]`) — READY FOR MVP (2026-07-10 #44)
+Site-wide announcements (severity info/warning/critical × audience). Verified live end-to-end (throwaway broadcasts, cleaned up):
+- ✅ **Create** (`createBroadcastAction` → `runCreateBroadcast`) — inserts `broadcast_announcements` (created_by = admin), fans out to `in_app_notifications`, audits `broadcast.create` (target_type `broadcast`). List page + detail page render; status/severity badges correct; `notifications.broadcast` gate.
+- 🔴→✅ **BUG FOUND + FIXED: create re-inserted a duplicate broadcast row.** `createBroadcastWrapped` was called "purely for the audit side-effect," but its inner fn still ran a **second** `broadcast_announcements` insert (with `created_by: undefined`). It only avoided a real duplicate because `created_by` is NOT NULL, so the insert failed and was swallowed — fragile (would start duplicating if that column ever became nullable) and it left the audit's `after`-state empty. **Fix:** the wrapped fn now **reads the already-inserted row back by `__targetId`** instead of inserting. Verified live: create → exactly **1 row**, audit `after` now carries the real row (title + created_by). Commit `1df80786`.
+- ✅ **Cancel** (`cancelBroadcastSafe` → `cancelBroadcastAction`, requires reason ≥5) — sets `cancelled_at` + audit `broadcast.cancel` with reason. CancelButton uses a proper inline reason input (not `window.prompt`).
+- ✅ tsc + next lint green; no console errors.
+- ⚙️ **Drive note:** this form uses react-hook-form; `preview_fill` doesn't register with RHF — must set the value via the native setter + dispatch `input`+`change` events, else `handleSubmit` sees empty state and silently blocks.
 
 ### ⬜ 18. Send to users — `/admin/notifications/sent` (+ send)
 Push/in-app notification composer + sent history.
