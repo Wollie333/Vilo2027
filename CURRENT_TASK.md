@@ -2,7 +2,42 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-10 #42) — ADMIN MVP HARDENING (tab-by-tab). Tabs 1–5 READY. ALL PUSHED. NEXT = Tab 6 Ledger.
+## ▶▶▶ SAVE POINT (2026-07-10 #43) — ADMIN MVP HARDENING. Tabs 1–7, 9–13 READY. ALL PUSHED @ `6382b145`. NEXT = Tab 14 Categories.
+
+**Resume:** read [[admin-mvp-hardening-checklist]] + `ADMIN_MVP_CHECKLIST.md` FIRST — they hold the full per-tab
+detail + findings. Continue tab-by-tab; **Tab 8 Affiliates is LAST** (its own batch). I drive the preview as
+super_admin `wollie@manamarketing.co.za`; DB truth via service-role REST (`SUPABASE_SERVICE_ROLE_KEY` in
+apps/web/.env.local; run node scripts with `node --env-file=.env.local` from apps/web).
+⚙️ `.claude/settings.local.json` now allows all `PowerShell` (no more per-command prompts).
+
+**#43 session — READY: Tabs 6, 7, 9, 10, 11, 12, 13** (on top of 1–5). Highlights (full detail in the checklist):
+- **Tab 6 Ledger** — verified every finance action records + auto-mints its doc (INV/REF/CN) + downloadable +
+  audited; + FEATURES: user-record **amount-due** stat/banner, **bank details on ALL invoices** (small
+  light-green card, stacked, Ref#=doc number), **VAT at the bottom of the FROM block** (host + Wielo,
+  `getHostParty`/`wieloIssuerLines`/`InvoiceDocument`), **manual entries inherit the Paystack env**. Clean `pnpm build`.
+- **Tab 7 Payments** — read-only records view over the same `fetchWieloLedger` SSOT.
+- **Tab 9 Reporting** — hero KPIs/charts/range/PDF; 🐛 fixed money KPIs rendering 0 as "Free" (plan helper) → "R 0".
+- **Tab 10 Reviews** — hide/restore audited; 🐛 added `owner_user_id` (shared resolver) → shows in host History.
+- **Tab 11 Data requests** — export (real POPIA JSON)/processing/reject; 🔴 fixed GDPR deletion HARD-delete →
+  anonymise-only (soft-delete + ban auth, never delete). Verified on a throwaway.
+- **Tab 12 Platform Settings** — factor-by-factor round-trip (branding · business+VAT · legal · pixel+tracking ·
+  payments) + a spawned deep audit; 🔒 legal sanitise-on-read, payment-save no-op guard, **Paystack secrets
+  encrypt at rest** (app + Deno webhook decrypt; INERT until `PAYMENT_CIPHER_KEY` set), **mode/key guard**.
+- **Tab 13 Feature flags** — 🔴 REDESIGNED (founder call): features are product-driven (`product_features`);
+  `plan_features` is an empty fallback. Removed the misleading matrix; tab = per-host overrides + guest perms +
+  a link to **Products**. Override verified via `check_feature_permission` → `source=override`.
+
+**MODEL NOTE:** host feature access = host_override → `product_features` (per-product, edit in **Products**) → deny.
+
+**⚠️ FOUNDER TO-DOs surfaced this session:**
+1. Enter Wielo's **REAL VAT number** in Admin → Platform → Settings → Business (makes Wielo invoices proper tax invoices).
+2. To turn ON Paystack secret encryption: `supabase secrets set PAYMENT_CIPHER_KEY=<base64-32>` on the function
+   → `supabase functions deploy paystack-webhook` → set `PAYMENT_CIPHER_KEY` on Vercel → deploy app → THEN
+   re-save the Paystack keys. **Order matters** — re-saving encrypted before the webhook is redeployed 401s webhooks.
+3. Redeploy `paystack-webhook` (carries the setup_fee insert-if-missing + the new decrypt).
+
+---
+### (historical) SAVE POINT (2026-07-10 #42) — Tabs 1–5 READY
 
 **Read [[admin-mvp-hardening-checklist]] + `ADMIN_MVP_CHECKLIST.md` FIRST.** Founder directive: go tab-by-tab
 through the 20 admin sidebar tabs, deep functional-test EVERY action (does it perform + fire side-effect

@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-07-10 #43 (save point) — Admin MVP hardening: Tabs 6–13 (7 tabs READY), 5 bug fixes, 4 features.
+
+Continued the tab-by-tab deep functional test. **Tabs 6, 7, 9, 10, 11, 12, 13 now READY** (on top of 1–5).
+Full per-tab detail in `ADMIN_MVP_CHECKLIST.md`. All pushed to origin/main @ `6382b145`.
+
+- **Tab 6 Ledger** — verified every finance action records + auto-mints its document (invoice / refund / credit
+  note) + downloadable + audited; running balance correct. Shipped: user-record **amount-due** (owes/credit/
+  settled), **bank details on every invoice** (small light-green bottom-left card, each detail stacked, always
+  `Ref #: <doc number>`), **VAT at the bottom of the FROM block** (host→guest + Wielo→user, hosted + PDF), and
+  **manual ledger entries inherit the platform Paystack env** (so test entries show in the Test view). Verified
+  live incl. a seeded paid booking (host invoice INV-0046). Clean `pnpm build`.
+- **Tab 7 Payments** — read-only records view over the same `fetchWieloLedger` SSOT; filters + KPIs verified.
+- **Tab 9 Reporting** — hero KPIs, revenue/growth/donut charts, range filter, PDF export. **Fix:** money KPIs
+  used the plan-pricing helper that renders 0 as "Free" → a report-local formatter shows "R 0".
+- **Tab 10 Reviews** — uphold/reject-flag moderation, audited. **Fix:** added `owner_user_id` so review
+  moderation surfaces in the host's per-user History tab (was global-audit only).
+- **Tab 11 Data requests** — mark-processing / real POPIA JSON export / reject, audited. **CRITICAL fix:**
+  deletion fulfilment did a HARD delete (`auth.admin.deleteUser` first) — rewrote to always anonymise
+  (soft-delete profile + host, scrub PII, ban auth ~100y, never delete). Verified on a throwaway user.
+- **Tab 12 Platform Settings** — every factor verified round-trip (branding · Wielo business+VAT · legal ·
+  Meta pixel+tracking · payments) live + a spawned deep audit; the "do the two integration upserts clobber
+  each other" concern proven NOT a bug. **Hardening:** legal HTML sanitised on read too; payment save surfaces
+  a silent no-op; **Paystack secret keys now encrypt at rest** (app reader + Deno webhook both decrypt; inert
+  until `PAYMENT_CIPHER_KEY` is set — deploy order documented); **mode/key guard** blocks enabling a Paystack
+  mode with no secret for it.
+- **Tab 13 Feature flags** — **redesigned** (founder decision): host tier features are product-driven
+  (`product_features`); `plan_features` is an empty lower-precedence fallback, so the editable matrix (and the
+  host-override dropdown it fed) was misleading/broken. Removed the matrix + dead action; the tab is now
+  per-host overrides + guest permissions + a link to **Products**. Override verified via
+  `check_feature_permission` returning `source=override`.
+- **Tooling:** `.claude/settings.local.json` now allows all `PowerShell` (replaced a giant per-command allowlist).
+
+**Founder to-dos surfaced:** enter Wielo's real VAT (Settings → Business); enable Paystack secret encryption
+(set `PAYMENT_CIPHER_KEY` on function + Vercel, redeploy webhook, then re-save keys); redeploy `paystack-webhook`.
+
 ## 2026-07-10 #43 — Tab 6 Ledger: deep functional test + amount-due + invoice bank details.
 
 Tab 6 (`/admin/subscriptions/revenue`) hardening — verified every finance action records + auto-mints its
