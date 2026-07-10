@@ -132,8 +132,23 @@ The editor's entire **"Setup fee (once-off)"** block (amount + label + its own c
 - ✅ **Setup fee is its own INVOICE line item.** Migration `20260710170000` updates `mint_wielo_invoice_on_ledger_complete` to split `line_items` into two rows when `platform_ledger.setup_fee_amount > 0` — the product/subscription line + a dedicated "Setup fee (once-off)" line (invoice subtotal/VAT/total unchanged). **Verified live:** settled a R1000+R500 charge → invoice `INV-0044` line_items = `[{product, R1000}, {Setup fee (once-off), R500}]`; the hosted `/wielo-invoice/[token]` page renders both rows + "Total paid R1500" (screenshot).
 - ✅ **Product manager cards now show sales + full commission structure.** Each card shows **"N bought"** (distinct paid-order buyers) + **"M active"** (active/trialing subscribers), and a commission block: recurring/referral commission + its duration, **plus the setup fee and its commission**. Verified live — real product **Bernie** surfaces "Setup fee: R300 · commission 50%" (inert until this batch); test product showed "1 bought · 1 active · Sub commission 20% · recurring · Setup fee R500 · commission 10%".
 
-### ⬜ 6. Ledger — `/admin/subscriptions/revenue`
+### 🔶 6. Ledger — `/admin/subscriptions/revenue` — CORE VERIFIED + 2 FEATURES SHIPPED (2026-07-10 #43, pushed `92f33d96`)
 Wielo ledger — AdminLedgerList/Board + running balance + downloadable doc per row. Sibling tabs: `/subscriptions/plans`, `/subscriptions/services` (via _SubsTabs).
+
+**Verified live end-to-end through the real ledger UI (cloud DB):**
+- ✅ **Record payment** (`recordManualLedgerEntryAction`, type=charge) → `platform_ledger` charge + **auto-minted invoice INV-0045** (trigger `mint_wielo_invoice_on_ledger_complete`), downloadable PDF on the row; hosted `/wielo-invoice/[token]` renders issuer/buyer/line/total/PAID.
+- ✅ **Issue refund / Credit note / Adjustment** → signed ledger row + **auto-minted credit note** (`trg_mint_wielo_credit_note`): REF-0004 / CN-0008 / CN-0009, correct kind + sign + label (Refund/Total refunded etc.), downloadable. Running per-user balance correct (paid charge & refund net to 0; credit R30 + negative-adjust R20 = R50 credit).
+- ✅ **Send payment link** (`createWieloPaymentLinkAction`) → canonical `wielo.co.za/pay/product/<token>` link (localhost-fallback works) + **"Send to host's inbox"** (`adminSendPaymentLinkToInboxAction`) → "Sent to the host's inbox."
+- ✅ **Row ⋯ menu** exposes Issue refund / Give credit / Send payment link / Open document / Download PDF / Copy link — all wired; PDF endpoint returns 200 `application/pdf`.
+- ✅ Page renders for super_admin, KPIs (MRR/ARR/Collected/Refunded/Net/Paying hosts), type tabs + counts, env/product/status/user/date filters, search, CSV, TEST badge.
+
+**🔴→✅ Both mint triggers reviewed + confirmed correct** (idempotent, VAT-aware, skip-zero, write `invoice_id`/`ledger_id` back; invoice splits the setup-fee line).
+
+**FEATURE 1 — user record shows Wielo amount due** (founder ask): the user record now surfaces each user's current Wielo balance (from the ledger running balance) — an **"Owes Wielo" (amber) / "Wielo credit" (green) / "Settled"** stat on the Overview band + an **"Account balance"** banner atop the Finance tab. `page.tsx` (`wieloBalance`) + `UserRecord.tsx` (`wieloBalanceView`). Verified live (Lerato = R50 credit on both surfaces).
+
+**FEATURE 2 — bank details on every invoice** (founder ask): hosted invoice + PDF now **always** print bank details (was unpaid-only), in a **small light-green bottom-left card**, each detail **stacked** (Bank / Account name / Account no / Branch / SWIFT) always ending **Ref #: <document number>**. Shared `FinancialDocument` + PDF `InvoiceDocument`, so identical on **Wielo→user AND host→guest**; host invoice page de-gated too. Verified live on INV-0045. GOTCHA hit + fixed: pre-commit formatter stripped the `"num "` trailing space → `numtext-right`; fixed with space-safe ternary (`92f33d96`).
+
+**⚠️ Remaining before ✅ READY:** (a) drive filters/tabs/search/CSV exhaustively; (b) **host→guest** invoice bank card verified structurally (typecheck + shared live-proven template) but NOT opened live — no host booking invoice exists in the wiped test DB; (c) full `pnpm build` deferred (a 2nd `next dev` on :3000 shares `.next`; tsc --noEmit + lint both green). **UX note for founder:** a manual ledger entry inserts as `environment=live` (DB default), so it vanishes from a Test-filtered ledger view — switch env to Test+Live to see it. Flag if this should inherit the current Paystack mode instead.
 
 ### ⬜ 7. Payments — `/admin/payments`
 Payment records + pending refunds.
