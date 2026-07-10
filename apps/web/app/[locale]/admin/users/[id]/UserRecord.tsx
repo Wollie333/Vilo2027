@@ -34,6 +34,7 @@ import {
   Trash2,
   UserCog,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -365,6 +366,8 @@ export type UserRecordData = {
     requestedBy: string | null;
   }[];
   wieloLedger: WieloTxn[];
+  /** Current net owed to Wielo (+ = due, − = credit, ~0 = settled). */
+  wieloBalance: number;
   wieloLabels: {
     planLabels: Record<string, string>;
     productLabels: Record<string, string>;
@@ -1541,6 +1544,28 @@ function RowLink({
   );
 }
 
+// Present the current Wielo account balance as a due / credit / settled figure.
+// + = the user owes Wielo (amber), − = they hold a credit (green), ~0 = settled.
+function wieloBalanceView(balance: number): {
+  label: string;
+  value: string;
+  tone: "amber" | "green" | "neutral";
+} {
+  if (balance > 0.005)
+    return {
+      label: "Owes Wielo",
+      value: `${formatMoney(balance, "ZAR")} due`,
+      tone: "amber",
+    };
+  if (balance < -0.005)
+    return {
+      label: "Wielo credit",
+      value: `${formatMoney(Math.abs(balance), "ZAR")} credit`,
+      tone: "green",
+    };
+  return { label: "Wielo balance", value: "Settled", tone: "neutral" };
+}
+
 function OverviewPanel({ data }: { data: UserRecordData }) {
   const { user, host } = data;
   const s = data.subscription;
@@ -1578,7 +1603,7 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
     value: string;
     sub?: string;
     icon: LucideIcon;
-    tone?: "green";
+    tone?: "green" | "amber";
   }[] = [];
   if (host) {
     stats.push({
@@ -1610,12 +1635,22 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
     sub: aff ? `${aff.signups} signups` : undefined,
     icon: Gift,
   });
-  // Paid to Wielo is the headline money figure — always last, greenish.
+  // Paid to Wielo is the headline money figure — greenish.
   stats.push({
     label: "Paid to Wielo",
     value: formatMoney(paidToWielo, "ZAR"),
     icon: CreditCard,
     tone: "green",
+  });
+  // Current Wielo balance — what they still owe (amber) or their credit (green),
+  // straight off the ledger's running per-user balance. Always last so the
+  // admin can see at a glance whether the account is settled.
+  const balView = wieloBalanceView(data.wieloBalance);
+  stats.push({
+    label: balView.label,
+    value: balView.value,
+    icon: Wallet,
+    tone: balView.tone === "neutral" ? undefined : balView.tone,
   });
 
   return (
@@ -1650,18 +1685,32 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
         {stats.map((st) => (
           <div
             key={st.label}
-            className={`p-4 ${st.tone === "green" ? "bg-brand-primary/5" : "bg-white"}`}
+            className={`p-4 ${
+              st.tone === "green"
+                ? "bg-brand-primary/5"
+                : st.tone === "amber"
+                  ? "bg-amber-50"
+                  : "bg-white"
+            }`}
           >
             <div
               className={`flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider ${
-                st.tone === "green" ? "text-brand-primary" : "text-brand-mute"
+                st.tone === "green"
+                  ? "text-brand-primary"
+                  : st.tone === "amber"
+                    ? "text-amber-700"
+                    : "text-brand-mute"
               }`}
             >
               <st.icon className="h-3.5 w-3.5" /> {st.label}
             </div>
             <div
               className={`num mt-1.5 font-display text-[20px] font-bold leading-none ${
-                st.tone === "green" ? "text-brand-primary" : "text-brand-ink"
+                st.tone === "green"
+                  ? "text-brand-primary"
+                  : st.tone === "amber"
+                    ? "text-amber-700"
+                    : "text-brand-ink"
               }`}
             >
               {st.value}
@@ -2989,6 +3038,46 @@ function LedgerPanel({
             Wielo. Balance = what they owe Wielo (or their credit) after each
             entry.
           </p>
+          {(() => {
+            const bal = wieloBalanceView(data.wieloBalance);
+            return (
+              <div
+                className={`mb-4 flex items-center justify-between gap-3 rounded-[12px] border p-4 ${
+                  bal.tone === "amber"
+                    ? "border-amber-200 bg-amber-50"
+                    : bal.tone === "green"
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-brand-line bg-brand-light"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Wallet
+                    className={`h-4 w-4 ${
+                      bal.tone === "amber"
+                        ? "text-amber-700"
+                        : bal.tone === "green"
+                          ? "text-emerald-700"
+                          : "text-brand-mute"
+                    }`}
+                  />
+                  <span className="text-[12.5px] font-semibold text-brand-ink">
+                    Account balance
+                  </span>
+                </div>
+                <span
+                  className={`num font-display text-[17px] font-bold ${
+                    bal.tone === "amber"
+                      ? "text-amber-700"
+                      : bal.tone === "green"
+                        ? "text-emerald-700"
+                        : "text-brand-ink"
+                  }`}
+                >
+                  {bal.value}
+                </span>
+              </div>
+            );
+          })()}
           <AdminLedgerList
             entries={data.wieloLedger}
             planLabels={data.wieloLabels.planLabels}

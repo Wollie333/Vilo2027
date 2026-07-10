@@ -41,11 +41,9 @@ export async function GET(
   const lines = (
     Array.isArray(invoice.line_items) ? invoice.line_items : []
   ) as LineItem[];
-  // Unpaid → include Wielo's EFT bank details as payment instructions.
-  const banking =
-    invoice.status === "paid"
-      ? null
-      : await getPlatformInvoiceBanking(invoice.invoice_number);
+  // Wielo's bank details always print on the invoice PDF; the payment reference
+  // is always the invoice number (rendered by the PDF banking block).
+  const banking = await getPlatformInvoiceBanking(invoice.invoice_number);
 
   const buffer = await renderInvoicePdf({
     invoiceNumber: invoice.invoice_number,

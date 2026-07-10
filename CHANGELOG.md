@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-10 #43 — Tab 6 Ledger: deep functional test + amount-due + invoice bank details.
+
+Tab 6 (`/admin/subscriptions/revenue`) hardening — verified every finance action records + auto-mints its
+document + the action items work, then shipped two founder-requested features.
+
+- **Ledger auto-documents — verified live end-to-end** against the live cloud DB through the real ledger UI:
+  - **Record payment** → `platform_ledger` charge + auto-minted **invoice (INV-0045)**, downloadable PDF on the
+    row; hosted invoice renders with issuer/buyer/line/total.
+  - **Issue refund / Credit note / Adjustment** → signed ledger row + auto-minted **credit note**
+    (REF-0004 / CN-0008 / CN-0009), correct kind + sign, downloadable; running per-user balance correct
+    (paid charge & refund net to zero; credit + negative adjustment accumulate).
+  - **Send payment link** → creates a canonical `wielo.co.za/pay/product/<token>` link + **"Send to host's
+    inbox"** posts the pay card (verified: "Sent to the host's inbox."). Row ⋯ menu exposes Open document /
+    Download PDF / Copy link / refund / credit / link — all wired.
+- **Feature — user record shows the Wielo amount due.** The user record now surfaces each user's current Wielo
+  account balance (from the ledger's running per-user balance): an **"Owes Wielo" (amber) / "Wielo credit"
+  (green) / "Settled"** stat on the Overview band **and** an "Account balance" banner atop the Finance tab.
+  (`page.tsx` computes it from the newest revenue row's balance; `UserRecord.tsx` renders both.)
+- **Feature — bank details on every invoice.** The hosted invoice + PDF now always print Wielo's bank details
+  (previously only on unpaid), in a **small light-green card, bottom-left**, with each detail **stacked**
+  (Bank / Account name / Account no / Branch / SWIFT) and always ending **Ref #: <document number>**. Applied
+  to the **shared** `FinancialDocument` + `InvoiceDocument` (PDF), so it's identical on **Wielo→user AND
+  host→guest** invoices; host invoice page de-gated banking too.
+- `tsc --noEmit` + `pnpm lint` both green. (Full `pnpm build` deferred: a second `next dev` on :3000 shares
+  `.next` — building would corrupt it. Host→guest invoice card verified structurally via the shared,
+  live-proven template; no host booking invoice exists in the wiped test DB to open.)
+
 ## 2026-07-10 #41 — Admin MVP hardening (tab-by-tab deep functional test) — IN PROGRESS.
 
 Tab-by-tab deep functional test of the 20 admin sidebar tabs (does every action perform + fire its

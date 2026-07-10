@@ -212,7 +212,8 @@ export default async function PublicInvoicePage({
         label: isPaid ? "Total paid" : "Total due",
         value: formatMoney(invoice.total_amount, c),
       }}
-      banking={isPaid ? null : party.banking}
+      banking={party.banking}
+      bankingLabel={isPaid ? "Banking details" : "Payment details"}
       stamp={isPaid ? "Paid" : null}
       pdfHref={`/invoice/${invoice.hosted_token}/pdf`}
       footerTitle="Thank you for booking direct."

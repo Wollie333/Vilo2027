@@ -6,7 +6,7 @@ import {
   getLatestSupportGrant,
 } from "@/lib/admin/supportGrant";
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
-import { fetchWieloLedger } from "@/lib/billing/wielo-ledger";
+import { fetchWieloLedger, isAffiliateTxn } from "@/lib/billing/wielo-ledger";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { getInternalCatalog } from "@/lib/products/getProducts";
@@ -625,6 +625,14 @@ export default async function AdminUserDetailPage({
     if (p.plan_key && p.name) planLabels[p.plan_key] = p.name;
   }
 
+  // Current Wielo account balance = what this user owes Wielo (or their credit).
+  // fetchWieloLedger already computed a running per-user balance on each revenue
+  // row (oldest→newest, then sorted newest-first), so the newest revenue row's
+  // balance IS the current net. Affiliate rows track a different axis (Wielo→
+  // affiliate) and are excluded.
+  const wieloBalance =
+    wieloRows.find((r) => !isAffiliateTxn(r.type))?.balance ?? 0;
+
   // Referrals this user has made as an affiliate (their affiliate link's signups).
   const referralBundle = await loadReferrals(service, user.id);
 
@@ -715,6 +723,7 @@ export default async function AdminUserDetailPage({
       bullets: p.bullets,
     })),
     wieloLedger: wieloRows,
+    wieloBalance,
     wieloLabels: { planLabels, productLabels },
     relationships: relationshipBundle,
     affiliateSlug: referralBundle.slug,

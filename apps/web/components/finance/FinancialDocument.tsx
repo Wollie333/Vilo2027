@@ -74,6 +74,9 @@ export type FinancialDocumentProps = {
     swiftCode: string | null;
     reference: string | null;
   } | null;
+  /** Heading over the banking card (default "Payment details"). Paid documents
+   *  pass "Banking details" since it's informational, not a request to pay. */
+  bankingLabel?: string;
   stamp?: string | null;
   footerTitle?: string;
   footerNote?: string;
@@ -286,31 +289,36 @@ export function FinancialDocument(p: FinancialDocumentProps) {
               </div>
             </div>
 
-            {/* banking — footer-left payment details */}
+            {/* banking — small light-green card, bottom-left. Each detail on its
+                own line, always ending with the document number as the payment
+                reference. Identical on every invoice (Wielo → user + host →
+                guest). */}
             {p.banking ? (
-              <div className="mt-8 rounded-[12px] border border-brand-line bg-[#F6FAF7] p-4">
-                <div className="eyebrow mb-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#8AA89B]">
-                  Payment details
+              <div className="mt-8 w-full max-w-[300px] rounded-[12px] border border-emerald-100 bg-[#F0F9F3] p-4">
+                <div className="eyebrow mb-2.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#8AA89B]">
+                  {p.bankingLabel ?? "Payment details"}
                 </div>
-                <div className="text-[12.5px] font-semibold text-brand-ink">
-                  {p.banking.bankName}
-                  {p.banking.accountHolder
-                    ? ` — ${p.banking.accountHolder}`
-                    : ""}
-                </div>
-                <div className="num mt-0.5 text-[12.5px] text-brand-mute">
-                  Account {p.banking.accountNumber}
-                  {p.banking.accountType ? ` · ${p.banking.accountType}` : ""}
-                  {p.banking.branchCode
-                    ? ` · Branch ${p.banking.branchCode}`
-                    : ""}
-                  {p.banking.swiftCode ? ` · SWIFT ${p.banking.swiftCode}` : ""}
-                </div>
-                {p.banking.reference ? (
-                  <div className="mt-1 text-[12.5px] font-medium text-brand-secondary">
-                    Use reference: {p.banking.reference}
-                  </div>
-                ) : null}
+                <dl className="space-y-1 text-[12.5px]">
+                  <BankRow label="Bank" value={p.banking.bankName} />
+                  {p.banking.accountHolder ? (
+                    <BankRow
+                      label="Account name"
+                      value={p.banking.accountHolder}
+                    />
+                  ) : null}
+                  <BankRow
+                    label="Account no"
+                    value={p.banking.accountNumber}
+                    mono
+                  />
+                  {p.banking.branchCode ? (
+                    <BankRow label="Branch" value={p.banking.branchCode} mono />
+                  ) : null}
+                  {p.banking.swiftCode ? (
+                    <BankRow label="SWIFT" value={p.banking.swiftCode} mono />
+                  ) : null}
+                  <BankRow label="Ref #" value={p.number} mono emphasize />
+                </dl>
               </div>
             ) : null}
 
@@ -366,6 +374,32 @@ export function FinancialDocument(p: FinancialDocumentProps) {
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+// One stacked bank-detail line: muted label on the left, value on the right.
+function BankRow({
+  label,
+  value,
+  mono,
+  emphasize,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  emphasize?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-4">
+      <dt className="text-brand-mute">{label}</dt>
+      <dd
+        className={`${mono ? "num" : ""}text-right font-semibold ${
+          emphasize ? "text-brand-secondary" : "text-brand-ink"
+        }`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

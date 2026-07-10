@@ -247,24 +247,31 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
           <View style={styles.notesBox}>
             <Text style={styles.notesLabel}>Payment details</Text>
             <Text style={styles.notesBody}>
-              {invoice.host.banking.bankName} —{" "}
-              {invoice.host.banking.accountHolder}
+              Bank: {invoice.host.banking.bankName}
             </Text>
-            <Text style={styles.notesBody}>
-              Account {invoice.host.banking.accountNumber} ·{" "}
-              {invoice.host.banking.accountType} · Branch{" "}
-              {invoice.host.banking.branchCode}
-              {invoice.host.banking.swiftCode
-                ? ` · SWIFT ${invoice.host.banking.swiftCode}`
-                : ""}
-            </Text>
-            {invoice.host.banking.reference ? (
-              <Text
-                style={[styles.notesBody, { marginTop: 4, color: "#4A7C6A" }]}
-              >
-                Use reference: {invoice.host.banking.reference}
+            {invoice.host.banking.accountHolder ? (
+              <Text style={styles.notesBody}>
+                Account name: {invoice.host.banking.accountHolder}
               </Text>
             ) : null}
+            <Text style={styles.notesBody}>
+              Account no: {invoice.host.banking.accountNumber}
+            </Text>
+            {invoice.host.banking.branchCode ? (
+              <Text style={styles.notesBody}>
+                Branch: {invoice.host.banking.branchCode}
+              </Text>
+            ) : null}
+            {invoice.host.banking.swiftCode ? (
+              <Text style={styles.notesBody}>
+                SWIFT: {invoice.host.banking.swiftCode}
+              </Text>
+            ) : null}
+            <Text
+              style={[styles.notesBody, { marginTop: 4, color: "#4A7C6A" }]}
+            >
+              Ref #: {invoice.invoiceNumber}
+            </Text>
           </View>
         ) : null}
 

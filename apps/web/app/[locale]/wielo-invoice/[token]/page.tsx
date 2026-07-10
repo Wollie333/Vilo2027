@@ -66,10 +66,9 @@ export default async function PublicWieloInvoicePage({
   const vat = Number(invoice.vat_amount ?? 0);
   const isTaxInvoice = vat > 0.005;
   const isPaid = invoice.status === "paid";
-  // Unpaid → show Wielo's EFT bank details as payment instructions.
-  const banking = isPaid
-    ? null
-    : await getPlatformInvoiceBanking(invoice.invoice_number);
+  // Wielo's bank details always print on the invoice (bottom-left card). The
+  // payment reference is always the invoice number (rendered by the card).
+  const banking = await getPlatformInvoiceBanking(invoice.invoice_number);
 
   const lineRows: DocLine[] = lines.map((l) => ({
     title: l.description,
@@ -114,6 +113,7 @@ export default async function PublicWieloInvoicePage({
         value: formatMoney(invoice.total_amount, c),
       }}
       banking={banking}
+      bankingLabel={isPaid ? "Banking details" : "Payment details"}
       stamp={isPaid ? "Paid" : null}
       pdfHref={`/wielo-invoice/${invoice.hosted_token}/pdf`}
       footerTitle={`Thank you for choosing ${brandName}.`}
