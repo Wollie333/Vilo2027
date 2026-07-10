@@ -2,40 +2,54 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-10 #39) — ADMIN MVP HARDENING (tab-by-tab deep functional test). IN PROGRESS.
+## ▶▶▶ SAVE POINT (2026-07-10 #42) — ADMIN MVP HARDENING (tab-by-tab). Tabs 1–5 READY. ALL PUSHED. NEXT = Tab 6 Ledger.
 
 **Read [[admin-mvp-hardening-checklist]] + `ADMIN_MVP_CHECKLIST.md` FIRST.** Founder directive: go tab-by-tab
 through the 20 admin sidebar tabs, deep functional-test EVERY action (does it perform + fire side-effect
 (email/paylink/ledger) + log to the **History tab**), refine/fix as we go, mark each "Ready for MVP".
-**No 0.major changes — refinement + correctness only.** Founder pref THIS session: **fix locally, DON'T push
-to GitHub until all done** (I drive the preview as super_admin `wollie@manamarketing.co.za`).
+**No 0.major changes — refinement + correctness only.** I drive the preview as super_admin
+`wollie@manamarketing.co.za`; DB truth via service-role REST (`SUPABASE_SERVICE_ROLE_KEY` in apps/web/.env.local).
+
+**✅ EVERYTHING PUSHED TO GITHUB** as of #42 (main @ `f6066fe8`). The prior "fix locally, don't push" hold is
+lifted — the 9-commit backlog (incl. the critical soft-delete fix `225869d7`) is now on origin/main.
 
 **DONE + verified this session (Tabs 1–5 READY):**
-- ✅ Tab 1 Overview · ✅ Tab 2 Users list (hid Wielo Support bot + removed dead Staff tab — `75e13886`, pushed).
+- ✅ Tab 1 Overview · ✅ Tab 2 Users list (hid Wielo Support bot + removed dead Staff tab).
 - ✅ Tab 3 Inbox — reply persists (as Wielo Support), threads/filters/search render, details deep-links.
-- ✅ Tab 4 Listings — enriched columns + moderation menu; **Feature** action performs + audits (`listing.set_featured`).
-- ✅ Tab 5 Products — product create audits `products.upsert` w/ `target_type=product` (LIVE proof of reconcile migration). Paystack Payment-settings NOT toggled (sensitive).
-- ✅ Tab 2 user record — DEEPLY hardened, **19 actions** verified live+DB (incl. set_product/provision pay-link + upgrade card). THREE bugs found+fixed:
-  1. 13/24 actions missing from History (audit `target_type` CHECK rejected addon/policy/business/affiliate → silent-swallow; + host-scoped actions never set `payload.owner_user_id`). Fix: migrations `20260710120000`+`130000` (full `AuditTargetType` superset) + `withAdminAudit.getOwnerUserId`. `362b2fc5`+`1c7e8a53` (pushed).
-  2. ~23 MORE actions app-wide silently un-audited (product/plan/platform_ledger/affiliate_payout/marketing_asset/etc.) — same migration fixes it. Plus 3 hardening fixes (audit fails LOUD in dev; correct revalidatePath; native confirm→`modal.destructive`).
-  3. 🔴 CRITICAL: **"Delete user" was a permanent PURGE** (app_purge_user_account + auth.admin.deleteUser) despite modal "Soft-delete (recoverable)". Fixed → TRUE soft-delete (deleted_at + anonymize + ban auth, keep rows). **Local commit `225869d7` — NOT pushed.**
+- ✅ Tab 4 Listings — enriched columns + moderation menu; **Feature** performs + audits (`listing.set_featured`).
+- ✅ Tab 2 user record — DEEPLY hardened, **19 actions** verified live+DB. THREE bugs found+fixed:
+  1. 13/24 actions missing from History (audit `target_type` CHECK rejected addon/policy/business/affiliate → silent-swallow; + host-scoped actions never set `payload.owner_user_id`). Migrations `20260710120000`+`130000` (full `AuditTargetType` superset) + `withAdminAudit.getOwnerUserId`.
+  2. ~23 MORE actions app-wide silently un-audited — same migration fixes it. Plus 3 hardening fixes (audit fails LOUD in dev; correct revalidatePath; native confirm→`modal.destructive`).
+  3. 🔴 CRITICAL: **"Delete user" was a permanent PURGE** despite modal "Soft-delete (recoverable)". Fixed → TRUE soft-delete (deleted_at + anonymize + ban auth, keep rows). Commit `225869d7` (now pushed).
+- ✅ **Tab 5 Products — ADVANCED deep-test + setup-fee feature (this session #41–42):**
+  - Proved controls ENFORCE (not just persist) via real RPCs vs live DB, 12/12: `check_feature_permission`
+    gates from `product_features`; `accrue_affiliate_commission` computes %/fixed/cap-at-net/duration/none.
+    **NOTE: the real test host has `host_feature_overrides` + multi-subs that mask the product layer — test
+    product-level gating on a FRESH isolated host.**
+  - 🔴→✅ **The "Setup fee (once-off)" editor block was a DEAD control** (stored, never charged, never paid
+    commission). Founder chose "wire it up." Migrations `20260710160000` (setup_fee_amount on
+    product_orders+platform_ledger; `accrue_affiliate_commission` now emits `kind=subscription` on recurring
+    net + `kind=setup_fee` on the setup portion) + `20260710170000` (invoice `line_items` split into product +
+    "Setup fee (once-off)" line). `createProductOrder` folds setup fee into `amount` on FIRST purchase only.
+    Product cards now show **N bought · M active + full commission structure (recurring + setup)**. Pay page +
+    hosted invoice show the breakdown. All verified live (order R1500, invoice INV-0044 two lines, cards). `f6066fe8`.
+  - ⏳ **Deno `paystack-webhook` source updated but NOT redeployed** (only its rare insert-if-missing fallback
+    uses setup_fee; app-seeded pending row already carries it) → fold into the already-deferred webhook redeploy.
 
-**⚠️ Test host was PURGED then re-seeded** → **NEW user_id = `72811b8e-c8f6-466b-a379-e7418050db2a`** (host_id
-unchanged `0b111111-1111-4111-8111-111111111111`; login `host@wielotest.com` / `WieloTest123!`). Re-seed cmd:
+**⚠️ Test host** (re-seeded after the earlier purge): **user_id = `72811b8e-c8f6-466b-a379-e7418050db2a`**
+(host_id `0b111111-1111-4111-8111-111111111111`; login `host@wielotest.com` / `WieloTest123!`). Re-seed:
 `cd apps/web && node --env-file=.env.local scripts/seed-single-host.mjs` (retry on "fetch failed").
 
 **NEXT (resume here):** continue the tab-by-tab sweep at **Tab 6 — Ledger** (`/admin/subscriptions/revenue`;
-also test the "Send payment link → to inbox" affordance = admin inbox `adminSendPaymentLinkToInboxAction`),
+also test "Send payment link → to inbox" = admin inbox `adminSendPaymentLinkToInboxAction`),
 then Tabs 7 Payments · 8 Affiliates · 9 Reporting · 10 Reviews · 11 Data requests · 12–20 Platform group.
 Leftover user-record variations (pattern-verified, low value): affiliate_payout (needs commission),
 cancel_scheduled_change, email_doc, policy set_default/delete, change_role, impersonate (dev-preview hangs).
 
-**Method reminder:** kill orphaned dev servers first (they stack up and OOM-crash — this session hit 126
-orphans; `Get-CimInstance Win32_Process | ? CommandLine -match 'next dev|next-server' | Stop-Process -Force`),
-run ONE dev server, re-login as wollie, warm heavy routes with authed curl, DB-verify every action via
-service-role REST. Commit locally per tab. Founder: **only push to GitHub when the work is 100% correct.**
-
-**Unpushed local commits (9):** the soft-delete fix `225869d7` + per-tab doc checkpoints. Push all when 100% verified.
+**Method reminder:** kill orphaned dev servers first (they stack up and OOM-crash;
+`Get-CimInstance Win32_Process | ? CommandLine -match 'next dev|next-server' | Stop-Process -Force`), run ONE
+dev server, re-login as wollie, warm heavy routes with authed curl, DB-verify every action via service-role
+REST. Building with a dev/preview server up corrupts `.next` — stop it first + `rm -rf apps/web/.next`.
 
 **GOTCHAS this session:** dev server for the heavy record route (5300-line UserRecord.tsx) is UNSTABLE — dies
 often, 15-48s cold compiles (warm with an authed `curl` before driving); modal inputs flicker on entrance
