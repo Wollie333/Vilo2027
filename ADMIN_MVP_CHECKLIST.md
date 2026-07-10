@@ -132,7 +132,7 @@ The editor's entire **"Setup fee (once-off)"** block (amount + label + its own c
 - ✅ **Setup fee is its own INVOICE line item.** Migration `20260710170000` updates `mint_wielo_invoice_on_ledger_complete` to split `line_items` into two rows when `platform_ledger.setup_fee_amount > 0` — the product/subscription line + a dedicated "Setup fee (once-off)" line (invoice subtotal/VAT/total unchanged). **Verified live:** settled a R1000+R500 charge → invoice `INV-0044` line_items = `[{product, R1000}, {Setup fee (once-off), R500}]`; the hosted `/wielo-invoice/[token]` page renders both rows + "Total paid R1500" (screenshot).
 - ✅ **Product manager cards now show sales + full commission structure.** Each card shows **"N bought"** (distinct paid-order buyers) + **"M active"** (active/trialing subscribers), and a commission block: recurring/referral commission + its duration, **plus the setup fee and its commission**. Verified live — real product **Bernie** surfaces "Setup fee: R300 · commission 50%" (inert until this batch); test product showed "1 bought · 1 active · Sub commission 20% · recurring · Setup fee R500 · commission 10%".
 
-### 🔶 6. Ledger — `/admin/subscriptions/revenue` — CORE VERIFIED + 2 FEATURES SHIPPED (2026-07-10 #43, pushed `92f33d96`)
+### ✅ 6. Ledger — `/admin/subscriptions/revenue` — READY FOR MVP (2026-07-10 #43)
 Wielo ledger — AdminLedgerList/Board + running balance + downloadable doc per row. Sibling tabs: `/subscriptions/plans`, `/subscriptions/services` (via _SubsTabs).
 
 **Verified live end-to-end through the real ledger UI (cloud DB):**
@@ -154,7 +154,7 @@ Wielo ledger — AdminLedgerList/Board + running balance + downloadable doc per 
 - ✅ **Manual ledger entries inherit the current Paystack mode** (`recordManualLedgerEntryAction` reads `paystack_mode` → `environment`), so a charge posted in test mode shows in the Test-filtered view (verified live). Fixes the earlier "vanishes from Test view" papercut.
 - ✅ **Full `pnpm build` passes** (EXIT=0, clean `.next`) — the :3000 orphan server was stopped.
 
-**⚠️ Remaining before ✅ READY:** (a) drive filters/tabs/search/CSV exhaustively. **ACTION FOR FOUNDER:** enter Wielo's **real VAT number** in Admin → Platform → Settings (Wielo business details) — the code renders it at the FROM bottom + makes Wielo invoices proper tax invoices; a placeholder was used only for the live test and then blanked.
+**Filters/tabs/search/CSV — verified live (#43c):** type tabs filter + counts (Refunds → 3 refund rows); status server-filter re-fetch (pending → 9); env test/all/live; product dropdown; user-email filter; date-range (same pushParams); client search (CN-0008 → 1 row); CSV export (15 cols, 26 rows, correct data). **ACTION FOR FOUNDER:** enter Wielo's **real VAT number** in Admin → Platform → Settings (Wielo business details) — the code renders it at the FROM bottom + makes Wielo invoices proper tax invoices; a placeholder was used only for the live test and then blanked.
 
 ### ⬜ 7. Payments — `/admin/payments`
 Payment records + pending refunds.
