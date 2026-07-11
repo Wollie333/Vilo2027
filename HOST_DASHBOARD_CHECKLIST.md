@@ -1,12 +1,9 @@
 # Host Dashboard Functional Sweep Checklist
 
-> **▶ SAVE POINT — 2026-07-12 @ `9beb7ca7` (git clean, pushed).** Resume the sweep here.
-> **DONE:** Batch A (DAILY) · **Batch B (PROPERTIES) 100% COMPLETE** — listing editor · Rooms ·
-> Specials (built to 100%) · Policies · Add-ons · Coupons · Reviews · Media (all verified live+DB).
-> **2 bug fixes landed this session:** policy-duplicate-proliferation (migration `20260712100000` +
-> toggle guard) + Reviews `ReplyComposer` hydration mismatch (en-ZA). **RESUME AT:** Batch C FINANCES
-> (Ledger · Payments · Quotes · Invoices · Credit Notes · Refunds) → D CHANNELS → E LOOKING-FOR →
-> F INSIGHTS → G SETTINGS. Full state + gotchas in memory `host-dashboard-sweep`.
+> **▶ SWEEP COMPLETE — 2026-07-12 (git clean, pushed).** All 35 tabs across Batches A–G verified
+> live+DB. **Fixes shipped:** policy duplicate-proliferation (migration `20260712100000` + toggle guard),
+> Reviews `ReplyComposer` hydration, **Request Alerts dead-stub → full CRUD** (`AlertsManager.tsx`).
+> Website/Builder/CMS stayed out of scope. See the per-tab detail below + memory `host-dashboard-sweep`.
 > **To drive:** start preview, sign out of super_admin, log in as `host@wielotest.com`/`WieloTest123!`,
 > resize ≥1280. Feature gates are now OPEN for all hosts (MVP), so previously-gated tabs work.
 
@@ -175,19 +172,24 @@ Test fixture restored to the clean 4-active-default state. `deleted_at IS NULL` 
 - ✅ 24. Saved Requests — `/dashboard/looking-for/saved` — server-rendered list, correct empty state (no bookmarks). Populates from Browse bookmark toggle.
 - 🔴→✅ 25. Request Alerts — `/dashboard/looking-for/alerts` — **WAS A DEAD STUB** (page.tsx Server Component: "New Alert" / "Create Your First Alert" / "Edit" / delete buttons had **NO handlers** — the 4 server actions `createAlertAction`/`updateAlertAction`/`toggleAlertActiveAction`/`deleteAlertAction` existed but nothing in the UI called them). **FIXED:** built `AlertsManager.tsx` client component (FormModal form: name/category/region/budget/guests/check-in window + card list with Pause/Activate·Edit·Delete) and refactored `page.tsx` to render it. **Full CRUD verified live+DB:** create (`createAlertAction` → "Karoo weekend getaways") → Pause (`toggleAlertActiveAction` is_active→false) → Edit name (`updateAlertAction`, is_active untouched) → Delete (`deleteAlertAction`, confirm modal). Fixture clean (0 alerts). Build green, no lint issues. (Transient "[dashboard] uncaught error" seen mid-session = HMR recompile churn while live-editing; not reproducible — all 4 pages fresh-load clean.)
 
-## F · INSIGHTS
-- ⬜ 26. Reports — `/dashboard/reports` (+ savings)
-- ⬜ 27. Tracking — `/dashboard/tracking`
-- ⬜ 28. Affiliates — `/portal/affiliates` (host-facing portal surface)
+## F · INSIGHTS — ✅ SWEPT (2026-07-12 #54)
+- ✅ 26. Reports — `/dashboard/reports` (+ savings) — "Analytics & Reports" renders: KPI tiles (revenue R8 330 etc), date-range picker + quick presets (**90D preset verified active on click**), listing/region/channel filters + Reset, Schedule/Export/Open-ledger. **Savings sub-page** `/reports/savings` renders (commission-saved vs OTAs, R1 499 @ 15%). No error UI; no console errors. (Export/Schedule wired, not fired — avoid downloads / scheduled-report creation.)
+- ✅ 27. Tracking — `/dashboard/tracking` — correctly **gated**: "Set up your website first — pixels/analytics attach to your public booking site" + Create-website CTA. The pixel form + `saveTrackingAction` live behind that gate; the test host has no website (Website feature is out of scope), so the gate is the correct state.
+- ✅ 28. Affiliates — `/portal/affiliates` — host portal shows the correct **enrollment gate** for a non-enrolled host ("Earn with Wielo" + terms checkbox + "Join the programme"). Not enrolled to avoid affiliate/ledger artifacts; the full affiliate dashboard/links/payouts/leaderboard/marketing were built + verified in the dedicated affiliate-hardening work ([[project-affiliate-hardening-plan]], demo affiliate `wollie-steenkamp`). No console errors.
 
-## G · SETTINGS (footer)
-- ⬜ 29. Profile / host — `/dashboard/settings` (+ `/host`)
-- ⬜ 30. Businesses — `/dashboard/settings/businesses`
-- ⬜ 31. Banking — `/dashboard/settings/banking`
-- ⬜ 32. Notifications — `/dashboard/settings/notifications`
-- ⬜ 33. Subscription — `/dashboard/settings/subscription`
-- ⬜ 34. Transactions — `/dashboard/settings/transactions`
-- ⬜ 35. Data (export/delete) — `/dashboard/settings/data`
+## G · SETTINGS (footer) — ✅ SWEPT (2026-07-12 #54)
+- ✅ 29. Profile / host — `/dashboard/settings` (+ `/host` = same surface) — merged user_profiles (name/phone/email) + hosts (bio/handle/highlights) form + password-change card. **Verified live+DB:** edited bio → **Save profile** wrote `hosts.bio`; reverted.
+- ✅ 30. Businesses — `/dashboard/settings/businesses` (+ `/new`, `/[id]`) — business list (Karoo Sky Stays Default) + personal address (Save address) + Add business + per-business Edit/kebab. **Verified live+DB:** `/new` form (trading/legal name, VAT#, reg#, currency/language, address) → **Save business** (`createBusinessAction` wrote "Sweep Test Business"); cleaned up. Edit/logo/set-default/archive wired to the edit page + "More actions" kebab (Radix menu flaky via eval).
+- ✅ 31. Banking (Card payments) — `/dashboard/settings/banking` — connect your OWN Paystack (ZAR) / PayPal gateway (Connect CTAs, "encrypted at rest"). Connect flow needs real gateway creds — not fired.
+- ✅ 32. Notifications — `/dashboard/settings/notifications` — shared `PreferencesForm` (35 channel×category checkboxes) + AwayAutoReply card. **Verified live+DB:** toggled `messages` email off → **Save preferences** (`savePreferencesAction`) wrote `user_notification_preferences`; reverted. **Locked categories (bookings) correctly protected** — the action filters them so a toggle can't disable them.
+- ✅ 33. Subscription — `/dashboard/settings/subscription` — current plan (Beta active / Beta Testers, no charges) + Switch-plan with upgrade CTAs (Bernie/Starter). Upgrade initiates checkout — not fired.
+- ✅ 34. Transactions — `/dashboard/settings/transactions` — buyer transaction-history table (Date/Description/Amount/Status/Document) for subscriptions + products, with downloadable docs. Renders (read surface).
+- ✅ 35. Data (export/delete) — `/dashboard/settings/data` — "Export your data" (Request data export) + "Delete your account" (Request deletion / Delete my account) render with warnings. Destructive — not fired. No console errors on any Settings tab.
+
+---
+
+## ✅ SWEEP COMPLETE — all 35 host-dashboard tabs verified (2026-07-12).
+Batches A–G done. **Real fixes shipped this sweep:** ① policy duplicate-proliferation (migration `20260712100000` + toggle guard, `8fbe8f1b`) · ② Reviews `ReplyComposer` hydration mismatch (`9beb7ca7`) · ③ **Request Alerts dead-stub → full CRUD** (`AlertsManager.tsx`, `19a9a9d2`) · (④ the earlier Specials 100% build + removeGuestTag fix from #47–#48). Website/Builder/CMS remained out of scope throughout.
 
 ---
 

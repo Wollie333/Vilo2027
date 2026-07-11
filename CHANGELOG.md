@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-12 #55 — Host dashboard sweep COMPLETE (Batches F Insights + G Settings).
+
+Finished the tab-by-tab host-dashboard functional sweep. Batches F–G verified live + DB truth:
+- **Insights** — Reports (Analytics & Reports: KPIs, range presets, filters, savings sub-page) + Tracking
+  (correctly gated behind website creation) + Affiliates (correct enrollment gate for a non-enrolled host).
+- **Settings** — Profile (Save profile → `hosts.bio`, verified+reverted), Businesses (createBusinessAction
+  E2E, cleaned up), Card payments (own-gateway Connect CTAs), Notifications (savePreferencesAction writes
+  `user_notification_preferences`; locked categories protected), Subscription (plan + switch CTAs),
+  Transaction history + Data & privacy (render; destructive actions not fired).
+
+**All 35 host-dashboard tabs across Batches A–G are now verified.** Net real fixes shipped across the sweep:
+policy duplicate-proliferation (migration `20260712100000` + toggle guard), Reviews ReplyComposer hydration
+mismatch, and the Request Alerts dead-stub → full CRUD (`AlertsManager.tsx`). Website/Builder/CMS out of scope.
+
 ## 2026-07-12 #54 — Host sweep · Batch E: wire up the dead Request Alerts tab (+ D/E swept).
 
 Continued the host-dashboard sweep through Channels (D) and Looking For (E).
