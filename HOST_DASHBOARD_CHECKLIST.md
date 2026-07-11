@@ -1,5 +1,13 @@
 # Host Dashboard Functional Sweep Checklist
 
+> **▶ SAVE POINT — 2026-07-12 @ `e8fc88c5` (git clean, pushed).** Resume the sweep here.
+> **DONE:** Batch A (DAILY, incl. guest-record deep-test) · Batch B mostly (listing editor · Rooms ·
+> **Specials — built to 100% this session**, see §B). **RESUME AT:** Batch B leftovers →
+> **Policies · Add-ons · Coupons · Reviews · Media** → then Batch C FINANCES → D CHANNELS →
+> E LOOKING-FOR → F INSIGHTS → G SETTINGS. Full state + gotchas in memory `host-dashboard-sweep`.
+> **To drive:** start preview, sign out of super_admin, log in as `host@wielotest.com`/`WieloTest123!`,
+> resize ≥1280. Feature gates are now OPEN for all hosts (MVP), so previously-gated tabs work.
+
 > Goal: go tab-by-tab through the **host dashboard** sidebar, follow every
 > function, and verify it works end-to-end — same bar as the admin sweep.
 > **No major changes** — refinement + correctness. Status: ⬜ not started ·
