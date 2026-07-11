@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 
 const TABS = [
   { href: "/admin/subscriptions", label: "Hosts", exact: true },
-  { href: "/admin/subscriptions/guests", label: "Guests", exact: false },
+  { href: "/admin/subscriptions/customers", label: "Customers", exact: false },
   { href: "/admin/subscriptions/products", label: "Products", exact: false },
   { href: "/admin/subscriptions/services", label: "Service", exact: false },
   { href: "/admin/subscriptions/revenue", label: "Revenue", exact: false },
