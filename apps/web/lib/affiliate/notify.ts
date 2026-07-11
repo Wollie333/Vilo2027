@@ -6,56 +6,19 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Db = ReturnType<typeof createAdminClient>;
 
-// Accrue affiliate commission for a settled charge AND notify the affiliate when
-// a commission is actually created. One call for every TS settle path. Never
-// throws into settlement.
+// Accrue affiliate commission for a settled charge. The "commission earned"
+// notification fires from a DB trigger on the new commission row (see migration
+// 20260711130000) so it reaches the affiliate no matter which runtime created
+// the charge — including the Deno paystack-webhook for subscription renewals.
+// Never throws into settlement.
 export async function accrueAffiliateAndNotify(
   admin: Db,
   ledgerId: string,
 ): Promise<void> {
   try {
-    const { data: commissionId } = await admin.rpc(
-      "accrue_affiliate_commission",
-      { p_ledger_id: ledgerId },
-    );
-    if (!commissionId || typeof commissionId !== "string") return;
-
-    const { data: c } = await admin
-      .from("affiliate_commissions")
-      .select("commission_amount, currency, affiliate_id, product_id")
-      .eq("id", commissionId)
-      .maybeSingle();
-    if (!c) return;
-
-    const [{ data: acct }, prod] = await Promise.all([
-      admin
-        .from("affiliate_accounts")
-        .select("user_id, user:user_profiles!user_id ( email )")
-        .eq("id", c.affiliate_id)
-        .maybeSingle(),
-      c.product_id
-        ? admin
-            .from("products")
-            .select("name")
-            .eq("id", c.product_id)
-            .maybeSingle()
-        : Promise.resolve({ data: null as { name: string } | null }),
-    ]);
-    if (!acct?.user_id) return;
-    const acctUser = Array.isArray(acct.user) ? acct.user[0] : acct.user;
-
-    await dispatchEvent({
-      kind: "affiliate_commission_earned",
-      recipientUserId: acct.user_id,
-      refs: {
-        amount: formatMoney(Number(c.commission_amount), c.currency ?? "ZAR"),
-        detail: prod.data?.name ?? undefined,
-        recipient_email: acctUser?.email ?? undefined,
-      },
-      supabase: admin,
-    });
+    await admin.rpc("accrue_affiliate_commission", { p_ledger_id: ledgerId });
   } catch {
-    // Accrual + notification must never break settlement.
+    // Accrual must never break settlement.
   }
 }
 
