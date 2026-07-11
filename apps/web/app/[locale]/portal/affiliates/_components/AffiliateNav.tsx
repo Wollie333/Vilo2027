@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Package,
+  Trophy,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -31,6 +32,11 @@ const TABS: {
   },
   { href: "/portal/affiliates/marketing", label: "Marketing", icon: Megaphone },
   { href: "/portal/affiliates/payouts", label: "Payouts", icon: Wallet },
+  {
+    href: "/portal/affiliates/leaderboard",
+    label: "Leaderboard",
+    icon: Trophy,
+  },
 ];
 
 export function AffiliateNav({ productCount = 0 }: { productCount?: number }) {
