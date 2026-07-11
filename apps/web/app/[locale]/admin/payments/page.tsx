@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { getBrandName } from "@/lib/brand";
 import {
   fetchWieloLedger,
+  isAffiliateTxn,
   wieloLedgerStats,
   type WieloTxn,
 } from "@/lib/billing/wielo-ledger";
@@ -61,7 +62,7 @@ export default async function AdminPaymentsPage({
     ? (searchParams!.type as (typeof TYPES)[number])
     : "all";
   const service = createAdminClient();
-  const [all, plans, { data: paySettings }, { data: productRows }] =
+  const [ledgerRows, plans, { data: paySettings }, { data: productRows }] =
     await Promise.all([
       fetchWieloLedger(service, { limit: 10_000 }),
       getAllPlans(),
@@ -72,6 +73,10 @@ export default async function AdminPaymentsPage({
         .maybeSingle(),
       service.from("products").select("name, plan_key, slug"),
     ]);
+  // Payments = money customers paid Wielo. Affiliate commission/payout rows are
+  // Wielo→affiliate (a liability + its cash-out), shown on the Ledger's Affiliate
+  // tab — never in Payments.
+  const all = ledgerRows.filter((r) => !isAffiliateTxn(r.type));
   const planName = new Map(plans.map((p) => [p.key, p.name]));
   // Map a plan tier → its PRODUCT name so the Product column reads the real
   // product (e.g. "Starter") rather than the underlying plan tier ("Pro").
