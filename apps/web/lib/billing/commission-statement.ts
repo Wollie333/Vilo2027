@@ -39,11 +39,98 @@ async function affiliateParty(
   return { name: u?.full_name ?? null, email: u?.email ?? null };
 }
 
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 export async function loadCommissionStatement(
   id: string,
 ): Promise<CommissionStatement | null> {
   const admin = createAdminClient();
   const issuer = wieloIssuerLines(await getWieloBusinessProfile());
+
+  // Monthly period statement: id = `period_<affiliateId>_<YYYY-MM>` — aggregates
+  // every (non-voided) commission the affiliate earned that month into one doc.
+  if (id.startsWith("period_")) {
+    const rest = id.slice("period_".length);
+    const us = rest.lastIndexOf("_");
+    if (us < 0) return null;
+    const affiliateId = rest.slice(0, us);
+    const period = rest.slice(us + 1); // YYYY-MM
+    const [y, m] = period.split("-").map(Number);
+    if (!y || !m || m < 1 || m > 12) return null;
+    const start = new Date(Date.UTC(y, m - 1, 1)).toISOString();
+    const end = new Date(Date.UTC(y, m, 1)).toISOString();
+
+    const { data: comms } = await admin
+      .from("affiliate_commissions")
+      .select(
+        "commission_amount, currency, status, product_id, entry_type, created_at",
+      )
+      .eq("affiliate_id", affiliateId)
+      .neq("status", "voided")
+      .gte("created_at", start)
+      .lt("created_at", end)
+      .order("created_at", { ascending: true });
+    const rows = comms ?? [];
+    const party = await affiliateParty(admin, affiliateId);
+
+    const productIds = [
+      ...new Set(rows.map((c) => c.product_id).filter(Boolean)),
+    ] as string[];
+    const productName = new Map<string, string>();
+    if (productIds.length) {
+      const { data: prods } = await admin
+        .from("products")
+        .select("id, name")
+        .in("id", productIds);
+      for (const p of prods ?? []) productName.set(p.id, p.name);
+    }
+
+    const lines = rows.map((c) => {
+      const base = c.product_id
+        ? (productName.get(c.product_id) ?? "referral")
+        : "referral";
+      const reversal =
+        c.entry_type === "clawback" || Number(c.commission_amount) < 0;
+      return {
+        label: `${reversal ? "Reversal · " : "Commission · "}${base}`,
+        amount: Number(c.commission_amount),
+      };
+    });
+    const total = rows.reduce((s, c) => s + Number(c.commission_amount), 0);
+    const currency = rows[0]?.currency ?? "ZAR";
+
+    return {
+      docKind: "Monthly commission statement",
+      number: `STMT-${period}`,
+      dateIso: end,
+      statusLabel: `${MONTHS[m - 1]} ${y}`,
+      statusTone: "indigo",
+      issuer,
+      affiliateName: party.name,
+      affiliateEmail: party.email,
+      lines:
+        lines.length > 0
+          ? lines
+          : [{ label: "No commission this month", amount: 0 }],
+      total: Math.round(total * 100) / 100,
+      totalLabel: "Total earned",
+      currency,
+      footerNote: `Affiliate commission earned in ${MONTHS[m - 1]} ${y}, per the affiliate terms.`,
+    };
+  }
 
   if (id.startsWith("payout_")) {
     const payoutId = id.slice("payout_".length);
