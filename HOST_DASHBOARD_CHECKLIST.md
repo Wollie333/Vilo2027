@@ -1,10 +1,12 @@
 # Host Dashboard Functional Sweep Checklist
 
-> **▶ SAVE POINT — 2026-07-12 @ `e8fc88c5` (git clean, pushed).** Resume the sweep here.
-> **DONE:** Batch A (DAILY, incl. guest-record deep-test) · Batch B mostly (listing editor · Rooms ·
-> **Specials — built to 100% this session**, see §B). **RESUME AT:** Batch B leftovers →
-> **Policies · Add-ons · Coupons · Reviews · Media** → then Batch C FINANCES → D CHANNELS →
-> E LOOKING-FOR → F INSIGHTS → G SETTINGS. Full state + gotchas in memory `host-dashboard-sweep`.
+> **▶ SAVE POINT — 2026-07-12 @ `9beb7ca7` (git clean, pushed).** Resume the sweep here.
+> **DONE:** Batch A (DAILY) · **Batch B (PROPERTIES) 100% COMPLETE** — listing editor · Rooms ·
+> Specials (built to 100%) · Policies · Add-ons · Coupons · Reviews · Media (all verified live+DB).
+> **2 bug fixes landed this session:** policy-duplicate-proliferation (migration `20260712100000` +
+> toggle guard) + Reviews `ReplyComposer` hydration mismatch (en-ZA). **RESUME AT:** Batch C FINANCES
+> (Ledger · Payments · Quotes · Invoices · Credit Notes · Refunds) → D CHANNELS → E LOOKING-FOR →
+> F INSIGHTS → G SETTINGS. Full state + gotchas in memory `host-dashboard-sweep`.
 > **To drive:** start preview, sign out of super_admin, log in as `host@wielotest.com`/`WieloTest123!`,
 > resize ≥1280. Feature gates are now OPEN for all hosts (MVP), so previously-gated tabs work.
 
@@ -155,13 +157,13 @@ The seeder was written as a one-time seed but invoked per-render. **Matched-pair
   live: toast fired, DB unchanged, drafting a copy while the original stayed active was correctly allowed.
 Test fixture restored to the clean 4-active-default state. `deleted_at IS NULL` set-safe; no console errors.
 
-## C · FINANCES
-- ⬜ 14. Ledger — `/dashboard/ledger`
-- ⬜ 15. Payments — `/dashboard/payments` (+ `/[id]`)
-- ⬜ 16. Quotes — `/dashboard/quotes` (+ `/[id]`, `/new`)
-- ⬜ 17. Invoices — `/dashboard/invoices` (+ `/[id]`)
-- ⬜ 18. Credit Notes — `/dashboard/credit-notes` (+ `/[id]`)
-- ⬜ 19. Refunds — `/dashboard/refunds`
+## C · FINANCES — ✅ ALL SWEPT (2026-07-12 #53)
+- ✅ 14. Ledger — `/dashboard/ledger` — full account transaction view: KPIs (Outstanding R9 798 / Collected R8 330 / Net R8 330 — consistent with 5 txns), type filter tabs (Charges→3 rows, "Showing 3 of 5"), guest filter dropdown, search, running per-guest balance, DOCUMENT links. **Verified:** invoice doc link `/invoice/<token>/pdf` returns **200 application/pdf `%PDF-` 4.3 KB** (real generated PDF). Per-row Actions = Radix menu (same family as verified admin ledger). No console errors.
+- ✅ 15. Payments — `/dashboard/payments` (+ `/[id]`) — "Money & settlements" board, 2 completed EFT payments (Lerato R4 830 / Wollie R3 500), status tab counts (All 2/Completed 2/Pending 0/Failed 0/Refunded 0), Export CSV, Any-method filter. **Detail `/[id]` renders** (R4 830, BK-0027, Manual EFT, reference/method); completed payment correctly offers no further status action (`updatePaymentStatusAction` "Mark received" path exercised in Batch A).
+- ✅ 16. Quotes — `/dashboard/quotes` (+ `/[id]`, `/new`) — empty state + New quote. **Create verified live+DB:** `/new` wizard (guest search/details · listing · Whole-listing/rooms · date presets · guest steppers · Itemised/Single-total pricing **auto-priced from live rates**) → filled guest + 7-night preset → **Save draft** (`createQuoteAction` → **Q-0003**, R9 820, Jul 18–25, status draft). Detail `/[id]` renders lifecycle actions (Edit/Send/Decline/Delete/Share). **Delete** (`softDeleteQuoteAction`, confirm modal) → `deleted_at` set, list empty again.
+- ✅ 17. Invoices — `/dashboard/invoices` (+ `/[id]`) — list of 3 invoices (INV-0059/0057/0046) → detail `/[id]` renders (INV-0059, **Paid**, VAT line **R630** on R4 830, actions Download PDF / View payment / Send / Regenerate PDF); PDF route 200 (above).
+- ✅ 18. Credit Notes — `/dashboard/credit-notes` — renders correct empty state ("No credit notes"); populates when refund/adjustment mints a `wielo_credit_notes` doc (verified in admin-ledger-parity + Batch A guest-record).
+- ✅ 19. Refunds — `/dashboard/refunds` — renders correct empty state ("Nothing…"); populates from the guest-record/booking Issue-refund action (Batch A). No console errors on any Finances tab.
 
 ## D · CHANNELS (Website SKIPPED — out of scope)
 - ⬜ 20. Calendar sync — `/dashboard/calendar-sync`
