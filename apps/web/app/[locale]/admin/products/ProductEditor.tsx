@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { computeCommission } from "@/lib/affiliate/commission";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -372,6 +373,22 @@ export function ProductEditor({
           <p className="text-[11px] text-brand-mute">
             The setup fee is charged once, so its commission is paid out once.
           </p>
+          {f.setupFeeAffiliateType !== "none" &&
+          f.setupFeeAffiliateValue > 0 &&
+          f.setupFee > 0 ? (
+            <div className="rounded-md border border-brand-accent bg-brand-light px-3 py-2 text-[12px] text-brand-ink">
+              An affiliate earns{" "}
+              <span className="font-semibold">
+                {f.currency}{" "}
+                {computeCommission(
+                  f.setupFee,
+                  f.setupFeeAffiliateType,
+                  f.setupFeeAffiliateValue,
+                ).toFixed(2)}
+              </span>{" "}
+              once, on the {f.currency} {f.setupFee.toFixed(2)} setup fee.
+            </div>
+          ) : null}
         </section>
       ) : null}
 
@@ -451,6 +468,30 @@ export function ProductEditor({
                 />
               </Field>
             ) : null}
+          </div>
+        ) : null}
+        {f.affiliateType !== "none" && f.affiliateValue > 0 ? (
+          <div className="rounded-md border border-brand-accent bg-brand-light px-3 py-2 text-[12px] text-brand-ink">
+            An affiliate earns{" "}
+            <span className="font-semibold">
+              {f.currency}{" "}
+              {computeCommission(
+                f.price,
+                f.affiliateType,
+                f.affiliateValue,
+              ).toFixed(2)}
+            </span>{" "}
+            {f.productType !== "product"
+              ? f.affiliateDuration === "once"
+                ? "on the first payment only"
+                : f.affiliateDuration === "months"
+                  ? `per month for ${f.affiliateDurationMonths ?? 1} month${
+                      (f.affiliateDurationMonths ?? 1) > 1 ? "s" : ""
+                    }`
+                  : "on every payment, for as long as they stay"
+              : "per sale"}{" "}
+            (based on the {f.currency} {f.price.toFixed(2)} price; actual
+            commission is on the net, ex-VAT amount).
           </div>
         ) : null}
       </section>
