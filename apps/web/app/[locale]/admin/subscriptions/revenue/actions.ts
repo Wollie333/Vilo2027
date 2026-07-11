@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { createProductOrder } from "@/lib/billing/product-checkout";
 
 const LEDGER_TARGET = "00000000-0000-0000-0000-00000001ed6e";
@@ -120,11 +121,9 @@ export const recordManualLedgerEntryAction = withAdminAudit<
     if (error) throw new Error(error.message);
 
     // A manual charge against a referred user accrues affiliate commission too
-    // (idempotent + no-ops for unreferred payers).
+    // (idempotent + no-ops for unreferred payers) and notifies the affiliate.
     if (type === "charge" && data?.id) {
-      await service.rpc("accrue_affiliate_commission", {
-        p_ledger_id: data.id,
-      });
+      await accrueAffiliateAndNotify(service, data.id);
     }
 
     revalidatePath("/admin/subscriptions/revenue");

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
+import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
@@ -1014,11 +1015,9 @@ export const setUserProductAction = withAdminAudit<
             .single();
           if (ledErr) throw new Error(ledErr.message);
           // A charge against a referred host accrues affiliate commission too
-          // (idempotent RPC; no-ops for an unreferred payer).
+          // (idempotent RPC; no-ops for an unreferred payer) + notifies them.
           if (led?.id) {
-            await service.rpc("accrue_affiliate_commission", {
-              p_ledger_id: led.id,
-            });
+            await accrueAffiliateAndNotify(service, led.id);
           }
         } else {
           // paylink: the tier is NOT active yet — create a custom-amount order
@@ -1235,9 +1234,7 @@ export const sellProductAction = withAdminAudit<
         .single();
       if (ledErr) throw new Error(ledErr.message);
       if (led?.id) {
-        await service.rpc("accrue_affiliate_commission", {
-          p_ledger_id: led.id,
-        });
+        await accrueAffiliateAndNotify(service, led.id);
       }
     }
 

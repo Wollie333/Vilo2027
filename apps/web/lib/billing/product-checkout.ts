@@ -1,5 +1,6 @@
 import "server-only";
 
+import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { convertZarToUsd } from "@/lib/fx";
@@ -858,7 +859,7 @@ export async function confirmProductOrderByReference(
       .eq("provider_reference", reference)
       .maybeSingle();
     if (row?.id) {
-      await admin.rpc("accrue_affiliate_commission", { p_ledger_id: row.id });
+      await accrueAffiliateAndNotify(admin, row.id);
     }
   } catch {
     // Commission accrual must never break settlement.
@@ -972,7 +973,7 @@ export async function capturePayPalProductOrder(
       .eq("provider_reference", orderId)
       .maybeSingle();
     if (row?.id) {
-      await admin.rpc("accrue_affiliate_commission", { p_ledger_id: row.id });
+      await accrueAffiliateAndNotify(admin, row.id);
     }
   } catch {
     // Commission accrual must never break settlement.

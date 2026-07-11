@@ -134,6 +134,15 @@ export type LookingForRefs = {
   expires_in_days?: number;
 };
 
+export type AffiliateRefs = {
+  /** Formatted money string, e.g. "R 89.90". */
+  amount?: string;
+  /** What the commission was for (product name) or the payout method. */
+  detail?: string;
+  /** Injected by dispatchEvent for branded push/in-app copy. */
+  brand_name?: string;
+};
+
 // Helpers
 const clip = (s: string, max = 140): string =>
   s.length <= max ? s : `${s.slice(0, max - 1)}…`;
@@ -886,6 +895,48 @@ export const NOTIFICATION_REGISTRY = {
     }),
     dedupeKey: (r) => `lf_viewed:${r.quote_id ?? r.post_id}`,
   } satisfies EventBuilder<LookingForRefs>,
+
+  // ─── Affiliate
+  affiliate_commission_earned: {
+    category: "payments_refunds",
+    feature: "subscription",
+    severity: "default",
+    push: (r) => ({
+      title: "You earned commission 🎉",
+      body: clip(
+        `You earned ${r.amount ?? "commission"}${r.detail ? ` from ${r.detail}` : ""} on Wielo.`,
+      ),
+      data: link("/portal/affiliates"),
+      sound: "default",
+    }),
+    inApp: (r) => ({
+      title: `You earned ${r.amount ?? "commission"} 🎉`,
+      body: r.detail ? `From ${r.detail}` : "Affiliate commission earned.",
+      link: "/portal/affiliates",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
+
+  affiliate_payout_paid: {
+    category: "payments_refunds",
+    feature: "subscription",
+    severity: "high",
+    push: (r) => ({
+      title: "Your payout is on its way 💸",
+      body: clip(
+        `We've sent your ${r.amount ?? "affiliate payout"}${r.detail ? ` via ${r.detail}` : ""}.`,
+      ),
+      data: link("/portal/affiliates/payouts"),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: `Payout sent — ${r.amount ?? ""}`.trim(),
+      body: r.detail
+        ? `Via ${r.detail}`
+        : "Your affiliate payout has been sent.",
+      link: "/portal/affiliates/payouts",
+    }),
+  } satisfies EventBuilder<AffiliateRefs>,
 } as const;
 
 export type EventKind = keyof typeof NOTIFICATION_REGISTRY;

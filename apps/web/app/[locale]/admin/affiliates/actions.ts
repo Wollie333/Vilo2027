@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { notifyAffiliatePayoutPaid } from "@/lib/affiliate/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const PERMISSION = "subscriptions.edit" as const;
@@ -70,6 +71,10 @@ export const settleAffiliatePayoutAction = withAdminAudit<
           error: res?.error ?? "Could not update the payout.",
         },
       };
+    }
+    // Tell the affiliate their money is on the way once the payout is marked paid.
+    if (args.action === "paid") {
+      await notifyAffiliatePayoutPaid(service, args.payoutId);
     }
     revalidatePath("/admin/affiliates");
     return { result: { ok: true }, after: { action: args.action } };
