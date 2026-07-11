@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { CalendarRange, Crown, Plus } from "lucide-react";
 
+import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -84,7 +85,8 @@ export default async function SeasonalPricingPage() {
     : { data: null };
 
   const feature = featureRaw as { is_enabled: boolean } | null;
-  const enabled = feature?.is_enabled ?? false;
+  // Pre-MVP: every feature is open (AGENT_RULES.md §3.4) — see PRE_MVP_FEATURES_OPEN.
+  const enabled = PRE_MVP_FEATURES_OPEN || (feature?.is_enabled ?? false);
 
   if (!enabled) {
     return (

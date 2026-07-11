@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireHost as getHost } from "@/lib/host/current";
 import { resolveListingHostContext } from "@/lib/host/adminListingHost";
+import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { seasonalRuleInputSchema, type SeasonalRuleInput } from "./schemas";
@@ -15,6 +16,10 @@ export type ActionResult<T = undefined> =
 const PLAN_GATE_MSG = "Seasonal pricing isn't available on your plan.";
 
 async function assertFeatureEnabled(hostId: string): Promise<boolean> {
+  // Pre-MVP: every feature is open so the whole system ships as the MVP
+  // (AGENT_RULES.md §3.4). Restore the check_feature_permission RPC before Phase 3.
+  if (PRE_MVP_FEATURES_OPEN) return true;
+
   const supabase = createServerClient();
   const { data } = await supabase.rpc("check_feature_permission", {
     p_host_id: hostId,

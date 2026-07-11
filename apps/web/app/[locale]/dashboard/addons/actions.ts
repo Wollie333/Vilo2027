@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireHost as getHost } from "@/lib/host/current";
 import { resolveListingHostContext } from "@/lib/host/adminListingHost";
+import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { z } from "zod";
@@ -41,6 +42,8 @@ async function assertAddonsEnabled(hostId: string): Promise<boolean> {
     p_host_id: hostId,
     p_feature_key: "addons",
   });
+  // Pre-MVP: every feature is open (AGENT_RULES.md §3.4) — see PRE_MVP_FEATURES_OPEN.
+  if (PRE_MVP_FEATURES_OPEN) return true;
   const result = data as { is_enabled: boolean } | null;
   return result?.is_enabled ?? false;
 }

@@ -222,18 +222,35 @@ export function SpecialEditor({
       setSection("property");
       return;
     }
-    const payload: SpecialInput = { ...form, status };
+    // A fixed-date deal can only ever sell 1 (the room is booked for those exact
+    // dates), so its quantity is always 1 — coerce here so an existing deal that
+    // was seeded/saved with a stale quantity still passes validation on re-save.
+    const payload: SpecialInput = {
+      ...form,
+      status,
+      quantity: form.date_mode === "fixed" ? 1 : form.quantity,
+    };
     startTransition(async () => {
-      const res =
-        mode === "create"
-          ? await createSpecialAction(payload)
-          : await updateSpecialAction(specialId as string, payload);
-      if (res.ok) {
-        toast.success(mode === "create" ? t("toastCreated") : t("toastSaved"));
-        router.push("/dashboard/specials");
-        router.refresh();
-      } else {
-        toast.error(res.error);
+      try {
+        const res =
+          mode === "create"
+            ? await createSpecialAction(payload)
+            : await updateSpecialAction(specialId as string, payload);
+        if (res.ok) {
+          toast.success(
+            mode === "create" ? t("toastCreated") : t("toastSaved"),
+          );
+          router.push("/dashboard/specials");
+          router.refresh();
+        } else {
+          toast.error(res.error);
+        }
+      } catch (err) {
+        // A rejected server action (e.g. a stale build's action-id mismatch, or
+        // an unexpected server throw) must never fail silently — surface it so
+        // the host gets feedback and we can see the real cause in the console.
+        console.error("Special save failed:", err);
+        toast.error("Couldn't save the special. Please try again.");
       }
     });
   }

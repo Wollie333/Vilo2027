@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-11 #48 — Ship everything as MVP: feature gates opened + Specials feature fixed end-to-end.
+
+Founder directive: ship the whole system as the MVP and make Specials 100% working (save + calendar/booking/
+ledger integration). Three real bugs found and fixed:
+
+1. **Feature gates now open pre-MVP (SSOT).** `lib/products/featureGate.ts` `hostHasFeature` short-circuits to
+   `true` behind a single `PRE_MVP_FEATURES_OPEN` flag (AGENT_RULES §3.4); the direct-RPC/local gates that
+   bypass the SSOT (seasonal-pricing, addons, reports) were opened too (coupons/banking were already open).
+   Every feature ships open for all hosts; flip the flag before Phase 3 to restore per-product entitlement.
+   (Previously features leaned on a per-host "unlock-all" override seed that was incomplete — Specials,
+   analytics_advanced and 4 others were missing, so those tabs were falsely gated.)
+
+2. **Specials editor save was a silent no-op.** The seeded fixed-date special had `quantity=3`, violating the
+   schema rule (fixed-date deal → quantity must be 1); the action returned `{ok:false}` but the client's
+   aborted response swallowed the error toast. Fixed: `SpecialEditor.submit` coerces a fixed-date deal's
+   quantity to 1 (covers stale loaded data) + a `try/catch` so a save can never fail silently again; the
+   invalid seed row was corrected. Verified live: saves persist and navigate.
+
+3. **Fixed-date special calendar blocking never worked (schema bug).** `block_special_dates` inserts
+   `blocked_dates` rows with `source='special'`, but `blocked_dates_source_check` only allowed
+   `('manual','booking','ical','quote_hold')`, so every activation threw a check_violation that
+   `blockSpecialDates()` swallowed. Migration `20260711140000` adds `'special'` to the constraint (pushed).
+   Verified live via the app: publish creates the blocks (source='special'), draft releases them.
+
+Specials ↔ Calendar now works end-to-end. Booking/ledger/notification integration verification in progress.
+
+---
+
 ## 2026-07-11 #47 — Host dashboard functional sweep (Batch A · DAILY started); guest-record deep-test + tag-remove fix.
 
 Began the host-dashboard functional sweep (same method as the admin sweep) driven as the Karoo Sky Stays

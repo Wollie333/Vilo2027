@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 import { PiggyBank } from "lucide-react";
 
+import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -72,7 +73,8 @@ export default async function ReportsPage({
     p_feature_key: "analytics_basic",
   });
   const feature = featureRaw as { is_enabled: boolean } | null;
-  const hasBasic = feature?.is_enabled ?? false;
+  // Pre-MVP: every feature is open (AGENT_RULES.md §3.4) — see PRE_MVP_FEATURES_OPEN.
+  const hasBasic = PRE_MVP_FEATURES_OPEN || (feature?.is_enabled ?? false);
 
   if (!hasBasic) {
     // User doesn't have analytics access - show upgrade card
@@ -137,7 +139,8 @@ export default async function ReportsPage({
   });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const hasAdvanced =
-    (advancedRaw as { is_enabled: boolean } | null)?.is_enabled ?? false;
+    PRE_MVP_FEATURES_OPEN ||
+    ((advancedRaw as { is_enabled: boolean } | null)?.is_enabled ?? false);
 
   // Parse filter params with defaults (YTD: Jan 1 to today)
   const today = new Date();

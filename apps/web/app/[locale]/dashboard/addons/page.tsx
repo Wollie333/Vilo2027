@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Crown, PackagePlus } from "lucide-react";
 
+import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { AddonsArchive, type AddonCard } from "./AddonsArchive";
@@ -61,7 +62,8 @@ export default async function AddonsPage() {
   ]);
 
   const feature = featureRaw as { is_enabled: boolean } | null;
-  const enabled = feature?.is_enabled ?? false;
+  // Pre-MVP: every feature is open (AGENT_RULES.md §3.4) — see PRE_MVP_FEATURES_OPEN.
+  const enabled = PRE_MVP_FEATURES_OPEN || (feature?.is_enabled ?? false);
 
   if (!enabled) {
     return (

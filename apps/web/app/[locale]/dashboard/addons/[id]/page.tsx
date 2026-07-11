@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -39,7 +40,8 @@ export default async function AddonEditorPage({
     p_feature_key: "addons",
   });
   const enabled =
-    (featureRaw as { is_enabled: boolean } | null)?.is_enabled ?? false;
+    PRE_MVP_FEATURES_OPEN ||
+    ((featureRaw as { is_enabled: boolean } | null)?.is_enabled ?? false);
   if (!enabled) redirect("/dashboard/addons");
 
   const { data: r } = await supabase
