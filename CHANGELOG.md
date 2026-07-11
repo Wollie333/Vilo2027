@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-11 #49 — Specials 100%: calendar-block conversion, VAT-correct payment, pending host notifications.
+
+Closed the two hardening gaps from #48 and added a founder-requested pending-booking notification, so normal
+and special bookings behave identically on the shared calendar / ledger / notification core. All verified live.
+
+- **A — calendar block converts special-hold → booking-owned on confirm.** `on_booking_confirmed()` used
+  `ON CONFLICT DO NOTHING`, which collided with the special's own `source='special'` hold → the confirmed
+  booking never got its own block, so `release_special_dates` could later free a live booking's dates.
+  Migration `20260711150000` makes the trigger UPSERT — claiming ONLY this booking's own special hold and
+  converting it to `source='booking', booking_id, special_id=NULL` (never touching manual/iCal/other-special);
+  also sets `source='booking'` on the plain insert (was defaulting to 'manual'); + a backfill. Verified: a
+  confirmed deal booking's nights are now `source='booking', booking_id=<this>`.
+- **B — deal payment charged the wrong amount.** The `apply_booking_vat` BEFORE-INSERT trigger grosses up
+  `total_amount`, but `persistBookingAndPay` charged the caller's pre-insert (ex-VAT) estimate. `persist.ts`
+  now reads back the trigger-adjusted `total_amount`/`deposit_amount` and charges that — correct for ALL
+  paths (app/website/deal) on VAT-registered listings. Verified: pending payment = booking total (R4830).
+- **Host notified on PENDING booking creation** (before payment) — new `lib/bookings/notifyHostNewBooking.ts`
+  folded into `persistBookingAndPay`, so app checkout, website checkout and the deal page all fire
+  `booking_request_host` uniformly at creation; removed the two duplicate `notifyHostOfSiteBooking` calls in
+  siteCheckout. Verified: creating a pending deal booking fired "New special booking" to the host.
+
+Specials E2E is now 100% (save · calendar hold/release/convert · deal page · booking · redemption · ledger ·
+pending + confirmed notifications). tsc + clean pnpm build green; migration pushed.
+
+---
+
 ## 2026-07-11 #48 — Ship everything as MVP: feature gates opened + Specials feature fixed end-to-end.
 
 Founder directive: ship the whole system as the MVP and make Specials 100% working (save + calendar/booking/

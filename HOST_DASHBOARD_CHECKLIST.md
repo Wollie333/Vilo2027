@@ -94,16 +94,32 @@ Decide the long-term fix (code short-circuit vs. keeping override seeds complete
 booking ✅ · atomic redemption/sold-out ✅ · ledger payment ✅ · **notifications ✅** (recording the EFT →
 booking `confirmed`, `booking_confirmed_guest` notification fired).
 
-**🔶 Two remaining hardening gaps flagged for the founder (NOT a 100% ship yet):**
-- **A — calendar block never converts to the booking.** After a confirmed special booking, the held nights
-  stay `source='special', booking_id=null`. If the host later deactivates the special, `releaseSpecialDates`
-  would free a **confirmed booking's** dates → double-booking exposure. The block should convert to
-  `source='booking'` (booking_id set) on booking creation/confirmation, and release must skip dates with a
-  live booking.
-- **B — deal payment/pricing mismatch.** The deal pre-creates a **pending R4 200** payment at booking, but the
-  booking `total_amount` is **R4 830** (deal price shown was R4 380); recording the EFT then adds a **second**
-  R4 830 payment. The deal total / displayed price / pre-created payment don't reconcile, and the pending row
-  is left orphaned. Needs the deal pricing + payment-record flow reconciled.
+**✅ BOTH GAPS FIXED + pending-notification added (2026-07-11 #48) — verified live end-to-end:**
+- 🔴→✅ **A — calendar block now converts special-hold → booking-owned on confirm.** Root cause (via subagent):
+  `on_booking_confirmed()` inserted `blocked_dates(reason='booking', booking_id)` with `ON CONFLICT DO NOTHING`,
+  which collided with the special's own hold on the same scope → no booking block; then `release_special_dates`
+  could delete a live booking's dates. Migration `20260711150000` makes the trigger UPSERT — claiming ONLY this
+  booking's own `source='special'` hold (never manual/iCal/other-special) and converting it to
+  `source='booking', booking_id, special_id=NULL`; also sets `source='booking'` on the plain insert (was
+  defaulting to 'manual'); + a backfill for existing confirmed special bookings. **Verified live:** a confirmed
+  deal booking's Aug 1–3 nights are now `source='booking', booking_id=<this>, special_id=null`. Normal + special
+  bookings hold their dates identically; deactivating a special can no longer free a booked date.
+- 🔴→✅ **B — deal payment amount now reconciles.** Root cause: the `apply_booking_vat` BEFORE-INSERT trigger
+  grosses up `total_amount` (R4200→R4830) but `persistBookingAndPay` charged the caller's stale pre-insert
+  estimate (R4200). `persist.ts` now reads back `total_amount`/`deposit_amount` from the inserted row and
+  charges that. **Verified live:** pending payment = R4830 (= booking total). Applies to ALL paths (app/website/
+  deal) whenever the listing is VAT-registered. (The "double payment row" I saw was a wrong-button artifact —
+  "Record a payment" adds a payment; the correct EFT-confirm is "Mark received" (`markPaymentReceivedAction`)
+  which reconciles the pending row. Not a bug.)
+- 🆕→✅ **Host notified on PENDING booking creation** (founder ask — so hosts can manage bookings before payment).
+  `booking_request_host` previously fired only from the website on-site checkout. Folded a shared
+  `notifyHostNewBooking` into `persistBookingAndPay` so **every** creation path (app checkout, website, deal)
+  notifies the host uniformly while the booking is still pending; removed the two duplicate site-checkout calls.
+  **Verified live:** creating a pending deal booking fired `booking_request_host` "New special booking".
+
+**Specials is now a 100%-working feature end-to-end** (save · calendar hold+release+convert · deal page ·
+booking · redemption/sold-out · ledger · pending + confirmed notifications), with normal and special bookings
+behaving identically on the shared calendar / ledger / notification core.
 
 ### (historical) 🔴 FINDING 2 (was: root-cause under investigation): Specials editor save is a silent no-op
 Once unblocked, Specials renders fully (list + KPIs + editor + New special). But **saving a special

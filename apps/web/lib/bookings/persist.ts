@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { PricingModel } from "@/app/[locale]/dashboard/addons/schemas";
+import { notifyHostNewBooking } from "@/lib/bookings/notifyHostNewBooking";
 import {
   startBookingPayment,
   type PayableBooking,
@@ -93,11 +94,14 @@ export async function persistBookingAndPay(
 ): Promise<PersistBookingResult> {
   const { admin } = input;
 
-  // 1. Insert the booking row.
+  // 1. Insert the booking row. Read back the total/deposit AFTER insert — the
+  // BEFORE INSERT VAT trigger (apply_booking_vat) grosses up total_amount when
+  // the listing is VAT-registered, so the caller's pre-insert breakdown total is
+  // ex-VAT. Payment must charge the DB (post-VAT) value, not the stale estimate.
   const { data: booking, error: bookingErr } = await admin
     .from("bookings")
     .insert(input.bookingInsert)
-    .select("id, reference")
+    .select("id, reference, total_amount, deposit_amount")
     .single();
   if (bookingErr || !booking) {
     return { ok: false, error: "Could not start your booking. Try again." };
@@ -213,7 +217,18 @@ export async function persistBookingAndPay(
       ? input.payment.returnTo(booking.id)
       : input.payment.returnTo;
   const pay = await startBookingPayment({
-    booking: { ...input.payable, id: booking.id, reference: booking.reference },
+    booking: {
+      ...input.payable,
+      id: booking.id,
+      reference: booking.reference,
+      // Use the trigger-adjusted (VAT-inclusive) figures from the inserted row so
+      // the guest is charged exactly what the booking + invoice reconcile to.
+      total_amount: Number(booking.total_amount),
+      deposit_amount:
+        booking.deposit_amount != null
+          ? Number(booking.deposit_amount)
+          : input.payable.deposit_amount,
+    },
     method: input.payment.method,
     amount: input.payment.amount ?? "full",
     email: input.payment.email,
@@ -224,6 +239,11 @@ export async function persistBookingAndPay(
     await unwind();
     return { ok: false, error: pay.error };
   }
+
+  // 7. Notify the host of the new (still-pending) booking so they can manage it
+  // before payment settles. Uniform across every creation path that funnels
+  // through here — app checkout, website checkout and the deal page. Best-effort.
+  await notifyHostNewBooking(admin, booking.id);
 
   return { ok: true, redirectTo: pay.redirectTo, bookingId: booking.id };
 }
