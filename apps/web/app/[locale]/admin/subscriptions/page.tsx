@@ -3,7 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
-import { getAllPlans } from "@/lib/plans/getPlans";
+import { getInternalCatalog } from "@/lib/products/getProducts";
 
 import { AdminStatBand } from "../_components/AdminStatBand";
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
@@ -39,8 +39,14 @@ export default async function AdminSubscriptionsPage({
 }) {
   await requirePermission("subscriptions.edit");
 
-  // Plan filter options come from the live catalog (custom plans included).
-  const allPlans = await getAllPlans();
+  // Plan filter options are the REAL active membership products (the plans hosts
+  // subscribe to), from the live products catalog — not the legacy plans table.
+  const catalog = await getInternalCatalog();
+  const seenKey = new Set<string>();
+  const allPlans = catalog
+    .filter((p) => p.productType === "membership" && p.planKey)
+    .map((p) => ({ key: p.planKey as string, name: p.name }))
+    .filter((p) => (seenKey.has(p.key) ? false : (seenKey.add(p.key), true)));
   const planKeys = ["all", ...allPlans.map((p) => p.key)];
   const planNameByKey = new Map(allPlans.map((p) => [p.key, p.name]));
 
