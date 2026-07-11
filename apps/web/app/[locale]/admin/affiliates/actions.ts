@@ -251,3 +251,39 @@ export async function deleteMarketingAssetAction(
   revalidatePath("/admin/affiliates/settings");
   return { ok: true };
 }
+
+// ─── Affiliate tiers (bonus % on top of the per-product base commission) ─────
+export async function upsertAffiliateTierAction(input: {
+  id?: string;
+  name: string;
+  minEarnings: number;
+  bonusPercent: number;
+}): Promise<ActionResult> {
+  await requirePermission("subscriptions.edit");
+  const name = input.name.trim();
+  if (!name) return { ok: false, error: "A tier name is required." };
+  const admin = createAdminClient();
+  const row = {
+    name,
+    min_lifetime_earnings: Math.max(0, Number(input.minEarnings) || 0),
+    bonus_percent: Math.max(0, Number(input.bonusPercent) || 0),
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = input.id
+    ? await admin.from("affiliate_tiers").update(row).eq("id", input.id)
+    : await admin.from("affiliate_tiers").insert(row);
+  if (error) return { ok: false, error: "Could not save the tier." };
+  revalidatePath("/admin/affiliates/settings");
+  return { ok: true };
+}
+
+export async function deleteAffiliateTierAction(
+  id: string,
+): Promise<ActionResult> {
+  await requirePermission("subscriptions.edit");
+  const admin = createAdminClient();
+  const { error } = await admin.from("affiliate_tiers").delete().eq("id", id);
+  if (error) return { ok: false, error: "Could not delete the tier." };
+  revalidatePath("/admin/affiliates/settings");
+  return { ok: true };
+}
