@@ -31,6 +31,16 @@ Full per-tab detail in `ADMIN_MVP_CHECKLIST.md`. All pushed to origin/main @ `7a
   13-item subset — made `AUDIT_TARGET_TYPES` a runtime SSOT and drove the dropdown off it (now 39 types, every
   written target is filterable).
 
+Follow-on founder requests (same day, pushed after the save-point commit — HEAD now `c9c5f100`):
+- **`modal.prompt()`** — added a design-system text-input modal to the imperative modal API (styled input,
+  inline min-length validation, confirm/destructive intent, resolves the string or null). Replaced native
+  `window.prompt` in all 12 admin reason/delete flows (categories, deal categories, amenities, groups, the help
+  editors, help-article archive/soft-delete/restore, impersonate). Verified live on a category delete.
+- **SWIFT/BIC on Wielo EFT** — Wielo's EFT bank details had no SWIFT field, so invoices never showed it. Added
+  `eft_swift_code` (migration `20260710180000`), a form input on both payment-settings surfaces, and plumbed it
+  into `getPlatformInvoiceBanking`; the invoice templates already had the SWIFT row. Verified live (hosted
+  INV-0045 shows SWIFT + valid PDF). Founder to confirm Wielo's real SWIFT.
+
 ## 2026-07-10 #43 (save point) — Admin MVP hardening: Tabs 6–13 (7 tabs READY), 5 bug fixes, 4 features.
 
 Continued the tab-by-tab deep functional test. **Tabs 6, 7, 9, 10, 11, 12, 13 now READY** (on top of 1–5).
