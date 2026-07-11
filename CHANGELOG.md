@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-11 #45 (save point) — Tab 8 Affiliates built + hardened end-to-end; admin/subscriptions restructured. ALL 20 admin tabs feature-ready. `pnpm build` GREEN. Pushed @ `9f820649`.
+
+The final admin tab (Affiliates) is complete — well beyond "make it work" — plus founder side-requests on the
+subscriptions console. Everything typecheck/lint/build green and verified live (demo data left for inspection).
+
+**Affiliate system (Tab 8) — 100% built + verified:**
+- Per-product commissions (SSOT + setup-fee) with a live "affiliate earns R X" editor preview.
+- Accrual on every settle path (idempotent, recurring-per-period); **proportional clawback** (full→void /
+  partial→offset, auto-linked from real refund flows); admin **min-payout floor** = `GREATEST(personal, admin)`.
+- **Full ledger integration:** affiliate money is now REAL `platform_ledger` rows (`commission`/`payout`) that
+  auto-mint numbered `wielo_credit_notes` docs — on the affiliate's own Finance tab + the Wielo ledger Affiliate
+  tab + the user-record History tab. Synthetic adapter retired. (Migrations `20260711110000`–`110004`.)
+- **Link builder** (any page/product + QR), **admin per-affiliate funnel** page, **leaderboard**, **monthly
+  statement PDFs**, **tiers** (bonus % on top of the per-product base by lifetime cleared earnings; portal card +
+  admin editor; migration `20260711120000`).
+- **Notifications** in-app + push + email for earned + payout-paid; the earned notification is a **DB trigger**
+  (`20260711130000`) so it fires from any runtime — including the **Deno paystack-webhook renewals**.
+
+**Admin/subscriptions restructure (founder):** tabs are now **Hosts · Customers · Products · Revenue**, all reading
+the REAL products catalog — Service tab dropped (all products under Products with a live category filter),
+Customers = everyone who bought anything, and the Hosts Plan column maps the plan key to the real product name.
+
+**Post-change re-verify:** the ledger integration leaked affiliate rows into the **Payments** tab — fixed (`9f820649`);
+Ledger + Reporting confirmed clean (they exclude affiliate money from revenue KPIs by design).
+
+**Before real launch (next session):** clean-wipe the test/demo data; founder ops items (real VAT#/SWIFT,
+`PAYMENT_CIPHER_KEY`, Turnstile keys, redeploy paystack-webhook); optional full 20-tab re-sweep.
+
 ## 2026-07-10 #44 (save point) — Admin MVP hardening: Tabs 14–20 READY (all platform tabs), 5 fixes + a redesign + email hardening.
 
 Finished the tab-by-tab deep functional test of the platform section. **Tabs 14, 15, 16, 17, 18, 19, 20 now READY** —

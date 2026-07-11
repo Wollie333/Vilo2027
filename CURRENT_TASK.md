@@ -2,6 +2,52 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-11 #45) — TAB 8 AFFILIATES COMPLETE + ALL 20 ADMIN TABS FEATURE-READY. ALL PUSHED @ `9f820649`.
+
+**Resume:** read memory [[project-affiliate-hardening-plan]] (full detail of everything below) + [[admin-mvp-hardening-checklist]].
+Drive preview as super_admin `wollie@manamarketing.co.za`; DB truth via service-role REST — recreate the helper
+`scratchpad/sbenv.sh` (greps the ABSOLUTE `apps/web/.env.local` for `$SB`/`$KEY`; scratchpad is wiped per session).
+GOTCHAS this session: em-dash in curl `-d` JSON → PGRST102 (use ASCII); new SQL functions need a PostgREST
+schema-cache reload before REST `rpc` works (internal SQL calls work immediately — test via accrual or
+`supabase db query --linked`); cold-server first admin nav redirects to `/` (retry); building with a preview
+server up corrupts `.next` (kill all next procs + `rm -rf apps/web/.next` first — done, build was GREEN).
+
+**THE AFFILIATE SYSTEM (Tab 8) IS 100% BUILT + HARDENED + verified live + `pnpm build` GREEN.** Commits `faea2514`→`9f820649`:
+- **Per-product commissions** (SSOT on `products.affiliate_*` + setup-fee) w/ live "earns R X" editor preview.
+- **Accrual** on every settle path (idempotent, recurring-per-period); **proportional clawback** (full→void,
+  partial→offset) auto-linked from real refund flows; **admin min-payout floor** now `GREATEST(personal,admin)`.
+- **FULL LEDGER INTEGRATION (founder req):** affiliate money = REAL `platform_ledger` rows (types `commission`/`payout`
+  on the affiliate's user_id) that auto-mint numbered `wielo_credit_notes` docs — shown on BOTH the affiliate's own
+  Finance tab AND the Wielo ledger Affiliate tab AND the user-record **History** tab. Synthetic adapter retired.
+  Migrations `20260711110000`–`110004`. **Gotcha fixed:** mint called a retired counter → use
+  `next_refund_number(NULL)`/`next_credit_note_number(NULL)`.
+- **Link builder** (any page/product + QR), **admin per-affiliate funnel** `/admin/affiliates/[id]`, **leaderboard**,
+  **monthly statement PDF** (`period_<affId>_<YYYY-MM>` branch), **tiers** (bonus% on top of per-product base by
+  lifetime cleared earnings; migration `20260711120000`; portal card + admin editor).
+- **Notifications** in-app + push + **email** for earned + payout-paid. **Earned notify is a DB trigger**
+  (`20260711130000`) so it fires from ANY runtime incl. the **Deno paystack-webhook renewals** (payout-paid stays TS).
+
+**ALSO shipped (founder side-requests):** admin/subscriptions restructured → **Hosts · Customers · Products · Revenue**,
+all reading the REAL products catalog (Service tab dropped; all products under Products w/ live category filter;
+Customers = everyone who bought anything from completed charges; Hosts Plan column maps key→real product name).
+
+**POST-CHANGE FINANCE RE-VERIFY:** the ledger integration leaked affiliate rows into **Tab 7 Payments** — FIXED
+(`9f820649`, exclude `isAffiliateTxn`). Tab 6 Ledger (intended Affiliate tab) + Tab 9 Reporting confirmed CLEAN.
+
+**STATUS: all 20 admin tabs feature-complete + checklist-READY** (Tabs 1–7,9–20 verified in prior sessions #44;
+Tab 8 done this session; finance tabs re-driven this session).
+
+### ⏭️ NEXT SESSION — to go from "feature-complete" to "verified clean for LAUNCH":
+1. **Pre-launch test-data cleanup** — this session left demo data (commissions/payouts/ledger rows/CN docs/a seeded
+   booking/test products) on affiliate `wollie-steenkamp` (id `6d0f7c50…`, user `66fe4644…`=manamarketing) +
+   test host (user `72811b8e…`, host `0b111111…`). Use the "clean wipe = user data only" method (BUSINESS_PRINCIPLES #11).
+2. **Founder ops/config** (not code): real Wielo VAT# + SWIFT; set `PAYMENT_CIPHER_KEY` (deploy webhook BEFORE app
+   re-saves keys); Turnstile keys; redeploy `paystack-webhook` (setup_fee fallback + activate_on_pay guard). RESEND is set.
+3. **(Optional) full 20-tab re-sweep** for absolute post-change certainty.
+4. Affiliate follow-ups deferred: seed real marketing assets; thread `--el-*` into SiteCheckoutForm (unrelated).
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-10 #43) — ADMIN MVP HARDENING. Tabs 1–7, 9–13 READY. ALL PUSHED @ `6382b145`. NEXT = Tab 14 Categories.
 
 **Resume:** read [[admin-mvp-hardening-checklist]] + `ADMIN_MVP_CHECKLIST.md` FIRST — they hold the full per-tab
