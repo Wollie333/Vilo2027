@@ -47,7 +47,7 @@ const TABS: {
   {
     key: "affiliate",
     label: "Affiliate",
-    match: (t) => t === "commission_owed" || t === "commission_paid",
+    match: (t) => t === "commission" || t === "payout",
   },
 ];
 

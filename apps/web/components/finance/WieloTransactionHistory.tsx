@@ -94,7 +94,11 @@ export async function WieloTransactionHistory({
         ? "Refund"
         : cn.kind === "adjustment"
           ? "Adjustment"
-          : "Credit note";
+          : cn.kind === "commission"
+            ? "Statement"
+            : cn.kind === "payout"
+              ? "Remittance"
+              : "Credit note";
     docByLedger.set(cn.ledger_id, {
       label,
       href: `/wielo-credit-note/${cn.hosted_token}/pdf`,
@@ -120,6 +124,8 @@ export async function WieloTransactionHistory({
     if (r.type === "refund") return "Refund";
     if (r.type === "credit") return "Credit";
     if (r.type === "adjustment") return "Adjustment";
+    if (r.type === "commission") return "Affiliate commission";
+    if (r.type === "payout") return "Affiliate payout";
     return "Purchase";
   };
 

@@ -37,11 +37,11 @@ const TYPE_TAG: Record<WieloTxnType, { label: string; cls: string }> = {
     label: "Adjustment",
     cls: "border-amber-200 bg-amber-50 text-amber-700",
   },
-  commission_owed: {
+  commission: {
     label: "Commission",
     cls: "border-violet-200 bg-violet-50 text-violet-700",
   },
-  commission_paid: {
+  payout: {
     label: "Payout",
     cls: "border-teal-200 bg-teal-50 text-teal-700",
   },
@@ -92,8 +92,8 @@ const FOR_CLS: Record<WieloTxnType, string> = {
   refund: "border-red-200 bg-red-50 text-red-600",
   credit: "border-indigo-200 bg-indigo-50 text-indigo-600",
   adjustment: "border-amber-200 bg-amber-50 text-amber-700",
-  commission_owed: "border-violet-200 bg-violet-50 text-violet-700",
-  commission_paid: "border-teal-200 bg-teal-50 text-teal-700",
+  commission: "border-violet-200 bg-violet-50 text-violet-700",
+  payout: "border-teal-200 bg-teal-50 text-teal-700",
 };
 
 function amountDisplay(e: WieloTxn): { text: string; cls: string } {
@@ -105,8 +105,8 @@ function amountDisplay(e: WieloTxn): { text: string; cls: string } {
   else if (e.type === "credit") cls = "text-indigo-600";
   else if (e.type === "adjustment")
     cls = neg ? "text-red-600" : "text-brand-ink";
-  else if (e.type === "commission_owed") cls = "text-violet-700";
-  else if (e.type === "commission_paid") cls = "text-teal-700";
+  else if (e.type === "commission") cls = "text-violet-700";
+  else if (e.type === "payout") cls = "text-teal-700";
   else cls = "text-brand-ink";
   return { text, cls };
 }
@@ -242,7 +242,7 @@ export function AdminLedgerList({
               const isPending = e.status === "pending";
               const failed = e.status === "failed";
               const isAffiliate =
-                e.type === "commission_owed" || e.type === "commission_paid";
+                e.type === "commission" || e.type === "payout";
               return (
                 <tr
                   key={e.id}
@@ -395,8 +395,8 @@ export function AdminLedgerList({
               onClick={(ev) => ev.stopPropagation()}
             >
               {onAction &&
-              menu.entry.type !== "commission_owed" &&
-              menu.entry.type !== "commission_paid" ? (
+              menu.entry.type !== "commission" &&
+              menu.entry.type !== "payout" ? (
                 <>
                   <button
                     type="button"

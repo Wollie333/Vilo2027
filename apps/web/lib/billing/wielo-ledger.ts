@@ -7,22 +7,23 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 // Wielo (subscriptions, services, refunds, manual adjustments).
 
 // charge/refund/credit/adjustment = money the USER owes/paid Wielo (revenue).
-// commission_owed/commission_paid = money WIELO owes an affiliate (a liability +
-// its payout) — surfaced on the SAME ledger via an adapter over the affiliate
-// tables (affiliate_commissions / affiliate_payouts stay the source of truth),
-// shown in their own Affiliate tab and EXCLUDED from the revenue KPIs.
+// commission/payout = money WIELO owes/pays an affiliate — now REAL
+// platform_ledger rows on the affiliate's own user_id (emitted by DB triggers
+// when commission clears / reverses / a payout is paid), each minting a
+// document. Shown in their own Affiliate tab + on the affiliate's own
+// Transactions page, and EXCLUDED from the revenue KPIs.
 export type WieloTxnType =
   | "charge"
   | "refund"
   | "credit"
   | "adjustment"
-  | "commission_owed"
-  | "commission_paid";
+  | "commission"
+  | "payout";
 export type WieloTxnStatus = "pending" | "completed" | "failed";
 export type WieloEnvironment = "test" | "live";
 
 // The revenue types (user→Wielo) vs the affiliate types (Wielo→affiliate).
-const AFFILIATE_TYPES: WieloTxnType[] = ["commission_owed", "commission_paid"];
+const AFFILIATE_TYPES: WieloTxnType[] = ["commission", "payout"];
 export function isAffiliateTxn(t: WieloTxnType): boolean {
   return AFFILIATE_TYPES.includes(t);
 }
@@ -103,264 +104,73 @@ export async function fetchWieloLedger(
   admin: Db,
   filter: WieloLedgerFilter = {},
 ): Promise<WieloTxn[]> {
-  // Revenue rows (platform_ledger) and affiliate rows (affiliate tables) are
-  // fetched independently and merged. A type filter for a commission type skips
-  // the revenue query entirely, and vice-versa.
-  const wantRevenue = !filter.type || !isAffiliateTxn(filter.type);
-  const wantAffiliate = !filter.type || isAffiliateTxn(filter.type);
-
-  let rows: WieloTxn[] = [];
-
-  if (wantRevenue) {
-    let q = admin
-      .from("platform_ledger")
-      .select(
-        `id, created_at, type, status, amount, currency, environment, vat_amount, plan,
+  // Every row — revenue (user→Wielo) AND affiliate (commission/payout, Wielo→
+  // affiliate) — is now a real platform_ledger row, so one query serves both.
+  // Affiliate types are tagged (isAffiliateTxn) and stay out of the revenue KPIs.
+  let q = admin
+    .from("platform_ledger")
+    .select(
+      `id, created_at, type, status, amount, currency, environment, vat_amount, plan,
        product_id, billing_cycle, provider, provider_reference, reason, user_id, host_id,
        payer:user_profiles!user_id ( full_name, email ),
        host:hosts!host_id ( handle )`,
-      )
-      .order("created_at", { ascending: false })
-      .limit(filter.limit ?? 200);
+    )
+    .order("created_at", { ascending: false })
+    .limit(filter.limit ?? 200);
 
-    if (filter.userId) q = q.eq("user_id", filter.userId);
-    if (filter.hostId) q = q.eq("host_id", filter.hostId);
-    if (filter.plan) q = q.eq("plan", filter.plan);
-    // Product filter — match the row's product_id OR its legacy plan key.
-    if (filter.productId) {
-      const clauses = [`product_id.eq.${filter.productId}`];
-      if (filter.productPlanKey)
-        clauses.push(`plan.eq.${filter.productPlanKey}`);
-      q = q.or(clauses.join(","));
-    }
-    if (filter.type) q = q.eq("type", filter.type);
-    if (filter.status) q = q.eq("status", filter.status);
-    if (filter.environment) q = q.eq("environment", filter.environment);
-    if (filter.since) q = q.gte("created_at", filter.since);
-    if (filter.until) q = q.lte("created_at", filter.until);
-
-    const { data, error } = await q;
-    if (error) throw new Error(`fetchWieloLedger: ${error.message}`);
-
-    rows = (data ?? []).map((r) => {
-      const payer = Array.isArray(r.payer) ? r.payer[0] : r.payer;
-      const host = Array.isArray(r.host) ? r.host[0] : r.host;
-      return {
-        id: r.id,
-        date: r.created_at,
-        type: r.type as WieloTxnType,
-        status: r.status as WieloTxnStatus,
-        amount: Number(r.amount),
-        currency: r.currency,
-        environment: (r.environment === "test"
-          ? "test"
-          : "live") as WieloEnvironment,
-        vatAmount: r.vat_amount != null ? Number(r.vat_amount) : null,
-        plan: r.plan,
-        productId: r.product_id,
-        billingCycle: r.billing_cycle,
-        provider: r.provider,
-        providerReference: r.provider_reference,
-        reason: r.reason,
-        userId: r.user_id,
-        userName: payer?.full_name ?? null,
-        userEmail: payer?.email ?? null,
-        hostId: r.host_id,
-        hostHandle: host?.handle ?? null,
-        doc: null,
-        balance: 0,
-      };
-    });
-
-    await attachDocuments(admin, rows);
-    computeBalances(rows);
+  if (filter.userId) q = q.eq("user_id", filter.userId);
+  if (filter.hostId) q = q.eq("host_id", filter.hostId);
+  if (filter.plan) q = q.eq("plan", filter.plan);
+  // Product filter — match the row's product_id OR its legacy plan key.
+  if (filter.productId) {
+    const clauses = [`product_id.eq.${filter.productId}`];
+    if (filter.productPlanKey) clauses.push(`plan.eq.${filter.productPlanKey}`);
+    q = q.or(clauses.join(","));
   }
+  if (filter.type) q = q.eq("type", filter.type);
+  if (filter.status) q = q.eq("status", filter.status);
+  if (filter.environment) q = q.eq("environment", filter.environment);
+  if (filter.since) q = q.gte("created_at", filter.since);
+  if (filter.until) q = q.lte("created_at", filter.until);
 
-  if (wantAffiliate) {
-    const affiliate = await fetchAffiliateRows(admin, filter);
-    rows = rows.concat(affiliate);
-  }
+  const { data, error } = await q;
+  if (error) throw new Error(`fetchWieloLedger: ${error.message}`);
+
+  const rows: WieloTxn[] = (data ?? []).map((r) => {
+    const payer = Array.isArray(r.payer) ? r.payer[0] : r.payer;
+    const host = Array.isArray(r.host) ? r.host[0] : r.host;
+    return {
+      id: r.id,
+      date: r.created_at,
+      type: r.type as WieloTxnType,
+      status: r.status as WieloTxnStatus,
+      amount: Number(r.amount),
+      currency: r.currency,
+      environment: (r.environment === "test"
+        ? "test"
+        : "live") as WieloEnvironment,
+      vatAmount: r.vat_amount != null ? Number(r.vat_amount) : null,
+      plan: r.plan,
+      productId: r.product_id,
+      billingCycle: r.billing_cycle,
+      provider: r.provider,
+      providerReference: r.provider_reference,
+      reason: r.reason,
+      userId: r.user_id,
+      userName: payer?.full_name ?? null,
+      userEmail: payer?.email ?? null,
+      hostId: r.host_id,
+      hostHandle: host?.handle ?? null,
+      doc: null,
+      balance: 0,
+    };
+  });
+
+  await attachDocuments(admin, rows);
+  computeBalances(rows);
 
   rows.sort((a, b) => b.date.localeCompare(a.date));
   return rows;
-}
-
-// ── Affiliate adapter (Wielo→affiliate money on the SAME ledger) ───────────
-// Reads the affiliate tables and adapts each into a WieloTxn WITHOUT posting to
-// platform_ledger (the affiliate tables stay SSOT). Commissions become
-// `commission_owed` liabilities; payouts become `commission_paid` cash-out.
-// Each carries a running per-affiliate "Wielo owes this affiliate" balance.
-async function fetchAffiliateRows(
-  admin: Db,
-  filter: WieloLedgerFilter,
-): Promise<WieloTxn[]> {
-  // Affiliate money is real (live) money — it carries no test/live environment,
-  // so a test-only scope excludes it.
-  if (filter.environment === "test") return [];
-
-  const [{ data: comms }, { data: payouts }] = await Promise.all([
-    admin
-      .from("affiliate_commissions")
-      .select(
-        "id, affiliate_id, commission_amount, currency, status, entry_type, created_at, product_id, referred_host_id",
-      )
-      .neq("status", "voided"),
-    admin
-      .from("affiliate_payouts")
-      .select(
-        "id, affiliate_id, net_amount, currency, status, method, provider, provider_reference, created_at, processed_at",
-      ),
-  ]);
-
-  // Resolve affiliate_id → the affiliate's user (name/email/handle) in one pass.
-  const affiliateIds = new Set<string>();
-  for (const c of comms ?? [])
-    if (c.affiliate_id) affiliateIds.add(c.affiliate_id);
-  for (const p of payouts ?? [])
-    if (p.affiliate_id) affiliateIds.add(p.affiliate_id);
-  const accountById = new Map<
-    string,
-    {
-      userId: string | null;
-      name: string | null;
-      email: string | null;
-      slug: string | null;
-    }
-  >();
-  if (affiliateIds.size > 0) {
-    const { data: accounts } = await admin
-      .from("affiliate_accounts")
-      .select(
-        "id, slug, user_id, user:user_profiles!user_id ( full_name, email )",
-      )
-      .in("id", [...affiliateIds]);
-    for (const a of accounts ?? []) {
-      const u = Array.isArray(a.user) ? a.user[0] : a.user;
-      accountById.set(a.id, {
-        userId: a.user_id ?? null,
-        name: u?.full_name ?? null,
-        email: u?.email ?? null,
-        slug: a.slug ?? null,
-      });
-    }
-  }
-
-  // Optional product-name lookup for a friendlier "For" reason.
-  const productIds = new Set<string>();
-  for (const c of comms ?? []) if (c.product_id) productIds.add(c.product_id);
-  const productName = new Map<string, string>();
-  if (productIds.size > 0) {
-    const { data: products } = await admin
-      .from("products")
-      .select("id, name")
-      .in("id", [...productIds]);
-    for (const p of products ?? []) productName.set(p.id, p.name);
-  }
-
-  const rows: WieloTxn[] = [];
-
-  for (const c of comms ?? []) {
-    const acct = c.affiliate_id ? accountById.get(c.affiliate_id) : undefined;
-    // A commission is a liability from accrual; 'paid' means it has settled.
-    const status: WieloTxnStatus =
-      c.status === "paid" ? "completed" : "pending";
-    rows.push({
-      id: `comm_${c.id}`,
-      date: c.created_at,
-      type: "commission_owed",
-      status,
-      amount: Number(c.commission_amount), // + = Wielo owes the affiliate
-      currency: c.currency ?? "ZAR",
-      environment: "live",
-      vatAmount: null,
-      plan: null,
-      productId: null,
-      billingCycle: null,
-      provider: "affiliate",
-      providerReference: c.referred_host_id ?? null,
-      reason: c.product_id
-        ? `Commission · ${productName.get(c.product_id) ?? "product"}`
-        : "Affiliate commission",
-      userId: acct?.userId ?? null,
-      userName: acct?.name ?? null,
-      userEmail: acct?.email ?? null,
-      hostId: null,
-      hostHandle: acct?.slug ?? null,
-      doc: {
-        kind: "commission",
-        number: `COM-${c.id.slice(0, 8).toUpperCase()}`,
-        viewPath: `/wielo-commission/${c.id}`,
-        pdfPath: `/wielo-commission/${c.id}/pdf`,
-      },
-      balance: 0,
-    });
-  }
-
-  for (const p of payouts ?? []) {
-    const acct = p.affiliate_id ? accountById.get(p.affiliate_id) : undefined;
-    const status: WieloTxnStatus =
-      p.status === "paid" || p.status === "completed"
-        ? "completed"
-        : p.status === "failed"
-          ? "failed"
-          : "pending";
-    rows.push({
-      id: `payout_${p.id}`,
-      date: p.processed_at ?? p.created_at,
-      type: "commission_paid",
-      status,
-      amount: -Math.abs(Number(p.net_amount)), // − = money out to the affiliate
-      currency: p.currency ?? "ZAR",
-      environment: "live",
-      vatAmount: null,
-      plan: null,
-      productId: null,
-      billingCycle: null,
-      provider: p.provider ?? p.method ?? "affiliate",
-      providerReference: p.provider_reference ?? null,
-      reason: `Payout${p.method ? ` · ${p.method}` : ""}`,
-      userId: acct?.userId ?? null,
-      userName: acct?.name ?? null,
-      userEmail: acct?.email ?? null,
-      hostId: null,
-      hostHandle: acct?.slug ?? null,
-      doc: {
-        kind: "remittance",
-        number: `RMT-${p.id.slice(0, 8).toUpperCase()}`,
-        viewPath: `/wielo-commission/payout_${p.id}`,
-        pdfPath: `/wielo-commission/payout_${p.id}/pdf`,
-      },
-      balance: 0,
-    });
-  }
-
-  // Apply the shared filters that make sense for affiliate rows.
-  let filtered = rows;
-  if (filter.userId)
-    filtered = filtered.filter((r) => r.userId === filter.userId);
-  if (filter.status)
-    filtered = filtered.filter((r) => r.status === filter.status);
-  if (filter.since)
-    filtered = filtered.filter((r) => r.date >= (filter.since as string));
-  if (filter.until)
-    filtered = filtered.filter((r) => r.date <= (filter.until as string));
-
-  computeAffiliateBalances(filtered);
-  return filtered;
-}
-
-// Running "Wielo owes this affiliate R X" balance, per affiliate, oldest→newest:
-// a commission owed adds to the liability, a payout reduces it.
-function computeAffiliateBalances(rows: WieloTxn[]): void {
-  const asc = [...rows].sort((a, b) => a.date.localeCompare(b.date));
-  const byUser: Record<string, number> = {};
-  for (const e of asc) {
-    const key = e.userId ?? "_";
-    // amount is already signed (+owed / −paid); the running sum is the balance.
-    const run = (byUser[key] ?? 0) + e.amount;
-    byUser[key] = run;
-    e.balance = Math.round(run * 100) / 100;
-  }
 }
 
 // ── Documents ────────────────────────────────────────────────────────────
@@ -400,7 +210,11 @@ async function attachDocuments(admin: Db, rows: WieloTxn[]): Promise<void> {
           ? "refund"
           : cn.kind === "adjustment"
             ? "adjustment"
-            : "credit_note",
+            : cn.kind === "commission"
+              ? "commission"
+              : cn.kind === "payout"
+                ? "remittance"
+                : "credit_note",
       number: cn.credit_note_number,
       viewPath: `/wielo-credit-note/${cn.hosted_token}`,
       pdfPath: `/wielo-credit-note/${cn.hosted_token}/pdf`,
