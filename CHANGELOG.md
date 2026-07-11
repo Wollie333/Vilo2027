@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-12 #54 — Host sweep · Batch E: wire up the dead Request Alerts tab (+ D/E swept).
+
+Continued the host-dashboard sweep through Channels (D) and Looking For (E).
+- **Batch D Channels** — Calendar sync verified live+DB (addIcalFeedAction wrote an `ical_feeds` row →
+  Remove feed deleted it; SA channel presets). OTA channels = intentional "Coming Post-launch" placeholder.
+- **Batch E Looking For** — Browse/My-Quotes/Saved render with correct empty states.
+  - 🔴→✅ **Request Alerts was a non-functional stub.** `alerts/page.tsx` (Server Component) rendered
+    "New Alert" / "Create Your First Alert" / "Edit" / delete buttons with **no handlers** — the four
+    server actions (`createAlertAction`/`updateAlertAction`/`toggleAlertActiveAction`/`deleteAlertAction`)
+    existed but nothing in the UI called them, so the whole tab did nothing.
+  - **Fix:** new `AlertsManager.tsx` client component (FormModal: name/category/region/budget/guests/
+    check-in window; card list with Pause·Edit·Delete); `page.tsx` now renders it. Full CRUD verified
+    live + DB (create → pause → edit → delete), fixture cleaned up. Build + lint green.
+
 ## 2026-07-12 #52 — Host sweep · Batch B leftovers complete (Add-ons·Coupons·Reviews·Media).
 
 Continued the host-dashboard functional sweep. All Batch B leftovers verified end-to-end (live + DB truth

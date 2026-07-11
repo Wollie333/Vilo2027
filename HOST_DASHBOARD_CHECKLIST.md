@@ -165,15 +165,15 @@ Test fixture restored to the clean 4-active-default state. `deleted_at IS NULL` 
 - ✅ 18. Credit Notes — `/dashboard/credit-notes` — renders correct empty state ("No credit notes"); populates when refund/adjustment mints a `wielo_credit_notes` doc (verified in admin-ledger-parity + Batch A guest-record).
 - ✅ 19. Refunds — `/dashboard/refunds` — renders correct empty state ("Nothing…"); populates from the guest-record/booking Issue-refund action (Batch A). No console errors on any Finances tab.
 
-## D · CHANNELS (Website SKIPPED — out of scope)
-- ⬜ 20. Calendar sync — `/dashboard/calendar-sync`
-- ⬜ 21. OTA channels — `/dashboard/channels`
+## D · CHANNELS (Website SKIPPED — out of scope) — ✅ SWEPT (2026-07-12 #53)
+- ✅ 20. Calendar sync — `/dashboard/calendar-sync` — Export ("Get my export URL" → `/dashboard/calendar` per-listing iCal) + Import (per-listing external feeds; SA channel presets: Airbnb/Booking.com/SafariNow/NightsBridge/LekkeSlaap/Afristay/Google/Apple). **Verified live+DB:** Add calendar → channel preset + URL → **Add feed** (`addIcalFeedAction` wrote an `ical_feeds` row: source_label Airbnb, status active); feed card showed Sync/Remove; **Remove feed** (`removeIcalFeedAction`, confirm modal) → row gone. Sync (`syncIcalFeedAction`) wired (not fired on the bogus URL). Feature already MVP-ready + live in prod ([[project-calendar-sync-state]]). No console errors.
+- ✅ 21. OTA channels — `/dashboard/channels` — **intentional "Coming Post-launch" placeholder** (page-only, no actions): renders roadmap (partner-API push to Airbnb/Booking.com, one-way price/availability sync, external bookings → unified inbox) + Pro+ tier note. Surface live so nav makes sense; feature lands per PHASE_PLAN.md. Correct by design, not a gap.
 
-## E · LOOKING FOR
-- ⬜ 22. Browse Requests — `/dashboard/looking-for`
-- ⬜ 23. My Quotes Sent — `/dashboard/looking-for/my-quotes`
-- ⬜ 24. Saved Requests — `/dashboard/looking-for/saved`
-- ⬜ 25. Request Alerts — `/dashboard/looking-for/alerts`
+## E · LOOKING FOR — ✅ SWEPT (2026-07-12 #54)
+- ✅ 22. Browse Requests — `/dashboard/looking-for` — renders via `RequestsBoard` client component (fetch/filter/quote flow wired); correct empty state (no active guest posts). No error UI.
+- ✅ 23. My Quotes Sent — `/dashboard/looking-for/my-quotes` — server-rendered list, correct empty state (no quotes sent). Populates from the Browse quote flow.
+- ✅ 24. Saved Requests — `/dashboard/looking-for/saved` — server-rendered list, correct empty state (no bookmarks). Populates from Browse bookmark toggle.
+- 🔴→✅ 25. Request Alerts — `/dashboard/looking-for/alerts` — **WAS A DEAD STUB** (page.tsx Server Component: "New Alert" / "Create Your First Alert" / "Edit" / delete buttons had **NO handlers** — the 4 server actions `createAlertAction`/`updateAlertAction`/`toggleAlertActiveAction`/`deleteAlertAction` existed but nothing in the UI called them). **FIXED:** built `AlertsManager.tsx` client component (FormModal form: name/category/region/budget/guests/check-in window + card list with Pause/Activate·Edit·Delete) and refactored `page.tsx` to render it. **Full CRUD verified live+DB:** create (`createAlertAction` → "Karoo weekend getaways") → Pause (`toggleAlertActiveAction` is_active→false) → Edit name (`updateAlertAction`, is_active untouched) → Delete (`deleteAlertAction`, confirm modal). Fixture clean (0 alerts). Build green, no lint issues. (Transient "[dashboard] uncaught error" seen mid-session = HMR recompile churn while live-editing; not reproducible — all 4 pages fresh-load clean.)
 
 ## F · INSIGHTS
 - ⬜ 26. Reports — `/dashboard/reports` (+ savings)
