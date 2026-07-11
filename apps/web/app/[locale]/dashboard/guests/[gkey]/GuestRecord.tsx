@@ -75,6 +75,7 @@ import {
   exportGuestVcardAction,
   pinGuestNoteAction,
   recordOptOutAction,
+  removeGuestTagAction,
   unblockGuestAction,
   upsertGuestRatingAction,
 } from "../actions";
@@ -577,6 +578,44 @@ export function GuestRecord({
   );
 }
 
+// A guest tag chip with an inline remove control. `addGuestTagAction` had no
+// counterpart in the UI (tags could be added from the ⋯ menu but never removed),
+// so `removeGuestTagAction` was unreachable — this wires it up.
+function RemovableTag({ gkey, tag }: { gkey: string; tag: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    setBusy(true);
+    const res = await removeGuestTagAction(gkey, tag);
+    setBusy(false);
+    if (!res.ok) {
+      void modal.error({
+        title: "Couldn't remove tag",
+        description: res.error,
+      });
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-semibold text-brand-mute">
+      {tag}
+      <button
+        type="button"
+        onClick={() => void remove()}
+        disabled={busy}
+        title={`Remove “${tag}”`}
+        aria-label={`Remove tag ${tag}`}
+        className="-mr-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full leading-none text-brand-mute transition hover:bg-brand-line hover:text-brand-ink disabled:opacity-50"
+      >
+        ×
+      </button>
+    </span>
+  );
+}
+
 // ── Dossier (v3: the sticky left CRM card) ──────────────────────────────
 // Identity, quick actions, balance, contact, verification, lifetime stats and
 // preferences — everything "about the guest" lives here so the working column
@@ -650,12 +689,7 @@ function Dossier({
               {r.tags
                 .filter((t) => t !== "VIP")
                 .map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-semibold text-brand-mute"
-                  >
-                    {t}
-                  </span>
+                  <RemovableTag key={t} gkey={r.gkey} tag={t} />
                 ))}
             </div>
           </div>

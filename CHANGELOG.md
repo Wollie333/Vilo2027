@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-11 #47 — Host dashboard functional sweep (Batch A · DAILY started); guest-record deep-test + tag-remove fix.
+
+Began the host-dashboard functional sweep (same method as the admin sweep) driven as the Karoo Sky Stays
+test host. New tracking doc `HOST_DASHBOARD_CHECKLIST.md`. **Website/Builder/CMS is explicitly out of scope**
+(separate effort). Batch A (DAILY) progress:
+- **Overview / Calendar / Bookings / Inbox** verified live + DB. Calendar Block/Open-nights wrote & cleared
+  `blocked_dates`; the manual-booking wizard created a booking end-to-end and Cancel released its held dates;
+  the host inbox send persisted a message.
+- **Guest record deep-tested** (founder priority — every tab + function): Notes add/pin/delete, tag add,
+  block/unblock, Finances **Record payment** (minted receipt RPT-0011, balance → paid-in-full), marketing
+  opt-out, Reputation (correctly gated), Relationships — all verified live + DB.
+
+**Bug found + fixed — guest tags could be added but never removed.** `removeGuestTagAction` existed in
+`guests/actions.ts` but was wired to **no UI** (the header tag chips were display-only), so a host had no way
+to remove a tag. Added a `RemovableTag` client chip with an inline × control in `GuestRecord.tsx`, wired to
+`removeGuestTagAction`. Verified live: adding then removing a tag round-trips (`host_contacts.tags`). `tsc` +
+`eslint` + clean `pnpm build` green.
+
+---
+
 ## 2026-07-11 #46 — Full admin re-sweep: all 20 tabs re-verified live; Overview footprint count fixed.
 
 Resumed from save point #45 and drove a **full re-sweep** of every admin sidebar tab as super_admin
