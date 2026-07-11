@@ -32,6 +32,13 @@ function isOne<T extends ReadonlyArray<string>>(
   return values.includes((v ?? "") as T[number]);
 }
 
+// Fallback label for a plan key with no matching active product (e.g. a free
+// tier or a retired plan a host is grandfathered on): "free" → "Free".
+function humanizePlanKey(key: string | null): string {
+  if (!key) return "—";
+  return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
 export default async function AdminSubscriptionsPage({
   searchParams,
 }: {
@@ -129,7 +136,7 @@ export default async function AdminSubscriptionsPage({
       header: "Plan",
       cell: (s) => (
         <span className="inline-flex items-center rounded-pill border border-brand-primary/30 bg-brand-accent px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-primary">
-          {s.plan}
+          {planNameByKey.get(s.plan) ?? humanizePlanKey(s.plan)}
         </span>
       ),
     },
