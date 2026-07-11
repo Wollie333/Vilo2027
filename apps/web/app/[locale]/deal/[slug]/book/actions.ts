@@ -180,32 +180,29 @@ export async function createSpecialBookingAction(
   }
 
   // 6. Availability — the authoritative gate (same RPCs as a normal booking).
-  if (special.room_id) {
-    const { data: avail, error: availErr } = await admin.rpc(
-      "room_is_available",
-      {
-        p_listing_id: property.id,
-        p_room_id: special.room_id,
-        p_check_in: checkIn,
-        p_check_out: checkOut,
-      },
-    );
-    if (availErr || avail === false) {
-      return {
-        ok: false,
-        error: "These dates were just booked. Try different dates.",
-      };
+  // Availability check that EXCLUDES this special's own calendar hold. An active
+  // fixed-date special blocks its dates (blocked_dates.source='special',
+  // special_id=<this special>) to reserve them — so the generic availability
+  // RPCs (which count every block) would wrongly report the special's own dates
+  // as unavailable and make the deal unbookable. We query blocked_dates directly
+  // and ignore rows belonging to THIS special; every other block (real bookings,
+  // manual holds, iCal, other specials) still counts.
+  {
+    let q = admin
+      .from("blocked_dates")
+      .select("id", { count: "exact", head: true })
+      .eq("property_id", property.id)
+      .gte("date", checkIn)
+      .lt("date", checkOut)
+      // keep this special's own hold out of the conflict check
+      .or(`special_id.is.null,special_id.neq.${special.id}`);
+    // whole-property special: any room-scoped or whole-listing block conflicts.
+    // room-scoped special: only that room's block or a whole-listing block.
+    if (special.room_id) {
+      q = q.or(`room_id.is.null,room_id.eq.${special.room_id}`);
     }
-  } else {
-    const { data: avail, error: availErr } = await admin.rpc(
-      "listing_is_available_whole",
-      {
-        p_listing_id: property.id,
-        p_check_in: checkIn,
-        p_check_out: checkOut,
-      },
-    );
-    if (availErr || avail === false) {
+    const { count, error: availErr } = await q;
+    if (availErr || (count ?? 0) > 0) {
       return {
         ok: false,
         error: "These dates aren’t available. Try different dates.",

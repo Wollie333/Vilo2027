@@ -29,7 +29,18 @@ ledger integration). Three real bugs found and fixed:
    `blockSpecialDates()` swallowed. Migration `20260711140000` adds `'special'` to the constraint (pushed).
    Verified live via the app: publish creates the blocks (source='special'), draft releases them.
 
-Specials ↔ Calendar now works end-to-end. Booking/ledger/notification integration verification in progress.
+4. **Fixed-date specials were unbookable (found while verifying the booking flow).** The deal booking
+   availability check counted the special's own `source='special'` calendar hold as unavailable, so the deal
+   always failed with "These dates aren't available." `deal/[slug]/book/actions.ts` now checks `blocked_dates`
+   directly and excludes the special's own hold (room-scope aware). Verified live: a guest booked the deal →
+   booking created + linked to the special, redemption consumed (sold out), ledger payment, success page.
+
+**Specials E2E verified:** save · calendar hold/release · public `/deal/[slug]` · booking · atomic
+redemption · ledger payment · notifications (EFT recorded → booking confirmed → `booking_confirmed_guest`
+fired). **Two hardening gaps flagged** (see HOST_DASHBOARD_CHECKLIST.md): (A) the calendar block doesn't
+convert from special-hold to the booking on confirmation (double-booking risk if the special is later
+deactivated); (B) deal pricing/payment don't reconcile (booking total R4830 vs deal price R4200/R4380 +
+a pre-created pending payment left orphaned when the EFT is recorded).
 
 ---
 

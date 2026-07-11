@@ -82,8 +82,28 @@ Decide the long-term fix (code short-circuit vs. keeping override seeds complete
   `blockSpecialDates()` swallowed. Migration `20260711140000` adds `'special'` to the constraint (pushed to cloud).
   **Verified live end-to-end via the app:** publish → 3 `source='special'` blocks created (Aug 1–3); draft →
   blocks released. **Specials ↔ Calendar integration works.**
-- ⏳ Still to verify for a 100% ship: Specials ↔ **Booking** + **Ledger** + **notifications** (guest books a
-  special → booking + calendar hold + ledger row + notifications). In progress.
+- 🔴→✅ **Fix 4 (NEW bug found while verifying booking) — fixed-date specials were unbookable.** The deal
+  booking availability check (`deal/[slug]/book/actions.ts`) used `listing_is_available_whole` /
+  `room_is_available`, which count the special's OWN `source='special'` hold as unavailable → "These dates
+  aren't available." Replaced with a direct `blocked_dates` conflict query that **excludes this special's own
+  hold** (`special_id.is.null OR special_id.neq.<this>`), room-scope aware. **Verified live end-to-end:** a
+  guest booked the deal → booking `46376561` created (linked to `special_id`, Aug 1–4), redemption consumed
+  (`redemptions_used 1/1` → sold out), pending EFT payment on the ledger, deal success page rendered.
+
+**Specials E2E integration — verified:** save ✅ · calendar hold/release ✅ · public `/deal/[slug]` ✅ ·
+booking ✅ · atomic redemption/sold-out ✅ · ledger payment ✅ · **notifications ✅** (recording the EFT →
+booking `confirmed`, `booking_confirmed_guest` notification fired).
+
+**🔶 Two remaining hardening gaps flagged for the founder (NOT a 100% ship yet):**
+- **A — calendar block never converts to the booking.** After a confirmed special booking, the held nights
+  stay `source='special', booking_id=null`. If the host later deactivates the special, `releaseSpecialDates`
+  would free a **confirmed booking's** dates → double-booking exposure. The block should convert to
+  `source='booking'` (booking_id set) on booking creation/confirmation, and release must skip dates with a
+  live booking.
+- **B — deal payment/pricing mismatch.** The deal pre-creates a **pending R4 200** payment at booking, but the
+  booking `total_amount` is **R4 830** (deal price shown was R4 380); recording the EFT then adds a **second**
+  R4 830 payment. The deal total / displayed price / pre-created payment don't reconcile, and the pending row
+  is left orphaned. Needs the deal pricing + payment-record flow reconciled.
 
 ### (historical) 🔴 FINDING 2 (was: root-cause under investigation): Specials editor save is a silent no-op
 Once unblocked, Specials renders fully (list + KPIs + editor + New special). But **saving a special
