@@ -219,7 +219,7 @@ export function AffiliateAdminPanel({
                     <tr key={a.id} className="hover:bg-[#F8FCF9]">
                       <td className="px-4 py-3">
                         <Link
-                          href={`/admin/users/${a.userId}`}
+                          href={`/admin/affiliates/${a.id}`}
                           className="font-medium text-brand-ink hover:text-brand-primary"
                         >
                           {a.name}
