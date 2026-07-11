@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
 import { Link } from "@/i18n/navigation";
+import { grossVat } from "@/lib/pricing/vat";
 
 import type { DirectorySpecial } from "@/lib/specials/directory";
 
@@ -66,13 +67,16 @@ export async function SpecialCard({
         {amount != null ? (
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="num font-display font-bold text-brand-ink">
-              <Money amount={amount} currency={s.currency} />
+              <Money
+                amount={grossVat(amount, s.vatRate)}
+                currency={s.currency}
+              />
             </span>
             <span className="text-xs text-brand-mute">{perLabel}</span>
             {s.wasPrice && s.savingsAmount ? (
               <span className="text-xs text-brand-mute line-through">
                 <Money
-                  amount={s.wasPrice}
+                  amount={grossVat(s.wasPrice, s.vatRate)}
                   currency={s.currency}
                   approx={false}
                 />

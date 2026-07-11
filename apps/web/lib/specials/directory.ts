@@ -1,3 +1,4 @@
+import { effectiveVatRate } from "@/lib/pricing/vat";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
@@ -76,6 +77,9 @@ export type DirectorySpecial = {
   propertyCity: string | null;
   propertyProvince: string | null;
   accommodationType: string | null;
+  /** Effective VAT rate of the listing (0 unless VAT-registered). Host prices
+   *  are ex-VAT; the card grosses displayed amounts so shown == charged. */
+  vatRate: number;
 };
 
 export type SpecialsSearchParams = {
@@ -104,6 +108,8 @@ type PropertyJoin = {
   city: string | null;
   province: string | null;
   accommodation_type: string | null;
+  vat_number: string | null;
+  vat_rate: number | string | null;
   deleted_at: string | null;
   photos: Array<{ url: string; sort_order: number }> | null;
 };
@@ -172,7 +178,7 @@ export async function loadPropertySpecials(
   const { data } = await admin
     .from("specials")
     .select(
-      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( accommodation_type, photos:property_photos ( url, sort_order ) )",
+      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( accommodation_type, vat_number, vat_rate, photos:property_photos ( url, sort_order ) )",
     )
     .eq("property_id", propertyId)
     .eq("status", "active")
@@ -224,6 +230,10 @@ export async function loadPropertySpecials(
       propertyCity: property.city,
       propertyProvince: property.province,
       accommodationType: prop?.accommodation_type ?? null,
+      vatRate: effectiveVatRate({
+        vat_number: prop?.vat_number ?? null,
+        vat_rate: prop?.vat_rate ?? null,
+      }),
     });
   }
 
@@ -252,7 +262,7 @@ export async function searchSpecials(
   const { data } = await admin
     .from("specials")
     .select(
-      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( slug, name, city, province, accommodation_type, deleted_at, photos:property_photos ( url, sort_order ) )",
+      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( slug, name, city, province, accommodation_type, vat_number, vat_rate, deleted_at, photos:property_photos ( url, sort_order ) )",
     )
     .eq("status", "active")
     .eq("show_in_directory", true)
@@ -308,6 +318,10 @@ export async function searchSpecials(
       propertyCity: property.city,
       propertyProvince: property.province,
       accommodationType: property.accommodation_type,
+      vatRate: effectiveVatRate({
+        vat_number: property.vat_number,
+        vat_rate: property.vat_rate,
+      }),
     });
   }
 

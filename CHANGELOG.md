@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-12 #50 — VAT-inclusive prices on every guest-facing surface (shown == charged).
+
+Founder flagged that the deal showed R4200 but the guest was charged R4830. Confirmed the model (host prices
+are EX-VAT; the `apply_booking_vat` trigger grosses the booking total up, so the guest pays VAT-inclusive).
+Fix = display: every guest-facing price is now shown VAT-inclusive so it matches the charge; the booking
+INSERT / pricing engines / invoices are untouched (they keep the ex-VAT figures the trigger grosses).
+
+- New shared helper `lib/pricing/vat.ts` — `effectiveVatRate(listing)` (0 unless VAT-registered),
+  `grossVat(exVat, rate)`, `vatOf(exVat, rate)`.
+- **Deal booking form** (`SpecialBookingForm`) — Package (ex-VAT) + a `VAT (15%)` line + `Total incl. VAT`
+  grossed; savings/was-price grossed. Verified live: guest sees R4830 = charge.
+- **Deal detail page**, **/deals cards** (+ `lib/specials/directory.ts` joins), **property detail page**
+  (rooms/rates/reserve-panel/similar-stays/suitability extras), the **normal booking flow** (`BookingForm`
+  summary with a VAT line + grossed grand total, room/add-on/cleaning lines), and **explore + home** cards +
+  the "browse by type … from" rollup — all grossed via the shared helper (rolled out by subagent, tsc-clean).
+- Verified live on a VAT-registered listing: deal price R4830, deal-form total R4830 incl VAT, property rooms
+  R1200→R1380 / R1600→R1840. Non-VAT listings unchanged (`grossVat` is a no-op at rate 0).
+- Pixel `value` params deliberately left ex-VAT (analytics, not guest-facing).
+
+---
+
 ## 2026-07-11 #49 — Specials 100%: calendar-block conversion, VAT-correct payment, pending host notifications.
 
 Closed the two hardening gaps from #48 and added a founder-requested pending-booking notification, so normal

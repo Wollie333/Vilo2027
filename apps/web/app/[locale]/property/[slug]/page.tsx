@@ -24,6 +24,7 @@ import {
   type ListingPolicySummary,
 } from "@/lib/policy/listing-summary";
 import { type SeasonalRule } from "@/lib/pricing";
+import { effectiveVatRate, grossVat } from "@/lib/pricing/vat";
 import { sanitiseListingHtml, stripHtml } from "@/lib/sanitiseHtml";
 import { loadPropertySpecials } from "@/lib/specials/directory";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -77,6 +78,8 @@ type RawListing = {
   weekend_price: number | null;
   cleaning_fee: number | null;
   currency: string;
+  vat_number: string | null;
+  vat_rate: number | string | null;
   booking_mode: BookingMode;
   cancellation_policy: "flexible" | "moderate" | "strict";
   house_rules: string | null;
@@ -168,7 +171,7 @@ async function loadListing(slug: string) {
         city, province, country, latitude, longitude,
         bedrooms, bathrooms, max_guests, min_nights,
         check_in_time, check_out_time,
-        base_price, weekend_price, cleaning_fee, currency, booking_mode,
+        base_price, weekend_price, cleaning_fee, currency, vat_number, vat_rate, booking_mode,
         cancellation_policy, house_rules, instant_booking,
         allow_children, allow_infants, allow_pets,
         child_price, infant_price, pet_fee, infant_max_age, child_max_age,
@@ -446,6 +449,10 @@ export default async function ListingDetailPage({
   const { listing, photos, amenities, rooms, seasons, unavailableDates, pois } =
     data;
 
+  // Host prices are ex-VAT; the booking trigger grosses the charge up. Show
+  // every guest-facing price VAT-inclusive so "shown == charged" (0 = no-op).
+  const vatRate = effectiveVatRate(listing);
+
   // If the visitor is signed in, prefill (and hide) the contact fields on the
   // quote-request form so they don't re-type details we already have. The
   // enquiry then matches their existing profile and lands them in their inbox.
@@ -482,6 +489,7 @@ export default async function ListingDetailPage({
         weekendPrice={listing.weekend_price}
         cleaningFee={listing.cleaning_fee}
         currency={listing.currency}
+        vatRate={vatRate}
         weeklyDiscountPct={listing.weekly_discount_pct}
         childPrice={Number(listing.child_price ?? 0)}
         petFee={Number(listing.pet_fee ?? 0)}
@@ -579,7 +587,11 @@ export default async function ListingDetailPage({
           showRoomsGrid={rooms.length > 0}
           roomsNode={
             rooms.length > 0 ? (
-              <RoomsInfoGrid rooms={rooms} currency={listing.currency} />
+              <RoomsInfoGrid
+                rooms={rooms}
+                currency={listing.currency}
+                vatRate={vatRate}
+              />
             ) : null
           }
           ratesNode={ratesNode}
@@ -613,6 +625,7 @@ export default async function ListingDetailPage({
               slug={listing.slug ?? params.slug}
               basePrice={listing.base_price}
               currency={listing.currency}
+              vatRate={vatRate}
               rating={listing.avg_rating}
               reviewCount={listing.total_reviews}
               instantBooking={listing.instant_booking}
@@ -706,6 +719,8 @@ async function ListingBody({
     getBrandName(),
     getTranslations("listing"),
   ]);
+  // Ex-VAT host prices → shown VAT-inclusive (0 = no-op for unregistered).
+  const vatRate = effectiveVatRate(listing);
   const sectionLinks = [
     { id: "sec-overview", label: t("navOverview") },
     ...(listing.description ? [{ id: "sec-about", label: t("navAbout") }] : []),
@@ -958,9 +973,15 @@ async function ListingBody({
                     policySummary.house_rules?.pets_allowed ??
                     listing.allow_pets ??
                     true,
-                  childPrice: Number(listing.child_price ?? 0),
-                  infantPrice: Number(listing.infant_price ?? 0),
-                  petFee: Number(listing.pet_fee ?? 0),
+                  childPrice: grossVat(
+                    Number(listing.child_price ?? 0),
+                    vatRate,
+                  ),
+                  infantPrice: grossVat(
+                    Number(listing.infant_price ?? 0),
+                    vatRate,
+                  ),
+                  petFee: grossVat(Number(listing.pet_fee ?? 0), vatRate),
                   infantMaxAge: listing.infant_max_age ?? 2,
                   childMaxAge: listing.child_max_age ?? 12,
                   currency: listing.currency,

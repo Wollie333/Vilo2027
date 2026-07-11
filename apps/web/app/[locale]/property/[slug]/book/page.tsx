@@ -22,6 +22,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { type SeasonalRule } from "@/lib/pricing";
+import { effectiveVatRate } from "@/lib/pricing/vat";
 
 import { type PricingModel } from "../../../dashboard/addons/schemas";
 import { bedSummary, type RoomPricingMode } from "../roomDisplay";
@@ -106,7 +107,7 @@ export default async function BookingPage({
   const { data: listing } = await supabase
     .from("properties")
     .select(
-      "id, host_id, business_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, property_type, accommodation_type, avg_rating, total_reviews, whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
+      "id, host_id, business_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, vat_number, vat_rate, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, property_type, accommodation_type, avg_rating, total_reviews, whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
     .eq("slug", params.slug)
     .maybeSingle();
@@ -436,6 +437,7 @@ export default async function BookingPage({
             listing.weekend_price == null ? null : Number(listing.weekend_price)
           }
           cleaningFee={Number(listing.cleaning_fee ?? 0)}
+          vatRate={effectiveVatRate(listing)}
           listingChildPrice={Number(listing.child_price ?? 0)}
           listingInfantPrice={Number(listing.infant_price ?? 0)}
           listingPetFee={Number(listing.pet_fee ?? 0)}

@@ -11,6 +11,7 @@ import {
 } from "../../../dashboard/addons/schemas";
 import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
 import { formatMoney } from "@/lib/format";
+import { grossVat, vatOf } from "@/lib/pricing/vat";
 
 import { createCheckoutGuestAccountAction } from "../../../property/[slug]/book/actions";
 import { createSpecialBookingAction } from "./actions";
@@ -51,6 +52,9 @@ type Props = {
   priceMode: "flat" | "per_night";
   flatTotal: number | null;
   perNightPrice: number | null;
+  /** Effective VAT rate for the listing (0 unless VAT-registered). Prices are
+   *  ex-VAT; every amount shown is grossed up so the guest sees what's charged. */
+  vatRate: number;
   maxGuests: number;
   wasPrice: number | null;
   savingsAmount: number | null;
@@ -293,12 +297,18 @@ export function SpecialBookingForm(props: Props) {
             {props.savingsAmount && props.savingsPct ? (
               <p className="text-sm font-semibold text-emerald-600">
                 {t("bkSave", {
-                  amount: formatMoney(props.savingsAmount, props.currency),
+                  amount: formatMoney(
+                    grossVat(props.savingsAmount, props.vatRate),
+                    props.currency,
+                  ),
                   pct: props.savingsPct,
                 })}
                 {props.wasPrice ? (
                   <span className="ml-1 font-normal text-brand-mute line-through">
-                    {formatMoney(props.wasPrice, props.currency)}
+                    {formatMoney(
+                      grossVat(props.wasPrice, props.vatRate),
+                      props.currency,
+                    )}
                   </span>
                 ) : null}
               </p>
@@ -530,13 +540,32 @@ export function SpecialBookingForm(props: Props) {
                 </span>
               </div>
             ) : null}
+            {props.vatRate > 0 ? (
+              <div className="flex justify-between">
+                <span className="text-brand-mute">VAT ({props.vatRate}%)</span>
+                <span className="text-brand-ink">
+                  {formatMoney(
+                    vatOf(estimate.total, props.vatRate),
+                    props.currency,
+                  )}
+                </span>
+              </div>
+            ) : null}
           </div>
           <div className="flex items-baseline justify-between border-t border-brand-line pt-3">
             <span className="text-sm font-semibold text-brand-ink">
               {t("bkEstimatedTotal")}
+              {props.vatRate > 0 ? (
+                <span className="ml-1 text-[11px] font-normal text-brand-mute">
+                  incl. VAT
+                </span>
+              ) : null}
             </span>
             <span className="font-display text-2xl font-extrabold text-brand-ink">
-              {formatMoney(estimate.total, props.currency)}
+              {formatMoney(
+                grossVat(estimate.total, props.vatRate),
+                props.currency,
+              )}
             </span>
           </div>
           <p className="text-[11px] text-brand-mute">{t("bkFinalNote")}</p>

@@ -35,6 +35,8 @@ export type BrowseListing = {
   province: string | null;
   base_price: number | null;
   currency: string;
+  vat_number: string | null;
+  vat_rate: number | string | null;
   max_guests: number | null;
   property_type: string;
   accommodation_type: string | null;
@@ -99,7 +101,7 @@ export async function searchListings(
   let query = supabase
     .from("properties")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, property_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, city, province, base_price, currency, vat_number, vat_rate, max_guests, property_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
       { count: "exact" },
     )
     .eq("is_published", true)

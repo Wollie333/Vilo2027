@@ -34,6 +34,7 @@ import { useBrandName } from "@/components/brand/BrandProvider";
 import { PolicyDialog } from "@/components/policy/PolicyDialog";
 import { commerceParams, firePixelEvent } from "@/lib/analytics/pixel";
 import { formatMoney } from "@/lib/format";
+import { grossVat, vatOf } from "@/lib/pricing/vat";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -191,6 +192,7 @@ export function BookingForm({
   basePrice,
   weekendPrice: listingWeekendPrice,
   cleaningFee,
+  vatRate,
   listingChildPrice,
   listingInfantPrice,
   listingPetFee,
@@ -236,6 +238,10 @@ export function BookingForm({
   basePrice: number;
   weekendPrice: number | null;
   cleaningFee: number;
+  // Effective VAT rate (0 unless VAT-registered). Host prices are ex-VAT and the
+  // apply_booking_vat trigger grosses the charge; every guest-facing price shown
+  // here is grossed so shown == charged. Never sent to the booking action.
+  vatRate: number;
   listingChildPrice: number;
   listingInfantPrice: number;
   listingPetFee: number;
@@ -285,6 +291,12 @@ export function BookingForm({
   const [isPending, start] = useTransition();
   const [loggingOut, startLogout] = useTransition();
   const t = useTranslations("book");
+
+  // DISPLAY-ONLY VAT grossing. Host prices are ex-VAT; the apply_booking_vat DB
+  // trigger grosses the charged total, so every guest-facing amount is shown
+  // VAT-inclusive (shown == charged). 0 rate → no-op. Never applied to values
+  // sent to the pricing engine, coupon check, or createBookingAction.
+  const gv = (n: number) => grossVat(n, vatRate);
 
   // ── Wizard step ───────────────────────────────────────────────
   // 0 = Rooms (dates/guests/room selection), 1 = Details (contact/add-ons),
@@ -952,7 +964,7 @@ export function BookingForm({
         : "Redirecting to Paystack…"
     : method === "eft"
       ? "Reserve & get bank details"
-      : `Pay ${formatMoney(total, currency)}`;
+      : `Pay ${formatMoney(gv(total), currency)}`;
 
   const cardLabel = "rounded-card border border-brand-line bg-white";
   const sectionHead =
@@ -1093,9 +1105,9 @@ export function BookingForm({
               <div className="min-w-0">
                 <div className="font-medium text-brand-ink">{listingName}</div>
                 <div className="text-xs text-brand-mute">
-                  {formatMoney(basePrice, currency)} / night
+                  {formatMoney(gv(basePrice), currency)} / night
                   {cleaningFee > 0
-                    ? ` · ${formatMoney(cleaningFee, currency)} cleaning`
+                    ? ` · ${formatMoney(gv(cleaningFee), currency)} cleaning`
                     : ""}
                 </div>
               </div>
@@ -1192,13 +1204,13 @@ export function BookingForm({
                           <div className="text-xs text-brand-mute">
                             <span className="font-semibold text-brand-ink">
                               {formatMoney(
-                                roomFromNightly(toPricing(r)),
+                                gv(roomFromNightly(toPricing(r))),
                                 currency,
                               )}
                             </span>{" "}
                             / night
                             {r.cleaningFee > 0
-                              ? ` · ${formatMoney(r.cleaningFee, currency)} cleaning`
+                              ? ` · ${formatMoney(gv(r.cleaningFee), currency)} cleaning`
                               : ""}
                           </div>
                           {available ? (
@@ -1226,7 +1238,7 @@ export function BookingForm({
                             × {nights} ={" "}
                             <span className="font-semibold">
                               {formatMoney(
-                                nightly * nights + r.cleaningFee,
+                                gv(nightly * nights + r.cleaningFee),
                                 currency,
                               )}
                             </span>
@@ -1454,7 +1466,7 @@ export function BookingForm({
                 >
                   <span>{l.label}</span>
                   <span className="font-medium text-brand-ink">
-                    {formatMoney(l.subtotal, currency)}
+                    {formatMoney(gv(l.subtotal), currency)}
                   </span>
                 </div>
               ))}
@@ -1492,7 +1504,7 @@ export function BookingForm({
                   <span className="font-medium text-brand-primary">
                     {" "}
                     · {selectedAddonLines.length} selected ·{" "}
-                    {formatMoney(addonsTotal, currency)}
+                    {formatMoney(gv(addonsTotal), currency)}
                   </span>
                 ) : null}
               </div>
@@ -1586,7 +1598,7 @@ export function BookingForm({
                       <div className="mt-2 flex items-baseline justify-between gap-3">
                         <div className="text-xs">
                           <span className="font-semibold text-brand-ink">
-                            {formatMoney(a.unitPrice, currency)}
+                            {formatMoney(gv(a.unitPrice), currency)}
                           </span>
                           <span className="text-brand-mute">
                             {" "}
@@ -1595,7 +1607,7 @@ export function BookingForm({
                         </div>
                         {checked && lineTotal > 0 ? (
                           <div className="font-mono text-[11px] text-brand-secondary">
-                            = {formatMoney(lineTotal, currency)}
+                            = {formatMoney(gv(lineTotal), currency)}
                           </div>
                         ) : null}
                       </div>
@@ -2155,7 +2167,7 @@ export function BookingForm({
               <p className="mt-1.5 text-sm leading-relaxed text-brand-mute">
                 When you tap{" "}
                 <span className="font-medium text-brand-ink">
-                  Pay {formatMoney(total, currency)}
+                  Pay {formatMoney(gv(total), currency)}
                 </span>{" "}
                 below, you&rsquo;ll be taken to Paystack&rsquo;s secure page to
                 enter your card. {brandName} never sees or stores your card
@@ -2204,7 +2216,7 @@ export function BookingForm({
               <p className="mt-1.5 text-sm leading-relaxed text-brand-mute">
                 When you tap{" "}
                 <span className="font-medium text-brand-ink">
-                  Pay {formatMoney(total, currency)}
+                  Pay {formatMoney(gv(total), currency)}
                 </span>{" "}
                 below, you&rsquo;ll be taken to PayPal to approve the payment
                 (charged in USD at today&rsquo;s rate). {brandName} never sees
@@ -2632,6 +2644,14 @@ export function BookingForm({
                   <span className="text-white/85">{brandName} service fee</span>
                   <span className="font-medium text-emerald-300">FREE</span>
                 </div>
+                {vatRate > 0 ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/85">VAT ({vatRate}%)</span>
+                    <span className="text-white">
+                      {formatMoney(vatOf(total, vatRate), currency)}
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               {/* coupon */}
@@ -2687,11 +2707,12 @@ export function BookingForm({
                     Total · {currency}
                   </div>
                   <div className="text-[11px] text-white/45">
-                    incl. all fees · no booking fee
+                    incl. all fees{vatRate > 0 ? " · incl. VAT" : ""} · no
+                    booking fee
                   </div>
                 </div>
                 <div className="font-display text-[28px] font-extrabold leading-none text-white">
-                  {formatMoney(total, currency)}
+                  {formatMoney(gv(total), currency)}
                 </div>
               </div>
 
@@ -2762,7 +2783,12 @@ export function BookingForm({
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="font-display text-base font-bold text-brand-ink">
-                {formatMoney(total, currency)}
+                {formatMoney(gv(total), currency)}
+                {vatRate > 0 ? (
+                  <span className="ml-1 text-[10px] font-normal text-brand-mute">
+                    incl. VAT
+                  </span>
+                ) : null}
               </div>
               <div className="truncate text-[11px] text-brand-mute">
                 {nights} {nights === 1 ? "night" : "nights"} · {effectiveGuests}{" "}

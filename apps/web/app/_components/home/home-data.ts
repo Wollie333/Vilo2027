@@ -1,5 +1,6 @@
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
+import { effectiveVatRate, grossVat } from "@/lib/pricing/vat";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 import type { CategoryNode } from "@/lib/taxonomy/types";
@@ -91,9 +92,15 @@ function heroPhoto(photos: PhotoRow[] | null): string | null {
 function listingAmount(l: {
   booking_mode: string | null;
   base_price: number | null;
+  vat_number: string | null;
+  vat_rate: number | string | null;
   property_rooms: RoomRow[] | null;
 }): number | null {
-  return l.base_price != null ? Number(l.base_price) : null;
+  // Host base_price is ex-VAT; gross for display so the shown "from" rate
+  // matches the guest's charge (0 rate = no-op for unregistered listings).
+  return l.base_price != null
+    ? grossVat(Number(l.base_price), effectiveVatRate(l))
+    : null;
 }
 
 type ListingCardRow = {
@@ -102,6 +109,8 @@ type ListingCardRow = {
   city: string | null;
   province: string | null;
   base_price: number | null;
+  vat_number: string | null;
+  vat_rate: number | string | null;
   currency: string;
   max_guests: number | null;
   bedrooms: number | null;
@@ -115,7 +124,7 @@ type ListingCardRow = {
 };
 
 const LISTING_CARD_SELECT =
-  "slug, name, city, province, base_price, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, is_featured, photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )";
+  "slug, name, city, province, base_price, vat_number, vat_rate, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, is_featured, photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )";
 
 function toListingCard(l: ListingCardRow): HomeListingCard {
   const location = [l.city, l.province].filter(Boolean).join(" · ");
@@ -219,7 +228,7 @@ export async function getHomeData(): Promise<HomeData> {
       supabase
         .from("properties")
         .select(
-          "city, province, category_id, base_price, currency, booking_mode, host:hosts!inner ( display_name ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
+          "city, province, category_id, base_price, vat_number, vat_rate, currency, booking_mode, host:hosts!inner ( display_name ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
         )
         .eq("is_published", true)
         .eq("property_type", "accommodation")
@@ -261,6 +270,8 @@ export async function getHomeData(): Promise<HomeData> {
     province: string | null;
     category_id: string | null;
     base_price: number | null;
+    vat_number: string | null;
+    vat_rate: number | string | null;
     currency: string;
     booking_mode: string | null;
     host: { display_name: string } | null;

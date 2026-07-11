@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 
 import { Money } from "@/components/currency/Money";
 import { HeartButton } from "@/app/_components/home/HeartButton";
+import { effectiveVatRate, grossVat } from "@/lib/pricing/vat";
 import { createServerClient } from "@/lib/supabase/server";
 
 type Row = {
@@ -11,6 +12,8 @@ type Row = {
   city: string | null;
   province: string | null;
   base_price: number | null;
+  vat_number: string | null;
+  vat_rate: number | string | null;
   currency: string;
   max_guests: number | null;
   bedrooms: number | null;
@@ -38,12 +41,15 @@ function heroPhoto(photos: Row["photos"]): string | null {
 function amount(l: Row): number | null {
   // listing.base_price is the effective "from" price (cheapest active room incl.
   // per-person rates), maintained by recomputeListingFromRooms — use it so
-  // per-person rooms (base_price 0, rate in price_per_person) still show.
-  return l.base_price != null ? Number(l.base_price) : null;
+  // per-person rooms (base_price 0, rate in price_per_person) still show. Host
+  // prices are ex-VAT; gross for display so shown == charged (0 rate = no-op).
+  return l.base_price != null
+    ? grossVat(Number(l.base_price), effectiveVatRate(l))
+    : null;
 }
 
 const SELECT =
-  "slug, name, city, province, base_price, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )";
+  "slug, name, city, province, base_price, vat_number, vat_rate, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )";
 
 /**
  * "Similar stays" — other published listings in the same province (same-city

@@ -2,6 +2,7 @@ import { BadgePercent, CalendarClock, Home, Info } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
+import { grossVat } from "@/lib/pricing/vat";
 
 import { roomFromNightly, type PublicRoom } from "./roomDisplay";
 
@@ -90,6 +91,7 @@ export async function RatesSection({
   weekendPrice,
   cleaningFee,
   currency,
+  vatRate = 0,
   weeklyDiscountPct,
   childPrice = 0,
   petFee = 0,
@@ -100,11 +102,16 @@ export async function RatesSection({
   weekendPrice: number | null;
   cleaningFee: number | null;
   currency: string;
+  /** Ex-VAT host rates are grossed for display so shown == charged. */
+  vatRate?: number;
   weeklyDiscountPct: number | null;
   childPrice?: number;
   petFee?: number;
 }) {
   const t = await getTranslations("listing");
+  // Gross an ex-VAT rate for display (null passes through unchanged).
+  const g = (n: number | null): number | null =>
+    n == null ? n : grossVat(n, vatRate);
   const groups = groupSeasons(seasons);
   const hasRooms = rooms.length > 0;
   const current = groups.find((g) => g.isCurrent) ?? null;
@@ -173,16 +180,16 @@ export async function RatesSection({
               {t("ratesStandardDesc")}
             </div>
           </div>
-          {groups.map((g) => (
+          {groups.map((grp) => (
             <div
-              key={g.label}
+              key={grp.label}
               className={`relative rounded-card border p-4 ${
-                g.isCurrent
+                grp.isCurrent
                   ? "border-2 border-amber-300 bg-amber-50/50"
                   : "border-brand-line bg-white"
               }`}
             >
-              {g.isCurrent ? (
+              {grp.isCurrent ? (
                 <span className="absolute -top-2 right-3 inline-flex items-center rounded-pill border border-amber-600 bg-amber-500 px-2 py-0.5 text-[9px] font-semibold text-white">
                   {t("ratesCurrent")}
                 </span>
@@ -190,11 +197,11 @@ export async function RatesSection({
               <div className="inline-flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
                 <div className="font-display text-sm font-semibold text-brand-ink">
-                  {g.label}
+                  {grp.label}
                 </div>
               </div>
               <div className="mt-2 text-xs leading-relaxed text-brand-mute">
-                {fmtDay(g.start)} – {fmtDay(g.end)}
+                {fmtDay(grp.start)} – {fmtDay(grp.end)}
               </div>
             </div>
           ))}
@@ -211,7 +218,9 @@ export async function RatesSection({
             <div className="inline-flex items-center gap-1.5 text-[11px] text-brand-mute">
               <Info className="h-3 w-3" />
               {t.rich("ratesCleaningNote", {
-                fee: () => <Money amount={cleaningFee} currency={currency} />,
+                fee: () => (
+                  <Money amount={g(cleaningFee)} currency={currency} />
+                ),
               })}
             </div>
           ) : null}
@@ -229,11 +238,11 @@ export async function RatesSection({
                     {t("ratesStandard")}
                   </span>
                 </th>
-                {groups.map((g) => (
-                  <th key={g.label} className="px-4 py-3 font-semibold">
+                {groups.map((grp) => (
+                  <th key={grp.label} className="px-4 py-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
                       <span className="h-2 w-2 rounded-full bg-amber-500" />
-                      {g.label}
+                      {grp.label}
                     </span>
                   </th>
                 ))}
@@ -259,19 +268,19 @@ export async function RatesSection({
                     </td>
                     <td className="px-4 py-3.5 font-mono font-medium text-brand-ink">
                       <Money
-                        amount={roomFromNightly(room)}
+                        amount={g(roomFromNightly(room))}
                         currency={currency}
                       />
                     </td>
-                    {groups.map((g) => {
-                      const p = priceForRoom(g, room.id);
+                    {groups.map((grp) => {
+                      const p = priceForRoom(grp, room.id);
                       return (
                         <td
-                          key={g.label}
+                          key={grp.label}
                           className="px-4 py-3.5 font-mono text-amber-800"
                         >
                           <Money
-                            amount={p != null ? p : roomFromNightly(room)}
+                            amount={g(p != null ? p : roomFromNightly(room))}
                             currency={currency}
                           />
                         </td>
@@ -289,22 +298,22 @@ export async function RatesSection({
                     {weekendPrice != null ? (
                       <div className="text-[11px] text-brand-mute">
                         {t("ratesWeekends")}{" "}
-                        <Money amount={weekendPrice} currency={currency} />
+                        <Money amount={g(weekendPrice)} currency={currency} />
                       </div>
                     ) : null}
                   </td>
                   <td className="px-4 py-3.5 font-mono font-medium text-brand-ink">
-                    <Money amount={basePrice} currency={currency} />
+                    <Money amount={g(basePrice)} currency={currency} />
                   </td>
-                  {groups.map((g) => {
-                    const p = priceForWhole(g);
+                  {groups.map((grp) => {
+                    const p = priceForWhole(grp);
                     return (
                       <td
-                        key={g.label}
+                        key={grp.label}
                         className="px-4 py-3.5 font-mono text-amber-800"
                       >
                         <Money
-                          amount={p != null ? p : basePrice}
+                          amount={g(p != null ? p : basePrice)}
                           currency={currency}
                         />
                       </td>
@@ -324,7 +333,7 @@ export async function RatesSection({
             {childPrice > 0 ? (
               <>
                 {t("ratesExtrasChildren")}{" "}
-                <Money amount={childPrice} currency={currency} />
+                <Money amount={g(childPrice)} currency={currency} />
                 {t("ratesNightSuffix")}
               </>
             ) : null}
@@ -332,7 +341,7 @@ export async function RatesSection({
             {petFee > 0 ? (
               <>
                 {t("ratesExtrasPets")}{" "}
-                <Money amount={petFee} currency={currency} />
+                <Money amount={g(petFee)} currency={currency} />
                 {t("ratesNightSuffix")}
               </>
             ) : null}

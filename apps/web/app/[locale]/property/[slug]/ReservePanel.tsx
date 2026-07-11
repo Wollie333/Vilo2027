@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { FxEstimateNote } from "@/components/currency/FxEstimateNote";
 import { Money } from "@/components/currency/Money";
+import { grossVat } from "@/lib/pricing/vat";
 
 // Display-only booking panel. The listing page no longer lets guests pick
 // rooms/dates/guests inline — they either Reserve (→ self-contained booking
@@ -12,6 +13,7 @@ export async function ReservePanel({
   slug,
   basePrice,
   currency,
+  vatRate,
   rating,
   reviewCount,
   instantBooking,
@@ -22,6 +24,8 @@ export async function ReservePanel({
   slug: string;
   basePrice: number | null;
   currency: string;
+  /** Ex-VAT prices are grossed for display so shown == charged (0 = no-op). */
+  vatRate: number;
   rating: number | null;
   reviewCount: number | null;
   instantBooking: boolean;
@@ -62,7 +66,10 @@ export async function ReservePanel({
                   {t("reserveFrom")}{" "}
                 </span>
                 <span className="num font-display text-3xl font-bold tracking-tight text-brand-ink">
-                  <Money amount={basePrice} currency={currency} />
+                  <Money
+                    amount={grossVat(basePrice, vatRate)}
+                    currency={currency}
+                  />
                 </span>
                 <span className="ml-1 text-sm text-brand-mute">
                   {t("perNight")}
@@ -123,7 +130,10 @@ export async function ReservePanel({
             {basePrice != null ? (
               <div className="font-display font-bold text-brand-ink">
                 <span className="num">
-                  <Money amount={basePrice} currency={currency} />
+                  <Money
+                    amount={grossVat(basePrice, vatRate)}
+                    currency={currency}
+                  />
                 </span>
                 <span className="text-xs font-normal text-brand-mute">
                   {" "}

@@ -2,6 +2,7 @@ import { BedDouble, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
+import { grossVat } from "@/lib/pricing/vat";
 import { stripHtml } from "@/lib/sanitiseHtml";
 
 import {
@@ -17,9 +18,12 @@ import {
 export async function RoomsInfoGrid({
   rooms,
   currency,
+  vatRate = 0,
 }: {
   rooms: PublicRoom[];
   currency?: string;
+  /** Ex-VAT room rates are grossed for display so shown == charged. */
+  vatRate?: number;
 }) {
   if (rooms.length === 0) return null;
   const t = await getTranslations("listing");
@@ -66,7 +70,10 @@ export async function RoomsInfoGrid({
                       {t("roomFrom")}
                     </div>
                     <div className="num font-display text-sm font-bold text-brand-ink">
-                      <Money amount={fromPrice} currency={currency} />
+                      <Money
+                        amount={grossVat(fromPrice, vatRate)}
+                        currency={currency}
+                      />
                     </div>
                     <div className="text-[10px] text-brand-mute">
                       {perPerson ? t("roomPerPersonNight") : t("perNight")}

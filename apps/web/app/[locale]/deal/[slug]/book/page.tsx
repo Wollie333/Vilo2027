@@ -6,6 +6,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { FirePixelEvent } from "@/components/site/FirePixelEvent";
 import { commerceParams } from "@/lib/analytics/pixel";
+import { effectiveVatRate } from "@/lib/pricing/vat";
 import {
   cancellationNote,
   getListingPolicySummary,
@@ -74,7 +75,7 @@ export default async function SpecialBookingPage({
   const { data: property } = await admin
     .from("properties")
     .select(
-      "id, host_id, business_id, name, city, province, currency, base_price, weekend_price, cleaning_fee, max_guests",
+      "id, host_id, business_id, name, city, province, currency, base_price, weekend_price, cleaning_fee, max_guests, vat_number, vat_rate",
     )
     .eq("id", special.property_id)
     .maybeSingle();
@@ -244,6 +245,7 @@ export default async function SpecialBookingPage({
               ? null
               : Number(special.per_night_price)
           }
+          vatRate={effectiveVatRate(property)}
           maxGuests={
             special.max_guests ?? roomMaxGuests ?? property.max_guests ?? 50
           }

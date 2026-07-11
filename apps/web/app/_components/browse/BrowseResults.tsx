@@ -10,6 +10,7 @@ import {
 import { Link } from "@/i18n/navigation";
 
 import { Money } from "@/components/currency/Money";
+import { effectiveVatRate, grossVat } from "@/lib/pricing/vat";
 
 import { BROWSE_TYPE_LABEL, type BrowseResult } from "./searchListings";
 
@@ -144,8 +145,12 @@ export function BrowseResults({
                   {(() => {
                     // listing.base_price = effective "from" (per-person aware),
                     // maintained by recomputeListingFromRooms.
+                    // Host base_price is ex-VAT; gross for display so the "from"
+                    // rate matches what the guest is charged (0 = no-op).
                     const amount =
-                      l.base_price != null ? Number(l.base_price) : null;
+                      l.base_price != null
+                        ? grossVat(Number(l.base_price), effectiveVatRate(l))
+                        : null;
                     const fromLabel = l.booking_mode === "rooms_only";
                     const perLabel = "/ night";
                     if (amount == null) return null;

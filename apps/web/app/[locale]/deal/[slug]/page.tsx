@@ -30,6 +30,7 @@ import {
   cancellationNote,
   getListingPolicySummary,
 } from "@/lib/policy/listing-summary";
+import { effectiveVatRate, grossVat } from "@/lib/pricing/vat";
 import { specialCategoryLabel } from "@/lib/specials/categories";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
@@ -78,7 +79,7 @@ async function loadSpecial(slug: string) {
   const { data: property } = await admin
     .from("properties")
     .select(
-      "id, slug, host_id, name, city, province, country, accommodation_type, deleted_at",
+      "id, slug, host_id, name, city, province, country, accommodation_type, vat_number, vat_rate, deleted_at",
     )
     .eq("id", special.property_id)
     .maybeSingle();
@@ -262,6 +263,9 @@ export default async function SpecialDetailPage({
         ? null
         : Number(special.per_night_price);
   const isFlat = special.price_mode === "flat";
+  // Host prices are ex-VAT; the booking trigger grosses the charge. Show every
+  // guest-facing price VAT-inclusive so "shown == charged" (0 rate = no-op).
+  const vatRate = effectiveVatRate(property);
   const perLabel = isFlat ? t("dtPackageTotal") : t("dtPerNight");
   const priceLabel = isFlat ? t("ddPriceLabelPkg") : t("ddPriceLabelNight");
   const offSuffix = special.savings_pct
@@ -786,14 +790,20 @@ export default async function SpecialDetailPage({
                       {special.was_price && special.savings_amount ? (
                         <span className="num text-[15px] text-brand-mute line-through">
                           <Money
-                            amount={Number(special.was_price)}
+                            amount={grossVat(
+                              Number(special.was_price),
+                              vatRate,
+                            )}
                             currency={special.currency}
                             approx={false}
                           />
                         </span>
                       ) : null}
                       <span className="num font-display text-[30px] font-extrabold tracking-tight text-brand-ink">
-                        <Money amount={amount} currency={special.currency} />
+                        <Money
+                          amount={grossVat(amount, vatRate)}
+                          currency={special.currency}
+                        />
                       </span>
                       <span className="text-xs text-brand-mute">
                         {perLabel}
@@ -804,7 +814,10 @@ export default async function SpecialDetailPage({
                         {t("dtSave")}{" "}
                         <span className="font-semibold text-brand-primary">
                           <Money
-                            amount={Number(special.savings_amount)}
+                            amount={grossVat(
+                              Number(special.savings_amount),
+                              vatRate,
+                            )}
                             currency={special.currency}
                             approx={false}
                           />
