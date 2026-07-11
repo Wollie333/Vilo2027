@@ -30,7 +30,7 @@ export async function accrueAffiliateAndNotify(
     const [{ data: acct }, prod] = await Promise.all([
       admin
         .from("affiliate_accounts")
-        .select("user_id")
+        .select("user_id, user:user_profiles!user_id ( email )")
         .eq("id", c.affiliate_id)
         .maybeSingle(),
       c.product_id
@@ -42,6 +42,7 @@ export async function accrueAffiliateAndNotify(
         : Promise.resolve({ data: null as { name: string } | null }),
     ]);
     if (!acct?.user_id) return;
+    const acctUser = Array.isArray(acct.user) ? acct.user[0] : acct.user;
 
     await dispatchEvent({
       kind: "affiliate_commission_earned",
@@ -49,6 +50,7 @@ export async function accrueAffiliateAndNotify(
       refs: {
         amount: formatMoney(Number(c.commission_amount), c.currency ?? "ZAR"),
         detail: prod.data?.name ?? undefined,
+        recipient_email: acctUser?.email ?? undefined,
       },
       supabase: admin,
     });
@@ -71,10 +73,11 @@ export async function notifyAffiliatePayoutPaid(
     if (!p) return;
     const { data: acct } = await admin
       .from("affiliate_accounts")
-      .select("user_id")
+      .select("user_id, user:user_profiles!user_id ( email )")
       .eq("id", p.affiliate_id)
       .maybeSingle();
     if (!acct?.user_id) return;
+    const acctUser = Array.isArray(acct.user) ? acct.user[0] : acct.user;
 
     await dispatchEvent({
       kind: "affiliate_payout_paid",
@@ -82,6 +85,7 @@ export async function notifyAffiliatePayoutPaid(
       refs: {
         amount: formatMoney(Number(p.net_amount), p.currency ?? "ZAR"),
         detail: p.method ?? undefined,
+        recipient_email: acctUser?.email ?? undefined,
       },
       supabase: admin,
     });

@@ -24,3 +24,5 @@ export { default as SubscriptionFailed } from "./templates/SubscriptionFailed";
 export { default as SubscriptionRestricted } from "./templates/SubscriptionRestricted";
 export { default as SubscriptionWelcome } from "./templates/SubscriptionWelcome";
 export { default as WelcomeHost } from "./templates/WelcomeHost";
+export { default as AffiliateCommissionEarned } from "./templates/AffiliateCommissionEarned";
+export { default as AffiliatePayoutPaid } from "./templates/AffiliatePayoutPaid";

@@ -3,6 +3,8 @@ import type { ComponentType } from "react";
 import {
   AccountSuspended,
   AdminMessageGeneric,
+  AffiliateCommissionEarned,
+  AffiliatePayoutPaid,
   BookingCancelledGuest,
   BroadcastCritical,
   NotificationDigest,
@@ -41,6 +43,21 @@ const str = (v: unknown, fallback = ""): string =>
   typeof v === "string" && v.length > 0 ? v : fallback;
 
 export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
+  affiliate_commission_earned: {
+    Template: AffiliateCommissionEarned as ComponentType<
+      Record<string, unknown>
+    >,
+    recipient: "custom",
+    subject: (p) => `You earned ${str(p.amount, "commission")} on Wielo`,
+  },
+
+  affiliate_payout_paid: {
+    Template: AffiliatePayoutPaid as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `Your affiliate payout of ${str(p.amount, "money")} is on its way`,
+  },
+
   welcome_host: {
     Template: WelcomeHost as ComponentType<Record<string, unknown>>,
     recipient: "host",

@@ -139,6 +139,8 @@ export type AffiliateRefs = {
   amount?: string;
   /** What the commission was for (product name) or the payout method. */
   detail?: string;
+  /** The affiliate's email — routes the "custom" email recipient. */
+  recipient_email?: string;
   /** Injected by dispatchEvent for branded push/in-app copy. */
   brand_name?: string;
 };
@@ -901,6 +903,7 @@ export const NOTIFICATION_REGISTRY = {
     category: "payments_refunds",
     feature: "subscription",
     severity: "default",
+    emailTemplate: "affiliate_commission_earned",
     push: (r) => ({
       title: "You earned commission 🎉",
       body: clip(
@@ -920,6 +923,7 @@ export const NOTIFICATION_REGISTRY = {
     category: "payments_refunds",
     feature: "subscription",
     severity: "high",
+    emailTemplate: "affiliate_payout_paid",
     push: (r) => ({
       title: "Your payout is on its way 💸",
       body: clip(
