@@ -755,6 +755,31 @@ export async function togglePolicyStatusAction(
   if (!policy) return { ok: false, error: "Not your policy." };
 
   const supabase = createServerClient();
+
+  // Every listing must always resolve an active policy per type (the resolver
+  // falls back to the host's active default; NO active policy of a type → a
+  // booking snapshots no policy → 0% refund). So a host can't draft their LAST
+  // active policy of a type — they must have another active one first. This is
+  // also why ensure_host_policy_presets used to silently spawn a duplicate on
+  // the next page load; blocking here keeps the invariant without duplicates.
+  if (!active) {
+    const { count } = await supabase
+      .from("policies")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", host.hostId)
+      .eq("type", policy.type)
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .neq("id", policyId);
+    if ((count ?? 0) === 0) {
+      return {
+        ok: false,
+        error:
+          "This is your only active policy of its type — every listing needs one. Activate or create another before drafting this.",
+      };
+    }
+  }
+
   const next = active ? "active" : "draft";
   const update: { status: string; is_default?: boolean } = { status: next };
   // A drafted policy can't remain the default.

@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-12 #51 — Host sweep · Policies tab (Batch B): fixed duplicate-policy proliferation.
+
+Host-dashboard sweep resumed at Batch B leftovers. **Policies tab (`/dashboard/policies`) verified
+end-to-end** (Duplicate copies rules/content; Remove opens the retirement modal → impact summary →
+archives, never hard-deletes; Active↔Draft toggle writes status + `is_default`). Found + fixed a real bug.
+
+- 🔴→✅ **Drafting the sole policy of a type spawned duplicate active policies.**
+  `ensure_host_policy_presets` runs on every page render but only checked for an *active* policy of each
+  type, so a drafted-only type looked empty and got re-seeded a fresh active default each load (repeat →
+  they pile up). Matched-pair fix:
+  - Migration `20260712100000` — seeder guard now "no **non-deleted** policy of the type" (true first-time
+    seed). Proven live: forced a zero-active-cancellation state → reload → no duplicate seeded.
+  - `togglePolicyStatusAction` refuses to draft the **last active policy** of a type (keeps the resolver
+    invariant that every type resolves an active default → refunds enforceable — without spawning dupes).
+    Proven live: toast fired, DB unchanged; drafting a non-last policy still allowed.
+- Build green; test fixture restored to the clean 4-active-default state.
+
 ## 2026-07-12 #50 — VAT-inclusive prices on every guest-facing surface (shown == charged).
 
 Founder flagged that the deal showed R4200 but the guest was charged R4830. Confirmed the model (host prices

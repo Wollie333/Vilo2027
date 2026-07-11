@@ -50,6 +50,7 @@ Driven on Wollie Stoney (u_8b4bc108). Every tab + function verified live + DB:
 - ℹ️ Seed artifact (not a bug): the seeded Feb booking had `payment_status=completed` but no ledger payment, so balance read "owed" (ledger-backed) until the Record-payment test above settled it.
 
 ## B · PROPERTIES
+- ✅ 8. Policies — `/dashboard/policies` — renders (4 active defaults, KPIs, type filters, search/sort, coverage panel). **Every action verified live+DB:** Duplicate (copies rules/content, `parent_policy_id` set), Remove (opens retirement modal → `getPolicyRetirementInfoAction` impact summary → archives, never hard-deletes), toggle Active↔Draft (status + `is_default` writes). **🔴→✅ BUG FOUND + FIXED (see §B-Policies below).** No console errors.
 - 🔶 6. Properties — `/dashboard/properties` (+ `/[id]/edit`, `/new`) — list renders (KPIs/filters/Import iCal/New listing). **Listing editor** has 11 sections (Basic info · Photos · Location · Rooms & capacity · Amenities · Add-ons · Pricing · Policies · Guest access · Booking settings · Channels · Danger zone). Save mechanism proven live+DB across 3 tables: **Basic info save** (property name), **Pricing save** (cleaning_fee), **Amenities toggle+save** (property_amenities join 4→5→4). Remaining sections render forms with wired saves (Guest access: Save access details/local picks; Location/Booking-settings/Channels/Photos = editor-only). All reversible edits reverted.
 - ⬜ 7. Rooms — `/dashboard/rooms`
 - ⬜ 8. Policies — `/dashboard/policies`
@@ -138,6 +139,21 @@ ends in a success or error toast once `updateSpecialAction` is awaited, "no toas
 early no-op (likely the EDIT-path initial `form` not populating a required field, or the onClick not
 reaching the action). A subagent is root-causing `SpecialEditor.submit` + `updateSpecialAction` +
 `specialInputSchema`. **NOT verified working — needs a fix or a manual founder check.**
+
+### 🔴→✅ §B-Policies (2026-07-12) — drafting the sole policy of a type spawned duplicate policies
+Found by toggling the only House rules policy to Draft: on the next `/dashboard/policies` load a
+**brand-new active "House rules" appeared** beside the drafted one (repeat → they pile up). Root cause:
+`ensure_host_policy_presets` is called on every page render (page.tsx:48) but only checked for an
+**active** policy of each type — a drafted-only type looked "empty" so it re-seeded a fresh active default.
+The seeder was written as a one-time seed but invoked per-render. **Matched-pair fix (both verified live):**
+- **Seeder** — migration `20260712100000` changes the guard to "no **non-deleted** policy of the type"
+  (true first-time seed). Proven: forced a zero-active-cancellation state → reload → **no duplicate** (old
+  code would insert a 3rd). Fresh-host seeding unchanged.
+- **Toggle guard** — `togglePolicyStatusAction` now refuses to draft the **last active policy** of a type
+  ("This is your only active policy of its type — every listing needs one…"), preserving the resolver
+  invariant (no active default → booking snapshots no policy → 0% refund) *without* spawning dupes. Proven
+  live: toast fired, DB unchanged, drafting a copy while the original stayed active was correctly allowed.
+Test fixture restored to the clean 4-active-default state. `deleted_at IS NULL` set-safe; no console errors.
 
 ## C · FINANCES
 - ⬜ 14. Ledger — `/dashboard/ledger`
