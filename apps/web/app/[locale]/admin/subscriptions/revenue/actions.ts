@@ -72,6 +72,33 @@ export const recordManualLedgerEntryAction = withAdminAudit<
       .maybeSingle();
     const environment = paySettings?.paystack_mode === "test" ? "test" : "live";
 
+    // A manual REFUND auto-links to the charge it reverses — the payer's most
+    // recent unreversed commissionable charge — so affiliate commission is
+    // clawed back (fully, or proportionally if it's a partial refund) by the
+    // clawback trigger. Goodwill credits/adjustments are NOT linked (they don't
+    // reverse a sale). Null when the payer wasn't referred → no-op.
+    let reversesLedgerId: string | null = null;
+    if (type === "refund") {
+      const { data: ref } = await service
+        .from("affiliate_referrals")
+        .select("id")
+        .eq("referred_user_id", profile.id)
+        .maybeSingle();
+      if (ref) {
+        const { data: comm } = await service
+          .from("affiliate_commissions")
+          .select("source_ledger_id")
+          .eq("referral_id", ref.id)
+          .eq("entry_type", "accrual")
+          .in("status", ["pending", "cleared"])
+          .is("refund_ledger_id", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        reversesLedgerId = comm?.source_ledger_id ?? null;
+      }
+    }
+
     const { data, error } = await service
       .from("platform_ledger")
       .insert({
@@ -83,6 +110,7 @@ export const recordManualLedgerEntryAction = withAdminAudit<
         currency,
         environment,
         provider: "manual",
+        reverses_ledger_id: reversesLedgerId,
         reason,
         created_by: admin.userId,
         paid_at: new Date().toISOString(),

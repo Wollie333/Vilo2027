@@ -674,6 +674,23 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
           .maybeSingle();
         const admin = await requirePermission("subscriptions.edit");
         const left = daysRemaining(existing.current_period_end);
+        // Link this pro-rated reversal to the charge whose commission it reverses
+        // — the most recent unreversed accrual for this host + product — so
+        // affiliate commission is clawed back PROPORTIONALLY (refund ÷ charge)
+        // by the clawback trigger. Null when the host wasn't referred (no-op).
+        const { data: srcComm } = productId
+          ? await service
+              .from("affiliate_commissions")
+              .select("source_ledger_id")
+              .eq("referred_host_id", d.hostId)
+              .eq("product_id", productId)
+              .eq("entry_type", "accrual")
+              .in("status", ["pending", "cleared"])
+              .is("refund_ledger_id", null)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : { data: null };
         const { error: ledErr } = await service.from("platform_ledger").insert({
           user_id: hostRow?.user_id ?? null,
           host_id: d.hostId,
@@ -682,6 +699,7 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
           amount: -Math.abs(amount),
           currency: productCurrency,
           provider: "manual",
+          reverses_ledger_id: srcComm?.source_ledger_id ?? null,
           reason: `Pro-rated ${
             docType === "refund" ? "refund" : "credit"
           } for cancelled ${productName} (${left} day${
