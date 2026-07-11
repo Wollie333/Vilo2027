@@ -5157,6 +5157,38 @@ function buildHistory(data: UserRecordData): ActivityEvent[] {
       });
   }
 
+  // Affiliate earnings this user made (commission accrued/cleared/reversed) and
+  // payouts — the same events now recorded on their Wielo ledger + Finance tab.
+  for (const c of data.affiliateCommissions ?? []) {
+    const money = formatMoney(Math.abs(c.amount), c.currency);
+    const isReversal = c.entryType === "clawback" || c.amount < 0;
+    const title = isReversal
+      ? `Commission reversed — ${money} · ${c.productName}`
+      : `Earned ${money} commission · ${c.productName}`;
+    events.push({
+      id: `ac-${c.id}`,
+      category: "affiliate",
+      title,
+      actor: userName,
+      actorKind: "user",
+      context: c.status, // pending / cleared / voided / paid
+      at: c.createdAt,
+    });
+  }
+
+  for (const p of data.affiliatePayouts ?? []) {
+    const money = formatMoney(p.net, p.currency);
+    events.push({
+      id: `ap-${p.id}`,
+      category: "affiliate",
+      title: `Affiliate payout ${p.status} — ${money}`,
+      actor: userName,
+      actorKind: "user",
+      context: p.method ? `via ${p.method}` : null,
+      at: p.processedAt ?? p.createdAt,
+    });
+  }
+
   return events;
 }
 
