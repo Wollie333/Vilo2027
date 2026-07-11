@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-11 #46 — Full admin re-sweep: all 20 tabs re-verified live; Overview footprint count fixed.
+
+Resumed from save point #45 and drove a **full re-sweep** of every admin sidebar tab as super_admin
+against the live preview, cross-checking each surface against DB truth (service-role REST). **All 20 tabs
+render clean with zero console errors and match the database.** Tab 8 (Affiliates) — the only tab still
+unticked in the checklist — was fully re-verified (overview list + payout queue, per-affiliate funnel,
+programme settings incl. the DB-backed tier editor + min-payout floor, marketing manager, terms editor)
+and is now marked ✅ READY. Ledger integration reconfirmed (Ledger → Affiliate tab = 7 rows); Payments
+tab shows no affiliate-payout leak (the `9f820649` fix holds); Reporting PDF export returns a valid `%PDF`.
+
+**One real fix landed:**
+- **Overview → Growth & Footprint double-counted the internal Wielo Support bot.** It showed 8 total / 4
+  guests while the Users tab correctly showed 7 / 3 (the #45 fix hid the bot from the Users list only).
+  Added the same `email ≠ WIELO_SUPPORT_EMAIL` exclusion to the `user_profiles` query in
+  `lib/billing/platform-report.ts` — also corrects the monthly signup chart series. Verified live
+  (footprint now 7 / 4 / 3, matching the Users tab). `tsc` + `eslint` green; clean `pnpm build` green.
+
+Observed (no action needed): email templates grew 26 → 28 (the two new #45 affiliate templates); audit-log
+target-type filter lists 40 types. Demo/test data intentionally left on affiliate `wollie-steenkamp`.
+
+---
+
 ## 2026-07-11 #45 (save point) — Tab 8 Affiliates built + hardened end-to-end; admin/subscriptions restructured. ALL 20 admin tabs feature-ready. `pnpm build` GREEN. Pushed @ `9f820649`.
 
 The final admin tab (Affiliates) is complete — well beyond "make it work" — plus founder side-requests on the

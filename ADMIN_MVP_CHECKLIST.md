@@ -8,6 +8,26 @@ Session started: 2026-07-10. Sole super_admin = `wollie@manamarketing.co.za`.
 
 ---
 
+## 🔁 FULL RE-SWEEP #46 (2026-07-11) — ALL 20 TABS RE-VERIFIED LIVE
+Drove every admin tab as super_admin against the live preview (DB truth via
+service-role REST). **All 20 render clean, zero console errors, every surface
+matches DB.** Tab 8 (Affiliates) — the only tab still ⬜ — is now fully
+verified and marked ✅ (see below). One real fix landed:
+
+- 🔴→✅ **Overview footprint double-counted the Wielo Support bot.** Growth &
+  Footprint showed **8 total / 4 guests** while the Users tab correctly showed
+  **7 / 3** — the delta was the internal `support@wielo.co.za` bot. The #45 fix
+  hid it from the Users list but `buildPlatformReport` still counted it.
+  Added the same `email ≠ WIELO_SUPPORT_EMAIL` exclusion to the `user_profiles`
+  query in [platform-report.ts](apps/web/lib/billing/platform-report.ts) (also
+  fixes the monthly signup chart series). **Verified live:** Growth & Footprint
+  now reads 7 / 4 / 3, matching the Users tab. tsc + eslint green.
+- ℹ️ Email templates grew 26 → **28** (the two new affiliate templates from #45,
+  `affiliate_commission_earned` + payout — expected). Audit-log target-type
+  filter now lists 40 types (runtime const, all affiliate/taxonomy types).
+
+---
+
 ## OPERATIONS
 
 ### ✅ 1. Overview — `/admin` — READY FOR MVP (2026-07-10)
@@ -164,8 +184,14 @@ Read-only records view of every payment users make to Wielo (reads the SAME `fet
 - ✅ Table columns (Amount/Status/Type/Product/User/Provider/Date) render with data; product name resolves via `productByTier`; pagination note (first 50 of N).
 - ✅ No console errors. **No mutations on this page** (refunds/credits are issued from the Ledger tab / user record) → nothing to audit here. Scope note: this is Wielo revenue only; host↔guest booking refund_requests live elsewhere (Overview "pending refunds" tile deep-links to them).
 
-### ⬜ 8. Affiliates — `/admin/affiliates` (+ marketing, settings, terms)
-Affiliate admin panel, marketing manager, settings, terms editor. **(Affiliate hardening is the LAST planned batch.)**
+### ✅ 8. Affiliates — `/admin/affiliates` (+ marketing, settings, terms) — READY FOR MVP (2026-07-11 #46)
+Affiliate admin panel, marketing manager, settings, terms editor. Built + hardened at save point #45; re-verified live in the #46 full re-sweep:
+- ✅ **Overview** — affiliate list (2 affiliates: `wollie-steenkamp` lifetime R563, `wollie-stoney` R90) + referral counts + lifetime/available + payout queue (empty — both available R0, commissions on hold). Matches DB truth (`affiliate_accounts`, `affiliate_commissions`: one R89.90 pending + one voided clawback).
+- ✅ **Per-affiliate funnel** (`/[id]`) — Clicks→Signups→Paid funnel, stat band (lifetime R563 / available R0 / R279 pending), Referred users table (Lerato · Business · R563), Payouts table (3 Paid EFT payouts R88/R88/R103 — demo data).
+- ✅ **Programme settings** — tracking (cookie 30 / refund-hold 30 / **min-payout R1000** / attribution), processor fees (EFT/PayPal/Paystack), marketing-material upload, **tier editor populated from DB** (Standard 0/0% · Silver 5000/10% · Gold 20000/25%).
+- ✅ **Marketing manager** — 6 categories (Banners/Social/Email/AI prompts/Videos/Blogs) each with Add + empty state.
+- ✅ **Terms editor** — version + editable body ({brand}→Wielo) + live sign-up-gate preview.
+- ✅ Ledger integration confirmed from Tab 6 (Affiliate type tab = 7 rows). No console errors on any surface. Demo/test data intentionally left on `wollie-steenkamp` per save point #45.
 
 ### ✅ 9. Reporting — `/admin/reporting` (+ pdf) — READY FOR MVP (2026-07-10 #43)
 Read-only platform report from `buildPlatformReport(range)`. Verified live:

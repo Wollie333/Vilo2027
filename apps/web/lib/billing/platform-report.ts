@@ -1,6 +1,7 @@
 import "server-only";
 
 import { fetchWieloLedger, wieloLedgerStats } from "@/lib/billing/wielo-ledger";
+import { WIELO_SUPPORT_EMAIL } from "@/lib/inbox/platform-thread";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Enterprise reporting model for Wielo-as-a-business. One server-side builder
@@ -140,7 +141,10 @@ export async function buildPlatformReport(
     service
       .from("user_profiles")
       .select("role, created_at")
-      .is("deleted_at", null),
+      .is("deleted_at", null)
+      // Exclude the internal Wielo Support bot so the footprint counts match
+      // the Users list (which hides it) — it is not a real guest.
+      .or(`email.is.null,email.neq.${WIELO_SUPPORT_EMAIL}`),
     service
       .from("bookings")
       .select("total_amount, status")
