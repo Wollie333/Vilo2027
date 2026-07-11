@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   Coins,
   MousePointerClick,
+  Trophy,
   UserPlus,
   Wallet,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import {
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
 import { commissionLabel } from "@/lib/affiliate/commission";
+import { getAffiliateTier } from "@/lib/affiliate/tiers";
 import { formatMoney, round2 } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -107,6 +109,8 @@ export default async function AffiliateOverviewPage() {
           )
         : null,
   }));
+
+  const tier = await getAffiliateTier(admin, account.id);
 
   const refs = referrals ?? [];
   const userIds = refs.map((r) => r.referred_user_id);
@@ -245,6 +249,70 @@ export default async function AffiliateOverviewPage() {
     <div>
       {/* Affiliate link hero */}
       <ReferralLinkCard baseUrl={baseUrl} slug={account.slug} />
+
+      {/* Tier card */}
+      {tier.current ? (
+        <div className="mt-5 overflow-hidden rounded-card border border-brand-line bg-gradient-to-br from-[#FAFCFB] to-white p-5 shadow-card">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                <Trophy className="h-3.5 w-3.5 text-brand-primary" /> Your tier
+              </div>
+              <div className="mt-1.5 flex items-baseline gap-2">
+                <span className="font-display text-[22px] font-bold text-brand-ink">
+                  {tier.current.name}
+                </span>
+                {tier.current.bonusPercent > 0 ? (
+                  <span className="inline-flex items-center rounded-pill bg-brand-accent px-2.5 py-0.5 text-[12px] font-bold text-brand-secondary">
+                    +{tier.current.bonusPercent}% bonus
+                  </span>
+                ) : (
+                  <span className="text-[12.5px] text-brand-mute">
+                    base commission
+                  </span>
+                )}
+              </div>
+              {tier.next ? (
+                <p className="mt-1.5 text-[12.5px] text-brand-mute">
+                  Earn{" "}
+                  <span className="font-semibold text-brand-ink">
+                    {formatMoney(tier.toNext, account.currency)}
+                  </span>{" "}
+                  more to reach{" "}
+                  <span className="font-semibold text-brand-ink">
+                    {tier.next.name}
+                  </span>{" "}
+                  (+{tier.next.bonusPercent}% bonus).
+                </p>
+              ) : (
+                <p className="mt-1.5 text-[12.5px] text-brand-mute">
+                  You&apos;ve reached the top tier — nice work.
+                </p>
+              )}
+            </div>
+          </div>
+          {tier.next ? (
+            <div className="mt-3">
+              <div className="h-2.5 rounded-pill bg-brand-light">
+                <div
+                  className="h-full rounded-pill bg-brand-primary"
+                  style={{
+                    width: `${Math.min(100, Math.round((tier.earnings / tier.next.minEarnings) * 100))}%`,
+                  }}
+                />
+              </div>
+              <div className="mt-1 flex justify-between text-[11px] text-brand-mute">
+                <span>
+                  {formatMoney(tier.earnings, account.currency)} earned
+                </span>
+                <span>
+                  {formatMoney(tier.next.minEarnings, account.currency)}
+                </span>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Link builder — promote any page or product */}
       <div className="mt-5">
