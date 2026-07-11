@@ -14,8 +14,8 @@ Make sure you have been given:
 
 - [ ] GitHub repo access (push access to `develop`, PR access to `main`)
 - [ ] Supabase project access (Supabase dashboard — staging project)
-- [ ] Doppler access (`dev` and `staging` configs — production config is restricted)
-- [ ] Vercel project access (read + preview deploy)
+- [ ] Vercel project access (read + preview deploy; Environment Variables — Development/Preview, Production is restricted)
+- [ ] The real secret values for your `apps/web/.env.local` (from the project lead, or copied out of Vercel's Development environment)
 - [ ] Expo organisation access (for mobile builds)
 - [ ] Sentry access (error monitoring)
 
@@ -44,10 +44,6 @@ npx supabase@latest                   # any platform
 
 # EAS CLI (for mobile builds — only needed if you work on mobile)
 npm install -g eas-cli
-
-# Doppler CLI (for secrets)
-brew install dopplerhq/cli/doppler    # macOS
-# or see https://docs.doppler.com/docs/install-cli
 ```
 
 ### Verify installs
@@ -56,7 +52,6 @@ brew install dopplerhq/cli/doppler    # macOS
 node --version    # should be v20.x.x
 pnpm --version    # should be 9.x.x
 supabase --version
-doppler --version
 ```
 
 ---
@@ -71,32 +66,22 @@ pnpm install
 
 ---
 
-## 4. Secrets Setup (Doppler)
+## 4. Secrets Setup (`.env.local`)
 
-All environment variables are managed in Doppler — not `.env` files committed to git.
-
-```bash
-# Authenticate with Doppler
-doppler login
-
-# Link this repo to the Wielo project (dev config)
-doppler setup --project wielo --config dev
-```
-
-After setup, run commands prefixed with `doppler run --`:
+Deployed environments read their secrets from Vercel Environment Variables (Project `vilo2027` → Settings → Environment Variables). For local development you use a gitignored `apps/web/.env.local`, seeded from the committed `.env.example` template.
 
 ```bash
-doppler run -- pnpm dev       # web app with correct env vars
-doppler run -- supabase start # Supabase with correct vars
+# Copy the template into place
+cp apps/web/.env.example apps/web/.env.local
 ```
 
-Or generate a `.env.local` for local development (gitignored):
+Then open `apps/web/.env.local` and fill in the real values (get them from the project lead, or copy them out of Vercel's Development environment). After that, the app runs with the correct env vars using the normal dev command:
 
 ```bash
-doppler secrets download --no-file --format env > .env.local
+pnpm dev       # web app with correct env vars from .env.local
 ```
 
-> `.env.local` is in `.gitignore`. Never commit it.
+> `.env.local` is in `.gitignore`. Never commit it or any file containing real secret values. `.env.example` is documentation only — no real values.
 
 ---
 
@@ -116,7 +101,7 @@ supabase db seed
 supabase status
 ```
 
-After `supabase start`, the output prints your local keys. Copy them into `.env.local` if you generated one in Step 4 — they override the Doppler dev values for local Supabase.
+After `supabase start`, the output prints your local keys. Copy them into `apps/web/.env.local` — they override the dev values for local Supabase.
 
 **Local service URLs:**
 
@@ -321,12 +306,9 @@ Run this any time the schema changes.
 
 Most type errors after a schema change are fixed by regenerating types (above). If the error is in your own code — fix it. No `as any` workarounds.
 
-### Doppler secret not found locally
+### Env variable not found locally
 
-```bash
-doppler secrets get VARIABLE_NAME   # check if it exists
-doppler setup                       # re-link if project association is lost
-```
+An undefined env var at runtime almost always means it is missing from `apps/web/.env.local`. Compare your file against `apps/web/.env.example` and make sure every required key has a real value (see `ENV_VARS.md` for the full catalogue). If a value only lives in Vercel, copy it from the Development environment.
 
 ### Mobile app can't connect to local Supabase
 

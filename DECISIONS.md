@@ -232,19 +232,19 @@ This file records every significant technical decision made for the Wielo platfo
 
 ---
 
-## ADR-012 — Doppler for secrets management (not `.env` files committed to git)
+## ADR-012 — Environment variables managed in Vercel (Sensitive), local dev via gitignored `.env.local`
 **Status:** Accepted
 **Date:** May 2026
 
-**Decision:** All environment variables are managed in Doppler. `.env` files are never committed. `.env.example` is committed as documentation only.
+**Decision:** Production, Preview, and Development environment variables are managed in Vercel Environment Variables (Project `vilo2027` → Settings → Environment Variables), scoped per environment with secret values marked **Sensitive**. Local development uses a gitignored `apps/web/.env.local`, seeded from the committed `.env.example` template. `.env.example` is committed as documentation only.
 
 **Reasons:**
-- Single source of truth for secrets across dev, staging, and production
-- Doppler → Vercel integration syncs production env vars automatically
-- Doppler → GitHub Secrets integration feeds CI/CD
-- Audit trail for who changed which secret and when
+- Vercel is already the deploy platform, so env vars live where they are consumed — no separate secrets service to sync
+- Marking values Sensitive hides them from the dashboard/API after entry
+- Vercel injects the right per-environment values at build/runtime automatically
+- `.env.example` gives developers a checked-in template without exposing real values
 
-**Constraint:** Never commit a `.env.local`, `.env.production`, or any file containing real secret values. If a developer needs local env vars, they run `doppler setup` and use `doppler run -- pnpm dev`.
+**Constraint:** Never commit a `.env.local`, `.env.production`, or any file containing real secret values. If a developer needs local env vars, they copy `.env.example` to `apps/web/.env.local`, fill in real values, and run `pnpm dev`.
 
 ---
 

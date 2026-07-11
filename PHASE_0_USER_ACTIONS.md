@@ -36,17 +36,15 @@ For each: dashboard → Storage → "New bucket" → name + Public/Private toggl
 
 ---
 
-## 3. Doppler (secrets) (~10 min)
+## 3. Vercel Environment Variables (secrets) (~10 min)
 
-`ENV_VARS.md` + `CI_CD.md` both assume Doppler is the secret store. Without it, secrets only live in local `.env.local` files.
+`ENV_VARS.md` + `CI_CD.md` assume deployed secrets live in Vercel Environment Variables. Local development uses a gitignored `apps/web/.env.local` seeded from `.env.example`.
 
-1. Sign up at **doppler.com** (free for individuals).
-2. Create project `vilo`.
-3. Add three configs: `dev`, `staging`, `production`.
-4. Populate each config with the variables in `ENV_VARS.md` (Supabase URL/keys, Paystack, PayPal, Resend, Sentry, PostHog, etc.).
-5. Doppler → Integrations:
-   - **GitHub** — sync to repo secrets for the workflows.
-   - **Vercel** — sync to Vercel env vars.
+1. In the Vercel dashboard, open Project `vilo2027` → **Settings** → **Environment Variables**.
+2. For each variable in `ENV_VARS.md` (Supabase URL/keys, Paystack, PayPal, Resend, Sentry, PostHog, etc.), add it scoped to the environments it applies to (**Production** / **Preview** / **Development**).
+3. Mark every secret value **Sensitive** so it can't be read back from the dashboard or API.
+4. For local dev, copy `apps/web/.env.example` to `apps/web/.env.local` and fill in the same values.
+5. GitHub Actions needs only CI-infra tokens as GitHub Secrets (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`) — app secrets are never stored in GitHub.
 
 ---
 
@@ -59,7 +57,7 @@ Email delivery is blocked on a verified domain.
 3. Resend dashboard → Domains → **Add Domain** → `wieloplatform.com`.
 4. Add the SPF + DKIM + DMARC records Resend gives you to your DNS provider. Wait for verification (usually <10 min).
 5. Generate an API key in Resend → API Keys.
-6. Add `RESEND_API_KEY` to Doppler (production config).
+6. Add `RESEND_API_KEY` to Vercel Environment Variables (Production, marked Sensitive).
 
 ---
 
@@ -85,7 +83,7 @@ Email delivery is blocked on a verified domain.
    - `wielo-web` (platform: Next.js)
    - `wielo-mobile` (platform: React Native)
 3. Copy the **DSN** for each.
-4. Add to Doppler (staging + production):
+4. Add to Vercel Environment Variables (Preview + Production, marked Sensitive):
    - `NEXT_PUBLIC_SENTRY_DSN` (web DSN)
    - Mobile DSN goes in `apps/mobile/.env.local` as `EXPO_PUBLIC_SENTRY_DSN`.
 
@@ -96,7 +94,7 @@ Email delivery is blocked on a verified domain.
 1. Sign up at **posthog.com** (free tier: 1M events/month).
 2. Region: **EU** (closer to South Africa; matches our data residency goal).
 3. Settings → Project API Key.
-4. Add to Doppler (staging + production):
+4. Add to Vercel Environment Variables (Preview + Production, marked Sensitive):
    - `NEXT_PUBLIC_POSTHOG_KEY`
    - `NEXT_PUBLIC_POSTHOG_HOST = https://eu.posthog.com`
 

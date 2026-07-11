@@ -37,10 +37,10 @@ pass `--password "<pw>"` to run non-interactively).
 
 The GitHub Actions **`db-migrate`** job fails on every push that touches
 `supabase/migrations/**`, because the three Supabase secrets it needs are **not
-set** in the repo (only `DOPPLER_TOKEN` is). Confirm any time with:
+set** in the repo. Confirm any time with:
 
 ```bash
-gh secret list      # if you only see DOPPLER_TOKEN, the migrate secrets are missing
+gh secret list      # if the SUPABASE_* migrate secrets are missing, auto-apply won't work
 ```
 
 Until those secrets are added, **migrations do NOT apply automatically** — they

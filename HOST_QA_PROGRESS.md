@@ -253,7 +253,7 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - **2026-06-14 (escalation removal)** — Removed the refund escalation feature
   end-to-end (cron, status, email/notification/template, UI, copy) — commit
   `0f40e4d`, migration `20260614000001`. Also set `ICAL_TOKEN_SECRET` on Vercel
-  (all 3 envs) via the REST API; installed Doppler CLI.
+  (all 3 envs) via the REST API.
 - **2026-06-14 (follow-ups, walked through with founder)** — Fixed the three
   documented items. (1) Refund email resolver now reads `refund_requests` (was a
   non-existent `refunds` table) with requested/approved amount mapping. (2)
@@ -263,7 +263,7 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   escalation removal (guest-escalate flow, admin dispute queue,
   `refund_escalated_admin` email, refunds page.tsx tab, status enum) is a tracked
   follow-up. (3) iCal `secret()` now requires `ICAL_TOKEN_SECRET` (no service-role
-  fallback); documented in ENV_VARS.md; founder set it in Doppler dev + local.
+  fallback); documented in ENV_VARS.md; founder set it in Vercel + `.env.local`.
   All green (tsc + eslint + build). **Remaining iCal caveat:** per-listing
   `ical_export_token` column vs AGENT_RULES §2.6 (per-feed rotation) — deferred.
   **Refund caveat still open:** voiding a completed refund doesn't reverse

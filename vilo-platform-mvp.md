@@ -184,7 +184,7 @@ CREATE POLICY "staff_bookings_read" ON bookings
 | GitHub Actions | CI/CD (lint, test, deploy to Vercel) |
 | Sentry | Error monitoring (web + mobile) |
 | PostHog | Product analytics |
-| Doppler / Vercel Env | Secrets management |
+| Vercel Env | Secrets management |
 
 ---
 

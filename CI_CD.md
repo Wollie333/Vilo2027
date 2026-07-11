@@ -8,12 +8,12 @@
 
 ## 1. Overview
 
-All CI/CD runs through GitHub Actions. Four workflow files live in `.github/workflows/` (`ci.yml`, `db-migrate.yml`, `deploy-functions.yml`, `mobile-preview.yml`). The web app deploys via Vercel's native GitHub integration, not a workflow. Secrets are managed via Doppler — no **app** secrets are stored directly in GitHub Secrets, only **CI-infrastructure** credentials (`DOPPLER_TOKEN`, `VERCEL_*`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`).
+All CI/CD runs through GitHub Actions. Four workflow files live in `.github/workflows/` (`ci.yml`, `db-migrate.yml`, `deploy-functions.yml`, `mobile-preview.yml`). The web app deploys via Vercel's native GitHub integration, not a workflow. App secrets live in Vercel Environment Variables (Vercel injects them at build/runtime) — no **app** secrets are stored in GitHub Secrets, only **CI-infrastructure** credentials (`VERCEL_*`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`).
 
-**Doppler integration:**
-- Workflows that need app secrets at build time use either `doppler run -- <command>` (full env injection) or `dopplerhq/secrets-fetch-action` (named outputs for build-args).
-- `DOPPLER_TOKEN` is a read-only service token scoped to the `prd` config.
-- See `ENV_VARS.md` for the full secret catalogue and Doppler config layout.
+**Where app secrets live:**
+- Production/Preview/Development app secrets are added in the Vercel dashboard (Project `vilo2027` → Settings → Environment Variables), scoped per environment and marked **Sensitive**.
+- GitHub Actions workflows do not need app secrets — they only run build/test/deploy steps against Supabase and Expo using the CI-infra tokens above.
+- See `ENV_VARS.md` for the full secret catalogue.
 
 ### Deployment order on push to `main`
 
@@ -23,7 +23,7 @@ db-migrate.yml       (1st — schema must be live before app)
 deploy-functions.yml  (2nd — Edge Functions deployed)
 
 Vercel (parallel)     Web deploy via native GitHub integration —
-                      Doppler→Vercel sync keeps prod env in lockstep.
+                      Vercel injects its own Environment Variables at build time.
 ```
 
 Use `needs:` in each workflow to enforce ordering when chained.
@@ -107,9 +107,9 @@ jobs:
 
 ### Vercel web deploys
 
-The web app deploys via Vercel's native GitHub integration — no workflow file needed. Every push to `main` triggers a Vercel build automatically. Production env vars are kept in sync with Doppler `prd` via the Doppler→Vercel integration.
+The web app deploys via Vercel's native GitHub integration — no workflow file needed. Every push to `main` triggers a Vercel build automatically. Production env vars are read directly from Vercel's own Environment Variables (Project `vilo2027` → Settings → Environment Variables, scoped to Production).
 
-If you ever need CI-controlled deploys (e.g., to gate on tests or chain after `db-migrate`), reintroduce a workflow that uses `doppler run -- pnpm --filter web build` + `amondnet/vercel-action` and add `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` as GH secrets.
+If you ever need CI-controlled deploys (e.g., to gate on tests or chain after `db-migrate`), reintroduce a workflow that uses `pnpm --filter web build` + `amondnet/vercel-action` (which still pulls env vars from Vercel) and add `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` as GH secrets.
 
 ---
 
@@ -248,13 +248,15 @@ All secrets are set in GitHub → Repo Settings → Secrets and variables → Ac
 
 | Secret | Used in | Where to get it |
 |---|---|---|
-| `DOPPLER_TOKEN` | any workflow needing app secrets | Doppler Dashboard → vilo2027 → `prd` config → Access → Service Tokens |
+| `VERCEL_TOKEN` | CI-controlled deploys (optional) | Vercel → Account Settings → Tokens |
+| `VERCEL_ORG_ID` | CI-controlled deploys (optional) | Vercel → Project Settings → General |
+| `VERCEL_PROJECT_ID` | CI-controlled deploys (optional) | Vercel → Project Settings → General |
 | `SUPABASE_ACCESS_TOKEN` | db-migrate, deploy-functions, ci | supabase.com → Account → Access Tokens |
 | `SUPABASE_PROJECT_ID` | db-migrate, deploy-functions | Supabase Dashboard → Project Settings → General |
 | `SUPABASE_DB_URL` | db-migrate | Supabase Dashboard → Settings → Database → Connection String (Transaction mode) |
 | `EXPO_TOKEN` | mobile-preview | expo.dev → Account Settings → Access Tokens |
 
-**App secrets (NEXT_PUBLIC_SUPABASE_*, PAYSTACK_*, PAYPAL_*, RESEND_API_KEY, etc.)** are *not* stored as GitHub secrets — they live in Doppler `prd` and are pulled into workflows via `DOPPLER_TOKEN`.
+**App secrets (NEXT_PUBLIC_SUPABASE_*, PAYSTACK_*, PAYPAL_*, RESEND_API_KEY, etc.)** are *not* stored as GitHub secrets — they live in Vercel Environment Variables (marked Sensitive, scoped per environment) and Vercel injects them at build/runtime.
 
 ---
 

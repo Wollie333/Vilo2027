@@ -62,7 +62,6 @@ These are the **exact versions** to use. Do not upgrade without updating this fi
 | GitHub Actions | — | CI/CD pipeline. |
 | Sentry | 8.x SDK | Error monitoring (web + mobile). |
 | PostHog | Latest | Product analytics. |
-| Doppler | — | Secrets management (staging + production). |
 
 ---
 
@@ -87,10 +86,6 @@ npx supabase                             # any platform
 
 # EAS CLI (for mobile builds)
 npm install -g eas-cli
-
-# Doppler CLI (for secrets)
-brew install dopplerhq/cli/doppler       # macOS
-# or follow https://docs.doppler.com/docs/install-cli
 ```
 
 ### 2.2 Repo Setup
@@ -217,9 +212,9 @@ wielo/
 
 ## 4. Environment Notes
 
-- **Development:** `.env.local` with local Supabase keys. Never commit this file.
-- **Staging:** Managed via Doppler `staging` config. Mirrors production schema.
-- **Production:** Managed via Doppler `production` config + Vercel env vars.
+- **Development:** `apps/web/.env.local` (seeded from `.env.example`) with local/dev keys. Never commit this file.
+- **Preview:** Managed via Vercel Environment Variables scoped to the Preview environment (secret values marked Sensitive).
+- **Production:** Managed via Vercel Environment Variables scoped to the Production environment (secret values marked Sensitive).
 - Never use production keys in local dev. Never use local keys in CI.
 
 ---

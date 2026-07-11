@@ -181,12 +181,12 @@ Never silently edit another track's owned paths.
 - ✅ Create GitHub repository (`Wollie333/Vilo2027`, private)
 - ✅ Set up monorepo structure (`apps/web` + `packages/types`; `apps/mobile` pending)
 - ✅ Configure `pnpm-workspace.yaml` and `turbo.json`
-- ✅ Set up Doppler — project `vilo2027` with `dev`/`stg`/`prd` configs, 21 secrets imported. Vercel + Supabase integrations connected. **Known gap (accepted):** only the `dev`→Vercel Development sync exists; `stg`→Preview and `prd`→Production are blocked by the Developer (free) plan's one-sync-per-integration limit. All configs hold identical values per ADR-015, so impact is nil until staging/production diverge.
+- ✅ Set up secrets — env vars managed in Vercel Environment Variables (Project `vilo2027`, scoped per environment, secret values marked Sensitive), 21 secrets imported. Local dev via gitignored `apps/web/.env.local`. All environments hold identical values per ADR-015, so there is nothing to diverge until staging/production do.
 - ✅ Create `.env.example` from `ENV_VARS.md` template
-- ✅ Configure Vercel project — live at https://vilo2027.vercel.app/ (Root Directory `apps/web`, env vars synced from Doppler `dev`, `vercel.json` framework pin per ADR-017)
+- ✅ Configure Vercel project — live at https://vilo2027.vercel.app/ (Root Directory `apps/web`, env vars set in Vercel Environment Variables, `vercel.json` framework pin per ADR-017)
 - ✅ Create Expo EAS project — UUID `50664ed2-d876-4edd-aab0-6a984fbdfca7` linked in `apps/mobile/app.json`; slug updated to `vilo2027` to match
-- 🕑 Sentry projects (web + mobile) — **deferred** to the week before public launch. No users = no errors to capture. Placeholder env var `NEXT_PUBLIC_SENTRY_DSN` lives in Doppler.
-- 🕑 PostHog project — **deferred** to the week before public launch. No users = no analytics. Placeholders `NEXT_PUBLIC_POSTHOG_KEY` + `NEXT_PUBLIC_POSTHOG_HOST` live in Doppler.
+- 🕑 Sentry projects (web + mobile) — **deferred** to the week before public launch. No users = no errors to capture. Placeholder env var `NEXT_PUBLIC_SENTRY_DSN` lives in Vercel Environment Variables.
+- 🕑 PostHog project — **deferred** to the week before public launch. No users = no analytics. Placeholders `NEXT_PUBLIC_POSTHOG_KEY` + `NEXT_PUBLIC_POSTHOG_HOST` live in Vercel Environment Variables.
 
 ### Next.js Web App
 - ✅ Bootstrap with `create-next-app` (TypeScript, Tailwind, App Router)
@@ -217,8 +217,8 @@ Never silently edit another track's owned paths.
 
 ### CI/CD
 - ✅ Create GitHub Actions workflows: `ci.yml`, `deploy-web.yml`, `deploy-functions.yml`, `db-migrate.yml`, `mobile-preview.yml`
-- 🕑 Connect Doppler → GitHub Secrets integration — deferred (CI workflows not yet running end-to-end; wire when first workflow needs real secrets)
-- ✅ Connect Doppler → Vercel integration (one sync active; see "Set up Doppler" note above for plan-limit gap)
+- ✅ Add CI-infra tokens as GitHub Secrets (`VERCEL_*`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`) — app secrets live in Vercel, not GitHub
+- ✅ App env vars set directly in Vercel Environment Variables (Vercel's native GitHub integration injects them at build/runtime)
 - ✅ Verify first deployment to Vercel succeeds — live at https://vilo2027.vercel.app/
 
 ### Email
@@ -558,8 +558,7 @@ Never silently edit another track's owned paths.
 
 ### Environment
 - ⬜ Staging environment mirroring production schema
-- ⬜ All environment variables in Doppler production config
-- ⬜ Vercel production environment variables synced from Doppler
+- ⬜ All environment variables set in Vercel Environment Variables (Production, marked Sensitive)
 - ⬜ Supabase production Edge Function secrets set
 
 ### App Stores

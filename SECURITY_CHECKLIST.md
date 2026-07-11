@@ -136,7 +136,7 @@ grep -r "dangerouslySetInnerHTML" apps/web/src
 
 ## 8. Secrets & Environment
 
-- [ ] All secrets in Doppler — not in `.env` files committed to git
+- [ ] All secrets in Vercel Environment Variables (marked Sensitive) — not in `.env` files committed to git
 - [ ] `.env.local` is in `.gitignore`
 - [ ] No hardcoded API keys in source code
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` only in Edge Function secrets — not in Vercel env vars

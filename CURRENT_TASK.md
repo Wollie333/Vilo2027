@@ -2068,7 +2068,7 @@ brand/theme/nav embeds) — the pixel-perfect target for the builder shell.
 **Everything below was committed AND PUSHED to `origin/main` → Vercel production. The app is LIVE on `https://wielo.co.za` (custom domain attached to the `vilo2027` Vercel project; DNS propagated; `/en/login` + `/en/p/beta` serve 200).** Full `pnpm build` PASSED before the push. The HEAD pushed was `1523775b` (its Vercel build was finishing at session end — prior deploy already serving; confirm green in the Vercel dashboard).
 
 **🟢 PROD CONFIG DONE (founder did the dashboard bits this session):**
-- **Vercel env (Production):** `NEXT_PUBLIC_APP_URL=https://wielo.co.za` (was empty — set via both the Vercel CLI here AND the founder in-dashboard; `DOPPLER_ENVIRONMENT` empty = no Doppler override). `NEXT_PUBLIC_ROOT_DOMAIN` NOT set (host micro-sites on subdomains OFF — set it + a `*.wielo.co.za` wildcard domain only if/when hosted host-sites are wanted).
+- **Vercel env (Production):** `NEXT_PUBLIC_APP_URL=https://wielo.co.za` (was empty — set via both the Vercel CLI here AND the founder in-dashboard). `NEXT_PUBLIC_ROOT_DOMAIN` NOT set (host micro-sites on subdomains OFF — set it + a `*.wielo.co.za` wildcard domain only if/when hosted host-sites are wanted).
 - **Supabase Auth → URL config:** Site URL `https://wielo.co.za` + redirect allow-list `https://wielo.co.za/**` (so reset / magic-link / **free-beta sign-in** redirects work on the domain). Project ref: `zlcivjgvtyeaszikqleu`.
 - **Vercel CLI** is now installed + authed as `wollie333` (repo linked to `vilo2027`). Use `VERCEL_TELEMETRY_DISABLED=1 vercel …`.
 

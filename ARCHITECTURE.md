@@ -29,7 +29,7 @@ Wielo is a **monorepo** containing a Next.js web app, an Expo React Native mobil
 │              EXTERNAL SERVICES                          │
 │  Paystack API  ┃  PayPal API  ┃  Resend (email)         │
 │  Expo Push     ┃  Sentry      ┃  PostHog                │
-│  Google OAuth  ┃  OSM tiles   ┃  Doppler (secrets)      │
+│  Google OAuth  ┃  OSM tiles   ┃  Vercel Env (secrets)   │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -398,7 +398,7 @@ Guest selects dates on listing page
 
 ## 11. CI/CD Pipelines (GitHub Actions)
 
-Four workflow files live in `.github/workflows/`. All use Doppler for secrets via the `doppler/cli-action`.
+Four workflow files live in `.github/workflows/`. App secrets are read directly from Vercel's Environment Variables via its native GitHub integration; GitHub Actions only holds CI-infrastructure tokens as GitHub Secrets.
 
 ### `ci.yml` — Pull Request checks (every PR)
 
@@ -413,7 +413,7 @@ Steps:
   6. pnpm test (Vitest unit + integration tests)
   7. pnpm test:e2e (Playwright E2E — auth, booking flow, listing)
   8. supabase stop
-Required secrets: SUPABASE_ACCESS_TOKEN, DOPPLER_TOKEN
+Required secrets: SUPABASE_ACCESS_TOKEN
 Blocks merge: yes — all steps must pass
 ```
 
@@ -425,8 +425,8 @@ Steps:
   1. pnpm install
   2. pnpm build
   3. vercel deploy --prod (via Vercel CLI + VERCEL_TOKEN)
-Required secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, DOPPLER_TOKEN
-Note: Vercel pulls env vars from Doppler integration — no secrets in GitHub for app config
+Required secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+Note: Vercel injects env vars from its own Environment Variables store — no app secrets live in GitHub
 ```
 
 ### `deploy-functions.yml` — Deploy Edge Functions (push to main)

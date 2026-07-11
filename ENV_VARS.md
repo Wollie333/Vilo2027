@@ -5,7 +5,7 @@
 
 This file documents every environment variable used across the platform, what it does, where to get it, and which environment it belongs in.
 
-> **Never commit `.env.local` or any file containing real secret values. Use `.env.example` for templates and Doppler for staging/production.**
+> **Never commit `.env.local` or any file containing real secret values. Use `.env.example` as the local template (copy it to `apps/web/.env.local`), and add real secrets to Vercel Environment Variables (marked Sensitive, scoped per environment) for Preview/Production.**
 
 ---
 
@@ -226,7 +226,7 @@ rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 ### `BANKING_CIPHER_KEY`
 - **What:** AES-256-GCM key used to encrypt the `account_number` column of `eft_banking_details` at the application layer (per `AGENT_RULES.md` §1.5). Also decrypts on the server when rendering invoice/quote PDFs and when the EFT Edge Function exposes details to a verified guest.
 - **Format:** Base64-encoded 32 bytes — `openssl rand -base64 32`
-- **Where to get:** Generate once per environment; store in Doppler.
+- **Where to get:** Generate once per environment; add to Vercel Environment Variables (Sensitive) for Preview/Production and to `apps/web/.env.local` for local dev.
 - **Used in:** Next.js server runtime (Server Actions, PDF route handlers) AND Supabase Edge Functions. Same key, two runtimes.
 - **Environments:** All
 - ⚠️ **Server-side only. Rotating the key requires re-encrypting every `account_number` row with a key-prefix migration; see the `v1.` prefix in `apps/web/lib/crypto/banking.ts`.**
@@ -234,7 +234,7 @@ rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 ### `PAYMENT_CIPHER_KEY`
 - **What:** AES-256-GCM key used to encrypt the `secret_cipher` column of `host_payment_gateways` — i.e. each host's own Paystack secret key / PayPal client secret for direct booking payments. Separate from `BANKING_CIPHER_KEY` so the two blast radii are independent.
 - **Format:** Base64-encoded 32 bytes — `openssl rand -base64 32`
-- **Where to get:** Generate once per environment; store in Doppler (and Supabase Edge secrets if/when a payment Edge Function needs it).
+- **Where to get:** Generate once per environment; add to Vercel Environment Variables (Sensitive) for Preview/Production and to `apps/web/.env.local` for local dev (and Supabase Edge secrets if/when a payment Edge Function needs it).
 - **Used in:** Next.js server runtime (Server Actions). The decrypted secret is used only to call the host's gateway and is NEVER returned to a client.
 - **Environments:** All
 - ⚠️ **Server-side only. If unset, secrets are stored as plain text (round-trips transparently) — fine for local dev, set it everywhere else. Rotating requires re-encrypting via the `v1.` prefix scheme in `apps/web/lib/crypto/payments.ts`.**
@@ -246,7 +246,7 @@ rejected. Read-only quote/availability endpoints are intentionally NOT gated.
 ### `ICAL_TOKEN_SECRET`
 - **What:** HMAC-SHA256 secret used to derive each listing's unguessable iCal export feed token (the `/ical/[listing_id]/[token].ics` URL). One secret → all per-listing tokens; rotating it invalidates every already-distributed feed URL.
 - **Format:** 32+ random bytes, hex — `openssl rand -hex 32`
-- **Where to get:** Generate once per environment; store in Doppler (`dev`/`stg`/`prd`).
+- **Where to get:** Generate once per environment; add to Vercel Environment Variables (Sensitive) for Preview/Production and to `apps/web/.env.local` for local dev.
 - **Used in:** Next.js server runtime only — `apps/web/lib/ical.ts` (`signListingToken` / `verifyListingToken`) and the export route handler.
 - **Environments:** All
 - ⚠️ **Server-side only and REQUIRED for iCal export. There is deliberately NO fallback to `SUPABASE_SERVICE_ROLE_KEY` — the platform's most powerful secret must never derive public feed tokens. If unset, `signListingToken` throws and iCal export is unavailable.**
@@ -445,7 +445,7 @@ Edge Functions need:
 
 ---
 
-*When adding a new environment variable: add it here, add it to `.env.example`, and add it to the Doppler configs for staging and production before deploying.*
+*When adding a new environment variable: add it here, add it to `.env.example`, and add it to Vercel Environment Variables (Preview + Production, marked Sensitive) before deploying.*
 
 ---
 
