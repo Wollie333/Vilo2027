@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-12 #52 — Host sweep · Batch B leftovers complete (Add-ons·Coupons·Reviews·Media).
+
+Continued the host-dashboard functional sweep. All Batch B leftovers verified end-to-end (live + DB truth
+via service-role REST), fixtures restored after each test:
+- **Add-ons** — toggle active; New add-on → draft create → wizard editor fill → Save (`updateAddonAction`);
+  Danger-zone Delete (hard-delete). All DB-confirmed.
+- **Coupons** — full CRUD: Turn on/off, New coupon (`createCouponAction`), Edit % (`updateCouponAction`),
+  Delete. Fixture back to KAROO10.
+- **Reviews** — 4 view tabs + empty states; seeded a published review to prove **Post reply**
+  (`replyToReviewAction` → `host_response`) + **Feature on listing** (`toggleFeaturedReviewAction` →
+  `properties.featured_review_id`); cleaned up.
+  - 🔧 **Hydration fix** — `ReplyComposer` char counter used `remaining.toLocaleString()` (no locale), so the
+    server rendered `1 500` and the browser `1,500` → hydration mismatch. Pinned `"en-ZA"`. Verified live:
+    counter now `1 500 chars left`, zero console warnings on fresh load.
+- **Media** — Website-media + Listings&rooms tabs; per-listing/per-category picker re-scopes live; edited a
+  photo's alt/caption via the detail modal → `setListingPhotoCaptionAction` wrote `property_photos.caption`;
+  reverted. Upload/delete wired (not fired — avoid storage artifacts / destroying the sole listing photo).
+
+Build green. **Batch B (Properties) now fully swept.** Next: Batch C Finances.
+
 ## 2026-07-12 #51 — Host sweep · Policies tab (Batch B): fixed duplicate-policy proliferation.
 
 Host-dashboard sweep resumed at Batch B leftovers. **Policies tab (`/dashboard/policies`) verified

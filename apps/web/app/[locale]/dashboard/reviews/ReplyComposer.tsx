@@ -107,7 +107,7 @@ export function ReplyComposer({
       />
       <div className="flex flex-wrap items-center gap-2 border-t border-brand-line px-2 py-2">
         <span className="ml-2 text-[11px] text-brand-mute">
-          Visible publicly · {remaining.toLocaleString()} chars left
+          Visible publicly · {remaining.toLocaleString("en-ZA")} chars left
         </span>
         {hasReply ? (
           <button
