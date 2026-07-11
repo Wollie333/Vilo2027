@@ -15,10 +15,12 @@ import {
 } from "@/app/[locale]/admin/_components/AdminTable";
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
+import { commissionLabel } from "@/lib/affiliate/commission";
 import { formatMoney, round2 } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { AffiliateLinkBuilder } from "./_components/AffiliateLinkBuilder";
 import { ReferralLinkCard } from "./_components/ReferralLinkCard";
 
 export const metadata: Metadata = { title: "Affiliates" };
@@ -66,6 +68,7 @@ export default async function AffiliateOverviewPage() {
     { count: clickCount },
     { data: referrals },
     { data: settings },
+    { data: productRows },
   ] = await Promise.all([
     getAffiliateBalance(admin, account.id),
     admin
@@ -82,7 +85,28 @@ export default async function AffiliateOverviewPage() {
       .select("min_payout_threshold")
       .eq("id", true)
       .maybeSingle(),
+    admin
+      .from("products")
+      .select("id, name, slug, currency, affiliate_type, affiliate_value")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
   ]);
+
+  // Products the affiliate can build a link for (any active product; the label
+  // shows what they'd earn where a commission is configured).
+  const productOptions = (productRows ?? []).map((p) => ({
+    id: p.id as string,
+    name: p.name as string,
+    slug: (p.slug as string | null) ?? null,
+    commissionLabel:
+      p.affiliate_type && p.affiliate_type !== "none"
+        ? commissionLabel(
+            p.affiliate_type as "amount" | "percent",
+            Number(p.affiliate_value),
+            (p.currency as string) ?? "ZAR",
+          )
+        : null,
+  }));
 
   const refs = referrals ?? [];
   const userIds = refs.map((r) => r.referred_user_id);
@@ -221,6 +245,15 @@ export default async function AffiliateOverviewPage() {
     <div>
       {/* Affiliate link hero */}
       <ReferralLinkCard baseUrl={baseUrl} slug={account.slug} />
+
+      {/* Link builder — promote any page or product */}
+      <div className="mt-5">
+        <AffiliateLinkBuilder
+          baseUrl={baseUrl}
+          slug={account.slug}
+          products={productOptions}
+        />
+      </div>
 
       {/* Stat band */}
       <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line md:grid-cols-3 lg:grid-cols-5">

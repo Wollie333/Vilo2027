@@ -85,6 +85,14 @@ A lot is in place. Migrations `20260616000010`–`20260616000018` + `20260617000
 - Portal: prominent "Your link" card — `https://<domain>/r/<slug>` — copy button, QR,
   per-product deep links (`/r/<slug>?p=<product-slug>` → lands on that product's pay/pitch
   page with attribution), share-to-social. Live clicks + conversions + earnings.
+- **FOUNDER REQ (2026-07-11): link off ANY page, not just products.** Affiliates must be
+  able to build their unique link for ANY destination on the system — a marketing/system
+  page (launch, home, explore, deals, pricing, …), a specific listing, OR any product.
+  Build an **affiliate link builder**: (1) curated page picker of promotable pages,
+  (2) paste-any-on-site-path field (validated `startsWith('/')`), (3) product picker. Each
+  yields `/r/<slug>?next=<path>` (the route ALREADY honours `?next=` + logs `landing_path`)
+  with copy + QR + per-destination click/conversion stats. So a promoter of the launch page
+  makes their link off `/launch`; of the home page off `/`; etc.
 - Marketing assets (`affiliate_marketing`) surfaced with the link pre-embedded.
 
 ### 2.4 Tracking integrity + observability
