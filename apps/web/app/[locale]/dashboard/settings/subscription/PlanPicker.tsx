@@ -141,7 +141,7 @@ export function PlanPicker({ products, currentProductId }: Props) {
 
               {isDowngrade ? (
                 <a
-                  href="/dashboard/inbox"
+                  href="/support"
                   className="mt-5 inline-flex items-center justify-center gap-2 rounded border border-brand-line bg-white px-3 py-2 text-sm font-semibold text-brand-mute transition-colors hover:bg-brand-light"
                   title="Downgrades are handled by Wielo support"
                 >

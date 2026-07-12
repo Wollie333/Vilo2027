@@ -14,6 +14,22 @@ pushed to `main`, verified live, `tsc`/`lint`/`build` green. Shipped this sessio
 The whole `NEXT_STEPS §F` batch is now done. **NEXT (fresh session): §1 deep financial sweep** — exhaustively
 re-derive every ledger balance / VAT / doc amount / reconciliation and fold into `docs/lifecycles/payments-ledger.md`.
 
+## 2026-07-12 #80 — Fix blank statement page (locale-404) + route help/support buttons to the Wielo Support inbox thread.
+
+Two founder-reported items.
+- **Blank statement page** — opening a user's statement showed a blank page: statement build actions returned
+  `path=/statement/<token>` and hosted-doc "Download PDF" links used `/invoice/<token>/pdf` etc., but those routes
+  live under `[locale]` AND the statement token contains a dot (`body.sig`) → the middleware matcher (`.*\..*`)
+  skips i18n on it, so the un-prefixed URL 404s (`window.open` builds it absolutely). Fix: statement actions +
+  all 9 hosted-doc `pdfHref`s (statement, forfeit-statement, invoice, receipt, credit-note, quote,
+  wielo-invoice/-credit-note/-commission) are now locale-prefixed. Verified `/en/statement/<token>` = 200.
+- **Help/support → inbox** — new `/support` route (`app/[locale]/support/page.tsx`): ensures the signed-in user's
+  direct **Wielo Support** thread (host via `ensureWieloThread` → `/dashboard/inbox?c=`, guest via
+  `ensureWieloGuestThread` → `/portal/inbox/<id>`; logged-out → login). Repointed the in-app support CTAs
+  (guest portal "Get help" ×2, subscription "Contact support to switch") to `/support`. Verified live: `/support`
+  as a host → the Wielo Support thread. (Public "Help centre" article links + the `/help` centre left as content.)
+- `build`/`lint` (web) green.
+
 ## 2026-07-12 #79 — Generalized reporting (listings·deals·users) + removed the OTA cross-post feature. Driven live.
 
 Two founder requests. (1) The flag/report feature now covers **listings, deals AND users** with ONE modal,

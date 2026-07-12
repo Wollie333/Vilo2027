@@ -789,7 +789,7 @@ export default async function PortalTripDetailPage({
           </span>
         </div>
         <Link
-          href="/help"
+          href="/support"
           className="ml-auto inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60"
         >
           <LifeBuoy className="h-3.5 w-3.5" /> Get help
@@ -1918,7 +1918,7 @@ export default async function PortalTripDetailPage({
                   <ChevronRight className="h-4 w-4 text-brand-mute" />
                 </Link>
                 <Link
-                  href="/help"
+                  href="/support"
                   className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-brand-ink transition hover:bg-brand-light/60"
                 >
                   <LifeBuoy className="h-4 w-4 text-brand-mute" />
