@@ -20,21 +20,30 @@ export function RoomAmenitiesSection({
   roomId,
   amenityKeys,
   onChange,
+  deferSave = false,
 }: {
   listingId: string;
   roomId: string;
   amenityKeys: string[];
   onChange: (keys: string[]) => void;
+  /**
+   * When true, toggling only updates local state (via onChange) — nothing is
+   * saved per click; the parent persists the whole set once (e.g. the setup
+   * wizard's "Save room"). Default false keeps the per-toggle save the full
+   * room editor relies on.
+   */
+  deferSave?: boolean;
 }) {
   const [pending, start] = useTransition();
   const selected = useMemo(() => new Set(amenityKeys), [amenityKeys]);
 
   function toggle(key: string, on: boolean) {
-    // Optimistic — flip locally, server reconciles. Revert on failure.
     const next = on
       ? Array.from(new Set([...amenityKeys, key]))
       : amenityKeys.filter((k) => k !== key);
     onChange(next);
+    if (deferSave) return; // batch-persisted by the parent on save
+    // Optimistic — flip locally, server reconciles. Revert on failure.
     start(async () => {
       const result = await setRoomAmenityAction(listingId, roomId, key, on);
       if (!result.ok) {

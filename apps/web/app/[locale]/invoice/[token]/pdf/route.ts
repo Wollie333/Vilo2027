@@ -13,6 +13,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 type Lines = {
+  /** "addon" for a standalone add-on invoice (no base stay), else a stay invoice. */
+  kind?: string;
   listing_name: string | null;
   check_in: string | null;
   check_out: string | null;
@@ -169,41 +171,46 @@ export async function GET(
     unit_price: number;
     subtotal: number;
   }[] = [];
-  if (
-    lines.scope === "rooms" &&
-    Array.isArray(lines.rooms) &&
-    lines.rooms.length > 0
-  ) {
-    for (const r of lines.rooms) {
-      lineRows.push({
-        description: `${lines.listing_name ?? "Stay"} — ${r.room_name}`,
-        quantity: 1,
-        unit_price: r.base_amount,
-        subtotal: r.base_amount,
-      });
-      if (r.cleaning_fee > 0) {
+  // Add-on invoices carry only `addons[]` (no base_amount / rooms) — an add-on
+  // charge is billed on its own. Only synthesise the base/rooms stay rows for
+  // stay invoices, else `lines.base_amount` is undefined → "R NaN".
+  if (lines.kind !== "addon") {
+    if (
+      lines.scope === "rooms" &&
+      Array.isArray(lines.rooms) &&
+      lines.rooms.length > 0
+    ) {
+      for (const r of lines.rooms) {
         lineRows.push({
-          description: `Cleaning — ${r.room_name}`,
+          description: `${lines.listing_name ?? "Stay"} — ${r.room_name}`,
           quantity: 1,
-          unit_price: r.cleaning_fee,
-          subtotal: r.cleaning_fee,
+          unit_price: r.base_amount,
+          subtotal: r.base_amount,
+        });
+        if (r.cleaning_fee > 0) {
+          lineRows.push({
+            description: `Cleaning — ${r.room_name}`,
+            quantity: 1,
+            unit_price: r.cleaning_fee,
+            subtotal: r.cleaning_fee,
+          });
+        }
+      }
+    } else {
+      lineRows.push({
+        description: `${lines.listing_name ?? "Stay"} — base`,
+        quantity: 1,
+        unit_price: lines.base_amount,
+        subtotal: lines.base_amount,
+      });
+      if (lines.cleaning_fee > 0) {
+        lineRows.push({
+          description: "Cleaning",
+          quantity: 1,
+          unit_price: lines.cleaning_fee,
+          subtotal: lines.cleaning_fee,
         });
       }
-    }
-  } else {
-    lineRows.push({
-      description: `${lines.listing_name ?? "Stay"} — base`,
-      quantity: 1,
-      unit_price: lines.base_amount,
-      subtotal: lines.base_amount,
-    });
-    if (lines.cleaning_fee > 0) {
-      lineRows.push({
-        description: "Cleaning",
-        quantity: 1,
-        unit_price: lines.cleaning_fee,
-        subtotal: lines.cleaning_fee,
-      });
     }
   }
   for (const a of lines.addons ?? []) {

@@ -13,6 +13,7 @@ import {
   PartyPopper,
   PawPrint,
   RotateCcw,
+  Scale,
   ShieldCheck,
   Users,
   X,
@@ -48,7 +49,6 @@ function refundColour(percent: number) {
  */
 export async function ThingsToKnow({
   listingId,
-  brandName,
   checkInTimeFallback,
   checkOutTimeFallback,
   maxGuests,
@@ -56,7 +56,6 @@ export async function ThingsToKnow({
   summary: summaryProp,
 }: {
   listingId: string;
-  brandName: string;
   checkInTimeFallback: string | null;
   checkOutTimeFallback: string | null;
   maxGuests: number | null;
@@ -73,6 +72,7 @@ export async function ThingsToKnow({
   const cancel = summary.cancellation;
   const cio = summary.check_in_out;
   const hr = summary.house_rules;
+  const terms = summary.booking_terms;
 
   const checkIn = cio?.check_in_time ?? checkInTimeFallback;
   const checkOut = cio?.check_out_time ?? checkOutTimeFallback;
@@ -118,13 +118,23 @@ export async function ThingsToKnow({
         bodyHtml: hr.body_html,
       }
     : null;
+  const termsDialog: PolicyDialogData | null = terms
+    ? {
+        type: "booking_terms",
+        name: terms.name,
+        summary: terms.summary,
+        bodyHtml: terms.body_html,
+      }
+    : null;
 
   const chips = hr ? houseRuleChips(hr) : [];
 
   return (
     <div className="mt-6 space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* ── House rules ── */}
+      {/* Four stacked cards, one on top of the other:
+          House rules → Cancellation → Safety & property → Terms. */}
+      <div className="grid grid-cols-1 gap-4">
+        {/* ── 1. House rules ── */}
         <Card icon={Home} title={t("hrTitle")}>
           <ul className="space-y-2.5 text-sm text-brand-ink/85">
             <Row icon={LogIn}>{t("checkInAfter", { time: hhmm(checkIn) })}</Row>
@@ -164,30 +174,7 @@ export async function ThingsToKnow({
           ) : null}
         </Card>
 
-        {/* ── Safety & property ── */}
-        <Card icon={ShieldCheck} title={t("safetyTitle")}>
-          <ul className="space-y-2.5 text-sm text-brand-ink/85">
-            <Row icon={ShieldCheck}>
-              {t("holdsPayments", { brand: brandName })}
-            </Row>
-            <Row icon={BadgeCheck}>{t("hostVerified")}</Row>
-            {hr?.parties_allowed != null ? (
-              <Row icon={hr.parties_allowed ? PartyPopper : Ban}>
-                {hr.parties_allowed ? t("partiesAllowed") : t("noParties")}
-              </Row>
-            ) : null}
-            {hr?.quiet_hours_start && hr?.quiet_hours_end ? (
-              <Row icon={Moon}>
-                {t("quietHours", {
-                  start: hhmm(hr.quiet_hours_start),
-                  end: hhmm(hr.quiet_hours_end),
-                })}
-              </Row>
-            ) : null}
-          </ul>
-        </Card>
-
-        {/* ── Cancellation (real refund schedule) ── */}
+        {/* ── 2. Cancellation (real refund schedule) ── */}
         <Card icon={RotateCcw} title={t("cancelTitle")}>
           {cancelDialog ? (
             <>
@@ -249,6 +236,39 @@ export async function ThingsToKnow({
             </div>
           ) : null}
         </Card>
+
+        {/* ── 3. Safety & property ── */}
+        <Card icon={ShieldCheck} title={t("safetyTitle")}>
+          <ul className="space-y-2.5 text-sm text-brand-ink/85">
+            <Row icon={ShieldCheck}>{t("securePayments")}</Row>
+            <Row icon={BadgeCheck}>{t("hostVerified")}</Row>
+            {hr?.parties_allowed != null ? (
+              <Row icon={hr.parties_allowed ? PartyPopper : Ban}>
+                {hr.parties_allowed ? t("partiesAllowed") : t("noParties")}
+              </Row>
+            ) : null}
+            {hr?.quiet_hours_start && hr?.quiet_hours_end ? (
+              <Row icon={Moon}>
+                {t("quietHours", {
+                  start: hhmm(hr.quiet_hours_start),
+                  end: hhmm(hr.quiet_hours_end),
+                })}
+              </Row>
+            ) : null}
+          </ul>
+        </Card>
+
+        {/* ── 4. Terms & conditions (host's own T&C) ── */}
+        {termsDialog ? (
+          <Card icon={Scale} title={t("termsTitle")}>
+            <p className="text-sm leading-relaxed text-brand-mute">
+              {terms!.summary?.trim() || t("termsIntro")}
+            </p>
+            <div className="mt-4">
+              <PolicyDialog data={termsDialog} />
+            </div>
+          </Card>
+        ) : null}
       </div>
 
       {/* ── Platform legal (Wielo-authored) ── */}

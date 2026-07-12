@@ -17,7 +17,10 @@ import {
   FormModalFooter,
 } from "@/components/ui/form-modal";
 
-import { fetchRoomEditorDataAction } from "../../properties/[id]/edit/actions";
+import {
+  fetchRoomEditorDataAction,
+  setRoomAmenitiesAction,
+} from "../../properties/[id]/edit/actions";
 import type { RoomEditorRoom } from "../../properties/[id]/edit/rooms/[roomId]/RoomEditor";
 import { RoomAmenitiesSection } from "../../properties/[id]/edit/rooms/[roomId]/sections/RoomAmenitiesSection";
 import {
@@ -120,8 +123,18 @@ export function RoomEditorSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, roomId, listingId]);
 
-  // Close + tell the parent to refresh its room list.
-  function close() {
+  // Persist the room's amenities as ONE batch (the section defers per-toggle
+  // saves via `deferSave`, so the host picks everything and it saves here).
+  // Idempotent + safe to call on any close; no-op until the room exists.
+  async function persistAmenities() {
+    if (!room?.id) return;
+    const res = await setRoomAmenitiesAction(listingId, room.id, amenityKeys);
+    if (!res.ok) toast.error(res.error);
+  }
+
+  // Close + persist amenities + tell the parent to refresh its room list.
+  async function close() {
+    await persistAmenities();
     onChanged();
     onOpenChange(false);
   }
@@ -130,7 +143,8 @@ export function RoomEditorSheet({
 
   // Footer "Next": on the Details step, persist via the form's imperative handle
   // before advancing (create mints the room → step 2; edit saves → step 2).
-  // Photos + amenities save themselves as the host edits, so they just advance.
+  // Photos save themselves as the host edits; amenities are batch-saved on
+  // "Save room" (or on close) via persistAmenities — so these just advance.
   async function handleNext() {
     if (step === 1) {
       setSaving(true);
@@ -147,7 +161,7 @@ export function RoomEditorSheet({
     <FormModal
       open={open}
       onOpenChange={(next) => {
-        if (!next) onChanged();
+        if (!next) void persistAmenities().then(onChanged);
         onOpenChange(next);
       }}
       title={room ? room.name || "Edit room" : "Add a room"}
@@ -234,6 +248,7 @@ export function RoomEditorSheet({
           roomId={room.id}
           amenityKeys={amenityKeys}
           onChange={setAmenityKeys}
+          deferSave
         />
       )}
 
@@ -262,10 +277,14 @@ export function RoomEditorSheet({
         ) : (
           <button
             type="button"
-            onClick={close}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+            onClick={() => {
+              setSaving(true);
+              void close().finally(() => setSaving(false));
+            }}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
           >
-            <Check className="h-4 w-4" /> Save room
+            <Check className="h-4 w-4" /> {saving ? "Saving…" : "Save room"}
           </button>
         )}
       </FormModalFooter>

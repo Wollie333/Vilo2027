@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-12 #68 — Fix batch: invoice NaN, room amenities batch-save, policy-picker green, listing "Things to know" rework. Driven live.
+
+Knocked out the founder's quick-fix cluster (larger features F1–F4 queued separately). All verified live.
+
+- **Invoice NaN fix** — a host-added add-on invoice (`kind:"addon"`) rendered a phantom "{listing} — base"
+  line with `Unit price: R NaN` because the PDF/page synthesised a base-stay row it doesn't have. Guarded
+  the base/rooms synthesis on `lines.kind !== "addon"` in `invoice/[token]/pdf/route.ts` + `page.tsx`, and
+  hardened `lib/pdf/styles.ts::formatMoney` to render `—` for null/non-finite. Verified: INV-0067 (add-on)
+  now has zero "R NaN" and no phantom row; PDF renders 200.
+- **Room amenities batch-save** — amenities no longer save per-toggle (each click did a DB round-trip →
+  freeze). Added `deferSave` to `RoomAmenitiesSection` (wizard sets it; full editor keeps per-toggle) + a
+  new batch `setRoomAmenitiesAction(listingId, roomId, keys)`; `RoomEditorSheet` persists the whole set on
+  "Save room"/close. Verified: nothing writes during editing, all selected amenities persist on save.
+- **Policy picker green** — the selected/active policy (incl. host Terms) now shows green immediately on
+  select or "create your own" via optimistic selection state (`activeId = optimisticId ?? assignedPolicyId`).
+  Verified: switching the Terms policy turns the chosen card green at once.
+- **Listing "Things to know" rework** — one column of FOUR stacked cards (House rules → Cancellation →
+  Safety & property → Terms). Removed the FALSE "Wielo holds payments until check-in" line (+ the sibling
+  room page's "holds payment" claim); added a **Terms** card surfacing the host's booking_terms via
+  `PolicyDialog`; replaced the "never transfer money outside Wielo" note under Meet-your-host with a
+  truthful safety line. Verified live: card order + terms modal + false copy gone.
+- `pnpm type-check` + `pnpm lint` green.
+
 ## 2026-07-12 #67 — Onboarding wizard hardening (Job A) + seasonal↔booking verified (Job B). All driven live.
 
 Delivered the founder's two queued jobs (NEXT_STEPS §A + §B). All six wizard fixes and the seasonal price

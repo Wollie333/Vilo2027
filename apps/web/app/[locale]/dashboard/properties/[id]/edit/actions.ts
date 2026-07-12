@@ -1453,6 +1453,48 @@ export async function setRoomAmenityAction(
   return { ok: true };
 }
 
+// Batch-replace ALL amenities for one room in a single round-trip. Used by the
+// setup wizard's room editor so the host selects everything, then saves once
+// (no per-toggle DB write / UI freeze). Delete-then-insert scoped by room_id so
+// it never touches the listing-wide or other rooms' amenities.
+export async function setRoomAmenitiesAction(
+  listingId: string,
+  roomId: string,
+  amenityKeys: string[],
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = own.db;
+
+  const { error: delErr } = await supabase
+    .from("property_amenities")
+    .delete()
+    .eq("property_id", listingId)
+    .eq("room_id", roomId);
+  if (delErr) {
+    return { ok: false, error: "Could not update room amenities." };
+  }
+
+  const unique = Array.from(new Set(amenityKeys));
+  if (unique.length > 0) {
+    const rows = unique.map((key) => ({
+      property_id: listingId,
+      room_id: roomId,
+      amenity_key: key,
+    }));
+    const { error: insErr } = await supabase
+      .from("property_amenities")
+      .insert(rows);
+    if (insErr) {
+      return { ok: false, error: "Could not save room amenities." };
+    }
+  }
+
+  revalidatePath(`/dashboard/properties/${listingId}/edit/rooms/${roomId}`);
+  return { ok: true };
+}
+
 // ─── Structured per-room bed composition (room_beds) ─────────────
 
 const setRoomBedsInputSchema = z.array(bedInputSchema).max(30);

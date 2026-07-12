@@ -62,10 +62,15 @@ export function PolicyPicker({
     open: boolean;
     policy: PolicyCard | null;
   }>({ open: false, policy: null });
+  // Optimistic selection so the picked (or newly created) policy turns green
+  // ("active & selected") immediately, before the server refresh lands.
+  const [optimisticId, setOptimisticId] = useState<string | null>(null);
 
   const mine = policies.filter((p) => p.type === type);
+  const activeId = optimisticId ?? assignedPolicyId;
 
   function select(policyId: string) {
+    setOptimisticId(policyId); // green right away
     start(async () => {
       const result = await setListingPolicyAction(
         listingId,
@@ -77,21 +82,26 @@ export function PolicyPicker({
         toast.success("Set as the listing default.");
         onChanged();
       } else {
+        setOptimisticId(null); // revert on failure
         toast.error(result.error);
       }
     });
   }
 
   // After the sheet saves: a freshly created policy is immediately assigned to
-  // this listing as the default (matches "create → set as default"). An edit
-  // just refreshes.
+  // this listing as the default (matches "create → set as default") and shown
+  // as active/green at once. An edit just refreshes.
   function onSheetSaved(created?: { id: string }) {
     if (!created?.id) {
       onChanged();
       return;
     }
+    setOptimisticId(created.id); // green right away
     setListingPolicyAction(listingId, type, null, created.id).then((r) => {
-      if (!r.ok) toast.error(r.error);
+      if (!r.ok) {
+        setOptimisticId(null);
+        toast.error(r.error);
+      }
       onChanged();
     });
   }
@@ -104,7 +114,7 @@ export function PolicyPicker({
         </div>
       ) : (
         mine.map((p) => {
-          const selected = assignedPolicyId === p.id;
+          const selected = activeId === p.id;
           return (
             <div
               key={p.id}

@@ -237,8 +237,13 @@ export const styles = StyleSheet.create({
   },
 });
 
-export function formatMoney(amount: number, currency = "ZAR"): string {
+export function formatMoney(
+  amount: number | null | undefined,
+  currency = "ZAR",
+): string {
   const symbol = currency === "ZAR" ? "R" : currency + " ";
+  // Guard: a missing/non-finite amount must never render as "R NaN".
+  if (amount == null || !Number.isFinite(amount)) return `${symbol} —`;
   const formatted = Math.round(amount)
     .toLocaleString("en-ZA")
     .replace(/,/g, " ");

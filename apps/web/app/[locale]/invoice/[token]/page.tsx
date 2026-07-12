@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type Lines = {
+  /** "addon" for a standalone add-on invoice (no base stay), else a stay invoice. */
+  kind?: string;
   listing_name: string | null;
   check_in: string | null;
   check_out: string | null;
@@ -109,34 +111,38 @@ export default async function PublicInvoicePage({
     businessId,
   );
 
-  // Line items.
+  // Line items. Add-on invoices carry only `addons[]` (no base stay / rooms),
+  // so skip the base-row synthesis for them — otherwise a phantom "— base" row
+  // with no amount appears.
   const lineRows: DocLine[] = [];
-  if (lines.scope === "rooms" && (lines.rooms ?? []).length > 0) {
-    for (const r of lines.rooms) {
-      lineRows.push({
-        title: `${lines.listing_name ?? "Stay"} — ${r.room_name}`,
-        amount: formatMoney(r.base_amount, c),
-      });
-      if (r.cleaning_fee > 0) {
+  if (lines.kind !== "addon") {
+    if (lines.scope === "rooms" && (lines.rooms ?? []).length > 0) {
+      for (const r of lines.rooms) {
         lineRows.push({
-          title: `Cleaning — ${r.room_name}`,
-          amount: formatMoney(r.cleaning_fee, c),
+          title: `${lines.listing_name ?? "Stay"} — ${r.room_name}`,
+          amount: formatMoney(r.base_amount, c),
+        });
+        if (r.cleaning_fee > 0) {
+          lineRows.push({
+            title: `Cleaning — ${r.room_name}`,
+            amount: formatMoney(r.cleaning_fee, c),
+          });
+        }
+      }
+    } else {
+      lineRows.push({
+        title: `${lines.listing_name ?? "Stay"} — base`,
+        sub: lines.nights
+          ? `${lines.nights} night${lines.nights === 1 ? "" : "s"}`
+          : null,
+        amount: formatMoney(lines.base_amount, c),
+      });
+      if (lines.cleaning_fee > 0) {
+        lineRows.push({
+          title: "Cleaning",
+          amount: formatMoney(lines.cleaning_fee, c),
         });
       }
-    }
-  } else {
-    lineRows.push({
-      title: `${lines.listing_name ?? "Stay"} — base`,
-      sub: lines.nights
-        ? `${lines.nights} night${lines.nights === 1 ? "" : "s"}`
-        : null,
-      amount: formatMoney(lines.base_amount, c),
-    });
-    if (lines.cleaning_fee > 0) {
-      lineRows.push({
-        title: "Cleaning",
-        amount: formatMoney(lines.cleaning_fee, c),
-      });
     }
   }
   for (const a of lines.addons ?? []) {

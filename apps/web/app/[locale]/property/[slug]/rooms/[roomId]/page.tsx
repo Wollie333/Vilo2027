@@ -246,7 +246,7 @@ export default async function PublicRoomPage({
     {
       icon: ShieldCheck,
       title: "Book directly, no booking fee",
-      body: `You pay the price you see. ${brandName} holds payment until your stay is confirmed.`,
+      body: `You pay the price you see — directly to your host. ${brandName} never charges a booking fee.`,
     },
   ];
 

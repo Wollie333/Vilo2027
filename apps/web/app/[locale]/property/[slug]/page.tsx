@@ -995,7 +995,6 @@ async function ListingBody({
             <ThingsToKnow
               listingId={listing.id}
               summary={policySummary}
-              brandName={brandName}
               checkInTimeFallback={listing.check_in_time}
               checkOutTimeFallback={listing.check_out_time}
               maxGuests={listing.max_guests}

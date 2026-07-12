@@ -78,6 +78,64 @@ booking spanning in-season and out-of-season nights prices each night correctly.
 
 ---
 
+## F. 🔴 Founder feature batch (2026-07-12) — larger features queued after the #68 quick-fix cluster.
+
+The quick-fix cluster (invoice NaN · amenities batch-save · policy-picker green · listing "Things to know"
+rework) shipped in #68. These four bigger features remain — each its own focused build + live verify.
+
+### F1 — Flagged Listings (report a listing → admin moderation)
+- Replace the dead "Report this listing" button on `/property/[slug]` (page.tsx ~L1005) with a client modal
+  (`FormModal`) + form: **name, email, phone, reason (preset dropdown), short message**.
+- New table `listing_reports` (listing_id, reporter name/email/phone, reason, message, status
+  open|reviewing|actioned|dismissed, created_at). Server action inserts + `notifyAdmins`
+  (`lib/admin/notify.ts`) so admins get a follow-up notification.
+- New admin page **Moderation → Flagged Listings** (next to Data Requests) listing reports with
+  status + actions. Model on the existing admin moderation/data-request pages.
+
+### F2 — Deleted accounts tab (self-deleted users, reinstate or 30-day purge)
+- When a user deletes their account via Settings → soft-delete (set `deleted_at`, hide all data from them
+  and the world). Add a **Deleted** tab in the admin Users section (next to Suspended) listing these users.
+- Actions: **Reinstate** (clear deleted_at, restore visibility) OR **Delete completely** after 30 days
+  (hard purge). Data is retained + hidden until then so reactivation restores everything. A cron can flag
+  accounts past 30 days for purge. Confirm the settings-page "delete account" flow sets the soft-delete.
+
+### F3 — 🔴 Vanishing-guest accounting (partial-paid guest disappears) — NEEDS FOUNDER SIGN-OFF ON DESIGN.
+Scenario: guest books, pays a deposit/part, then vanishes. Host cancels. TODAY the host-cancel path
+auto-mints a **credit note** → the system says the host OWES the vanished guest — WRONG when policy = no
+refund. Founder wants: (1) handle gracefully, (2) record in the ledger, (3) paper trail, (4) notify guest;
+recorded on BOTH guest + host records; besides the active policies; with a way to FORCE-FORFEIT so the host
+owes nothing.
+
+**Proposed design (confirm before building):**
+- New host action on the booking: **"Cancel — guest no-show / abandoned"** (distinct from a normal cancel).
+  It runs the cancellation policy to compute the guest's refund entitlement, but adds a **"forfeit"** toggle
+  that overrides entitlement to R0 (retain everything paid as the host's, per policy/liquidated damages).
+- **Ledger entries (so the host sees exactly what happened):**
+  1. **Reverse the OUTSTANDING (unpaid) balance** — a `write_off` row that zeroes what the host will never
+     collect, so the guest no longer shows as owing and the host isn't shown a phantom receivable.
+  2. **Retain the PAID amount as forfeited revenue** — NO credit note (host owes nothing); the deposit stays
+     recognised as the host's (a `forfeiture` note doc, not a `wielo_credit_note` refund doc).
+  3. Only when the policy DOES grant a partial refund (and the host chooses not to force-forfeit) is a
+     credit note minted — for that refund amount only.
+- **Paper trail:** a new document type (e.g. **Forfeiture / Cancellation statement**, `FRF-####` in the
+  unified numbering) capturing: amount paid, amount forfeited, outstanding written off, policy applied,
+  reason (no-show/abandoned), date. INSERT-only, immutable.
+- **Notify guest:** email + guest-record entry: "Your booking was cancelled (no-show/abandoned); per the
+  cancellation policy R{x} was retained and R{y} refunded (if any)." Tracked on the guest's history AND the
+  host's records.
+- Booking `payment_status` → a terminal state (e.g. `forfeited` / `written_off`); status → cancelled.
+- **Open questions for founder:** (a) is forfeited deposit "revenue" or a neutral write-off in the ledger
+  KPIs? (b) default: force-forfeit ON or ask each time? (c) exact doc name (Forfeiture vs Cancellation
+  statement)? Answer these, then build + record `docs/lifecycles/booking.md` (cancellation branch).
+
+### F4 — Statement function (host → guest; admin/Wielo → host)
+- A "generate statement" action: the host creates a **statement for a guest** (a period/booking summary of
+  charges, payments, refunds, balance) as a downloadable doc; reuse the SAME statement generator in admin so
+  **Wielo can send a statement to a host**. Fits the unified doc-numbering scheme. Important for financials —
+  pairs with the deep financial sweep (§1) and F3's paper trail.
+
+---
+
 ## 0. 🟡 Policy enforcement, add-ons & refunds (booking safety) — P0 + Phase 1 DONE; Phase 2/3 remain.
 
 **Full grounded plan: `docs/features/POLICY_ENFORCEMENT_ADDONS_REFUNDS_PLAN.md`** (audited live 2026-07-12).
