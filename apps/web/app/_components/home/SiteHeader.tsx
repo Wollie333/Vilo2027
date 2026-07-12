@@ -139,13 +139,8 @@ export function SiteHeader() {
             className="flex shrink-0 items-center gap-2.5"
           >
             <VLogo size={36} gradientId="home-nav-logo" />
-            <div className="leading-none">
-              <div className="font-display text-[18px] font-bold tracking-tight text-brand-ink">
-                <BrandName />
-              </div>
-              <div className="mt-0.5 hidden text-[10px] text-brand-mute sm:block">
-                {t("brandTagline")}
-              </div>
+            <div className="font-display text-[18px] font-bold tracking-tight text-brand-ink">
+              <BrandName />
             </div>
           </Link>
 

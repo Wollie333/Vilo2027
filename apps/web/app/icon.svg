@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12B886"></stop>
+      <stop offset="1" stop-color="#0B7A5A"></stop>
+    </linearGradient>
+    <linearGradient id="wFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"></stop>
+      <stop offset="1" stop-color="#C8EBDC"></stop>
+    </linearGradient>
+    <linearGradient id="wBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0E9D74"></stop>
+      <stop offset="1" stop-color="#075740"></stop>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="100" fill="url(#bgGrad)"></circle>
+  <path d="M52 62 L79 138 L100 92 L121 138 L148 62" fill="none" stroke="url(#wBack)" stroke-width="26" stroke-linejoin="round" transform="translate(6,7)" opacity="0.9"></path>
+  <path d="M52 62 L79 138 L100 92 L121 138 L148 62" fill="none" stroke="url(#wFront)" stroke-width="26" stroke-linejoin="round"></path>
+  <path d="M52 62 L79 138 L100 92 L121 138 L148 62" fill="none" stroke="#8FD3BC" stroke-width="1.5" stroke-linejoin="round" opacity="0.55" transform="translate(0.5,1)"></path>
+</svg>

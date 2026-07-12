@@ -1,3 +1,5 @@
+// Wielo primary brand mark (green "W" roundel). `gradientId` namespaces the
+// internal gradients so multiple logos can render on one page without id clashes.
 export function VLogo({
   size = 36,
   gradientId,
@@ -7,39 +9,46 @@ export function VLogo({
   gradientId: string;
   compact?: boolean;
 }) {
+  void compact; // single mark at every size
   return (
     <svg
-      className="rounded-md"
+      className="rounded-full"
       width={size}
       height={size}
-      viewBox="0 0 100 100"
-      fill="none"
+      viewBox="0 0 200 200"
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#10B981" />
-          <stop offset="100%" stopColor="#064E3B" />
+        <linearGradient id={`${gradientId}-bg`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#12B886" />
+          <stop offset="1" stopColor="#0B7A5A" />
+        </linearGradient>
+        <linearGradient id={`${gradientId}-wf`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFFFFF" />
+          <stop offset="1" stopColor="#C8EBDC" />
+        </linearGradient>
+        <linearGradient id={`${gradientId}-wb`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0E9D74" />
+          <stop offset="1" stopColor="#075740" />
         </linearGradient>
       </defs>
-      <rect width="100" height="100" rx="22" fill={`url(#${gradientId})`} />
-      {compact ? (
-        <path d="M50 56L32 32H40L50 46L60 32H68L50 56Z" fill="white" />
-      ) : (
-        <>
-          <path
-            d="M50 76L20 32H36L50 56L64 32H80L50 76Z"
-            fill="white"
-            opacity="0.4"
-          />
-          <path
-            d="M50 66L26 32H38L50 50L62 32H74L50 66Z"
-            fill="white"
-            opacity="0.7"
-          />
-          <path d="M50 56L32 32H40L50 46L60 32H68L50 56Z" fill="white" />
-        </>
-      )}
+      <circle cx="100" cy="100" r="100" fill={`url(#${gradientId}-bg)`} />
+      <path
+        d="M52 62 L79 138 L100 92 L121 138 L148 62"
+        fill="none"
+        stroke={`url(#${gradientId}-wb)`}
+        strokeWidth="26"
+        strokeLinejoin="round"
+        transform="translate(6,7)"
+        opacity="0.9"
+      />
+      <path
+        d="M52 62 L79 138 L100 92 L121 138 L148 62"
+        fill="none"
+        stroke={`url(#${gradientId}-wf)`}
+        strokeWidth="26"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
