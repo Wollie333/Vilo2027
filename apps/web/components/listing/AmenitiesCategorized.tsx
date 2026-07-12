@@ -11,9 +11,9 @@ export type { AmenityCategory };
  * flowing into a responsive masonry of columns.
  *
  * Colour is theming-agnostic via CSS custom properties so the SAME component
- * serves the Vilo marketplace (brand green) and a host's own themed site
+ * serves the Wielo marketplace (brand green) and a host's own themed site
  * (its accent): a caller sets `--am-accent` / `--am-title` / `--am-text`;
- * unset falls back to Vilo green + brand ink/mute.
+ * unset falls back to Wielo green + brand ink/mute.
  */
 export function AmenitiesCategorized({
   categories,

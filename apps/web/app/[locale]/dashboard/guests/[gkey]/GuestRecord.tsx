@@ -288,6 +288,25 @@ function fmtShort(d: string | null): string {
   });
 }
 
+// Friendly booking-channel label — never surface a raw internal value (e.g. the
+// legacy "vilo" direct-channel key) in the guest activity feed.
+const CHANNEL_LABEL: Record<string, string> = {
+  direct: "Direct",
+  vilo: "Wielo",
+  wielo: "Wielo",
+  website: "Website",
+  ota: "OTA",
+  airbnb: "Airbnb",
+  booking: "Booking.com",
+  "booking.com": "Booking.com",
+  expedia: "Expedia",
+  lekkerslaap: "LekkerSlaap",
+};
+function channelLabel(c: string | null): string {
+  if (!c) return "Direct";
+  return CHANNEL_LABEL[c.toLowerCase()] ?? c;
+}
+
 function statusTag(status: string): { label: string; cls: string } {
   switch (status) {
     case "confirmed":
@@ -985,9 +1004,7 @@ function Overview({
                       </div>
                     </div>
                     <div className="text-[12px] text-brand-mute">
-                      {b.channel && b.channel !== "direct"
-                        ? `${b.channel} · `
-                        : "Direct · "}
+                      {channelLabel(b.channel)} ·{" "}
                       {formatMoney(b.totalAmount, b.currency)} ·{" "}
                       {statusTag(b.status).label}
                     </div>

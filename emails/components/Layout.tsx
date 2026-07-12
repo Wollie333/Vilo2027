@@ -1,11 +1,14 @@
 import {
   Body,
+  Column,
   Container,
   Head,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
+  Row,
   Section,
   Text,
 } from "@react-email/components";
@@ -16,6 +19,7 @@ const BRAND_LIGHT = "#FAFDF9";
 const BRAND_DARK = "#0D2B21";
 const MUTED = "#6B7280";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
+const LOGO_URL = `${APP_URL}/brand/logos/wielo-primary-512.png`;
 
 type Props = {
   /** Renders in the email client preview pane. Keep under 90 chars. */
@@ -31,13 +35,26 @@ export default function Layout({ preview, children }: Props) {
       <Body style={styles.body}>
         <Container style={styles.container}>
           <Section style={styles.header}>
-            {/* Text wordmark — matches how the web app presents the brand and,
-                unlike a hosted image, survives email clients that block images
-                by default. Swap for an <Img> only once a logo is hosted at a
-                stable URL. */}
-            <Link href={APP_URL} style={styles.wordmark}>
-              Wielo
-            </Link>
+            {/* Wielo primary logo + wordmark. The text stays alongside the image
+                so the brand still reads in clients that block images by default. */}
+            <Row>
+              <Column style={styles.logoCol}>
+                <Link href={APP_URL}>
+                  <Img
+                    src={LOGO_URL}
+                    width="36"
+                    height="36"
+                    alt="Wielo"
+                    style={styles.logo}
+                  />
+                </Link>
+              </Column>
+              <Column>
+                <Link href={APP_URL} style={styles.wordmark}>
+                  Wielo
+                </Link>
+              </Column>
+            </Row>
           </Section>
 
           <Section style={styles.content}>{children}</Section>
@@ -86,6 +103,14 @@ const styles = {
   header: {
     padding: "0 0 24px",
   },
+  logoCol: {
+    width: "44px",
+    verticalAlign: "middle" as const,
+  },
+  logo: {
+    display: "block",
+    borderRadius: "50%",
+  },
   wordmark: {
     margin: 0,
     fontSize: "22px",
@@ -93,6 +118,7 @@ const styles = {
     letterSpacing: "-0.02em",
     color: BRAND_PRIMARY,
     textDecoration: "none",
+    verticalAlign: "middle" as const,
   },
   content: {
     backgroundColor: "#FFFFFF",

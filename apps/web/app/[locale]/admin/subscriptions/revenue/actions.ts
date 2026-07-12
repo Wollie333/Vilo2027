@@ -18,7 +18,7 @@ const manualSchema = z.object({
   reason: z.string().min(3, "A reason is required."),
 });
 
-// Post a manual Vilo-ledger entry against a host's account (goodwill credit,
+// Post a manual Wielo-ledger entry against a host's account (goodwill credit,
 // write-off, off-platform charge, correction). Super-admin only, audited.
 export const recordManualLedgerEntryAction = withAdminAudit<
   z.infer<typeof manualSchema>,

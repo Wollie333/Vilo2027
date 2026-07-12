@@ -4,7 +4,7 @@ import { AmenitiesCategorized } from "@/components/listing/AmenitiesCategorized"
 
 /**
  * Marketplace listing amenities — grouped by admin-managed category (Booking.com
- * style) in Vilo green. A host's selected keys are matched against the published
+ * style) in Wielo green. A host's selected keys are matched against the published
  * catalog; keys not in the catalog (legacy/custom) fall into an "Other" bucket so
  * nothing is dropped.
  */

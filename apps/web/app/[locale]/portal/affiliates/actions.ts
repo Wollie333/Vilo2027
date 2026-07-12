@@ -53,7 +53,7 @@ export async function acceptAffiliateTermsAction(): Promise<
       .maybeSingle(),
   ]);
 
-  const base = profile?.full_name || user.email?.split("@")[0] || "vilo";
+  const base = profile?.full_name || user.email?.split("@")[0] || "wielo";
   const slug = await findFreeSlug(admin, base);
 
   const { error } = await admin.from("affiliate_accounts").insert({
