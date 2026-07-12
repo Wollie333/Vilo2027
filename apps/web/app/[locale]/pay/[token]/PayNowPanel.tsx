@@ -55,17 +55,33 @@ export function PayNowPanel({
   amountLabel,
   cardAvailable = true,
   paypalAvailable = false,
+  depositLabel = null,
+  fullLabel,
 }: {
   token: string;
   amountLabel: string;
   cardAvailable?: boolean;
   paypalAvailable?: boolean;
+  /** Formatted deposit amount when a deposit is due up front; null = pay in full only. */
+  depositLabel?: string | null;
+  /** Formatted full outstanding — shown as the alternative to the deposit. */
+  fullLabel?: string;
 }) {
   const [pending, setPending] = useState<null | "paystack" | "paypal">(null);
+  // When a deposit is offered, the payer chooses deposit-now vs pay-in-full;
+  // default to the deposit (the smaller, expected up-front amount).
+  const [choice, setChoice] = useState<"deposit" | "full">(
+    depositLabel ? "deposit" : "full",
+  );
+  const payAmount: "deposit" | "full" = depositLabel ? choice : "full";
+  const payLabel =
+    depositLabel && choice === "deposit"
+      ? depositLabel
+      : (fullLabel ?? amountLabel);
 
   async function payWithPayPal() {
     setPending("paypal");
-    const res = await initializePayByTokenAction(token, "paypal");
+    const res = await initializePayByTokenAction(token, "paypal", payAmount);
     if (!res.ok) {
       setPending(null);
       toast.error(res.error);
@@ -77,7 +93,7 @@ export function PayNowPanel({
 
   async function pay() {
     setPending("paystack");
-    const res = await initializePayByTokenAction(token, "paystack");
+    const res = await initializePayByTokenAction(token, "paystack", payAmount);
     if (!res.ok) {
       setPending(null);
       toast.error(res.error);
@@ -120,6 +136,37 @@ export function PayNowPanel({
 
   return (
     <div className="space-y-3">
+      {/* Deposit vs pay-in-full choice — only when a deposit is due up front. */}
+      {depositLabel ? (
+        <div className="grid grid-cols-2 gap-2">
+          {(
+            [
+              ["deposit", "Pay deposit", depositLabel],
+              ["full", "Pay in full", fullLabel ?? amountLabel],
+            ] as const
+          ).map(([value, label, amt]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setChoice(value)}
+              disabled={!!pending}
+              aria-pressed={choice === value}
+              className={`rounded-card border px-3 py-2.5 text-center transition disabled:opacity-60 ${
+                choice === value
+                  ? "border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary"
+                  : "border-brand-line bg-white hover:bg-brand-light"
+              }`}
+            >
+              <div className="text-[11px] font-medium text-brand-mute">
+                {label}
+              </div>
+              <div className="font-display text-sm font-semibold text-brand-ink">
+                {amt}
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : null}
       {cardAvailable ? (
         <button
           type="button"
@@ -134,7 +181,7 @@ export function PayNowPanel({
           )}
           {pending === "paystack"
             ? "Opening secure checkout…"
-            : `Pay ${amountLabel} by card`}
+            : `Pay ${payLabel} by card`}
         </button>
       ) : null}
       {paypalAvailable ? (
@@ -155,7 +202,7 @@ export function PayNowPanel({
           )}
           {pending === "paypal"
             ? "Redirecting to PayPal…"
-            : `Pay ${amountLabel} with PayPal`}
+            : `Pay ${payLabel} with PayPal`}
         </button>
       ) : null}
       <p className="inline-flex w-full items-center justify-center gap-1.5 text-[11px] text-brand-mute">

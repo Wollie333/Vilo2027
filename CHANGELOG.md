@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-12 #60 — Deposits & partial payments: clean reconciliation, per-payment receipts, guest deposit UX.
+
+Completed the host→confirm half of the booking loop live and hardened the **partial-payment / deposit /
+receipt** mechanics (founder: "crucial elements in the operation of a host").
+
+- **Full + partial settlement verified live.** Recording an EFT payment on a `pending_eft` booking →
+  `confirmed`, invoice minted + paid, calendar blocked, `booking_confirmed_guest` queued. Drove a
+  **deposit → balance** arc on a VAT booking (total R3,450, deposit R1,150): deposit records → `partial`,
+  balance R2,300, **receipt RPT-0019**; balance records → `completed`, balance R0, **receipt RPT-0020**,
+  invoice INV-0065 paid. Each payment is its own receipt (the `trg_assign_receipt_number` trigger fires
+  on INSERT *and* UPDATE→completed, so "Mark received" mints one too).
+- **BUG — orphaned "awaiting" placeholder on partial.** An EFT reserve / deposit-quote seeds a `pending`
+  placeholder for the expected transfer. "Mark received" flips it in place, but the prominent **"Record a
+  payment"** CTA inserted a fresh completed row and left the placeholder dangling — a stale "awaiting
+  R<full>" row beside the real receipts, worst during partial/deposit payments. The
+  "reconciled, not duplicated" concern in `NEXT_STEPS.md` §1.
+- **Fix.** `recordBookingPaymentAction` now voids leftover seeded pending EFT placeholder(s) on **any**
+  recorded payment (partial or full) — from then on `balance_due` is the source of truth. Verified: the
+  placeholder is voided on the R1,150 deposit (a partial), leaving one clean deposit receipt, 33%
+  collected, no "awaiting" row.
+- **Guest deposit UX.** The pay page (`/pay/[token]`) now surfaces the already-built
+  `startBookingPayment` `amount:"deposit"|"full"` engine: a "Pay deposit / Pay in full" choice + a
+  "Deposit due now R… · Balance R… due <date> · Total R…" breakdown (verified live: R1,150 / R2,300 /
+  R3,450, VAT-inclusive). Host Payments tab gains a "Deposit due → Deposit ✓ Paid" stat.
+- **Deposit is VAT-inclusive** (`apply_booking_vat` grosses `deposit_amount`, #58), so "Deposit due now"
+  == what the guest pays. Money mechanics recorded in `docs/lifecycles/payments-ledger.md`
+  (Deposits/partials/receipts section) + the booking flow in `docs/lifecycles/booking.md`. Build + lint green.
+
 ## 2026-07-12 #59 — Host↔guest booking flow driven end-to-end for beta; fixed the missing EFT-instructions email to the guest.
 
 Drove a **real guest booking** on the live preview + cloud DB (anonymous checkout → inline guest

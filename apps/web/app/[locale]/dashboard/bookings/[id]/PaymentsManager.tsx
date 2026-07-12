@@ -209,6 +209,20 @@ export function PaymentsManager({
           value={formatMoney(balanceDue, currency)}
           tone={balanceDue > 0 ? "amber" : "emerald"}
         />
+        {/* Deposit tracking — only meaningful when a deposit is owed up front and
+            the booking isn't settled: show whether the deposit is still due or
+            already covered by what's been paid. */}
+        {depositAmount > 0 && amountPaid < totalAmount ? (
+          <Stat
+            label={amountPaid >= depositAmount ? "Deposit" : "Deposit due"}
+            value={
+              amountPaid >= depositAmount
+                ? "Paid"
+                : formatMoney(depositAmount, currency)
+            }
+            tone={amountPaid >= depositAmount ? "emerald" : "amber"}
+          />
+        ) : null}
         <Stat
           label="Store credit"
           value={formatMoney(guestCredit, currency)}

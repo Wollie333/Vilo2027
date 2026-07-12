@@ -129,6 +129,28 @@ export async function recordBookingPaymentAction(input: {
   });
   if (!res.ok) return res;
 
+  // Reconcile the "awaiting" placeholder. A booking reserved by EFT (or converted
+  // from a deposit quote) carries a SEEDED pending payment for the expected
+  // transfer. The intended settle path is the per-row "Mark received"
+  // (markPaymentReceivedAction), which flips THAT row to completed. Recording a
+  // payment instead inserts a fresh completed row — so void any leftover seeded
+  // pending EFT placeholder(s) the moment a real payment is recorded, whether it
+  // settles the booking in full OR in part (deposit now, balance later). From
+  // here `balance_due` is the source of truth for what's still owed; a stale
+  // "awaiting <full amount>" row must not linger beside the real receipts. No-op
+  // when the host used "Mark received" (nothing pending remains). Excludes the row
+  // just inserted (it's 'completed', never 'pending').
+  await admin
+    .from("payments")
+    .update({
+      voided_at: new Date().toISOString(),
+      void_reason: "Superseded by recorded payment",
+    })
+    .eq("booking_id", input.bookingId)
+    .eq("status", "pending")
+    .eq("method", "eft")
+    .is("voided_at", null);
+
   await confirmBookingIfPending(admin, booking as OwnedBooking);
   await markBookingInvoicesPaidIfSettled(admin, input.bookingId);
   await logFinanceEvent(admin, {

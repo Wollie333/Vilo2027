@@ -124,6 +124,34 @@ beside it. "Paid" = sum of **completed, non-voided, inbound** payment rows
 
 ---
 
+## Deposits, partial payments & receipts ✅ verified
+
+A booking may be settled in installments — a **deposit** up front, then the **balance**. This is
+driven by the host recording each receipt, and it must stay clean at every stage.
+
+- **Seeded placeholder.** An EFT reserve (or a deposit-quote convert) seeds ONE `pending` payment for
+  the expected transfer (`method='eft'`; `kind='payment'` for a full EFT, `kind='deposit'` for a quote
+  deposit). It's a UI hint ("Awaiting EFT"), never real money — `sumCompletedPaid` ignores it.
+- **Recording reconciles it.** Two settle paths: the per-row **"Mark received"**
+  (`markPaymentReceivedAction`) flips the placeholder in place → completed; **"Record a payment"**
+  (`recordBookingPaymentAction`) inserts a fresh completed row AND voids any leftover seeded pending
+  placeholder — on partial OR full (CHANGELOG #60) — so no stale "awaiting" row ever orphans beside the
+  real receipts. From then on `balance_due` is the single source of truth for what's still owed.
+- **Each payment is its own receipt.** The `trg_assign_receipt_number` trigger fires
+  `BEFORE INSERT OR UPDATE … WHEN status='completed'`, so the deposit AND the balance each get their own
+  **RPT-####** — whether recorded (insert) or marked-received (update). Verified: deposit RPT-0019 +
+  balance RPT-0020 on the same booking.
+- **State transitions.** `payment_status`: pending → **partial** (deposit paid, balance > 0) →
+  **completed**; `balance_due` = `total − Σ completed inbound`, floored at 0. The FIRST completed payment
+  (any amount) **confirms** the booking (a deposit secures it) → invoice minted, calendar blocked;
+  `markBookingInvoicesPaidIfSettled` flips the invoice paid only once fully settled.
+- **Deposit is VAT-inclusive.** `apply_booking_vat` grosses `deposit_amount` too (Step 1), so the
+  guest's "Deposit due now" == the deposit installment they actually pay. Verified: net 3000/1000 →
+  gross total 3450 / deposit 1150; guest pay page shows Deposit R1,150 · Balance R2,300 · Total R3,450.
+- **Surfaces.** Guest **pay page** (`/pay/[token]`) offers "Pay deposit / Pay in full" (wired to the
+  `startBookingPayment` `amount:"deposit"|"full"` engine) + the deposit/balance breakdown; host
+  **Payments tab** shows a "Deposit due → Deposit ✓ Paid" stat + a receipt per payment row.
+
 ## Invariants (cross-checks for the deep financial sweep)
 
 - `deposit_amount + balance_due == total_amount` at INSERT on a VAT listing (rounding

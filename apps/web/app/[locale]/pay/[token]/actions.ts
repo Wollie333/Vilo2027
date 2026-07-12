@@ -16,6 +16,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function initializePayByTokenAction(
   token: string,
   method: "paystack" | "eft" | "paypal" = "paystack",
+  amount: "deposit" | "full" = "full",
 ): Promise<StartBookingPaymentResult> {
   if (!token || token.length < 10) {
     return { ok: false, error: "This payment link is no longer valid." };
@@ -58,7 +59,9 @@ export async function initializePayByTokenAction(
       host_id: listing.host_id,
     },
     method,
-    amount: "full",
+    // "deposit" pays only the deposit when one is owed up front (the core
+    // clamps it to the outstanding balance); "full" settles the outstanding.
+    amount,
     email: booking.guest_email,
     origin: headers().get("origin") ?? "",
     returnTo: `/pay/${token}`,

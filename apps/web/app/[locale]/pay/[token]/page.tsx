@@ -72,7 +72,7 @@ export default async function PayPage({
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, reference, scope, status, payment_status, payment_method, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:properties!inner ( name, host_id, business_id, city, province, property_photos ( url, sort_order ) )",
+      "id, reference, scope, status, payment_status, payment_method, check_in, check_out, nights, guests_count, total_amount, deposit_amount, balance_due_date, currency, guest_name, listing:properties!inner ( name, host_id, business_id, city, province, property_photos ( url, sort_order ) )",
     )
     .eq("pay_token", params.token)
     .maybeSingle();
@@ -143,6 +143,17 @@ export default async function PayPage({
   const total = Number(booking.total_amount);
   const paid = await sumCompletedPaid(admin, booking.id);
   const outstanding = Math.max(0, round2(total - paid));
+
+  // Deposit-first: a deposit is due UP FRONT only while nothing has been paid yet
+  // and it's a genuine part of the total (0 < deposit < outstanding). Once the
+  // deposit lands, `outstanding` is the remaining balance and there's no deposit
+  // step left. `balanceRemainder` is what stays owed after the deposit.
+  const depositAmount = round2(Number(booking.deposit_amount ?? 0));
+  const depositDue =
+    paid <= 0 && depositAmount > 0 && depositAmount < outstanding
+      ? depositAmount
+      : 0;
+  const balanceRemainder = round2(Math.max(0, outstanding - depositDue));
 
   const isPaid = booking.payment_status === "completed" || outstanding <= 0;
   const cancelledLike = [
@@ -313,12 +324,34 @@ export default async function PayPage({
         ) : (
           <section className="mt-6 space-y-5">
             <div className="rounded-card border border-brand-line bg-brand-light/40 px-5 py-4">
-              <div className="flex items-end justify-between">
-                <div className="text-sm text-brand-mute">Amount due</div>
-                <div className="font-display text-2xl font-semibold text-brand-ink">
-                  {formatMoney(outstanding, currency)}
+              {depositDue > 0 ? (
+                <>
+                  <div className="flex items-end justify-between">
+                    <div className="text-sm font-medium text-brand-ink">
+                      Deposit due now
+                    </div>
+                    <div className="font-display text-2xl font-semibold text-brand-ink">
+                      {formatMoney(depositDue, currency)}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between border-t border-brand-line pt-2 text-xs text-brand-mute">
+                    <span>
+                      Balance {formatMoney(balanceRemainder, currency)}
+                      {booking.balance_due_date
+                        ? ` · due ${fmtDate(booking.balance_due_date)}`
+                        : ""}
+                    </span>
+                    <span>Total {formatMoney(outstanding, currency)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-end justify-between">
+                  <div className="text-sm text-brand-mute">Amount due</div>
+                  <div className="font-display text-2xl font-semibold text-brand-ink">
+                    {formatMoney(outstanding, currency)}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* EFT only when the host chose it for this booking; otherwise this
@@ -359,6 +392,10 @@ export default async function PayPage({
                 amountLabel={formatMoney(outstanding, currency)}
                 cardAvailable={hasCard}
                 paypalAvailable={hasPaypal}
+                depositLabel={
+                  depositDue > 0 ? formatMoney(depositDue, currency) : null
+                }
+                fullLabel={formatMoney(outstanding, currency)}
               />
             ) : (
               <div className="rounded-card border border-brand-line bg-brand-light/40 px-5 py-6 text-center text-sm text-brand-mute">
