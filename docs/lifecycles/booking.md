@@ -105,6 +105,38 @@ Shipped 2026-07-12 (CHANGELOG #64) so the guest sees the same booking/money stat
 - **Overview "Up next"** (`portal/page.tsx`): styled status pill + "Complete your payment to confirm →"
   when owed. ⚠️ still filters `check_in >= today` (a past-due unpaid booking won't surface — open item).
 
+## Cancellation branch (host / guest cancel · no-show forfeiture)
+
+Shared core: `lib/bookings/cancel.ts::finalizeCancellation` (host + guest). It flips status to
+`cancelled_by_host`/`cancelled_by_guest`, computes the policy-entitled refund
+(`calculate_policy_refund_amount` off the frozen `policy_snapshots`), and — when the guest paid — creates a
+**pending `refund_requests`** row (NOT a credit note; the refund→credit-note auto-mint was removed in
+`20260607000004`). The `on_booking_cancelled` trigger releases `blocked_dates` + rolls back counters.
+Guest is notified via `booking_cancelled_guest`.
+
+### Forfeiture — guest vanished (no-show / abandoned, partial payment) 🟢 verified live #69
+- Trigger: host clicks **No-show** on a confirmed/checked-in booking. Actor: host. "Ask each time" — a
+  confirm dialog shows the exact figures (kept vs written off) before applying (founder decision §F3:
+  forfeited = revenue · ask each time · doc "Forfeit statement").
+- Functions/files: `dashboard/bookings/[id]/BookingActions.tsx` (No-show → `previewForfeitAction` →
+  confirm → `forfeitBookingAction`) → `lib/bookings/forfeit.ts::finalizeForfeiture`.
+- Logic: force-forfeit — host keeps everything paid (overrides any policy refund), the outstanding is
+  written off, **NO refund request, NO credit note** (so the host never "owes" the vanished guest).
+- DB writes: booking `status → no_show`, `payment_status → forfeited`, `balance_due → 0`; the live
+  `invoices` are **voided** ("Superseded by forfeit statement FRF-####"); an immutable
+  `forfeit_statements` row is minted (`next_forfeit_number()` → `FRF-####`; migration `20260712180000`).
+- Ledger (derived, `lib/finance/transactions.ts`): the voided invoice drops its `+total` charge; the
+  forfeit row emits one **`forfeit`** txn (owedEffect +1 = the retained liability) that nets against the
+  deposit payment (owedEffect −1) → the guest's booking balance is exactly **0**. The paid deposit stays a
+  completed payment → still counted as **collected revenue** (forfeited = revenue). `amount_written_off`
+  is documented, not charged.
+- Side-effects: email + in-app `booking_forfeited_guest` (NOT the refund-promising cancel copy) · doc
+  `FRF-####` at `/forfeit-statement/<token>` (+ `/pdf`) · guest trip page shows "Forfeited — no refund" +
+  the statement link.
+- Verified live #69 (BK-DEPTEST, R3450, R1000 paid): FRF-0001 minted, invoice voided, ledger settled to
+  R0 with R1000 retained as collected, guest notified, statement doc renders, forfeit_statements immutable
+  (UPDATE rejected).
+
 ## Branch summary
 - **EFT**: Steps 1(pending_eft) → 3 (guest instructions) → 4 (host records) → 5/6. ✅ driven.
 - **Card (Paystack)**: Step 1(pending) → redirect to Paystack → `paystack-webhook` settles → 5/6.

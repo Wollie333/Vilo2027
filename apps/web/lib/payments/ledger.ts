@@ -103,8 +103,15 @@ export async function recomputeBookingPaymentState(
   else if (paid + 0.001 < total) status = "partial";
   else status = "completed";
 
-  // Don't clobber terminal money states (refunded / voided) the refund flow set.
-  const terminal = ["refunded", "partially_refunded", "voided", "failed"];
+  // Don't clobber terminal money states (refunded / voided / forfeited) that the
+  // refund or forfeiture flow set.
+  const terminal = [
+    "refunded",
+    "partially_refunded",
+    "voided",
+    "failed",
+    "forfeited",
+  ];
   const patch: Record<string, unknown> = { balance_due: balance };
   if (!terminal.includes(booking.payment_status as string)) {
     patch.payment_status = status;

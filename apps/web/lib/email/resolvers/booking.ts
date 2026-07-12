@@ -175,6 +175,39 @@ const bookingCancelledGuestResolver: EmailResolver = async (refs, ctx) => {
   };
 };
 
+const bookingForfeitedGuestResolver: EmailResolver = async (refs, ctx) => {
+  const bookingId = refId(refs, "booking_id");
+  if (!bookingId) return {};
+  const bundle = await loadBookingBundle(ctx.supabase, bookingId);
+  if (!bundle) return {};
+  const base = commonBookingProps(bundle);
+
+  const { data: fs } = await ctx.supabase
+    .from("forfeit_statements")
+    .select(
+      "statement_number, amount_paid, amount_forfeited, amount_refunded, currency, policy_applied",
+    )
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+
+  const cur = fs?.currency ?? bundle.booking.currency;
+  return {
+    ...base,
+    statementNumber: fs?.statement_number ?? null,
+    amountPaid:
+      fs?.amount_paid == null ? null : formatMoney(Number(fs.amount_paid), cur),
+    amountForfeited:
+      fs?.amount_forfeited == null
+        ? null
+        : formatMoney(Number(fs.amount_forfeited), cur),
+    amountRefunded:
+      fs?.amount_refunded == null || Number(fs.amount_refunded) <= 0
+        ? null
+        : formatMoney(Number(fs.amount_refunded), cur),
+    policyApplied: (fs?.policy_applied as string | null) ?? null,
+  };
+};
+
 const eftInstructionsResolver: EmailResolver = async (refs, ctx) => {
   const bookingId = refId(refs, "booking_id");
   if (!bookingId) return {};
@@ -379,6 +412,7 @@ export const BOOKING_RESOLVERS: Record<string, EmailResolver> = {
   booking_declined_guest: bookingResolver,
   booking_cancelled_host: bookingCancelledHostResolver,
   booking_cancelled_guest: bookingCancelledGuestResolver,
+  booking_forfeited_guest: bookingForfeitedGuestResolver,
   eft_instructions_guest: eftInstructionsResolver,
   eft_proof_received_host: bookingResolver,
 };

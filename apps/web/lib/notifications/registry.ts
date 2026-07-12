@@ -327,6 +327,31 @@ export const NOTIFICATION_REGISTRY = {
     dedupeKey: (r) => `booking_declined:${r.booking_id}`,
   } satisfies EventBuilder<BookingRefs>,
 
+  // Host cancelled a no-show/abandoned booking and forfeited the amount paid.
+  // Distinct from booking_cancelled_guest (whose copy promises a refund).
+  booking_forfeited_guest: {
+    category: "bookings",
+    feature: "booking",
+    severity: "high",
+    emailTemplate: "booking_forfeited_guest",
+    refKeys: ["booking_id"],
+    push: (r) => ({
+      title: "Your booking was cancelled",
+      body: clip(
+        `Your booking at ${r.listing_name ?? "your stay"} was cancelled as a no-show. Per the cancellation policy, no refund is due.`,
+      ),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "Booking cancelled — no refund",
+      body: r.listing_name ?? "Cancelled as a no-show; no refund due.",
+      link: `/portal/trips/${r.booking_id}`,
+    }),
+    dedupeKey: (r) => `booking_forfeited_guest:${r.booking_id}`,
+  } satisfies EventBuilder<BookingRefs>,
+
   booking_cancelled_guest: {
     category: "bookings",
     feature: "booking",

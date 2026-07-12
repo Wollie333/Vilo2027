@@ -60,6 +60,10 @@ const TYPE_TAG: Record<TxnType, { label: string; cls: string }> = {
     cls: "border-indigo-200 bg-indigo-50 text-indigo-600",
   },
   refund: { label: "Refund", cls: "border-red-200 bg-red-50 text-red-600" },
+  forfeit: {
+    label: "Forfeited",
+    cls: "border-amber-200 bg-amber-50 text-amber-700",
+  },
 };
 
 // What the money was for — booking/stay vs add-on vs credit vs refund.
@@ -111,11 +115,15 @@ function amountDisplay(e: Txn): { text: string; cls: string } {
   // Standard accounting convention: debits (charges & refunds — they increase
   // what the guest owes you) print plain; credits (payments, deposits, applied
   // or granted store credit — they reduce it) print in (parentheses).
-  const isDebit = e.type === "charge" || e.type === "refund";
+  // Forfeit is a debit too — the retained amount is the guest's final liability
+  // (it nets against their deposit), so it prints plain, not in (parentheses).
+  const isDebit =
+    e.type === "charge" || e.type === "refund" || e.type === "forfeit";
   const text = isDebit ? money : `(${money})`;
   let cls: string;
   if (e.type === "charge") cls = "text-brand-ink";
   else if (e.type === "refund") cls = "text-red-600";
+  else if (e.type === "forfeit") cls = "text-amber-700";
   else if (e.type === "credit" || e.type === "credit_applied")
     cls = "text-indigo-600";
   else cls = e.pending ? "text-brand-mute" : "text-emerald-700";

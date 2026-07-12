@@ -766,9 +766,13 @@ export default async function BookingDetailPage({
     showEftManage: Boolean(pendingEft),
 
     amountPaid: Math.round(amountPaid * 100) / 100,
+    // A forfeited booking's outstanding was written off — nothing is owed.
     balanceDue:
-      Math.round(Math.max(0, Number(booking.total_amount) - amountPaid) * 100) /
-      100,
+      booking.payment_status === "forfeited"
+        ? 0
+        : Math.round(
+            Math.max(0, Number(booking.total_amount) - amountPaid) * 100,
+          ) / 100,
     depositAmount: Number(booking.deposit_amount ?? 0),
     guestCredit: Math.round(guestCredit * 100) / 100,
     txns: bookingTxns,

@@ -14,9 +14,15 @@ import {
   checkOutBookingAction,
   confirmBookingAction,
   declineBookingAction,
-  markNoShowBookingAction,
+  forfeitBookingAction,
   previewCancelRefundAction,
+  previewForfeitAction,
 } from "../actions";
+
+function rand(n: number, currency = "ZAR"): string {
+  const sym = currency === "ZAR" ? "R" : `${currency} `;
+  return `${sym}${Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+}
 
 export function BookingActions({
   bookingId,
@@ -43,7 +49,7 @@ export function BookingActions({
   );
 
   function run(
-    kind: "confirm" | "decline" | "cancel" | "checkIn" | "checkOut" | "noShow",
+    kind: "confirm" | "decline" | "cancel" | "checkIn" | "checkOut",
   ) {
     start(async () => {
       const map = {
@@ -52,7 +58,6 @@ export function BookingActions({
         cancel: cancelBookingAction,
         checkIn: checkInBookingAction,
         checkOut: checkOutBookingAction,
-        noShow: markNoShowBookingAction,
       } as const;
       const result = await map[kind](bookingId);
       if (result.ok) {
@@ -62,9 +67,39 @@ export function BookingActions({
           cancel: "Booking cancelled",
           checkIn: "Guest checked in",
           checkOut: "Guest checked out",
-          noShow: "Marked as no-show",
         }[kind];
         toast.success(msg);
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  // No-show / abandoned → force-forfeit: keep what was paid, write off the
+  // outstanding, mint an FRF statement, notify the guest. We load the exact
+  // figures first and show them for confirmation ("ask each time").
+  function forfeit() {
+    start(async () => {
+      const prev = await previewForfeitAction(bookingId);
+      if (!prev.ok) {
+        toast.error(prev.error);
+        return;
+      }
+      const p = prev.preview;
+      const kept = rand(p.forfeited, p.currency);
+      const writtenOff = rand(p.writtenOff, p.currency);
+      const ok = await modal.destructive({
+        title: "Mark as no-show & forfeit?",
+        description:
+          p.paid > 0
+            ? `The guest didn't arrive. You keep the ${kept} paid (no refund), and the outstanding ${writtenOff} is written off. A forfeit statement is issued and the guest is notified. This can't be undone.`
+            : `The guest didn't arrive and paid nothing. The booking is cancelled and the ${writtenOff} charge is written off. The dates are released and the guest is notified.`,
+        confirmLabel: "Forfeit booking",
+      });
+      if (!ok) return;
+      const result = await forfeitBookingAction(bookingId);
+      if (result.ok) {
+        toast.success("Booking forfeited — statement issued.");
       } else {
         toast.error(result.error);
       }
@@ -121,17 +156,7 @@ export function BookingActions({
         <Button
           type="button"
           variant="outline"
-          onClick={async () => {
-            const ok = await modal.destructive({
-              title: "Mark this booking as a no-show?",
-              description:
-                "Use this when the guest never arrived. The dates stay blocked and no automatic refund is issued — settle any refund via the guest's policy if needed.",
-              confirmLabel: "Mark no-show",
-            });
-            if (ok) {
-              run("noShow");
-            }
-          }}
+          onClick={forfeit}
           disabled={pending}
           className="gap-1.5"
         >

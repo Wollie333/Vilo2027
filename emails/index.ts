@@ -5,6 +5,7 @@ export { default as BookingCancelledGuest } from "./templates/BookingCancelledGu
 export { default as BookingCancelledHost } from "./templates/BookingCancelledHost";
 export { default as BookingConfirmedGuest } from "./templates/BookingConfirmedGuest";
 export { default as BookingConfirmedHost } from "./templates/BookingConfirmedHost";
+export { default as BookingForfeitedGuest } from "./templates/BookingForfeitedGuest";
 export { default as BookingDeclinedGuest } from "./templates/BookingDeclinedGuest";
 export { default as BookingRequestHost } from "./templates/BookingRequestHost";
 export { default as EftInstructionsGuest } from "./templates/EftInstructionsGuest";

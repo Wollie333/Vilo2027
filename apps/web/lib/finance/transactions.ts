@@ -18,14 +18,18 @@ export type TxnType =
   | "deposit"
   | "credit_applied"
   | "credit"
-  | "refund";
+  | "refund"
+  // A no-show/abandoned booking's retained amount (the paid deposit the host
+  // keeps). owedEffect +1 nets against the deposit payment so the guest's
+  // balance for the booking is exactly 0; the outstanding was written off.
+  | "forfeit";
 
 // What the money was *for* (independent of the money movement above) — drives
 // the "For" pill so a row reads e.g. "Charge · Booking" or "Payment · Add-on".
 export type TxnCategory = "booking" | "addon" | "credit" | "refund";
 
 export type TxnDoc = {
-  kind: "invoice" | "receipt" | "credit_note" | "refund";
+  kind: "invoice" | "receipt" | "credit_note" | "refund" | "forfeit";
   number: string;
   /** Public record page path (token), or null if none. */
   viewPath: string | null;
@@ -165,6 +169,15 @@ export async function fetchHostTransactions(
     )
     .eq("host_id", hostId)
     .in("status", ["approved", "processing", "completed"]);
+  // Forfeit statements — a no-show/abandoned booking's retained amount. The
+  // booking's invoice is voided at forfeit time, so this row + the deposit
+  // payment net the guest's booking balance to 0.
+  const forfeitsQ = admin
+    .from("forfeit_statements")
+    .select(
+      "id, statement_number, amount_forfeited, currency, created_at, booking_id, hosted_token, guest_id, guest_snapshot, booking:bookings ( reference, guest_name, guest_email )",
+    )
+    .eq("host_id", hostId);
 
   // Live bookings — the obligation behind the ledger. A booking that hasn't been
   // invoiced yet (still pending / pending_eft, before the confirm trigger mints
@@ -192,12 +205,14 @@ export async function fetchHostTransactions(
     { data: payments },
     { data: creditNotes },
     { data: refunds },
+    { data: forfeits },
     { data: liveBookings },
   ] = await Promise.all([
     invoicesQ,
     paymentsQ,
     creditNotesQ,
     refundsQ,
+    forfeitsQ,
     bookingsQ,
   ]);
 
@@ -227,6 +242,7 @@ export async function fetchHostTransactions(
   };
   collect(invoices ?? [], invoices ?? []);
   collect(creditNotes ?? [], creditNotes ?? []);
+  collect(forfeits ?? [], forfeits ?? []);
   collect(null, payments ?? []);
   collect(null, refunds ?? []);
   for (const bk of liveBookings ?? []) {
@@ -466,6 +482,49 @@ export async function fetchHostTransactions(
       category: "refund",
       voided,
       voidReason: (rf.void_reason as string) ?? null,
+    });
+  }
+
+  for (const fs of forfeits ?? []) {
+    const b = one(fs.booking) as {
+      reference?: string;
+      guest_name?: string;
+      guest_email?: string;
+    } | null;
+    const snap = (fs.guest_snapshot ?? {}) as { name?: string; email?: string };
+    const email = snap.email ?? b?.guest_email ?? null;
+    entries.push({
+      id: `frf_${fs.id}`,
+      date: fs.created_at as string,
+      type: "forfeit",
+      label: "Forfeited (retained)",
+      amount: Number(fs.amount_forfeited),
+      currency: fs.currency,
+      guestKey: resolveKey(fs.guest_id, email),
+      guestName: snap.name ?? b?.guest_name ?? null,
+      bookingId: fs.booking_id,
+      bookingRef: b?.reference ?? null,
+      method: null,
+      note: "Amount kept — no-show / abandoned (outstanding written off)",
+      doc: {
+        kind: "forfeit",
+        number: fs.statement_number as string,
+        viewPath: fs.hosted_token
+          ? `/forfeit-statement/${fs.hosted_token}`
+          : null,
+        pdfPath: fs.hosted_token
+          ? `/forfeit-statement/${fs.hosted_token}/pdf`
+          : null,
+      },
+      balance: 0,
+      // +1: the retained amount is the guest's final liability, netting against
+      // their deposit payment (−1) → booking balance 0. No cash effect (the
+      // deposit was already counted as collected when it was paid).
+      owedEffect: 1,
+      cashEffect: 0,
+      category: "booking",
+      voided: false,
+      voidReason: null,
     });
   }
 

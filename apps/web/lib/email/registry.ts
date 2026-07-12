@@ -9,6 +9,7 @@ import {
   BroadcastCritical,
   NotificationDigest,
   BookingCancelledHost,
+  BookingForfeitedGuest,
   BookingConfirmedGuest,
   BookingConfirmedHost,
   BookingDeclinedGuest,
@@ -113,6 +114,13 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "guest",
     subject: (p) =>
       `Your booking at ${str(p.listingName, "your stay")} has been cancelled`,
+  },
+
+  booking_forfeited_guest: {
+    Template: BookingForfeitedGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `Your booking at ${str(p.listingName, "your stay")} was cancelled`,
   },
 
   eft_instructions_guest: {

@@ -7,6 +7,11 @@ import {
   policyRefundFor,
   type PolicyRefund,
 } from "@/lib/bookings/cancel";
+import {
+  finalizeForfeiture,
+  forfeitPreview,
+  type ForfeitPreview,
+} from "@/lib/bookings/forfeit";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -212,6 +217,54 @@ export async function previewCancelRefundAction(
   if (!booking) return { ok: false, error: "Booking not found." };
   return { ok: true, refund: await policyRefundFor(bookingId) };
 }
+// Preview a forfeiture (no-show / abandoned) — drives the confirm dialog's
+// "keep R X, write off R Y" line. "Ask each time" (founder §F3).
+export async function previewForfeitAction(
+  bookingId: string,
+): Promise<
+  { ok: true; preview: ForfeitPreview } | { ok: false; error: string }
+> {
+  const supabase = createServerClient();
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, host_id, guest_id, status, currency, total_amount")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking) return { ok: false, error: "Booking not found." };
+  return { ok: true, preview: await forfeitPreview(booking) };
+}
+
+// Force-forfeit a no-show / abandoned booking: keep what was paid (revenue),
+// write off the outstanding, mint an FRF statement, notify the guest. NO refund
+// / credit note. (founder §F3.)
+export async function forfeitBookingAction(
+  bookingId: string,
+  reason?: string,
+): Promise<BookingActionResult> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  // RLS host_manage_own_bookings — only the owning host can read this row.
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, host_id, guest_id, status, currency, total_amount")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking) return { ok: false, error: "Booking not found." };
+
+  const res = await finalizeForfeiture(booking, {
+    reason: reason ?? null,
+    actorUserId: user?.id ?? null,
+  });
+  if (!res.ok) return res;
+
+  revalidatePath(`/dashboard/bookings/${bookingId}`);
+  revalidatePath("/dashboard/bookings");
+  revalidatePath("/dashboard/ledger");
+  return { ok: true };
+}
+
 export async function checkInBookingAction(bookingId: string) {
   return applyTransition(bookingId, "checkIn");
 }

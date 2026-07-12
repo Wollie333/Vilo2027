@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-12 #69 — Vanishing-guest accounting (F3): no-show forfeiture — write off outstanding, keep paid as revenue, Forfeit statement. Driven live.
+
+Founder §F3 (decisions: forfeited = revenue · ask each time · doc "Forfeit statement"). A guest who partly
+paid then disappeared can now be cancelled cleanly without the system wrongly recording a refund the host
+"owes."
+
+- **Migration `20260712180000`:** `forfeit_statements` (immutable, INSERT-only trigger) + `FRF-####`
+  numbering (`next_forfeit_number`) + `bookings.payment_status` gains terminal `forfeited` +
+  `booking_forfeited_guest` notification event.
+- **Action** `lib/bookings/forfeit.ts::finalizeForfeiture`: force-forfeit — voids the booking invoice
+  (superseded), sets `status=no_show` / `payment_status=forfeited` / `balance_due=0`, mints the FRF
+  statement, notifies the guest. **No refund request, no credit note.**
+- **Ledger** (`lib/finance/transactions.ts`): new `forfeit` txn (owedEffect +1) nets against the deposit
+  → guest balance 0; the paid deposit stays collected revenue; the written-off outstanding is documented.
+- **Host UI:** the booking **No-show** button now runs the forfeit flow with an "ask each time" confirm
+  showing the exact kept / written-off figures.
+- **Doc:** `FRF-####` hosted statement (`/forfeit-statement/[token]` + PDF, reusing FinancialDocument /
+  CreditNoteDocument). **Guest:** `booking_forfeited_guest` email + in-app; trip page shows "Forfeited —
+  no refund" + statement link.
+- Verified live (BK-DEPTEST, R3450, R1000 paid): FRF-0001 minted, invoice voided, ledger settled to R0
+  with R1000 retained, guest notified, statement renders (no NaN), forfeit_statements immutable. Flow in
+  `docs/lifecycles/booking.md`. type-check + lint green.
+
 ## 2026-07-12 #68 — Fix batch: invoice NaN, room amenities batch-save, policy-picker green, listing "Things to know" rework. Driven live.
 
 Knocked out the founder's quick-fix cluster (larger features F1–F4 queued separately). All verified live.

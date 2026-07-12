@@ -82,6 +82,18 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     cancelledBy: "host",
   },
 
+  booking_forfeited_guest: {
+    guestFirstName: "Lerato",
+    listingName: "Sunbird Cottage",
+    bookingReference: "BK-0042",
+    hostName: "Amara",
+    amountPaid: "R 600.00",
+    amountForfeited: "R 600.00",
+    amountRefunded: null,
+    policyApplied: "Moderate cancellation",
+    statementNumber: "FRF-0001",
+  },
+
   eft_instructions_guest: {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",

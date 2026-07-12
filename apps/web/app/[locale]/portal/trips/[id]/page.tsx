@@ -153,6 +153,11 @@ const STATUS_META: Record<
     cls: "bg-status-cancelled/12 text-status-cancelled ring-status-cancelled/25",
     icon: CheckCircle2,
   },
+  no_show: {
+    label: "Cancelled — no-show",
+    cls: "bg-status-cancelled/12 text-status-cancelled ring-status-cancelled/25",
+    icon: CheckCircle2,
+  },
   expired: {
     label: "Expired",
     cls: "bg-brand-light text-brand-mute ring-brand-line",
@@ -520,7 +525,21 @@ export default async function PortalTripDetailPage({
   const daysToGo =
     checkInMs != null ? Math.ceil((checkInMs - now) / dayMs) : null;
   const isLive = ["confirmed", "checked_in"].includes(booking.status);
-  const isCancelled = booking.status.startsWith("cancelled");
+  const isForfeited =
+    booking.status === "no_show" || booking.payment_status === "forfeited";
+  const isCancelled = booking.status.startsWith("cancelled") || isForfeited;
+
+  // Forfeiture statement (no-show / abandoned) — the guest sees the outcome +
+  // can open the FRF statement. Fetched only for a forfeited booking.
+  const { data: forfeitStmt } = isForfeited
+    ? await supabase
+        .from("forfeit_statements")
+        .select(
+          "statement_number, amount_forfeited, amount_refunded, currency, hosted_token",
+        )
+        .eq("booking_id", booking.id)
+        .maybeSingle()
+    : { data: null };
 
   // Does the guest still owe money? EFT awaiting their transfer, an unpaid
   // pending booking, or a remaining balance. Drives the Pay-now CTA + next-step
@@ -1364,7 +1383,42 @@ export default async function PortalTripDetailPage({
                     </span>
                   </li>
                 ) : null}
-                {balanceDue > 0 ? (
+                {isForfeited ? (
+                  <li className="flex flex-col gap-1 border-t border-brand-line pt-3">
+                    <div className="flex items-center justify-between text-status-cancelled">
+                      <span className="font-semibold">
+                        Forfeited — no refund
+                      </span>
+                      <span className="num font-display text-[15px] font-bold">
+                        {formatMoney(
+                          Number(forfeitStmt?.amount_forfeited ?? 0),
+                          currency,
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-brand-mute">
+                      This booking was cancelled as a no-show. Per the
+                      cancellation policy, the amount paid is non-refundable.
+                      {forfeitStmt?.hosted_token ? (
+                        <>
+                          {" "}
+                          <a
+                            href={`/forfeit-statement/${forfeitStmt.hosted_token}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline underline-offset-2 hover:text-brand-ink"
+                          >
+                            View statement{" "}
+                            {forfeitStmt.statement_number
+                              ? `(${forfeitStmt.statement_number})`
+                              : ""}
+                          </a>
+                        </>
+                      ) : null}
+                    </p>
+                  </li>
+                ) : null}
+                {balanceDue > 0 && !isForfeited ? (
                   <li className="flex items-center justify-between text-amber-700">
                     <span className="font-semibold">Balance due</span>
                     <span className="num font-display text-[15px] font-bold">

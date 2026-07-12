@@ -99,7 +99,13 @@ rework) shipped in #68. These four bigger features remain — each its own focus
   (hard purge). Data is retained + hidden until then so reactivation restores everything. A cron can flag
   accounts past 30 days for purge. Confirm the settings-page "delete account" flow sets the soft-delete.
 
-### F3 — 🔴 Vanishing-guest accounting (partial-paid guest disappears) — NEEDS FOUNDER SIGN-OFF ON DESIGN.
+### F3 — ✅ Vanishing-guest accounting — DONE + verified live 2026-07-12 (#69).
+Shipped: `No-show` on a booking now force-forfeits — voids the invoice, writes off the outstanding, keeps
+what was paid as revenue (NO refund/credit note), mints an immutable `FRF-####` Forfeit statement, notifies
+the guest (`booking_forfeited_guest`). Ledger nets the booking to R0. Migration `20260712180000`; core
+`lib/bookings/forfeit.ts`; flow in `docs/lifecycles/booking.md`. Original spec kept below for reference.
+
+### F3(orig) — 🔴 Vanishing-guest accounting (partial-paid guest disappears).
 Scenario: guest books, pays a deposit/part, then vanishes. Host cancels. TODAY the host-cancel path
 auto-mints a **credit note** → the system says the host OWES the vanished guest — WRONG when policy = no
 refund. Founder wants: (1) handle gracefully, (2) record in the ledger, (3) paper trail, (4) notify guest;
@@ -124,9 +130,10 @@ owes nothing.
   cancellation policy R{x} was retained and R{y} refunded (if any)." Tracked on the guest's history AND the
   host's records.
 - Booking `payment_status` → a terminal state (e.g. `forfeited` / `written_off`); status → cancelled.
-- **Open questions for founder:** (a) is forfeited deposit "revenue" or a neutral write-off in the ledger
-  KPIs? (b) default: force-forfeit ON or ask each time? (c) exact doc name (Forfeiture vs Cancellation
-  statement)? Answer these, then build + record `docs/lifecycles/booking.md` (cancellation branch).
+- **Founder decisions (2026-07-12):** (a) forfeited deposit = **REVENUE** (recognised as the host's income
+  in ledger KPIs, not a neutral write-off); (b) **ASK EACH TIME** — do NOT default force-forfeit ON;
+  (c) doc name = **"Forfeit statement"** (prefix `FRF-####`). Build accordingly + record the cancellation
+  branch in `docs/lifecycles/booking.md`.
 
 ### F4 — Statement function (host → guest; admin/Wielo → host)
 - A "generate statement" action: the host creates a **statement for a guest** (a period/booking summary of
