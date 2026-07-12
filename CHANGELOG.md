@@ -14,6 +14,28 @@ pushed to `main`, verified live, `tsc`/`lint`/`build` green. Shipped this sessio
 The whole `NEXT_STEPS §F` batch is now done. **NEXT (fresh session): §1 deep financial sweep** — exhaustively
 re-derive every ledger balance / VAT / doc amount / reconciliation and fold into `docs/lifecycles/payments-ledger.md`.
 
+## 2026-07-13 — SAVE POINT: brand + email logo + support inbox + reporting shipped. NEXT = deep feature audits.
+
+Big founder batch shipped this cycle (all pushed to `main`, verified live, build/lint green): financial sweep
+(#77) · cancellation credit-note engine (#78) · generalized reporting + OTA removal (#79) · statement blank-page
+fix + help→support inbox (#80) · statement VAT fix (#81) · Wielo logo + slogan removal · payment provider IDs
+(EFT capture) · Vilo→Wielo brand audit + email-template logo + guest-record channel fix. **NEXT (fresh session):
+the deep in-depth audits** — see `MVP_READINESS_AND_AUDIT_BACKLOG.md` (what's MVP-ready vs the audit backlog:
+quotes · looking-for · coupons · specials · add-ons · media manager · reports · product feature gating · all
+guest/host/admin surfaces).
+
+## 2026-07-13 #82 — Wielo logo in emails + kill raw "vilo" channel leak in guest record; brand audit. Driven live.
+
+- **Emails**: shared `emails/components/Layout.tsx` header now shows the Wielo primary logo (hosted png) beside
+  the "Wielo" wordmark — flows to all 30+ templates; text stays beside the image for image-blocking clients.
+  Verified in the admin email preview.
+- **Guest record** recent-activity rendered the raw booking `channel`, so a `channel='vilo'` booking showed
+  "vilo · …". Now mapped via `channelLabel` (vilo/wielo→"Wielo", direct→"Direct"). Verified live.
+- **Brand audit**: the user-facing brand already renders "Wielo" everywhere (UI via BrandName, emails, PDFs,
+  metadata, `DEFAULT_BRAND`); remaining "vilo" are internal identifiers (cookie keys, DB enum value,
+  `@vilo/emails` package) never shown to users — left as-is (renaming needs migrations / zero brand benefit).
+  Cleaned "Vilo" in code comments; affiliate default handle "vilo"→"wielo". Kept the real repo URL `.../Vilo2027`.
+
 ## 2026-07-12 #81 — Fix host→guest statement VAT (was inflated by refunds/forfeits). Driven live.
 
 The host→guest Statement of Account derived VAT as `totalCharges × 15/115`, but `totalCharges` includes every
