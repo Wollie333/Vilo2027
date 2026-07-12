@@ -30,11 +30,17 @@ Driving gotchas are in memory `host-dashboard-sweep` (esp. `preview_resize` → 
   (extended the v11 completion trigger). Verified live: a R2 000 partial refund on BK-0027 → the UI shows
   a "partially refunded" pill; a full refund on BK-0036 → `refunded`.
 
+**✅ ALSO DONE (session #63):**
+- **G6** — **"Policies (as booked)" panel** live on host `dashboard/bookings/[id]` (Overview tab) AND
+  guest `portal/trips/[id]`. Shared reader `lib/bookings/policiesAsBooked.ts` + component
+  `components/bookings/PoliciesAsBooked.tsx`. Shows frozen cancellation schedule + check-in/out + house
+  rules + T&C + accepted Wielo terms/privacy versions. Both ends verified live.
+- **Guest money/refund parity** — the guest trip view now surfaces `refunded`/`partially_refunded` +
+  "Refunded to you − R{n}" (was paid-in-full vs due only), matching the host. Verified live on BK-0027.
+
 **⏳ REMAINING (Phase 2/3):**
 - **G5 (P2)** — refund base = amount actually **paid**, not `total_amount`; fix `total_paid` label for
   deposit-only/partial bookings.
-- **G6 (P2)** — **"Policies (as booked)" panel** on host `dashboard/bookings/[id]` AND guest
-  `portal/trips/[id]`, reading `policy_snapshots` + accepted Wielo terms/privacy versions.
 - **G7 (P2)** — add-on refundability decision (flag refundable/non-refundable; exclude or per-line).
 - **G8/G9 (P3)** — freeze the accepted platform-T&C **text** (not just the version stamp); split the one
   combined checkout acceptance into distinct host-legal vs Wielo-terms acknowledgements.

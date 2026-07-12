@@ -6,6 +6,7 @@ import {
   type MessageItem,
   type TemplateItem,
 } from "@/components/messages/GuestMessagesPanel";
+import { loadPoliciesAsBooked } from "@/lib/bookings/policiesAsBooked";
 import { fetchHostTransactions } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { getMyHostId } from "@/lib/host/current";
@@ -153,7 +154,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
+      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, policy_acknowledged_at, accepted_terms_version, accepted_privacy_version, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -630,6 +631,16 @@ export default async function BookingDetailPage({
     .order("sort_order");
   const templates: TemplateItem[] = (templatesData ?? []) as TemplateItem[];
 
+  // The IMMUTABLE policies this booking was made under — read from
+  // policy_snapshots, never the live listing (so later host edits don't change
+  // the frozen record shown here or the refund entitlement).
+  const policiesAsBooked = await loadPoliciesAsBooked(supabase, {
+    bookingId: booking.id,
+    acceptedTermsVersion: booking.accepted_terms_version,
+    acceptedPrivacyVersion: booking.accepted_privacy_version,
+    acknowledgedAt: booking.policy_acknowledged_at,
+  });
+
   const data: BookingDetailData = {
     id: booking.id,
     reference: booking.reference,
@@ -674,6 +685,7 @@ export default async function BookingDetailPage({
     bedrooms: listing.bedrooms,
     bathrooms: listing.bathrooms,
     cancellationLabel,
+    policiesAsBooked,
 
     nights,
     perNight,

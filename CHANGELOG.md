@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-12 #63 — "Policies (as booked)" panel + guest sees payment/refund state (both-ends parity). Verified live.
+
+Phase 2 (G6) of the policy/refund plan plus the founder's follow-up: the guest portal must show the same
+booking money/status the host does. Both are frozen-record readers — the guest and host now see the SAME
+immutable policies and the same refund state, each from their own view.
+
+- **✅ G6 — "Policies (as booked)" panel on BOTH surfaces.** New shared server reader
+  `lib/bookings/policiesAsBooked.ts` (reads `policy_snapshots`, never the live listing) + shared pure
+  component `components/bookings/PoliciesAsBooked.tsx`. Renders the frozen cancellation schedule,
+  check-in/out, house rules, booking T&C, and "You/The guest accepted these policies, plus Wielo Terms
+  v{n} and Privacy v{n} on {date} — the host cannot change them after booking." Wired into the host
+  `BookingDetail` Overview tab and the guest `portal/trips/[id]` view. On the guest trip page the live
+  "Know before you go" house-rules block now only shows as a fallback when a booking has no frozen
+  snapshot. HTML entities in the snapshot body_plain (`&amp;`) are decoded for display.
+- **✅ Guest-portal money/refund parity.** The guest trip view previously only knew "paid in full" vs
+  "due". It now surfaces `refunded` / `partially_refunded` (from G4): the Total glance + receipt badge
+  show "Refunded" / "Partially refunded", and a "Refunded to you − R{n}" line renders the completed-refund
+  total. Verified live: on BK-0027 the guest sees "Partially refunded" + "Refunded to you − R 2 000",
+  mirroring the host's "partially refunded" pill; the host + guest also render the identical Policies (as
+  booked) panel (cancellation 100/50/0%, check-in/out, house rules, T&C, accepted Wielo v3/v2). The trips
+  LIST already showed normalised status (live/pending/completed/cancelled).
+- `pnpm build` + `pnpm lint` green (only pre-existing `<img>` warnings in reports components, untouched).
+
 ## 2026-07-12 #62 — Fix the P0 policy-snapshot crash + harden refunds (guest protection restored). Verified live.
 
 Executed Phase 0 + Phase 1 of `docs/features/POLICY_ENFORCEMENT_ADDONS_REFUNDS_PLAN.md`. Guest refund

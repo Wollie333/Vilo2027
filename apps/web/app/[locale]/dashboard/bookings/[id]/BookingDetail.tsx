@@ -47,12 +47,14 @@ import {
   type TemplateItem,
 } from "@/components/messages/GuestMessagesPanel";
 import { CancelBookingDialog } from "@/components/booking/CancelBookingDialog";
+import { PoliciesAsBooked } from "@/components/bookings/PoliciesAsBooked";
 import {
   FormModal,
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
 import { modal } from "@/components/ui/modal-host";
+import type { PoliciesAsBooked as PoliciesAsBookedData } from "@/lib/bookings/policiesAsBooked";
 import type { Txn } from "@/lib/finance/transactions";
 import { formatMoney } from "@/lib/format";
 
@@ -144,6 +146,7 @@ export type BookingDetailData = {
   bedrooms: number | null;
   bathrooms: number | null;
   cancellationLabel: string;
+  policiesAsBooked: PoliciesAsBookedData;
 
   nights: number;
   perNight: number | null;
@@ -1000,6 +1003,8 @@ function OverviewPanel({
             ) : null}
           </div>
         </Card>
+
+        <PoliciesAsBooked data={d.policiesAsBooked} audience="host" />
 
         {d.addons.length > 0 ? (
           <Card>

@@ -34,6 +34,8 @@ import {
   Wifi,
 } from "lucide-react";
 
+import { PoliciesAsBooked } from "@/components/bookings/PoliciesAsBooked";
+import { loadPoliciesAsBooked } from "@/lib/bookings/policiesAsBooked";
 import { formatMoney } from "@/lib/format";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -223,6 +225,7 @@ export default async function PortalTripDetailPage({
       base_amount, cleaning_fee, discount_amount, total_amount, balance_due, currency,
       special_requests, host_message, created_at, confirmed_at,
       guest_name, guest_email, guest_phone, additional_guests,
+      accepted_terms_version, accepted_privacy_version, policy_acknowledged_at,
       has_open_refund,
       listing:properties (
         id, name, slug, city, province, address_line1, address_line2,
@@ -272,6 +275,9 @@ export default async function PortalTripDetailPage({
     additional_guests:
       | { name?: string | null; email?: string | null; phone?: string | null }[]
       | null;
+    accepted_terms_version: number | null;
+    accepted_privacy_version: number | null;
+    policy_acknowledged_at: string | null;
     has_open_refund: boolean | null;
     listing: ListingEmbed | ListingEmbed[] | null;
     host: HostEmbed | HostEmbed[] | null;
@@ -389,6 +395,26 @@ export default async function PortalTripDetailPage({
     )
     .eq("booking_id", booking.id)
     .order("created_at", { ascending: false });
+
+  // Total money already refunded to the guest (completed refunds only) — drives
+  // the receipt's "Refunded" line + the paid/refunded state the guest sees, so
+  // the guest's money view matches what the host issued.
+  const refundedTotal =
+    Math.round(
+      (refunds ?? [])
+        .filter((r) => r.status === "completed")
+        .reduce(
+          (s, r) => s + Number(r.approved_amount ?? r.requested_amount ?? 0),
+          0,
+        ) * 100,
+    ) / 100;
+  const isRefunded = booking.payment_status === "refunded";
+  const isPartiallyRefunded = booking.payment_status === "partially_refunded";
+  const isPaidInFull =
+    !isRefunded &&
+    !isPartiallyRefunded &&
+    (booking.payment_status === "completed" ||
+      booking.payment_status === "captured");
 
   // Add-ons already on the booking + the host's catalogue still on offer for it.
   const { data: bookingAddons } = await supabase
@@ -609,6 +635,16 @@ export default async function PortalTripDetailPage({
       phone: g.phone?.trim() ? g.phone.trim() : null,
     }));
 
+  // The IMMUTABLE policies this trip was booked under (cancellation schedule,
+  // check-in/out, house rules, T&C) — read from policy_snapshots, never the live
+  // listing, so later host edits don't change what the guest agreed to.
+  const policiesAsBooked = await loadPoliciesAsBooked(supabase, {
+    bookingId: booking.id,
+    acceptedTermsVersion: booking.accepted_terms_version,
+    acceptedPrivacyVersion: booking.accepted_privacy_version,
+    acknowledgedAt: booking.policy_acknowledged_at,
+  });
+
   return (
     <div className="w-full">
       {/* ===== IN-CONTENT HEADER ===== */}
@@ -797,15 +833,15 @@ export default async function PortalTripDetailPage({
                 label="Total"
                 value={formatMoney(Number(booking.total_amount), currency)}
                 sub={
-                  booking.payment_status === "completed" ||
-                  booking.payment_status === "captured"
-                    ? "Paid in full"
-                    : "Due"
+                  isRefunded
+                    ? "Refunded"
+                    : isPartiallyRefunded
+                      ? "Partially refunded"
+                      : isPaidInFull
+                        ? "Paid in full"
+                        : "Due"
                 }
-                accent={
-                  booking.payment_status === "completed" ||
-                  booking.payment_status === "captured"
-                }
+                accent={isPaidInFull}
               />
             </div>
           </section>
@@ -1156,8 +1192,12 @@ export default async function PortalTripDetailPage({
             </section>
           ) : null}
 
-          {/* KNOW BEFORE YOU GO */}
-          {listing?.house_rules ? (
+          {/* POLICIES (AS BOOKED) — the frozen record, not the live listing */}
+          <PoliciesAsBooked data={policiesAsBooked} audience="guest" />
+
+          {/* KNOW BEFORE YOU GO — live house rules, only as a fallback when the
+              booking has no frozen house-rules snapshot (older/edge bookings) */}
+          {listing?.house_rules && !policiesAsBooked.houseRules?.body ? (
             <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
               <div className="border-b border-brand-line px-6 py-4">
                 <div className="font-display text-[15px] font-bold text-brand-ink">
@@ -1194,8 +1234,15 @@ export default async function PortalTripDetailPage({
               <div className="font-display text-[15px] font-bold text-brand-ink">
                 Your receipt
               </div>
-              {booking.payment_status === "completed" ||
-              booking.payment_status === "captured" ? (
+              {isRefunded ? (
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-status-cancelled/10 px-2.5 py-1 text-[11.5px] font-semibold text-status-cancelled">
+                  <RotateCcw className="h-3 w-3" /> Refunded
+                </span>
+              ) : isPartiallyRefunded ? (
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-amber-100 px-2.5 py-1 text-[11.5px] font-semibold text-amber-700">
+                  <RotateCcw className="h-3 w-3" /> Partially refunded
+                </span>
+              ) : isPaidInFull ? (
                 <span className="inline-flex items-center gap-1.5 rounded-pill bg-status-confirmed/10 px-2.5 py-1 text-[11.5px] font-semibold text-status-confirmed">
                   <CheckCircle2 className="h-3 w-3" /> Paid in full
                 </span>
@@ -1260,6 +1307,14 @@ export default async function PortalTripDetailPage({
                     {formatMoney(Number(booking.total_amount), currency)}
                   </span>
                 </li>
+                {refundedTotal > 0 ? (
+                  <li className="flex items-center justify-between text-status-cancelled">
+                    <span className="font-semibold">Refunded to you</span>
+                    <span className="num font-display text-[15px] font-bold">
+                      – {formatMoney(refundedTotal, currency)}
+                    </span>
+                  </li>
+                ) : null}
                 {balanceDue > 0 ? (
                   <li className="flex items-center justify-between text-amber-700">
                     <span className="font-semibold">Balance due</span>
