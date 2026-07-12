@@ -168,6 +168,92 @@ driven by the host recording each receipt, and it must stay clean at every stage
   webhook does **not** re-insert — AGENT_RULES §4.2).
 - Refund and credit note are **separate** events — a refund does **not** auto-mint a
   credit note (migration `20260607000004`).
+- **`Σ(non-voided invoices for a booking) == total_amount`** (the stay invoice +
+  each add-on invoice, never double-counting an add-on — sweep fix #1).
+- A refund only reconciles once **completed**; `Σ(completed refund_requests) ==
+  Σ(payments.refunded_amount)` per booking (sweep fix #3).
+
+## The ledger read model — one normalised transaction list
+
+The account-wide **Ledger** (`/dashboard/ledger`), the per-guest **Finances**
+record and the per-booking **Payments** tab are all filtered reads of ONE
+function: `fetchHostTransactions` (`lib/finance/transactions.ts`). Every money
+event is normalised to a `Txn` with an `owedEffect` (±1/0 on what the guest owes)
+and a `cashEffect` (±1/0 on cash collected); the per-guest running balance is
+`Σ(owedEffect · amount)` oldest→newest. `txnFlows` / `txnStats` derive the KPIs
+(collected / refunded / credits / outstanding) so every view agrees.
+
+| Row source | owedEffect | cashEffect | Notes |
+|---|---|---|---|
+| Invoice (booking / addon), non-voided | +1 | 0 | the charge |
+| Synthesised "Booking charge" (live, non-invoiced, non-dead booking) | +1 | 0 | no doc → never counted as "billed" |
+| Payment (deposit/balance/addon/payment), **settled** | −1 | +1 | settled = completed / partially_refunded / refunded |
+| Applied credit (`kind='credit'`) | 0 | 0 | moves nothing (store-credit shuffle) |
+| Pending payment | 0 | 0 | shown only on the Payments tab (`includePending`) |
+| Credit note (manual) | −1 | 0 | store credit granted |
+| Refund, **completed** | +1 | −1 | cash back to guest |
+| Refund, approved/processing (not completed) | 0 | 0 | shown "pending", zero effect |
+| Forfeit (retained) | +1 | 0 | nets the kept deposit to a 0 booking balance |
+
+Two rules are load-bearing and were both **hardened in the deep sweep** (below):
+**settled payments** must include `partially_refunded`/`refunded` (their captured
+cash still counts; the refund is a separate offsetting row), and a **refund only
+counts once completed** (an approved-but-uncompleted row is pending, zero-effect).
+
+## Deep financial sweep — 2026-07-12 (findings + fixes)
+
+A full re-derivation of every calculation against the live DB. Repeatable probe:
+`node --env-file=.env.local scripts/verify-financial-sweep.mjs` (from `apps/web`;
+read-only) — asserts the invoice invariant, refund reconciliation, `balance_due`,
+`payment_status` and doc-number integrity. VAT + cross-checks in the same run.
+
+**Bugs found & fixed:**
+1. **Add-on double charge (P1).** An add-on added while a booking was `pending`
+   bumps `total_amount` **and** mints its own `addon` invoice; the confirm trigger
+   then minted the booking invoice off the already-bumped `total_amount` → the
+   add-on was invoiced twice (Σ invoices > total). Fix: `ensure_booking_invoice`
+   subtracts already-issued add-on invoices — the booking invoice charges the
+   **stay only** (migration `20260712210000`). **Invariant restored:
+   `Σ(non-voided invoices) == total_amount`.** Proven live (stay 1000 + add-on 500
+   → booking inv 1150 + addon inv 575 = 1725 = total).
+2. **Ledger dropped refunded payments (P1).** `fetchHostTransactions` fetched only
+   `status='completed'` payments, so a payment that became `partially_refunded`/
+   `refunded` vanished from the ledger — losing the cash-in and inflating what the
+   guest owed (BK-0027 showed R6 830 due instead of R2 000; account OUTSTANDING
+   R26 150 → **R12 902** once fixed). Fix: include the captured statuses + treat
+   only `pending` as pending (`transactions.ts`). The read-model analog of #74.
+3. **Duplicate/uncompleted refund double-counted (P1).** The ledger counted
+   refund_requests in `[approved, processing, completed]`; a stale `approved` row
+   beside a `completed` one double-counted the refund (BK-0036: R16 836 vs actual
+   R8 418). Fix: a refund hits the balance/KPIs **only when `completed`**
+   (`transactions.ts`). Reconciles with `payments.refunded_amount`.
+4. **`balance_due` stale after a partial refund (P2).** The refund-completion
+   trigger updated `refunded_amount` + `payment_status` but not `balance_due`. Fix:
+   extend `update_payment_refunded_amount()` to set
+   `balance_due = max(0, total − (captured − refunded))` (migration
+   `20260712220000`).
+5. **Cancelled booking left phantom receivables (P2).** `finalizeCancellation`
+   didn't zero `balance_due` or void open invoices, so a cancelled booking still
+   showed as owing. Fix: on cancel, `balance_due → 0`; when the guest paid
+   **nothing**, void its open (non-paid) invoices (`cancel.ts`).
+6. **Stale audit probe (safety).** `scripts/verify-guest-ledger.mjs` used the
+   pre-#74 paid-sum, so its `--fix` would have **corrupted** `balance_due` on any
+   refunded booking. Updated to the net-of-refunds logic.
+
+**Verified correct (no change needed):** VAT (net→VAT→gross, 15% extracted from
+the inclusive total, invoices split subtotal+vat==total — 14/14); doc numbering
+(one global sequence per type INV/RPT/REF/CN, host+Wielo shared, no duplicate
+numbers); commission-saved (`direct_revenue × rate`, 15% headline — note the spec
+said 18%, code is 15%); payment idempotency (no duplicate `provider_reference`);
+no orphan payments/invoices; Wielo/platform ledger (every completed charge has
+exactly one invoice, no dup numbers, no mis-signed rows).
+
+**Open — founder decision (not silently changed):** a booking **cancelled after the
+guest paid** (e.g. BK-0038, R5 000 deposit captured) keeps its invoices, so the
+retained (non-refundable) portion isn't recognised as revenue and the outstanding
+isn't written off. This is the **forfeit-style accounting (F3)** applied to policy
+cancellations — decide whether cancels should reduce the charge to the retained
+amount + write off the rest (like no-show forfeiture) or keep today's behaviour.
 
 ## Known-not-yet-driven-live
 - Paystack webhook money-state + invoice-flip changes are logic-verified only (no live

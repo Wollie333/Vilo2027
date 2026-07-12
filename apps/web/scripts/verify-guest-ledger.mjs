@@ -30,6 +30,10 @@ const sb = createClient(url, key, {
 // Mirror of lib/payments/ledger.ts (kept in sync deliberately — the probe must
 // assert the SAME maths the app persists).
 const INBOUND_KINDS = ["deposit", "balance", "addon", "payment", "credit"];
+// Net paid counts money captured in ANY of these statuses (a refund flips a row
+// to partially_refunded/refunded but its retained portion still counts). Mirrors
+// sumPaidFromRows — paid = Σ(amount − refunded_amount).
+const PAID_STATUSES = ["completed", "partially_refunded", "refunded"];
 const TERMINAL = ["refunded", "partially_refunded", "voided", "failed"];
 const REALISED = ["confirmed", "checked_in", "completed"];
 const r2 = (n) => Math.round(n * 100) / 100;
@@ -65,7 +69,7 @@ if (bErr) {
 
 const { data: payments, error: pErr } = await sb
   .from("payments")
-  .select("booking_id, amount, kind, status, voided_at");
+  .select("booking_id, amount, refunded_amount, kind, status, voided_at");
 if (pErr) {
   console.error("payments read failed:", pErr.message);
   process.exit(1);
@@ -79,17 +83,23 @@ if (iErr) {
   process.exit(1);
 }
 
-// paid-sum per booking (completed, non-voided, inbound kinds)
+// paid-sum per booking — NET captured (amount − refunded_amount) over non-voided
+// inbound rows in a captured status. A fully refunded row nets to 0; a partially
+// refunded one keeps its retained portion. Matches sumPaidFromRows exactly.
 const paidByBooking = new Map();
 for (const p of payments ?? []) {
   if (
-    p.status === "completed" &&
+    PAID_STATUSES.includes(p.status ?? "") &&
     p.voided_at == null &&
     INBOUND_KINDS.includes(p.kind ?? "")
   ) {
     paidByBooking.set(
       p.booking_id,
-      r2((paidByBooking.get(p.booking_id) ?? 0) + Number(p.amount)),
+      r2(
+        (paidByBooking.get(p.booking_id) ?? 0) +
+          Number(p.amount) -
+          Number(p.refunded_amount ?? 0),
+      ),
     );
   }
 }

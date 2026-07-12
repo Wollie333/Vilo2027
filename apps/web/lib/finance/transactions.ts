@@ -150,9 +150,16 @@ export async function fetchHostTransactions(
       "id, amount, currency, kind, status, method, note, provider_reference, captured_at, created_at, receipt_token, receipt_number, booking_id, voided_at, void_reason, booking:bookings!inner ( host_id, reference, guest_id, guest_name, guest_email )",
     )
     .eq("booking.host_id", hostId)
+    // A payment that captured money still counts even after a refund flips its
+    // status to partially_refunded / refunded — its full amount is the cash-in
+    // and the refund is a separate offsetting row. Dropping those rows (as an
+    // only-'completed' filter does) loses the payment credit and inflates what
+    // the guest owes. Mirrors sumPaidFromRows / the #74 net-paid fix.
     .in(
       "status",
-      filter.includePending ? ["completed", "pending"] : ["completed"],
+      filter.includePending
+        ? ["completed", "partially_refunded", "refunded", "pending"]
+        : ["completed", "partially_refunded", "refunded"],
     );
   let creditNotesQ = admin
     .from("credit_notes")
@@ -356,7 +363,10 @@ export async function fetchHostTransactions(
     } | null;
     const isCredit = p.kind === "credit";
     const isCash = CASH_KINDS.includes(p.kind as string);
-    const isPending = p.status !== "completed";
+    // Only a genuinely not-yet-settled payment is 'pending'. completed /
+    // partially_refunded / refunded all captured money — they are settled cash-in
+    // (any refund is a separate offsetting row), so they must hit the balance.
+    const isPending = p.status === "pending";
     const voided = Boolean(p.voided_at);
     entries.push({
       id: `pay_${p.id}`,
@@ -454,6 +464,13 @@ export async function fetchHostTransactions(
       guest_email?: string;
     } | null;
     const voided = Boolean(rf.voided_at);
+    // A refund only moves money — and only affects the guest balance, cash-out
+    // and the refunded KPI — once it's COMPLETED (the point payments.refunded_amount
+    // updates). An approved/processing refund is shown as pending with zero effect,
+    // exactly like a not-yet-settled payment. This also stops a booking that has a
+    // stale 'approved' refund alongside a 'completed' one from double-counting the
+    // refund in the ledger (the completed row is the single source of the money).
+    const settled = rf.status === "completed";
     entries.push({
       id: `rf_${rf.id}`,
       date: rf.created_at as string,
@@ -477,8 +494,10 @@ export async function fetchHostTransactions(
           }
         : null,
       balance: 0,
-      owedEffect: voided ? 0 : 1,
-      cashEffect: voided ? 0 : -1,
+      owedEffect: voided || !settled ? 0 : 1,
+      cashEffect: voided || !settled ? 0 : -1,
+      pending: !settled,
+      status: (rf.status as string) ?? null,
       category: "refund",
       voided,
       voidReason: (rf.void_reason as string) ?? null,
@@ -592,6 +611,7 @@ export function txnFlows(entries: Txn[]): TxnFlows {
   let charged = 0;
   for (const e of entries) {
     if (e.voided) continue; // voided entries never count toward totals
+    if (e.pending) continue; // not-yet-settled payments/refunds never count
     if (e.cashEffect > 0) collected += e.amount;
     if (e.type === "refund") refunded += e.amount;
     if (e.type === "credit") credits += e.amount;

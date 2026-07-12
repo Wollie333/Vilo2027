@@ -14,6 +14,42 @@ pushed to `main`, verified live, `tsc`/`lint`/`build` green. Shipped this sessio
 The whole `NEXT_STEPS §F` batch is now done. **NEXT (fresh session): §1 deep financial sweep** — exhaustively
 re-derive every ledger balance / VAT / doc amount / reconciliation and fold into `docs/lifecycles/payments-ledger.md`.
 
+## 2026-07-12 #77 — Deep financial sweep: re-derived every calc; fixed 6 money bugs (incl. add-on double charge). Driven live.
+
+`NEXT_STEPS §1`. Exhaustively re-derived the money layer against the live DB and shipped a repeatable probe
+`apps/web/scripts/verify-financial-sweep.mjs` (invoice invariant · refund reconciliation · balance_due ·
+payment_status · doc numbering) plus VAT + cross-check probes. Folded the mechanics + findings into
+`docs/lifecycles/payments-ledger.md` (new "ledger read model" table + sweep section).
+
+- **#1 Add-on double charge (P1, founder-flagged).** An add-on added while a booking was `pending` bumps
+  `total_amount` AND mints its own `addon` invoice; the confirm trigger then minted the booking invoice off
+  the bumped `total_amount` → the add-on was invoiced twice (BK-0024: Σ invoices R26 000 vs total R19 000).
+  **Migration `20260712210000`:** `ensure_booking_invoice` subtracts already-issued add-on invoices → the
+  booking invoice charges the **stay only**. Invariant restored: `Σ(non-voided invoices) == total_amount`.
+  Proven live (stay 1000 + add-on 500 → booking inv 1150 + addon inv 575 = 1725 = total).
+- **#2 Ledger dropped refunded payments (P1).** `fetchHostTransactions` fetched only `status='completed'`
+  payments, so a `partially_refunded`/`refunded` payment vanished from the ledger — losing the cash-in and
+  inflating what the guest owed (BK-0027 read R6 830 due vs R2 000; account OUTSTANDING R26 150 → **R12 902**).
+  Fix (`transactions.ts`): include the captured statuses; only `pending` is pending. **Verified live** on
+  `/dashboard/ledger`.
+- **#3 Uncompleted/duplicate refund double-counted (P1).** The ledger counted refunds in
+  `[approved,processing,completed]`; a stale `approved` beside a `completed` double-counted (BK-0036:
+  R16 836 vs actual R8 418). Fix: a refund hits balance/KPIs **only when `completed`**. Verified live.
+- **#4 balance_due stale after partial refund (P2).** Migration `20260712220000` extends
+  `update_payment_refunded_amount()` to set `balance_due = max(0, total − (captured − refunded))`.
+- **#5 Cancelled booking phantom receivable (P2).** `cancel.ts`: on cancel zero `balance_due`; when the
+  guest paid nothing, void its open invoices.
+- **#6 Stale audit probe (safety).** `verify-guest-ledger.mjs` used pre-#74 paid-sum → its `--fix` would have
+  corrupted `balance_due` on refunded bookings; updated to net-of-refunds.
+- **Verified correct (no change):** VAT net→VAT→gross (14/14), doc numbering (one global seq per type, no
+  dup numbers), commission-saved (`revenue × 15%`; spec's "18%" is stale), payment idempotency, no
+  orphan/dup rows, Wielo ledger (1 invoice per completed charge).
+- **Open — founder decision:** a booking cancelled AFTER the guest paid (BK-0038, R5 000 deposit) keeps its
+  invoices — the retained-revenue/write-off accounting (forfeit-style, per F3) applied to policy cancels is
+  left for the founder to decide, not silently changed.
+- Existing fixture data healed pre-MVP (BK-0024 invoice corrected, BK-0025 phantom voided, balance_due
+  drift healed via the corrected probe). `build`/`lint` (web) green.
+
 ## 2026-07-12 #76 — Fix (G5): cancellation refund is % of amount PAID, not the booking total. Driven live.
 
 `calculate_policy_refund_amount` computed the entitlement as `total_amount × refund_percent`, so any booking

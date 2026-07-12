@@ -110,6 +110,35 @@ export async function finalizeCancellation(
     return { ok: false, error: "Could not cancel the booking. Try again." };
   }
 
+  // Financial cleanup so a cancelled booking never shows a phantom receivable in
+  // the ledger. A dead booking owes nothing, so its denormalised balance is 0.
+  // When the guest paid NOTHING, the booking's open invoices are pure phantom
+  // charges (no money captured, nothing retained) — void them so the Finances
+  // ledger drops the obligation. When money WAS captured, we leave the invoices
+  // in place: the retained (non-refunded) portion is the host's cancellation
+  // revenue, and reducing the charge to it is the forfeit-style accounting that
+  // no-show uses (F3) — a separate, founder-decided treatment, not done here.
+  await admin.from("bookings").update({ balance_due: 0 }).eq("id", booking.id);
+
+  const { count: paidCount } = await admin
+    .from("payments")
+    .select("id", { count: "exact", head: true })
+    .eq("booking_id", booking.id)
+    .eq("status", "completed")
+    .is("voided_at", null);
+
+  if (!paidCount) {
+    await admin
+      .from("invoices")
+      .update({
+        voided_at: new Date().toISOString(),
+        void_reason: `Booking ${toStatus.replace(/_/g, " ")}`,
+      })
+      .eq("booking_id", booking.id)
+      .is("voided_at", null)
+      .neq("status", "paid");
+  }
+
   // Auto-create a pending refund for the policy entitlement, when the guest has
   // a captured payment and there's nothing open already. The existing refund
   // manager processes it from here (host approve → Paystack/EFT).
