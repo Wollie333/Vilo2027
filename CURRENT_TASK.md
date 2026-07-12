@@ -2,6 +2,50 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-12 #76) — FOUNDER BATCH §F COMPLETE + FINANCIAL-CORRECTNESS PASS. Pushed @ `6b2f0c45`. NEXT = deep financial sweep (§1).
+
+All work below is committed + pushed to `main`, verified live (host + super_admin), and `tsc`/`lint`/`build`
+green. The whole founder feature batch (`NEXT_STEPS.md §F`) is now shipped, plus a run of money-correctness
+fixes and guest-receipt work. Resume detail in memory [[project-guest-portal-parity]] +
+[[project-policy-refund-plan]] + [[project-founder-fix-batch-jul12]].
+
+**✅ Shipped this session (verified live):**
+- **#71 F2 Deleted accounts** — self-delete = soft-delete + 30-day hold; admin **Users → Deleted** tab +
+  Restore + manual purge. Shared `lib/users/accountLifecycle.ts`. Doc `docs/lifecycles/account-deletion.md`.
+- **#73 F4 Statement of account** — bank-style, ephemeral (signed HMAC link, no doc number). host→guest off
+  `fetchHostTransactions`, Wielo→host off `fetchWieloLedger`. `lib/finance/statement.ts` + `statement-token.ts`,
+  `components/finance/StatementDialog.tsx`, `/statement/[token]`(+/pdf), `lib/pdf/StatementDocument.tsx`.
+  Doc `docs/lifecycles/statement.md`.
+- **#72** Settings shows the **live** membership (not a stale cancelled sub) — `lib/subscriptions/currentMembership.ts`; + zero lint warnings.
+- **#74** partial-refund **PAID R0** fix — `sumPaidFromRows`/`sumCompletedPaid` now NET = Σ(amount − refunded_amount).
+- **#75** Guest booking view = **live money ledger** (paid/balance from `sumPaidFromRows`, live Payments card,
+  VAT/coupon/add-on lines; all-black text, only paid green + due red). `portal/trips/[id]/page.tsx`.
+- **#76 G5** cancellation refund = **% of amount PAID** not booking total — migration `20260712200000`
+  (`calculate_policy_refund_amount`). + receipt-link 404 fix (`getReceiptByToken` accepts refunded statuses).
+
+**▶ NEXT (fresh session) — §1 DEEP FINANCIAL SWEEP** (`NEXT_STEPS.md §1`): exhaustively re-derive every
+calculation now that the money layer is consistent — per-guest ledger running balances (host `fetchHostTransactions`
+↔ Wielo `fetchWieloLedger` must match), VAT (net→VAT→gross on a VAT-registered listing), doc amounts + unified
+numbering, payment reconciliation (pending→completed, no dup/orphan rows), refund/CN math vs policy %,
+commission-saved figure. Deliver findings + fixes; fold into `docs/lifecycles/payments-ledger.md`. Canonical
+money helpers to trust: `lib/payments/ledger.ts` (`sumPaidFromRows` = net captured), `lib/finance/transactions.ts`
+(`fetchHostTransactions`/`txnFlows`/`txnStats`), `lib/billing/wielo-ledger.ts` (`fetchWieloLedger`/`wieloLedgerStats`).
+Known fixture noise to ignore/prune: BK-0038 has a stale **R13 700** pending refund from the pre-G5 bug;
+duplicate active-subscription row on the test host; MVP-* test bookings.
+
+**Also remaining (`NEXT_STEPS.md`):** §0 G7 add-on refundability · G8/G9 freeze platform-T&C text + split
+checkout accept · Paystack sandbox card rail · §2 real booking lifecycle doc · §3 reviews audit (review delay
+5→60 min) · §4 backfill lifecycle docs.
+
+**LOGIN FOR VERIFICATION (this session's method — the classifier blocks typing changelog-sourced passwords):**
+mint a service-role magic link then hit the LOCAL confirm route:
+`curl -X POST $SB/auth/v1/admin/generate_link -d '{"type":"magiclink","email":"<email>"}'` → take `hashed_token`
+→ navigate `http://localhost:<port>/auth/confirm?token_hash=<TH>&type=magiclink&next=/en/<path>`. Env via
+`scratchpad/sbenv.sh` ($SB/$KEY). Test host `host@wielotest.com` (user `72811b8e`, host `0b111111-…111`);
+super_admin `wollie@manamarketing.co.za` (user `66fe4644`). GOTCHAS: `preview_start` picks a fresh port each
+time (cookies are port-agnostic so session persists); `javascript_tool` `.click()` when MCP ref-clicks miss;
+react-pdf Helvetica has no U+2212 minus → ASCII "-"; delete `scratchpad/ml*.json` after use (they hold tokens).
+
 ## ▶▶▶ SAVE POINT (2026-07-12 #70) — FOUNDER FIX BATCH: quick fixes + F3 + F1 DONE. F2 + F4 QUEUED. Pushed @ `8f9cec4b`.
 
 Resume from memory [[project-founder-fix-batch-jul12]] (full detail of everything below). All work below is

@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-07-12 — SAVE POINT: founder batch §F complete + money-correctness pass. NEXT = deep financial sweep.
+
+Resume anchor (`CURRENT_TASK.md` top + memory `project-financial-correctness-and-sweep`). Everything below is
+pushed to `main`, verified live, `tsc`/`lint`/`build` green. Shipped this session: **F2** deleted accounts (#71),
+**F4** statement of account (#73), settings live-plan (#72), **net-paid** fix (#74), guest **live money ledger**
++ receipt VAT/coupon/add-ons + colour scheme (#75), **G5** refund off amount-paid (#76), receipt-link 404 fix.
+The whole `NEXT_STEPS §F` batch is now done. **NEXT (fresh session): §1 deep financial sweep** — exhaustively
+re-derive every ledger balance / VAT / doc amount / reconciliation and fold into `docs/lifecycles/payments-ledger.md`.
+
 ## 2026-07-12 #76 — Fix (G5): cancellation refund is % of amount PAID, not the booking total. Driven live.
 
 `calculate_policy_refund_amount` computed the entitlement as `total_amount × refund_percent`, so any booking
