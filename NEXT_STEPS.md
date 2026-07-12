@@ -83,7 +83,13 @@ booking spanning in-season and out-of-season nights prices each night correctly.
 The quick-fix cluster (invoice NaN · amenities batch-save · policy-picker green · listing "Things to know"
 rework) shipped in #68. These four bigger features remain — each its own focused build + live verify.
 
-### F1 — Flagged Listings (report a listing → admin moderation)
+### F1 — ✅ Flagged Listings — DONE + verified live 2026-07-12 (#70).
+Shipped: the "Report this listing" button opens a modal (name/email/phone/reason/message) →
+`reportListingAction` inserts into `listing_reports` + `notifyAdmins` → admin **Moderation → Flagged
+Listings** (`/admin/flagged-listings`, `listings.moderate`) with tabs + status actions (audited). Migration
+`20260712190000`. Original spec kept below.
+
+### F1(orig) — Flagged Listings (report a listing → admin moderation)
 - Replace the dead "Report this listing" button on `/property/[slug]` (page.tsx ~L1005) with a client modal
   (`FormModal`) + form: **name, email, phone, reason (preset dropdown), short message**.
 - New table `listing_reports` (listing_id, reporter name/email/phone, reason, message, status

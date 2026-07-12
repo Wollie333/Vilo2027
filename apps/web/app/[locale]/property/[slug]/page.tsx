@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import {
   BadgeCheck,
-  Flag,
   Info,
   Key,
   RotateCcw,
@@ -43,6 +42,7 @@ import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RatesSection, type SeasonRow } from "./RatesSection";
+import { ReportListingButton } from "./ReportListingButton";
 import { RequestQuoteButton } from "./RequestQuoteButton";
 import { ReservePanel } from "./ReservePanel";
 import { loadListingReviews } from "./reviews-data";
@@ -1001,12 +1001,10 @@ async function ListingBody({
               minNights={listing.min_nights}
             />
 
-            <button
-              type="button"
-              className="mt-7 inline-flex items-center gap-1.5 text-xs text-brand-mute underline underline-offset-2 hover:text-brand-ink"
-            >
-              <Flag className="h-3.5 w-3.5" /> Report this listing
-            </button>
+            <ReportListingButton
+              listingId={listing.id}
+              listingName={listing.name}
+            />
           </section>
         </div>
 

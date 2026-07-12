@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-12 #70 — Flagged Listings (F1): report-a-listing modal → admin Moderation queue. Driven live.
+
+Founder §F1. The dead "Report this listing" button on `/property/[slug]` now works, and reports land in a
+new admin moderation queue.
+
+- **Migration `20260712190000`:** `listing_reports` (property + reporter name/email/phone, reason enum,
+  message, status open→reviewing→actioned|dismissed, admin_note, reviewed_by/at). Admin/staff RLS;
+  reports inserted server-side (service role) so anonymous guests can report.
+- **Public:** `ReportListingButton.tsx` (client `FormModal`) + `reportListingAction` (Zod + honeypot) →
+  inserts the report + `notifyAdmins(category:"support", kind:"listing_report_filed")` → admin "Latest
+  actions" feed. Reason presets live in `report-constants.ts` (kept out of the "use server" file).
+- **Admin:** new **Moderation → Flagged Listings** page (`/admin/flagged-listings`, gated on
+  `listings.moderate`) with open/reviewing/resolved/all tabs, per-report cards (reason, reporter, message,
+  open-listing links) and Mark-reviewing / Mark-actioned / Dismiss actions (`withAdminAudit`, targetType
+  "listing"). Nav item + `NAV_PERM` added to `AdminSidebar`.
+- Verified live: submitting the form created a `listing_reports` row + admin notification; the admin page
+  listed it; "Mark reviewing" flipped status + wrote an `admin_audit_log` row. type-check, lint green.
+
 ## 2026-07-12 #69 — Vanishing-guest accounting (F3): no-show forfeiture — write off outstanding, keep paid as revenue, Forfeit statement. Driven live.
 
 Founder §F3 (decisions: forfeited = revenue · ask each time · doc "Forfeit statement"). A guest who partly

@@ -88,6 +88,12 @@ const FINANCE: GmailNavItem[] = [
 const MODERATION: GmailNavItem[] = [
   { href: "/admin/reviews", label: "Reviews", icon: Star, match: "prefix" },
   {
+    href: "/admin/flagged-listings",
+    label: "Flagged listings",
+    icon: Flag,
+    match: "prefix",
+  },
+  {
     href: "/admin/data-requests",
     label: "Data requests",
     icon: ShieldAlert,
@@ -159,6 +165,7 @@ const NAV_PERM: Record<string, string> = {
   "/admin/affiliates": "payments.view",
   "/admin/reporting": "payments.view",
   "/admin/reviews": "reviews.moderate",
+  "/admin/flagged-listings": "listings.moderate",
   "/admin/data-requests": "users.view",
   "/admin/platform/settings": "platform.settings",
   "/admin/platform/features": "platform.features",
