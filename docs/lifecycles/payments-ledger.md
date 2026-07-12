@@ -81,11 +81,16 @@ beside it. "Paid" = sum of **completed, non-voided, inbound** payment rows
   - card (Paystack) async: `supabase/functions/paystack-webhook/index.ts`.
   - manual booking recorded-as-paid: `app/[locale]/dashboard/bookings/new/actions.ts`
     (`recordBookingPayment` against the **DB** post-VAT `total_amount`).
-- Logic (identical across channels): paid = Σ completed inbound rows;
-  `balance_due = max(0, total − paid)`; `payment_status = completed` if `paid ≥ total`
-  else `partial`. **Never** clobber a terminal money state (refunded / partially_refunded
-  / voided / failed) — the refund flow owns those. Overpayment floors the balance at 0
-  and posts the excess to `guest_credit_ledger` (per-host store credit).
+- Logic (identical across channels): **paid = NET captured = Σ(amount − refunded_amount)** over
+  non-voided inbound rows in status `completed / partially_refunded / refunded` (the canonical
+  `sumPaidFromRows` / `sumCompletedPaid` in `lib/payments/ledger.ts`, mirroring the DB rollup in
+  `update_payment_refunded_amount()`). A refund increments `payments.refunded_amount` and flips the row's
+  status to `partially_refunded` (or `refunded` when fully back) — so a partially-refunded row still counts
+  its **retained** portion, a fully-refunded row nets to 0. (Fixed #74: it previously counted only
+  `status='completed'`, so any partially-refunded payment showed `PAID R0` / full balance due.)
+  `balance_due = max(0, total − paid)`; `payment_status = completed` if `paid ≥ total` else `partial`.
+  **Never** clobber a terminal money state (refunded / partially_refunded / voided / failed) — the refund
+  flow owns those. Overpayment floors the balance at 0 and posts the excess to `guest_credit_ledger`.
 - DB writes: `bookings.balance_due, payment_status`; `payments` (settled row);
   possibly `guest_credit_ledger` (overpay).
 - Webhook specifics (`paystack-webhook`, fixed CHANGELOG #58): the money-state update
@@ -157,7 +162,8 @@ driven by the host recording each receipt, and it must stay clean at every stage
 - `deposit_amount + balance_due == total_amount` at INSERT on a VAT listing (rounding
   to the cent). VAT: `net → vat = round(net·rate/100) → gross = net + vat`; charge ==
   shown == invoice total.
-- Σ(completed inbound payments) == `total − balance_due` (== `total` when completed).
+- NET paid `Σ(amount − refunded_amount)` over inbound completed/partially_refunded/refunded rows ==
+  `total − balance_due` (== `total` when completed; == retained portion after a partial refund).
 - One invoice per booking transition; no duplicate `blocked_dates` (trigger owns them,
   webhook does **not** re-insert — AGENT_RULES §4.2).
 - Refund and credit note are **separate** events — a refund does **not** auto-mint a

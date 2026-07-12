@@ -204,10 +204,13 @@ in web + PDF, running balance reconciles with the ledgers. Original spec kept be
 - **G7 (P2)** — add-on refundability decision (flag refundable/non-refundable; exclude or per-line).
 - **G8/G9 (P3)** — freeze the accepted platform-T&C **text** (not just the version stamp); split the one
   combined checkout acceptance into distinct host-legal vs Wielo-terms acknowledgements.
-- **⚠️ Ledger quirk found (belongs to §1 sweep):** after a **partial** refund the Payments panel shows
-  `PAID R0` / full balance due, because `sumCompletedPaid` filters `status='completed'` and the refund
-  trigger flips the payment to `partially_refunded` — so a partially-refunded payment stops counting as
-  paid at all. Pre-existing (not caused by G4). Net paid should be `captured − refunded`.
+- **✅ Ledger quirk FIXED + verified live 2026-07-12 (#74):** partial-refund "PAID R0" bug. `sumPaidFromRows`
+  / `sumCompletedPaid` (`lib/payments/ledger.ts`) now compute **net paid = Σ(amount − refunded_amount)** over
+  non-voided inbound rows in status `completed/partially_refunded/refunded` (mirrors the DB rollup in
+  `update_payment_refunded_amount()`), instead of counting only `status='completed'` at full amount. All 4
+  `sumPaidFromRows` callers updated to SELECT + pass `refunded_amount` (booking detail, guest record,
+  payment detail, payments list) — else a partially-refunded row would over-count. Verified: BK-0027
+  (captured R4 830, refunded R2 000) now shows **PAID R2 830 / balance R2 000** (was PAID R0 / R4 830 due).
 
 **Also fold in (card-path proof):** provide **Paystack test/sandbox** keys + connect a test host so the
 card checkout, `/pay` deposit toggle, and `paystack-webhook` can be driven end-to-end (the current test

@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-12 #74 — Fix: partial refund showed "PAID R0" — net paid is now captured − refunded. Driven live.
+
+The §0 ledger quirk. `sumPaidFromRows` / `sumCompletedPaid` (`lib/payments/ledger.ts`) counted only
+`status='completed'` at full amount, but a refund flips the payment row to `partially_refunded` and
+increments `refunded_amount` — so a partially-refunded payment dropped out of "paid" entirely, showing
+`PAID R0` and the full balance as due.
+
+- **Canonical fix:** paid = **NET captured = Σ(amount − refunded_amount)** over non-voided inbound rows in
+  status `completed / partially_refunded / refunded` (floored at 0) — mirroring the DB rollup in
+  `update_payment_refunded_amount()`. A fully-refunded row nets to 0 (correctly R0); a partially-refunded
+  one keeps its retained portion.
+- **All 4 `sumPaidFromRows` callers** updated to SELECT + pass `refunded_amount` (else a refunded row would
+  over-count): booking detail, guest record (per-booking map, also now passes `voided_at`), payment detail,
+  payments list.
+- Verified live on **BK-0027** (captured R4 830, refunded R2 000): Payments panel now shows **PAID R2 830 /
+  BALANCE DUE R2 000** (was PAID R0 / R4 830 due), matching the header "R2 000 · R2 000 refunded".
+  `pnpm build`, `tsc`, `next lint` green. `docs/lifecycles/payments-ledger.md` updated.
+
 ## 2026-07-12 #73 — Statement of account (F4): bank-style running statement, host→guest + Wielo→host. Driven live.
 
 Founder §F4 (decisions: like a bank download statement · bank convention · download AND send · conventional

@@ -112,6 +112,7 @@ export default async function PaymentsPage() {
       kind: p.kind,
       status: p.status,
       voided_at: p.voided_at,
+      refunded_amount: Number(p.refunded_amount ?? 0),
     })),
   );
   // Total refunds = sum of payments.refunded_amount (trigger-maintained as

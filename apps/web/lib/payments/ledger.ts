@@ -1,11 +1,14 @@
 // Payment-ledger maths — the single source of truth for what a booking has been
 // paid, what it still owes, and how overpayment becomes guest store credit.
 //
-// A booking has MANY payment rows. "Paid" is the sum of COMPLETED inbound
-// entries (deposit / balance / addon / generic payment / applied credit).
-// Refunded entries flip to status 'refunded' and drop out of the sum. Overpaid
-// money never sits on the booking: the excess is posted to guest_credit_ledger
-// (per-host, keyed by the CRM gkey) and the booking balance floors at zero.
+// A booking has MANY payment rows. "Paid" is the NET captured across inbound
+// entries (deposit / balance / addon / generic payment / applied credit): each
+// row's `amount` minus its `refunded_amount`. A refund increments the payment's
+// refunded_amount and flips its status to 'partially_refunded' (or 'refunded'
+// once fully back) — so those rows must still count their retained portion, NOT
+// drop out. Overpaid money never sits on the booking: the excess is posted to
+// guest_credit_ledger (per-host, keyed by the CRM gkey) and the balance floors
+// at zero.
 //
 // Server-only. All writes use the service-role admin client; callers verify the
 // host owns the booking first (payments have no host-write RLS).
@@ -35,45 +38,52 @@ export type BookingPaymentState = {
 };
 
 /** One payment row's fields that matter for the paid-sum (any caller can pass
- * already-fetched rows here instead of re-querying). */
+ * already-fetched rows here instead of re-querying). Include `refunded_amount`
+ * or a partially-refunded row will over-count — see {@link sumPaidFromRows}. */
 export type LedgerRowLike = {
   amount: number | string;
   kind: string | null;
   status: string | null;
   voided_at?: string | null;
+  refunded_amount?: number | string | null;
 };
 
+/** Statuses whose captured money still counts toward "paid" (net of refunds). */
+const PAID_STATUSES = ["completed", "partially_refunded", "refunded"];
+
 /**
- * Sum the completed inbound payments from ALREADY-FETCHED rows — the one place
- * that defines what "amount paid" means. Pages that already loaded a booking's
- * payments for display should call this rather than reduce with their own copy
- * of INBOUND_KINDS.
+ * NET amount paid from ALREADY-FETCHED rows — the one place that defines what
+ * "amount paid" means: Σ(amount − refunded_amount) over non-voided inbound rows
+ * that captured money (completed / partially_refunded / refunded). A fully
+ * refunded row nets to 0; a partially refunded one keeps its retained portion.
+ * Mirrors the DB rollup in update_payment_refunded_amount(). Callers MUST select
+ * `refunded_amount` — otherwise a refunded row would count its full amount.
  */
 export function sumPaidFromRows(rows: LedgerRowLike[]): number {
   let paid = 0;
   for (const p of rows) {
     if (
-      p.status === "completed" &&
       p.voided_at == null &&
+      PAID_STATUSES.includes(p.status ?? "") &&
       INBOUND_KINDS.includes(p.kind ?? "")
     ) {
-      paid += Number(p.amount);
+      paid += Number(p.amount) - Number(p.refunded_amount ?? 0);
     }
   }
-  return round2(paid);
+  return round2(Math.max(0, paid));
 }
 
-/** Sum of completed inbound payments for a booking (queries, then sums via the
- * canonical {@link sumPaidFromRows}). */
+/** Net paid for a booking (queries, then sums via the canonical
+ * {@link sumPaidFromRows}). */
 export async function sumCompletedPaid(
   admin: Admin,
   bookingId: string,
 ): Promise<number> {
   const { data } = await admin
     .from("payments")
-    .select("amount, kind, status, voided_at")
+    .select("amount, kind, status, voided_at, refunded_amount")
     .eq("booking_id", bookingId)
-    .eq("status", "completed")
+    .in("status", PAID_STATUSES)
     .is("voided_at", null);
   return sumPaidFromRows(data ?? []);
 }

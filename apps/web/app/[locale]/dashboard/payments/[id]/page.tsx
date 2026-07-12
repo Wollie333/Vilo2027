@@ -209,7 +209,7 @@ export default async function PaymentDetailPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("payments")
-      .select("amount, kind, status, voided_at")
+      .select("amount, kind, status, voided_at, refunded_amount")
       .eq("booking_id", booking.id),
   ]);
 
@@ -226,6 +226,7 @@ export default async function PaymentDetailPage({
               kind: p.kind,
               status: p.status,
               voided_at: p.voided_at,
+              refunded_amount: Number(p.refunded_amount ?? 0),
             })),
           ),
       ) * 100,

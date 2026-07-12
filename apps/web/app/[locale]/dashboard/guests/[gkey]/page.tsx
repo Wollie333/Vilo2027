@@ -158,15 +158,27 @@ export default async function GuestRecordPage({
   if (bookingIds.length > 0) {
     const { data: payRows } = await admin
       .from("payments")
-      .select("booking_id, amount, kind, status, voided_at")
+      .select("booking_id, amount, kind, status, voided_at, refunded_amount")
       .in("booking_id", bookingIds);
     const byBooking = new Map<
       string,
-      { amount: number; kind: string | null; status: string | null }[]
+      {
+        amount: number;
+        kind: string | null;
+        status: string | null;
+        voided_at: string | null;
+        refunded_amount: number;
+      }[]
     >();
     for (const p of payRows ?? []) {
       const arr = byBooking.get(p.booking_id) ?? [];
-      arr.push({ amount: Number(p.amount), kind: p.kind, status: p.status });
+      arr.push({
+        amount: Number(p.amount),
+        kind: p.kind,
+        status: p.status,
+        voided_at: p.voided_at ?? null,
+        refunded_amount: Number(p.refunded_amount ?? 0),
+      });
       byBooking.set(p.booking_id, arr);
     }
     for (const [id, rows] of byBooking) {

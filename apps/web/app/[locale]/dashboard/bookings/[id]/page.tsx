@@ -186,7 +186,7 @@ export default async function BookingDetailPage({
   const { data: paymentRows } = await supabase
     .from("payments")
     .select(
-      "id, status, method, kind, amount, note, created_at, captured_at, receipt_number, receipt_token",
+      "id, status, method, kind, amount, refunded_amount, note, created_at, captured_at, receipt_number, receipt_token",
     )
     .eq("booking_id", booking.id)
     .is("voided_at", null)
