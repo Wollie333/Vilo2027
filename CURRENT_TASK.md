@@ -2,7 +2,27 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-11 #45) — TAB 8 AFFILIATES COMPLETE + ALL 20 ADMIN TABS FEATURE-READY. ALL PUSHED @ `9f820649`.
+## ▶▶▶ SAVE POINT (2026-07-12) — HOST DASHBOARD SWEEP COMPLETE · big work queued in `NEXT_STEPS.md`. Pushed @ `344b3956`.
+
+**What's done:** the host-dashboard functional sweep (all 35 tabs, Batches A–G) is complete and pushed;
+plus the guest stay-details email + configurable access-details send time + guest check-in reminder.
+New standard: **BUSINESS_PRINCIPLES.md → Principle #12** — every feature gets a detailed lifecycle flow
+in `docs/lifecycles/` (index at `docs/lifecycles/README.md`).
+
+**▶ NEXT (start each in a fresh session): see `NEXT_STEPS.md`.** In short:
+1. **Deep financial sweep** — re-derive every ledger balance / VAT / document amount / reconciliation.
+2. **Real live booking lifecycle** — drive a booking end-to-end, verify notifications + calendar + ledger
+   on both ends, and record it in `docs/lifecycles/booking.md` (Principle #12). Includes the check-in
+   reminder → access card + stay-details email → checkout → **review request (make it 60 min, currently 5)**.
+3. **Reviews feature** — deep audit + `docs/lifecycles/reviews.md`; change post-checkout delay 5 min → 60 min.
+4. **Backfill core lifecycle docs** (booking · payments-ledger · reviews first).
+
+Detail + the host-sweep result live in memory [[host-dashboard-sweep]]. Founder ops-config + a duplicate
+test-subscription-row cleanup are noted at the bottom of `NEXT_STEPS.md`.
+
+---
+
+## (previous) SAVE POINT (2026-07-11 #45) — TAB 8 AFFILIATES COMPLETE + ALL 20 ADMIN TABS FEATURE-READY. ALL PUSHED @ `9f820649`.
 
 **Resume:** read memory [[project-affiliate-hardening-plan]] (full detail of everything below) + [[admin-mvp-hardening-checklist]].
 Drive preview as super_admin `wollie@manamarketing.co.za`; DB truth via service-role REST — recreate the helper

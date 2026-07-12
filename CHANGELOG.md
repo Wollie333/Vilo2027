@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-12 #57 — Configurable access-details send time + guest check-in reminder + Principle #12 + save point.
+
+- **Host-configurable access-details send time.** New per-property `property_access.send_lead_minutes`
+  (default 60; migration `20260712120000` re-points `send_due_access_cards()` at it). Selector on the
+  Guest Access tab (1h/2h/3h/6h/12h/1d/2d/3d). The trip page reads the same value for the code-unlock gate
+  and shows a dynamic "unlocks X before check-in" label. Verified live (selector → DB).
+- **Guest check-in reminder wired.** `checkin-reminder-worker` now dispatches `check_in_reminder_guest`
+  (push + in-app, "Check-in tomorrow!") the day before, alongside the host reminder — it was defined +
+  seeded but never dispatched. Copy fix: Guest Access editor "24 hours" → the configured lead.
+- **Principle #12** (`BUSINESS_PRINCIPLES.md`): every feature has a detailed, living lifecycle flow in
+  `docs/lifecycles/` (index seeded) — real-world steps, each naming functions/files + side-effects.
+- **Save point (`NEXT_STEPS.md` + `CURRENT_TASK.md`):** queued the big founder asks for fresh sessions —
+  deep financial sweep, a verified+recorded real booking lifecycle, reviews audit (incl. post-checkout
+  review-request delay 5 min → 60 min), and backfilling core lifecycle docs.
+
 ## 2026-07-12 #56 — Guest gets an email with their stay details (gate code, Wi-Fi) before check-in.
 
 Founder ask: once a booking is confirmed + paid, the guest should get their full stay details just before

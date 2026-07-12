@@ -506,3 +506,80 @@ functionality data defeats the purpose — you get a broken app, not a clean one
   blank slate. Never report a wipe done until the app is seen working fresh.
 - **If ever in doubt whether a table is user or functionality data, ask the founder
   before deleting it** — don't guess and risk breaking the app.
+
+---
+
+## Principle #12 — Every feature has a detailed, living lifecycle flow
+
+**Added:** 2026-07-12
+
+### The principle
+
+**Every feature on the platform must have a documented lifecycle flow** that maps
+the feature the way it plays out in the *real world*, step by step, from the first
+trigger to the final state — and **each step names the exact functions, files and
+logic that make it happen**, plus the side-effects it fires (notifications,
+calendar changes, ledger entries, emails, status transitions).
+
+These flows live in **`docs/lifecycles/<feature>.md`** and are the canonical map a
+developer opens *before* touching a feature — to understand how it works, to add or
+re-order a stage, to change what a stage does, or to find and fix a broken link in
+the chain quickly. They are crucial, load-bearing documentation for the dev team
+going forward, not an afterthought.
+
+### Why this matters
+
+- **You can't safely change what you can't see end-to-end.** A feature is a *chain*
+  of steps across many files (UI → server action → DB trigger → cron → worker →
+  email/push/inbox → ledger → calendar). Without the whole chain written down, a
+  change to one link silently breaks another. The lifecycle flow makes the chain
+  explicit so edits are surgical and fast.
+- **It's how we onboard, debug, and extend.** "Where does the review request come
+  from?" or "why didn't the guest get the access email?" should be answerable by
+  opening one document, not by re-reading ten files.
+- **It reinforces Principle #5 (One Source of Truth) and #9 (seen working).** The
+  flow is the single description of the feature's behaviour; verifying the feature
+  live means walking the flow and seeing every step fire.
+
+### The rules (what must always be true)
+
+1. **One lifecycle doc per feature**, at `docs/lifecycles/<feature>.md` (e.g.
+   `booking.md`, `reviews.md`, `payments.md`, `access-details.md`).
+2. **Model the real-world flow, not the code layout.** Steps are the things that
+   actually happen in order ("guest books → guest gets confirmation → host ledger
+   charge row created → host gets a booking-request notification → …"), each with a
+   clear trigger and actor (guest / host / system-cron / webhook).
+3. **Every step lists its functions + logic:** the file(s)/function(s) that run,
+   the DB tables written, the trigger/RPC/cron involved, and every side-effect
+   (which notification kind + channels, which email template, inbox card, calendar
+   `blocked_dates` change, ledger/invoice/receipt/credit-note row, status
+   transition). Name real symbols and paths — not prose.
+4. **Cover the branches**, not just the happy path: EFT vs card vs PayPal, pending
+   vs confirmed, cancellation/refund, no-show, decline, expiry.
+5. **Keep it living.** When you add, re-order, or change a stage — or find the flow
+   is wrong — update the doc in the *same* change. A stale lifecycle is worse than
+   none. Note the date of material updates.
+6. **Verify against reality.** A lifecycle flow is only trustworthy once each step
+   has been seen firing end-to-end (Principle #9). Mark steps that are documented
+   but not yet verified as such, loudly.
+
+### How to apply it
+
+- **Backfill the core features first** (booking, payments/ledger, reviews,
+  access-details, quotes, subscriptions), then **write the lifecycle doc as part of
+  building or auditing any feature** from here on.
+- **Step skeleton** (repeat per step):
+
+  ```
+  ### Step N — <what happens, in real-world terms>
+  - Trigger: <what starts this step> · Actor: guest | host | system(cron/webhook)
+  - Functions/files: <file:function(s) that run>
+  - Logic: <the decision/branch, in one or two lines>
+  - DB writes: <tables + key columns>
+  - Side-effects: notification(<kind>, channels) · email(<template>) · inbox card ·
+    calendar(blocked_dates …) · ledger(<row type>) · status(<from → to>)
+  - Next: → Step N+1 (and any branches)
+  ```
+
+- **Index them** in `docs/lifecycles/README.md` so the set is discoverable, and link
+  the relevant lifecycle doc from the feature's code area when helpful.
