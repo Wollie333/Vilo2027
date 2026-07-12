@@ -36,6 +36,9 @@ Steps documented but **not yet verified live** are marked `⚠️ not verified`.
 | Subscriptions (signup → plan → renew → change → cancel) | `subscriptions.md` | ⬜ to be written |
 | Specials / deals (create → publish → book → redeem) | `specials.md` | ⬜ to be written |
 | Calendar sync (iCal import/export, block conflicts) | `calendar-sync.md` | ⬜ to be written |
+| Support inbox (host↔Wielo + guest↔Wielo platform threads) | `support-inbox.md` | 🟢 driven live both directions; admin UI click-through ⚠️ not screenshotted |
+| Policy enforcement & refunds (snapshot → immutability → refund → payment_status) | `policy-refunds.md` | ⬜ to be written (shipped 2026-07-12; see `docs/features/POLICY_ENFORCEMENT_ADDONS_REFUNDS_PLAN.md`) |
+| Affiliate programme (join → link → refer → commission → payout) | `affiliate.md` | ⬜ to be written (access-per-shell shipped 2026-07-12) |
 
 Add a row when you start a new feature's flow. Backfill the core features
 (booking, payments-ledger, reviews) first — they anchor everything else.
