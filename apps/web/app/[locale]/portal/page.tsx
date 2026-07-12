@@ -51,7 +51,7 @@ export default async function PortalOverviewPage() {
     supabase
       .from("bookings")
       .select(
-        "id, reference, status, check_in, check_out, session_date, listing:properties(name)",
+        "id, reference, status, payment_status, balance_due, check_in, check_out, session_date, listing:properties(name)",
       )
       .eq("guest_id", user.id)
       .is("deleted_at", null)
@@ -92,6 +92,8 @@ export default async function PortalOverviewPage() {
     id: string;
     reference: string;
     status: string;
+    payment_status: string | null;
+    balance_due: number | null;
     check_in: string | null;
     check_out: string | null;
     session_date: string | null;
@@ -100,6 +102,29 @@ export default async function PortalOverviewPage() {
   const tripListing = Array.isArray(trip?.listing)
     ? trip?.listing[0]
     : trip?.listing;
+
+  // Does the guest still owe money on this trip? (EFT awaiting their transfer,
+  // or an unpaid pending booking, or a remaining balance.) Drives a correct
+  // status pill + a pay prompt — never the misleading raw "pending eft".
+  const tripOwes =
+    trip != null &&
+    trip.status !== "cancelled" &&
+    trip.payment_status !== "refunded" &&
+    trip.payment_status !== "partially_refunded" &&
+    (trip.status === "pending_eft" ||
+      (trip.status === "pending" &&
+        trip.payment_status !== "completed" &&
+        trip.payment_status !== "captured") ||
+      Number(trip.balance_due ?? 0) > 0);
+  const tripStatusLabel = !trip
+    ? ""
+    : tripOwes
+      ? "Payment needed"
+      : trip.status === "pending"
+        ? "Awaiting host"
+        : trip.status === "checked_in"
+          ? "Checked in"
+          : "Confirmed";
 
   // Dedupe recent completed stays by slug → "Book again" quick links.
   const rebookSeen = new Set<string>();
@@ -170,8 +195,16 @@ export default async function PortalOverviewPage() {
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-brand-secondary">
-                  {trip.status.replace(/_/g, " ")}
+                <div
+                  className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
+                    tripOwes
+                      ? "bg-amber-100 text-amber-800"
+                      : trip.status === "pending"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-brand-accent text-brand-secondary"
+                  }`}
+                >
+                  {tripStatusLabel}
                 </div>
                 <div className="mt-2 font-display text-lg font-semibold text-brand-ink">
                   {tripListing?.name ?? "Your stay"}
@@ -181,6 +214,11 @@ export default async function PortalOverviewPage() {
                     ? `Session: ${fmtDate(trip.session_date)}`
                     : `${fmtDate(trip.check_in)} → ${fmtDate(trip.check_out)}`}
                 </div>
+                {tripOwes ? (
+                  <div className="mt-1.5 text-[12.5px] font-medium text-amber-700">
+                    Complete your payment to confirm →
+                  </div>
+                ) : null}
                 <div className="mt-1 font-mono text-xs text-brand-mute">
                   {trip.reference}
                 </div>

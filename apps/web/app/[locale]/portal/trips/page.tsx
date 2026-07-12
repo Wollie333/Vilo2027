@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import { TripsClient, type Trip, type TripStatus } from "./TripsClient";
+import {
+  TripsClient,
+  type PayState,
+  type Trip,
+  type TripStatus,
+} from "./TripsClient";
 
 export const metadata: Metadata = {
   title: "My trips",
@@ -17,6 +22,8 @@ type Row = {
   id: string;
   reference: string;
   status: string;
+  payment_status: string | null;
+  balance_due: number | null;
   check_in: string | null;
   check_out: string | null;
   nights: number | null;
@@ -73,6 +80,29 @@ function normaliseStatus(status: string): TripStatus {
   return "confirmed";
 }
 
+// Guest-facing money state, so the trips list shows the SAME picture the trip
+// detail + host do. "pay_now" = the ball is in the guest's court (EFT awaiting
+// their transfer, or an unpaid pending booking) — never "Awaiting host".
+function derivePayState(
+  rawStatus: string,
+  paymentStatus: string | null,
+  balanceDue: number,
+  refundTotal: number,
+): PayState {
+  if (CANCELLED_STATUSES.has(rawStatus)) {
+    return refundTotal > 0 ? "refunded" : null;
+  }
+  if (paymentStatus === "refunded") return "refunded";
+  if (paymentStatus === "partially_refunded") return "partially_refunded";
+  if (rawStatus === "pending_eft") return "pay_now";
+  if (paymentStatus === "completed" || paymentStatus === "captured") {
+    return "paid";
+  }
+  if (balanceDue > 0) return "balance_due";
+  if (rawStatus === "pending") return "pay_now";
+  return null;
+}
+
 export default async function PortalTripsPage() {
   const supabase = createServerClient();
   const {
@@ -86,7 +116,7 @@ export default async function PortalTripsPage() {
         .from("bookings")
         .select(
           `
-          id, reference, status,
+          id, reference, status, payment_status, balance_due,
           check_in, check_out, nights,
           guests_count, total_amount, refund_total, currency, scope,
           listing:properties ( name, slug, city, province, accommodation_type, property_type, photos:property_photos ( url, sort_order ) ),
@@ -161,10 +191,20 @@ export default async function PortalTripsPage() {
       ? (reviewByBooking.get(b.id) ?? null)
       : null;
 
+    const balanceDue = b.balance_due != null ? Number(b.balance_due) : 0;
+    const payState = derivePayState(
+      b.status,
+      b.payment_status,
+      balanceDue,
+      b.refund_total != null ? Number(b.refund_total) : 0,
+    );
+
     return {
       id: b.id,
       reference: b.reference,
       status,
+      payState,
+      balanceDue,
       bucket,
       featured: false,
       name: listing?.name ?? "Stay",

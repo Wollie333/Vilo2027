@@ -224,6 +224,7 @@ export default async function PortalTripDetailPage({
       check_in, check_out, nights, guests_count,
       base_amount, cleaning_fee, discount_amount, total_amount, balance_due, currency,
       special_requests, host_message, created_at, confirmed_at,
+      checked_in_at, checked_out_at, cancelled_at,
       guest_name, guest_email, guest_phone, additional_guests,
       accepted_terms_version, accepted_privacy_version, policy_acknowledged_at,
       has_open_refund,
@@ -269,6 +270,9 @@ export default async function PortalTripDetailPage({
     host_message: string | null;
     created_at: string;
     confirmed_at: string | null;
+    checked_in_at: string | null;
+    checked_out_at: string | null;
+    cancelled_at: string | null;
     guest_name: string | null;
     guest_email: string | null;
     guest_phone: string | null;
@@ -518,6 +522,26 @@ export default async function PortalTripDetailPage({
   const isLive = ["confirmed", "checked_in"].includes(booking.status);
   const isCancelled = booking.status.startsWith("cancelled");
 
+  // Does the guest still owe money? EFT awaiting their transfer, an unpaid
+  // pending booking, or a remaining balance. Drives the Pay-now CTA + next-step
+  // guidance so a guest is never stuck on "Pending EFT / Due" with no action.
+  const isEft =
+    booking.payment_method === "eft" || booking.status === "pending_eft";
+  // A refund leaves balance_due > 0 in the ledger, but that is money returned,
+  // not owed — never prompt a refunded guest to "pay".
+  const isRefundState =
+    booking.payment_status === "refunded" ||
+    booking.payment_status === "partially_refunded";
+  const owesMoney =
+    !isCancelled &&
+    !isRefundState &&
+    booking.status !== "completed" &&
+    booking.status !== "checked_out" &&
+    (booking.status === "pending_eft" ||
+      (booking.status === "pending" && !isPaidInFull) ||
+      balanceDue > 0);
+  const payHref = `/booking/${booking.id}/pay`;
+
   // Access secrets (gate/door codes, Wi-Fi password) unlock the host's chosen
   // lead before check-in (default 1h) and only for a live/completed booking.
   // check_in_time is a wall-clock time in the property's timezone (SA, UTC+2,
@@ -644,6 +668,31 @@ export default async function PortalTripDetailPage({
     acceptedPrivacyVersion: booking.accepted_privacy_version,
     acknowledgedAt: booking.policy_acknowledged_at,
   });
+
+  // Booking timeline (guest-facing) — the same audit trail the host sees, from
+  // the booking's own status timestamps + the first captured payment. Rendered
+  // newest-last so the guest can follow requested → confirmed → paid → stay.
+  const { data: firstPaid } = await createAdminClient()
+    .from("payments")
+    .select("captured_at")
+    .eq("booking_id", booking.id)
+    // A later refund flips the payment to partially_refunded/refunded, but the
+    // money WAS received — keep the "Payment received" step in the timeline.
+    .in("status", ["completed", "partially_refunded", "refunded"])
+    .not("captured_at", "is", null)
+    .order("captured_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const timeline = [
+    { label: "Booking requested", at: booking.created_at },
+    { label: "Payment received", at: firstPaid?.captured_at ?? null },
+    { label: "Confirmed by host", at: booking.confirmed_at },
+    { label: "Checked in", at: booking.checked_in_at },
+    { label: "Checked out", at: booking.checked_out_at },
+    { label: "Cancelled", at: booking.cancelled_at },
+  ]
+    .filter((s) => s.at != null)
+    .sort((a, b) => new Date(a.at!).getTime() - new Date(b.at!).getTime());
 
   return (
     <div className="w-full">
@@ -1373,11 +1422,95 @@ export default async function PortalTripDetailPage({
               </ul>
             </section>
           ) : null}
+
+          {/* TRIP TIMELINE — booking status history (guest-facing audit trail) */}
+          {timeline.length > 0 ? (
+            <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="border-b border-brand-line px-6 py-4">
+                <div className="font-display text-[15px] font-bold text-brand-ink">
+                  Trip timeline
+                </div>
+              </div>
+              <ol className="p-6">
+                {timeline.map((step, i) => {
+                  const last = i === timeline.length - 1;
+                  const isCancelStep = step.label === "Cancelled";
+                  return (
+                    <li key={i} className="flex gap-3.5">
+                      <div className="flex flex-col items-center">
+                        <span
+                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                            isCancelStep
+                              ? "bg-status-cancelled/15 text-status-cancelled"
+                              : "bg-status-confirmed/15 text-status-confirmed"
+                          }`}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </span>
+                        {!last ? (
+                          <span className="my-1 w-px flex-1 bg-brand-line" />
+                        ) : null}
+                      </div>
+                      <div className={last ? "" : "pb-4"}>
+                        <div className="text-[13.5px] font-semibold text-brand-ink">
+                          {step.label}
+                        </div>
+                        <div className="num mt-0.5 text-[12px] text-brand-mute">
+                          {new Date(step.at!).toLocaleString("en-ZA", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "Africa/Johannesburg",
+                          })}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          ) : null}
         </div>
 
         {/* RIGHT RAIL */}
         <div className="space-y-6">
           <div className="space-y-6 xl:sticky xl:top-[88px]">
+            {/* PAY NOW — the guest still owes money on this trip */}
+            {owesMoney ? (
+              <section className="overflow-hidden rounded-card border border-amber-300 bg-amber-50 shadow-card">
+                <div className="p-5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-700">
+                    Payment needed
+                  </div>
+                  <div className="mt-1 font-display text-[22px] font-extrabold text-amber-900">
+                    {formatMoney(
+                      balanceDue > 0
+                        ? balanceDue
+                        : Number(booking.total_amount),
+                      currency,
+                    )}
+                    <span className="ml-1.5 text-[12px] font-semibold text-amber-700">
+                      {balanceDue > 0 ? "balance due" : "due"}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-amber-800">
+                    {isEft
+                      ? "Pay by EFT to confirm your stay — you’ll get the host’s bank details and your payment reference to complete the transfer."
+                      : "Complete your payment to confirm your stay."}
+                  </p>
+                  <Link
+                    href={payHref}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
+                  >
+                    <Lock className="h-4 w-4" />
+                    {isEft ? "Get bank details & pay" : "Pay now"}
+                  </Link>
+                </div>
+              </section>
+            ) : null}
+
             {/* COUNTDOWN / STATUS */}
             {!isCancelled ? (
               <section className="overflow-hidden rounded-card bg-brand-gradient-dark text-white shadow-lg">

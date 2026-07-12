@@ -18,11 +18,20 @@ import { useMemo, useState } from "react";
 
 export type TripStatus = "confirmed" | "pending" | "completed" | "cancelled";
 export type TripBucket = "upcoming" | "past" | "cancelled";
+export type PayState =
+  | "pay_now"
+  | "balance_due"
+  | "paid"
+  | "partially_refunded"
+  | "refunded"
+  | null;
 
 export type Trip = {
   id: string;
   reference: string;
   status: TripStatus;
+  payState: PayState;
+  balanceDue: number;
   bucket: TripBucket;
   featured: boolean;
   name: string;
@@ -115,6 +124,52 @@ const STATUS_META: Record<
   },
 };
 
+// The booking-status pill label, corrected for EFT/unpaid: a pending booking
+// where the guest still owes money is "Payment needed", NOT "Awaiting host".
+function statusLabel(trip: Trip): string {
+  if (trip.status === "pending") {
+    return trip.payState === "pay_now" ? "Payment needed" : "Awaiting host";
+  }
+  return STATUS_META[trip.status].label;
+}
+
+// Small money-state chip so the guest can scan paid / owed / refunded at a
+// glance — the same picture the trip detail + the host see.
+function PaymentChip({ trip }: { trip: Trip }) {
+  const s = trip.payState;
+  if (!s) return null;
+  const map: Record<NonNullable<PayState>, { label: string; cls: string }> = {
+    pay_now: {
+      label: "Pay now",
+      cls: "bg-amber-100 text-amber-800",
+    },
+    balance_due: {
+      label: `Balance ${formatZAR(trip.balanceDue)}`,
+      cls: "bg-amber-100 text-amber-800",
+    },
+    paid: {
+      label: "Paid",
+      cls: "bg-status-confirmed/12 text-status-confirmed",
+    },
+    partially_refunded: {
+      label: "Partially refunded",
+      cls: "bg-amber-100 text-amber-800",
+    },
+    refunded: {
+      label: "Refunded",
+      cls: "bg-red-50 text-red-700",
+    },
+  };
+  const m = map[s];
+  return (
+    <span
+      className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[10.5px] font-semibold ${m.cls}`}
+    >
+      {m.label}
+    </span>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Photo                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -206,10 +261,13 @@ function FeaturedTrip({ trip }: { trip: Trip }) {
               </span>
             </div>
             <div>
-              <div className="text-sm font-semibold text-brand-ink">
+              <div className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
                 {trip.status === "pending"
-                  ? "Awaiting host confirmation"
+                  ? trip.payState === "pay_now"
+                    ? "Payment needed to confirm"
+                    : "Awaiting host confirmation"
                   : "Your stay is confirmed"}
+                <PaymentChip trip={trip} />
               </div>
               <div className="mt-0.5 text-xs text-brand-mute">
                 {checkIn
@@ -269,12 +327,30 @@ function FeaturedTrip({ trip }: { trip: Trip }) {
 
           {/* Actions */}
           <div className="mt-5 flex flex-wrap items-center gap-2.5">
-            <Link
-              href={trip.detailHref}
-              className="inline-flex items-center gap-2 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
-            >
-              View booking <ArrowRight className="h-4 w-4" />
-            </Link>
+            {trip.payState === "pay_now" || trip.payState === "balance_due" ? (
+              <Link
+                href={`/booking/${trip.id}/pay`}
+                className="inline-flex items-center gap-2 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
+              >
+                {trip.payState === "balance_due" ? "Pay balance" : "Pay now"}{" "}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <Link
+                href={trip.detailHref}
+                className="inline-flex items-center gap-2 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
+              >
+                View booking <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
+            {trip.payState === "pay_now" || trip.payState === "balance_due" ? (
+              <Link
+                href={trip.detailHref}
+                className="inline-flex items-center gap-2 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-light"
+              >
+                View booking
+              </Link>
+            ) : null}
             <Link
               href="/portal/inbox"
               className="inline-flex items-center gap-2 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-light"
@@ -300,8 +376,8 @@ function FeaturedTrip({ trip }: { trip: Trip }) {
 /* -------------------------------------------------------------------------- */
 /*  Trip card                                                                  */
 /* -------------------------------------------------------------------------- */
-function StatusBadge({ status }: { status: TripStatus }) {
-  const m = STATUS_META[status];
+function StatusBadge({ trip }: { trip: Trip }) {
+  const m = STATUS_META[trip.status];
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-pill ${m.bg} ${m.text} px-2.5 py-1 text-[11px] font-semibold`}
@@ -310,7 +386,7 @@ function StatusBadge({ status }: { status: TripStatus }) {
         className="h-1.5 w-1.5 rounded-pill"
         style={{ background: m.dot }}
       />
-      {m.label}
+      {statusLabel(trip)}
     </span>
   );
 }
@@ -322,15 +398,29 @@ function TripActions({ trip }: { trip: Trip }) {
     ? `/property/${trip.slug}/book?guests=${trip.guests}`
     : "/portal/browse";
 
+  // Money still owed → a Pay CTA is the primary action (guest can pay the EFT
+  // balance or an unpaid pending booking without hunting through the inbox).
+  const owesMoney =
+    trip.payState === "pay_now" || trip.payState === "balance_due";
+
   if (trip.status === "confirmed") {
     return (
       <>
-        <Link
-          href={trip.detailHref}
-          className="flex-1 rounded bg-brand-primary px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-brand-secondary"
-        >
-          View booking
-        </Link>
+        {owesMoney ? (
+          <Link
+            href={`/booking/${trip.id}/pay`}
+            className="flex-1 rounded bg-brand-primary px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-brand-secondary"
+          >
+            {trip.payState === "balance_due" ? "Pay balance" : "Pay now"}
+          </Link>
+        ) : (
+          <Link
+            href={trip.detailHref}
+            className="flex-1 rounded bg-brand-primary px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-brand-secondary"
+          >
+            View booking
+          </Link>
+        )}
         <Link
           href="/portal/inbox"
           className="rounded border border-brand-line px-3 py-2 text-brand-ink hover:bg-brand-light"
@@ -345,12 +435,21 @@ function TripActions({ trip }: { trip: Trip }) {
   if (trip.status === "pending") {
     return (
       <>
-        <Link
-          href={trip.detailHref}
-          className="flex-1 rounded border border-brand-line px-3 py-2 text-center text-sm font-medium text-brand-ink hover:bg-brand-light"
-        >
-          View request
-        </Link>
+        {trip.payState === "pay_now" ? (
+          <Link
+            href={`/booking/${trip.id}/pay`}
+            className="flex-1 rounded bg-brand-primary px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-brand-secondary"
+          >
+            Pay now
+          </Link>
+        ) : (
+          <Link
+            href={trip.detailHref}
+            className="flex-1 rounded border border-brand-line px-3 py-2 text-center text-sm font-medium text-brand-ink hover:bg-brand-light"
+          >
+            View request
+          </Link>
+        )}
         <Link
           href="/portal/inbox"
           className="rounded border border-brand-line px-3 py-2 text-brand-ink hover:bg-brand-light"
@@ -430,8 +529,8 @@ function TripCard({ trip }: { trip: Trip }) {
           dimmed={trip.status === "cancelled"}
           className="absolute inset-0 h-full w-full"
         />
-        <div className="absolute left-3 top-3">
-          <StatusBadge status={trip.status} />
+        <div className="absolute left-3 top-3 flex items-center gap-1.5">
+          <StatusBadge trip={trip} />
         </div>
         {trip.status === "completed" &&
           trip.reviewed &&
@@ -486,16 +585,11 @@ function TripCard({ trip }: { trip: Trip }) {
               {trip.hostName ?? "Your host"}
             </span>
           </div>
-          <div className="shrink-0 text-right">
-            {trip.status === "cancelled" && trip.refunded != null ? (
-              <div className="text-xs font-medium text-brand-primary">
-                Refunded {formatZAR(trip.refunded)}
-              </div>
-            ) : (
-              <div className="num text-sm font-semibold text-brand-ink">
-                {formatZAR(trip.total)}
-              </div>
-            )}
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <div className="num text-sm font-semibold text-brand-ink">
+              {formatZAR(trip.total)}
+            </div>
+            <PaymentChip trip={trip} />
             <div className="font-mono text-[10px] text-brand-mute">
               {trip.reference}
             </div>

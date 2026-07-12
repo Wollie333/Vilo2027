@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-12 #64 — Guest-portal parity: correct status labels, Pay-now CTA, payment chips, booking timeline. Verified live.
+
+Founder: "both entities need to see what they're supposed to on the UI." Closed the audited guest-portal
+booking/status gaps so the guest sees the same money/status picture the host does. (Also confirmed the
+guest **inbox** is already present + uses the same shared primitives as the host — ConversationList,
+ChatThreadHeader, ChatMessageWall, ChatComposer — scoped to the guest via RLS; verified live with a
+seeded conversation.)
+
+- **Correct status labels.** A pending booking where the guest still owes money was mislabelled "Awaiting
+  host" (and the overview widget showed a raw "pending eft"). Now the trips list, featured card, and
+  overview widget show **"Payment needed"** when the ball is in the guest's court (EFT awaiting transfer /
+  unpaid), and keep "Awaiting host" only when the guest has paid and is waiting on confirmation.
+- **Pay-now CTA + EFT guidance.** The trip detail had a "Pending EFT / Due" state with no way to pay. Added
+  a **"Payment needed"** card (amount due + "Get bank details & pay" / "Pay now" → `/booking/[id]/pay`) with
+  EFT next-step copy. Also added Pay-now / Pay-balance actions on the trips list cards + featured card.
+- **Payment chip on trips list.** Each card now shows a **Paid / Balance / Pay now / Partially refunded /
+  Refunded** chip (from `payment_status` + `balance_due`) so state is scannable, not just the total.
+- **Guest booking timeline.** New "Trip timeline" on the trip detail (**Booking requested → Payment
+  received → Confirmed by host → Checked in → Checked out**, plus Cancelled) from the booking's own
+  timestamps + first captured payment — the guest counterpart to the host Activity tab.
+- **Refund-state guard.** `owesMoney` excludes refunded / partially_refunded so a refunded guest is never
+  prompted to "pay" (the ledger leaves `balance_due > 0` after a refund — the known §1 quirk); the timeline's
+  "Payment received" step still shows after a refund (payment status is no longer `completed`).
+- Verified live end-to-end: BK-0037 (pending_eft) → "Payment needed to confirm" + Pay-now card +
+  1-step timeline; BK-0027 (confirmed, partially refunded) → "Partially refunded" chip, no Pay card,
+  3-step timeline (requested → paid → confirmed). `pnpm build` + `pnpm lint` green.
+
 ## 2026-07-12 #63 — "Policies (as booked)" panel + guest sees payment/refund state (both-ends parity). Verified live.
 
 Phase 2 (G6) of the policy/refund plan plus the founder's follow-up: the guest portal must show the same
