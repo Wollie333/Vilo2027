@@ -29,21 +29,25 @@ export async function adminReplyPlatformAction(input: {
   const service = createAdminClient();
   const { data: conv } = await service
     .from("conversations")
-    .select("id, channel")
+    .select("id, channel, host_id")
     .eq("id", input.conversationId)
     .maybeSingle();
   if (!conv || conv.channel !== "platform") {
     return { ok: false, error: "Not a Wielo conversation." };
   }
 
-  // Post AS "Wielo Support" so the host sees one branded counterparty.
+  // Post AS "Wielo Support". On a HOST thread Wielo is the guest party
+  // (read_by_guest=true, unread bumps the host). On a GUEST support thread
+  // (host_id NULL) Wielo is the host party (read_by_host=true, unread bumps the
+  // guest) — so the read flags invert.
+  const isGuestThread = conv.host_id === null;
   const supportId = await ensureWieloSupportUser(service);
   const { error } = await service.from("messages").insert({
     conversation_id: input.conversationId,
     sender_id: supportId,
     body,
-    read_by_host: false,
-    read_by_guest: true,
+    read_by_host: isGuestThread ? true : false,
+    read_by_guest: isGuestThread ? false : true,
   });
   if (error) return { ok: false, error: "Could not send the message." };
 
@@ -98,15 +102,35 @@ export async function adminMarkPlatformReadAction(
 ): Promise<Result> {
   await requirePermission(INBOX_PERMISSION);
   const service = createAdminClient();
-  await service
-    .from("messages")
-    .update({ read_by_guest: true })
-    .eq("conversation_id", conversationId)
-    .eq("read_by_guest", false);
-  await service
+  const { data: conv } = await service
     .from("conversations")
-    .update({ unread_guest: 0 })
-    .eq("id", conversationId);
+    .select("host_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+  // The Wielo/admin unread lives in unread_guest on a host thread but in
+  // unread_host on a guest support thread (host_id NULL) — clear the right side.
+  const isGuestThread = conv?.host_id === null;
+  if (isGuestThread) {
+    await service
+      .from("messages")
+      .update({ read_by_host: true })
+      .eq("conversation_id", conversationId)
+      .eq("read_by_host", false);
+    await service
+      .from("conversations")
+      .update({ unread_host: 0 })
+      .eq("id", conversationId);
+  } else {
+    await service
+      .from("messages")
+      .update({ read_by_guest: true })
+      .eq("conversation_id", conversationId)
+      .eq("read_by_guest", false);
+    await service
+      .from("conversations")
+      .update({ unread_guest: 0 })
+      .eq("id", conversationId);
+  }
   revalidatePath("/admin/inbox");
   return { ok: true };
 }

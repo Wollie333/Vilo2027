@@ -36,11 +36,15 @@ import {
 
 export type AdminConversation = {
   id: string;
-  hostId: string;
+  hostId: string | null;
   hostUserId: string | null;
+  // Display name/avatar of the counterparty — the host on host threads, the
+  // guest on guest-support threads (host_id null).
   hostName: string | null;
   hostHandle: string | null;
   hostAvatarUrl: string | null;
+  // True when this is a guest↔Wielo support thread (no host).
+  isGuest: boolean;
   unread: number;
   lastMessageAt: string | null;
   lastMessagePreview: string | null;
@@ -48,7 +52,8 @@ export type AdminConversation = {
 };
 
 export type HostDetails = {
-  hostId: string;
+  isGuest: boolean;
+  hostId: string | null;
   userId: string | null;
   name: string | null;
   handle: string | null;
@@ -180,9 +185,15 @@ export function AdminInboxView({
               key={c.id}
               href={`/admin/inbox?c=${c.id}`}
               active={c.id === selectedId}
-              name={c.hostName || c.hostHandle || "Host"}
+              name={
+                c.hostName || c.hostHandle || (c.isGuest ? "Guest" : "Host")
+              }
               avatarUrl={c.hostAvatarUrl}
-              chip={{ label: "Host", tone: "green" }}
+              chip={
+                c.isGuest
+                  ? { label: "Guest", tone: "sky" }
+                  : { label: "Host", tone: "green" }
+              }
               listingName={c.hostHandle ? `@${c.hostHandle}` : null}
               preview={c.lastMessagePreview}
               lastAt={c.lastMessageAt ?? c.createdAt}
@@ -296,7 +307,7 @@ function HostDetailsDrawer({
         <div className="flex h-14 shrink-0 items-center border-b border-brand-line px-5">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
-              Host account
+              {host?.isGuest ? "Guest account" : "Host account"}
             </div>
             <div className="mt-0.5 font-mono text-[11px] text-brand-ink">
               {host?.handle ? `@${host.handle}` : "—"}
@@ -356,43 +367,46 @@ function HostDetailsDrawer({
                 </div>
               </div>
 
-              {/* Account snapshot */}
-              <div className="px-5 pb-5">
-                <DrawerHeading>Account</DrawerHeading>
-                <dl>
-                  <Row label="Plan">
-                    <span className="capitalize">{host.plan ?? "—"}</span>
-                    {host.planStatus ? (
-                      <span className="ml-1.5 text-[11px] text-brand-mute">
-                        ({host.planStatus})
-                      </span>
+              {/* Account snapshot — host-only (a guest support thread has no
+                  subscription / listings / ledger). */}
+              {!host.isGuest ? (
+                <div className="px-5 pb-5">
+                  <DrawerHeading>Account</DrawerHeading>
+                  <dl>
+                    <Row label="Plan">
+                      <span className="capitalize">{host.plan ?? "—"}</span>
+                      {host.planStatus ? (
+                        <span className="ml-1.5 text-[11px] text-brand-mute">
+                          ({host.planStatus})
+                        </span>
+                      ) : null}
+                    </Row>
+                    {host.billingCycle ? (
+                      <Row label="Billing">
+                        <span className="capitalize">{host.billingCycle}</span>
+                      </Row>
                     ) : null}
-                  </Row>
-                  {host.billingCycle ? (
-                    <Row label="Billing">
-                      <span className="capitalize">{host.billingCycle}</span>
-                    </Row>
-                  ) : null}
-                  {host.renewsAt ? (
-                    <Row label="Renews">{fmtDate(host.renewsAt)}</Row>
-                  ) : null}
-                  <Row label="Listings">{host.listings}</Row>
-                  <Row label="Paid to Wielo">
-                    <span className="inline-flex items-center gap-1 font-display font-bold text-brand-ink">
-                      <Wallet className="h-3.5 w-3.5 text-brand-primary" />
-                      {formatMoney(host.netToWielo, host.currency)}
-                    </span>
-                  </Row>
-                  {host.memberSince ? (
-                    <Row label="Member since">
-                      <span className="inline-flex items-center gap-1">
-                        <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
-                        {fmtDate(host.memberSince)}
+                    {host.renewsAt ? (
+                      <Row label="Renews">{fmtDate(host.renewsAt)}</Row>
+                    ) : null}
+                    <Row label="Listings">{host.listings}</Row>
+                    <Row label="Paid to Wielo">
+                      <span className="inline-flex items-center gap-1 font-display font-bold text-brand-ink">
+                        <Wallet className="h-3.5 w-3.5 text-brand-primary" />
+                        {formatMoney(host.netToWielo, host.currency)}
                       </span>
                     </Row>
-                  ) : null}
-                </dl>
-              </div>
+                    {host.memberSince ? (
+                      <Row label="Member since">
+                        <span className="inline-flex items-center gap-1">
+                          <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
+                          {fmtDate(host.memberSince)}
+                        </span>
+                      </Row>
+                    ) : null}
+                  </dl>
+                </div>
+              ) : null}
 
               {/* Quick links */}
               <div className="space-y-2 px-5 pb-6">

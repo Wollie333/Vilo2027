@@ -1887,7 +1887,7 @@ export type Database = {
           follow_up_at: string | null
           guest_id: string
           guest_last_seen_at: string | null
-          host_id: string
+          host_id: string | null
           host_last_seen_at: string | null
           id: string
           is_enquiry: boolean
@@ -1911,7 +1911,7 @@ export type Database = {
           follow_up_at?: string | null
           guest_id: string
           guest_last_seen_at?: string | null
-          host_id: string
+          host_id?: string | null
           host_last_seen_at?: string | null
           id?: string
           is_enquiry?: boolean
@@ -1935,7 +1935,7 @@ export type Database = {
           follow_up_at?: string | null
           guest_id?: string
           guest_last_seen_at?: string | null
-          host_id?: string
+          host_id?: string | null
           host_last_seen_at?: string | null
           id?: string
           is_enquiry?: boolean

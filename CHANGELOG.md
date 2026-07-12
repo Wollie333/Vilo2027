@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-12 #66 — Guest ↔ Wielo Support thread (real). Guest inbox now has a pinned support line. Verified live.
+
+Built the guest-side Wielo Support thread the founder asked for. A guest can now message the Wielo team
+from their own inbox, and Wielo answers from the admin inbox — the same channel model the host already had.
+
+- **Schema (migration `20260712160000`):** `conversations.host_id` is now nullable (a guest support thread
+  has no host). `on_message_inserted()` routes unread for host-less platform threads — the guest is the
+  guest party (unread_guest); "Wielo" is everyone else (unread_host) — so a guest message bumps the admin's
+  badge and a Wielo reply bumps the guest's. Types regenerated.
+- **Creator:** `ensureWieloGuestThread()` (mirror of `ensureWieloThread`) — host_id NULL, guest_id = the
+  guest, channel='platform', pinned, seeded with a guest-appropriate welcome.
+- **Guest inbox:** the layout ensures the thread exists on load and hoists the `channel='platform'` thread
+  to the top (sticky first) with a green "Wielo" chip; the thread renders "Wielo Support / Wielo team".
+- **Admin inbox:** platform threads with a null host now surface as **guest** threads — joined to the guest
+  profile, shown with a "Guest" chip + guest identity (no host account snapshot), correct unread
+  (`unread_host`), and reply/mark-read flags inverted so Wielo is the host-side party on these.
+- Verified live: the guest sees a pinned "Wielo Support" first, sends a message (DB `unread_host`→1, the
+  admin badge), an admin reply routes back (`unread_guest`→1) and appears in the guest thread. Host thread
+  behaviour unchanged. `pnpm build` + `pnpm lint` green.
+
 ## 2026-07-12 #65 — Affiliate reachable in each user's own shell + Wielo Support pinned first (host inbox). Verified live.
 
 - **Affiliate access, per shell (founder):** the affiliate programme is one account per user, but hosts were

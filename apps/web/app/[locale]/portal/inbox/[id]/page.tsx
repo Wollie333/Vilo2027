@@ -42,7 +42,7 @@ export default async function GuestThreadPage({
     .from("conversations")
     .select(
       `
-      id, guest_id, host_last_seen_at,
+      id, guest_id, channel, host_last_seen_at,
       host:hosts ( display_name, avatar_url ),
       listing:properties ( name )
     `,
@@ -55,6 +55,7 @@ export default async function GuestThreadPage({
   const conv = convRaw as unknown as {
     id: string;
     guest_id: string;
+    channel: string | null;
     host_last_seen_at: string | null;
     host:
       | { display_name: string; avatar_url: string | null }
@@ -62,6 +63,7 @@ export default async function GuestThreadPage({
       | null;
     listing: { name: string } | { name: string }[] | null;
   };
+  const isPlatform = conv.channel === "platform";
   const host = one(conv.host);
   const listing = one(conv.listing);
 
@@ -129,10 +131,10 @@ export default async function GuestThreadPage({
     <GuestThread
       conversationId={conv.id}
       selfId={user.id}
-      hostName={host?.display_name ?? "Host"}
-      hostAvatarUrl={host?.avatar_url ?? null}
+      hostName={isPlatform ? "Wielo Support" : (host?.display_name ?? "Host")}
+      hostAvatarUrl={isPlatform ? null : (host?.avatar_url ?? null)}
       hostLastSeenAt={conv.host_last_seen_at ?? null}
-      listingName={listing?.name ?? null}
+      listingName={isPlatform ? "Wielo team" : (listing?.name ?? null)}
       messages={messages}
       quotesById={quotesById}
       bookingsById={bookingsById}

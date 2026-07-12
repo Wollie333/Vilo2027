@@ -18,6 +18,9 @@ const SUPPORT_SETTINGS_KEY = "wielo_support_user_id";
 const WELCOME_BODY =
   "👋 This is your direct line to the Wielo team. Ask us anything about your subscription, billing or account — just reply here and we'll get back to you.";
 
+const WELCOME_BODY_GUEST =
+  "👋 This is your direct line to the Wielo team. Questions about a booking, a refund, or your account — just reply here and we'll help.";
+
 // The user_profiles id that represents "Wielo" as the counterparty on every
 // platform thread. Resolved once and cached in platform_settings so the same
 // account is reused (and can be swapped to a dedicated support account later).
@@ -126,6 +129,58 @@ export async function ensureWieloThread(
     body: WELCOME_BODY,
     read_by_host: false,
     read_by_guest: true,
+  });
+
+  return conv.id as string;
+}
+
+// Find-or-create a GUEST's platform (Wielo) conversation. Mirror of
+// ensureWieloThread but for a guest with no host: host_id is NULL, guest_id is
+// the real guest, channel='platform', always pinned. The unread trigger routes
+// a guest message to unread_host (the admin/Wielo badge) and a Wielo reply to
+// unread_guest. Idempotent.
+export async function ensureWieloGuestThread(
+  admin: Admin,
+  guestUserId: string,
+): Promise<string> {
+  const { data: existing } = await admin
+    .from("conversations")
+    .select("id")
+    .eq("guest_id", guestUserId)
+    .eq("channel", "platform")
+    .is("host_id", null)
+    .maybeSingle();
+  if (existing) return existing.id as string;
+
+  const supportId = await ensureWieloSupportUser(admin);
+
+  const { data: conv, error } = await admin
+    .from("conversations")
+    .insert({
+      host_id: null,
+      guest_id: guestUserId,
+      channel: "platform",
+      status: "open",
+      is_enquiry: false,
+      pinned: true,
+    })
+    .select("id")
+    .single();
+  if (error || !conv) {
+    throw new Error(
+      `ensureWieloGuestThread: ${error?.message ?? "could not create thread"}`,
+    );
+  }
+
+  // Seed the welcome from the Wielo side. read_by_guest=false → the guest sees an
+  // unread; the trigger (host_id NULL, sender=support ≠ guest) treats it as the
+  // Wielo side and bumps unread_guest.
+  await admin.from("messages").insert({
+    conversation_id: conv.id,
+    sender_id: supportId,
+    body: WELCOME_BODY_GUEST,
+    read_by_host: true,
+    read_by_guest: false,
   });
 
   return conv.id as string;

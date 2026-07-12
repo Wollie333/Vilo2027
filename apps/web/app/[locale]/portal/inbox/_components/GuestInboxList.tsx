@@ -14,6 +14,7 @@ export type GuestConvRow = {
   id: string;
   status: string;
   isEnquiry: boolean;
+  isPlatform: boolean;
   unread: number;
   preview: string | null;
   lastAt: string | null;
@@ -86,7 +87,13 @@ export function GuestInboxList({
           active={c.id === activeId}
           name={c.hostName}
           avatarUrl={c.hostAvatarUrl}
-          chip={c.isEnquiry ? { label: "Enquiry", tone: "amber" } : null}
+          chip={
+            c.isPlatform
+              ? { label: "Wielo", tone: "green" }
+              : c.isEnquiry
+                ? { label: "Enquiry", tone: "amber" }
+                : null
+          }
           listingName={c.listingName}
           preview={c.preview}
           lastAt={c.lastAt}

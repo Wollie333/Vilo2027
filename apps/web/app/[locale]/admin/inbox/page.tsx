@@ -25,8 +25,9 @@ export default async function AdminInboxPage({
   const { data: convRows } = await service
     .from("conversations")
     .select(
-      `id, host_id, unread_guest, last_message_at, last_message_preview, created_at,
-       host:hosts ( id, display_name, handle, user_id, avatar_url )`,
+      `id, host_id, unread_guest, unread_host, last_message_at, last_message_preview, created_at,
+       host:hosts ( id, display_name, handle, user_id, avatar_url ),
+       guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, avatar_url )`,
     )
     .eq("channel", "platform")
     .order("last_message_at", { ascending: false, nullsFirst: false })
@@ -40,29 +41,46 @@ export default async function AdminInboxPage({
     user_id: string;
     avatar_url: string | null;
   };
+  type Guest = {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    avatar_url: string | null;
+  };
   type Raw = {
     id: string;
-    host_id: string;
+    host_id: string | null;
     unread_guest: number;
+    unread_host: number;
     last_message_at: string | null;
     last_message_preview: string | null;
     created_at: string;
     host: Host | Host[] | null;
+    guest: Guest | Guest[] | null;
   };
   const one = <T,>(v: T | T[] | null): T | null =>
     Array.isArray(v) ? (v[0] ?? null) : v;
 
   const conversations: AdminConversation[] = ((convRows ?? []) as Raw[]).map(
     (c) => {
+      // host_id NULL → guest↔Wielo support thread: the counterparty is the guest
+      // and the admin's unread lives in unread_host (see the message trigger).
+      const isGuest = c.host_id === null;
       const host = one(c.host);
+      const guest = one(c.guest);
       return {
         id: c.id,
         hostId: c.host_id,
-        hostUserId: host?.user_id ?? null,
-        hostName: host?.display_name ?? null,
-        hostHandle: host?.handle ?? null,
-        hostAvatarUrl: host?.avatar_url ?? null,
-        unread: c.unread_guest ?? 0,
+        hostUserId: isGuest ? (guest?.id ?? null) : (host?.user_id ?? null),
+        hostName: isGuest
+          ? (guest?.full_name ?? guest?.email ?? null)
+          : (host?.display_name ?? null),
+        hostHandle: isGuest ? null : (host?.handle ?? null),
+        hostAvatarUrl: isGuest
+          ? (guest?.avatar_url ?? null)
+          : (host?.avatar_url ?? null),
+        isGuest,
+        unread: (isGuest ? c.unread_host : c.unread_guest) ?? 0,
         lastMessageAt: c.last_message_at,
         lastMessagePreview: c.last_message_preview,
         createdAt: c.created_at,
@@ -101,6 +119,44 @@ export default async function AdminInboxPage({
       attachmentUrl: m.attachment_url,
       attachmentFilename: m.attachment_filename,
     }));
+
+    if (sel.isGuest) {
+      // Guest↔Wielo support thread: no host account — show the guest's identity.
+      const { data: gp } = sel.hostUserId
+        ? await service
+            .from("user_profiles")
+            .select("email, phone, created_at")
+            .eq("id", sel.hostUserId)
+            .maybeSingle()
+        : { data: null };
+      hostDetails = {
+        isGuest: true,
+        hostId: null,
+        userId: sel.hostUserId,
+        name: sel.hostName,
+        handle: null,
+        avatarUrl: sel.hostAvatarUrl,
+        email: gp?.email ?? null,
+        phone: (gp as { phone?: string | null } | null)?.phone ?? null,
+        memberSince: gp?.created_at ?? null,
+        plan: null,
+        planStatus: null,
+        billingCycle: null,
+        renewsAt: null,
+        listings: 0,
+        netToWielo: 0,
+        currency: "ZAR",
+      };
+      return (
+        <AdminInboxView
+          conversations={conversations}
+          selectedId={selectedId}
+          messages={messages}
+          selfId={supportUserId}
+          hostDetails={hostDetails}
+        />
+      );
+    }
 
     // Enrich the Details panel with this host's account snapshot.
     const [
@@ -156,6 +212,7 @@ export default async function AdminInboxPage({
       (sub?.plan ? (planLabels[sub.plan] ?? sub.plan) : null);
 
     hostDetails = {
+      isGuest: false,
       hostId: sel.hostId,
       userId: sel.hostUserId,
       name: sel.hostName,
