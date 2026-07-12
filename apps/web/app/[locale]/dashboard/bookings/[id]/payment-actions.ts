@@ -174,6 +174,7 @@ export async function recordBookingPaymentAction(input: {
  */
 export async function markPaymentReceivedAction(
   paymentId: string,
+  reference?: string | null,
 ): Promise<PaymentResult> {
   const hostId = await getHostId();
   if (!hostId) return { ok: false, error: "Not signed in." };
@@ -222,9 +223,17 @@ export async function markPaymentReceivedAction(
   const total = Number(booking.total_amount);
   const paidBefore = await sumCompletedPaid(admin, booking.id);
 
+  // Capture the provider/EFT reference (bank ref, Paystack/PayPal txn id) the host
+  // enters when confirming — so every settled payment carries its unique id.
+  const ref = reference?.trim() || null;
+  const patch: Record<string, unknown> = {
+    status: "completed",
+    captured_at: new Date().toISOString(),
+  };
+  if (ref) patch.provider_reference = ref;
   const { error: pErr } = await admin
     .from("payments")
-    .update({ status: "completed", captured_at: new Date().toISOString() })
+    .update(patch)
     .eq("id", paymentId);
   if (pErr) return { ok: false, error: "Could not update the payment." };
 

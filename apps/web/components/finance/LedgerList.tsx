@@ -234,16 +234,26 @@ export function LedgerList({
     setMenu(null);
     if (!e.paymentId) return;
     start(async () => {
-      const ok = await modal.confirm({
+      // Capture the bank / provider reference for the settled payment (optional
+      // but recommended — it's the payment's unique id for reconciliation).
+      const reference = await modal.prompt({
         title: "Mark as received?",
         description: `Confirm the ${e.label.toLowerCase()} of ${formatMoney(
           e.amount,
           e.currency,
         )} reflects in your account. This updates the balance and confirms the booking if it's the first payment.`,
-        confirmLabel: "Yes, mark received",
+        label:
+          e.method === "eft" ? "Bank / EFT reference" : "Transaction reference",
+        placeholder:
+          e.method === "eft" ? "e.g. EFT ref 4471" : "Provider transaction id",
+        confirmLabel: "Mark received",
       });
-      if (!ok) return;
-      const r = await markPaymentReceivedAction(e.paymentId!);
+      // prompt resolves null on cancel; "" (or a value) means confirmed.
+      if (reference === null) return;
+      const r = await markPaymentReceivedAction(
+        e.paymentId!,
+        reference || null,
+      );
       if (r.ok) {
         toast.success("Payment marked received.");
         router.refresh();
