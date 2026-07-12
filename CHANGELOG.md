@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-12 #72 — Settings shows the live plan (not a stale cancelled one) + zero lint warnings. Driven live.
+
+Founder spotted the Settings plan looking wrong/"hardcoded". Root cause: the header + Subscription tab +
+the self-serve mutation selector all picked the **first** membership row regardless of status, so an
+account with an old cancelled plan plus a live one showed the cancelled plan (this admin account:
+"Starter" instead of the active "Beta").
+
+- **New `lib/subscriptions/currentMembership.ts`** — `pickCurrentMembershipIndex` selects the live
+  (active/trialing/past_due) membership, newest first, falling back to the most recent membership;
+  `isLiveMembershipStatus`. One selector so header, Subscription tab, and mutations agree.
+- Applied in `components/settings/SettingsProfileHeader.tsx` (now "Free" when nothing is live),
+  `settings/subscription/page.tsx`, and `settings/subscription/actions.ts::membershipSubId` (so
+  switch/pause/cancel act on the live row, not a stale cancelled one).
+- Cleared the three pre-existing `@next/next/no-img-element` warnings on remote Supabase-storage
+  thumbnails/avatars (`RequestCard`, `PerformanceTableClient`, `PopularRooms`) with scoped eslint-disable
+  comments. `next lint` now reports **zero** warnings.
+- Verified live: the admin account's Settings header AND Subscription tab now both read PLAN "Beta"
+  (were "Starter"); other stats (member since / listings / response rate) confirmed dynamic. `pnpm build`,
+  `tsc`, `next lint` green.
+
 ## 2026-07-12 #71 — Deleted accounts (F2): self-delete → soft-delete + 30-day hold → admin Deleted tab, Restore, manual purge. Driven live.
 
 Founder §F2 (decision: soft-delete first, then a **manual admin-only** hard delete after 30 days — no
