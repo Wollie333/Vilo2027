@@ -47,6 +47,7 @@ export default async function AdminOverviewPage({
     { count: flaggedReviews },
     { count: pendingRefunds },
     { count: openDataReqs },
+    { count: openReports },
     { data: notifRows },
   ] = await Promise.all([
     buildPlatformReport("30d", Date.now(), env),
@@ -62,6 +63,11 @@ export default async function AdminOverviewPage({
       .from("data_requests")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
+    // Open (untriaged) listing reports awaiting moderation.
+    service
+      .from("listing_reports")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["open", "reviewing"]),
     // Latest transactional notifications (finance + support) so staff never miss
     // a payment being initiated, a pending EFT, or a support / cancel request.
     service
@@ -87,6 +93,12 @@ export default async function AdminOverviewPage({
       label: "Flagged reviews",
       count: flaggedReviews ?? 0,
       href: "/admin/reviews",
+      icon: Flag,
+    },
+    {
+      label: "Reported listings",
+      count: openReports ?? 0,
+      href: "/admin/flagged-listings",
       icon: Flag,
     },
     {
