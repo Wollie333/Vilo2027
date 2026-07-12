@@ -25,6 +25,7 @@ import {
   restoreUserAccount,
   softDeleteUserAccount,
 } from "@/lib/users/accountLifecycle";
+import { routing } from "@/i18n/routing";
 import {
   signStatementToken,
   type StatementToken,
@@ -2210,7 +2211,11 @@ export async function buildWieloHostStatement(input: {
     issuedAt,
     currency: "ZAR",
   };
-  return { ok: true, path: `/statement/${signStatementToken(token)}` };
+  // Locale-prefixed so window.open resolves — /statement lives under [locale].
+  return {
+    ok: true,
+    path: `/${routing.defaultLocale}/statement/${signStatementToken(token)}`,
+  };
 }
 
 export async function reinstateUser(input: { userId: string; reason: string }) {

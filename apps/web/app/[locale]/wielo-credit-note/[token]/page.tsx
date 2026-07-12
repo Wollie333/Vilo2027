@@ -44,7 +44,7 @@ function fmtDate(iso: string | null): string {
 export default async function PublicWieloCreditNotePage({
   params,
 }: {
-  params: { token: string };
+  params: { token: string; locale: string };
 }) {
   const admin = createAdminClient();
   const { data: cn } = await admin
@@ -113,7 +113,7 @@ export default async function PublicWieloCreditNotePage({
         label: labels.totalLabel,
         value: `${sign}${formatMoney(cn.total_amount, c)}`,
       }}
-      pdfHref={`/wielo-credit-note/${cn.hosted_token}/pdf`}
+      pdfHref={`/${params.locale}/wielo-credit-note/${cn.hosted_token}/pdf`}
       footerTitle={cn.reason ? "Reason" : undefined}
       footerNote={cn.reason ?? undefined}
     />

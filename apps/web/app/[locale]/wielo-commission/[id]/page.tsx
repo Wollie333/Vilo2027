@@ -34,7 +34,7 @@ function fmtDate(iso: string | null): string {
 export default async function PublicCommissionStatementPage({
   params,
 }: {
-  params: { id: string };
+  params: { id: string; locale: string };
 }) {
   const stmt: CommissionStatement | null = await loadCommissionStatement(
     params.id,
@@ -70,7 +70,7 @@ export default async function PublicCommissionStatementPage({
       lines={lineRows}
       totals={[{ label: "Subtotal", value: formatMoney(stmt.total, c) }]}
       grandTotal={{ label: stmt.totalLabel, value: formatMoney(stmt.total, c) }}
-      pdfHref={`/wielo-commission/${params.id}/pdf`}
+      pdfHref={`/${params.locale}/wielo-commission/${params.id}/pdf`}
       footerTitle={stmt.footerNote ? "Note" : undefined}
       footerNote={stmt.footerNote ?? undefined}
     />

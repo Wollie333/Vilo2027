@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { routing } from "@/i18n/routing";
 import { requireHost } from "@/lib/host/current";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTransactionalEmail } from "@/lib/email/send";
@@ -72,7 +73,9 @@ async function mint(input: {
     issuedAt,
     currency: "ZAR",
   };
-  const path = `/statement/${signStatementToken(token)}`;
+  // Locale-prefixed so an absolute open (window.open) / emailed link resolves —
+  // the /statement route lives under [locale], so a bare /statement/… is a 404.
+  const path = `/${routing.defaultLocale}/statement/${signStatementToken(token)}`;
   return {
     ok: true,
     path,

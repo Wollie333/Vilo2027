@@ -26,7 +26,7 @@ function fmtDate(iso: string | null): string {
 export default async function ReceiptRecordPage({
   params,
 }: {
-  params: { token: string };
+  params: { token: string; locale: string };
 }) {
   const [receipt, brandName] = await Promise.all([
     getReceiptByToken(params.token),
@@ -46,7 +46,7 @@ export default async function ReceiptRecordPage({
       status={{ label: "Received", tone: "green" }}
       brandName={brandName}
       brandTagline="Proof of payment"
-      pdfHref={`/receipt/${params.token}/pdf`}
+      pdfHref={`/${params.locale}/receipt/${params.token}/pdf`}
       backHref={`/dashboard/bookings/${receipt.bookingId}?tab=payments`}
       viewHref={{
         href: `/dashboard/bookings/${receipt.bookingId}?tab=payments`,

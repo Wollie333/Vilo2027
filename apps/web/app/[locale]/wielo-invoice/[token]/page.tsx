@@ -41,7 +41,7 @@ function fmtDate(iso: string | null): string {
 export default async function PublicWieloInvoicePage({
   params,
 }: {
-  params: { token: string };
+  params: { token: string; locale: string };
 }) {
   const admin = createAdminClient();
   const { data: invoice } = await admin
@@ -115,7 +115,7 @@ export default async function PublicWieloInvoicePage({
       banking={banking}
       bankingLabel={isPaid ? "Banking details" : "Payment details"}
       stamp={isPaid ? "Paid" : null}
-      pdfHref={`/wielo-invoice/${invoice.hosted_token}/pdf`}
+      pdfHref={`/${params.locale}/wielo-invoice/${invoice.hosted_token}/pdf`}
       footerTitle={`Thank you for choosing ${brandName}.`}
       footerNote="Keep this invoice for your records."
     />

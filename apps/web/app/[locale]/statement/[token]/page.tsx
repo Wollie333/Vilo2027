@@ -36,7 +36,7 @@ function signed(amount: number, currency: string): string {
 export default async function StatementPage({
   params,
 }: {
-  params: { token: string };
+  params: { token: string; locale: string };
 }) {
   const tok = verifyStatementToken(params.token);
   if (!tok) notFound();
@@ -116,7 +116,7 @@ export default async function StatementPage({
         value: formatMoney(stmt.closingBalance, c),
       }}
       trailingTotals={trailingTotals}
-      pdfHref={`/statement/${params.token}/pdf`}
+      pdfHref={`/${params.locale}/statement/${params.token}/pdf`}
       footerTitle="About this statement"
       footerNote="A summary of account activity for the period shown, as a running balance — a positive balance is owed, a negative balance is in credit. This is a summary, not a tax invoice."
     />

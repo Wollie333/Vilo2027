@@ -64,7 +64,7 @@ function fmtDate(iso: string | null): string {
 export default async function PublicInvoicePage({
   params,
 }: {
-  params: { token: string };
+  params: { token: string; locale: string };
 }) {
   const admin = createAdminClient();
   const { data: invoice } = await admin
@@ -221,7 +221,7 @@ export default async function PublicInvoicePage({
       banking={party.banking}
       bankingLabel={isPaid ? "Banking details" : "Payment details"}
       stamp={isPaid ? "Paid" : null}
-      pdfHref={`/invoice/${invoice.hosted_token}/pdf`}
+      pdfHref={`/${params.locale}/invoice/${invoice.hosted_token}/pdf`}
       footerTitle="Thank you for booking direct."
       footerNote="Keep this invoice for your records."
     />

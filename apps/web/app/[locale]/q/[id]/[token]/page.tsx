@@ -55,7 +55,7 @@ function fmtDate(iso: string | null): string {
 export default async function PublicQuotePage({
   params,
 }: {
-  params: { id: string; token: string };
+  params: { id: string; token: string; locale: string };
 }) {
   const supabase = createAdminClient();
   const brandName = await getBrandName();
@@ -218,7 +218,7 @@ export default async function PublicQuotePage({
         value: formatMoney(vatRate > 0 ? grossTotal : exVatTotal, c),
       }}
       banking={expired || decided ? null : party.banking}
-      pdfHref={`/q/${quote.id}/${quote.accept_token}/pdf`}
+      pdfHref={`/${params.locale}/q/${quote.id}/${quote.accept_token}/pdf`}
       footerTitle={quote.notes ? "A note from your host" : undefined}
       footerNote={quote.notes ?? undefined}
       belowPaper={

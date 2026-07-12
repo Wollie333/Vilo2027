@@ -31,7 +31,7 @@ function fmtDate(iso: string | null): string {
 export default async function PublicForfeitStatementPage({
   params,
 }: {
-  params: { token: string };
+  params: { token: string; locale: string };
 }) {
   const admin = createAdminClient();
   const { data: fs } = await admin
@@ -117,7 +117,7 @@ export default async function PublicForfeitStatementPage({
         label: "Retained by host",
         value: formatMoney(Number(fs.amount_forfeited), c),
       }}
-      pdfHref={`/forfeit-statement/${fs.hosted_token}/pdf`}
+      pdfHref={`/${params.locale}/forfeit-statement/${fs.hosted_token}/pdf`}
       footerTitle={fs.reason ? `Reason: ${fs.reason}` : undefined}
       footerNote="This booking was cancelled as a no-show / abandoned. The amount paid was retained by the host per the cancellation policy; the outstanding balance was written off. No refund is due."
     />
