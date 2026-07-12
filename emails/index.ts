@@ -18,6 +18,7 @@ export { default as RefundCompletedGuest } from "./templates/RefundCompletedGues
 export { default as RefundDeclinedGuest } from "./templates/RefundDeclinedGuest";
 export { default as RefundRequestHost } from "./templates/RefundRequestHost";
 export { default as ReviewRequestGuest } from "./templates/ReviewRequestGuest";
+export { default as StayDetailsGuest } from "./templates/StayDetailsGuest";
 export { default as StaffInvite } from "./templates/StaffInvite";
 export { default as SubscriptionExpiring } from "./templates/SubscriptionExpiring";
 export { default as SubscriptionFailed } from "./templates/SubscriptionFailed";

@@ -233,10 +233,149 @@ const bookingConfirmedHostResolver: EmailResolver = async (refs, ctx) => {
   };
 };
 
+// ── Access details (the "your stay is almost here" email) ──────────
+// Mirrors the send_due_access_cards() SQL cron: whole-listing access by
+// default, or one block per booked room with per-field fallback to the
+// listing defaults. Runs with the admin client, so it can read the secret
+// property_access / property_room_access rows for the guest's own booking.
+type AccessFields = {
+  check_in_method: string | null;
+  check_in_instructions: string | null;
+  gate_code: string | null;
+  door_code: string | null;
+  wifi_network: string | null;
+  wifi_password: string | null;
+};
+
+const ACCESS_COLS =
+  "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password";
+
+const cleanField = (v: string | null | undefined): string | undefined => {
+  const t = typeof v === "string" ? v.trim() : "";
+  return t.length > 0 ? t : undefined;
+};
+
+// room value wins when non-empty, else fall back to the listing default.
+const fallback = (
+  room: string | null | undefined,
+  listing: string | null | undefined,
+): string | undefined => cleanField(room) ?? cleanField(listing);
+
+function toAccessBlock(
+  src: Partial<AccessFields> | null,
+  label?: string,
+): Record<string, unknown> {
+  return {
+    ...(label ? { label } : {}),
+    checkInMethod: cleanField(src?.check_in_method),
+    checkInInstructions: cleanField(src?.check_in_instructions),
+    gateCode: cleanField(src?.gate_code),
+    doorCode: cleanField(src?.door_code),
+    wifiNetwork: cleanField(src?.wifi_network),
+    wifiPassword: cleanField(src?.wifi_password),
+  };
+}
+
+const stayDetailsGuestResolver: EmailResolver = async (refs, ctx) => {
+  const bookingId = refId(refs, "booking_id");
+  if (!bookingId) return {};
+  const bundle = await loadBookingBundle(ctx.supabase, bookingId);
+  if (!bundle || !bundle.listing) return {};
+  const supabase = ctx.supabase;
+  const listingId = bundle.listing.id;
+  const base = commonBookingProps(bundle);
+
+  // Check-in time + a human "Where" line from the property.
+  const { data: prop } = await supabase
+    .from("properties")
+    .select("check_in_time, address_line1, address_line2, city, province")
+    .eq("id", listingId)
+    .maybeSingle();
+
+  const checkInTime =
+    typeof prop?.check_in_time === "string"
+      ? prop.check_in_time.slice(0, 5)
+      : "your check-in time";
+  const address =
+    [prop?.address_line1, prop?.address_line2, prop?.city, prop?.province]
+      .map((s) => (typeof s === "string" ? s.trim() : ""))
+      .filter(Boolean)
+      .join(", ") || "Address shared by your host";
+
+  // Listing-level access (the defaults every room falls back to).
+  const { data: la } = await supabase
+    .from("property_access")
+    .select(ACCESS_COLS)
+    .eq("property_id", listingId)
+    .maybeSingle();
+  const listingAccess = (la as AccessFields | null) ?? null;
+
+  // Booked rooms → one access block each (per-field fallback to the listing).
+  const { data: bookedRooms } = await supabase
+    .from("booking_rooms")
+    .select("room_id")
+    .eq("booking_id", bookingId);
+  const roomIds = (bookedRooms ?? [])
+    .map((r) => r.room_id as string | null)
+    .filter((id): id is string => !!id);
+
+  let blocks: Record<string, unknown>[];
+  if (roomIds.length > 0) {
+    const [{ data: rooms }, { data: roomAccess }] = await Promise.all([
+      supabase
+        .from("property_rooms")
+        .select("id, name, sort_order")
+        .in("id", roomIds),
+      supabase
+        .from("property_room_access")
+        .select(`room_id, ${ACCESS_COLS}`)
+        .in("room_id", roomIds),
+    ]);
+    const raByRoom = new Map<string, AccessFields>();
+    (roomAccess ?? []).forEach((ra) => {
+      raByRoom.set((ra as { room_id: string }).room_id, ra as AccessFields);
+    });
+    blocks = (rooms ?? [])
+      .slice()
+      .sort(
+        (a, b) =>
+          ((a.sort_order as number | null) ?? 9999) -
+            ((b.sort_order as number | null) ?? 9999) ||
+          String(a.name).localeCompare(String(b.name)),
+      )
+      .map((room) => {
+        const ra = raByRoom.get(room.id as string) ?? null;
+        const merged: Partial<AccessFields> = {
+          check_in_method: fallback(
+            ra?.check_in_method,
+            listingAccess?.check_in_method,
+          ),
+          check_in_instructions: fallback(
+            ra?.check_in_instructions,
+            listingAccess?.check_in_instructions,
+          ),
+          gate_code: fallback(ra?.gate_code, listingAccess?.gate_code),
+          door_code: fallback(ra?.door_code, listingAccess?.door_code),
+          wifi_network: fallback(ra?.wifi_network, listingAccess?.wifi_network),
+          wifi_password: fallback(
+            ra?.wifi_password,
+            listingAccess?.wifi_password,
+          ),
+        };
+        return toAccessBlock(merged, String(room.name));
+      });
+  } else {
+    blocks = [toAccessBlock(listingAccess)];
+  }
+
+  return { ...base, checkInTime, address, blocks };
+};
+
 export const BOOKING_RESOLVERS: Record<string, EmailResolver> = {
   booking_request_host: bookingResolver,
   booking_confirmed_host: bookingConfirmedHostResolver,
   booking_confirmed_guest: bookingResolver,
+  stay_details_guest: stayDetailsGuestResolver,
   booking_declined_guest: bookingResolver,
   booking_cancelled_host: bookingCancelledHostResolver,
   booking_cancelled_guest: bookingCancelledGuestResolver,

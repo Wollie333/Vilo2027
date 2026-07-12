@@ -23,6 +23,7 @@ import {
   RefundDeclinedGuest,
   RefundRequestHost,
   ReviewRequestGuest,
+  StayDetailsGuest,
   StaffInvite,
   SubscriptionExpiring,
   SubscriptionFailed,
@@ -123,6 +124,16 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "guest",
     subject: (p) =>
       `How was ${str(p.listingName, "your stay")}? Leave a review`,
+  },
+
+  // Sent ~1h before check-in (alongside the inbox access card) with the full
+  // stay summary + access details (gate/door codes, Wi-Fi). Enqueued by the
+  // send_due_access_cards() cron for confirmed+paid bookings.
+  stay_details_guest: {
+    Template: StayDetailsGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `Your stay at ${str(p.listingName, "your booking")} — access details inside`,
   },
 
   new_review_host: {

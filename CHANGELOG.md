@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-12 #56 — Guest gets an email with their stay details (gate code, Wi-Fi) before check-in.
+
+Founder ask: once a booking is confirmed + paid, the guest should get their full stay details just before
+check-in — an EMAIL **and** an inbox message — including access info like the gate code and Wi-Fi.
+
+State before: `send_due_access_cards()` already posts an inbox access card (host→guest, gate/door/Wi-Fi)
+~1h before check-in, and the trip page unlocks codes ~1h before — but the guest got NOTHING by email
+(the only guest emails were booking-confirmed, which carries no access details, and the review request).
+
+- **New guest email `stay_details_guest`** — template `emails/templates/StayDetailsGuest.tsx`: "Your stay is
+  almost here" with the booking summary (listing, check-in date + time, check-out, nights, where, reference)
+  and a **🔑 Access details** section (check-in method, gate code, door code, Wi-Fi network + password,
+  getting-there directions) + a "View your trip" button. Only renders fields the host actually set; multi-room
+  bookings get one block per booked room.
+- **Resolver** `stayDetailsGuestResolver` (`lib/email/resolvers/booking.ts`) hydrates it from the booking:
+  whole-listing `property_access` by default, or per-room `property_room_access` with per-field fallback to
+  the listing — mirroring the SQL cron. Runs with the service role, so secrets are read only at send time and
+  never stored in the queue payload. Registered in `EMAIL_REGISTRY` + a sample payload for the admin preview.
+- **Wiring** — migration `20260712110000` has `send_due_access_cards()` also enqueue a `stay_details_guest`
+  email into `notification_queue` in the same loop where it posts the inbox card and stamps
+  `access_card_sent_at` — so email + inbox fire together, ~1h before check-in, exactly once per booking
+  (transactional; no category gate). The existing email-worker drain renders + sends it.
+- **Verified live:** ran the cron against a due booking on the cloud DB → inbox card posted (gate 4210#, Wi-Fi)
+  + `stay_details_guest` row enqueued + stamp set. A live-DB integration test ran the real resolver → real
+  template render and asserted the codes/summary appear; the rendered email was screenshotted. Test fixture
+  fully restored. Build + lint green.
+
 ## 2026-07-12 #55 — Host dashboard sweep COMPLETE (Batches F Insights + G Settings).
 
 Finished the tab-by-tab host-dashboard functional sweep. Batches F–G verified live + DB truth:

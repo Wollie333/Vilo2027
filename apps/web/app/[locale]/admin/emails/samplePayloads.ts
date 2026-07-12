@@ -100,6 +100,30 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     reviewUrl: "https://wieloplatform.com/review/abc/xyz",
   },
 
+  stay_details_guest: {
+    guestFirstName: "Lerato",
+    listingName: "Sunbird Cottage",
+    hostName: "Amara",
+    checkIn: "12 June 2026",
+    checkInTime: "14:00",
+    checkOut: "15 June 2026",
+    nights: 3,
+    bookingReference: "BK-0042",
+    bookingId: "sample-booking-id",
+    address: "42 Cliff Road, Hermanus, Western Cape",
+    blocks: [
+      {
+        checkInMethod: "Self check-in with a lockbox",
+        gateCode: "1042#",
+        doorCode: "5581",
+        wifiNetwork: "Sunbird-Guest",
+        wifiPassword: "cliffs2026",
+        checkInInstructions:
+          "Park in the bay marked 4. The lockbox is on the gate's right post.",
+      },
+    ],
+  },
+
   new_review_host: {
     hostFirstName: "Amara",
     guestName: "Lerato",
