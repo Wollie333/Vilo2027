@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-07-12 #62 — Fix the P0 policy-snapshot crash + harden refunds (guest protection restored). Verified live.
+
+Executed Phase 0 + Phase 1 of `docs/features/POLICY_ENFORCEMENT_ADDONS_REFUNDS_PLAN.md`. Guest refund
+protection — silently broken in production (0% refund for every booking) — is restored and hardened, and
+proven end-to-end on the live preview + cloud DB from a fresh booking through a real host refund.
+
+- **🔴→✅ P0 fixed (G1):** migration `20260712140000` re-defines `snapshot_booking_policies` with the
+  count-then-select room derivation (no `min(uuid)`), keeping the specials cancellation override + all 4
+  policy types, and **backfills** every booking missing a cancellation snapshot. `policy_snapshots` went
+  from **0 rows → 28** on backfill. The RPC now succeeds; `calculate_policy_refund_amount(BK-0035)` returns
+  real tiers (**100% @ 151d, 50% @ 3d, 0% @ 0d** on the Moderate schedule) instead of `no_policy_snapshot`.
+- **✅ G1 proven in the real create path:** drove a NEW booking through the live guest checkout →
+  **BK-0037** froze all 4 policy types (snapshots 28 → 32) and its refund calc returns the correct 100%
+  entitlement. (Previously the create-path call crashed silently → no snapshot.)
+- **✅ G2 — non-silent snapshot write:** `persist.ts` now checks the RPC result and, on failure, records a
+  `policy_snapshot_failed` admin notification (with the booking + host) instead of leaving a silent
+  no-policy booking. Booking is not unwound (the guest completed a valid checkout); ops heals it.
+- **✅ G3 — `policy_snapshots` immutability:** migration `20260712150000` adds a `BEFORE UPDATE OR DELETE`
+  trigger — UPDATE always rejected, DELETE rejected except the GDPR purge (`app_purge_user_account` sets a
+  txn-local `app.allow_policy_snapshot_purge` flag; re-stated to add it). Verified a service-role UPDATE
+  ("HACKED") and DELETE are both rejected (SQLSTATE 23001) with snapshots intact.
+- **✅ G4 — refund reaches `bookings.payment_status`:** extended the v11 `update_payment_refunded_amount`
+  completion trigger to roll the booking's `payment_status` up from all its payments →
+  `partially_refunded` / `refunded`. Verified live: a **R2 000** partial refund on **BK-0027** via the host
+  Payments panel → REF minted, payment `partially_refunded`, and the booking shows a **"partially
+  refunded"** pill + "R 2 000 refunded"; a **full** refund on **BK-0036** → `refunded`.
+- **Found (out of scope — logged to NEXT_STEPS §1 financial sweep):** after a *partial* refund the
+  Payments panel shows `PAID R0` / full balance due, because `sumCompletedPaid` filters `status='completed'`
+  and the refund trigger flips the payment to `partially_refunded` — so a partially-refunded payment stops
+  counting as paid. Pre-existing (the v11 trigger already flipped payment status before this work).
+- `pnpm build` + `pnpm lint` green. No type regen needed (snapshot fn signature unchanged). Remaining
+  plan work (G5 refund-off-amount-paid, G6 "Policies (as booked)" panel, G7 add-ons, G8/G9 legal, Paystack
+  sandbox card proof) is re-scoped in `NEXT_STEPS.md` §0.
+
 ## 2026-07-12 #61 — Audit + plan: policy enforcement, add-ons & refunds (found a P0 policy-snapshot crash). SAVE POINT.
 
 Audited (two Explore agents + live RPC probes) how a booking freezes + enforces its policies, wires

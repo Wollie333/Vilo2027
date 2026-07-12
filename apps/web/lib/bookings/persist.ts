@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { PricingModel } from "@/app/[locale]/dashboard/addons/schemas";
+import { notifyAdmins } from "@/lib/admin/notify";
 import { notifyGuestEftInstructions } from "@/lib/bookings/notifyGuestEftInstructions";
 import { notifyHostNewBooking } from "@/lib/bookings/notifyHostNewBooking";
 import {
@@ -198,10 +199,14 @@ export async function persistBookingAndPay(
     }
   }
 
-  // 5. Freeze the effective policies onto the booking (best-effort). A special
-  // passes its cancellation override so resolution is override → room → listing →
-  // host default.
-  await admin.rpc("snapshot_booking_policies", {
+  // 5. Freeze the effective policies onto the booking. A special passes its
+  // cancellation override so resolution is override → room → listing → host
+  // default. The booking is NOT unwound on failure (the guest has completed a
+  // valid checkout) — but the failure must be LOUD, never silent: a booking with
+  // no cancellation snapshot loses all refund protection (the refund engine
+  // falls back to 0%). Alert ops so it can be healed (re-running the snapshot
+  // fn backfills any booking missing a cancellation row).
+  const { error: snapErr } = await admin.rpc("snapshot_booking_policies", {
     p_booking_id: booking.id,
     p_listing_id: input.policy.listingId,
     ...(input.policy.specialCancellationPolicyId
@@ -211,6 +216,16 @@ export async function persistBookingAndPay(
         }
       : {}),
   });
+  if (snapErr) {
+    await notifyAdmins(admin, {
+      category: "finance",
+      kind: "policy_snapshot_failed",
+      title: `Policy snapshot failed for ${booking.reference}`,
+      body: `snapshot_booking_policies errored (${snapErr.message}). This booking has no frozen cancellation policy, so refunds will fall back to 0% until it is healed.`,
+      hostId: (input.bookingInsert.host_id as string | null) ?? null,
+      href: `/dashboard/bookings/${booking.id}`,
+    });
+  }
 
   // 6. Take payment through the ONE canonical path (host's own Paystack / EFT).
   const returnTo =

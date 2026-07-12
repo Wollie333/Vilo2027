@@ -6,8 +6,17 @@
 > booking instance afterwards, and **enforced on refund** — with the host unable to change them after the
 > fact. Add-ons fully wired. Refund process tested on the UI from both ends.
 >
-> **Status of this doc:** grounded audit + implementation plan. Save point for a fresh implementation
-> session. Audited live against the cloud DB on 2026-07-12 (two Explore agents + direct RPC probes).
+> **Status of this doc:** grounded audit + implementation plan. Audited live against the cloud DB on
+> 2026-07-12 (two Explore agents + direct RPC probes).
+>
+> **✅ Progress 2026-07-12 (session #62):** **Phase 0 (P0/G1) + Phase 1 (G2/G3/G4) are DONE and verified
+> live.** Migrations `20260712140000` (snapshot fix + backfill) and `20260712150000` (immutability trigger
+> + refund→payment_status). `persist.ts` snapshot write now alerts admins on failure (G2). Verified:
+> the RPC succeeds + refund tiers compute (100/50/0%); `policy_snapshots` backfilled (28 rows) and a NEW
+> real booking (BK-0037) froze all 4 policy types via the live guest checkout; immutability blocks
+> service-role UPDATE/DELETE; a live host refund flipped `bookings.payment_status` (partial→
+> `partially_refunded`, full→`refunded`). **Remaining: Phase 2 (G5 refund-off-amount-paid, G6 "Policies
+> (as booked)" panel, G7 add-ons) + Phase 3 (G8/G9 legal) + the Paystack sandbox card-path proof.**
 
 ---
 

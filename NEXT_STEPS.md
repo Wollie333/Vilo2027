@@ -13,24 +13,35 @@ Driving gotchas are in memory `host-dashboard-sweep` (esp. `preview_resize` → 
 
 ---
 
-## 0. 🔴 CRITICAL — Policy enforcement, add-ons & refunds (booking safety). Plan ready.
+## 0. 🟡 Policy enforcement, add-ons & refunds (booking safety) — P0 + Phase 1 DONE; Phase 2/3 remain.
 
 **Full grounded plan: `docs/features/POLICY_ENFORCEMENT_ADDONS_REFUNDS_PLAN.md`** (audited live 2026-07-12).
 
-**P0 bug found — fix first:** `snapshot_booking_policies` crashes on the live DB
-(`function min(uuid) does not exist`, root cause `20260619000000_specials_booking_policy_override.sql:59`
-`min(room_id)` — regressed the `20260610180006` fix). Result: **`policy_snapshots` is empty for EVERY
-booking** → `calculate_policy_refund_amount` returns `no_policy_snapshot` → **0% refund for everyone /
-zero guest protection**, even though checkout shows a policy. Fix = re-apply the count-then-select room
-derivation in the 3-arg fn + drop the buggy 2-arg overload + backfill.
+**✅ DONE & verified live (session #62, 2026-07-12):**
+- **P0/G1** — `snapshot_booking_policies` `min(uuid)` crash fixed (migration `20260712140000`,
+  count-then-select room derivation) + backfilled every booking. `policy_snapshots` was EMPTY for every
+  booking (0% refund for all); now populated. Verified a NEW real booking (BK-0037) freezes all 4 policy
+  types via the live guest checkout, and `calculate_policy_refund_amount` returns correct tiers (100/50/0%).
+- **G2** — snapshot write in `persist.ts` no longer silent: on RPC failure it alerts admins
+  (`policy_snapshot_failed`) so a no-policy booking can be healed.
+- **G3** — `policy_snapshots` immutability trigger (migration `20260712150000`): blocks UPDATE always +
+  DELETE except the GDPR purge (which sets a txn-local flag). Verified service-role UPDATE/DELETE rejected.
+- **G4** — refund completion now flips `bookings.payment_status` → `refunded`/`partially_refunded`
+  (extended the v11 completion trigger). Verified live: a R2 000 partial refund on BK-0027 → the UI shows
+  a "partially refunded" pill; a full refund on BK-0036 → `refunded`.
 
-Then (phased in the plan): make the snapshot write non-silent (G2); add a DB immutability trigger on
-`policy_snapshots` (G3, service-role currently bypasses RLS); set `bookings.payment_status` on refund
-(G4); refund off amount-PAID not total (G5); a "Policies (as booked)" panel on host + guest booking
-views (G6); add-on refundability decision (G7); freeze platform-T&C text + split host-vs-Wielo checkout
-acceptance (G8/G9). Test the refund end-to-end on the UI from BOTH ends. **What already works:** snapshot
-design, add-on price-snapshotting, refund reads the snapshot, host+guest cancel/refund UI, REF numbers,
-refund≠credit-note — all sound; the P0 crash is what makes it all inert.
+**⏳ REMAINING (Phase 2/3):**
+- **G5 (P2)** — refund base = amount actually **paid**, not `total_amount`; fix `total_paid` label for
+  deposit-only/partial bookings.
+- **G6 (P2)** — **"Policies (as booked)" panel** on host `dashboard/bookings/[id]` AND guest
+  `portal/trips/[id]`, reading `policy_snapshots` + accepted Wielo terms/privacy versions.
+- **G7 (P2)** — add-on refundability decision (flag refundable/non-refundable; exclude or per-line).
+- **G8/G9 (P3)** — freeze the accepted platform-T&C **text** (not just the version stamp); split the one
+  combined checkout acceptance into distinct host-legal vs Wielo-terms acknowledgements.
+- **⚠️ Ledger quirk found (belongs to §1 sweep):** after a **partial** refund the Payments panel shows
+  `PAID R0` / full balance due, because `sumCompletedPaid` filters `status='completed'` and the refund
+  trigger flips the payment to `partially_refunded` — so a partially-refunded payment stops counting as
+  paid at all. Pre-existing (not caused by G4). Net paid should be `captured − refunded`.
 
 **Also fold in (card-path proof):** provide **Paystack test/sandbox** keys + connect a test host so the
 card checkout, `/pay` deposit toggle, and `paystack-webhook` can be driven end-to-end (the current test
