@@ -86,6 +86,8 @@ async function buildHostGuestStatement(
   const lines: StatementLine[] = [];
   let totalCharges = 0;
   let totalPayments = 0;
+  let vatIncluded = 0;
+  let sawVat = false;
 
   for (const e of asc) {
     if (e.date > tok.to) break; // ignore anything after the as-at date
@@ -97,6 +99,19 @@ async function buildHostGuestStatement(
     }
     if (delta > 0) totalCharges = r2(totalCharges + delta);
     else if (delta < 0) totalPayments = r2(totalPayments - delta);
+    // VAT summary from the REAL vat_amount on each row — a charge adds its VAT, a
+    // cancellation credit note removes the VAT it reversed. Payments, refunds and
+    // forfeits carry no VAT, so they never distort the figure (the old
+    // 15/115-of-total-charges derivation wrongly taxed refunds/forfeits too).
+    if (e.vatAmount) {
+      if (e.type === "charge") {
+        vatIncluded = r2(vatIncluded + e.vatAmount);
+        sawVat = true;
+      } else if (e.type === "credit" && e.category === "booking") {
+        vatIncluded = r2(vatIncluded - e.vatAmount);
+        sawVat = true;
+      }
+    }
     lines.push({
       date: e.date,
       title: describeGuestTxn(e),
@@ -125,11 +140,6 @@ async function buildHostGuestStatement(
     "Guest";
   const recipientLines = guest?.email ? [guest.email] : [];
 
-  // VAT is only meaningful when the host is VAT-registered; charges are shown
-  // gross with the included VAT broken out (the conventional statement treatment).
-  const vatRegistered = host.lines.some((l) => l.startsWith("VAT "));
-  const vatIncluded = vatRegistered ? r2((totalCharges * 15) / 115) : null;
-
   return {
     context: "host_guest",
     reference: statementRef(tok),
@@ -146,8 +156,8 @@ async function buildHostGuestStatement(
     closingBalance: closing,
     totalCharges,
     totalPayments,
-    vatIncluded,
-    vatRate: vatIncluded != null ? 15 : null,
+    vatIncluded: sawVat ? vatIncluded : null,
+    vatRate: sawVat ? 15 : null,
     balanceLabel: closing > 0.5 ? "Balance due" : "Balance carried forward",
     outstanding: closing > 0.5,
   };

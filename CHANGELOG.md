@@ -14,6 +14,19 @@ pushed to `main`, verified live, `tsc`/`lint`/`build` green. Shipped this sessio
 The whole `NEXT_STEPS §F` batch is now done. **NEXT (fresh session): §1 deep financial sweep** — exhaustively
 re-derive every ledger balance / VAT / doc amount / reconciliation and fold into `docs/lifecycles/payments-ledger.md`.
 
+## 2026-07-12 #81 — Fix host→guest statement VAT (was inflated by refunds/forfeits). Driven live.
+
+The host→guest Statement of Account derived VAT as `totalCharges × 15/115`, but `totalCharges` includes every
+positive movement — refunds and forfeits (owedEffect +1) too — so those were wrongly "taxed" and the VAT read
+too high (Beta Karoo Guest: a fully-refunded R8 418 booking pushed the VAT to R2 574 vs the real R1 476).
+
+- The transaction rows now carry `vatAmount` (from the source invoice / booking / credit-note `vat_amount` —
+  `lib/finance/transactions.ts`).
+- `buildHostGuestStatement` sums the **real** VAT: each charge adds its VAT, a cancellation credit note removes
+  the VAT it reversed; payments/refunds/forfeits carry none. (Mirrors the Wielo→host statement, which already
+  summed actual `vat_amount`.) Verified live: the statement's "VAT included (15%)" now reads **R 1 476**.
+- `build`/`lint` (web) green.
+
 ## 2026-07-12 #80 — Fix blank statement page (locale-404) + route help/support buttons to the Wielo Support inbox thread.
 
 Two founder-reported items.

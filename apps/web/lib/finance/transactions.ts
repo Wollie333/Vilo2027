@@ -72,6 +72,10 @@ export type Txn = {
   /** Voided (kept for audit, hidden from the live ledger; zero effect). */
   voided?: boolean;
   voidReason?: string | null;
+  /** VAT included in this row's amount (from the source invoice / booking /
+   * credit-note vat_amount). Lets a statement sum the REAL VAT on charges rather
+   * than deriving it from the gross — refunds/forfeits carry none. */
+  vatAmount?: number | null;
   /** The business this transaction belongs to, derived from its booking's
    * listing (booking → listing → business_id). Lets the Ledger + Guest Record
    * filter by business; null when the booking/listing has no business. */
@@ -141,7 +145,7 @@ export async function fetchHostTransactions(
   let invoicesQ = admin
     .from("invoices")
     .select(
-      "id, invoice_number, kind, total_amount, currency, issued_at, booking_id, hosted_token, guest_id, guest_snapshot, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
+      "id, invoice_number, kind, total_amount, vat_amount, currency, issued_at, booking_id, hosted_token, guest_id, guest_snapshot, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
     )
     .eq("host_id", hostId);
   let paymentsQ = admin
@@ -164,7 +168,7 @@ export async function fetchHostTransactions(
   let creditNotesQ = admin
     .from("credit_notes")
     .select(
-      "id, credit_note_number, total_amount, currency, issued_at, booking_id, hosted_token, origin, status, guest_id, guest_snapshot, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
+      "id, credit_note_number, total_amount, vat_amount, currency, issued_at, booking_id, hosted_token, origin, status, guest_id, guest_snapshot, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
     )
     .eq("host_id", hostId)
     // 'manual' = goodwill store credit; 'cancellation' = a booking-reversal note
@@ -198,7 +202,7 @@ export async function fetchHostTransactions(
   const bookingsQ = admin
     .from("bookings")
     .select(
-      "id, reference, status, total_amount, currency, created_at, guest_id, guest_name, guest_email",
+      "id, reference, status, total_amount, vat_amount, currency, created_at, guest_id, guest_name, guest_email",
     )
     .eq("host_id", hostId)
     .is("deleted_at", null);
@@ -320,6 +324,7 @@ export async function fetchHostTransactions(
       owedEffect: voided ? 0 : 1,
       cashEffect: 0,
       category: inv.kind === "addon" ? "addon" : "booking",
+      vatAmount: Number(inv.vat_amount ?? 0),
       voided,
       voidReason: (inv.void_reason as string) ?? null,
     });
@@ -352,6 +357,7 @@ export async function fetchHostTransactions(
       owedEffect: 1,
       cashEffect: 0,
       category: "booking",
+      vatAmount: Number(bk.vat_amount ?? 0),
       voided: false,
       voidReason: null,
     });
@@ -461,6 +467,9 @@ export async function fetchHostTransactions(
       owedEffect: voided ? 0 : -1,
       cashEffect: 0,
       category: isCancellation ? "booking" : "credit",
+      // A cancellation note carries the reversed VAT; subtract it from the
+      // statement's VAT summary. Manual store-credit notes are VAT-free (0).
+      vatAmount: Number(cn.vat_amount ?? 0),
       voided,
       voidReason: (cn.void_reason as string) ?? null,
     });
