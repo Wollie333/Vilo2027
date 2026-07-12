@@ -1609,7 +1609,7 @@ export default async function PortalTripDetailPage({
                           {refunded > 0
                             ? ` · ${formatMoney(refunded, currency)} refunded`
                             : ""}
-                          {p.receipt_token ? (
+                          {p.receipt_token && p.receipt_number ? (
                             <>
                               {" · "}
                               <a
@@ -1618,8 +1618,7 @@ export default async function PortalTripDetailPage({
                                 rel="noopener noreferrer"
                                 className="underline underline-offset-2 hover:text-brand-ink"
                               >
-                                Receipt
-                                {p.receipt_number ? ` ${p.receipt_number}` : ""}
+                                Receipt {p.receipt_number}
                               </a>
                             </>
                           ) : null}

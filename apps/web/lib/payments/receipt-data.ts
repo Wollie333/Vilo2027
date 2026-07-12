@@ -61,7 +61,13 @@ export async function getReceiptByToken(
     )
     .eq("receipt_token", token)
     .maybeSingle();
-  if (!p || p.status !== "completed" || !p.receipt_number) return null;
+  // A receipt documents money that WAS captured. A later refund flips the
+  // payment to partially_refunded / refunded but doesn't invalidate the original
+  // receipt, so those still resolve — only never-captured (pending/failed/voided)
+  // rows have no receipt. Requires a minted receipt_number.
+  const CAPTURED = ["completed", "partially_refunded", "refunded"];
+  if (!p || !CAPTURED.includes(p.status ?? "") || !p.receipt_number)
+    return null;
 
   const { data: b } = await admin
     .from("bookings")
