@@ -92,6 +92,19 @@ checkout, deal page). Guest checkout entry: `app/[locale]/property/[slug]/book`.
 
 ---
 
+## Guest-facing surfaces (parity — what the guest sees at each stage)
+Shipped 2026-07-12 (CHANGELOG #64) so the guest sees the same booking/money state the host does:
+- **Trips list** (`portal/trips/TripsClient.tsx`, `page.tsx` `derivePayState`): status pill corrected —
+  a pending/EFT booking the guest still owes reads **"Payment needed"** (not "Awaiting host"); each card
+  shows a payment chip (Paid / Balance / Pay now / Partially refunded / Refunded) and a Pay-now/Pay-balance
+  action → `/booking/[id]/pay`.
+- **Trip detail** (`portal/trips/[id]/page.tsx`): a **"Payment needed"** card (amount + "Get bank details &
+  pay" for EFT) when money is owed; a **Trip timeline** (requested → payment received → confirmed → checked
+  in/out → cancelled) from the booking timestamps + first captured payment; the receipt shows refunded
+  state (see [`policy-refunds.md`](policy-refunds.md) Step 7). `owesMoney` excludes refunded states.
+- **Overview "Up next"** (`portal/page.tsx`): styled status pill + "Complete your payment to confirm →"
+  when owed. ⚠️ still filters `check_in >= today` (a past-due unpaid booking won't surface — open item).
+
 ## Branch summary
 - **EFT**: Steps 1(pending_eft) → 3 (guest instructions) → 4 (host records) → 5/6. ✅ driven.
 - **Card (Paystack)**: Step 1(pending) → redirect to Paystack → `paystack-webhook` settles → 5/6.
