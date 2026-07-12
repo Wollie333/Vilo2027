@@ -176,6 +176,14 @@ export default async function InboxPage({
     checkIn: c.booking?.check_in ?? null,
   }));
 
+  // The Wielo Support (platform) thread is ALWAYS the first thread — sticky
+  // above every other conversation, even other pinned ones. Array.sort is
+  // stable, so the rest keep their pinned/newest-first order from the query.
+  conversations.sort(
+    (a, b) =>
+      Number(b.channel === "platform") - Number(a.channel === "platform"),
+  );
+
   // Resolve the selected conversation (?c=). The two-pane shell shows the list
   // until a thread is opened, then the thread on the right.
   const requested = searchParams?.c;

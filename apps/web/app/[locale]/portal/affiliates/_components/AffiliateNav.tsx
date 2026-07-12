@@ -11,40 +11,36 @@ import {
 
 import { Link, usePathname } from "@/i18n/navigation";
 
-const TABS: {
-  href: string;
+// Tabs relative to the affiliate base — the SAME affiliate area mounts under the
+// guest portal (/portal/affiliates) AND the host dashboard (/dashboard/affiliates),
+// so the nav builds its hrefs from the base it's rendered under.
+const TAB_DEFS: {
+  suffix: string;
   label: string;
   icon: LucideIcon;
   exact?: boolean;
   countable?: boolean;
 }[] = [
-  {
-    href: "/portal/affiliates",
-    label: "Overview",
-    icon: LayoutDashboard,
-    exact: true,
-  },
-  {
-    href: "/portal/affiliates/products",
-    label: "Products",
-    icon: Package,
-    countable: true,
-  },
-  { href: "/portal/affiliates/marketing", label: "Marketing", icon: Megaphone },
-  { href: "/portal/affiliates/payouts", label: "Payouts", icon: Wallet },
-  {
-    href: "/portal/affiliates/leaderboard",
-    label: "Leaderboard",
-    icon: Trophy,
-  },
+  { suffix: "", label: "Overview", icon: LayoutDashboard, exact: true },
+  { suffix: "/products", label: "Products", icon: Package, countable: true },
+  { suffix: "/marketing", label: "Marketing", icon: Megaphone },
+  { suffix: "/payouts", label: "Payouts", icon: Wallet },
+  { suffix: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
-export function AffiliateNav({ productCount = 0 }: { productCount?: number }) {
+export function AffiliateNav({
+  productCount = 0,
+  basePath = "/portal/affiliates",
+}: {
+  productCount?: number;
+  basePath?: string;
+}) {
   const pathname = usePathname();
+  const tabs = TAB_DEFS.map((t) => ({ ...t, href: `${basePath}${t.suffix}` }));
 
   return (
     <nav className="thin-scroll flex items-center gap-7 overflow-x-auto border-b border-brand-line">
-      {TABS.map((t) => {
+      {tabs.map((t) => {
         const active = t.exact
           ? pathname === t.href
           : pathname.startsWith(t.href);

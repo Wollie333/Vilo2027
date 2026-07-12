@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-12 #65 — Affiliate reachable in each user's own shell + Wielo Support pinned first (host inbox). Verified live.
+
+- **Affiliate access, per shell (founder):** the affiliate programme is one account per user, but hosts were
+  thrown into the guest-portal shell to reach it. It now mounts under BOTH shells: guests reach it at
+  `/portal/affiliates` (guest portal chrome), hosts at `/dashboard/affiliates` (host dashboard chrome).
+  Implemented with a shared server component `components/affiliate/AffiliateShell.tsx` (gate + header + nav)
+  and thin `dashboard/affiliates/*` pages that re-export the existing portal page bodies — no logic
+  duplicated. `AffiliateNav` builds its tab hrefs from a `basePath`, and the one cross-page link uses a new
+  base-aware `AffiliateBaseLink`, so navigation stays in-shell. Host dashboard sidebar now links to
+  `/dashboard/affiliates`. Verified live: host → Dashboard›Affiliates with `/dashboard/affiliates/*` tabs;
+  guest → Portal›Affiliates with `/portal/affiliates/*` tabs; both render the full overview/products.
+- **Wielo Support pinned first (host inbox):** the platform (Wielo Support) thread was only `pinned=true`,
+  so another pinned/newer conversation could sort above it. `dashboard/inbox/page.tsx` now hoists the
+  `channel='platform'` thread to the top (stable sort keeps the rest pinned/newest-first). Verified: Wielo
+  Support renders as the first thread.
+- **Guest-side Wielo Support thread — deferred.** A guest↔Wielo support thread needs schema + admin-inbox
+  work (conversations.host_id is NOT NULL; the admin inbox is host-only); scoped out for now per founder.
+- `pnpm build` + `pnpm lint` green.
+
 ## 2026-07-12 #64 — Guest-portal parity: correct status labels, Pay-now CTA, payment chips, booking timeline. Verified live.
 
 Founder: "both entities need to see what they're supposed to on the UI." Closed the audited guest-portal

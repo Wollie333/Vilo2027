@@ -8,7 +8,6 @@ import {
   UserPlus,
   Wallet,
 } from "lucide-react";
-import { Link } from "@/i18n/navigation";
 
 import {
   AdminColumn,
@@ -22,6 +21,7 @@ import { formatMoney, round2 } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { AffiliateBaseLink } from "./_components/AffiliateBaseLink";
 import { AffiliateLinkBuilder } from "./_components/AffiliateLinkBuilder";
 import { ReferralLinkCard } from "./_components/ReferralLinkCard";
 
@@ -404,12 +404,12 @@ export default async function AffiliateOverviewPage() {
               </li>
             ))}
           </ol>
-          <Link
-            href="/portal/affiliates/products"
+          <AffiliateBaseLink
+            suffix="/products"
             className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-primary hover:text-brand-secondary"
           >
             See what you can promote <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          </AffiliateBaseLink>
         </div>
       </div>
 

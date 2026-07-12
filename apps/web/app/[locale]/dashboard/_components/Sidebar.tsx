@@ -179,10 +179,11 @@ const INSIGHTS: GmailNavItem[] = [
     icon: Radar,
     match: "prefix",
   },
-  // The affiliate programme lives in the universal portal area (open to every
-  // user). Hosts reach it via this cross-workspace link.
+  // The affiliate programme is one account per user, mounted under BOTH shells.
+  // Hosts reach it inside their own dashboard chrome (not thrown into the guest
+  // portal); guests reach the same program via the portal sidebar.
   {
-    href: "/portal/affiliates",
+    href: "/dashboard/affiliates",
     label: "Affiliates",
     icon: BadgePercent,
     match: "prefix",
