@@ -2,6 +2,43 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-12 #70) — FOUNDER FIX BATCH: quick fixes + F3 + F1 DONE. F2 + F4 QUEUED. Pushed @ `8f9cec4b`.
+
+Resume from memory [[project-founder-fix-batch-jul12]] (full detail of everything below). All work below is
+committed + pushed to `main`, verified live, and `type-check`/`lint`/`build` green. Founder's 9-item batch
+(2026-07-12) — the small fixes + two of the four larger features are shipped:
+
+**✅ Shipped this batch (verified live):**
+- **#68 quick fixes:** invoice-NaN (add-on `kind` guard + `formatMoney`); room amenities **batch-save**
+  (`deferSave` + `setRoomAmenitiesAction`); policy-picker **optimistic green** (`activeId`); listing
+  **"Things to know" → 4 stacked cards** (House rules→Cancellation→Safety→Terms) + host Terms modal +
+  removed the false "Wielo holds payments" copy + truthful meet-host safety note.
+- **#69 F3 — vanishing-guest forfeiture:** booking **No-show** now force-forfeits — voids the invoice,
+  writes off the outstanding, keeps paid as revenue (NO refund/credit note), mints immutable `FRF-####`
+  forfeit statement, notifies guest (`booking_forfeited_guest`). Ledger nets booking to R0. Migration
+  `20260712180000`; core `lib/bookings/forfeit.ts`; flow in `docs/lifecycles/booking.md`.
+- **#70 F1 — Flagged Listings:** "Report this listing" modal → `listing_reports` + `notifyAdmins` → admin
+  **Moderation → Flagged Listings** (`/admin/flagged-listings`, `listings.moderate`) with tabs + audited
+  status actions; plus a **"Reported listings" tile in the admin Needs-attention block**. Migration
+  `20260712190000`.
+
+**⏳ NEXT (fresh session) — the two remaining founder features, full spec in `NEXT_STEPS.md §F`:**
+- **F2 — Deleted-accounts tab:** self-delete from Settings = soft-delete/anonymise (the exact plumbing
+  already exists in `admin/data-requests/actions.ts::fulfillDeletionAction` — reuse it). Add a **Deleted**
+  tab in admin Users (next to Suspended) → **reinstate** (clear deleted_at + unban) OR **hard-purge after
+  30 days**. Data retained + hidden until then.
+- **F4 — Statement function:** host generates a guest **statement** (charges/payments/refunds/balance) as a
+  downloadable doc; SAME generator reused in admin so Wielo→host. Unified doc numbering. Pairs with the F3
+  financial-doc infra (`FinancialDocument`, `renderCreditNotePdf` with `docKind`/`toLabel`/`totalLabel`).
+
+**Test host:** `host@wielotest.com` / `WieloTest123!` (user_id `72811b8e-…db2a`, host `0b111111-…111`,
+property `0b222222-…221`). Admin: sole super_admin `wollie@manamarketing.co.za`; to view admin pages as the
+test host, temp-grant `platform_staff(user_id, role_id=(Super Admin), is_active=true)` then delete it after.
+**Session gotchas** (in memory): orphaned `next dev` procs thrash the box (HTTP 000 / blank pane) → kill
+Vilo `node.exe`+`rm -rf apps/web/.next`+restart ONE server; use `javascript_tool .click()` (MCP ref-clicks
+mis-compute coords); a `"use server"` file may only export async fns (put constants elsewhere); commitlint
+caps header/body-line ≤100 + lowercase subject.
+
 ## ▶▶▶ SAVE POINT (2026-07-12 #67) — ONBOARDING WIZARD (Job A) + SEASONAL↔BOOKING (Job B) DONE + verified live.
 
 Both queued founder jobs (`NEXT_STEPS §A + §B`) are complete and driven live on the test host
