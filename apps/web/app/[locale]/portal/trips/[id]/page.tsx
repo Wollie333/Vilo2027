@@ -1395,27 +1395,44 @@ export default async function PortalTripDetailPage({
                     </span>
                   </li>
                 ) : null}
-                {addons.map((a) =>
-                  Number(a.subtotal) > 0 ? (
+                {addons.length > 0 ? (
+                  <li className="pt-1 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                    Add-ons &amp; extras
+                  </li>
+                ) : null}
+                {addons.map((a) => {
+                  const sub = Number(a.subtotal);
+                  return (
                     <li
                       key={a.id}
-                      className="flex items-center justify-between"
+                      className="flex items-center justify-between gap-3"
                     >
-                      <span className="text-brand-mute">
-                        {a.label}
-                        {a.quantity > 1 ? ` × ${a.quantity}` : ""}
+                      <span className="flex flex-wrap items-center gap-1.5 text-brand-mute">
+                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand-secondary" />
+                        <span className="text-brand-ink">
+                          {a.label}
+                          {a.quantity > 1 ? ` × ${a.quantity}` : ""}
+                        </span>
                         {a.source === "guest_added" ? (
-                          <span className="ml-1.5 rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-secondary">
+                          <span className="rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-secondary">
                             You added
                           </span>
-                        ) : null}
+                        ) : a.is_required ? (
+                          <span className="rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
+                            Included
+                          </span>
+                        ) : (
+                          <span className="rounded-pill bg-brand-accent px-1.5 py-px text-[10px] font-semibold text-brand-primary">
+                            Add-on
+                          </span>
+                        )}
                       </span>
                       <span className="num font-medium text-brand-ink">
-                        {formatMoney(Number(a.subtotal), a.currency)}
+                        {sub > 0 ? formatMoney(sub, a.currency) : "Included"}
                       </span>
                     </li>
-                  ) : null,
-                )}
+                  );
+                })}
                 {discount > 0 ? (
                   <li className="flex items-center justify-between text-brand-primary">
                     <span>Discount</span>
