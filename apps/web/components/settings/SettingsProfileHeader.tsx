@@ -12,6 +12,14 @@ function initials(name: string): string {
   return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase() || "·";
 }
 
+type SubProduct = { name: string | null; product_type: string | null };
+type SubRow = {
+  plan: string | null;
+  product_id: string | null;
+  // PostgREST returns an embedded row as an object (or an array on some joins).
+  product: SubProduct | SubProduct[] | null;
+};
+
 export async function SettingsProfileHeader() {
   const supabase = createServerClient();
   const {
@@ -35,14 +43,18 @@ export async function SettingsProfileHeader() {
       .maybeSingle(),
   ]);
 
-  const [{ data: sub }, { count: listingCount }] = await Promise.all([
+  const [{ data: subRows }, { count: listingCount }] = await Promise.all([
     host
       ? supabase
+          // A host may hold 1 membership + N service subscriptions (and legacy
+          // seeds can leave >1 row) — fetch all and pick the membership below.
+          // NEVER .maybeSingle() here: it errors on >1 row and the card would
+          // silently fall back to "Free" while the Subscription tab shows Beta.
           .from("subscriptions")
-          .select("plan")
+          .select("plan, product_id, product:products ( name, product_type )")
           .eq("host_id", host.id)
-          .maybeSingle()
-      : Promise.resolve({ data: null as { plan: string } | null }),
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as SubRow[] }),
     host
       ? supabase
           .from("properties")
@@ -52,10 +64,25 @@ export async function SettingsProfileHeader() {
       : Promise.resolve({ count: 0 }),
   ]);
 
+  // Mirror the Subscription tab's selection: the MEMBERSHIP row is the plan
+  // this card reflects; fall back to the first sub. Show the product name the
+  // host actually bought (e.g. "Beta"), then the plan tier's name, then Free.
+  const rows = (subRows as SubRow[] | null) ?? [];
+  const productOf = (r: SubRow) =>
+    Array.isArray(r.product) ? (r.product[0] ?? null) : r.product;
+  const membershipSub =
+    rows.find((r) => productOf(r)?.product_type === "membership") ??
+    rows[0] ??
+    null;
+  const membershipProduct = membershipSub ? productOf(membershipSub) : null;
+
   const name = host?.display_name || profile?.full_name || "Your account";
   const email = profile?.email || user.email || "";
   const avatarUrl = profile?.avatar_url || host?.avatar_url || "";
-  const planName = (await getPlan(sub?.plan ?? "free"))?.name ?? "Free";
+  const planName =
+    membershipProduct?.name ??
+    (await getPlan(membershipSub?.plan ?? "free"))?.name ??
+    "Free";
   const memberSince = host?.created_at
     ? new Date(host.created_at).getFullYear()
     : new Date(user.created_at).getFullYear();
