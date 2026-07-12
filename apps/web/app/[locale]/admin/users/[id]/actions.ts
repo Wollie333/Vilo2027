@@ -18,6 +18,13 @@ import {
   adminPostToHostThread,
 } from "@/lib/inbox/platform-thread";
 import { ensureHostForUser } from "@/lib/hosts/ensureHost";
+import {
+  DELETED_ACCOUNT_HOLD_DAYS,
+  hardPurgeUserAccount,
+  isPurgeEligible,
+  restoreUserAccount,
+  softDeleteUserAccount,
+} from "@/lib/users/accountLifecycle";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
@@ -249,14 +256,15 @@ export const changeUserRoleAction = withAdminAudit<
   },
 );
 
-// ─── Delete user ──────────────────────────────────────────────
+// ─── Delete user (soft delete + 30-day hold) ──────────────────
 // SOFT delete only — the absolute rule (CLAUDE.md / AGENT_RULES §2.1) is that
-// user_profiles / hosts / listings / bookings are NEVER hard-deleted, so the
-// admin action must not purge them. We set deleted_at + deactivate, soft-delete
-// the host row, anonymise PII, and free the real email for re-signup by moving
-// BOTH the profile email and the auth identity to an anon address + banning the
-// auth user (so the account can't sign in). Fully recoverable: clear deleted_at
-// + is_active and restore the email. NEVER call app_purge_user_account here.
+// user_profiles / hosts / listings / bookings are NEVER hard-deleted here. We
+// set deleted_at + deactivate, soft-delete the host row, and ban the auth user
+// so it can't sign in. Nothing is anonymised or destroyed — every row is
+// retained so the account is fully recoverable during the hold (see
+// restoreUserAction). Data is only removed by the manual hard purge
+// (purgeUserAction) after the 30-day hold. NEVER call app_purge_user_account
+// here. Shared with the self-service delete path via lib/users/accountLifecycle.
 const deleteSchema = z.object({
   userId: z.string().uuid(),
   reason: z.string().min(5).max(500),
@@ -289,44 +297,108 @@ export const softDeleteUserAction = withAdminAudit<
       );
     }
 
-    const now = new Date().toISOString();
-    const anonEmail = `deleted+${args.userId}@deleted.invalid`;
-
-    // Soft-delete + anonymise the profile (rows stay; recoverable).
-    const { error: profErr } = await service
-      .from("user_profiles")
-      .update({
-        full_name: "Deleted user",
-        email: anonEmail,
-        phone: null,
-        avatar_url: null,
-        is_active: false,
-        deleted_at: now,
-      })
-      .eq("id", args.userId);
-    if (profErr) throw new Error(profErr.message);
-
-    // Soft-delete the host row too (RLS/triggers depend on deleted_at). Listings
-    // cascade off the host's deleted_at via the existing soft-delete triggers.
-    await service
-      .from("hosts")
-      .update({ deleted_at: now })
-      .eq("user_id", args.userId)
-      .is("deleted_at", null);
-
-    // Free the real email for re-signup and block sign-in — WITHOUT deleting the
-    // auth user (that would cascade-purge the profile + children).
-    await service.auth.admin.updateUserById(args.userId, {
-      email: anonEmail,
-      ban_duration: "876000h", // ~100y; lifted on restore
-      user_metadata: {},
-    });
+    await softDeleteUserAccount(service, args.userId);
 
     revalidatePath(`/admin/users/${args.userId}`);
     revalidatePath("/admin/users");
     return {
       result: { ok: true, method: "soft_deleted" },
       after: { user_id: args.userId, method: "soft_deleted" },
+    };
+  },
+);
+
+// ─── Restore (reinstate a soft-deleted account) ───────────────
+// Reverses a soft delete during the hold: clears deleted_at, reactivates, and
+// lifts the auth ban so the user can sign in again. Everything comes back
+// because nothing was destroyed.
+const restoreSchema = z.object({
+  userId: z.string().uuid(),
+  reason: z.string().min(5).max(500),
+});
+
+export const restoreUserAction = withAdminAudit<
+  z.infer<typeof restoreSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.delete",
+    actionName: "user.restore",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+    requireReason: true,
+  },
+  async (args, service) => {
+    const { data: target } = await service
+      .from("user_profiles")
+      .select("deleted_at")
+      .eq("id", args.userId)
+      .maybeSingle();
+    if (!target?.deleted_at) {
+      throw new Error("This account is not deleted — nothing to restore.");
+    }
+
+    await restoreUserAccount(service, args.userId);
+
+    revalidatePath(`/admin/users/${args.userId}`);
+    revalidatePath("/admin/users");
+    return {
+      result: { ok: true },
+      after: { user_id: args.userId, restored: true },
+    };
+  },
+);
+
+// ─── Permanent purge (manual, admin-only, after the 30-day hold) ──
+// Irreversibly deletes every row the user owns + the auth user. Only allowed on
+// an account that has been soft-deleted for at least DELETED_ACCOUNT_HOLD_DAYS.
+// This is the ONLY place user data is truly destroyed. No cron runs this — an
+// admin must trigger it deliberately.
+const purgeSchema = z.object({
+  userId: z.string().uuid(),
+  reason: z.string().min(5).max(500),
+});
+
+export const purgeUserAction = withAdminAudit<
+  z.infer<typeof purgeSchema>,
+  { ok: true; method: "hard_purged" }
+>(
+  {
+    permissionKey: "users.delete",
+    actionName: "user.purge",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+    requireReason: true,
+  },
+  async (args, service) => {
+    const { data: target } = await service
+      .from("user_profiles")
+      .select("role, deleted_at")
+      .eq("id", args.userId)
+      .maybeSingle();
+
+    if ((target?.role as string | undefined) === "super_admin") {
+      throw new Error(
+        "Super admin accounts can't be purged here — change the role first.",
+      );
+    }
+    if (!target?.deleted_at) {
+      throw new Error(
+        "Only a deleted account can be purged. Delete it first, then wait out the hold.",
+      );
+    }
+    if (!isPurgeEligible(target.deleted_at as string)) {
+      throw new Error(
+        `This account is still in its ${DELETED_ACCOUNT_HOLD_DAYS}-day hold — it can't be purged yet.`,
+      );
+    }
+
+    await hardPurgeUserAccount(service, args.userId);
+
+    revalidatePath("/admin/users");
+    return {
+      result: { ok: true, method: "hard_purged" },
+      after: { user_id: args.userId, method: "hard_purged" },
     };
   },
 );
@@ -2099,6 +2171,34 @@ export async function reinstateUser(input: { userId: string; reason: string }) {
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   try {
     await reinstateUserAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
+
+export async function restoreUser(input: { userId: string; reason: string }) {
+  const parsed = restoreSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  try {
+    await restoreUserAction(parsed.data);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
+
+export async function purgeUser(input: { userId: string; reason: string }) {
+  const parsed = purgeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  try {
+    await purgeUserAction(parsed.data);
     return { ok: true as const };
   } catch (e) {
     return {

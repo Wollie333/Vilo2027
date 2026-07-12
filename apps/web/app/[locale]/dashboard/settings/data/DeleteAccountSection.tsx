@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 
 import { deleteAccountAction } from "./actions";
 
-// Hard self-delete UI. The action either redirects on success or returns
-// a structured error — there is no "ok: true" return path because the
-// redirect throws to terminate execution.
+// Self-delete UI. The action soft-deletes (closes + hides the account, signs
+// the user out) and redirects on success, or returns a structured error —
+// there is no "ok: true" return path because the redirect throws to terminate
+// execution. Data is retained for a 30-day hold, then an admin erases it.
 
 export function DeleteAccountSection({ email }: { email: string }) {
   const [open, setOpen] = useState(false);
@@ -44,12 +45,14 @@ export function DeleteAccountSection({ email }: { email: string }) {
         </div>
         <div className="flex-1">
           <h2 className="font-display text-base font-bold text-red-900">
-            Delete account permanently
+            Delete account
           </h2>
           <p className="mt-1 text-sm text-red-900/80">
-            This wipes your profile, listings, host page, bookings as guest,
-            messages, notifications and any reviews you&rsquo;ve left.{" "}
-            <span className="font-semibold">There is no undo.</span> Use the
+            This closes your account and signs you out immediately. Your
+            profile, listings, host page, bookings, messages and reviews are
+            hidden right away, held for 30 days, then{" "}
+            <span className="font-semibold">permanently erased</span>. Changed
+            your mind? Contact support within 30 days to reactivate. Use the
             data-export request above first if you want a copy of your data.
           </p>
 
@@ -102,7 +105,7 @@ export function DeleteAccountSection({ email }: { email: string }) {
                   }
                 >
                   <Trash2 className="mr-1.5 h-4 w-4" />
-                  {pending ? "Deleting…" : "Delete everything"}
+                  {pending ? "Closing…" : "Delete my account"}
                 </Button>
               </div>
             </div>

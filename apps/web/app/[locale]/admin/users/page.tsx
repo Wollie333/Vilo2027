@@ -6,6 +6,12 @@ import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 import { WIELO_SUPPORT_EMAIL } from "@/lib/inbox/platform-thread";
 
+import {
+  DELETED_ACCOUNT_HOLD_DAYS,
+  daysSinceDeleted,
+  isPurgeEligible,
+} from "@/lib/users/accountLifecycle";
+
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
 import { AdminSegments } from "../_components/AdminSegments";
 import { AdminStatBand } from "../_components/AdminStatBand";
@@ -29,7 +35,7 @@ const PAGE_SIZE = 50;
 // "staff" segment intentionally omitted for MVP: platform-staff management is
 // hidden site-wide, and staff/admin roles live in the platform_staff table
 // (not user_profiles.role), so the tab would always read empty.
-const SEGMENTS = ["all", "guest", "host", "suspended"] as const;
+const SEGMENTS = ["all", "guest", "host", "suspended", "deleted"] as const;
 
 function isSeg(s: string | undefined): s is (typeof SEGMENTS)[number] {
   return SEGMENTS.includes((s ?? "") as (typeof SEGMENTS)[number]);
@@ -48,18 +54,29 @@ export default async function AdminUsersPage({
     : "all";
 
   const service = createAdminClient();
+  const isDeletedSeg = seg === "deleted";
   let query = service
     .from("user_profiles")
     .select(
       "id, full_name, email, role, phone, is_active, created_at, deleted_at",
       { count: "exact" },
     )
-    .is("deleted_at", null)
-    // Hide the internal "Wielo Support" inbox bot — it's a system account, not a
-    // real user. (email is null OR != support) preserves null-email rows.
-    .or(`email.is.null,email.neq.${WIELO_SUPPORT_EMAIL}`)
+    // The Deleted tab shows soft-deleted accounts (in their 30-day hold); every
+    // other tab hides them.
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
+
+  if (isDeletedSeg) {
+    query = query
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false });
+  } else {
+    query = query.is("deleted_at", null);
+  }
+
+  // Hide the internal "Wielo Support" inbox bot — it's a system account, not a
+  // real user. (email is null OR != support) preserves null-email rows.
+  query = query.or(`email.is.null,email.neq.${WIELO_SUPPORT_EMAIL}`);
 
   if (q) {
     query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
@@ -139,6 +156,14 @@ export default async function AdminUsersPage({
     if (u.created_at && u.created_at >= since30) new30 += 1;
   }
 
+  // Deleted (soft-deleted) accounts sitting in the 30-day hold.
+  const { count: deletedCount } = await service
+    .from("user_profiles")
+    .select("id", { count: "exact", head: true })
+    .not("deleted_at", "is", null)
+    .or(`email.is.null,email.neq.${WIELO_SUPPORT_EMAIL}`);
+  const deleted = deletedCount ?? 0;
+
   const columns: AdminColumn<UserRow>[] = [
     {
       header: "User",
@@ -184,14 +209,19 @@ export default async function AdminUsersPage({
         );
       },
     },
-    {
-      header: "Joined",
-      cell: (u) => (
-        <span className="text-[12px] text-brand-mute">
-          {new Date(u.created_at).toLocaleDateString("en-ZA")}
-        </span>
-      ),
-    },
+    isDeletedSeg
+      ? {
+          header: "Deleted",
+          cell: (u) => <DeletedCell deletedAt={u.deleted_at} />,
+        }
+      : {
+          header: "Joined",
+          cell: (u) => (
+            <span className="text-[12px] text-brand-mute">
+              {new Date(u.created_at).toLocaleDateString("en-ZA")}
+            </span>
+          ),
+        },
     {
       header: "",
       align: "right",
@@ -237,7 +267,11 @@ export default async function AdminUsersPage({
         columns={columns}
         rows={list}
         getKey={(u) => u.id}
-        empty="No users match this filter."
+        empty={
+          isDeletedSeg
+            ? "No deleted accounts — nothing in the hold."
+            : "No users match this filter."
+        }
         topBar={
           <AdminSegments
             param="seg"
@@ -247,6 +281,7 @@ export default async function AdminUsersPage({
               { key: "guest", label: "Guests", count: guests },
               { key: "host", label: "Hosts", count: hosts },
               { key: "suspended", label: "Suspended", count: suspended },
+              { key: "deleted", label: "Deleted", count: deleted },
             ]}
           />
         }
@@ -296,6 +331,31 @@ export default async function AdminUsersPage({
           </div>
         }
       />
+    </div>
+  );
+}
+
+// Deleted-tab cell: how long the account has been in the hold + whether the
+// 30-day window has elapsed (i.e. an admin may now permanently purge it).
+function DeletedCell({ deletedAt }: { deletedAt: string | null }) {
+  if (!deletedAt) return <span className="text-[12px] text-brand-mute">—</span>;
+  const days = daysSinceDeleted(deletedAt);
+  const eligible = isPurgeEligible(deletedAt);
+  const remaining = Math.max(0, DELETED_ACCOUNT_HOLD_DAYS - days);
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[12px] text-brand-ink">
+        {new Date(deletedAt).toLocaleDateString("en-ZA")}
+      </span>
+      {eligible ? (
+        <span className="inline-flex w-fit items-center rounded-pill border border-status-cancelled/30 bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-medium text-status-cancelled">
+          Purge ready
+        </span>
+      ) : (
+        <span className="text-[11px] text-brand-mute">
+          {remaining} day{remaining === 1 ? "" : "s"} left in hold
+        </span>
+      )}
     </div>
   );
 }

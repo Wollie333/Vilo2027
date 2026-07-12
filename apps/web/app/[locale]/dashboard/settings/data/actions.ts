@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import { softDeleteUserAccount } from "@/lib/users/accountLifecycle";
 
 const requestSchema = z.object({
   requestType: z.enum(["export", "deletion"]),
@@ -81,17 +82,21 @@ export async function cancelDataRequestAction(input: {
   return { ok: true };
 }
 
-// ─── Self-service immediate account deletion ─────────────────────────
+// ─── Self-service account deletion (soft delete + 30-day hold) ────────
 //
-// Hard-deletes every row the user owns, then deletes the auth.users row.
-// Pre-MVP policy (CLAUDE.md): hard-delete is acceptable; historical
-// records like bookings/reviews get removed alongside the user. Once we
-// have real production data we'll switch to anonymise-then-soft-delete.
+// Deleting an account SOFT-deletes it: the user is signed out and blocked from
+// signing in, every listing/booking/record is hidden from them and the world,
+// but nothing is destroyed. The account sits in the admin "Deleted" category
+// for a 30-day hold, during which an admin can reinstate it (restoring
+// everything). Only after the hold does an admin MANUALLY hard-purge the data —
+// there is no automatic purge. This gives a change-of-mind window and keeps the
+// data recoverable for disputes/compliance.
 //
 // Guard rails:
 //   - super_admin self-delete is blocked (would lock the platform out;
 //     another admin has to do it manually).
 //   - User must type their exact email to confirm, server re-checks it.
+//   - Active bookings / open refunds must be settled first (safety gate below).
 
 const deleteSchema = z.object({
   confirmation: z.string().min(1, "Type your email to confirm."),
@@ -189,31 +194,18 @@ export async function deleteAccountAction(input: {
     };
   }
 
-  // ── Purge ────────────────────────────────────────────────────────
-  // Gate passed: only historical rows remain (cancelled / expired /
-  // completed bookings + their payments, invoices, reviews, snapshots).
-  // Hard-delete them in FK-safe order via the transactional DB function so
-  // the auth.users → user_profiles cascade isn't blocked by a RESTRICT FK.
-  // (Pre-MVP policy — see migration 20260531000021.)
-  const { error: purgeErr } = await admin.rpc("app_purge_user_account", {
-    p_user_id: user.id,
-  });
-  if (purgeErr) {
+  // ── Soft delete + hold ───────────────────────────────────────────
+  // Gate passed. Soft-delete: hide the account + block sign-in, but retain
+  // every row so the account can be reinstated during the 30-day hold. An
+  // admin hard-purges the data manually after the hold — nothing is destroyed
+  // here. (See lib/users/accountLifecycle.ts.)
+  try {
+    await softDeleteUserAccount(admin, user.id);
+  } catch {
     return {
       ok: false,
       error:
-        "We hit a snag clearing your historical records. Try again or email privacy@wieloplatform.com.",
-    };
-  }
-
-  // Delete the auth user → cascades user_profiles + every CASCADE child
-  // (in_app_notifications, push_tokens, user_notification_*, broadcast_acks, etc.).
-  const { error: deleteErr } = await admin.auth.admin.deleteUser(user.id);
-  if (deleteErr) {
-    return {
-      ok: false,
-      error:
-        "Could not finalise account deletion. Some records may still reference your account — email privacy@wieloplatform.com.",
+        "We hit a snag closing your account. Try again or email privacy@wieloplatform.com.",
     };
   }
 

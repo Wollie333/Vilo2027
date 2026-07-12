@@ -98,12 +98,23 @@ Listings** (`/admin/flagged-listings`, `listings.moderate`) with tabs + status a
 - New admin page **Moderation → Flagged Listings** (next to Data Requests) listing reports with
   status + actions. Model on the existing admin moderation/data-request pages.
 
-### F2 — Deleted accounts tab (self-deleted users, reinstate or 30-day purge)
+### F2 — ✅ Deleted accounts tab — DONE + verified live 2026-07-12.
+Shipped: self-service **Delete account** now SOFT-deletes (was a hard purge) — sets `deleted_at`,
+deactivates, bans the auth user (blocks sign-in), retains every row for a 30-day hold. Admin **Users →
+Deleted** tab lists soft-deleted accounts (deletion date + days left in hold); the dossier shows
+**Restore** (clears `deleted_at` + un-bans → fully recoverable) and **Delete forever** (manual hard purge,
+DISABLED until the 30-day hold elapses — no cron, admin-only). Shared helper
+`lib/users/accountLifecycle.ts` (soft-delete / restore / hard-purge) used by BOTH the self-service and admin
+paths; the admin soft-delete no longer anonymises (retain-and-hide, so restore is clean). New audited
+actions `user.restore` / `user.purge`. Lifecycle doc `docs/lifecycles/account-deletion.md`. Verified live:
+soft-delete → Deleted tab → Restore round-trip (DB + auth ban + audit + UI). Original spec kept below.
+
+### F2(orig) — Deleted accounts tab (self-deleted users, reinstate or 30-day purge)
 - When a user deletes their account via Settings → soft-delete (set `deleted_at`, hide all data from them
   and the world). Add a **Deleted** tab in the admin Users section (next to Suspended) listing these users.
 - Actions: **Reinstate** (clear deleted_at, restore visibility) OR **Delete completely** after 30 days
-  (hard purge). Data is retained + hidden until then so reactivation restores everything. A cron can flag
-  accounts past 30 days for purge. Confirm the settings-page "delete account" flow sets the soft-delete.
+  (hard purge). Data is retained + hidden until then so reactivation restores everything. Founder decision
+  (2026-07-12): the hard delete is a **manual admin-only** action after the hold — NO auto-purge cron.
 
 ### F3 — ✅ Vanishing-guest accounting — DONE + verified live 2026-07-12 (#69).
 Shipped: `No-show` on a booking now force-forfeits — voids the invoice, writes off the outstanding, keeps

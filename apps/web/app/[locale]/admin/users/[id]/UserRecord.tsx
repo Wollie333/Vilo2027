@@ -110,13 +110,20 @@ import {
   sendWieloDocToInbox,
   setUserProduct,
   changeUserRole,
+  purgeUser,
   reinstateUser,
   requestSupportAccess,
+  restoreUser,
   sendPasswordReset,
   softDeleteUser,
   suspendUser,
   updateUserProfile,
 } from "./actions";
+import {
+  DELETED_ACCOUNT_HOLD_DAYS,
+  daysSinceDeleted,
+  isPurgeEligible,
+} from "@/lib/users/accountLifecycle";
 
 type BusinessItem = UserRecordData["businesses"][number];
 type AddonItem = UserRecordData["addons"][number];
@@ -474,6 +481,7 @@ type Dialog =
   | "role"
   | "suspend"
   | "delete"
+  | "purge"
   | "support"
   | "managesub"
   | null;
@@ -626,6 +634,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             onRole={() => setDialog("role")}
             onSuspend={() => setDialog("suspend")}
             onDelete={() => setDialog("delete")}
+            onPurge={() => setDialog("purge")}
             onReinstate={() =>
               run(
                 reinstateUser({
@@ -633,6 +642,15 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                   reason: "Reinstated by admin",
                 }),
                 "User reinstated.",
+              )
+            }
+            onRestore={() =>
+              run(
+                restoreUser({
+                  userId: user.id,
+                  reason: "Restored by admin",
+                }),
+                "Account restored.",
               )
             }
             onResetPassword={() =>
@@ -846,6 +864,32 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             }
           >
             Delete
+          </Button>
+        </FormModalFooter>
+      </FormModal>
+
+      <FormModal
+        open={dialog === "purge"}
+        onOpenChange={(o) => (o ? null : close())}
+        title="Delete permanently"
+        description="Irreversible. Every listing, booking, payment and record this account owns is erased, and the login is removed. This cannot be undone."
+      >
+        <Lbl label="Reason (required)">
+          <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+        </Lbl>
+        <FormModalFooter>
+          <FormModalCancel onClick={close} />
+          <Button
+            className="bg-status-cancelled hover:bg-status-cancelled/90"
+            disabled={pending || reason.trim().length < 5}
+            onClick={() =>
+              run(
+                purgeUser({ userId: user.id, reason }),
+                "Account permanently deleted.",
+              )
+            }
+          >
+            Delete permanently
           </Button>
         </FormModalFooter>
       </FormModal>
@@ -1279,7 +1323,9 @@ function Dossier({
   onRole,
   onSuspend,
   onDelete,
+  onPurge,
   onReinstate,
+  onRestore,
   onResetPassword,
   pending,
 }: {
@@ -1288,11 +1334,19 @@ function Dossier({
   onRole: () => void;
   onSuspend: () => void;
   onDelete: () => void;
+  onPurge: () => void;
   onReinstate: () => void;
+  onRestore: () => void;
   onResetPassword: () => void;
   pending: boolean;
 }) {
   const { user, host } = data;
+  const isDeleted = Boolean(user.deleted_at);
+  const purgeEligible = isPurgeEligible(user.deleted_at);
+  const holdDaysLeft = Math.max(
+    0,
+    DELETED_ACCOUNT_HOLD_DAYS - daysSinceDeleted(user.deleted_at),
+  );
   const sep = <div className="h-px bg-brand-line" />;
   const eyebrow =
     "text-[10.5px] font-bold uppercase tracking-[0.1em] text-brand-mute";
@@ -1341,15 +1395,38 @@ function Dossier({
         <div className="grid grid-cols-2 gap-2">
           <ActBtn icon={Pencil} label="Edit" onClick={onEdit} />
           <ActBtn icon={UserCog} label="Role" onClick={onRole} />
-          {user.is_active ? (
-            <ActBtn icon={Shield} label="Suspend" onClick={onSuspend} />
+          {isDeleted ? (
+            // Deleted account (in the 30-day hold): restore brings it fully back;
+            // permanent delete is only unlocked once the hold has elapsed.
+            <>
+              <ActBtn
+                icon={RotateCcw}
+                label="Restore"
+                onClick={onRestore}
+                disabled={pending}
+              />
+              <ActBtn
+                icon={Trash2}
+                label="Delete forever"
+                onClick={onPurge}
+                disabled={pending || !purgeEligible}
+                danger
+              />
+            </>
           ) : (
-            <ActBtn
-              icon={Shield}
-              label="Reinstate"
-              onClick={onReinstate}
-              disabled={pending}
-            />
+            <>
+              {user.is_active ? (
+                <ActBtn icon={Shield} label="Suspend" onClick={onSuspend} />
+              ) : (
+                <ActBtn
+                  icon={Shield}
+                  label="Reinstate"
+                  onClick={onReinstate}
+                  disabled={pending}
+                />
+              )}
+              <ActBtn icon={Trash2} label="Delete" onClick={onDelete} danger />
+            </>
           )}
           <ActBtn
             icon={KeyRound}
@@ -1357,10 +1434,14 @@ function Dossier({
             onClick={onResetPassword}
             disabled={pending}
           />
-          {!user.deleted_at ? (
-            <ActBtn icon={Trash2} label="Delete" onClick={onDelete} danger />
-          ) : null}
         </div>
+        {isDeleted ? (
+          <p className="-mt-2 text-[11px] leading-snug text-brand-mute">
+            {purgeEligible
+              ? "The 30-day hold has passed — this account can now be permanently deleted."
+              : `In the ${DELETED_ACCOUNT_HOLD_DAYS}-day hold — permanent delete unlocks in ${holdDaysLeft} day${holdDaysLeft === 1 ? "" : "s"}.`}
+          </p>
+        ) : null}
         {host ? (
           <ImpersonateButton
             userId={user.id}
@@ -5004,6 +5085,13 @@ function humanizeAudit(
       };
     case "user.delete":
       return { category: "account", title: "Deleted the account" };
+    case "user.restore":
+      return { category: "account", title: "Restored the deleted account" };
+    case "user.purge":
+      return {
+        category: "account",
+        title: "Permanently deleted the account",
+      };
     case "user.add_note":
       return { category: "note", title: "Added an internal note" };
     case "user.update_subscription":

@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-12 #71 — Deleted accounts (F2): self-delete → soft-delete + 30-day hold → admin Deleted tab, Restore, manual purge. Driven live.
+
+Founder §F2 (decision: soft-delete first, then a **manual admin-only** hard delete after 30 days — no
+auto-purge cron). Deleting an account no longer instantly destroys it.
+
+- **Shared helper `lib/users/accountLifecycle.ts`** — `softDeleteUserAccount` (set `deleted_at` +
+  `is_active=false`, soft-delete the host row, ban the auth user ~100y; **no anonymisation**, every row
+  retained), `restoreUserAccount` (clear `deleted_at`, reactivate, un-hide host, lift the ban),
+  `hardPurgeUserAccount` (`app_purge_user_account` RPC + `deleteUser`), and `DELETED_ACCOUNT_HOLD_DAYS=30`
+  + `daysSinceDeleted`/`isPurgeEligible`.
+- **Self-service delete** (`dashboard/settings/data/actions.ts`) — was a hard purge, now soft-deletes via
+  the shared helper (safety gate + super_admin block kept). `DeleteAccountSection` copy updated to the
+  soft-delete + 30-day-hold wording ("closes your account… held for 30 days, then permanently erased…
+  contact support within 30 days to reactivate"). Reused by the guest portal settings too.
+- **Admin `Users → Deleted` tab** (`admin/users/page.tsx`) — new `deleted` segment (queries
+  `deleted_at IS NOT NULL`), Deleted count, and a `DeletedCell` showing the deletion date + days left in
+  hold / "Purge ready".
+- **Admin actions** (`admin/users/[id]/actions.ts`) — `softDeleteUserAction` now uses the shared helper
+  (dropped the anonymise step so restore is clean); new audited `restoreUserAction` (`user.restore`) and
+  `purgeUserAction` (`user.purge`, gated on the 30-day hold + not-super_admin). Dossier
+  (`UserRecord.tsx`) is delete-state-aware: a deleted account shows **Restore** + **Delete forever**
+  (disabled until the hold elapses) + a hold note, with matching purge confirm modal + history labels.
+- Verified live (super_admin, real DB + UI): admin delete of test guest `werner` → `deleted_at`/ban set,
+  email+name preserved; **Deleted** tab listed it with "30 days left in hold"; dossier showed
+  Restore + disabled Delete-forever; **Restore** cleared `deleted_at`, lifted the ban, returned it to
+  "All"; audit log recorded `user.delete` + `user.restore`. `pnpm build`, `tsc`, `next lint` green.
+  Lifecycle doc `docs/lifecycles/account-deletion.md`.
+
 ## 2026-07-12 #70 — Flagged Listings (F1): report-a-listing modal → admin Moderation queue. Driven live.
 
 Founder §F1. The dead "Report this listing" button on `/property/[slug]` now works, and reports land in a
