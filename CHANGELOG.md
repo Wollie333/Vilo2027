@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-12 #75 — Guest booking: live receipt + payments ledger, correct balance (host↔guest two-way). Driven live.
+
+Founder ask: the guest's booking view must show the line items, correct balances, and a receipt card wired
+to the LIVE ledger — so when the host adds/records something the guest sees it (two-way connection).
+
+- **Correct balance** — `portal/trips/[id]` derived "balance due" from the stale `bookings.balance_due`
+  column; after a partial refund that read R0 while the host (post-#74) showed the real figure. Now it
+  computes **net paid via the canonical `sumPaidFromRows`** (the SAME source the host settles against) and
+  `balance = total − net paid`. Guest and host can no longer diverge.
+- **Live Payments card** — new section listing the booking's actual `payments` rows (kind, method, date,
+  amount, per-row "R… refunded", receipt link, Paid/Pending) read live via guest RLS. A payment the host
+  records — or a refund they issue — shows here on the guest's next load (page is `force-dynamic`).
+- **Receipt completeness** — added an "Amount paid" line and an "Includes VAT (15%)" line (selects
+  `vat_amount`/`vat_rate`), matching the host breakdown; the line-item subtotal + VAT now visibly sums to
+  the total. Guest-added extras still flow the other way (they land on the host's booking to confirm).
+- Verified live as the BK-0027 guest: receipt shows Total R4 830 · VAT R630 · Amount paid R2 830 · Refunded
+  −R2 000 · **Balance due R2 000** (was R0), and the Payments card shows the R4 830 EFT deposit with R2 000
+  refunded — matching the host's Payments panel exactly. `pnpm build`, `tsc`, `next lint` green.
+
 ## 2026-07-12 #74 — Fix: partial refund showed "PAID R0" — net paid is now captured − refunded. Driven live.
 
 The §0 ledger quirk. `sumPaidFromRows` / `sumCompletedPaid` (`lib/payments/ledger.ts`) counted only

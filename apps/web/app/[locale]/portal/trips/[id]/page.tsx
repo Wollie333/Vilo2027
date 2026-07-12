@@ -36,6 +36,7 @@ import {
 
 import { PoliciesAsBooked } from "@/components/bookings/PoliciesAsBooked";
 import { loadPoliciesAsBooked } from "@/lib/bookings/policiesAsBooked";
+import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { formatMoney } from "@/lib/format";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -73,6 +74,22 @@ function fmtLong(iso: string | null): string {
     day: "numeric",
     month: "long",
   });
+}
+
+// Friendly label for a payment ledger row (guest-facing).
+function paymentKindLabel(kind: string | null): string {
+  switch (kind) {
+    case "deposit":
+      return "Deposit";
+    case "balance":
+      return "Balance payment";
+    case "addon":
+      return "Add-on";
+    case "credit":
+      return "Store credit applied";
+    default:
+      return "Payment";
+  }
 }
 
 function fmtTime(t: string | null): string | null {
@@ -228,6 +245,7 @@ export default async function PortalTripDetailPage({
       id, host_id, reference, status, payment_status, payment_method, scope,
       check_in, check_out, nights, guests_count,
       base_amount, cleaning_fee, discount_amount, total_amount, balance_due, currency,
+      vat_amount, vat_rate,
       special_requests, host_message, created_at, confirmed_at,
       checked_in_at, checked_out_at, cancelled_at,
       guest_name, guest_email, guest_phone, additional_guests,
@@ -270,6 +288,8 @@ export default async function PortalTripDetailPage({
     discount_amount: number | null;
     total_amount: number;
     balance_due: number | null;
+    vat_amount: number | null;
+    vat_rate: number | null;
     currency: string;
     special_requests: string | null;
     host_message: string | null;
@@ -396,6 +416,22 @@ export default async function PortalTripDetailPage({
       b.access.wifi_password,
   );
 
+  // Live payment ledger for this booking (guest reads own via RLS). This is the
+  // SAME source of truth the host settles against — so the guest's "paid" and
+  // "balance" always match the host, and anything the host records here (a
+  // payment, an add-on charge, a refund) shows up on the guest's booking too.
+  const { data: paymentRows } = await supabase
+    .from("payments")
+    .select(
+      "id, amount, kind, status, method, note, created_at, captured_at, refunded_amount, receipt_number, receipt_token, voided_at",
+    )
+    .eq("booking_id", booking.id)
+    .is("voided_at", null)
+    .order("created_at", { ascending: true });
+  const payments = paymentRows ?? [];
+  // Canonical NET paid (captured − refunded), identical to the host's figure.
+  const amountPaid = sumPaidFromRows(payments);
+
   // Refund history (guest reads own via RLS).
   const { data: refunds } = await supabase
     .from("refund_requests")
@@ -498,7 +534,12 @@ export default async function PortalTripDetailPage({
     source: string | null;
     is_required: boolean | null;
   }>;
-  const balanceDue = Number(booking.balance_due ?? 0);
+  // Balance from the LIVE ledger (total − net paid), not the denormalised
+  // balance_due column — so a host-side payment/refund reflects immediately and
+  // the guest never sees a stale figure. Matches the host booking detail.
+  const balanceDue =
+    Math.round(Math.max(0, Number(booking.total_amount) - amountPaid) * 100) /
+    100;
   const canAddExtras = [
     "confirmed",
     "checked_in",
@@ -1375,6 +1416,25 @@ export default async function PortalTripDetailPage({
                     {formatMoney(Number(booking.total_amount), currency)}
                   </span>
                 </li>
+                {Number(booking.vat_amount ?? 0) > 0 ? (
+                  <li className="flex items-center justify-between text-[12px] text-brand-mute">
+                    <span>
+                      Includes VAT ({Math.round(Number(booking.vat_rate ?? 15))}
+                      %)
+                    </span>
+                    <span className="num">
+                      {formatMoney(Number(booking.vat_amount), currency)}
+                    </span>
+                  </li>
+                ) : null}
+                {amountPaid > 0 ? (
+                  <li className="flex items-center justify-between text-status-confirmed">
+                    <span className="font-semibold">Amount paid</span>
+                    <span className="num font-display text-[15px] font-bold">
+                      {formatMoney(amountPaid, currency)}
+                    </span>
+                  </li>
+                ) : null}
                 {refundedTotal > 0 ? (
                   <li className="flex items-center justify-between text-status-cancelled">
                     <span className="font-semibold">Refunded to you</span>
@@ -1437,6 +1497,85 @@ export default async function PortalTripDetailPage({
               ) : null}
             </div>
           </section>
+
+          {/* PAYMENTS — the live ledger of what's been paid. Reads the same
+              payment rows the host settles against, so a payment the host
+              records (or a refund they issue) shows up here immediately. */}
+          {payments.length > 0 ? (
+            <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="flex items-center justify-between border-b border-brand-line px-6 py-4">
+                <div className="font-display text-[15px] font-bold text-brand-ink">
+                  Payments
+                </div>
+                <span className="text-[12px] text-brand-mute">
+                  {formatMoney(amountPaid, currency)} paid
+                  {balanceDue > 0 && !isForfeited
+                    ? ` · ${formatMoney(balanceDue, currency)} due`
+                    : ""}
+                </span>
+              </div>
+              <ul className="divide-y divide-brand-line">
+                {payments.map((p) => {
+                  const settled = [
+                    "completed",
+                    "partially_refunded",
+                    "refunded",
+                  ].includes(p.status ?? "");
+                  const refunded = Number(p.refunded_amount ?? 0);
+                  const when = p.captured_at ?? p.created_at;
+                  return (
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between px-6 py-3 text-[13px]"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium text-brand-ink">
+                          {paymentKindLabel(p.kind)}
+                          {p.method ? (
+                            <span className="ml-1.5 font-mono text-[11px] uppercase text-brand-mute">
+                              {p.method}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="text-[11.5px] text-brand-mute">
+                          {when
+                            ? new Date(when).toLocaleDateString("en-ZA")
+                            : "—"}
+                          {refunded > 0
+                            ? ` · ${formatMoney(refunded, currency)} refunded`
+                            : ""}
+                          {p.receipt_token ? (
+                            <>
+                              {" · "}
+                              <a
+                                href={`/receipt/${p.receipt_token}/pdf`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 hover:text-brand-ink"
+                              >
+                                Receipt
+                                {p.receipt_number ? ` ${p.receipt_number}` : ""}
+                              </a>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="num font-semibold text-brand-ink">
+                          {formatMoney(Number(p.amount), currency)}
+                        </div>
+                        <div
+                          className={`text-[11px] font-semibold ${settled ? "text-status-confirmed" : "text-amber-700"}`}
+                        >
+                          {settled ? "Paid" : "Pending"}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ) : null}
 
           {/* ADD AN EXTRA */}
           {canAddExtras ? (
