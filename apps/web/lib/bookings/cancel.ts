@@ -7,8 +7,15 @@
 // counters; this layer handles the status transition, the policy-entitled
 // refund, and notifying the other party.
 
+import { round2 } from "@/lib/format";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { sumCompletedPaid } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+import {
+  computeSettlement,
+  mintCancellationCreditNote,
+} from "./cancel-settlement";
 
 export type CancelActor = "host" | "guest";
 
@@ -68,14 +75,18 @@ export type CancelResult =
   | { ok: false; error: string };
 
 /**
- * Cancel a (pre-authorised) booking: transition status, auto-create the policy-
- * entitled refund request when the guest has paid, and notify the other party.
+ * Cancel a (pre-authorised) booking with correct, VAT-aware accounting:
+ * transition status, mint a **credit note** reversing the cancelled portion of
+ * the invoice (never void it), create the guest's refund request, and net the
+ * booking to zero. `refundAmount` lets a HOST override the policy-suggested
+ * refund (0 → what was paid); a guest cancel always uses the policy suggestion.
  * The caller MUST have verified that `actor` owns this booking.
  */
 export async function finalizeCancellation(
   booking: CancellationBooking,
   actor: CancelActor,
   reason: string | null,
+  refundAmount?: number,
 ): Promise<CancelResult> {
   if (!CANCELLABLE_STATUSES.includes(booking.status as never)) {
     return {
@@ -91,15 +102,28 @@ export async function finalizeCancellation(
   const toStatus =
     actor === "host" ? "cancelled_by_host" : "cancelled_by_guest";
 
-  const refund = await policyRefundFor(booking.id);
+  // Suggested refund (policy % × net paid, G5) and what was actually captured.
+  const policy = await policyRefundFor(booking.id);
+  const paid = await sumCompletedPaid(admin, booking.id);
+  const total = round2(Number(booking.total_amount));
+
+  // A host may override the refund (0 → amount paid); a guest gets the policy
+  // suggestion. computeSettlement clamps R into [0, paid].
+  const chosenRefund =
+    actor === "host" && refundAmount != null
+      ? refundAmount
+      : policy.refundAmount;
+  const s = computeSettlement(total, paid, chosenRefund);
 
   // Transition with optimistic concurrency. The on_booking_cancelled trigger
-  // releases blocked_dates + rolls back counters.
+  // releases blocked_dates + rolls back counters. The booking nets to 0 (the
+  // credit note reverses the receivable), so balance_due is 0.
   const { error: updErr } = await admin
     .from("bookings")
     .update({
       status: toStatus,
       previous_status: booking.status,
+      balance_due: 0,
       cancelled_at: new Date().toISOString(),
       cancelled_by: actor,
       cancellation_reason: reason?.trim() || null,
@@ -110,44 +134,40 @@ export async function finalizeCancellation(
     return { ok: false, error: "Could not cancel the booking. Try again." };
   }
 
-  // Financial cleanup so a cancelled booking never shows a phantom receivable in
-  // the ledger. A dead booking owes nothing, so its denormalised balance is 0.
-  // When the guest paid NOTHING, the booking's open invoices are pure phantom
-  // charges (no money captured, nothing retained) — void them so the Finances
-  // ledger drops the obligation. When money WAS captured, we leave the invoices
-  // in place: the retained (non-refunded) portion is the host's cancellation
-  // revenue, and reducing the charge to it is the forfeit-style accounting that
-  // no-show uses (F3) — a separate, founder-decided treatment, not done here.
-  await admin.from("bookings").update({ balance_due: 0 }).eq("id", booking.id);
+  // Reverse the cancelled portion with a credit note (keep the invoice — SARS:
+  // don't void an issued tax invoice). Amount = (total − paid) + refund = the
+  // outstanding written off PLUS the refunded portion; the retained (paid −
+  // refund) stays invoiced as the cancellation fee (revenue). Needs the booking's
+  // frozen VAT rate for the split.
+  const { data: bkVat } = await admin
+    .from("bookings")
+    .select("vat_rate")
+    .eq("id", booking.id)
+    .maybeSingle();
+  await mintCancellationCreditNote(admin, {
+    bookingId: booking.id,
+    hostId: booking.host_id,
+    guestId: booking.guest_id,
+    currency: booking.currency || "ZAR",
+    amount: s.creditNoteAmount,
+    vatRate: Number(bkVat?.vat_rate ?? 0),
+    reason:
+      actor === "host"
+        ? "Host cancelled the booking"
+        : "Guest cancelled the booking",
+  });
 
-  const { count: paidCount } = await admin
-    .from("payments")
-    .select("id", { count: "exact", head: true })
-    .eq("booking_id", booking.id)
-    .eq("status", "completed")
-    .is("voided_at", null);
-
-  if (!paidCount) {
-    await admin
-      .from("invoices")
-      .update({
-        voided_at: new Date().toISOString(),
-        void_reason: `Booking ${toStatus.replace(/_/g, " ")}`,
-      })
-      .eq("booking_id", booking.id)
-      .is("voided_at", null)
-      .neq("status", "paid");
-  }
-
-  // Auto-create a pending refund for the policy entitlement, when the guest has
-  // a captured payment and there's nothing open already. The existing refund
-  // manager processes it from here (host approve → Paystack/EFT).
-  if (refund.refundAmount > 0) {
+  // Cash back to the guest: a refund request for the chosen amount, when money
+  // was captured and nothing's open already. The refund manager processes it.
+  // Only for account-linked guests — a walk-in / email-only booking can't be
+  // refunded through the platform (matches hostInitiatedRefundAction); the credit
+  // note has already reversed the receivable, so the host settles it directly.
+  if (s.refund > 0 && booking.guest_id) {
     const { data: payment } = await admin
       .from("payments")
       .select("id")
       .eq("booking_id", booking.id)
-      .eq("status", "completed")
+      .in("status", ["completed", "partially_refunded"])
       .order("captured_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -166,8 +186,8 @@ export async function finalizeCancellation(
           payment_id: payment.id,
           host_id: booking.host_id,
           guest_id: booking.guest_id,
-          requested_amount: refund.refundAmount,
-          policy_entitlement: refund.refundAmount,
+          requested_amount: s.refund,
+          policy_entitlement: policy.refundAmount,
           currency: booking.currency || "ZAR",
           reason:
             actor === "host"
@@ -175,7 +195,7 @@ export async function finalizeCancellation(
               : "Guest cancelled the booking",
           initiated_by: actor,
           is_auto_refund: true,
-          auto_refund_rule: refund.ruleApplied,
+          auto_refund_rule: policy.ruleApplied,
           status: "pending",
         });
       }
@@ -205,5 +225,5 @@ export async function finalizeCancellation(
     }
   }
 
-  return { ok: true, refundAmount: refund.refundAmount };
+  return { ok: true, refundAmount: s.refund };
 }

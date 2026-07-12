@@ -44,7 +44,9 @@ export function BookingActions({
       currency={currency}
       audience="host"
       loadPreview={previewCancelRefundAction}
-      onConfirm={(reason) => cancelBookingAction(bookingId, reason)}
+      onConfirm={(reason, refundAmount) =>
+        cancelBookingAction(bookingId, reason, refundAmount)
+      }
     />
   );
 

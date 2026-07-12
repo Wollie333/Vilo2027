@@ -255,6 +255,48 @@ isn't written off. This is the **forfeit-style accounting (F3)** applied to poli
 cancellations — decide whether cancels should reduce the charge to the retained
 amount + write off the rest (like no-show forfeiture) or keep today's behaviour.
 
+## Cancellation & forfeiture accounting (credit-note engine)
+
+A cancelled or forfeited booking is reversed with a **credit note** — never by
+voiding the issued tax invoice (SARS/IFRS: an issued invoice is immutable; you
+credit-note the reversed portion, which carries its own VAT reversal). One engine
+(`lib/bookings/cancel-settlement.ts`) serves both; forfeiture is just refund = 0.
+
+For total **T**, net paid **P**, chosen refund **R** (0 ≤ R ≤ P; policy-suggested,
+host-overridable):
+- **retained** (cancellation fee, kept as revenue incl. VAT) = `P − R`
+- **written off** (never collected) = `max(0, T − P)`
+- **credit note** (`origin='cancellation'`) = `(T − P) + R = T − retained`
+- **refund** to the guest = `R` (a `refund_request`, account-linked guests only)
+
+Ledger (owedEffect): invoice `+T`, payment `−P`, cancellation CN `−((T−P)+R)`,
+refund `+R` (when completed) ⇒ **guest nets to 0**, and net invoiced `T − CN =
+retained` = recognised revenue. Between cancel and refund-payout the guest shows
+as owed `R` (a credit / payable) until the refund completes.
+
+Flow & surfaces:
+- **`finalizeCancellation`** (`lib/bookings/cancel.ts`) — host or guest. Keeps the
+  invoice, mints the cancellation CN, creates the refund request, sets
+  `balance_due = 0`. A **host** may override the refund in the cancel dialog
+  (`components/booking/CancelBookingDialog.tsx` → editable field + live
+  refunded/retained/written-off split); a **guest** always gets the policy
+  suggestion.
+- **`finalizeForfeiture`** (`lib/bookings/forfeit.ts`) — no-show, R = 0. Same CN
+  reversal (writes off the outstanding, retains the full deposit as revenue); the
+  `FRF-####` forfeit statement is kept as the guest-facing **paper trail only**
+  (zero ledger effect — the CN moves the money).
+- **Read model** (`lib/finance/transactions.ts`): the ledger counts credit notes
+  of `origin in ('manual','cancellation')` (both reduce the receivable), but only
+  `'manual'` notes are spendable store credit → the CREDITS KPI excludes
+  cancellation reversals; forfeit-statement rows carry zero ledger effect.
+- **Numbering**: cancellation CNs use the global `CN-####` sequence.
+- Migration `20260712230000` adds `origin='cancellation'`. Verified live: R=0 full
+  retain (CN = written-off, balance 0) and a host override (paid 2300, refund
+  1500 → CN 3800, VAT 495.65 extracted, retained 800, refund request 1500).
+
+**Invariant (dead bookings):** `Σ(non-voided invoices) − Σ(cancellation CNs) ==
+net paid − chosen refund` (= retained). Checked by `verify-financial-sweep.mjs`.
+
 ## Known-not-yet-driven-live
 - Paystack webhook money-state + invoice-flip changes are logic-verified only (no live
   Paystack settlement event driven). Redeploy `paystack-webhook` before relying on it in

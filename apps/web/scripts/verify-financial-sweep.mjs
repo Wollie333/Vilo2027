@@ -65,6 +65,20 @@ for (const r of refunds ?? []) {
   refundCounted.set(r.booking_id, r2((refundCounted.get(r.booking_id) ?? 0) + Number(r.approved_amount ?? r.requested_amount)));
 }
 
+// Cancellation credit notes reverse a cancelled booking's receivable; the chosen
+// refund is the sum of its live (non-declined) refund_requests.
+const cnCancel = new Map();
+for (const c of cns ?? []) {
+  if (c.voided_at != null || c.status === "cancelled") continue;
+  if (c.origin !== "cancellation") continue;
+  cnCancel.set(c.booking_id, r2((cnCancel.get(c.booking_id) ?? 0) + Number(c.total_amount)));
+}
+const refundChosen = new Map();
+for (const r of refunds ?? []) {
+  if (r.voided_at != null || r.status === "declined") continue;
+  refundChosen.set(r.booking_id, r2((refundChosen.get(r.booking_id) ?? 0) + Number(r.approved_amount ?? r.requested_amount)));
+}
+
 // ── Checks ──────────────────────────────────────────────────────────────────
 const invoiceViolations = [];  // Σ live invoices ≠ total (alive) / dead has live invoice
 const refundMismatches = [];   // counted refunds ≠ actually refunded
@@ -78,8 +92,13 @@ for (const b of bookings ?? []) {
   const dead = isDead(b.status);
 
   if (dead) {
-    if ((liveInvCount.get(b.id) ?? 0) > 0)
-      invoiceViolations.push({ ref: b.reference, kind: "dead-has-live-invoice", invSum, total, note: `${liveInvCount.get(b.id)} live invoice(s) on ${b.status}` });
+    // A cancelled/forfeited booking KEEPS its invoice and is reversed by a
+    // cancellation credit note. Retained revenue = Σ(invoices) − Σ(cancellation
+    // CNs) must equal net paid − chosen refund (SARS: invoice stays, CN reverses).
+    const retained = r2(invSum - (cnCancel.get(b.id) ?? 0));
+    const expectRetained = r2(paid - (refundChosen.get(b.id) ?? 0));
+    if ((liveInvCount.get(b.id) ?? 0) > 0 && Math.abs(retained - expectRetained) > 0.02)
+      invoiceViolations.push({ ref: b.reference, kind: "retained≠paid−refund", invSum, total, note: `retained ${retained} (Σinv ${invSum} − cancelCN ${cnCancel.get(b.id) ?? 0}) vs paid−refund ${expectRetained}` });
   } else if (Math.abs(invSum - total) > 0.005 && (liveInvCount.get(b.id) ?? 0) > 0) {
     invoiceViolations.push({ ref: b.reference, kind: "sum≠total", invSum, total, note: `Σ invoices ${invSum} vs total ${total} (Δ ${r2(invSum - total)})` });
   }

@@ -3,13 +3,16 @@
 // was paid (revenue), the outstanding is written off, an immutable Forfeit
 // statement (FRF-####) is the paper trail — NO refund request, NO credit note.
 //
-// Accounting (host ledger is derived in lib/finance/transactions.ts):
-//   • void the booking's invoice(s) so their +total charge drops from the ledger;
-//   • the forfeit_statements row emits ONE ledger entry, "Forfeited (retained)"
-//     = amount_forfeited (owedEffect +1), which nets against the deposit payment
-//     → the guest's balance for the booking is exactly 0;
-//   • the paid deposit stays a completed payment → still counted as collected
-//     revenue; amount_written_off (= total − paid) is documented, not charged.
+// Accounting (host ledger is derived in lib/finance/transactions.ts) — a forfeit
+// is just a cancellation with refund = 0, so it uses the SAME credit-note engine
+// (lib/bookings/cancel-settlement.ts):
+//   • the invoice is KEPT (SARS: don't void an issued tax invoice) and a
+//     cancellation credit note reverses the OUTSTANDING (total − paid);
+//   • the retained deposit (= paid) stays invoiced → recognised revenue (VAT
+//     included), and stays a completed payment counted as collected;
+//   • the forfeit_statements row is the guest-facing PAPER TRAIL only (it no
+//     longer moves the ledger — the credit note does);
+//   • guest balance nets to 0: invoice +total, payment −paid, CN −(total−paid).
 //   • booking.status → no_show; booking.payment_status → forfeited.
 //
 // NOT "use server": the calling Server Action authorises host ownership first.
@@ -20,6 +23,7 @@ import { sumCompletedPaid } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { CANCELLABLE_STATUSES, type CancellationBooking } from "./cancel";
+import { mintCancellationCreditNote } from "./cancel-settlement";
 
 export type ForfeitPreview = {
   currency: string;
@@ -129,15 +133,23 @@ export async function finalizeForfeiture(
     return { ok: false, error: "Could not allocate a statement number." };
   }
 
-  // 1. Void the booking's live invoice(s) — superseded by the forfeit statement.
-  await admin
-    .from("invoices")
-    .update({
-      voided_at: new Date().toISOString(),
-      void_reason: `Superseded by forfeit statement ${statementNumber} (no-show / abandoned)`,
-    })
-    .eq("booking_id", booking.id)
-    .is("voided_at", null);
+  // 1. Reverse the OUTSTANDING (total − paid) with a cancellation credit note —
+  // the invoice is KEPT so the retained deposit stays recognised revenue (with
+  // VAT). Refund = 0 (force-forfeit), so nothing goes back to the guest.
+  const { data: bkVat } = await admin
+    .from("bookings")
+    .select("vat_rate")
+    .eq("id", booking.id)
+    .maybeSingle();
+  await mintCancellationCreditNote(admin, {
+    bookingId: booking.id,
+    hostId: booking.host_id,
+    guestId: booking.guest_id,
+    currency,
+    amount: writtenOff,
+    vatRate: Number(bkVat?.vat_rate ?? 0),
+    reason: `Booking forfeited (no-show / abandoned) — ${statementNumber}`,
+  });
 
   // 2. Transition the booking. no_show is a terminal status: the
   // on_booking_cancelled trigger releases blocked_dates + rolls back counters.

@@ -692,7 +692,9 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                 currency={d.currency}
                 audience="host"
                 loadPreview={previewCancelRefundAction}
-                onConfirm={(reason) => cancelBookingAction(d.id, reason)}
+                onConfirm={(reason, refundAmount) =>
+                  cancelBookingAction(d.id, reason, refundAmount)
+                }
               />
               {d.payLink ? (
                 <FormModal

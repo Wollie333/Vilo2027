@@ -14,6 +14,28 @@ pushed to `main`, verified live, `tsc`/`lint`/`build` green. Shipped this sessio
 The whole `NEXT_STEPS §F` batch is now done. **NEXT (fresh session): §1 deep financial sweep** — exhaustively
 re-derive every ledger balance / VAT / doc amount / reconciliation and fold into `docs/lifecycles/payments-ledger.md`.
 
+## 2026-07-12 #78 — Cancellation accounting: credit-note engine (SARS-correct), host refund override, forfeit aligned. Driven live.
+
+Founder-directed follow-up to the sweep: a cancelled/forfeited booking is now reversed with a **credit note**
+(not by voiding the issued tax invoice) so VAT and revenue are correct, and the host can override the refund.
+
+- **Engine** `lib/bookings/cancel-settlement.ts` — for total T, net paid P, refund R: retained (revenue) = P−R,
+  written off = T−P, cancellation credit note = (T−P)+R, refund = R. Guest nets to 0; net invoiced = retained.
+- **Migration `20260712230000`** adds `credit_notes.origin='cancellation'` (reduces the receivable but is NOT
+  spendable store credit — kept out of the CREDITS KPI + no `guest_credit_ledger` post).
+- **`finalizeCancellation`** keeps the invoice, mints the cancellation CN, creates the refund request, zeroes
+  balance_due. Host **refund override** in the cancel dialog (`CancelBookingDialog` — editable field + live
+  refunded/retained/written-off breakdown); guest cancel uses the policy suggestion. Account-linked guests only
+  get a `refund_request` (walk-in/email-only bookings can't be refunded via the platform — the CN still reverses).
+- **`finalizeForfeiture`** (no-show) re-pointed onto the same engine (R=0): keeps the invoice + CN reversal; the
+  `FRF-####` statement is now **paper trail only** (zero ledger effect — the CN moves the money).
+- **Ledger read model** (`transactions.ts`): counts `origin in ('manual','cancellation')`; forfeit rows carry
+  zero effect. `verify-financial-sweep.mjs` upgraded — dead-booking invariant `Σ(inv) − Σ(cancel CN) == paid − refund`.
+- **Driven live** on the host booking page: R=0 full-retain (CN = written-off, balance 0) and a host override
+  (paid R2 300, refund R1 500 → CN R3 800, VAT R495.65 extracted, retained R800, refund request R1 500). Fixed a
+  second cancel entry point (`BookingDetail.tsx` "More" menu) that dropped the override. `build`/`lint` (web) green.
+- Remaining sweep flag: legacy BK-0038 (cancelled pre-engine, stale REF-0021) — documented prune-at-wipe fixture.
+
 ## 2026-07-12 #77 — Deep financial sweep: re-derived every calc; fixed 6 money bugs (incl. add-on double charge). Driven live.
 
 `NEXT_STEPS §1`. Exhaustively re-derived the money layer against the live DB and shipped a repeatable probe

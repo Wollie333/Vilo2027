@@ -167,7 +167,10 @@ export async function fetchHostTransactions(
       "id, credit_note_number, total_amount, currency, issued_at, booking_id, hosted_token, origin, status, guest_id, guest_snapshot, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
     )
     .eq("host_id", hostId)
-    .eq("origin", "manual")
+    // 'manual' = goodwill store credit; 'cancellation' = a booking-reversal note
+    // (from a cancel / forfeit). Both reduce the receivable in the ledger, but
+    // only 'manual' is spendable store credit (see the credits KPI in txnFlows).
+    .in("origin", ["manual", "cancellation"])
     .neq("status", "cancelled");
   let refundsQ = admin
     .from("refund_requests")
@@ -429,11 +432,15 @@ export async function fetchHostTransactions(
     const snap = (cn.guest_snapshot ?? {}) as { name?: string; email?: string };
     const email = snap.email ?? b?.guest_email ?? null;
     const voided = Boolean(cn.voided_at);
+    // A 'cancellation' note reverses a booking receivable (from a cancel/forfeit);
+    // it still reduces what the guest owes (owedEffect −1) but it is NOT spendable
+    // store credit, so it's categorised 'booking' → excluded from the credits KPI.
+    const isCancellation = cn.origin === "cancellation";
     entries.push({
       id: `cn_${cn.id}`,
       date: cn.issued_at as string,
       type: "credit",
-      label: "Credit note",
+      label: isCancellation ? "Cancellation credit" : "Credit note",
       amount: Number(cn.total_amount),
       currency: cn.currency,
       guestKey: resolveKey(cn.guest_id, email),
@@ -441,7 +448,9 @@ export async function fetchHostTransactions(
       bookingId: cn.booking_id,
       bookingRef: b?.reference ?? null,
       method: null,
-      note: "Store credit granted",
+      note: isCancellation
+        ? "Booking cancelled — receivable reversed"
+        : "Store credit granted",
       doc: {
         kind: "credit_note",
         number: cn.credit_note_number,
@@ -451,7 +460,7 @@ export async function fetchHostTransactions(
       balance: 0,
       owedEffect: voided ? 0 : -1,
       cashEffect: 0,
-      category: "credit",
+      category: isCancellation ? "booking" : "credit",
       voided,
       voidReason: (cn.void_reason as string) ?? null,
     });
@@ -536,10 +545,11 @@ export async function fetchHostTransactions(
           : null,
       },
       balance: 0,
-      // +1: the retained amount is the guest's final liability, netting against
-      // their deposit payment (−1) → booking balance 0. No cash effect (the
-      // deposit was already counted as collected when it was paid).
-      owedEffect: 1,
+      // Paper trail only — a forfeit is now reversed by a cancellation credit
+      // note (the outstanding is written off there), so this row carries ZERO
+      // ledger effect to avoid double-counting. It stays in the list purely as
+      // the guest-facing "amount retained" document.
+      owedEffect: 0,
       cashEffect: 0,
       category: "booking",
       voided: false,
@@ -614,7 +624,9 @@ export function txnFlows(entries: Txn[]): TxnFlows {
     if (e.pending) continue; // not-yet-settled payments/refunds never count
     if (e.cashEffect > 0) collected += e.amount;
     if (e.type === "refund") refunded += e.amount;
-    if (e.type === "credit") credits += e.amount;
+    // Only spendable store credit ('manual' notes, category 'credit') is a
+    // "credit granted"; a cancellation-reversal note (category 'booking') isn't.
+    if (e.type === "credit" && e.category === "credit") credits += e.amount;
     // "charged" = actually billed → real invoices only, not synthesised
     // (doc-less) booking charges for not-yet-invoiced bookings.
     if (e.type === "charge" && e.doc) charged += e.amount;

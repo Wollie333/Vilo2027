@@ -185,6 +185,7 @@ export async function declineBookingAction(bookingId: string) {
 export async function cancelBookingAction(
   bookingId: string,
   reason?: string,
+  refundAmount?: number,
 ): Promise<BookingActionResult> {
   const supabase = createServerClient();
   // RLS host_manage_own_bookings — only the owning host can read this row.
@@ -195,27 +196,43 @@ export async function cancelBookingAction(
     .maybeSingle();
   if (!booking) return { ok: false, error: "Booking not found." };
 
-  const res = await finalizeCancellation(booking, "host", reason ?? null);
+  const res = await finalizeCancellation(
+    booking,
+    "host",
+    reason ?? null,
+    refundAmount,
+  );
   if (!res.ok) return res;
 
   revalidatePath(`/dashboard/bookings/${bookingId}`);
   revalidatePath("/dashboard/bookings");
+  revalidatePath("/dashboard/ledger");
   return { ok: true };
 }
 
-// The policy-entitled refund a host/guest would get by cancelling now — drives
-// the confirmation modal's "guest will be refunded R X" line.
+// The cancellation preview: the policy-suggested refund PLUS the booking total
+// and net amount paid, so the host's cancel dialog can show a live "refunded /
+// retained / written-off" breakdown as the host overrides the refund.
 export async function previewCancelRefundAction(
   bookingId: string,
-): Promise<{ ok: true; refund: PolicyRefund } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; refund: PolicyRefund; total: number; paid: number }
+  | { ok: false; error: string }
+> {
   const supabase = createServerClient();
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id")
+    .select("id, total_amount")
     .eq("id", bookingId)
     .maybeSingle();
   if (!booking) return { ok: false, error: "Booking not found." };
-  return { ok: true, refund: await policyRefundFor(bookingId) };
+  const refund = await policyRefundFor(bookingId);
+  return {
+    ok: true,
+    refund,
+    total: Number(booking.total_amount),
+    paid: refund.totalPaid,
+  };
 }
 // Preview a forfeiture (no-show / abandoned) — drives the confirm dialog's
 // "keep R X, write off R Y" line. "Ask each time" (founder §F3).
