@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-12 #59 — Host↔guest booking flow driven end-to-end for beta; fixed the missing EFT-instructions email to the guest.
+
+Drove a **real guest booking** on the live preview + cloud DB (anonymous checkout → inline guest
+account → rooms/dates → details → EFT reserve) to make the host↔guest interaction beta-ready. Verified,
+and fixed one real gap:
+
+- **Guest checkout works end-to-end + VAT-correct.** Created BK-0035 (`beta.karoo.guest@example.com`):
+  room cards show VAT-inclusive prices (R1,380/night = R1,200 × 1.15), the breakdown itemises ex-VAT
+  (R2,400 rooms + R120 cleaning) + **VAT (15%) R378** = **R2,898**, matching `apply_booking_vat`. The
+  reserve creates the account + booking (`pending_eft`), a single pending payment (no dup), **no** invoice
+  or calendar block yet (correct — those wait for confirmation), and the guest success page shows the
+  host's EFT banking + **Reference BK-0035**.
+- **Host is notified.** `booking_request_host` (`notifyHostNewBooking` → `dispatchEvent`) fires to the
+  host on every EFT/card creation path; verified queued + drained.
+- **FIX — the EFT guest never got their payment-instructions email.** The success page promises
+  "confirmation emailed", and an `eft_instructions_guest` template + resolver + registry entry all
+  existed — but **nothing ever enqueued it**, so an EFT guest who closed the tab had no emailed bank
+  details/reference to pay by. Added `lib/bookings/notifyGuestEftInstructions.ts` (sibling of the host
+  helper) and called it from `persistBookingAndPay` (`lib/bookings/persist.ts`); it no-ops for card
+  bookings and session-less leads. **Verified live:** BK-0036 now queues `eft_instructions_guest` to the
+  guest (it was absent for BK-0035 before the fix) with `booking_request_host` alongside it.
+- Server-side validation confirmed working (a 2-night stay was correctly rejected by a seasonal
+  3-night minimum). Guest↔host inbox conversation is created lazily on first message (by design).
+
 ## 2026-07-12 #58 — VAT "added at the end" reaches EVERY money column (deposit + balance), settlement/invoice parity, VAT-inclusive quotes.
 
 Deep-financial-sweep slice (`NEXT_STEPS.md` §1): make VAT consistent across every money

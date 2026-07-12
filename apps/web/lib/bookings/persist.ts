@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { PricingModel } from "@/app/[locale]/dashboard/addons/schemas";
+import { notifyGuestEftInstructions } from "@/lib/bookings/notifyGuestEftInstructions";
 import { notifyHostNewBooking } from "@/lib/bookings/notifyHostNewBooking";
 import {
   startBookingPayment,
@@ -244,6 +245,11 @@ export async function persistBookingAndPay(
   // before payment settles. Uniform across every creation path that funnels
   // through here — app checkout, website checkout and the deal page. Best-effort.
   await notifyHostNewBooking(admin, booking.id);
+
+  // 8. Email an EFT-reserving guest their transfer instructions (host banking +
+  // booking reference) so they can pay even after leaving the success page. The
+  // helper no-ops for card bookings (status stays 'pending', not 'pending_eft').
+  await notifyGuestEftInstructions(admin, booking.id);
 
   return { ok: true, redirectTo: pay.redirectTo, bookingId: booking.id };
 }
