@@ -13,6 +13,53 @@ Driving gotchas are in memory `host-dashboard-sweep` (esp. `preview_resize` → 
 
 ---
 
+## A. 🔴 Onboarding wizard — test end-to-end + make it work 100% (founder, 2026-07-12). NOT STARTED.
+
+**The flow to prove:** a user signs up + pays → is redirected to the **host dashboard** → (1) verifies
+their email (believed already working — confirm) → (2) completes the **onboarding wizard**. Drive it live
+end-to-end and record the lifecycle in `docs/lifecycles/onboarding.md` (Principle #12).
+
+**Founder-specified shortcomings to FIX (all must work):**
+1. **Add a Seasonal Pricing setup step** to the wizard (see Job B — it must also work with the booking system).
+2. **Room pricing must pull through to the UI**, and each room's **pricing model** (per-person / per-room /
+   any other model) must be **indicated on the UI AND wired into the price calc** so the price computes
+   correctly for that model.
+3. The **add-rooms step** must let the host **delete rooms** from the UI (not just add), and pull through
+   each room's pricing/details on the UI.
+4. **Policies:** the policy page has **no default booking-terms policy** — the system must **create default
+   booking terms** for the host (editable/updatable). The existing policies should be **active by default**
+   for **all 4 policy types** (cancellation, check_in_out, house_rules, booking_terms), while still letting
+   the host create new ones per type.
+5. **Publish gates (verify correct):** a host **cannot publish** to the **directory** (as a live/public
+   listing) **or to their website** unless BOTH: (a) email is **verified**, AND (b) they have an **active
+   subscription whose permissions == the features they want to use** (`check_feature_permission` RPC — but
+   note the pre-MVP short-circuit in AGENT_RULES §3.4). Confirm both gates are enforced at the UI AND the
+   server/publish action.
+6. **Onboarding-complete email:** once onboarding is 100% successful, **auto-send an email to the host** with
+   a **summary of their new active listing** + a **link to it** (public listing URL). New Resend template.
+
+**Approach:** (i) map the current wizard end-to-end (steps/components/state/completion detection, post-pay
+redirect, email-verify gate, room step, policy step, publish action) — an Explore pass; (ii) drive it live
+on a FRESH host (sign up + pay path, or seed a new host) noting every gap; (iii) fix 1–6; (iv) verify each
+live in BOTH the wizard AND the resulting listing/publish; (v) write `docs/lifecycles/onboarding.md`.
+Test host `host@wielotest.com` is already onboarded — use a NEW throwaway host to see the wizard fresh.
+
+## B. 🔴 Seasonal pricing ↔ booking system (must work seamlessly). NOT STARTED.
+
+Seasonal pricing must flow **through the whole booking system**, not just the rates UI: when a guest books
+dates that fall in a seasonal period, the **server-side price recalculation** (the SSOT that ignores
+client prices) must apply the **seasonal rate** for those nights — across checkout (`createBooking`/
+`persist`), quotes, the `/pay` link, and any price preview — and combine correctly with the room's pricing
+model (per-person/per-room, from Job A #2), cleaning fees, VAT, add-ons, and specials/coupons. Verify a
+booking spanning in-season and out-of-season nights prices each night correctly. Record the flow in
+`docs/lifecycles/pricing-seasonal.md` (or fold into `payments-ledger.md`/`booking.md`). Related memory:
+`rates-blocks-default-live` (rates blocks default to live host rates).
+
+> **Save point 2026-07-12:** Jobs A + B recorded here for a fresh session. Do them together (B is Job A's
+> seasonal step + the booking-side wiring). Both need a `docs/lifecycles/*` flow per Principle #12.
+
+---
+
 ## 0. 🟡 Policy enforcement, add-ons & refunds (booking safety) — P0 + Phase 1 DONE; Phase 2/3 remain.
 
 **Full grounded plan: `docs/features/POLICY_ENFORCEMENT_ADDONS_REFUNDS_PLAN.md`** (audited live 2026-07-12).
