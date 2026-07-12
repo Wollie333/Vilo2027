@@ -42,6 +42,8 @@ import {
 } from "@/app/[locale]/property/[slug]/PhotoGallery";
 import { bedSummary } from "@/app/[locale]/property/[slug]/roomDisplay";
 
+import { ReportButton } from "@/components/report/ReportButton";
+
 import { DealSubnav, type DealNavItem } from "./_components/DealSubnav";
 import { ShareSpecialButton } from "./_components/ShareSpecialButton";
 import { SpecialTracker } from "./_components/SpecialTracker";
@@ -753,13 +755,13 @@ export default async function SpecialDetailPage({
               </div>
 
               <div className="mt-5">
-                <Link
-                  href="/help"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mute hover:text-brand-primary"
-                >
-                  <Flag className="h-3.5 w-3.5" />
-                  {t("dtReport")}
-                </Link>
+                <ReportButton
+                  targetType="deal"
+                  targetId={special.id}
+                  targetLabel={special.title}
+                  triggerLabel={t("dtReport")}
+                  triggerClassName="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mute hover:text-brand-primary"
+                />
               </div>
             </section>
           </div>

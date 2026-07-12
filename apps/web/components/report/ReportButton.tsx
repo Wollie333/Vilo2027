@@ -9,24 +9,40 @@ import {
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
-
-import { reportListingAction } from "./report-actions";
-import { REPORT_REASONS } from "./report-constants";
+import { reportAction } from "@/lib/report/report-action";
+import {
+  REPORT_REASONS,
+  REPORT_TARGET_META,
+  type ReportTargetType,
+} from "@/lib/report/report-constants";
 
 const inputCls =
   "mt-1 block w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10";
 
-export function ReportListingButton({
-  listingId,
-  listingName,
+/**
+ * ONE report modal for listings, deals and users — scoped by `targetType` so the
+ * report is categorised by where it was clicked. Same fields everywhere; wording
+ * adapts. The trigger can be restyled per placement via `triggerClassName` /
+ * `triggerLabel`.
+ */
+export function ReportButton({
+  targetType,
+  targetId,
+  targetLabel,
+  triggerLabel,
+  triggerClassName,
   prefillName = "",
   prefillEmail = "",
 }: {
-  listingId: string;
-  listingName: string;
+  targetType: ReportTargetType;
+  targetId: string;
+  targetLabel: string;
+  triggerLabel?: string;
+  triggerClassName?: string;
   prefillName?: string;
   prefillEmail?: string;
 }) {
+  const meta = REPORT_TARGET_META[targetType];
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
   const [pending, setPending] = useState(false);
@@ -57,8 +73,9 @@ export function ReportListingButton({
     }
     setPending(true);
     try {
-      const res = await reportListingAction({
-        propertyId: listingId,
+      const res = await reportAction({
+        targetType,
+        targetId,
         reporterName: name.trim(),
         reporterEmail: email.trim(),
         reporterPhone: phone.trim(),
@@ -87,9 +104,12 @@ export function ReportListingButton({
           reset();
           setOpen(true);
         }}
-        className="mt-7 inline-flex items-center gap-1.5 text-xs text-brand-mute underline underline-offset-2 hover:text-brand-ink"
+        className={
+          triggerClassName ??
+          "inline-flex items-center gap-1.5 text-xs text-brand-mute underline underline-offset-2 hover:text-brand-ink"
+        }
       >
-        <Flag className="h-3.5 w-3.5" /> Report this listing
+        <Flag className="h-3.5 w-3.5" /> {triggerLabel ?? meta.triggerLabel}
       </button>
 
       <FormModal
@@ -98,11 +118,11 @@ export function ReportListingButton({
           if (!pending) setOpen(v);
         }}
         size="md"
-        title={done ? "Report received" : "Report this listing"}
+        title={done ? "Report received" : meta.triggerLabel}
         description={
           done
             ? undefined
-            : `Tell us what's wrong with ${listingName}. Our team reviews every report.`
+            : `Tell us what's wrong with ${targetLabel}. Our team reviews every report.`
         }
       >
         {done ? (
@@ -114,7 +134,7 @@ export function ReportListingButton({
               Thanks for letting us know
             </h3>
             <p className="mx-auto mt-1 max-w-sm text-sm text-brand-mute">
-              Our team will review this listing. We may email you at{" "}
+              Our team will review this {meta.noun}. We may email you at{" "}
               <span className="font-medium text-brand-ink">{email}</span> if we
               need more detail.
             </p>
@@ -127,15 +147,11 @@ export function ReportListingButton({
             </button>
           </div>
         ) : (
-          <form
-            id="report-listing-form"
-            onSubmit={onSubmit}
-            className="space-y-4"
-          >
+          <form id="report-form" onSubmit={onSubmit} className="space-y-4">
             {/* Honeypot — off-screen; bots fill it. */}
             <input
               type="text"
-              name="vilo_hp"
+              name="wielo_hp"
               tabIndex={-1}
               autoComplete="off"
               value={hp}
@@ -221,7 +237,7 @@ export function ReportListingButton({
               <FormModalCancel>Cancel</FormModalCancel>
               <button
                 type="submit"
-                form="report-listing-form"
+                form="report-form"
                 disabled={pending}
                 className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
               >

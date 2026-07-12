@@ -14,6 +14,23 @@ pushed to `main`, verified live, `tsc`/`lint`/`build` green. Shipped this sessio
 The whole `NEXT_STEPS §F` batch is now done. **NEXT (fresh session): §1 deep financial sweep** — exhaustively
 re-derive every ledger balance / VAT / doc amount / reconciliation and fold into `docs/lifecycles/payments-ledger.md`.
 
+## 2026-07-12 #79 — Generalized reporting (listings·deals·users) + removed the OTA cross-post feature. Driven live.
+
+Two founder requests. (1) The flag/report feature now covers **listings, deals AND users** with ONE modal,
+scoped to where it's clicked; (2) the not-being-built "cross-post to OTAs" Channels feature is removed from the UI.
+
+- **Reporting** — generalized `listing_reports` (migration `20260713000000`: polymorphic `target_type`
+  (listing/deal/user) + `target_id` + frozen `target_label`; `property_id` now nullable, kept for the listing
+  cascade). Shared `lib/report/report-action.ts` (`reportAction`) validates the target by type + notifies admins;
+  shared `components/report/ReportButton.tsx` (one modal, wording adapts) replaces the listing-only button.
+  Placed on `/property/[slug]` ("Report this listing" + "Report this host"=user) and `/deal/[slug]`
+  ("Report this deal"). Admin `/admin/flagged-listings` → **"Flagged content"** with **category tabs
+  (Listings/Deals/Users)** alongside status tabs; each card shows a target-type badge + type-appropriate links.
+  Verified live: submitted a listing report → landed under Listings in admin; all 3 types insert + categorise.
+- **OTA cross-post removed** — deleted `/dashboard/channels` (the "Coming Soon" cross-post-to-Airbnb/Booking.com
+  page) + its Sidebar ("OTA channels") and QuickNav entries. Website + Calendar-sync stay under Channels.
+- `build`/`lint` (web) green.
+
 ## 2026-07-12 #78 — Cancellation accounting: credit-note engine (SARS-correct), host refund override, forfeit aligned. Driven live.
 
 Founder-directed follow-up to the sweep: a cancelled/forfeited booking is now reversed with a **credit note**

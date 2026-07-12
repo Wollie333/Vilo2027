@@ -6,7 +6,6 @@ import {
   BedDouble,
   Bell,
   Bookmark,
-  Cable,
   CalendarCheck,
   Calendar as CalendarIcon,
   CreditCard,
@@ -105,12 +104,6 @@ const CHANNELS: GmailNavItem[] = [
     match: "prefix",
   },
   { href: "/dashboard/calendar-sync", label: "Calendar sync", icon: RotateCw },
-  {
-    href: "/dashboard/channels",
-    label: "OTA channels",
-    icon: Cable,
-    badge: { text: "PRO", tone: "pro" },
-  },
 ];
 
 const FINANCES: GmailNavItem[] = [

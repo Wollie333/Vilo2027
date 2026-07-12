@@ -42,7 +42,7 @@ import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RatesSection, type SeasonRow } from "./RatesSection";
-import { ReportListingButton } from "./ReportListingButton";
+import { ReportButton } from "@/components/report/ReportButton";
 import { RequestQuoteButton } from "./RequestQuoteButton";
 import { ReservePanel } from "./ReservePanel";
 import { loadListingReviews } from "./reviews-data";
@@ -98,6 +98,7 @@ type RawListing = {
   avg_rating: number | null;
   total_reviews: number | null;
   host: {
+    user_id: string | null;
     display_name: string;
     handle: string;
     bio: string | null;
@@ -178,6 +179,7 @@ async function loadListing(slug: string) {
         whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct,
         avg_rating, total_reviews,
         host:hosts!inner (
+          user_id,
           display_name, handle, bio, avatar_url, is_verified,
           is_superhost, response_rate, avg_response_hours,
           languages_spoken, highlights, phone_verified, payout_verified,
@@ -1001,10 +1003,23 @@ async function ListingBody({
               minNights={listing.min_nights}
             />
 
-            <ReportListingButton
-              listingId={listing.id}
-              listingName={listing.name}
-            />
+            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <ReportButton
+                targetType="listing"
+                targetId={listing.id}
+                targetLabel={listing.name}
+                triggerClassName="inline-flex items-center gap-1.5 text-xs text-brand-mute underline underline-offset-2 hover:text-brand-ink"
+              />
+              {listing.host.user_id ? (
+                <ReportButton
+                  targetType="user"
+                  targetId={listing.host.user_id}
+                  targetLabel={listing.host.display_name}
+                  triggerLabel="Report this host"
+                  triggerClassName="inline-flex items-center gap-1.5 text-xs text-brand-mute underline underline-offset-2 hover:text-brand-ink"
+                />
+              ) : null}
+            </div>
           </section>
         </div>
 

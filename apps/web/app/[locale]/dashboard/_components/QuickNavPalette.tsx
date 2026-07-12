@@ -3,7 +3,6 @@
 import {
   BarChart3,
   BedDouble,
-  Cable,
   CalendarCheck,
   Calendar as CalendarIcon,
   CalendarRange,
@@ -95,12 +94,6 @@ const MAIN: Route[] = [
 ];
 
 const CONNECT: Route[] = [
-  {
-    href: "/dashboard/channels",
-    label: "Channels",
-    icon: Cable,
-    keywords: ["airbnb", "booking.com"],
-  },
   {
     href: "/dashboard/calendar-sync",
     label: "Calendar sync",
