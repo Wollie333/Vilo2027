@@ -997,6 +997,36 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_tiers: {
+        Row: {
+          bonus_percent: number
+          created_at: string
+          id: string
+          min_lifetime_earnings: number
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          bonus_percent?: number
+          created_at?: string
+          id?: string
+          min_lifetime_earnings?: number
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          bonus_percent?: number
+          created_at?: string
+          id?: string
+          min_lifetime_earnings?: number
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       amenity_catalog: {
         Row: {
           created_at: string
@@ -5642,6 +5672,8 @@ export type Database = {
       }
       platform_ledger: {
         Row: {
+          affiliate_commission_id: string | null
+          affiliate_payout_id: string | null
           amount: number
           billing_cycle: string | null
           coupon_id: string | null
@@ -5670,6 +5702,8 @@ export type Database = {
           vat_amount: number | null
         }
         Insert: {
+          affiliate_commission_id?: string | null
+          affiliate_payout_id?: string | null
           amount: number
           billing_cycle?: string | null
           coupon_id?: string | null
@@ -5698,6 +5732,8 @@ export type Database = {
           vat_amount?: number | null
         }
         Update: {
+          affiliate_commission_id?: string | null
+          affiliate_payout_id?: string | null
           amount?: number
           billing_cycle?: string | null
           coupon_id?: string | null
@@ -5726,6 +5762,20 @@ export type Database = {
           vat_amount?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "platform_ledger_affiliate_commission_id_fkey"
+            columns: ["affiliate_commission_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_commissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ledger_affiliate_payout_id_fkey"
+            columns: ["affiliate_payout_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_payouts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "platform_ledger_created_by_fkey"
             columns: ["created_by"]
@@ -6709,6 +6759,7 @@ export type Database = {
           door_code: string | null
           gate_code: string | null
           property_id: string
+          send_lead_minutes: number
           updated_at: string
           wifi_network: string | null
           wifi_password: string | null
@@ -6720,6 +6771,7 @@ export type Database = {
           door_code?: string | null
           gate_code?: string | null
           property_id: string
+          send_lead_minutes?: number
           updated_at?: string
           wifi_network?: string | null
           wifi_password?: string | null
@@ -6731,6 +6783,7 @@ export type Database = {
           door_code?: string | null
           gate_code?: string | null
           property_id?: string
+          send_lead_minutes?: number
           updated_at?: string
           wifi_network?: string | null
           wifi_password?: string | null
@@ -10656,6 +10709,10 @@ export type Database = {
             }
             Returns: string
           }
+      affiliate_tier_bonus: {
+        Args: { p_affiliate_id: string }
+        Returns: number
+      }
       app_purge_user_account: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -10755,10 +10812,19 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      clawback_affiliate_commission: {
-        Args: { p_refund_ledger_id: string; p_source_ledger_id: string }
-        Returns: undefined
-      }
+      clawback_affiliate_commission:
+        | {
+            Args: { p_refund_ledger_id: string; p_source_ledger_id: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_refund_amount?: number
+              p_refund_ledger_id: string
+              p_source_ledger_id: string
+            }
+            Returns: undefined
+          }
       clear_all: { Args: never; Returns: string }
       compute_addon_subtotal: {
         Args: {

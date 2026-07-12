@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  Clock,
   Compass,
   DoorOpen,
   GripVertical,
@@ -37,6 +38,8 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { replaceLocalPicksAction, saveListingAccessAction } from "../actions";
 import {
+  ACCESS_LEAD_DEFAULT,
+  ACCESS_LEAD_OPTIONS,
   LOCAL_PICK_CATEGORIES,
   listingAccessSchema,
   type ListingAccessInput,
@@ -50,6 +53,7 @@ export type AccessInitial = {
   door_code: string | null;
   wifi_network: string | null;
   wifi_password: string | null;
+  send_lead_minutes: number | null;
 };
 
 export function GuestAccessTab({
@@ -86,6 +90,7 @@ function AccessForm({
       door_code: access?.door_code ?? "",
       wifi_network: access?.wifi_network ?? "",
       wifi_password: access?.wifi_password ?? "",
+      send_lead_minutes: access?.send_lead_minutes ?? ACCESS_LEAD_DEFAULT,
     },
   });
 
@@ -105,8 +110,9 @@ function AccessForm({
         </CardTitle>
         <CardDescription className="text-brand-mute">
           What your guest needs to arrive and settle in. The door code and Wi-Fi
-          password are sensitive, so guests only see them from 24 hours before
-          check-in — and they&rsquo;re never shown on your public page.
+          password are sensitive, so guests only see them shortly before
+          check-in — you choose exactly when below — and they&rsquo;re never
+          shown on your public page.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -228,6 +234,41 @@ function AccessForm({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="send_lead_minutes"
+              render={({ field }) => (
+                <FormItem className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+                  <FormLabel className="flex items-center gap-1.5 text-sm font-semibold text-brand-dark">
+                    <Clock className="h-4 w-4 text-brand-mute" /> When to send
+                    access details
+                  </FormLabel>
+                  <FormControl>
+                    <select
+                      value={String(field.value ?? ACCESS_LEAD_DEFAULT)}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10 sm:max-w-xs"
+                    >
+                      {ACCESS_LEAD_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                  <p className="mt-1.5 text-[12.5px] text-brand-mute">
+                    We send the guest their access card (in their inbox) and a
+                    stay-details email at this time, and unlock the codes on
+                    their trip page.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end">
               <Button type="submit" disabled={pending} className="gap-1.5">

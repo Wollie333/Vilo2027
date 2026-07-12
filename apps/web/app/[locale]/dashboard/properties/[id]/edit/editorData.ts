@@ -43,6 +43,7 @@ export type ListingEditorData = {
     door_code: string | null;
     wifi_network: string | null;
     wifi_password: string | null;
+    send_lead_minutes: number | null;
   } | null;
   localPicks: {
     category: "eat" | "drink" | "do" | "see" | "shop" | "other";
@@ -182,7 +183,7 @@ export async function loadListingEditorData(
     db
       .from("property_access")
       .select(
-        "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
+        "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password, send_lead_minutes",
       )
       .eq("property_id", listingId)
       .maybeSingle(),
@@ -301,6 +302,7 @@ export async function loadListingEditorData(
         door_code: accessRow.door_code ?? null,
         wifi_network: accessRow.wifi_network ?? null,
         wifi_password: accessRow.wifi_password ?? null,
+        send_lead_minutes: accessRow.send_lead_minutes ?? null,
       }
     : null;
   const localPicks = (localPickRows ?? []).map((r) => ({

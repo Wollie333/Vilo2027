@@ -225,6 +225,7 @@ export async function saveListingAccessAction(
       door_code: cleanStr(parsed.data.door_code),
       wifi_network: cleanStr(parsed.data.wifi_network),
       wifi_password: cleanStr(parsed.data.wifi_password),
+      send_lead_minutes: parsed.data.send_lead_minutes,
     },
     { onConflict: "property_id" },
   );

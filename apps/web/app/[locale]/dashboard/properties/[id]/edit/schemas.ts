@@ -142,6 +142,23 @@ export const LOCAL_PICK_CATEGORIES = [
   { value: "other", label: "Other" },
 ] as const;
 
+// How long before check-in the access card + stay-details email go out (and the
+// codes unlock on the trip page). Stored in minutes on property_access.
+export const ACCESS_LEAD_OPTIONS = [
+  { value: 60, label: "1 hour before check-in" },
+  { value: 120, label: "2 hours before check-in" },
+  { value: 180, label: "3 hours before check-in" },
+  { value: 360, label: "6 hours before check-in" },
+  { value: 720, label: "12 hours before check-in" },
+  { value: 1440, label: "1 day before check-in" },
+  { value: 2880, label: "2 days before check-in" },
+  { value: 4320, label: "3 days before check-in" },
+] as const;
+
+export const ACCESS_LEAD_MIN = 15;
+export const ACCESS_LEAD_MAX = 10080; // 7 days
+export const ACCESS_LEAD_DEFAULT = 60;
+
 export const listingAccessSchema = z.object({
   check_in_method: z.string().trim().max(120).optional().or(z.literal("")),
   check_in_instructions: z
@@ -154,6 +171,7 @@ export const listingAccessSchema = z.object({
   door_code: z.string().trim().max(60).optional().or(z.literal("")),
   wifi_network: z.string().trim().max(120).optional().or(z.literal("")),
   wifi_password: z.string().trim().max(120).optional().or(z.literal("")),
+  send_lead_minutes: z.number().int().min(ACCESS_LEAD_MIN).max(ACCESS_LEAD_MAX),
 });
 export type ListingAccessInput = z.infer<typeof listingAccessSchema>;
 

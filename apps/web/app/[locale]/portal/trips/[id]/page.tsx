@@ -310,13 +310,17 @@ export default async function PortalTripDetailPage({
 
   let accessBlocks: AccessBlock[] = [];
   let hostReviewCount = 0;
+  // How long before check-in the codes unlock — the host's per-property setting
+  // (property_access.send_lead_minutes), matching when the access card + email
+  // are sent. Defaults to 60 min.
+  let accessLeadMinutes = 60;
   if (listing?.id) {
     const admin = createAdminClient();
     const [{ data: listingAccess }, { count }] = await Promise.all([
       admin
         .from("property_access")
         .select(
-          "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
+          "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password, send_lead_minutes",
         )
         .eq("property_id", listing.id)
         .maybeSingle(),
@@ -326,6 +330,7 @@ export default async function PortalTripDetailPage({
         .eq("host_id", booking.host_id),
     ]);
     hostReviewCount = count ?? 0;
+    accessLeadMinutes = listingAccess?.send_lead_minutes ?? 60;
 
     const listingShape: AccessShape = {
       check_in_method: listingAccess?.check_in_method ?? null,
@@ -487,12 +492,24 @@ export default async function PortalTripDetailPage({
   const isLive = ["confirmed", "checked_in"].includes(booking.status);
   const isCancelled = booking.status.startsWith("cancelled");
 
-  // Access secrets (gate/door codes, Wi-Fi password) unlock from 1 hour before
-  // check-in (a physical-key courtesy) and only for a live/completed booking.
+  // Access secrets (gate/door codes, Wi-Fi password) unlock the host's chosen
+  // lead before check-in (default 1h) and only for a live/completed booking.
   // check_in_time is a wall-clock time in the property's timezone (SA, UTC+2,
   // no DST) — pin it to +02:00 so the window is correct regardless of where the
   // guest's browser/server clock sits (was parsed as local → unlocked ~2h late).
-  const HOUR_MS = 3_600_000;
+  const accessLeadMs = accessLeadMinutes * 60_000;
+  const formatLead = (mins: number): string => {
+    if (mins % 1440 === 0) {
+      const d = mins / 1440;
+      return `${d} day${d === 1 ? "" : "s"}`;
+    }
+    if (mins % 60 === 0) {
+      const h = mins / 60;
+      return `${h} hour${h === 1 ? "" : "s"}`;
+    }
+    return `${mins} minutes`;
+  };
+  const accessLeadLabel = formatLead(accessLeadMinutes);
   const checkInTime = (listing?.check_in_time ?? "00:00").slice(0, 5);
   const checkInWithTime =
     booking.check_in != null
@@ -500,7 +517,7 @@ export default async function PortalTripDetailPage({
       : null;
   const accessUnlocked =
     checkInWithTime != null &&
-    now >= checkInWithTime - HOUR_MS &&
+    now >= checkInWithTime - accessLeadMs &&
     ["confirmed", "checked_in", "completed", "checked_out"].includes(
       booking.status,
     );
@@ -901,8 +918,8 @@ export default async function PortalTripDetailPage({
                     b.access.wifi_password,
                 ) ? (
                   <div className="mt-0.5 text-[12px] text-brand-mute">
-                    Your gate/door codes &amp; Wi-Fi password unlock 1 hour
-                    before check-in
+                    Your gate/door codes &amp; Wi-Fi password unlock{" "}
+                    {accessLeadLabel} before check-in
                   </div>
                 ) : null}
               </div>
@@ -949,8 +966,8 @@ export default async function PortalTripDetailPage({
                 if (!blockHasContent) return null;
                 const lockedPill = (
                   <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2.5 py-1 text-[11.5px] font-medium text-brand-mute">
-                    <Lock className="h-3.5 w-3.5" /> Unlocks 1 hour before
-                    check-in
+                    <Lock className="h-3.5 w-3.5" /> Unlocks {accessLeadLabel}{" "}
+                    before check-in
                   </span>
                 );
                 return (
