@@ -245,7 +245,7 @@ export default async function PortalTripDetailPage({
       id, host_id, reference, status, payment_status, payment_method, scope,
       check_in, check_out, nights, guests_count,
       base_amount, cleaning_fee, discount_amount, total_amount, balance_due, currency,
-      vat_amount, vat_rate,
+      vat_amount, vat_rate, coupon_id, coupon_discount,
       special_requests, host_message, created_at, confirmed_at,
       checked_in_at, checked_out_at, cancelled_at,
       guest_name, guest_email, guest_phone, additional_guests,
@@ -290,6 +290,8 @@ export default async function PortalTripDetailPage({
     balance_due: number | null;
     vat_amount: number | null;
     vat_rate: number | null;
+    coupon_id: string | null;
+    coupon_discount: number | null;
     currency: string;
     special_requests: string | null;
     host_message: string | null;
@@ -704,6 +706,22 @@ export default async function PortalTripDetailPage({
     booking.status !== "expired";
 
   const discount = Number(booking.discount_amount ?? 0);
+
+  // Coupon applied at checkout — show the guest the code they used + its saving.
+  // The coupon discount is SEPARATE from the stay/deal discount above (the
+  // pricing engine keeps them apart), so it's its own receipt line. Guests can't
+  // read `coupons` via RLS, so resolve the code with the admin client.
+  const couponDiscount = Number(booking.coupon_discount ?? 0);
+  let couponCode: string | null = null;
+  if (booking.coupon_id && couponDiscount > 0) {
+    const admin = createAdminClient();
+    const { data: c } = await admin
+      .from("coupons")
+      .select("code")
+      .eq("id", booking.coupon_id)
+      .maybeSingle();
+    couponCode = (c?.code as string | undefined) ?? null;
+  }
 
   // Who's coming — the lead booker plus any named party members the guest added.
   const leadGuest = {
@@ -1403,6 +1421,21 @@ export default async function PortalTripDetailPage({
                     <span>Discount</span>
                     <span className="num">
                       – {formatMoney(discount, currency)}
+                    </span>
+                  </li>
+                ) : null}
+                {couponDiscount > 0 ? (
+                  <li className="flex items-center justify-between text-brand-primary">
+                    <span className="flex items-center gap-1.5">
+                      Coupon
+                      {couponCode ? (
+                        <span className="rounded-pill bg-brand-primary/10 px-2 py-px font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-primary">
+                          {couponCode}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="num">
+                      – {formatMoney(couponDiscount, currency)}
                     </span>
                   </li>
                 ) : null}
