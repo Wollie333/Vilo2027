@@ -44,6 +44,11 @@ import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 import { RequestReviewButton } from "@/app/[locale]/dashboard/reviews/RequestReviewButton";
 import { ReviewCard } from "@/app/[locale]/dashboard/reviews/ReviewCard";
 import { LedgerList } from "@/components/finance/LedgerList";
+import { StatementDialog } from "@/components/finance/StatementDialog";
+import {
+  buildGuestStatementAction,
+  sendGuestStatementAction,
+} from "./statement-actions";
 import type { NextAction } from "@/lib/guests/next-action";
 import type { RequestableReview } from "@/lib/reviews/eligible";
 import {
@@ -554,6 +559,7 @@ export function GuestRecord({
               />
             ) : (
               <FinancesPanel
+                gkey={r.gkey}
                 txns={txns}
                 quotes={quotes}
                 hasBookings={bookings.length > 0}
@@ -1289,6 +1295,7 @@ function FinanceRow({
 // running balances are identical everywhere. Pending quotes (pre-booking, not
 // yet a transaction) sit below. Per-booking controls live on the booking record.
 function FinancesPanel({
+  gkey,
   txns,
   quotes,
   hasBookings,
@@ -1297,6 +1304,7 @@ function FinancesPanel({
   selectedBusiness,
   onBusiness,
 }: {
+  gkey: string;
   txns: Txn[];
   quotes: QuoteItem[];
   hasBookings: boolean;
@@ -1305,6 +1313,7 @@ function FinancesPanel({
   selectedBusiness: string | null;
   onBusiness: (id: string) => void;
 }) {
+  const [statementOpen, setStatementOpen] = useState(false);
   const actions: {
     key: FinanceAction;
     label: string;
@@ -1318,7 +1327,7 @@ function FinancesPanel({
   const selectedName = businesses.find((b) => b.id === selectedBusiness)?.name;
   return (
     <div className="space-y-6">
-      {hasBookings || businesses.length > 1 ? (
+      {hasBookings || txns.length > 0 || businesses.length > 1 ? (
         <div className="flex flex-wrap items-center gap-2.5">
           {hasBookings
             ? actions.map((a) => (
@@ -1339,6 +1348,16 @@ function FinancesPanel({
                 </button>
               ))
             : null}
+          {txns.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setStatementOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+            >
+              <FileText className="h-4 w-4 text-brand-mute" />
+              Statement
+            </button>
+          ) : null}
           {businesses.length > 1 ? (
             <div className="ml-auto flex items-center gap-2">
               <span className="text-[12px] font-semibold text-brand-mute">
@@ -1394,6 +1413,20 @@ function FinancesPanel({
           ))}
         </FinanceSection>
       ) : null}
+
+      <StatementDialog
+        open={statementOpen}
+        onOpenChange={setStatementOpen}
+        recipient="guest"
+        build={(r) => buildGuestStatementAction({ gkey, ...r })}
+        send={(r) =>
+          sendGuestStatementAction({
+            gkey,
+            ...r,
+            origin: window.location.origin,
+          })
+        }
+      />
     </div>
   );
 }

@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-12 #73 — Statement of account (F4): bank-style running statement, host→guest + Wielo→host. Driven live.
+
+Founder §F4 (decisions: like a bank download statement · bank convention · download AND send · conventional
+VAT · balance = what the counterparty owes). A statement is a pure VIEW over an existing ledger — it mints
+NO doc number and stores NO row.
+
+- **Ephemeral signed token** `lib/finance/statement-token.ts` — HMAC-SHA256 `payload.sig`
+  (secret = `SUPABASE_SERVICE_ROLE_KEY`, modelled on impersonation), payload
+  `{ctx, hostId, gkey|userId, from, to, issuedAt, currency}`. The link describes WHICH slice to render; the
+  page re-derives figures live. No `next_*_number` RPC → the global INV/RPT/… sequence is untouched.
+- **Engine** `lib/finance/statement.ts` — `loadStatement` dispatches: **host→guest** off
+  `fetchHostTransactions` (each txn one signed movement `owedEffect*amount`); **Wielo→host** off
+  `fetchWieloLedger` (AR-style — a paid charge is emitted as a debit + offsetting "Payment received" credit
+  so it reads bank-style while `closing == ledger outstanding`; refund = net-0 memo). Opening = Σ before the
+  period; VAT shown gross with an included-VAT line.
+- **Render** — hosted page `app/[locale]/statement/[token]/page.tsx` (shared `FinancialDocument`) +
+  `pdf/route.ts` → new `lib/pdf/StatementDocument.tsx` / `renderStatementPdf` (Date · Description · Amount ·
+  Balance, brought-forward/carried-forward). ASCII hyphen for signed amounts (Helvetica lacks U+2212).
+- **Entry points** — shared `components/finance/StatementDialog.tsx` (period presets: All / month / 3 months /
+  year / custom; Open&download + Send). Host: guest record Finances tab. Admin: user record Ledger panel
+  (`buildWieloHostStatement`, gated `payments.view`; send reuses `sendWieloDocToInbox`/`emailWieloDoc`).
+  Host send emails the guest + posts to their thread (`sendGuestStatementAction`).
+- Verified live (host + super_admin sessions): both flavours rendered in the browser AND as PDFs; the
+  host→guest running balance reconciles with the guest ledger; the Wielo→host paid subscription nets to R0
+  with unpaid product charges accumulating to the ledger's outstanding. `pnpm build`, `tsc`, `next lint`
+  green. Lifecycle doc `docs/lifecycles/statement.md`.
+
 ## 2026-07-12 #72 — Settings shows the live plan (not a stale cancelled one) + zero lint warnings. Driven live.
 
 Founder spotted the Settings plan looking wrong/"hardcoded". Root cause: the header + Subscription tab +

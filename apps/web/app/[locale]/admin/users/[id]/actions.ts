@@ -25,6 +25,10 @@ import {
   restoreUserAccount,
   softDeleteUserAccount,
 } from "@/lib/users/accountLifecycle";
+import {
+  signStatementToken,
+  type StatementToken,
+} from "@/lib/finance/statement-token";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
@@ -2164,6 +2168,49 @@ export async function suspendUser(input: { userId: string; reason: string }) {
       error: e instanceof Error ? e.message : "Failed.",
     };
   }
+}
+
+// Wielo → Host statement (F4). Mints an ephemeral signed link over the host's
+// platform (Wielo) ledger — a running billing statement. Read-only; the existing
+// sendWieloDocToInbox / emailWieloDoc handle delivery with the returned path.
+const wieloStatementSchema = z.object({
+  userId: z.string().uuid(),
+  from: z.string().datetime().nullable().optional(),
+  to: z.string().datetime().nullable().optional(),
+});
+
+export async function buildWieloHostStatement(input: {
+  userId: string;
+  from?: string | null;
+  to?: string | null;
+}): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
+  const parsed = wieloStatementSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  try {
+    await requirePermission("payments.view");
+  } catch {
+    return { ok: false, error: "Not allowed." };
+  }
+
+  const service = createAdminClient();
+  const { data: host } = await service
+    .from("hosts")
+    .select("id")
+    .eq("user_id", parsed.data.userId)
+    .maybeSingle();
+
+  const issuedAt = new Date().toISOString();
+  const token: StatementToken = {
+    v: 1,
+    ctx: "wielo_host",
+    hostId: (host?.id as string | undefined) ?? parsed.data.userId,
+    userId: parsed.data.userId,
+    from: parsed.data.from ?? null,
+    to: parsed.data.to ?? issuedAt,
+    issuedAt,
+    currency: "ZAR",
+  };
+  return { ok: true, path: `/statement/${signStatementToken(token)}` };
 }
 
 export async function reinstateUser(input: { userId: string; reason: string }) {

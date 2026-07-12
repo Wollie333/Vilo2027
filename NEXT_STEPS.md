@@ -152,11 +152,24 @@ owes nothing.
   (c) doc name = **"Forfeit statement"** (prefix `FRF-####`). Build accordingly + record the cancellation
   branch in `docs/lifecycles/booking.md`.
 
-### F4 — Statement function (host → guest; admin/Wielo → host)
+### F4 — ✅ Statement function — DONE + verified live 2026-07-12.
+Shipped: a bank-style **Statement of account** — a running ledger (opening brought-forward → signed
+charges/payments → closing carried-forward + VAT summary) between two parties. **Ephemeral by design**
+(founder decision: like a bank download statement): it mints NO doc number and stores NO row — the shareable
+link carries a signed HMAC payload (`lib/finance/statement-token.ts`) describing the slice, and the page
+re-derives every figure live from the ledger. Two flavours, one engine (`lib/finance/statement.ts`):
+**host → guest** (Finances tab → Statement) off `fetchHostTransactions`, and **Wielo → host** (admin Ledger
+panel → Statement) off `fetchWieloLedger` (paid charges synthesised as charge+payment so it reads like a bank
+statement while the closing == the ledger's outstanding). Shared `components/finance/StatementDialog.tsx`
+(period presets + Open&download + Send). Hosted page `/statement/[token]` + PDF (`StatementDocument.tsx`).
+Delivery: download + email + inbox. Doc `docs/lifecycles/statement.md`. Verified live: both flavours rendered
+in web + PDF, running balance reconciles with the ledgers. Original spec kept below.
+
+### F4(orig) — Statement function (host → guest; admin/Wielo → host)
 - A "generate statement" action: the host creates a **statement for a guest** (a period/booking summary of
   charges, payments, refunds, balance) as a downloadable doc; reuse the SAME statement generator in admin so
-  **Wielo can send a statement to a host**. Fits the unified doc-numbering scheme. Important for financials —
-  pairs with the deep financial sweep (§1) and F3's paper trail.
+  **Wielo can send a statement to a host**. Important for financials — pairs with the deep financial sweep
+  (§1) and F3's paper trail. (Founder decision: bank-style ephemeral statement, mints no global doc number.)
 
 ---
 

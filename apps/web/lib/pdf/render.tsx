@@ -10,6 +10,7 @@ import {
 } from "./PlatformReportDocument";
 import { QuoteDocument, type QuoteProps } from "./QuoteDocument";
 import { ReceiptDocument, type ReceiptProps } from "./ReceiptDocument";
+import { StatementDocument, type StatementPdfProps } from "./StatementDocument";
 
 export async function renderInvoicePdf(invoice: InvoiceProps): Promise<Buffer> {
   return renderToBuffer(<InvoiceDocument invoice={invoice} />);
@@ -33,4 +34,10 @@ export async function renderPlatformReportPdf(
   props: PlatformReportProps,
 ): Promise<Buffer> {
   return renderToBuffer(<PlatformReportDocument {...props} />);
+}
+
+export async function renderStatementPdf(
+  stmt: StatementPdfProps,
+): Promise<Buffer> {
+  return renderToBuffer(<StatementDocument stmt={stmt} />);
 }

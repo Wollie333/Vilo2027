@@ -68,6 +68,7 @@ import {
 import { CURRENCY_META, DISPLAY_CURRENCIES } from "@/lib/currency";
 import { LedgerList } from "@/components/finance/LedgerList";
 import { AdminLedgerList } from "@/components/finance/AdminLedgerList";
+import { StatementDialog } from "@/components/finance/StatementDialog";
 import {
   ActivityTimeline,
   type ActivityCategory,
@@ -103,6 +104,7 @@ import {
   adminUpdateAddon,
   adminUpdateBusiness,
   adminUpdateSubscription,
+  buildWieloHostStatement,
   cancelScheduledChange,
   emailWieloDoc,
   enableAffiliate,
@@ -2976,6 +2978,7 @@ function LedgerPanel({
   );
   const openFinance = (action: WieloFinanceAction) =>
     setFinanceReq({ action, email: data.user.email ?? "" });
+  const [statementOpen, setStatementOpen] = useState(false);
   const financeProducts = data.products.map((p) => ({
     id: p.id,
     name: p.name,
@@ -3065,6 +3068,14 @@ function LedgerPanel({
                 {a.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setStatementOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-semibold text-brand-ink transition hover:bg-brand-light"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Statement
+            </button>
           </div>
         ) : supportActive ? (
           <span className="text-[12px] text-brand-mute">
@@ -3181,6 +3192,31 @@ function LedgerPanel({
         users={financeUsers}
         products={financeProducts}
         onClose={() => setFinanceReq(null)}
+      />
+
+      <StatementDialog
+        open={statementOpen}
+        onOpenChange={setStatementOpen}
+        recipient="host"
+        build={(r) => buildWieloHostStatement({ userId: data.user.id, ...r })}
+        send={async (r) => {
+          const b = await buildWieloHostStatement({
+            userId: data.user.id,
+            ...r,
+          });
+          if (!b.ok) return { ok: false, error: b.error };
+          const url = `${window.location.origin}${b.path}`;
+          const label = "Statement of account";
+          const [inbox, email] = await Promise.all([
+            sendWieloDocToInbox({ userId: data.user.id, url, label }),
+            emailWieloDoc({ userId: data.user.id, url, label }),
+          ]);
+          if (inbox.ok || email.ok) return { ok: true };
+          return {
+            ok: false,
+            error: inbox.error ?? email.error ?? "Couldn't send.",
+          };
+        }}
       />
     </div>
   );
