@@ -4,6 +4,7 @@ export type SetupStepKey =
   | "banking"
   | "listing"
   | "rooms"
+  | "seasonal"
   | "policies"
   | "review";
 
@@ -86,6 +87,8 @@ export type Photo = {
   url: string;
 };
 
+export type RoomPricingMode = "per_room" | "per_person" | "per_room_plus_extra";
+
 export type Room = {
   id: string;
   name: string;
@@ -99,6 +102,14 @@ export type Room = {
   bed_type: string | null;
   view_type: string | null;
   is_active: boolean;
+  /** How this room is priced — drives the guest price calc (occupancy engine). */
+  pricing_mode: RoomPricingMode;
+  /** per_person: the nightly rate charged per guest. */
+  price_per_person: number | null;
+  /** per_room_plus_extra: guests included before extra-guest fees kick in. */
+  base_occupancy: number | null;
+  /** per_room_plus_extra: fee per guest above base occupancy. */
+  extra_guest_price: number | null;
   /** Featured photo URL (cover), or first room photo. */
   featured_image: string | null;
   photo_count: number;

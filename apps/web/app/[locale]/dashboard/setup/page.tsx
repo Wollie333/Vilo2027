@@ -8,6 +8,10 @@ import { getCategoriesForKind } from "@/lib/taxonomy/getCategories";
 
 import type { PolicyCard } from "../policies/PolicyManager";
 import { isLockedPreset, type PolicyType } from "../policies/schemas";
+import type {
+  ListingGroup,
+  SeasonalRule as SeasonalRuleView,
+} from "../seasonal-pricing/SeasonalPricingManager";
 import { SetupWizard } from "./SetupWizard";
 
 // eft_banking_details stores account_number encrypted at rest. The shared
@@ -55,7 +59,7 @@ export default async function SetupPage({
 
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("full_name, email, phone, avatar_url")
+    .select("full_name, email, phone, avatar_url, email_verified_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -64,7 +68,7 @@ export default async function SetupPage({
   const { data: listing } = await supabase
     .from("properties")
     .select(
-      "id, name, slug, property_type, category_id, accommodation_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
+      "id, name, slug, property_type, category_id, accommodation_type, description, base_price, weekend_price, cleaning_fee, currency, min_nights, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -106,7 +110,7 @@ export default async function SetupPage({
   const { data: rooms } = await supabase
     .from("property_rooms")
     .select(
-      "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, bed_type, view_type, is_active, featured_photo_id",
+      "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, bed_type, view_type, is_active, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
     )
     .eq("property_id", listing.id)
     .is("deleted_at", null)
@@ -119,6 +123,19 @@ export default async function SetupPage({
     .eq("property_id", listing.id)
     .not("room_id", "is", null)
     .order("sort_order", { ascending: true });
+
+  // Seasonal pricing rules for this listing — drives the (optional) Seasonal
+  // step. Same table + shape the standalone /dashboard/seasonal-pricing page
+  // reads, so rules created in the wizard show up there too and flow through
+  // the booking price engine (lib/pricing/engine.ts → priceStay).
+  const { data: seasonalRows } = await supabase
+    .from("property_seasonal_pricing")
+    .select(
+      "id, property_id, room_id, label, start_date, end_date, adjustment_type, adjustment_value, price, currency, min_nights, priority, is_active",
+    )
+    .eq("property_id", listing.id)
+    .order("priority", { ascending: false })
+    .order("start_date", { ascending: true });
 
   // Amenities — catalog (groups) + the listing's current selection.
   const [amenityGroups, { data: amenityRows }] = await Promise.all([
@@ -142,8 +159,14 @@ export default async function SetupPage({
     }));
 
   // Policies — the same `policies` table /dashboard/policies reads, so anything
-  // created here shows up there too. Materialise the locked presets first.
-  await supabase.rpc("ensure_host_policy_presets", { p_host_id: host.id });
+  // created here shows up there too. Guarantee the host has an editable default
+  // of ALL FOUR types (incl. booking terms) AND that each is assigned to this
+  // listing, so every policy picker opens on an active-by-default choice the
+  // host can keep or replace (founder §A #4). This RPC is idempotent and also
+  // seeds the presets + booking terms internally.
+  await supabase.rpc("ensure_listing_policy_assignments", {
+    p_listing_id: listing.id,
+  });
 
   const { data: policyRows } = await supabase
     .from("policies")
@@ -217,10 +240,72 @@ export default async function SetupPage({
     cancellation: null,
     check_in_out: null,
     house_rules: null,
+    booking_terms: null,
   };
   (assigned ?? []).forEach((a) => {
     const t = a.policy_type as PolicyType;
     if (t in policyAssignments) policyAssignments[t] = a.policy_id as string;
+  });
+
+  // ── Seasonal step data (ListingGroup + rules), same shape the manager uses ──
+  const listingCurrency = listing.currency ?? "ZAR";
+  const seasonalListing: ListingGroup = {
+    id: listing.id,
+    name: listing.name,
+    slug: (listing.slug as string | null) ?? null,
+    bookingMode:
+      (listing.booking_mode as "whole_listing" | "rooms_only" | "flexible") ??
+      "whole_listing",
+    basePrice: listing.base_price == null ? null : Number(listing.base_price),
+    weekendPrice:
+      listing.weekend_price == null ? null : Number(listing.weekend_price),
+    cleaningFee:
+      listing.cleaning_fee == null ? null : Number(listing.cleaning_fee),
+    currency: listingCurrency,
+    minNights: listing.min_nights ?? 1,
+    rooms: (rooms ?? [])
+      .filter((r) => r.is_active)
+      .map((r) => ({
+        id: r.id as string,
+        name: (r.name as string) ?? "Room",
+        basePrice: r.base_price == null ? 0 : Number(r.base_price),
+        weekendPrice: r.weekend_price == null ? null : Number(r.weekend_price),
+        cleaningFee: r.cleaning_fee == null ? null : Number(r.cleaning_fee),
+        currency: listingCurrency,
+        isActive: Boolean(r.is_active),
+      })),
+  };
+
+  const roomBasePrice = new Map<string, number>();
+  for (const r of seasonalListing.rooms) roomBasePrice.set(r.id, r.basePrice);
+
+  const seasonalRules: SeasonalRuleView[] = (seasonalRows ?? []).map((r) => {
+    const adjustmentType: "absolute" | "percent" =
+      r.adjustment_type === "percent" ? "percent" : "absolute";
+    const adjustmentValue = Number(r.adjustment_value ?? r.price ?? 0);
+    const refBase =
+      (r.room_id
+        ? roomBasePrice.get(r.room_id as string)
+        : (seasonalListing.basePrice ?? 0)) ?? 0;
+    const price =
+      adjustmentType === "absolute"
+        ? adjustmentValue
+        : Math.max(0, refBase * (1 + adjustmentValue / 100));
+    return {
+      id: r.id as string,
+      listingId: r.property_id as string,
+      roomId: (r.room_id as string | null) ?? null,
+      label: r.label as string,
+      startDate: r.start_date as string,
+      endDate: r.end_date as string,
+      adjustmentType,
+      adjustmentValue,
+      price,
+      currency: (r.currency as string) ?? listingCurrency,
+      minNights: (r.min_nights as number | null) ?? null,
+      priority: (r.priority as number) ?? 0,
+      isActive: Boolean(r.is_active),
+    };
   });
 
   return (
@@ -244,7 +329,7 @@ export default async function SetupPage({
         email: profile?.email || user.email || "",
         phone: profile?.phone ?? "",
       }}
-      emailVerified={Boolean(user.email_confirmed_at)}
+      emailVerified={Boolean(profile?.email_verified_at)}
       listing={{
         id: listing.id,
         name: listing.name,
@@ -346,6 +431,18 @@ export default async function SetupPage({
           bed_type: (r.bed_type as string | null) ?? null,
           view_type: (r.view_type as string | null) ?? null,
           is_active: Boolean(r.is_active),
+          pricing_mode:
+            (r.pricing_mode as
+              | "per_room"
+              | "per_person"
+              | "per_room_plus_extra"
+              | null) ?? "per_room",
+          price_per_person:
+            r.price_per_person == null ? null : Number(r.price_per_person),
+          base_occupancy:
+            r.base_occupancy == null ? null : Number(r.base_occupancy),
+          extra_guest_price:
+            r.extra_guest_price == null ? null : Number(r.extra_guest_price),
           featured_image: featured,
           photo_count: mine.length,
         };
@@ -359,6 +456,8 @@ export default async function SetupPage({
       }))}
       policies={policies}
       policyAssignments={policyAssignments}
+      seasonalListing={seasonalListing}
+      seasonalRules={seasonalRules}
     />
   );
 }

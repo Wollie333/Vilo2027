@@ -79,11 +79,11 @@ export function StepPolicies({
       </PolicySection>
 
       {/* Terms & conditions — the host's own T&Cs, accepted at checkout
-          alongside Wielo's platform terms. Optional. */}
+          alongside Wielo's platform terms. A default is set for you. */}
       <PolicySection
         icon={<Gavel className="h-4 w-4" />}
         title="Terms & conditions"
-        blurb="Your own booking terms, accepted at checkout alongside Wielo's. Optional — pick a preset or write your own."
+        blurb="Your own booking terms, accepted at checkout alongside Wielo's. A standard default is already active — edit it or pick your own."
       >
         <PolicyPicker
           listingId={listing.id}

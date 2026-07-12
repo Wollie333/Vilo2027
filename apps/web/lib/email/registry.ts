@@ -16,6 +16,7 @@ import {
   EftInstructionsGuest,
   EftProofReceivedHost,
   EftRefundSentGuest,
+  ListingPublishedHost,
   NewReviewHost,
   RefundAdminOverrideHost,
   RefundApprovedGuest,
@@ -70,6 +71,14 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "host",
     subject: (p) =>
       `New booking request for ${str(p.listingName, "your listing")}`,
+  },
+
+  // Onboarding milestone — sent once when the host's listing goes live.
+  listing_published_host: {
+    Template: ListingPublishedHost as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: (p) =>
+      `${str(p.listingName, "Your listing")} is live on ${str(p.brand_name, "Wielo")} 🎉`,
   },
 
   booking_confirmed_host: {

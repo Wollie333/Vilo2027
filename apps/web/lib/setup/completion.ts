@@ -13,6 +13,7 @@ export type SetupSectionKey =
   | "banking"
   | "listing"
   | "rooms"
+  | "seasonal"
   | "policies"
   | "review";
 
@@ -48,6 +49,12 @@ export type SetupCompletionInput = {
   hasCancellationPolicy?: boolean;
   /** A house-rules policy is assigned to the setup listing (listing-wide). */
   hasHouseRules?: boolean;
+  /**
+   * The host has added at least one seasonal pricing rule. Seasonal pricing is
+   * OPTIONAL — it never gates publishing — so this only drives whether the
+   * wizard's Seasonal step shows a "done" tick.
+   */
+  hasSeasonalRules?: boolean;
 };
 
 export type SetupCompletion = Record<SetupSectionKey, boolean>;
@@ -92,12 +99,18 @@ export function computeSetupCompletion(
 
   const review = Boolean(listing?.is_published);
 
+  // Seasonal pricing is optional — "done" purely means the host added a season.
+  // It is never part of any required/gating set, so callers that don't pass
+  // hasSeasonalRules (e.g. the server publish gate) simply get false here.
+  const seasonal = input.hasSeasonalRules === true;
+
   return {
     profile,
     business,
     banking,
     listing: listingDone,
     rooms: roomsDone,
+    seasonal,
     policies,
     review,
   };

@@ -215,6 +215,46 @@ const welcomeHostResolver: EmailResolver = async (refs, ctx) => {
   };
 };
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
+
+const listingPublishedHostResolver: EmailResolver = async (refs, ctx) => {
+  const listingId = refId(refs, "property_id");
+  if (!listingId) return {};
+
+  const { data: listing } = await ctx.supabase
+    .from("properties")
+    .select("name, slug, base_price, currency, city, province, host_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (!listing) return {};
+
+  const host = await loadHostUser(ctx.supabase, listing.host_id);
+
+  const { count: roomCount } = await ctx.supabase
+    .from("property_rooms")
+    .select("id", { count: "exact", head: true })
+    .eq("property_id", listingId)
+    .is("deleted_at", null)
+    .eq("is_active", true);
+
+  const path = listing.slug ? `/property/${listing.slug}` : "/dashboard";
+  const listingUrl = `${APP_URL}${path}`;
+  const location = [listing.city, listing.province].filter(Boolean).join(", ");
+
+  return {
+    firstName: firstName(host?.user_full_name ?? host?.display_name),
+    listingName: listing.name ?? "your listing",
+    listingUrl,
+    displayUrl: listingUrl.replace(/^https?:\/\//, ""),
+    fromPrice:
+      listing.base_price == null
+        ? undefined
+        : formatMoney(Number(listing.base_price), listing.currency ?? "ZAR"),
+    location: location || undefined,
+    roomCount: roomCount ?? 0,
+  };
+};
+
 const accountSuspendedResolver: EmailResolver = async (refs, ctx) => {
   const hostId = refId(refs, "host_id");
   if (!hostId) return {};
@@ -227,6 +267,7 @@ const accountSuspendedResolver: EmailResolver = async (refs, ctx) => {
 
 export const MISC_RESOLVERS: Record<string, EmailResolver> = {
   welcome_host: welcomeHostResolver,
+  listing_published_host: listingPublishedHostResolver,
   account_suspended: accountSuspendedResolver,
   subscription_welcome: subscriptionWelcomeResolver,
   subscription_expiring: subscriptionExpiringResolver,

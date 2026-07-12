@@ -100,6 +100,14 @@ export type AccountRefs = {
   reason?: string;
 };
 
+export type ListingPublishedRefs = {
+  property_id: string;
+  host_id?: string;
+  listing_name?: string;
+  /** Injected by dispatchEvent for branded push/in-app copy. */
+  brand_name?: string;
+};
+
 export type BroadcastRefs = {
   broadcast_id: string;
   title: string;
@@ -166,6 +174,21 @@ export const NOTIFICATION_REGISTRY = {
     refKeys: ["host_id"],
     dedupeKey: () => null,
   } satisfies EventBuilder<AccountRefs>,
+
+  // Onboarding milestone — the host's listing just went live.
+  listing_published_host: {
+    category: "account_security",
+    feature: "account",
+    severity: "default",
+    emailTemplate: "listing_published_host",
+    refKeys: ["property_id"],
+    inApp: (r) => ({
+      title: "Your listing is live 🎉",
+      body: `${r.listing_name ?? "Your listing"} is now published and bookable.`,
+      link: "/dashboard",
+    }),
+    dedupeKey: (r) => `listing_published:${r.property_id}`,
+  } satisfies EventBuilder<ListingPublishedRefs>,
 
   // ─── Bookings (host)
   booking_request_host: {

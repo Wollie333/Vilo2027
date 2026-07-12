@@ -630,7 +630,7 @@ export async function togglePublishAction(
   const { data: listing } = await supabase
     .from("properties")
     .select(
-      "name, base_price, max_guests, slug, host_id, property_type, booking_mode, cancellation_policy, check_in_time, check_out_time",
+      "name, base_price, max_guests, slug, host_id, property_type, booking_mode, cancellation_policy, check_in_time, check_out_time, published_at",
     )
     .eq("id", listingId)
     .single();
@@ -638,12 +638,37 @@ export async function togglePublishAction(
 
   // W15 — directory publication is a gated channel. Going live requires the
   // owner's plan to grant `directory_listing` (un-publishing is always allowed
-  // so a downgraded host can still pull a property from the directory).
+  // so a downgraded host can still pull a property from the directory). This is
+  // the "active subscription whose permissions match the feature" gate
+  // (check_feature_permission via hostHasFeature; open pre-MVP per §3.4).
   if (!(await hostHasFeature(listing.host_id, "directory_listing"))) {
     return {
       ok: false,
       error: "Listing in the Wielo directory isn't available on your plan.",
     };
+  }
+
+  // Email must be verified before a listing can go public (founder directive,
+  // NEXT_STEPS §A #5). The app-level truth is user_profiles.email_verified_at —
+  // GoTrue auto-confirms, so auth.users.email_confirmed_at can't prove it.
+  const { data: hostUser } = await supabase
+    .from("hosts")
+    .select("user_id")
+    .eq("id", listing.host_id)
+    .maybeSingle();
+  if (hostUser?.user_id) {
+    const { data: prof } = await supabase
+      .from("user_profiles")
+      .select("email_verified_at")
+      .eq("id", hostUser.user_id)
+      .maybeSingle();
+    if (!prof?.email_verified_at) {
+      return {
+        ok: false,
+        error:
+          "Verify your email address before publishing — check your inbox for the verification link.",
+      };
+    }
   }
 
   if (
@@ -780,6 +805,24 @@ export async function togglePublishAction(
     return { ok: false, error: "Could not update publish status." };
   }
 
+  // Onboarding-complete email — sent once, on the FIRST time a listing goes
+  // live (founder §A #6). published_at is only ever set (never cleared on
+  // unpublish), so a null prior value means this is the first publish.
+  // dispatchEvent never throws, so a mail hiccup can't fail the publish.
+  if (!listing.published_at && hostUser?.user_id) {
+    const { dispatchEvent } = await import("@/lib/notifications/dispatch");
+    await dispatchEvent({
+      kind: "listing_published_host",
+      recipientUserId: hostUser.user_id,
+      hostId: listing.host_id,
+      refs: {
+        property_id: listingId,
+        host_id: listing.host_id,
+        listing_name: listing.name,
+      },
+    });
+  }
+
   revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard");
   revalidatePath(`/property/${slug}`);
@@ -815,6 +858,30 @@ export async function setWebsiteChannelAction(
       ok: false,
       error: "A website isn't available on your plan.",
     };
+  }
+
+  // Same email-verification gate as the directory channel (founder §A #5):
+  // a listing can't be shown on the host's website until email is verified.
+  if (visible) {
+    const { data: hostUser } = await supabase
+      .from("hosts")
+      .select("user_id")
+      .eq("id", listing.host_id)
+      .maybeSingle();
+    if (hostUser?.user_id) {
+      const { data: prof } = await supabase
+        .from("user_profiles")
+        .select("email_verified_at")
+        .eq("id", hostUser.user_id)
+        .maybeSingle();
+      if (!prof?.email_verified_at) {
+        return {
+          ok: false,
+          error:
+            "Verify your email address before publishing — check your inbox for the verification link.",
+        };
+      }
+    }
   }
 
   if (!listing.business_id) {

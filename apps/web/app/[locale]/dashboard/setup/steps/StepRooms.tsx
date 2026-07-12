@@ -8,16 +8,36 @@ import {
   Mountain,
   Pencil,
   Plus,
+  Trash2,
   Users,
 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
-import type { Room } from "../types";
+import { modal } from "@/components/ui/modal-host";
+
+import { deleteRoomAction } from "../../properties/[id]/edit/actions";
+import type { Room, RoomPricingMode } from "../types";
 import { RoomEditorSheet } from "./RoomEditorSheet";
 
 function rand(n: number): string {
   return `R ${Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+}
+
+const PRICING_MODE_LABEL: Record<RoomPricingMode, string> = {
+  per_room: "Per room",
+  per_person: "Per person",
+  per_room_plus_extra: "Base + extra guest",
+};
+
+// The headline nightly rate + unit for a room, honouring its pricing model —
+// so the card shows the SAME basis the price engine charges on.
+function priceParts(r: Room): { amount: number; unit: string } {
+  if (r.pricing_mode === "per_person") {
+    return { amount: r.price_per_person ?? 0, unit: "/ person / night" };
+  }
+  return { amount: r.base_price ?? 0, unit: "/ night" };
 }
 
 function plainText(html: string | null): string {
@@ -45,6 +65,8 @@ export function StepRooms({
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [, startDelete] = useTransition();
 
   const activeRooms = rooms.filter((r) => r.is_active);
 
@@ -55,6 +77,27 @@ export function StepRooms({
   function openEdit(id: string) {
     setEditingRoomId(id);
     setSheetOpen(true);
+  }
+
+  async function handleDelete(room: Room) {
+    const confirmed = await modal.destructive({
+      title: `Delete "${room.name}"?`,
+      description:
+        "This removes the room from your listing. Any photos and pricing for it are removed too. This can't be undone.",
+      confirmLabel: "Delete room",
+    });
+    if (!confirmed) return;
+    setDeletingId(room.id);
+    startDelete(async () => {
+      const res = await deleteRoomAction(listingId, room.id);
+      setDeletingId(null);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Room deleted.");
+      onChanged();
+    });
   }
 
   return (
@@ -107,6 +150,9 @@ export function StepRooms({
                           <h4 className="font-display text-base font-bold text-brand-ink">
                             {r.name}
                           </h4>
+                          <span className="rounded-pill bg-brand-accent px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-brand-secondary">
+                            {PRICING_MODE_LABEL[r.pricing_mode]}
+                          </span>
                           {!r.is_active ? (
                             <span className="rounded-pill bg-status-draft/15 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-brand-mute">
                               Hidden
@@ -131,14 +177,20 @@ export function StepRooms({
                       </div>
                       <div className="shrink-0 text-right">
                         <div className="num font-display text-base font-bold text-brand-ink">
-                          {rand(r.base_price ?? 0)}
+                          {rand(priceParts(r).amount)}
                         </div>
                         <div className="text-[10px] text-brand-mute">
-                          / night
-                          {r.weekend_price
+                          {priceParts(r).unit}
+                          {r.pricing_mode !== "per_person" && r.weekend_price
                             ? ` · ${rand(r.weekend_price)} wknd`
                             : ""}
                         </div>
+                        {r.pricing_mode === "per_room_plus_extra" &&
+                        r.extra_guest_price ? (
+                          <div className="text-[10px] text-brand-mute">
+                            +{rand(r.extra_guest_price)} / extra guest
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
@@ -170,14 +222,26 @@ export function StepRooms({
                           <span>· {rand(r.cleaning_fee)} cleaning</span>
                         ) : null}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => openEdit(r.id)}
-                        className="inline-flex shrink-0 items-center gap-1 rounded border border-brand-line bg-white px-2.5 py-1.5 text-xs font-medium text-brand-ink transition hover:bg-brand-accent"
-                      >
-                        <Pencil className="h-3 w-3" />
-                        Edit
-                      </button>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(r.id)}
+                          className="inline-flex items-center gap-1 rounded border border-brand-line bg-white px-2.5 py-1.5 text-xs font-medium text-brand-ink transition hover:bg-brand-accent"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(r)}
+                          disabled={deletingId === r.id}
+                          aria-label={`Delete ${r.name}`}
+                          title="Delete room"
+                          className="inline-flex items-center justify-center rounded border border-brand-line bg-white px-2 py-1.5 text-brand-mute transition hover:border-status-cancelled/40 hover:bg-status-cancelled/5 hover:text-status-cancelled disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

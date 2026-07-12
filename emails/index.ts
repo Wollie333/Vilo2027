@@ -10,6 +10,7 @@ export { default as BookingRequestHost } from "./templates/BookingRequestHost";
 export { default as EftInstructionsGuest } from "./templates/EftInstructionsGuest";
 export { default as EftProofReceivedHost } from "./templates/EftProofReceivedHost";
 export { default as EftRefundSentGuest } from "./templates/EftRefundSentGuest";
+export { default as ListingPublishedHost } from "./templates/ListingPublishedHost";
 export { default as NewReviewHost } from "./templates/NewReviewHost";
 export { default as NotificationDigest } from "./templates/NotificationDigest";
 export { default as RefundAdminOverrideHost } from "./templates/RefundAdminOverrideHost";

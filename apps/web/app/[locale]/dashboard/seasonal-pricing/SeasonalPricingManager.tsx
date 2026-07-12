@@ -222,9 +222,13 @@ const MONTHS = [
 export function SeasonalPricingManager({
   listings,
   initialRules,
+  embedded = false,
 }: {
   listings: ListingGroup[];
   initialRules: SeasonalRule[];
+  /** When rendered inside the setup wizard: hide the page heading (the wizard
+   *  supplies its own step header) and the multi-listing switcher. */
+  embedded?: boolean;
 }) {
   const [rules, setRules] = useState<SeasonalRule[]>(initialRules);
   const [target, setTarget] = useState<EditTarget | null>(null);
@@ -278,73 +282,75 @@ export function SeasonalPricingManager({
   return (
     <div className="space-y-6 lg:space-y-7">
       {/* ── Heading ── */}
-      <section className="flex flex-col gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            Seasonal pricing
-          </h1>
-        </div>
-        <div className="-mt-1 flex flex-col gap-4 md:flex-row md:items-end md:gap-6">
+      {embedded ? null : (
+        <section className="flex flex-col gap-4">
           <div>
-            <h2 className="font-display text-xl font-bold tracking-tight text-brand-ink md:text-2xl">
-              Set rates that follow demand.
-            </h2>
-            <p className="mt-1 max-w-xl text-sm text-brand-mute">
-              Seasonal rates override your base rate for specific date ranges.
-              Weekend and minimum-stay rules still apply on top. Room rules beat
-              listing rules on the same dates.
-            </p>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
+              Seasonal pricing
+            </h1>
           </div>
-          <div className="flex items-center gap-2 md:ml-auto">
-            <button
-              type="button"
-              onClick={() => setCopyOpen(true)}
-              disabled={listings.length < 2}
-              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Copy className="h-4 w-4" /> Copy to listing
-            </button>
-            <button
-              type="button"
-              onClick={() => exportCsv(listing, rulesForListing, today)}
-              disabled={rulesForListing.length === 0}
-              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Download className="h-4 w-4" /> Export
-            </button>
+          <div className="-mt-1 flex flex-col gap-4 md:flex-row md:items-end md:gap-6">
+            <div>
+              <h2 className="font-display text-xl font-bold tracking-tight text-brand-ink md:text-2xl">
+                Set rates that follow demand.
+              </h2>
+              <p className="mt-1 max-w-xl text-sm text-brand-mute">
+                Seasonal rates override your base rate for specific date ranges.
+                Weekend and minimum-stay rules still apply on top. Room rules
+                beat listing rules on the same dates.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 md:ml-auto">
+              <button
+                type="button"
+                onClick={() => setCopyOpen(true)}
+                disabled={listings.length < 2}
+                className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Copy className="h-4 w-4" /> Copy to listing
+              </button>
+              <button
+                type="button"
+                onClick={() => exportCsv(listing, rulesForListing, today)}
+                disabled={rulesForListing.length === 0}
+                className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" /> Export
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Listing switcher */}
-        {listings.length > 1 ? (
-          <div className="hscroll flex items-center gap-2 overflow-x-auto pb-1">
-            {listings.map((l) => {
-              const count = seasonCountByListing(l.id);
-              const active = l.id === listing.id;
-              return (
-                <button
-                  key={l.id}
-                  type="button"
-                  onClick={() => setSelectedId(l.id)}
-                  className={`flex shrink-0 items-center gap-2 rounded-pill border py-1.5 pl-1.5 pr-3 text-[13px] font-medium transition-all ${
-                    active
-                      ? "border-brand-primary text-brand-ink shadow-[0_0_0_1px_#10B981]"
-                      : "border-brand-line text-brand-mute hover:bg-brand-light"
-                  }`}
-                >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[10px] font-bold text-white">
-                    {l.name.slice(0, 2).toUpperCase()}
-                  </span>
-                  {l.name}
-                  <span className="font-mono text-[10px] text-brand-mute">
-                    {count} season{count === 1 ? "" : "s"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-      </section>
+          {/* Listing switcher */}
+          {listings.length > 1 ? (
+            <div className="hscroll flex items-center gap-2 overflow-x-auto pb-1">
+              {listings.map((l) => {
+                const count = seasonCountByListing(l.id);
+                const active = l.id === listing.id;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => setSelectedId(l.id)}
+                    className={`flex shrink-0 items-center gap-2 rounded-pill border py-1.5 pl-1.5 pr-3 text-[13px] font-medium transition-all ${
+                      active
+                        ? "border-brand-primary text-brand-ink shadow-[0_0_0_1px_#10B981]"
+                        : "border-brand-line text-brand-mute hover:bg-brand-light"
+                    }`}
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[10px] font-bold text-white">
+                      {l.name.slice(0, 2).toUpperCase()}
+                    </span>
+                    {l.name}
+                    <span className="font-mono text-[10px] text-brand-mute">
+                      {count} season{count === 1 ? "" : "s"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </section>
+      )}
 
       <Kpis listing={listing} rulesInYear={rulesInYear} year={year} />
 

@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BedDouble,
   Building2,
+  CalendarRange,
   Check,
   CreditCard,
   ExternalLink,
@@ -32,11 +33,16 @@ import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
 import { togglePublishAction } from "../properties/[id]/edit/actions";
 import type { PolicyCard } from "../policies/PolicyManager";
 import type { PolicyType } from "../policies/schemas";
+import type {
+  ListingGroup,
+  SeasonalRule,
+} from "../seasonal-pricing/SeasonalPricingManager";
 import { SetupPreview } from "./SetupPreview";
 import { StepBanking } from "./steps/StepBanking";
 import { StepBusiness } from "./steps/StepBusiness";
 import { StepListing } from "./steps/StepListing";
 import { StepRooms } from "./steps/StepRooms";
+import { StepSeasonal } from "./steps/StepSeasonal";
 import { StepPolicies } from "./steps/StepPolicies";
 import { StepProfile } from "./steps/StepProfile";
 import type {
@@ -106,8 +112,17 @@ const SECTIONS: SectionMeta[] = [
     help: "Set up the rooms guests can book and their nightly pricing.",
   },
   {
-    key: "policies",
+    key: "seasonal",
     n: 6,
+    label: "Seasonal pricing",
+    rail: "Seasons",
+    required: false,
+    icon: CalendarRange,
+    help: "Optional — charge more in peak season and less when it's quiet. Applied automatically when guests book those dates.",
+  },
+  {
+    key: "policies",
+    n: 7,
     label: "Policies & house rules",
     rail: "Policies",
     required: true,
@@ -116,7 +131,7 @@ const SECTIONS: SectionMeta[] = [
   },
   {
     key: "review",
-    n: 7,
+    n: 8,
     label: "Preview & publish",
     rail: "Publish",
     required: false,
@@ -141,6 +156,8 @@ type Props = {
   amenities: { id: string; key: string; roomId: string | null }[];
   policies: PolicyCard[];
   policyAssignments: Partial<Record<PolicyType, string | null>>;
+  seasonalListing: ListingGroup;
+  seasonalRules: SeasonalRule[];
 };
 
 export function SetupWizard(props: Props) {
@@ -183,6 +200,7 @@ export function SetupWizard(props: Props) {
         roomCount: rooms.filter((r) => r.is_active).length,
         hasCancellationPolicy: policyAssignments.cancellation != null,
         hasHouseRules: policyAssignments.house_rules != null,
+        hasSeasonalRules: props.seasonalRules.length > 0,
       }),
     [
       host,
@@ -192,6 +210,7 @@ export function SetupWizard(props: Props) {
       photos,
       rooms,
       policyAssignments,
+      props.seasonalRules,
     ],
   );
 
@@ -442,6 +461,13 @@ export function SetupWizard(props: Props) {
                     listingId={listing.id}
                     rooms={rooms}
                     onChanged={() => refreshWith("Saving your room…")}
+                    onContinue={next}
+                  />
+                ) : null}
+                {cur.key === "seasonal" ? (
+                  <StepSeasonal
+                    listing={props.seasonalListing}
+                    rules={props.seasonalRules}
                     onContinue={next}
                   />
                 ) : null}
