@@ -13,36 +13,36 @@ import { requireHost as getMyHostId } from "@/lib/host/current";
 import { hostPostToWieloThread } from "@/lib/inbox/platform-thread";
 import { notifyAdmins } from "@/lib/admin/notify";
 import { getPlan } from "@/lib/plans/getPlans";
+import { pickCurrentMembershipIndex } from "@/lib/subscriptions/currentMembership";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 const CYCLE_VALUES = ["monthly", "annual"] as const;
 
 // A host may now hold 1 membership + N services. Every self-serve plan control
-// (switch / pause / cancel) acts on the MEMBERSHIP row — resolve its id first so
-// we never `.maybeSingle()` across several subscriptions. Falls back to the sole
-// (or first) sub for legacy single-sub accounts.
+// (switch / pause / cancel) acts on the CURRENT membership row — the live
+// (active/trialing) one, preferring it over an older cancelled membership so a
+// cancel/switch never lands on a stale row. Falls back to the most recent
+// membership, then the first sub for legacy single-sub accounts.
 async function membershipSubId(
   supabase: ReturnType<typeof createServerClient>,
   hostId: string,
 ): Promise<string | null> {
   const { data: rows } = await supabase
     .from("subscriptions")
-    .select("id, product_id")
-    .eq("host_id", hostId);
+    .select("id, status, created_at, product:products ( product_type )")
+    .eq("host_id", hostId)
+    .order("created_at", { ascending: true });
   if (!rows || rows.length === 0) return null;
-  const pids = rows.map((r) => r.product_id).filter((x): x is string => !!x);
-  if (pids.length) {
-    const { data: mems } = await supabase
-      .from("products")
-      .select("id")
-      .in("id", pids)
-      .eq("product_type", "membership");
-    const memIds = new Set((mems ?? []).map((m) => m.id));
-    const found = rows.find((r) => r.product_id && memIds.has(r.product_id));
-    if (found) return found.id;
-  }
-  return rows[0].id;
+  const idx = pickCurrentMembershipIndex(rows, (r) => {
+    const p = Array.isArray(r.product) ? r.product[0] : r.product;
+    return {
+      status: r.status,
+      productType: p?.product_type ?? null,
+      createdAt: r.created_at,
+    };
+  });
+  return idx >= 0 ? rows[idx].id : rows[0].id;
 }
 
 // Plan key is validated against the DB catalog (custom plans allowed), not a

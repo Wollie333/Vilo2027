@@ -67,6 +67,7 @@ export function PopularRooms({ data }: PopularRoomsProps) {
 
             {/* Thumbnail */}
             {room.cover_image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- remote room cover (Supabase storage); not a configured next/image host
               <img
                 src={room.cover_image_url}
                 alt={room.listing_name}

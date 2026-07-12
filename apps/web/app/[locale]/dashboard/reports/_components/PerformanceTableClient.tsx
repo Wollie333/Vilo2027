@@ -189,6 +189,7 @@ export function PerformanceTableClient({
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     {property.cover_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- remote listing cover (Supabase storage); not a configured next/image host
                       <img
                         src={property.cover_image_url}
                         alt={property.listing_name}

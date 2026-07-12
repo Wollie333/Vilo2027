@@ -11,6 +11,7 @@ import { Link } from "@/i18n/navigation";
 
 import { getPlans } from "@/lib/plans/getPlans";
 import { getSubscriptionProducts } from "@/lib/products/getProducts";
+import { pickCurrentMembershipIndex } from "@/lib/subscriptions/currentMembership";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { CancelButton } from "./CancelButton";
@@ -101,7 +102,7 @@ export default async function SettingsSubscriptionPage() {
     supabase
       .from("subscriptions")
       .select(
-        "id, plan, product_id, billing_cycle, status, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason, product:products ( product_type )",
+        "id, plan, product_id, billing_cycle, status, created_at, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason, product:products ( product_type )",
       )
       .eq("host_id", host.id)
       .order("created_at", { ascending: true }),
@@ -141,6 +142,7 @@ export default async function SettingsSubscriptionPage() {
     product_id: string | null;
     billing_cycle: "monthly" | "annual" | null;
     status: string;
+    created_at: string | null;
     trial_ends_at: string | null;
     current_period_start: string | null;
     current_period_end: string | null;
@@ -157,9 +159,16 @@ export default async function SettingsSubscriptionPage() {
     const p = Array.isArray(r.product) ? r.product[0] : r.product;
     return p?.product_type ?? null;
   };
-  // The MEMBERSHIP row is the one this page manages (fall back to the first sub).
+  // The MEMBERSHIP row this page manages — the host's CURRENT (live) membership,
+  // preferring an active/trialing one over an older cancelled row; falls back to
+  // the most recent membership, then any sub.
+  const memIdx = pickCurrentMembershipIndex(subRows, (r) => ({
+    status: r.status,
+    productType: pt(r),
+    createdAt: r.created_at,
+  }));
   const sub: SubRow | null =
-    subRows.find((r) => pt(r) === "membership") ?? subRows[0] ?? null;
+    memIdx >= 0 ? subRows[memIdx] : (subRows[0] ?? null);
 
   const currentPlan: PlanKey = sub?.plan ?? "free";
   const currentCycle: "monthly" | "annual" | null = sub?.billing_cycle ?? null;

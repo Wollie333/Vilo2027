@@ -119,6 +119,7 @@ export function RequestCard({ post }: RequestCardProps) {
         {/* Guest info */}
         <div className="mb-2 flex items-center gap-2">
           {post.guest_avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element -- remote guest avatar (Supabase storage); not a configured next/image host
             <img
               src={post.guest_avatar}
               alt=""

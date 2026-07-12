@@ -2,6 +2,10 @@ import { BadgeCheck, ExternalLink, Mail, ShieldCheck } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
 import { getPlan } from "@/lib/plans/getPlans";
+import {
+  isLiveMembershipStatus,
+  pickCurrentMembershipIndex,
+} from "@/lib/subscriptions/currentMembership";
 import { createServerClient } from "@/lib/supabase/server";
 
 // White profile header + stat band shown above every Settings tab (matches the
@@ -16,6 +20,8 @@ type SubProduct = { name: string | null; product_type: string | null };
 type SubRow = {
   plan: string | null;
   product_id: string | null;
+  status: string | null;
+  created_at: string | null;
   // PostgREST returns an embedded row as an object (or an array on some joins).
   product: SubProduct | SubProduct[] | null;
 };
@@ -51,7 +57,9 @@ export async function SettingsProfileHeader() {
           // NEVER .maybeSingle() here: it errors on >1 row and the card would
           // silently fall back to "Free" while the Subscription tab shows Beta.
           .from("subscriptions")
-          .select("plan, product_id, product:products ( name, product_type )")
+          .select(
+            "plan, product_id, status, created_at, product:products ( name, product_type )",
+          )
           .eq("host_id", host.id)
           .order("created_at", { ascending: true })
       : Promise.resolve({ data: [] as SubRow[] }),
@@ -64,25 +72,32 @@ export async function SettingsProfileHeader() {
       : Promise.resolve({ count: 0 }),
   ]);
 
-  // Mirror the Subscription tab's selection: the MEMBERSHIP row is the plan
-  // this card reflects; fall back to the first sub. Show the product name the
-  // host actually bought (e.g. "Beta"), then the plan tier's name, then Free.
+  // Mirror the Subscription tab's selection: reflect the host's CURRENT
+  // (live) membership — NOT just the first membership row, which can be an old
+  // cancelled one. Show the product name the host actually bought (e.g. "Beta"),
+  // then the plan tier's name. If no membership is live, the host is on Free.
   const rows = (subRows as SubRow[] | null) ?? [];
   const productOf = (r: SubRow) =>
     Array.isArray(r.product) ? (r.product[0] ?? null) : r.product;
-  const membershipSub =
-    rows.find((r) => productOf(r)?.product_type === "membership") ??
-    rows[0] ??
-    null;
+  const memIdx = pickCurrentMembershipIndex(rows, (r) => ({
+    status: r.status,
+    productType: productOf(r)?.product_type ?? null,
+    createdAt: r.created_at,
+  }));
+  const membershipSub = memIdx >= 0 ? rows[memIdx] : null;
+  const membershipLive = membershipSub
+    ? isLiveMembershipStatus(membershipSub.status)
+    : false;
   const membershipProduct = membershipSub ? productOf(membershipSub) : null;
 
   const name = host?.display_name || profile?.full_name || "Your account";
   const email = profile?.email || user.email || "";
   const avatarUrl = profile?.avatar_url || host?.avatar_url || "";
-  const planName =
-    membershipProduct?.name ??
-    (await getPlan(membershipSub?.plan ?? "free"))?.name ??
-    "Free";
+  const planName = membershipLive
+    ? (membershipProduct?.name ??
+      (await getPlan(membershipSub?.plan ?? "free"))?.name ??
+      "Free")
+    : "Free";
   const memberSince = host?.created_at
     ? new Date(host.created_at).getFullYear()
     : new Date(user.created_at).getFullYear();
