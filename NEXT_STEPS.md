@@ -199,8 +199,13 @@ in web + PDF, running balance reconciles with the ledgers. Original spec kept be
   "Refunded to you − R{n}" (was paid-in-full vs due only), matching the host. Verified live on BK-0027.
 
 **⏳ REMAINING (Phase 2/3):**
-- **G5 (P2)** — refund base = amount actually **paid**, not `total_amount`; fix `total_paid` label for
-  deposit-only/partial bookings.
+- **G5 ✅ DONE + verified live 2026-07-12 (#76).** `calculate_policy_refund_amount` (migration
+  `20260712200000`) now bases the refund on **net captured (Σ amount − refunded_amount)** over inbound
+  completed/partially_refunded/refunded payments — the policy % applies to what the guest actually PAID,
+  never the booking total. Fixes over-refunds on deposit-only/partial bookings (BK-0038: total R27 400 but
+  paid R5 000 → 50% policy now = **R2 500**, was a phantom **R13 700**) and the mislabelled `total_paid`
+  (now the real net paid). Verified via RPC + the host cancel dialog ("guest will be refunded R2 830, 100%"
+  on BK-0027, net paid R2 830 not total R4 830). Propagates through `cancel.ts` → `refund_requests`.
 - **G7 (P2)** — add-on refundability decision (flag refundable/non-refundable; exclude or per-line).
 - **G8/G9 (P3)** — freeze the accepted platform-T&C **text** (not just the version stamp); split the one
   combined checkout acceptance into distinct host-legal vs Wielo-terms acknowledgements.

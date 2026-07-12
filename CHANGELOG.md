@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-12 #76 — Fix (G5): cancellation refund is % of amount PAID, not the booking total. Driven live.
+
+`calculate_policy_refund_amount` computed the entitlement as `total_amount × refund_percent`, so any booking
+not paid in full was over-refunded — a deposit-only booking (paid R5 000 of R27 400) with a 50% policy
+returned R13 700, far more than the host ever captured.
+
+- **Migration `20260712200000`:** the refund base is now the **net captured amount** — `Σ(amount −
+  refunded_amount)` over the booking's inbound, non-voided payments in status
+  `completed/partially_refunded/refunded` (the same net-paid definition as #74 / `sumPaidFromRows`). The
+  policy % applies to that. Also fixes the returned `total_paid` field, which had reported the booking total.
+- Propagates automatically: `lib/bookings/cancel.ts` → the auto-created `refund_requests.requested_amount`
+  and the cancel-dialog preview both read this RPC.
+- Verified live: RPC on BK-0038 (paid R5 000 / total R27 400, 50%) → **R2 500** with `total_paid: 5000`
+  (was R13 700); BK-0027 (net paid R2 830, 100%) → R2 830. The host cancel dialog rendered "The guest will
+  be refunded R2 830 (100% under the cancellation policy)" — net paid, not the R4 830 total. No booking was
+  actually cancelled (preview only).
+
 ## 2026-07-12 #75 — Guest booking: live receipt + payments ledger, correct balance (host↔guest two-way). Driven live.
 
 Founder ask: the guest's booking view must show the line items, correct balances, and a receipt card wired
