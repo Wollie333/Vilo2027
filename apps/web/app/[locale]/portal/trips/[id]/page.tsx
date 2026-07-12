@@ -1407,25 +1407,19 @@ export default async function PortalTripDetailPage({
                       key={a.id}
                       className="flex items-center justify-between gap-3"
                     >
-                      <span className="flex flex-wrap items-center gap-1.5 text-brand-mute">
-                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand-secondary" />
-                        <span className="text-brand-ink">
+                      <span className="flex flex-wrap items-center gap-1.5 text-brand-ink">
+                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-brand-mute" />
+                        <span>
                           {a.label}
                           {a.quantity > 1 ? ` × ${a.quantity}` : ""}
                         </span>
-                        {a.source === "guest_added" ? (
-                          <span className="rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-secondary">
-                            You added
-                          </span>
-                        ) : a.is_required ? (
-                          <span className="rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
-                            Included
-                          </span>
-                        ) : (
-                          <span className="rounded-pill bg-brand-accent px-1.5 py-px text-[10px] font-semibold text-brand-primary">
-                            Add-on
-                          </span>
-                        )}
+                        <span className="inline-flex items-center rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
+                          {a.source === "guest_added"
+                            ? "You added"
+                            : a.is_required
+                              ? "Included"
+                              : "Add-on"}
+                        </span>
                       </span>
                       <span className="num font-medium text-brand-ink">
                         {sub > 0 ? formatMoney(sub, a.currency) : "Included"}
@@ -1434,19 +1428,27 @@ export default async function PortalTripDetailPage({
                   );
                 })}
                 {discount > 0 ? (
-                  <li className="flex items-center justify-between text-brand-primary">
-                    <span>Discount</span>
+                  <li className="flex items-center justify-between text-brand-ink">
+                    <span className="flex items-center gap-1.5">
+                      Discount
+                      <span className="inline-flex items-center rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
+                        Discount
+                      </span>
+                    </span>
                     <span className="num">
                       – {formatMoney(discount, currency)}
                     </span>
                   </li>
                 ) : null}
                 {couponDiscount > 0 ? (
-                  <li className="flex items-center justify-between text-brand-primary">
-                    <span className="flex items-center gap-1.5">
+                  <li className="flex items-center justify-between text-brand-ink">
+                    <span className="flex flex-wrap items-center gap-1.5">
                       Coupon
+                      <span className="inline-flex items-center rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
+                        Coupon
+                      </span>
                       {couponCode ? (
-                        <span className="rounded-pill bg-brand-primary/10 px-2 py-px font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-primary">
+                        <span className="rounded-pill bg-brand-light px-2 py-px font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-ink">
                           {couponCode}
                         </span>
                       ) : null}
@@ -1456,8 +1458,13 @@ export default async function PortalTripDetailPage({
                     </span>
                   </li>
                 ) : null}
-                <li className="flex items-center justify-between text-brand-primary">
-                  <span>{brandName} booking fee</span>
+                <li className="flex items-center justify-between text-brand-ink">
+                  <span className="flex items-center gap-1.5">
+                    {brandName} booking fee
+                    <span className="inline-flex items-center rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
+                      Free
+                    </span>
+                  </span>
                   <span className="num">{formatMoney(0, currency)}</span>
                 </li>
                 <li className="flex items-center justify-between border-t border-brand-line pt-3">
@@ -1486,8 +1493,13 @@ export default async function PortalTripDetailPage({
                   </li>
                 ) : null}
                 {refundedTotal > 0 ? (
-                  <li className="flex items-center justify-between text-status-cancelled">
-                    <span className="font-semibold">Refunded to you</span>
+                  <li className="flex items-center justify-between text-brand-ink">
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      Refunded to you
+                      <span className="inline-flex items-center rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
+                        Refund
+                      </span>
+                    </span>
                     <span className="num font-display text-[15px] font-bold">
                       – {formatMoney(refundedTotal, currency)}
                     </span>
@@ -1495,9 +1507,12 @@ export default async function PortalTripDetailPage({
                 ) : null}
                 {isForfeited ? (
                   <li className="flex flex-col gap-1 border-t border-brand-line pt-3">
-                    <div className="flex items-center justify-between text-status-cancelled">
-                      <span className="font-semibold">
+                    <div className="flex items-center justify-between text-brand-ink">
+                      <span className="flex items-center gap-1.5 font-semibold">
                         Forfeited — no refund
+                        <span className="inline-flex items-center rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
+                          Forfeited
+                        </span>
                       </span>
                       <span className="num font-display text-[15px] font-bold">
                         {formatMoney(
@@ -1529,7 +1544,7 @@ export default async function PortalTripDetailPage({
                   </li>
                 ) : null}
                 {balanceDue > 0 && !isForfeited ? (
-                  <li className="flex items-center justify-between text-amber-700">
+                  <li className="flex items-center justify-between text-status-cancelled">
                     <span className="font-semibold">Balance due</span>
                     <span className="num font-display text-[15px] font-bold">
                       {formatMoney(balanceDue, currency)}
