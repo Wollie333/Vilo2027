@@ -6,6 +6,7 @@ import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { type QuoteBanking, type QuoteBusiness } from "@/lib/pdf/QuoteDocument";
 import { hostLogoDataUri } from "@/lib/pdf/logo";
 import { renderQuotePdf } from "@/lib/pdf/render";
+import { effectiveVatRate, vatOf } from "@/lib/pricing/vat";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +68,7 @@ export async function GET(
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       discount_amount, discount_reason, notes, host_id,
-      listing:properties ( name, business_id ),
+      listing:properties ( name, business_id, vat_number, vat_rate ),
       host:hosts ( id, display_name, handle, user_id )
     `,
     )
@@ -84,6 +85,10 @@ export async function GET(
     : (quote.listing as { name?: string; business_id?: string | null } | null);
   const businessId =
     (listingObj as { business_id?: string | null } | null)?.business_id ?? null;
+  const quoteVatRate = effectiveVatRate(
+    (listingObj as { vat_number?: string | null; vat_rate?: number } | null) ??
+      {},
+  );
   const hostObj = Array.isArray(quote.host)
     ? quote.host[0]
     : (quote.host as {
@@ -240,6 +245,10 @@ export async function GET(
     subtotal:
       quote.base_amount + quote.cleaning_fee + (quote.addons_total ?? 0),
     total: quote.total_amount,
+    // VAT the booking will add on accept — shown here so the quote reconciles
+    // with what the guest is charged (0 for non-VAT listings).
+    vatRate: quoteVatRate,
+    vatAmount: vatOf(Number(quote.total_amount), quoteVatRate),
     currency: quote.currency,
     notes: quote.notes,
     logoUrl: quote.host_id

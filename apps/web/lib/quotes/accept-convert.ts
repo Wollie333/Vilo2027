@@ -110,7 +110,7 @@ export async function acceptAndConvertQuote(
       special_requests: quote.notes,
       status: "pending",
     })
-    .select("id")
+    .select("id, deposit_amount")
     .single();
   if (bookErr || !booking) {
     return { ok: false, error: "Could not create the booking." };
@@ -147,8 +147,12 @@ export async function acceptAndConvertQuote(
 
   // Seed the first ledger entry — the deposit the host will collect to secure the
   // booking. Pending until the host records it as received (manual EFT) or a card
-  // payment lands. 'reserve' quotes (deposit 0) seed nothing.
-  const depositAmount = Number(quote.deposit_amount ?? 0);
+  // payment lands. 'reserve' quotes (deposit 0) seed nothing. Use the DB
+  // deposit_amount (grossed by the VAT trigger) so a VAT-registered listing's
+  // deposit installment is VAT-inclusive — matching the total the guest pays.
+  const depositAmount = Number(
+    booking.deposit_amount ?? quote.deposit_amount ?? 0,
+  );
   if (depositAmount > 0) {
     await admin.from("payments").insert({
       booking_id: booking.id,

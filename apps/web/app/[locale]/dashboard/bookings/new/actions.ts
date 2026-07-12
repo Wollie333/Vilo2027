@@ -225,11 +225,15 @@ export async function createManualBookingAction(
       confirmed_at:
         bookingStatus === "confirmed" ? new Date().toISOString() : null,
     })
-    .select("id")
+    .select("id, total_amount")
     .single();
   if (bookErr || !booking) {
     return { ok: false, error: "Could not create the booking." };
   }
+  // The BEFORE INSERT VAT trigger (apply_booking_vat) grosses total_amount up on
+  // a VAT-registered listing, so the pre-insert `total` is ex-VAT. Charge/record
+  // against the DB (post-VAT) value so a "paid" booking settles in full.
+  const dbTotal = Math.round(Number(booking.total_amount) * 100) / 100;
 
   if (data.scope === "rooms" && data.rooms.length > 0) {
     await supabase.from("booking_rooms").insert(
@@ -312,10 +316,10 @@ export async function createManualBookingAction(
   // Finances ledger has the cash entry that offsets the (paid) invoice the
   // confirm trigger just issued. Without this the guest reads as owing the
   // full total. Best-effort: the booking already exists if this hiccups.
-  if (data.payment_state === "paid" && total > 0) {
+  if (data.payment_state === "paid" && dbTotal > 0) {
     await recordBookingPayment(createAdminClient(), {
       bookingId: booking.id,
-      amount: total,
+      amount: dbTotal,
       kind: "payment",
       method: "eft",
       note: data.payment_note || null,

@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-12 #58 — VAT "added at the end" reaches EVERY money column (deposit + balance), settlement/invoice parity, VAT-inclusive quotes.
+
+Deep-financial-sweep slice (`NEXT_STEPS.md` §1): make VAT consistent across every money
+column and every settlement path, and show the guest a VAT-inclusive price before they commit.
+
+- **VAT now grosses `deposit_amount` + `balance_due`, not just `total_amount`.** Migration
+  `20260712130000` rewrites `apply_booking_vat()` to gross all three columns by the same rate
+  (idempotency + zero guards intact). Before, a deposit-first booking on a VAT-registered listing
+  showed the guest an **ex-VAT** balance due and a deposit installment 15% light until a later
+  recompute healed it. **Verified live** on the test listing (15%): ex-VAT `1000/300/700` →
+  `total 1150 / vat 150 / deposit 345 / balance 805` (345+805=1150, reconciles).
+- **Public quote page + PDF show VAT-inclusive totals.** A quote stores the ex-VAT total (VAT is
+  added on convert), so the guest-facing quote (`q/[id]/[token]/page.tsx`) and its PDF
+  (`QuoteDocument.tsx` + `pdf/route.ts`) now render `Subtotal` + `VAT (15%)` + `Total (incl. VAT)`
+  via `lib/pricing/vat.ts`, so what the guest agrees to == what they're charged. Non-VAT listings
+  unchanged. **Verified live** — HTML page **and** generated PDF both showed R1,000 / R150 / R1,150.
+- **Quote→booking + manual-booking record against the DB (post-VAT) values.** `accept-convert.ts`
+  seeds the deposit ledger entry from the grossed `deposit_amount`; the manual-booking action
+  records a paid EFT against the grossed `total_amount` — so a "paid" booking settles in full.
+- **Settlement/invoice parity across all four channels.** Card-return + PayPal
+  (`pay-booking.ts`) now call `markBookingInvoicesPaidIfSettled`; the **paystack-webhook** updates
+  money state for **every** settlement — incl. a balance payment landing on an already-confirmed
+  booking (was gated on `status='pending'`, leaving it stuck `partial` with a stale balance) —
+  guards terminal states, and flips the booking invoice `issued → paid` when fully settled. The
+  pending→confirmed flip keeps its guard, so confirmation emails don't re-fire. ⚠️ webhook change
+  is logic-verified only (no live Paystack event driven) — **redeploy `paystack-webhook`** before
+  relying on it (NEXT_STEPS ops config).
+- **Principle #12:** money mechanics recorded in `docs/lifecycles/payments-ledger.md` (index row 🟡;
+  refunds/credit-notes still TBD). Build + lint green (only pre-existing `<img>` warnings, unrelated).
+
 ## 2026-07-12 #57 — Configurable access-details send time + guest check-in reminder + Principle #12 + save point.
 
 - **Host-configurable access-details send time.** New per-property `property_access.send_lead_minutes`

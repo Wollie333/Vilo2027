@@ -29,7 +29,7 @@ Steps documented but **not yet verified live** are marked `⚠️ not verified`.
 | Feature | Doc | Status |
 |---|---|---|
 | Booking (create → pay → confirm → stay → checkout → review) | `booking.md` | ⬜ to be written |
-| Payments & ledger (charges, receipts, invoices, credit notes, refunds) | `payments-ledger.md` | ⬜ to be written |
+| Payments & ledger (charges, receipts, invoices, credit notes, refunds) | `payments-ledger.md` | 🟡 VAT + settlement/invoice paths done; refunds/credit-notes TBD |
 | Reviews (post-checkout request → submit → reply → feature) | `reviews.md` | ⬜ to be written |
 | Access details (card + email + trip-page unlock) | `access-details.md` | ⬜ to be written |
 | Quotes (build → send → accept → convert to booking) | `quotes.md` | ⬜ to be written |

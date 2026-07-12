@@ -14,6 +14,7 @@ import {
   getHostPaystackForBusiness,
 } from "@/lib/payments/host-paystack";
 import {
+  markBookingInvoicesPaidIfSettled,
   recomputeBookingPaymentState,
   sumCompletedPaid,
 } from "@/lib/payments/ledger";
@@ -314,6 +315,11 @@ export async function confirmHostCardPaymentByReference(opts: {
 
   // Ledger owns balance_due + payment_status.
   await recomputeBookingPaymentState(admin, opts.bookingId);
+  // Flip the booking invoice(s) issued → paid once fully settled. Parity with
+  // the manual-EFT path: a deposit-first booking whose balance lands here leaves
+  // an 'issued' invoice otherwise (the confirm trigger only marks it paid when it
+  // was paid in full up front).
+  await markBookingInvoicesPaidIfSettled(admin, opts.bookingId);
 
   // Confirm the booking (pending → confirmed) so the invoice + date-blocking
   // triggers run. The invoice is created already-paid because payment_status is
@@ -394,6 +400,11 @@ export async function capturePayPalOrderForBooking(opts: {
 
   // Ledger owns balance_due + payment_status.
   await recomputeBookingPaymentState(admin, opts.bookingId);
+  // Flip the booking invoice(s) issued → paid once fully settled. Parity with
+  // the manual-EFT path: a deposit-first booking whose balance lands here leaves
+  // an 'issued' invoice otherwise (the confirm trigger only marks it paid when it
+  // was paid in full up front).
+  await markBookingInvoicesPaidIfSettled(admin, opts.bookingId);
 
   // Confirm the booking (pending → confirmed) so the invoice + date-blocking
   // triggers run. Same reasoning as the Paystack path: surface a confirm error

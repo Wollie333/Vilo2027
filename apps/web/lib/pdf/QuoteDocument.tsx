@@ -55,7 +55,12 @@ export type QuoteProps = {
   };
   lines: QuoteLineItem[];
   subtotal: number;
+  /** Ex-VAT total (post-discount). The grand total shown is this + vatAmount. */
   total: number;
+  /** VAT rate applied when this quote converts to a booking (0 = not registered). */
+  vatRate?: number;
+  /** VAT added on top of the ex-VAT total (0 unless VAT-registered). */
+  vatAmount?: number;
   currency: string;
   notes?: string | null;
   /** Host logo (data URI or public URL) for the branded header. */
@@ -210,10 +215,25 @@ export function QuoteDocument({ quote }: { quote: QuoteProps }) {
               {formatMoney(quote.subtotal, quote.currency)}
             </Text>
           </View>
+          {quote.vatRate && quote.vatRate > 0 ? (
+            <View style={styles.totalsRow}>
+              <Text style={styles.totalsLabel}>VAT ({quote.vatRate}%)</Text>
+              <Text style={styles.totalsValue}>
+                {formatMoney(quote.vatAmount ?? 0, quote.currency)}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>Total</Text>
+            <Text style={styles.grandTotalLabel}>
+              {quote.vatRate && quote.vatRate > 0
+                ? "Total (incl. VAT)"
+                : "Total"}
+            </Text>
             <Text style={styles.grandTotalValue}>
-              {formatMoney(quote.total, quote.currency)}
+              {formatMoney(
+                quote.total + (quote.vatAmount ?? 0),
+                quote.currency,
+              )}
             </Text>
           </View>
         </View>

@@ -10,6 +10,7 @@ import {
 import { getBrandName } from "@/lib/brand";
 import { getHostParty } from "@/lib/finance/doc-party";
 import { formatMoney } from "@/lib/format";
+import { effectiveVatRate, grossVat, vatOf } from "@/lib/pricing/vat";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { QuoteResponseActions } from "./QuoteResponseActions";
@@ -68,7 +69,7 @@ export default async function PublicQuotePage({
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until,
-      listing:properties ( name, business_id )
+      listing:properties ( name, business_id, vat_number, vat_rate )
     `,
     )
     .eq("id", params.id)
@@ -96,6 +97,20 @@ export default async function PublicQuotePage({
   const quoteBusinessId =
     (quoteListing as { business_id?: string | null } | null)?.business_id ??
     null;
+
+  // VAT is added "at the end" when this quote converts to a booking (the
+  // apply_booking_vat trigger grosses the ex-VAT total up). Show the same
+  // VAT-inclusive total + VAT line here so what the guest agrees to == what they
+  // are charged. Non-VAT listings (rate 0) render exactly as before.
+  const vatRate = effectiveVatRate(
+    (quoteListing as {
+      vat_number?: string | null;
+      vat_rate?: number;
+    } | null) ?? {},
+  );
+  const exVatTotal = Number(quote.total_amount);
+  const vatAmount = vatOf(exVatTotal, vatRate);
+  const grossTotal = grossVat(exVatTotal, vatRate);
 
   const party = await getHostParty(
     supabase,
@@ -187,10 +202,20 @@ export default async function PublicQuotePage({
       }}
       lineHeaders={{ desc: "Description", amount: "Amount" }}
       lines={lineRows}
-      totals={[]}
+      totals={
+        vatRate > 0
+          ? [
+              { label: "Subtotal", value: formatMoney(exVatTotal, c) },
+              {
+                label: `VAT (${vatRate}%)`,
+                value: formatMoney(vatAmount, c),
+              },
+            ]
+          : []
+      }
       grandTotal={{
-        label: "Total",
-        value: formatMoney(quote.total_amount, c),
+        label: vatRate > 0 ? "Total (incl. VAT)" : "Total",
+        value: formatMoney(vatRate > 0 ? grossTotal : exVatTotal, c),
       }}
       banking={expired || decided ? null : party.banking}
       pdfHref={`/q/${quote.id}/${quote.accept_token}/pdf`}

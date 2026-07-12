@@ -226,7 +226,7 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
     const [{ data: bk }, { data: paidRows }] = await Promise.all([
       supabase
         .from("bookings")
-        .select("total_amount")
+        .select("total_amount, payment_status")
         .eq("id", payment.booking_id)
         .maybeSingle(),
       supabase
@@ -246,22 +246,55 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
         0,
       );
     const balanceDue = Math.max(0, Math.round((total - paid) * 100) / 100);
+    const fullyPaid = paid + 0.001 >= total;
 
-    // trigger_booking_confirmed in 20260501000013_create_triggers.sql
-    // inserts blocked_dates rows automatically when status flips to
-    // confirmed. No duplication here per AGENT_RULES.md §4.2.
+    // 1. Update the booking's money state for EVERY settlement — including a
+    //    balance payment that lands on an ALREADY-confirmed booking (the guest
+    //    didn't return to the pay page). Gating this on status='pending' left
+    //    such a booking showing 'partial' with a stale balance. Never clobber a
+    //    terminal money state (refunded/voided/failed) the refund flow set —
+    //    mirrors recomputeBookingPaymentState in lib/payments/ledger.ts.
+    const TERMINAL = new Set([
+      "refunded",
+      "partially_refunded",
+      "voided",
+      "failed",
+    ]);
+    const moneyPatch: Record<string, unknown> = { balance_due: balanceDue };
+    if (!TERMINAL.has(String(bk?.payment_status))) {
+      moneyPatch.payment_status = fullyPaid ? "completed" : "partial";
+    }
+    await supabase
+      .from("bookings")
+      .update(moneyPatch)
+      .eq("id", payment.booking_id);
+
+    // 2. First-time confirmation (calendar block + invoice mint + emails).
+    //    trigger_booking_confirmed in 20260501000013_create_triggers.sql
+    //    inserts blocked_dates rows automatically when status flips to
+    //    confirmed. No duplication here per AGENT_RULES.md §4.2.
     const { data: confirmed } = await supabase
       .from("bookings")
       .update({
         status: "confirmed",
-        payment_status: paid + 0.001 >= total ? "completed" : "partial",
-        balance_due: balanceDue,
         confirmed_at: new Date().toISOString(),
       })
       .eq("id", payment.booking_id)
       .eq("status", "pending")
       .select("id, guest_id, host_id")
       .maybeSingle();
+
+    // 3. Flip the booking invoice(s) issued → paid once fully settled — parity
+    //    with the manual-EFT + card-return paths (markBookingInvoicesPaidIfSettled).
+    //    A deposit-first booking whose balance lands via this webhook would
+    //    otherwise leave an 'issued' invoice.
+    if (fullyPaid) {
+      await supabase
+        .from("invoices")
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("booking_id", payment.booking_id)
+        .eq("status", "issued");
+    }
 
     // Enqueue the confirmation emails — the drain cron renders + sends them
     // (booking_confirmed_guest / _host resolvers hydrate from booking_id).
