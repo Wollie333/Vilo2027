@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-12 #61 — Audit + plan: policy enforcement, add-ons & refunds (found a P0 policy-snapshot crash). SAVE POINT.
+
+Audited (two Explore agents + live RPC probes) how a booking freezes + enforces its policies, wires
+add-ons, and handles refunds — to plan the founder's "policy active when booked is the one enforced, host
+can't change it after" safety work. Wrote **`docs/features/POLICY_ENFORCEMENT_ADDONS_REFUNDS_PLAN.md`**
+and queued it as `NEXT_STEPS.md` §0. No app code changed this entry — planning + save point only.
+
+- **🔴 P0 bug found (production):** `snapshot_booking_policies` crashes on the live DB with
+  `function min(uuid) does not exist` — root cause `20260619000000_specials_booking_policy_override.sql:59`
+  (`min(room_id)`, which regressed the `20260610180006` count-then-select fix). Because the booking-create
+  call is best-effort/unchecked (`persist.ts:204`), bookings still succeed but **`policy_snapshots` is
+  EMPTY for every booking** (confirmed on real BK-0035), so `calculate_policy_refund_amount` returns
+  `no_policy_snapshot` → **0% refund / no guest protection**, despite checkout showing a policy.
+- **Audit — what's sound:** snapshot design (`policy_snapshots` INSERT-only, refund reads the frozen
+  snapshot not the live policy → correct immutability by design), Wielo terms/privacy version stamping,
+  add-on server re-pricing + price snapshotting + own invoices/ledger, host+guest cancel/refund UIs, REF
+  numbering, refund≠auto-credit-note. The P0 crash is what makes it all inert.
+- **Gaps catalogued (G1–G9 in the plan):** P0 crash · silent snapshot failure · no DB immutability
+  trigger on `policy_snapshots` (service-role bypasses RLS) · `bookings.payment_status` never set to
+  refunded/partially_refunded · refund base = total not amount-paid · no "Policies (as booked)" panel on
+  the booking · add-ons refunded as flat % (no non-refundable/per-line) · platform-T&C text not frozen ·
+  host-vs-Wielo checkout acceptance not split. Plus a folded-in item: Paystack sandbox host to prove the
+  card rail. Each has a phased fix + a both-ends refund UI test plan in the doc.
+
 ## 2026-07-12 #60 — Deposits & partial payments: clean reconciliation, per-payment receipts, guest deposit UX.
 
 Completed the host→confirm half of the booking loop live and hardened the **partial-payment / deposit /

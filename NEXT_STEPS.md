@@ -13,6 +13,31 @@ Driving gotchas are in memory `host-dashboard-sweep` (esp. `preview_resize` → 
 
 ---
 
+## 0. 🔴 CRITICAL — Policy enforcement, add-ons & refunds (booking safety). Plan ready.
+
+**Full grounded plan: `docs/features/POLICY_ENFORCEMENT_ADDONS_REFUNDS_PLAN.md`** (audited live 2026-07-12).
+
+**P0 bug found — fix first:** `snapshot_booking_policies` crashes on the live DB
+(`function min(uuid) does not exist`, root cause `20260619000000_specials_booking_policy_override.sql:59`
+`min(room_id)` — regressed the `20260610180006` fix). Result: **`policy_snapshots` is empty for EVERY
+booking** → `calculate_policy_refund_amount` returns `no_policy_snapshot` → **0% refund for everyone /
+zero guest protection**, even though checkout shows a policy. Fix = re-apply the count-then-select room
+derivation in the 3-arg fn + drop the buggy 2-arg overload + backfill.
+
+Then (phased in the plan): make the snapshot write non-silent (G2); add a DB immutability trigger on
+`policy_snapshots` (G3, service-role currently bypasses RLS); set `bookings.payment_status` on refund
+(G4); refund off amount-PAID not total (G5); a "Policies (as booked)" panel on host + guest booking
+views (G6); add-on refundability decision (G7); freeze platform-T&C text + split host-vs-Wielo checkout
+acceptance (G8/G9). Test the refund end-to-end on the UI from BOTH ends. **What already works:** snapshot
+design, add-on price-snapshotting, refund reads the snapshot, host+guest cancel/refund UI, REF numbers,
+refund≠credit-note — all sound; the P0 crash is what makes it all inert.
+
+**Also fold in (card-path proof):** provide **Paystack test/sandbox** keys + connect a test host so the
+card checkout, `/pay` deposit toggle, and `paystack-webhook` can be driven end-to-end (the current test
+host has no gateway, so the whole card rail is unexercised).
+
+---
+
 ## 1. Deep financial sweep (audit every calculation + ledger entry)
 
 The Finances tabs were verified to **render correctly and produce real PDF documents**, but the
