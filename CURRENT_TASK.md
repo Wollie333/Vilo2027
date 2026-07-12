@@ -2,6 +2,24 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-12 #67) — ONBOARDING WIZARD (Job A) + SEASONAL↔BOOKING (Job B) DONE + verified live.
+
+Both queued founder jobs (`NEXT_STEPS §A + §B`) are complete and driven live on the test host
+(`host@wielotest.com`). See memory [[project-onboarding-and-seasonal-pricing]] + `docs/lifecycles/onboarding.md`
++ `docs/lifecycles/pricing-seasonal.md`.
+
+**Job A — 6 wizard fixes shipped + verified:** (1) new optional Seasons step (wizard now 8 steps);
+(2) room pricing-model badge + model-aware price; (3) delete rooms (guard refuses active-booking rooms);
+(4) migration `20260712170000` — default booking_terms at host-create + all 4 policy types auto-assigned
+active-by-default; (5) real email-verified publish gate (directory + website); (6) `ListingPublishedHost`
+email on first publish (summary + link). **Job B:** seasonal already prices per-night via `priceStay` on
+every guest charge path — verified live (guest estimate "1 season-priced night"; BK-0037/BK-0036 froze
+2/3 seasonal nights server-side). `pnpm type-check` + `pnpm lint` + email render test all green.
+
+**▶ NEXT (fresh sessions, `NEXT_STEPS.md`):** §0 Policy Phase 2/3 (G5/G7/G8/G9 + card rail) · §1 Deep
+financial sweep · §2 Real booking lifecycle doc · §3 Reviews audit (checkout review delay 5→60 min) ·
+§4 backfill lifecycle docs.
+
 ## ▶▶▶ SAVE POINT (2026-07-12) — HOST DASHBOARD SWEEP COMPLETE · big work queued in `NEXT_STEPS.md`. Pushed @ `344b3956`.
 
 **What's done:** the host-dashboard functional sweep (all 35 tabs, Batches A–G) is complete and pushed;

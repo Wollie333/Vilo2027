@@ -13,7 +13,16 @@ Driving gotchas are in memory `host-dashboard-sweep` (esp. `preview_resize` → 
 
 ---
 
-## A. 🔴 Onboarding wizard — test end-to-end + make it work 100% (founder, 2026-07-12). NOT STARTED.
+## A. ✅ Onboarding wizard — DONE + verified live 2026-07-12 (session #67).
+
+All six founder fixes shipped and driven live (wizard canvas + resulting listing/DB): (1) new optional
+**Seasons** step; (2) room pricing-model badge + model-aware price; (3) delete rooms (with active-booking
+guard); (4) migration `20260712170000` seeds default booking_terms at host-create + auto-assigns all 4
+policy types active-by-default; (5) real email-verified publish gate on directory + website channels;
+(6) `ListingPublishedHost` email on first publish (summary + link). Flow recorded in
+`docs/lifecycles/onboarding.md`. Details below kept for reference.
+
+## A(orig). 🔴 Onboarding wizard — test end-to-end + make it work 100% (founder, 2026-07-12). NOT STARTED.
 
 **The flow to prove:** a user signs up + pays → is redirected to the **host dashboard** → (1) verifies
 their email (believed already working — confirm) → (2) completes the **onboarding wizard**. Drive it live
@@ -44,7 +53,16 @@ on a FRESH host (sign up + pay path, or seed a new host) noting every gap; (iii)
 live in BOTH the wizard AND the resulting listing/publish; (v) write `docs/lifecycles/onboarding.md`.
 Test host `host@wielotest.com` is already onboarded — use a NEW throwaway host to see the wizard fresh.
 
-## B. 🔴 Seasonal pricing ↔ booking system (must work seamlessly). NOT STARTED.
+## B. ✅ Seasonal pricing ↔ booking system — DONE + verified live 2026-07-12 (session #67).
+
+No code change needed — seasonal already prices per-night through the SSOT engine `priceStay` on every
+guest-facing charge path (checkout/createBooking, quotes, change-dates, both previews, site checkout).
+Verified live: a Klein Cottage stay 26 Jun–02 Jul showed "1 season-priced night" (rooms subtotal R5 850 =
+5×R1000 + 1×R850 winter −15%) + cleaning + VAT; real bookings BK-0037/BK-0036 froze 2/3 seasonal nights
+server-side. Manual host bookings + specials deliberately bypass seasonal (documented). Flow recorded in
+`docs/lifecycles/pricing-seasonal.md`. Original spec kept below.
+
+## B(orig). 🔴 Seasonal pricing ↔ booking system (must work seamlessly). NOT STARTED.
 
 Seasonal pricing must flow **through the whole booking system**, not just the rates UI: when a guest books
 dates that fall in a seasonal period, the **server-side price recalculation** (the SSOT that ignores

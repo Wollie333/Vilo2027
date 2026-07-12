@@ -11,6 +11,16 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     firstName: "Amara",
   },
 
+  listing_published_host: {
+    firstName: "Amara",
+    listingName: "Sunbird Cottage, Hermanus",
+    listingUrl: "https://wieloplatform.com/property/sunbird-cottage-hermanus",
+    displayUrl: "wieloplatform.com/property/sunbird-cottage-hermanus",
+    fromPrice: "R 1 600",
+    location: "Hermanus, Western Cape",
+    roomCount: 3,
+  },
+
   booking_request_host: {
     hostFirstName: "Amara",
     guestName: "Lerato N.",

@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-12 #67 — Onboarding wizard hardening (Job A) + seasonal↔booking verified (Job B). All driven live.
+
+Delivered the founder's two queued jobs (NEXT_STEPS §A + §B). All six wizard fixes and the seasonal price
+flow were verified live on the test host in both the wizard canvas and the resulting listing/DB.
+
+- **#1 Seasonal step** — the setup wizard is now 8 steps; a new optional **Seasons** step
+  (`setup/steps/StepSeasonal.tsx`) embeds the canonical `SeasonalPricingManager` (`embedded` prop hides its
+  page heading), scoped to the listing. Rules created here flow through the booking price engine.
+- **#2 Room pricing model** — room cards surface a pricing-model badge (per-room / per-person / base+extra)
+  and a model-aware price; the model was already wired into `occupancyNightly` in the price calc.
+- **#3 Delete rooms** — `StepRooms` now has a per-room delete (`deleteRoomAction` + destructive confirm);
+  correctly refuses a room with active bookings.
+- **#4 Default policies** — migration `20260712170000`: `seed_host_policies_on_create` now also seeds
+  `booking_terms`; new `ensure_listing_policy_assignments()` writes a listing-wide assignment for all FOUR
+  policy types (active by default). Wizard shows every picker on a selected default; `page.tsx` includes
+  booking_terms in `policyAssignments`.
+- **#5 Publish gate** — `togglePublishAction` + `setWebsiteChannelAction` now require a verified email
+  (`user_profiles.email_verified_at`) in addition to the plan/feature gate; the wizard reads the real
+  verification signal (was the always-true GoTrue flag).
+- **#6 Onboarding email** — new `ListingPublishedHost` Resend template + resolver + registry +
+  `notification_events` seed; `dispatchEvent("listing_published_host")` fires on the FIRST publish with a
+  listing summary (name, from-price, location, rooms) + the public link.
+- **Job B (seasonal ↔ booking)** — no code needed; seasonal already prices per-night via `priceStay` on
+  every guest-facing charge path. Verified: guest estimate showed "1 season-priced night" (R5 850 = 5×R1000
+  + 1×R850 winter −15%); real bookings BK-0037/BK-0036 froze 2/3 seasonal nights server-side.
+- **Docs:** new `docs/lifecycles/onboarding.md` + `docs/lifecycles/pricing-seasonal.md` (Principle #12).
+- Verified live (test host `host@wielotest.com`): wizard canvas for all steps; delete + guard; publish
+  blocked while unverified then succeeded + email enqueued/rendered; seasonal per-night on the book page.
+  `pnpm type-check` + `pnpm lint` green; email render test (31 templates) green.
+
 ## 2026-07-12 #66 — Guest ↔ Wielo Support thread (real). Guest inbox now has a pinned support line. Verified live.
 
 Built the guest-side Wielo Support thread the founder asked for. A guest can now message the Wielo team

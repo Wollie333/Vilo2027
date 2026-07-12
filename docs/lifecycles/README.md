@@ -28,6 +28,8 @@ Steps documented but **not yet verified live** are marked `⚠️ not verified`.
 
 | Feature | Doc | Status |
 |---|---|---|
+| Onboarding (signup → setup wizard → publish → welcome email) | `onboarding.md` | 🟢 wizard + publish gate + completion email driven live |
+| Seasonal pricing (rule → per-night booking price) | `pricing-seasonal.md` | 🟢 guest estimate + server-frozen breakdowns verified live |
 | Booking (create → pay → confirm → stay → checkout → review) | `booking.md` | 🟢 EFT path driven live end-to-end; card/PayPal branches noted |
 | Payments & ledger (charges, receipts, invoices, credit notes, refunds) | `payments-ledger.md` | 🟡 VAT + settlement/invoice paths done; refunds/credit-notes TBD |
 | Reviews (post-checkout request → submit → reply → feature) | `reviews.md` | ⬜ to be written |
