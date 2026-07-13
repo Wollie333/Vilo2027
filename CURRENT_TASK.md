@@ -2,7 +2,32 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-13 · `35f137c5`) — CREATE-BOOKING RESTYLED TO THE EDITOR PATTERN + AUTOSAVE. This layout is now the platform DEFAULT for data-creation.
+## ▶▶▶ SAVE POINT (2026-07-13 · `92dcd1a5`) — QUOTE FORM on the editor pattern (page/embedded variant) + AUTOSAVE. Rollout audit awaiting founder ticks.
+
+All pushed to `main`, `pnpm build` + `pnpm lint` green. Continuing the create-data default-layout rollout:
+
+**Quote form** (`QuoteForm.tsx`) got the pattern via a **page vs embedded layout variant** (the component is
+SHARED across new-quote, edit-quote, AND looking-for respond). `variant="page"` (new/edit pages) → full
+left-rail layout: identity bar (autosave indicator + total), 4-step rail (Confirm stay · Your price · Terms &
+reply · Review) w/ health ring + live sub-hints, one panel at a time, Back/Continue nav, and a **Review** step
+(readiness + summary rows w/ per-row quick-edit jumps + single Save-draft/Review&send). `variant="embedded"`
+(default; looking-for respond) keeps the original stacked layout + sticky bar UNCHANGED (sections extracted to
+one shared const — no duplication). **Autosave** wired (`entity_type:"quote"`, page contexts only): 30-field
+snapshot; `restoringRef` guards the auto-pricing effect so a restored hand-set price isn't re-priced.
+Pricing/save/send/preview logic untouched. Verified live: page layout renders, identity title + "Draft saved",
+autosave local+server (30 fields), rail gating, zero console errors. Embedded path preserved by construction
+(couldn't drive live — no open looking-for posts in test data).
+
+**▶ ROLLOUT AUDIT for founder approval:** `docs/features/CREATE_DATA_LAYOUT_ROLLOUT_AUDIT.md` lists every
+create/edit surface. Founder to tick which to convert next. Strong remaining candidates: **listing editor**
+(`properties/[id]/edit/Editor.tsx`) + **room editor** (`RoomEditor.tsx`); then re-skin the **onboarding
+wizard**; then the **modal-variant decision** for coupons/rooms/seasonal/banking/managers. Minimal entry
+points (new-listing 2-field, new-business) and website-editor forms don't fit / out of scope.
+
+**Also still queued:** autosave for rooms/coupons (modal editors) · add-on `vat_included` dead-flag · autosave
+TTL prune.
+
+## ▶▶▶ SAVE POINT (2026-07-13 · `35f137c5`) — CREATE-BOOKING RESTYLED TO THE EDITOR PATTERN + AUTOSAVE. (prev)
 
 All pushed to `main`, verified live, `pnpm build` (874pp) + `pnpm lint` green.
 

@@ -17,11 +17,11 @@ which get the pattern. **Tick the ones to convert.**
 | Add-ons editor | `dashboard/addons/AddonEditor.tsx` |
 | Specials / deals editor | `dashboard/specials/_components/SpecialEditor.tsx` |
 | Manual booking (create) | `dashboard/bookings/new/ManualBookingForm.tsx` |
+| **Quote** (new + edit) — page/embedded variant | `dashboard/quotes/QuoteForm.tsx` ✅ **DONE `92dcd1a5`** — page variant on new/edit pages (left-rail + Review + autosave); looking-for respond keeps the embedded layout. |
 
 ## 🟢 Strong candidates — full-page multi-step create/edit (recommend convert)
 | # | Surface | File | Notes |
 |---|---|---|---|
-| 1 | **Quote** (new + edit) | `dashboard/quotes/QuoteForm.tsx` | **APPROVED — in progress.** Shared component (also used by looking-for respond) → build a **page vs embedded** layout variant so respond keeps its embedded look. Live-pricing money path — careful. |
 | 2 | **Listing editor** (the real "new/edit listing") | `dashboard/properties/[id]/edit/Editor.tsx` (596 L, already ~tabbed) | The 2-field "new listing" form just makes a draft and redirects *here*. Aligning this editor to the left-rail pattern IS the real listing create/edit experience. |
 | 3 | **Room editor** (create/edit a room) | `dashboard/properties/[id]/edit/rooms/[roomId]/RoomEditor.tsx` (682 L) | Substantial per-room form. Good fit. |
 

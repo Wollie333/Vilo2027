@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT (`92dcd1a5`). Quote form on the editor pattern (page/embedded variant) + autosave.
+
+Rolled the create-data default layout onto the quote form. Because QuoteForm is shared (new-quote, edit-quote,
+and looking-for respond), added a `variant="page" | "embedded"` split: page (new/edit) → full left-rail layout
+(identity bar + autosave indicator + total · 4-step rail w/ health ring + sub-hints · one panel at a time ·
+Back/Continue · a Review step with quick-edit jumps + single Save-draft/Review&send). Embedded (looking-for
+respond) keeps the original stacked layout + sticky bar unchanged (sections extracted to one shared const).
+Autosave wired (`entity_type:"quote"`, page contexts only): 30-field snapshot, a restoringRef guards the
+auto-pricing effect on restore. Pricing/save/send/preview logic untouched. Verified live (page layout,
+identity title + Draft-saved, autosave local+server, rail gating, no console errors); build+lint green. Also
+shipped a rollout audit `docs/features/CREATE_DATA_LAYOUT_ROLLOUT_AUDIT.md` of every create/edit surface for
+founder approval of the next conversions.
+
 ## 2026-07-13 — SAVE POINT (`35f137c5`). Create-booking restyled to the editor pattern + autosave.
 
 The manual "create booking" flow now uses the same left-rail step-tabs + Review-step + autosave layout as the
