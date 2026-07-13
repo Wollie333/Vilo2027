@@ -397,6 +397,32 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
 
   const tag = STATUS_TAG[d.statusTone];
 
+  // "Closed & handled" — the booking has reached a terminal state and nothing is
+  // left to collect, so a host can see at a glance that it's fully wrapped up
+  // (checked out / cancelled-settled / forfeited / declined / expired).
+  const TERMINAL_BOOKING = new Set([
+    "completed",
+    "checked_out",
+    "cancelled_by_host",
+    "cancelled_by_guest",
+    "no_show",
+    "declined",
+    "expired",
+  ]);
+  // A cancelled / declined / no-show / expired booking writes off any unpaid
+  // remainder, so it's handled regardless of the (historical) balance; a
+  // completed / checked-out stay is only handled once the balance is settled.
+  const isWrittenOff = [
+    "cancelled_by_host",
+    "cancelled_by_guest",
+    "no_show",
+    "declined",
+    "expired",
+  ].includes(d.status);
+  const closedHandled =
+    TERMINAL_BOOKING.has(d.status) &&
+    (isWrittenOff || (d.balanceDue ?? 0) <= 0);
+
   const tabCount = (k: string): number | undefined => {
     if (k === "activity") return d.timeline.length || undefined;
     if (k === "notes") return d.notes.length || undefined;
@@ -532,6 +558,11 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                     <span className="inline-flex items-center gap-1.5 rounded-pill bg-status-completed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-completed">
                       <DoorClosed className="h-3 w-3" /> Checked out{" "}
                       {d.checkedOutLabel}
+                    </span>
+                  ) : null}
+                  {closedHandled ? (
+                    <span className="bg-status-confirmed/12 inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-[10.5px] font-semibold text-status-confirmed ring-1 ring-status-confirmed/25">
+                      <CheckCircle2 className="h-3 w-3" /> Closed &amp; handled
                     </span>
                   ) : null}
                 </div>
@@ -730,6 +761,7 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                 balanceDue={d.balanceDue}
                 amountPaid={d.amountPaid}
                 refundTotal={d.refundTotal}
+                writtenOff={isWrittenOff}
                 currency={d.currency}
                 onManage={() => setTab("payments")}
               />
@@ -754,12 +786,20 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
               sub="per night"
             />
             <StatTile
-              label={d.paidInFull ? "Total paid" : "Total due"}
+              label={
+                d.paidInFull
+                  ? "Total paid"
+                  : isWrittenOff
+                    ? "Booking total"
+                    : "Total due"
+              }
               value={formatMoney(d.totalAmount, d.currency)}
               sub={
                 d.paidInFull
                   ? "Paid in full"
-                  : d.paymentStatus.replace(/_/g, " ")
+                  : isWrittenOff
+                    ? "Cancelled · settled"
+                    : d.paymentStatus.replace(/_/g, " ")
               }
               subTone={d.paidInFull ? "good" : undefined}
             />
@@ -1192,17 +1232,54 @@ function BookingBalanceLine({
   balanceDue,
   amountPaid,
   refundTotal,
+  writtenOff,
   currency,
   onManage,
 }: {
   balanceDue: number;
   amountPaid: number;
   refundTotal: number;
+  writtenOff?: boolean;
   currency: string;
   onManage: () => void;
 }) {
   const owes = balanceDue > 0.005;
   const settled = !owes && amountPaid > 0.005;
+
+  // Cancelled / declined / no-show: the unpaid remainder is written off (any
+  // amount paid is retained as revenue) — it's settled, never "owed to you".
+  if (writtenOff && (owes || amountPaid > 0.005)) {
+    return (
+      <button
+        type="button"
+        onClick={onManage}
+        title="Open payments"
+        className="flex items-center gap-1.5 whitespace-nowrap rounded-pill px-1 text-[11.5px] transition hover:opacity-80"
+      >
+        <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "#047857" }} />
+        <span className="text-brand-mute">Settled</span>
+        {amountPaid > 0.005 ? (
+          <span
+            className="num font-display text-[12.5px] font-bold"
+            style={{ color: "#047857" }}
+          >
+            {formatMoney(amountPaid, currency)} retained
+          </span>
+        ) : null}
+        {owes ? (
+          <span className="text-brand-mute">
+            · {formatMoney(balanceDue, currency)} written off
+          </span>
+        ) : null}
+        {refundTotal > 0.005 ? (
+          <span className="text-brand-mute">
+            · {formatMoney(refundTotal, currency)} refunded
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+
   // Nothing recorded yet and nothing owed (e.g. R0 booking) → show nothing.
   if (!owes && !settled) return null;
 

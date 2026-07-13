@@ -14,28 +14,32 @@
 
 ---
 
-## ⚡ Quick tasks — start the next session here (founder, 2026-07-13)
+## ⚡ Quick tasks — ✅ ALL DONE (founder, 2026-07-13, verified live)
 
-Small, well-scoped fixes to knock out first before the big audits:
+All five small fixes shipped + verified live on real data (test host BK-0027
+partially-refunded, and BK-0038 cancelled + declined refund). Files:
+`dashboard/payments/[id]/page.tsx`, `dashboard/bookings/[id]/BookingDetail.tsx`.
 
-1. **Refund entry missing on the payment record timeline** — when a refund is
-   accepted OR declined, the refund event does **not** appear in the transaction
-   timeline on the **payment record** (`/dashboard/payments/[id]`). Add it so the
-   payment record shows the full, accurate history (charge → payment → refund
-   requested → approved/declined → completed).
-2. **Show the transaction reference** in the payment record's transaction details
-   (the `provider_reference` / EFT ref / Paystack-PayPal txn id we now capture).
-3. **"Authorised by" field** on the payment record — who recorded / authorised the
-   payment (and, for refunds, who approved/declined) — `recorded_by` /
-   `actioned_by` → resolve to a name.
-4. **Payment-record status indicator** — a clear UI badge showing the payment is
-   **done/settled** vs **still open/pending** (and refunded/partially-refunded).
-5. **Booking "closed & handled" indicator** — a UI state on the booking showing it
-   is fully closed and handled (completed / cancelled-settled / forfeited /
-   fully-refunded), so a host can see at a glance that nothing is outstanding.
+1. ✅ **Refund events on the payment record timeline** — timeline now logs
+   requested → approved (by whom) → paid out, AND declined (with the decline
+   reason + who declined). Refund query widened to booking-scope + extra columns.
+2. ✅ **Transaction reference** — shown in Transaction details ("Reference") and
+   appended to the "Funds captured" timeline line (`· ref …`) when captured.
+3. ✅ **"Authorised by"** — `payments.recorded_by` and `refund_requests.actioned_by`
+   resolved to names via `user_profiles`; shown in Transaction details + timeline.
+4. ✅ **Payment-record status indicator** — badge is refund-aware (a captured
+   payment reads Part-refunded / Refunded even though `payments.status` stays
+   `completed`); `isCaptured` flag fixes the stale "isn't captured yet" copy.
+5. ✅ **Booking "closed & handled" indicator** — settlement ribbon on the payment
+   record + a header chip on the booking. Terminal + nothing-to-collect + no open
+   refund = "Closed & handled". Cancelled/no-show/declined write off the unpaid
+   remainder ("Settled · Rx retained · Ry written off"), never "owed to you".
 
-_(Done 2026-07-13: channel value `vilo`→`wielo` (migration `20260713100000`) for
-source accuracy; email footer URL → wielo.co.za.)_
+_(Also done 2026-07-13: channel value `vilo`→`wielo` (migration `20260713100000`)
+for source accuracy; email footer URL → wielo.co.za.)_
+
+**▶ NEXT: the deep in-depth audits below (Quotes, Looking-for, Coupons, Specials,
+Add-ons, Media manager, Reports, Product gating + the guest/host/admin sweep).**
 
 ---
 

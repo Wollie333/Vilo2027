@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-13 — Payment-record + booking settlement polish (founder quick-tasks, all 5). Verified live.
+
+Knocked out the five well-scoped fixes queued in `MVP_READINESS_AND_AUDIT_BACKLOG.md` before the deep audits.
+On the **payment record** (`dashboard/payments/[id]/page.tsx`): (1) refund timeline now shows requested →
+approved (by whom) → paid out **and** declined (with reason + who) — refund query widened to booking scope;
+(2) transaction reference surfaced in details + on the captured-funds timeline line; (3) **"Authorised by"** —
+`payments.recorded_by` / `refund_requests.actioned_by` resolved to names via `user_profiles`; (4) refund-aware
+**status badge** (Part-refunded / Refunded even while `payments.status` stays `completed`) + `isCaptured` flag
+fixing stale "isn't captured yet" copy; (5) **settlement ribbon** (Closed & handled / still-to-collect /
+refund-in-progress). On the **booking** (`dashboard/bookings/[id]/BookingDetail.tsx`): a **"Closed & handled"**
+header chip + write-off-correct money display — a cancelled/no-show/declined booking shows "Settled · Rx
+retained · Ry written off" instead of "owed to you", and "Booking total · Cancelled · settled" instead of
+"Total due". Verified live on BK-0027 (partially-refunded, confirmed) and BK-0038 (cancelled + declined refund).
+`tsc`/`lint`/`build` green. **NEXT: the deep in-depth audits** (quotes · looking-for · coupons · specials ·
+add-ons · media · reports · gating).
+
 ## 2026-07-12 — SAVE POINT: founder batch §F complete + money-correctness pass. NEXT = deep financial sweep.
 
 Resume anchor (`CURRENT_TASK.md` top + memory `project-financial-correctness-and-sweep`). Everything below is

@@ -4,6 +4,7 @@ import {
   Banknote,
   Building2,
   Calendar,
+  CheckCircle2,
   ChevronRight,
   CreditCard,
   Download,
@@ -150,7 +151,7 @@ export default async function PaymentDetailPage({
   const { data: payment } = await supabase
     .from("payments")
     .select(
-      "id, amount, currency, method, status, provider_reference, eft_proof_url, created_at, captured_at, authorised_at, failed_at, booking:bookings!inner ( id, reference, status, payment_status, guest_name, guest_email, check_in, check_out, nights, session_date, base_amount, cleaning_fee, discount_amount, balance_due, total_amount, currency, created_at, confirmed_at, cancelled_at, listing:properties!inner ( name, slug ) )",
+      "id, amount, currency, method, status, provider_reference, eft_proof_url, recorded_by, created_at, captured_at, authorised_at, failed_at, booking:bookings!inner ( id, reference, status, payment_status, guest_name, guest_email, check_in, check_out, nights, session_date, base_amount, cleaning_fee, discount_amount, balance_due, total_amount, currency, created_at, confirmed_at, cancelled_at, listing:properties!inner ( name, slug ) )",
     )
     .eq("id", params.id)
     .eq("booking.host_id", myHostId)
@@ -203,15 +204,39 @@ export default async function PaymentDetailPage({
     supabase
       .from("refund_requests")
       .select(
-        "id, reference, status, requested_amount, approved_amount, currency, created_at, actioned_at",
+        "id, reference, status, requested_amount, approved_amount, currency, created_at, actioned_at, actioned_by, decline_reason, payment_id",
       )
-      .eq("payment_id", payment.id)
+      .eq("booking_id", booking.id)
       .order("created_at", { ascending: false }),
     supabase
       .from("payments")
       .select("amount, kind, status, voided_at, refunded_amount")
       .eq("booking_id", booking.id),
   ]);
+
+  // Resolve the people behind the money — who recorded/authorised the payment
+  // (payments.recorded_by) and who approved/declined each refund
+  // (refund_requests.actioned_by) — to display names.
+  const actorIds = Array.from(
+    new Set(
+      [
+        payment.recorded_by,
+        ...(refundRows ?? []).map((r) => r.actioned_by),
+      ].filter((v): v is string => Boolean(v)),
+    ),
+  );
+  const nameById = new Map<string, string>();
+  if (actorIds.length > 0) {
+    const { data: actorRows } = await supabase
+      .from("user_profiles")
+      .select("id, full_name, email")
+      .in("id", actorIds);
+    for (const a of actorRows ?? [])
+      nameById.set(a.id, a.full_name || a.email || "Team member");
+  }
+  const recordedByName = payment.recorded_by
+    ? (nameById.get(payment.recorded_by) ?? "Team member")
+    : null;
 
   // Balance still due — derived from the booking's COMPLETED payments (canonical
   // sumPaidFromRows), not the stored balance_due column, so it can't show stale.
@@ -239,20 +264,68 @@ export default async function PaymentDetailPage({
     icon: Receipt,
   };
   const MethodIcon = method.icon;
-  const st = STATUS[payment.status] ?? {
-    label: payment.status.replace(/_/g, " "),
-    tone: "bg-brand-line text-brand-mute",
-    dot: "bg-brand-mute",
-  };
   const canManage = payment.method === "eft" && payment.status === "pending";
 
   // ── What the guest paid — the booking's own line items. ──
   const refundedTotal = (refundRows ?? [])
-    .filter((r) => r.status === "completed")
+    .filter((r) => r.status === "completed" && r.payment_id === payment.id)
     .reduce(
       (s, r) => s + Number(r.approved_amount ?? r.requested_amount ?? 0),
       0,
     );
+  const hasOpenRefund = (refundRows ?? []).some(
+    (r) =>
+      r.status === "pending" ||
+      r.status === "approved" ||
+      r.status === "processing",
+  );
+
+  // Display status reflects refund state: a captured payment that's been fully
+  // or partly refunded reads as Refunded / Part-refunded (payments.status stays
+  // "completed"; refunds are tracked via refunded_amount, not the status column).
+  const displayStatusKey =
+    payment.status === "completed" && refundedTotal > 0
+      ? refundedTotal >= Number(payment.amount) - 0.005
+        ? "refunded"
+        : "partially_refunded"
+      : payment.status;
+  const st = STATUS[displayStatusKey] ?? {
+    label: payment.status.replace(/_/g, " "),
+    tone: "bg-brand-line text-brand-mute",
+    dot: "bg-brand-mute",
+  };
+
+  // Money has landed — a captured payment stays captured after a (partial)
+  // refund, so don't gate "captured" copy on status === "completed".
+  const isCaptured =
+    Boolean(payment.captured_at) ||
+    ["completed", "partially_refunded", "refunded"].includes(payment.status);
+
+  // Booking settlement state. A terminal booking is "closed & handled" once no
+  // refund is still in flight and there's nothing genuinely left to collect.
+  // Note: a cancelled / declined / no-show booking writes off any unpaid
+  // remainder (retained = revenue, outstanding written off) — that leftover is
+  // NOT "still to collect". Only a live booking or an actual stay
+  // (completed / checked_out) leaves a collectable balance.
+  const TERMINAL_BOOKING = new Set([
+    "completed",
+    "checked_out",
+    "cancelled_by_host",
+    "cancelled_by_guest",
+    "no_show",
+    "declined",
+    "expired",
+  ]);
+  const isWrittenOff = [
+    "cancelled_by_host",
+    "cancelled_by_guest",
+    "no_show",
+    "declined",
+    "expired",
+  ].includes(booking.status);
+  const stillToCollect = !isWrittenOff && bookingBalanceDue > 0;
+  const bookingClosed =
+    TERMINAL_BOOKING.has(booking.status) && !hasOpenRefund && !stillToCollect;
   const paidLines: { label: string; amount: number }[] = [];
   if (Number(booking.base_amount ?? 0) > 0)
     paidLines.push({
@@ -293,7 +366,9 @@ export default async function PaymentDetailPage({
   log(payment.authorised_at, "Card authorised", "Payment");
   log(
     payment.captured_at,
-    `Funds captured — ${m(Number(payment.amount))}`,
+    `Funds captured — ${m(Number(payment.amount))}${
+      payment.provider_reference ? ` · ref ${payment.provider_reference}` : ""
+    }`,
     "Payment",
   );
   log(payment.failed_at, "Payment failed", "Payment");
@@ -301,17 +376,35 @@ export default async function PaymentDetailPage({
     log(inv.created_at, `Invoice ${inv.invoice_number} issued`, "Invoice");
     log(inv.paid_at, `Invoice ${inv.invoice_number} marked paid`, "Invoice");
   }
+  const DECLINE_LABEL: Record<string, string> = {
+    outside_policy: "outside policy",
+    no_show: "no-show",
+    terms_violated: "terms violated",
+    services_rendered: "services rendered",
+    other: "other",
+  };
   for (const r of refundRows ?? []) {
-    log(r.created_at, `Refund ${r.reference ?? ""} requested`.trim(), "Refund");
-    if (r.status === "completed")
-      log(
-        r.actioned_at,
-        `Refund ${r.reference ?? ""} completed — ${m(Number(r.approved_amount ?? r.requested_amount))}`.replace(
-          /\s+/g,
-          " ",
-        ),
-        "Refund",
-      );
+    const ref = r.reference ? ` ${r.reference}` : "";
+    const amt = m(Number(r.approved_amount ?? r.requested_amount ?? 0));
+    const who = r.actioned_by ? nameById.get(r.actioned_by) : null;
+    const by = who ? ` by ${who}` : "";
+    log(
+      r.created_at,
+      `Refund${ref} requested — ${m(Number(r.requested_amount))}`,
+      "Refund",
+    );
+    if (r.status === "declined") {
+      const why = r.decline_reason
+        ? ` (${DECLINE_LABEL[r.decline_reason] ?? r.decline_reason.replace(/_/g, " ")})`
+        : "";
+      log(r.actioned_at, `Refund${ref} declined${why}${by}`, "Refund");
+    } else if (r.status === "approved" || r.status === "completed") {
+      // Push the payout first so, at the same actioned_at, it sorts above the
+      // approval line (newest-first).
+      if (r.status === "completed")
+        log(r.actioned_at, `Refund${ref} paid out — ${amt}`, "Refund");
+      log(r.actioned_at, `Refund${ref} approved — ${amt}${by}`, "Refund");
+    }
   }
   history.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
@@ -341,7 +434,7 @@ export default async function PaymentDetailPage({
         <div className="flex flex-col gap-5 p-6 lg:flex-row lg:items-start lg:justify-between lg:p-7">
           <div className="min-w-0">
             <div className={eyebrow}>
-              {payment.status === "completed" ? "Payment received" : "Payment"}
+              {isCaptured ? "Payment received" : "Payment"}
             </div>
             <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
               <h1 className="font-display text-[38px] font-extrabold leading-none tracking-tight text-brand-ink lg:text-[44px]">
@@ -401,6 +494,25 @@ export default async function PaymentDetailPage({
             strong
           />
         </div>
+
+        {/* Booking settlement ribbon — is anything still outstanding? */}
+        {bookingClosed ? (
+          <div className="bg-status-confirmed/8 flex items-center gap-2 border-t border-brand-line px-6 py-3 text-[12.5px] font-semibold text-status-confirmed">
+            <CheckCircle2 className="h-4 w-4 shrink-0" /> Closed &amp; handled —
+            nothing outstanding on this booking.
+          </div>
+        ) : hasOpenRefund ? (
+          <div className="flex items-center gap-2 border-t border-brand-line bg-indigo-50 px-6 py-3 text-[12.5px] font-semibold text-indigo-700">
+            <RotateCcw className="h-4 w-4 shrink-0" /> A refund is in progress
+            on this booking.
+          </div>
+        ) : stillToCollect ? (
+          <div className="flex items-center gap-2 border-t border-brand-line bg-status-pending/10 px-6 py-3 text-[12.5px] font-semibold text-amber-700">
+            <Info className="h-4 w-4 shrink-0" />{" "}
+            {formatMoney(bookingBalanceDue, ccy)} still to collect on this
+            booking.
+          </div>
+        ) : null}
       </section>
 
       {/* ===== TWO-COLUMN GRID ===== */}
@@ -438,9 +550,7 @@ export default async function PaymentDetailPage({
                 ))}
                 <li className="flex items-center justify-between border-t border-dashed border-brand-line pt-3">
                   <span className="font-semibold text-brand-ink">
-                    {payment.status === "completed"
-                      ? "Gross captured"
-                      : "Total"}
+                    {isCaptured ? "Gross captured" : "Total"}
                   </span>
                   <span className="font-display text-[18px] font-bold text-brand-ink">
                     {formatMoney(Number(booking.total_amount), ccy)}
@@ -454,12 +564,21 @@ export default async function PaymentDetailPage({
                     </span>
                   </li>
                 ) : null}
-                {bookingBalanceDue > 0 ? (
+                {stillToCollect ? (
                   <li className="flex items-center justify-between rounded-[10px] bg-status-pending/10 px-3 py-2">
                     <span className="font-semibold text-amber-700">
                       Balance still due
                     </span>
                     <span className="font-semibold text-amber-700">
+                      {formatMoney(bookingBalanceDue, ccy)}
+                    </span>
+                  </li>
+                ) : isWrittenOff && bookingBalanceDue > 0 ? (
+                  <li className="flex items-center justify-between rounded-[10px] bg-brand-light px-3 py-2">
+                    <span className="font-semibold text-brand-mute">
+                      Written off (booking {booking.status.replace(/_/g, " ")})
+                    </span>
+                    <span className="font-semibold text-brand-mute">
                       {formatMoney(bookingBalanceDue, ccy)}
                     </span>
                   </li>
@@ -490,6 +609,9 @@ export default async function PaymentDetailPage({
                 value={payment.provider_reference ?? "—"}
               />
               <Detail label="Status" value={st.label} />
+              {recordedByName ? (
+                <Detail label="Authorised by" value={recordedByName} />
+              ) : null}
               <Detail label="Initiated" value={fmtDt(payment.created_at)} />
               <Detail label="Authorised" value={fmtDt(payment.authorised_at)} />
               <Detail
@@ -682,6 +804,10 @@ export default async function PaymentDetailPage({
                   <span className="inline-flex items-center gap-1 rounded-pill bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
                     {formatMoney(refundedTotal, ccy)} refunded
                   </span>
+                ) : hasOpenRefund ? (
+                  <span className="bg-status-pending/12 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                    <RotateCcw className="h-3 w-3" /> In progress
+                  </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10px] font-semibold text-status-confirmed">
                     <ShieldCheck className="h-3 w-3" /> None
@@ -690,7 +816,7 @@ export default async function PaymentDetailPage({
               </div>
               <div className="p-5">
                 <p className="text-[12.5px] text-brand-mute">
-                  {payment.status === "completed"
+                  {isCaptured
                     ? `${formatMoney(Number(payment.amount), ccy)} captured.`
                     : "This payment isn't captured yet."}{" "}
                   Issue a refund from the booking.
