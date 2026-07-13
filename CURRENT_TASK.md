@@ -2,7 +2,24 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-13 · `93cf5a63`) — LISTING editor got the Review step + health ring (completes the pattern).
+## ▶▶▶ SAVE POINT (2026-07-13 · `732b2e4c`) — MULTI-SELECT + CONCURRENT photo upload for listing & room photos.
+
+Founder: "everywhere there's an upload-image card, let users select multiple photos at once — one-by-one takes
+too long, specifically rooms and listing." Fixed the two primary photo galleries:
+- New shared helper `components/listing/photoUpload.ts` — validate + **concurrently** upload N files
+  (signed-URL → register) with a concurrency cap, preserving selection order (keeps the cover predictable) +
+  live progress.
+- **Listing** photos (`PhotosManager`) — was multi-select but uploaded **sequentially** (for-loop) → now concurrent.
+- **Room** photos (`RoomPhotosSection` drill-in + inline `RoomRowEditor`) — took only the FIRST file, no
+  `multiple` → now `multiple` + concurrent; button "Add photos" + "Uploading X of N".
+Verified live: 3 files on the listing uploaded at once (4→7), 2 on a room (4→6); test photos cleaned up, no
+console errors, `build`+`lint` green.
+
+**▶ FOLLOW-UP (secondary):** the media bank (`dashboard/media/HostMediaManager.tsx`) has two single-file
+uploaders (website-media view uses the website-assets bucket + per-file dims — builder is out of scope; the
+listing-media view could reuse the new helper). Not done — the founder named rooms + listing as the priority.
+
+## ▶▶▶ SAVE POINT (2026-07-13 · `93cf5a63`) — LISTING editor got the Review step + health ring (completes the pattern). (prev)
 
 All pushed to `main`, `pnpm build` + `pnpm lint` green. Founder: "do the same for create listing."
 

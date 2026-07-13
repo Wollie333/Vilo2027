@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT (`732b2e4c`). Multi-select + concurrent photo upload (listing & room photos).
+
+One-by-one photo upload was too slow. New shared helper `components/listing/photoUpload.ts` validates and
+uploads the whole selection concurrently (signed-URL → register, concurrency-capped, selection order preserved
+so the cover stays predictable, with live progress). Listing photos (PhotosManager) uploaded sequentially →
+now concurrent. Room photos (RoomPhotosSection + inline RoomRowEditor) only took the first file and had no
+`multiple` → now multi-select + concurrent ("Add photos" · "Uploading X of N"). Verified live (3 to listing at
+once, 2 to a room), test photos cleaned up. Follow-up: the media bank's two uploaders are still single-file.
+
 ## 2026-07-13 — SAVE POINT (`93cf5a63`). Listing editor: Review & publish step + health ring.
 
 "Do the same for create listing." The listing editor was already left-rail; added a "Review & publish" rail
