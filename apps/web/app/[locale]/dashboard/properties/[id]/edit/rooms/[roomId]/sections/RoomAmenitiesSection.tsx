@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useTransition } from "react";
+import { Save } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { setRoomAmenityAction } from "../../../actions";
+import { setRoomAmenitiesAction, setRoomAmenityAction } from "../../../actions";
 import { AMENITY_OPTIONS } from "../../../schemas";
 
 export function RoomAmenitiesSection({
@@ -21,6 +23,7 @@ export function RoomAmenitiesSection({
   amenityKeys,
   onChange,
   deferSave = false,
+  batchSave = false,
 }: {
   listingId: string;
   roomId: string;
@@ -33,21 +36,53 @@ export function RoomAmenitiesSection({
    * room editor relies on.
    */
   deferSave?: boolean;
+  /**
+   * When true, the host ticks as many boxes as they like and saves the whole
+   * set once via the in-card "Save amenities" button (batch replace) — no
+   * per-click DB write. Self-contained (unlike deferSave, which needs a parent
+   * to persist).
+   */
+  batchSave?: boolean;
 }) {
   const [pending, start] = useTransition();
   const selected = useMemo(() => new Set(amenityKeys), [amenityKeys]);
+
+  // Batch-save bookkeeping — the last persisted set, so we can flag unsaved
+  // changes and disable the button when nothing has changed.
+  const [savedKeys, setSavedKeys] = useState<string[]>(amenityKeys);
+  const dirty = useMemo(() => {
+    const a = [...savedKeys].sort().join("|");
+    const b = [...amenityKeys].sort().join("|");
+    return a !== b;
+  }, [savedKeys, amenityKeys]);
 
   function toggle(key: string, on: boolean) {
     const next = on
       ? Array.from(new Set([...amenityKeys, key]))
       : amenityKeys.filter((k) => k !== key);
     onChange(next);
-    if (deferSave) return; // batch-persisted by the parent on save
+    if (deferSave || batchSave) return; // persisted in one batch, not per click
     // Optimistic — flip locally, server reconciles. Revert on failure.
     start(async () => {
       const result = await setRoomAmenityAction(listingId, roomId, key, on);
       if (!result.ok) {
         onChange(amenityKeys);
+        toast.error(result.error);
+      }
+    });
+  }
+
+  function saveAll() {
+    start(async () => {
+      const result = await setRoomAmenitiesAction(
+        listingId,
+        roomId,
+        amenityKeys,
+      );
+      if (result.ok) {
+        setSavedKeys(amenityKeys);
+        toast.success("Amenities saved");
+      } else {
         toast.error(result.error);
       }
     });
@@ -87,10 +122,32 @@ export function RoomAmenitiesSection({
             );
           })}
         </div>
-        <div className="mt-4 text-[11px] text-brand-mute">
-          {selected.size} amenit{selected.size === 1 ? "y" : "ies"} selected for
-          this room.
-        </div>
+        {batchSave ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-brand-line pt-4">
+            <div className="text-[11px] text-brand-mute">
+              {selected.size} amenit{selected.size === 1 ? "y" : "ies"} selected
+              {dirty ? (
+                <span className="ml-2 font-semibold text-status-pending">
+                  · unsaved changes
+                </span>
+              ) : null}
+            </div>
+            <Button
+              type="button"
+              onClick={saveAll}
+              disabled={pending || !dirty}
+              className="gap-1.5"
+            >
+              <Save className="h-4 w-4" />
+              {pending ? "Saving…" : "Save amenities"}
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-4 text-[11px] text-brand-mute">
+            {selected.size} amenit{selected.size === 1 ? "y" : "ies"} selected
+            for this room.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

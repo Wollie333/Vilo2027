@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-13 — Room editor on the create-data pattern + batch-save amenities.
+
+Rolled the create-data default layout onto the **room editor** (`rooms/[roomId]/RoomEditor.tsx`). Replaced the
+old sticky sub-header + big header card + two-column-with-right-rail layout with the standard: an **identity bar**
+(cover thumb · breadcrumb · room name · Bookable badge + toggle · Preview · Done), a **left-rail** of steps
+(Details & pricing · Photos · Amenities · Guest access · Review & publish · Danger zone) with a **health ring**
+(5 essentials: name · description · a photo · beds & capacity · a nightly price) and live per-step sub-hints,
+**one panel at a time**, and a **Review & publish** step (readiness checklist with per-row jumps · at-a-glance
+summary with quick-edit jumps · Performance stats · guest preview · availability calendar · a single
+Make-bookable/Hide CTA). The stats band, guest preview and availability that used to sit in a right rail now live
+in Review. Each section keeps its own save (RoomDetailsForm's in-card "Save room"; photos/access self-save).
+
+Founder follow-up: **amenities should not save one-per-check** — tick many, save once. `RoomAmenitiesSection`
+gained a `batchSave` mode (used by the room editor): toggles update local state only, an in-card **"Save
+amenities"** button (enabled only when dirty, "· unsaved changes" hint) persists the whole set via the existing
+`setRoomAmenitiesAction` (delete-then-insert scoped by `room_id`). The per-toggle `setRoomAmenityAction` path is
+untouched for any other caller; the wizard's `deferSave` path is untouched.
+
+Verified live (test host, Milkyway Room): pattern + health ring (80% → live-recompute when a bed is added) ·
+rail switching (one panel at a time) · Review step renders all sections with real data (3 lifetime bookings,
+R1 663 avg, July availability) · amenities batch UX — 3 boxes ticked wrote **zero** rows until Save, then all 3
+in one round-trip, dirty state reset after. No console errors; `build` + `lint` green; test data cleaned up.
+
 ## 2026-07-13 — SAVE POINT (`732b2e4c`). Multi-select + concurrent photo upload (listing & room photos).
 
 One-by-one photo upload was too slow. New shared helper `components/listing/photoUpload.ts` validates and

@@ -25,10 +25,10 @@ which get the pattern. **Tick the ones to convert.**
 |---|---|
 | **Listing editor** — Review step + health ring | `dashboard/properties/[id]/edit/Editor.tsx` ✅ **DONE `93cf5a63`** — was already left-rail; added the "Review & publish" step (readiness checklist + quick-edit jumps + publish CTA) and a health ring atop the rail. The create flow (new-listing form → this editor) now culminates in the pattern's Review/publish. |
 
-## 🟢 Strong candidates — full-page multi-step create/edit (recommend convert)
-| # | Surface | File | Notes |
-|---|---|---|---|
-| 3 | **Room editor** (create/edit a room) | `dashboard/properties/[id]/edit/rooms/[roomId]/RoomEditor.tsx` (682 L) | Substantial per-room form. Good fit. |
+## ✅ Also done
+| Surface | File |
+|---|---|
+| **Room editor** — full create-data pattern | `dashboard/properties/[id]/edit/rooms/[roomId]/RoomEditor.tsx` ✅ **DONE** — identity bar (Bookable toggle) + left-rail steps (Details & pricing · Photos · Amenities · Guest access · Review & publish · Danger) + health ring (5 essentials) + one panel at a time + Review step (readiness · summary quick-edit jumps · Performance stats · guest preview · availability · single Make-bookable CTA). Sections keep their own save. **Amenities now batch-save** (`RoomAmenitiesSection` `batchSave` prop — tick many, one "Save amenities"; per-toggle path untouched for other callers). |
 
 ## 🔵 Already multi-step wizards — align styling to the standard (lower priority)
 | # | Surface | File | Notes |
