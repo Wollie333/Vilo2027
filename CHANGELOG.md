@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT (`93cf5a63`). Listing editor: Review & publish step + health ring.
+
+"Do the same for create listing." The listing editor was already left-rail; added a "Review & publish" rail
+section (readiness checklist with per-row jumps + at-a-glance summary with quick-edit jumps + a context-aware
+Publish/Unpublish + Preview CTA) and a clickable health ring atop the rail (X/6 essentials). The create flow
+(new-listing form → editor) now culminates in the Review/publish step. Readiness computes from live photo/room
+state + revalidated listing fields + policies; tab save + publish gating unchanged. Verified live: 100%/6-6 on
+a complete listing, 0%/0-6 on a fresh one (dynamic). build + lint green.
+
 ## 2026-07-13 — SAVE POINT (`3ed85c1b`). Coupons on the editor pattern + autosave + enhanced + tested.
 
 Rolled the create-data layout onto coupons (was a single modal). New dedicated pages `/coupons/new` +

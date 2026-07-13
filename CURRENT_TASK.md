@@ -2,7 +2,27 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-13 · `3ed85c1b`) — COUPON feature on the editor pattern + autosave + enhanced + tested end-to-end.
+## ▶▶▶ SAVE POINT (2026-07-13 · `93cf5a63`) — LISTING editor got the Review step + health ring (completes the pattern).
+
+All pushed to `main`, `pnpm build` + `pnpm lint` green. Founder: "do the same for create listing."
+
+The listing editor (`properties/[id]/edit/Editor.tsx`) was ALREADY left-rail (identity bar + 12-section rail +
+panels). This session **completed the create-data pattern on it**: a new **"Review & publish" rail section**
+(readiness card + checklist — name & description · 3+ photos · location · capacity/rooms · pricing · a
+cancellation policy, each row jumping to its section · at-a-glance summary w/ per-row quick-edit jumps ·
+context-aware Publish/Unpublish + Preview CTA) and a **clickable health ring atop the rail** (X/6 essentials).
+The create journey is: new-listing form (name+category → draft) → this editor → the Review step guides to
+publish. Readiness computes from live photo/room state + revalidated listing fields + assigned policies. Tab
+save logic + publish gating UNCHANGED. Verified live: complete listing = 100% / 6/6 / "Ready to publish";
+freshly-created listing = 0% / 0/6 (dynamic); quick-edit jumps navigate; no console errors. Test listing
+soft-deleted after.
+
+**▶ NEXT (rollout audit `docs/features/CREATE_DATA_LAYOUT_ROLLOUT_AUDIT.md`):** remaining candidates — **room
+editor** (`RoomEditor.tsx`), onboarding wizard re-skin, and the modal group (rooms quick-add · seasonal ·
+banking · managers) — coupons are the template for converting modals. Also queued: add-on `vat_included`
+dead-flag · autosave TTL prune.
+
+## ▶▶▶ SAVE POINT (2026-07-13 · `3ed85c1b`) — COUPON feature on the editor pattern + autosave + enhanced + tested end-to-end. (prev)
 
 All pushed to `main`, `pnpm build` + `pnpm lint` green. Founder asked to roll the create-data layout onto the
 **coupon** feature, then harden/test/refine/enhance it before doing others.

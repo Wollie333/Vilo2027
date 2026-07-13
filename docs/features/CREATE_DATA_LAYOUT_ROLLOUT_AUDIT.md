@@ -20,10 +20,14 @@ which get the pattern. **Tick the ones to convert.**
 | **Quote** (new + edit) — page/embedded variant | `dashboard/quotes/QuoteForm.tsx` ✅ **DONE `92dcd1a5`** — page variant on new/edit pages (left-rail + Review + autosave); looking-for respond keeps the embedded layout. |
 | **Coupon** (new + edit) — was a modal | `dashboard/coupons/CouponEditor.tsx` ✅ **DONE `3ed85c1b`** — modal replaced by dedicated `/new` + `/[id]/edit` left-rail pages (Details · Discount · Limits · Review), autosave, live guest preview, status badges. Redemption verified live. `docs/lifecycles/coupons.md`. |
 
+## ✅ Also done
+| Surface | File |
+|---|---|
+| **Listing editor** — Review step + health ring | `dashboard/properties/[id]/edit/Editor.tsx` ✅ **DONE `93cf5a63`** — was already left-rail; added the "Review & publish" step (readiness checklist + quick-edit jumps + publish CTA) and a health ring atop the rail. The create flow (new-listing form → this editor) now culminates in the pattern's Review/publish. |
+
 ## 🟢 Strong candidates — full-page multi-step create/edit (recommend convert)
 | # | Surface | File | Notes |
 |---|---|---|---|
-| 2 | **Listing editor** (the real "new/edit listing") | `dashboard/properties/[id]/edit/Editor.tsx` (596 L, already ~tabbed) | The 2-field "new listing" form just makes a draft and redirects *here*. Aligning this editor to the left-rail pattern IS the real listing create/edit experience. |
 | 3 | **Room editor** (create/edit a room) | `dashboard/properties/[id]/edit/rooms/[roomId]/RoomEditor.tsx` (682 L) | Substantial per-room form. Good fit. |
 
 ## 🔵 Already multi-step wizards — align styling to the standard (lower priority)
