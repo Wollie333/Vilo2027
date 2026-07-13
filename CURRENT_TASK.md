@@ -2,6 +2,41 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-13 · head `d6544252`) — START HERE
+
+**Theme of this arc:** roll the **create-data default layout** (left-rail step-tabs · health ring · live
+sub-hints · identity bar with autosave indicator · one panel at a time · final **Review** step with per-row
+quick-edit jumps · single primary CTA on the last step · shared `useAutosaveDraft` + `ResumeDraftBanner`) onto
+every feature where a host creates data, plus quality fixes along the way. Standard pattern + rules:
+memory `feedback-create-data-default-layout`; rollout tracker `docs/features/CREATE_DATA_LAYOUT_ROLLOUT_AUDIT.md`.
+
+**✅ Converted to the pattern (all live-verified, `build`+`lint` green):** add-ons editor · specials/deals editor ·
+manual **booking** create · **quote** form (page/embedded variant — shared with looking-for respond) · **coupon**
+create/edit (modal → dedicated `/new` + `/[id]/edit` pages; redemption re-verified at checkout) · **listing
+editor** (was already left-rail — added the **Review & publish** step + health ring). **Autosave** (`form_drafts`,
+Layer A+B) is wired on add-on · special · booking · quote(page) · coupon editors.
+
+**✅ Also this arc:** multi-select + **concurrent** photo upload on listing + room galleries
+(`components/listing/photoUpload.ts`); the respond-to-quote-request card verified still on top of the quote form.
+
+**▶ NEXT — pick from the rollout audit (founder approves which):**
+1. **Room editor** (`properties/[id]/edit/rooms/[roomId]/RoomEditor.tsx`) — full-page candidate.
+2. **Onboarding wizard** (`dashboard/setup/SetupWizard.tsx`) — already stepped; re-skin to the exact standard.
+3. **Modal group** (coupons are the template for modal→pages): rooms quick-add · seasonal pricing · banking
+   dialogs · staff/alerts/templates/extras/feed managers. (Decide once: convert-to-pages vs persist-on-close.)
+4. **Media bank** (`dashboard/media/HostMediaManager.tsx`) — two single-file uploaders → give them multi-select
+   (the listing-media view can reuse `photoUpload.ts`; website-media uses the website-assets bucket).
+
+**▶ Still-queued smaller items:** add-on `vat_included` **dead flag** (stored, never consumed at checkout —
+wire or remove) · autosave **TTL prune** cron for `form_drafts` · autosave for the modal editors (rooms/coupons
+were the plan; coupons now done as pages).
+
+**How to work:** verify BOTH builder + live before "done" (Principle #9); after each piece commit + push to
+`main`; keep a save point per completed piece. Test host `host@wielotest.com` / `WieloTest123!` (Karoo Sky
+listing `0b222222-2222-4222-8222-222222222221`). DB truth via `scratchpad/sbenv.sh` ($SB/$KEY service role).
+
+---
+
 ## ▶▶▶ SAVE POINT (2026-07-13 · `732b2e4c`) — MULTI-SELECT + CONCURRENT photo upload for listing & room photos.
 
 Founder: "everywhere there's an upload-image card, let users select multiple photos at once — one-by-one takes
