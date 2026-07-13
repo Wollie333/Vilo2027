@@ -160,6 +160,9 @@ still-draft request, a **"Waiting for the quote"** panel.
 
 ## Flow (happy path + branches)
 
+**Visual:** [`quotes-flow.svg`](quotes-flow.svg) (theme-aware SVG — the same
+diagram, viewable/printable on its own). Source of truth below:
+
 ```mermaid
 flowchart TD
   A[Guest: Request a quote<br/>RequestQuoteButton → /api/enquiry] --> B[Draft quote + inbox 'request' card<br/>notify host]

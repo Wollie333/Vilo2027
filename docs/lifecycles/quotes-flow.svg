@@ -1,0 +1,137 @@
+<svg viewBox="0 0 780 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tt ds" font-family="'Inter',system-ui,sans-serif">
+  <title id="tt">Quote feature lifecycle</title>
+  <desc id="ds">A guest requests a quote; the host prices and sends it; sending soft-holds the calendar; the guest views and accepts (creating a pending booking) then pays to convert it to a confirmed booking. Branches: decline and auto-expire both release the calendar holds; editing a sent quote snapshots a version and re-sends.</desc>
+  <style>
+    :root{
+      --bg:#ffffff; --card:#f6faf8; --ink:#0a1510; --mute:#4a7c6a;
+      --line:#dceae0; --p:#10b981; --psoft:#d1fae5; --amber:#b45309; --ambersoft:#fef3c7; --amberline:#fcd9a5;
+    }
+    @media (prefers-color-scheme:dark){
+      :root{ --bg:#0a1510; --card:#12211a; --ink:#eaf5ef; --mute:#8fb6a6;
+        --line:#22352b; --p:#34d399; --psoft:#0f3b2e; --amber:#fbbf24; --ambersoft:#3a2c0e; --amberline:#5c4718; }
+    }
+    .t{ fill:var(--ink); font-weight:700; font-size:13.5px; }
+    .s{ fill:var(--mute); font-weight:500; font-size:10.5px; }
+    .lbl{ fill:var(--mute); font-weight:600; font-size:10px; }
+    .actor{ fill:var(--p); font-weight:700; font-size:9px; letter-spacing:.04em; }
+    .actorA{ fill:var(--amber); font-weight:700; font-size:9px; letter-spacing:.04em; }
+  </style>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--p)"/>
+    </marker>
+    <marker id="aha" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="var(--amber)"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="780" height="700" fill="var(--bg)"/>
+  <text x="30" y="34" class="t" font-size="16">Quote lifecycle — request → booking</text>
+
+  <!-- legend -->
+  <rect x="565" y="22" width="12" height="12" rx="3" fill="var(--psoft)" stroke="var(--p)"/>
+  <text x="582" y="32" class="lbl">Path to a booking</text>
+  <rect x="690" y="22" width="12" height="12" rx="3" fill="var(--ambersoft)" stroke="var(--amberline)"/>
+  <text x="707" y="32" class="lbl">System / branch</text>
+
+  <!-- connectors -->
+  <g fill="none" stroke="var(--p)" stroke-width="2">
+    <path d="M230,108 L230,124" marker-end="url(#ah)"/>
+    <path d="M230,180 L230,196" marker-end="url(#ah)"/>
+    <path d="M230,252 L230,268" marker-end="url(#ah)"/>
+    <path d="M230,324 L230,340" marker-end="url(#ah)"/>
+    <path d="M230,396 L230,412" marker-end="url(#ah)"/>
+    <path d="M230,468 L230,484" marker-end="url(#ah)"/>
+    <path d="M230,540 L230,556" marker-end="url(#ah)"/>
+  </g>
+
+  <!-- 1 Request -->
+  <rect x="120" y="52" width="220" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="134" y="70" class="actor">GUEST</text>
+  <text x="134" y="87" class="t">Request a quote</text>
+  <text x="134" y="101" class="s">RequestQuoteButton → /api/enquiry</text>
+
+  <!-- 2 Draft + notify -->
+  <rect x="120" y="124" width="220" height="56" rx="12" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+  <text x="134" y="142" class="actorA">SYSTEM</text>
+  <text x="134" y="159" class="t">Draft quote + inbox card</text>
+  <text x="134" y="173" class="s">notify host · Q-#### assigned</text>
+
+  <!-- 3 Host prices -->
+  <rect x="120" y="196" width="220" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="134" y="214" class="actor">HOST</text>
+  <text x="134" y="231" class="t">Build &amp; price</text>
+  <text x="134" y="245" class="s">QuoteForm · priceStay (seasonal)</text>
+
+  <!-- 4 Send -->
+  <rect x="120" y="268" width="220" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="134" y="286" class="actor">HOST</text>
+  <text x="134" y="303" class="t">Send · draft → sent</text>
+  <text x="134" y="317" class="s">sets valid_until</text>
+
+  <!-- 5 Guest views -->
+  <rect x="120" y="340" width="220" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="134" y="358" class="actor">GUEST</text>
+  <text x="134" y="375" class="t">View quote</text>
+  <text x="134" y="389" class="s">/q/token · or /portal/quotes</text>
+
+  <!-- 6 Accept -->
+  <rect x="120" y="412" width="220" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="134" y="430" class="actor">GUEST</text>
+  <text x="134" y="447" class="t">Accept → booking pending</text>
+  <text x="134" y="461" class="s">acceptAndConvertQuote</text>
+
+  <!-- 7 Pay -->
+  <rect x="120" y="484" width="220" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="134" y="502" class="actor">GUEST</text>
+  <text x="134" y="519" class="t">Pay · /pay/token</text>
+  <text x="134" y="533" class="s">deposit or full</text>
+
+  <!-- 8 Converted -->
+  <rect x="120" y="556" width="220" height="56" rx="12" fill="var(--p)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="134" y="574" class="actor" fill="#ffffff" opacity=".9">SYSTEM</text>
+  <text x="134" y="591" class="t" fill="#ffffff">Converted → booking</text>
+  <text x="134" y="605" class="s" fill="#eafff6">invoice · ledger · calendar block</text>
+
+  <!-- calendar-hold trigger -->
+  <g fill="none" stroke="var(--amber)" stroke-width="1.6" stroke-dasharray="4 3">
+    <path d="M340,296 L470,296" marker-end="url(#aha)"/>
+  </g>
+  <rect x="470" y="270" width="240" height="52" rx="10" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
+  <text x="484" y="290" class="actorA">TRIGGER</text>
+  <text x="484" y="306" class="t" font-size="12.5">Soft-hold the calendar</text>
+  <text x="484" y="318" class="s">blocked_dates · reason=quote_pending</text>
+
+  <!-- branch: Decline -->
+  <g fill="none" stroke="var(--amber)" stroke-width="1.6">
+    <path d="M340,368 L470,368" marker-end="url(#aha)"/>
+  </g>
+  <rect x="470" y="342" width="240" height="52" rx="10" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
+  <text x="484" y="362" class="actorA">GUEST / BRANCH</text>
+  <text x="484" y="378" class="t" font-size="12.5">Decline</text>
+  <text x="484" y="390" class="s">status → declined · holds cleared</text>
+
+  <!-- branch: Expire cron -->
+  <g fill="none" stroke="var(--amber)" stroke-width="1.6" stroke-dasharray="4 3">
+    <path d="M340,414 C420,414 430,432 468,432" marker-end="url(#aha)"/>
+  </g>
+  <rect x="470" y="410" width="240" height="52" rx="10" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
+  <text x="484" y="430" class="actorA">SYSTEM · CRON</text>
+  <text x="484" y="446" class="t" font-size="12.5">valid_until passes → expire</text>
+  <text x="484" y="458" class="s">expire-quotes hourly · holds cleared</text>
+
+  <!-- revise loop -->
+  <g fill="none" stroke="var(--p)" stroke-width="1.6" stroke-dasharray="4 3">
+    <path d="M120,224 C70,224 70,296 118,296" marker-end="url(#ah)"/>
+  </g>
+  <text x="24" y="262" class="s" transform="rotate(-90 24 262)">revise: version snapshot</text>
+
+  <!-- pay→convert trigger -->
+  <g fill="none" stroke="var(--p)" stroke-width="1.6" stroke-dasharray="4 3">
+    <path d="M340,512 L470,512" marker-end="url(#ah)"/>
+  </g>
+  <rect x="470" y="486" width="240" height="52" rx="10" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+  <text x="484" y="506" class="actor">TRIGGER</text>
+  <text x="484" y="522" class="t" font-size="12.5">On paid → quote converted</text>
+  <text x="484" y="534" class="s">on_quote_booking_confirmed</text>
+</svg>
