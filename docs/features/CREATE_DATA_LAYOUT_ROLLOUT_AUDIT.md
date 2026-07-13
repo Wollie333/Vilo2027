@@ -18,6 +18,7 @@ which get the pattern. **Tick the ones to convert.**
 | Specials / deals editor | `dashboard/specials/_components/SpecialEditor.tsx` |
 | Manual booking (create) | `dashboard/bookings/new/ManualBookingForm.tsx` |
 | **Quote** (new + edit) — page/embedded variant | `dashboard/quotes/QuoteForm.tsx` ✅ **DONE `92dcd1a5`** — page variant on new/edit pages (left-rail + Review + autosave); looking-for respond keeps the embedded layout. |
+| **Coupon** (new + edit) — was a modal | `dashboard/coupons/CouponEditor.tsx` ✅ **DONE `3ed85c1b`** — modal replaced by dedicated `/new` + `/[id]/edit` left-rail pages (Details · Discount · Limits · Review), autosave, live guest preview, status badges. Redemption verified live. `docs/lifecycles/coupons.md`. |
 
 ## 🟢 Strong candidates — full-page multi-step create/edit (recommend convert)
 | # | Surface | File | Notes |
@@ -34,10 +35,10 @@ which get the pattern. **Tick the ones to convert.**
 ## 🟡 Modal / dialog-based create-edit — need the "modal variant" decision first
 These live in list-managers with a dialog or inline row editor. The pattern can
 apply, but a modal needs its own rule: **persist-on-close + resume banner on
-dialog re-open** (not page load). Decide once, then apply to all.
+dialog re-open** (not page load) — OR convert to dedicated pages like coupons did.
 | Surface | File |
 |---|---|
-| Coupons (CouponDialog) | `dashboard/coupons/CouponsManager.tsx` |
+| ~~Coupons~~ ✅ converted to dedicated left-rail pages (`3ed85c1b`) — a template for the rest |
 | Rooms quick-add / settings | `dashboard/rooms/ListingSettingsDialog.tsx`, `.../tabs/RoomRowEditor.tsx`, `RoomsManager.tsx` |
 | Seasonal pricing | `dashboard/seasonal-pricing/SeasonalPricingManager.tsx` (2021 L, dialog-heavy) |
 | Banking dialogs | `settings/banking/_components/{BankAccountDialog,PaymentGatewayDialog,PaymentLinkDialog}.tsx` |

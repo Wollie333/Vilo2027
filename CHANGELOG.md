@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT (`3ed85c1b`). Coupons on the editor pattern + autosave + enhanced + tested.
+
+Rolled the create-data layout onto coupons (was a single modal). New dedicated pages `/coupons/new` +
+`/coupons/[id]/edit` with `CouponEditor` — left-rail 4 steps (Details · Discount · Limits & validity · Review),
+health ring, live sub-hints, a live guest preview of the discount at checkout (worked example), a Review step
+with quick-edit jumps + a single Create/Save CTA (no second primary button on the last step), and autosave
+(`entity_type:"coupon"`). The list is now list-only with a status badge (Active/Off/Scheduled/Expired/Used up);
+modal `CouponDialog` removed. Redemption logic (`resolveCoupon` + atomic `redeem_coupon`) unchanged. Verified
+live end-to-end incl. a real checkout redemption (25% off R4,080 = −R1,020, VAT recomputed, R5,037 → R3,864).
+Flow doc `docs/lifecycles/coupons.md`. build + lint green.
+
 ## 2026-07-13 — SAVE POINT (`92dcd1a5`). Quote form on the editor pattern (page/embedded variant) + autosave.
 
 Rolled the create-data default layout onto the quote form. Because QuoteForm is shared (new-quote, edit-quote,

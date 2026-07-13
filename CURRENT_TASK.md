@@ -2,7 +2,31 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-13 · `92dcd1a5`) — QUOTE FORM on the editor pattern (page/embedded variant) + AUTOSAVE. Rollout audit awaiting founder ticks.
+## ▶▶▶ SAVE POINT (2026-07-13 · `3ed85c1b`) — COUPON feature on the editor pattern + autosave + enhanced + tested end-to-end.
+
+All pushed to `main`, `pnpm build` + `pnpm lint` green. Founder asked to roll the create-data layout onto the
+**coupon** feature, then harden/test/refine/enhance it before doing others.
+
+**Coupons converted from a modal to dedicated left-rail pages** (`3ed85c1b`): `/dashboard/coupons/new` +
+`/dashboard/coupons/[id]/edit` with `CouponEditor.tsx` — identity bar (autosave indicator), 4-step rail
+(Details · Discount · Limits & validity · Review) w/ health ring + live sub-hints, one panel at a time, Review
+step w/ quick-edit jumps + a SINGLE Create/Save CTA (identity-bar button hides on Review — one primary button
+on the last step, per the founder rule). **Live guest preview** shows the discount as a checkout chip w/ a
+worked example (25% off R2,400 → −R600 → R1,800). **Autosave** wired (`entity_type:"coupon"`). List
+(`CouponsManager`) is now list-only, links to the pages, and shows a real **status badge** (Active/Off/
+Scheduled/Expired/Used up). Modal `CouponDialog` removed; shared loader `_data.ts`. Redemption logic
+(`resolveCoupon` + atomic `redeem_coupon`) UNCHANGED.
+
+**Verified live end-to-end:** new editor renders · guest preview recomputes · autosave local+server · create →
+list → edit loads values · single CTA on Review · a coupon created via the new editor **redeems at checkout**
+(25% off R4,080 stay = −R1,020, VAT recomputed to R504, total R5,037 → R3,864). Flow doc `docs/lifecycles/coupons.md`.
+
+**▶ NEXT (founder to pick from the rollout audit `docs/features/CREATE_DATA_LAYOUT_ROLLOUT_AUDIT.md`):** the
+coupon conversion is now a **template** for the other modal editors (rooms quick-add, seasonal, banking,
+managers) and the full-page candidates (listing editor, room editor, onboarding re-skin). Also still queued:
+add-on `vat_included` dead-flag · autosave TTL prune · rooms modal autosave.
+
+## ▶▶▶ SAVE POINT (2026-07-13 · `92dcd1a5`) — QUOTE FORM on the editor pattern (page/embedded variant) + AUTOSAVE. (prev)
 
 All pushed to `main`, `pnpm build` + `pnpm lint` green. Continuing the create-data default-layout rollout:
 
