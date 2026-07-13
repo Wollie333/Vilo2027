@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-13 — Specials editor enrichment: live economics + richer preview + review step.
+
+Three founder-requested enrichments to the specials editor (`SpecialEditor.tsx`), keeping the loved
+left-rail layout:
+
+1. **Live deal economics** — a sticky rail card that prices the deal AND its "normal rate" shadow with
+   the SAME engine the save path uses (`priceSpecialWithSavings`), so the host sees *guests pay R X incl.
+   VAT · R Y/night · normal rate (struck) · guests save R Z (P%)* update in real time as they change
+   price/dates/add-ons. When the price isn't below the normal rate it flips to an amber "No saving — lower
+   the price" nudge. Moves the savings insight out of the post-save toast and into live feedback.
+2. **Richer guest preview** — the docked preview now mirrors the public deal card: hero + "P% off" badge,
+   stay/date summary ("Any 2+ nights · anytime"), description, price + normal-rate strikethrough + "Save R Z",
+   and "what's included" chips from the compulsory add-ons.
+3. **At-a-glance review step** — a new 9th "Review" section: a readiness checklist (property/title/dates/price
+   with jump-to-fix links) + a one-screen summary (Deal, Where, Dates, Guests pay, Savings, Availability,
+   Extras, Visibility) each with a pencil quick-edit, and a prominent publish CTA.
+
+Data: `_lib/load.ts` now also loads per-property VAT (effective rate) + unit rates + active seasonal rules
+and per-add-on pricing model/min-qty, so the economics compute entirely client-side (server still
+re-computes + stores the badge authoritatively at save). `CheckoutDateEditor` unaffected.
+
+**Verified live** (host `host@wielotest.com`, deal `karoo-midweek-escape`, VAT 15%): economics showed
+R3,450 incl. VAT · save R23·1% (matching the stored badge + booking page to the cent); lowering the rate
+R1,350→R1,000 updated live to R2,645 · save R828·24%; a rate above the normal price showed the amber
+no-saving nudge; preview badge/price/strikethrough/Save all tracked live; Review step summarised correctly
+with quick-edit jumps. Client-only edits discarded on navigation (DB price still R1,350). `tsc` + `lint` +
+`pnpm build` (872pp) green. The specials **flow doc** (`docs/lifecycles/specials.md`) already exists and is
+kept current.
+
 ## 2026-07-13 — SAVE POINT: deal checkout UNIFIED into the main BookingForm. Both flows verified live.
 
 Deals now book through the **same mature 3-step checkout** as normal stays — the duplicate

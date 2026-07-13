@@ -7,16 +7,21 @@ import {
   BedDouble,
   CalendarCheck,
   CalendarDays,
+  CalendarRange,
   Check,
   ChevronRight,
+  ClipboardCheck,
   Globe,
   Layers,
   Loader2,
   PackagePlus,
+  Pencil,
   Plus,
   Sparkles,
   Tag,
+  TrendingDown,
   Type as TypeIcon,
+  Wallet,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -26,10 +31,14 @@ import { toast } from "sonner";
 
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/format";
+import { grossVat } from "@/lib/pricing/vat";
+import { priceSpecialWithSavings } from "@/lib/specials/pricing";
+import type { PricingUnit, StayAddon } from "@/lib/pricing";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import {
   ADDON_CATEGORIES,
   PRICING_MODELS,
+  defaultAddonQuantity,
   type AddonCategory,
   type PricingModel,
 } from "@/app/[locale]/dashboard/addons/schemas";
@@ -54,6 +63,19 @@ import {
   ToggleField,
 } from "./fields";
 
+const DAY_MS = 86_400_000;
+function nightsBetweenIso(a: string, b: string): number {
+  const f = Date.parse(`${a}T00:00:00Z`);
+  const t = Date.parse(`${b}T00:00:00Z`);
+  if (Number.isNaN(f) || Number.isNaN(t)) return 0;
+  return Math.max(0, Math.round((t - f) / DAY_MS));
+}
+function addDaysIso(iso: string, days: number): string {
+  return new Date(Date.parse(`${iso}T00:00:00Z`) + days * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
+}
+
 type SectionKey =
   | "details"
   | "property"
@@ -62,7 +84,8 @@ type SectionKey =
   | "availability"
   | "extras"
   | "merch"
-  | "publish";
+  | "publish"
+  | "review";
 
 type SectionDef = { key: SectionKey; label: string; icon: LucideIcon };
 
@@ -85,12 +108,16 @@ export function SpecialEditor({
   const [pending, startTransition] = useTransition();
   const [section, setSection] = useState<SectionKey>("details");
 
-  // Dynamically added addons (created inline via the "Add custom extra" form)
+  // Dynamically added addons (created inline via the "Add custom extra" form).
+  // Carries the pricing model + default qty so the live economics can price a
+  // just-created compulsory extra without a round-trip.
   type DynamicAddon = {
     id: string;
     name: string;
     unitPrice: number;
     currency: string;
+    pricingModel: PricingModel;
+    minQuantity: number;
   };
   const [dynamicAddons, setDynamicAddons] = useState<DynamicAddon[]>([]);
 
@@ -200,8 +227,16 @@ export function SpecialEditor({
         return;
       }
       const newAddon = res.data;
-      // Add to dynamic addons for display
-      setDynamicAddons((prev) => [...prev, newAddon]);
+      // Add to dynamic addons for display (carry pricing model + default qty so
+      // the live economics can price it immediately).
+      setDynamicAddons((prev) => [
+        ...prev,
+        {
+          ...newAddon,
+          pricingModel: inlinePricingModel,
+          minQuantity: inlineMinQty ?? 1,
+        },
+      ]);
       // Auto-select this addon in the form
       setForm((f) => ({
         ...f,
@@ -234,6 +269,152 @@ export function SpecialEditor({
   const allAddons = useMemo(() => {
     return [...data.addons, ...dynamicAddons];
   }, [data.addons, dynamicAddons]);
+
+  // ── Live deal economics ─────────────────────────────────────────────
+  // Prices the deal AND its "normal rate" shadow with the SAME engine the save
+  // path uses (`priceSpecialWithSavings`), so the host sees the guest price +
+  // real savings update as they type. Representative stay + unit + required
+  // add-ons mirror `_lib/savings.ts`. Advisory only — the server re-computes and
+  // stores the badge authoritatively at save.
+  const economics = useMemo(() => {
+    if (!selectedProperty) return null;
+    const dates =
+      form.date_mode === "fixed"
+        ? form.fixed_check_in && form.fixed_check_out
+          ? { checkIn: form.fixed_check_in, checkOut: form.fixed_check_out }
+          : null
+        : form.window_start && form.min_nights
+          ? {
+              checkIn: form.window_start,
+              checkOut: addDaysIso(form.window_start, form.min_nights),
+            }
+          : null;
+    if (!dates) return null;
+    const priceSet =
+      form.price_mode === "flat"
+        ? (form.flat_total ?? 0) > 0
+        : (form.per_night_price ?? 0) > 0;
+    if (!priceSet) return null;
+
+    const room = form.room_id
+      ? (selectedProperty.rooms.find((r) => r.id === form.room_id) ?? null)
+      : null;
+    const guests =
+      form.max_guests ?? room?.maxGuests ?? selectedProperty.maxGuests ?? 1;
+
+    const unit: PricingUnit | null = room
+      ? room.basePrice == null
+        ? null
+        : {
+            roomId: room.id,
+            pricing_mode: room.pricingMode as PricingUnit["pricing_mode"],
+            base_price: room.basePrice,
+            price_per_person: room.pricePerPerson,
+            base_occupancy: room.baseOccupancy,
+            extra_guest_price: room.extraGuestPrice,
+            weekend_price: room.weekendPrice,
+            cleaning_fee: room.cleaningFee,
+            guests,
+          }
+      : selectedProperty.basePrice == null
+        ? null
+        : {
+            roomId: null,
+            pricing_mode: "per_room",
+            base_price: selectedProperty.basePrice,
+            price_per_person: null,
+            base_occupancy: null,
+            extra_guest_price: null,
+            weekend_price: selectedProperty.weekendPrice,
+            cleaning_fee: selectedProperty.cleaningFee,
+            guests,
+          };
+    // No configured rate to compare against — can't show economics yet.
+    if (!unit) return { noRate: true as const };
+
+    const nights = Math.max(1, nightsBetweenIso(dates.checkIn, dates.checkOut));
+    const requiredAddons: StayAddon[] = form.addons
+      .filter((a) => a.is_required)
+      .flatMap((a) => {
+        const cat = allAddons.find((x) => x.id === a.addon_id);
+        if (!cat) return [];
+        const model = cat.pricingModel;
+        const unitPrice = a.unit_price_override ?? cat.unitPrice;
+        const line: StayAddon = {
+          label: cat.name,
+          pricingModel: model,
+          unitPrice,
+          quantity: defaultAddonQuantity(model, cat.minQuantity ?? 1, nights),
+          addonId: a.addon_id,
+        };
+        return [line];
+      });
+
+    const { special, savings } = priceSpecialWithSavings({
+      priceMode: form.price_mode,
+      flatTotal: form.flat_total,
+      perNightPrice: form.per_night_price,
+      currency,
+      checkIn: dates.checkIn,
+      checkOut: dates.checkOut,
+      unit,
+      totalGuests: guests,
+      seasonalRules: selectedProperty.seasonalRules,
+      requiredAddons,
+    });
+    const vr = selectedProperty.vatRate;
+    return {
+      noRate: false as const,
+      nights,
+      guests,
+      flexible: form.date_mode !== "fixed",
+      guestPays: grossVat(special.total, vr),
+      perNight: grossVat(special.total / nights, vr),
+      wasPrice:
+        savings.wasPrice != null ? grossVat(savings.wasPrice, vr) : null,
+      savingsAmount:
+        savings.savingsAmount != null
+          ? grossVat(savings.savingsAmount, vr)
+          : null,
+      savingsPct: savings.savingsPct,
+      vatRate: vr,
+    };
+  }, [form, selectedProperty, allAddons, currency]);
+
+  // The required (compulsory) add-on names — "what's included" chips on the card.
+  const includedAddonNames = useMemo(
+    () =>
+      form.addons
+        .filter((a) => a.is_required)
+        .map((a) => allAddons.find((x) => x.id === a.addon_id)?.name)
+        .filter((n): n is string => !!n),
+    [form.addons, allAddons],
+  );
+
+  // Guest-facing stay/date summary — mirrors the public deal card exactly.
+  const stayLabel = useMemo(() => {
+    if (form.date_mode === "fixed") {
+      const n =
+        form.fixed_check_in && form.fixed_check_out
+          ? nightsBetweenIso(form.fixed_check_in, form.fixed_check_out)
+          : 0;
+      return n > 0 ? `${n} night${n === 1 ? "" : "s"} · fixed dates` : null;
+    }
+    if (form.is_evergreen)
+      return `Any ${form.min_nights ?? 1}+ nights · anytime`;
+    if (form.max_nights && form.min_nights === form.max_nights)
+      return `${form.min_nights} night${form.min_nights === 1 ? "" : "s"}`;
+    return `Any ${form.min_nights ?? 1}${
+      form.max_nights ? `–${form.max_nights}` : "+"
+    } nights`;
+  }, [
+    form.date_mode,
+    form.fixed_check_in,
+    form.fixed_check_out,
+    form.is_evergreen,
+    form.min_nights,
+    form.max_nights,
+  ]);
 
   function submit(status: SpecialEditorStatus) {
     if (!form.property_id) {
@@ -363,6 +544,8 @@ export function SpecialEditor({
         return form.categories.length > 0 || !!form.badge;
       case "publish":
         return form.show_in_directory || form.show_on_website;
+      case "review":
+        return allDone;
     }
   }
 
@@ -404,6 +587,8 @@ export function SpecialEditor({
             ]
               .filter(Boolean)
               .join(" · ");
+      case "review":
+        return allDone ? "Ready to publish" : `${doneCount}/4 ready`;
     }
   }
 
@@ -416,6 +601,7 @@ export function SpecialEditor({
     { key: "extras", label: t("navExtras"), icon: PackagePlus },
     { key: "merch", label: t("navMerch"), icon: Tag },
     { key: "publish", label: t("navPublish"), icon: Globe },
+    { key: "review", label: "Review", icon: ClipboardCheck },
   ];
   const sectionIdx = SECTIONS.findIndex((s) => s.key === section);
   const isLast = sectionIdx === SECTIONS.length - 1;
@@ -435,6 +621,7 @@ export function SpecialEditor({
     extras: t("secAddonsTitle"),
     merch: t("secMerchTitle"),
     publish: t("secVisibilityTitle"),
+    review: "Review & publish",
   };
   const panelDesc: Record<SectionKey, string> = {
     details: t("secPresentSub"),
@@ -445,6 +632,7 @@ export function SpecialEditor({
     extras: t("secAddonsSub"),
     merch: t("secMerchSub"),
     publish: t("secVisibilitySub"),
+    review: "One last look at the whole deal before it goes live.",
   };
   const PanelIcon = SECTIONS[sectionIdx]?.icon ?? TypeIcon;
 
@@ -593,58 +781,177 @@ export function SpecialEditor({
             })}
           </div>
 
-          {/* docked guest preview — mirrors the public deal card */}
+          {/* ── live deal economics ── */}
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-center gap-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+              <Wallet className="h-3 w-3" /> Deal economics
+            </div>
+            <div className="rounded-card border border-brand-line bg-white p-3.5 shadow-card">
+              {economics == null ? (
+                <p className="text-[12px] leading-relaxed text-brand-mute">
+                  Set the <span className="font-medium">dates</span> and{" "}
+                  <span className="font-medium">price</span> to see what guests
+                  pay and how much they save.
+                </p>
+              ) : economics.noRate ? (
+                <p className="text-[12px] leading-relaxed text-brand-mute">
+                  Add a nightly rate to this{" "}
+                  {form.room_id ? "room" : "property"} so we can show the saving
+                  versus your normal rate.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  <div className="flex items-end justify-between gap-2">
+                    <div>
+                      <div className="text-[10.5px] font-medium uppercase tracking-wide text-brand-mute">
+                        Guests pay{economics.vatRate > 0 ? " · incl. VAT" : ""}
+                      </div>
+                      <div className="font-display text-[22px] font-extrabold leading-none text-brand-ink">
+                        {formatMoney(economics.guestPays, currency)}
+                      </div>
+                    </div>
+                    <div className="text-right text-[11px] text-brand-mute">
+                      {economics.nights} night
+                      {economics.nights === 1 ? "" : "s"}
+                      <br />
+                      {formatMoney(economics.perNight, currency)}/night
+                    </div>
+                  </div>
+
+                  {economics.wasPrice != null ? (
+                    <div className="flex items-center justify-between border-t border-brand-line/70 pt-2 text-[12px]">
+                      <span className="text-brand-mute">Normal rate</span>
+                      <span className="font-medium text-brand-ink line-through">
+                        {formatMoney(economics.wasPrice, currency)}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {economics.savingsAmount != null && economics.savingsPct ? (
+                    <div className="flex items-center justify-between rounded-[9px] bg-emerald-50 px-2.5 py-1.5 text-[12px]">
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                        <TrendingDown className="h-3.5 w-3.5" /> Guests save
+                      </span>
+                      <span className="font-bold text-emerald-700">
+                        {formatMoney(economics.savingsAmount, currency)} ·{" "}
+                        {economics.savingsPct}%
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="rounded-[9px] bg-amber-50 px-2.5 py-1.5 text-[11.5px] leading-snug text-amber-800">
+                      No saving versus your rate for these dates — lower the
+                      price to make it a real deal.
+                    </div>
+                  )}
+
+                  {economics.flexible ? (
+                    <p className="text-[10.5px] leading-snug text-brand-mute">
+                      Based on a {economics.nights}-night stay from your window
+                      start; longer stays scale up.
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── docked guest preview — mirrors the public deal card ── */}
           <div className="mt-4">
             <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
               {t("previewSiteLabel")}
             </div>
-            <div className="rounded-card border border-brand-line bg-white p-3 shadow-card">
-              <div className="flex items-center gap-3">
-                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[11px] bg-brand-accent">
-                  {heroUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={heroUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-brand-primary">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                  )}
-                  {form.badge ? (
-                    <span className="absolute left-0 top-1.5 inline-flex items-center gap-1 rounded-r-pill bg-brand-primary px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow">
-                      <Tag className="h-2.5 w-2.5" />
-                      {form.badge}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-display text-[13px] font-bold text-brand-ink">
-                    {displayName}
+            <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-brand-accent">
+                {heroUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={heroUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-brand-primary">
+                    <Sparkles className="h-7 w-7" />
                   </div>
-                  {form.description ? (
-                    <div className="mt-0.5 line-clamp-2 text-[10.5px] leading-snug text-brand-mute">
-                      {form.description}
-                    </div>
-                  ) : null}
-                  {previewAmount ? (
-                    <div className="mt-1 flex items-baseline gap-1">
-                      <span className="font-display text-[13.5px] font-bold text-brand-primary">
-                        {formatMoney(previewAmount, currency)}
-                      </span>
-                      <span className="text-[10.5px] text-brand-mute">
-                        {form.price_mode === "flat"
-                          ? t("dtPackageTotal")
-                          : t("dtPerNight")}
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
+                )}
+                {form.badge ? (
+                  <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-pill bg-brand-primary px-2 py-0.5 text-[9.5px] font-bold text-white shadow">
+                    <Tag className="h-2.5 w-2.5" />
+                    {form.badge}
+                  </span>
+                ) : null}
+                {economics && !economics.noRate && economics.savingsPct ? (
+                  <span className="absolute right-2.5 top-2.5 inline-flex items-center rounded-pill bg-emerald-600 px-2 py-0.5 text-[9.5px] font-bold text-white shadow">
+                    {economics.savingsPct}% off
+                  </span>
+                ) : null}
               </div>
-              <div className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-brand-primary bg-brand-accent/40 px-4 py-2 text-[12.5px] font-semibold text-brand-secondary">
-                <CalendarCheck className="h-3.5 w-3.5" /> {t("previewBook")}
+              <div className="p-3">
+                <div className="truncate font-display text-[13.5px] font-bold text-brand-ink">
+                  {displayName}
+                </div>
+                {stayLabel ? (
+                  <div className="mt-0.5 flex items-center gap-1 text-[10.5px] font-medium text-brand-secondary">
+                    <CalendarRange className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{stayLabel}</span>
+                  </div>
+                ) : null}
+                {form.description ? (
+                  <div className="mt-1 line-clamp-2 text-[10.5px] leading-snug text-brand-mute">
+                    {form.description}
+                  </div>
+                ) : null}
+                {previewAmount ? (
+                  <div className="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                    <span className="font-display text-[14px] font-bold text-brand-ink">
+                      {formatMoney(
+                        grossVat(previewAmount, selectedProperty?.vatRate ?? 0),
+                        currency,
+                      )}
+                    </span>
+                    <span className="text-[10.5px] text-brand-mute">
+                      {form.price_mode === "flat"
+                        ? t("dtPackageTotal")
+                        : t("dtPerNight")}
+                    </span>
+                    {economics && !economics.noRate && economics.wasPrice ? (
+                      <span className="text-[10.5px] text-brand-mute line-through">
+                        {formatMoney(
+                          form.price_mode === "flat"
+                            ? economics.wasPrice
+                            : economics.wasPrice / economics.nights,
+                          currency,
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {economics && !economics.noRate && economics.savingsAmount ? (
+                  <div className="mt-1 text-[11px] font-semibold text-emerald-700">
+                    Save {formatMoney(economics.savingsAmount, currency)}
+                  </div>
+                ) : null}
+                {includedAddonNames.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {includedAddonNames.slice(0, 3).map((name) => (
+                      <span
+                        key={name}
+                        className="inline-flex items-center gap-1 rounded-pill bg-brand-accent/40 px-2 py-0.5 text-[10px] font-medium text-brand-secondary"
+                      >
+                        <Check className="h-2.5 w-2.5" />
+                        {name}
+                      </span>
+                    ))}
+                    {includedAddonNames.length > 3 ? (
+                      <span className="inline-flex items-center rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-mute">
+                        +{includedAddonNames.length - 3} more
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                <div className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-brand-primary bg-brand-accent/40 px-4 py-2 text-[12px] font-semibold text-brand-secondary">
+                  <CalendarCheck className="h-3.5 w-3.5" /> {t("previewBook")}
+                </div>
               </div>
             </div>
           </div>
@@ -1212,6 +1519,220 @@ export function SpecialEditor({
                 </div>
               </>
             ) : null}
+
+            {section === "review" ? (
+              <div className="space-y-4">
+                {/* readiness checklist */}
+                <div className="rounded-[12px] border border-brand-line bg-brand-light/40 p-4">
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <span className="font-display text-[14px] font-bold text-brand-ink">
+                      {allDone
+                        ? "Ready to publish 🎉"
+                        : "A few essentials left"}
+                    </span>
+                    <span className="text-[11px] font-medium text-brand-mute">
+                      {doneCount}/{checklist.length} done
+                    </span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {(
+                      [
+                        [
+                          "Property & target",
+                          form.property_id !== "",
+                          "property",
+                        ],
+                        ["Title", form.title.trim().length > 0, "details"],
+                        ["Dates", datesValid, "dates"],
+                        ["Price", priceValid, "pricing"],
+                      ] as [string, boolean, SectionKey][]
+                    ).map(([label, ok, key]) => (
+                      <li
+                        key={label}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <span className="flex items-center gap-2 text-[12.5px]">
+                          <span
+                            className={`flex h-4 w-4 items-center justify-center rounded-full ${
+                              ok
+                                ? "bg-brand-primary text-white"
+                                : "border border-brand-line bg-white"
+                            }`}
+                          >
+                            {ok ? <Check className="h-2.5 w-2.5" /> : null}
+                          </span>
+                          <span
+                            className={
+                              ok ? "text-brand-ink" : "text-brand-mute"
+                            }
+                          >
+                            {label}
+                          </span>
+                        </span>
+                        {!ok ? (
+                          <button
+                            type="button"
+                            onClick={() => setSection(key)}
+                            className="text-[11.5px] font-medium text-brand-primary hover:underline"
+                          >
+                            Add now
+                          </button>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* at-a-glance summary */}
+                <div className="overflow-hidden rounded-[12px] border border-brand-line">
+                  <SummaryRow
+                    label="Deal"
+                    value={displayName}
+                    onEdit={() => setSection("details")}
+                  />
+                  <SummaryRow
+                    label="Where"
+                    value={
+                      selectedProperty
+                        ? `${selectedProperty.name} · ${
+                            form.room_id
+                              ? (selectedProperty.rooms.find(
+                                  (r) => r.id === form.room_id,
+                                )?.name ?? "Room")
+                              : "Whole property"
+                          }`
+                        : "Not chosen"
+                    }
+                    onEdit={() => setSection("property")}
+                  />
+                  <SummaryRow
+                    label="Dates"
+                    value={
+                      stayLabel ??
+                      (form.date_mode === "fixed"
+                        ? "Fixed dates not set"
+                        : "Window not set")
+                    }
+                    onEdit={() => setSection("dates")}
+                  />
+                  <SummaryRow
+                    label="Guests pay"
+                    value={
+                      economics && !economics.noRate
+                        ? `${formatMoney(economics.guestPays, currency)}${
+                            economics.vatRate > 0 ? " incl. VAT" : ""
+                          } · ${economics.nights} night${
+                            economics.nights === 1 ? "" : "s"
+                          }`
+                        : priceValid
+                          ? `${formatMoney(
+                              grossVat(
+                                previewAmount ?? 0,
+                                selectedProperty?.vatRate ?? 0,
+                              ),
+                              currency,
+                            )} ${
+                              form.price_mode === "flat"
+                                ? "package"
+                                : "per night"
+                            }`
+                          : "Not set"
+                    }
+                    onEdit={() => setSection("pricing")}
+                  />
+                  <SummaryRow
+                    label="Savings"
+                    value={
+                      economics && !economics.noRate
+                        ? economics.savingsAmount != null &&
+                          economics.savingsPct
+                          ? `Guests save ${formatMoney(
+                              economics.savingsAmount,
+                              currency,
+                            )} (${economics.savingsPct}%)`
+                          : "No saving vs your rate yet"
+                        : "—"
+                    }
+                    tone={
+                      economics && !economics.noRate && economics.savingsAmount
+                        ? "good"
+                        : economics && !economics.noRate
+                          ? "warn"
+                          : "muted"
+                    }
+                    onEdit={() => setSection("pricing")}
+                  />
+                  <SummaryRow
+                    label="Availability"
+                    value={
+                      form.date_mode === "fixed"
+                        ? "1 booking (fixed dates)"
+                        : `${form.quantity ?? 0} available`
+                    }
+                    onEdit={() => setSection("availability")}
+                  />
+                  <SummaryRow
+                    label="Extras"
+                    value={
+                      form.addons.length > 0
+                        ? `${form.addons.length} add-on${
+                            form.addons.length === 1 ? "" : "s"
+                          }${
+                            includedAddonNames.length > 0
+                              ? ` · ${includedAddonNames.length} included`
+                              : ""
+                          }`
+                        : "None"
+                    }
+                    onEdit={() => setSection("extras")}
+                  />
+                  <SummaryRow
+                    label="Visibility"
+                    value={
+                      linkOnly
+                        ? "Link only"
+                        : [
+                            form.show_in_directory ? "Directory" : null,
+                            form.show_on_website ? "Website" : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")
+                    }
+                    onEdit={() => setSection("publish")}
+                  />
+                </div>
+
+                {/* publish CTA */}
+                <button
+                  type="button"
+                  onClick={() => submit("active")}
+                  disabled={pending || !allDone}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-primary px-4 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary disabled:opacity-50"
+                >
+                  {pending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {mode === "edit" && initialStatus === "active"
+                    ? t("saveKeepLive")
+                    : t("savePublish")}
+                </button>
+                {!allDone ? (
+                  <p className="text-center text-[11.5px] text-brand-mute">
+                    Complete the essentials above to publish. You can still{" "}
+                    <button
+                      type="button"
+                      onClick={() => submit("draft")}
+                      className="font-medium text-brand-primary hover:underline"
+                    >
+                      save as a draft
+                    </button>{" "}
+                    for now.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </Panel>
 
           {/* footer nav */}
@@ -1257,6 +1778,50 @@ function Panel({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
       <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+
+// One line of the at-a-glance review summary: label · value · quick-jump edit.
+function SummaryRow({
+  label,
+  value,
+  tone = "default",
+  onEdit,
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "good" | "warn" | "muted";
+  onEdit?: () => void;
+}) {
+  const valueClass =
+    tone === "good"
+      ? "text-emerald-700 font-semibold"
+      : tone === "warn"
+        ? "text-amber-700 font-medium"
+        : tone === "muted"
+          ? "text-brand-mute"
+          : "text-brand-ink font-medium";
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-brand-line bg-white px-3.5 py-2.5 last:border-b-0">
+      <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+        {label}
+      </span>
+      <span className="flex min-w-0 items-center gap-2">
+        <span className={`truncate text-right text-[12.5px] ${valueClass}`}>
+          {value}
+        </span>
+        {onEdit ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Edit ${label}`}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-brand-mute transition hover:bg-brand-light hover:text-brand-primary"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+      </span>
     </div>
   );
 }

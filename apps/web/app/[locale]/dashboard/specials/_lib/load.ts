@@ -1,14 +1,34 @@
 import "server-only";
 
+import { effectiveVatRate } from "@/lib/pricing/vat";
+import type { SeasonalRule } from "@/lib/pricing";
 import { createServerClient } from "@/lib/supabase/server";
 
+import type { PricingModel } from "@/app/[locale]/dashboard/addons/schemas";
 import type { SpecialInput } from "../schemas";
 
 // Shared option lists the editor needs (properties + rooms, add-ons, cancellation
 // policies, and the per-business website id so the hero picker can upload into
 // that site's asset folder). Owner-scoped — every read filters by host_id.
+//
+// Pricing fields (property + room rates, VAT, seasonal rules) are also loaded so
+// the editor can compute the LIVE deal economics (guest price + savings) entirely
+// client-side, mirroring the server-side savings badge (`_lib/savings.ts`). The
+// server still re-computes authoritatively at save; the editor figure is advisory.
 
-export type EditorRoom = { id: string; name: string };
+/** A room's priceable rates, so the editor can price a room-scoped deal live. */
+export type EditorRoom = {
+  id: string;
+  name: string;
+  maxGuests: number | null;
+  basePrice: number | null;
+  weekendPrice: number | null;
+  cleaningFee: number;
+  pricingMode: string;
+  pricePerPerson: number | null;
+  baseOccupancy: number | null;
+  extraGuestPrice: number | null;
+};
 export type EditorProperty = {
   id: string;
   name: string;
@@ -18,6 +38,14 @@ export type EditorProperty = {
   city: string | null;
   province: string | null;
   maxGuests: number | null;
+  /** Effective VAT rate (0 unless VAT-registered) — grosses the live economics. */
+  vatRate: number;
+  /** Whole-property rates (used when the deal targets the whole listing). */
+  basePrice: number | null;
+  weekendPrice: number | null;
+  cleaningFee: number;
+  /** Active seasonal rules — priced into the "normal rate" savings shadow only. */
+  seasonalRules: SeasonalRule[];
   rooms: EditorRoom[];
 };
 export type EditorAddon = {
@@ -25,6 +53,8 @@ export type EditorAddon = {
   name: string;
   unitPrice: number;
   currency: string;
+  pricingModel: PricingModel;
+  minQuantity: number;
 };
 export type EditorPolicy = { id: string; name: string };
 export type EditorCategory = {
@@ -56,14 +86,16 @@ export async function loadSpecialEditorData(
     supabase
       .from("properties")
       .select(
-        "id, name, business_id, currency, property_type, city, province, max_guests, rooms:property_rooms ( id, name, is_active, deleted_at, sort_order )",
+        "id, name, business_id, currency, property_type, city, province, max_guests, vat_number, vat_rate, base_price, weekend_price, cleaning_fee, rooms:property_rooms ( id, name, is_active, deleted_at, sort_order, max_guests, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price )",
       )
       .eq("host_id", hostId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     supabase
       .from("addons")
-      .select("id, name, unit_price, currency, is_active")
+      .select(
+        "id, name, unit_price, currency, is_active, pricing_model, min_quantity",
+      )
       .eq("host_id", hostId)
       .order("sort_order", { ascending: true }),
     supabase
@@ -86,6 +118,56 @@ export async function loadSpecialEditorData(
       .order("sort_order", { ascending: true }),
   ]);
 
+  // Active seasonal rules for every one of the host's properties — priced only
+  // into the "normal rate" savings shadow, never the deal's own price. One extra
+  // read keyed by the property ids we just loaded.
+  const propertyIds = (props ?? []).map((p) => p.id);
+  const rulesByProperty = new Map<string, SeasonalRule[]>();
+  if (propertyIds.length > 0) {
+    const { data: seasonalRows } = await supabase
+      .from("property_seasonal_pricing")
+      .select(
+        "property_id, room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
+      )
+      .in("property_id", propertyIds)
+      .eq("is_active", true);
+    for (const s of seasonalRows ?? []) {
+      const arr = rulesByProperty.get(s.property_id) ?? [];
+      arr.push({
+        roomId: s.room_id,
+        startDate: s.start_date,
+        endDate: s.end_date,
+        adjustmentType:
+          s.adjustment_type === "percent" ? "percent" : "absolute",
+        adjustmentValue: Number(s.adjustment_value),
+        label: s.label,
+        priority: s.priority ?? 0,
+        minNights: s.min_nights ?? null,
+        isActive: s.is_active,
+        createdAt: s.created_at,
+      });
+      rulesByProperty.set(s.property_id, arr);
+    }
+  }
+
+  type RoomRow = {
+    id: string;
+    name: string;
+    is_active: boolean;
+    deleted_at: string | null;
+    sort_order: number;
+    max_guests: number | null;
+    base_price: number | string | null;
+    weekend_price: number | string | null;
+    cleaning_fee: number | string | null;
+    pricing_mode: string | null;
+    price_per_person: number | string | null;
+    base_occupancy: number | null;
+    extra_guest_price: number | string | null;
+  };
+  const numOrNull = (v: number | string | null | undefined): number | null =>
+    v == null || v === "" ? null : Number(v);
+
   const properties: EditorProperty[] = (props ?? []).map((p) => ({
     id: p.id,
     name: p.name,
@@ -95,18 +177,26 @@ export async function loadSpecialEditorData(
     city: p.city,
     province: p.province,
     maxGuests: p.max_guests,
-    rooms: (
-      (p.rooms as Array<{
-        id: string;
-        name: string;
-        is_active: boolean;
-        deleted_at: string | null;
-        sort_order: number;
-      }> | null) ?? []
-    )
+    vatRate: effectiveVatRate(p),
+    basePrice: numOrNull(p.base_price),
+    weekendPrice: numOrNull(p.weekend_price),
+    cleaningFee: Number(p.cleaning_fee ?? 0),
+    seasonalRules: rulesByProperty.get(p.id) ?? [],
+    rooms: (((p.rooms as RoomRow[] | null) ?? []) as RoomRow[])
       .filter((r) => r.deleted_at === null && r.is_active)
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((r) => ({ id: r.id, name: r.name })),
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        maxGuests: r.max_guests,
+        basePrice: numOrNull(r.base_price),
+        weekendPrice: numOrNull(r.weekend_price),
+        cleaningFee: Number(r.cleaning_fee ?? 0),
+        pricingMode: r.pricing_mode ?? "per_room",
+        pricePerPerson: numOrNull(r.price_per_person),
+        baseOccupancy: r.base_occupancy ?? null,
+        extraGuestPrice: numOrNull(r.extra_guest_price),
+      })),
   }));
 
   const editorAddons: EditorAddon[] = (addons ?? [])
@@ -116,6 +206,8 @@ export async function loadSpecialEditorData(
       name: a.name,
       unitPrice: Number(a.unit_price),
       currency: a.currency,
+      pricingModel: (a.pricing_model ?? "per_stay") as PricingModel,
+      minQuantity: a.min_quantity ?? 1,
     }));
 
   const websiteByBusiness: Record<string, string> = {};
