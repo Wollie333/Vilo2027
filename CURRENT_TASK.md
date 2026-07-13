@@ -2,9 +2,25 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-13 · `13c37ee5`) — ADD-ONS ENRICHED + AUTO-SAVE DRAFTS (A+B) LIVE. NEXT = autosave for rooms/coupons + audit backlog.
+## ▶▶▶ SAVE POINT (2026-07-13) — ADD-ONS ENRICHED + AUTO-SAVE DRAFTS (A+B) LIVE + MVP-VERIFIED. NEXT = autosave for rooms/coupons + audit backlog.
 
 All pushed to `main`, verified live end-to-end, `pnpm build` (872pp) + `pnpm lint` green. Two founder asks:
+
+**✅ MVP-READINESS TEST PASS (2026-07-13, full live sweep — everything 100% ready):**
+- **Add-ons economics** — verified live for **all 5 pricing models** at R100 / 2 nights / 2 guests:
+  per_stay R100 · per_couple R100 · per_guest R200 · per_night R200 · per_guest_per_night R400 (all match
+  `computeAddonSubtotal` exactly).
+- **Add-ons Review step** — all 8 summary rows correct (name/category/description/price/worked-example/stock/
+  offered-on/photo), readiness ring + checklist accurate, quick-edit jumps work, context-aware publish CTA.
+- **Add-ons autosave** — edit → localStorage + `form_drafts` row both written; banner on return; **Restore**
+  exact (price 100 + per_couple); **Discard** clears both layers; **Save** clears both (no stale resume).
+  **New-add-on create flow** (blank draft → editor) autosaves on the fresh entity, saves & persists, clears draft.
+- **Specials autosave** — **edit mode** (banner/restore/discard/save-clear) AND **create mode** (`entityId=null`)
+  both verified: draft keyed `special:new`, server row with `entity_id IS NULL` (PG15 NULLS-NOT-DISTINCT upsert
+  works), banner on return, restore exact. Enrichment (economics/preview/Review rail) renders intact.
+- **Integrity** — zero console errors throughout; **no real data mutated** (Farm breakfast still 140/per_guest_
+  per_night); no stray test add-ons/specials; **all `form_drafts` cleared** at end. Cross-editor keys isolated
+  by entityType.
 
 **1) Add-ons editor ENRICHED** (`0b949d31`) — same pattern as the specials enrichment, keeping the loved
 left-rail step-tabs. (a) live "What the guest pays" economics card (nights/guests steppers → exact checkout

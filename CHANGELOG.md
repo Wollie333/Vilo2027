@@ -5,6 +5,15 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT. MVP-readiness test pass: add-ons + specials 100% verified.
+
+Full live sweep confirming both features are MVP-ready. **Add-ons:** economics card correct for all 5 pricing
+models (per_stay/per_couple/per_guest/per_night/per_guest_per_night = R100/100/200/200/400 at R100·2n·2g);
+Review step all 8 rows correct; autosave edit + new-create flows (banner/restore/discard/save-clear) all pass;
+new-add-on create → save persists → draft clears. **Specials:** autosave edit AND create mode (`entity_id
+IS NULL` upsert via PG15 NULLS-NOT-DISTINCT) verified; enrichment renders intact. Zero console errors; no real
+data mutated (Farm breakfast intact); no stray records; all `form_drafts` cleared. `build` + `lint` green.
+
 ## 2026-07-13 — SAVE POINT (`13c37ee5`). Add-ons enriched + auto-save drafts (Layer A+B) live.
 
 Two founder asks, both shipped, verified live end-to-end, `pnpm build` (872pp) + `pnpm lint` green:
