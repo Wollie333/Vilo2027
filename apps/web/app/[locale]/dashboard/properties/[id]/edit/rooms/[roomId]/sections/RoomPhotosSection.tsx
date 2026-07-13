@@ -1,7 +1,7 @@
 "use client";
 
 import { Star, Trash2, Upload } from "lucide-react";
-import { useMemo, useRef, useTransition } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -11,13 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  PHOTO_ACCEPT_ATTR,
+  uploadListingPhotos,
+  validatePhotoFiles,
+} from "@/components/listing/photoUpload";
 import { modal } from "@/components/ui/modal-host";
-import { createClient } from "@/lib/supabase/client";
 
 import {
-  createListingPhotoUploadUrl,
   deleteListingPhotoAction,
-  registerListingPhotoAction,
   setRoomFeaturedPhotoAction,
 } from "../../../actions";
 import type { RoomEditorPhoto } from "../RoomEditor";
@@ -38,54 +40,39 @@ export function RoomPhotosSection({
   onFeaturedChange: (photoId: string | null) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [uploadPending, startUpload] = useTransition();
-  const supabase = useMemo(() => createClient(), []);
+  const [progress, setProgress] = useState<{ total: number; done: number }>({
+    total: 0,
+    done: 0,
+  });
+  const uploading = progress.total > 0;
 
-  function upload(files: FileList | null) {
+  async function upload(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const file = files[0];
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    startUpload(async () => {
-      try {
-        // Signed-URL upload: server issues the URL, browser uploads straight to
-        // Storage with the token, then we record the row. No body cap, no
-        // browser-session dependency.
-        const ticket = await createListingPhotoUploadUrl(
-          listingId,
-          ext,
-          roomId,
+    const valid = validatePhotoFiles(Array.from(files), (m) => toast.error(m));
+    if (valid.length === 0) return;
+
+    // Snapshot so the concurrent uploads append in selection order.
+    const base = photos;
+    setProgress({ total: valid.length, done: 0 });
+    try {
+      const uploaded = await uploadListingPhotos({
+        listingId,
+        roomId,
+        files: valid,
+        onProgress: (done, total) => setProgress({ total, done }),
+        onPhotos: (completed) => onPhotosChange([...base, ...completed]),
+        onError: (m) => toast.error(m),
+      });
+      if (uploaded.length > 0) {
+        toast.success(
+          uploaded.length === 1
+            ? "Photo uploaded"
+            : `${uploaded.length} photos uploaded`,
         );
-        if (!ticket.ok || !ticket.data) {
-          toast.error(ticket.ok ? "Could not start upload" : ticket.error);
-          return;
-        }
-        const { error: upErr } = await supabase.storage
-          .from("listing-photos")
-          .uploadToSignedUrl(ticket.data.path, ticket.data.token, file, {
-            contentType: file.type || "image/jpeg",
-          });
-        if (upErr) {
-          toast.error(upErr.message || "Upload failed");
-          return;
-        }
-        const result = await registerListingPhotoAction(
-          listingId,
-          ticket.data.path,
-          roomId,
-        );
-        if (result.ok && result.data) {
-          onPhotosChange([
-            ...photos,
-            { id: result.data.id, url: result.data.url },
-          ]);
-          toast.success("Photo uploaded");
-        } else if (!result.ok) {
-          toast.error(result.error);
-        }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Upload error");
       }
-    });
+    } finally {
+      setProgress({ total: 0, done: 0 });
+    }
   }
 
   async function remove(photoId: string) {
@@ -179,19 +166,24 @@ export function RoomPhotosSection({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            disabled={uploadPending}
+            disabled={uploading}
             className="flex aspect-[4/3] flex-col items-center justify-center gap-1 rounded-card border-2 border-dashed border-brand-line bg-brand-light/40 text-xs font-medium text-brand-mute transition-colors hover:border-brand-primary hover:bg-brand-accent/40 hover:text-brand-primary disabled:opacity-50"
           >
             <Upload className="h-5 w-5" />
-            {uploadPending ? "Uploading…" : "Add photo"}
+            {uploading
+              ? progress.total > 1
+                ? `Uploading ${progress.done} of ${progress.total}…`
+                : "Uploading…"
+              : "Add photos"}
           </button>
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            multiple
+            accept={PHOTO_ACCEPT_ATTR}
             className="hidden"
             onChange={(e) => {
-              upload(e.target.files);
+              void upload(e.target.files);
               if (e.target) e.target.value = "";
             }}
           />

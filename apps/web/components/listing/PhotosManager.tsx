@@ -6,15 +6,15 @@ import { toast } from "sonner";
 
 import {
   assignPhotoToRoomAction,
-  createListingPhotoUploadUrl,
   deleteListingPhotoAction,
-  registerListingPhotoAction,
   reorderListingPhotosAction,
 } from "@/app/[locale]/dashboard/properties/[id]/edit/actions";
-import { createClient } from "@/lib/supabase/client";
 
-const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
-const MAX_BYTES = 8 * 1024 * 1024;
+import {
+  PHOTO_ACCEPT_ATTR,
+  uploadListingPhotos,
+  validatePhotoFiles,
+} from "./photoUpload";
 
 export type ManagedPhoto = { id: string; url: string; roomId?: string | null };
 
@@ -56,82 +56,34 @@ export function PhotosManager({
       : "Uploading…";
 
   async function uploadFiles(files: File[]) {
-    const valid = files.filter((f) => {
-      if (!ACCEPTED.includes(f.type)) {
-        toast.error(`${f.name}: use a JPEG, PNG or WebP image.`);
-        return false;
-      }
-      if (f.size > MAX_BYTES) {
-        toast.error(`${f.name}: photo must be under 8 MB.`);
-        return false;
-      }
-      return true;
-    });
+    const valid = validatePhotoFiles(files, (m) => toast.error(m));
     if (valid.length === 0) return;
 
-    // Create the browser client only when actually uploading (never at render/
-    // SSR) so it can't interfere with hydration.
-    const supabase = createClient();
-
+    // Snapshot the existing photos so the concurrent uploads append after them
+    // in selection order (keeps the cover — the first photo — predictable).
+    const base = photos;
     setUploadQueue({ total: valid.length, done: 0 });
-    let next = [...photos];
-    let uploaded = 0;
-
     try {
-      // Per file: get a signed upload URL from the server, upload straight to
-      // Storage with the token (no body cap, no browser-session dependency),
-      // then record the row.
-      for (let i = 0; i < valid.length; i++) {
-        const file = valid[i];
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-        try {
-          const ticket = await createListingPhotoUploadUrl(listingId, ext);
-          if (!ticket.ok || !ticket.data) {
-            toast.error(
-              `${file.name}: ${ticket.ok ? "could not start upload" : ticket.error}`,
-            );
-          } else {
-            const { error: upErr } = await supabase.storage
-              .from("listing-photos")
-              .uploadToSignedUrl(ticket.data.path, ticket.data.token, file, {
-                contentType: file.type || "image/jpeg",
-              });
-            if (upErr) {
-              toast.error(`${file.name}: ${upErr.message || "upload failed"}`);
-            } else {
-              const result = await registerListingPhotoAction(
-                listingId,
-                ticket.data.path,
-              );
-              if (result.ok && result.data) {
-                next = [
-                  ...next,
-                  { id: result.data.id, url: result.data.url, roomId: null },
-                ];
-                onChange(next);
-                uploaded += 1;
-              } else if (!result.ok) {
-                toast.error(`${file.name}: ${result.error}`);
-              }
-            }
-          }
-        } catch (err) {
-          toast.error(
-            `${file.name}: ${
-              err instanceof Error ? err.message : "upload error"
-            }`,
-          );
-        }
-        setUploadQueue({ total: valid.length, done: i + 1 });
+      const uploaded = await uploadListingPhotos({
+        listingId,
+        files: valid,
+        onProgress: (done, total) => setUploadQueue({ total, done }),
+        onPhotos: (completed) =>
+          onChange([
+            ...base,
+            ...completed.map((p) => ({ ...p, roomId: null })),
+          ]),
+        onError: (m) => toast.error(m),
+      });
+      if (uploaded.length > 0) {
+        toast.success(
+          uploaded.length === 1
+            ? "Photo uploaded"
+            : `${uploaded.length} photos uploaded`,
+        );
       }
     } finally {
       setUploadQueue({ total: 0, done: 0 });
-    }
-
-    if (uploaded > 0) {
-      toast.success(
-        uploaded === 1 ? "Photo uploaded" : `${uploaded} photos uploaded`,
-      );
     }
   }
 
@@ -380,7 +332,7 @@ export function PhotosManager({
         ref={inputRef}
         type="file"
         multiple
-        accept="image/jpeg,image/png,image/webp"
+        accept={PHOTO_ACCEPT_ATTR}
         className="hidden"
         onChange={onFileInput}
       />
