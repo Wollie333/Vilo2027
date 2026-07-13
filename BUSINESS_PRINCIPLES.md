@@ -583,3 +583,46 @@ going forward, not an afterthought.
 
 - **Index them** in `docs/lifecycles/README.md` so the set is discoverable, and link
   the relevant lifecycle doc from the feature's code area when helpful.
+
+---
+
+## Principle #13 — Never run more than two dev servers at once
+
+**Added:** 2026-07-13
+**Status:** Active
+**Founder directive.**
+
+### The principle
+
+**At most TWO dev servers may be running at any given time — hard cap.** More than
+two exhausts the founder's laptop resources and freezes the machine, every time.
+Before starting a dev server, **kill existing ones first**; only keep a second alive
+if it is genuinely needed for the task at hand.
+
+### Why this matters
+
+This is a physical constraint of the founder's development machine, not a
+preference. Each Next.js dev server is memory- and CPU-hungry; three or more
+running concurrently (e.g. leftover servers from parallel sessions plus a new one)
+reliably locks up the laptop and costs real time to recover from. Respecting the
+cap keeps the machine usable and the founder unblocked.
+
+### The rules (what must always be true)
+
+1. **Two is the ceiling.** Never have three or more dev servers live simultaneously.
+2. **Kill before you start.** Before launching a dev server, stop any that are no
+   longer in use — check `preview_list` (and any stray processes) and `preview_stop`
+   the ones you don't need. Don't accumulate servers across tasks.
+3. **Default to one.** A single running server is the norm; only spin up a second
+   when the task truly requires two at the same time, and tear it down when done.
+4. **Clean up at the end.** When work that needed a server is finished, stop it —
+   don't leave servers running idle for the next session to trip over.
+
+### How to apply it
+
+- Use `preview_list` to see what's already running before `preview_start`; reuse an
+  existing server (`reused: true`) instead of starting a new one where possible.
+- After a verification pass, `preview_stop` the server(s) you started (this also
+  pairs with the `.next`-corruption gotcha: stop the dev server before `pnpm build`).
+- If two are already up and a task needs another, stop one first — never let the
+  count reach three.
