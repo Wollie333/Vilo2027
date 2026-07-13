@@ -10,7 +10,7 @@ import type {
 
 // Columns a thread needs to render a quote card. Keep in sync with ThreadQuote.
 export const QUOTE_CARD_COLUMNS =
-  "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token, converted_booking_id";
+  "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token, converted_booking_id, property_id";
 
 // Columns to render the booking half of the card (once a quote is accepted).
 export const BOOKING_CARD_COLUMNS =
@@ -32,6 +32,14 @@ type QuoteRow = {
   valid_until: string | null;
   accept_token: string | null;
   converted_booking_id: string | null;
+  property_id?: string | null;
+};
+
+/** Cover image + label for the room/listing a quote is for. */
+export type QuoteSubject = {
+  name?: string | null;
+  image?: string | null;
+  detail?: string | null;
 };
 
 type BookingRow = {
@@ -52,6 +60,7 @@ const num = (v: string | number | null): number | null =>
 export function mapQuoteRow(
   q: QuoteRow,
   seen?: { count: number; last: string | null },
+  subject?: QuoteSubject,
 ): ThreadQuote {
   return {
     id: q.id,
@@ -71,6 +80,9 @@ export function mapQuoteRow(
     convertedBookingId: q.converted_booking_id,
     viewCount: seen?.count ?? 0,
     lastViewedAt: seen?.last ?? null,
+    subjectName: subject?.name ?? null,
+    subjectImage: subject?.image ?? null,
+    subjectDetail: subject?.detail ?? null,
   };
 }
 

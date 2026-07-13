@@ -258,8 +258,56 @@ export default async function InboxPage({
         if (!cur.last || v.opened_at > cur.last) cur.last = v.opened_at;
         seenBy.set(v.quote_id, cur);
       }
+      // Subject cover — the listing each quote is for, so the card can show a
+      // thumbnail + name (the room/place "in question").
+      const propIds = Array.from(
+        new Set(
+          (qRows ?? [])
+            .map((q) => q.property_id)
+            .filter((id): id is string => !!id),
+        ),
+      );
+      const subjectByQuote = new Map<
+        string,
+        { name: string | null; image: string | null; detail: string | null }
+      >();
+      if (propIds.length > 0) {
+        const [{ data: props }, { data: coverPhotos }] = await Promise.all([
+          supabase
+            .from("properties")
+            .select("id, name, city")
+            .in("id", propIds),
+          supabase
+            .from("property_photos")
+            .select("property_id, url, sort_order")
+            .in("property_id", propIds)
+            .is("room_id", null)
+            .order("sort_order", { ascending: true }),
+        ]);
+        const nameById = new Map((props ?? []).map((p) => [p.id, p.name]));
+        const cityById = new Map((props ?? []).map((p) => [p.id, p.city]));
+        const coverById = new Map<string, string>();
+        for (const ph of coverPhotos ?? [])
+          if (!coverById.has(ph.property_id))
+            coverById.set(ph.property_id, ph.url);
+        for (const q of qRows ?? []) {
+          if (!q.property_id) continue;
+          subjectByQuote.set(q.id, {
+            name: nameById.get(q.property_id) ?? null,
+            image: coverById.get(q.property_id) ?? null,
+            detail:
+              q.scope === "rooms"
+                ? "Specific room"
+                : (cityById.get(q.property_id) ?? "Whole place"),
+          });
+        }
+      }
       for (const q of qRows ?? []) {
-        quotesById[q.id] = mapQuoteRow(q, seenBy.get(q.id));
+        quotesById[q.id] = mapQuoteRow(
+          q,
+          seenBy.get(q.id),
+          subjectByQuote.get(q.id),
+        );
       }
 
       const bookingIds = Object.values(quotesById)

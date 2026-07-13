@@ -106,8 +106,48 @@ export default async function GuestThreadPage({
       .select(QUOTE_CARD_COLUMNS)
       .eq("conversation_id", params.id)
       .in("id", quoteIds);
+    // Subject cover — the listing each quote is for (thumbnail + name).
+    const propIds = Array.from(
+      new Set(
+        (qRows ?? [])
+          .map((q) => q.property_id)
+          .filter((id): id is string => !!id),
+      ),
+    );
+    const subjectByQuote = new Map<
+      string,
+      { name: string | null; image: string | null; detail: string | null }
+    >();
+    if (propIds.length > 0) {
+      const [{ data: props }, { data: coverPhotos }] = await Promise.all([
+        admin.from("properties").select("id, name, city").in("id", propIds),
+        admin
+          .from("property_photos")
+          .select("property_id, url, sort_order")
+          .in("property_id", propIds)
+          .is("room_id", null)
+          .order("sort_order", { ascending: true }),
+      ]);
+      const nameById = new Map((props ?? []).map((p) => [p.id, p.name]));
+      const cityById = new Map((props ?? []).map((p) => [p.id, p.city]));
+      const coverById = new Map<string, string>();
+      for (const ph of coverPhotos ?? [])
+        if (!coverById.has(ph.property_id))
+          coverById.set(ph.property_id, ph.url);
+      for (const q of qRows ?? []) {
+        if (!q.property_id) continue;
+        subjectByQuote.set(q.id, {
+          name: nameById.get(q.property_id) ?? null,
+          image: coverById.get(q.property_id) ?? null,
+          detail:
+            q.scope === "rooms"
+              ? "Specific room"
+              : (cityById.get(q.property_id) ?? "Whole place"),
+        });
+      }
+    }
     for (const q of qRows ?? []) {
-      quotesById[q.id] = mapQuoteRow(q);
+      quotesById[q.id] = mapQuoteRow(q, undefined, subjectByQuote.get(q.id));
     }
   }
 

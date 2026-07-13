@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  BedDouble,
   CalendarDays,
   CheckCircle2,
   Clock,
@@ -7,6 +8,7 @@ import {
   FileText,
   History,
   PenSquare,
+  Sparkles,
   Users,
   XCircle,
 } from "lucide-react";
@@ -49,6 +51,11 @@ export type ThreadQuote = {
   convertedBookingId: string | null;
   viewCount?: number;
   lastViewedAt?: string | null;
+  // The room (or whole listing) the quote is for — drives the card's cover
+  // thumbnail + subtitle. Optional so callers that don't supply it still render.
+  subjectName?: string | null;
+  subjectImage?: string | null;
+  subjectDetail?: string | null;
 };
 
 // The booking a quote becomes once accepted — drives the later card states
@@ -398,7 +405,36 @@ export function ThreadQuoteCard({
       </div>
 
       {/* Body */}
-      <div className="space-y-2.5 px-4 py-3.5">
+      <div className="space-y-3 px-4 py-3.5">
+        {/* Subject — the room (or whole place) the quote is for */}
+        {quote.subjectName ? (
+          <div className="flex items-center gap-3">
+            {quote.subjectImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={quote.subjectImage}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-[10px] border border-brand-line object-cover"
+              />
+            ) : (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] bg-brand-accent/40 text-brand-primary">
+                <BedDouble className="h-5 w-5" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="truncate font-display text-[13.5px] font-bold text-brand-ink">
+                {quote.subjectName}
+              </div>
+              {quote.subjectDetail ? (
+                <div className="truncate text-[11.5px] text-brand-mute">
+                  {quote.subjectDetail}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Stay details */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-brand-ink">
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5 text-brand-mute" />
@@ -417,21 +453,25 @@ export function ThreadQuoteCard({
           ) : null}
         </div>
 
-        {/* Pricing — hidden for a guest while it's still a draft (the host
-            hasn't finalised/sent it). The host always sees the working total. */}
+        {/* Price (host, or any sent quote) vs waiting-for-quote (guest draft).
+            A draft's total is already priced by the seasonal engine, so the
+            host's figure is a real auto-calculated suggestion. */}
         {!(isDraft && viewer === "guest") ? (
-          <div className="rounded-[10px] bg-brand-light/60 px-3 py-2.5">
+          <div className="rounded-[10px] border border-brand-line bg-brand-light/60 px-3 py-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[12px] text-brand-mute">
-                {isDraft ? "Suggested total" : "Total"}
+                {isDraft ? "Suggested price" : "Total"}
               </span>
               <span className="num font-display text-base font-bold text-brand-ink">
                 {formatMoney(quote.total, quote.currency)}
               </span>
             </div>
-            {!isDraft &&
-            quote.depositAmount != null &&
-            quote.depositAmount > 0 ? (
+            {isDraft ? (
+              <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-brand-primary">
+                <Sparkles className="h-3 w-3" />
+                Auto-calculated from your rates &amp; calendar
+              </div>
+            ) : quote.depositAmount != null && quote.depositAmount > 0 ? (
               <div className="mt-1 flex items-center justify-between text-[11.5px] text-brand-mute">
                 <span>Due now (deposit)</span>
                 <span className="num">
@@ -441,10 +481,19 @@ export function ThreadQuoteCard({
             ) : null}
           </div>
         ) : (
-          <p className="text-[12px] text-brand-mute">
-            Your request is with the host — they’ll reply here with a tailored
-            quote.
-          </p>
+          <div className="flex items-center gap-2.5 rounded-[10px] border border-brand-line bg-brand-light/60 px-3 py-2.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent/50 text-brand-primary">
+              <Clock className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[12.5px] font-semibold text-brand-ink">
+                Waiting for the quote
+              </div>
+              <div className="text-[11.5px] text-brand-mute">
+                The host is preparing your tailored price.
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Validity / seen meta */}
