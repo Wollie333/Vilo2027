@@ -2871,6 +2871,36 @@ export type Database = {
           },
         ]
       }
+      form_drafts: {
+        Row: {
+          entity_id: string | null
+          entity_type: string
+          id: string
+          payload: Json
+          scope_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          payload: Json
+          scope_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          payload?: Json
+          scope_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fx_rates: {
         Row: {
           base_currency: string

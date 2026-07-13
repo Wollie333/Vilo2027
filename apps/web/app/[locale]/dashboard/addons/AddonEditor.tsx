@@ -24,9 +24,12 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { ResumeDraftBanner } from "@/components/drafts/ResumeDraftBanner";
+import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
+import type { LoadedDraft } from "@/lib/drafts/store";
 import { modal } from "@/components/ui/modal-host";
 
 import { AddonImageInput } from "./AddonImageInput";
@@ -204,12 +207,35 @@ function deriveSelection(
   return { mode: "off", roomIds: [] };
 }
 
+// The fields lost on navigate-away (they only persist on an explicit Save).
+// Numeric fields stay as their input strings so a restore drops straight back
+// into the same setters. Image / active / availability persist immediately via
+// their own actions, so they're deliberately excluded.
+type AddonDraftPayload = {
+  name: string;
+  description: string;
+  category: AddonCategory | null;
+  pricingModel: PricingModel;
+  unitPrice: string;
+  minQuantity: string;
+  maxQuantity: string;
+  allowCustomQuantity: boolean;
+  stockQuantity: string;
+  leadTimeDays: number;
+  dailyCapacity: string;
+  vatIncluded: boolean;
+};
+
 export function AddonEditor({
   addon,
   availability,
+  userId,
+  serverDraft,
 }: {
   addon: AddonEditModel;
   availability: AddonAvailability;
+  userId: string;
+  serverDraft: LoadedDraft | null;
 }) {
   const router = useRouter();
   const [savePending, startSave] = useTransition();
@@ -322,6 +348,68 @@ export function AddonEditor({
     if (!dirty) setDirty(true);
   }
 
+  // ---- Auto-save drafts (zero-loss recovery) ----
+  const draftValue = useMemo<AddonDraftPayload>(
+    () => ({
+      name,
+      description,
+      category,
+      pricingModel,
+      unitPrice,
+      minQuantity,
+      maxQuantity,
+      allowCustomQuantity,
+      stockQuantity,
+      leadTimeDays,
+      dailyCapacity,
+      vatIncluded,
+    }),
+    [
+      name,
+      description,
+      category,
+      pricingModel,
+      unitPrice,
+      minQuantity,
+      maxQuantity,
+      allowCustomQuantity,
+      stockQuantity,
+      leadTimeDays,
+      dailyCapacity,
+      vatIncluded,
+    ],
+  );
+
+  const applyDraft = useCallback((p: AddonDraftPayload) => {
+    setName(p.name);
+    setDescription(p.description);
+    setCategory(p.category);
+    setPricingModel(p.pricingModel);
+    setUnitPrice(p.unitPrice);
+    setMinQuantity(p.minQuantity);
+    setMaxQuantity(p.maxQuantity);
+    setAllowCustomQuantity(p.allowCustomQuantity);
+    setStockQuantity(p.stockQuantity);
+    setLeadTimeDays(p.leadTimeDays);
+    setDailyCapacity(p.dailyCapacity);
+    setVatIncluded(p.vatIncluded);
+    setDirty(true);
+    toast.success("Draft restored");
+  }, []);
+
+  const draftTarget = useMemo(
+    () => ({ entityType: "addon" as const, entityId: addon.id, scopeId: null }),
+    [addon.id],
+  );
+
+  const draft = useAutosaveDraft({
+    userId,
+    target: draftTarget,
+    value: draftValue,
+    onRestore: applyDraft,
+    serverDraft,
+  });
+
   const meta = PRICING_MODEL_META[pricingModel];
   const priceNum = Number(unitPrice);
   const safePrice = Number.isFinite(priceNum) ? priceNum : 0;
@@ -431,6 +519,7 @@ export function AddonEditor({
       if (result.ok) {
         toast.success("Add-on saved");
         setDirty(false);
+        draft.clearSaved();
         router.refresh();
       } else {
         toast.error(result.error);
@@ -477,6 +566,15 @@ export function AddonEditor({
 
   return (
     <div className="space-y-5">
+      {draft.hasDraft ? (
+        <ResumeDraftBanner
+          savedAt={draft.savedAt}
+          onRestore={draft.restore}
+          onDiscard={draft.discard}
+          label="add-on changes"
+        />
+      ) : null}
+
       {/* ============ IDENTITY BAR ============ */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card">
         <div className="h-12 w-16 shrink-0 overflow-hidden rounded-[11px] border border-brand-line bg-brand-light">

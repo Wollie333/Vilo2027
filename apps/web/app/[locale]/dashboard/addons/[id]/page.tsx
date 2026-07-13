@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { loadFormDraft } from "@/lib/drafts/store";
 import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -118,5 +119,18 @@ export default async function AddonEditorPage({
     })),
   };
 
-  return <AddonEditor addon={model} availability={availability} />;
+  const serverDraft = await loadFormDraft(supabase, user.id, {
+    entityType: "addon",
+    entityId: params.id,
+    scopeId: null,
+  });
+
+  return (
+    <AddonEditor
+      addon={model}
+      availability={availability}
+      userId={user.id}
+      serverDraft={serverDraft}
+    />
+  );
 }
