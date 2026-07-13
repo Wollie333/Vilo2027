@@ -300,6 +300,32 @@ export function RoomEditor({
     }
   }
 
+  // Has the host filled any arrival details? Drives the Access step's check.
+  const hasAccess =
+    !!initialAccess &&
+    Object.values(initialAccess).some(
+      (v) => typeof v === "string" && v.trim().length > 0,
+    );
+
+  // Per-step completion → green check badge in the rail (matches the add-on /
+  // special editors' UI principle).
+  function stepDone(key: StepKey): boolean {
+    switch (key) {
+      case "details":
+        return !!room.name?.trim() && bedCount > 0 && nightly > 0;
+      case "photos":
+        return photos.length >= 1;
+      case "amenities":
+        return amenityKeys.length > 0;
+      case "access":
+        return hasAccess;
+      case "review":
+        return readiness.allDone;
+      default:
+        return false;
+    }
+  }
+
   return (
     <div className="space-y-5 pb-16">
       {/* ============ IDENTITY BAR ============ */}
@@ -462,7 +488,11 @@ export function RoomEditor({
                       </span>
                     ) : null}
                   </span>
-                  {key === "photos" && photos.length > 0 ? (
+                  {stepDone(key) ? (
+                    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
+                      <Check className="h-3 w-3" />
+                    </span>
+                  ) : key === "photos" && photos.length > 0 ? (
                     <span className="num shrink-0 rounded-pill bg-brand-line px-1.5 py-0.5 text-[9.5px] font-bold text-brand-mute">
                       {photos.length}
                     </span>

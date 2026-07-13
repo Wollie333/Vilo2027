@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowRight,
   CalendarClock,
+  Check,
   ChevronRight,
   ClipboardCheck,
   Home,
@@ -88,6 +89,18 @@ export function NewListingForm({
     });
   }
 
+  // Never a silent no-op: if the host hits the CTA before both basics are set,
+  // React Hook Form blocks the submit — say why instead of doing nothing.
+  function onInvalid() {
+    if (!nameDone) {
+      toast.error("Give your listing a name (at least 3 characters).");
+    } else if (!categoryDone) {
+      toast.error("Pick a category to continue.");
+    } else {
+      toast.error("Please check the form and try again.");
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* ============ IDENTITY BAR ============ */}
@@ -144,6 +157,7 @@ export function NewListingForm({
           <div className="space-y-1">
             {JOURNEY.map(({ key, label, icon: Icon }, i) => {
               const isActive = key === "basics";
+              const stepDone = key === "basics" && done === 2;
               return (
                 <div
                   key={key}
@@ -175,13 +189,19 @@ export function NewListingForm({
                       {isActive ? "Name & category" : "In the editor next"}
                     </span>
                   </span>
-                  <span
-                    className={`num shrink-0 text-[11px] font-bold ${
-                      isActive ? "text-brand-primary" : "text-brand-line"
-                    }`}
-                  >
-                    {i + 1}
-                  </span>
+                  {stepDone ? (
+                    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
+                      <Check className="h-3 w-3" />
+                    </span>
+                  ) : (
+                    <span
+                      className={`num shrink-0 text-[11px] font-bold ${
+                        isActive ? "text-brand-primary" : "text-brand-line"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -207,7 +227,7 @@ export function NewListingForm({
 
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(onSubmit, onInvalid)}
               className="space-y-6"
               noValidate
             >
