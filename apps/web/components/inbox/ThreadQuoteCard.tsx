@@ -7,6 +7,7 @@ import {
   Eye,
   FileText,
   History,
+  MessageSquareText,
   PenSquare,
   Sparkles,
   Users,
@@ -56,6 +57,8 @@ export type ThreadQuote = {
   subjectName?: string | null;
   subjectImage?: string | null;
   subjectDetail?: string | null;
+  // What the guest actually wrote when requesting the quote (the enquiry note).
+  requestMessage?: string | null;
 };
 
 // The booking a quote becomes once accepted — drives the later card states
@@ -452,6 +455,19 @@ export function ThreadQuoteCard({
             </span>
           ) : null}
         </div>
+
+        {/* The requester's own words — what the guest asked for. */}
+        {quote.requestMessage ? (
+          <div className="rounded-[10px] border border-brand-line bg-white px-3 py-2.5">
+            <div className="mb-1 inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+              <MessageSquareText className="h-3.5 w-3.5" />
+              {viewer === "host" ? "Guest's message" : "Your message"}
+            </div>
+            <p className="whitespace-pre-wrap break-words text-[12.5px] leading-snug text-brand-ink">
+              {quote.requestMessage}
+            </p>
+          </div>
+        ) : null}
 
         {/* Price (host, or any sent quote) vs waiting-for-quote (guest draft).
             A draft's total is already priced by the seasonal engine, so the

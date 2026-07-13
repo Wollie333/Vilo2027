@@ -146,8 +146,16 @@ export default async function GuestThreadPage({
         });
       }
     }
+    // The requester's own words = the first non-system message in the thread.
+    const requestMessage =
+      messages.find((m) => !m.isSystem && m.body)?.body ?? null;
     for (const q of qRows ?? []) {
-      quotesById[q.id] = mapQuoteRow(q, undefined, subjectByQuote.get(q.id));
+      quotesById[q.id] = mapQuoteRow(
+        q,
+        undefined,
+        subjectByQuote.get(q.id),
+        requestMessage,
+      );
     }
   }
 

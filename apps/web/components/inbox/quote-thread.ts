@@ -61,6 +61,7 @@ export function mapQuoteRow(
   q: QuoteRow,
   seen?: { count: number; last: string | null },
   subject?: QuoteSubject,
+  requestMessage?: string | null,
 ): ThreadQuote {
   return {
     id: q.id,
@@ -83,6 +84,7 @@ export function mapQuoteRow(
     subjectName: subject?.name ?? null,
     subjectImage: subject?.image ?? null,
     subjectDetail: subject?.detail ?? null,
+    requestMessage: requestMessage ?? null,
   };
 }
 

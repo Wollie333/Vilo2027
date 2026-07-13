@@ -302,11 +302,20 @@ export default async function InboxPage({
           });
         }
       }
+      // The requester's own words = the conversation's first non-system message
+      // (the enquiry note createEnquiry writes just before the request card).
+      const requestMessage =
+        (msgs ?? []).find(
+          (m) =>
+            !(m as { is_system_message: boolean }).is_system_message &&
+            (m as { body: string | null }).body,
+        )?.body ?? null;
       for (const q of qRows ?? []) {
         quotesById[q.id] = mapQuoteRow(
           q,
           seenBy.get(q.id),
           subjectByQuote.get(q.id),
+          requestMessage,
         );
       }
 
