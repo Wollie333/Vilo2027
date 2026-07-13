@@ -2,42 +2,50 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-13 · head `537baf49`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-14 · head `8f086976`) — START HERE
 
-**Theme of this arc:** roll the **create-data default layout** (left-rail step-tabs · health ring · live
-sub-hints · identity bar with autosave indicator · one panel at a time · final **Review** step with per-row
-quick-edit jumps · single primary CTA on the last step · shared `useAutosaveDraft` + `ResumeDraftBanner`) onto
-every feature where a host creates data, plus quality fixes along the way. Standard pattern + rules:
-memory `feedback-create-data-default-layout`; rollout tracker `docs/features/CREATE_DATA_LAYOUT_ROLLOUT_AUDIT.md`.
+**Last arc = QUOTE FEATURE deep audit — DONE & verified live end-to-end.** Full flow doc
+`docs/lifecycles/quotes.md` (+ `quotes-flow.svg`). Shipped this arc: expire-quotes cron
+(leaked-hold bug); Wielo **date-picker SSOT** `components/ui/date-picker.tsx` (`DatePicker`/`DateRangePicker`,
+rolled across 14 Wielo-branded date fields — see memory `reference-date-picker-ssot`); enriched request-a-quote
+modal; guest-portal pay-from-quote + parity + Overview stat; inbox quote card (cover image + requester's message +
+suggested/waiting price); **quote-sent email to guest** (`QuoteSentGuest` + `quote_sent_guest` event, category
+`bookings`); manual **booking form** merged to one "Stay & price" step with **seasonal `priceStay`** pricing.
+**🔴 CRITICAL fix uncovered:** `sendQuoteAction` selected non-existent column `quotes.thread_id` → EVERY send
+silently aborted (no quote had ever reached `sent`); fixed → `conversation_id` + admin client. All verified LIVE.
 
-**✅ Converted to the pattern (all live-verified, `build`+`lint` green):** add-ons editor · specials/deals editor ·
-manual **booking** create · **quote** form (page/embedded variant — shared with looking-for respond) · **coupon**
-create/edit (modal → dedicated `/new` + `/[id]/edit` pages; redemption re-verified at checkout) · **listing
-editor** (was already left-rail — added the **Review & publish** step + health ring) · **room editor**
-(`rooms/[roomId]/RoomEditor.tsx` — identity bar + 6-step rail + health ring + Review; sections keep own save;
-**amenities now batch-save** via `RoomAmenitiesSection` `batchSave` — tick many, one "Save amenities") ·
-**new-listing page** (`properties/new/NewListingForm.tsx` — create-data shell as journey step 1: identity bar +
-left-rail roadmap + live health ring on name+category + single "Create draft & continue" → redirects into the
-editor's real rail). **Autosave** (`form_drafts`, Layer A+B) is wired on add-on · special · booking · quote(page) ·
-coupon editors.
+**▶▶ OPEN THREADS for THIS/NEXT session (founder batch 2026-07-14):**
 
-**✅ Also this arc:** multi-select + **concurrent** photo upload on listing + room galleries
-(`components/listing/photoUpload.ts`); the respond-to-quote-request card verified still on top of the quote form.
+1. **Listing card 3-dot action menu — NOT STARTED.** On the host listings cards (`dashboard/properties` — the
+   grid/list `PropertyCard`), the 3-dots (⋯) icon should open an action modal/menu with **(a) Duplicate → save as
+   draft** and **(b) Delete from the system**. Delete = soft-delete (`deleted_at`, NEVER hard-delete listings —
+   AGENT_RULES §2.1). Duplicate = clone the listing row + its rooms/photos/amenities/policies into a new `draft`
+   listing (new id, name "… (copy)"). Find the card + its existing menu first; wire a server action for each.
 
-**▶ NEXT — pick from the rollout audit (founder approves which):**
-1. **Onboarding wizard** (`dashboard/setup/SetupWizard.tsx`) — already stepped; re-skin to the exact standard.
-2. **Modal group** (coupons are the template for modal→pages): rooms quick-add · seasonal pricing · banking
-   dialogs · staff/alerts/templates/extras/feed managers. (Decide once: convert-to-pages vs persist-on-close.)
-3. **Media bank** (`dashboard/media/HostMediaManager.tsx`) — two single-file uploaders → give them multi-select
-   (the listing-media view can reuse `photoUpload.ts`; website-media uses the website-assets bucket).
+2. **Quote-request modal room dropdown — REPORTED MISSING, needs live re-verify + fix.** Code IS present +
+   correct: `property/[slug]/RequestQuoteButton.tsx` renders a shadcn `<Select>` for the room when
+   `roomsPickable = bookingMode !== "whole_listing" && rooms.length > 0` (commit `3e2073a6`). FormModal is a
+   standard Radix Dialog so a Radix Select should work inside it (NOT the custom-portal pointer-events issue the
+   date picker had). Hypotheses to check LIVE: (a) the tested listing is `whole_listing` (→ no dropdown by design);
+   (b) Select content z-index/render-behind-dialog; (c) Radix Select empty-string `value` quirk. Open the modal on
+   Karoo Sky (flexible, 3 rooms) and watch — do NOT ship a blind fix (Principle #9).
 
-**▶ Still-queued smaller items:** add-on `vat_included` **dead flag** (stored, never consumed at checkout —
-wire or remove) · autosave **TTL prune** cron for `form_drafts` · autosave for the modal editors (rooms/coupons
-were the plan; coupons now done as pages).
+3. **Booking form seasonal pricing — DONE + verified, re-confirm if founder still sees an issue.** `4bf64989`
+   already wires the manual booking base to `priceStay` (room + date range + seasonal); verified live (Milkyway
+   18–21 Aug → "Winter Off-Peak (−15%)" → R3 060, not flat R1 200×3). The founder re-raised it — likely saw the
+   **override toggle** (flat "Nightly rate (override)") and thought seasonal was off, OR the **whole-listing** path.
+   Re-verify the whole-listing base path + that the auto (non-overridden) figure is seasonal.
 
-**How to work:** verify BOTH builder + live before "done" (Principle #9); after each piece commit + push to
-`main`; keep a save point per completed piece. Test host `host@wielotest.com` / `WieloTest123!` (Karoo Sky
-listing `0b222222-2222-4222-8222-222222222221`). DB truth via `scratchpad/sbenv.sh` ($SB/$KEY service role).
+**▶ Then: next deep audit = LOOKING-FOR** (feeds quotes) per `MVP_READINESS_AND_AUDIT_BACKLOG.md` (Quotes &
+Specials ✅ audited). Remaining audits: Coupons · Add-ons · Media manager · Reports · Product gating + the
+guest/host/admin sweep.
+
+**How to work:** verify BOTH builder + live before "done" (Principle #9); close gaps in-task, don't defer
+(Principle #14); ONE task 100% before the next. Max **2 dev servers** (Principle #13 — kill orphans first;
+`preview_stop` LEAVES node workers alive on Windows → `Get-CimInstance node.exe | Stop-Process`). Server-action
+edits DON'T hot-reload — `rm -rf apps/web/.next` + restart. Test host `host@wielotest.com` / `WieloTest123!`
+(Karoo Sky listing `0b222222-2222-4222-8222-222222222221`). DB truth via `scratchpad/sbenv.sh` ($SB/$KEY service
+role); prod SQL via `supabase db query --linked`.
 
 ---
 

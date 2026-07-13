@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-14 — QUOTE FEATURE deep audit (end-to-end) + Wielo date-picker SSOT + booking-form seasonal pricing.
+
+The full quote lifecycle, audited and verified live (`docs/lifecycles/quotes.md` + `quotes-flow.svg`):
+- **🔴 Critical fix:** `sendQuoteAction` selected `quotes.thread_id` — a column that does not exist — so the read
+  errored and EVERY send silently aborted (no quote had ever reached `sent`). Fixed → `conversation_id` + admin
+  client (ownership-gated). Verified live: host sends → `sent`, calendar soft-holds laid, guest linked.
+- **expire-quotes cron** (`20260713140000`) — flips ignored `sent` quotes to `expired` so leaked `quote_pending`
+  calendar holds finally clear (the trigger releases them). Registered live.
+- **Wielo date-picker SSOT** `components/ui/date-picker.tsx` — `DatePicker` + `DateRangePicker`, portal-based,
+  brand-styled, replacing native `<input type=date>` across **14** Wielo-branded fields (host websites keep the
+  theme-scoped `ThemedDateRange`, Principle #6). Fixed a `pointer-events` bug so it works inside Radix dialogs.
+- **Request-a-quote modal** enriched (DateRangePicker + room dropdown + live summary + reassurance).
+- **Guest portal** — accept now returns `pay_token` → "Continue to pay" (no dead-end); detail parity (Download
+  PDF, accepted-unpaid pay CTA); Overview "Quotes to review" stat. Guest-side driven live (accept → pay page).
+- **Inbox quote card** — room/listing cover image + the requester's own message + host "Suggested price
+  (auto-calculated)" vs guest "Waiting for the quote".
+- **Quote-sent email** — new `QuoteSentGuest` template + `quote_sent_guest` event (category `bookings` so the
+  guest email is enabled) dispatched from `sendQuoteAction`; guest verified receiving it (queued + in-app).
+- **Manual booking form** — merged "Dates & guests" + "Price & extras" into one **"Stay & price"** step; base now
+  auto-prices off room + date range + **seasonal** rules via `priceStay` (same engine as guest checkout), with a
+  flat-rate override. Verified live (Winter Off-Peak −15% → R3 060).
+- Also: quote-modal room checkboxes → dropdown; Principle **#13** (max 2 dev servers) and **#14** (close gaps,
+  finish 100%) added. All build 878/878 + lint green; pushed through `8f086976`.
+
+**▶ OPEN (founder batch, see CURRENT_TASK anchor):** (1) listing-card 3-dot menu → duplicate-as-draft / delete;
+(2) quote-modal room dropdown reported missing — live re-verify + fix; (3) booking seasonal pricing done, re-confirm.
+
 ## 2026-07-13 — Room-flow UI polish: rail step-checks · grouped capacity card · non-silent new-listing submit.
 
 Three enhancements across the room-creation flow, all on the create-data pattern (`b8c52067`):
