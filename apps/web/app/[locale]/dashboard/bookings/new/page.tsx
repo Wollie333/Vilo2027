@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 
+import { loadFormDraft } from "@/lib/drafts/store";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -267,6 +268,12 @@ export default async function NewBookingPage({
       ? searchParams.checkOut
       : null;
 
+  const serverDraft = await loadFormDraft(supabase, user.id, {
+    entityType: "booking",
+    entityId: null,
+    scopeId: null,
+  });
+
   return (
     <ManualBookingForm
       listings={listings}
@@ -278,6 +285,8 @@ export default async function NewBookingPage({
       initialListingId={initialListingId}
       initialCheckIn={initialCheckIn}
       initialCheckOut={initialCheckOut}
+      userId={user.id}
+      serverDraft={serverDraft}
     />
   );
 }
