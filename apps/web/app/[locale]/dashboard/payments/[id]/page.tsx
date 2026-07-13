@@ -27,6 +27,11 @@ import { getMyHostId } from "@/lib/host/current";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { createServerClient } from "@/lib/supabase/server";
 
+import {
+  EventTimeline,
+  type TimelineEvent,
+} from "@/components/timeline/EventTimeline";
+
 import { PaymentManage } from "./PaymentManage";
 
 export const metadata: Metadata = {
@@ -106,40 +111,6 @@ const STATUS: Record<string, { label: string; tone: string; dot: string }> = {
     tone: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
     dot: "bg-slate-400",
   },
-};
-
-// Timeline entry palette — one colour family per event kind, so a host can scan
-// the paper trail and tell money-in from money-out from documents at a glance.
-const EV_TONE: Record<string, { dot: string; tag: string }> = {
-  green: {
-    dot: "bg-status-confirmed",
-    tag: "bg-status-confirmed/12 text-status-confirmed",
-  },
-  amber: {
-    dot: "bg-status-pending",
-    tag: "bg-status-pending/15 text-amber-700",
-  },
-  red: {
-    dot: "bg-status-cancelled",
-    tag: "bg-status-cancelled/12 text-status-cancelled",
-  },
-  indigo: { dot: "bg-indigo-500", tag: "bg-indigo-100 text-indigo-700" },
-  blue: {
-    dot: "bg-brand-secondary",
-    tag: "bg-brand-accent/60 text-brand-secondary",
-  },
-  slate: { dot: "bg-brand-mute", tag: "bg-brand-line text-brand-mute" },
-  violet: { dot: "bg-violet-500", tag: "bg-violet-100 text-violet-700" },
-};
-
-type TxEvent = {
-  at: string;
-  title: string;
-  kind: string;
-  tone: keyof typeof EV_TONE;
-  amount?: number;
-  flow?: "in" | "out";
-  meta?: string;
 };
 
 type BookingJoin = {
@@ -382,9 +353,8 @@ export default async function PaymentDetailPage({
   // ── History — a chronological audit trail. Every money event on the booking:
   // quotes, the booking lifecycle, payments, invoices, CREDIT NOTES (the
   // reversal/write-down paper trail — previously missing), and refunds. ──
-  const m = (n: number) => formatMoney(n, ccy);
-  const history: TxEvent[] = [];
-  const log = (at: string | null, e: Omit<TxEvent, "at">) => {
+  const history: TimelineEvent[] = [];
+  const log = (at: string | null, e: Omit<TimelineEvent, "at">) => {
     if (at) history.push({ at, ...e });
   };
   const joinMeta = (...parts: (string | null | undefined)[]) =>
@@ -522,8 +492,6 @@ export default async function PaymentDetailPage({
       });
     }
   }
-  history.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-
   const cardCls =
     "overflow-hidden rounded-card border border-brand-line bg-white shadow-card";
   const eyebrow =
@@ -765,60 +733,7 @@ export default async function PaymentDetailPage({
               </div>
             </div>
             <div className="p-6">
-              <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
-                {history.map((e, i) => {
-                  const tone = EV_TONE[e.tone] ?? EV_TONE.slate;
-                  return (
-                    <li key={i}>
-                      <span
-                        className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${tone.dot}`}
-                      />
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-[13px] font-semibold text-brand-ink">
-                            {e.title}
-                          </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-brand-mute">
-                            <span
-                              className={`rounded-pill px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider ${tone.tag}`}
-                            >
-                              {e.kind}
-                            </span>
-                            {e.meta ? (
-                              <span className="max-w-[240px] truncate">
-                                {e.meta}
-                              </span>
-                            ) : null}
-                            <span className="text-brand-line">·</span>
-                            <span>{fmtDt(e.at)}</span>
-                          </div>
-                        </div>
-                        {typeof e.amount === "number" ? (
-                          <div
-                            className={`shrink-0 font-display text-[13px] font-bold ${
-                              e.flow === "in"
-                                ? "text-status-confirmed"
-                                : e.flow === "out"
-                                  ? "text-status-cancelled"
-                                  : "text-brand-ink"
-                            }`}
-                          >
-                            {e.flow === "out"
-                              ? "−"
-                              : e.flow === "in"
-                                ? "+"
-                                : ""}
-                            {m(Math.abs(e.amount))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </li>
-                  );
-                })}
-                {history.length === 0 ? (
-                  <li className="text-sm text-brand-mute">No events yet.</li>
-                ) : null}
-              </ol>
+              <EventTimeline events={history} currency={ccy} />
             </div>
           </section>
         </div>

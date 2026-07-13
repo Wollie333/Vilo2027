@@ -54,6 +54,10 @@ import {
   FormModalFooter,
 } from "@/components/ui/form-modal";
 import { modal } from "@/components/ui/modal-host";
+import {
+  EventTimeline,
+  type TimelineEvent,
+} from "@/components/timeline/EventTimeline";
 import type { PoliciesAsBooked as PoliciesAsBookedData } from "@/lib/bookings/policiesAsBooked";
 import type { Txn } from "@/lib/finance/transactions";
 import { formatMoney } from "@/lib/format";
@@ -83,13 +87,6 @@ import {
 import { PaymentsManager } from "./PaymentsManager";
 import { ReviewLinkCard } from "./ReviewLinkCard";
 import { WelcomeNoteCard } from "./WelcomeNoteCard";
-
-export type BookingTimelineItem = {
-  title: string;
-  desc: string | null;
-  stamp: string;
-  tone: "primary" | "inhouse" | "completed" | "cancelled" | "mute" | "pending";
-};
 
 export type BookingDetailData = {
   id: string;
@@ -234,7 +231,7 @@ export type BookingDetailData = {
     authorName: string;
     authorInitials: string;
   }[];
-  timeline: BookingTimelineItem[];
+  timeline: TimelineEvent[];
 
   hostMessage: string | null;
   guestFirstName: string | null;
@@ -284,15 +281,6 @@ const STATUS_TAG: Record<
     cls: "bg-red-50 text-red-600 border-red-200",
     dot: "bg-status-cancelled",
   },
-};
-
-const TIMELINE_DOT: Record<BookingTimelineItem["tone"], string> = {
-  primary: "bg-brand-primary",
-  inhouse: "bg-status-inhouse",
-  completed: "bg-status-completed",
-  cancelled: "bg-status-cancelled",
-  pending: "bg-status-pending",
-  mute: "bg-brand-mute",
 };
 
 function initials(name: string): string {
@@ -1915,30 +1903,7 @@ function ActivityPanel({ d }: { d: BookingDetailData }) {
     <Card>
       <CardHead title="Activity timeline" />
       <div className="p-5">
-        {d.timeline.length === 0 ? (
-          <div className="text-[13px] text-brand-mute">No activity yet.</div>
-        ) : (
-          <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
-            {d.timeline.map((t, i) => (
-              <li key={i}>
-                <span
-                  className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${TIMELINE_DOT[t.tone]}`}
-                />
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[13px] font-semibold text-brand-ink">
-                    {t.title}
-                  </div>
-                  <div className="shrink-0 text-[11px] text-brand-mute">
-                    {t.stamp}
-                  </div>
-                </div>
-                {t.desc ? (
-                  <div className="text-[12px] text-brand-mute">{t.desc}</div>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        )}
+        <EventTimeline events={d.timeline} emptyLabel="No activity yet." />
       </div>
     </Card>
   );

@@ -37,6 +37,10 @@ import {
 import { PoliciesAsBooked } from "@/components/bookings/PoliciesAsBooked";
 import { loadPoliciesAsBooked } from "@/lib/bookings/policiesAsBooked";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
+import {
+  EventTimeline,
+  type TimelineEvent,
+} from "@/components/timeline/EventTimeline";
 import { formatMoney } from "@/lib/format";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -761,16 +765,53 @@ export default async function PortalTripDetailPage({
     .order("captured_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  const timeline = [
-    { label: "Booking requested", at: booking.created_at },
-    { label: "Payment received", at: firstPaid?.captured_at ?? null },
-    { label: "Confirmed by host", at: booking.confirmed_at },
-    { label: "Checked in", at: booking.checked_in_at },
-    { label: "Checked out", at: booking.checked_out_at },
-    { label: "Cancelled", at: booking.cancelled_at },
-  ]
+  const timeline: TimelineEvent[] = (
+    [
+      {
+        label: "Booking requested",
+        at: booking.created_at,
+        kind: "Booking",
+        tone: "slate",
+      },
+      {
+        label: "Payment received",
+        at: firstPaid?.captured_at ?? null,
+        kind: "Payment",
+        tone: "green",
+      },
+      {
+        label: "Confirmed by host",
+        at: booking.confirmed_at,
+        kind: "Booking",
+        tone: "green",
+      },
+      {
+        label: "Checked in",
+        at: booking.checked_in_at,
+        kind: "Stay",
+        tone: "blue",
+      },
+      {
+        label: "Checked out",
+        at: booking.checked_out_at,
+        kind: "Stay",
+        tone: "green",
+      },
+      {
+        label: "Cancelled",
+        at: booking.cancelled_at,
+        kind: "Booking",
+        tone: "red",
+      },
+    ] as const
+  )
     .filter((s) => s.at != null)
-    .sort((a, b) => new Date(a.at!).getTime() - new Date(b.at!).getTime());
+    .map((s) => ({
+      at: s.at as string,
+      title: s.label,
+      kind: s.kind,
+      tone: s.tone,
+    }));
 
   return (
     <div className="w-full">
@@ -1688,45 +1729,9 @@ export default async function PortalTripDetailPage({
                   Trip timeline
                 </div>
               </div>
-              <ol className="p-6">
-                {timeline.map((step, i) => {
-                  const last = i === timeline.length - 1;
-                  const isCancelStep = step.label === "Cancelled";
-                  return (
-                    <li key={i} className="flex gap-3.5">
-                      <div className="flex flex-col items-center">
-                        <span
-                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                            isCancelStep
-                              ? "bg-status-cancelled/15 text-status-cancelled"
-                              : "bg-status-confirmed/15 text-status-confirmed"
-                          }`}
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        </span>
-                        {!last ? (
-                          <span className="my-1 w-px flex-1 bg-brand-line" />
-                        ) : null}
-                      </div>
-                      <div className={last ? "" : "pb-4"}>
-                        <div className="text-[13.5px] font-semibold text-brand-ink">
-                          {step.label}
-                        </div>
-                        <div className="num mt-0.5 text-[12px] text-brand-mute">
-                          {new Date(step.at!).toLocaleString("en-ZA", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            timeZone: "Africa/Johannesburg",
-                          })}
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
+              <div className="p-6">
+                <EventTimeline events={timeline} />
+              </div>
             </section>
           ) : null}
         </div>

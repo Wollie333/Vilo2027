@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-13 — Shared `EventTimeline` component — one history styling across the app. Verified live.
+
+Extracted the enriched payment-timeline design into a reusable, server-safe component
+`components/timeline/EventTimeline.tsx` (`TimelineEvent { at, title, kind, tone, amount?, flow?, meta? }`,
+`TIMELINE_TONE` palette, SA-timezone date formatting) and adopted it on every record-page history/activity
+surface so they share one visual language (colour-coded dot + kind pill, meta line, right-aligned signed
+amount): **payment record** timeline, **booking** Activity tab (`BookingDetail` `ActivityPanel`; page builds
+`TimelineEvent[]` — dropped the local `BookingTimelineItem`/`TIMELINE_DOT`), **guest record** "Recent activity"
+(money now a right-aligned figure, channel+status as meta), **quote** Activity, and the guest-portal **Trip
+timeline** (converted from the check-icon stepper to the shared rail). Admin user History keeps its richer
+icon+filter `ActivityTimeline`; table/notification feeds left as-is. Verified live on all five surfaces
+(payment BK-0040, booking BK-0040 Activity, guest record, quote Q-0002, portal trip BK-0036). `tsc`/`lint`/
+`build` green.
+
 ## 2026-07-13 — Payment timeline: credit-note paper trail + enhanced entries. Verified live.
 
 Founder: past reversals (credit notes issued at cancellation/forfeiture/manual credit) were **absent** from

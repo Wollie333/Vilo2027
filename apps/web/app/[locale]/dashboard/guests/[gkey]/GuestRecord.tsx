@@ -45,6 +45,7 @@ import { RequestReviewButton } from "@/app/[locale]/dashboard/reviews/RequestRev
 import { ReviewCard } from "@/app/[locale]/dashboard/reviews/ReviewCard";
 import { LedgerList } from "@/components/finance/LedgerList";
 import { StatementDialog } from "@/components/finance/StatementDialog";
+import { EventTimeline } from "@/components/timeline/EventTimeline";
 import {
   buildGuestStatementAction,
   sendGuestStatementAction,
@@ -984,34 +985,18 @@ function Overview({
             </div>
           </div>
           <div className="p-5">
-            {activity.length === 0 ? (
-              <div className="text-[13px] text-brand-mute">
-                No activity yet.
-              </div>
-            ) : (
-              <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
-                {activity.map((b) => (
-                  <li key={b.id}>
-                    <span
-                      className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${realized.has(b.status) ? "bg-brand-primary" : "bg-brand-mute"}`}
-                    />
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[13px] font-semibold text-brand-ink">
-                        Booked {b.listingName}
-                      </div>
-                      <div className="text-[11px] text-brand-mute">
-                        {fmtShort(b.createdAt.slice(0, 10))}
-                      </div>
-                    </div>
-                    <div className="text-[12px] text-brand-mute">
-                      {channelLabel(b.channel)} ·{" "}
-                      {formatMoney(b.totalAmount, b.currency)} ·{" "}
-                      {statusTag(b.status).label}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
+            <EventTimeline
+              events={activity.map((b) => ({
+                at: b.createdAt,
+                title: `Booked ${b.listingName}`,
+                kind: "Booking",
+                tone: realized.has(b.status) ? "green" : "slate",
+                amount: b.totalAmount,
+                currency: b.currency,
+                meta: `${channelLabel(b.channel)} · ${statusTag(b.status).label}`,
+              }))}
+              emptyLabel="No activity yet."
+            />
           </div>
         </section>
 

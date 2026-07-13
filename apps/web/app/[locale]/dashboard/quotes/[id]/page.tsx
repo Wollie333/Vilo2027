@@ -24,6 +24,10 @@ import {
   Zap,
 } from "lucide-react";
 
+import {
+  EventTimeline,
+  type TimelineEvent,
+} from "@/components/timeline/EventTimeline";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { getMyHostId } from "@/lib/host/current";
@@ -290,56 +294,52 @@ export default async function QuoteDetailPage({
   const reachedIndex = reachedFlags.lastIndexOf(true);
 
   // Activity timeline (newest first) from real timestamps + view events.
-  type Activity = {
-    title: string;
-    sub: string | null;
-    ts: string;
-    tone: string;
-  };
-  const activity: Activity[] = [];
+  const activity: TimelineEvent[] = [];
   activity.push({
+    at: quote.created_at,
     title: "Quote created",
-    sub: "Drafted in your dashboard",
-    ts: quote.created_at,
-    tone: "bg-brand-mute",
+    kind: "Quote",
+    tone: "slate",
+    meta: "Drafted in your dashboard",
   });
   if (quote.sent_at)
     activity.push({
+      at: quote.sent_at,
       title: "Quote sent",
-      sub: `Delivered to ${quote.guest_email}`,
-      ts: quote.sent_at,
-      tone: "bg-brand-primary",
+      kind: "Quote",
+      tone: "violet",
+      meta: `Delivered to ${quote.guest_email}`,
     });
   (viewEvents ?? []).forEach((v, i) => {
     activity.push({
+      at: v.opened_at,
       title: `${quote.guest_name} opened the quote`,
-      sub: `${views - i}${ordinal(views - i)} view${v.device ? ` · ${v.device}` : ""}`,
-      ts: v.opened_at,
-      tone: "bg-status-pending",
+      kind: "View",
+      tone: "amber",
+      meta: `${views - i}${ordinal(views - i)} view${v.device ? ` · ${v.device}` : ""}`,
     });
   });
   if (quote.accepted_at)
     activity.push({
+      at: quote.accepted_at,
       title: "Quote accepted",
-      sub: null,
-      ts: quote.accepted_at,
-      tone: "bg-status-confirmed",
+      kind: "Quote",
+      tone: "green",
     });
   if (quote.declined_at)
     activity.push({
+      at: quote.declined_at,
       title: "Quote declined",
-      sub: null,
-      ts: quote.declined_at,
-      tone: "bg-status-cancelled",
+      kind: "Quote",
+      tone: "red",
     });
   if (quote.converted_at)
     activity.push({
-      title: "Converted to booking",
-      sub: null,
-      ts: quote.converted_at,
-      tone: "bg-brand-primary",
+      at: quote.converted_at,
+      title: "Converted to a booking",
+      kind: "Booking",
+      tone: "green",
     });
-  activity.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
 
   const notes: QuoteNote[] = (noteRows ?? []).map((n) => {
     const author = firstOf(
@@ -758,26 +758,7 @@ export default async function QuoteDetailPage({
               </div>
             </div>
             <div className="p-6">
-              <ol className="relative space-y-5 border-l-2 border-brand-line pl-5">
-                {activity.map((a, i) => (
-                  <li key={i}>
-                    <span
-                      className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${a.tone}`}
-                    />
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[13px] font-semibold text-brand-ink">
-                        {a.title}
-                      </div>
-                      <div className="num shrink-0 text-[11px] text-brand-mute">
-                        {fmtDateTime(a.ts)}
-                      </div>
-                    </div>
-                    {a.sub ? (
-                      <div className="text-[12px] text-brand-mute">{a.sub}</div>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
+              <EventTimeline events={activity} currency={quote.currency} />
             </div>
           </section>
 

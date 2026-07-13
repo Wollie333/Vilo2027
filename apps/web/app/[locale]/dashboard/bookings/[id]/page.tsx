@@ -16,11 +16,9 @@ import { buildReviewUrl } from "@/lib/review-token";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
-import {
-  BookingDetail,
-  type BookingDetailData,
-  type BookingTimelineItem,
-} from "./BookingDetail";
+import { type TimelineEvent } from "@/components/timeline/EventTimeline";
+
+import { BookingDetail, type BookingDetailData } from "./BookingDetail";
 
 export const metadata: Metadata = {
   title: "Booking",
@@ -46,14 +44,6 @@ function fmtLong(iso: string | null): string {
   return new Intl.DateTimeFormat("en-ZA", { dateStyle: "medium" }).format(
     new Date(iso),
   );
-}
-function fmtStamp(iso: string): string {
-  return new Intl.DateTimeFormat("en-ZA", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
 }
 function initialsOf(name: string | null): string {
   if (!name) return "G";
@@ -555,27 +545,37 @@ export default async function BookingDetailPage({
   const checkInBig = arrival ? fmtStayDate(arrival) : "—";
   const checkOutBig = departure ? fmtStayDate(departure) : "—";
 
-  // Activity timeline (present events only, newest first).
-  const tl: BookingTimelineItem[] = [];
+  // Activity timeline — booking lifecycle events (the shared EventTimeline sorts
+  // newest-first and renders the colour-coded rail; money events live on the
+  // payment record's timeline).
+  const tl: TimelineEvent[] = [];
   const push = (
     iso: string | null,
     title: string,
-    tone: BookingTimelineItem["tone"],
-    desc: string | null = null,
+    tone: TimelineEvent["tone"],
+    kind: string,
+    meta: string | null = null,
   ) => {
-    if (iso) tl.push({ title, desc, stamp: fmtStamp(iso), tone });
+    if (iso) tl.push({ at: iso, title, kind, tone, meta: meta ?? undefined });
   };
-  push(booking.checked_out_at, "Checked out", "completed");
-  push(booking.checked_in_at, "Checked in", "inhouse");
+  push(booking.checked_out_at, "Checked out", "green", "Stay");
+  push(booking.checked_in_at, "Checked in", "blue", "Stay");
   push(
     booking.cancelled_at,
     "Booking cancelled",
-    "cancelled",
+    "red",
+    "Booking",
     booking.cancellation_reason,
   );
-  push(booking.declined_at, "Booking declined", "cancelled");
-  push(booking.confirmed_at, "Booking confirmed", "primary");
-  push(booking.created_at, "Booking created", "mute", channel.label);
+  push(booking.declined_at, "Booking declined", "red", "Booking");
+  push(booking.confirmed_at, "Booking confirmed", "green", "Booking");
+  push(
+    booking.created_at,
+    "Booking created",
+    "slate",
+    "Booking",
+    channel.label,
+  );
 
   // ── Guest conversation thread (the SAME thread as the guest record) ──
   // Resolve it exactly like the guest CRM record: match the booking's guest by
