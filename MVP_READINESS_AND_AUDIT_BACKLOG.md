@@ -38,8 +38,9 @@ partially-refunded, and BK-0038 cancelled + declined refund). Files:
 _(Also done 2026-07-13: channel value `vilo`→`wielo` (migration `20260713100000`)
 for source accuracy; email footer URL → wielo.co.za.)_
 
-**▶ NEXT: the deep in-depth audits below (Quotes, Looking-for, Coupons, Specials,
-Add-ons, Media manager, Reports, Product gating + the guest/host/admin sweep).**
+**▶ NEXT: the deep in-depth audits below (Looking-for, Coupons, Add-ons, Media
+manager, Reports, Product gating + the guest/host/admin sweep).** Quotes & Specials
+are ✅ audited (`docs/lifecycles/`). Looking-for is a natural next pick (it feeds quotes).
 
 ---
 
@@ -103,9 +104,13 @@ Audit like the financial sweep: drive every path live (guest + host + admin),
 re-derive every calc, confirm every notification/email/ledger side-effect, cover
 the edge/branch cases, fix what's wrong, and record a `docs/lifecycles/<feature>.md`.
 
-1. **Quotes** (guest + host) — request → build → send → accept → convert to booking;
-   pricing (seasonal/VAT/add-ons/coupons), doc numbering (Q-####), expiry, PDF,
-   notifications, and the guest sign-in-to-quote path.
+1. ~~**Quotes** (guest + host)~~ ✅ **AUDITED 2026-07-13** — `docs/lifecycles/quotes.md`.
+   Deep pass verified: seasonal pricing engine, `Q-####` numbering, convert-to-booking,
+   RLS, inbox cards. **Fixed:** the `expire-quotes` cron (leaked calendar holds), portal
+   accept pay-token hand-off (no dead-end) + detail parity + Overview stat. **Enriched:**
+   request-a-quote modal (range picker + room dropdown), inbox card (cover + requester's
+   message + suggested/waiting price). ⚠️ Open: guest-side card/portal-pay not re-verified
+   live (mirrors verified host paths); quote-sent email for non-looking-for quotes not built.
 2. **Looking-for** — public post → host quote → guest accept; `fulfilled_via`
    accounting, notifications, the intent-survives-login path.
 3. **Coupons** — creation, validity windows, per-code/per-guest limits, stacking
