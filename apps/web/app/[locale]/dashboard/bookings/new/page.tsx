@@ -11,6 +11,7 @@ import {
   type BookingBlocked,
   type BookingListing,
   type BookingRoom,
+  type BookingSeasonalRule,
   type PastGuest,
 } from "./ManualBookingForm";
 
@@ -51,7 +52,7 @@ export default async function NewBookingPage({
     ? await supabase
         .from("properties")
         .select(
-          "id, name, booking_mode, base_price, cleaning_fee, currency, city, max_guests",
+          "id, name, booking_mode, base_price, weekend_price, cleaning_fee, currency, city, max_guests",
         )
         .eq("host_id", host.id)
         .eq("property_type", "accommodation")
@@ -70,6 +71,7 @@ export default async function NewBookingPage({
     { data: addonRows },
     { data: blockedRows },
     { data: guestRows },
+    { data: seasonalRows },
   ] = listingIds.length
     ? await Promise.all([
         supabase
@@ -80,7 +82,7 @@ export default async function NewBookingPage({
         supabase
           .from("property_rooms")
           .select(
-            "id, property_id, name, base_price, cleaning_fee, max_guests, bed_type, view_type, has_ensuite_bathroom, featured_photo_id, sort_order, pricing_mode, price_per_person",
+            "id, property_id, name, base_price, weekend_price, cleaning_fee, max_guests, bed_type, view_type, has_ensuite_bathroom, featured_photo_id, sort_order, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
           )
           .in("property_id", listingIds)
           .eq("is_active", true)
@@ -104,6 +106,15 @@ export default async function NewBookingPage({
           .not("guest_email", "is", null)
           .order("created_at", { ascending: false })
           .limit(200),
+        // Seasonal rules → the booking base auto-prices off room + date range +
+        // season (same engine as guest checkout), not a flat nightly rate.
+        supabase
+          .from("property_seasonal_pricing")
+          .select(
+            "property_id, room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active",
+          )
+          .in("property_id", listingIds)
+          .eq("is_active", true),
       ])
     : [
         { data: null },
@@ -111,7 +122,24 @@ export default async function NewBookingPage({
         { data: null },
         { data: null },
         { data: null },
+        { data: null },
       ];
+
+  const seasonalRules: BookingSeasonalRule[] = (seasonalRows ?? []).map(
+    (s) => ({
+      property_id: s.property_id,
+      roomId: s.room_id,
+      startDate: s.start_date,
+      endDate: s.end_date,
+      adjustmentType:
+        s.adjustment_type as BookingSeasonalRule["adjustmentType"],
+      adjustmentValue: Number(s.adjustment_value),
+      label: s.label,
+      priority: s.priority,
+      minNights: s.min_nights,
+      isActive: s.is_active,
+    }),
+  );
 
   // Listing cover photo = first listing-wide photo (room_id null). Room photo =
   // its featured photo if set, else first photo tagged to that room.
@@ -132,6 +160,7 @@ export default async function NewBookingPage({
     name: l.name,
     booking_mode: l.booking_mode as BookingListing["booking_mode"],
     base_price: l.base_price,
+    weekend_price: l.weekend_price == null ? null : Number(l.weekend_price),
     cleaning_fee: l.cleaning_fee,
     currency: l.currency ?? "ZAR",
     photo_url: listingCover.get(l.id) ?? null,
@@ -156,6 +185,10 @@ export default async function NewBookingPage({
     pricing_mode: (r.pricing_mode ?? "per_room") as BookingRoom["pricing_mode"],
     price_per_person:
       r.price_per_person == null ? null : Number(r.price_per_person),
+    weekend_price: r.weekend_price == null ? null : Number(r.weekend_price),
+    base_occupancy: r.base_occupancy ?? null,
+    extra_guest_price:
+      r.extra_guest_price == null ? null : Number(r.extra_guest_price),
   }));
 
   const addons: BookingAddon[] = (addonRows ?? [])
@@ -280,6 +313,7 @@ export default async function NewBookingPage({
       rooms={rooms}
       addons={addons}
       blocked={blocked}
+      seasonalRules={seasonalRules}
       pastGuests={pastGuests}
       initialGuest={initialGuest}
       initialListingId={initialListingId}

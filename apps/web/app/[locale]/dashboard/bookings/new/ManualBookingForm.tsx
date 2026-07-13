@@ -1,5 +1,14 @@
 "use client";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FORM: Manual booking (create) — the HOST creates a REAL booking directly
+// (origin 'host_manual', a `bookings` row now). NOT the quote form: a quote is
+// an offer a guest accepts to THEN become a booking (dashboard/quotes/QuoteForm).
+// They share data/rules (priceStay, add-ons, seasonal) but are distinct — see
+// memory `feedback-quote-vs-booking-forms-distinct`. Price computes off the
+// chosen room + date range + seasonal rules (priceStay), and can add add-ons.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import {
   ArrowLeft,
   ArrowRight,
@@ -39,6 +48,7 @@ import { ResumeDraftBanner } from "@/components/drafts/ResumeDraftBanner";
 import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
 import type { LoadedDraft } from "@/lib/drafts/store";
 import { formatMoney } from "@/lib/format";
+import { priceStay, type SeasonalRule } from "@/lib/pricing";
 
 import { computeAddonSubtotal, PRICING_LABEL } from "../../addons/schemas";
 
@@ -50,6 +60,7 @@ export type BookingListing = {
   name: string;
   booking_mode: "whole_listing" | "rooms_only" | "flexible";
   base_price: number | null;
+  weekend_price: number | null;
   cleaning_fee: number | null;
   currency: string;
   photo_url: string | null;
@@ -69,6 +80,9 @@ export type BookingRoom = {
   photo_url: string | null;
   pricing_mode: "per_room" | "per_person" | "per_room_plus_extra";
   price_per_person: number | null;
+  weekend_price: number | null;
+  base_occupancy: number | null;
+  extra_guest_price: number | null;
 };
 
 /** A room's "from" nightly figure for prefill — per-person rooms quote /person. */
@@ -94,6 +108,8 @@ export type BookingBlocked = {
   room_id: string | null;
   date: string;
 };
+/** A seasonal pricing rule, tagged with its listing so the form can filter. */
+export type BookingSeasonalRule = SeasonalRule & { property_id: string };
 export type PastGuest = {
   name: string;
   email: string;
@@ -105,20 +121,20 @@ export type PastGuest = {
 type PayState = "send_paystack_link" | "paid" | "unpaid";
 type CustomFee = { id: number; label: string; amount: string };
 
-// 6-step wizard — left-rail steps (mirrors the specials / add-ons editors).
+// 5-step wizard — left-rail steps (mirrors the specials / add-ons editors).
+// Dates + price + add-ons live on ONE step ("Stay & price") because the booking
+// total is computed from the room + date range + seasonal rules together.
 const STEPS = [
   "Property",
-  "Dates & guests",
+  "Stay & price",
   "Guest",
-  "Price & extras",
   "Payment",
   "Review",
 ] as const;
 const STEP_HINT = [
   "Pick a listing (and room, or reserve the whole place).",
-  "Choose check-in and check-out dates.",
+  "Choose dates — the price is calculated for you.",
   "Add the guest's name and email.",
-  "",
   "",
   "",
 ];
@@ -128,7 +144,6 @@ const STEP_ICONS: LucideIcon[] = [
   MapPin,
   CalendarIcon,
   UserIcon,
-  Wallet,
   CreditCard,
   ClipboardCheck,
 ];
@@ -209,6 +224,7 @@ export function ManualBookingForm({
   rooms,
   addons,
   blocked,
+  seasonalRules,
   pastGuests,
   initialGuest,
   initialListingId,
@@ -221,6 +237,7 @@ export function ManualBookingForm({
   rooms: BookingRoom[];
   addons: BookingAddon[];
   blocked: BookingBlocked[];
+  seasonalRules: BookingSeasonalRule[];
   pastGuests: PastGuest[];
   initialGuest?: { name?: string; email?: string; phone?: string } | null;
   /** Calendar deep-link: pre-pick a listing. Validated server-side. */
@@ -275,6 +292,9 @@ export function ManualBookingForm({
   const [nightlyRate, setNightlyRate] = useState(seedNightly);
   const [cleaningFee, setCleaningFee] = useState(seedCleaning);
   const [discount, setDiscount] = useState("0");
+  // Default base = seasonal engine price for the room + dates. The host can
+  // override to a flat nightly rate (friends-and-family) — this flag switches.
+  const [rateOverridden, setRateOverridden] = useState(false);
   const [customFees, setCustomFees] = useState<CustomFee[]>([]);
   const [addonQty, setAddonQty] = useState<Record<string, number>>({});
 
@@ -327,6 +347,8 @@ export function ManualBookingForm({
   // listing. Re-runs when the pricing source changes; host can still edit.
   useEffect(() => {
     if (restoringRef.current) return; // don't overwrite a restored custom rate
+    // Changing the priced unit returns to auto (seasonal) pricing.
+    setRateOverridden(false);
     if (hasRooms && !wholeListing && selectedRoom) {
       setNightlyRate(String(roomFromNightly(selectedRoom)));
       setCleaningFee(String(selectedRoom.cleaning_fee));
@@ -437,7 +459,87 @@ export function ManualBookingForm({
   const nightly = parseFloat(nightlyRate) || 0;
   const cleaning = parseFloat(cleaningFee) || 0;
   const discountVal = parseFloat(discount) || 0;
-  const grossBase = nightly * nights;
+
+  // Seasonal-aware accommodation base — the SAME priceStay engine the guest
+  // checkout uses, so a manual booking prices identically to a self-booked one
+  // (Principle #5). Computed for the chosen unit (room, or the whole listing)
+  // across the date range, honouring seasonal rules + weekend rates.
+  const bookingGuests = Math.max(1, adults + children);
+  const listingSeasonal = useMemo(
+    () => seasonalRules.filter((s) => s.property_id === listingId),
+    [seasonalRules, listingId],
+  );
+  const seasonalBreakdown = useMemo(() => {
+    if (!checkIn || !checkOut || nights <= 0) return null;
+    const unit =
+      scope === "rooms" && selectedRoom
+        ? {
+            roomId: selectedRoom.id,
+            pricing_mode: selectedRoom.pricing_mode,
+            base_price: selectedRoom.base_price,
+            price_per_person: selectedRoom.price_per_person,
+            base_occupancy: selectedRoom.base_occupancy,
+            extra_guest_price: selectedRoom.extra_guest_price,
+            weekend_price: selectedRoom.weekend_price,
+            cleaning_fee: selectedRoom.cleaning_fee,
+            guests: bookingGuests,
+          }
+        : listing
+          ? {
+              roomId: null,
+              pricing_mode: "per_room" as const,
+              base_price: listing.base_price ?? 0,
+              price_per_person: null,
+              base_occupancy: null,
+              extra_guest_price: null,
+              weekend_price: listing.weekend_price,
+              cleaning_fee: listing.cleaning_fee ?? 0,
+              guests: bookingGuests,
+            }
+          : null;
+    if (!unit) return null;
+    try {
+      return priceStay({
+        checkIn,
+        checkOut,
+        units: [unit],
+        seasonalRules: listingSeasonal,
+        currency,
+        totalGuests: bookingGuests,
+        listingMinNights: 1,
+        isWholeCombo: false,
+        wholePct: null,
+        weeklyPct: null,
+        monthlyPct: null,
+      });
+    } catch {
+      return null;
+    }
+  }, [
+    checkIn,
+    checkOut,
+    nights,
+    scope,
+    selectedRoom,
+    listing,
+    listingSeasonal,
+    currency,
+    bookingGuests,
+  ]);
+  const seasonalBase = seasonalBreakdown?.baseSubtotal ?? null;
+  const seasonalNights = seasonalBreakdown?.units?.[0]?.nights ?? [];
+  // Distinct non-standard rate labels (e.g. "Summer peak", "Weekend") to badge
+  // the auto price so the host sees WHY it isn't a flat nightly figure.
+  const seasonalRateLabels = Array.from(
+    new Set(
+      seasonalNights.filter((n) => n.source !== "base").map((n) => n.label),
+    ),
+  );
+
+  // Base = seasonal engine price by default; the flat nightly rate only when
+  // the host has explicitly overridden it.
+  const grossBase =
+    !rateOverridden && seasonalBase != null ? seasonalBase : nightly * nights;
   const netBase = Math.max(0, grossBase - discountVal);
 
   const addonLines = useMemo(() => {
@@ -653,11 +755,11 @@ export function ManualBookingForm({
       : "Create booking";
 
   // Per-step gating — Continue is blocked until the current step is valid.
+  // 5 steps: Property · Stay & price · Guest · Payment · Review.
   const stepValid: boolean[] = [
     Boolean(listingId) && (!hasRooms || wholeListing || Boolean(selectedRoom)),
     Boolean(checkIn && checkOut && nights > 0 && !rangeConflict),
     Boolean(guestName.trim() && guestEmail.trim()),
-    true,
     true,
     true,
   ];
@@ -687,19 +789,15 @@ export function ManualBookingForm({
     stepValid[0],
     stepValid[1],
     stepValid[2],
-    nights > 0,
     true,
     readyToCreate,
   ];
   const railSub = [
     listing?.name ?? "Pick a listing",
     nights > 0
-      ? `${nights} night${nights === 1 ? "" : "s"} · ${headcount} guest${
-          headcount === 1 ? "" : "s"
-        }`
-      : "Choose dates",
+      ? `${nights} night${nights === 1 ? "" : "s"} · ${formatMoney(total, currency)}`
+      : "Choose dates & price",
     guestName.trim() || "Add lead guest",
-    nights > 0 ? formatMoney(total, currency) : "Set the rate",
     payLabelMap[paymentState],
     readyToCreate ? "Ready to create" : "Finish the basics",
   ];
@@ -1193,28 +1291,86 @@ export function ManualBookingForm({
             </div>
           )}
 
-          {/* STEP 4 — Price & extras */}
-          {step === 3 && (
-            <div className="space-y-6">
+          {/* STEP 2 (cont.) — Price & extras (same step as dates) */}
+          {step === 1 && (
+            <div className="mt-6 space-y-6">
               {/* 6 · Pricing */}
               <SectionCard
                 n={next()}
                 done
-                title="Pricing"
-                subtitle="Auto-filled from your listing rates. Adjust for a friends-and-family rate."
+                title="Price"
+                subtitle="Calculated from your room rates, the date range and any seasonal pricing. Override for a friends-and-family rate."
               >
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <MoneyField
-                    label="Nightly rate"
-                    value={nightlyRate}
-                    onChange={setNightlyRate}
-                    hint={
-                      listing?.base_price != null
-                        ? `Default · ${formatMoney(listing.base_price, currency)}`
-                        : undefined
-                    }
-                    symbol={symbolFor(currency)}
-                  />
+                {/* Accommodation base — auto (seasonal) or overridden flat rate */}
+                {!rateOverridden && seasonalBase != null && nights > 0 ? (
+                  <div className="rounded-[12px] border border-brand-line bg-brand-light/30 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-semibold text-brand-ink">
+                          Accommodation · {nights} night
+                          {nights === 1 ? "" : "s"}
+                        </div>
+                        <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                          Auto-priced from{" "}
+                          {scope === "rooms" && selectedRoom
+                            ? selectedRoom.name
+                            : "the whole listing"}{" "}
+                          for these dates.
+                        </div>
+                        {seasonalRateLabels.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {seasonalRateLabels.map((lbl) => (
+                              <Chip key={lbl} tone="accent">
+                                {lbl}
+                              </Chip>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="num shrink-0 font-display text-[18px] font-bold text-brand-ink">
+                        {formatMoney(seasonalBase, currency)}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRateOverridden(true);
+                        setNightlyRate(
+                          String(Math.round(seasonalBase / nights)),
+                        );
+                      }}
+                      className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-brand-primary hover:text-brand-secondary"
+                    >
+                      <Pencil className="h-3.5 w-3.5" /> Override with a flat
+                      rate
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-[12px] border border-brand-line bg-white p-4">
+                    <MoneyField
+                      label="Nightly rate (override)"
+                      value={nightlyRate}
+                      onChange={(v) => {
+                        setNightlyRate(v);
+                        setRateOverridden(true);
+                      }}
+                      hint={`${nights || 0} night${nights === 1 ? "" : "s"} × rate`}
+                      symbol={symbolFor(currency)}
+                    />
+                    {seasonalBase != null && nights > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setRateOverridden(false)}
+                        className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-brand-primary hover:text-brand-secondary"
+                      >
+                        <CalendarIcon className="h-3.5 w-3.5" /> Use calculated
+                        rates ({formatMoney(seasonalBase, currency)})
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <MoneyField
                     label="Cleaning fee"
                     value={cleaningFee}
@@ -1405,8 +1561,8 @@ export function ManualBookingForm({
             </div>
           )}
 
-          {/* STEP 5 — Payment */}
-          {step === 4 && (
+          {/* STEP 3 — Payment */}
+          {step === 3 && (
             <div className="space-y-6">
               {/* 8 · Payment */}
               <SectionCard
@@ -1528,8 +1684,8 @@ export function ManualBookingForm({
             </div>
           )}
 
-          {/* STEP 6 — Review */}
-          {step === 5 && (
+          {/* STEP 4 — Review */}
+          {step === 4 && (
             <div className="space-y-6">
               <SectionCard
                 title="Review & confirm"
