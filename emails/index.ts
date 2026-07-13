@@ -19,6 +19,7 @@ export { default as RefundApprovedGuest } from "./templates/RefundApprovedGuest"
 export { default as RefundCompletedGuest } from "./templates/RefundCompletedGuest";
 export { default as RefundDeclinedGuest } from "./templates/RefundDeclinedGuest";
 export { default as RefundRequestHost } from "./templates/RefundRequestHost";
+export { default as QuoteSentGuest } from "./templates/QuoteSentGuest";
 export { default as ReviewRequestGuest } from "./templates/ReviewRequestGuest";
 export { default as StayDetailsGuest } from "./templates/StayDetailsGuest";
 export { default as StaffInvite } from "./templates/StaffInvite";

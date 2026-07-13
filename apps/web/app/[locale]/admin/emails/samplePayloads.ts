@@ -115,6 +115,20 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     bookingId: "00000000-0000-0000-0000-000000000001",
   },
 
+  quote_sent_guest: {
+    guestFirstName: "Lerato",
+    listingName: "Sunbird Cottage",
+    hostName: "Amara",
+    checkIn: "12 Jun 2026",
+    checkOut: "15 Jun 2026",
+    nights: 3,
+    totalAmount: "R 2,400.00",
+    quoteNumber: "Q-0007",
+    validUntil: "10 Jun 2026",
+    quoteId: "00000000-0000-0000-0000-000000000001",
+    acceptToken: "sampletoken0123456789",
+  },
+
   review_request_guest: {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",

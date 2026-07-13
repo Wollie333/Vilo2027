@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getBrandName } from "@/lib/brand";
+import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { formatMoney } from "@/lib/format";
 import { requireHost as getHostId } from "@/lib/host/current";
 import { isSelfRecipient, SELF_RECIPIENT_ERROR } from "@/lib/host/self";
@@ -607,7 +608,9 @@ export async function sendQuoteAction(
   const supabase = createServerClient();
   const { data: current } = await supabase
     .from("quotes")
-    .select("status, looking_for_post_id, host_id, thread_id")
+    .select(
+      "status, looking_for_post_id, host_id, thread_id, guest_id, guest_name, guest_email, check_in, check_out, total_amount, currency, quote_number, accept_token, listing:properties(name)",
+    )
     .eq("id", quoteId)
     .maybeSingle();
   if (!current) return { ok: false, error: "Quote not found." };
@@ -679,6 +682,77 @@ export async function sendQuoteAction(
     }
 
     revalidatePath("/dashboard/looking-for");
+  } else if (current.guest_email) {
+    // Non-looking-for quote → email the guest a link to view & accept. This is
+    // the general path (looking-for quotes use looking_for_quote_received). We
+    // ensure the guest has a Wielo identity (Principle #1) so there's always a
+    // notification recipient, then dispatch (email + push + in-app).
+    const admin = createAdminClient();
+    let guestId = current.guest_id as string | null;
+    if (!guestId) {
+      const lead = await findOrCreateLeadIdentity(admin, {
+        email: current.guest_email,
+        name: current.guest_name ?? "",
+      });
+      guestId = lead?.guestId ?? null;
+      if (guestId) {
+        await admin
+          .from("quotes")
+          .update({ guest_id: guestId })
+          .eq("id", quoteId)
+          .is("guest_id", null);
+      }
+    }
+    if (guestId) {
+      const { data: hostRow } = await admin
+        .from("hosts")
+        .select("display_name")
+        .eq("id", current.host_id)
+        .maybeSingle();
+      const listingName = Array.isArray(current.listing)
+        ? current.listing[0]?.name
+        : (current.listing as { name?: string } | null)?.name;
+      const fmtD = (iso: string | null): string =>
+        iso
+          ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })
+          : "—";
+      const nights =
+        current.check_in && current.check_out
+          ? Math.max(
+              0,
+              Math.round(
+                (new Date(`${current.check_out}T00:00:00`).getTime() -
+                  new Date(`${current.check_in}T00:00:00`).getTime()) /
+                  86_400_000,
+              ),
+            )
+          : 1;
+      await dispatchEvent({
+        kind: "quote_sent_guest",
+        recipientUserId: guestId,
+        guestId,
+        refs: {
+          quoteId,
+          guestFirstName: (current.guest_name ?? "").split(" ")[0] || undefined,
+          listingName: listingName ?? undefined,
+          hostName: hostRow?.display_name ?? undefined,
+          checkIn: fmtD(current.check_in),
+          checkOut: fmtD(current.check_out),
+          nights,
+          totalAmount: formatMoney(
+            Number(current.total_amount ?? 0),
+            current.currency ?? "ZAR",
+          ),
+          quoteNumber: current.quote_number ?? undefined,
+          validUntil: fmtD(validUntil.toISOString().slice(0, 10)),
+          acceptToken: current.accept_token ?? undefined,
+        },
+      });
+    }
   }
 
   await advanceConversationStage(supabase, quoteId, "quote_sent", true);

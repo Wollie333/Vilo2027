@@ -24,6 +24,7 @@ import {
   RefundCompletedGuest,
   RefundDeclinedGuest,
   RefundRequestHost,
+  QuoteSentGuest,
   ReviewRequestGuest,
   StayDetailsGuest,
   StaffInvite,
@@ -136,6 +137,12 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
       `Proof of payment received from ${str(p.guestName, "a guest")}`,
   },
 
+  quote_sent_guest: {
+    Template: QuoteSentGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `Your quote for ${str(p.listingName, "your stay")} · ${str(p.quoteNumber, "Q")}`,
+  },
   review_request_guest: {
     Template: ReviewRequestGuest as ComponentType<Record<string, unknown>>,
     recipient: "guest",

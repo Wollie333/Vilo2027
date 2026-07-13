@@ -62,6 +62,21 @@ export type ReviewRefs = {
   review_path?: string;
 };
 
+export type QuoteRefs = {
+  quoteId: string;
+  guestFirstName?: string;
+  listingName?: string;
+  hostName?: string;
+  checkIn?: string;
+  checkOut?: string;
+  nights?: number;
+  totalAmount?: string;
+  quoteNumber?: string;
+  validUntil?: string;
+  /** Public accept-token → the /q/[id]/[token] page (no login to accept). */
+  acceptToken?: string;
+};
+
 export type SubscriptionRefs = {
   subscription_id?: string;
   plan_name?: string;
@@ -737,6 +752,31 @@ export const NOTIFICATION_REGISTRY = {
     }),
     dedupeKey: (r) => `quote_request:${r.conversation_id}`,
   } satisfies EventBuilder<QuoteRequestRefs>,
+
+  // Guest receives a sent quote (any quote — the general path; looking-for
+  // quotes use looking_for_quote_received instead). Emails a link to accept.
+  quote_sent_guest: {
+    category: "quote_requests",
+    feature: "message",
+    severity: "high",
+    emailTemplate: "quote_sent_guest",
+    refKeys: ["quoteId"],
+    push: (r) => ({
+      title: "Your quote is ready",
+      body: clip(
+        `${r.hostName ?? "Your host"} sent a quote${r.listingName ? ` for ${r.listingName}` : ""}`,
+      ),
+      data: link("/portal/quotes/[id]", { id: r.quoteId }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "Your quote is ready",
+      body: `${r.listingName ?? "Your stay"}${r.totalAmount ? ` · ${r.totalAmount}` : ""}`,
+      link: `/portal/quotes/${r.quoteId}`,
+    }),
+    dedupeKey: (r) => `quote_sent:${r.quoteId}`,
+  } satisfies EventBuilder<QuoteRefs>,
 
   // ─── Website enquiries (host) — a website contact-form submission
   website_enquiry_host: {
