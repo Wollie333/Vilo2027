@@ -2,7 +2,40 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-13 · `e14265bf`) — DEAL CHECKOUT UNIFIED + SPECIALS EDITOR ENRICHED. NEXT = audit add-ons + build auto-save drafts.
+## ▶▶▶ SAVE POINT (2026-07-13 · `13c37ee5`) — ADD-ONS ENRICHED + AUTO-SAVE DRAFTS (A+B) LIVE. NEXT = autosave for rooms/coupons + audit backlog.
+
+All pushed to `main`, verified live end-to-end, `pnpm build` (872pp) + `pnpm lint` green. Two founder asks:
+
+**1) Add-ons editor ENRICHED** (`0b949d31`) — same pattern as the specials enrichment, keeping the loved
+left-rail step-tabs. (a) live "What the guest pays" economics card (nights/guests steppers → exact checkout
+math, before-VAT note); (b) richer docked guest preview mirroring the real checkout add-on card (icon,
+category chip, per-model price, live line-total, stock badges); (c) new **Review** rail section (readiness
+ring + checklist + at-a-glance summary with per-row quick-edit jumps + context-aware publish CTA). File
+`app/[locale]/dashboard/addons/AddonEditor.tsx`.
+
+**2) AUTO-SAVE DRAFTS — zero-loss editing (Layer A + B, resume banner)** (`4054856a`→`13c37ee5`). Founder
+chose cross-device (A+B) + resume-banner UX. Generic, reusable infra: migration `20260713130000_form_drafts`
+(PG15 `NULLS NOT DISTINCT` unique + RLS own-rows), `lib/drafts/store.ts` + Server Actions + `/api/drafts`
+beacon, `components/drafts/useAutosaveDraft.ts` hook + `ResumeDraftBanner.tsx`. Wired into the **add-on** and
+**specials** full-page editors (debounced local 500ms + server 2.5s, flush on tab-hide/unmount, mount-time
+reconcile, banner only when the draft differs from the saved entity, pre-save-timer resurrection guard).
+Verified live on both: local + server write on edit → banner on return → Restore → Save/Discard clear both
+layers. Flow doc `docs/lifecycles/autosave-drafts.md`; plan `docs/features/AUTOSAVE_DRAFTS_PLAN.md` updated.
+
+**Also found during the add-on audit (open founder call, NOT yet changed):** the add-on `vat_included`
+toggle ("price already includes 15% VAT") is **stored but never consumed at checkout** — checkout always
+grosses add-on prices via the listing's VAT rate (`gv`, per `lib/pricing/vat.ts`). So the toggle is a dead,
+misleading control. Decide: wire it, or remove/relabel it.
+
+**▶ NEXT (fresh session):**
+- **Autosave for rooms + coupons** — both are MODAL editors (`RoomsGroupCard`, `CouponDialog`); the generic
+  hook works, but decide the dialog UX: persist on close + show the resume banner on dialog **reopen** (not
+  page load). `scope_id` = property_id disambiguates two "new room" drafts.
+- **Resolve the `vat_included` dead-flag** on add-ons (founder call above).
+- **Autosave TTL/prune** — add a periodic cleanup of `form_drafts` older than N days before launch.
+- Remaining audit backlog: looking-for · coupons · media · reports · product gating.
+
+## ▶▶▶ SAVE POINT (2026-07-13 · `e14265bf`) — DEAL CHECKOUT UNIFIED + SPECIALS EDITOR ENRICHED. (prev)
 
 All pushed to `main`, verified live end-to-end, `tsc`/`lint`/`build` (872pp) green. Two big wins this session:
 

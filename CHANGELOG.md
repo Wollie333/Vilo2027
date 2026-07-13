@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT (`13c37ee5`). Add-ons enriched + auto-save drafts (Layer A+B) live.
+
+Two founder asks, both shipped, verified live end-to-end, `pnpm build` (872pp) + `pnpm lint` green:
+
+**1) Add-ons editor ENRICHED** (`0b949d31`) — mirrored the specials-editor pattern, keeping the loved
+left-rail step-tabs: **(a)** live "What the guest pays" economics card in the Pricing panel (nights/guests
+steppers recomputing the exact checkout math — `R140 × 2 nights × 2 guests = R560` — with an honest
+before-VAT note); **(b)** richer docked guest preview faithfully mirroring the real checkout add-on card
+(PackagePlus icon, category chip, per-model price, live line-total, stock badges); **(c)** a new **Review**
+rail section — readiness ring + checklist, at-a-glance summary with per-row quick-edit jumps, context-aware
+publish CTA.
+
+**2) AUTO-SAVE DRAFTS — zero-loss editing (Layer A + B, resume banner)** (`4054856a` add-on pilot →
+`13c37ee5` specials). Founder decisions: cross-device (A+B), resume-banner UX. Generic infra
+(migration `20260713130000_form_drafts` with a PG15 `NULLS NOT DISTINCT` unique + RLS own-rows; shared
+`lib/drafts/store.ts` + Server Actions + `/api/drafts` beacon; `useAutosaveDraft` hook + `ResumeDraftBanner`).
+Wired into the **add-on** and **specials** full-page editors: debounced local (500ms) + server (2.5s)
+persistence, flush on tab-hide/unmount, mount-time reconcile, banner only when the draft truly differs from
+the saved entity, and a guard so a pre-save timer can't resurrect a cleared draft. Verified live on both
+editors: localStorage + server row on edit → resume banner on return → Restore repopulates → Save/Discard
+clear both layers. Rooms & coupons (modal editors) deferred — need a persist-on-close / banner-on-reopen call.
+Flow doc `docs/lifecycles/autosave-drafts.md`.
+
 ## 2026-07-13 — SAVE POINT (`e14265bf`). NEXT = audit add-ons + build auto-save drafts.
 
 Session wins (both below, pushed + verified live): deal checkout unified into the main `BookingForm`, and

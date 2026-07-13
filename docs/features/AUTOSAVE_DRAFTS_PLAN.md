@@ -5,7 +5,12 @@
 > **navigates away without saving**, their work should be preserved as a draft so
 > they can come back and finish where they left off. Never lose in-progress work.
 
-Status: **PLANNED — pick up in a fresh session.** Nothing built yet.
+Status: **BUILT & LIVE (Layer A + B) on the full-page step-editors — add-ons and
+specials.** Rooms & coupons (modal editors) deferred as a scoped follow-up. See
+the living flow doc `docs/lifecycles/autosave-drafts.md` for the shipped design.
+
+Founder decisions settled at session start (2026-07-13): **Layer A + B**
+(cross-device), **resume banner** UX, piloted on add-ons then extended to specials.
 
 ---
 
