@@ -368,7 +368,7 @@ export default async function PaymentDetailPage({
     payment.captured_at,
     `Funds captured — ${m(Number(payment.amount))}${
       payment.provider_reference ? ` · ref ${payment.provider_reference}` : ""
-    }`,
+    }${recordedByName ? ` · by ${recordedByName}` : ""}`,
     "Payment",
   );
   log(payment.failed_at, "Payment failed", "Payment");
