@@ -4,7 +4,9 @@ import {
   AlertTriangle,
   CalendarClock,
   Camera,
+  Check,
   ChevronRight,
+  ClipboardCheck,
   Eye,
   Home,
   Image as ImageIcon,
@@ -12,15 +14,17 @@ import {
   ListChecks,
   MapPin,
   PackagePlus,
+  Pencil,
   Radio,
   Receipt,
   Settings as SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
 import type { CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
 import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
 
@@ -170,6 +174,7 @@ type TabKey =
   | "access"
   | "settings"
   | "channels"
+  | "review"
   | "danger";
 
 type TabDef = { key: TabKey; label: string; icon: LucideIcon };
@@ -186,6 +191,7 @@ const ACCOMMODATION_TABS: TabDef[] = [
   { key: "access", label: "Guest access", icon: KeyRound },
   { key: "settings", label: "Booking settings", icon: SettingsIcon },
   { key: "channels", label: "Channels", icon: Radio },
+  { key: "review", label: "Review & publish", icon: ClipboardCheck },
   { key: "danger", label: "Danger zone", icon: AlertTriangle },
 ];
 
@@ -235,6 +241,10 @@ const PANEL_META: Record<TabKey, { title: string; desc: string }> = {
   channels: {
     title: "Channels",
     desc: "Where this property is published — the Wielo directory and your website.",
+  },
+  review: {
+    title: "Review & publish",
+    desc: "Everything at a glance before your listing goes live.",
   },
   danger: {
     title: "Danger zone",
@@ -315,6 +325,55 @@ export function Editor({
 
   const cover = photos[0]?.url ?? null;
 
+  // ---- Readiness (drives the health ring + the Review step) ----
+  // Photos/rooms are live client state; listing fields + policies come from the
+  // server props (they refresh after a tab saves via revalidatePath).
+  const readiness = useMemo(() => {
+    const items: { label: string; done: boolean; tab: TabKey }[] = [
+      {
+        label: "Name & description",
+        done: !!listing.name?.trim() && !!listing.description?.trim(),
+        tab: "basic",
+      },
+      { label: "At least 3 photos", done: photos.length >= 3, tab: "photos" },
+      { label: "Location set", done: !!listing.city, tab: "location" },
+      {
+        label: "Capacity or rooms",
+        done: rooms.length > 0 || (listing.max_guests ?? 0) > 0,
+        tab: "rooms",
+      },
+      {
+        label: "Pricing set",
+        done:
+          (listing.base_price ?? 0) > 0 || rooms.some((r) => r.base_price > 0),
+        tab: "pricing",
+      },
+      {
+        label: "A cancellation policy",
+        done: assignedPolicies.length > 0,
+        tab: "policies",
+      },
+    ];
+    const done = items.filter((i) => i.done).length;
+    return {
+      items,
+      done,
+      total: items.length,
+      pct: Math.round((done / items.length) * 100),
+      allDone: done === items.length,
+    };
+  }, [listing, photos, rooms, assignedPolicies]);
+
+  // "From" nightly price for the Review summary — the listing base, else the
+  // cheapest priced room.
+  const fromPrice =
+    (listing.base_price ?? 0) > 0
+      ? listing.base_price
+      : (() => {
+          const priced = rooms.map((r) => r.base_price).filter((p) => p > 0);
+          return priced.length ? Math.min(...priced) : null;
+        })();
+
   // Short context line under each section title in the rail.
   function railSub(key: TabKey): string | null {
     switch (key) {
@@ -326,6 +385,10 @@ export function Editor({
         return locationLabel || "Set the pin";
       case "rooms":
         return `${rooms.length} room${rooms.length === 1 ? "" : "s"}`;
+      case "review":
+        return readiness.allDone
+          ? "Ready to publish"
+          : `${readiness.done}/${readiness.total} ready`;
       case "danger":
         return "Unpublish · archive";
       default:
@@ -421,6 +484,21 @@ export function Editor({
       <div className="grid gap-6 lg:grid-cols-[262px_1fr]">
         {/* section navigator */}
         <aside className="lg:sticky lg:top-20 lg:self-start">
+          <button
+            type="button"
+            onClick={() => setActive("review")}
+            className="mb-3 flex w-full items-center gap-3 rounded-card border border-brand-line bg-white p-3.5 text-left shadow-card transition hover:border-brand-primary/40"
+          >
+            <ProgressRing pct={readiness.pct} />
+            <div className="min-w-0">
+              <div className="font-display text-[14px] font-bold text-brand-ink">
+                {readiness.allDone ? "Ready to publish" : "Almost ready"}
+              </div>
+              <div className="text-[11px] text-brand-mute">
+                {readiness.done}/{readiness.total} essentials done
+              </div>
+            </div>
+          </button>
           <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
             Sections
           </div>
@@ -586,11 +664,242 @@ export function Editor({
               channels={channels}
             />
           ) : null}
+          {active === "review" ? (
+            <div className="space-y-4">
+              {/* readiness */}
+              <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+                <div className="flex items-center gap-3 border-b border-brand-line px-5 py-4">
+                  <ProgressRing pct={readiness.pct} />
+                  <div className="min-w-0">
+                    <div className="font-display text-[15px] font-bold text-brand-ink">
+                      {readiness.allDone ? "Ready to publish" : "Almost there"}
+                    </div>
+                    <div className="text-[12px] text-brand-mute">
+                      {readiness.allDone
+                        ? "Everything guests need is set."
+                        : "Finish the flagged items to be guest-ready."}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-1 p-4 sm:grid-cols-2">
+                  {readiness.items.map((it) => (
+                    <button
+                      key={it.label}
+                      type="button"
+                      onClick={() => setActive(it.tab)}
+                      className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-left text-[12.5px] transition hover:bg-brand-light"
+                    >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                          it.done
+                            ? "bg-brand-primary text-white"
+                            : "bg-brand-light text-brand-mute"
+                        }`}
+                      >
+                        {it.done ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <span className="h-1.5 w-1.5 rounded-full bg-brand-mute" />
+                        )}
+                      </span>
+                      <span
+                        className={`flex-1 ${it.done ? "text-brand-ink" : "text-brand-mute"}`}
+                      >
+                        {it.label}
+                      </span>
+                      {!it.done ? (
+                        <Pencil className="h-3 w-3 text-brand-mute" />
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* summary */}
+              <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+                <SummaryRow
+                  label="Name"
+                  value={listing.name || "Not set"}
+                  muted={!listing.name}
+                  onEdit={() => setActive("basic")}
+                />
+                <SummaryRow
+                  label="Type"
+                  value={typeLabel}
+                  onEdit={() => setActive("basic")}
+                />
+                <SummaryRow
+                  label="Location"
+                  value={locationLabel || "Not set"}
+                  muted={!locationLabel}
+                  onEdit={() => setActive("location")}
+                />
+                <SummaryRow
+                  label="Photos"
+                  value={`${photos.length} photo${photos.length === 1 ? "" : "s"}`}
+                  muted={photos.length === 0}
+                  onEdit={() => setActive("photos")}
+                />
+                <SummaryRow
+                  label="Rooms"
+                  value={
+                    rooms.length > 0
+                      ? `${rooms.length} room${rooms.length === 1 ? "" : "s"}`
+                      : listing.max_guests
+                        ? `Whole place · sleeps ${listing.max_guests}`
+                        : "Not set"
+                  }
+                  muted={rooms.length === 0 && !listing.max_guests}
+                  onEdit={() => setActive("rooms")}
+                />
+                <SummaryRow
+                  label="From price"
+                  value={
+                    fromPrice != null
+                      ? `${formatMoney(fromPrice, listing.currency)} / night`
+                      : "Not set"
+                  }
+                  muted={fromPrice == null}
+                  onEdit={() => setActive("pricing")}
+                />
+                <SummaryRow
+                  label="Policies"
+                  value={
+                    assignedPolicies.length > 0
+                      ? `${assignedPolicies.length} assigned`
+                      : "None yet"
+                  }
+                  muted={assignedPolicies.length === 0}
+                  onEdit={() => setActive("policies")}
+                  last
+                />
+              </div>
+
+              {/* publish CTA */}
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-line bg-brand-light/40 px-5 py-4">
+                <div className="min-w-0">
+                  <div className="font-display text-[14px] font-bold text-brand-ink">
+                    {isPublished
+                      ? "This listing is live"
+                      : readiness.allDone
+                        ? "Ready to go live"
+                        : "Not published yet"}
+                  </div>
+                  <div className="text-[12px] text-brand-mute">
+                    {isPublished
+                      ? "Guests can find and book it."
+                      : readiness.allDone
+                        ? "Publish it to the Wielo directory and your website."
+                        : "Finish the checklist above, then publish."}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isPublished && listing.slug ? (
+                    <Link
+                      href={`/property/${listing.slug}`}
+                      target="_blank"
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+                    >
+                      <Eye className="h-4 w-4 text-brand-mute" /> Preview
+                    </Link>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={togglePublish}
+                    disabled={publishPending}
+                    className={`inline-flex items-center gap-1.5 rounded-pill px-5 py-2.5 text-[13px] font-semibold transition disabled:opacity-60 ${
+                      isPublished
+                        ? "border border-status-pending/30 bg-status-pending/10 text-status-pending hover:bg-status-pending/20"
+                        : "bg-brand-primary text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] hover:bg-brand-secondary"
+                    }`}
+                  >
+                    {publishPending
+                      ? "Saving…"
+                      : isPublished
+                        ? "Unpublish"
+                        : "Publish listing"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
           {active === "danger" ? (
             <DangerTab listingId={listing.id} listingName={listing.name} />
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProgressRing({ pct }: { pct: number }) {
+  const circumference = 2 * Math.PI * 15.5;
+  const dash = (pct / 100) * circumference;
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
+        <circle
+          cx="18"
+          cy="18"
+          r="15.5"
+          fill="none"
+          stroke="#E4EFE8"
+          strokeWidth="3.4"
+        />
+        <circle
+          cx="18"
+          cy="18"
+          r="15.5"
+          fill="none"
+          stroke="#10B981"
+          strokeWidth="3.4"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circumference}`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center font-display text-[11.5px] font-bold tabular-nums text-brand-ink">
+        {pct}%
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  muted,
+  last,
+  onEdit,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+  last?: boolean;
+  onEdit: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 px-5 py-3 ${
+        last ? "" : "border-b border-[#EEF4F0]"
+      }`}
+    >
+      <div className="w-24 shrink-0 text-[11.5px] font-semibold uppercase tracking-wide text-brand-mute">
+        {label}
+      </div>
+      <div
+        className={`min-w-0 flex-1 truncate text-[13px] ${
+          muted ? "italic text-brand-mute" : "font-medium text-brand-ink"
+        }`}
+      >
+        {value}
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="inline-flex shrink-0 items-center gap-1 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11px] font-medium text-brand-mute transition hover:border-brand-primary/40 hover:text-brand-ink"
+      >
+        <Pencil className="h-3 w-3" /> Edit
+      </button>
     </div>
   );
 }
