@@ -605,15 +605,15 @@ export async function sendQuoteAction(
   const own = await assertOwnership(quoteId);
   if (!own.ok) return own;
 
-  // Use the admin client for the send: ownership is already asserted above, and
-  // a SECOND createServerClient() in the same request loses the auth session
-  // (the request cookies were already consumed by assertOwnership), so RLS
-  // reads return null and the send silently aborts (no quote ever reached
-  // 'sent'). Admin — RLS-bypassing but ownership-gated — makes the send reliable.
+  // Admin client — ownership is asserted above; a second createServerClient()
+  // in the same request loses the auth session, so RLS reads would return null.
   const supabase = createAdminClient();
   const { data: current } = await supabase
     .from("quotes")
-    .select("status, looking_for_post_id, host_id, thread_id")
+    // NB: quotes has `conversation_id` (its inbox thread), NOT `thread_id` — the
+    // old select referenced a non-existent column, which errored the read and
+    // silently aborted EVERY send (no quote ever reached 'sent').
+    .select("status, looking_for_post_id, host_id, conversation_id")
     .eq("id", quoteId)
     .maybeSingle();
   if (!current) return { ok: false, error: "Quote not found." };
@@ -640,7 +640,7 @@ export async function sendQuoteAction(
         post_id: current.looking_for_post_id,
         host_id: current.host_id,
         quote_id: quoteId,
-        thread_id: current.thread_id,
+        thread_id: current.conversation_id,
         status: "sent",
         sent_at: new Date().toISOString(),
       },

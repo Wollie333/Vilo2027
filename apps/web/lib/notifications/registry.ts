@@ -755,9 +755,11 @@ export const NOTIFICATION_REGISTRY = {
 
   // Guest receives a sent quote (any quote — the general path; looking-for
   // quotes use looking_for_quote_received instead). Emails a link to accept.
+  // Category 'bookings' (not quote_requests, which is host-facing with email
+  // off by default) so the guest actually gets the email.
   quote_sent_guest: {
-    category: "quote_requests",
-    feature: "message",
+    category: "bookings",
+    feature: "booking",
     severity: "high",
     emailTemplate: "quote_sent_guest",
     refKeys: ["quoteId"],
