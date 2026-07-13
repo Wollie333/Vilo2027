@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 
+import { loadFormDraft } from "@/lib/drafts/store";
 import { requireHost } from "@/lib/host/current";
+import { createServerClient } from "@/lib/supabase/server";
 
 import { SpecialEditor } from "../../_components/SpecialEditor";
 import { loadSpecial, loadSpecialEditorData } from "../../_lib/load";
@@ -29,6 +31,12 @@ export default async function EditSpecialPage({
   ]);
   if (!special) notFound();
 
+  const serverDraft = await loadFormDraft(createServerClient(), host.userId, {
+    entityType: "special",
+    entityId: id,
+    scopeId: null,
+  });
+
   return (
     <SpecialEditor
       mode="edit"
@@ -36,6 +44,8 @@ export default async function EditSpecialPage({
       initialValues={special.values}
       initialStatus={special.values.status}
       data={data}
+      userId={host.userId}
+      serverDraft={serverDraft}
     />
   );
 }

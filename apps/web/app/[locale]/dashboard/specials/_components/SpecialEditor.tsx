@@ -26,9 +26,18 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import {
+  useCallback,
+  useMemo,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 
+import { ResumeDraftBanner } from "@/components/drafts/ResumeDraftBanner";
+import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
+import type { LoadedDraft } from "@/lib/drafts/store";
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/format";
 import { grossVat } from "@/lib/pricing/vat";
@@ -95,12 +104,16 @@ export function SpecialEditor({
   initialValues,
   initialStatus,
   data,
+  userId,
+  serverDraft,
 }: {
   mode: "create" | "edit";
   specialId?: string;
   initialValues: SpecialInput;
   initialStatus: SpecialInput["status"];
   data: SpecialEditorData;
+  userId: string;
+  serverDraft: LoadedDraft | null;
 }) {
   const t = useTranslations("specials");
   const router = useRouter();
@@ -136,6 +149,29 @@ export function SpecialEditor({
   function set<K extends keyof SpecialInput>(key: K, value: SpecialInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
+
+  // ---- Auto-save drafts (zero-loss recovery) ----
+  const applyDraft = useCallback((p: SpecialInput) => {
+    setForm(p);
+    toast.success("Draft restored");
+  }, []);
+
+  const draftTarget = useMemo(
+    () => ({
+      entityType: "special" as const,
+      entityId: specialId ?? null,
+      scopeId: null,
+    }),
+    [specialId],
+  );
+
+  const draft = useAutosaveDraft({
+    userId,
+    target: draftTarget,
+    value: form,
+    onRestore: applyDraft,
+    serverDraft,
+  });
 
   const selectedProperty = useMemo(
     () => data.properties.find((p) => p.id === form.property_id) ?? null,
@@ -437,6 +473,8 @@ export function SpecialEditor({
             ? await createSpecialAction(payload)
             : await updateSpecialAction(specialId as string, payload);
         if (res.ok) {
+          // Saved for real — drop the recovery draft so no stale resume prompt.
+          draft.clearSaved();
           // Warn the host when the deal barely beats (or doesn't beat) their
           // current rate for these dates — savings are computed against the
           // seasonally-adjusted rate, so a deal priced above an active season's
@@ -638,6 +676,15 @@ export function SpecialEditor({
 
   return (
     <div className="space-y-5">
+      {draft.hasDraft ? (
+        <ResumeDraftBanner
+          savedAt={draft.savedAt}
+          onRestore={draft.restore}
+          onDiscard={draft.discard}
+          label="deal changes"
+        />
+      ) : null}
+
       {/* ============ IDENTITY BAR ============ */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card">
         <div className="h-12 w-16 shrink-0 overflow-hidden rounded-[11px] border border-brand-line bg-brand-light">
