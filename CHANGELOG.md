@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-13 — New-listing page on the create-data pattern (journey step 1).
+
+"Do the same layout for `dashboard/properties/new`." The 2-field draft creator (name + category) now wears the
+create-data shell as **step 1 of the listing journey**: an **identity bar** (Home tile · Listings › New
+breadcrumb · live title · Draft badge · Cancel), a left-rail **roadmap** (Basics active · Photos · Location ·
+Rooms & pricing · Policies · Review & publish — the last five shown muted as "in the editor next" so the host
+sees the whole path), a **live health ring** on the two basics (name + category → x/2, updates as they fill),
+the Basics panel (name + CategoryPicker), and a single **"Create draft & continue"** CTA with a live summary
+hint. On submit it creates the draft (unchanged `createListingAction`) and redirects into the listing editor —
+whose real rail continues the identical shell, so the transition is seamless. `page.tsx` dropped its old header +
+back-link (the identity bar replaces them). Verified live: ring 0 → 50 → 100% as the two fields fill, create →
+redirect into the editor with the name + category prefilled; test listing soft-deleted; build + lint green, no
+console errors.
+
 ## 2026-07-13 — Room editor on the create-data pattern + batch-save amenities.
 
 Rolled the create-data default layout onto the **room editor** (`rooms/[roomId]/RoomEditor.tsx`). Replaced the

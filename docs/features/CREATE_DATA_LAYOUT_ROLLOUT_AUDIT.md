@@ -51,7 +51,7 @@ dialog re-open** (not page load) — OR convert to dedicated pages like coupons 
 ## ⚪ Doesn't fit — minimal entry points / settings / list managers (leave as-is)
 | Surface | File | Why |
 |---|---|---|
-| "New listing" (name + category) | `properties/new/NewListingForm.tsx` | 2-field draft creator → redirects into the listing editor (#2). Nothing to step. |
+| ~~"New listing" (name + category)~~ ✅ **DONE** (founder override) | `properties/new/NewListingForm.tsx` | Now wears the create-data shell as **step 1 of the journey**: identity bar (Draft badge) + left-rail **roadmap** (Basics active · Photos · Location · Rooms & pricing · Policies · Review — the rest "in the editor next") + a **live health ring** on the two basics (name + category, x/2) + single "Create draft & continue" CTA → creates the draft, redirects into the listing editor's real rail. Seamless visual continuity. |
 | "New business" | `settings/businesses/_components/BusinessForm.tsx` | Short single form. |
 | Data / GDPR request | `settings/data/RequestForm.tsx` | Simple settings form. |
 | Tracking pixels | `dashboard/tracking/TrackingForm.tsx` | Settings form. |
