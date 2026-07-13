@@ -2,6 +2,21 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-13 · `02d7b2d9`) — FOUNDER QUICK-TASKS (all 5) DONE. NEXT = deep audit backlog.
+
+Pushed to `main`, verified live (BK-0027 partially-refunded + BK-0038 cancelled/declined), `tsc`/`lint`/`build`
+green. Shipped the 5 quick fixes queued in `MVP_READINESS_AND_AUDIT_BACKLOG.md`, on the **payment record**
+(`dashboard/payments/[id]/page.tsx`) + **booking** (`dashboard/bookings/[id]/BookingDetail.tsx`):
+refund timeline (approved/declined + by-whom) · txn reference · "Authorised by" (recorded_by/actioned_by→name) ·
+refund-aware status badge + `isCaptured` · **"Closed & handled"** ribbon/chip with **write-off accounting**
+(cancelled/no-show/declined remainder written off — never "owed to you"). Detail in memory
+[[project-payment-record-settlement-polish]].
+
+**▶ NEXT (fresh session): the DEEP in-depth audits** — `MVP_READINESS_AND_AUDIT_BACKLOG.md` §🟡: quotes ·
+looking-for · coupons · specials · add-ons · media manager · reports · product feature gating + the full
+guest/host/admin sweep. Audit each like the financial sweep (re-derive live, verify all three roles,
+`docs/lifecycles/<feature>.md`).
+
 ## ▶▶▶ SAVE POINT (2026-07-12 #76) — FOUNDER BATCH §F COMPLETE + FINANCIAL-CORRECTNESS PASS. Pushed @ `6b2f0c45`. NEXT = deep financial sweep (§1).
 
 All work below is committed + pushed to `main`, verified live (host + super_admin), and `tsc`/`lint`/`build`
