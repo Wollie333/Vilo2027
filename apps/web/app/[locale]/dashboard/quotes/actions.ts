@@ -605,12 +605,15 @@ export async function sendQuoteAction(
   const own = await assertOwnership(quoteId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  // Use the admin client for the send: ownership is already asserted above, and
+  // a SECOND createServerClient() in the same request loses the auth session
+  // (the request cookies were already consumed by assertOwnership), so RLS
+  // reads return null and the send silently aborts (no quote ever reached
+  // 'sent'). Admin — RLS-bypassing but ownership-gated — makes the send reliable.
+  const supabase = createAdminClient();
   const { data: current } = await supabase
     .from("quotes")
-    .select(
-      "status, looking_for_post_id, host_id, thread_id, guest_id, guest_name, guest_email, check_in, check_out, total_amount, currency, quote_number, accept_token, listing:properties(name)",
-    )
+    .select("status, looking_for_post_id, host_id, thread_id")
     .eq("id", quoteId)
     .maybeSingle();
   if (!current) return { ok: false, error: "Quote not found." };
@@ -682,76 +685,90 @@ export async function sendQuoteAction(
     }
 
     revalidatePath("/dashboard/looking-for");
-  } else if (current.guest_email) {
-    // Non-looking-for quote → email the guest a link to view & accept. This is
-    // the general path (looking-for quotes use looking_for_quote_received). We
-    // ensure the guest has a Wielo identity (Principle #1) so there's always a
-    // notification recipient, then dispatch (email + push + in-app).
+  } else {
+    // Non-looking-for quote → email the guest a link to view & accept (the
+    // general path; looking-for quotes use looking_for_quote_received). All
+    // reads go through the admin client (RLS-safe, and keeps the status-update
+    // path above untouched). We ensure the guest has a Wielo identity
+    // (Principle #1) so there's always a notification recipient.
     const admin = createAdminClient();
-    let guestId = current.guest_id as string | null;
-    if (!guestId) {
-      const lead = await findOrCreateLeadIdentity(admin, {
-        email: current.guest_email,
-        name: current.guest_name ?? "",
-      });
-      guestId = lead?.guestId ?? null;
-      if (guestId) {
-        await admin
-          .from("quotes")
-          .update({ guest_id: guestId })
-          .eq("id", quoteId)
-          .is("guest_id", null);
+    const { data: q } = await admin
+      .from("quotes")
+      .select(
+        "guest_id, guest_name, guest_email, check_in, check_out, total_amount, currency, quote_number, accept_token, property_id",
+      )
+      .eq("id", quoteId)
+      .maybeSingle();
+    if (q?.guest_email) {
+      let guestId = q.guest_id as string | null;
+      if (!guestId) {
+        const lead = await findOrCreateLeadIdentity(admin, {
+          email: q.guest_email,
+          name: q.guest_name ?? "",
+        });
+        guestId = lead?.guestId ?? null;
+        if (guestId) {
+          await admin
+            .from("quotes")
+            .update({ guest_id: guestId })
+            .eq("id", quoteId)
+            .is("guest_id", null);
+        }
       }
-    }
-    if (guestId) {
-      const { data: hostRow } = await admin
-        .from("hosts")
-        .select("display_name")
-        .eq("id", current.host_id)
-        .maybeSingle();
-      const listingName = Array.isArray(current.listing)
-        ? current.listing[0]?.name
-        : (current.listing as { name?: string } | null)?.name;
-      const fmtD = (iso: string | null): string =>
-        iso
-          ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })
-          : "—";
-      const nights =
-        current.check_in && current.check_out
-          ? Math.max(
-              0,
-              Math.round(
-                (new Date(`${current.check_out}T00:00:00`).getTime() -
-                  new Date(`${current.check_in}T00:00:00`).getTime()) /
-                  86_400_000,
-              ),
-            )
-          : 1;
-      await dispatchEvent({
-        kind: "quote_sent_guest",
-        recipientUserId: guestId,
-        guestId,
-        refs: {
-          quoteId,
-          guestFirstName: (current.guest_name ?? "").split(" ")[0] || undefined,
-          listingName: listingName ?? undefined,
-          hostName: hostRow?.display_name ?? undefined,
-          checkIn: fmtD(current.check_in),
-          checkOut: fmtD(current.check_out),
-          nights,
-          totalAmount: formatMoney(
-            Number(current.total_amount ?? 0),
-            current.currency ?? "ZAR",
-          ),
-          quoteNumber: current.quote_number ?? undefined,
-          validUntil: fmtD(validUntil.toISOString().slice(0, 10)),
-          acceptToken: current.accept_token ?? undefined,
-        },
-      });
+      if (guestId) {
+        const [{ data: hostRow }, { data: propRow }] = await Promise.all([
+          admin
+            .from("hosts")
+            .select("display_name")
+            .eq("id", current.host_id)
+            .maybeSingle(),
+          admin
+            .from("properties")
+            .select("name")
+            .eq("id", q.property_id)
+            .maybeSingle(),
+        ]);
+        const fmtD = (iso: string | null): string =>
+          iso
+            ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : "—";
+        const nights =
+          q.check_in && q.check_out
+            ? Math.max(
+                0,
+                Math.round(
+                  (new Date(`${q.check_out}T00:00:00`).getTime() -
+                    new Date(`${q.check_in}T00:00:00`).getTime()) /
+                    86_400_000,
+                ),
+              )
+            : 1;
+        await dispatchEvent({
+          kind: "quote_sent_guest",
+          recipientUserId: guestId,
+          guestId,
+          refs: {
+            quoteId,
+            guestFirstName: (q.guest_name ?? "").split(" ")[0] || undefined,
+            listingName: propRow?.name ?? undefined,
+            hostName: hostRow?.display_name ?? undefined,
+            checkIn: fmtD(q.check_in),
+            checkOut: fmtD(q.check_out),
+            nights,
+            totalAmount: formatMoney(
+              Number(q.total_amount ?? 0),
+              q.currency ?? "ZAR",
+            ),
+            quoteNumber: q.quote_number ?? undefined,
+            validUntil: fmtD(validUntil.toISOString().slice(0, 10)),
+            acceptToken: q.accept_token ?? undefined,
+          },
+        });
+      }
     }
   }
 
