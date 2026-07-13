@@ -2,7 +2,7 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-13 · head `d6544252`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-13 · head `099c1819`) — START HERE
 
 **Theme of this arc:** roll the **create-data default layout** (left-rail step-tabs · health ring · live
 sub-hints · identity bar with autosave indicator · one panel at a time · final **Review** step with per-row
@@ -13,18 +13,19 @@ memory `feedback-create-data-default-layout`; rollout tracker `docs/features/CRE
 **✅ Converted to the pattern (all live-verified, `build`+`lint` green):** add-ons editor · specials/deals editor ·
 manual **booking** create · **quote** form (page/embedded variant — shared with looking-for respond) · **coupon**
 create/edit (modal → dedicated `/new` + `/[id]/edit` pages; redemption re-verified at checkout) · **listing
-editor** (was already left-rail — added the **Review & publish** step + health ring). **Autosave** (`form_drafts`,
-Layer A+B) is wired on add-on · special · booking · quote(page) · coupon editors.
+editor** (was already left-rail — added the **Review & publish** step + health ring) · **room editor**
+(`rooms/[roomId]/RoomEditor.tsx` — identity bar + 6-step rail + health ring + Review; sections keep own save;
+**amenities now batch-save** via `RoomAmenitiesSection` `batchSave` — tick many, one "Save amenities"). **Autosave**
+(`form_drafts`, Layer A+B) is wired on add-on · special · booking · quote(page) · coupon editors.
 
 **✅ Also this arc:** multi-select + **concurrent** photo upload on listing + room galleries
 (`components/listing/photoUpload.ts`); the respond-to-quote-request card verified still on top of the quote form.
 
 **▶ NEXT — pick from the rollout audit (founder approves which):**
-1. **Room editor** (`properties/[id]/edit/rooms/[roomId]/RoomEditor.tsx`) — full-page candidate.
-2. **Onboarding wizard** (`dashboard/setup/SetupWizard.tsx`) — already stepped; re-skin to the exact standard.
-3. **Modal group** (coupons are the template for modal→pages): rooms quick-add · seasonal pricing · banking
+1. **Onboarding wizard** (`dashboard/setup/SetupWizard.tsx`) — already stepped; re-skin to the exact standard.
+2. **Modal group** (coupons are the template for modal→pages): rooms quick-add · seasonal pricing · banking
    dialogs · staff/alerts/templates/extras/feed managers. (Decide once: convert-to-pages vs persist-on-close.)
-4. **Media bank** (`dashboard/media/HostMediaManager.tsx`) — two single-file uploaders → give them multi-select
+3. **Media bank** (`dashboard/media/HostMediaManager.tsx`) — two single-file uploaders → give them multi-select
    (the listing-media view can reuse `photoUpload.ts`; website-media uses the website-assets bucket).
 
 **▶ Still-queued smaller items:** add-on `vat_included` **dead flag** (stored, never consumed at checkout —
@@ -36,6 +37,36 @@ were the plan; coupons now done as pages).
 listing `0b222222-2222-4222-8222-222222222221`). DB truth via `scratchpad/sbenv.sh` ($SB/$KEY service role).
 
 ---
+
+## ▶▶▶ SAVE POINT (2026-07-13 · `099c1819`) — ROOM EDITOR on the create-data pattern + batch-save amenities.
+
+Founder picked the **room editor** as the next create-data conversion. `rooms/[roomId]/RoomEditor.tsx` was a
+sticky-sub-header + big-header-card + two-column-with-right-rail layout; now it's the standard: **identity bar**
+(cover · breadcrumb · Bookable badge + toggle · Preview · Done) → **left-rail** steps (Details & pricing ·
+Photos · Amenities · Guest access · Review & publish · Danger zone) with a **health ring** (5 essentials: name ·
+description · a photo · beds & capacity · a nightly price) + live sub-hints → **one panel at a time** →
+**Review & publish** step (readiness checklist w/ per-row jumps · summary w/ quick-edit jumps · Performance
+stats · guest preview · availability · single Make-bookable/Hide CTA). Stats/preview/availability moved from the
+old right rail into Review. Each section keeps its own save (RoomDetailsForm in-card "Save room";
+photos/access self-save). All `RoomEditor` exports preserved.
+
+**Founder follow-up mid-session:** "do not save one amenity per check — let the user check multiples then save
+afterwards." `RoomAmenitiesSection` gained a **`batchSave`** prop (used by the room editor): toggles update
+local state only, an in-card **"Save amenities"** button (enabled only when dirty, "· unsaved changes" hint)
+persists the whole set via the existing `setRoomAmenitiesAction` (delete-then-insert scoped by `room_id`). The
+per-toggle `setRoomAmenityAction` path is untouched for any other caller; the wizard's `deferSave` path is
+untouched.
+
+**Verified live** (test host, Milkyway Room `0b333333-3333-4333-8333-333333333331`): pattern + health ring
+(80% → recomputes to 100% live when a bed is added) · rail switches one panel at a time · Review renders all
+sections with real data (3 lifetime bookings, R1 663 avg, July availability) · amenities batch UX — 3 boxes
+ticked wrote **zero** rows until Save, then all 3 in one round-trip, dirty reset after. No console errors;
+`build` + `lint` green; test amenities cleaned up. **GOTCHA reconfirmed:** running `pnpm build` while the dev
+server is up corrupts `.next` (blank/unstyled page) — stop server, `rm -rf apps/web/.next`, restart.
+
+**▶ NEXT (rollout audit `docs/features/CREATE_DATA_LAYOUT_ROLLOUT_AUDIT.md`):** onboarding wizard re-skin · the
+modal group (rooms quick-add · seasonal · banking · managers — coupons are the convert-to-pages template) ·
+media bank multi-select. Still queued: add-on `vat_included` dead-flag · autosave TTL-prune cron.
 
 ## ▶▶▶ SAVE POINT (2026-07-13 · `732b2e4c`) — MULTI-SELECT + CONCURRENT photo upload for listing & room photos.
 
