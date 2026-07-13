@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-13 — Specials/deals deep audit. Fixed expire cron. Verified live.
+
+Deep correctness pass on the Specials feature (backlog item #4). **Verified live & correct:** server-side
+re-pricing (client estimate never trusted), VAT-inclusive display for flat + per-night deals (deal net →
++VAT → inclusive; matches the charged total), sold-out enforcement at 3 layers (no CTA / "sold out" on book
+page / server guard), go-live/book-by/min-max-night window guards, race-safe quantity cap (`redeem_special`),
+and **seasonal-aware savings** (the "was price" shadow applies real seasonal rules, so a deal barely below an
+active seasonal rate honestly shows a small saving). **Fixed:** `expire_specials()` shipped unscheduled
+("cron wired later") — added `20260713110000_schedule_expire_specials_cron.sql` (daily 02:15 UTC); verified
+by backdating `book_by` and running the fn. Also refreshed two seed deals whose hand-authored `was_price`
+ignored the active winter −15% seasonal (milkyway 12%→3%, midweek 16%→1%) by re-saving through the real
+compute path (which also verified the edit→save→recompute flow). Lifecycle doc `docs/lifecycles/specials.md`.
+Open founder calls (not bugs): suppress trivial savings badges; per-host slug vs global `/deal/[slug]`
+resolution; no publish/expiry notification.
+
 ## 2026-07-13 — Shared `EventTimeline` component — one history styling across the app. Verified live.
 
 Extracted the enriched payment-timeline design into a reusable, server-safe component

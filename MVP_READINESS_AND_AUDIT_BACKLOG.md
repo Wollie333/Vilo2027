@@ -110,9 +110,14 @@ the edge/branch cases, fix what's wrong, and record a `docs/lifecycles/<feature>
    accounting, notifications, the intent-survives-login path.
 3. **Coupons** — creation, validity windows, per-code/per-guest limits, stacking
    with seasonal/specials/add-ons, server-side re-price, ledger + invoice lines.
-4. **Specials (deals)** — create → publish → public `/deal/[slug]` → book; date
-   modes, price modes, quantity/redemption caps, savings math, categories,
-   go-live/book-by windows, VAT.
+4. ~~**Specials (deals)**~~ ✅ **AUDITED 2026-07-13** — `docs/lifecycles/specials.md`.
+   Verified live: server re-pricing (client never trusted), VAT-inclusive display
+   (flat + per-night), sold-out enforcement (3 layers), window/min-max-night guards,
+   race-safe quantity cap, **seasonal-aware savings**. **Fixed:** `expire_specials()`
+   was never scheduled → cron added (`20260713110000`). Refreshed 2 seed deals whose
+   `was_price` ignored the active winter seasonal. Open founder calls (not bugs):
+   suppress trivial "1% off" badges · per-host slug vs global `/deal/[slug]` · no
+   publish/expiry notification.
 5. **Add-ons** — quote add-ons vs post-booking add-ons, per-listing/room scoping,
    pricing + VAT, invoicing (no double charge — fixed this cycle, but audit the
    full matrix), refundability decision (G7 still open).
