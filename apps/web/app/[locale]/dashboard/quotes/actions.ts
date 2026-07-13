@@ -595,7 +595,11 @@ async function postQuoteEventCard(
 
 export async function sendQuoteAction(
   quoteId: string,
-  validDays = 14,
+  // Fallback only — QuoteForm always passes the host's chosen validity (its
+  // presets are 1/3/7 days + "until check-in", default 3). Kept in sync with
+  // that default so a quote never silently gets a different lifespan than the
+  // builder showed. The expire-quotes cron (20260713140000) enforces it.
+  validDays = 3,
 ): Promise<ActionResult> {
   const own = await assertOwnership(quoteId);
   if (!own.ok) return own;
