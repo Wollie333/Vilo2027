@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  ArrowLeft,
   ArrowRight,
   BedDouble,
   Calculator,
   Check,
   ChevronRight,
+  ClipboardCheck,
   Clock,
   Eye,
   ListPlus,
@@ -18,6 +20,7 @@ import {
   Trash2,
   User,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -31,6 +34,9 @@ import {
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { ResumeDraftBanner } from "@/components/drafts/ResumeDraftBanner";
+import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
+import type { LoadedDraft } from "@/lib/drafts/store";
 import {
   FormModal,
   FormModalCancel,
@@ -136,6 +142,20 @@ export type QuoteFormInitial = {
   lookingForPostId?: string;
 };
 
+// Left-rail steps for the page variant (mirrors the specials / add-ons editors).
+const QUOTE_STEPS = [
+  "Confirm the stay",
+  "Your price",
+  "Terms & reply",
+  "Review",
+] as const;
+const QUOTE_STEP_ICONS: LucideIcon[] = [
+  User,
+  Calculator,
+  Clock,
+  ClipboardCheck,
+];
+
 function nightsBetween(checkIn: string, checkOut: string): number {
   if (!checkIn || !checkOut) return 0;
   const f = new Date(`${checkIn}T00:00:00Z`).getTime();
@@ -172,13 +192,24 @@ export function QuoteForm({
   listings,
   initial,
   isSentQuote = false,
+  variant = "embedded",
+  userId,
+  serverDraft = null,
 }: {
   listings: QuoteFormListing[];
   initial?: QuoteFormInitial;
   // True when editing an already-SENT quote — saving is a revision: it needs a
   // reason, keeps the prior version, and posts a "revised" card to the thread.
   isSentQuote?: boolean;
+  // "page" = the standalone new/edit quote pages → full left-rail step layout +
+  // autosave. "embedded" (default) = the current stacked layout, used inside the
+  // looking-for respond flow so that surface is unchanged.
+  variant?: "page" | "embedded";
+  // Present only in "page" contexts — enables auto-save drafts.
+  userId?: string;
+  serverDraft?: LoadedDraft | null;
 }) {
+  const isPage = variant === "page";
   const router = useRouter();
   const brandName = useBrandName();
   const [pending, start] = useTransition();
@@ -188,6 +219,12 @@ export function QuoteForm({
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reasonText, setReasonText] = useState("");
   const [pendingSendAfter, setPendingSendAfter] = useState(false);
+
+  // Left-rail step (page variant only): 0 stay · 1 price · 2 terms · 3 review.
+  const [step, setStep] = useState(0);
+  // True only while a recovery draft is being applied — lets the auto-pricing
+  // effect skip that commit so a restored hand-set price isn't re-priced over.
+  const restoringRef = useRef(false);
 
   const [listingId, setListingId] = useState(
     initial?.listingId ?? listings[0]?.id ?? "",
@@ -578,6 +615,7 @@ export function QuoteForm({
   );
 
   useEffect(() => {
+    if (restoringRef.current) return; // don't re-price over a restored draft
     // Single-total is a hand-set figure — never auto-price over it.
     if (priceMode === "single") return;
     if (!datesValid) return;
@@ -601,6 +639,12 @@ export function QuoteForm({
     headcount,
     priceStayNow,
   ]);
+
+  // Clear the restore guard after the auto-pricing effect above has run for this
+  // commit (defined last so it runs last), so later edits re-price normally.
+  useEffect(() => {
+    if (restoringRef.current) restoringRef.current = false;
+  });
 
   function addCustom() {
     setCustomAddons((p) => [
@@ -805,6 +849,7 @@ export function QuoteForm({
           toast.error(result.error);
           return;
         }
+        draft.clearSaved();
         if (sendAfter) {
           startSending(async () => {
             const r = await sendQuoteAction(initial.id!, validDays);
@@ -824,6 +869,7 @@ export function QuoteForm({
           toast.error(result.ok ? "Could not save." : result.error);
           return;
         }
+        draft.clearSaved();
         if (sendAfter) {
           const r = await sendQuoteAction(result.data.id, validDays);
           if (!r.ok) toast.error(r.error);
@@ -931,1080 +977,1527 @@ export function QuoteForm({
   const firstName = guestName.trim().split(/\s+/)[0] || "the guest";
   const step1Done = !!listingId && datesValid && !!guestName && !!guestEmail;
 
+  // ── Auto-save drafts (page variant only) ─────────────────────────
+  type QuoteDraftPayload = {
+    listingId: string;
+    guestName: string;
+    guestEmail: string;
+    guestPhone: string;
+    sendVia: "both" | "email" | "link";
+    checkIn: string;
+    checkOut: string;
+    adults: number;
+    children: number;
+    infants: number;
+    pets: number;
+    scope: "whole_listing" | "rooms";
+    baseAmount: string;
+    cleaningFee: string;
+    notes: string;
+    validDays: number;
+    priceMode: "itemised" | "single";
+    singleTotal: string;
+    pricingTouched: boolean;
+    discountOn: boolean;
+    discountType: "percent" | "fixed";
+    discountValue: string;
+    discountReason: string;
+    depositType: "deposit" | "full" | "reserve";
+    depositPct: string;
+    balanceDueDays: string;
+    roomGuests: Record<string, string>;
+    selectedRooms: Record<string, boolean>;
+    catalogSel: Record<string, string>;
+    customAddons: AddonRow[];
+  };
+  const draftValue = useMemo<QuoteDraftPayload>(
+    () => ({
+      listingId,
+      guestName,
+      guestEmail,
+      guestPhone,
+      sendVia,
+      checkIn,
+      checkOut,
+      adults,
+      children,
+      infants,
+      pets,
+      scope,
+      baseAmount,
+      cleaningFee,
+      notes,
+      validDays,
+      priceMode,
+      singleTotal,
+      pricingTouched,
+      discountOn,
+      discountType,
+      discountValue,
+      discountReason,
+      depositType,
+      depositPct,
+      balanceDueDays,
+      roomGuests,
+      selectedRooms,
+      catalogSel,
+      customAddons,
+    }),
+    [
+      listingId,
+      guestName,
+      guestEmail,
+      guestPhone,
+      sendVia,
+      checkIn,
+      checkOut,
+      adults,
+      children,
+      infants,
+      pets,
+      scope,
+      baseAmount,
+      cleaningFee,
+      notes,
+      validDays,
+      priceMode,
+      singleTotal,
+      pricingTouched,
+      discountOn,
+      discountType,
+      discountValue,
+      discountReason,
+      depositType,
+      depositPct,
+      balanceDueDays,
+      roomGuests,
+      selectedRooms,
+      catalogSel,
+      customAddons,
+    ],
+  );
+
+  const applyDraft = useCallback((p: QuoteDraftPayload) => {
+    restoringRef.current = true;
+    setListingId(p.listingId);
+    setGuestName(p.guestName);
+    setGuestEmail(p.guestEmail);
+    setGuestPhone(p.guestPhone);
+    setSendVia(p.sendVia);
+    setCheckIn(p.checkIn);
+    setCheckOut(p.checkOut);
+    setAdults(p.adults);
+    setChildren(p.children);
+    setInfants(p.infants);
+    setPets(p.pets);
+    setScope(p.scope);
+    setBaseAmount(p.baseAmount);
+    setCleaningFee(p.cleaningFee);
+    setNotes(p.notes);
+    setValidDays(p.validDays);
+    setPriceMode(p.priceMode);
+    setSingleTotal(p.singleTotal);
+    setPricingTouched(p.pricingTouched);
+    setDiscountOn(p.discountOn);
+    setDiscountType(p.discountType);
+    setDiscountValue(p.discountValue);
+    setDiscountReason(p.discountReason);
+    setDepositType(p.depositType);
+    setDepositPct(p.depositPct);
+    setBalanceDueDays(p.balanceDueDays);
+    setRoomGuests(p.roomGuests);
+    setSelectedRooms(p.selectedRooms);
+    setCatalogSel(p.catalogSel);
+    setCustomAddons(p.customAddons);
+    toast.success("Draft restored");
+  }, []);
+
+  const draftTarget = useMemo(
+    () => ({
+      entityType: "quote" as const,
+      entityId: initial?.id ?? null,
+      scopeId: null,
+    }),
+    [initial?.id],
+  );
+
+  const draft = useAutosaveDraft({
+    userId: userId ?? "",
+    target: draftTarget,
+    value: draftValue,
+    onRestore: applyDraft,
+    enabled: isPage && !!userId,
+    serverDraft,
+  });
+
+  // ── Left-rail step meta (page variant) ───────────────────────────
+  const stepShow = (n: number) => !isPage || step === n;
+  const priceReady = totals.total > 0;
+  const railDone = [step1Done, priceReady, true, step1Done && priceReady];
+  const railSub = [
+    guestName.trim() || listing?.name || "Guest & stay",
+    priceReady ? formatMoney(totals.total, currency) : "Set the price",
+    `${validDays}-day validity`,
+    step1Done && priceReady ? "Ready to send" : "Finish the basics",
+  ];
+  const stepValidQ = [step1Done, priceReady, true, true];
+  const railMilestones = [step1Done, priceReady];
+  const railPct = Math.round(
+    (railMilestones.filter(Boolean).length / railMilestones.length) * 100,
+  );
+  const allReadyQ = step1Done && priceReady;
+  function goToStep(target: number) {
+    if (target <= step) return setStep(target);
+    for (let s = step; s < target; s++) {
+      if (!stepValidQ[s]) return void toast.error("Finish this step first.");
+    }
+    setStep(target);
+  }
+
   // ── Render ───────────────────────────────────────────────────────
-  return (
-    <>
-      {/* divider label */}
-      <div className="flex items-center gap-3 pb-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-          {initial?.id ? "Your response" : "Build the quote"}
-        </span>
-        <span className="h-px flex-1 bg-brand-line" />
-        <span className="text-[11px] text-brand-mute">3 quick steps</span>
-      </div>
+  const dividerLabel = (
+    <div className="flex items-center gap-3 pb-1">
+      <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        {initial?.id ? "Your response" : "Build the quote"}
+      </span>
+      <span className="h-px flex-1 bg-brand-line" />
+      <span className="text-[11px] text-brand-mute">3 quick steps</span>
+    </div>
+  );
 
-      <div className="mt-5 space-y-5 pb-28">
-        {/* ===== STEP 1 — CONFIRM THE STAY ===== */}
-        <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-          <SecHeader
-            n={1}
-            done={step1Done}
-            title="Confirm the stay"
-            sub="Who it's for, where they're staying, and the dates. Adjust anything that needs changing."
-          />
+  const sectionsInner = (
+    <div className={isPage ? "space-y-5" : "mt-5 space-y-5 pb-28"}>
+      {stepShow(0) && (
+        <>
+          {/* ===== STEP 1 — CONFIRM THE STAY ===== */}
+          <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
+            <SecHeader
+              n={1}
+              done={step1Done}
+              title="Confirm the stay"
+              sub="Who it's for, where they're staying, and the dates. Adjust anything that needs changing."
+            />
 
-          {/* Guest */}
-          <div className="mt-5">
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
-              Guest
-            </div>
+            {/* Guest */}
+            <div className="mt-5">
+              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                Guest
+              </div>
 
-            {/* Pull in an existing guest — searches past bookers + your Guests
+              {/* Pull in an existing guest — searches past bookers + your Guests
                 directory and fills the fields below on pick. */}
-            <div className="mt-2">
-              <ExistingGuestPicker onPick={pickGuest} />
-            </div>
+              <div className="mt-2">
+                <ExistingGuestPicker onPick={pickGuest} />
+              </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="relative">
-                <FieldLabel>Full name *</FieldLabel>
-                <Input
-                  value={guestName}
-                  onChange={(e) => onGuestNameChange(e.target.value)}
-                  onFocus={() => guestResults.length && setShowResults(true)}
-                  onBlur={() => setTimeout(() => setShowResults(false), 150)}
-                  placeholder="e.g. Aisha Patel"
-                />
-                {showResults && guestResults.length > 0 ? (
-                  <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-lift">
-                    {guestResults.map((g) => (
-                      <button
-                        key={g.email}
-                        type="button"
-                        onMouseDown={() => pickGuest(g)}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-brand-accent/40"
-                      >
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[11px] font-bold text-white">
-                          {(g.name || g.email)[0]?.toUpperCase()}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium text-brand-ink">
-                            {g.name || g.email}
-                          </span>
-                          <span className="block truncate text-xs text-brand-mute">
-                            {g.email}
-                          </span>
-                        </span>
-                        {g.stays > 0 ? (
-                          <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
-                            {g.stays} stay{g.stays === 1 ? "" : "s"}
-                          </span>
-                        ) : null}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-              <div>
-                <FieldLabel>Email *</FieldLabel>
-                <Input
-                  type="email"
-                  value={guestEmail}
-                  onChange={(e) => setGuestEmail(e.target.value)}
-                  placeholder="guest@email.com"
-                />
-              </div>
-              <div>
-                <FieldLabel>Phone (for WhatsApp)</FieldLabel>
-                <Input
-                  value={guestPhone}
-                  onChange={(e) => setGuestPhone(e.target.value)}
-                  placeholder="+27 …"
-                />
-              </div>
-              <div>
-                <FieldLabel>Send quote via</FieldLabel>
-                <Seg
-                  value={sendVia}
-                  onChange={(v) => setSendVia(v as typeof sendVia)}
-                  options={[
-                    { value: "both", label: "Email + WhatsApp" },
-                    { value: "email", label: "Email" },
-                    { value: "link", label: "Link" },
-                  ]}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Matched listing / room */}
-          <div className="mt-6">
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
-              Listing &amp; room
-            </div>
-            <div className="mt-2 flex items-center gap-3 rounded-[12px] border border-brand-line bg-brand-light/40 p-3">
-              <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-[10px] bg-brand-light">
-                {listing?.coverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={listing.coverUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="relative">
+                  <FieldLabel>Full name *</FieldLabel>
+                  <Input
+                    value={guestName}
+                    onChange={(e) => onGuestNameChange(e.target.value)}
+                    onFocus={() => guestResults.length && setShowResults(true)}
+                    onBlur={() => setTimeout(() => setShowResults(false), 150)}
+                    placeholder="e.g. Aisha Patel"
                   />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center text-brand-mute">
-                    <BedDouble className="h-5 w-5" />
-                  </span>
-                )}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13.5px] font-semibold text-brand-ink">
-                  {listing?.name ?? "Pick a listing"}
-                  {scope === "rooms" && selectedRoomObjs.length > 0
-                    ? ` · ${selectedRoomObjs.map((r) => r.name).join(", ")}`
-                    : ""}
-                </div>
-                <div className="truncate text-[11.5px] text-brand-mute">
-                  {[
-                    listing?.city,
-                    listing?.max_guests ? `sleeps ${listing.max_guests}` : null,
-                    listing?.base_price != null
-                      ? `base ${formatMoney(listing.base_price, currency)} / night`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setChangingListing((v) => !v)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[11.5px] font-medium text-brand-ink hover:bg-brand-accent/40"
-              >
-                {changingListing ? "Done" : "Change"}
-                <ChevronRight className="h-3 w-3" />
-              </button>
-            </div>
-
-            {changingListing ? (
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                {listings.map((l) => {
-                  const on = l.id === listingId;
-                  return (
-                    <button
-                      type="button"
-                      key={l.id}
-                      onClick={() => changeListing(l.id)}
-                      className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
-                        on
-                          ? "border-brand-primary bg-brand-accent/40 ring-2 ring-brand-primary/15"
-                          : "border-brand-line bg-white hover:bg-brand-accent/20"
-                      }`}
-                    >
-                      <span className="relative block h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
-                        {l.coverUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={l.coverUrl}
-                            alt={l.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center text-brand-mute">
-                            <BedDouble className="h-6 w-6" />
-                          </span>
-                        )}
-                        {on ? (
-                          <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-white">
-                            <Check className="h-3 w-3" />
-                          </span>
-                        ) : null}
-                      </span>
-                      <span className="mt-2.5 flex items-start justify-between gap-2">
-                        <span className="min-w-0">
-                          <span className="block truncate text-[13px] font-semibold text-brand-ink">
-                            {l.name}
-                          </span>
-                          <span className="block truncate text-[10.5px] text-brand-mute">
-                            {l.city ?? "—"}
-                            {l.max_guests ? ` · sleeps ${l.max_guests}` : ""}
-                          </span>
-                        </span>
-                        {l.base_price != null ? (
-                          <span className="text-right">
-                            <span className="block font-display text-[12.5px] font-bold text-brand-ink">
-                              {formatMoney(l.base_price, l.currency)}
-                            </span>
-                            <span className="block text-[9.5px] text-brand-mute">
-                              / night
-                            </span>
-                          </span>
-                        ) : null}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-
-            {hasRooms ? (
-              <div className="mt-3">
-                <div className="flex gap-2">
-                  <Chip
-                    active={scope === "whole_listing"}
-                    onClick={() => {
-                      setScope("whole_listing");
-                      setPricedRooms([]);
-                    }}
-                    label="Whole listing"
-                  />
-                  <Chip
-                    active={scope === "rooms"}
-                    onClick={() => setScope("rooms")}
-                    label="Specific rooms"
-                  />
-                </div>
-                {scope === "rooms" ? (
-                  <div className="mt-3 space-y-2">
-                    {(listing?.rooms ?? []).map((r) => {
-                      const on = !!selectedRooms[r.id];
-                      const priced = pricedRooms.find(
-                        (p) => p.room_id === r.id,
-                      );
-                      return (
-                        <div
-                          key={r.id}
-                          className={`flex items-center gap-3 rounded-[10px] border p-3 ${on ? "border-brand-primary bg-brand-accent/30" : "border-brand-line bg-white"}`}
+                  {showResults && guestResults.length > 0 ? (
+                    <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-lift">
+                      {guestResults.map((g) => (
+                        <button
+                          key={g.email}
+                          type="button"
+                          onMouseDown={() => pickGuest(g)}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-brand-accent/40"
                         >
-                          <button
-                            type="button"
-                            onClick={() => toggleRoom(r.id)}
-                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${on ? "border-brand-primary bg-brand-primary text-white" : "border-brand-line bg-white"}`}
-                          >
-                            {on ? <Check className="h-3 w-3" /> : null}
-                          </button>
-                          <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
-                            {r.coverUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={r.coverUrl}
-                                alt={r.name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <span className="flex h-full w-full items-center justify-center text-brand-mute">
-                                <BedDouble className="h-4 w-4" />
-                              </span>
-                            )}
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[11px] font-bold text-white">
+                            {(g.name || g.email)[0]?.toUpperCase()}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[12.5px] font-semibold text-brand-ink">
-                              {r.name}
-                              {r.bed_type ? ` · ${r.bed_type}` : ""}
+                            <span className="block truncate font-medium text-brand-ink">
+                              {g.name || g.email}
                             </span>
-                            <span className="block text-[11px] text-brand-mute">
-                              {r.max_guests ? `sleeps ${r.max_guests}` : ""}
+                            <span className="block truncate text-xs text-brand-mute">
+                              {g.email}
                             </span>
                           </span>
-                          {on ? (
-                            <span className="flex items-center gap-2 text-xs text-brand-mute">
-                              <span>Guests</span>
-                              <Input
-                                type="number"
-                                min={1}
-                                max={r.max_guests ?? undefined}
-                                value={
-                                  roomGuests[r.id] ??
-                                  String(r.base_occupancy ?? 1)
-                                }
-                                onChange={(e) =>
-                                  setRoomGuests((p) => ({
-                                    ...p,
-                                    [r.id]: e.target.value,
-                                  }))
-                                }
-                                className="h-8 w-16"
-                              />
-                              {priced ? (
-                                <span className="font-medium text-brand-ink">
-                                  {formatMoney(
-                                    priced.base_amount + priced.cleaning_fee,
-                                    currency,
-                                  )}
-                                </span>
-                              ) : null}
+                          {g.stays > 0 ? (
+                            <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
+                              {g.stays} stay{g.stays === 1 ? "" : "s"}
                             </span>
                           ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          {/* Dates + party summary */}
-          <div className="mt-6">
-            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
-              Dates &amp; party
-            </div>
-            <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-              <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
-                <div className="min-w-0">
-                  <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                    Check-in → out
-                  </div>
-                  <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
-                    {datesValid
-                      ? `${ci.dow} ${ci.day} → ${co.dow} ${co.day} ${co.mo.split(" ")[0]}`
-                      : "Pick dates"}
-                  </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-                <span className="shrink-0 rounded-pill bg-brand-accent px-2 py-0.5 text-[11px] font-bold text-brand-secondary">
-                  {nights} nt{nights === 1 ? "" : "s"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
-                <div className="min-w-0">
-                  <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                    Guest party
-                  </div>
-                  <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
-                    {adults} adult{adults === 1 ? "" : "s"}
-                    {children
-                      ? ` · ${children} child${children === 1 ? "" : "ren"}`
-                      : ""}
-                    {infants
-                      ? ` · ${infants} infant${infants === 1 ? "" : "s"}`
-                      : ""}
-                    {pets ? ` · ${pets} pet${pets === 1 ? "" : "s"}` : ""}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAdjustingStay((v) => !v)}
-                className="flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-brand-line bg-white px-4 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40"
-              >
-                <Pencil className="h-3.5 w-3.5 text-brand-primary" />
-                {adjustingStay ? "Done" : "Adjust"}
-              </button>
-            </div>
-
-            {hasDateConflict ? (
-              <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-status-cancelled/30 bg-status-cancelled/5 px-3.5 py-2.5 text-[12px] text-status-cancelled">
-                <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>
-                  <span className="font-semibold">
-                    {conflictNights.length} night
-                    {conflictNights.length === 1 ? "" : "s"} in this range{" "}
-                    {conflictNights.length === 1 ? "is" : "are"} already booked
-                    or blocked.
-                  </span>{" "}
-                  Pick open dates (or free up those nights) — you can&rsquo;t
-                  quote dates that aren&rsquo;t available.
-                </span>
-              </div>
-            ) : null}
-
-            {adjustingStay ? (
-              <div className="mt-3 rounded-[12px] border border-brand-line bg-brand-light/30 p-4">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-medium text-brand-mute">
-                    Quick add:
-                  </span>
-                  <Pill onClick={() => quickDates(2, true)}>This weekend</Pill>
-                  <Pill onClick={() => quickDates(3, true)}>Long weekend</Pill>
-                  <Pill onClick={() => quickDates(7, false)}>7 nights</Pill>
-                </div>
-                <div className="mt-3">
-                  <QuoteCalendar
-                    checkIn={checkIn}
-                    checkOut={checkOut}
-                    blocked={blockedSet}
-                    onChange={(a, b) => {
-                      setCheckIn(a);
-                      setCheckOut(b);
-                    }}
+                <div>
+                  <FieldLabel>Email *</FieldLabel>
+                  <Input
+                    type="email"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    placeholder="guest@email.com"
                   />
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                  <Stepper
-                    label="Adults"
-                    hint="13 +"
-                    value={adults}
-                    min={1}
-                    max={adults + capacityRemaining}
-                    onChange={setAdults}
+                <div>
+                  <FieldLabel>Phone (for WhatsApp)</FieldLabel>
+                  <Input
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder="+27 …"
                   />
-                  {allow.children ? (
-                    <Stepper
-                      label="Children"
-                      hint="2 – 12"
-                      value={children}
-                      min={0}
-                      max={children + capacityRemaining}
-                      onChange={setChildren}
-                    />
-                  ) : null}
-                  {allow.infants ? (
-                    <Stepper
-                      label="Infants"
-                      hint="Under 2"
-                      value={infants}
-                      min={0}
-                      onChange={setInfants}
-                    />
-                  ) : null}
-                  {allow.pets ? (
-                    <Stepper
-                      label="Pets"
-                      hint="Fee may apply"
-                      value={pets}
-                      min={0}
-                      onChange={setPets}
-                    />
-                  ) : null}
                 </div>
-                {capacityLimit !== Infinity ? (
-                  <p
-                    className={`mt-2 text-[11px] ${overCapacity ? "font-semibold text-status-cancelled" : "text-brand-mute"}`}
-                  >
-                    {overCapacity
-                      ? `Over capacity — sleeps up to ${capacityLimit} (adults + children). You have ${partySize}.`
-                      : `${partySize} of ${capacityLimit} guest${capacityLimit === 1 ? "" : "s"} (adults + children). Infants & pets don't count.`}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        {/* ===== STEP 2 — YOUR PRICE ===== */}
-        <section className="rounded-card border border-brand-primary/30 bg-white p-6 shadow-card ring-1 ring-brand-primary/10">
-          <SecHeader
-            n={2}
-            title="Your price"
-            sub="The heart of your reply. Tweak any line, add charges, or give a discount — the guest sees exactly this."
-            right={
-              <div className="flex w-full rounded-[10px] border border-brand-line bg-brand-light p-[3px] sm:w-auto">
-                {(
-                  [
-                    ["itemised", "Itemised"],
-                    ["single", "Single total"],
-                  ] as const
-                ).map(([v, label]) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => switchPriceMode(v)}
-                    className={`flex-1 rounded-[7px] px-3 py-1.5 text-[12px] font-medium transition sm:flex-none ${priceMode === v ? "bg-white font-semibold text-brand-ink shadow-card" : "text-brand-mute hover:text-brand-ink"}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            }
-          />
-
-          {priceMode === "itemised" ? (
-            <>
-              {!datesValid ? (
-                <p className="mt-5 text-xs text-brand-mute">
-                  Add dates above — the price fills in from your calendar
-                  automatically.
-                </p>
-              ) : (
-                <p className="mt-5 inline-flex items-center gap-1.5 text-xs text-brand-mute">
-                  <Calculator className="h-3.5 w-3.5" />
-                  {pricing
-                    ? "Pricing from your calendar…"
-                    : "Priced automatically from your calendar — edit any line below."}
-                </p>
-              )}
-
-              <div className="mt-4 rounded-[12px] border border-brand-line p-4">
-                <div className="grid grid-cols-[1fr_120px_28px] items-center gap-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
-                  <span>Item</span>
-                  <span className="pr-1 text-right">Amount</span>
-                  <span />
+                <div>
+                  <FieldLabel>Send quote via</FieldLabel>
+                  <Seg
+                    value={sendVia}
+                    onChange={(v) => setSendVia(v as typeof sendVia)}
+                    options={[
+                      { value: "both", label: "Email + WhatsApp" },
+                      { value: "email", label: "Email" },
+                      { value: "link", label: "Link" },
+                    ]}
+                  />
                 </div>
+              </div>
+            </div>
 
-                {/* Accommodation */}
-                {scope === "rooms" ? (
-                  pricedRooms.length > 0 ? (
-                    pricedRooms.map((r) => (
-                      <PriceRow
-                        key={r.room_id}
-                        title={
-                          (listing?.rooms ?? []).find((x) => x.id === r.room_id)
-                            ?.name ?? "Room"
-                        }
-                        sub={
-                          nights > 0
-                            ? `${formatMoney(Math.round(r.base_amount / nights), currency)} × ${nights} nights · editable`
-                            : "Editable"
-                        }
-                        amount={
-                          <RoomAmountInput
-                            key={`${r.room_id}-${priceVersion}`}
-                            initial={r.base_amount}
-                            currency={currency}
-                            onChange={(n) => setRoomBase(r.room_id, n)}
-                          />
-                        }
-                      />
-                    ))
+            {/* Matched listing / room */}
+            <div className="mt-6">
+              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                Listing &amp; room
+              </div>
+              <div className="mt-2 flex items-center gap-3 rounded-[12px] border border-brand-line bg-brand-light/40 p-3">
+                <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-[10px] bg-brand-light">
+                  {listing?.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={listing.coverUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
-                    <p className="py-3 text-[12px] text-brand-mute">
-                      Select rooms above — per-room amounts price from your
-                      calendar.
-                    </p>
-                  )
-                ) : (
-                  <PriceRow
-                    title="Nightly rate"
-                    sub={
-                      nights > 0 && totals.base > 0
-                        ? `${formatMoney(Math.round(totals.base / nights), currency)} × ${nights} nights`
-                        : "Accommodation for the stay"
-                    }
-                    amount={
-                      <AmountInput
-                        value={baseAmount}
-                        onChange={(v) => {
-                          setBaseAmount(v);
-                          setPricingTouched(true);
-                        }}
-                        currency={currency}
+                    <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                      <BedDouble className="h-5 w-5" />
+                    </span>
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13.5px] font-semibold text-brand-ink">
+                    {listing?.name ?? "Pick a listing"}
+                    {scope === "rooms" && selectedRoomObjs.length > 0
+                      ? ` · ${selectedRoomObjs.map((r) => r.name).join(", ")}`
+                      : ""}
+                  </div>
+                  <div className="truncate text-[11.5px] text-brand-mute">
+                    {[
+                      listing?.city,
+                      listing?.max_guests
+                        ? `sleeps ${listing.max_guests}`
+                        : null,
+                      listing?.base_price != null
+                        ? `base ${formatMoney(listing.base_price, currency)} / night`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "—"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setChangingListing((v) => !v)}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[11.5px] font-medium text-brand-ink hover:bg-brand-accent/40"
+                >
+                  {changingListing ? "Done" : "Change"}
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+              </div>
+
+              {changingListing ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  {listings.map((l) => {
+                    const on = l.id === listingId;
+                    return (
+                      <button
+                        type="button"
+                        key={l.id}
+                        onClick={() => changeListing(l.id)}
+                        className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
+                          on
+                            ? "border-brand-primary bg-brand-accent/40 ring-2 ring-brand-primary/15"
+                            : "border-brand-line bg-white hover:bg-brand-accent/20"
+                        }`}
+                      >
+                        <span className="relative block h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
+                          {l.coverUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={l.coverUrl}
+                              alt={l.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                              <BedDouble className="h-6 w-6" />
+                            </span>
+                          )}
+                          {on ? (
+                            <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-white">
+                              <Check className="h-3 w-3" />
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="mt-2.5 flex items-start justify-between gap-2">
+                          <span className="min-w-0">
+                            <span className="block truncate text-[13px] font-semibold text-brand-ink">
+                              {l.name}
+                            </span>
+                            <span className="block truncate text-[10.5px] text-brand-mute">
+                              {l.city ?? "—"}
+                              {l.max_guests ? ` · sleeps ${l.max_guests}` : ""}
+                            </span>
+                          </span>
+                          {l.base_price != null ? (
+                            <span className="text-right">
+                              <span className="block font-display text-[12.5px] font-bold text-brand-ink">
+                                {formatMoney(l.base_price, l.currency)}
+                              </span>
+                              <span className="block text-[9.5px] text-brand-mute">
+                                / night
+                              </span>
+                            </span>
+                          ) : null}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {hasRooms ? (
+                <div className="mt-3">
+                  <div className="flex gap-2">
+                    <Chip
+                      active={scope === "whole_listing"}
+                      onClick={() => {
+                        setScope("whole_listing");
+                        setPricedRooms([]);
+                      }}
+                      label="Whole listing"
+                    />
+                    <Chip
+                      active={scope === "rooms"}
+                      onClick={() => setScope("rooms")}
+                      label="Specific rooms"
+                    />
+                  </div>
+                  {scope === "rooms" ? (
+                    <div className="mt-3 space-y-2">
+                      {(listing?.rooms ?? []).map((r) => {
+                        const on = !!selectedRooms[r.id];
+                        const priced = pricedRooms.find(
+                          (p) => p.room_id === r.id,
+                        );
+                        return (
+                          <div
+                            key={r.id}
+                            className={`flex items-center gap-3 rounded-[10px] border p-3 ${on ? "border-brand-primary bg-brand-accent/30" : "border-brand-line bg-white"}`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleRoom(r.id)}
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${on ? "border-brand-primary bg-brand-primary text-white" : "border-brand-line bg-white"}`}
+                            >
+                              {on ? <Check className="h-3 w-3" /> : null}
+                            </button>
+                            <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
+                              {r.coverUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={r.coverUrl}
+                                  alt={r.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                                  <BedDouble className="h-4 w-4" />
+                                </span>
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[12.5px] font-semibold text-brand-ink">
+                                {r.name}
+                                {r.bed_type ? ` · ${r.bed_type}` : ""}
+                              </span>
+                              <span className="block text-[11px] text-brand-mute">
+                                {r.max_guests ? `sleeps ${r.max_guests}` : ""}
+                              </span>
+                            </span>
+                            {on ? (
+                              <span className="flex items-center gap-2 text-xs text-brand-mute">
+                                <span>Guests</span>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={r.max_guests ?? undefined}
+                                  value={
+                                    roomGuests[r.id] ??
+                                    String(r.base_occupancy ?? 1)
+                                  }
+                                  onChange={(e) =>
+                                    setRoomGuests((p) => ({
+                                      ...p,
+                                      [r.id]: e.target.value,
+                                    }))
+                                  }
+                                  className="h-8 w-16"
+                                />
+                                {priced ? (
+                                  <span className="font-medium text-brand-ink">
+                                    {formatMoney(
+                                      priced.base_amount + priced.cleaning_fee,
+                                      currency,
+                                    )}
+                                  </span>
+                                ) : null}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Dates + party summary */}
+            <div className="mt-6">
+              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                Dates &amp; party
+              </div>
+              <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                      Check-in → out
+                    </div>
+                    <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
+                      {datesValid
+                        ? `${ci.dow} ${ci.day} → ${co.dow} ${co.day} ${co.mo.split(" ")[0]}`
+                        : "Pick dates"}
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-pill bg-brand-accent px-2 py-0.5 text-[11px] font-bold text-brand-secondary">
+                    {nights} nt{nights === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
+                  <div className="min-w-0">
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                      Guest party
+                    </div>
+                    <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
+                      {adults} adult{adults === 1 ? "" : "s"}
+                      {children
+                        ? ` · ${children} child${children === 1 ? "" : "ren"}`
+                        : ""}
+                      {infants
+                        ? ` · ${infants} infant${infants === 1 ? "" : "s"}`
+                        : ""}
+                      {pets ? ` · ${pets} pet${pets === 1 ? "" : "s"}` : ""}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdjustingStay((v) => !v)}
+                  className="flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-brand-line bg-white px-4 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40"
+                >
+                  <Pencil className="h-3.5 w-3.5 text-brand-primary" />
+                  {adjustingStay ? "Done" : "Adjust"}
+                </button>
+              </div>
+
+              {hasDateConflict ? (
+                <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-status-cancelled/30 bg-status-cancelled/5 px-3.5 py-2.5 text-[12px] text-status-cancelled">
+                  <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    <span className="font-semibold">
+                      {conflictNights.length} night
+                      {conflictNights.length === 1 ? "" : "s"} in this range{" "}
+                      {conflictNights.length === 1 ? "is" : "are"} already
+                      booked or blocked.
+                    </span>{" "}
+                    Pick open dates (or free up those nights) — you can&rsquo;t
+                    quote dates that aren&rsquo;t available.
+                  </span>
+                </div>
+              ) : null}
+
+              {adjustingStay ? (
+                <div className="mt-3 rounded-[12px] border border-brand-line bg-brand-light/30 p-4">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-medium text-brand-mute">
+                      Quick add:
+                    </span>
+                    <Pill onClick={() => quickDates(2, true)}>
+                      This weekend
+                    </Pill>
+                    <Pill onClick={() => quickDates(3, true)}>
+                      Long weekend
+                    </Pill>
+                    <Pill onClick={() => quickDates(7, false)}>7 nights</Pill>
+                  </div>
+                  <div className="mt-3">
+                    <QuoteCalendar
+                      checkIn={checkIn}
+                      checkOut={checkOut}
+                      blocked={blockedSet}
+                      onChange={(a, b) => {
+                        setCheckIn(a);
+                        setCheckOut(b);
+                      }}
+                    />
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                    <Stepper
+                      label="Adults"
+                      hint="13 +"
+                      value={adults}
+                      min={1}
+                      max={adults + capacityRemaining}
+                      onChange={setAdults}
+                    />
+                    {allow.children ? (
+                      <Stepper
+                        label="Children"
+                        hint="2 – 12"
+                        value={children}
+                        min={0}
+                        max={children + capacityRemaining}
+                        onChange={setChildren}
                       />
-                    }
-                  />
+                    ) : null}
+                    {allow.infants ? (
+                      <Stepper
+                        label="Infants"
+                        hint="Under 2"
+                        value={infants}
+                        min={0}
+                        onChange={setInfants}
+                      />
+                    ) : null}
+                    {allow.pets ? (
+                      <Stepper
+                        label="Pets"
+                        hint="Fee may apply"
+                        value={pets}
+                        min={0}
+                        onChange={setPets}
+                      />
+                    ) : null}
+                  </div>
+                  {capacityLimit !== Infinity ? (
+                    <p
+                      className={`mt-2 text-[11px] ${overCapacity ? "font-semibold text-status-cancelled" : "text-brand-mute"}`}
+                    >
+                      {overCapacity
+                        ? `Over capacity — sleeps up to ${capacityLimit} (adults + children). You have ${partySize}.`
+                        : `${partySize} of ${capacityLimit} guest${capacityLimit === 1 ? "" : "s"} (adults + children). Infants & pets don't count.`}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </>
+      )}
+
+      {stepShow(1) && (
+        <>
+          {/* ===== STEP 2 — YOUR PRICE ===== */}
+          <section className="rounded-card border border-brand-primary/30 bg-white p-6 shadow-card ring-1 ring-brand-primary/10">
+            <SecHeader
+              n={2}
+              title="Your price"
+              sub="The heart of your reply. Tweak any line, add charges, or give a discount — the guest sees exactly this."
+              right={
+                <div className="flex w-full rounded-[10px] border border-brand-line bg-brand-light p-[3px] sm:w-auto">
+                  {(
+                    [
+                      ["itemised", "Itemised"],
+                      ["single", "Single total"],
+                    ] as const
+                  ).map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => switchPriceMode(v)}
+                      className={`flex-1 rounded-[7px] px-3 py-1.5 text-[12px] font-medium transition sm:flex-none ${priceMode === v ? "bg-white font-semibold text-brand-ink shadow-card" : "text-brand-mute hover:text-brand-ink"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              }
+            />
+
+            {priceMode === "itemised" ? (
+              <>
+                {!datesValid ? (
+                  <p className="mt-5 text-xs text-brand-mute">
+                    Add dates above — the price fills in from your calendar
+                    automatically.
+                  </p>
+                ) : (
+                  <p className="mt-5 inline-flex items-center gap-1.5 text-xs text-brand-mute">
+                    <Calculator className="h-3.5 w-3.5" />
+                    {pricing
+                      ? "Pricing from your calendar…"
+                      : "Priced automatically from your calendar — edit any line below."}
+                  </p>
                 )}
 
-                {/* Cleaning */}
-                {scope === "rooms" ? (
-                  totals.cleaning > 0 ? (
+                <div className="mt-4 rounded-[12px] border border-brand-line p-4">
+                  <div className="grid grid-cols-[1fr_120px_28px] items-center gap-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                    <span>Item</span>
+                    <span className="pr-1 text-right">Amount</span>
+                    <span />
+                  </div>
+
+                  {/* Accommodation */}
+                  {scope === "rooms" ? (
+                    pricedRooms.length > 0 ? (
+                      pricedRooms.map((r) => (
+                        <PriceRow
+                          key={r.room_id}
+                          title={
+                            (listing?.rooms ?? []).find(
+                              (x) => x.id === r.room_id,
+                            )?.name ?? "Room"
+                          }
+                          sub={
+                            nights > 0
+                              ? `${formatMoney(Math.round(r.base_amount / nights), currency)} × ${nights} nights · editable`
+                              : "Editable"
+                          }
+                          amount={
+                            <RoomAmountInput
+                              key={`${r.room_id}-${priceVersion}`}
+                              initial={r.base_amount}
+                              currency={currency}
+                              onChange={(n) => setRoomBase(r.room_id, n)}
+                            />
+                          }
+                        />
+                      ))
+                    ) : (
+                      <p className="py-3 text-[12px] text-brand-mute">
+                        Select rooms above — per-room amounts price from your
+                        calendar.
+                      </p>
+                    )
+                  ) : (
                     <PriceRow
-                      title="Cleaning fee"
-                      sub="Per stay · from your rooms"
+                      title="Nightly rate"
+                      sub={
+                        nights > 0 && totals.base > 0
+                          ? `${formatMoney(Math.round(totals.base / nights), currency)} × ${nights} nights`
+                          : "Accommodation for the stay"
+                      }
                       amount={
-                        <StaticAmount
-                          value={totals.cleaning}
+                        <AmountInput
+                          value={baseAmount}
+                          onChange={(v) => {
+                            setBaseAmount(v);
+                            setPricingTouched(true);
+                          }}
                           currency={currency}
                         />
                       }
                     />
-                  ) : null
-                ) : (
-                  <PriceRow
-                    title="Cleaning fee"
-                    sub="One-off · per stay"
-                    amount={
+                  )}
+
+                  {/* Cleaning */}
+                  {scope === "rooms" ? (
+                    totals.cleaning > 0 ? (
+                      <PriceRow
+                        title="Cleaning fee"
+                        sub="Per stay · from your rooms"
+                        amount={
+                          <StaticAmount
+                            value={totals.cleaning}
+                            currency={currency}
+                          />
+                        }
+                      />
+                    ) : null
+                  ) : (
+                    <PriceRow
+                      title="Cleaning fee"
+                      sub="One-off · per stay"
+                      amount={
+                        <AmountInput
+                          value={cleaningFee}
+                          onChange={(v) => {
+                            setCleaningFee(v);
+                            setPricingTouched(true);
+                          }}
+                          currency={currency}
+                        />
+                      }
+                      onDelete={() => {
+                        setCleaningFee("0");
+                        setPricingTouched(true);
+                      }}
+                    />
+                  )}
+
+                  {/* Catalog add-ons */}
+                  {catalogLines.map((a) => (
+                    <PriceRow
+                      key={a.addon_id}
+                      title={a.label}
+                      chip={a.quantity > 1 ? `× ${a.quantity}` : "Add-on"}
+                      sub="From your add-on library"
+                      amount={
+                        <StaticAmount
+                          value={a.quantity * a.unit_price}
+                          currency={currency}
+                        />
+                      }
+                      onDelete={() =>
+                        setCatalogSel((p) => {
+                          const next = { ...p };
+                          delete next[a.addon_id];
+                          return next;
+                        })
+                      }
+                    />
+                  ))}
+
+                  {/* Custom lines */}
+                  {customAddons.map((a, i) => (
+                    <div
+                      key={`custom-${i}`}
+                      className="grid grid-cols-[1fr_120px_28px] items-center gap-2.5 border-b border-dashed border-brand-line py-2.5 last:border-0"
+                    >
+                      <Input
+                        value={a.label}
+                        onChange={(e) =>
+                          updateCustom(i, { label: e.target.value })
+                        }
+                        placeholder="e.g. Early check-in"
+                        className="h-9"
+                      />
                       <AmountInput
-                        value={cleaningFee}
-                        onChange={(v) => {
-                          setCleaningFee(v);
-                          setPricingTouched(true);
-                        }}
+                        value={a.unitPrice}
+                        onChange={(v) =>
+                          updateCustom(i, { unitPrice: v, quantity: "1" })
+                        }
                         currency={currency}
                       />
-                    }
-                    onDelete={() => {
-                      setCleaningFee("0");
-                      setPricingTouched(true);
-                    }}
-                  />
-                )}
+                      <RowDelete onClick={() => removeCustom(i)} />
+                    </div>
+                  ))}
 
-                {/* Catalog add-ons */}
-                {catalogLines.map((a) => (
-                  <PriceRow
-                    key={a.addon_id}
-                    title={a.label}
-                    chip={a.quantity > 1 ? `× ${a.quantity}` : "Add-on"}
-                    sub="From your add-on library"
-                    amount={
-                      <StaticAmount
-                        value={a.quantity * a.unit_price}
-                        currency={currency}
-                      />
-                    }
-                    onDelete={() =>
-                      setCatalogSel((p) => {
-                        const next = { ...p };
-                        delete next[a.addon_id];
-                        return next;
-                      })
-                    }
-                  />
-                ))}
-
-                {/* Custom lines */}
-                {customAddons.map((a, i) => (
-                  <div
-                    key={`custom-${i}`}
-                    className="grid grid-cols-[1fr_120px_28px] items-center gap-2.5 border-b border-dashed border-brand-line py-2.5 last:border-0"
-                  >
-                    <Input
-                      value={a.label}
-                      onChange={(e) =>
-                        updateCustom(i, { label: e.target.value })
+                  {/* Derived age/pet lines */}
+                  {ageLines.map((a, i) => (
+                    <PriceRow
+                      key={`age-${i}`}
+                      title={a.label}
+                      sub="Priced from the guest party"
+                      amount={
+                        <StaticAmount value={a.subtotal} currency={currency} />
                       }
-                      placeholder="e.g. Early check-in"
-                      className="h-9"
                     />
-                    <AmountInput
-                      value={a.unitPrice}
-                      onChange={(v) =>
-                        updateCustom(i, { unitPrice: v, quantity: "1" })
+                  ))}
+
+                  {/* Discount */}
+                  {discountOn ? (
+                    <PriceRow
+                      title={discountReason.trim() || "Discount"}
+                      chip={
+                        discountType === "percent"
+                          ? `${parseFloat(discountValue) || 0}%`
+                          : "Fixed"
                       }
-                      currency={currency}
+                      accent
+                      amount={
+                        <span className="block w-[120px] pr-2 text-right font-mono text-[13px] font-semibold text-brand-primary">
+                          −{formatMoney(totals.discountAmount, currency)}
+                        </span>
+                      }
+                      onDelete={() => setDiscountOn(false)}
                     />
-                    <RowDelete onClick={() => removeCustom(i)} />
-                  </div>
-                ))}
-
-                {/* Derived age/pet lines */}
-                {ageLines.map((a, i) => (
-                  <PriceRow
-                    key={`age-${i}`}
-                    title={a.label}
-                    sub="Priced from the guest party"
-                    amount={
-                      <StaticAmount value={a.subtotal} currency={currency} />
-                    }
-                  />
-                ))}
-
-                {/* Discount */}
-                {discountOn ? (
-                  <PriceRow
-                    title={discountReason.trim() || "Discount"}
-                    chip={
-                      discountType === "percent"
-                        ? `${parseFloat(discountValue) || 0}%`
-                        : "Fixed"
-                    }
-                    accent
-                    amount={
-                      <span className="block w-[120px] pr-2 text-right font-mono text-[13px] font-semibold text-brand-primary">
-                        −{formatMoney(totals.discountAmount, currency)}
-                      </span>
-                    }
-                    onDelete={() => setDiscountOn(false)}
-                  />
-                ) : null}
-
-                {/* Add-line buttons */}
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-brand-line pt-3">
-                  <AddBtn
-                    icon={<Plus className="h-3.5 w-3.5" />}
-                    onClick={addCustom}
-                  >
-                    Custom line
-                  </AddBtn>
-                  {listing && listing.addons.length > 0 ? (
-                    <AddBtn
-                      icon={<ListPlus className="h-3.5 w-3.5" />}
-                      onClick={() => setAddCatalogOpen((v) => !v)}
-                    >
-                      Add-on from library
-                    </AddBtn>
                   ) : null}
-                  {!discountOn ? (
+
+                  {/* Add-line buttons */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-brand-line pt-3">
                     <AddBtn
-                      icon={<Tag className="h-3.5 w-3.5" />}
-                      onClick={() => setDiscountOn(true)}
+                      icon={<Plus className="h-3.5 w-3.5" />}
+                      onClick={addCustom}
                     >
-                      Discount
+                      Custom line
                     </AddBtn>
+                    {listing && listing.addons.length > 0 ? (
+                      <AddBtn
+                        icon={<ListPlus className="h-3.5 w-3.5" />}
+                        onClick={() => setAddCatalogOpen((v) => !v)}
+                      >
+                        Add-on from library
+                      </AddBtn>
+                    ) : null}
+                    {!discountOn ? (
+                      <AddBtn
+                        icon={<Tag className="h-3.5 w-3.5" />}
+                        onClick={() => setDiscountOn(true)}
+                      >
+                        Discount
+                      </AddBtn>
+                    ) : null}
+                  </div>
+
+                  {/* Catalog picker */}
+                  {addCatalogOpen && listing ? (
+                    <div className="mt-3 space-y-1.5 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
+                      {listing.addons.map((a) => {
+                        const checked = catalogSel[a.id] != null;
+                        return (
+                          <label
+                            key={a.id}
+                            className="flex flex-wrap items-center gap-3 rounded-[8px] bg-white px-3 py-2 text-sm"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) =>
+                                setCatalogSel((p) => {
+                                  const next = { ...p };
+                                  if (e.target.checked)
+                                    next[a.id] = String(a.min_quantity || 1);
+                                  else delete next[a.id];
+                                  return next;
+                                })
+                              }
+                            />
+                            <span className="font-medium text-brand-ink">
+                              {a.name}
+                            </span>
+                            <span className="text-xs text-brand-mute">
+                              {formatMoney(a.unit_price, a.currency)} ·{" "}
+                              {a.pricing_model.replace(/_/g, " ")}
+                            </span>
+                            {checked && a.pricing_model === "per_unit" ? (
+                              <Input
+                                type="number"
+                                min={1}
+                                max={a.max_quantity ?? undefined}
+                                value={catalogSel[a.id]}
+                                onChange={(e) =>
+                                  setCatalogSel((p) => ({
+                                    ...p,
+                                    [a.id]: e.target.value,
+                                  }))
+                                }
+                                className="ml-auto h-8 w-16"
+                              />
+                            ) : null}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+
+                  {/* Discount editor */}
+                  {discountOn ? (
+                    <div className="mt-3 flex flex-wrap items-end gap-2 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
+                      <div>
+                        <FieldLabel>Type</FieldLabel>
+                        <Seg
+                          value={discountType}
+                          onChange={(v) =>
+                            setDiscountType(v as "percent" | "fixed")
+                          }
+                          options={[
+                            { value: "percent", label: "%" },
+                            {
+                              value: "fixed",
+                              label: currency === "ZAR" ? "R" : currency,
+                            },
+                          ]}
+                        />
+                      </div>
+                      <div className="w-24">
+                        <FieldLabel>Value</FieldLabel>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(e.target.value)}
+                        />
+                      </div>
+                      <div className="min-w-[10rem] flex-1">
+                        <FieldLabel>Reason</FieldLabel>
+                        <Input
+                          value={discountReason}
+                          onChange={(e) => setDiscountReason(e.target.value)}
+                          placeholder="Returning guest"
+                        />
+                      </div>
+                    </div>
                   ) : null}
                 </div>
+              </>
+            ) : (
+              <div className="mt-5 rounded-[12px] border border-brand-line p-4">
+                <FieldLabel>One price for the whole stay</FieldLabel>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-brand-mute">
+                    {currency === "ZAR" ? "R" : currency}
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={singleTotal}
+                    onChange={(e) => setSingleTotal(e.target.value)}
+                    className="w-full rounded-[10px] border border-brand-line bg-white py-2 pl-8 pr-3 font-mono text-[16px] font-bold text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
+                  />
+                </div>
+                <p className="mt-2 text-[11.5px] text-brand-mute">
+                  The guest sees a single total with no line-by-line breakdown.
+                  Good for bespoke or negotiated pricing.
+                </p>
+              </div>
+            )}
 
-                {/* Catalog picker */}
-                {addCatalogOpen && listing ? (
-                  <div className="mt-3 space-y-1.5 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
-                    {listing.addons.map((a) => {
-                      const checked = catalogSel[a.id] != null;
-                      return (
-                        <label
-                          key={a.id}
-                          className="flex flex-wrap items-center gap-3 rounded-[8px] bg-white px-3 py-2 text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) =>
-                              setCatalogSel((p) => {
-                                const next = { ...p };
-                                if (e.target.checked)
-                                  next[a.id] = String(a.min_quantity || 1);
-                                else delete next[a.id];
-                                return next;
-                              })
-                            }
-                          />
-                          <span className="font-medium text-brand-ink">
-                            {a.name}
-                          </span>
-                          <span className="text-xs text-brand-mute">
-                            {formatMoney(a.unit_price, a.currency)} ·{" "}
-                            {a.pricing_model.replace(/_/g, " ")}
-                          </span>
-                          {checked && a.pricing_model === "per_unit" ? (
-                            <Input
-                              type="number"
-                              min={1}
-                              max={a.max_quantity ?? undefined}
-                              value={catalogSel[a.id]}
-                              onChange={(e) =>
-                                setCatalogSel((p) => ({
-                                  ...p,
-                                  [a.id]: e.target.value,
-                                }))
-                              }
-                              className="ml-auto h-8 w-16"
-                            />
-                          ) : null}
-                        </label>
-                      );
-                    })}
-                  </div>
-                ) : null}
+            {/* Auto-price failure — never leave the host on a silent R0. */}
+            {priceError && datesValid && priceMode !== "single" ? (
+              <div className="mt-4 rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
+                Couldn’t auto-price this stay — {priceError} Set a nightly rate
+                on the listing for these dates, switch to per-room pricing, or
+                enter an amount manually below.
+              </div>
+            ) : null}
 
-                {/* Discount editor */}
-                {discountOn ? (
-                  <div className="mt-3 flex flex-wrap items-end gap-2 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
-                    <div>
-                      <FieldLabel>Type</FieldLabel>
-                      <Seg
-                        value={discountType}
-                        onChange={(v) =>
-                          setDiscountType(v as "percent" | "fixed")
-                        }
-                        options={[
-                          { value: "percent", label: "%" },
-                          {
-                            value: "fixed",
-                            label: currency === "ZAR" ? "R" : currency,
-                          },
-                        ]}
-                      />
-                    </div>
-                    <div className="w-24">
-                      <FieldLabel>Value</FieldLabel>
+            {/* Totals strip */}
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[12px] border border-brand-line bg-brand-light/40 px-4 py-3">
+                <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                  Guest pays
+                </div>
+                <div className="mt-1 font-display text-[20px] font-bold text-brand-ink">
+                  {formatMoney(totals.total, currency)}
+                </div>
+              </div>
+              <div className="rounded-[12px] border border-brand-line bg-brand-light/40 px-4 py-3">
+                <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                  Avg / night
+                </div>
+                <div className="mt-1 font-display text-[20px] font-bold text-brand-ink">
+                  {nights > 0
+                    ? formatMoney(Math.round(totals.total / nights), currency)
+                    : "—"}
+                </div>
+              </div>
+              <div className="rounded-[12px] border border-brand-primary/30 bg-brand-accent/40 px-4 py-3">
+                <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-secondary/80">
+                  Your payout
+                </div>
+                <div className="mt-1 font-display text-[20px] font-bold text-brand-secondary">
+                  {formatMoney(totals.total, currency)}
+                </div>
+                <div className="text-[10px] text-brand-secondary/70">
+                  0% {brandName} fee · you keep it all
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
+      {stepShow(2) && (
+        <>
+          {/* ===== STEP 3 — TERMS & REPLY ===== */}
+          <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
+            <SecHeader
+              n={3}
+              title="Terms &amp; your reply"
+              sub="How long the offer stands, what they pay to lock it in, and a personal note."
+            />
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div>
+                <FieldLabel>Hold this price until</FieldLabel>
+                <div className="flex h-[38px] items-center gap-2 rounded-[10px] border border-brand-line bg-brand-light/40 px-3">
+                  <Clock className="h-4 w-4 text-brand-mute" />
+                  <span className="text-[13px] font-medium text-brand-ink">
+                    {validUntil}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  <HoldPill
+                    on={validDays === 1}
+                    onClick={() => setValidDays(1)}
+                  >
+                    24 hours
+                  </HoldPill>
+                  <HoldPill
+                    on={validDays === 3}
+                    onClick={() => setValidDays(3)}
+                  >
+                    3 days
+                  </HoldPill>
+                  <HoldPill
+                    on={validDays === 7}
+                    onClick={() => setValidDays(7)}
+                  >
+                    7 days
+                  </HoldPill>
+                  {daysToCheckIn ? (
+                    <HoldPill
+                      on={validDays === daysToCheckIn}
+                      onClick={() => setValidDays(daysToCheckIn)}
+                    >
+                      Until check-in
+                    </HoldPill>
+                  ) : null}
+                </div>
+              </div>
+              <div>
+                <FieldLabel>To accept, {firstName} pays</FieldLabel>
+                <Seg
+                  value={depositType}
+                  onChange={(v) =>
+                    setDepositType(v as "deposit" | "full" | "reserve")
+                  }
+                  options={[
+                    { value: "deposit", label: "Deposit" },
+                    { value: "full", label: "Full amount" },
+                    { value: "reserve", label: "Reserve only" },
+                  ]}
+                />
+                {depositType === "deposit" ? (
+                  <div className="mt-2 flex flex-wrap items-end gap-3">
+                    <div className="w-20">
+                      <FieldLabel>Deposit %</FieldLabel>
                       <Input
                         type="number"
                         min={0}
-                        step="0.01"
-                        value={discountValue}
-                        onChange={(e) => setDiscountValue(e.target.value)}
+                        max={100}
+                        value={depositPct}
+                        onChange={(e) => setDepositPct(e.target.value)}
                       />
                     </div>
-                    <div className="min-w-[10rem] flex-1">
-                      <FieldLabel>Reason</FieldLabel>
+                    <div className="flex items-center gap-1.5">
                       <Input
-                        value={discountReason}
-                        onChange={(e) => setDiscountReason(e.target.value)}
-                        placeholder="Returning guest"
+                        type="number"
+                        min={0}
+                        value={balanceDueDays}
+                        onChange={(e) => setBalanceDueDays(e.target.value)}
+                        className="w-16"
                       />
+                      <span className="text-[11px] text-brand-mute">
+                        days before check-in for the balance
+                      </span>
                     </div>
                   </div>
-                ) : null}
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-brand-mute">
+                    {depositType === "full"
+                      ? "Guest pays the full amount to confirm."
+                      : "Guest reserves the dates; you collect payment separately."}
+                  </p>
+                )}
               </div>
-            </>
-          ) : (
-            <div className="mt-5 rounded-[12px] border border-brand-line p-4">
-              <FieldLabel>One price for the whole stay</FieldLabel>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-brand-mute">
-                  {currency === "ZAR" ? "R" : currency}
+            </div>
+
+            {/* Soft-hold note (sending soft-holds the dates automatically). */}
+            <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-4 py-3">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
+                <Lock className="h-3.5 w-3.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[12.5px] font-semibold text-brand-ink">
+                  Dates soft-held while {firstName} decides
+                </div>
+                <div className="text-[11px] text-brand-mute">
+                  Sending marks{" "}
+                  {datesValid
+                    ? `${ci.dow} ${ci.day} – ${co.dow} ${co.day}`
+                    : "the stay"}{" "}
+                  as &ldquo;quote pending&rdquo; so you don&rsquo;t double-book.
+                  It frees up if the quote expires or is declined.
+                </div>
+              </div>
+            </div>
+
+            {/* Reply message */}
+            <div className="mt-5">
+              <FieldLabel>Your reply to {firstName}</FieldLabel>
+              <textarea
+                rows={4}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Hi — here's a quote for your stay…"
+                className="w-full rounded-[10px] border border-brand-line px-3 py-2 text-sm leading-relaxed text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
+              />
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span className="mr-1 text-[11px] font-medium text-brand-mute">
+                  Quick inserts:
                 </span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={singleTotal}
-                  onChange={(e) => setSingleTotal(e.target.value)}
-                  className="w-full rounded-[10px] border border-brand-line bg-white py-2 pl-8 pr-3 font-mono text-[16px] font-bold text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
-                />
+                <Pill
+                  onClick={() =>
+                    insertSnippet(
+                      "Check-in is from 14:00. I'll send directions and the key code the day before.",
+                    )
+                  }
+                >
+                  + Check-in details
+                </Pill>
+                <Pill
+                  onClick={() =>
+                    insertSnippet(
+                      "Free cancellation up to 5 days before check-in; 50% refundable after that.",
+                    )
+                  }
+                >
+                  + Cancellation policy
+                </Pill>
+                <Pill
+                  onClick={() =>
+                    insertSnippet(
+                      "I'll share full directions and parking details once your booking is confirmed.",
+                    )
+                  }
+                >
+                  + Directions
+                </Pill>
               </div>
-              <p className="mt-2 text-[11.5px] text-brand-mute">
-                The guest sees a single total with no line-by-line breakdown.
-                Good for bespoke or negotiated pricing.
-              </p>
             </div>
-          )}
+          </section>
+        </>
+      )}
 
-          {/* Auto-price failure — never leave the host on a silent R0. */}
-          {priceError && datesValid && priceMode !== "single" ? (
-            <div className="mt-4 rounded-[10px] border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
-              Couldn’t auto-price this stay — {priceError} Set a nightly rate on
-              the listing for these dates, switch to per-room pricing, or enter
-              an amount manually below.
-            </div>
-          ) : null}
-
-          {/* Totals strip */}
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[12px] border border-brand-line bg-brand-light/40 px-4 py-3">
-              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                Guest pays
-              </div>
-              <div className="mt-1 font-display text-[20px] font-bold text-brand-ink">
-                {formatMoney(totals.total, currency)}
-              </div>
-            </div>
-            <div className="rounded-[12px] border border-brand-line bg-brand-light/40 px-4 py-3">
-              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                Avg / night
-              </div>
-              <div className="mt-1 font-display text-[20px] font-bold text-brand-ink">
-                {nights > 0
-                  ? formatMoney(Math.round(totals.total / nights), currency)
-                  : "—"}
+      {isPage && step === 3 && (
+        <div className="space-y-4">
+          <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
+            <SecHeader
+              n={4}
+              done={allReadyQ}
+              title="Review &amp; send"
+              sub="Check the quote, then save a draft or preview & send it to the guest."
+            />
+            <div className="mt-5 flex items-center gap-3 rounded-[12px] border border-brand-line bg-brand-light/30 p-4">
+              <QuoteRing pct={railPct} />
+              <div className="min-w-0">
+                <div className="font-display text-[15px] font-bold text-brand-ink">
+                  {allReadyQ ? "Ready to send" : "Almost there"}
+                </div>
+                <div className="text-[12px] text-brand-mute">
+                  {allReadyQ
+                    ? "Everything the guest needs is set."
+                    : "Finish the flagged steps first."}
+                </div>
               </div>
             </div>
-            <div className="rounded-[12px] border border-brand-primary/30 bg-brand-accent/40 px-4 py-3">
-              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-secondary/80">
-                Your payout
+            <div className="mt-4 overflow-hidden rounded-[12px] border border-brand-line">
+              <QRow
+                label="Guest"
+                value={
+                  guestName.trim()
+                    ? guestEmail
+                      ? `${guestName} · ${guestEmail}`
+                      : guestName
+                    : "Not set"
+                }
+                muted={!guestName.trim()}
+                onEdit={() => goToStep(0)}
+              />
+              <QRow
+                label="Listing"
+                value={listing?.name ?? "Not set"}
+                muted={!listing}
+                onEdit={() => goToStep(0)}
+              />
+              <QRow
+                label="Rooms"
+                value={roomScopeLabel}
+                onEdit={() => goToStep(0)}
+              />
+              <QRow
+                label="Dates"
+                value={
+                  ci && co
+                    ? `${ci} → ${co} · ${nights} night${nights === 1 ? "" : "s"}`
+                    : "Not set"
+                }
+                muted={!(ci && co)}
+                onEdit={() => goToStep(0)}
+              />
+              <QRow
+                label="Guests"
+                value={`${adults} adult${adults === 1 ? "" : "s"}${
+                  children
+                    ? ` · ${children} child${children === 1 ? "" : "ren"}`
+                    : ""
+                }`}
+                onEdit={() => goToStep(0)}
+              />
+              <QRow
+                label="Price"
+                value={priceMode === "single" ? "Single total" : "Itemised"}
+                onEdit={() => goToStep(1)}
+              />
+              <QRow
+                label="Deposit"
+                value={`${formatMoney(deposit.due, currency)} · ${
+                  depositType === "deposit"
+                    ? `${parseFloat(depositPct) || 0}%`
+                    : depositType
+                }`}
+                onEdit={() => goToStep(2)}
+              />
+              <QRow
+                label="Valid until"
+                value={validUntil}
+                onEdit={() => goToStep(2)}
+              />
+              <QRow
+                label="Total"
+                value={formatMoney(totals.total, currency)}
+                strong
+                last
+                onEdit={() => goToStep(1)}
+              />
+            </div>
+          </section>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[13px] border border-brand-line bg-brand-light/40 px-5 py-4">
+            <div className="min-w-0">
+              <div className="font-display text-[14px] font-bold text-brand-ink">
+                {allReadyQ
+                  ? "Ready to send this quote"
+                  : "A few details still needed"}
               </div>
-              <div className="mt-1 font-display text-[20px] font-bold text-brand-secondary">
-                {formatMoney(totals.total, currency)}
+              <div className="text-[12px] text-brand-mute">
+                Save a draft, or preview exactly what the guest sees before
+                sending.
               </div>
-              <div className="text-[10px] text-brand-secondary/70">
-                0% {brandName} fee · you keep it all
-              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => save(false)}
+                disabled={busy || hasDateConflict}
+                className="rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-60"
+              >
+                {pending && !sendingPending ? "Saving…" : "Save draft"}
+              </button>
+              <button
+                type="button"
+                onClick={openPreview}
+                disabled={busy || hasDateConflict}
+                className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-5 py-2.5 text-[13px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
+              >
+                <Eye className="h-4 w-4" /> Review &amp; send
+              </button>
             </div>
           </div>
-        </section>
+        </div>
+      )}
+    </div>
+  );
 
-        {/* ===== STEP 3 — TERMS & REPLY ===== */}
-        <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-          <SecHeader
-            n={3}
-            title="Terms &amp; your reply"
-            sub="How long the offer stands, what they pay to lock it in, and a personal note."
-          />
-
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div>
-              <FieldLabel>Hold this price until</FieldLabel>
-              <div className="flex h-[38px] items-center gap-2 rounded-[10px] border border-brand-line bg-brand-light/40 px-3">
-                <Clock className="h-4 w-4 text-brand-mute" />
-                <span className="text-[13px] font-medium text-brand-ink">
-                  {validUntil}
-                </span>
-              </div>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <HoldPill on={validDays === 1} onClick={() => setValidDays(1)}>
-                  24 hours
-                </HoldPill>
-                <HoldPill on={validDays === 3} onClick={() => setValidDays(3)}>
-                  3 days
-                </HoldPill>
-                <HoldPill on={validDays === 7} onClick={() => setValidDays(7)}>
-                  7 days
-                </HoldPill>
-                {daysToCheckIn ? (
-                  <HoldPill
-                    on={validDays === daysToCheckIn}
-                    onClick={() => setValidDays(daysToCheckIn)}
-                  >
-                    Until check-in
-                  </HoldPill>
-                ) : null}
-              </div>
+  const stickyBar = (
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-line bg-white/95 backdrop-blur lg:left-64">
+      <div className="mx-auto flex max-w-[880px] flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <div>
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+              Quote total
             </div>
-            <div>
-              <FieldLabel>To accept, {firstName} pays</FieldLabel>
-              <Seg
-                value={depositType}
-                onChange={(v) =>
-                  setDepositType(v as "deposit" | "full" | "reserve")
-                }
-                options={[
-                  { value: "deposit", label: "Deposit" },
-                  { value: "full", label: "Full amount" },
-                  { value: "reserve", label: "Reserve only" },
-                ]}
-              />
-              {depositType === "deposit" ? (
-                <div className="mt-2 flex flex-wrap items-end gap-3">
-                  <div className="w-20">
-                    <FieldLabel>Deposit %</FieldLabel>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={depositPct}
-                      onChange={(e) => setDepositPct(e.target.value)}
-                    />
+            <div className="font-display text-[20px] font-bold leading-none text-brand-ink">
+              {formatMoney(totals.total, currency)}
+            </div>
+          </div>
+          <div className="hidden h-9 w-px bg-brand-line sm:block" />
+          <div className="hidden sm:block">
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+              Your payout
+            </div>
+            <div className="font-display text-[14px] font-bold leading-none text-brand-secondary">
+              {formatMoney(totals.total, currency)}{" "}
+              <span className="text-[11px] font-medium text-brand-mute">
+                · 0% fee
+              </span>
+            </div>
+          </div>
+          <div className="hidden h-9 w-px bg-brand-line sm:block" />
+          <div className="hidden sm:block">
+            <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+              Due to accept
+            </div>
+            <div className="font-display text-[14px] font-bold leading-none text-brand-ink">
+              {formatMoney(deposit.due, currency)}{" "}
+              <span className="text-[11px] font-medium text-brand-mute">
+                ·{" "}
+                {depositType === "deposit"
+                  ? `${parseFloat(depositPct) || 0}%`
+                  : depositType === "reserve"
+                    ? "reserve"
+                    : "full"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => save(false)}
+            disabled={busy || hasDateConflict}
+            title={
+              hasDateConflict
+                ? "Those dates are booked or blocked — pick open dates first."
+                : undefined
+            }
+            className="rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-60"
+          >
+            {pending && !sendingPending ? "Saving…" : "Save draft"}
+          </button>
+          <button
+            type="button"
+            onClick={openPreview}
+            disabled={busy || hasDateConflict}
+            title={
+              hasDateConflict
+                ? "Those dates are booked or blocked — pick open dates first."
+                : undefined
+            }
+            className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-5 py-2.5 text-[13px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
+          >
+            <Eye className="h-4 w-4" />
+            Review &amp; send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {isPage ? (
+        <>
+          {draft.hasDraft ? (
+            <ResumeDraftBanner
+              savedAt={draft.savedAt}
+              onRestore={draft.restore}
+              onDiscard={draft.discard}
+              label="quote details"
+            />
+          ) : null}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[11px] border border-brand-line bg-brand-light text-brand-secondary">
+              <Send className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] text-brand-mute">
+                {initial?.id ? "Quotes · Editing" : "Quotes · New quote"}
+              </div>
+              <h1 className="mt-0.5 truncate font-display text-[19px] font-extrabold leading-none text-brand-ink">
+                {guestName.trim()
+                  ? `Quote for ${guestName.trim()}`
+                  : "Build a quote"}
+              </h1>
+            </div>
+            <div className="ml-auto flex items-center gap-4">
+              <span className="hidden items-center gap-1.5 text-[12px] text-brand-mute md:inline-flex">
+                {draft.status === "saving" ? (
+                  <>
+                    <span className="h-1.5 w-1.5 rounded-full bg-status-pending" />
+                    Saving draft…
+                  </>
+                ) : draft.status === "saved" ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-brand-primary" /> Draft
+                    saved
+                  </>
+                ) : (
+                  "Auto-saves as you go"
+                )}
+              </span>
+              {totals.total > 0 && (
+                <div className="text-right leading-none">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Total
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={balanceDueDays}
-                      onChange={(e) => setBalanceDueDays(e.target.value)}
-                      className="w-16"
-                    />
-                    <span className="text-[11px] text-brand-mute">
-                      days before check-in for the balance
-                    </span>
+                  <div className="mt-1 font-display text-[16px] font-bold text-brand-ink">
+                    {formatMoney(totals.total, currency)}
                   </div>
                 </div>
-              ) : (
-                <p className="mt-1.5 text-[11px] text-brand-mute">
-                  {depositType === "full"
-                    ? "Guest pays the full amount to confirm."
-                    : "Guest reserves the dates; you collect payment separately."}
-                </p>
               )}
             </div>
           </div>
-
-          {/* Soft-hold note (sending soft-holds the dates automatically). */}
-          <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-4 py-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
-              <Lock className="h-3.5 w-3.5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[12.5px] font-semibold text-brand-ink">
-                Dates soft-held while {firstName} decides
-              </div>
-              <div className="text-[11px] text-brand-mute">
-                Sending marks{" "}
-                {datesValid
-                  ? `${ci.dow} ${ci.day} – ${co.dow} ${co.day}`
-                  : "the stay"}{" "}
-                as &ldquo;quote pending&rdquo; so you don&rsquo;t double-book.
-                It frees up if the quote expires or is declined.
-              </div>
+          <div className="mt-5 grid gap-6 lg:grid-cols-[300px_1fr]">
+            <aside className="lg:sticky lg:top-20 lg:self-start">
+              <QuoteRail
+                current={step}
+                onGo={goToStep}
+                done={railDone}
+                sub={railSub}
+                pct={railPct}
+                ready={allReadyQ}
+              />
+            </aside>
+            <div className="min-w-0">
+              {sectionsInner}
+              {step < 3 ? (
+                <div className="mt-7 flex items-center justify-between gap-3 border-t border-brand-line pt-5">
+                  <button
+                    type="button"
+                    onClick={() => setStep((s) => Math.max(0, s - 1))}
+                    className={`inline-flex items-center gap-2 rounded-[11px] px-4 py-2.5 text-[14px] font-semibold text-brand-mute transition-colors hover:bg-brand-light ${
+                      step === 0 ? "invisible" : ""
+                    }`}
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Back
+                  </button>
+                  <div className="flex items-center gap-4">
+                    <span className="hidden text-[13px] text-brand-mute sm:inline">
+                      Step {step + 1} of 4
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => goToStep(step + 1)}
+                      className="inline-flex items-center gap-2 rounded-[11px] bg-brand-primary px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition-colors hover:bg-brand-secondary"
+                    >
+                      Continue <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-7 border-t border-brand-line pt-5">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="inline-flex items-center gap-2 rounded-[11px] px-4 py-2.5 text-[14px] font-semibold text-brand-mute transition-colors hover:bg-brand-light"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Back
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Reply message */}
-          <div className="mt-5">
-            <FieldLabel>Your reply to {firstName}</FieldLabel>
-            <textarea
-              rows={4}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Hi — here's a quote for your stay…"
-              className="w-full rounded-[10px] border border-brand-line px-3 py-2 text-sm leading-relaxed text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
-            />
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <span className="mr-1 text-[11px] font-medium text-brand-mute">
-                Quick inserts:
-              </span>
-              <Pill
-                onClick={() =>
-                  insertSnippet(
-                    "Check-in is from 14:00. I'll send directions and the key code the day before.",
-                  )
-                }
-              >
-                + Check-in details
-              </Pill>
-              <Pill
-                onClick={() =>
-                  insertSnippet(
-                    "Free cancellation up to 5 days before check-in; 50% refundable after that.",
-                  )
-                }
-              >
-                + Cancellation policy
-              </Pill>
-              <Pill
-                onClick={() =>
-                  insertSnippet(
-                    "I'll share full directions and parking details once your booking is confirmed.",
-                  )
-                }
-              >
-                + Directions
-              </Pill>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      {/* ===== REVIEW & SEND BAR (sticky) ===== */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-line bg-white/95 backdrop-blur lg:left-64">
-        <div className="mx-auto flex max-w-[880px] flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-8">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <div>
-              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                Quote total
-              </div>
-              <div className="font-display text-[20px] font-bold leading-none text-brand-ink">
-                {formatMoney(totals.total, currency)}
-              </div>
-            </div>
-            <div className="hidden h-9 w-px bg-brand-line sm:block" />
-            <div className="hidden sm:block">
-              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                Your payout
-              </div>
-              <div className="font-display text-[14px] font-bold leading-none text-brand-secondary">
-                {formatMoney(totals.total, currency)}{" "}
-                <span className="text-[11px] font-medium text-brand-mute">
-                  · 0% fee
-                </span>
-              </div>
-            </div>
-            <div className="hidden h-9 w-px bg-brand-line sm:block" />
-            <div className="hidden sm:block">
-              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                Due to accept
-              </div>
-              <div className="font-display text-[14px] font-bold leading-none text-brand-ink">
-                {formatMoney(deposit.due, currency)}{" "}
-                <span className="text-[11px] font-medium text-brand-mute">
-                  ·{" "}
-                  {depositType === "deposit"
-                    ? `${parseFloat(depositPct) || 0}%`
-                    : depositType === "reserve"
-                      ? "reserve"
-                      : "full"}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => save(false)}
-              disabled={busy || hasDateConflict}
-              title={
-                hasDateConflict
-                  ? "Those dates are booked or blocked — pick open dates first."
-                  : undefined
-              }
-              className="rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-60"
-            >
-              {pending && !sendingPending ? "Saving…" : "Save draft"}
-            </button>
-            <button
-              type="button"
-              onClick={openPreview}
-              disabled={busy || hasDateConflict}
-              title={
-                hasDateConflict
-                  ? "Those dates are booked or blocked — pick open dates first."
-                  : undefined
-              }
-              className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-5 py-2.5 text-[13px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
-            >
-              <Eye className="h-4 w-4" />
-              Review &amp; send
-            </button>
-          </div>
-        </div>
-      </div>
+        </>
+      ) : (
+        <>
+          {dividerLabel}
+          {sectionsInner}
+          {stickyBar}
+        </>
+      )}
 
       {/* ===== REVISION REASON PROMPT (editing a sent quote) ===== */}
       <FormModal
@@ -2247,6 +2740,166 @@ export function QuoteForm({
 }
 
 // ── Small presentational helpers ───────────────────────────────────
+// ── Left-rail step navigator (page variant) ──────────────────────────────
+function QuoteRail({
+  current,
+  onGo,
+  done,
+  sub,
+  pct,
+  ready,
+}: {
+  current: number;
+  onGo: (i: number) => void;
+  done: boolean[];
+  sub: string[];
+  pct: number;
+  ready: boolean;
+}) {
+  return (
+    <>
+      <div className="mb-3 flex items-center gap-3 rounded-card border border-brand-line bg-white p-3.5 shadow-card">
+        <QuoteRing pct={pct} />
+        <div className="min-w-0">
+          <div className="font-display text-[14px] font-bold text-brand-ink">
+            {ready ? "Ready to send" : "In progress"}
+          </div>
+          <div className="text-[11px] text-brand-mute">
+            {ready ? "Review and send" : "Work through the steps"}
+          </div>
+        </div>
+      </div>
+      <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        Steps
+      </div>
+      <div className="space-y-1">
+        {QUOTE_STEPS.map((label, i) => {
+          const Icon = QUOTE_STEP_ICONS[i];
+          const active = i === current;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => onGo(i)}
+              aria-current={active ? "page" : undefined}
+              className={`flex w-full items-center gap-3 rounded-[13px] border px-3 py-2.5 text-left transition ${
+                active
+                  ? "border-brand-line bg-white shadow-card"
+                  : "border-transparent hover:bg-white"
+              }`}
+            >
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition ${
+                  active
+                    ? "bg-brand-primary text-white"
+                    : "bg-brand-accent/70 text-brand-secondary"
+                }`}
+              >
+                <Icon className="h-[18px] w-[18px]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span
+                  className={`block text-[13.5px] font-semibold leading-tight ${
+                    active ? "text-brand-ink" : "text-brand-ink/80"
+                  }`}
+                >
+                  {label}
+                </span>
+                <span className="mt-0.5 block truncate text-[11px] text-brand-mute">
+                  {sub[i]}
+                </span>
+              </span>
+              {done[i] ? (
+                <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
+                  <Check className="h-3 w-3" />
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function QuoteRing({ pct }: { pct: number }) {
+  const circumference = 2 * Math.PI * 15.5;
+  const dash = (pct / 100) * circumference;
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
+        <circle
+          cx="18"
+          cy="18"
+          r="15.5"
+          fill="none"
+          stroke="#E4EFE8"
+          strokeWidth="3.4"
+        />
+        <circle
+          cx="18"
+          cy="18"
+          r="15.5"
+          fill="none"
+          stroke="#10B981"
+          strokeWidth="3.4"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circumference}`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center font-display text-[11.5px] font-bold tabular-nums text-brand-ink">
+        {pct}%
+      </div>
+    </div>
+  );
+}
+
+function QRow({
+  label,
+  value,
+  muted,
+  strong,
+  last,
+  onEdit,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+  strong?: boolean;
+  last?: boolean;
+  onEdit: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 px-4 py-2.5 ${
+        last ? "" : "border-b border-[#EEF4F0]"
+      } ${strong ? "bg-brand-light/40" : ""}`}
+    >
+      <div className="w-[86px] shrink-0 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+        {label}
+      </div>
+      <div
+        className={`min-w-0 flex-1 truncate text-[13px] ${
+          muted
+            ? "italic text-brand-mute"
+            : strong
+              ? "font-display font-bold text-brand-ink"
+              : "font-medium text-brand-ink"
+        }`}
+      >
+        {value}
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="inline-flex shrink-0 items-center gap-1 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11px] font-medium text-brand-mute transition hover:border-brand-primary/40 hover:text-brand-ink"
+      >
+        <Pencil className="h-3 w-3" /> Edit
+      </button>
+    </div>
+  );
+}
+
 function SecHeader({
   n,
   title,

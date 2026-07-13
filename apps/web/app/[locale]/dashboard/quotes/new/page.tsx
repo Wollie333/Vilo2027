@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 
-import { getBrandName } from "@/lib/brand";
+import { loadFormDraft } from "@/lib/drafts/store";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteForm } from "../QuoteForm";
@@ -16,7 +16,6 @@ export const dynamic = "force-dynamic";
 
 export default async function NewQuotePage() {
   const supabase = createServerClient();
-  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -51,30 +50,20 @@ export default async function NewQuotePage() {
     );
   }
 
+  const serverDraft = await loadFormDraft(supabase, user.id, {
+    entityType: "quote",
+    entityId: null,
+    scopeId: null,
+  });
+
   return (
-    <div className="w-full">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            New quote
-          </div>
-          <h1 className="mt-1 font-display text-[30px] font-bold leading-tight tracking-tight text-brand-ink">
-            Build a quote for a guest
-          </h1>
-          <p className="mt-1 max-w-xl text-[13px] text-brand-mute">
-            Put together a custom price for an enquiry and send it over. The
-            guest can accept and pay online — {brandName} turns an accepted
-            quote straight into a confirmed booking.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/quotes"
-          className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-accent/40"
-        >
-          Cancel
-        </Link>
-      </header>
-      <QuoteForm listings={list} />
+    <div className="space-y-5">
+      <QuoteForm
+        listings={list}
+        variant="page"
+        userId={user.id}
+        serverDraft={serverDraft}
+      />
     </div>
   );
 }

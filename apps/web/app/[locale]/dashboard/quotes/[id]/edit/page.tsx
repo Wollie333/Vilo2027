@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
 
+import { loadFormDraft } from "@/lib/drafts/store";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteForm } from "../../QuoteForm";
@@ -256,55 +257,28 @@ export default async function EditQuotePage({
     customAddons,
   };
 
-  const firstName = quote.guest_name?.trim().split(/\s+/)[0] || "the guest";
+  const serverDraft = await loadFormDraft(supabase, user.id, {
+    entityType: "quote",
+    entityId: quote.id,
+    scopeId: null,
+  });
 
   return (
-    <div className="w-full">
-      <header className="mb-6">
-        <Link
-          href={
-            requestCtx ? "/dashboard/inbox" : `/dashboard/quotes/${quote.id}`
-          }
-          className="text-sm font-medium text-brand-mute hover:text-brand-primary"
-        >
-          {requestCtx ? "← Back to inbox" : "← Back to quote"}
-        </Link>
-        {requestCtx ? (
-          <>
-            <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-              Quote request
-            </div>
-            <h1 className="mt-0.5 font-display text-[30px] font-bold tracking-tight text-brand-ink">
-              Respond to {firstName}&rsquo;s request
-            </h1>
-            <p className="mt-1 max-w-xl text-sm text-brand-mute">
-              {firstName} asked for a price — review what they want, then build
-              and send the quote. When they accept and pay, Wielo turns it into
-              a confirmed booking automatically.
-            </p>
-          </>
-        ) : (
-          <>
-            <h1 className="mt-1 font-display text-[30px] font-bold tracking-tight text-brand-ink">
-              Edit quote
-            </h1>
-            <p className="mt-1 text-sm text-brand-mute">
-              {quote.status === "sent"
-                ? "This quote has already been sent — saving keeps a copy of the previous version and re-issues an updated PDF."
-                : "Make your changes and save the draft."}
-            </p>
-          </>
-        )}
-      </header>
-      {requestCtx ? (
-        <div className="mb-6">
-          <QuoteRequestCard ctx={requestCtx} />
-        </div>
-      ) : null}
+    <div className="space-y-4">
+      <Link
+        href={requestCtx ? "/dashboard/inbox" : `/dashboard/quotes/${quote.id}`}
+        className="inline-block text-sm font-medium text-brand-mute hover:text-brand-primary"
+      >
+        {requestCtx ? "← Back to inbox" : "← Back to quote"}
+      </Link>
+      {requestCtx ? <QuoteRequestCard ctx={requestCtx} /> : null}
       <QuoteForm
         listings={list}
         initial={initial}
         isSentQuote={quote.status === "sent"}
+        variant="page"
+        userId={user.id}
+        serverDraft={serverDraft}
       />
     </div>
   );
