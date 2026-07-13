@@ -48,6 +48,8 @@ export const specialInputSchema = z
     window_end: isoDateOrNull,
     min_nights: z.number().int().min(1).max(365).nullable(),
     max_nights: z.number().int().min(1).max(365).nullable(),
+    // "run continuously" — always-on flexible deal, no window end / book-by.
+    is_evergreen: z.boolean().default(false),
 
     // pricing model (seasonal never applies — enforced in S2 pricing)
     price_mode: z.enum(SPECIAL_PRICE_MODES),
@@ -98,8 +100,8 @@ export const specialInputSchema = z
     (v) =>
       v.date_mode !== "flexible" ||
       (!!v.window_start &&
-        !!v.window_end &&
-        v.window_end > v.window_start &&
+        // Evergreen deals run continuously — no window end required.
+        (v.is_evergreen || (!!v.window_end && v.window_end > v.window_start)) &&
         v.min_nights != null &&
         v.min_nights >= 1 &&
         (v.max_nights == null || v.max_nights >= v.min_nights)),

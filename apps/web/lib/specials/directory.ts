@@ -63,6 +63,7 @@ export type DirectorySpecial = {
   windowEnd: string | null;
   minNights: number | null;
   maxNights: number | null;
+  isEvergreen: boolean;
   priceMode: "flat" | "per_night";
   flatTotal: number | null;
   perNightPrice: number | null;
@@ -72,6 +73,8 @@ export type DirectorySpecial = {
   savingsPct: number | null;
   remaining: number;
   categories: string[];
+  /** Names of the compulsory add-ons bundled into the deal ("what's included"). */
+  includedAddons: string[];
   isFeatured: boolean;
   propertyName: string;
   propertyCity: string | null;
@@ -128,6 +131,7 @@ type SpecialRow = {
   window_end: string | null;
   min_nights: number | null;
   max_nights: number | null;
+  is_evergreen: boolean | null;
   price_mode: string;
   flat_total: number | null;
   per_night_price: number | null;
@@ -143,7 +147,22 @@ type SpecialRow = {
   is_featured: boolean | null;
   sort_order: number | null;
   property: PropertyJoin | PropertyJoin[] | null;
+  special_addons: Array<{
+    is_required: boolean | null;
+    addon: { name: string } | { name: string }[] | null;
+  }> | null;
 };
+
+// Compulsory add-on names for the "what's included" chips on a deal card.
+function includedAddonNames(r: SpecialRow): string[] {
+  return (r.special_addons ?? [])
+    .filter((a) => a.is_required)
+    .map((a) => {
+      const ad = Array.isArray(a.addon) ? a.addon[0] : a.addon;
+      return ad?.name ?? "";
+    })
+    .filter(Boolean);
+}
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -178,7 +197,7 @@ export async function loadPropertySpecials(
   const { data } = await admin
     .from("specials")
     .select(
-      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( accommodation_type, vat_number, vat_rate, photos:property_photos ( url, sort_order ) )",
+      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, is_evergreen, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( accommodation_type, vat_number, vat_rate, photos:property_photos ( url, sort_order ) ), special_addons ( is_required, addon:addons ( name ) )",
     )
     .eq("property_id", propertyId)
     .eq("status", "active")
@@ -215,6 +234,7 @@ export async function loadPropertySpecials(
       windowEnd: r.window_end,
       minNights: r.min_nights,
       maxNights: r.max_nights,
+      isEvergreen: !!r.is_evergreen,
       priceMode: r.price_mode === "per_night" ? "per_night" : "flat",
       flatTotal: r.flat_total == null ? null : Number(r.flat_total),
       perNightPrice:
@@ -225,6 +245,7 @@ export async function loadPropertySpecials(
       savingsPct: r.savings_pct,
       remaining,
       categories: r.categories ?? [],
+      includedAddons: includedAddonNames(r),
       isFeatured: !!r.is_featured,
       propertyName: property.name,
       propertyCity: property.city,
@@ -262,7 +283,7 @@ export async function searchSpecials(
   const { data } = await admin
     .from("specials")
     .select(
-      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( slug, name, city, province, accommodation_type, vat_number, vat_rate, deleted_at, photos:property_photos ( url, sort_order ) )",
+      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, is_evergreen, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( slug, name, city, province, accommodation_type, vat_number, vat_rate, deleted_at, photos:property_photos ( url, sort_order ) ), special_addons ( is_required, addon:addons ( name ) )",
     )
     .eq("status", "active")
     .eq("show_in_directory", true)
@@ -303,6 +324,7 @@ export async function searchSpecials(
       windowEnd: r.window_end,
       minNights: r.min_nights,
       maxNights: r.max_nights,
+      isEvergreen: !!r.is_evergreen,
       priceMode: r.price_mode === "per_night" ? "per_night" : "flat",
       flatTotal: r.flat_total == null ? null : Number(r.flat_total),
       perNightPrice:
@@ -313,6 +335,7 @@ export async function searchSpecials(
       savingsPct: r.savings_pct,
       remaining,
       categories: r.categories ?? [],
+      includedAddons: includedAddonNames(r),
       isFeatured: !!r.is_featured,
       propertyName: property.name,
       propertyCity: property.city,

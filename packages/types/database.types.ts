@@ -2766,6 +2766,111 @@ export type Database = {
           },
         ]
       }
+      forfeit_statements: {
+        Row: {
+          amount_forfeited: number
+          amount_paid: number
+          amount_refunded: number
+          amount_written_off: number
+          booking_id: string
+          booking_total: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          guest_id: string | null
+          guest_snapshot: Json
+          host_id: string
+          host_snapshot: Json
+          hosted_token: string
+          id: string
+          invoice_id: string | null
+          pdf_storage_path: string | null
+          policy_applied: string | null
+          reason: string | null
+          statement_number: string
+        }
+        Insert: {
+          amount_forfeited: number
+          amount_paid: number
+          amount_refunded?: number
+          amount_written_off: number
+          booking_id: string
+          booking_total: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          guest_id?: string | null
+          guest_snapshot: Json
+          host_id: string
+          host_snapshot: Json
+          hosted_token?: string
+          id?: string
+          invoice_id?: string | null
+          pdf_storage_path?: string | null
+          policy_applied?: string | null
+          reason?: string | null
+          statement_number: string
+        }
+        Update: {
+          amount_forfeited?: number
+          amount_paid?: number
+          amount_refunded?: number
+          amount_written_off?: number
+          booking_id?: string
+          booking_total?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          guest_id?: string | null
+          guest_snapshot?: Json
+          host_id?: string
+          host_snapshot?: Json
+          hosted_token?: string
+          id?: string
+          invoice_id?: string | null
+          pdf_storage_path?: string | null
+          policy_applied?: string | null
+          reason?: string | null
+          statement_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forfeit_statements_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forfeit_statements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forfeit_statements_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forfeit_statements_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forfeit_statements_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_rates: {
         Row: {
           base_currency: string
@@ -4322,6 +4427,88 @@ export type Database = {
           {
             foreignKeyName: "invoices_voided_by_fkey"
             columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_reports: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          host_id: string | null
+          id: string
+          listing_name: string | null
+          message: string
+          property_id: string | null
+          reason: string
+          reporter_email: string
+          reporter_name: string
+          reporter_phone: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          target_id: string
+          target_label: string | null
+          target_type: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          host_id?: string | null
+          id?: string
+          listing_name?: string | null
+          message: string
+          property_id?: string | null
+          reason: string
+          reporter_email: string
+          reporter_name: string
+          reporter_phone?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_id: string
+          target_label?: string | null
+          target_type?: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          host_id?: string | null
+          id?: string
+          listing_name?: string | null
+          message?: string
+          property_id?: string | null
+          reason?: string
+          reporter_email?: string
+          reporter_name?: string
+          reporter_phone?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_id?: string
+          target_label?: string | null
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_reports_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_reports_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -9020,6 +9207,7 @@ export type Database = {
           hero_image_path: string | null
           host_id: string
           id: string
+          is_evergreen: boolean
           is_featured: boolean
           max_guests: number | null
           max_nights: number | null
@@ -9062,6 +9250,7 @@ export type Database = {
           hero_image_path?: string | null
           host_id: string
           id?: string
+          is_evergreen?: boolean
           is_featured?: boolean
           max_guests?: number | null
           max_nights?: number | null
@@ -9104,6 +9293,7 @@ export type Database = {
           hero_image_path?: string | null
           host_id?: string
           id?: string
+          is_evergreen?: boolean
           is_featured?: boolean
           max_guests?: number | null
           max_nights?: number | null
@@ -10910,6 +11100,10 @@ export type Database = {
         Args: { p_host_id: string }
         Returns: undefined
       }
+      ensure_listing_policy_assignments: {
+        Args: { p_listing_id: string }
+        Returns: undefined
+      }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       expire_specials: { Args: never; Returns: number }
       fetch_channel_mix: {
@@ -11227,6 +11421,7 @@ export type Database = {
         Args: { p_business_id: string }
         Returns: string
       }
+      next_forfeit_number: { Args: { p_business_id?: string }; Returns: string }
       next_invoice_number: { Args: { p_business_id: string }; Returns: string }
       next_quote_number: { Args: { p_business_id: string }; Returns: string }
       next_receipt_number: { Args: { p_business_id: string }; Returns: string }

@@ -62,7 +62,7 @@ export default async function SpecialBookingPage({
   const { data: specialRows } = await admin
     .from("specials")
     .select(
-      "id, host_id, business_id, property_id, room_id, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, max_guests, quantity, redemptions_used, go_live_at, book_by, categories, custom_tags, was_price, savings_amount, savings_pct, cancellation_policy_id, status, deleted_at",
+      "id, host_id, business_id, property_id, room_id, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, is_evergreen, price_mode, flat_total, per_night_price, currency, max_guests, quantity, redemptions_used, go_live_at, book_by, categories, custom_tags, was_price, savings_amount, savings_pct, cancellation_policy_id, status, deleted_at",
     )
     .eq("slug", params.slug)
     .eq("status", "active")
@@ -234,6 +234,7 @@ export default async function SpecialBookingPage({
           fixedCheckOut={special.fixed_check_out}
           windowStart={special.window_start}
           windowEnd={special.window_end}
+          isEvergreen={special.is_evergreen}
           minNights={special.min_nights}
           maxNights={special.max_nights}
           priceMode={special.price_mode as "flat" | "per_night"}

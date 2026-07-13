@@ -10,6 +10,10 @@ import { createServerClient } from "@/lib/supabase/server";
 import { canUseSpecials } from "@/lib/specials/gate";
 
 import type { SpecialSavings } from "@/lib/specials/pricing";
+import type {
+  AddonCategory,
+  PricingModel,
+} from "@/app/[locale]/dashboard/addons/schemas";
 
 import { computeSpecialSavings } from "./_lib/savings";
 import { specialInputSchema, type SpecialInput } from "./schemas";
@@ -216,6 +220,9 @@ async function validateTargets(
 function specialRow(v: SpecialInput, hostId: string, target: PropertyTarget) {
   const fixed = v.date_mode === "fixed";
   const flex = v.date_mode === "flexible";
+  // Evergreen ("run continuously") is a flexible deal with no end / deadline.
+  const evergreen = flex && v.is_evergreen;
+  const today = new Date().toISOString().slice(0, 10);
   return {
     host_id: hostId,
     business_id: target.business_id,
@@ -231,10 +238,11 @@ function specialRow(v: SpecialInput, hostId: string, target: PropertyTarget) {
     date_mode: v.date_mode,
     fixed_check_in: fixed ? v.fixed_check_in : null,
     fixed_check_out: fixed ? v.fixed_check_out : null,
-    window_start: flex ? v.window_start : null,
-    window_end: flex ? v.window_end : null,
+    window_start: flex ? (v.window_start ?? (evergreen ? today : null)) : null,
+    window_end: flex && !evergreen ? v.window_end : null,
     min_nights: flex ? v.min_nights : null,
     max_nights: flex ? v.max_nights : null,
+    is_evergreen: evergreen,
 
     price_mode: v.price_mode,
     flat_total: v.price_mode === "flat" ? v.flat_total : null,
@@ -244,7 +252,7 @@ function specialRow(v: SpecialInput, hostId: string, target: PropertyTarget) {
     quantity: v.quantity,
 
     go_live_at: v.go_live_at,
-    book_by: v.book_by,
+    book_by: evergreen ? null : v.book_by,
 
     categories: v.categories,
     custom_tags: v.custom_tags,
@@ -590,6 +598,12 @@ export type InlineAddonInput = {
   unitPrice: number;
   currency: string;
   saveToLibrary: boolean;
+  /** How it's charged (per stay / night / guest / …). Defaults to per_stay. */
+  pricingModel?: PricingModel;
+  /** Default quantity applied when the add-on is added to a stay. */
+  minQuantity?: number;
+  category?: AddonCategory | null;
+  description?: string | null;
 };
 
 export async function createInlineAddonAction(input: InlineAddonInput): Promise<
@@ -611,18 +625,25 @@ export async function createInlineAddonAction(input: InlineAddonInput): Promise<
     return { ok: false, error: "Price must be between 0 and 10,000,000." };
   }
 
+  const minQuantity = Math.max(
+    1,
+    Math.min(100, Math.round(input.minQuantity ?? 1)),
+  );
+
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("addons")
     .insert({
       host_id: host.hostId,
       name,
+      description: input.description?.trim() || null,
       unit_price: input.unitPrice,
       currency: input.currency,
-      pricing_model: "per_stay", // simplest model for specials
+      pricing_model: input.pricingModel ?? "per_stay",
+      category: input.category ?? null,
       is_active: input.saveToLibrary, // hidden from library if not saved
       is_required: false,
-      min_quantity: 1,
+      min_quantity: minQuantity,
     })
     .select("id, name, unit_price, currency")
     .single();

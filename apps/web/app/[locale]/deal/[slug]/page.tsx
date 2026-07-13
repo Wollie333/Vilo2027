@@ -68,7 +68,7 @@ async function loadSpecial(slug: string) {
   const { data: rows } = await admin
     .from("specials")
     .select(
-      "id, host_id, property_id, room_id, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, max_guests, quantity, redemptions_used, go_live_at, book_by, categories, was_price, savings_amount, savings_pct",
+      "id, host_id, property_id, room_id, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, is_evergreen, price_mode, flat_total, per_night_price, currency, max_guests, quantity, redemptions_used, go_live_at, book_by, categories, was_price, savings_amount, savings_pct",
     )
     .eq("slug", slug)
     .eq("status", "active")
@@ -287,7 +287,9 @@ export default async function SpecialDetailPage({
   const datesShort =
     special.date_mode === "fixed"
       ? `${fmtDate(special.fixed_check_in)} → ${fmtDate(special.fixed_check_out)}`
-      : `${fmtDate(special.window_start)} – ${fmtDate(special.window_end)}`;
+      : special.is_evergreen
+        ? "Any dates · always available"
+        : `${fmtDate(special.window_start)} – ${fmtDate(special.window_end)}`;
   const firstNight =
     special.date_mode === "fixed"
       ? special.fixed_check_in
@@ -322,7 +324,11 @@ export default async function SpecialDetailPage({
     },
     {
       label: t("dtStatBookBy"),
-      value: special.book_by ? fmtDate(special.book_by) : "—",
+      value: special.is_evergreen
+        ? "Always on"
+        : special.book_by
+          ? fmtDate(special.book_by)
+          : "—",
     },
   ];
 
@@ -581,6 +587,19 @@ export default async function SpecialDetailPage({
                     )
                   </span>
                 </p>
+              ) : special.is_evergreen ? (
+                <p className="mt-2 text-sm text-brand-ink">
+                  Book any dates, any time
+                  {special.min_nights
+                    ? t("dtNightsRange", {
+                        min: special.min_nights,
+                        max: special.max_nights
+                          ? `–${special.max_nights}`
+                          : "+",
+                      })
+                    : ""}
+                  .
+                </p>
               ) : (
                 <p className="mt-2 text-sm text-brand-ink">
                   {t("dtFlexRange", {
@@ -621,7 +640,7 @@ export default async function SpecialDetailPage({
                       {t("ddLastNight")}
                     </div>
                     <div className="num font-display text-[14px] font-bold text-brand-ink">
-                      {fmtDate(lastNight)}
+                      {special.is_evergreen ? "Open-ended" : fmtDate(lastNight)}
                     </div>
                   </div>
                 </div>

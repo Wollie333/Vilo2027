@@ -174,6 +174,7 @@ export async function loadSpecial(
     window_end: row.window_end,
     min_nights: row.min_nights,
     max_nights: row.max_nights,
+    is_evergreen: row.is_evergreen ?? false,
     price_mode: row.price_mode as SpecialInput["price_mode"],
     flat_total: row.flat_total == null ? null : Number(row.flat_total),
     per_night_price:

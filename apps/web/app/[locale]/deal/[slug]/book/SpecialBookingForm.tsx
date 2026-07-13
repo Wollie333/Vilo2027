@@ -47,6 +47,7 @@ type Props = {
   fixedCheckOut: string | null;
   windowStart: string | null;
   windowEnd: string | null;
+  isEvergreen: boolean;
   minNights: number | null;
   maxNights: number | null;
   priceMode: "flat" | "per_night";
@@ -370,7 +371,18 @@ export function SpecialBookingForm(props: Props) {
                       className="mt-1 w-full rounded-lg border border-brand-line px-3 py-2 text-sm text-brand-ink"
                     />
                   </label>
-                  {props.windowStart && props.windowEnd ? (
+                  {props.isEvergreen ? (
+                    <p className="col-span-full text-xs text-brand-mute">
+                      Book any dates
+                      {props.minNights
+                        ? t("dtNightsRange", {
+                            min: props.minNights,
+                            max: props.maxNights ? `–${props.maxNights}` : "+",
+                          })
+                        : ""}
+                      .
+                    </p>
+                  ) : props.windowStart && props.windowEnd ? (
                     <p className="col-span-full text-xs text-brand-mute">
                       {t("dtFlexRange", {
                         start: props.windowStart,

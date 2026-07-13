@@ -1,4 +1,4 @@
-import { MapPin, Sparkles, Tag } from "lucide-react";
+import { CalendarRange, Check, MapPin, Sparkles, Tag } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
@@ -22,6 +22,30 @@ export async function SpecialCard({
   const amount = s.priceMode === "flat" ? s.flatTotal : s.perNightPrice;
   const perLabel =
     s.priceMode === "flat" ? t("cardPackage") : t("cardPerNight");
+
+  // Stay / date summary (enrichment).
+  const fixedNights =
+    s.dateMode === "fixed" && s.fixedCheckIn && s.fixedCheckOut
+      ? Math.max(
+          0,
+          Math.round(
+            (Date.parse(s.fixedCheckOut) - Date.parse(s.fixedCheckIn)) /
+              86_400_000,
+          ),
+        )
+      : null;
+  const stayLabel =
+    s.dateMode === "fixed"
+      ? fixedNights
+        ? `${fixedNights} night${fixedNights === 1 ? "" : "s"} · fixed dates`
+        : "Fixed dates"
+      : s.isEvergreen
+        ? `Any ${s.minNights ?? 1}+ nights · anytime`
+        : s.maxNights && s.minNights === s.maxNights
+          ? `${s.minNights} night${s.minNights === 1 ? "" : "s"}`
+          : `Any ${s.minNights ?? 1}${s.maxNights ? `–${s.maxNights}` : "+"} nights`;
+  const included = s.includedAddons.slice(0, 3);
+  const extraIncluded = s.includedAddons.length - included.length;
 
   return (
     <Link
@@ -64,8 +88,17 @@ export async function SpecialCard({
             {location ? ` · ${location}` : ""}
           </span>
         </div>
+        <div className="mt-1 flex items-center gap-1 truncate text-xs font-medium text-brand-secondary">
+          <CalendarRange className="h-3 w-3 shrink-0" />
+          <span className="truncate">{stayLabel}</span>
+        </div>
+        {s.description ? (
+          <p className="mt-1.5 line-clamp-2 text-xs leading-snug text-brand-mute">
+            {s.description}
+          </p>
+        ) : null}
         {amount != null ? (
-          <div className="mt-2 flex items-baseline gap-1.5">
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
             <span className="num font-display font-bold text-brand-ink">
               <Money
                 amount={grossVat(amount, s.vatRate)}
@@ -84,8 +117,36 @@ export async function SpecialCard({
             ) : null}
           </div>
         ) : null}
+        {s.savingsAmount ? (
+          <div className="mt-1 text-[11.5px] font-semibold text-emerald-700">
+            Save{" "}
+            <Money
+              amount={grossVat(s.savingsAmount, s.vatRate)}
+              currency={s.currency}
+              approx={false}
+            />
+          </div>
+        ) : null}
+        {included.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {included.map((name) => (
+              <span
+                key={name}
+                className="inline-flex items-center gap-1 rounded-pill bg-brand-accent/40 px-2 py-0.5 text-[10.5px] font-medium text-brand-secondary"
+              >
+                <Check className="h-2.5 w-2.5" />
+                {name}
+              </span>
+            ))}
+            {extraIncluded > 0 ? (
+              <span className="inline-flex items-center rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-medium text-brand-mute">
+                +{extraIncluded} more
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         {s.remaining <= 5 ? (
-          <div className="mt-1 text-[11px] font-medium text-amber-600">
+          <div className="mt-1.5 text-[11px] font-medium text-amber-600">
             {t("onlyLeft", { count: s.remaining })}
           </div>
         ) : null}

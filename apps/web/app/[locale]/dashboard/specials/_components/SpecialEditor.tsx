@@ -27,6 +27,12 @@ import { toast } from "sonner";
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/format";
 import { websiteAssetUrl } from "@/lib/website/assets";
+import {
+  ADDON_CATEGORIES,
+  PRICING_MODELS,
+  type AddonCategory,
+  type PricingModel,
+} from "@/app/[locale]/dashboard/addons/schemas";
 
 import {
   createInlineAddonAction,
@@ -94,6 +100,11 @@ export function SpecialEditor({
   const [inlinePrice, setInlinePrice] = useState<number | null>(null);
   const [inlineSaveToLibrary, setInlineSaveToLibrary] = useState(false);
   const [inlineCreating, setInlineCreating] = useState(false);
+  const [inlinePricingModel, setInlinePricingModel] =
+    useState<PricingModel>("per_stay");
+  const [inlineMinQty, setInlineMinQty] = useState<number | null>(1);
+  const [inlineCategory, setInlineCategory] = useState<string>("");
+  const [inlineDescription, setInlineDescription] = useState("");
 
   function set<K extends keyof SpecialInput>(key: K, value: SpecialInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -179,6 +190,10 @@ export function SpecialEditor({
         unitPrice: inlinePrice,
         currency,
         saveToLibrary: inlineSaveToLibrary,
+        pricingModel: inlinePricingModel,
+        minQuantity: inlineMinQty ?? 1,
+        category: inlineCategory ? (inlineCategory as AddonCategory) : null,
+        description: inlineDescription.trim() || null,
       });
       if (!res.ok || !res.data) {
         toast.error(res.ok ? "Failed to create extra." : res.error);
@@ -204,6 +219,10 @@ export function SpecialEditor({
       setInlineName("");
       setInlinePrice(null);
       setInlineSaveToLibrary(false);
+      setInlinePricingModel("per_stay");
+      setInlineMinQty(1);
+      setInlineCategory("");
+      setInlineDescription("");
       setShowInlineForm(false);
       toast.success(t("inlineAddonCreated"));
     } finally {
@@ -308,7 +327,9 @@ export function SpecialEditor({
   const datesValid =
     form.date_mode === "fixed"
       ? !!form.fixed_check_in && !!form.fixed_check_out
-      : !!form.window_start && !!form.window_end;
+      : form.is_evergreen
+        ? !!form.window_start
+        : !!form.window_start && !!form.window_end;
   const priceValid =
     form.price_mode === "flat"
       ? (form.flat_total ?? 0) > 0
@@ -742,18 +763,45 @@ export function SpecialEditor({
                   </div>
                 ) : (
                   <>
+                    <ToggleField
+                      label="Run continuously (always on)"
+                      hint="No end date or booking deadline — guests can book any future dates."
+                      checked={form.is_evergreen}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          is_evergreen: v,
+                          window_start:
+                            v && !f.window_start
+                              ? new Date().toISOString().slice(0, 10)
+                              : f.window_start,
+                          window_end: v ? null : f.window_end,
+                          book_by: v ? null : f.book_by,
+                        }))
+                      }
+                    />
                     <div className="grid grid-cols-2 gap-3">
                       <DateField
-                        label={t("fldWindowStart")}
+                        label={
+                          form.is_evergreen
+                            ? "Available from"
+                            : t("fldWindowStart")
+                        }
                         value={form.window_start}
                         onChange={(v) => set("window_start", v)}
                       />
-                      <DateField
-                        label={t("fldWindowEnd")}
-                        value={form.window_end}
-                        min={form.window_start ?? undefined}
-                        onChange={(v) => set("window_end", v)}
-                      />
+                      {form.is_evergreen ? (
+                        <div className="flex items-end pb-2.5 text-[12.5px] text-brand-mute">
+                          Runs continuously — no end date.
+                        </div>
+                      ) : (
+                        <DateField
+                          label={t("fldWindowEnd")}
+                          value={form.window_end}
+                          min={form.window_start ?? undefined}
+                          onChange={(v) => set("window_end", v)}
+                        />
+                      )}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <NumberField
@@ -860,12 +908,18 @@ export function SpecialEditor({
                     onChange={(v) => set("go_live_at", v)}
                     hint={t("fldGoLiveHint")}
                   />
-                  <DateField
-                    label={t("fldBookBy")}
-                    value={form.book_by}
-                    onChange={(v) => set("book_by", v)}
-                    hint={t("fldBookByHint")}
-                  />
+                  {form.is_evergreen ? (
+                    <div className="flex items-end pb-2.5 text-[12.5px] text-brand-mute">
+                      No booking deadline — this deal runs continuously.
+                    </div>
+                  ) : (
+                    <DateField
+                      label={t("fldBookBy")}
+                      value={form.book_by}
+                      onChange={(v) => set("book_by", v)}
+                      hint={t("fldBookByHint")}
+                    />
+                  )}
                 </div>
               </>
             ) : null}
@@ -976,6 +1030,50 @@ export function SpecialEditor({
                         step={0.01}
                         prefix={currency}
                         onChange={setInlinePrice}
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <TextArea
+                        label="Description (optional)"
+                        value={inlineDescription}
+                        onChange={setInlineDescription}
+                        placeholder="What the guest gets — shown on the deal."
+                        rows={2}
+                        maxLength={280}
+                      />
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <SelectField
+                        label="How it’s charged"
+                        value={inlinePricingModel}
+                        options={PRICING_MODELS.map((m) => ({
+                          value: m.value,
+                          label: m.label,
+                        }))}
+                        onChange={setInlinePricingModel}
+                        hint="How the price scales per stay."
+                      />
+                      <NumberField
+                        label="Default quantity"
+                        value={inlineMinQty}
+                        min={1}
+                        max={100}
+                        onChange={setInlineMinQty}
+                        hint="Added by default when selected."
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <SelectField
+                        label="Category (optional)"
+                        value={inlineCategory}
+                        options={[
+                          { value: "", label: "No category" },
+                          ...ADDON_CATEGORIES.map((c) => ({
+                            value: c.value as string,
+                            label: c.label,
+                          })),
+                        ]}
+                        onChange={setInlineCategory}
                       />
                     </div>
                     <div className="mt-3">

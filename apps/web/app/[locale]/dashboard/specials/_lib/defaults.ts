@@ -17,6 +17,7 @@ export function emptySpecial(): SpecialInput {
     window_end: null,
     min_nights: null,
     max_nights: null,
+    is_evergreen: false,
     price_mode: "flat",
     flat_total: null,
     per_night_price: null,

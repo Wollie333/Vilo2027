@@ -65,7 +65,7 @@ export async function createSpecialBookingAction(
   const { data: special } = await admin
     .from("specials")
     .select(
-      "id, host_id, property_id, room_id, currency, status, deleted_at, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, max_guests, quantity, redemptions_used, go_live_at, book_by, cancellation_policy_id",
+      "id, host_id, property_id, room_id, currency, status, deleted_at, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, is_evergreen, price_mode, flat_total, per_night_price, max_guests, quantity, redemptions_used, go_live_at, book_by, cancellation_policy_id",
     )
     .eq("id", d.special_id)
     .maybeSingle();
@@ -137,13 +137,22 @@ export async function createSpecialBookingAction(
     }
     checkIn = d.check_in;
     checkOut = d.check_out;
-    if (
-      !special.window_start ||
-      !special.window_end ||
-      checkIn < special.window_start ||
-      checkOut > special.window_end
-    ) {
-      return { ok: false, error: "Choose dates inside the offer window." };
+    // Evergreen ("run continuously") deals have no window end — any future stay
+    // from window_start (or today) counts. A windowed deal must fall inside it.
+    const nowDay = new Date().toISOString().slice(0, 10);
+    const lowerBound = special.window_start ?? nowDay;
+    if (checkIn < lowerBound || checkIn < nowDay) {
+      return { ok: false, error: "Choose a check-in date in the future." };
+    }
+    if (!special.is_evergreen) {
+      if (
+        !special.window_start ||
+        !special.window_end ||
+        checkIn < special.window_start ||
+        checkOut > special.window_end
+      ) {
+        return { ok: false, error: "Choose dates inside the offer window." };
+      }
     }
   }
   const nights = nightsBetween(checkIn, checkOut);
