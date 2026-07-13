@@ -2,7 +2,7 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-13 · head `099c1819`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-13 · head `537baf49`) — START HERE
 
 **Theme of this arc:** roll the **create-data default layout** (left-rail step-tabs · health ring · live
 sub-hints · identity bar with autosave indicator · one panel at a time · final **Review** step with per-row
@@ -15,8 +15,11 @@ manual **booking** create · **quote** form (page/embedded variant — shared wi
 create/edit (modal → dedicated `/new` + `/[id]/edit` pages; redemption re-verified at checkout) · **listing
 editor** (was already left-rail — added the **Review & publish** step + health ring) · **room editor**
 (`rooms/[roomId]/RoomEditor.tsx` — identity bar + 6-step rail + health ring + Review; sections keep own save;
-**amenities now batch-save** via `RoomAmenitiesSection` `batchSave` — tick many, one "Save amenities"). **Autosave**
-(`form_drafts`, Layer A+B) is wired on add-on · special · booking · quote(page) · coupon editors.
+**amenities now batch-save** via `RoomAmenitiesSection` `batchSave` — tick many, one "Save amenities") ·
+**new-listing page** (`properties/new/NewListingForm.tsx` — create-data shell as journey step 1: identity bar +
+left-rail roadmap + live health ring on name+category + single "Create draft & continue" → redirects into the
+editor's real rail). **Autosave** (`form_drafts`, Layer A+B) is wired on add-on · special · booking · quote(page) ·
+coupon editors.
 
 **✅ Also this arc:** multi-select + **concurrent** photo upload on listing + room galleries
 (`components/listing/photoUpload.ts`); the respond-to-quote-request card verified still on top of the quote form.
@@ -37,6 +40,27 @@ were the plan; coupons now done as pages).
 listing `0b222222-2222-4222-8222-222222222221`). DB truth via `scratchpad/sbenv.sh` ($SB/$KEY service role).
 
 ---
+
+## ▶▶▶ SAVE POINT (2026-07-13 · `537baf49`) — NEW-LISTING page on the create-data pattern (journey step 1).
+
+Founder: "do the same layout for `dashboard/properties/new`." It's a 2-field draft creator (name + category)
+that redirects into the listing editor — the rollout audit had it as "doesn't fit," but the founder wants the
+look everywhere, so it's now **step 1 of the create-data journey**. `NewListingForm.tsx` became the full shell:
+**identity bar** (Home tile · Listings › New · live title · Draft badge · Cancel) → left-rail **roadmap**
+(Basics active · Photos · Location · Rooms & pricing · Policies · Review & publish — the last five muted, "in the
+editor next", numbered, non-interactive) with a **live health ring** on the two basics (name + category → x/2) →
+the Basics panel (name + CategoryPicker) → a **single "Create draft & continue" CTA** with a live summary hint.
+Submit creates the draft (unchanged `createListingAction`) → redirects into the listing editor, whose real rail
+continues the identical shell (seamless). `page.tsx` dropped its old header + back-link.
+
+**Verified live** (test host): ring 0 → 50% (name) → 100% (category), identity title tracks the name, then
+**Create draft & continue → landed in the listing editor** with "Test Layout Cottage" + Cottage prefilled and
+the same rail. Test listing `ed1a5667…` soft-deleted (never hard-delete listings). `build` + `lint` green, no
+console errors. (Stopped the dev server before `pnpm build` — the `.next`-corruption gotcha.)
+
+**▶ NEXT (rollout audit):** onboarding wizard re-skin · modal group (rooms quick-add · seasonal · banking ·
+managers — coupons are the convert-to-pages template) · media bank multi-select. Queued: add-on `vat_included`
+dead-flag · autosave TTL-prune cron.
 
 ## ▶▶▶ SAVE POINT (2026-07-13 · `099c1819`) — ROOM EDITOR on the create-data pattern + batch-save amenities.
 
