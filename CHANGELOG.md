@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT (`e14265bf`). NEXT = audit add-ons + build auto-save drafts.
+
+Session wins (both below, pushed + verified live): deal checkout unified into the main `BookingForm`, and
+the specials editor enriched (live economics · richer preview · review step). **Next session:** (A) refine +
+audit **add-ons** (deep-audit backlog); (B) build an **auto-save drafts** feature so navigating away
+mid-creation of a special/room/add-on/coupon persists the work as a resumable draft — pick-up-ready plan in
+`docs/features/AUTOSAVE_DRAFTS_PLAN.md` (memory `project-autosave-drafts`).
+
 ## 2026-07-13 — Specials editor enrichment: live economics + richer preview + review step.
 
 Three founder-requested enrichments to the specials editor (`SpecialEditor.tsx`), keeping the loved

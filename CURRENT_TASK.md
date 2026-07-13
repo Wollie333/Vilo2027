@@ -2,6 +2,39 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-13 · `e14265bf`) — DEAL CHECKOUT UNIFIED + SPECIALS EDITOR ENRICHED. NEXT = audit add-ons + build auto-save drafts.
+
+All pushed to `main`, verified live end-to-end, `tsc`/`lint`/`build` (872pp) green. Two big wins this session:
+
+**1) Deal checkout UNIFIED into the main `BookingForm`** (`45124724`). Deals now book through the same
+mature 3-step checkout as normal stays via an optional `deal?: DealCheckoutContext` prop (deal mode locks
+room/price + fixed-deal dates, prices via `priceSpecialStay`, locks required add-ons, constrains the
+calendar with new `CheckoutDateEditor` min/max bounds, submits `createSpecialBookingAction`). The bespoke
+`SpecialBookingForm` is DELETED. **New:** the deal checkout now carries the **party manifest**
+(`additional_guests` added to the special schema + action — the old form dropped it). Every fork gated
+`if (deal)`; normal path untouched (regression verified). Verified live: real EFT deal booking `BK-0045`
+(special_id/origin='special_booked'/party/redemption++), flexible + fixed + sold-out variants, and the
+normal booking (seasonal/cleaning/VAT/coupon) all correct. Plan doc `UNIFY_DEAL_CHECKOUT_PLAN.md` marked DONE.
+
+**2) Specials editor ENRICHED** (`e14265bf`) — kept the loved left-rail layout, added 3 (verified live):
+**(a) live deal economics** rail card (guests-pay incl VAT · per-night · normal-rate struck · savings R/%
+updating in real time via the same `priceSpecialWithSavings` the save path uses; amber "no saving" nudge);
+**(b) richer guest preview** mirroring the public `SpecialCard` (off% badge, stay/date label, strikethrough +
+Save R, included-add-on chips); **(c) at-a-glance Review step** (9th section — readiness checklist + one-screen
+summary w/ pencil quick-edits + publish CTA). Data loader now supplies per-property VAT + rates + seasonal +
+per-addon pricing so economics compute client-side; server still authoritative at save.
+
+**Specials FLOW DOC** `docs/lifecycles/specials.md` EXISTS + kept current (founder asked to "remember" it).
+
+**▶ NEXT (fresh session):**
+- **(A) Refine + audit ADD-ONS** — the next deep-audit backlog item (`MVP_READINESS_AND_AUDIT_BACKLOG.md`).
+- **(B) Build an AUTO-SAVE DRAFTS feature** — founder ask: when a user is mid-creating/editing a special /
+  room / add-on / coupon (etc.) and navigates away without saving, persist the work as a draft to resume
+  later. **Pick-up-ready plan: `docs/features/AUTOSAVE_DRAFTS_PLAN.md`** (recommend Layer A local autosave
+  first, then a generic `form_drafts` table for cross-device; a shared `useAutosaveDraft` hook + resume
+  banner; pilot on `SpecialEditor`). Decide the open questions with the founder at session start.
+- Remaining audit backlog after add-ons: looking-for · coupons · media · reports · product gating.
+
 ## ▶▶▶ SAVE POINT (2026-07-13 · `f4b2abcf`) — SPECIALS AUDIT + ENHANCEMENTS DONE. NEXT = unify deal checkout.
 
 All pushed to `main`, verified live, `tsc`/`lint`/`build` green. This session, on top of the earlier
