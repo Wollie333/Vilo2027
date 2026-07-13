@@ -237,6 +237,34 @@ export function SpecialEditor({
             ? await createSpecialAction(payload)
             : await updateSpecialAction(specialId as string, payload);
         if (res.ok) {
+          // Warn the host when the deal barely beats (or doesn't beat) their
+          // current rate for these dates — savings are computed against the
+          // seasonally-adjusted rate, so a deal priced above an active season's
+          // discount shows no/low saving. The save still succeeds; we keep the
+          // host on the editor so they can reprice.
+          const sv = res.data?.savings;
+          const MIN_MEANINGFUL_PCT = 5;
+          const noSaving =
+            !sv || sv.savingsAmount == null || sv.savingsAmount <= 0;
+          const tinySaving =
+            !noSaving &&
+            sv.savingsPct != null &&
+            sv.savingsPct < MIN_MEANINGFUL_PCT;
+          if (noSaving || tinySaving) {
+            toast.warning(
+              noSaving
+                ? "Saved — but guests won’t see a saving: your deal price isn’t below your current rate for these dates (including any active seasonal discount). Lower it to make it a real deal."
+                : `Saved — but guests only save ${sv?.savingsPct}% versus your current rate. Consider a lower price so the deal stands out.`,
+              { duration: 11000 },
+            );
+            const editId =
+              mode === "create"
+                ? (res.data as unknown as { id: string }).id
+                : (specialId as string);
+            router.push(`/dashboard/specials/${editId}/edit`);
+            router.refresh();
+            return;
+          }
           toast.success(
             mode === "create" ? t("toastCreated") : t("toastSaved"),
           );

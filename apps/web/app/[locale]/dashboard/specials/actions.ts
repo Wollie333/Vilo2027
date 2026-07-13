@@ -9,6 +9,8 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { canUseSpecials } from "@/lib/specials/gate";
 
+import type { SpecialSavings } from "@/lib/specials/pricing";
+
 import { computeSpecialSavings } from "./_lib/savings";
 import { specialInputSchema, type SpecialInput } from "./schemas";
 
@@ -294,7 +296,7 @@ function parse(input: SpecialInput) {
 
 export async function createSpecialAction(
   input: SpecialInput,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; savings: SpecialSavings }>> {
   const host = await getHost();
   if (!host.ok) return host;
   if (!(await canUseSpecials(host.hostId))) {
@@ -353,13 +355,13 @@ export async function createSpecialAction(
   await blockSpecialDates(data.id, v);
 
   revalidatePath(STATUS_PATH);
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, data: { id: data.id, savings } };
 }
 
 export async function updateSpecialAction(
   specialId: string,
   input: SpecialInput,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ savings: SpecialSavings }>> {
   const host = await getHost();
   if (!host.ok) return host;
   if (!(await canUseSpecials(host.hostId))) {
@@ -450,7 +452,7 @@ export async function updateSpecialAction(
 
   revalidatePath(STATUS_PATH);
   revalidatePath(`${STATUS_PATH}/${specialId}/edit`);
-  return { ok: true };
+  return { ok: true, data: { savings } };
 }
 
 // Lifecycle transitions the host triggers from the list (the cron handles
@@ -590,9 +592,7 @@ export type InlineAddonInput = {
   saveToLibrary: boolean;
 };
 
-export async function createInlineAddonAction(
-  input: InlineAddonInput,
-): Promise<
+export async function createInlineAddonAction(input: InlineAddonInput): Promise<
   ActionResult<{
     id: string;
     name: string;
