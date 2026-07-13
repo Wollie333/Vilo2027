@@ -17,10 +17,16 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import {
+  EventTimeline,
+  type TimelineEvent,
+  type TimelineTone,
+} from "@/components/timeline/EventTimeline";
+
 // A reusable, human-friendly activity/history timeline. Feed it a normalised
-// list of ActivityEvents and it renders one consistent style everywhere — a
-// coloured category icon, the plain-English "what happened", who did it, any
-// context, and the date + time. Search + category filter are built in.
+// list of ActivityEvents and it renders the shared EventTimeline look (colour-
+// coded rail + category pill + meta line) with a search + category filter on
+// top. One visual language with every other history/activity feed in the app.
 //
 // The humanisation (turning raw audit rows / domain events into ActivityEvents)
 // lives with each surface; this component owns only the shared look + behaviour.
@@ -117,34 +123,29 @@ const CATEGORY_META: Record<
   },
 };
 
-const ACTOR_BADGE: Record<ActivityActorKind, string> = {
-  admin: "border-brand-secondary/30 bg-brand-secondary/10 text-brand-secondary",
-  user: "border-brand-line bg-brand-light text-brand-mute",
-  host: "border-brand-primary/30 bg-brand-primary/10 text-brand-primary",
-  system: "border-brand-line bg-brand-light text-brand-mute",
+// Category → shared timeline colour family (dot + pill), so the admin history
+// speaks the same visual language as every other EventTimeline feed.
+const CATEGORY_TONE: Record<ActivityCategory, TimelineTone> = {
+  account: "blue",
+  subscription: "violet",
+  product: "blue",
+  finance: "green",
+  listing: "blue",
+  business: "amber",
+  booking: "green",
+  review: "amber",
+  support: "amber",
+  affiliate: "indigo",
+  note: "slate",
+  system: "slate",
 };
+
 const ACTOR_LABEL: Record<ActivityActorKind, string> = {
   admin: "Admin",
   user: "User",
   host: "Host",
   system: "System",
 };
-
-function fmtDate(iso: string): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-function fmtTime(iso: string): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("en-ZA", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export function ActivityTimeline({
   events,
@@ -231,53 +232,27 @@ export function ActivityTimeline({
           {events.length === 0 ? emptyLabel : "No events match this filter."}
         </p>
       ) : (
-        <ol className="relative">
-          {filtered.slice(0, limit).map((e) => {
-            const meta = CATEGORY_META[e.category];
-            const Icon = meta.icon;
-            return (
-              <li
-                key={e.id}
-                className="flex items-start gap-3 border-t border-brand-line px-5 py-3.5 first:border-t-0"
-              >
-                <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${meta.dot}`}
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-semibold leading-snug text-brand-ink">
-                    {e.title}
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-brand-mute">
-                    <span
-                      className={`inline-flex items-center rounded-pill border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide ${ACTOR_BADGE[e.actorKind]}`}
-                    >
-                      {ACTOR_LABEL[e.actorKind]}
-                    </span>
-                    <span className="font-medium text-brand-ink">
-                      {e.actor}
-                    </span>
-                    {e.context ? (
-                      <>
-                        <span className="text-brand-line">·</span>
-                        <span>{e.context}</span>
-                      </>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-[11.5px] font-medium text-brand-ink">
-                    {fmtDate(e.at)}
-                  </div>
-                  <div className="text-[10.5px] text-brand-mute">
-                    {fmtTime(e.at)}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="p-5">
+          <EventTimeline
+            sort={false}
+            events={filtered.slice(0, limit).map((e) => {
+              // Fold the actor identity (kind + name) and any context into the
+              // shared timeline's meta line.
+              const who =
+                e.actor && e.actor !== ACTOR_LABEL[e.actorKind]
+                  ? `${ACTOR_LABEL[e.actorKind]} · ${e.actor}`
+                  : ACTOR_LABEL[e.actorKind];
+              const ev: TimelineEvent = {
+                at: e.at,
+                title: e.title,
+                kind: CATEGORY_META[e.category].label,
+                tone: CATEGORY_TONE[e.category],
+                meta: [who, e.context].filter(Boolean).join(" · "),
+              };
+              return ev;
+            })}
+          />
+        </div>
       )}
 
       {filtered.length > 0 ? (
