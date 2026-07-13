@@ -6,6 +6,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { createWebsiteAssetUploadUrl } from "@/app/[locale]/dashboard/website/actions";
+import { DatePicker } from "@/components/ui/date-picker";
 import { MediaLibrary } from "@/components/website/MediaLibrary";
 import { createClient } from "@/lib/supabase/client";
 import { websiteAssetUrl } from "@/lib/website/assets";
@@ -162,12 +163,12 @@ export function DateField({
 }) {
   return (
     <Field label={label} hint={hint}>
-      <input
-        type="date"
+      <DatePicker
         value={value ?? ""}
         min={min}
-        onChange={(e) => onChange(e.target.value || null)}
-        className={`mt-1.5 ${inputCls}`}
+        onChange={(iso) => onChange(iso || null)}
+        clearable
+        className="mt-1.5"
       />
     </Field>
   );

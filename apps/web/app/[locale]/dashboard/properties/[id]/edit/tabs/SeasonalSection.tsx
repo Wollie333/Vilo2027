@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/format";
 
@@ -200,17 +201,16 @@ export function SeasonalSection({
               />
             </Field>
             <Field label="Start date">
-              <Input
-                type="date"
+              <DatePicker
                 value={draft.start_date}
-                onChange={(e) => set("start_date", e.target.value)}
+                onChange={(iso) => set("start_date", iso)}
               />
             </Field>
             <Field label="End date">
-              <Input
-                type="date"
+              <DatePicker
                 value={draft.end_date}
-                onChange={(e) => set("end_date", e.target.value)}
+                min={draft.start_date || undefined}
+                onChange={(iso) => set("end_date", iso)}
               />
             </Field>
             <Field label="Adjustment">

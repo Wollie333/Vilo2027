@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   FormModal,
   FormModalCancel,
@@ -147,20 +148,22 @@ export function StatementDialog({
           <div className="flex flex-wrap gap-3">
             <label className="flex flex-col gap-1 text-[12px] font-semibold text-brand-mute">
               From
-              <input
-                type="date"
+              <DatePicker
                 value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none"
+                onChange={setCustomFrom}
+                align="left"
+                className="w-44"
               />
             </label>
             <label className="flex flex-col gap-1 text-[12px] font-semibold text-brand-mute">
               To (optional)
-              <input
-                type="date"
+              <DatePicker
                 value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none"
+                min={customFrom || undefined}
+                onChange={setCustomTo}
+                clearable
+                align="left"
+                className="w-44"
               />
             </label>
           </div>

@@ -8,6 +8,7 @@ import { z } from "zod";
 import { ImagePlus, Loader2, X, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -358,18 +359,31 @@ export function RequestForm({ mode, userId, initialData }: RequestFormProps) {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="check_in_date">Check-in date</Label>
-            <Input
+            <DatePicker
               id="check_in_date"
-              type="date"
-              {...register("check_in_date")}
+              value={watch("check_in_date") ?? ""}
+              onChange={(iso) =>
+                setValue("check_in_date", iso, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              clearable
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="check_out_date">Check-out date</Label>
-            <Input
+            <DatePicker
               id="check_out_date"
-              type="date"
-              {...register("check_out_date")}
+              value={watch("check_out_date") ?? ""}
+              min={watch("check_in_date") || undefined}
+              onChange={(iso) =>
+                setValue("check_out_date", iso, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              clearable
             />
           </div>
         </div>
@@ -494,10 +508,16 @@ export function RequestForm({ mode, userId, initialData }: RequestFormProps) {
         <div className="grid grid-cols-2 gap-4 border-t border-brand-line pt-2">
           <div className="space-y-2">
             <Label htmlFor="quote_deadline">Quote deadline (optional)</Label>
-            <Input
+            <DatePicker
               id="quote_deadline"
-              type="date"
-              {...register("quote_deadline")}
+              value={watch("quote_deadline") ?? ""}
+              onChange={(iso) =>
+                setValue("quote_deadline", iso, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              clearable
             />
             <p className="text-xs text-brand-mute">
               Stop accepting quotes after this date

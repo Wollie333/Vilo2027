@@ -10,6 +10,7 @@ import {
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
+import { DatePicker } from "@/components/ui/date-picker";
 import { formatMoney } from "@/lib/format";
 
 import {
@@ -124,30 +125,26 @@ export function ChangeDatesModal({
             <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
               Check-in
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={checkIn}
-              onChange={(e) => {
-                setCheckIn(e.target.value);
+              onChange={(iso) => {
+                setCheckIn(iso);
                 setManualEdit(false);
-                if (checkOut <= e.target.value) setCheckOut("");
+                if (checkOut <= iso) setCheckOut("");
               }}
-              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
             />
           </div>
           <div>
             <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
               Check-out
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={checkOut}
               min={checkIn}
-              onChange={(e) => {
-                setCheckOut(e.target.value);
+              onChange={(iso) => {
+                setCheckOut(iso);
                 setManualEdit(false);
               }}
-              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
             />
           </div>
         </div>

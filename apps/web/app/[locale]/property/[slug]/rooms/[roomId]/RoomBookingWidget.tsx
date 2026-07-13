@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { useMemo, useState } from "react";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { DateRangePicker } from "@/components/ui/date-picker";
 import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { priceStay, type SeasonalRule } from "@/lib/pricing";
 
@@ -174,35 +175,17 @@ export function RoomBookingWidget({
 
         {!isWhole ? (
           <>
-            {/* Date inputs */}
-            <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-card border border-brand-line">
-              <label className="flex flex-col gap-1 border-r border-brand-line px-3 py-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-mute">
-                  Check-in
-                </span>
-                <input
-                  type="date"
-                  min={today}
-                  value={checkIn}
-                  onChange={(e) => {
-                    setCheckIn(e.target.value);
-                    if (checkOut && e.target.value >= checkOut) setCheckOut("");
-                  }}
-                  className="bg-transparent text-sm text-brand-ink outline-none"
-                />
-              </label>
-              <label className="flex flex-col gap-1 px-3 py-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-mute">
-                  Check-out
-                </span>
-                <input
-                  type="date"
-                  min={checkIn || today}
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="bg-transparent text-sm text-brand-ink outline-none"
-                />
-              </label>
+            {/* Date range */}
+            <div className="mt-4">
+              <DateRangePicker
+                from={checkIn}
+                to={checkOut}
+                min={today}
+                onChange={(from, to) => {
+                  setCheckIn(from);
+                  setCheckOut(to);
+                }}
+              />
             </div>
 
             {/* Guests stepper */}

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 
 import { createHostOverrideAction } from "./actions";
@@ -93,10 +94,11 @@ export function HostOverrideForm({ featureKeys }: Props) {
         />
       </Field>
       <Field label="Expires (blank = permanent)">
-        <Input
-          type="date"
+        <DatePicker
           value={expiresAt}
-          onChange={(e) => setExpiresAt(e.target.value)}
+          onChange={setExpiresAt}
+          clearable
+          placeholder="Permanent"
         />
       </Field>
       <Field label="Reason (required)">

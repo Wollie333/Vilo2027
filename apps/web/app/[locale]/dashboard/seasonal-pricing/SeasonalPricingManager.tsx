@@ -29,6 +29,7 @@ import {
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { modal } from "@/components/ui/modal-host";
@@ -1780,17 +1781,12 @@ function RuleDialog({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Start date">
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+            <DatePicker value={startDate} onChange={setStartDate} />
           </Field>
           <Field label="End date (inclusive)">
-            <Input
-              type="date"
+            <DatePicker
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={setEndDate}
               min={startDate || undefined}
             />
           </Field>

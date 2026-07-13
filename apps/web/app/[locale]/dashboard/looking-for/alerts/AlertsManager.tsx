@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -411,24 +412,21 @@ export function AlertsManager({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="alert-checkin-from">Check-in from</Label>
-              <Input
+              <DatePicker
                 id="alert-checkin-from"
-                type="date"
                 value={form.check_in_from}
-                onChange={(e) =>
-                  setForm({ ...form, check_in_from: e.target.value })
-                }
+                onChange={(iso) => setForm({ ...form, check_in_from: iso })}
+                clearable
               />
             </div>
             <div>
               <Label htmlFor="alert-checkin-to">Check-in to</Label>
-              <Input
+              <DatePicker
                 id="alert-checkin-to"
-                type="date"
                 value={form.check_in_to}
-                onChange={(e) =>
-                  setForm({ ...form, check_in_to: e.target.value })
-                }
+                min={form.check_in_from || undefined}
+                onChange={(iso) => setForm({ ...form, check_in_to: iso })}
+                clearable
               />
             </div>
           </div>

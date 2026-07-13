@@ -20,6 +20,7 @@ import { toast } from "sonner";
 
 import { ResumeDraftBanner } from "@/components/drafts/ResumeDraftBanner";
 import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { LoadedDraft } from "@/lib/drafts/store";
 import { formatMoney } from "@/lib/format";
 
@@ -832,14 +833,15 @@ export function CouponEditor({
                   <p className="mt-0.5 text-[11.5px] text-brand-mute">
                     Blank = live immediately.
                   </p>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={startsAt}
-                    onChange={(e) => {
-                      setStartsAt(e.target.value);
+                    onChange={(iso) => {
+                      setStartsAt(iso);
                       touch();
                     }}
-                    className={`${FIELD} mt-2`}
+                    clearable
+                    placeholder="Live immediately"
+                    className="mt-2"
                   />
                 </div>
                 <div>
@@ -849,15 +851,16 @@ export function CouponEditor({
                   <p className="mt-0.5 text-[11.5px] text-brand-mute">
                     Blank = never expires.
                   </p>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={endsAt}
                     min={startsAt || undefined}
-                    onChange={(e) => {
-                      setEndsAt(e.target.value);
+                    onChange={(iso) => {
+                      setEndsAt(iso);
                       touch();
                     }}
-                    className={`${FIELD} mt-2`}
+                    clearable
+                    placeholder="Never expires"
+                    className="mt-2"
                   />
                 </div>
               </div>

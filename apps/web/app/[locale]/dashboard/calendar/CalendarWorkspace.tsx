@@ -29,6 +29,7 @@ import {
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
+import { DatePicker } from "@/components/ui/date-picker";
 
 import {
   type CalBlock,
@@ -1751,31 +1752,23 @@ function BlockRangeModal({
             <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
               From
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={from}
               // Blocking a past night is pointless, but OPENING (unblocking) past
               // nights must be allowed — that's the only way to clear a block you
               // set earlier that has since gone by.
               min={mode === "open" ? undefined : today}
-              onChange={(e) => {
-                setFrom(e.target.value);
-                if (to < e.target.value) setTo(e.target.value);
+              onChange={(iso) => {
+                setFrom(iso);
+                if (to < iso) setTo(iso);
               }}
-              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
             />
           </div>
           <div>
             <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
               To
             </label>
-            <input
-              type="date"
-              value={to}
-              min={from}
-              onChange={(e) => setTo(e.target.value)}
-              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
-            />
+            <DatePicker value={to} min={from} onChange={setTo} />
           </div>
         </div>
 

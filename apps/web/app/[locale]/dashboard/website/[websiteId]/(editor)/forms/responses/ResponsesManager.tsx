@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 
 import { setSubmissionStatusAction } from "@/app/[locale]/dashboard/website/actions";
+import { DatePicker } from "@/components/ui/date-picker";
 
 import type { FormSubmissionRow, ResponseFormMeta } from "./loadFormResponses";
 
@@ -219,23 +220,23 @@ export function ResponsesManager({
             className="w-[180px] rounded-[10px] border border-brand-line bg-white py-2 pl-8 pr-3 text-sm text-brand-ink outline-none focus:border-brand-primary"
           />
         </div>
-        <input
-          type="date"
+        <DatePicker
           value={fromDate}
           max={toDate || undefined}
-          onChange={(e) => setFromDate(e.target.value)}
+          onChange={setFromDate}
+          clearable
+          placeholder={t("responsesDateFrom")}
           aria-label={t("responsesDateFrom")}
-          title={t("responsesDateFrom")}
-          className={selectCls}
+          className="w-40"
         />
-        <input
-          type="date"
+        <DatePicker
           value={toDate}
           min={fromDate || undefined}
-          onChange={(e) => setToDate(e.target.value)}
+          onChange={setToDate}
+          clearable
+          placeholder={t("responsesDateTo")}
           aria-label={t("responsesDateTo")}
-          title={t("responsesDateTo")}
-          className={selectCls}
+          className="w-40"
         />
         <span className="text-[13px] text-brand-mute">
           {t("responsesCount", { count: visible.length })}

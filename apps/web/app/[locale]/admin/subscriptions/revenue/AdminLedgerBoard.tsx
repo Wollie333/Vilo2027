@@ -13,6 +13,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { AdminLedgerList } from "@/components/finance/AdminLedgerList";
+import { DatePicker } from "@/components/ui/date-picker";
 import { formatMoney } from "@/lib/format";
 import type { WieloTxn, WieloTxnType } from "@/lib/billing/wielo-ledger";
 
@@ -412,20 +413,21 @@ export function AdminLedgerBoard({
         />
         <label className="flex items-center gap-1.5 text-[12.5px] text-brand-mute">
           From
-          <input
-            type="date"
+          <DatePicker
             value={dateFrom}
-            onChange={(e) => pushParams({ from: e.target.value })}
-            className={SELECT_CLS}
+            onChange={(iso) => pushParams({ from: iso })}
+            clearable
+            className="w-40"
           />
         </label>
         <label className="flex items-center gap-1.5 text-[12.5px] text-brand-mute">
           To
-          <input
-            type="date"
+          <DatePicker
             value={dateTo}
-            onChange={(e) => pushParams({ to: e.target.value })}
-            className={SELECT_CLS}
+            min={dateFrom || undefined}
+            onChange={(iso) => pushParams({ to: iso })}
+            clearable
+            className="w-40"
           />
         </label>
         {hasServerFilter ? (
