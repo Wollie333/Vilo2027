@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT: specials audit + enhancements done. NEXT = unify deal checkout.
+
+Specials enhancements shipped (all verified live, `tsc`/`lint`/`build` green, pushed `f4b2abcf`):
+**(1)** granular **inline add-on creation** in the specials Extras step (pricing model, default quantity,
+category, description — was per_stay-only); **(2)** **"run continuously" (evergreen) deals** — a flexible deal
+with no window end / no book-by that never auto-expires (`is_evergreen` column + relaxed constraints, migration
+`20260713120000`; host toggle in the Dates step; booking guard + deal/book/card display all evergreen-aware);
+**(3)** **enriched public deal cards** — stay/date summary ("Any 2+ nights · anytime"), rand savings amount,
+description snippet, and "what's included" chips from compulsory add-ons. **Decision:** deals will move to the
+**main listing checkout** (deal mode) — deferred to a dedicated session; pick-up-ready plan in
+`docs/features/UNIFY_DEAL_CHECKOUT_PLAN.md`. **NEXT = that unification** (critical-path refactor — verify both
+normal + deal bookings).
+
 ## 2026-07-13 — Specials/deals deep audit. Fixed expire cron. Verified live.
 
 Deep correctness pass on the Specials feature (backlog item #4). **Verified live & correct:** server-side

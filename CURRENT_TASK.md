@@ -2,6 +2,29 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ▶▶▶ SAVE POINT (2026-07-13 · `f4b2abcf`) — SPECIALS AUDIT + ENHANCEMENTS DONE. NEXT = unify deal checkout.
+
+All pushed to `main`, verified live, `tsc`/`lint`/`build` green. This session, on top of the earlier
+timeline/history work: **(1)** payment-record + settlement polish + credit-note paper trail + shared
+`EventTimeline` across all history feeds; **(2)** deep **Specials audit** — verified correct (VAT-inclusive,
+3-layer sold-out, seasonal-aware savings, server re-pricing), **fixed the unscheduled `expire_specials` cron**
+(`20260713110000`), added a **host warning when a deal barely beats the current rate**; **(3)** three specials
+enhancements — **granular inline add-on creation** (pricing model/qty/category/description), **"run
+continuously" evergreen deals** (`is_evergreen`, migration `20260713120000`; no window-end/book-by, never
+expires), and **enriched public deal cards** (stay summary · save amount · description · what's-included chips).
+Docs `docs/lifecycles/specials.md`. Detail in memory [[project-specials-audit]] + [[project-payment-record-settlement-polish]].
+
+**▶ NEXT (dedicated fresh session): UNIFY THE DEAL CHECKOUT into the main listing checkout.** Founder decided
+(2026-07-13) deals should book through the mature main `BookingForm` (deal mode), not the separate
+`SpecialBookingForm`. **Full pick-up-ready plan: `docs/features/UNIFY_DEAL_CHECKOUT_PLAN.md`** — a `deal?`
+context prop on `BookingForm` (locks room/dates, swaps to `priceSpecialStay`, pre-selects required add-ons,
+hides coupons, submits via `createSpecialBookingAction`), then delete `SpecialBookingForm`. **Critical-path
+refactor — MUST verify BOTH normal AND deal bookings live before commit.** Backend already shared
+(`persistBookingAndPay`).
+
+**Also still open (specials, founder calls — not bugs):** per-host slug vs global `/deal/[slug]` resolution;
+no publish/expiry notification. **Remaining audit backlog:** looking-for · coupons · add-ons · media · reports · gating.
+
 ## ▶▶▶ SAVE POINT (2026-07-13 · `02d7b2d9`) — FOUNDER QUICK-TASKS (all 5) DONE. NEXT = deep audit backlog.
 
 Pushed to `main`, verified live (BK-0027 partially-refunded + BK-0038 cancelled/declined), `tsc`/`lint`/`build`
