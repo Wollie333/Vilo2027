@@ -226,7 +226,11 @@ function PopoverShell({
     <div
       ref={popRef}
       style={{ top: pos.top, left: pos.left, width: pos.width }}
-      className="fixed z-[2147483000] rounded-xl border border-brand-line bg-white p-3.5 shadow-lift"
+      // `pointer-events-auto` is essential: when this portals to <body> from
+      // inside a Radix dialog (FormModal), Radix sets `pointer-events:none` on
+      // <body>, which the popover would otherwise inherit — making the day
+      // buttons unclickable even though the calendar is visible.
+      className="pointer-events-auto fixed z-[2147483000] rounded-xl border border-brand-line bg-white p-3.5 shadow-lift"
     >
       {children}
     </div>,

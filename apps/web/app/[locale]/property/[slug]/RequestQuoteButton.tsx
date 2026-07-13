@@ -2,6 +2,7 @@
 
 import {
   BadgePercent,
+  BedDouble,
   CalendarDays,
   CheckCircle2,
   Loader2,
@@ -9,11 +10,14 @@ import {
   MessageSquare,
   MessageSquarePlus,
   ShieldCheck,
+  Sparkles,
   Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { DateRangePicker } from "@/components/ui/date-picker";
 import {
   FormModal,
   FormModalCancel,
@@ -72,6 +76,12 @@ export function RequestQuoteButton({
 
   const [checkIn, setCheckIn] = useState(initialCheckIn);
   const [checkOut, setCheckOut] = useState(initialCheckOut);
+  // Today (local) — the earliest a guest can request. Lazy so it's stable and
+  // never reads Date during SSR of the closed trigger.
+  const [today] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
@@ -186,6 +196,24 @@ export function RequestQuoteButton({
     window.location.assign(sent.redirectTo);
   }
 
+  // Live request shape, shown as the guest builds it (and drives the CTA hint).
+  const nights =
+    checkIn && checkOut && checkOut > checkIn
+      ? Math.round(
+          (new Date(`${checkOut}T00:00:00`).getTime() -
+            new Date(`${checkIn}T00:00:00`).getTime()) /
+            86_400_000,
+        )
+      : 0;
+  const guestCount = adults + children;
+  const summaryBits = [
+    nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : null,
+    `${guestCount} guest${guestCount === 1 ? "" : "s"}`,
+    selectedRooms.length
+      ? `${selectedRooms.length} room${selectedRooms.length === 1 ? "" : "s"}`
+      : null,
+  ].filter(Boolean);
+
   return (
     <>
       <button
@@ -274,32 +302,38 @@ export function RequestQuoteButton({
               aria-hidden="true"
             />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Check-in">
-                <input
-                  type="date"
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  className={inputCls}
-                  required
-                />
-              </Field>
-              <Field label="Check-out">
-                <input
-                  type="date"
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className={inputCls}
-                  required
-                />
-              </Field>
-            </div>
+            <section className="space-y-2.5">
+              <SectionHead
+                icon={CalendarDays}
+                title="Your dates"
+                hint="When would you like to stay?"
+              />
+              <DateRangePicker
+                from={checkIn}
+                to={checkOut}
+                min={today}
+                onChange={(from, to) => {
+                  setCheckIn(from);
+                  setCheckOut(to);
+                }}
+              />
+              {nights > 0 ? (
+                <p className="text-[12.5px] text-brand-mute">
+                  <span className="font-semibold text-brand-ink">
+                    {nights} night{nights === 1 ? "" : "s"}
+                  </span>{" "}
+                  · you can fine-tune anything with the host after they quote.
+                </p>
+              ) : null}
+            </section>
 
-            <div>
-              <div className="text-[12px] font-semibold uppercase tracking-wider text-brand-mute">
-                Party
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <section className="space-y-2.5">
+              <SectionHead
+                icon={Users}
+                title="Who's coming"
+                hint="Helps the host price it right."
+              />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Stepper
                   label="Adults"
                   value={adults}
@@ -318,33 +352,47 @@ export function RequestQuoteButton({
                 />
                 <Stepper label="Pets" value={pets} setValue={setPets} />
               </div>
-            </div>
+            </section>
 
             {roomsPickable ? (
-              <div>
-                <div className="text-[12px] font-semibold uppercase tracking-wider text-brand-mute">
-                  Rooms {bookingMode === "flexible" ? "(optional)" : ""}
+              <section className="space-y-2.5">
+                <SectionHead
+                  icon={BedDouble}
+                  title={`Rooms${bookingMode === "flexible" ? " (optional)" : ""}`}
+                  hint="Pick the rooms you'd like quoted."
+                />
+                <div className="space-y-1.5">
+                  {rooms.map((r) => {
+                    const picked = selectedRooms.includes(r.id);
+                    return (
+                      <label
+                        key={r.id}
+                        className={`flex cursor-pointer items-center gap-2.5 rounded-[10px] border px-3 py-2 text-sm transition-colors ${
+                          picked
+                            ? "border-brand-primary/40 bg-brand-accent/40 text-brand-ink"
+                            : "border-brand-line text-brand-ink hover:bg-brand-light/60"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={picked}
+                          onChange={() => toggleRoom(r.id)}
+                          className="h-4 w-4 accent-brand-primary"
+                        />
+                        {r.name}
+                      </label>
+                    );
+                  })}
                 </div>
-                <div className="mt-2 space-y-1.5">
-                  {rooms.map((r) => (
-                    <label
-                      key={r.id}
-                      className="flex cursor-pointer items-center gap-2.5 rounded-[10px] border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light/60"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedRooms.includes(r.id)}
-                        onChange={() => toggleRoom(r.id)}
-                        className="h-4 w-4 accent-brand-primary"
-                      />
-                      {r.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
+              </section>
             ) : null}
 
-            <Field label="Your message">
+            <section className="space-y-2.5">
+              <SectionHead
+                icon={MessageSquare}
+                title="Your message"
+                hint="The more the host knows, the better the quote."
+              />
               <textarea
                 rows={3}
                 value={message}
@@ -353,7 +401,7 @@ export function RequestQuoteButton({
                 className={inputCls}
                 required
               />
-            </Field>
+            </section>
 
             {isAuthed ? (
               <p className="rounded-[10px] border border-brand-line bg-brand-light/60 px-3 py-2 text-xs text-brand-mute">
@@ -397,6 +445,24 @@ export function RequestQuoteButton({
               </>
             )}
 
+            <div className="flex items-start gap-2 rounded-[10px] border border-brand-line bg-brand-light/50 px-3 py-2.5 text-[12px] text-brand-mute">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+              <span>
+                No payment now — {listingName}&rsquo;s host replies with a
+                tailored quote you can accept later.
+                {summaryBits.length ? (
+                  <>
+                    {" "}
+                    You&rsquo;re requesting{" "}
+                    <span className="font-semibold text-brand-ink">
+                      {summaryBits.join(" · ")}
+                    </span>
+                    .
+                  </>
+                ) : null}
+              </span>
+            </div>
+
             <FormModalFooter>
               <FormModalCancel>Cancel</FormModalCancel>
               <button
@@ -408,7 +474,7 @@ export function RequestQuoteButton({
                 {pending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <MessageSquarePlus className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4" />
                 )}
                 {pending ? "Sending…" : "Send request"}
               </button>
@@ -621,6 +687,32 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+/** Labelled group header (icon tile + title + hint) — matches the create-data
+ *  editors so the request modal reads as a short, guided flow. */
+function SectionHead({
+  icon: Icon,
+  title,
+  hint,
+}: {
+  icon: LucideIcon;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-accent/50 text-brand-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <div className="font-display text-sm font-semibold text-brand-ink">
+          {title}
+        </div>
+        {hint ? <p className="text-xs text-brand-mute">{hint}</p> : null}
+      </div>
+    </div>
   );
 }
 
