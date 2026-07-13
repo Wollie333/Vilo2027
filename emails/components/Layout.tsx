@@ -18,7 +18,7 @@ const BRAND_PRIMARY = "#1B4D3E";
 const BRAND_LIGHT = "#FAFDF9";
 const BRAND_DARK = "#0D2B21";
 const MUTED = "#6B7280";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wielo.co.za";
 const LOGO_URL = `${APP_URL}/brand/logos/wielo-primary-512.png`;
 
 type Props = {
@@ -67,7 +67,7 @@ export default function Layout({ preview, children }: Props) {
             </Text>
             <Text style={styles.footerText}>
               <Link href={APP_URL} style={styles.footerLink}>
-                wieloplatform.com
+                wielo.co.za
               </Link>
               {" · "}
               <Link

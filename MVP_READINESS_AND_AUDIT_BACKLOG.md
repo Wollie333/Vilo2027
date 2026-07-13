@@ -14,6 +14,31 @@
 
 ---
 
+## ⚡ Quick tasks — start the next session here (founder, 2026-07-13)
+
+Small, well-scoped fixes to knock out first before the big audits:
+
+1. **Refund entry missing on the payment record timeline** — when a refund is
+   accepted OR declined, the refund event does **not** appear in the transaction
+   timeline on the **payment record** (`/dashboard/payments/[id]`). Add it so the
+   payment record shows the full, accurate history (charge → payment → refund
+   requested → approved/declined → completed).
+2. **Show the transaction reference** in the payment record's transaction details
+   (the `provider_reference` / EFT ref / Paystack-PayPal txn id we now capture).
+3. **"Authorised by" field** on the payment record — who recorded / authorised the
+   payment (and, for refunds, who approved/declined) — `recorded_by` /
+   `actioned_by` → resolve to a name.
+4. **Payment-record status indicator** — a clear UI badge showing the payment is
+   **done/settled** vs **still open/pending** (and refunded/partially-refunded).
+5. **Booking "closed & handled" indicator** — a UI state on the booking showing it
+   is fully closed and handled (completed / cancelled-settled / forfeited /
+   fully-refunded), so a host can see at a glance that nothing is outstanding.
+
+_(Done 2026-07-13: channel value `vilo`→`wielo` (migration `20260713100000`) for
+source accuracy; email footer URL → wielo.co.za.)_
+
+---
+
 ## ✅ Shipped & MVP-ready (verified live)
 
 ### Money & finance (deeply audited this cycle)

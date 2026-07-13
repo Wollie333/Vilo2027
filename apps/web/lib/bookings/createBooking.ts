@@ -774,7 +774,7 @@ export async function createBookingCore(
       payment_method: d.payment_method,
       status: isEft ? "pending_eft" : "pending",
       payment_status: "pending",
-      channel: ctx.channel ?? "vilo",
+      channel: ctx.channel ?? "wielo",
       scope: d.scope,
       guest_name: d.guest_name ?? null,
       guest_email: d.guest_email ?? actor.email,
