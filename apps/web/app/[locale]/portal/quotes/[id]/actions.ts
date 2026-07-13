@@ -7,7 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { acceptAndConvertQuote } from "@/lib/quotes/accept-convert";
 
 export type ActionResult =
-  | { ok: true; bookingId?: string }
+  | { ok: true; bookingId?: string; payToken?: string | null }
   | { ok: false; error: string };
 
 // Auth-gated sibling of app/q/[id]/[token]/actions.ts. The public route trusts
@@ -71,9 +71,23 @@ export async function acceptMyQuoteAction(
   const res = await acceptAndConvertQuote(quoteId);
   if (!res.ok) return { ok: false, error: res.error };
 
+  // Mirror the public token flow: hand back the booking's pay_token so the
+  // portal can offer "Continue to pay" straight away instead of stranding the
+  // guest on the accepted quote with no way to secure it.
+  const { data: booking } = await createAdminClient()
+    .from("bookings")
+    .select("pay_token")
+    .eq("id", res.bookingId)
+    .maybeSingle();
+
   revalidatePath("/portal/quotes");
   revalidatePath(`/portal/quotes/${quoteId}`);
-  return { ok: true, bookingId: res.bookingId };
+  revalidatePath("/portal/trips");
+  return {
+    ok: true,
+    bookingId: res.bookingId,
+    payToken: booking?.pay_token ?? null,
+  };
 }
 
 export async function declineMyQuoteAction(

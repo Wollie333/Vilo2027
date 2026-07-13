@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  CreditCard,
+  Download,
+  Luggage,
+  MessageSquare,
+} from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 
@@ -43,6 +50,7 @@ export default async function PortalQuotePage({
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until, conversation_id,
+      converted_booking_id, accept_token,
       listing:properties ( name )
     `,
     )
@@ -67,8 +75,28 @@ export default async function PortalQuotePage({
     : (quote.listing as { name?: string } | null)?.name;
 
   const expired = quote.valid_until && new Date(quote.valid_until) < new Date();
-  const decided = ["accepted", "declined", "converted"].includes(quote.status);
   const actionable = quote.status === "sent" && !expired;
+
+  // An accepted quote has already become a (pending) booking. Pull its pay
+  // state so the guest can pay/secure it here instead of being stranded on a
+  // bland "you've already responded" panel.
+  const isAcceptedLike =
+    quote.status === "accepted" || quote.status === "converted";
+  let booking: {
+    id: string;
+    pay_token: string | null;
+    payment_status: string | null;
+  } | null = null;
+  if (isAcceptedLike && quote.converted_booking_id) {
+    const { data: b } = await admin
+      .from("bookings")
+      .select("id, pay_token, payment_status")
+      .eq("id", quote.converted_booking_id)
+      .maybeSingle();
+    booking = b ?? null;
+  }
+  const needsPayment = !!booking && booking.payment_status !== "paid";
+  const pdfHref = `/q/${quote.id}/${quote.accept_token}/pdf`;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -89,6 +117,14 @@ export default async function PortalQuotePage({
         <p className="mt-2 text-sm text-brand-mute">
           Prepared for {quote.guest_name}
         </p>
+        <a
+          href={pdfHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+        >
+          <Download className="h-3.5 w-3.5" /> Download PDF
+        </a>
       </header>
 
       <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
@@ -182,14 +218,61 @@ export default async function PortalQuotePage({
             Message the host for an updated quote.
           </p>
         </div>
-      ) : decided ? (
+      ) : quote.status === "declined" ? (
         <div className="rounded-card border border-brand-line bg-white p-5 text-center shadow-card">
           <p className="text-sm font-medium text-brand-ink">
-            You&rsquo;ve already responded to this quote.
+            You declined this quote.
           </p>
-          <p className="mt-1 text-xs capitalize text-brand-mute">
-            Status: {quote.status}
+          <p className="mt-1 text-xs text-brand-mute">
+            Changed your mind? Message the host for an updated quote.
           </p>
+        </div>
+      ) : isAcceptedLike && needsPayment && booking?.pay_token ? (
+        <div className="rounded-card border border-brand-primary/30 bg-brand-accent/20 p-5 text-center shadow-card">
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+          <p className="mt-3 text-sm font-semibold text-brand-ink">
+            You accepted — your dates are held.
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-xs text-brand-mute">
+            Secure your booking by paying now. You can also come back to it any
+            time from your trips.
+          </p>
+          <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
+            <Link
+              href={`/pay/${booking.pay_token}`}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary sm:w-auto"
+            >
+              <CreditCard className="h-4 w-4" /> Pay now &amp; confirm
+            </Link>
+            <Link
+              href={`/portal/trips/${booking.id}`}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-pill border border-brand-line px-5 py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-white sm:w-auto"
+            >
+              <Luggage className="h-4 w-4" /> View your trip
+            </Link>
+          </div>
+        </div>
+      ) : isAcceptedLike ? (
+        <div className="rounded-card border border-brand-line bg-white p-5 text-center shadow-card">
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-status-confirmed/10 text-status-confirmed">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+          <p className="mt-3 text-sm font-semibold text-brand-ink">
+            You&rsquo;re booked! 🎉
+          </p>
+          <p className="mt-1 text-xs text-brand-mute">
+            This quote is confirmed and paid.
+          </p>
+          {booking?.id ? (
+            <Link
+              href={`/portal/trips/${booking.id}`}
+              className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+            >
+              <Luggage className="h-4 w-4" /> View your trip
+            </Link>
+          ) : null}
         </div>
       ) : actionable ? (
         <QuoteActions quoteId={quote.id} />

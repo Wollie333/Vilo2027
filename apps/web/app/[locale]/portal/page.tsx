@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import {
   ArrowRight,
   CalendarDays,
+  FileText,
   MessageSquare,
   RotateCcw,
   Star,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -87,6 +89,19 @@ export default async function PortalOverviewPage() {
       .limit(3),
   ]);
 
+  // Quotes awaiting the guest's reply — the most time-sensitive action. Matched
+  // by guest_id OR email (host-created quotes are email-only until accepted) via
+  // the admin client, mirroring the quotes list. Only live, unexpired "sent".
+  const email = (user.email ?? "").trim().toLowerCase();
+  const nowIso = new Date().toISOString();
+  const { count: openQuoteCount } = await createAdminClient()
+    .from("quotes")
+    .select("id", { count: "exact", head: true })
+    .or(`guest_id.eq.${user.id},guest_email.ilike.${email}`)
+    .eq("status", "sent")
+    .is("deleted_at", null)
+    .or(`valid_until.is.null,valid_until.gt.${nowIso}`);
+
   const firstName = (profile?.full_name ?? "there").split(" ")[0];
   const trip = nextTrip as {
     id: string;
@@ -163,7 +178,14 @@ export default async function PortalOverviewPage() {
         </p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={<FileText className="h-4 w-4" />}
+          label="Quotes to review"
+          value={String(openQuoteCount ?? 0)}
+          href="/portal/quotes"
+          highlight={(openQuoteCount ?? 0) > 0}
+        />
         <StatCard
           icon={<CalendarDays className="h-4 w-4" />}
           label="Total trips"
@@ -288,18 +310,27 @@ function StatCard({
   label,
   value,
   href,
+  highlight = false,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   href: string;
+  // Draws attention when there's something waiting (e.g. quotes to review).
+  highlight?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="rounded-card border border-brand-line bg-white p-5 transition hover:border-brand-primary/40 hover:shadow-card"
+      className={`rounded-card border p-5 transition hover:shadow-card ${
+        highlight
+          ? "border-brand-primary/40 bg-brand-accent/20 hover:border-brand-primary/60"
+          : "border-brand-line bg-white hover:border-brand-primary/40"
+      }`}
     >
-      <div className="flex items-center gap-2 text-brand-mute">
+      <div
+        className={`flex items-center gap-2 ${highlight ? "text-brand-primary" : "text-brand-mute"}`}
+      >
         {icon}
         <span className="text-[11px] font-semibold uppercase tracking-wider">
           {label}

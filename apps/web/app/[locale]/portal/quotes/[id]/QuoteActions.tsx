@@ -19,10 +19,28 @@ export function QuoteActions({ quoteId }: { quoteId: string }) {
   function accept() {
     start(async () => {
       const r = await acceptMyQuoteAction(quoteId);
-      if (r.ok) {
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
+      // Thank them, then offer to pay straight away (the booking is held) —
+      // same hand-off as the public token flow, so an accept never dead-ends.
+      if (r.payToken) {
+        const go = await modal.confirm({
+          title: "Thank you for accepting! 🎉",
+          description:
+            "Your dates are now held. Continue to pay and secure your booking — or come back to it later from your trip.",
+          confirmLabel: "Continue to pay",
+          cancelLabel: "I'll pay later",
+        });
+        if (go) {
+          router.push(`/pay/${r.payToken}`);
+          return;
+        }
+      } else {
         toast.success("Quote accepted — the host will be in touch.");
-        router.refresh();
-      } else toast.error(r.error);
+      }
+      router.refresh();
     });
   }
 
@@ -48,8 +66,8 @@ export function QuoteActions({ quoteId }: { quoteId: string }) {
         Ready to go ahead?
       </h2>
       <p className="mt-1 text-center text-xs text-brand-mute">
-        Accepting holds your dates with the host. Payment is arranged afterwards
-        directly with them.
+        Accepting holds your dates — you can pay securely right after to confirm
+        your booking.
       </p>
       <div className="mt-4 grid grid-cols-2 gap-2">
         <Button
