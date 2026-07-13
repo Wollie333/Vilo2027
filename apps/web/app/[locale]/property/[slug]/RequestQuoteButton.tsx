@@ -23,6 +23,17 @@ import {
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Radix Select forbids an empty-string value, so use a sentinel for the
+// "no specific room / whole place" choice (flexible listings only).
+const WHOLE_PLACE = "__whole__";
 
 type RoomOption = { id: string; name: string };
 
@@ -92,12 +103,6 @@ export function RequestQuoteButton({
   const [email, setEmail] = useState(prefillEmail);
   const [phone, setPhone] = useState(prefillPhone);
   const [hp, setHp] = useState(""); // honeypot
-
-  function toggleRoom(id: string) {
-    setSelectedRooms((prev) =>
-      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id],
-    );
-  }
 
   function reset() {
     setDone(false);
@@ -358,32 +363,34 @@ export function RequestQuoteButton({
               <section className="space-y-2.5">
                 <SectionHead
                   icon={BedDouble}
-                  title={`Rooms${bookingMode === "flexible" ? " (optional)" : ""}`}
-                  hint="Pick the rooms you'd like quoted."
+                  title={`Room${bookingMode === "flexible" ? " (optional)" : ""}`}
+                  hint="Which room would you like quoted?"
                 />
-                <div className="space-y-1.5">
-                  {rooms.map((r) => {
-                    const picked = selectedRooms.includes(r.id);
-                    return (
-                      <label
-                        key={r.id}
-                        className={`flex cursor-pointer items-center gap-2.5 rounded-[10px] border px-3 py-2 text-sm transition-colors ${
-                          picked
-                            ? "border-brand-primary/40 bg-brand-accent/40 text-brand-ink"
-                            : "border-brand-line text-brand-ink hover:bg-brand-light/60"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={picked}
-                          onChange={() => toggleRoom(r.id)}
-                          className="h-4 w-4 accent-brand-primary"
-                        />
+                <Select
+                  value={
+                    selectedRooms[0] ??
+                    (bookingMode === "flexible" ? WHOLE_PLACE : "")
+                  }
+                  onValueChange={(v) =>
+                    setSelectedRooms(v === WHOLE_PLACE ? [] : [v])
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a room" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bookingMode === "flexible" ? (
+                      <SelectItem value={WHOLE_PLACE}>
+                        The whole place
+                      </SelectItem>
+                    ) : null}
+                    {rooms.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
                         {r.name}
-                      </label>
-                    );
-                  })}
-                </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </section>
             ) : null}
 
