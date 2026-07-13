@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-13 — Payment timeline: credit-note paper trail + enhanced entries. Verified live.
+
+Founder: past reversals (credit notes issued at cancellation/forfeiture/manual credit) were **absent** from
+the payment timeline — 5 credit notes existed and 4 bookings had a credit note as their ONLY reversal, so
+those timelines showed no reversal at all. Fixed the derivation to log **credit notes** (`Credit note CN-XXXX
+issued`, with reason + amount) alongside quotes / booking lifecycle / payments / invoices / refunds. Also
+**enhanced every entry**: color-coded dot + kind pill per event family (Payment/Refund/Credit note/Invoice/
+Booking/Quote), a meta line (actor "by …", refund decline-reason, provider ref, EFT method, credit-note
+reason), and a right-aligned **signed amount** (+green money-in, −red money-out, neutral for informational
+values). Refund lifecycle now reads requested → approved (by whom) → paid out (−). `dashboard/payments/[id]/
+page.tsx`. Verified live on BK-0040 (cancellation credit note now shows) and BK-0027 (full refund lifecycle).
+`tsc`/`lint`/`build` green.
+
 ## 2026-07-13 — Payment-record + booking settlement polish (founder quick-tasks, all 5). Verified live.
 
 Knocked out the five well-scoped fixes queued in `MVP_READINESS_AND_AUDIT_BACKLOG.md` before the deep audits.

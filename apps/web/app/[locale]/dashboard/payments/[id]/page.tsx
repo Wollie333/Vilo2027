@@ -108,6 +108,40 @@ const STATUS: Record<string, { label: string; tone: string; dot: string }> = {
   },
 };
 
+// Timeline entry palette — one colour family per event kind, so a host can scan
+// the paper trail and tell money-in from money-out from documents at a glance.
+const EV_TONE: Record<string, { dot: string; tag: string }> = {
+  green: {
+    dot: "bg-status-confirmed",
+    tag: "bg-status-confirmed/12 text-status-confirmed",
+  },
+  amber: {
+    dot: "bg-status-pending",
+    tag: "bg-status-pending/15 text-amber-700",
+  },
+  red: {
+    dot: "bg-status-cancelled",
+    tag: "bg-status-cancelled/12 text-status-cancelled",
+  },
+  indigo: { dot: "bg-indigo-500", tag: "bg-indigo-100 text-indigo-700" },
+  blue: {
+    dot: "bg-brand-secondary",
+    tag: "bg-brand-accent/60 text-brand-secondary",
+  },
+  slate: { dot: "bg-brand-mute", tag: "bg-brand-line text-brand-mute" },
+  violet: { dot: "bg-violet-500", tag: "bg-violet-100 text-violet-700" },
+};
+
+type TxEvent = {
+  at: string;
+  title: string;
+  kind: string;
+  tone: keyof typeof EV_TONE;
+  amount?: number;
+  flow?: "in" | "out";
+  meta?: string;
+};
+
 type BookingJoin = {
   id: string;
   reference: string;
@@ -197,14 +231,14 @@ export default async function PaymentDetailPage({
     supabase
       .from("credit_notes")
       .select(
-        "id, credit_note_number, status, total_amount, currency, issued_at",
+        "id, credit_note_number, status, total_amount, currency, issued_at, reason",
       )
       .eq("booking_id", booking.id)
       .order("issued_at", { ascending: false }),
     supabase
       .from("refund_requests")
       .select(
-        "id, reference, status, requested_amount, approved_amount, currency, created_at, actioned_at, actioned_by, decline_reason, payment_id",
+        "id, reference, status, requested_amount, approved_amount, currency, created_at, actioned_at, actioned_by, decline_reason, payment_id, initiated_by",
       )
       .eq("booking_id", booking.id)
       .order("created_at", { ascending: false }),
@@ -345,36 +379,98 @@ export default async function PaymentDetailPage({
       amount: -Number(booking.discount_amount),
     });
 
-  // ── History — a chronological audit trail. ──
+  // ── History — a chronological audit trail. Every money event on the booking:
+  // quotes, the booking lifecycle, payments, invoices, CREDIT NOTES (the
+  // reversal/write-down paper trail — previously missing), and refunds. ──
   const m = (n: number) => formatMoney(n, ccy);
-  const history: { at: string; label: string; kind: string }[] = [];
-  const log = (at: string | null, label: string, kind: string) => {
-    if (at) history.push({ at, label, kind });
+  const history: TxEvent[] = [];
+  const log = (at: string | null, e: Omit<TxEvent, "at">) => {
+    if (at) history.push({ at, ...e });
   };
+  const joinMeta = (...parts: (string | null | undefined)[]) =>
+    parts.filter(Boolean).join(" · ") || undefined;
+
   for (const q of quoteRows ?? []) {
-    log(q.sent_at, `Quote ${q.quote_number} sent`, "Quote");
-    log(q.converted_at, `Quote ${q.quote_number} converted`, "Quote");
+    log(q.sent_at, {
+      title: `Quote ${q.quote_number} sent`,
+      kind: "Quote",
+      tone: "violet",
+      amount: Number(q.total_amount),
+    });
+    log(q.converted_at, {
+      title: `Quote ${q.quote_number} accepted`,
+      kind: "Quote",
+      tone: "violet",
+      meta: "converted to a booking",
+    });
   }
-  log(booking.created_at, `Booking ${booking.reference} created`, "Booking");
-  log(booking.confirmed_at, "Booking confirmed", "Booking");
-  log(booking.cancelled_at, "Booking cancelled", "Booking");
-  log(
-    payment.created_at,
-    `Payment initiated — ${m(Number(payment.amount))}`,
-    "Payment",
-  );
-  log(payment.authorised_at, "Card authorised", "Payment");
-  log(
-    payment.captured_at,
-    `Funds captured — ${m(Number(payment.amount))}${
-      payment.provider_reference ? ` · ref ${payment.provider_reference}` : ""
-    }${recordedByName ? ` · by ${recordedByName}` : ""}`,
-    "Payment",
-  );
-  log(payment.failed_at, "Payment failed", "Payment");
+  log(booking.created_at, {
+    title: `Booking ${booking.reference} created`,
+    kind: "Booking",
+    tone: "slate",
+    amount: Number(booking.total_amount),
+  });
+  log(booking.confirmed_at, {
+    title: "Booking confirmed",
+    kind: "Booking",
+    tone: "green",
+  });
+  log(booking.cancelled_at, {
+    title: "Booking cancelled",
+    kind: "Booking",
+    tone: "red",
+  });
+  log(payment.created_at, {
+    title: "Payment initiated",
+    kind: "Payment",
+    tone: "amber",
+    amount: Number(payment.amount),
+    meta: method.label.split(" · ")[0],
+  });
+  log(payment.authorised_at, {
+    title: "Card authorised",
+    kind: "Payment",
+    tone: "blue",
+  });
+  log(payment.captured_at, {
+    title: "Funds captured",
+    kind: "Payment",
+    tone: "green",
+    amount: Number(payment.amount),
+    flow: "in",
+    meta: joinMeta(
+      payment.provider_reference ? `ref ${payment.provider_reference}` : null,
+      recordedByName ? `by ${recordedByName}` : null,
+    ),
+  });
+  log(payment.failed_at, {
+    title: "Payment failed",
+    kind: "Payment",
+    tone: "red",
+  });
   for (const inv of invoiceRows ?? []) {
-    log(inv.created_at, `Invoice ${inv.invoice_number} issued`, "Invoice");
-    log(inv.paid_at, `Invoice ${inv.invoice_number} marked paid`, "Invoice");
+    log(inv.created_at, {
+      title: `Invoice ${inv.invoice_number} issued`,
+      kind: "Invoice",
+      tone: "blue",
+      amount: Number(inv.total_amount),
+    });
+    log(inv.paid_at, {
+      title: `Invoice ${inv.invoice_number} marked paid`,
+      kind: "Invoice",
+      tone: "green",
+      flow: "in",
+    });
+  }
+  for (const cn of creditNoteRows ?? []) {
+    log(cn.issued_at, {
+      title: `Credit note ${cn.credit_note_number} issued`,
+      kind: "Credit note",
+      tone: "indigo",
+      amount: Number(cn.total_amount),
+      flow: "out",
+      meta: cn.reason ?? undefined,
+    });
   }
   const DECLINE_LABEL: Record<string, string> = {
     outside_policy: "outside policy",
@@ -385,25 +481,45 @@ export default async function PaymentDetailPage({
   };
   for (const r of refundRows ?? []) {
     const ref = r.reference ? ` ${r.reference}` : "";
-    const amt = m(Number(r.approved_amount ?? r.requested_amount ?? 0));
+    const approved = Number(r.approved_amount ?? r.requested_amount ?? 0);
     const who = r.actioned_by ? nameById.get(r.actioned_by) : null;
-    const by = who ? ` by ${who}` : "";
-    log(
-      r.created_at,
-      `Refund${ref} requested — ${m(Number(r.requested_amount))}`,
-      "Refund",
-    );
+    const byMeta = who ? `by ${who}` : null;
+    log(r.created_at, {
+      title: `Refund${ref} requested`,
+      kind: "Refund",
+      tone: "amber",
+      amount: Number(r.requested_amount),
+      meta: r.initiated_by === "guest" ? "requested by the guest" : undefined,
+    });
     if (r.status === "declined") {
       const why = r.decline_reason
-        ? ` (${DECLINE_LABEL[r.decline_reason] ?? r.decline_reason.replace(/_/g, " ")})`
-        : "";
-      log(r.actioned_at, `Refund${ref} declined${why}${by}`, "Refund");
+        ? (DECLINE_LABEL[r.decline_reason] ??
+          r.decline_reason.replace(/_/g, " "))
+        : null;
+      log(r.actioned_at, {
+        title: `Refund${ref} declined`,
+        kind: "Refund",
+        tone: "red",
+        meta: joinMeta(why, byMeta),
+      });
     } else if (r.status === "approved" || r.status === "completed") {
       // Push the payout first so, at the same actioned_at, it sorts above the
       // approval line (newest-first).
       if (r.status === "completed")
-        log(r.actioned_at, `Refund${ref} paid out — ${amt}`, "Refund");
-      log(r.actioned_at, `Refund${ref} approved — ${amt}${by}`, "Refund");
+        log(r.actioned_at, {
+          title: `Refund${ref} paid out`,
+          kind: "Refund",
+          tone: "green",
+          amount: approved,
+          flow: "out",
+        });
+      log(r.actioned_at, {
+        title: `Refund${ref} approved`,
+        kind: "Refund",
+        tone: "indigo",
+        amount: approved,
+        meta: byMeta ?? undefined,
+      });
     }
   }
   history.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
@@ -649,25 +765,56 @@ export default async function PaymentDetailPage({
               </div>
             </div>
             <div className="p-6">
-              <ol className="relative space-y-5 border-l-2 border-brand-line pl-5">
-                {history.map((e, i) => (
-                  <li key={i}>
-                    <span
-                      className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${i === 0 ? "bg-brand-primary" : "bg-brand-mute"}`}
-                    />
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[13px] font-semibold text-brand-ink">
-                        {e.label}
+              <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
+                {history.map((e, i) => {
+                  const tone = EV_TONE[e.tone] ?? EV_TONE.slate;
+                  return (
+                    <li key={i}>
+                      <span
+                        className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${tone.dot}`}
+                      />
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-semibold text-brand-ink">
+                            {e.title}
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-brand-mute">
+                            <span
+                              className={`rounded-pill px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider ${tone.tag}`}
+                            >
+                              {e.kind}
+                            </span>
+                            {e.meta ? (
+                              <span className="max-w-[240px] truncate">
+                                {e.meta}
+                              </span>
+                            ) : null}
+                            <span className="text-brand-line">·</span>
+                            <span>{fmtDt(e.at)}</span>
+                          </div>
+                        </div>
+                        {typeof e.amount === "number" ? (
+                          <div
+                            className={`shrink-0 font-display text-[13px] font-bold ${
+                              e.flow === "in"
+                                ? "text-status-confirmed"
+                                : e.flow === "out"
+                                  ? "text-status-cancelled"
+                                  : "text-brand-ink"
+                            }`}
+                          >
+                            {e.flow === "out"
+                              ? "−"
+                              : e.flow === "in"
+                                ? "+"
+                                : ""}
+                            {m(Math.abs(e.amount))}
+                          </div>
+                        ) : null}
                       </div>
-                      <div className="shrink-0 text-[11px] text-brand-mute">
-                        {fmtDt(e.at)}
-                      </div>
-                    </div>
-                    <div className="text-[11px] uppercase tracking-wider text-brand-mute">
-                      {e.kind}
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
                 {history.length === 0 ? (
                   <li className="text-sm text-brand-mute">No events yet.</li>
                 ) : null}
