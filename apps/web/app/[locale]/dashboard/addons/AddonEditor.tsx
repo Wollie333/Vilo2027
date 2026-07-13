@@ -7,10 +7,14 @@ import {
   Banknote,
   Check,
   ChevronRight,
+  ClipboardCheck,
   Clock,
   Image as ImageIcon,
   Layers,
   Mail,
+  Minus,
+  PackagePlus,
+  Pencil,
   Percent,
   Plus,
   ShoppingCart,
@@ -34,9 +38,12 @@ import {
 } from "./actions";
 import {
   ADDON_CATEGORIES,
+  ADDON_CATEGORY_LABEL,
+  PRICING_LABEL,
   PRICING_MODELS,
   PRICING_MODEL_META,
   computeAddonSubtotal,
+  defaultAddonQuantity,
   isPerNightModel,
   type AddonCategory,
   type PricingModel,
@@ -85,7 +92,13 @@ const LEAD_TIME_OPTIONS = [
 ];
 
 // ── Section model (one panel visible at a time) ──────────────────────────
-type SectionKey = "details" | "pricing" | "availability" | "photo" | "danger";
+type SectionKey =
+  | "details"
+  | "pricing"
+  | "availability"
+  | "photo"
+  | "review"
+  | "danger";
 
 type SectionDef = {
   key: SectionKey;
@@ -99,6 +112,7 @@ const SECTIONS: SectionDef[] = [
   { key: "pricing", label: "Pricing", icon: Banknote },
   { key: "availability", label: "Availability", icon: Layers },
   { key: "photo", label: "Photo", icon: ImageIcon },
+  { key: "review", label: "Review", icon: ClipboardCheck },
   { key: "danger", label: "Danger zone", icon: AlertTriangle, danger: true },
 ];
 
@@ -123,6 +137,10 @@ const PANEL_META: Record<
     title: "Photo",
     desc: "A good photo makes guests far more likely to add it.",
   },
+  review: {
+    title: "Review",
+    desc: "Everything at a glance before it goes live to guests.",
+  },
   danger: {
     title: "Danger zone",
     desc: "These actions change whether guests can see and book this add-on.",
@@ -131,6 +149,46 @@ const PANEL_META: Record<
 
 function zar(v: number): string {
   return `R ${(Number.isFinite(v) ? v : 0).toLocaleString("en-ZA")}`;
+}
+
+/** How many "units" the guest is charged for beyond nights (guests / couples). */
+function guestFactorOf(model: PricingModel, guests: number): number {
+  if (model === "per_guest" || model === "per_guest_per_night") {
+    return Math.max(1, guests);
+  }
+  if (model === "per_couple") return Math.max(1, Math.ceil(guests / 2));
+  return 1;
+}
+
+type AddonMath = { total: number; qty: number; parts: string[] };
+
+/**
+ * Worked economics for a representative stay — mirrors the checkout math exactly
+ * (`computeAddonSubtotal` with the default selected quantity), so the host sees
+ * what the guest is actually charged, broken into human-readable factors.
+ */
+function buildAddonMath(
+  model: PricingModel,
+  unitPrice: number,
+  minQuantity: number,
+  nights: number,
+  guests: number,
+): AddonMath {
+  const qty = defaultAddonQuantity(model, minQuantity, nights);
+  const total = computeAddonSubtotal(model, unitPrice, qty, guests);
+  const parts: string[] = [zar(unitPrice)];
+  if (isPerNightModel(model)) {
+    parts.push(`${nights} night${nights === 1 ? "" : "s"}`);
+  } else if (qty > 1) {
+    parts.push(`${qty} unit${qty === 1 ? "" : "s"}`);
+  }
+  if (model === "per_guest" || model === "per_guest_per_night") {
+    parts.push(`${guests} guest${guests === 1 ? "" : "s"}`);
+  } else if (model === "per_couple") {
+    const couples = guestFactorOf(model, guests);
+    parts.push(`${couples} couple${couples === 1 ? "" : "s"}`);
+  }
+  return { total, qty, parts };
 }
 
 function deriveSelection(
@@ -254,6 +312,11 @@ export function AddonEditor({
   const [vatIncluded, setVatIncluded] = useState(addon.vatIncluded);
   const [imageUrl, setImageUrl] = useState<string | null>(addon.imageUrl);
 
+  // Interactive "what the guest pays" example — lets the host feel out how their
+  // pricing model scales across a real stay (esp. per-guest / per-couple models).
+  const [exNights, setExNights] = useState(2);
+  const [exGuests, setExGuests] = useState(2);
+
   const [dirty, setDirty] = useState(false);
   function touch() {
     if (!dirty) setDirty(true);
@@ -262,22 +325,21 @@ export function AddonEditor({
   const meta = PRICING_MODEL_META[pricingModel];
   const priceNum = Number(unitPrice);
   const safePrice = Number.isFinite(priceNum) ? priceNum : 0;
+  const minQ = Math.max(1, Number(minQuantity) || 1);
 
-  // Live price example for a representative 2-night, 2-guest booking.
-  const previewQty = isPerNightModel(pricingModel)
-    ? 2
-    : Math.max(1, Number(minQuantity) || 1);
-  const previewSubtotal = computeAddonSubtotal(
+  // Live worked economics for the chosen example stay — the exact checkout math.
+  const math = buildAddonMath(
     pricingModel,
     safePrice,
-    previewQty,
-    2,
+    minQ,
+    exNights,
+    exGuests,
   );
-  const pricePreview = `Example · ${zar(safePrice)} ${meta.suffix} → ${zar(
-    previewSubtotal,
-  )} on a 2-night, 2-guest booking${
-    isPerNightModel(pricingModel) ? " (both nights)" : ""
-  }.`;
+  const stockNum =
+    stockQuantity.trim() === ""
+      ? null
+      : Math.max(0, Number(stockQuantity) || 0);
+  const categoryLabel = category ? ADDON_CATEGORY_LABEL[category] : null;
 
   // How many listings currently offer this add-on (drives the rail subtitle).
   const offeredCount = useMemo(
@@ -309,6 +371,8 @@ export function AddonEditor({
         return offeredCount > 0;
       case "photo":
         return imageUrl != null;
+      case "review":
+        return checklist.allDone;
       default:
         return false;
     }
@@ -326,6 +390,8 @@ export function AddonEditor({
           : `${offeredCount} listing${offeredCount === 1 ? "" : "s"}`;
       case "photo":
         return imageUrl ? "1 selected" : "None yet";
+      case "review":
+        return checklist.allDone ? "Ready to publish" : "Finish the basics";
       case "danger":
         return "Archive · delete";
     }
@@ -578,47 +644,82 @@ export function AddonEditor({
             })}
           </div>
 
-          {/* docked guest preview */}
+          {/* docked guest preview — mirrors the real checkout add-on card */}
           <div className="mt-4">
             <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
               Guest preview · at checkout
             </div>
-            <div className="rounded-card border border-brand-line bg-white p-3 shadow-card">
-              <div className="flex items-center gap-3">
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[11px] bg-brand-accent/40">
-                  {imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={imageUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+            <div className="rounded-card border border-brand-primary bg-white p-3 shadow-card">
+              <div className="flex gap-3">
+                {imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="h-11 w-11 shrink-0 rounded-md object-cover"
+                  />
+                ) : (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                    <PackagePlus className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="truncate font-display text-[13px] font-bold leading-tight text-brand-ink">
+                      {displayName}
+                    </div>
+                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-brand-primary bg-brand-primary text-white">
+                      <Check className="h-3 w-3" />
+                    </div>
+                  </div>
+                  {description.trim() ? (
+                    <div className="mt-1 line-clamp-2 text-[10.5px] leading-snug text-brand-mute">
+                      {description.trim()}
+                    </div>
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-brand-mute">
-                      <ImageIcon className="h-5 w-5" />
+                    <div className="mt-1 line-clamp-2 text-[10.5px] italic leading-snug text-brand-mute/70">
+                      Add a short description guests will see.
                     </div>
                   )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-display text-[13px] font-bold text-brand-ink">
-                    {displayName}
+                  <div className="mt-2 flex items-baseline justify-between gap-2">
+                    <div className="text-[11px]">
+                      <span className="font-semibold text-brand-ink">
+                        {zar(safePrice)}
+                      </span>
+                      <span className="text-brand-mute">
+                        {" "}
+                        · {PRICING_LABEL[pricingModel]}
+                      </span>
+                    </div>
+                    {math.total > 0 ? (
+                      <div className="font-mono text-[10.5px] text-brand-secondary">
+                        = {zar(math.total)}
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="mt-0.5 line-clamp-2 text-[10.5px] leading-snug text-brand-mute">
-                    {description.trim() ||
-                      "Add a short description guests will see."}
-                  </div>
-                  <div className="mt-1 flex items-baseline gap-1">
-                    <span className="font-display text-[13.5px] font-bold text-brand-ink">
-                      {zar(safePrice)}
-                    </span>
-                    <span className="text-[10.5px] text-brand-mute">
-                      {meta.suffix}
-                    </span>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {categoryLabel ? (
+                      <span className="inline-flex rounded-pill bg-brand-light px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-brand-mute">
+                        {categoryLabel}
+                      </span>
+                    ) : null}
+                    {stockNum != null ? (
+                      stockNum <= 0 ? (
+                        <span className="inline-flex rounded-pill bg-status-cancelled/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-status-cancelled">
+                          Sold out
+                        </span>
+                      ) : (
+                        <span className="inline-flex rounded-pill bg-brand-light px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-brand-mute">
+                          {stockNum} left
+                        </span>
+                      )
+                    ) : null}
                   </div>
                 </div>
               </div>
-              <div className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-brand-primary bg-brand-accent/40 px-4 py-2 text-[12.5px] font-semibold text-brand-secondary">
-                <Plus className="h-3.5 w-3.5" /> Add to booking
+              <div className="mt-2.5 border-t border-brand-primary/20 pt-2 text-center text-[10px] text-brand-mute">
+                Example · {exNights} night{exNights === 1 ? "" : "s"} ·{" "}
+                {exGuests} guest{exGuests === 1 ? "" : "s"}
               </div>
             </div>
           </div>
@@ -912,8 +1013,41 @@ export function AddonEditor({
                     </div>
                   ) : null}
 
-                  <div className="mt-3 rounded-[8px] bg-brand-light/60 px-3 py-2 text-[11.5px] text-brand-mute">
-                    {pricePreview}
+                  <div className="mt-3 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11.5px] font-semibold text-brand-ink">
+                        What the guest pays
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <ExStepper
+                          value={exNights}
+                          min={1}
+                          max={30}
+                          suffix={exNights === 1 ? "night" : "nights"}
+                          onChange={setExNights}
+                        />
+                        <ExStepper
+                          value={exGuests}
+                          min={1}
+                          max={20}
+                          suffix={exGuests === 1 ? "guest" : "guests"}
+                          onChange={setExGuests}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-2.5 flex items-end justify-between gap-3">
+                      <span className="font-mono text-[11.5px] leading-relaxed text-brand-mute">
+                        {math.parts.join(" × ")}
+                        {math.parts.length === 1 ? " · flat, once" : ""}
+                      </span>
+                      <span className="shrink-0 font-display text-[20px] font-extrabold leading-none text-brand-ink">
+                        {zar(math.total)}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-[10.5px] text-brand-mute">
+                      Shown before VAT · VAT-registered listings add VAT at
+                      checkout.
+                    </div>
                   </div>
                 </div>
 
@@ -1158,6 +1292,153 @@ export function AddonEditor({
             </div>
           ) : null}
 
+          {/* ----- REVIEW ----- */}
+          {section === "review" ? (
+            <div className="space-y-4">
+              {/* readiness */}
+              <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+                <div className="flex items-center gap-3 border-b border-brand-line px-5 py-4">
+                  <ProgressRing pct={checklist.pct} />
+                  <div className="min-w-0">
+                    <div className="font-display text-[15px] font-bold text-brand-ink">
+                      {checklist.allDone ? "Ready to publish" : "Almost ready"}
+                    </div>
+                    <div className="text-[12px] text-brand-mute">
+                      {checklist.allDone
+                        ? "Everything guests need is set."
+                        : "Finish the items below to publish."}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-2 p-5 sm:grid-cols-2">
+                  {checklist.items.map((it) => (
+                    <div
+                      key={it.label}
+                      className="flex items-center gap-2 text-[12.5px]"
+                    >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                          it.done
+                            ? "bg-brand-primary text-white"
+                            : "bg-brand-light text-brand-mute"
+                        }`}
+                      >
+                        {it.done ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <span className="h-1.5 w-1.5 rounded-full bg-brand-mute" />
+                        )}
+                      </span>
+                      <span
+                        className={
+                          it.done ? "text-brand-ink" : "text-brand-mute"
+                        }
+                      >
+                        {it.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* at-a-glance summary with quick-edit jumps */}
+              <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+                <SummaryRow
+                  label="Name"
+                  value={displayName}
+                  onEdit={() => setSection("details")}
+                />
+                <SummaryRow
+                  label="Category"
+                  value={categoryLabel ?? "None yet"}
+                  muted={!categoryLabel}
+                  onEdit={() => setSection("details")}
+                />
+                <SummaryRow
+                  label="Description"
+                  value={description.trim() || "No description"}
+                  muted={!description.trim()}
+                  onEdit={() => setSection("details")}
+                />
+                <SummaryRow
+                  label="Price"
+                  value={`${zar(safePrice)} · ${PRICING_LABEL[pricingModel]}`}
+                  muted={safePrice <= 0}
+                  onEdit={() => setSection("pricing")}
+                />
+                <SummaryRow
+                  label={`Example · ${exNights}n · ${exGuests}g`}
+                  value={`${math.parts.join(" × ")} = ${zar(math.total)}`}
+                  onEdit={() => setSection("pricing")}
+                />
+                <SummaryRow
+                  label="Stock"
+                  value={
+                    stockNum == null ? "Unlimited" : `${stockNum} available`
+                  }
+                  muted={stockNum == null}
+                  onEdit={() => setSection("pricing")}
+                />
+                <SummaryRow
+                  label="Offered on"
+                  value={
+                    offeredCount === 0
+                      ? "No listings yet"
+                      : `${offeredCount} listing${offeredCount === 1 ? "" : "s"}`
+                  }
+                  muted={offeredCount === 0}
+                  onEdit={() => setSection("availability")}
+                />
+                <SummaryRow
+                  label="Photo"
+                  value={imageUrl ? "Added" : "None yet"}
+                  muted={!imageUrl}
+                  onEdit={() => setSection("photo")}
+                  last
+                />
+              </div>
+
+              {/* publish CTA */}
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-line bg-brand-light/40 px-5 py-4">
+                <div className="min-w-0">
+                  <div className="font-display text-[14px] font-bold text-brand-ink">
+                    {isActive
+                      ? "This add-on is live to guests"
+                      : "Not published yet"}
+                  </div>
+                  <div className="text-[12px] text-brand-mute">
+                    {isActive
+                      ? "Guests can add it at checkout."
+                      : checklist.allDone
+                        ? "Publish it to start offering it at checkout."
+                        : "Finish the checklist, then publish."}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={savePending}
+                    className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
+                  >
+                    <Check className="h-4 w-4" />
+                    {savePending ? "Saving…" : "Save changes"}
+                  </button>
+                  {!isActive ? (
+                    <button
+                      type="button"
+                      onClick={handleToggleActive}
+                      disabled={togglePending}
+                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary disabled:opacity-60"
+                    >
+                      {togglePending ? "Publishing…" : "Publish"}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {/* ----- DANGER ----- */}
           {section === "danger" ? (
             <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
@@ -1247,6 +1528,86 @@ export function AddonEditor({
 }
 
 /* ---------- small building blocks ---------- */
+
+function ExStepper({
+  value,
+  min,
+  max,
+  suffix,
+  onChange,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  suffix: string;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white px-1 py-0.5">
+      <button
+        type="button"
+        aria-label={`Fewer ${suffix}`}
+        onClick={() => onChange(Math.max(min, value - 1))}
+        disabled={value <= min}
+        className="flex h-5 w-5 items-center justify-center rounded-full text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+      >
+        <Minus className="h-3 w-3" />
+      </button>
+      <span className="min-w-[3.4rem] text-center text-[11px] font-semibold tabular-nums text-brand-ink">
+        {value} {suffix}
+      </span>
+      <button
+        type="button"
+        aria-label={`More ${suffix}`}
+        onClick={() => onChange(Math.min(max, value + 1))}
+        disabled={value >= max}
+        className="flex h-5 w-5 items-center justify-center rounded-full text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+      >
+        <Plus className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  muted,
+  last,
+  onEdit,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+  last?: boolean;
+  onEdit: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 px-5 py-3 ${
+        last ? "" : "border-b border-[#EEF4F0]"
+      }`}
+    >
+      <div className="w-28 shrink-0 text-[11.5px] font-semibold uppercase tracking-wide text-brand-mute">
+        {label}
+      </div>
+      <div
+        className={`min-w-0 flex-1 truncate text-[13px] ${
+          muted ? "italic text-brand-mute" : "font-medium text-brand-ink"
+        }`}
+      >
+        {value}
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="inline-flex shrink-0 items-center gap-1 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11px] font-medium text-brand-mute transition hover:border-brand-primary/40 hover:text-brand-ink"
+      >
+        <Pencil className="h-3 w-3" /> Edit
+      </button>
+    </div>
+  );
+}
 
 function Toggle({
   checked,
