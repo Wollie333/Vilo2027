@@ -2,7 +2,32 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶▶▶ SAVE POINT (2026-07-13) — ADD-ONS ENRICHED + AUTO-SAVE DRAFTS (A+B) LIVE + MVP-VERIFIED. NEXT = autosave for rooms/coupons + audit backlog.
+## ▶▶▶ SAVE POINT (2026-07-13 · `35f137c5`) — CREATE-BOOKING RESTYLED TO THE EDITOR PATTERN + AUTOSAVE. This layout is now the platform DEFAULT for data-creation.
+
+All pushed to `main`, verified live, `pnpm build` (874pp) + `pnpm lint` green.
+
+**Founder directive (NEW standing rule):** the left-rail step-tabs + Review-step + autosave editor pattern
+(specials / add-ons / now create-booking) is the **DEFAULT layout & flow for ANY feature where the user
+creates data** — "clean, easy". Recorded in memory `feedback-create-data-default-layout`. Apply it to future
+create/edit features. **HARD rule:** the final step must have only ONE primary button (the Review CTA); the
+bottom nav never shows a second create button on the last step. Look-and-flow only — never change logic.
+
+**What shipped (`35f137c5`):** the manual **create booking** flow (`ManualBookingForm.tsx`) restyled from a
+top horizontal stepper to the editor layout: left-rail step navigator (icon tiles · live sub-hints · done
+checks · health ring), identity bar (breadcrumb + title + total + autosave indicator), one panel at a time,
+and a **6th "Review" step** (readiness ring + summary rows with per-row quick-edit jumps + single "Create
+booking" CTA). **Auto-save wired** (`entity_type:"booking"`, added to allowlist): whole-form snapshot; a
+`restoringRef` guards the two listing-dependent effects so restore isn't clobbered; nightly/cleaning seed
+values make the mount prefill a no-op so autosave never misfires on load. Booking LOGIC + `createManual
+BookingAction` untouched. Verified live: flow to Review, single CTA, local+server autosave, resume banner,
+restore preserves room + custom rate, discard clears both, zero console errors. (Note: did not execute a live
+booking create to avoid test-data/calendar pollution — `submit()` is unchanged and the CTA is correctly wired.)
+
+**▶ NEXT:** autosave for rooms/coupons (modal editors); resolve add-on `vat_included` dead-flag; autosave TTL
+prune; then remaining audit backlog (looking-for · coupons · media · reports · gating). Consider applying the
+default create-data layout to other create flows (e.g. new listing, new quote) over time.
+
+## ▶▶▶ SAVE POINT (2026-07-13) — ADD-ONS ENRICHED + AUTO-SAVE DRAFTS (A+B) LIVE + MVP-VERIFIED. (prev)
 
 All pushed to `main`, verified live end-to-end, `pnpm build` (872pp) + `pnpm lint` green. Two founder asks:
 

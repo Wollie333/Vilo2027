@@ -4,8 +4,15 @@
 navigates away without saving must never lose their work. On return they get a
 clear "Resume where you left off?" prompt — never a silent surprise.
 
-Status: **LIVE** on the two full-page step-editors — **add-ons** and **specials
-(deals)**. Rooms & coupons (modal editors) are a documented follow-up.
+Status: **LIVE** on the full-page step-editors — **add-ons**, **specials
+(deals)**, and the **create-booking** flow. Rooms & coupons (modal editors) are a
+documented follow-up.
+
+> The left-rail step-tabs + Review-step + autosave layout is now the platform
+> **default for any feature where the user creates data** (founder directive
+> 2026-07-13 — see memory `feedback-create-data-default-layout`). New create/edit
+> features should mount this hook + the resume banner and add their entity to the
+> `DRAFT_ENTITY_TYPES` allowlist.
 
 ---
 
@@ -80,6 +87,12 @@ form_drafts (migration 20260713130000)
   Image / active / availability persist via their own immediate actions → excluded.
 - **Special**: the whole `SpecialInput` form object (single snapshot / single
   `setForm` restore).
+- **Booking** (`ManualBookingForm`): a 19-field whole-form snapshot (`step`
+  excluded so navigation alone never spawns a draft). Two gotchas handled: a
+  `restoringRef` makes the listing-reset + rate-prefill effects skip the restore
+  commit (else they'd wipe the restored room / overwrite the custom rate), and
+  the nightly/cleaning `useState` seeds match what the prefill effect would set,
+  so the mount prefill is a no-op and autosave doesn't misfire on load.
 
 ---
 

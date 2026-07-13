@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT (`35f137c5`). Create-booking restyled to the editor pattern + autosave.
+
+The manual "create booking" flow now uses the same left-rail step-tabs + Review-step + autosave layout as the
+specials / add-ons editors — **now the platform default for any data-creation feature** (founder directive).
+Left-rail step navigator (icons · live sub-hints · done checks · health ring), identity bar (breadcrumb +
+title + total + autosave indicator), one panel at a time, and a new **Review** step (readiness ring + summary
+rows with per-row quick-edit jumps + a single "Create booking" CTA — no duplicate create button on the last
+step). Auto-save wired (`entity_type:"booking"`): whole-form snapshot, a `restoringRef` guards the two
+listing-dependent effects so restore isn't clobbered, and seed nightly/cleaning values make the mount prefill
+a no-op so autosave never misfires. Booking logic + createManualBookingAction unchanged. Verified live
+(flow→Review, single CTA, local+server autosave, restore preserves room + custom rate, discard clears both,
+zero console errors). `build` + `lint` green.
+
 ## 2026-07-13 — SAVE POINT. MVP-readiness test pass: add-ons + specials 100% verified.
 
 Full live sweep confirming both features are MVP-ready. **Add-ons:** economics card correct for all 5 pricing
