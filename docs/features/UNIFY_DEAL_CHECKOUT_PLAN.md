@@ -1,5 +1,13 @@
 # Plan: unify the deal checkout into the main listing checkout
 
+> **✅ DONE 2026-07-13.** Implemented exactly as planned. `BookingForm` gained
+> `deal?: DealCheckoutContext`; `SpecialBookingForm` deleted; `createSpecialBookingAction`
+> + schema extended to accept `additional_guests` (party manifest — the one capability
+> the plan promised that the old form lacked); `CheckoutDateEditor` gained optional
+> `minDate`/`maxDate`/`maxNights` bounds. Both flows verified live end-to-end (a real
+> EFT deal booking created `BK-0045` with `special_id`/`origin='special_booked'`/party/
+> redemption++; normal booking regression clean). See CHANGELOG 2026-07-13.
+
 > **Decision (founder, 2026-07-13):** deals should be booked through the **main
 > listing checkout**, not a separate form. Route `/deal/[slug]/book` to render the
 > main `BookingForm` in a new "deal mode", delete the duplicate deal form, and keep

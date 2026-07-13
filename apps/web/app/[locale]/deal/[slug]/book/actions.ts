@@ -332,6 +332,23 @@ export async function createSpecialBookingAction(
   const isEft = d.payment_method === "eft";
   const legal = await getLegalDocuments();
 
+  // Party manifest — mirrors the main checkout exactly: trim, drop nameless rows,
+  // cap at the guest count, and omit empty email/phone so _materialize_booking
+  // _party can skip emailless members.
+  const additionalGuests = (d.additional_guests ?? [])
+    .map((g) => ({
+      name: g.name.trim(),
+      email: (g.email ?? "").trim(),
+      phone: (g.phone ?? "").trim(),
+    }))
+    .filter((g) => g.name.length > 0)
+    .slice(0, Math.max(0, d.guests))
+    .map((g) => ({
+      name: g.name,
+      ...(g.email ? { email: g.email } : {}),
+      ...(g.phone ? { phone: g.phone } : {}),
+    }));
+
   const result = await persistBookingAndPay({
     admin,
     bookingInsert: {
@@ -365,7 +382,7 @@ export async function createSpecialBookingAction(
       guest_email: d.guest_email ?? user.email,
       guest_phone: d.guest_phone ?? null,
       special_requests: d.special_requests ?? null,
-      additional_guests: [],
+      additional_guests: additionalGuests,
       policy_acknowledged: true,
       policy_acknowledged_at: new Date().toISOString(),
       accepted_terms_version: legal.booking_terms.version,

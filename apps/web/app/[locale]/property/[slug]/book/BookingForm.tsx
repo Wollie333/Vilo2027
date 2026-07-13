@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BedDouble,
   Building2,
+  CalendarDays,
   Check,
   CreditCard,
   Home,
@@ -18,6 +19,7 @@ import {
   Percent,
   Plus,
   ShieldCheck,
+  Tag,
   Trash2,
   User as UserIcon,
   UserPlus,
@@ -58,12 +60,14 @@ import {
   type SeasonalRule,
   type StayAddon,
 } from "@/lib/pricing";
+import { priceSpecialStay } from "@/lib/specials/pricing";
 import {
   checkAvailabilityAction,
   createBookingAction,
   createCheckoutGuestAccountAction,
   validateCouponAction,
 } from "./actions";
+import { createSpecialBookingAction } from "../../../deal/[slug]/book/actions";
 import { CheckoutDateEditor } from "./CheckoutDateEditor";
 
 export type RoomOption = {
@@ -106,6 +110,56 @@ export type AvailableAddon = {
   leadTimeDays: number;
 };
 
+// ─── Deal (special) checkout context ─────────────────────────────────────────
+// When present, BookingForm runs in "deal mode": the same mature 3-step checkout
+// (contact, party manifest, payment, terms), but the accommodation is a fixed
+// pre-priced deal instead of a free room/date pick. Room + price + (fixed deals)
+// dates are locked; the guest only picks a stay window (flexible/evergreen deals),
+// party size, optional add-ons and payment. Pricing runs through priceSpecialStay
+// and submit goes to createSpecialBookingAction — both re-priced/validated
+// server-side, so this context is display + advisory only. Coupons, multi-room
+// combos, seasonal rates and age-based extras never apply to a deal.
+export type DealCheckoutContext = {
+  specialId: string;
+  bookedVia: "platform" | "website";
+  /** Absolute path of this deal's book page — used for the "sign in" return. */
+  bookUrl: string;
+  title: string;
+  description: string | null;
+  priceMode: "flat" | "per_night";
+  flatTotal: number | null;
+  perNightPrice: number | null;
+  dateMode: "fixed" | "flexible";
+  isEvergreen: boolean;
+  fixedCheckIn: string | null;
+  fixedCheckOut: string | null;
+  windowStart: string | null;
+  /** null when evergreen (open-ended). */
+  windowEnd: string | null;
+  minNights: number | null;
+  maxNights: number | null;
+  /** null = whole property. */
+  roomId: string | null;
+  roomName: string | null;
+  maxGuests: number;
+  wasPrice: number | null;
+  savingsAmount: number | null;
+  savingsPct: number | null;
+  /** Compulsory add-on ids — pre-selected and locked on in the Details step. */
+  requiredAddonIds: string[];
+  /** The priceable unit (room or whole-property) minus the live guest count,
+   *  fed to priceSpecialStay for the client estimate. */
+  unit: {
+    pricing_mode: PricingUnit["pricing_mode"];
+    base_price: number;
+    price_per_person: number | null;
+    base_occupancy: number | null;
+    extra_guest_price: number | null;
+    weekend_price: number | null;
+    cleaning_fee: number;
+  };
+};
+
 function fmtDate(iso: string): string {
   if (!iso) return "—";
   const d = new Date(`${iso}T00:00:00`);
@@ -123,6 +177,15 @@ function nightsBetween(a: string, b: string): number {
   const t = new Date(`${b}T00:00:00Z`).getTime();
   if (Number.isNaN(f) || Number.isNaN(t)) return 0;
   return Math.round((t - f) / (1000 * 60 * 60 * 24));
+}
+
+/** A deal's stay-length constraint, e.g. "2 nights", "2–5 nights", "3+ nights".
+ *  Empty when the deal sets no minimum. */
+function nightsRangeLabel(min: number | null, max: number | null): string {
+  if (!min) return "";
+  if (max && max === min) return `${min} ${min === 1 ? "night" : "nights"}`;
+  if (max) return `${min}–${max} nights`;
+  return `${min}+ nights`;
 }
 
 /** Whole days from today (UTC) to an ISO date — the guest's booking lead time. */
@@ -225,6 +288,7 @@ export function BookingForm({
   wholeListingDiscountPct,
   weeklyDiscountPct,
   monthlyDiscountPct,
+  deal,
 }: {
   listingId: string;
   listingSlug: string;
@@ -285,8 +349,12 @@ export function BookingForm({
   wholeListingDiscountPct: number | null;
   weeklyDiscountPct: number | null;
   monthlyDiscountPct: number | null;
+  // When set, the form runs in deal mode (see DealCheckoutContext).
+  deal?: DealCheckoutContext | null;
 }) {
   const router = useRouter();
+  // Deal mode: a pre-priced special booked through this same checkout.
+  const dealMode = !!deal;
   const brandName = useBrandName();
   const [isPending, start] = useTransition();
   const [loggingOut, startLogout] = useTransition();
@@ -329,9 +397,18 @@ export function BookingForm({
   }
 
   const effectiveMinNights = useMemo(() => {
+    if (deal) {
+      // Fixed deals lock the length; flexible/evergreen enforce the deal's min.
+      return deal.dateMode === "fixed"
+        ? Math.max(
+            1,
+            nightsBetween(deal.fixedCheckIn ?? "", deal.fixedCheckOut ?? ""),
+          )
+        : Math.max(1, deal.minNights ?? 1);
+    }
     const sel = allRooms.filter((r) => selectedRoomIds.includes(r.id));
     return Math.max(minNights, 1, ...sel.map((r) => r.minNights));
-  }, [allRooms, selectedRoomIds, minNights]);
+  }, [deal, allRooms, selectedRoomIds, minNights]);
   const datesValid =
     Boolean(dates.from && dates.to) && nights >= effectiveMinNights;
   const [wholeListing, setWholeListing] = useState(false);
@@ -489,6 +566,14 @@ export function BookingForm({
   // Re-check availability whenever the (valid) date range changes. Small debounce
   // so rapid date edits don't spam the server. The booking action re-checks.
   useEffect(() => {
+    // Deal mode never runs the generic room availability check: a fixed deal holds
+    // its own dates in blocked_dates, so the generic RPCs would wrongly report the
+    // deal's own window as unavailable. createSpecialBookingAction gates it
+    // authoritatively (excluding the deal's own hold).
+    if (dealMode) {
+      setAvailability(null);
+      return;
+    }
     if (!datesValid) {
       setAvailability(null);
       return;
@@ -510,7 +595,7 @@ export function BookingForm({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [datesValid, dates.from, dates.to, listingId, allRooms]);
+  }, [dealMode, datesValid, dates.from, dates.to, listingId, allRooms]);
 
   // Drop any selected room (or whole-place) that just became unavailable so the
   // summary, price and submit never include a date-blocked room.
@@ -577,67 +662,88 @@ export function BookingForm({
       ? "rooms"
       : "whole_listing";
 
+  // Add-on lines shared by both pricing paths — required (pre-selected) + any
+  // optional ones the guest toggled, each at its live quantity.
+  const stayAddonLines: StayAddon[] = [...addonQty.entries()].flatMap(
+    ([id, qty]) => {
+      const a = availableAddons.find((x) => x.id === id);
+      if (!a || qty <= 0) return [];
+      return [
+        {
+          label: a.name,
+          pricingModel: a.pricingModel,
+          unitPrice: a.unitPrice,
+          quantity: qty,
+          addonId: id,
+        },
+      ];
+    },
+  );
+
   // ── Live pricing via the canonical engine ─────────────────────
-  // The SAME priceStay() the server charges with, so this estimate equals the
-  // charged total to the cent — seasonal/weekend nights, occupancy, discounts,
-  // cleaning and add-ons all included. Pure + cheap, so computed each render.
-  const breakdown = datesValid
-    ? priceStay({
-        checkIn: dates.from,
-        checkOut: dates.to,
-        units: isWhole
-          ? [
-              {
-                roomId: null,
-                pricing_mode: "per_room",
-                base_price: basePrice,
-                price_per_person: null,
-                base_occupancy: null,
-                extra_guest_price: null,
-                weekend_price: listingWeekendPrice,
-                cleaning_fee: cleaningFee,
-                guests: guestCount,
-              },
-            ]
-          : selectedRooms.map(
-              (r): PricingUnit => ({
-                roomId: r.id,
-                pricing_mode: r.pricingMode,
-                base_price: r.basePrice,
-                price_per_person: r.pricePerPerson,
-                base_occupancy: r.baseOccupancy,
-                extra_guest_price: r.extraGuestPrice,
-                weekend_price: r.weekendPrice,
-                cleaning_fee: r.cleaningFee,
-                guests: guestsForRoom(r),
-              }),
-            ),
-        seasonalRules,
-        currency,
-        totalGuests: effectiveGuests,
-        listingMinNights: minNights,
-        isWholeCombo:
-          scope === "rooms" &&
-          allRooms.length > 1 &&
-          selectedRooms.length === allRooms.length,
-        wholePct: wholeListingDiscountPct,
-        weeklyPct: weeklyDiscountPct,
-        monthlyPct: monthlyDiscountPct,
-        coupon: appliedCoupon,
-        addons: [...addonQty.entries()].flatMap(([id, qty]) => {
-          const a = availableAddons.find((x) => x.id === id);
-          if (!a || qty <= 0) return [];
-          const line: StayAddon = {
-            label: a.name,
-            pricingModel: a.pricingModel,
-            unitPrice: a.unitPrice,
-            quantity: qty,
-            addonId: id,
-          };
-          return [line];
-        }),
-      })
-    : null;
+  // The SAME priceStay()/priceSpecialStay() the server charges with, so this
+  // estimate equals the charged total to the cent — seasonal/weekend nights,
+  // occupancy, discounts, cleaning and add-ons all included. Pure + cheap, so
+  // computed each render. Deal mode never applies seasonal/coupon/combo — a deal
+  // is a fixed package (flat) or a per-night override, priced by priceSpecialStay.
+  const breakdown = !datesValid
+    ? null
+    : deal
+      ? priceSpecialStay({
+          priceMode: deal.priceMode,
+          flatTotal: deal.flatTotal,
+          perNightPrice: deal.perNightPrice,
+          currency,
+          checkIn: dates.from,
+          checkOut: dates.to,
+          unit: { roomId: deal.roomId, ...deal.unit, guests: effectiveGuests },
+          totalGuests: effectiveGuests,
+          addons: stayAddonLines,
+        })
+      : priceStay({
+          checkIn: dates.from,
+          checkOut: dates.to,
+          units: isWhole
+            ? [
+                {
+                  roomId: null,
+                  pricing_mode: "per_room",
+                  base_price: basePrice,
+                  price_per_person: null,
+                  base_occupancy: null,
+                  extra_guest_price: null,
+                  weekend_price: listingWeekendPrice,
+                  cleaning_fee: cleaningFee,
+                  guests: guestCount,
+                },
+              ]
+            : selectedRooms.map(
+                (r): PricingUnit => ({
+                  roomId: r.id,
+                  pricing_mode: r.pricingMode,
+                  base_price: r.basePrice,
+                  price_per_person: r.pricePerPerson,
+                  base_occupancy: r.baseOccupancy,
+                  extra_guest_price: r.extraGuestPrice,
+                  weekend_price: r.weekendPrice,
+                  cleaning_fee: r.cleaningFee,
+                  guests: guestsForRoom(r),
+                }),
+              ),
+          seasonalRules,
+          currency,
+          totalGuests: effectiveGuests,
+          listingMinNights: minNights,
+          isWholeCombo:
+            scope === "rooms" &&
+            allRooms.length > 1 &&
+            selectedRooms.length === allRooms.length,
+          wholePct: wholeListingDiscountPct,
+          weeklyPct: weeklyDiscountPct,
+          monthlyPct: monthlyDiscountPct,
+          coupon: appliedCoupon,
+          addons: stayAddonLines,
+        });
 
   const subtotal = breakdown?.baseSubtotal ?? 0;
   const cleaningTotal = breakdown?.cleaningTotal ?? 0;
@@ -780,21 +886,53 @@ export function BookingForm({
 
   const total = (breakdown?.total ?? 0) + ageExtras.total;
 
+  // Deal mode date validity — fixed deals are locked (always valid); flexible/
+  // evergreen deals must fall inside the window and satisfy min/max nights. The
+  // server re-validates authoritatively; this is the friendly client gate.
+  const dealDateError: string | null = (() => {
+    if (!deal || deal.dateMode === "fixed") return null;
+    const { from, to } = dates;
+    if (!from || !to) return "Choose your check-in and check-out dates.";
+    if (nights <= 0) return "Your check-out must be after check-in.";
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const floor =
+      deal.windowStart && deal.windowStart > todayIso
+        ? deal.windowStart
+        : todayIso;
+    if (from < floor) return "Choose a check-in date within the offer window.";
+    if (!deal.isEvergreen && deal.windowEnd && to > deal.windowEnd)
+      return "Choose dates inside the offer window.";
+    if (deal.minNights && nights < deal.minNights)
+      return `This deal needs at least ${deal.minNights} ${
+        deal.minNights === 1 ? "night" : "nights"
+      }.`;
+    if (deal.maxNights && nights > deal.maxNights)
+      return `This deal is for at most ${deal.maxNights} nights.`;
+    return null;
+  })();
+
   const needsRoom = roomsMode && !wholeListing && selectedRooms.length === 0;
   // Step 1 can't advance until dates are valid, a room (or whole place) is
-  // chosen, and that choice is actually available for the dates.
-  const step0Blocked = !datesValid || needsRoom || (isWhole && !wholeAvailable);
+  // chosen, and that choice is actually available for the dates. Deal mode has
+  // no room pick — just the (constrained) dates.
+  const step0Blocked = deal
+    ? !datesValid || !!dealDateError
+    : !datesValid || needsRoom || (isWhole && !wholeAvailable);
   // A plain-language reason for the disabled Continue, shown on the rooms step
   // so the guest always knows why they can't move on.
-  const step0Reason: string | null = !datesValid
-    ? "Choose your check-in and check-out dates to continue."
-    : isWhole && !wholeAvailable
-      ? "The whole place is booked for these dates — pick other dates or book an available room."
-      : needsRoom
-        ? anyRoomAvailable
-          ? "Select an available room to continue."
-          : "No rooms are available for these dates — try different dates."
-        : null;
+  const step0Reason: string | null = deal
+    ? !datesValid
+      ? "Choose your check-in and check-out dates to continue."
+      : dealDateError
+    : !datesValid
+      ? "Choose your check-in and check-out dates to continue."
+      : isWhole && !wholeAvailable
+        ? "The whole place is booked for these dates — pick other dates or book an available room."
+        : needsRoom
+          ? anyRoomAvailable
+            ? "Select an available room to continue."
+            : "No rooms are available for these dates — try different dates."
+          : null;
 
   const locationLine = [listingCity, listingProvince]
     .filter(Boolean)
@@ -810,6 +948,18 @@ export function BookingForm({
 
   /** Step 1 (Rooms): valid dates + at least one room (when room-based). */
   function validateRooms(): boolean {
+    if (deal) {
+      if (!datesValid || dealDateError) {
+        toast.error(
+          dealDateError ??
+            `Choose dates of at least ${effectiveMinNights} ${
+              effectiveMinNights === 1 ? "night" : "nights"
+            }.`,
+        );
+        return false;
+      }
+      return true;
+    }
     if (!datesValid) {
       toast.error(
         `Choose dates of at least ${effectiveMinNights} ${
@@ -894,6 +1044,60 @@ export function BookingForm({
       return;
     }
 
+    // Party manifest payload shared by both submit paths — drop fully-empty rows;
+    // the server keeps only complete (name + email) rows as guest records.
+    const partyOut = party
+      .map((g) => ({
+        name: g.name.trim(),
+        email: g.email.trim(),
+        phone: g.phone.trim(),
+      }))
+      .filter((g) => g.name.length > 0 || g.email.length > 0);
+
+    // ── Deal mode submit ────────────────────────────────────────────────
+    // A pre-priced special: the deal's action re-resolves room/dates/price,
+    // claims the quantity cap, forces the compulsory add-ons and snapshots the
+    // deal's cancellation override — so we send only the guest's choices.
+    if (deal) {
+      start(async () => {
+        if (!isAuthenticated) {
+          const acc = await createCheckoutGuestAccountAction({
+            full_name: contact.fullName.trim(),
+            email: contact.email.trim(),
+            password: contact.password,
+          });
+          if (!acc.ok) {
+            toast.error(acc.error);
+            return;
+          }
+        }
+        const res = await createSpecialBookingAction({
+          special_id: deal.specialId,
+          booked_via: deal.bookedVia,
+          // Fixed deals: the server forces the deal's dates. Flexible/evergreen:
+          // send the guest's chosen window.
+          check_in: deal.dateMode === "flexible" ? dates.from : undefined,
+          check_out: deal.dateMode === "flexible" ? dates.to : undefined,
+          guests: effectiveGuests,
+          payment_method: method,
+          guest_name: contact.fullName.trim() || undefined,
+          guest_email: isAuthenticated ? guestEmail : contact.email.trim(),
+          guest_phone: contact.phone.trim() || undefined,
+          special_requests: contact.message.trim() || undefined,
+          // Only the optional add-ons the guest chose — compulsory ones are
+          // always bundled server-side, never trusted from the client.
+          selected_addons: [...addonQty.entries()]
+            .filter(([id, q]) => q > 0 && !deal.requiredAddonIds.includes(id))
+            .map(([id]) => id),
+          additional_guests: partyOut,
+          policy_acknowledged: ack,
+        });
+        // A successful action redirects server-side; only an error returns here.
+        if (res && !res.ok) toast.error(res.error);
+      });
+      return;
+    }
+
     start(async () => {
       if (!isAuthenticated) {
         const acc = await createCheckoutGuestAccountAction({
@@ -941,14 +1145,8 @@ export function BookingForm({
         guest_phone: guestPhoneOut,
         special_requests: messageOut,
         // Each named party member needs a name AND email (so they get their own
-        // guest record). Drop fully-empty rows; only complete rows are sent.
-        additional_guests: party
-          .map((g) => ({
-            name: g.name.trim(),
-            email: g.email.trim(),
-            phone: g.phone.trim(),
-          }))
-          .filter((g) => g.name.length > 0 || g.email.length > 0),
+        // guest record). Fully-empty rows already dropped in partyOut.
+        additional_guests: partyOut,
       });
       if (result && !result.ok) {
         toast.error(result.error);
@@ -1013,7 +1211,8 @@ export function BookingForm({
     !datesValid ||
     total <= 0 ||
     (scope === "rooms" && selectedRooms.length === 0);
-  const canPay = !noPriceableStay && paymentMethods.length > 0;
+  const canPay =
+    !noPriceableStay && paymentMethods.length > 0 && !dealDateError;
 
   /* ── Step 1 · Rooms (dates, guests, room selection) ────────── */
   const roomsBody = (
@@ -1779,7 +1978,7 @@ export function BookingForm({
               Already have an account?{" "}
               <a
                 href={`/login?next=${encodeURIComponent(
-                  `/property/${listingSlug}/book`,
+                  deal ? deal.bookUrl : `/property/${listingSlug}/book`,
                 )}`}
                 className="font-medium text-brand-primary hover:underline"
               >
@@ -2283,6 +2482,163 @@ export function BookingForm({
     </div>
   );
 
+  /* ── Step 1 · Deal (locked room/price + constrained dates) ──── */
+  // Replaces the room picker in deal mode: the special fixes the room + price,
+  // so the guest only confirms dates (fixed = locked; flexible/evergreen = a
+  // constrained calendar) and party size. No availability poll, no coupons, no
+  // age-based extras — all deal-irrelevant.
+  const dealRoomsBody = deal ? (
+    <div className="ck-step space-y-7">
+      <header>
+        <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+          {t("stepOf", { n: 1 })}
+        </div>
+        <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
+          Your deal
+        </h2>
+        <p className="mt-1.5 text-sm text-brand-mute">
+          {deal.dateMode === "fixed"
+            ? "This special sets the room, price and dates — just confirm your party and pay."
+            : "This special sets the room and price — pick your dates, then confirm and pay."}
+        </p>
+      </header>
+
+      {/* Locked deal summary */}
+      <section className={cardLabel}>
+        <div className={sectionHead}>
+          <div className="min-w-0">
+            <div className="truncate font-display font-semibold text-brand-ink">
+              {deal.title}
+            </div>
+            <div className="mt-0.5 text-xs text-brand-mute">
+              {deal.roomName ? `${deal.roomName} · ` : ""}
+              {listingName}
+            </div>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-primary">
+            <Tag className="h-3 w-3" /> Deal
+          </span>
+        </div>
+        <div className="flex items-center gap-3 p-5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+            {deal.roomId ? (
+              <BedDouble className="h-5 w-5" />
+            ) : (
+              <Home className="h-5 w-5" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="font-medium text-brand-ink">
+              {deal.roomName ?? listingName}
+            </div>
+            <div className="text-xs text-brand-mute">
+              {deal.priceMode === "flat"
+                ? `${formatMoney(gv(deal.flatTotal ?? 0), currency)} package`
+                : `${formatMoney(gv(deal.perNightPrice ?? 0), currency)} / night`}
+            </div>
+          </div>
+          {deal.savingsAmount && deal.savingsPct ? (
+            <div className="ml-auto shrink-0 text-right">
+              <div className="text-sm font-semibold text-emerald-600">
+                Save {deal.savingsPct}%
+              </div>
+              {deal.wasPrice ? (
+                <div className="text-[11px] text-brand-mute line-through">
+                  {formatMoney(gv(deal.wasPrice), currency)}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        {deal.description ? (
+          <p className="whitespace-pre-line border-t border-brand-line px-5 py-4 text-sm text-brand-ink/80">
+            {deal.description}
+          </p>
+        ) : null}
+      </section>
+
+      {/* Your trip — dates + guests */}
+      <section className={cardLabel}>
+        <div className={sectionHead}>
+          <div>
+            <div className="font-display font-semibold text-brand-ink">
+              Your trip
+            </div>
+            <div className="mt-0.5 text-xs text-brand-mute">
+              {nights} {nights === 1 ? "night" : "nights"}
+            </div>
+          </div>
+        </div>
+        {deal.dateMode === "fixed" ? (
+          <div className="p-5">
+            <div className="inline-flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-4 py-3 text-sm text-brand-ink">
+              <CalendarDays className="h-4 w-4 text-brand-primary" />
+              <span className="font-medium">
+                {fmtDate(dates.from)} → {fmtDate(dates.to)}
+              </span>
+              <span className="text-[11px] font-normal text-brand-mute">
+                · {nights} {nights === 1 ? "night" : "nights"} · fixed dates
+              </span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <CheckoutDateEditor
+              from={dates.from}
+              to={dates.to}
+              minNights={effectiveMinNights}
+              minDate={deal.windowStart}
+              maxDate={deal.isEvergreen ? null : deal.windowEnd}
+              maxNights={deal.maxNights}
+              onChange={(from, to) => setDates({ from, to })}
+            />
+            <div className="-mt-2 px-5 pb-4 text-xs text-brand-mute">
+              {deal.isEvergreen
+                ? `Book any dates${
+                    deal.minNights
+                      ? ` · ${nightsRangeLabel(deal.minNights, deal.maxNights)}`
+                      : ""
+                  }.`
+                : deal.windowStart && deal.windowEnd
+                  ? `Available ${deal.windowStart} → ${deal.windowEnd}${
+                      deal.minNights
+                        ? ` · ${nightsRangeLabel(
+                            deal.minNights,
+                            deal.maxNights,
+                          )}`
+                        : ""
+                    }.`
+                  : null}
+            </div>
+          </>
+        )}
+        <div className="px-5 pb-5">
+          <div className="mb-1.5 block text-sm font-medium text-brand-ink">
+            Guests
+          </div>
+          <div className="inline-flex items-center gap-2 rounded border border-brand-line bg-white px-4 py-3">
+            <Users className="h-4 w-4 text-brand-primary" />
+            <select
+              value={guestCount}
+              onChange={(e) => setGuestCount(parseInt(e.target.value, 10))}
+              disabled={isPending}
+              className="bg-transparent text-sm font-medium text-brand-ink outline-none"
+            >
+              {Array.from(
+                { length: Math.max(1, deal.maxGuests) },
+                (_, i) => i + 1,
+              ).map((n) => (
+                <option key={n} value={n}>
+                  {n} {n === 1 ? "guest" : "guests"}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </section>
+    </div>
+  ) : null;
+
   const progressPct = (step / (STEP_KEYS.length - 1)) * 100;
 
   return (
@@ -2373,7 +2729,13 @@ export function BookingForm({
       >
         {/* ── Left column: the current step ───────────────────────── */}
         <section className="min-w-0 pb-24 lg:pb-0">
-          {step === 0 ? roomsBody : step === 1 ? detailsBody : paymentBody}
+          {step === 0
+            ? deal
+              ? dealRoomsBody
+              : roomsBody
+            : step === 1
+              ? detailsBody
+              : paymentBody}
 
           {/* Footer actions */}
           <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
@@ -2503,66 +2865,102 @@ export function BookingForm({
                 {effectiveGuests} {effectiveGuests === 1 ? "guest" : "guests"}
               </div>
 
-              {/* rooms / whole place */}
+              {/* rooms / whole place (deal mode: the locked deal unit) */}
               <div className="mt-4 border-t border-white/10 pt-4">
-                <div className="mb-2.5 text-[10px] font-medium uppercase tracking-wider text-white/45">
-                  {isWhole
-                    ? "Whole place"
-                    : `${selectedRooms.length} ${
-                        selectedRooms.length === 1 ? "room" : "rooms"
-                      } selected`}
-                </div>
-                {isWhole ? (
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-11 shrink-0 items-center justify-center rounded-md bg-white/10 text-emerald-200 ring-1 ring-white/10">
-                      <Home className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-medium text-white">
-                        {listingName}
-                      </div>
-                      <div className="font-mono text-[10.5px] text-white/45">
-                        {formatMoney(basePrice, currency)} × {nights}n
-                      </div>
+                {deal ? (
+                  <>
+                    <div className="mb-2.5 text-[10px] font-medium uppercase tracking-wider text-white/45">
+                      {deal.roomName ? "Your room" : "Whole place"}
                     </div>
-                    <div className="shrink-0 text-[13px] font-semibold text-white">
-                      {formatMoney(subtotal, currency)}
-                    </div>
-                  </div>
-                ) : selectedRooms.length === 0 ? (
-                  <div className="text-xs italic text-white/50">
-                    No rooms selected yet.
-                  </div>
-                ) : (
-                  <div className="space-y-2.5">
-                    {selectedRooms.map((r) => (
-                      <div key={r.id} className="flex items-center gap-3">
-                        {r.photoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={r.photoUrl}
-                            alt=""
-                            className="h-9 w-11 shrink-0 rounded-md object-cover ring-1 ring-white/10"
-                          />
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-11 shrink-0 items-center justify-center rounded-md bg-white/10 text-emerald-200 ring-1 ring-white/10">
+                        {deal.roomId ? (
+                          <BedDouble className="h-4 w-4" />
                         ) : (
-                          <span className="flex h-9 w-11 shrink-0 items-center justify-center rounded-md bg-white/10 text-emerald-200 ring-1 ring-white/10">
-                            <BedDouble className="h-4 w-4" />
-                          </span>
+                          <Home className="h-4 w-4" />
                         )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-medium text-white">
+                          {deal.roomName ?? listingName}
+                        </div>
+                        <div className="font-mono text-[10.5px] text-white/45">
+                          {deal.priceMode === "flat"
+                            ? "package deal"
+                            : `${formatMoney(
+                                deal.perNightPrice ?? 0,
+                                currency,
+                              )} × ${nights}n`}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-[13px] font-semibold text-white">
+                        {formatMoney(subtotal, currency)}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-2.5 text-[10px] font-medium uppercase tracking-wider text-white/45">
+                      {isWhole
+                        ? "Whole place"
+                        : `${selectedRooms.length} ${
+                            selectedRooms.length === 1 ? "room" : "rooms"
+                          } selected`}
+                    </div>
+                    {isWhole ? (
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-11 shrink-0 items-center justify-center rounded-md bg-white/10 text-emerald-200 ring-1 ring-white/10">
+                          <Home className="h-4 w-4" />
+                        </span>
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[13px] font-medium text-white">
-                            {r.name}
+                            {listingName}
                           </div>
                           <div className="font-mono text-[10.5px] text-white/45">
-                            {formatMoney(roomNightly(r), currency)} × {nights}n
+                            {formatMoney(basePrice, currency)} × {nights}n
                           </div>
                         </div>
                         <div className="shrink-0 text-[13px] font-semibold text-white">
-                          {formatMoney(roomNightly(r) * nights, currency)}
+                          {formatMoney(subtotal, currency)}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    ) : selectedRooms.length === 0 ? (
+                      <div className="text-xs italic text-white/50">
+                        No rooms selected yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {selectedRooms.map((r) => (
+                          <div key={r.id} className="flex items-center gap-3">
+                            {r.photoUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={r.photoUrl}
+                                alt=""
+                                className="h-9 w-11 shrink-0 rounded-md object-cover ring-1 ring-white/10"
+                              />
+                            ) : (
+                              <span className="flex h-9 w-11 shrink-0 items-center justify-center rounded-md bg-white/10 text-emerald-200 ring-1 ring-white/10">
+                                <BedDouble className="h-4 w-4" />
+                              </span>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-[13px] font-medium text-white">
+                                {r.name}
+                              </div>
+                              <div className="font-mono text-[10.5px] text-white/45">
+                                {formatMoney(roomNightly(r), currency)} ×{" "}
+                                {nights}n
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-[13px] font-semibold text-white">
+                              {formatMoney(roomNightly(r) * nights, currency)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -2576,7 +2974,7 @@ export function BookingForm({
                     {formatMoney(subtotal, currency)}
                   </span>
                 </div>
-                {seasonalNights > 0 || weekendNights > 0 ? (
+                {!deal && (seasonalNights > 0 || weekendNights > 0) ? (
                   <div className="text-[11px] text-white/45">
                     {[
                       seasonalNights > 0
@@ -2654,51 +3052,65 @@ export function BookingForm({
                 ) : null}
               </div>
 
-              {/* coupon */}
-              <div className="mt-4 border-t border-white/10 pt-4">
-                {appliedCoupon ? (
-                  <div className="flex items-center justify-between gap-2 text-[13px]">
-                    <span className="text-emerald-300">
-                      Coupon “{appliedCoupon.code}” applied
+              {/* coupon (normal) · deal savings note (deal mode) */}
+              {deal ? (
+                deal.savingsAmount && deal.savingsPct ? (
+                  <div className="mt-4 flex items-center justify-between gap-2 rounded-card border border-emerald-400/25 bg-emerald-400/10 px-3 py-2.5 text-[13px]">
+                    <span className="font-medium text-emerald-200">
+                      Deal saving vs standard rate
                     </span>
-                    <button
-                      type="button"
-                      onClick={removeCoupon}
-                      className="text-white/60 underline hover:text-white"
-                    >
-                      Remove
-                    </button>
+                    <span className="font-semibold text-emerald-300">
+                      {formatMoney(gv(deal.savingsAmount), currency)} ·{" "}
+                      {deal.savingsPct}%
+                    </span>
                   </div>
-                ) : (
-                  <div>
-                    <div className="flex gap-2">
-                      <input
-                        value={couponInput}
-                        onChange={(e) =>
-                          setCouponInput(e.target.value.toUpperCase())
-                        }
-                        placeholder="Coupon code"
-                        className="min-w-0 flex-1 rounded bg-white/10 px-3 py-2 text-sm uppercase tracking-wide text-white placeholder-white/40 outline-none focus:bg-white/15"
-                      />
+                ) : null
+              ) : (
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between gap-2 text-[13px]">
+                      <span className="text-emerald-300">
+                        Coupon “{appliedCoupon.code}” applied
+                      </span>
                       <button
                         type="button"
-                        onClick={applyCoupon}
-                        disabled={
-                          couponPending || !couponInput.trim() || !datesValid
-                        }
-                        className="rounded bg-white/15 px-3 py-2 text-sm font-medium text-white hover:bg-white/25 disabled:opacity-50"
+                        onClick={removeCoupon}
+                        className="text-white/60 underline hover:text-white"
                       >
-                        {couponPending ? "…" : "Apply"}
+                        Remove
                       </button>
                     </div>
-                    {couponError ? (
-                      <p className="mt-1 text-[11px] text-rose-300">
-                        {couponError}
-                      </p>
-                    ) : null}
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          value={couponInput}
+                          onChange={(e) =>
+                            setCouponInput(e.target.value.toUpperCase())
+                          }
+                          placeholder="Coupon code"
+                          className="min-w-0 flex-1 rounded bg-white/10 px-3 py-2 text-sm uppercase tracking-wide text-white placeholder-white/40 outline-none focus:bg-white/15"
+                        />
+                        <button
+                          type="button"
+                          onClick={applyCoupon}
+                          disabled={
+                            couponPending || !couponInput.trim() || !datesValid
+                          }
+                          className="rounded bg-white/15 px-3 py-2 text-sm font-medium text-white hover:bg-white/25 disabled:opacity-50"
+                        >
+                          {couponPending ? "…" : "Apply"}
+                        </button>
+                      </div>
+                      {couponError ? (
+                        <p className="mt-1 text-[11px] text-rose-300">
+                          {couponError}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* total */}
               <div className="mt-4 flex items-end justify-between border-t border-white/15 pt-4">

@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-07-13 — SAVE POINT: deal checkout UNIFIED into the main BookingForm. Both flows verified live.
+
+Deals now book through the **same mature 3-step checkout** as normal stays — the duplicate
+`SpecialBookingForm` (~652 lines) is deleted. `BookingForm` gained an optional `deal?: DealCheckoutContext`
+prop; when present it runs in "deal mode": the room + price (and, for fixed deals, the dates) are locked, the
+guest picks a constrained stay window (flexible/evergreen) + party size + optional add-ons, pricing runs
+through `priceSpecialStay` (flat package or per-night synthetic rule — never seasonal/coupon/combo), and submit
+goes to the existing `createSpecialBookingAction`. Every fork is gated behind `if (deal)`; the normal path is
+byte-for-byte unchanged. **New capability inherited:** the deal checkout now carries the **party manifest**
+(the old form silently dropped it) — `createSpecialBookingSchema`/action extended to accept + persist
+`additional_guests` exactly like the main path. `CheckoutDateEditor` gained optional `minDate`/`maxDate`/
+`maxNights` bounds so flexible/evergreen deal calendars constrain to the offer window. Coupons, multi-room
+combos, seasonal rates and age-based (children/infant/pet) extras are all hidden in deal mode; a savings note
+replaces the coupon slot; the summary shows the locked deal unit.
+
+**Verified live end-to-end (VAT-registered test host, 15%):**
+- **Evergreen per-night** (`karoo-midweek-escape`): priced R1350/night + cleaning R300 + required Farm breakfast
+  (R150/night) → **R3,795 incl. VAT**, matching `priceSpecialStay` to the cent. **Booked via EFT reserve** →
+  `BK-0045` created with `special_id`, `origin='special_booked'`, `total_amount=3795.00`, party member persisted
+  (`additional_guests`), Farm breakfast forced as a required `booking_addon`, and `redemptions_used` 0→1.
+- **Flexible room-scoped flat** (`milkyway-room-flash`): R2100 package → **R2,415 incl. VAT**, "Milkyway Room"
+  locked, window `2026-07-10 → 2026-10-31 · 2 nights` note, no coupon field.
+- **Fixed** (`karoo-fixed-stargazer-weekend`, temp-unhidden): dates locked read-only, R4200 → **R4,830 incl. VAT**
+  (matches BK-0027). **Sold-out**: renders the sold-out panel, no CTA.
+- **Regression guard — normal booking** (`karoo-sky-guesthouse-prince-albert`): room picker, calendar, seasonal
+  −15% (R1360/night → subtotal R4080), cleaning, VAT, coupon all intact. No regression.
+
+`tsc` + `lint` + `pnpm build` (872/872 pages) all green. **Known parity item (unchanged from before):** the
+deal checkout displays the listing/room effective cancellation policy; the special's own cancellation override
+is still what gets *snapshotted* server-side — a dedicated override-display is a shared follow-up for both
+checkouts. **NEXT = audit backlog: looking-for · coupons · add-ons · media manager · reports · product gating.**
+
 ## 2026-07-13 — SAVE POINT: specials audit + enhancements done. NEXT = unify deal checkout.
 
 Specials enhancements shipped (all verified live, `tsc`/`lint`/`build` green, pushed `f4b2abcf`):

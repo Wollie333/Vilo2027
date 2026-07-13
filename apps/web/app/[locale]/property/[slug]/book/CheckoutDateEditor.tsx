@@ -59,16 +59,31 @@ export function CheckoutDateEditor({
   to,
   minNights,
   onChange,
+  minDate,
+  maxDate,
+  maxNights,
 }: {
   from: string;
   to: string;
   minNights: number;
   onChange: (from: string, to: string) => void;
+  /** Earliest selectable check-in (e.g. a deal's window start). Clamped to
+   *  today so the past is never bookable. Undefined → today. */
+  minDate?: string | null;
+  /** Latest selectable check-out (e.g. a deal's window end). Undefined → no cap
+   *  (open-ended / evergreen). */
+  maxDate?: string | null;
+  /** Longest permitted stay (e.g. a deal's max_nights). Undefined → no cap. */
+  maxNights?: number | null;
 }) {
   const today = todayIso();
-  const thisMonthStart = useMemo(() => monthStartOf(today), [today]);
+  // The effective floor: never before today, and never before an explicit
+  // minDate. The effective ceiling: an explicit maxDate (or none).
+  const floor = minDate && minDate > today ? minDate : today;
+  const ceiling = maxDate ?? null;
+  const thisMonthStart = useMemo(() => monthStartOf(floor), [floor]);
   const [viewMonth, setViewMonth] = useState<Date>(() =>
-    monthStartOf(from || today),
+    monthStartOf(from || floor),
   );
 
   const minStay = Math.max(1, minNights);
@@ -97,14 +112,17 @@ export function CheckoutDateEditor({
   }, [viewMonth]);
 
   function pickDay(iso: string) {
-    if (iso < today) return;
+    if (iso < floor) return;
+    if (ceiling && iso > ceiling) return;
     // No anchor yet, or a full range already chosen, or click before start:
     // (re)start the range from this day.
     if (!from || (from && to) || iso <= from) {
       onChange(iso, "");
       return;
     }
-    // Second click after the anchor closes the range.
+    // Second click after the anchor closes the range — but never longer than the
+    // permitted maximum stay (deals cap max_nights).
+    if (maxNights && nightsBetween(from, iso) > maxNights) return;
     onChange(from, iso);
   }
 
@@ -175,7 +193,7 @@ export function CheckoutDateEditor({
                 return <div key={`blank-${i}`} className="h-9 w-full" />;
               }
               const dayNum = Number(iso.slice(8, 10));
-              const disabled = iso < today;
+              const disabled = iso < floor || (!!ceiling && iso > ceiling);
               const isStart = iso === from;
               const isEnd = iso === to;
               const isEdge = isStart || isEnd;

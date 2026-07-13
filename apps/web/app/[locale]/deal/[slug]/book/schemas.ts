@@ -33,6 +33,28 @@ export const createSpecialBookingSchema = z.object({
   // always bundled server-side regardless of this list.
   selected_addons: z.array(z.string().uuid()).max(20).optional().default([]),
 
+  // Optional party manifest — mirrors the main checkout so a deal booked through
+  // the unified BookingForm keeps its named guests. Each row needs a name; an
+  // email (if given) must be valid, and a named+emailed row becomes its own
+  // contactable guest record (materialised by _materialize_booking_party, which
+  // skips emailless rows). Fully-empty rows are dropped client-side.
+  additional_guests: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1, "Each guest needs a name.").max(120),
+        email: z
+          .string()
+          .trim()
+          .email("Enter a valid email or leave it blank.")
+          .max(160)
+          .optional()
+          .or(z.literal("")),
+        phone: z.string().trim().max(40).optional().or(z.literal("")),
+      }),
+    )
+    .max(50)
+    .optional(),
+
   policy_acknowledged: z.boolean().refine((v) => v === true, {
     message: "You must accept the policies to book.",
   }),

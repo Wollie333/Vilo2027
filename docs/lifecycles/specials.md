@@ -70,6 +70,11 @@ Unique slug is **per host** (`(host_id, slug) WHERE deleted_at IS NULL`).
   deal price and `savings_amount` are each grossed for display (cent-level rounding only).
 
 ## 4. Book a special — `deal/[slug]/book/` ✅ verified
+> **Unified checkout (2026-07-13):** the deal page now renders the **main `BookingForm`** in
+> "deal mode" (`deal?: DealCheckoutContext`) — the same 3-step wizard as a normal stay, with the
+> room/price (and fixed-deal dates) locked, coupons/combos/seasonal/age-extras hidden, and pricing
+> via `priceSpecialStay`. The old bespoke `SpecialBookingForm` is deleted. The deal checkout now
+> also carries the **party manifest** (`additional_guests`). The submit path below is unchanged.
 1. Inline guest account (form), then auth.
 2. Re-load special (admin); guard `status=active` + not deleted + **runtime date guards**
    (`go_live_at`/`book_by`) + **sold-out guard** (`redemptions_used >= quantity`).
