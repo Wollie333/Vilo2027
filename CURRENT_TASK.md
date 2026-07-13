@@ -41,6 +41,25 @@ listing `0b222222-2222-4222-8222-222222222221`). DB truth via `scratchpad/sbenv.
 
 ---
 
+## ▶▶▶ SAVE POINT (2026-07-13 · `b8c52067`) — ROOM-FLOW UI polish (rail step-checks · grouped capacity · non-silent submit).
+
+Founder: "continue enhancing the rooms UI." Three coherent create-data-pattern touch-ups shipped together:
+- **RoomEditor** rail → **green completion check per step** (`stepDone`: details = name+beds+price · photos ≥ 1 ·
+  amenities picked · access filled · review all-done). Reactive both directions.
+- **RoomsTab** capacity card → renamed **"Capacity & stay rules"**, split into two labelled groups (`GroupHeader`):
+  **The space** (bedrooms/bathrooms/max guests) + **Stay length** (min/max nights), each field with a hint.
+- **NewListingForm** → **green check** on Basics at 2/2 + `onInvalid` (empty-submit toast + inline errors, never
+  a silent no-op).
+
+**Verified live** (test host, Karoo Sky `0b222222…`): capacity card renders + "Capacity & stay rules saved" toast;
+room rail checks flip live as a bed is added → removed (ring 80% → 100% "Guest-ready" → 80%, **no DB write** — bed
+never saved); Milkyway Room `0b333333…`; new-listing Basics check flips at 2/2 (ring 100%), empty submit shows
+field errors. `build` + `lint` green (stopped dev server + `rm -rf .next` before build per the gotcha). Pushed to `main`.
+
+**▶ NEXT (rollout audit):** onboarding wizard re-skin · modal group (rooms quick-add · seasonal · banking ·
+managers — coupons are the convert-to-pages template) · media bank multi-select. Queued: add-on `vat_included`
+dead-flag · autosave TTL-prune cron.
+
 ## ▶▶▶ SAVE POINT (2026-07-13 · `537baf49`) — NEW-LISTING page on the create-data pattern (journey step 1).
 
 Founder: "do the same layout for `dashboard/properties/new`." It's a 2-field draft creator (name + category)

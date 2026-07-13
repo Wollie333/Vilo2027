@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-13 — Room-flow UI polish: rail step-checks · grouped capacity card · non-silent new-listing submit.
+
+Three enhancements across the room-creation flow, all on the create-data pattern (`b8c52067`):
+- **RoomEditor** (`rooms/[roomId]/RoomEditor.tsx`) — the left rail now shows a **green completion check** on each
+  finished step (`stepDone`: details = name + beds + a price · photos ≥ 1 · amenities picked · access filled ·
+  review all-done), matching the add-on/special editors. Reactive both ways.
+- **RoomsTab** (`edit/tabs/RoomsTab.tsx`) — the "Rooms & capacity" card is reworked into **"Capacity & stay
+  rules"** split into two labelled groups via a small `GroupHeader` — **The space** (bedrooms/bathrooms/max
+  guests) and **Stay length** (min/max nights) — each field gaining a one-line hint description.
+- **NewListingForm** (`properties/new/NewListingForm.tsx`) — the Basics rail step shows a **green check** once
+  both basics are set, and an `onInvalid` handler makes the CTA **non-silent**: a hit with an incomplete form now
+  surfaces a toast + inline field errors instead of doing nothing.
+
+Verified live (test host, Karoo Sky): capacity card renders + saves ("Capacity & stay rules saved"); room rail
+checks flip live as a bed is added then removed (ring 80% → 100% "Guest-ready" → back to 80%, no DB write);
+new-listing Basics check flips at 2/2 with the ring at 100%, and the empty submit shows errors. build + lint green.
+
 ## 2026-07-13 — New-listing page on the create-data pattern (journey step 1).
 
 "Do the same layout for `dashboard/properties/new`." The 2-field draft creator (name + category) now wears the
