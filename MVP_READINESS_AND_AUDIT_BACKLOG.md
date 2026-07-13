@@ -104,13 +104,14 @@ Audit like the financial sweep: drive every path live (guest + host + admin),
 re-derive every calc, confirm every notification/email/ledger side-effect, cover
 the edge/branch cases, fix what's wrong, and record a `docs/lifecycles/<feature>.md`.
 
-1. ~~**Quotes** (guest + host)~~ ✅ **AUDITED 2026-07-13** — `docs/lifecycles/quotes.md`.
-   Deep pass verified: seasonal pricing engine, `Q-####` numbering, convert-to-booking,
-   RLS, inbox cards. **Fixed:** the `expire-quotes` cron (leaked calendar holds), portal
-   accept pay-token hand-off (no dead-end) + detail parity + Overview stat. **Enriched:**
-   request-a-quote modal (range picker + room dropdown), inbox card (cover + requester's
-   message + suggested/waiting price). ⚠️ Open: guest-side card/portal-pay not re-verified
-   live (mirrors verified host paths); quote-sent email for non-looking-for quotes not built.
+1. ~~**Quotes** (guest + host)~~ ✅ **AUDITED 2026-07-13/14** — `docs/lifecycles/quotes.md`.
+   Deep pass, all live end-to-end. **Critical fix:** `sendQuoteAction` read a non-existent
+   column (`quotes.thread_id`) so EVERY send silently aborted — no quote had ever reached
+   `sent`; now fixed (`conversation_id` + admin client). **Also fixed/built:** `expire-quotes`
+   cron (leaked holds); quote-sent **email** to the guest (new template + event, guest verified
+   receiving it); portal accept pay-token hand-off (no dead-end) + detail parity + Overview stat.
+   **Enriched:** request-a-quote modal (range picker + room dropdown), inbox card (cover +
+   requester's message + suggested/waiting price). Guest-side accept→pay driven live.
 2. **Looking-for** — public post → host quote → guest accept; `fulfilled_via`
    accounting, notifications, the intent-survives-login path.
 3. **Coupons** — creation, validity windows, per-code/per-guest limits, stacking

@@ -182,12 +182,20 @@ flowchart TD
 
 ---
 
-## Verified this pass (2026-07-13)
+## Verified this pass (2026-07-13/14) — all live end-to-end
 - ✅ Numbering, seasonal pricing engine, convert-to-booking, RLS, inbox cards.
+- ✅ **Fixed (critical, pre-existing):** `sendQuoteAction` selected `quotes.thread_id` — a column
+  that does not exist — so the read errored and EVERY send silently aborted (no quote had ever
+  reached `sent`). Now selects `conversation_id`; send does its DB work via the admin client
+  (ownership-gated). **Verified live:** host sends → status `sent`, `blocked_dates` soft-holds laid,
+  `guest_id` linked.
 - ✅ **Fixed:** `expire-quotes` cron (leaked-hold bug) — registered live; validity default reconciled.
-- ✅ **Fixed:** portal accept now returns `pay_token` → "Continue to pay" (no dead-end); portal
-  detail parity (banking via PDF, VAT, accepted-unpaid pay CTA); Overview "Quotes to review" stat.
+- ✅ **Built + verified:** quote-sent **email** to the guest for every (non-looking-for) sent quote —
+  `QuoteSentGuest` template + `quote_sent_guest` event (category `bookings` so the guest email is
+  enabled) + `sendQuoteAction` dispatch (mints the guest via `findOrCreateLeadIdentity`). **Verified
+  live:** the email row queued with the accept link + full payload, and the in-app "Your quote is
+  ready" notification created.
 - ✅ **Enriched:** request-a-quote modal (DateRangePicker + room dropdown + live summary); inbox
   card (cover image, requester's message, suggested-price/waiting).
-- ⚠️ **Not yet verified live:** guest-side inbox card + portal quote pay-CTA (code mirrors the
-  verified host/token paths; build-green). Quote-sent email for non-looking-for quotes: **not built**.
+- ✅ **Guest-side verified live:** portal Quotes list → detail (Download PDF, line items) → **Accept**
+  → "Continue to pay" modal (the `pay_token` hand-off, no dead-end) → `/pay/[token]` pay page.
