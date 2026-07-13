@@ -626,3 +626,55 @@ cap keeps the machine usable and the founder unblocked.
   pairs with the `.next`-corruption gotcha: stop the dev server before `pnpm build`).
 - If two are already up and a task needs another, stop one first — never let the
   count reach three.
+
+---
+
+## Principle #14 — Close the gaps before moving on: finish a task 100%
+
+**Added:** 2026-07-13
+**Status:** Active
+**Founder directive.**
+
+### The principle
+
+**When a gap, loose end, unverified branch, or "TODO later" surfaces while doing
+a task, do not defer it and move on to the next thing.** Surface it, get the
+founder's confirmation, and then **fill/fix it as part of the same task** so the
+task is genuinely 100% complete before the next one starts. There is no "future
+pass" for something that belongs to the task in front of you.
+
+### Why this matters
+
+Deferred gaps quietly become permanent. "I'll verify the guest side later" or
+"the email isn't built yet — noting it for a future pass" leaves the feature
+*almost* done, and almost-done features accumulate into a platform that looks
+finished but isn't. Completing one thing fully — verified end to end, all its
+branches closed — is worth more than starting three and finishing none. It also
+keeps the audit trail honest: a feature marked done is actually done.
+
+### The rules (what must always be true)
+
+1. **A task is not done while it has a known gap in its own scope.** Unverified
+   branches, an un-built sub-path, a "mirrors the verified path" hand-wave — all
+   are part of the task, not a separate one.
+2. **Surface + confirm, then fix — don't silently defer.** When a gap appears,
+   name it to the founder and get a yes; then close it fully. (Confirmation keeps
+   scope honest; it is not permission to skip.)
+3. **One task 100% before the next.** Don't jump to the next feature/audit while
+   the current one has open gaps you introduced or uncovered. Finish, verify,
+   then move.
+4. **This composes with Principle #9 (seen working) and #12 (living lifecycle
+   docs):** "seen working in BOTH surfaces" means every branch, not just the
+   convenient one; a lifecycle doc's `⚠️ not verified` markers are gaps to CLOSE,
+   not a resting state.
+
+### How to apply it
+
+- When you catch yourself writing "noting for a future pass" / "not re-verified"
+  / "mirrors the verified path" — **stop**, list the gap, ask the founder, and
+  close it before continuing.
+- If a gap is genuinely out of the current task's scope (a different feature),
+  it may be spun off — but say so explicitly and get agreement; don't let it hide
+  inside a "done" report.
+- Prefer finishing the task in front of you over breadth. Depth-first, verified,
+  then next.
