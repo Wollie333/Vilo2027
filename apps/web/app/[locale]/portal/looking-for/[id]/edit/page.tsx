@@ -1,14 +1,17 @@
 import { redirect, notFound } from "next/navigation";
-import { ArrowLeft, Search } from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
-import { RequestForm } from "../../_components/RequestForm";
+import { loadFormDraft } from "@/lib/drafts/store";
+import {
+  RequestForm,
+  type RequestEditValues,
+} from "../../_components/RequestForm";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
+
+export const dynamic = "force-dynamic";
 
 export default async function EditRequestPage({ params }: Props) {
   const { id } = await params;
@@ -22,7 +25,6 @@ export default async function EditRequestPage({ params }: Props) {
     redirect(`/login?next=/portal/looking-for/${id}/edit`);
   }
 
-  // Fetch the post
   const { data: post, error } = await supabase
     .from("looking_for_posts")
     .select(
@@ -43,6 +45,8 @@ export default async function EditRequestPage({ params }: Props) {
       budget_per,
       is_urgent,
       is_public,
+      quote_deadline,
+      min_host_rating,
       image_url,
       guest_id
     `,
@@ -59,64 +63,44 @@ export default async function EditRequestPage({ params }: Props) {
     redirect("/portal/looking-for");
   }
 
+  const initial: RequestEditValues = {
+    title: post.title ?? "",
+    description: post.description ?? "",
+    category: (post.category ??
+      "accommodation") as RequestEditValues["category"],
+    checkIn: post.check_in_date ?? "",
+    checkOut: post.check_out_date ?? "",
+    adults: String(post.adults ?? 2),
+    children: String(post.children ?? 0),
+    infants: String(post.infants ?? 0),
+    locationText: post.location_text ?? "",
+    region: post.location_region ?? "",
+    budgetMin: post.budget_min != null ? String(post.budget_min) : "",
+    budgetMax: post.budget_max != null ? String(post.budget_max) : "",
+    budgetPer: (post.budget_per ?? "night") as RequestEditValues["budgetPer"],
+    isUrgent: post.is_urgent ?? false,
+    isPublic: post.is_public ?? true,
+    quoteDeadline: post.quote_deadline
+      ? String(post.quote_deadline).slice(0, 10)
+      : "",
+    minHostRating:
+      post.min_host_rating != null ? String(post.min_host_rating) : "",
+    imageUrl: post.image_url ?? "",
+  };
+
+  const serverDraft = await loadFormDraft(supabase, user.id, {
+    entityType: "looking_for_request",
+    entityId: post.id,
+    scopeId: null,
+  });
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild className="gap-1.5">
-          <Link href={`/portal/looking-for/${id}`}>
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Link>
-        </Button>
-      </div>
-
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-          <Search className="h-6 w-6" />
-        </div>
-        <div>
-          <h1 className="font-display text-xl font-bold text-brand-ink">
-            Edit Request
-          </h1>
-          <p className="mt-1 text-sm text-brand-mute">
-            Update your request details
-          </p>
-        </div>
-      </div>
-
-      <RequestForm
-        mode="edit"
-        userId={user.id}
-        initialData={{
-          id: post.id,
-          title: post.title,
-          description: post.description ?? undefined,
-          category: post.category as
-            | "accommodation"
-            | "experience"
-            | "venue"
-            | "event"
-            | "other",
-          check_in_date: post.check_in_date ?? undefined,
-          check_out_date: post.check_out_date ?? undefined,
-          adults: post.adults,
-          children: post.children ?? 0,
-          infants: post.infants ?? 0,
-          location_text: post.location_text ?? undefined,
-          location_region: post.location_region ?? undefined,
-          budget_min: post.budget_min ?? undefined,
-          budget_max: post.budget_max ?? undefined,
-          budget_per: post.budget_per as
-            | "night"
-            | "total"
-            | "person"
-            | undefined,
-          is_urgent: post.is_urgent ?? false,
-          is_public: post.is_public ?? true,
-          image_url: post.image_url ?? undefined,
-        }}
-      />
-    </div>
+    <RequestForm
+      mode="edit"
+      userId={user.id}
+      postId={post.id}
+      initial={initial}
+      serverDraft={serverDraft}
+    />
   );
 }

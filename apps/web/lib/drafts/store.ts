@@ -16,6 +16,7 @@ export const DRAFT_ENTITY_TYPES = [
   "coupon",
   "booking",
   "quote",
+  "looking_for_request",
 ] as const;
 export type DraftEntityType = (typeof DRAFT_ENTITY_TYPES)[number];
 
