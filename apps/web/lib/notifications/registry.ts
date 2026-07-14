@@ -155,6 +155,18 @@ export type LookingForRefs = {
   check_in_date?: string;
   quote_amount?: string;
   expires_in_days?: number;
+  // Passed through to the QuoteSentGuest email for looking_for_quote_received
+  // (the in-app/push builders ignore these — they render the guest's email).
+  guestFirstName?: string;
+  listingName?: string;
+  hostName?: string;
+  checkIn?: string;
+  checkOut?: string;
+  nights?: number;
+  totalAmount?: string;
+  quoteNumber?: string;
+  validUntil?: string;
+  acceptToken?: string;
 };
 
 export type AffiliateRefs = {

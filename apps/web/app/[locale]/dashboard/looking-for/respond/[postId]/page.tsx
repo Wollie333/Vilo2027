@@ -5,7 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
-import { type QuoteFormListing } from "../../../quotes/QuoteForm";
+import { loadQuoteFormListings } from "../../../quotes/_listings";
 import { LookingForLocked } from "../../_components/LookingForLocked";
 import { RespondFormWrapper } from "../../_components/RespondFormWrapper";
 
@@ -124,48 +124,13 @@ export default async function RespondToPostPage({ params }: Props) {
     redirect(`/dashboard/quotes/${existingResponse.quote_id}`);
   }
 
-  // Fetch host's listings for the QuoteForm
-  const { data: listings } = await supabase
-    .from("properties")
-    .select(
-      `
-      id,
-      name,
-      booking_mode,
-      base_price,
-      cleaning_fee,
-      currency,
-      city,
-      max_guests,
-      allow_children,
-      allow_infants,
-      allow_pets,
-      rooms:rooms(
-        id,
-        name,
-        base_price,
-        cleaning_fee,
-        max_guests,
-        base_occupancy,
-        bed_type,
-        allow_children,
-        allow_infants,
-        allow_pets
-      ),
-      addons:property_addons(
-        id,
-        name,
-        pricing_model,
-        unit_price,
-        currency,
-        min_quantity,
-        max_quantity
-      )
-    `,
-    )
-    .eq("host_id", host.id)
-    .is("deleted_at", null)
-    .eq("is_active", true);
+  // Load the host's listings enriched for the quote builder (cover photo, rooms,
+  // add-ons, blocked nights) via the SAME loader the New/Edit Quote pages use —
+  // the respond flow feeds the identical QuoteForm. The old bespoke query here
+  // referenced columns/relations that don't exist (properties.is_active, a
+  // `rooms` relation that is actually `property_rooms`), so it errored and every
+  // host — even one with a live listing — saw the "profile isn't live" state.
+  const listings = await loadQuoteFormListings(supabase, host.id);
 
   // First-time host whose profile isn't live yet: they have a host row but no
   // active (published) listing, so there's nothing to quote from. Guide them to
@@ -216,68 +181,6 @@ export default async function RespondToPostPage({ params }: Props) {
     .select("id, title, body")
     .eq("host_id", host.id)
     .order("sort_order");
-
-  // Transform listings for QuoteForm
-  const quoteFormListings: QuoteFormListing[] = listings.map((listing) => ({
-    id: listing.id,
-    name: listing.name,
-    booking_mode: listing.booking_mode as
-      | "whole_listing"
-      | "rooms_only"
-      | "flexible",
-    base_price: listing.base_price,
-    cleaning_fee: listing.cleaning_fee,
-    currency: listing.currency ?? "ZAR",
-    city: listing.city,
-    max_guests: listing.max_guests,
-    allowChildren: listing.allow_children,
-    allowInfants: listing.allow_infants,
-    allowPets: listing.allow_pets,
-    rooms: (listing.rooms ?? []).map(
-      (r: {
-        id: string;
-        name: string;
-        base_price: number | null;
-        cleaning_fee: number | null;
-        max_guests: number | null;
-        base_occupancy: number | null;
-        bed_type: string | null;
-        allow_children: boolean;
-        allow_infants: boolean;
-        allow_pets: boolean;
-      }) => ({
-        id: r.id,
-        name: r.name,
-        base_price: r.base_price,
-        cleaning_fee: r.cleaning_fee,
-        max_guests: r.max_guests,
-        base_occupancy: r.base_occupancy,
-        bed_type: r.bed_type,
-        allowChildren: r.allow_children,
-        allowInfants: r.allow_infants,
-        allowPets: r.allow_pets,
-      }),
-    ),
-    addons: (listing.addons ?? []).map(
-      (a: {
-        id: string;
-        name: string;
-        pricing_model: string;
-        unit_price: number;
-        currency: string;
-        min_quantity: number;
-        max_quantity: number | null;
-      }) => ({
-        id: a.id,
-        name: a.name,
-        pricing_model: a.pricing_model,
-        unit_price: a.unit_price,
-        currency: a.currency,
-        min_quantity: a.min_quantity,
-        max_quantity: a.max_quantity,
-      }),
-    ),
-  }));
 
   return (
     <div className="space-y-6">
@@ -340,7 +243,7 @@ export default async function RespondToPostPage({ params }: Props) {
 
       {/* Quote form with pre-filled data and template support */}
       <RespondFormWrapper
-        listings={quoteFormListings}
+        listings={listings}
         initial={{
           guestName: guest?.full_name ?? "",
           guestEmail: guest?.email ?? "",

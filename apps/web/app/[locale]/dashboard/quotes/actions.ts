@@ -657,18 +657,60 @@ export async function sendQuoteAction(
       });
     }
 
-    // Notify the guest about the new quote
-    const { data: postData } = await supabase
-      .from("looking_for_posts")
-      .select("title, guest_id")
-      .eq("id", current.looking_for_post_id)
-      .maybeSingle();
+    // Notify the guest about the new quote — in-app + push AND the same
+    // QuoteSentGuest email the general quote path sends (a Looking-For response
+    // IS a quote). The email fields below are what that template renders; the
+    // `looking_for_quote_received` EMAIL_REGISTRY entry maps back to it.
+    const [{ data: postData }, { data: hostData }, { data: q }] =
+      await Promise.all([
+        supabase
+          .from("looking_for_posts")
+          .select("title, guest_id")
+          .eq("id", current.looking_for_post_id)
+          .maybeSingle(),
+        supabase
+          .from("hosts")
+          .select("display_name")
+          .eq("id", current.host_id)
+          .maybeSingle(),
+        supabase
+          .from("quotes")
+          .select(
+            "guest_name, check_in, check_out, total_amount, currency, quote_number, accept_token, property_id",
+          )
+          .eq("id", quoteId)
+          .maybeSingle(),
+      ]);
 
-    const { data: hostData } = await supabase
-      .from("hosts")
-      .select("display_name")
-      .eq("id", current.host_id)
-      .maybeSingle();
+    let listingName: string | undefined;
+    if (q?.property_id) {
+      const { data: propRow } = await supabase
+        .from("properties")
+        .select("name")
+        .eq("id", q.property_id)
+        .maybeSingle();
+      listingName = propRow?.name ?? undefined;
+    }
+
+    const fmtD = (iso: string | null): string =>
+      iso
+        ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : "—";
+    const nights =
+      q?.check_in && q?.check_out
+        ? Math.max(
+            0,
+            Math.round(
+              (new Date(`${q.check_out}T00:00:00`).getTime() -
+                new Date(`${q.check_in}T00:00:00`).getTime()) /
+                86_400_000,
+            ),
+          )
+        : 1;
 
     if (postData?.guest_id) {
       await dispatchEvent({
@@ -680,6 +722,20 @@ export async function sendQuoteAction(
           quote_id: quoteId,
           post_title: postData.title ?? undefined,
           host_display_name: hostData?.display_name ?? undefined,
+          // Fields the QuoteSentGuest email template renders:
+          guestFirstName: (q?.guest_name ?? "").split(" ")[0] || undefined,
+          listingName: listingName ?? postData.title ?? undefined,
+          hostName: hostData?.display_name ?? undefined,
+          checkIn: fmtD(q?.check_in ?? null),
+          checkOut: fmtD(q?.check_out ?? null),
+          nights,
+          totalAmount: formatMoney(
+            Number(q?.total_amount ?? 0),
+            q?.currency ?? "ZAR",
+          ),
+          quoteNumber: q?.quote_number ?? undefined,
+          validUntil: fmtD(validUntil.toISOString().slice(0, 10)),
+          acceptToken: q?.accept_token ?? undefined,
         },
       });
     }

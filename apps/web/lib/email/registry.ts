@@ -143,6 +143,18 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     subject: (p) =>
       `Your quote for ${str(p.listingName, "your stay")} · ${str(p.quoteNumber, "Q")}`,
   },
+
+  // Looking-For quote → guest. Reuses the same QuoteSentGuest email as the
+  // general quote path (a Looking-For response IS a quote); sendQuoteAction's
+  // looking-for branch enriches the dispatch refs with the fields this template
+  // needs. Without this entry the queued email failed as `no_template` and the
+  // guest was never emailed when a host answered their request.
+  looking_for_quote_received: {
+    Template: QuoteSentGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `Your quote for ${str(p.listingName, "your request")} · ${str(p.quoteNumber, "Q")}`,
+  },
   review_request_guest: {
     Template: ReviewRequestGuest as ComponentType<Record<string, unknown>>,
     recipient: "guest",

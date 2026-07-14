@@ -2,17 +2,35 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-14 · head `d5981f5c`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-14 · Looking-For audit done) — START HERE
 
-**▶▶ NEXT TASK = deep-audit LOOKING-FOR** (the guest "request-to-be-quoted" feature that feeds quotes) per
-`MVP_READINESS_AND_AUDIT_BACKLOG.md` — Quotes & Specials are ✅ audited; Looking-for is next because it's the
-upstream funnel into the quote flow just hardened. Approach as with the quote audit: trace the whole lifecycle
-(public `/looking-for` post → host sees it → host responds with a quote → guest gets the quote), verify each hop
-LIVE on both host + guest sides, close any gap in-task, then write/refresh `docs/lifecycles/looking-for.md`.
-Related memory: `project-looking-for-public-quote` (public page + `QuoteButton` sign-in-to-quote shipped) and
-`feedback-quote-vs-booking-forms-distinct` (the looking-for "respond" form is a DISTINCT purpose — don't
-cross-wire it with the manual-booking / new-quote / request-quote forms). Remaining audits after this: Coupons ·
-Add-ons · Media manager · Reports · Product gating + the guest/host/admin sweep.
+**▶▶ NEXT TASK = deep-audit COUPONS** per `MVP_READINESS_AND_AUDIT_BACKLOG.md` (#3) — Quotes, Specials &
+Looking-for are now ✅ audited. Approach as before: trace creation → validity windows → per-code/per-guest
+limits → stacking with seasonal/specials/add-ons → server-side re-price → ledger + invoice lines; verify LIVE;
+close gaps in-task; write/refresh `docs/lifecycles/coupons.md` (a stub already exists). Remaining after: Add-ons ·
+Media manager · Reports · Product gating + the guest/host/admin sweep.
+
+**✅ JUST CLOSED — LOOKING-FOR deep audit (2026-07-14).** The feature was **dead at three consecutive hops** and
+missing the guest email — all fixed + verified LIVE host→guest end-to-end, `build`+`lint` green. Doc
+`docs/lifecycles/looking-for.md`; memory `project-looking-for-audit`. The bugs: (1) host browse board selected
+`user_profiles.display_name` (no such col → 42703 → every host saw zero requests) → `full_name`; (2) respond page
+queried `properties.is_active` + a `rooms` relation that's really `property_rooms` → every host saw "profile isn't
+live", could never quote → now uses shared `loadQuoteFormListings`; (3) `QuoteForm` never put `lookingForPostId`
+in the submit payload → every sent quote had `looking_for_post_id=null` → no response row / notify / accept-loop →
+payload now carries it; (4) `looking_for_quote_received` had no `EMAIL_REGISTRY` entry (drained `no_template`) →
+registered to `QuoteSentGuest` + enriched dispatch; (5) accept now closes the loop (response `accepted` + post
+`fulfilled`/`vilo_booking`/booking id); (6) `cancelled`/`flagged` absent from status CHECK (guest-cancel + admin
+flag/remove were rejected) → migration `20260714120000`. Minor: quota `=== false` no-op, `updateQuotaAction`
+year-wipe, single-quote mark-viewed. **Open (founder call):** saved-search alert matcher + region-digest/
+expiry-notify drainers are UNBUILT (crons fill `looking_for_region_digest_queue` / `looking_for_expiry_notifications`,
+nothing drains them; `looking_for_new_post_region` / `looking_for_post_expiring` events never dispatched). Email
+delivery unproven locally (no `RESEND_API_KEY`/`EMAIL_WORKER_SECRET`; rides the cloud email worker).
+
+**⚠️ GOTCHAS reconfirmed this session:** `[locale]` in a Grep `glob:` is parsed as a char-class → it silently
+matches nothing; use `path:` for bracketed dirs. `user_profiles` = `full_name` (NOT `display_name`); `properties`
+= `is_published` (NOT `is_active`/`status`); rooms table = `property_rooms` (NOT `rooms`). Server-action + RSC
+page edits need a clean restart (stop preview → `Get-CimInstance node.exe | Stop-Process` → `rm -rf .next` →
+restart) to take effect. `python` is absent on this box — use `node -e` to parse JSON in bash.
 
 **✅ JUST CLOSED — Founder batch 2026-07-14 (all 3 threads):**
 1. **Listing-card 3-dot menu** BUILT + verified + committed `50a13d55` — `ListingCardMenu.tsx` (Edit · View live ·

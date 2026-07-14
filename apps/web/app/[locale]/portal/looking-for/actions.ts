@@ -113,7 +113,14 @@ export async function createRequestAction(input: CreateRequestInput) {
   if (quotaError) {
     console.error("Quota check failed:", quotaError);
     // Continue anyway in pre-MVP (quota enforcement can be lenient)
-  } else if (quotaCheck === false) {
+  } else if (
+    quotaCheck &&
+    typeof quotaCheck === "object" &&
+    (quotaCheck as { allowed?: boolean }).allowed === false
+  ) {
+    // check_guest_post_quota returns JSONB { allowed, remaining_*, limit_hit } —
+    // NOT a bare boolean, so the old `=== false` compare never matched and the
+    // limit was never enforced.
     return {
       success: false,
       error: "You've reached your daily post limit. Try again tomorrow.",

@@ -53,7 +53,7 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
       quote_count,
       created_at,
       expires_at,
-      guest:user_profiles!guest_id(display_name, avatar_url, phone_verified_at, id_verified_at)
+      guest:user_profiles!guest_id(full_name, avatar_url, phone_verified_at, id_verified_at)
     `,
     )
     .eq("status", "active")
@@ -130,7 +130,7 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
   const posts = (data ?? []).map((row) => {
     // Handle the guest relation - can be object or array depending on query
     const guest = row.guest as unknown as {
-      display_name: string | null;
+      full_name: string | null;
       avatar_url: string | null;
       phone_verified_at: string | null;
       id_verified_at: string | null;
@@ -157,7 +157,7 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
       quote_count: row.quote_count,
       created_at: row.created_at,
       expires_at: row.expires_at,
-      guest_name: guest?.display_name ?? null,
+      guest_name: guest?.full_name ?? null,
       guest_avatar: guest?.avatar_url ?? null,
       guest_verification: {
         email_verified: true, // All registered guests have verified email

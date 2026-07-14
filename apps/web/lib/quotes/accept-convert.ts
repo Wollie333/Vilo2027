@@ -29,7 +29,7 @@ export async function acceptAndConvertQuote(
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
       discount_amount, deposit_amount, balance_amount, balance_due_days,
-      converted_booking_id, conversation_id
+      converted_booking_id, conversation_id, looking_for_post_id
     `,
     )
     .eq("id", quoteId)
@@ -183,6 +183,30 @@ export async function acceptAndConvertQuote(
       converted_booking_id: booking.id,
     })
     .eq("id", quoteId);
+
+  // Close the Looking-For loop when this quote answered a guest request: the
+  // response the guest accepted is marked 'accepted', and the post is marked
+  // 'fulfilled' via a Wielo booking so it stops surfacing to other hosts and
+  // collecting further quotes. reopenRequestAction already clears fulfilled_via
+  // + fulfilled_booking_id if the booking is never paid, so fulfilling on accept
+  // (before payment) is consistent with the reopen path. Best-effort — a failure
+  // here must not roll back the booking the guest just created.
+  if (quote.looking_for_post_id) {
+    await admin
+      .from("looking_for_responses")
+      .update({ status: "accepted" })
+      .eq("quote_id", quoteId);
+    await admin
+      .from("looking_for_posts")
+      .update({
+        status: "fulfilled",
+        fulfilled_via: "vilo_booking",
+        fulfilled_booking_id: booking.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", quote.looking_for_post_id)
+      .eq("status", "active");
+  }
 
   // Auto-advance the inbox pipeline so the host's board tracks the deal without
   // manual moves (purely a label — doesn't affect the booking/payment flow), and

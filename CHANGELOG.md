@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-07-14 — Looking-For deep audit — feature was dead at 3 hops; fixed + verified live end-to-end.
+
+Deep lifecycle audit of Looking-For (guest posts a request → host quotes it → guest accepts). Traced and drove
+the whole flow live host→guest on the cloud DB. The feature was **non-functional at three consecutive hops** and
+missing the guest email:
+
+1. **Host browse board dead** — `fetchLookingForPostsAction` selected `user_profiles.display_name` (no such
+   column, PG 42703) → every host saw "No requests yet". Fixed → `full_name`.
+2. **No host could respond** — `respond/[postId]/page.tsx` hand-rolled a listing query on `properties.is_active`
+   (no such column) and a `rooms` relation that is actually `property_rooms` → errored → every host saw "Your
+   profile isn't live yet", could never quote. Replaced with the shared `loadQuoteFormListings` SSOT.
+3. **Quote↔post link dropped** — `QuoteForm` declared `lookingForPostId` but never put it in the submit payload →
+   every sent Looking-For quote had `looking_for_post_id=null` → no response row, no notify, no accept-loop.
+   Fixed → payload carries it.
+4. **Guest quote email never sent** — `looking_for_quote_received` had an `emailTemplate` key but no
+   `EMAIL_REGISTRY` entry → drain dropped it as `no_template`. Registered → `QuoteSentGuest` + enriched dispatch.
+5. **Accept never closed the loop** — `acceptAndConvertQuote` now marks the response `accepted` + the post
+   `fulfilled`/`fulfilled_via='vilo_booking'`/`fulfilled_booking_id`.
+6. **Invalid status writes** — `cancelled`/`flagged` (guest-cancel, admin flag/remove) were absent from the
+   `looking_for_posts.status` CHECK → rejected. Migration `20260714120000` widens it.
+7. Minor: guest post-quota compared JSONB `=== false` (never enforced); `updateQuotaAction` wiped yearly caps
+   every save; single-quote portal view now fires `markQuotesViewedAction` too.
+
+Verified live: board lists the request → respond form loads prefilled (rooms/add-ons/blocked nights) → send
+created Q-0007 linked to the post + response row + `quote_count`=1 + host_quote usage + a `notification_queue`
+email row with the full renderable payload → token-accept flipped post→`fulfilled`, response→`accepted`,
+quote→`accepted`, and created the pending booking. Constraint fix confirmed by DB round-trip (cancelled/flagged
+→ 204). `pnpm build` + `pnpm lint` green. Doc `docs/lifecycles/looking-for.md`. **Open (founder call):**
+saved-search alert matcher + region-digest/expiry-notify drainers are unbuilt (crons fill queues, nothing drains).
+Email delivery itself unproven locally (no `RESEND_API_KEY`/`EMAIL_WORKER_SECRET` — rides the cloud worker).
+
 ## 2026-07-14 — Listing-card 3-dot action menu — Duplicate-as-draft + soft-delete (founder thread #1).
 
 Wired the previously-dead ⋯ button on the host listing cards (`dashboard/properties`) into a real action menu

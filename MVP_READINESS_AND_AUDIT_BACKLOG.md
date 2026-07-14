@@ -38,9 +38,9 @@ partially-refunded, and BK-0038 cancelled + declined refund). Files:
 _(Also done 2026-07-13: channel value `vilo`→`wielo` (migration `20260713100000`)
 for source accuracy; email footer URL → wielo.co.za.)_
 
-**▶ NEXT: the deep in-depth audits below (Looking-for, Coupons, Add-ons, Media
-manager, Reports, Product gating + the guest/host/admin sweep).** Quotes & Specials
-are ✅ audited (`docs/lifecycles/`). Looking-for is a natural next pick (it feeds quotes).
+**▶ NEXT: the deep in-depth audits below (Coupons, Add-ons, Media
+manager, Reports, Product gating + the guest/host/admin sweep).** Quotes, Specials
+& Looking-for are ✅ audited (`docs/lifecycles/`). Coupons is a natural next pick.
 
 ---
 
@@ -112,8 +112,22 @@ the edge/branch cases, fix what's wrong, and record a `docs/lifecycles/<feature>
    receiving it); portal accept pay-token hand-off (no dead-end) + detail parity + Overview stat.
    **Enriched:** request-a-quote modal (range picker + room dropdown), inbox card (cover +
    requester's message + suggested/waiting price). Guest-side accept→pay driven live.
-2. **Looking-for** — public post → host quote → guest accept; `fulfilled_via`
-   accounting, notifications, the intent-survives-login path.
+2. ~~**Looking-for**~~ ✅ **AUDITED 2026-07-14** — `docs/lifecycles/looking-for.md`.
+   Deep pass, driven live host→guest end-to-end. Found the feature **broken at three
+   hops**: host browse board (`user_profiles.display_name` — wrong column, 42703 →
+   every host saw zero requests); host respond page (`properties.is_active` + a `rooms`
+   relation that is `property_rooms` → every host saw "profile isn't live", could never
+   quote → now uses the shared `loadQuoteFormListings`); and the quote↔post link
+   (`QuoteForm` never put `lookingForPostId` in the submit payload → every sent quote
+   had `looking_for_post_id=null` → no response row, no notify, no accept-loop). Also
+   fixed: **missing guest email** (`looking_for_quote_received` had no `EMAIL_REGISTRY`
+   entry → drained as `no_template`; now → `QuoteSentGuest`); **accept never closed the
+   loop** (now sets response `accepted` + post `fulfilled`/`vilo_booking`/booking id);
+   **invalid status writes** (`cancelled`/`flagged` absent from CHECK — migration
+   `20260714120000`). Minor: quota `=== false` no-op, `updateQuotaAction` year-wipe,
+   single-quote mark-viewed. **Open gaps (founder call):** saved-search alert matcher +
+   region-digest/expiry-notify drainers are unbuilt (crons populate queues, nothing
+   drains them).
 3. **Coupons** — creation, validity windows, per-code/per-guest limits, stacking
    with seasonal/specials/add-ons, server-side re-price, ledger + invoice lines.
 4. ~~**Specials (deals)**~~ ✅ **AUDITED 2026-07-13** — `docs/lifecycles/specials.md`.

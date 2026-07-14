@@ -722,6 +722,9 @@ export function QuoteForm({
         balance_due_days: parseInt(balanceDueDays, 10) || 7,
         price_mode: "single" as const,
         notes: notes.trim(),
+        // Carry the Looking-For link so sendQuoteAction can create the response
+        // row + notify the guest. Passed in via initial from the respond flow.
+        looking_for_post_id: initial?.lookingForPostId,
       };
     }
     const addons = [
@@ -773,6 +776,9 @@ export function QuoteForm({
       balance_due_days: parseInt(balanceDueDays, 10) || 7,
       price_mode: "itemised" as const,
       notes: notes.trim(),
+      // Carry the Looking-For link so sendQuoteAction can create the response
+      // row + notify the guest. Passed in via initial from the respond flow.
+      looking_for_post_id: initial?.lookingForPostId,
     };
   }
 

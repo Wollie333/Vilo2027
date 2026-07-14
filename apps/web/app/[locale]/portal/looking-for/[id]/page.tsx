@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import { PostActions } from "./_components/PostActions";
+import { markQuotesViewedAction } from "../actions";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -89,6 +90,12 @@ export default async function PostDetailPage({ params }: Props) {
   if (post.guest_id !== user.id) {
     redirect("/portal/looking-for");
   }
+
+  // Mark any unseen quotes as viewed + notify their hosts (fire-and-forget).
+  // The compare page does this too, but a guest with a single quote never gets
+  // there (the Compare link only shows for >1 quote), so the host's "quote
+  // viewed" notification would otherwise never fire.
+  markQuotesViewedAction(id).catch(() => {});
 
   // Fetch received quotes/responses
   const { data: responses } = await supabase
