@@ -2,52 +2,44 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-14 · head `8f086976`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-14 · head `d5981f5c`) — START HERE
 
-**Last arc = QUOTE FEATURE deep audit — DONE & verified live end-to-end.** Full flow doc
-`docs/lifecycles/quotes.md` (+ `quotes-flow.svg`). Shipped this arc: expire-quotes cron
-(leaked-hold bug); Wielo **date-picker SSOT** `components/ui/date-picker.tsx` (`DatePicker`/`DateRangePicker`,
-rolled across 14 Wielo-branded date fields — see memory `reference-date-picker-ssot`); enriched request-a-quote
-modal; guest-portal pay-from-quote + parity + Overview stat; inbox quote card (cover image + requester's message +
-suggested/waiting price); **quote-sent email to guest** (`QuoteSentGuest` + `quote_sent_guest` event, category
-`bookings`); manual **booking form** merged to one "Stay & price" step with **seasonal `priceStay`** pricing.
-**🔴 CRITICAL fix uncovered:** `sendQuoteAction` selected non-existent column `quotes.thread_id` → EVERY send
-silently aborted (no quote had ever reached `sent`); fixed → `conversation_id` + admin client. All verified LIVE.
+**▶▶ NEXT TASK = deep-audit LOOKING-FOR** (the guest "request-to-be-quoted" feature that feeds quotes) per
+`MVP_READINESS_AND_AUDIT_BACKLOG.md` — Quotes & Specials are ✅ audited; Looking-for is next because it's the
+upstream funnel into the quote flow just hardened. Approach as with the quote audit: trace the whole lifecycle
+(public `/looking-for` post → host sees it → host responds with a quote → guest gets the quote), verify each hop
+LIVE on both host + guest sides, close any gap in-task, then write/refresh `docs/lifecycles/looking-for.md`.
+Related memory: `project-looking-for-public-quote` (public page + `QuoteButton` sign-in-to-quote shipped) and
+`feedback-quote-vs-booking-forms-distinct` (the looking-for "respond" form is a DISTINCT purpose — don't
+cross-wire it with the manual-booking / new-quote / request-quote forms). Remaining audits after this: Coupons ·
+Add-ons · Media manager · Reports · Product gating + the guest/host/admin sweep.
 
-**▶▶ FOUNDER BATCH 2026-07-14 — ALL 3 THREADS CLOSED** (thread 1 built + committed `50a13d55`; threads 2 & 3
-verified working live, no fix needed). Detail below:
-
-1. **Listing card 3-dot action menu — ✅ DONE & verified live.** The grid-card ⋯ now opens `ListingCardMenu.tsx`
-   (Radix dropdown + confirm dialog): **Edit · View live** (published-only) **· Duplicate as draft · Delete**.
-   `duplicateListingAction` deep-clones the property + rooms/photos/amenities/policies/add-ons/seasonal/beds/
-   access/POIs/local-picks into a fresh **unpublished** "… (copy)" draft (old→new room-id remap; photos get their
-   own Storage copy with a reference-copy fallback for seed/external-URL photos; `search_vector`/`location` never
-   written — re-derived by triggers). Delete reuses `softDeleteListingAction` (deleted_at, never hard-delete —
-   §2.1). Verified live end-to-end on Karoo Sky. **NOTE:** the ⋯ menu lives on the GRID card only; the list-view
-   rows are full `<Link>`s with no ⋯ (adding one needs de-anchoring the row — left as a possible follow-up).
-
-2. **Quote-request modal room dropdown — ✅ VERIFIED WORKING, no fix needed (stale report).** Re-checked LIVE on
-   Karoo Sky (flexible, 3 rooms): the "Room (optional)" `<Select>` renders inside the FormModal, opens, lists
-   **The whole place · Milkyway Room · Aloe Suite · Klein Cottage Room**, and selecting "Aloe Suite" updates the
-   request summary to "2 guests · 1 room". No z-index / empty-value / render-behind-dialog problem. The founder's
-   report predated the `3e2073a6` fix (or tested a `whole_listing` listing, which correctly shows no dropdown).
-
-3. **Booking form seasonal pricing (whole-listing path) — ✅ VERIFIED WORKING.** Re-checked LIVE: manual booking
-   → Karoo Sky → **Reserve the whole listing** ON → 20–23 Jul (3 nights) → Price panel shows "Accommodation ·
-   3 nights — Auto-priced from the whole listing" = **R4 080** with the **"Winter Off-Peak (−15%)"** badge
-   (R1 600 → R1 360/night × 3), plus an "Override with a flat rate" link. The auto (non-overridden) figure IS
-   seasonal; the founder most likely saw the **override** link and assumed seasonal was off. No fix needed.
-
-**▶ Then: next deep audit = LOOKING-FOR** (feeds quotes) per `MVP_READINESS_AND_AUDIT_BACKLOG.md` (Quotes &
-Specials ✅ audited). Remaining audits: Coupons · Add-ons · Media manager · Reports · Product gating + the
-guest/host/admin sweep.
+**✅ JUST CLOSED — Founder batch 2026-07-14 (all 3 threads):**
+1. **Listing-card 3-dot menu** BUILT + verified + committed `50a13d55` — `ListingCardMenu.tsx` (Edit · View live ·
+   Duplicate as draft · Delete). `duplicateListingAction` (in `properties/[id]/edit/actions.ts`) deep-clones a
+   listing → unpublished "… (copy)" draft: property row (minus identity/derived/generated/status; `search_vector`
+   + PostGIS `location` never written, re-derived by triggers) + rooms/photos/amenities/policies/add-ons/seasonal/
+   beds/access/POIs/local-picks, with old→new room-id remap and per-room cover-photo re-point. Photos get their
+   OWN Storage `.copy()` with a **reference-copy fallback** for seed/external-URL photos (never lose a photo).
+   Delete = `softDeleteListingAction` (never hard-delete, §2.1). NOTE: ⋯ is on the GRID card only (list rows are
+   full `<Link>`s — adding one needs de-anchoring; possible follow-up).
+2. **Quote-modal room dropdown** — re-verified LIVE, working (lists whole-place + 3 rooms, wires selection). Stale
+   report (pre-`3e2073a6`). No fix.
+3. **Booking whole-listing seasonal** — re-verified LIVE, working (20–23 Jul → "Winter Off-Peak −15%" → R4 080,
+   auto, with opt-in flat-rate override). No fix.
+Docs save point committed `d5981f5c`. (Earlier arc = QUOTE FEATURE deep audit, done + verified — see
+`docs/lifecycles/quotes.md`; the 🔴 `sendQuoteAction` `thread_id`→`conversation_id` send-bug fix is in memory
+`project-quote-audit-complete`.)
 
 **How to work:** verify BOTH builder + live before "done" (Principle #9); close gaps in-task, don't defer
 (Principle #14); ONE task 100% before the next. Max **2 dev servers** (Principle #13 — kill orphans first;
 `preview_stop` LEAVES node workers alive on Windows → `Get-CimInstance node.exe | Stop-Process`). Server-action
-edits DON'T hot-reload — `rm -rf apps/web/.next` + restart. Test host `host@wielotest.com` / `WieloTest123!`
-(Karoo Sky listing `0b222222-2222-4222-8222-222222222221`). DB truth via `scratchpad/sbenv.sh` ($SB/$KEY service
-role); prod SQL via `supabase db query --linked`.
+edits DON'T hot-reload — stop server, `rm -rf apps/web/.next`, restart. **Browser `computer` clicks use SCREENSHOT
+pixel coords (800×666), NOT the read_page viewport (1200×1000)** — take a screenshot first, click those coords.
+Test host `host@wielotest.com` / `WieloTest123!` (Karoo Sky listing `0b222222-2222-4222-8222-222222222221`, slug
+`karoo-sky-guesthouse-prince-albert`, flexible, 3 rooms). Sign-in flow: sign out via portal rail "Sign out", then
+type creds (form_input alone may not register with react-hook-form — click field + type). DB truth via
+`scratchpad/sbenv.sh` ($SB/$KEY service role); prod SQL via `supabase db query --linked`.
 
 ---
 
