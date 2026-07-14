@@ -1,0 +1,135 @@
+<svg viewBox="0 0 900 780" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tt ds" font-family="'Inter',system-ui,sans-serif">
+  <title id="tt">Looking-For lifecycle</title>
+  <desc id="ds">A guest posts an accommodation request; it is listed on the public directory and the host browse board; a host opens the respond page and builds a quote using the shared quote form; sending the quote links a response to the post and notifies the guest by in-app, push and email; the guest compares quotes and accepts one, which auto-creates a pending booking and marks the post fulfilled. Side branches: host bookmark/pass/saved-alert tools, admin flag/remove/reinstate, guest extend/cancel/mark-fulfilled, and cron auto-expiry. Not yet built: saved-search matching and the region-digest and expiring-soon notifications.</desc>
+  <style>
+    :root{
+      --bg:#ffffff; --card:#f6faf8; --ink:#0a1510; --mute:#4a7c6a;
+      --line:#dceae0; --p:#10b981; --psoft:#d1fae5; --amber:#b45309; --ambersoft:#fef3c7; --amberline:#fcd9a5;
+      --gap:#9ca3af; --gapsoft:#f3f4f6; --gapline:#d1d5db;
+    }
+    @media (prefers-color-scheme:dark){
+      :root{ --bg:#0a1510; --card:#12211a; --ink:#eaf5ef; --mute:#8fb6a6;
+        --line:#22352b; --p:#34d399; --psoft:#0f3b2e; --amber:#fbbf24; --ambersoft:#3a2c0e; --amberline:#5c4718;
+        --gap:#9ca3af; --gapsoft:#1b2620; --gapline:#3a4a40; }
+    }
+    .t{ fill:var(--ink); font-weight:700; font-size:13px; }
+    .s{ fill:var(--mute); font-weight:500; font-size:10px; }
+    .lbl{ fill:var(--mute); font-weight:600; font-size:10px; }
+    .actor{ fill:var(--p); font-weight:700; font-size:9px; letter-spacing:.04em; }
+    .actorA{ fill:var(--amber); font-weight:700; font-size:9px; letter-spacing:.04em; }
+    .actorG{ fill:var(--gap); font-weight:700; font-size:9px; letter-spacing:.04em; }
+    .gapt{ fill:var(--ink); font-weight:700; font-size:12px; }
+  </style>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--p)"/></marker>
+    <marker id="aha" markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--amber)"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="780" fill="var(--bg)"/>
+  <text x="30" y="34" class="t" font-size="16">Looking-For lifecycle — request → quote → booking</text>
+
+  <!-- legend -->
+  <rect x="470" y="20" width="12" height="12" rx="3" fill="var(--psoft)" stroke="var(--p)"/>
+  <text x="487" y="30" class="lbl">Path to a booking</text>
+  <rect x="600" y="20" width="12" height="12" rx="3" fill="var(--ambersoft)" stroke="var(--amberline)"/>
+  <text x="617" y="30" class="lbl">Host / admin / guest branch</text>
+  <rect x="780" y="20" width="12" height="12" rx="3" fill="var(--gapsoft)" stroke="var(--gapline)" stroke-dasharray="3 2"/>
+  <text x="797" y="30" class="lbl">Not built yet</text>
+
+  <!-- spine connectors -->
+  <g fill="none" stroke="var(--p)" stroke-width="2">
+    <path d="M215,120 L215,140" marker-end="url(#ah)"/>
+    <path d="M215,196 L215,216" marker-end="url(#ah)"/>
+    <path d="M215,272 L215,292" marker-end="url(#ah)"/>
+    <path d="M215,348 L215,368" marker-end="url(#ah)"/>
+    <path d="M215,424 L215,444" marker-end="url(#ah)"/>
+    <path d="M215,500 L215,520" marker-end="url(#ah)"/>
+    <path d="M215,576 L215,596" marker-end="url(#ah)"/>
+  </g>
+
+  <!-- S1 -->
+  <rect x="90" y="64" width="250" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="104" y="82" class="actor">GUEST</text>
+  <text x="104" y="99" class="t">Post a request</text>
+  <text x="104" y="113" class="s">createRequestAction · looking_for_posts (active)</text>
+
+  <!-- S2 -->
+  <rect x="90" y="140" width="250" height="56" rx="12" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+  <text x="104" y="158" class="actorA">SYSTEM</text>
+  <text x="104" y="175" class="t">Listed: public directory + host board</text>
+  <text x="104" y="189" class="s">/looking-for · fetchLookingForPostsAction</text>
+
+  <!-- S3 -->
+  <rect x="90" y="216" width="250" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="104" y="234" class="actor">HOST</text>
+  <text x="104" y="251" class="t">Open respond → build quote</text>
+  <text x="104" y="265" class="s">respond/[postId] · loadQuoteFormListings</text>
+
+  <!-- S4 -->
+  <rect x="90" y="292" width="250" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="104" y="310" class="actor">HOST</text>
+  <text x="104" y="327" class="t">Send the quote</text>
+  <text x="104" y="341" class="s">QuoteForm → createQuote → sendQuoteAction</text>
+
+  <!-- S5 -->
+  <rect x="90" y="368" width="250" height="56" rx="12" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+  <text x="104" y="386" class="actorA">SYSTEM</text>
+  <text x="104" y="403" class="t">Response linked · guest notified</text>
+  <text x="104" y="417" class="s">looking_for_responses · in-app+push+email</text>
+
+  <!-- S6 -->
+  <rect x="90" y="444" width="250" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="104" y="462" class="actor">GUEST</text>
+  <text x="104" y="479" class="t">Compare &amp; view quotes</text>
+  <text x="104" y="493" class="s">[id]/quotes · markQuotesViewed → host ping</text>
+
+  <!-- S7 -->
+  <rect x="90" y="520" width="250" height="56" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="104" y="538" class="actor">GUEST</text>
+  <text x="104" y="555" class="t">Accept a quote</text>
+  <text x="104" y="569" class="s">acceptAndConvertQuote (portal or /q token)</text>
+
+  <!-- S8 -->
+  <rect x="90" y="596" width="250" height="60" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="2"/>
+  <text x="104" y="614" class="actorA">SYSTEM</text>
+  <text x="104" y="631" class="t">Post fulfilled → booking created</text>
+  <text x="104" y="645" class="s">status=fulfilled · vilo_booking → pay → confirm</text>
+
+  <!-- branch connectors -->
+  <g fill="none" stroke="var(--amber)" stroke-width="1.5">
+    <path d="M340,168 L470,168" marker-end="url(#aha)"/>
+    <path d="M340,244 L470,244" marker-end="url(#aha)"/>
+    <path d="M340,472 L470,472" marker-end="url(#aha)"/>
+    <path d="M340,624 L470,624" marker-end="url(#aha)"/>
+  </g>
+
+  <!-- B: host tools -->
+  <rect x="470" y="142" width="360" height="52" rx="12" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
+  <text x="484" y="160" class="actorA">HOST TOOLS</text>
+  <text x="484" y="177" class="t">Bookmark · Pass ("not a fit") · Saved alert*</text>
+  <text x="484" y="189" class="s">toggleBookmark · passOnPost · createAlert</text>
+
+  <!-- B: admin -->
+  <rect x="470" y="218" width="360" height="52" rx="12" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
+  <text x="484" y="236" class="actorA">ADMIN</text>
+  <text x="484" y="253" class="t">Flag · Remove · Reinstate · Edit quotas</text>
+  <text x="484" y="265" class="s">flagged / cancelled ⇄ active</text>
+
+  <!-- B: guest post actions -->
+  <rect x="470" y="446" width="360" height="52" rx="12" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
+  <text x="484" y="464" class="actorA">GUEST · MANAGE POST</text>
+  <text x="484" y="481" class="t">Extend +7d · Cancel · Mark fulfilled (OTA/direct)</text>
+  <text x="484" y="493" class="s">extend · cancel · markFulfilled · reopen</text>
+
+  <!-- B: cron -->
+  <rect x="470" y="598" width="360" height="52" rx="12" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
+  <text x="484" y="616" class="actorA">CRON</text>
+  <text x="484" y="633" class="t">Auto-expire past-window posts → expired</text>
+  <text x="484" y="645" class="s">looking_for_auto_expire (hourly)</text>
+
+  <!-- gaps banner -->
+  <rect x="90" y="686" width="740" height="66" rx="12" fill="var(--gapsoft)" stroke="var(--gapline)" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="106" y="706" class="actorG">NOT BUILT YET  ( * )</text>
+  <text x="106" y="724" class="gapt">Saved-search matcher · "new request in your area" · "request expiring soon"</text>
+  <text x="106" y="740" class="s">Crons fill looking_for_region_digest_queue / _expiry_notifications, but nothing drains them and the two events are never dispatched. Alerts are CRUD-only (no matching engine).</text>
+</svg>
