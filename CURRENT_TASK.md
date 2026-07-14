@@ -14,7 +14,8 @@ suggested/waiting price); **quote-sent email to guest** (`QuoteSentGuest` + `quo
 **🔴 CRITICAL fix uncovered:** `sendQuoteAction` selected non-existent column `quotes.thread_id` → EVERY send
 silently aborted (no quote had ever reached `sent`); fixed → `conversation_id` + admin client. All verified LIVE.
 
-**▶▶ OPEN THREADS for THIS/NEXT session (founder batch 2026-07-14):**
+**▶▶ FOUNDER BATCH 2026-07-14 — ALL 3 THREADS CLOSED** (thread 1 built + committed `50a13d55`; threads 2 & 3
+verified working live, no fix needed). Detail below:
 
 1. **Listing card 3-dot action menu — ✅ DONE & verified live.** The grid-card ⋯ now opens `ListingCardMenu.tsx`
    (Radix dropdown + confirm dialog): **Edit · View live** (published-only) **· Duplicate as draft · Delete**.
@@ -25,19 +26,17 @@ silently aborted (no quote had ever reached `sent`); fixed → `conversation_id`
    §2.1). Verified live end-to-end on Karoo Sky. **NOTE:** the ⋯ menu lives on the GRID card only; the list-view
    rows are full `<Link>`s with no ⋯ (adding one needs de-anchoring the row — left as a possible follow-up).
 
-2. **Quote-request modal room dropdown — REPORTED MISSING, needs live re-verify + fix.** Code IS present +
-   correct: `property/[slug]/RequestQuoteButton.tsx` renders a shadcn `<Select>` for the room when
-   `roomsPickable = bookingMode !== "whole_listing" && rooms.length > 0` (commit `3e2073a6`). FormModal is a
-   standard Radix Dialog so a Radix Select should work inside it (NOT the custom-portal pointer-events issue the
-   date picker had). Hypotheses to check LIVE: (a) the tested listing is `whole_listing` (→ no dropdown by design);
-   (b) Select content z-index/render-behind-dialog; (c) Radix Select empty-string `value` quirk. Open the modal on
-   Karoo Sky (flexible, 3 rooms) and watch — do NOT ship a blind fix (Principle #9).
+2. **Quote-request modal room dropdown — ✅ VERIFIED WORKING, no fix needed (stale report).** Re-checked LIVE on
+   Karoo Sky (flexible, 3 rooms): the "Room (optional)" `<Select>` renders inside the FormModal, opens, lists
+   **The whole place · Milkyway Room · Aloe Suite · Klein Cottage Room**, and selecting "Aloe Suite" updates the
+   request summary to "2 guests · 1 room". No z-index / empty-value / render-behind-dialog problem. The founder's
+   report predated the `3e2073a6` fix (or tested a `whole_listing` listing, which correctly shows no dropdown).
 
-3. **Booking form seasonal pricing — DONE + verified, re-confirm if founder still sees an issue.** `4bf64989`
-   already wires the manual booking base to `priceStay` (room + date range + seasonal); verified live (Milkyway
-   18–21 Aug → "Winter Off-Peak (−15%)" → R3 060, not flat R1 200×3). The founder re-raised it — likely saw the
-   **override toggle** (flat "Nightly rate (override)") and thought seasonal was off, OR the **whole-listing** path.
-   Re-verify the whole-listing base path + that the auto (non-overridden) figure is seasonal.
+3. **Booking form seasonal pricing (whole-listing path) — ✅ VERIFIED WORKING.** Re-checked LIVE: manual booking
+   → Karoo Sky → **Reserve the whole listing** ON → 20–23 Jul (3 nights) → Price panel shows "Accommodation ·
+   3 nights — Auto-priced from the whole listing" = **R4 080** with the **"Winter Off-Peak (−15%)"** badge
+   (R1 600 → R1 360/night × 3), plus an "Override with a flat rate" link. The auto (non-overridden) figure IS
+   seasonal; the founder most likely saw the **override** link and assumed seasonal was off. No fix needed.
 
 **▶ Then: next deep audit = LOOKING-FOR** (feeds quotes) per `MVP_READINESS_AND_AUDIT_BACKLOG.md` (Quotes &
 Specials ✅ audited). Remaining audits: Coupons · Add-ons · Media manager · Reports · Product gating + the

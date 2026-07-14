@@ -24,6 +24,11 @@ Wired the previously-dead ⋯ button on the host listing cards (`dashboard/prope
   draft with hero photo, all child rows cloned (photos 4→4 with room-id remapped to the new rooms, rooms 3, amen
   4, policies 4, add-ons 3, seasonal 3), slug auto-generated, `location` recomputed; delete → confirm dialog →
   row soft-deleted (`deleted_at` set, `is_published` false). `pnpm build` + `pnpm lint` green.
+- **Founder threads #2 & #3 re-verified live — both working, no fix needed** (closing the batch): the
+  request-a-quote modal's **room dropdown** renders + lists "The whole place" + all 3 rooms on Karoo Sky
+  (flexible) and wires selection into the summary — the earlier "missing" report predated `3e2073a6`; and the
+  manual booking **whole-listing** base auto-applies **seasonal** pricing (20–23 Jul → "Winter Off-Peak (−15%)"
+  → R4 080, with an optional flat-rate override) — the auto figure is seasonal, the override link is opt-in.
 
 ## 2026-07-14 — QUOTE FEATURE deep audit (end-to-end) + Wielo date-picker SSOT + booking-form seasonal pricing.
 
