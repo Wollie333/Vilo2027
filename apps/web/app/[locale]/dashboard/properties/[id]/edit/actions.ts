@@ -604,6 +604,335 @@ export async function softDeleteListingAction(
   return { ok: true };
 }
 
+// Derive the file extension from a storage path so the cloned copy keeps it.
+function extOf(path: string): string {
+  const m = /\.([a-z0-9]+)$/i.exec(path);
+  return (m?.[1] ?? "jpg").toLowerCase();
+}
+
+/**
+ * Duplicate a listing into a fresh DRAFT owned by the same host. Clones the
+ * property row plus every piece of editable content — rooms, photos (as real
+ * copied Storage objects under the new listing's folder, so deleting one copy
+ * never touches the other's files), amenities, policies, add-ons, seasonal
+ * pricing, beds, guest-access, points of interest and local picks. The copy is
+ * always unpublished (`is_published=false`, no `published_at`), gets a new
+ * unique slug (via the insert trigger), and carries none of the original's
+ * derived stats (ratings / booking counts / featured review). Never hard-
+ * deletes anything (AGENT_RULES.md §2.1). Returns the new listing's id.
+ */
+export async function duplicateListingAction(
+  listingId: string,
+): Promise<ActionResult<{ id: string; name: string }>> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = own.db;
+
+  const { data: src } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("id", listingId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!src) return { ok: false, error: "Listing not found." };
+
+  // Copy every column EXCEPT identity, derived, generated and status fields.
+  // `search_vector` is GENERATED ALWAYS and `location` is a PostGIS geometry —
+  // both must never be written back.
+  const carry: Record<string, unknown> = {
+    ...(src as Record<string, unknown>),
+  };
+  for (const k of [
+    "id",
+    "created_at",
+    "updated_at",
+    "slug",
+    "search_vector",
+    "location",
+    "published_at",
+    "deleted_at",
+    "avg_rating",
+    "total_reviews",
+    "total_bookings",
+    "is_featured",
+    "is_suspended",
+    "featured_review_id",
+  ]) {
+    delete carry[k];
+  }
+
+  const { data: created, error: insErr } = await supabase
+    .from("properties")
+    .insert({
+      ...carry,
+      name: `${src.name} (copy)`,
+      is_published: false,
+      is_featured: false,
+      is_suspended: false,
+    } as never)
+    .select("id, name")
+    .single();
+  if (insErr || !created) {
+    return { ok: false, error: "Could not duplicate the listing. Try again." };
+  }
+  const newId = created.id;
+
+  // ── Rooms (old id → new id map; remember each room's featured photo) ──
+  const roomMap = new Map<string, string>();
+  const roomFeatured = new Map<string, string>(); // newRoomId → old featured photo id
+  const { data: rooms } = await supabase
+    .from("property_rooms")
+    .select("*")
+    .eq("property_id", listingId)
+    .is("deleted_at", null);
+  for (const r of rooms ?? []) {
+    const roomCarry: Record<string, unknown> = {
+      ...(r as Record<string, unknown>),
+    };
+    const oldRoomId = roomCarry.id as string;
+    const featuredPhotoId = roomCarry.featured_photo_id as string | null;
+    for (const k of [
+      "id",
+      "created_at",
+      "updated_at",
+      "featured_photo_id",
+      "property_id",
+    ]) {
+      delete roomCarry[k];
+    }
+    const { data: newRoom } = await supabase
+      .from("property_rooms")
+      .insert({ ...roomCarry, property_id: newId } as never)
+      .select("id")
+      .single();
+    if (newRoom) {
+      roomMap.set(oldRoomId, newRoom.id);
+      if (featuredPhotoId) roomFeatured.set(newRoom.id, featuredPhotoId);
+    }
+  }
+
+  const mapRoom = (roomId: string | null): string | null =>
+    roomId ? (roomMap.get(roomId) ?? null) : null;
+
+  // ── Photos — copy the real Storage object so the two listings never share
+  // files, then insert the row pointing at the new path. ──
+  const admin = createAdminClient();
+  const photoMap = new Map<string, string>(); // old photo id → new photo id
+  const { data: photos } = await supabase
+    .from("property_photos")
+    .select("id, storage_path, url, sort_order, room_id, caption")
+    .eq("property_id", listingId)
+    .order("sort_order", { ascending: true });
+  for (const p of photos ?? []) {
+    // Give the copy its own Storage object so deleting one listing's photo
+    // never touches the other's file. If the source object can't be copied
+    // (e.g. a seed/imported row whose `url` points at an external host and has
+    // no real object in the bucket), fall back to a reference copy of the row
+    // so the duplicate never silently loses a photo.
+    const newPath = `${newId}/${crypto.randomUUID()}.${extOf(p.storage_path)}`;
+    const { error: copyErr } = await admin.storage
+      .from("listing-photos")
+      .copy(p.storage_path, newPath);
+    const insertRow = copyErr
+      ? { storage_path: p.storage_path, url: p.url }
+      : {
+          storage_path: newPath,
+          url: admin.storage.from("listing-photos").getPublicUrl(newPath).data
+            .publicUrl,
+        };
+    const { data: newPhoto } = await supabase
+      .from("property_photos")
+      .insert({
+        property_id: newId,
+        ...insertRow,
+        sort_order: p.sort_order,
+        room_id: mapRoom(p.room_id),
+        caption: p.caption,
+      })
+      .select("id")
+      .single();
+    if (newPhoto) photoMap.set(p.id, newPhoto.id);
+  }
+
+  // Re-point each cloned room at its cloned cover photo.
+  for (const [newRoomId, oldPhotoId] of roomFeatured) {
+    const mapped = photoMap.get(oldPhotoId);
+    if (mapped) {
+      await supabase
+        .from("property_rooms")
+        .update({ featured_photo_id: mapped })
+        .eq("id", newRoomId);
+    }
+  }
+
+  // ── Amenities ──
+  const { data: amenities } = await supabase
+    .from("property_amenities")
+    .select("amenity_key, amenity_label, catalog_id, room_id")
+    .eq("property_id", listingId);
+  if (amenities?.length) {
+    await supabase.from("property_amenities").insert(
+      amenities.map((a) => ({
+        property_id: newId,
+        amenity_key: a.amenity_key,
+        amenity_label: a.amenity_label,
+        catalog_id: a.catalog_id,
+        room_id: mapRoom(a.room_id),
+      })),
+    );
+  }
+
+  // ── Policies (shared policy_id, re-attached to the copy) ──
+  const { data: policies } = await supabase
+    .from("property_policies")
+    .select("policy_id, policy_type, room_id")
+    .eq("property_id", listingId);
+  if (policies?.length) {
+    await supabase.from("property_policies").insert(
+      policies.map((p) => ({
+        property_id: newId,
+        policy_id: p.policy_id,
+        policy_type: p.policy_type,
+        room_id: mapRoom(p.room_id),
+      })),
+    );
+  }
+
+  // ── Add-ons (shared addon_id, price overrides preserved) ──
+  const { data: addons } = await supabase
+    .from("property_addons")
+    .select("addon_id, room_id, unit_price_override")
+    .eq("property_id", listingId);
+  if (addons?.length) {
+    await supabase.from("property_addons").insert(
+      addons.map((a) => ({
+        property_id: newId,
+        addon_id: a.addon_id,
+        room_id: mapRoom(a.room_id),
+        unit_price_override: a.unit_price_override,
+      })),
+    );
+  }
+
+  // ── Seasonal pricing ──
+  const { data: seasons } = await supabase
+    .from("property_seasonal_pricing")
+    .select(
+      "label, start_date, end_date, adjustment_type, adjustment_value, price, min_nights, priority, is_active, currency, room_id",
+    )
+    .eq("property_id", listingId);
+  if (seasons?.length) {
+    await supabase.from("property_seasonal_pricing").insert(
+      seasons.map((s) => ({
+        property_id: newId,
+        label: s.label,
+        start_date: s.start_date,
+        end_date: s.end_date,
+        adjustment_type: s.adjustment_type,
+        adjustment_value: s.adjustment_value,
+        price: s.price,
+        min_nights: s.min_nights,
+        priority: s.priority,
+        is_active: s.is_active,
+        currency: s.currency,
+        room_id: mapRoom(s.room_id),
+      })),
+    );
+  }
+
+  // ── Room beds ──
+  const { data: beds } = await supabase
+    .from("room_beds")
+    .select("room_id, bed_kind, quantity, sleeps, sort_order")
+    .in(
+      "room_id",
+      [...roomMap.keys()].length ? [...roomMap.keys()] : ["_none"],
+    );
+  if (beds?.length) {
+    const bedRows = beds
+      .map((b) => {
+        const nr = roomMap.get(b.room_id);
+        return nr
+          ? {
+              room_id: nr,
+              bed_kind: b.bed_kind,
+              quantity: b.quantity,
+              sleeps: b.sleeps,
+              sort_order: b.sort_order,
+            }
+          : null;
+      })
+      .filter(Boolean) as Array<{
+      room_id: string;
+      bed_kind: string;
+      quantity: number;
+      sleeps: number;
+      sort_order: number;
+    }>;
+    if (bedRows.length) await supabase.from("room_beds").insert(bedRows);
+  }
+
+  // ── Listing-wide guest access ──
+  const { data: access } = await supabase
+    .from("property_access")
+    .select(
+      "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password, send_lead_minutes",
+    )
+    .eq("property_id", listingId)
+    .maybeSingle();
+  if (access) {
+    await supabase
+      .from("property_access")
+      .insert({ property_id: newId, ...access });
+  }
+
+  // ── Per-room guest access ──
+  const { data: roomAccess } = await supabase
+    .from("property_room_access")
+    .select(
+      "room_id, check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
+    )
+    .in(
+      "room_id",
+      [...roomMap.keys()].length ? [...roomMap.keys()] : ["_none"],
+    );
+  for (const ra of roomAccess ?? []) {
+    const nr = roomMap.get(ra.room_id);
+    if (!nr) continue;
+    const raCarry: Record<string, unknown> = { ...ra };
+    delete raCarry.room_id;
+    await supabase
+      .from("property_room_access")
+      .insert({ room_id: nr, ...raCarry } as never);
+  }
+
+  // ── Points of interest + local picks ──
+  const { data: pois } = await supabase
+    .from("property_points_of_interest")
+    .select("category, name, travel_time, sort_order")
+    .eq("property_id", listingId);
+  if (pois?.length) {
+    await supabase
+      .from("property_points_of_interest")
+      .insert(pois.map((p) => ({ property_id: newId, ...p })));
+  }
+
+  const { data: picks } = await supabase
+    .from("property_local_picks")
+    .select("category, title, blurb, distance_label, image_path, sort_order")
+    .eq("property_id", listingId);
+  if (picks?.length) {
+    await supabase
+      .from("property_local_picks")
+      .insert(picks.map((p) => ({ property_id: newId, ...p })));
+  }
+
+  revalidatePath("/dashboard/properties");
+  revalidatePath("/dashboard");
+  return { ok: true, data: { id: newId, name: created.name } };
+}
+
 export async function togglePublishAction(
   listingId: string,
   publish: boolean,

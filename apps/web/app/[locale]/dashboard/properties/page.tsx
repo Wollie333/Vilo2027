@@ -12,7 +12,6 @@ import {
   LayoutGrid,
   List as ListIcon,
   MapPin,
-  MoreVertical,
   Plus,
   RefreshCw,
   Search,
@@ -26,6 +25,8 @@ import { Link } from "@/i18n/navigation";
 
 import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
+
+import { ListingCardMenu } from "./ListingCardMenu";
 
 import {
   OCCUPIED_STATUSES,
@@ -867,12 +868,12 @@ function ListingCard({ l, isSpotlight }: { l: Derived; isSpotlight: boolean }) {
           </span>
         ) : null}
 
-        <button
-          type="button"
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-brand-ink shadow-sm backdrop-blur hover:bg-white"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
+        <ListingCardMenu
+          listingId={l.id}
+          listingName={l.name}
+          slug={l.slug}
+          isPublished={l.status === "published"}
+        />
 
         {l.status === "draft" ? (
           <div className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-pill bg-status-pending px-2 py-0.5 text-[10px] font-bold text-white">

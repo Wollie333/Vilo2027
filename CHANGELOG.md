@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-14 — Listing-card 3-dot action menu — Duplicate-as-draft + soft-delete (founder thread #1).
+
+Wired the previously-dead ⋯ button on the host listing cards (`dashboard/properties`) into a real action menu
+(`ListingCardMenu.tsx`, Radix dropdown + confirm dialog):
+- **Edit** · **View live** (published-only) · **Duplicate as draft** · **Delete** (red, confirmed).
+- **`duplicateListingAction`** — deep-clones a listing into a fresh **unpublished** draft owned by the same host:
+  the property row (minus identity / derived / generated / status columns — `search_vector` GENERATED and the
+  PostGIS `location` are never written; both re-derive via triggers) named "… (copy)", plus every child table —
+  rooms, photos, amenities, policies, add-ons, seasonal pricing, room beds, listing + per-room guest access, POIs
+  and local picks. Old→new **room-id remap** threads through photos/amenities/policies/add-ons/seasonal/beds/
+  access, and each room's cover photo is re-pointed. Photos get their **own** Storage object (`.copy()`) so
+  deleting one listing's photo never touches the other's file; falls back to a reference copy when the source has
+  no real bucket object (seed/imported rows whose `url` is external), so a duplicate never silently loses a photo.
+- **Delete** reuses the existing owner-scoped `softDeleteListingAction` (sets `deleted_at`, unpublishes; blocked
+  while active bookings exist) — never hard-deletes a listing (AGENT_RULES §2.1).
+- **Verified live** (test host, Karoo Sky): menu renders + drafts omit "View live"; duplicate → new 5/5-ready
+  draft with hero photo, all child rows cloned (photos 4→4 with room-id remapped to the new rooms, rooms 3, amen
+  4, policies 4, add-ons 3, seasonal 3), slug auto-generated, `location` recomputed; delete → confirm dialog →
+  row soft-deleted (`deleted_at` set, `is_published` false). `pnpm build` + `pnpm lint` green.
+
 ## 2026-07-14 — QUOTE FEATURE deep audit (end-to-end) + Wielo date-picker SSOT + booking-form seasonal pricing.
 
 The full quote lifecycle, audited and verified live (`docs/lifecycles/quotes.md` + `quotes-flow.svg`):

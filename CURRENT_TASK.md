@@ -16,11 +16,14 @@ silently aborted (no quote had ever reached `sent`); fixed → `conversation_id`
 
 **▶▶ OPEN THREADS for THIS/NEXT session (founder batch 2026-07-14):**
 
-1. **Listing card 3-dot action menu — NOT STARTED.** On the host listings cards (`dashboard/properties` — the
-   grid/list `PropertyCard`), the 3-dots (⋯) icon should open an action modal/menu with **(a) Duplicate → save as
-   draft** and **(b) Delete from the system**. Delete = soft-delete (`deleted_at`, NEVER hard-delete listings —
-   AGENT_RULES §2.1). Duplicate = clone the listing row + its rooms/photos/amenities/policies into a new `draft`
-   listing (new id, name "… (copy)"). Find the card + its existing menu first; wire a server action for each.
+1. **Listing card 3-dot action menu — ✅ DONE & verified live.** The grid-card ⋯ now opens `ListingCardMenu.tsx`
+   (Radix dropdown + confirm dialog): **Edit · View live** (published-only) **· Duplicate as draft · Delete**.
+   `duplicateListingAction` deep-clones the property + rooms/photos/amenities/policies/add-ons/seasonal/beds/
+   access/POIs/local-picks into a fresh **unpublished** "… (copy)" draft (old→new room-id remap; photos get their
+   own Storage copy with a reference-copy fallback for seed/external-URL photos; `search_vector`/`location` never
+   written — re-derived by triggers). Delete reuses `softDeleteListingAction` (deleted_at, never hard-delete —
+   §2.1). Verified live end-to-end on Karoo Sky. **NOTE:** the ⋯ menu lives on the GRID card only; the list-view
+   rows are full `<Link>`s with no ⋯ (adding one needs de-anchoring the row — left as a possible follow-up).
 
 2. **Quote-request modal room dropdown — REPORTED MISSING, needs live re-verify + fix.** Code IS present +
    correct: `property/[slug]/RequestQuoteButton.tsx` renders a shadcn `<Select>` for the room when
