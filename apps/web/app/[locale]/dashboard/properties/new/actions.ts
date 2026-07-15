@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { assertFullHost } from "@/lib/host/current";
 
 import { newListingSchema, type NewListingInput } from "./schemas";
 
@@ -17,32 +18,18 @@ export async function createListingAction(
   }
   const d = parsed.data;
 
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { ok: false, error: "Sign in to add a listing." };
-  }
+  // Full-host-only: a quotes-only / platform-blocked account is rejected
+  // server-side (the sidebar lock is only UX).
+  const h = await assertFullHost();
+  if (!h.ok) return h;
 
-  // Need the host id to attribute the listing to.
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) {
-    return {
-      ok: false,
-      error: "Finish your host profile setup first.",
-    };
-  }
+  const supabase = createServerClient();
 
   // host_manage_own_listings RLS lets the user-bound client insert.
   const { data: listing, error } = await supabase
     .from("properties")
     .insert({
-      host_id: host.id,
+      host_id: h.hostId,
       property_type: "accommodation",
       category_id: d.category_id,
       accommodation_type: d.accommodation_type ?? null,

@@ -11,8 +11,14 @@ sign-in link returned), shapes the substrate per account type (guest / host / qu
 account_kind), rejects duplicate/soft-deleted emails, audits `user.create` with the new user id, then redirects to
 the record where the EXISTING sub/product controls assign a plan. **Verified live** (DB rows + audit + record page +
 magic-link login into the scoped quotes-only shell). Build + lint + tsc all green.
-**⏳ STILL OPEN (needs founder pricing input):** seed the **Wielo Quotes membership product** (name / price /
-credit_quantity) via admin ProductEditor so it can be assigned from the record. Assign-to-existing-user already works.
+**✅ Wielo Quotes product SEEDED + assign loop verified** (founder: R99/mo, 5 quote credits/mo). Activating it on the
+quote-only user grants exactly 5 credits (wallet + ledger confirmed). Full loop live-verified.
+
+**▶▶ NOW: deep hardening sweep of the quote system** (founder: "thorough sweep from all angles — host, guest, and the
+new scoped type; harden + super-integrate"). Running as a multi-agent workflow (9 finders × 2-lens adversarial verify)
+across access-gating (server-side enforcement of quote_only), credits accounting, quote lifecycle, upload security,
+guest isolation, admin create/assign, and RLS. Prime suspect: QuotesOnlyGuard is CLIENT-side only + a quote_only
+account is a real host row → verify host-only mutations are blocked SERVER-SIDE. Fix + live-verify findings.
 
 ---
 

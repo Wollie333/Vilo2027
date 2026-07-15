@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { ChevronDown, Loader2, Plus } from "lucide-react";
+import { ChevronDown, Loader2, Lock, Plus } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
 import {
@@ -38,6 +38,8 @@ export type GmailNavItem = {
   badge?: { text: string; tone?: "pro" | "alert" | "count" };
   match?: "exact" | "prefix";
   onClick?: () => void;
+  /** Greyed + lock icon; still a link (navigates to the page's upgrade lock). */
+  locked?: boolean;
 };
 
 export type GmailNavSection = {
@@ -78,18 +80,23 @@ function NavRow({
   const { pendingHref, navigate } = useContext(NavLoadingContext);
   const active = itemActive(pathname, item.href, item.match);
   const loading = item.href ? pendingHref === item.href : false;
+  const locked = !!item.locked;
   const Icon = item.icon;
 
   const base = collapsed
     ? "mx-auto mt-0.5 flex h-12 w-12 items-center justify-center rounded-full"
     : "mr-2 flex h-[38px] items-center rounded-r-full pl-6 pr-4";
 
-  // Loading state gets the active highlight + a subtle pulse
-  const tone = loading
-    ? "bg-brand-accent font-bold text-brand-secondary"
-    : active
+  // Loading state gets the active highlight + a subtle pulse. A locked item
+  // (quotes-only account on a host-only surface) is greyed + still navigates —
+  // the destination page renders the upgrade lock.
+  const tone = locked
+    ? "font-medium text-[#3A5A4E]/45 hover:bg-[#E2EDE6]/50"
+    : loading
       ? "bg-brand-accent font-bold text-brand-secondary"
-      : "font-medium text-[#3A5A4E] hover:bg-[#E2EDE6]";
+      : active
+        ? "bg-brand-accent font-bold text-brand-secondary"
+        : "font-medium text-[#3A5A4E] hover:bg-[#E2EDE6]";
 
   const inner = (
     <>
@@ -114,7 +121,9 @@ function NavRow({
           <span className="min-w-0 flex-1 truncate text-[14px]">
             {item.label}
           </span>
-          {item.badge ? (
+          {locked ? (
+            <Lock className="ml-2 h-3.5 w-3.5 shrink-0 opacity-70" />
+          ) : item.badge ? (
             <span
               className={`num ml-2 rounded-pill px-1.5 py-0.5 text-[10px] font-bold ${
                 item.badge.tone === "alert"
@@ -141,7 +150,11 @@ function NavRow({
   );
 
   const className = `${base} ${tone} text-[14px] transition-colors`;
-  const title = collapsed ? item.label : undefined;
+  const title = locked
+    ? `${item.label} — upgrade to a full host account to unlock`
+    : collapsed
+      ? item.label
+      : undefined;
 
   if (item.href) {
     return (

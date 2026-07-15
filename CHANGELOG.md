@@ -22,7 +22,10 @@ path to spin up a quote-only account without waiting on signup).
   (account_kind=quote_only), and a user.create audit row all correct in the DB; the record page rendered with the
   "Account type & access = Quote-only" card + "No subscription on file yet" assign controls; the returned magic link
   signed the new user straight into the scoped quotes-only shell.
-- Still open (needs founder pricing): seed a Wielo Quotes membership product so admins can assign it here.
+- Wielo Quotes membership SEEDED (founder: R99/month, 5 quote credits/month): product_type=membership,
+  credit_quantity=5, credit_purpose='quote', active + visible (slug wielo-quotes). Verified live: activating it on the
+  quote-only test user from the record → subscription active + wielo_credit_wallet quote balance = 5 (+5 grant "Plan
+  credits · Wielo Quotes" in the ledger). The full loop (admin create user → assign Wielo Quotes → 5 credits) works.
 
 ## 2026-07-15 — Dual-quote-system (concern 4 core): quote-only accounts + scoped shell + admin block.
 

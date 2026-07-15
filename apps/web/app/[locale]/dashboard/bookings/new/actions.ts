@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { assertFullHost } from "@/lib/host/current";
 import { isSelfRecipient, SELF_RECIPIENT_ERROR } from "@/lib/host/self";
 import { recordBookingPayment } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -54,12 +55,11 @@ export async function createManualBookingAction(
   }
   const data = parsed.data;
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile." };
+  // Full-host-only: a quotes-only / platform-blocked account is rejected
+  // server-side (manual bookings aren't part of the quotes-only shell).
+  const h = await assertFullHost();
+  if (!h.ok) return { ok: false, error: h.error };
+  const host = { id: h.hostId };
 
   // A host can't book themselves — the guest is someone else.
   if (

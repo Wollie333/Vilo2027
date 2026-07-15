@@ -39,6 +39,7 @@ import {
   type GmailNavItem,
   type GmailNavSection,
 } from "@/app/_components/GmailNav";
+import { isQuotesOnlyAllowedPath } from "@/lib/host/accountScope";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 // Channel-based IA (plan §5). Five groups: an always-open daily-driver block,
@@ -193,11 +194,42 @@ const FOOTER: GmailNavItem[] = [
   },
 ];
 
+// Quotes-only accounts SEE the whole host IA, but every host-only surface is
+// greyed + locked (a lock icon); only the quote surfaces (Looking-For / Quotes /
+// Credits / Inbox / Guests / Settings) stay interactive. A locked row still
+// navigates — the destination page renders the "upgrade to a full host account"
+// lock. Lock state is derived from the SAME allow-list the route gate uses
+// (isQuotesOnlyAllowedPath), so nav + gate can never drift.
+function lockForQuotesOnly(items: GmailNavItem[]): GmailNavItem[] {
+  return items.map((it) => ({
+    ...it,
+    locked: it.href ? !isQuotesOnlyAllowedPath(it.href) : false,
+  }));
+}
+
+// The host Finances group with a Credits row injected beside Quotes — quotes-only
+// accounts live on their credit wallet, which isn't in the standard host IA.
+function financesWithCredits(): GmailNavItem[] {
+  const out: GmailNavItem[] = [];
+  for (const it of FINANCES) {
+    out.push(it);
+    if (it.href === "/dashboard/quotes") {
+      out.push({
+        href: "/dashboard/credits",
+        label: "Credits",
+        icon: CreditCard,
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * The full dashboard IA, grouped, for the mobile "More" sheet — so a host on a
  * phone can reach ANY page, not just the 4 bottom-bar tabs. Mirrors the sidebar
  * groups (single source of truth); Looking For is included only when the host has
  * access. Footer items (Staff/Settings/Help) become the "Account" group.
+ * For a quotes-only account it shows the SAME full IA, host-only rows locked.
  */
 export function mobileNavGroups(opts?: {
   canLookingFor?: boolean;
@@ -205,8 +237,12 @@ export function mobileNavGroups(opts?: {
 }): GmailNavSection[] {
   if (opts?.quotesOnly) {
     return [
-      { label: "Quotes", items: QUOTES_ONLY_DAILY.concat(QUOTES_ONLY_QUOTES) },
+      { label: "Dashboard", items: lockForQuotesOnly(DAILY) },
+      { label: "Properties", items: lockForQuotesOnly(PROPERTIES) },
       { label: "Looking For", items: LOOKING_FOR },
+      { label: "Channels", items: lockForQuotesOnly(CHANNELS) },
+      { label: "Finances", items: lockForQuotesOnly(financesWithCredits()) },
+      { label: "Insights", items: lockForQuotesOnly(INSIGHTS) },
       { label: "Account", items: FOOTER },
     ];
   }
@@ -222,21 +258,6 @@ export function mobileNavGroups(opts?: {
     { label: "Account", items: FOOTER },
   ];
 }
-
-// Scoped nav for a quotes-only account — the quote surfaces only.
-const QUOTES_ONLY_DAILY: GmailNavItem[] = [
-  { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
-  { href: "/dashboard/guests", label: "Guests", icon: Users, match: "prefix" },
-];
-const QUOTES_ONLY_QUOTES: GmailNavItem[] = [
-  {
-    href: "/dashboard/quotes",
-    label: "Quotes",
-    icon: FileText,
-    match: "prefix",
-  },
-  { href: "/dashboard/credits", label: "Credits", icon: CreditCard },
-];
 
 export function Sidebar({
   host,
@@ -304,29 +325,39 @@ export function Sidebar({
       : item,
   );
 
-  // Quotes-only accounts get a stripped shell — the quote surfaces only, no
-  // properties/channels/finances/insights.
-  const quotesOnlyDaily = QUOTES_ONLY_DAILY.map((item) =>
-    item.href === "/dashboard/inbox" && inboxUnread > 0
-      ? {
-          ...item,
-          badge: { text: String(inboxUnread), tone: "alert" as const },
-        }
-      : item.href === "/dashboard/guests" && guestCount > 0
-        ? { ...item, count: guestCount }
-        : item,
-  );
-
+  // Quotes-only accounts see the FULL host IA, but every host-only surface is
+  // greyed + locked (only Looking-For / Quotes / Credits / Inbox / Guests /
+  // Settings stay live). Reuses the same mapped items (badges/counts) so the
+  // unlocked rows keep their unread/count treatment.
   const sections: GmailNavSection[] = quotesOnly
     ? ([
-        { items: quotesOnlyDaily },
+        { items: lockForQuotesOnly(dailyItems) },
+        {
+          label: "Properties",
+          items: lockForQuotesOnly(PROPERTIES),
+          collapsible: true,
+        },
         {
           label: "Looking For",
           items: lookingForItems,
           collapsible: true,
           icon: Search,
         },
-        { label: "Quotes", items: QUOTES_ONLY_QUOTES, collapsible: true },
+        {
+          label: "Channels",
+          items: lockForQuotesOnly(channelItems),
+          collapsible: true,
+        },
+        {
+          label: "Finances",
+          items: lockForQuotesOnly(financesWithCredits()),
+          collapsible: true,
+        },
+        {
+          label: "Insights",
+          items: lockForQuotesOnly(INSIGHTS),
+          collapsible: true,
+        },
       ] as GmailNavSection[])
     : [
         { items: dailyItems },

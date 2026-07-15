@@ -10,7 +10,7 @@ import { resolveAccountScope } from "@/lib/host/accountScope";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { QuotesOnlyGuard } from "./_components/QuotesOnlyGuard";
+import { QuotesOnlyGate } from "./_components/QuotesOnlyGate";
 
 import { AvatarMenu } from "./_components/AvatarMenu";
 import { CreditPill, type CreditLedgerRow } from "./_components/CreditPill";
@@ -228,9 +228,8 @@ export default async function DashboardLayout({
           />
         }
       >
-        {children}
+        <QuotesOnlyGate active={quotesOnly}>{children}</QuotesOnlyGate>
       </ClassicShellFrame>
-      <QuotesOnlyGuard active={quotesOnly} />
       <DashboardTour />
     </QuickNavProvider>
   );

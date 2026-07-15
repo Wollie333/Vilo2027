@@ -9,6 +9,7 @@ import {
   Home as HomeIcon,
   LayoutDashboard,
   List,
+  Lock,
   MessageSquare,
   MoreHorizontal,
   X,
@@ -139,20 +140,30 @@ export function MobileBottomNav({
                   .filter((it) => !!it.href)
                   .map((it) => {
                     const active = isActive(pathname, it.href!, it.match);
+                    const locked = !!it.locked;
                     const Icon = it.icon;
                     return (
                       <Link
                         key={it.href}
                         href={it.href!}
                         onClick={() => setMoreOpen(false)}
+                        title={
+                          locked
+                            ? `${it.label} — upgrade to a full host account to unlock`
+                            : undefined
+                        }
                         className={`flex items-center gap-2.5 rounded-[11px] border px-3 py-2.5 text-[13px] font-semibold ${
                           active
                             ? "border-brand-primary/40 bg-brand-accent text-brand-secondary"
-                            : "border-brand-line bg-white text-brand-ink"
+                            : locked
+                              ? "border-brand-line/70 bg-white text-brand-mute/60"
+                              : "border-brand-line bg-white text-brand-ink"
                         }`}
                         aria-current={active ? "page" : undefined}
                       >
-                        {Icon ? (
+                        {locked ? (
+                          <Lock className="h-4 w-4 shrink-0 text-brand-mute/60" />
+                        ) : Icon ? (
                           <Icon className="h-4 w-4 shrink-0 text-brand-secondary" />
                         ) : null}
                         <span className="truncate">{it.label}</span>

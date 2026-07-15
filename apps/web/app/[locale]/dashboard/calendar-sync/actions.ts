@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertFullHost } from "@/lib/host/current";
 import { syncFeed } from "@/lib/ical-sync";
 
 type Result = { ok: true; imported?: number } | { ok: false; error: string };
@@ -49,6 +50,10 @@ export async function addIcalFeedAction(input: {
 }): Promise<Result> {
   const parsed = addFeedSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid feed details." };
+
+  // Full-host-only: calendar sync isn't part of the quotes-only shell.
+  const full = await assertFullHost();
+  if (!full.ok) return { ok: false, error: full.error };
 
   const owner = await assertOwnsListing(parsed.data.listingId);
   if (!owner.ok) return owner;
