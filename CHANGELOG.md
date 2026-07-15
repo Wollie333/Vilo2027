@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-15 — Dual-quote-system (Phase 1): soft validation + Custom quote type.
+
+Started building the Looking-For quote-types redesign (plan:
+LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md). Founder decisions locked: full dual-system in one release,
+soft-validation on Looking-For responses only, quote-only accounts as a flag on `hosts` (shared substrate, scoped
+experience), quote-type picker in the same form.
+- **Soft validation (concern 1).** A Looking-For response is an OFFER, not a booking — over-capacity is now a warning
+  in the send-preview ("more guests than your place usually sleeps — you can still send this offer"), not a hard
+  block. Direct-booking quotes keep the hard capacity block. Verified live (the 80-guest wedding quote now sends).
+  (`71b2486b`)
+- **Custom quote type (concern 3a).** Quotes are no longer always an accommodation stay: new `quote_type`
+  (accommodation | custom | upload) + `title`, with listing/dates now nullable (migration `20260715170000`, DB types
+  regenerated). The quote builder opens with a "Quote type" picker; Custom mode hides the listing/rooms/dates
+  sections, shows a title, and pins pricing to a single hand-entered total (no calendar). Send-preview + Review
+  summary render type-aware (also fixed a pre-existing "[object Object]" in the review Dates row). `createQuoteAction`
+  branches on type (custom numbers against the host's default business; `scope` keeps its NOT-NULL default). Zod
+  relaxes listing/dates via a `superRefine` gated on `quote_type`, so accommodation validates exactly as before.
+  **Verified live host-side** (built + sent a custom quote; DB row quote_type=custom, null listing/dates). (`c09f7b70`)
+- **Still to do:** guest-facing custom quote (guest view + email + PDF), edit-a-custom-quote, concern 2 negotiation
+  polish, upload type, quote-only accounts + Wielo Quotes subscription + admin block.
+
 ## 2026-07-15 — Credits §3 (part 3): mandate complete + dual-quote-system plan.
 
 Closed the remaining Looking-For + Credits hardening items (founder: "finish everything, then plan"), then wrote

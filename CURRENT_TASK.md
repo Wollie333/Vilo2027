@@ -2,7 +2,36 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For + Credits — SAVE POINT `03100af9`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM build — SAVE POINT `c09f7b70`) — START HERE
+
+**▶▶ NOW BUILDING the dual-quote-system redesign** (founder: "do the less risky option… follow the flow, test,
+refine"). Plan: `docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md`; memory
+`project-dual-quote-system`. **Decisions locked:** D6 full-system-in-one-release · D1 soft-validation LF-only · D2
+quote-only = **flag on `hosts`** (`account_kind`, scoped experience, shared substrate) · D0 name deferred
+("Wielo Quotes" placeholder) · D3–D5 = plan defaults.
+
+**✅ DONE + VERIFIED LIVE this session:**
+- **Concern 1 — soft validation** (`71b2486b`): over-capacity on a Looking-For response = a warning in the send
+  preview, NOT a hard block (a 60-guest wedding is quotable at a place that sleeps 7); direct-booking quotes keep the
+  hard block. Verified live.
+- **Concern 3a — Custom quote type** (`c09f7b70`): `quotes.quote_type` (accommodation|custom|upload) + `title`,
+  listing/dates nullable (migration `20260715170000`, types regenerated). Step-1 "Quote type" picker; Custom mode
+  hides listing/rooms/dates, adds a title, single-total pricing; preview + review type-aware. `createQuoteAction`
+  branches (custom numbers against the host's default business; `scope` keeps its NOT-NULL default `whole_listing`).
+  Zod → `superRefine` gated on type so accommodation validates exactly as before. **Verified live host-side:** built +
+  SENT a custom quote (DB: quote_type=custom, null listing/dates, status=sent). Accommodation path unchanged.
+
+**⏳ NEXT (in order):** (1) **guest-facing custom quote** — guest quote view + quote email + PDF may still reference
+dates/listing (only HOST side verified — do this before calling 3a fully done); (2) `updateQuoteAction` custom handling
+(edit a custom quote); (3) **concern 2** edit-to-negotiate polish (mostly exists — make "edit & re-send" the primary
+CTA); (4) **concern 3b** UPLOAD quote type (file attach, private bucket); (5) **concern 4** quote-only accounts
+(`account_kind`) + Wielo Quotes subscription tier + admin block from the rest of Wielo. Each phase: verify builder +
+live before "done" (Principle #9). GOTCHA: `scope`/`headcount` still NOT NULL in DB; the QuoteForm renders TWO
+"Review & send" footers (a `read_page` ref can hit the hidden mobile one — click the visible green button).
+
+---
+
+## ⭐ PRIOR ANCHOR (2026-07-15 · Credits mandate — SAVE POINT `03100af9`)
 
 **✅ CREDIT-HARDENING MANDATE COMPLETE. NEXT = the dual-quote-system redesign
 (plan written, awaiting founder decisions).** Founder chose "finish everything,
