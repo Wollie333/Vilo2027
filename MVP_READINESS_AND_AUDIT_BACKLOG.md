@@ -142,12 +142,17 @@ the edge/branch cases, fix what's wrong, and record a `docs/lifecycles/<feature>
    `was_price` ignored the active winter seasonal. Open founder calls (not bugs):
    suppress trivial "1% off" badges · per-host slug vs global `/deal/[slug]` · no
    publish/expiry notification.
-5. **Add-ons** — quote add-ons vs post-booking add-ons, per-listing/room scoping,
-   pricing + VAT, invoicing (no double charge — fixed this cycle, but audit the
-   full matrix), refundability decision (G7 still open).
-6. **Media manager** — as the **single source of truth** for the host's media bank
-   (listing/room photos, website assets, brand assets): upload, reuse across
-   surfaces, deletion safety, storage limits per plan.
+5. ~~**Add-ons**~~ ✅ **AUDITED 2026-07-16** — `docs/lifecycles/addons.md`. Money layer
+   SOUND: double-charge guard holds (survived the coupon-line migration), both paths
+   (quote + host/guest post-booking) charge once, guest add-ons re-priced server-side.
+   Open (founder call): **G7 refundability** (no per-add-on refundable flag / per-line
+   refund). Residual: rare null-addon-invoice edge case; guest post-booking whole-listing-only.
+6. ~~**Media manager**~~ ✅ **AUDITED 2026-07-16** — `docs/lifecycles/media-manager.md`.
+   Works, but NOT a unified SSOT — read-only aggregator over 3 buckets + `property_photos`/
+   `website_media`/`brand` JSONB; no cross-surface reuse, no reference-check on delete, no
+   quota. **Fixed:** misleading delete-confirm copy (claimed safe cascade; actually orphans).
+   SSOT unification (unify buckets · cross-surface picker · reference-counting · quota) is a
+   documented backlog EPIC — not MVP-blocking (per-surface upload/delete work).
 7. ~~**Reports**~~ ✅ **DONE 2026-07-15/16** (comprehensive both surfaces). Host: functional
    filters, in-depth booking analytics, revenue breakdown, website traffic, region filter,
    quote-only scoped report, wide PDF/XLSX exports. Admin: payment/VAT/take-rate/geography/
