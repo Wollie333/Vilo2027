@@ -91,8 +91,10 @@ export function ProductEditor({
         name: f.name.trim(),
         description: f.description.trim() || null,
         productType: f.productType,
+        // Credit grant saves for a credit package (on-purchase grant) AND a
+        // subscription (per-cycle grant) — only a once-off `product` never grants.
         creditQuantity:
-          f.productType === "wielo_credits" ? (f.creditQuantity ?? null) : null,
+          f.productType === "product" ? null : (f.creditQuantity ?? null),
         creditPurpose: f.creditPurpose || "quote",
         price: f.price,
         currency: f.currency.trim().toUpperCase() || "ZAR",
