@@ -2,16 +2,42 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For CRM + BIG BATCH — SAVE POINT `54790f90`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For + Credits — SAVE POINT `4bf944b2`) — START HERE
 
-**▶▶ READ FIRST: `docs/features/LOOKING_FOR_LIMITS_CREDITS_NOTIFICATIONS_PLAN.md`** — the founder's big batch,
-supersedes the tail of `LOOKING_FOR_NEXT_PHASE_PLAN.md`. Decisions locked; order confirmed. Also memory
-`project-looking-for-crm-and-batch`.
+**▶▶ FOUNDER MANDATE (active):** *"refine this credit and looking-for feature… harden it, enhance it, and test it
+well, so it is 100% MVP ready."* Treat the whole **Looking-For + Wielo Credits** surface as the current task —
+finish §3, then a hardening + testing sweep across both features (edge cases, RLS, idempotency, error UX), before
+moving on. Plan doc: `docs/features/LOOKING_FOR_LIMITS_CREDITS_NOTIFICATIONS_PLAN.md`; memory
+`project-looking-for-crm-and-batch` + `project-credits-and-lf-hardening`.
 
-**▶▶ NEXT = §3 limits/quotas** (admin suspend/pause · guest post cap · **host quote cap now consumes credits** via
-`applyCredit` debit + expiry-refund — §4 foundation is live). Then §7 admin email-templates categorisation (own
-detailed plan) → §1 host record (the quote page becomes the tabbed host record). §3 needs a small schema add
-(paused/suspended status) — founder pre-approved the schema approach for the credits/limits batch.
+**KEY DECISIONS (founder, this session):** credits = **consumable metering layer** alongside boolean
+`check_feature_permission`; **only Looking-For responses spend a credit** (1/quote, refunded on unaccepted expiry);
+**hosts GET credits from their subscription plan (per-cycle grant) + buy top-up packages** (NOT free starter, NOT
+must-buy-from-zero).
+
+**▶▶ NEXT (finish §3, then harden):**
+1. **Verify §3 spend live THROUGH THE UI** — log in as a host, respond to a Looking-For post, SEND → confirm the
+   credit debits (pill 50→49) and, with 0 credits, the send is **blocked** with the top-up message. (Engine + refund
+   trigger already verified via probe + SQL; the send-path debit is tsc-clean but NOT yet driven through the UI.)
+2. **Verify the SUBSCRIPTION grant live** — set a membership/service product's per-cycle credit grant, activate a
+   sub, confirm the wallet is topped up (idempotent per product+period). Wiring done in `activateMappedPlan` + the
+   Paystack webhook; not yet exercised live.
+3. **Low-credit UX** — a banner/notice on the host respond page when the host is low/out of credits (before they
+   build the whole quote); today it only blocks at send.
+4. **Admin suspend/pause a post** + **guest active-post cap** surfacing (the remaining §3 pieces; statuses already
+   include `flagged`/`removed` — decide reuse vs a new `suspended`/`paused`; wire hide-from-public/host-browse +
+   guest-facing state + `check_guest_post_quota` remaining).
+5. **Harden + test sweep** (founder mandate): looking-for + credits edge cases; extend `verify-credits.mjs`; add a
+   respond-page banner; audit RLS + idempotency + error messages end-to-end.
+Then §1 host record (quote page → tabbed record), §7 admin email-templates categorisation.
+
+**✅ §3 PART 1 DONE (`6109d47f`/`4bf944b2`, engine+trigger verified):** Looking-For quote **spends 1 credit on send**
+(`spendQuoteCredit` in `sendQuoteAction`, blocked+top-up when empty, idempotent per quote); **refund on unaccepted
+expiry** via DB trigger `refund_lf_quote_credit_on_expire` (migration `20260715150004`, fires on the expire cron
+too); **subscription products carry a per-cycle credit grant** (admin ProductEditor field; granted in
+`activateMappedPlan` + webhook via `grantSubscriptionCredits`, idempotent per product+period). Probe
+`apps/web/scripts/verify-credits.mjs` = **9/9 PASS**; refund trigger verified live (debit 50→49, expire→50, ledger
+debit+refund). ⏳ NOT yet: UI send-debit/block, live sub-grant (see NEXT).
 
 **✅ DECLINE-REASON capture DONE (`34dfc3c5`, verified live):** declining a quote opens a modal (reason dropdown
 `lib/quotes/decline-reasons.ts` + optional note; portal + public-token paths), stored on `quotes.decline_reason/
