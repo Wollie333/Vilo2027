@@ -13,6 +13,11 @@ supersedes the tail of `LOOKING_FOR_NEXT_PHASE_PLAN.md`. Decisions locked; order
 detailed plan) → §1 host record (the quote page becomes the tabbed host record). §3 needs a small schema add
 (paused/suspended status) — founder pre-approved the schema approach for the credits/limits batch.
 
+**✅ DECLINE-REASON capture DONE (`34dfc3c5`, verified live):** declining a quote opens a modal (reason dropdown
+`lib/quotes/decline-reasons.ts` + optional note; portal + public-token paths), stored on `quotes.decline_reason/
+decline_note` (migration `20260715150003`), surfaced to the host on the decline email, inbox thread card,
+in-app notification, host quote-detail activity, AND the guest record timeline.
+
 **✅ §4 Wielo Credits foundation DONE (`8f14f666`, verified live end-to-end):** wallet + ledger + atomic/idempotent
 `apply_wielo_credit` RPC (migrations `20260715150000..150002`); engine `lib/credits/wallet.ts`; credit packages =
 Products category (`product_type=wielo_credits`, one-off) with qty+purpose; buying grants to the host wallet on
