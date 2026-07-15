@@ -6,6 +6,7 @@ interface PropertyPerformanceTableProps {
   startDate: string;
   endDate: string;
   listingId?: string;
+  region?: string;
 }
 
 interface PropertyData {
@@ -37,7 +38,9 @@ export async function PropertyPerformanceTable({
   hostId,
   startDate,
   endDate,
-  listingId, // eslint-disable-line @typescript-eslint/no-unused-vars -- Reserved for future filtering
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future filtering
+  listingId,
+  region,
 }: PropertyPerformanceTableProps) {
   const supabase = createServerClient();
 
@@ -50,6 +53,7 @@ export async function PropertyPerformanceTable({
     p_sort_direction: "desc",
     p_limit: 25,
     p_offset: 0,
+    p_region: region || null,
   });
 
   if (error) {
@@ -82,6 +86,7 @@ export async function PropertyPerformanceTable({
       hostId={hostId}
       startDate={startDate}
       endDate={endDate}
+      region={region}
     />
   );
 }

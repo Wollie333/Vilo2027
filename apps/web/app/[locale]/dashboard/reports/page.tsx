@@ -50,6 +50,7 @@ export default async function ReportsPage({
     compare?: string;
     listing?: string;
     channel?: string;
+    region?: string;
     grouping?: string;
   };
 }) {
@@ -172,13 +173,14 @@ export default async function ReportsPage({
     compare: searchParams?.compare === "true",
     listingId: searchParams?.listing,
     channel: searchParams?.channel,
+    region: searchParams?.region,
   };
 
   // Real listings for the host — feeds the Listing filter and the active count
   // (replaces the old hardcoded "24"). Ordered by name for a stable dropdown.
   const { data: listingRows } = await supabase
     .from("properties")
-    .select("id, name, is_published")
+    .select("id, name, is_published, province")
     .eq("host_id", host.id)
     .is("deleted_at", null)
     .order("name", { ascending: true });
@@ -189,6 +191,15 @@ export default async function ReportsPage({
   const activeListingCount = (listingRows ?? []).filter(
     (l) => l.is_published,
   ).length;
+  // Stable, data-driven Region options — the distinct provinces the host has
+  // listings in (independent of the current filter).
+  const regionOptions = [
+    ...new Set(
+      (listingRows ?? [])
+        .map((l) => (l.province as string | null)?.trim())
+        .filter((p): p is string => Boolean(p)),
+    ),
+  ].sort();
 
   // Fetch analytics data in parallel
   const [
@@ -211,6 +222,7 @@ export default async function ReportsPage({
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
       p_channel: filters.channel || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_secondary_metrics", {
       p_host_id: host.id,
@@ -218,6 +230,7 @@ export default async function ReportsPage({
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
       p_channel: filters.channel || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_revenue_trend", {
       p_host_id: host.id,
@@ -226,30 +239,35 @@ export default async function ReportsPage({
       p_grouping: grouping,
       p_listing_id: filters.listingId || null,
       p_channel: filters.channel || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_channel_mix", {
       p_host_id: host.id,
       p_start_date: startDate,
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_conversion_funnel", {
       p_host_id: host.id,
       p_start_date: startDate,
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_time_to_book", {
       p_host_id: host.id,
       p_start_date: startDate,
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_regional_breakdown", {
       p_host_id: host.id,
       p_start_date: startDate,
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_seasonality_heatmap", {
       p_host_id: host.id,
@@ -260,18 +278,21 @@ export default async function ReportsPage({
       p_start_date: startDate,
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_popular_rooms", {
       p_host_id: host.id,
       p_start_date: startDate,
       p_end_date: endDate,
       p_limit: 5,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_refunds_cancellations", {
       p_host_id: host.id,
       p_start_date: startDate,
       p_end_date: endDate,
       p_listing_id: filters.listingId || null,
+      p_region: filters.region || null,
     }),
     supabase.rpc("fetch_looking_for_stats", {
       p_host_id: host.id,
@@ -633,12 +654,20 @@ export default async function ReportsPage({
       ? await loadWebsiteAnalyticsForWebsites(admin, websiteIds, "30d")
       : null;
 
-  // ---- In-depth booking analytics (period-scoped) --------------------------
+  // ---- In-depth booking analytics (period-scoped, region-aware) ------------
+  // When a Region is selected, scope the deep analytics to that province's
+  // listings so it stays consistent with the region-filtered headline numbers.
+  const regionPropertyIds = filters.region
+    ? (listingRows ?? [])
+        .filter((l) => (l.province as string | null)?.trim() === filters.region)
+        .map((l) => l.id as string)
+    : null;
   const deepAnalytics = await loadHostDeepAnalytics(
     admin,
     host.id,
     startDate,
     endDate,
+    regionPropertyIds,
   );
 
   return (
@@ -670,8 +699,10 @@ export default async function ReportsPage({
           compare={filters.compare}
           listingId={filters.listingId}
           channel={filters.channel}
+          region={filters.region}
           listings={listings}
           channelOptions={channelMix.map((c) => c.channel)}
+          regionOptions={regionOptions}
         />
       </header>
 
@@ -773,6 +804,7 @@ export default async function ReportsPage({
                 startDate={startDate}
                 endDate={endDate}
                 listingId={filters.listingId}
+                region={filters.region}
               />
             </section>
 

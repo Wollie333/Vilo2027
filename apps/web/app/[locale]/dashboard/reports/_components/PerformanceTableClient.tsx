@@ -34,6 +34,7 @@ interface PerformanceTableClientProps {
   hostId: string;
   startDate: string;
   endDate: string;
+  region?: string;
 }
 
 type SortColumn =
@@ -50,6 +51,7 @@ export function PerformanceTableClient({
   hostId,
   startDate,
   endDate,
+  region,
 }: PerformanceTableClientProps) {
   const [properties, setProperties] = useState<PropertyData[]>(initialData);
   const [sortBy, setSortBy] = useState<SortColumn>("revenue");
@@ -77,6 +79,7 @@ export function PerformanceTableClient({
       p_sort_direction: direction,
       p_limit: pageSize,
       p_offset: offset,
+      p_region: region || null,
     });
 
     if (!error && data) {

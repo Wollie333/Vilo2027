@@ -5,6 +5,7 @@ import {
   GitCompare,
   Home,
   Cable,
+  MapPin,
   FilterX,
   Download,
   ChevronDown,
@@ -33,10 +34,13 @@ interface ReportsFiltersProps {
   compare?: boolean;
   listingId?: string;
   channel?: string;
+  region?: string;
   /** Real listings for the host, used to populate the Listing filter. */
   listings: ListingOption[];
   /** Distinct channel keys the host actually has bookings on (data-driven). */
   channelOptions: string[];
+  /** Distinct provinces the host has listings in (data-driven). */
+  regionOptions: string[];
 }
 
 // Pretty labels for the channel keys the RPC returns.
@@ -67,8 +71,10 @@ export function ReportsFilters({
   compare = false,
   listingId,
   channel,
+  region,
   listings,
   channelOptions,
+  regionOptions,
 }: ReportsFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -220,6 +226,31 @@ export function ReportsFilters({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Region Filter — writes ?region (data-driven provinces) */}
+      {regionOptions.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light">
+            <MapPin className="h-4 w-4 text-brand-mute" />
+            <span>{region || "All regions"}</span>
+            <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={() => applyPatch({ region: null })}>
+              All regions
+            </DropdownMenuItem>
+            {regionOptions.map((r) => (
+              <DropdownMenuItem
+                key={r}
+                onClick={() => applyPatch({ region: r })}
+                className={r === region ? "font-semibold" : ""}
+              >
+                {r}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       {/* Channel Filter — writes ?channel (data-driven) */}
       {channelOptions.length > 0 && (

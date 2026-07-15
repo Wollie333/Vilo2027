@@ -115,10 +115,13 @@ export async function loadHostDeepAnalytics(
   hostId: string,
   startDate: string,
   endDate: string,
+  // When set, scope to bookings on these properties (the Region filter). An
+  // empty array means the region has no listings → no data.
+  propertyIds?: string[] | null,
 ): Promise<HostDeepAnalytics> {
   // All-time bookings for the host (pre-MVP volumes are small). One query powers
   // the all-time guest repeat analysis AND the period-scoped distributions.
-  const { data, error } = await admin
+  let q = admin
     .from("bookings")
     .select(
       "status, check_in, created_at, nights, total_amount, guests_count, guest_id, guest_name, cancellation_reason, cancelled_by",
@@ -126,6 +129,8 @@ export async function loadHostDeepAnalytics(
     .eq("host_id", hostId)
     .is("deleted_at", null)
     .limit(20000);
+  if (propertyIds) q = q.in("property_id", propertyIds);
+  const { data, error } = await q;
 
   if (error || !data || data.length === 0) return emptyAnalytics();
   const rows = data as BookingRow[];

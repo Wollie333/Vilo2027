@@ -11412,6 +11412,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11421,6 +11422,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11430,6 +11432,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11465,6 +11468,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_limit?: number
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11475,6 +11479,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11485,6 +11490,7 @@ export type Database = {
           p_host_id: string
           p_limit?: number
           p_offset?: number
+          p_region?: string
           p_sort_by?: string
           p_sort_direction?: string
           p_start_date: string
@@ -11496,6 +11502,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11505,6 +11512,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11516,6 +11524,7 @@ export type Database = {
           p_grouping?: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11530,6 +11539,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11539,6 +11549,7 @@ export type Database = {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
+          p_region?: string
           p_start_date: string
         }
         Returns: Json
@@ -11770,6 +11781,10 @@ export type Database = {
       recalculate_listing_ranking: {
         Args: { p_listing_id: string }
         Returns: undefined
+      }
+      record_guest_post_and_check: {
+        Args: { p_post_id: string; p_user_id: string }
+        Returns: Json
       }
       redeem_coupon: {
         Args: {
