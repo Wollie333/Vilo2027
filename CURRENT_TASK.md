@@ -2,6 +2,41 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## 🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16) — MVP AUDITS BATCH DONE
+
+**Repo clean + pushed at `ad85c71b`.** Founder ask this session: reporting arc → then MVP-readiness
+**items 1 (deep audits) + 2 (launch blockers)** "as far as you can." Full map = memory
+`project-mvp-audits-batch` + `MVP_READINESS_AND_AUDIT_BACKLOG.md`.
+
+**✅ DONE this session (all pushed, lifecycle docs written):**
+- **Reporting** — full arc both surfaces + region filter + cohort/NRR (see below + memory
+  `project-reporting-enhancement`).
+- **Coupons audit** (`887bb6b9`, `docs/lifecycles/coupons.md`) — FIXED invoice coupon-discount
+  line (migration `20260716130000`, verified via ROLLBACK). Stacks w/ seasonal/add-ons NOT deals.
+- **Add-ons audit** (`c0a004c7`, `docs/lifecycles/addons.md`) — money SOUND, double-charge guard
+  holds. No fix needed.
+- **Media manager audit** (`c0a004c7`, `docs/lifecycles/media-manager.md`) — NOT a unified SSOT;
+  fixed misleading delete-confirm copy. Unification = documented epic.
+- **Feature gating audit** — CLEAN (SSOT `hostHasFeature` + canonical RPC, no plan-hardcoding).
+- **Legal/cookie/POPIA** — already built (Jul-13 doc was stale); verified.
+
+**▶▶ NEXT SESSION — pick one (all surfaced, none silently dropped):**
+1. **G7 — add-on refundability** (feature I can build; needs founder model call: simple per-add-on
+   `is_refundable` flag vs full per-line partial refunds).
+2. **Media → true SSOT** epic (unify 3 buckets · cross-surface picker · reference-counting on
+   delete · per-plan quota).
+3. **Founder/infra launch actions** (I can't execute — need you): live Paystack/PayPal keys + E2E
+   card test · Frankfurt→Cape Town (`af-south-1`) Supabase region migration · ops secrets (VAT no.,
+   SWIFT, `PAYMENT_CIPHER_KEY`, Turnstile, Vault) · pre-launch data wipe · Sentry/PostHog.
+4. **Mobile app** (Expo scaffold only) — decide if in MVP scope.
+
+**GOTCHAs:** commit types must be in [feat,fix,chore,docs,refactor,test,style,perf,ci,build,revert,
+wip,migration] (`audit(...)` rejected). Live-DB fn edits = dump `pg_get_functiondef` → modify →
+validate in `BEGIN;…ROLLBACK;` (`supabase db query --linked`) → `db push`. `ensure_booking_invoice`
+is create-if-missing. New component/action files → `rm -rf apps/web/.next` + restart before UI verify.
+
+---
+
 ## ⭐⭐⭐ DONE (2026-07-15) — REPORTING ENHANCEMENT ("report every metric") — BOTH SURFACES ✅ SHIPPED + VERIFIED LIVE
 
 **Founder directive:** *"work on the reporting feature so each and every metric is reported on — refine, enhance and

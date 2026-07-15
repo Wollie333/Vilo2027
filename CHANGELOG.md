@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-16 — MVP-readiness deep audits (Coupons, Add-ons, Media, feature gating).
+
+Worked the MVP-readiness backlog items 1 (deep audits) + 2 (launch blockers) "as far as possible". Each audit
+mapped the feature end-to-end, verified live, fixed the real gaps, and recorded a `docs/lifecycles/` doc.
+
+- **Coupons** (`887bb6b9`, `docs/lifecycles/coupons.md`): fixed a genuine gap — invoices baked the coupon discount
+  into the total but never itemized it, even though both invoice renderers already read `line_items.discount_amount`.
+  Migration `20260716130000` makes `ensure_booking_invoice` emit `discount_amount` + `coupon_code`; the hosted invoice
+  and PDF now show "Discount (CODE) − R…". Verified in a ROLLBACK transaction. Stacking (with seasonal/add-ons, not
+  deals) and CRUD confirmed.
+- **Add-ons** (`c0a004c7`, `docs/lifecycles/addons.md`): money layer verified sound — the double-charge guard holds
+  (and survived the coupon-line migration), both paths charge once, guest add-ons are re-priced server-side. G7
+  (per-add-on refundability) remains an open founder decision; no correctness fix was needed.
+- **Media manager** (`c0a004c7`, `docs/lifecycles/media-manager.md`): confirmed it is a read-only aggregator over
+  three storage silos, not a unified SSOT. Fixed a real trust bug — the delete confirm claimed "removed wherever it's
+  used" (a safe cascade) when deletion actually orphans references. The SSOT unification (unify buckets, cross-surface
+  picker, reference-counting, quota) is documented as a backlog epic, not MVP-blocking.
+- **Product feature gating**: audited clean — one SSOT (`hostHasFeature`, fail-closed) + the canonical
+  `check_feature_permission` across 32 files, no hardcoded plan logic; open only via the pre-MVP switch + all-enabled
+  `plan_features` seed.
+- Also confirmed legal/cookie/POPIA is already built (the Jul-13 backlog was stale). Item-2's remaining launch blockers
+  (live payment keys, the Cape Town region migration, ops secrets) are founder/infra actions, surfaced in
+  `CURRENT_TASK.md`.
+
+---
+
 ## 2026-07-16 — Cohort retention/NRR + region filter (the last two deferred reporting items).
 
 - **Cohort retention & NRR** (`97f37819`): admin/reporting gained a colour-coded start-month cohort retention triangle
