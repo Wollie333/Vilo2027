@@ -202,9 +202,23 @@ export function PrimaryKPIs({ data }: PrimaryKPIsProps) {
           {formatNumber(data.occupancy.occupied_nights)} of{" "}
           {formatNumber(data.occupancy.available_nights)} nights sold
         </div>
-        {/* Simple bar chart showing trend */}
-        <div className="mt-3 flex h-10 items-end gap-1">
-          {generateOccupancyBars(data.occupancy.current)}
+        {/* Real occupancy gauge — filled share = occupied nights / available */}
+        <div className="mt-3.5">
+          <div
+            className="h-2.5 w-full overflow-hidden rounded-full bg-brand-accent/40"
+            role="progressbar"
+            aria-valuenow={Math.round(data.occupancy.current ?? 0)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Occupancy"
+          >
+            <div
+              className="h-full rounded-full bg-brand-primary transition-all"
+              style={{
+                width: `${Math.min(100, Math.max(0, data.occupancy.current ?? 0))}%`,
+              }}
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -247,30 +261,4 @@ function RevenueSparkline({
       <path d={linePath} fill="none" stroke="#10B981" strokeWidth="1.75" />
     </>
   );
-}
-
-// Helper: Generate occupancy trend bars
-function generateOccupancyBars(occupancy: number) {
-  // Generate 10 bars with slight variation around current occupancy
-  const bars = [];
-  const baseHeight = occupancy;
-
-  for (let i = 0; i < 10; i++) {
-    // Add some variation (-10% to +15%)
-    const variation = (Math.random() * 0.25 - 0.1) * baseHeight;
-    const height = Math.min(100, Math.max(0, baseHeight + variation));
-    const isRecent = i >= 7; // Last 3 bars are "current period"
-
-    bars.push(
-      <div
-        key={i}
-        className={`flex-1 rounded-sm ${
-          isRecent ? "bg-brand-primary" : "bg-brand-accent"
-        }`}
-        style={{ height: `${height}%` }}
-      />,
-    );
-  }
-
-  return bars;
 }

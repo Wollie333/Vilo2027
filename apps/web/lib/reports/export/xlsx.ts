@@ -1,51 +1,111 @@
 import ExcelJS from "exceljs";
 
-interface PropertyPerformanceRow {
-  listing_name: string;
-  listing_status: string;
-  revenue: number;
-  revenue_prior: number;
-  revenue_delta: number | null;
-  nights_booked: number;
-  occupancy: number;
-  occupancy_prior: number;
-  occupancy_delta: number | null;
-  adr: number;
-  bookings_count: number;
-}
-
-interface ReportData {
-  properties: PropertyPerformanceRow[];
-  startDate: string;
-  endDate: string;
-  hostName: string;
-}
+import type { ReportData } from "./pdf";
 
 export async function generateXLSX(data: ReportData): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
 
-  // Metadata
   workbook.creator = "Wielo Analytics";
   workbook.created = new Date();
   workbook.modified = new Date();
 
-  // Sheet 1: Property Performance
-  const sheet = workbook.addWorksheet("Property Performance");
-
-  // Header styling
   const headerFill = {
     type: "pattern" as const,
     pattern: "solid" as const,
     fgColor: { argb: "FF10B981" },
   };
+  const headerFont = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
 
-  const headerFont = {
-    bold: true,
-    color: { argb: "FFFFFFFF" },
-    size: 11,
-  };
+  // ── Sheet 1: Summary (headline KPIs + channels + funnel + LF) ──────────────
+  const s = data.summary;
+  if (s || (data.channels && data.channels.length > 0) || data.funnel) {
+    const sum = workbook.addWorksheet("Summary");
+    sum.getColumn(1).width = 30;
+    sum.getColumn(2).width = 22;
 
-  // Title row
+    sum.mergeCells("A1:B1");
+    const t = sum.getCell("A1");
+    t.value = `Wielo Analytics — ${data.hostName}`;
+    t.font = { bold: true, size: 14 };
+    sum.mergeCells("A2:B2");
+    const p = sum.getCell("A2");
+    p.value = `Period: ${data.startDate} to ${data.endDate}`;
+    p.font = { italic: true, size: 10 };
+
+    let r = 4;
+    const section = (label: string) => {
+      const c = sum.getCell(`A${r}`);
+      c.value = label;
+      c.font = { bold: true, color: { argb: "FF064E3B" }, size: 11 };
+      r += 1;
+    };
+    const kv = (label: string, value: string | number, fmt?: string) => {
+      sum.getCell(`A${r}`).value = label;
+      const vc = sum.getCell(`B${r}`);
+      vc.value = value;
+      if (fmt && typeof value === "number") vc.numFmt = fmt;
+      r += 1;
+    };
+
+    if (s) {
+      section("Headline performance");
+      kv("Total revenue", s.revenue, "R #,##0");
+      kv("Revenue (prior period)", s.revenuePrior, "R #,##0");
+      kv(
+        "Revenue change %",
+        s.revenueDelta !== null ? s.revenueDelta / 100 : "N/A",
+        "0.0%",
+      );
+      kv("RevPAR", s.revpar, "R #,##0");
+      kv("ADR", s.adr, "R #,##0");
+      kv("Occupancy %", s.occupancy / 100, "0.0%");
+      kv("Occupied nights", s.occupiedNights);
+      kv("Available nights", s.availableNights);
+      kv("Net value (after refunds)", s.netValue, "R #,##0");
+      kv("Commission saved vs OTAs", s.commissionSaved, "R #,##0");
+      kv("Average rating", s.reviewCount > 0 ? s.avgRating : "N/A");
+      kv("Review count", s.reviewCount);
+      kv("Total bookings", s.totalBookings);
+      kv("Cancellations", s.cancellationCount);
+      kv("Cancellation rate %", s.cancellationRate / 100, "0.0%");
+      kv("Refund amount", s.refundAmount, "R #,##0");
+      kv("Refund count", s.refundCount);
+      kv("Quotes sent", s.quotesSent);
+      kv("Quotes accepted", s.quotesAccepted);
+      kv("Acceptance rate %", s.acceptanceRate / 100, "0.0%");
+      kv("Listing views", s.listingViews);
+      r += 1;
+    }
+
+    if (data.channels && data.channels.length > 0) {
+      section("Channel mix");
+      for (const c of data.channels) {
+        kv(channelName(c.channel), c.revenue, "R #,##0");
+      }
+      r += 1;
+    }
+
+    if (data.funnel) {
+      section("Conversion funnel");
+      kv("Views", data.funnel.views);
+      kv("Inquiries", data.funnel.inquiries);
+      kv("Quotes", data.funnel.quotes);
+      kv("Bookings", data.funnel.bookings);
+      r += 1;
+    }
+
+    if (data.lookingFor && data.lookingFor.quotesSent > 0) {
+      section("Looking For");
+      kv("Quotes sent", data.lookingFor.quotesSent);
+      kv("Quotes accepted", data.lookingFor.quotesAccepted);
+      kv("Acceptance rate %", data.lookingFor.acceptanceRate / 100, "0.0%");
+      kv("Revenue", data.lookingFor.revenue, "R #,##0");
+    }
+  }
+
+  // ── Sheet 2: Property Performance ─────────────────────────────────────────
+  const sheet = workbook.addWorksheet("Property Performance");
+
   sheet.mergeCells("A1:K1");
   const titleCell = sheet.getCell("A1");
   titleCell.value = `Property Performance Report - ${data.hostName}`;
@@ -53,7 +113,6 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
   titleCell.alignment = { horizontal: "center", vertical: "middle" };
   sheet.getRow(1).height = 25;
 
-  // Date range row
   sheet.mergeCells("A2:K2");
   const dateCell = sheet.getCell("A2");
   dateCell.value = `Period: ${data.startDate} to ${data.endDate}`;
@@ -61,10 +120,8 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
   dateCell.alignment = { horizontal: "center" };
   sheet.getRow(2).height = 20;
 
-  // Empty row
   sheet.getRow(3).height = 10;
 
-  // Column headers
   const headers = [
     "Property",
     "Status",
@@ -95,7 +152,6 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
   });
   headerRow.height = 20;
 
-  // Data rows
   data.properties.forEach((property, index) => {
     const row = sheet.getRow(5 + index);
 
@@ -113,22 +169,17 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
     row.getCell(10).value = property.adr;
     row.getCell(11).value = property.bookings_count;
 
-    // Format currency cells
     row.getCell(3).numFmt = "R #,##0.00";
     row.getCell(4).numFmt = "R #,##0.00";
     row.getCell(10).numFmt = "R #,##0.00";
 
-    // Format percentage cells
     if (typeof row.getCell(5).value === "number") {
-      row.getCell(5).numFmt = "0.0%";
+      row.getCell(5).numFmt = "0.0";
     }
-    row.getCell(7).numFmt = "0.0%";
-    row.getCell(8).numFmt = "0.0%";
     if (typeof row.getCell(9).value === "number") {
-      row.getCell(9).numFmt = "0.0%";
+      row.getCell(9).numFmt = "0.0";
     }
 
-    // Alternating row colors
     if (index % 2 === 0) {
       row.eachCell({ includeEmpty: false }, (cell) => {
         cell.fill = {
@@ -139,7 +190,6 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
       });
     }
 
-    // Borders
     row.eachCell({ includeEmpty: false }, (cell) => {
       cell.border = {
         top: { style: "thin", color: { argb: "FFE5E7EB" } },
@@ -150,23 +200,38 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
     });
   });
 
-  // Column widths
-  sheet.getColumn(1).width = 25; // Property
-  sheet.getColumn(2).width = 12; // Status
-  sheet.getColumn(3).width = 16; // Revenue (Current)
-  sheet.getColumn(4).width = 16; // Revenue (Prior)
-  sheet.getColumn(5).width = 16; // Revenue Change %
-  sheet.getColumn(6).width = 14; // Nights Booked
-  sheet.getColumn(7).width = 18; // Occupancy % (Current)
-  sheet.getColumn(8).width = 18; // Occupancy % (Prior)
-  sheet.getColumn(9).width = 18; // Occupancy Change %
-  sheet.getColumn(10).width = 12; // ADR
-  sheet.getColumn(11).width = 12; // Bookings
+  sheet.getColumn(1).width = 25;
+  sheet.getColumn(2).width = 12;
+  sheet.getColumn(3).width = 16;
+  sheet.getColumn(4).width = 16;
+  sheet.getColumn(5).width = 16;
+  sheet.getColumn(6).width = 14;
+  sheet.getColumn(7).width = 18;
+  sheet.getColumn(8).width = 18;
+  sheet.getColumn(9).width = 18;
+  sheet.getColumn(10).width = 12;
+  sheet.getColumn(11).width = 12;
 
-  // Freeze header rows
   sheet.views = [{ state: "frozen", xSplit: 0, ySplit: 4 }];
 
-  // Generate buffer
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
+}
+
+function channelName(channel: string): string {
+  const map: Record<string, string> = {
+    direct: "Wielo",
+    wielo: "Wielo",
+    vilo: "Wielo",
+    website: "Website",
+    "web-referred": "Web referral",
+    airbnb: "Airbnb",
+    booking: "Booking.com",
+    "booking.com": "Booking.com",
+    expedia: "Expedia",
+    lekkerslaap: "LekkerSlaap",
+    other: "Other",
+  };
+  const k = channel.toLowerCase();
+  return map[k] ?? channel.charAt(0).toUpperCase() + channel.slice(1);
 }

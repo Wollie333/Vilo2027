@@ -8,6 +8,7 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
+import { HEADLINE_OTA_RATE } from "@/lib/savings/ota-competitors";
 
 interface ChannelData {
   channel: string;
@@ -69,7 +70,8 @@ export function ChannelMixPieChart({ data }: ChannelMixPieChartProps) {
           R {formatCurrency(totalRevenue)} from {data.length} channels
         </h3>
         <div className="mt-0.5 text-xs text-brand-mute">
-          {totalBookings} bookings · Direct bookings save 15% commission
+          {totalBookings} bookings · Direct bookings save{" "}
+          {Math.round(HEADLINE_OTA_RATE * 100)}% commission
         </div>
       </div>
 

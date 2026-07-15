@@ -1,6 +1,16 @@
 "use client";
 
 import { Search, Send, Eye, CheckCircle, Clock, Banknote } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 interface LookingForStatsData {
   posts_viewed: number;
@@ -173,8 +183,73 @@ export function LookingForStats({ data }: LookingForStatsProps) {
           )}
         </div>
       )}
+
+      {/* Monthly trend — quotes sent vs accepted (was returned but never shown) */}
+      {data.trend &&
+        data.trend.some((t) => t.quotes_sent > 0 || t.accepted > 0) && (
+          <div className="mt-4 rounded-lg border border-brand-line p-3">
+            <div className="mb-2 text-xs font-medium text-brand-mute">
+              Monthly trend — quotes sent vs accepted
+            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart
+                data={data.trend.map((t) => ({
+                  month: formatTrendMonth(t.month),
+                  Sent: t.quotes_sent,
+                  Accepted: t.accepted,
+                }))}
+                margin={{ top: 5, right: 5, left: -18, bottom: 0 }}
+                barGap={2}
+              >
+                <CartesianGrid
+                  strokeDasharray="2 4"
+                  stroke="#DCEAE0"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="month"
+                  stroke="#9CA3AF"
+                  tick={{ fill: "#6B7280", fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  stroke="#9CA3AF"
+                  tick={{ fill: "#6B7280", fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1F2937",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    fontSize: "11px",
+                  }}
+                  labelStyle={{ color: "#9DC1B0" }}
+                  itemStyle={{ color: "#fff" }}
+                  cursor={{ fill: "rgba(16,185,129,0.06)" }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                />
+                <Bar dataKey="Sent" fill="#9DC1B0" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="Accepted" fill="#10B981" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
     </section>
   );
+}
+
+// "2026-03-01" | "2026-03" → "Mar"
+function formatTrendMonth(month: string): string {
+  const d = new Date(month.length === 7 ? `${month}-01` : month);
+  if (isNaN(d.getTime())) return month;
+  return d.toLocaleDateString("en-ZA", { month: "short" });
 }
 
 // Helper: Format number with K/M suffix

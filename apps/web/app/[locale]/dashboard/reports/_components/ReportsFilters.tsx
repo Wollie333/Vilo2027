@@ -2,17 +2,17 @@
 
 import { useState, useTransition } from "react";
 import {
-  Calendar,
   GitCompare,
   Home,
-  MapPin,
   Cable,
   FilterX,
-  Clock,
   Download,
   ChevronDown,
   Loader2,
 } from "lucide-react";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
+import { DateRangePicker } from "@/components/ui/date-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,77 +22,101 @@ import {
 import { exportPropertyPerformanceCSV } from "../_actions/exportPropertyPerformanceCSV";
 import { generateFullReportAction } from "../_actions/generateFullReportAction";
 
+export interface ListingOption {
+  id: string;
+  name: string;
+}
+
 interface ReportsFiltersProps {
-  startDate?: string;
-  endDate?: string;
+  startDate: string;
+  endDate: string;
   compare?: boolean;
   listingId?: string;
-  region?: string;
   channel?: string;
-  listingCount?: number;
+  /** Real listings for the host, used to populate the Listing filter. */
+  listings: ListingOption[];
+  /** Distinct channel keys the host actually has bookings on (data-driven). */
+  channelOptions: string[];
+}
+
+// Pretty labels for the channel keys the RPC returns.
+const CHANNEL_LABELS: Record<string, string> = {
+  direct: "Wielo",
+  wielo: "Wielo",
+  vilo: "Wielo",
+  website: "Website",
+  "web-referred": "Web referral",
+  airbnb: "Airbnb",
+  booking: "Booking.com",
+  "booking.com": "Booking.com",
+  expedia: "Expedia",
+  lekkerslaap: "LekkerSlaap",
+  other: "Other",
+};
+
+function channelLabel(key: string): string {
+  return (
+    CHANNEL_LABELS[key.toLowerCase()] ??
+    key.charAt(0).toUpperCase() + key.slice(1)
+  );
 }
 
 export function ReportsFilters({
-  startDate = "1 Jan",
-  endDate = "30 Jun 2026",
+  startDate,
+  endDate,
   compare = false,
   listingId,
-  region,
   channel,
-  listingCount = 24,
+  listings,
+  channelOptions,
 }: ReportsFiltersProps) {
-  const [filters, setFilters] = useState({
-    dateRange: `${startDate} – ${endDate}`,
-    compareEnabled: compare,
-    selectedListing: listingId || "all",
-    selectedRegion: region || "all",
-    selectedChannel: channel || "all",
-  });
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [isExporting, startExportTransition] = useTransition();
+  const [isPending, startNavTransition] = useTransition();
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const handleReset = () => {
-    setFilters({
-      dateRange: "1 Jan – 30 Jun 2026",
-      compareEnabled: false,
-      selectedListing: "all",
-      selectedRegion: "all",
-      selectedChannel: "all",
+  // Merge a patch into the current query string and navigate. `null` clears a key.
+  const applyPatch = (patch: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null || value === "") params.delete(key);
+      else params.set(key, value);
+    }
+    const qs = params.toString();
+    startNavTransition(() => {
+      router.push(qs ? `${pathname}?${qs}` : pathname);
     });
   };
+
+  const handleReset = () => {
+    startNavTransition(() => {
+      router.push(pathname);
+    });
+  };
+
+  const selectedListingName =
+    listingId && listings.find((l) => l.id === listingId)?.name;
 
   const handleExportCSV = () => {
     startExportTransition(async () => {
       setExportError(null);
-
       try {
         const result = await exportPropertyPerformanceCSV({
-          startDate: startDate || "2026-01-01",
-          endDate: endDate || "2026-06-30",
-          listingId:
-            filters.selectedListing !== "all"
-              ? filters.selectedListing
-              : undefined,
+          startDate,
+          endDate,
+          listingId: listingId || undefined,
         });
-
         if (!result.success || !result.data) {
           setExportError(result.error || "Export failed");
           return;
         }
-
-        // Create Blob and trigger download
-        const blob = new Blob([result.data.csv], {
-          type: "text/csv;charset=utf-8;",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = result.data.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        triggerDownload(
+          new Blob([result.data.csv], { type: "text/csv;charset=utf-8;" }),
+          result.data.filename,
+        );
       } catch (err) {
         console.error("Export error:", err);
         setExportError("An unexpected error occurred");
@@ -103,39 +127,25 @@ export function ReportsFilters({
   const handleExportPDFOrXLSX = (format: "pdf" | "xlsx") => {
     startExportTransition(async () => {
       setExportError(null);
-
       try {
         const result = await generateFullReportAction(format, {
-          startDate: startDate || "2026-01-01",
-          endDate: endDate || "2026-06-30",
-          listingId:
-            filters.selectedListing !== "all"
-              ? filters.selectedListing
-              : undefined,
+          startDate,
+          endDate,
+          listingId: listingId || undefined,
         });
-
         if (!result.success || !result.data) {
           setExportError(result.error || "Export failed");
           return;
         }
-
-        // Convert base64 back to buffer and create Blob
         const binaryString = atob(result.data.buffer);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
-        const blob = new Blob([bytes], { type: result.data.contentType });
-        const url = URL.createObjectURL(blob);
-
-        // Trigger download
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = result.data.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        triggerDownload(
+          new Blob([bytes], { type: result.data.contentType }),
+          result.data.filename,
+        );
       } catch (err) {
         console.error("Export error:", err);
         setExportError("An unexpected error occurred");
@@ -144,202 +154,99 @@ export function ReportsFilters({
   };
 
   const handleExport = (format: "csv" | "pdf" | "xlsx") => {
-    if (format === "csv") {
-      handleExportCSV();
-    } else {
-      handleExportPDFOrXLSX(format);
-    }
-  };
-
-  const handleSchedule = () => {
-    // TODO: Phase 10 - implement scheduled reports
-    // Will open a sheet/modal with schedule configuration form
+    if (format === "csv") handleExportCSV();
+    else handleExportPDFOrXLSX(format);
   };
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-brand-line bg-white/70 px-5 py-2.5 lg:px-8">
-      {/* Date Range Picker */}
-      <button className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light">
-        <Calendar className="h-4 w-4 text-brand-primary" />
-        <span className="font-medium">{filters.dateRange}</span>
-        <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
-      </button>
+      {/* Date Range Picker — writes ?start & ?end */}
+      <div className="min-w-[240px]">
+        <DateRangePicker
+          from={startDate}
+          to={endDate}
+          labelFrom="From"
+          labelTo="To"
+          onChange={(from, to) => {
+            // Only navigate once a full range is chosen (to is set).
+            if (from && to) applyPatch({ start: from, end: to });
+          }}
+        />
+      </div>
 
-      {/* Compare Toggle */}
+      {/* Compare Toggle — writes ?compare */}
       <button
-        onClick={() =>
-          setFilters((prev) => ({
-            ...prev,
-            compareEnabled: !prev.compareEnabled,
-          }))
-        }
+        onClick={() => applyPatch({ compare: compare ? null : "true" })}
         className={`inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm transition-colors ${
-          filters.compareEnabled
+          compare
             ? "bg-brand-accent text-brand-secondary"
             : "bg-white text-brand-ink hover:bg-brand-light"
         }`}
       >
         <GitCompare className="h-4 w-4" />
         <span>vs. prior period</span>
-        <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
       </button>
 
-      {/* Listing Filter */}
+      {/* Listing Filter — writes ?listing */}
       <DropdownMenu>
         <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light">
           <Home className="h-4 w-4 text-brand-mute" />
-          <span>
-            {filters.selectedListing === "all"
-              ? "All listings"
-              : `Listing ${filters.selectedListing}`}
+          <span className="max-w-[160px] truncate">
+            {selectedListingName || "All listings"}
           </span>
           <span className="ml-1 rounded-full bg-brand-accent px-1.5 py-0.5 text-[10px] font-bold text-brand-secondary">
-            {listingCount}
+            {listings.length}
           </span>
           <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedListing: "all" }))
-            }
-          >
+        <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+          <DropdownMenuItem onClick={() => applyPatch({ listing: null })}>
             All listings
           </DropdownMenuItem>
-          {/* TODO: Phase 2 - populate with actual listings */}
-          <DropdownMenuItem disabled className="text-xs text-brand-mute">
-            Individual listings will appear here
-          </DropdownMenuItem>
+          {listings.length === 0 ? (
+            <DropdownMenuItem disabled className="text-xs text-brand-mute">
+              No listings yet
+            </DropdownMenuItem>
+          ) : (
+            listings.map((l) => (
+              <DropdownMenuItem
+                key={l.id}
+                onClick={() => applyPatch({ listing: l.id })}
+                className={l.id === listingId ? "font-semibold" : ""}
+              >
+                {l.name}
+              </DropdownMenuItem>
+            ))
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Region Filter */}
-      <DropdownMenu>
-        <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light">
-          <MapPin className="h-4 w-4 text-brand-mute" />
-          <span>
-            {filters.selectedRegion === "all"
-              ? "All regions"
-              : filters.selectedRegion}
-          </span>
-          <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedRegion: "all" }))
-            }
-          >
-            All regions
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({
-                ...prev,
-                selectedRegion: "Western Cape",
-              }))
-            }
-          >
-            Western Cape
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedRegion: "Gauteng" }))
-            }
-          >
-            Gauteng
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({
-                ...prev,
-                selectedRegion: "KwaZulu-Natal",
-              }))
-            }
-          >
-            KwaZulu-Natal
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({
-                ...prev,
-                selectedRegion: "Eastern Cape",
-              }))
-            }
-          >
-            Eastern Cape
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedRegion: "Other" }))
-            }
-          >
-            Other
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Channel Filter — writes ?channel (data-driven) */}
+      {channelOptions.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light">
+            <Cable className="h-4 w-4 text-brand-mute" />
+            <span>{channel ? channelLabel(channel) : "All channels"}</span>
+            <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={() => applyPatch({ channel: null })}>
+              All channels
+            </DropdownMenuItem>
+            {channelOptions.map((c) => (
+              <DropdownMenuItem
+                key={c}
+                onClick={() => applyPatch({ channel: c })}
+                className={c === channel ? "font-semibold" : ""}
+              >
+                {channelLabel(c)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
-      {/* Channel Filter */}
-      <DropdownMenu>
-        <DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light">
-          <Cable className="h-4 w-4 text-brand-mute" />
-          <span>
-            {filters.selectedChannel === "all"
-              ? "All channels"
-              : filters.selectedChannel}
-          </span>
-          <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedChannel: "all" }))
-            }
-          >
-            All channels
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedChannel: "Direct" }))
-            }
-          >
-            Direct
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedChannel: "Airbnb" }))
-            }
-          >
-            Airbnb
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({
-                ...prev,
-                selectedChannel: "Booking.com",
-              }))
-            }
-          >
-            Booking.com
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedChannel: "Expedia" }))
-            }
-          >
-            Expedia
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              setFilters((prev) => ({ ...prev, selectedChannel: "Other" }))
-            }
-          >
-            Other
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Reset Button */}
+      {/* Reset — clears all filter params */}
       <button
         onClick={handleReset}
         className="inline-flex items-center gap-1.5 rounded px-2.5 py-2 text-sm text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
@@ -348,18 +255,12 @@ export function ReportsFilters({
         Reset
       </button>
 
-      {/* Right-aligned: Schedule + Export */}
-      <div className="ml-auto flex items-center gap-2">
-        {/* Schedule Button */}
-        <button
-          onClick={handleSchedule}
-          className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light"
-        >
-          <Clock className="h-4 w-4" />
-          Schedule
-        </button>
+      {isPending && (
+        <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
+      )}
 
-        {/* Export Button with Format Options */}
+      {/* Right-aligned: Export */}
+      <div className="ml-auto flex items-center gap-2">
         <div className="relative">
           <div className="inline-flex items-stretch overflow-hidden rounded border border-brand-line bg-white text-sm">
             <DropdownMenu>
@@ -401,7 +302,6 @@ export function ReportsFilters({
             </span>
           </div>
 
-          {/* Error Message */}
           {exportError && (
             <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700 shadow-lg">
               <button
@@ -417,4 +317,15 @@ export function ReportsFilters({
       </div>
     </div>
   );
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

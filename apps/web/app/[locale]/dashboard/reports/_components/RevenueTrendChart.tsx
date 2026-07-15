@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useTransition } from "react";
 import {
   LineChart,
   Line,
@@ -11,6 +11,9 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { Loader2 } from "lucide-react";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 
 interface TrendDataPoint {
   date: string;
@@ -23,20 +26,39 @@ interface RevenueTrendData {
   grouping: string;
 }
 
+type Grouping = "day" | "week" | "month";
+
 interface RevenueTrendChartProps {
   data: RevenueTrendData;
   totalRevenue: number;
   revenueGrowth: number;
+  grouping: Grouping;
 }
 
-type TimeRange = "30d" | "90d" | "6m" | "ytd" | "12m";
+const GROUPINGS: { key: Grouping; label: string }[] = [
+  { key: "day", label: "Day" },
+  { key: "week", label: "Week" },
+  { key: "month", label: "Month" },
+];
 
 export function RevenueTrendChart({
   data,
   totalRevenue,
   revenueGrowth,
+  grouping,
 }: RevenueTrendChartProps) {
-  const [selectedRange, setSelectedRange] = useState<TimeRange>("6m");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
+  const setGrouping = (g: Grouping) => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    if (g === "day") params.delete("grouping");
+    else params.set("grouping", g);
+    const qs = params.toString();
+    startTransition(() => router.push(qs ? `${pathname}?${qs}` : pathname));
+  };
 
   // Merge current and prior data for the chart
   // Recharts needs a single data array with both series
@@ -70,21 +92,26 @@ export function RevenueTrendChart({
           </div>
         </div>
 
-        {/* Time Range Selector */}
-        <div className="inline-flex rounded-full border border-brand-line bg-brand-light p-1 text-[11px] font-medium">
-          {(["30d", "90d", "6m", "ytd", "12m"] as TimeRange[]).map((range) => (
-            <button
-              key={range}
-              onClick={() => setSelectedRange(range)}
-              className={`rounded-full px-3 py-1 transition-colors ${
-                selectedRange === range
-                  ? "bg-white text-brand-ink shadow-sm"
-                  : "text-brand-mute hover:text-brand-ink"
-              }`}
-            >
-              {range.toUpperCase()}
-            </button>
-          ))}
+        {/* Grouping Selector — re-buckets the trend (day / week / month) */}
+        <div className="inline-flex items-center gap-2">
+          {isPending && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-primary" />
+          )}
+          <div className="inline-flex rounded-full border border-brand-line bg-brand-light p-1 text-[11px] font-medium">
+            {GROUPINGS.map((g) => (
+              <button
+                key={g.key}
+                onClick={() => setGrouping(g.key)}
+                className={`rounded-full px-3 py-1 transition-colors ${
+                  grouping === g.key
+                    ? "bg-white text-brand-ink shadow-sm"
+                    : "text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

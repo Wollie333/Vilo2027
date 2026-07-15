@@ -42,8 +42,8 @@ export default async function ReportsPage({
     end?: string;
     compare?: string;
     listing?: string;
-    region?: string;
     channel?: string;
+    grouping?: string;
   };
 }) {
   const supabase = createServerClient();
@@ -131,33 +131,48 @@ export default async function ReportsPage({
     );
   }
 
-  // Check for advanced features (Pro+)
-  // TODO: Phase 2+ - use hasAdvanced to gate Pro+ sections (scheduled reports, advanced exports)
-  const { data: advancedRaw } = await supabase.rpc("check_feature_permission", {
-    p_host_id: host.id,
-    p_feature_key: "analytics_advanced",
-  });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const hasAdvanced =
-    PRE_MVP_FEATURES_OPEN ||
-    ((advancedRaw as { is_enabled: boolean } | null)?.is_enabled ?? false);
-
-  // Parse filter params with defaults (YTD: Jan 1 to today)
+  // Parse filter params with defaults (YTD: Jan 1 to today). Build the ISO
+  // strings from LOCAL y/m/d — `toISOString()` shifts to UTC, which in SAST
+  // (UTC+2) rolls Jan 1 back to "31 Dec" and shows the wrong default range.
   const today = new Date();
+  const toLocalISO = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
   const startOfYear = new Date(today.getFullYear(), 0, 1);
 
-  const startDate =
-    searchParams?.start || startOfYear.toISOString().split("T")[0];
-  const endDate = searchParams?.end || today.toISOString().split("T")[0];
+  const startDate = searchParams?.start || toLocalISO(startOfYear);
+  const endDate = searchParams?.end || toLocalISO(today);
+
+  // Revenue-trend period grouping (RPC supports day/week/month).
+  const grouping: "day" | "week" | "month" =
+    searchParams?.grouping === "week" || searchParams?.grouping === "month"
+      ? searchParams.grouping
+      : "day";
 
   const filters = {
     startDate,
     endDate,
     compare: searchParams?.compare === "true",
     listingId: searchParams?.listing,
-    region: searchParams?.region,
     channel: searchParams?.channel,
   };
+
+  // Real listings for the host — feeds the Listing filter and the active count
+  // (replaces the old hardcoded "24"). Ordered by name for a stable dropdown.
+  const { data: listingRows } = await supabase
+    .from("properties")
+    .select("id, name, is_published")
+    .eq("host_id", host.id)
+    .is("deleted_at", null)
+    .order("name", { ascending: true });
+  const listings = (listingRows ?? []).map((l) => ({
+    id: l.id as string,
+    name: (l.name as string) || "Untitled listing",
+  }));
+  const activeListingCount = (listingRows ?? []).filter(
+    (l) => l.is_published,
+  ).length;
 
   // Fetch analytics data in parallel
   const [
@@ -192,7 +207,7 @@ export default async function ReportsPage({
       p_host_id: host.id,
       p_start_date: startDate,
       p_end_date: endDate,
-      p_grouping: "day",
+      p_grouping: grouping,
       p_listing_id: filters.listingId || null,
       p_channel: filters.channel || null,
     }),
@@ -519,9 +534,9 @@ export default async function ReportsPage({
           endDate={filters.endDate}
           compare={filters.compare}
           listingId={filters.listingId}
-          region={filters.region}
           channel={filters.channel}
-          listingCount={24} // TODO: Phase 2 - fetch actual count
+          listings={listings}
+          channelOptions={channelMix.map((c) => c.channel)}
         />
       </header>
 
@@ -534,8 +549,9 @@ export default async function ReportsPage({
               Portfolio performance
             </h2>
             <p className="mt-1 text-sm text-brand-mute">
-              {/* TODO: Fetch actual listing count */}
-              24 active listings · last refreshed{" "}
+              {activeListingCount}{" "}
+              {activeListingCount === 1 ? "active listing" : "active listings"}{" "}
+              · last refreshed{" "}
               <span className="font-medium text-brand-ink">today</span> · data
               through {new Date(endDate).toLocaleDateString("en-ZA")}
             </p>
@@ -587,6 +603,7 @@ export default async function ReportsPage({
                   data={revenueTrend}
                   totalRevenue={primaryKpis.revenue.current}
                   revenueGrowth={primaryKpis.revenue.delta || 0}
+                  grouping={grouping}
                 />
               )}
 
