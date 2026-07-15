@@ -11,10 +11,14 @@ export async function RequestRequirements({
   postId,
   title = "Requirements",
   className,
+  variant = "full",
 }: {
   postId: string;
   title?: string;
   className?: string;
+  // "full" = grouped with per-group headers; "compact" = one flat wrap of option
+  // chips (no title, no headers) for embedding inside the horizontal info card.
+  variant?: "full" | "compact";
 }) {
   const admin = createAdminClient();
   const [{ data: rows }, catalog] = await Promise.all([
@@ -28,6 +32,23 @@ export async function RequestRequirements({
   const keys = (rows ?? []).map((r) => r.option_key as string);
   const categories = buildRequirementCategories(catalog, keys);
   if (categories.length === 0) return null;
+
+  if (variant === "compact") {
+    return (
+      <div className={`flex flex-wrap gap-1.5 ${className ?? ""}`}>
+        {categories.flatMap((cat) =>
+          cat.options.map((o) => (
+            <span
+              key={`${cat.slug}-${o.slug}`}
+              className="rounded-pill border border-brand-line bg-brand-light/50 px-2.5 py-1 text-xs font-medium text-brand-ink"
+            >
+              {o.label}
+            </span>
+          )),
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={className}>

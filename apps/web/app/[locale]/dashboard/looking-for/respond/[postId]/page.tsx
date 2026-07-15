@@ -6,6 +6,7 @@ import { hostHasFeature } from "@/lib/products/featureGate";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { stripHtml } from "@/lib/sanitiseHtml";
+import { RequestInfoCard } from "@/components/looking-for/RequestInfoCard";
 import { RequestRequirements } from "@/components/looking-for/RequestRequirements";
 import { loadQuoteFormListings } from "../../../quotes/_listings";
 import { LookingForLocked } from "../../_components/LookingForLocked";
@@ -77,6 +78,13 @@ export default async function RespondToPostPage({ params }: Props) {
       children,
       infants,
       location_text,
+      location_region,
+      budget_min,
+      budget_max,
+      budget_per,
+      budget_currency,
+      image_url,
+      is_urgent,
       status,
       is_public,
       expires_at,
@@ -197,70 +205,29 @@ export default async function RespondToPostPage({ params }: Props) {
         </Button>
       </div>
 
-      {/* Request summary */}
-      <div className="rounded-card border border-brand-line bg-brand-accent p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
-            <Search className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-brand-mute">Responding to request</p>
-            <h2 className="truncate font-medium text-brand-ink">
-              {post.title}
-            </h2>
-            <p className="mt-1 text-sm text-brand-mute">
-              {post.location_text ?? post.category}
-              {post.check_in_date && (
-                <span>
-                  {" "}
-                  ·{" "}
-                  {new Date(post.check_in_date).toLocaleDateString("en-ZA", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </span>
-              )}
-              {post.check_out_date && (
-                <span>
-                  {" "}
-                  –{" "}
-                  {new Date(post.check_out_date).toLocaleDateString("en-ZA", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </span>
-              )}
-              {post.check_in_date && (post.date_flexibility_days ?? 0) > 0 && (
-                <span className="text-brand-primary">
-                  {" "}
-                  ·{" "}
-                  {post.date_flexibility_days === 7
-                    ? "± 1 week"
-                    : post.date_flexibility_days === 14
-                      ? "± 2 weeks"
-                      : `± ${post.date_flexibility_days}d`}{" "}
-                  flexible
-                </span>
-              )}
-              {post.adults && (
-                <span>
-                  {" "}
-                  · {post.adults +
-                    (post.children ?? 0) +
-                    (post.infants ?? 0)}{" "}
-                  guests
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* What the guest requires (admin-managed taxonomy) */}
-      <RequestRequirements
-        postId={post.id}
-        title="What the guest needs"
-        className="rounded-card border border-brand-line bg-white p-4"
+      {/* Compact horizontal request card — image + key facts + requirement
+          chips, so the quote builder below stays above the fold. */}
+      <RequestInfoCard
+        eyebrow="Responding to request"
+        title={post.title}
+        category={post.category}
+        imageUrl={post.image_url}
+        locationText={post.location_text}
+        locationRegion={post.location_region}
+        checkIn={post.check_in_date}
+        checkOut={post.check_out_date}
+        flexDays={post.date_flexibility_days}
+        adults={post.adults}
+        childrenCount={post.children}
+        infants={post.infants}
+        budgetMin={post.budget_min}
+        budgetMax={post.budget_max}
+        budgetPer={post.budget_per}
+        budgetCurrency={post.budget_currency}
+        isUrgent={post.is_urgent}
+        requirements={
+          <RequestRequirements postId={post.id} variant="compact" />
+        }
       />
 
       {/* Quote form with pre-filled data and template support */}

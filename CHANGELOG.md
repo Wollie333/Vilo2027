@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-07-15 — Looking-For §2: compact horizontal request info card (host respond page).
+
+- **Shared `components/looking-for/RequestInfoCard.tsx`** — compact HORIZONTAL card: request image (left) + title +
+  category/urgent + a single fact row (location · dates + flex · guests · budget via `formatMoney`) + condensed
+  requirement chips. Presentational (no client hooks / server-only imports) so it drops into server OR client trees;
+  reusable by the guest record + the upcoming public search (§2 Feature 2).
+- **`RequestRequirements` gained a `variant="compact"`** — flat wrap of option chips (no title/headers) for embedding
+  inside the card.
+- **Host respond page** (`dashboard/looking-for/respond/[postId]`) — the two stacked vertical cards (green
+  "Responding to request" summary + big "What the guest needs" block) are replaced by one `RequestInfoCard`, so the
+  quote builder sits above the fold. Query now selects `image_url`, `location_region`, budget fields, `is_urgent`.
+  Verified live as the test host (Lerato/Karoo Sky) on the "wedding venue" request.
+
 ## 2026-07-15 — Looking-For guest CRM record + archive (Feature 3) + latent-bug fixes + big-batch plan.
 
 - **Requirements admin UI verified LIVE** (carry-over) — drove `/admin/platform/looking-for` as super-admin:
