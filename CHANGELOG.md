@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-15 — Quote-only UX (show-but-lock) + deep quote-system hardening sweep.
+
+**Founder UX:** a quotes-only (Wielo Quotes / R99) account now SEES the whole host sidebar with every host-only tab
+greyed + locked (lock icon, "upgrade to a full host account" tooltip) instead of the tabs being hidden. A locked row
+still navigates; the destination renders an in-page upgrade lock (QuotesOnlyGate) explaining what a full host account
+unlocks. Also fixed the integration gap this surfaced: the Looking-For respond page dead-ended any account with no
+published listing — but a quotes-only account has none by design, so it could never quote. It now drops them straight
+into the custom-quote form. Verified live: quote-only account built + SENT a custom quote (R65k), 1 credit debited
+(5→4), response recorded.
+
+**Adversarial hardening sweep** (multi-agent, 9 finders × 2-lens verify → 12 confirmed + 2 plausible, 0 rejected).
+Fixed 13 of 14; the one deferred is a LOW pre-MVP-lenient guest-quota race (#11). Highlights:
+- **#1 (HIGH)** the quote_only / platform_access boundary had NO server-side enforcement (client-only) — a scoped or
+  admin-suspended account could script host-only Server Actions. `assertFullHost()` now gates createListing/
+  createManualBooking/addIcalFeed/website + coupons/add-ons/specials/policies/seasonal/refunds server-side.
+- **#2 (HIGH)** cross-host credit-grant collision (2nd same-day subscriber got 0 of 5 credits) — `apply_wielo_credit`
+  dedupe now host-scoped + atomic (wallet lock + post-lock recheck + partial UNIQUE index); migration 20260715210000.
+- **#3 (MED)** admin re-activation re-granted credits — preserves the live billing window now.
+- **#4 (MED)** host could quote a Looking-For post not addressed to them — server-side visibility check before debit.
+- **#6 (MED)** concurrent quote-accept made duplicate bookings — partial UNIQUE index on bookings(quote_id) + atomic
+  claim; migration 20260715220000.
+- **#7 (MED)** looking_for_usage INSERT was WITH CHECK(TRUE) (quota DoS) — own-only now; migration 20260715230000.
+- **#8/#10/#12** admin createUser is atomic (rolls back the auth user on failure) + no false-success on host-access
+  no-ops. **#9** upload attachment_path host-prefix guard. **#14** custom/upload title required server-side.
+
 ## 2026-07-15 — Admin "Add user + assign subscription": admin-driven user creation.
 
 Admins can now CREATE a brand-new user from the platform (the admin-driven alternative to self-serve signup, and the

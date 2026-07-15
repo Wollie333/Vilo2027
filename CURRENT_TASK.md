@@ -14,11 +14,17 @@ magic-link login into the scoped quotes-only shell). Build + lint + tsc all gree
 **✅ Wielo Quotes product SEEDED + assign loop verified** (founder: R99/mo, 5 quote credits/mo). Activating it on the
 quote-only user grants exactly 5 credits (wallet + ledger confirmed). Full loop live-verified.
 
-**▶▶ NOW: deep hardening sweep of the quote system** (founder: "thorough sweep from all angles — host, guest, and the
-new scoped type; harden + super-integrate"). Running as a multi-agent workflow (9 finders × 2-lens adversarial verify)
-across access-gating (server-side enforcement of quote_only), credits accounting, quote lifecycle, upload security,
-guest isolation, admin create/assign, and RLS. Prime suspect: QuotesOnlyGuard is CLIENT-side only + a quote_only
-account is a real host row → verify host-only mutations are blocked SERVER-SIDE. Fix + live-verify findings.
+**✅ Show-but-lock UX + deep hardening sweep DONE** (founder: "sidebar tabs greyed/locked → upgrade page" + "thorough
+sweep from all angles, harden + super-integrate"). Multi-agent sweep = 12 confirmed + 2 plausible, 0 rejected; fixed
+13/14 (deferred: LOW pre-MVP-lenient guest-quota race #11). Commits `693f2c57`→`9e345710`. Migrations 20260715210000
+(credits atomic/host-scoped), 220000 (one booking per quote), 230000 (usage own-insert). Server-side scope boundary =
+`assertFullHost()` (requireHost stays permissive for quote surfaces). Verified live: quote-only account sees the full
+locked IA + upgrade screen, and built + SENT a custom quote (credit 5→4); full host unaffected; credit cross-host
+idempotency proven via RPC. See memory `project-quote-system-hardening`.
+
+**⏳ REMAINING (optional):** (a) LOW #11 guest-quota TOCTOU (needs an atomic check-and-record DB fn); (b) defense-in-
+depth RLS restrictive backstop on host-only tables (app-layer assertFullHost covers the confirmed surfaces today);
+(c) extend assertFullHost to the last un-swapped host-only files (ledger/payments/bookings-edit/website-wizard loader).
 
 ---
 
