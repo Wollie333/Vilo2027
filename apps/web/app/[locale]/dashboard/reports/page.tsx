@@ -30,6 +30,8 @@ import { LookingForStats } from "./_components/LookingForStats";
 import { RevenueBreakdown } from "./_components/RevenueBreakdown";
 import { WebsiteTraffic } from "./_components/WebsiteTraffic";
 import { loadWebsiteAnalyticsForWebsites } from "@/lib/website/analytics";
+import { DeepAnalytics } from "./_components/DeepAnalytics";
+import { loadHostDeepAnalytics } from "@/lib/reports/hostDeepAnalytics";
 
 export const metadata: Metadata = {
   title: "Analytics & Reports",
@@ -620,6 +622,14 @@ export default async function ReportsPage({
       ? await loadWebsiteAnalyticsForWebsites(admin, websiteIds, "30d")
       : null;
 
+  // ---- In-depth booking analytics (period-scoped) --------------------------
+  const deepAnalytics = await loadHostDeepAnalytics(
+    admin,
+    host.id,
+    startDate,
+    endDate,
+  );
+
   return (
     <>
       {/* Header */}
@@ -754,6 +764,9 @@ export default async function ReportsPage({
                 listingId={filters.listingId}
               />
             </section>
+
+            {/* In-depth analytics — booking behaviour, revenue trends, guests */}
+            <DeepAnalytics data={deepAnalytics} />
 
             {/* Regional Breakdown + Seasonality Heatmap */}
             {(regionalBreakdown.length > 0 || seasonalityHeatmap) && (
