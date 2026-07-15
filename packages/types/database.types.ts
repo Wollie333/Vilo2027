@@ -8198,8 +8198,8 @@ export type Database = {
           balance_amount: number
           balance_due_days: number
           base_amount: number
-          check_in: string
-          check_out: string
+          check_in: string | null
+          check_out: string | null
           cleaning_fee: number
           conversation_id: string | null
           converted_at: string | null
@@ -8230,11 +8230,13 @@ export type Database = {
           policy_snapshot: Json | null
           previous_status: string | null
           price_mode: string
-          property_id: string
+          property_id: string | null
           quote_number: string
+          quote_type: string
           scope: string
           sent_at: string | null
           status: string
+          title: string | null
           total_amount: number
           updated_at: string
           valid_until: string | null
@@ -8247,8 +8249,8 @@ export type Database = {
           balance_amount?: number
           balance_due_days?: number
           base_amount: number
-          check_in: string
-          check_out: string
+          check_in?: string | null
+          check_out?: string | null
           cleaning_fee?: number
           conversation_id?: string | null
           converted_at?: string | null
@@ -8279,11 +8281,13 @@ export type Database = {
           policy_snapshot?: Json | null
           previous_status?: string | null
           price_mode?: string
-          property_id: string
+          property_id?: string | null
           quote_number: string
+          quote_type?: string
           scope?: string
           sent_at?: string | null
           status?: string
+          title?: string | null
           total_amount: number
           updated_at?: string
           valid_until?: string | null
@@ -8296,8 +8300,8 @@ export type Database = {
           balance_amount?: number
           balance_due_days?: number
           base_amount?: number
-          check_in?: string
-          check_out?: string
+          check_in?: string | null
+          check_out?: string | null
           cleaning_fee?: number
           conversation_id?: string | null
           converted_at?: string | null
@@ -8328,11 +8332,13 @@ export type Database = {
           policy_snapshot?: Json | null
           previous_status?: string | null
           price_mode?: string
-          property_id?: string
+          property_id?: string | null
           quote_number?: string
+          quote_type?: string
           scope?: string
           sent_at?: string | null
           status?: string
+          title?: string | null
           total_amount?: number
           updated_at?: string
           valid_until?: string | null

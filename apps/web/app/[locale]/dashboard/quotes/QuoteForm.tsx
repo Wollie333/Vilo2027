@@ -107,6 +107,9 @@ type PricedRoom = {
 
 export type QuoteFormInitial = {
   id?: string;
+  quoteType?: "accommodation" | "custom" | "upload";
+  /** Headline for a custom/upload quote (no listing name to fall back on). */
+  title?: string;
   listingId?: string;
   guestName?: string;
   guestEmail?: string;
@@ -226,6 +229,14 @@ export function QuoteForm({
   // True only while a recovery draft is being applied — lets the auto-pricing
   // effect skip that commit so a restored hand-set price isn't re-priced over.
   const restoringRef = useRef(false);
+
+  // Quote type — accommodation (listing + calendar) vs custom (line items, no
+  // calendar). 'upload' comes in a later phase. Drives which sections render.
+  const [quoteType, setQuoteType] = useState<"accommodation" | "custom">(
+    initial?.quoteType === "custom" ? "custom" : "accommodation",
+  );
+  const isCustomQuote = quoteType === "custom";
+  const [customTitle, setCustomTitle] = useState(initial?.title ?? "");
 
   const [listingId, setListingId] = useState(
     initial?.listingId ?? listings[0]?.id ?? "",
@@ -621,6 +632,12 @@ export function QuoteForm({
     ],
   );
 
+  // Custom quotes have no calendar to auto-price from — pin them to a single
+  // hand-entered total so the itemised nightly-rate machinery never engages.
+  useEffect(() => {
+    if (isCustomQuote && priceMode !== "single") setPriceMode("single");
+  }, [isCustomQuote, priceMode]);
+
   useEffect(() => {
     if (restoringRef.current) return; // don't re-price over a restored draft
     // Single-total is a hand-set figure — never auto-price over it.
@@ -701,14 +718,16 @@ export function QuoteForm({
   function buildInput() {
     if (priceMode === "single") {
       return {
-        property_id: listingId,
+        quote_type: quoteType,
+        title: isCustomQuote ? customTitle.trim() : undefined,
+        property_id: isCustomQuote ? undefined : listingId,
         guest_name: guestName.trim(),
         guest_email: guestEmail.trim(),
         guest_phone: guestPhone.trim(),
-        check_in: checkIn,
-        check_out: checkOut,
+        check_in: isCustomQuote ? undefined : checkIn,
+        check_out: isCustomQuote ? undefined : checkOut,
         headcount,
-        scope: "whole_listing" as const,
+        scope: isCustomQuote ? undefined : ("whole_listing" as const),
         base_amount: parseFloat(singleTotal) || 0,
         cleaning_fee: 0,
         currency,
@@ -761,14 +780,16 @@ export function QuoteForm({
       })),
     ];
     return {
-      property_id: listingId,
+      quote_type: quoteType,
+      title: isCustomQuote ? customTitle.trim() : undefined,
+      property_id: isCustomQuote ? undefined : listingId,
       guest_name: guestName.trim(),
       guest_email: guestEmail.trim(),
       guest_phone: guestPhone.trim(),
-      check_in: checkIn,
-      check_out: checkOut,
+      check_in: isCustomQuote ? undefined : checkIn,
+      check_out: isCustomQuote ? undefined : checkOut,
       headcount,
-      scope,
+      scope: isCustomQuote ? undefined : scope,
       base_amount: totals.base,
       cleaning_fee: totals.cleaning,
       currency,
@@ -804,33 +825,41 @@ export function QuoteForm({
 
   function validate(): boolean {
     const input = buildInput();
-    if (!input.property_id) {
-      toast.error("Pick a listing.");
-      return false;
-    }
     if (!input.guest_name || !input.guest_email) {
       toast.error("Add the guest's name and email.");
       return false;
     }
-    if (!datesValid) {
-      toast.error("Set valid check-in and check-out dates.");
-      return false;
-    }
-    if (hasDateConflict) {
-      toast.error(
-        "Those dates include nights that are already booked or blocked. Pick open dates first.",
-      );
-      return false;
-    }
-    if (input.scope === "rooms" && input.rooms.length === 0) {
-      toast.error("Select rooms and price them first.");
-      return false;
+    if (isCustomQuote) {
+      // Custom quotes have no listing/calendar — just a title + a price.
+      if (!customTitle.trim()) {
+        toast.error("Give this quote a short title.");
+        return false;
+      }
+    } else {
+      if (!input.property_id) {
+        toast.error("Pick a listing.");
+        return false;
+      }
+      if (!datesValid) {
+        toast.error("Set valid check-in and check-out dates.");
+        return false;
+      }
+      if (hasDateConflict) {
+        toast.error(
+          "Those dates include nights that are already booked or blocked. Pick open dates first.",
+        );
+        return false;
+      }
+      if (input.scope === "rooms" && input.rooms.length === 0) {
+        toast.error("Select rooms and price them first.");
+        return false;
+      }
     }
     if (input.base_amount <= 0 && totals.total <= 0) {
       toast.error("Add a price before sending.");
       return false;
     }
-    if (overCapacity && !isLookingForResponse) {
+    if (overCapacity && !isLookingForResponse && !isCustomQuote) {
       toast.error(
         `That's more guests than this sleeps (${capacityLimit}). Adults + children must fit.`,
       );
@@ -988,7 +1017,9 @@ export function QuoteForm({
   const ci = fmtDayShort(checkIn);
   const co = fmtDayShort(checkOut);
   const firstName = guestName.trim().split(/\s+/)[0] || "the guest";
-  const step1Done = !!listingId && datesValid && !!guestName && !!guestEmail;
+  const step1Done = isCustomQuote
+    ? !!customTitle.trim() && !!guestName && !!guestEmail
+    : !!listingId && datesValid && !!guestName && !!guestEmail;
 
   // ── Auto-save drafts (page variant only) ─────────────────────────
   type QuoteDraftPayload = {
@@ -1191,6 +1222,62 @@ export function QuoteForm({
               sub="Who it's for, where they're staying, and the dates. Adjust anything that needs changing."
             />
 
+            {/* Quote type — accommodation (listing + calendar) vs custom (line
+                items, no calendar). Only choosable on a new quote. */}
+            {!initial?.id && (
+              <div className="mt-5">
+                <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                  Quote type
+                </div>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {(
+                    [
+                      {
+                        v: "accommodation" as const,
+                        t: "Accommodation",
+                        d: "A stay — pick a listing + dates",
+                      },
+                      {
+                        v: "custom" as const,
+                        t: "Custom quote",
+                        d: "Line items, no calendar (e.g. an experience)",
+                      },
+                    ] as const
+                  ).map((o) => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      onClick={() => setQuoteType(o.v)}
+                      className={`rounded-[12px] border p-3 text-left transition ${
+                        quoteType === o.v
+                          ? "border-brand-primary bg-brand-accent/40 ring-1 ring-brand-primary"
+                          : "border-brand-line bg-white hover:border-brand-primary/40"
+                      }`}
+                    >
+                      <div className="text-[13px] font-semibold text-brand-ink">
+                        {o.t}
+                      </div>
+                      <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                        {o.d}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Custom-quote headline (no listing name to fall back on). */}
+            {isCustomQuote && (
+              <div className="mt-5">
+                <FieldLabel>Quote title *</FieldLabel>
+                <Input
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  placeholder="e.g. Sunset safari drive for 4"
+                />
+              </div>
+            )}
+
             {/* Guest */}
             <div className="mt-5">
               <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
@@ -1275,354 +1362,366 @@ export function QuoteForm({
               </div>
             </div>
 
-            {/* Matched listing / room */}
-            <div className="mt-6">
-              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
-                Listing &amp; room
-              </div>
-              <div className="mt-2 flex items-center gap-3 rounded-[12px] border border-brand-line bg-brand-light/40 p-3">
-                <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-[10px] bg-brand-light">
-                  {listing?.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={listing.coverUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-brand-mute">
-                      <BedDouble className="h-5 w-5" />
+            {/* Listing, dates & party — accommodation quotes only. */}
+            {!isCustomQuote && (
+              <>
+                {/* Matched listing / room */}
+                <div className="mt-6">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                    Listing &amp; room
+                  </div>
+                  <div className="mt-2 flex items-center gap-3 rounded-[12px] border border-brand-line bg-brand-light/40 p-3">
+                    <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-[10px] bg-brand-light">
+                      {listing?.coverUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={listing.coverUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                          <BedDouble className="h-5 w-5" />
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13.5px] font-semibold text-brand-ink">
-                    {listing?.name ?? "Pick a listing"}
-                    {scope === "rooms" && selectedRoomObjs.length > 0
-                      ? ` · ${selectedRoomObjs.map((r) => r.name).join(", ")}`
-                      : ""}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13.5px] font-semibold text-brand-ink">
+                        {listing?.name ?? "Pick a listing"}
+                        {scope === "rooms" && selectedRoomObjs.length > 0
+                          ? ` · ${selectedRoomObjs.map((r) => r.name).join(", ")}`
+                          : ""}
+                      </div>
+                      <div className="truncate text-[11.5px] text-brand-mute">
+                        {[
+                          listing?.city,
+                          listing?.max_guests
+                            ? `sleeps ${listing.max_guests}`
+                            : null,
+                          listing?.base_price != null
+                            ? `base ${formatMoney(listing.base_price, currency)} / night`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setChangingListing((v) => !v)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[11.5px] font-medium text-brand-ink hover:bg-brand-accent/40"
+                    >
+                      {changingListing ? "Done" : "Change"}
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
                   </div>
-                  <div className="truncate text-[11.5px] text-brand-mute">
-                    {[
-                      listing?.city,
-                      listing?.max_guests
-                        ? `sleeps ${listing.max_guests}`
-                        : null,
-                      listing?.base_price != null
-                        ? `base ${formatMoney(listing.base_price, currency)} / night`
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "—"}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setChangingListing((v) => !v)}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[11.5px] font-medium text-brand-ink hover:bg-brand-accent/40"
-                >
-                  {changingListing ? "Done" : "Change"}
-                  <ChevronRight className="h-3 w-3" />
-                </button>
-              </div>
 
-              {changingListing ? (
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  {listings.map((l) => {
-                    const on = l.id === listingId;
-                    return (
-                      <button
-                        type="button"
-                        key={l.id}
-                        onClick={() => changeListing(l.id)}
-                        className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
-                          on
-                            ? "border-brand-primary bg-brand-accent/40 ring-2 ring-brand-primary/15"
-                            : "border-brand-line bg-white hover:bg-brand-accent/20"
-                        }`}
-                      >
-                        <span className="relative block h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
-                          {l.coverUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={l.coverUrl}
-                              alt={l.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="flex h-full w-full items-center justify-center text-brand-mute">
-                              <BedDouble className="h-6 w-6" />
-                            </span>
-                          )}
-                          {on ? (
-                            <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-white">
-                              <Check className="h-3 w-3" />
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="mt-2.5 flex items-start justify-between gap-2">
-                          <span className="min-w-0">
-                            <span className="block truncate text-[13px] font-semibold text-brand-ink">
-                              {l.name}
-                            </span>
-                            <span className="block truncate text-[10.5px] text-brand-mute">
-                              {l.city ?? "—"}
-                              {l.max_guests ? ` · sleeps ${l.max_guests}` : ""}
-                            </span>
-                          </span>
-                          {l.base_price != null ? (
-                            <span className="text-right">
-                              <span className="block font-display text-[12.5px] font-bold text-brand-ink">
-                                {formatMoney(l.base_price, l.currency)}
-                              </span>
-                              <span className="block text-[9.5px] text-brand-mute">
-                                / night
-                              </span>
-                            </span>
-                          ) : null}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              {hasRooms ? (
-                <div className="mt-3">
-                  <div className="flex gap-2">
-                    <Chip
-                      active={scope === "whole_listing"}
-                      onClick={() => {
-                        setScope("whole_listing");
-                        setPricedRooms([]);
-                      }}
-                      label="Whole listing"
-                    />
-                    <Chip
-                      active={scope === "rooms"}
-                      onClick={() => setScope("rooms")}
-                      label="Specific rooms"
-                    />
-                  </div>
-                  {scope === "rooms" ? (
-                    <div className="mt-3 space-y-2">
-                      {(listing?.rooms ?? []).map((r) => {
-                        const on = !!selectedRooms[r.id];
-                        const priced = pricedRooms.find(
-                          (p) => p.room_id === r.id,
-                        );
+                  {changingListing ? (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      {listings.map((l) => {
+                        const on = l.id === listingId;
                         return (
-                          <div
-                            key={r.id}
-                            className={`flex items-center gap-3 rounded-[10px] border p-3 ${on ? "border-brand-primary bg-brand-accent/30" : "border-brand-line bg-white"}`}
+                          <button
+                            type="button"
+                            key={l.id}
+                            onClick={() => changeListing(l.id)}
+                            className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
+                              on
+                                ? "border-brand-primary bg-brand-accent/40 ring-2 ring-brand-primary/15"
+                                : "border-brand-line bg-white hover:bg-brand-accent/20"
+                            }`}
                           >
-                            <button
-                              type="button"
-                              onClick={() => toggleRoom(r.id)}
-                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${on ? "border-brand-primary bg-brand-primary text-white" : "border-brand-line bg-white"}`}
-                            >
-                              {on ? <Check className="h-3 w-3" /> : null}
-                            </button>
-                            <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
-                              {r.coverUrl ? (
+                            <span className="relative block h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
+                              {l.coverUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                  src={r.coverUrl}
-                                  alt={r.name}
+                                  src={l.coverUrl}
+                                  alt={l.name}
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
                                 <span className="flex h-full w-full items-center justify-center text-brand-mute">
-                                  <BedDouble className="h-4 w-4" />
+                                  <BedDouble className="h-6 w-6" />
                                 </span>
                               )}
+                              {on ? (
+                                <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-white">
+                                  <Check className="h-3 w-3" />
+                                </span>
+                              ) : null}
                             </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[12.5px] font-semibold text-brand-ink">
-                                {r.name}
-                                {r.bed_type ? ` · ${r.bed_type}` : ""}
+                            <span className="mt-2.5 flex items-start justify-between gap-2">
+                              <span className="min-w-0">
+                                <span className="block truncate text-[13px] font-semibold text-brand-ink">
+                                  {l.name}
+                                </span>
+                                <span className="block truncate text-[10.5px] text-brand-mute">
+                                  {l.city ?? "—"}
+                                  {l.max_guests
+                                    ? ` · sleeps ${l.max_guests}`
+                                    : ""}
+                                </span>
                               </span>
-                              <span className="block text-[11px] text-brand-mute">
-                                {r.max_guests ? `sleeps ${r.max_guests}` : ""}
-                              </span>
-                            </span>
-                            {on ? (
-                              <span className="flex items-center gap-2 text-xs text-brand-mute">
-                                <span>Guests</span>
-                                <Input
-                                  type="number"
-                                  min={1}
-                                  max={r.max_guests ?? undefined}
-                                  value={
-                                    roomGuests[r.id] ??
-                                    String(r.base_occupancy ?? 1)
-                                  }
-                                  onChange={(e) =>
-                                    setRoomGuests((p) => ({
-                                      ...p,
-                                      [r.id]: e.target.value,
-                                    }))
-                                  }
-                                  className="h-8 w-16"
-                                />
-                                {priced ? (
-                                  <span className="font-medium text-brand-ink">
-                                    {formatMoney(
-                                      priced.base_amount + priced.cleaning_fee,
-                                      currency,
-                                    )}
+                              {l.base_price != null ? (
+                                <span className="text-right">
+                                  <span className="block font-display text-[12.5px] font-bold text-brand-ink">
+                                    {formatMoney(l.base_price, l.currency)}
                                   </span>
-                                ) : null}
-                              </span>
-                            ) : null}
-                          </div>
+                                  <span className="block text-[9.5px] text-brand-mute">
+                                    / night
+                                  </span>
+                                </span>
+                              ) : null}
+                            </span>
+                          </button>
                         );
                       })}
                     </div>
                   ) : null}
-                </div>
-              ) : null}
-            </div>
 
-            {/* Dates + party summary */}
-            <div className="mt-6">
-              <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
-                Dates &amp; party
-              </div>
-              <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
-                  <div className="min-w-0">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                      Check-in → out
+                  {hasRooms ? (
+                    <div className="mt-3">
+                      <div className="flex gap-2">
+                        <Chip
+                          active={scope === "whole_listing"}
+                          onClick={() => {
+                            setScope("whole_listing");
+                            setPricedRooms([]);
+                          }}
+                          label="Whole listing"
+                        />
+                        <Chip
+                          active={scope === "rooms"}
+                          onClick={() => setScope("rooms")}
+                          label="Specific rooms"
+                        />
+                      </div>
+                      {scope === "rooms" ? (
+                        <div className="mt-3 space-y-2">
+                          {(listing?.rooms ?? []).map((r) => {
+                            const on = !!selectedRooms[r.id];
+                            const priced = pricedRooms.find(
+                              (p) => p.room_id === r.id,
+                            );
+                            return (
+                              <div
+                                key={r.id}
+                                className={`flex items-center gap-3 rounded-[10px] border p-3 ${on ? "border-brand-primary bg-brand-accent/30" : "border-brand-line bg-white"}`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => toggleRoom(r.id)}
+                                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${on ? "border-brand-primary bg-brand-primary text-white" : "border-brand-line bg-white"}`}
+                                >
+                                  {on ? <Check className="h-3 w-3" /> : null}
+                                </button>
+                                <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
+                                  {r.coverUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={r.coverUrl}
+                                      alt={r.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                                      <BedDouble className="h-4 w-4" />
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-[12.5px] font-semibold text-brand-ink">
+                                    {r.name}
+                                    {r.bed_type ? ` · ${r.bed_type}` : ""}
+                                  </span>
+                                  <span className="block text-[11px] text-brand-mute">
+                                    {r.max_guests
+                                      ? `sleeps ${r.max_guests}`
+                                      : ""}
+                                  </span>
+                                </span>
+                                {on ? (
+                                  <span className="flex items-center gap-2 text-xs text-brand-mute">
+                                    <span>Guests</span>
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      max={r.max_guests ?? undefined}
+                                      value={
+                                        roomGuests[r.id] ??
+                                        String(r.base_occupancy ?? 1)
+                                      }
+                                      onChange={(e) =>
+                                        setRoomGuests((p) => ({
+                                          ...p,
+                                          [r.id]: e.target.value,
+                                        }))
+                                      }
+                                      className="h-8 w-16"
+                                    />
+                                    {priced ? (
+                                      <span className="font-medium text-brand-ink">
+                                        {formatMoney(
+                                          priced.base_amount +
+                                            priced.cleaning_fee,
+                                          currency,
+                                        )}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
-                      {datesValid
-                        ? `${ci.dow} ${ci.day} → ${co.dow} ${co.day} ${co.mo.split(" ")[0]}`
-                        : "Pick dates"}
-                    </div>
-                  </div>
-                  <span className="shrink-0 rounded-pill bg-brand-accent px-2 py-0.5 text-[11px] font-bold text-brand-secondary">
-                    {nights} nt{nights === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
-                  <div className="min-w-0">
-                    <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
-                      Guest party
-                    </div>
-                    <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
-                      {adults} adult{adults === 1 ? "" : "s"}
-                      {children
-                        ? ` · ${children} child${children === 1 ? "" : "ren"}`
-                        : ""}
-                      {infants
-                        ? ` · ${infants} infant${infants === 1 ? "" : "s"}`
-                        : ""}
-                      {pets ? ` · ${pets} pet${pets === 1 ? "" : "s"}` : ""}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAdjustingStay((v) => !v)}
-                  className="flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-brand-line bg-white px-4 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40"
-                >
-                  <Pencil className="h-3.5 w-3.5 text-brand-primary" />
-                  {adjustingStay ? "Done" : "Adjust"}
-                </button>
-              </div>
-
-              {hasDateConflict ? (
-                <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-status-cancelled/30 bg-status-cancelled/5 px-3.5 py-2.5 text-[12px] text-status-cancelled">
-                  <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>
-                    <span className="font-semibold">
-                      {conflictNights.length} night
-                      {conflictNights.length === 1 ? "" : "s"} in this range{" "}
-                      {conflictNights.length === 1 ? "is" : "are"} already
-                      booked or blocked.
-                    </span>{" "}
-                    Pick open dates (or free up those nights) — you can&rsquo;t
-                    quote dates that aren&rsquo;t available.
-                  </span>
-                </div>
-              ) : null}
-
-              {adjustingStay ? (
-                <div className="mt-3 rounded-[12px] border border-brand-line bg-brand-light/30 p-4">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-brand-mute">
-                      Quick add:
-                    </span>
-                    <Pill onClick={() => quickDates(2, true)}>
-                      This weekend
-                    </Pill>
-                    <Pill onClick={() => quickDates(3, true)}>
-                      Long weekend
-                    </Pill>
-                    <Pill onClick={() => quickDates(7, false)}>7 nights</Pill>
-                  </div>
-                  <div className="mt-3">
-                    <QuoteCalendar
-                      checkIn={checkIn}
-                      checkOut={checkOut}
-                      blocked={blockedSet}
-                      onChange={(a, b) => {
-                        setCheckIn(a);
-                        setCheckOut(b);
-                      }}
-                    />
-                  </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-4">
-                    <Stepper
-                      label="Adults"
-                      hint="13 +"
-                      value={adults}
-                      min={1}
-                      max={adults + capacityRemaining}
-                      onChange={setAdults}
-                    />
-                    {allow.children ? (
-                      <Stepper
-                        label="Children"
-                        hint="2 – 12"
-                        value={children}
-                        min={0}
-                        max={children + capacityRemaining}
-                        onChange={setChildren}
-                      />
-                    ) : null}
-                    {allow.infants ? (
-                      <Stepper
-                        label="Infants"
-                        hint="Under 2"
-                        value={infants}
-                        min={0}
-                        onChange={setInfants}
-                      />
-                    ) : null}
-                    {allow.pets ? (
-                      <Stepper
-                        label="Pets"
-                        hint="Fee may apply"
-                        value={pets}
-                        min={0}
-                        onChange={setPets}
-                      />
-                    ) : null}
-                  </div>
-                  {capacityLimit !== Infinity ? (
-                    <p
-                      className={`mt-2 text-[11px] ${overCapacity ? "font-semibold text-status-cancelled" : "text-brand-mute"}`}
-                    >
-                      {overCapacity
-                        ? `Over capacity — sleeps up to ${capacityLimit} (adults + children). You have ${partySize}.`
-                        : `${partySize} of ${capacityLimit} guest${capacityLimit === 1 ? "" : "s"} (adults + children). Infants & pets don't count.`}
-                    </p>
                   ) : null}
                 </div>
-              ) : null}
-            </div>
+
+                {/* Dates + party summary */}
+                <div className="mt-6">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                    Dates &amp; party
+                  </div>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                    <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
+                      <div className="min-w-0">
+                        <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                          Check-in → out
+                        </div>
+                        <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
+                          {datesValid
+                            ? `${ci.dow} ${ci.day} → ${co.dow} ${co.day} ${co.mo.split(" ")[0]}`
+                            : "Pick dates"}
+                        </div>
+                      </div>
+                      <span className="shrink-0 rounded-pill bg-brand-accent px-2 py-0.5 text-[11px] font-bold text-brand-secondary">
+                        {nights} nt{nights === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
+                      <div className="min-w-0">
+                        <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                          Guest party
+                        </div>
+                        <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
+                          {adults} adult{adults === 1 ? "" : "s"}
+                          {children
+                            ? ` · ${children} child${children === 1 ? "" : "ren"}`
+                            : ""}
+                          {infants
+                            ? ` · ${infants} infant${infants === 1 ? "" : "s"}`
+                            : ""}
+                          {pets ? ` · ${pets} pet${pets === 1 ? "" : "s"}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAdjustingStay((v) => !v)}
+                      className="flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-brand-line bg-white px-4 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-brand-primary" />
+                      {adjustingStay ? "Done" : "Adjust"}
+                    </button>
+                  </div>
+
+                  {hasDateConflict ? (
+                    <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-status-cancelled/30 bg-status-cancelled/5 px-3.5 py-2.5 text-[12px] text-status-cancelled">
+                      <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        <span className="font-semibold">
+                          {conflictNights.length} night
+                          {conflictNights.length === 1 ? "" : "s"} in this range{" "}
+                          {conflictNights.length === 1 ? "is" : "are"} already
+                          booked or blocked.
+                        </span>{" "}
+                        Pick open dates (or free up those nights) — you
+                        can&rsquo;t quote dates that aren&rsquo;t available.
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {adjustingStay ? (
+                    <div className="mt-3 rounded-[12px] border border-brand-line bg-brand-light/30 p-4">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[11px] font-medium text-brand-mute">
+                          Quick add:
+                        </span>
+                        <Pill onClick={() => quickDates(2, true)}>
+                          This weekend
+                        </Pill>
+                        <Pill onClick={() => quickDates(3, true)}>
+                          Long weekend
+                        </Pill>
+                        <Pill onClick={() => quickDates(7, false)}>
+                          7 nights
+                        </Pill>
+                      </div>
+                      <div className="mt-3">
+                        <QuoteCalendar
+                          checkIn={checkIn}
+                          checkOut={checkOut}
+                          blocked={blockedSet}
+                          onChange={(a, b) => {
+                            setCheckIn(a);
+                            setCheckOut(b);
+                          }}
+                        />
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                        <Stepper
+                          label="Adults"
+                          hint="13 +"
+                          value={adults}
+                          min={1}
+                          max={adults + capacityRemaining}
+                          onChange={setAdults}
+                        />
+                        {allow.children ? (
+                          <Stepper
+                            label="Children"
+                            hint="2 – 12"
+                            value={children}
+                            min={0}
+                            max={children + capacityRemaining}
+                            onChange={setChildren}
+                          />
+                        ) : null}
+                        {allow.infants ? (
+                          <Stepper
+                            label="Infants"
+                            hint="Under 2"
+                            value={infants}
+                            min={0}
+                            onChange={setInfants}
+                          />
+                        ) : null}
+                        {allow.pets ? (
+                          <Stepper
+                            label="Pets"
+                            hint="Fee may apply"
+                            value={pets}
+                            min={0}
+                            onChange={setPets}
+                          />
+                        ) : null}
+                      </div>
+                      {capacityLimit !== Infinity ? (
+                        <p
+                          className={`mt-2 text-[11px] ${overCapacity ? "font-semibold text-status-cancelled" : "text-brand-mute"}`}
+                        >
+                          {overCapacity
+                            ? `Over capacity — sleeps up to ${capacityLimit} (adults + children). You have ${partySize}.`
+                            : `${partySize} of ${capacityLimit} guest${capacityLimit === 1 ? "" : "s"} (adults + children). Infants & pets don't count.`}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            )}
           </section>
         </>
       )}
@@ -1636,23 +1735,25 @@ export function QuoteForm({
               title="Your price"
               sub="The heart of your reply. Tweak any line, add charges, or give a discount — the guest sees exactly this."
               right={
-                <div className="flex w-full rounded-[10px] border border-brand-line bg-brand-light p-[3px] sm:w-auto">
-                  {(
-                    [
-                      ["itemised", "Itemised"],
-                      ["single", "Single total"],
-                    ] as const
-                  ).map(([v, label]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => switchPriceMode(v)}
-                      className={`flex-1 rounded-[7px] px-3 py-1.5 text-[12px] font-medium transition sm:flex-none ${priceMode === v ? "bg-white font-semibold text-brand-ink shadow-card" : "text-brand-mute hover:text-brand-ink"}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                isCustomQuote ? null : (
+                  <div className="flex w-full rounded-[10px] border border-brand-line bg-brand-light p-[3px] sm:w-auto">
+                    {(
+                      [
+                        ["itemised", "Itemised"],
+                        ["single", "Single total"],
+                      ] as const
+                    ).map(([v, label]) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => switchPriceMode(v)}
+                        className={`flex-1 rounded-[7px] px-3 py-1.5 text-[12px] font-medium transition sm:flex-none ${priceMode === v ? "bg-white font-semibold text-brand-ink shadow-card" : "text-brand-mute hover:text-brand-ink"}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )
               }
             />
 
@@ -2230,36 +2331,47 @@ export function QuoteForm({
                 muted={!guestName.trim()}
                 onEdit={() => goToStep(0)}
               />
-              <QRow
-                label="Listing"
-                value={listing?.name ?? "Not set"}
-                muted={!listing}
-                onEdit={() => goToStep(0)}
-              />
-              <QRow
-                label="Rooms"
-                value={roomScopeLabel}
-                onEdit={() => goToStep(0)}
-              />
-              <QRow
-                label="Dates"
-                value={
-                  ci && co
-                    ? `${ci} → ${co} · ${nights} night${nights === 1 ? "" : "s"}`
-                    : "Not set"
-                }
-                muted={!(ci && co)}
-                onEdit={() => goToStep(0)}
-              />
-              <QRow
-                label="Guests"
-                value={`${adults} adult${adults === 1 ? "" : "s"}${
-                  children
-                    ? ` · ${children} child${children === 1 ? "" : "ren"}`
-                    : ""
-                }`}
-                onEdit={() => goToStep(0)}
-              />
+              {isCustomQuote ? (
+                <QRow
+                  label="Quote"
+                  value={customTitle.trim() || "Not set"}
+                  muted={!customTitle.trim()}
+                  onEdit={() => goToStep(0)}
+                />
+              ) : (
+                <>
+                  <QRow
+                    label="Listing"
+                    value={listing?.name ?? "Not set"}
+                    muted={!listing}
+                    onEdit={() => goToStep(0)}
+                  />
+                  <QRow
+                    label="Rooms"
+                    value={roomScopeLabel}
+                    onEdit={() => goToStep(0)}
+                  />
+                  <QRow
+                    label="Dates"
+                    value={
+                      checkIn && checkOut
+                        ? `${ci.day} ${ci.mo} → ${co.day} ${co.mo} · ${nights} night${nights === 1 ? "" : "s"}`
+                        : "Not set"
+                    }
+                    muted={!(checkIn && checkOut)}
+                    onEdit={() => goToStep(0)}
+                  />
+                  <QRow
+                    label="Guests"
+                    value={`${adults} adult${adults === 1 ? "" : "s"}${
+                      children
+                        ? ` · ${children} child${children === 1 ? "" : "ren"}`
+                        : ""
+                    }`}
+                    onEdit={() => goToStep(0)}
+                  />
+                </>
+              )}
               <QRow
                 label="Price"
                 value={priceMode === "single" ? "Single total" : "Itemised"}
@@ -2608,43 +2720,47 @@ export function QuoteForm({
                       </span>
                       <div className="min-w-0">
                         <div className="truncate font-display text-[15px] font-semibold leading-tight">
-                          {listing?.name ?? "Your stay"}
+                          {isCustomQuote
+                            ? customTitle || "Custom quote"
+                            : (listing?.name ?? "Your stay")}
                         </div>
                         <div className="mt-0.5 truncate text-[11px] text-brand-accent/70">
-                          {roomScopeLabel}
+                          {isCustomQuote ? "Custom quote" : roomScopeLabel}
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-white/10 bg-black/20 p-3">
-                      <div className="text-center">
-                        <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
-                          Check-in
+                    {!isCustomQuote && (
+                      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-white/10 bg-black/20 p-3">
+                        <div className="text-center">
+                          <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
+                            Check-in
+                          </div>
+                          <div className="mt-1 font-display text-[18px] font-bold leading-none">
+                            {ci.dow} {ci.day}
+                          </div>
+                          <div className="text-[10.5px] text-brand-accent/70">
+                            {ci.mo}
+                          </div>
                         </div>
-                        <div className="mt-1 font-display text-[18px] font-bold leading-none">
-                          {ci.dow} {ci.day}
+                        <div className="flex flex-col items-center">
+                          <span className="rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-brand-dark">
+                            {nights} night{nights === 1 ? "" : "s"}
+                          </span>
+                          <ArrowRight className="mt-1 h-3 w-3 text-brand-primary" />
                         </div>
-                        <div className="text-[10.5px] text-brand-accent/70">
-                          {ci.mo}
+                        <div className="text-center">
+                          <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
+                            Check-out
+                          </div>
+                          <div className="mt-1 font-display text-[18px] font-bold leading-none">
+                            {co.dow} {co.day}
+                          </div>
+                          <div className="text-[10.5px] text-brand-accent/70">
+                            {co.mo}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex flex-col items-center">
-                        <span className="rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-brand-dark">
-                          {nights} night{nights === 1 ? "" : "s"}
-                        </span>
-                        <ArrowRight className="mt-1 h-3 w-3 text-brand-primary" />
-                      </div>
-                      <div className="text-center">
-                        <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
-                          Check-out
-                        </div>
-                        <div className="mt-1 font-display text-[18px] font-bold leading-none">
-                          {co.dow} {co.day}
-                        </div>
-                        <div className="text-[10.5px] text-brand-accent/70">
-                          {co.mo}
-                        </div>
-                      </div>
-                    </div>
+                    )}
                     <div className="mt-3 flex items-center gap-2 text-[11.5px]">
                       <User className="h-3.5 w-3.5 text-brand-primary" />
                       <span className="text-white">{guestName || "Guest"}</span>

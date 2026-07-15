@@ -24,20 +24,41 @@ export const roomLineSchema = z.object({
 });
 export type RoomLineInput = z.infer<typeof roomLineSchema>;
 
-// Shared base for quote create + manual booking create.
+// Shared base for the quote create/update forms. (Manual booking has its own
+// schema below — this base is quote-only, so relaxing it is safe.)
+//
+// Quote types: 'accommodation' is today's calendar-integrated quote (listing +
+// dates required); 'custom' is a line-item quote with NO listing/calendar; and
+// 'upload' attaches a finished file. Listing + dates are therefore OPTIONAL at
+// the field level and only ENFORCED for accommodation quotes (superRefine below).
 export const quoteOrBookingBaseSchema = z
   .object({
-    property_id: z.string().uuid(),
+    quote_type: z
+      .enum(["accommodation", "custom", "upload"])
+      .default("accommodation"),
+
+    property_id: z.string().uuid().nullable().optional(),
+
+    // Headline for custom/upload quotes (no listing name to fall back on).
+    title: z.string().trim().max(200).optional().or(z.literal("")),
 
     guest_name: z.string().trim().min(1, "Guest name is required.").max(200),
     guest_email: z.string().trim().email("Must be a valid email."),
     guest_phone: z.string().trim().max(40).optional().or(z.literal("")),
 
-    check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
-    check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
+    check_in: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .nullable()
+      .optional(),
+    check_out: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .nullable()
+      .optional(),
 
-    headcount: z.coerce.number().int().min(1).max(100),
-    scope: z.enum(["whole_listing", "rooms"]),
+    headcount: z.coerce.number().int().min(1).max(100).default(1),
+    scope: z.enum(["whole_listing", "rooms"]).nullable().optional(),
 
     base_amount: z.coerce.number().min(0).max(10000000),
     cleaning_fee: z.coerce.number().min(0).max(1000000).default(0),
@@ -82,13 +103,37 @@ export const quoteOrBookingBaseSchema = z
 
     notes: z.string().trim().max(4000).optional().or(z.literal("")),
   })
-  .refine((v) => v.check_out > v.check_in, {
-    message: "Check-out must be after check-in.",
-    path: ["check_out"],
-  })
-  .refine((v) => v.scope !== "rooms" || v.rooms.length > 0, {
-    message: "Pick at least one room for a per-room quote.",
-    path: ["rooms"],
+  // Accommodation quotes need a listing + valid dates + (for per-room) rooms.
+  // Custom/upload quotes don't — they're line-item / file offers with no calendar.
+  .superRefine((v, ctx) => {
+    if (v.quote_type !== "accommodation") return;
+    if (!v.property_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Pick a listing.",
+        path: ["property_id"],
+      });
+    }
+    if (!v.check_in || !v.check_out) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Set check-in and check-out dates.",
+        path: ["check_out"],
+      });
+    } else if (v.check_out <= v.check_in) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Check-out must be after check-in.",
+        path: ["check_out"],
+      });
+    }
+    if (v.scope === "rooms" && v.rooms.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Pick at least one room for a per-room quote.",
+        path: ["rooms"],
+      });
+    }
   });
 
 export const createQuoteSchema = quoteOrBookingBaseSchema.and(

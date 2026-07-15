@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getBrandName } from "@/lib/brand";
+import { getDefaultBusinessId } from "@/lib/business/resolveBusiness";
 import { spendQuoteCredit } from "@/lib/credits/wallet";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { formatMoney } from "@/lib/format";
@@ -202,35 +203,55 @@ export async function createQuoteAction(
   }
 
   const supabase = createServerClient();
+  const isAccommodation = parsed.data.quote_type === "accommodation";
 
-  // Verify the listing belongs to this host (RLS will also enforce).
-  const { data: listing } = await supabase
-    .from("properties")
-    .select(
-      "id, host_id, business_id, cancellation_policy, cancellation_policy_label",
-    )
-    .eq("id", parsed.data.property_id)
-    .maybeSingle();
-  if (!listing || listing.host_id !== host.hostId) {
-    return { ok: false, error: "Listing not found." };
-  }
-  if (!listing.business_id) {
-    return { ok: false, error: "Listing has no business assigned." };
-  }
+  // Accommodation quotes reference a listing (verify ownership + freeze its
+  // cancellation policy + number against its business). Custom/upload quotes have
+  // no listing — number them against the host's default business instead.
+  let businessId: string | null = null;
+  let policySnapshot: {
+    cancellation_policy: string | null;
+    cancellation_policy_label: string | null;
+    captured_at: string;
+  } | null = null;
 
-  // Freeze the cancellation policy onto the quote so the terms the guest agreed
-  // to never shift if the host re-policies the listing later. Carried onto the
-  // booking's policy snapshot at convert time.
-  const policySnapshot = {
-    cancellation_policy: listing.cancellation_policy ?? null,
-    cancellation_policy_label: listing.cancellation_policy_label ?? null,
-    captured_at: new Date().toISOString(),
-  };
+  if (isAccommodation) {
+    const { data: listing } = await supabase
+      .from("properties")
+      .select(
+        "id, host_id, business_id, cancellation_policy, cancellation_policy_label",
+      )
+      .eq("id", parsed.data.property_id ?? "")
+      .maybeSingle();
+    if (!listing || listing.host_id !== host.hostId) {
+      return { ok: false, error: "Listing not found." };
+    }
+    if (!listing.business_id) {
+      return { ok: false, error: "Listing has no business assigned." };
+    }
+    businessId = listing.business_id;
+    // Freeze the cancellation policy so the terms the guest agreed to never shift
+    // if the host re-policies the listing later. Carried onto the booking's
+    // policy snapshot at convert time.
+    policySnapshot = {
+      cancellation_policy: listing.cancellation_policy ?? null,
+      cancellation_policy_label: listing.cancellation_policy_label ?? null,
+      captured_at: new Date().toISOString(),
+    };
+  } else {
+    businessId = await getDefaultBusinessId(supabase, host.hostId);
+    if (!businessId) {
+      return {
+        ok: false,
+        error: "Add your business details before sending a custom quote.",
+      };
+    }
+  }
 
   // Per-business quote number via SECURITY DEFINER RPC.
   const { data: numberResult, error: numberErr } = await supabase.rpc(
     "next_quote_number",
-    { p_business_id: listing.business_id },
+    { p_business_id: businessId },
   );
   if (numberErr || !numberResult) {
     return { ok: false, error: "Could not assign a quote number." };
@@ -247,15 +268,21 @@ export async function createQuoteAction(
     .from("quotes")
     .insert({
       host_id: host.hostId,
-      property_id: parsed.data.property_id,
+      quote_type: parsed.data.quote_type,
+      property_id: isAccommodation ? (parsed.data.property_id ?? null) : null,
+      title: parsed.data.title || null,
       quote_number: numberResult as unknown as string,
       guest_name: parsed.data.guest_name,
       guest_email: parsed.data.guest_email,
       guest_phone: parsed.data.guest_phone || null,
-      check_in: parsed.data.check_in,
-      check_out: parsed.data.check_out,
+      check_in: isAccommodation ? (parsed.data.check_in ?? null) : null,
+      check_out: isAccommodation ? (parsed.data.check_out ?? null) : null,
       headcount: parsed.data.headcount,
-      scope: parsed.data.scope,
+      // scope is NOT NULL in the DB and meaningless for custom/upload quotes —
+      // store the harmless default rather than null.
+      scope: isAccommodation
+        ? (parsed.data.scope ?? "whole_listing")
+        : "whole_listing",
       base_amount: parsed.data.base_amount,
       cleaning_fee: parsed.data.cleaning_fee,
       addons_total: addonsTotal,
