@@ -1105,7 +1105,7 @@ export const setUserProductAction = withAdminAudit<
     // Find THIS product's subscription (renew it) rather than assuming one row.
     const { data: existing } = await service
       .from("subscriptions")
-      .select("id, plan")
+      .select("id, plan, current_period_start, current_period_end")
       .eq("host_id", hostId)
       .eq("product_id", productId)
       .maybeSingle();
@@ -1196,15 +1196,34 @@ export const setUserProductAction = withAdminAudit<
         after: { hostId, scheduledSwitch: product.id },
       };
     }
-    // A mid-cycle membership upgrade keeps the existing billing window; a fresh
-    // activation / service add / renewal starts a new one.
+    // Same-product re-activation: PRESERVE the live billing window so the
+    // per-period credit grant stays idempotent — re-clicking "Activate" on an
+    // already-active membership mid-period must not reset current_period_start to
+    // today and re-mint the plan's credits (sweep finding #3). Only a genuinely
+    // ended period advances to a fresh window (and legitimately re-grants).
+    let renewStart: string | null = null;
+    let renewEnd: string | null = null;
+    if (existing && !switchingMembership) {
+      const endMs = existing.current_period_end
+        ? new Date(existing.current_period_end).getTime()
+        : 0;
+      if (endMs > Date.now()) {
+        renewStart = existing.current_period_start;
+        renewEnd = existing.current_period_end;
+      }
+    }
+
+    // A mid-cycle membership upgrade (switch) keeps the OLD membership's window; a
+    // same-product re-activation keeps its own live window; a fresh activation /
+    // service add / ended-period renewal starts a new one.
     const patch = {
       product_id: product.id,
       plan,
       billing_cycle: cycle,
       status: "active" as const,
-      current_period_start: carryStart ?? now,
-      current_period_end: carryEnd ?? addMonthsIso(cycle === "annual" ? 12 : 1),
+      current_period_start: carryStart ?? renewStart ?? now,
+      current_period_end:
+        carryEnd ?? renewEnd ?? addMonthsIso(cycle === "annual" ? 12 : 1),
       updated_at: now,
     };
 
