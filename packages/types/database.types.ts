@@ -4101,6 +4101,7 @@ export type Database = {
       }
       hosts: {
         Row: {
+          account_kind: string
           avatar_url: string | null
           avg_rating: number | null
           avg_response_hours: number | null
@@ -4120,6 +4121,8 @@ export type Database = {
           languages_spoken: string[] | null
           payout_verified: boolean
           phone_verified: boolean
+          platform_access: boolean
+          quote_access: boolean
           response_rate: number | null
           social_links: Json | null
           total_bookings: number
@@ -4129,6 +4132,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          account_kind?: string
           avatar_url?: string | null
           avg_rating?: number | null
           avg_response_hours?: number | null
@@ -4148,6 +4152,8 @@ export type Database = {
           languages_spoken?: string[] | null
           payout_verified?: boolean
           phone_verified?: boolean
+          platform_access?: boolean
+          quote_access?: boolean
           response_rate?: number | null
           social_links?: Json | null
           total_bookings?: number
@@ -4157,6 +4163,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          account_kind?: string
           avatar_url?: string | null
           avg_rating?: number | null
           avg_response_hours?: number | null
@@ -4176,6 +4183,8 @@ export type Database = {
           languages_spoken?: string[] | null
           payout_verified?: boolean
           phone_verified?: boolean
+          platform_access?: boolean
+          quote_access?: boolean
           response_rate?: number | null
           social_links?: Json | null
           total_bookings?: number

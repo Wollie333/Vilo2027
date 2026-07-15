@@ -201,7 +201,15 @@ const FOOTER: GmailNavItem[] = [
  */
 export function mobileNavGroups(opts?: {
   canLookingFor?: boolean;
+  quotesOnly?: boolean;
 }): GmailNavSection[] {
+  if (opts?.quotesOnly) {
+    return [
+      { label: "Quotes", items: QUOTES_ONLY_DAILY.concat(QUOTES_ONLY_QUOTES) },
+      { label: "Looking For", items: LOOKING_FOR },
+      { label: "Account", items: FOOTER },
+    ];
+  }
   return [
     { label: "Dashboard", items: DAILY },
     { label: "Properties", items: PROPERTIES },
@@ -215,6 +223,21 @@ export function mobileNavGroups(opts?: {
   ];
 }
 
+// Scoped nav for a quotes-only account — the quote surfaces only.
+const QUOTES_ONLY_DAILY: GmailNavItem[] = [
+  { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/dashboard/guests", label: "Guests", icon: Users, match: "prefix" },
+];
+const QUOTES_ONLY_QUOTES: GmailNavItem[] = [
+  {
+    href: "/dashboard/quotes",
+    label: "Quotes",
+    icon: FileText,
+    match: "prefix",
+  },
+  { href: "/dashboard/credits", label: "Credits", icon: CreditCard },
+];
+
 export function Sidebar({
   host,
   plan,
@@ -225,6 +248,7 @@ export function Sidebar({
   canWebsite = false,
   canLookingFor = false,
   lookingForUnread = 0,
+  quotesOnly = false,
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
@@ -235,6 +259,7 @@ export function Sidebar({
   canWebsite?: boolean;
   canLookingFor?: boolean;
   lookingForUnread?: number;
+  quotesOnly?: boolean;
 }) {
   const planLabel =
     plan === "free"
@@ -279,24 +304,48 @@ export function Sidebar({
       : item,
   );
 
-  const sections: GmailNavSection[] = [
-    { items: dailyItems },
-    { label: "Properties", items: PROPERTIES, collapsible: true },
-    // Looking For section — visible when host has access (or show locked state)
-    ...(canLookingFor
-      ? [
-          {
-            label: "Looking For",
-            items: lookingForItems,
-            collapsible: true,
-            icon: Search,
-          } as GmailNavSection,
-        ]
-      : []),
-    { label: "Channels", items: channelItems, collapsible: true },
-    { label: "Finances", items: FINANCES, collapsible: true },
-    { label: "Insights", items: INSIGHTS, collapsible: true },
-  ];
+  // Quotes-only accounts get a stripped shell — the quote surfaces only, no
+  // properties/channels/finances/insights.
+  const quotesOnlyDaily = QUOTES_ONLY_DAILY.map((item) =>
+    item.href === "/dashboard/inbox" && inboxUnread > 0
+      ? {
+          ...item,
+          badge: { text: String(inboxUnread), tone: "alert" as const },
+        }
+      : item.href === "/dashboard/guests" && guestCount > 0
+        ? { ...item, count: guestCount }
+        : item,
+  );
+
+  const sections: GmailNavSection[] = quotesOnly
+    ? ([
+        { items: quotesOnlyDaily },
+        {
+          label: "Looking For",
+          items: lookingForItems,
+          collapsible: true,
+          icon: Search,
+        },
+        { label: "Quotes", items: QUOTES_ONLY_QUOTES, collapsible: true },
+      ] as GmailNavSection[])
+    : [
+        { items: dailyItems },
+        { label: "Properties", items: PROPERTIES, collapsible: true },
+        // Looking For section — visible when host has access (or show locked state)
+        ...(canLookingFor
+          ? [
+              {
+                label: "Looking For",
+                items: lookingForItems,
+                collapsible: true,
+                icon: Search,
+              } as GmailNavSection,
+            ]
+          : []),
+        { label: "Channels", items: channelItems, collapsible: true },
+        { label: "Finances", items: FINANCES, collapsible: true },
+        { label: "Insights", items: INSIGHTS, collapsible: true },
+      ];
 
   return (
     <GmailNav

@@ -43,6 +43,7 @@ import { toast } from "sonner";
 
 import { Link } from "@/i18n/navigation";
 import { ImpersonateButton } from "@/app/[locale]/admin/_components/ImpersonateButton";
+import { HostAccessControls } from "./HostAccessControls";
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 import {
   AdminTable,
@@ -187,6 +188,9 @@ export type UserRecordData = {
     total_bookings: number | null;
     avg_rating: number | null;
     total_reviews: number | null;
+    account_kind: string;
+    quote_access: boolean;
+    platform_access: boolean;
   } | null;
   subscription: {
     plan: string;
@@ -663,6 +667,16 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             }
             pending={pending}
           />
+          {data.host ? (
+            <div className="mt-4">
+              <HostAccessControls
+                userId={user.id}
+                accountKind={data.host.account_kind}
+                quoteAccess={data.host.quote_access}
+                platformAccess={data.host.platform_access}
+              />
+            </div>
+          ) : null}
         </aside>
 
         {/* Working column */}

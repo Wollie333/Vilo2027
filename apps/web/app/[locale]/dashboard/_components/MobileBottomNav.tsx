@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 
 import {
   CalendarCheck,
+  CreditCard,
+  FileText,
   Home as HomeIcon,
   LayoutDashboard,
+  List,
   MessageSquare,
   MoreHorizontal,
   X,
@@ -37,6 +40,24 @@ const PRIMARY: Item[] = [
   },
 ];
 
+// Scoped primary tabs for a quotes-only account.
+const QUOTES_ONLY_PRIMARY: Item[] = [
+  {
+    href: "/dashboard/looking-for",
+    label: "Requests",
+    icon: List,
+    match: "prefix",
+  },
+  {
+    href: "/dashboard/quotes",
+    label: "Quotes",
+    icon: FileText,
+    match: "prefix",
+  },
+  { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/dashboard/credits", label: "Credits", icon: CreditCard },
+];
+
 function isActive(
   pathname: string,
   href: string,
@@ -49,16 +70,19 @@ function isActive(
 
 export function MobileBottomNav({
   canLookingFor = false,
+  quotesOnly = false,
 }: {
   canLookingFor?: boolean;
+  quotesOnly?: boolean;
 }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
-  const groups = mobileNavGroups({ canLookingFor });
+  const groups = mobileNavGroups({ canLookingFor, quotesOnly });
+  const primary = quotesOnly ? QUOTES_ONLY_PRIMARY : PRIMARY;
 
   // "More" reads as active whenever the current page isn't one of the primary
   // tabs — so the host always sees where they are.
-  const onPrimary = PRIMARY.some((p) => isActive(pathname, p.href, p.match));
+  const onPrimary = primary.some((p) => isActive(pathname, p.href, p.match));
 
   // Close the sheet on navigation.
   useEffect(() => {
@@ -147,7 +171,7 @@ export function MobileBottomNav({
         className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-line bg-white lg:hidden"
       >
         <div className="grid grid-cols-5 gap-1 p-1.5 pb-[max(6px,env(safe-area-inset-bottom))]">
-          {PRIMARY.map(({ href, label, icon: Icon, match = "exact" }) => {
+          {primary.map(({ href, label, icon: Icon, match = "exact" }) => {
             const active = isActive(pathname, href, match);
             return (
               <Link

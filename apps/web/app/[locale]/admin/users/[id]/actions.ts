@@ -262,6 +262,55 @@ export const changeUserRoleAction = withAdminAudit<
   },
 );
 
+// ─── Quote-only account class + access switches ───────────────
+// Set a user's host account_kind ('host' | 'quote_only') and the two admin block
+// switches (quote_access / platform_access). A quote_only account gets the scoped
+// quotes-only shell; platform_access=false bounces any account to that shell.
+const hostAccessSchema = z.object({
+  userId: z.string().uuid(),
+  accountKind: z.enum(["host", "quote_only"]).optional(),
+  quoteAccess: z.boolean().optional(),
+  platformAccess: z.boolean().optional(),
+  reason: z.string().max(500).optional(),
+});
+
+export const setHostAccessAction = withAdminAudit<
+  z.infer<typeof hostAccessSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.role",
+    actionName: "user.set_host_access",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+  },
+  async (args, service) => {
+    const parsed = hostAccessSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    const d = parsed.data;
+    const patch: Record<string, unknown> = {};
+    if (d.accountKind !== undefined) patch.account_kind = d.accountKind;
+    if (d.quoteAccess !== undefined) patch.quote_access = d.quoteAccess;
+    if (d.platformAccess !== undefined)
+      patch.platform_access = d.platformAccess;
+    if (Object.keys(patch).length === 0) {
+      return { result: { ok: true }, after: {} };
+    }
+    patch.updated_at = new Date().toISOString();
+    const { data, error } = await service
+      .from("hosts")
+      .update(patch)
+      .eq("user_id", d.userId)
+      .is("deleted_at", null)
+      .select("id, account_kind, quote_access, platform_access")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin/users/${d.userId}`);
+    revalidatePath("/admin/users");
+    return { result: { ok: true }, after: data };
+  },
+);
+
 // ─── Delete user (soft delete + 30-day hold) ──────────────────
 // SOFT delete only — the absolute rule (CLAUDE.md / AGENT_RULES §2.1) is that
 // user_profiles / hosts / listings / bookings are NEVER hard-deleted here. We
@@ -2250,6 +2299,25 @@ export async function reinstateUser(input: { userId: string; reason: string }) {
     return {
       ok: false as const,
       error: e instanceof Error ? e.message : "Failed.",
+    };
+  }
+}
+
+// Client-callable wrapper (the withAdminAudit const isn't a directly-invocable
+// server action — a real exported async function is).
+export async function setHostAccess(input: {
+  userId: string;
+  accountKind?: "host" | "quote_only";
+  quoteAccess?: boolean;
+  platformAccess?: boolean;
+}) {
+  try {
+    await setHostAccessAction(input);
+    return { ok: true as const };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: e instanceof Error ? e.message : "Could not update access.",
     };
   }
 }

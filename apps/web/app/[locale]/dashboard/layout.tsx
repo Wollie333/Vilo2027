@@ -6,8 +6,11 @@ import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
 import { getCreditBalance, getCreditLedger } from "@/lib/credits/wallet";
+import { resolveAccountScope } from "@/lib/host/accountScope";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
+
+import { QuotesOnlyGuard } from "./_components/QuotesOnlyGuard";
 
 import { AvatarMenu } from "./_components/AvatarMenu";
 import { CreditPill, type CreditLedgerRow } from "./_components/CreditPill";
@@ -39,7 +42,9 @@ export default async function DashboardLayout({
     await Promise.all([
       supabase
         .from("hosts")
-        .select("id, display_name, handle, avatar_url")
+        .select(
+          "id, display_name, handle, avatar_url, account_kind, quote_access, platform_access",
+        )
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .maybeSingle(),
@@ -58,6 +63,18 @@ export default async function DashboardLayout({
   const role = (profileRow?.role as string | undefined) ?? "guest";
   const isPlatformStaff = staffRow?.is_active === true;
   const isHostByRole = role === "host";
+
+  // Quote-only accounts (or any host an admin bounced off the platform) get a
+  // scoped shell — only the quote surfaces, everything else gated off.
+  const scope = resolveAccountScope(
+    host as {
+      account_kind?: string | null;
+      quote_access?: boolean | null;
+      platform_access?: boolean | null;
+    } | null,
+  );
+  // Platform staff always keep the full shell (so they can QA host surfaces).
+  const quotesOnly = scope.quotesOnly && !isPlatformStaff;
 
   // Routing priority (highest → lowest):
   //   3. Platform staff           → allowed through (so they can QA).
@@ -191,7 +208,8 @@ export default async function DashboardLayout({
             inboxUnread={inboxUnread}
             guestCount={guestCount}
             canWebsite={canWebsite}
-            canLookingFor={canLookingFor}
+            canLookingFor={quotesOnly ? true : canLookingFor}
+            quotesOnly={quotesOnly}
           />
         }
         banner={
@@ -203,10 +221,16 @@ export default async function DashboardLayout({
             <BroadcastBanner />
           </>
         }
-        bottomNav={<MobileBottomNav canLookingFor={canLookingFor} />}
+        bottomNav={
+          <MobileBottomNav
+            canLookingFor={quotesOnly ? true : canLookingFor}
+            quotesOnly={quotesOnly}
+          />
+        }
       >
         {children}
       </ClassicShellFrame>
+      <QuotesOnlyGuard active={quotesOnly} />
       <DashboardTour />
     </QuickNavProvider>
   );

@@ -717,6 +717,22 @@ export async function sendQuoteAction(
     return { ok: false, error: "Only draft quotes can be sent." };
   }
 
+  // Admin block — an account with quote_access switched off can't send quotes.
+  if (current.host_id) {
+    const { data: hostRow } = await supabase
+      .from("hosts")
+      .select("quote_access")
+      .eq("id", current.host_id)
+      .maybeSingle();
+    if (hostRow && hostRow.quote_access === false) {
+      return {
+        ok: false,
+        error:
+          "Quote sending is disabled on your account. Contact Wielo support.",
+      };
+    }
+  }
+
   // Looking-For responses cost a quote-credit (founder: 1/quote, refunded on
   // unaccepted expiry via a DB trigger). Debit BEFORE marking sent so we can
   // block a host who's out of credits; idempotent per quote, so re-sending the

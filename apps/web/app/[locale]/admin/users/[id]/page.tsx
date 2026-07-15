@@ -40,7 +40,7 @@ export default async function AdminUserDetailPage({
   const { data: host } = await service
     .from("hosts")
     .select(
-      "id, handle, display_name, is_verified, total_bookings, avg_rating, total_reviews",
+      "id, handle, display_name, is_verified, total_bookings, avg_rating, total_reviews, account_kind, quote_access, platform_access",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -661,6 +661,13 @@ export default async function AdminUserDetailPage({
           total_bookings: host.total_bookings,
           avg_rating: host.avg_rating,
           total_reviews: host.total_reviews,
+          account_kind:
+            (host as { account_kind?: string | null }).account_kind ?? "host",
+          quote_access:
+            (host as { quote_access?: boolean | null }).quote_access ?? true,
+          platform_access:
+            (host as { platform_access?: boolean | null }).platform_access ??
+            true,
         }
       : null,
     subscription: sub,
