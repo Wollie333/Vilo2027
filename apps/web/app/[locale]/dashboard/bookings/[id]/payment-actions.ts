@@ -6,7 +6,7 @@ import { logFinanceEvent } from "@/lib/finance/audit";
 import { assertPeriodOpen } from "@/lib/finance/periods";
 import { grossUpVat } from "@/lib/finance/vat";
 import { round2 } from "@/lib/format";
-import { requireHost } from "@/lib/host/current";
+import { assertFullHost as requireHost } from "@/lib/host/current";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAddonInvoice } from "@/lib/payments/invoicing";

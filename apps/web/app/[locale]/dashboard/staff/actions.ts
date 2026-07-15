@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireHost as getHost } from "@/lib/host/current";
+import { assertFullHost as getHost } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {

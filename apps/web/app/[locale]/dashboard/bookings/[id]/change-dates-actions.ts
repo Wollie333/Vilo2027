@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireHost } from "@/lib/host/current";
+import { assertFullHost as requireHost } from "@/lib/host/current";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { nightsBetween } from "@/lib/pricing";
 import { computeStayPricing } from "@/lib/pricing/quote";

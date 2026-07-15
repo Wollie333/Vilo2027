@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { logFinanceEvent } from "@/lib/finance/audit";
 import { voidTransaction } from "@/lib/finance/void";
-import { requireHost as currentHost } from "@/lib/host/current";
+import { assertFullHost as currentHost } from "@/lib/host/current";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 

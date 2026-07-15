@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireHost } from "@/lib/host/current";
+import { assertFullHost as requireHost } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type AddBookingGuestResult = { ok: true } | { ok: false; error: string };

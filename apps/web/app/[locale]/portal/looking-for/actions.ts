@@ -174,12 +174,32 @@ export async function createRequestAction(input: CreateRequestInput) {
     return { success: false, error: error.message };
   }
 
-  // Record usage for quota tracking
-  await supabase.from("looking_for_usage").insert({
-    user_id: user.id,
-    action: "guest_post",
-    post_id: post.id,
-  });
+  // Record usage + re-check the quota ATOMICALLY (finding #11): the pre-check
+  // above is a fast UX reject, but two concurrent posts could both pass it. This
+  // RPC serializes the count+record per user under an advisory lock — if this
+  // post lost the race for the last slot, it's refused here and we roll it back.
+  const { data: quotaResult, error: recErr } = await supabase.rpc(
+    "record_guest_post_and_check",
+    { p_user_id: user.id, p_post_id: post.id },
+  );
+  if (recErr) {
+    // Best-effort in pre-MVP: the post stands even if usage recording hiccups.
+    console.error("Quota record failed:", recErr);
+  } else if (
+    quotaResult &&
+    typeof quotaResult === "object" &&
+    (quotaResult as { allowed?: boolean }).allowed === false
+  ) {
+    // Lost the race — another request just used the last slot. Roll this one back.
+    await createAdminClient()
+      .from("looking_for_posts")
+      .delete()
+      .eq("id", post.id);
+    return {
+      success: false,
+      error: "You've reached your post limit. Try again later.",
+    };
+  }
 
   // Save the admin-managed requirement selections (Property type, Facilities…).
   await replacePostRequirements(post.id, input.requirement_keys ?? []);
