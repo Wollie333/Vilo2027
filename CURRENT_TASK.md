@@ -20,14 +20,43 @@
 - **Feature gating audit** — CLEAN (SSOT `hostHasFeature` + canonical RPC, no plan-hardcoding).
 - **Legal/cookie/POPIA** — already built (Jul-13 doc was stale); verified.
 
-**▶▶ NEXT SESSION — pick one (all surfaced, none silently dropped):**
-1. **G7 — add-on refundability** (feature I can build; needs founder model call: simple per-add-on
-   `is_refundable` flag vs full per-line partial refunds).
-2. **Media → true SSOT** epic (unify 3 buckets · cross-surface picker · reference-counting on
-   delete · per-plan quota).
-3. **Founder/infra launch actions** (I can't execute — need you): live Paystack/PayPal keys + E2E
-   card test · Frankfurt→Cape Town (`af-south-1`) Supabase region migration · ops secrets (VAT no.,
-   SWIFT, `PAYMENT_CIPHER_KEY`, Turnstile, Vault) · pre-launch data wipe · Sentry/PostHog.
+**▶▶ IN FLIGHT (founder said "do 1→3 in succession") — repo CLEAN, nothing half-committed:**
+
+**🔴 TOP PRIORITY — NEW founder request (do this FIRST): skip-email on product checkout.**
+When a LOGGED-IN user buys a product (buy credits / upgrade subscription), the flow currently
+shows a first page asking for their EMAIL — redundant since we know who they are. Fix: for an
+authenticated buyer, SKIP the email step and go STRAIGHT to payment; on paid, it upgrades to that
+package / assigns the pack's credits.
+- FINDINGS (already scouted): the checkout LOGIC already supports straight-to-payment given an
+  email — `lib/billing/product-checkout.ts` `startProductPurchaseBySlug(slug,email,origin)` +
+  `beginSubscriptionCheckoutBySlug` ("jumps STRAIGHT to the Paystack card form"). The product page
+  is `app/[locale]/p/[slug]/` (`actions.ts` → `purchaseProductBySlug(slug,email,origin)`). The GAP
+  is the `/p/[slug]` page UI collecting the email even when authed. FIX = in the page/form, if
+  `supabase.auth.getUser()` has a session, prefill+skip the email step and call the purchase action
+  with the session email → payment. Also check the CREDITS page buy-pack + subscription-upgrade
+  entry points (memory `project-quote-system-hardening`: Credits page subscribes `/p/wielo-quotes`
+  + buys packs) use the same skip. On paid, existing `onProductOrderPaid`/activation already grants
+  credits/plan (memory `project-product-purchase-lifecycle`) — verify it still fires.
+- Verify live (Principle #9): logged-in host → buy credits → NO email page → payment → credits land.
+
+**Then resume 1→3 (I'd started #1, parked cleanly):**
+1. **G7 — add-on refundability** — DECIDED model: per-add-on `is_refundable` boolean (default true);
+   non-refundable add-ons come out of the policy refund FIRST (`refund = max(0, policyRefund −
+   nonRefundableAddonsPaid)`). Injection point = `lib/bookings/cancel.ts` `policyRefundFor()` (query
+   `booking_addons ⋈ addons.is_refundable=false`, sum `subtotal`, subtract; add `nonRefundableRetained`
+   to `PolicyRefund` for the cancel/refund preview). Also NEEDS: migration `addons.is_refundable bool
+   default true` + regenerate types + add "Refundable" toggle to the add-on editor (`dashboard/addons/`
+   schema+editor+create/update actions) + surface retained amount in the cancel preview UI. (I made the
+   `policyRefundFor` edit then reverted it to keep the tree clean — redo it AFTER the column migration
+   so types compile.)
+2. **Media → true SSOT** slice (task-tracked): reference-CHECK before deleting website media
+   (block/warn with usages instead of orphaning — the copy is honest now but a real usage-check is
+   still owed) + surface brand assets in `dashboard/media`. Full epic (unify 3 buckets · cross-surface
+   picker · quota) documented in `docs/lifecycles/media-manager.md`.
+3. **Launch-prep artifacts (founder-executable)** — deliver READY-TO-RUN, don't execute destructive/
+   external actions: pre-launch data-wipe script; Sentry/PostHog wiring gated behind env vars; region-
+   migration runbook; ops-config checklist. The live-key/region-migration/secrets EXECUTION is founder's.
+
 4. **Mobile app** (Expo scaffold only) — decide if in MVP scope.
 
 **GOTCHAs:** commit types must be in [feat,fix,chore,docs,refactor,test,style,perf,ci,build,revert,
