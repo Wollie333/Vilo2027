@@ -43,7 +43,7 @@ export default async function AdminReportingPage({
   const report = await buildPlatformReport(range);
   const k = report.kpis;
 
-  const revenueTotal12m = report.monthly.reduce((s, m) => s + m.revenue, 0);
+  const revenueTotal = report.monthly.reduce((s, m) => s + m.revenue, 0);
 
   return (
     <div className="space-y-8">
@@ -102,10 +102,15 @@ export default async function AdminReportingPage({
       </div>
 
       {/* Revenue KPI row (period-aware) */}
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <AdminKpiCard
           label={`Collected · ${report.rangeLabel}`}
           value={zar(k.collectedPeriod)}
+          sub={
+            k.momRevenue !== null
+              ? `${k.momRevenue >= 0 ? "▲" : "▼"} ${Math.abs(k.momRevenue)}% MoM`
+              : undefined
+          }
         />
         <AdminKpiCard
           label="Collected · all-time"
@@ -113,6 +118,16 @@ export default async function AdminReportingPage({
         />
         <AdminKpiCard label="Outstanding" value={zar(k.outstanding)} />
         <AdminKpiCard label="Refunded" value={zar(k.refunded)} />
+        <AdminKpiCard
+          label="VAT collected"
+          value={zar(k.vatCollected)}
+          sub={`output tax · ${report.rangeLabel}`}
+        />
+        <AdminKpiCard
+          label="Take-rate"
+          value={`${k.takeRate}%`}
+          sub="Wielo revenue ÷ GMV"
+        />
       </section>
 
       {/* Charts */}
@@ -122,7 +137,8 @@ export default async function AdminReportingPage({
             label: m.label,
             revenue: m.revenue,
           }))}
-          total={revenueTotal12m}
+          total={revenueTotal}
+          months={report.monthsShown}
         />
         <PlanDonutChart data={report.plans} />
       </section>
@@ -182,15 +198,21 @@ export default async function AdminReportingPage({
         <h2 className="mb-3 font-display text-base font-bold text-brand-ink">
           Growth & platform volume
         </h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
           <AdminKpiCard label="Total users" value={k.totalUsers} />
           <AdminKpiCard label="Hosts" value={k.hosts} />
           <AdminKpiCard label="Guests" value={k.guests} />
           <AdminKpiCard
             label={`New · ${report.rangeLabel}`}
             value={k.newUsersPeriod}
+            sub={
+              k.momSignups !== null
+                ? `${k.momSignups >= 0 ? "▲" : "▼"} ${Math.abs(k.momSignups)}% MoM`
+                : undefined
+            }
           />
           <AdminKpiCard label="Active listings" value={k.activeListings} />
+          <AdminKpiCard label="Bookings" value={k.bookingCount} />
           <AdminKpiCard label="GMV processed" value={zar(k.gmv)} />
         </div>
         <p className="mt-3 text-[11px] text-brand-mute">
@@ -199,6 +221,128 @@ export default async function AdminReportingPage({
           platform-scale metric, not Wielo income.
         </p>
       </section>
+
+      {/* Payment methods + credit notes */}
+      <section className="grid gap-5 lg:grid-cols-2">
+        <BreakdownCard
+          title="Payment methods"
+          subtitle={`Collected · ${report.rangeLabel}`}
+          empty="No charges in this period."
+          rows={report.paymentMethods.map((p) => ({
+            key: p.provider,
+            label: providerLabel(p.provider),
+            meta: `${p.count} ${p.count === 1 ? "charge" : "charges"}`,
+            value: zar(p.amount),
+          }))}
+        />
+        <BreakdownCard
+          title="Credit notes & refunds"
+          subtitle={`${report.rangeLabel} · refunds, credits, adjustments`}
+          empty="No credit notes in this period."
+          rows={report.creditNotes.map((c) => ({
+            key: c.kind,
+            label: c.kind.charAt(0).toUpperCase() + c.kind.slice(1),
+            meta: `${c.count} ${c.count === 1 ? "note" : "notes"}`,
+            value: zar(c.amount),
+          }))}
+        />
+      </section>
+
+      {/* Credits, quotes & affiliate */}
+      <section>
+        <h2 className="mb-3 font-display text-base font-bold text-brand-ink">
+          Credits, quotes & affiliate · {report.rangeLabel}
+        </h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
+          <AdminKpiCard label="Credits bought" value={k.creditsPurchased} />
+          <AdminKpiCard label="Credits granted" value={k.creditsGranted} />
+          <AdminKpiCard label="Credits spent" value={k.creditsSpent} />
+          <AdminKpiCard label="Quotes created" value={k.quotesCreated} />
+          <AdminKpiCard label="Looking-For posts" value={k.lookingForPosts} />
+          <AdminKpiCard
+            label="Looking-For quotes"
+            value={k.lookingForResponses}
+          />
+          <AdminKpiCard
+            label="Affiliate commissions"
+            value={zar(k.affiliateCommissions)}
+          />
+          <AdminKpiCard
+            label="Affiliate payouts"
+            value={zar(k.affiliatePayouts)}
+          />
+        </div>
+      </section>
+
+      {/* Geography */}
+      {report.geography.length > 0 && (
+        <BreakdownCard
+          title="Listings by province"
+          subtitle="Published listings · all-time"
+          empty="No published listings yet."
+          rows={report.geography.map((g) => ({
+            key: g.province,
+            label: g.province,
+            meta: "",
+            value: `${g.listings} ${g.listings === 1 ? "listing" : "listings"}`,
+          }))}
+        />
+      )}
+    </div>
+  );
+}
+
+// Pretty labels for the payment providers seen on the ledger.
+function providerLabel(provider: string): string {
+  const map: Record<string, string> = {
+    paystack: "Paystack",
+    paypal: "PayPal",
+    eft: "Manual EFT",
+    manual: "Manual EFT",
+    credit: "Wielo credit",
+    unknown: "Other / unspecified",
+  };
+  return map[provider.toLowerCase()] ?? provider;
+}
+
+// Simple label · meta · value breakdown card, reused across the report.
+function BreakdownCard({
+  title,
+  subtitle,
+  rows,
+  empty,
+}: {
+  title: string;
+  subtitle: string;
+  rows: { key: string; label: string; meta: string; value: string }[];
+  empty: string;
+}) {
+  return (
+    <div className="rounded-card border border-brand-line bg-white p-5 shadow-card lg:p-6">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-brand-mute">
+        {title}
+      </div>
+      <div className="mt-0.5 text-xs text-brand-mute">{subtitle}</div>
+      {rows.length === 0 ? (
+        <p className="py-6 text-center text-sm text-brand-mute">{empty}</p>
+      ) : (
+        <div className="mt-4 space-y-2 border-t border-brand-line pt-4">
+          {rows.map((r) => (
+            <div
+              key={r.key}
+              className="flex items-center justify-between text-xs"
+            >
+              <span className="font-medium text-brand-ink">{r.label}</span>
+              <div className="flex items-center gap-3">
+                {r.meta ? (
+                  <span className="text-brand-mute">{r.meta}</span>
+                ) : null}
+                <span className="font-semibold text-brand-ink">{r.value}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

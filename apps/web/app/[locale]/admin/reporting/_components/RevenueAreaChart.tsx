@@ -22,9 +22,11 @@ function compact(v: number): string {
 export function RevenueAreaChart({
   data,
   total,
+  months,
 }: {
   data: Point[];
   total: number;
+  months: number;
 }) {
   return (
     <div className="rounded-card border border-brand-line bg-white p-5 shadow-card lg:col-span-2 lg:p-6">
@@ -33,7 +35,7 @@ export function RevenueAreaChart({
           Wielo revenue collected
         </div>
         <h3 className="mt-1 font-display text-lg font-bold text-brand-ink">
-          R {compact(total)} over 12 months
+          R {compact(total)} over {months} {months === 1 ? "month" : "months"}
         </h3>
         <div className="mt-0.5 text-xs text-brand-mute">
           Completed user→Wielo charges (subscriptions + products), by month.

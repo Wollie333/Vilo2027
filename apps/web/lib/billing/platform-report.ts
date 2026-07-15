@@ -32,11 +32,29 @@ export type PlanSlice = {
   testOnly?: boolean;
 };
 
+export type PaymentMethodSlice = {
+  provider: string;
+  amount: number;
+  count: number;
+};
+
+export type CreditNoteSlice = {
+  kind: string; // refund | credit | adjustment
+  count: number;
+  amount: number; // positive magnitude
+};
+
+export type GeoSlice = {
+  province: string;
+  listings: number;
+};
+
 export type PlatformReport = {
   generatedAt: string;
   range: ReportRange;
   rangeLabel: string;
   periodStart: string;
+  monthsShown: number;
   kpis: {
     mrr: number;
     arr: number;
@@ -54,13 +72,31 @@ export type PlatformReport = {
     collectedPeriod: number;
     outstanding: number;
     refunded: number;
+    vatCollected: number; // output VAT on period charges
+    takeRate: number; // Wielo revenue ÷ GMV, %
+    momRevenue: number | null; // month-over-month revenue growth %
+    momSignups: number | null; // month-over-month signup growth %
     gmv: number;
     bookingCount: number;
     activeListings: number;
+    // Credit UNITS (not Rand) moved in the period.
+    creditsPurchased: number;
+    creditsGranted: number;
+    creditsSpent: number;
+    // Platform quote / Looking-For volume in the period.
+    quotesCreated: number;
+    lookingForPosts: number;
+    lookingForResponses: number;
+    // Affiliate liabilities (Wielo → affiliates) in the period.
+    affiliateCommissions: number;
+    affiliatePayouts: number;
   };
   monthly: MonthlyPoint[];
   plans: PlanSlice[];
   statusFunnel: { status: string; count: number }[];
+  paymentMethods: PaymentMethodSlice[];
+  creditNotes: CreditNoteSlice[];
+  geography: GeoSlice[];
 };
 
 const RANGE_LABEL: Record<ReportRange, string> = {
@@ -124,6 +160,11 @@ export async function buildPlatformReport(
     { data: profiles },
     { data: bookingRows },
     { count: activeListings },
+    { data: creditLedgerRows },
+    { count: quotesCreated },
+    { count: lookingForPosts },
+    { count: lookingForResponses },
+    { data: geoRows },
   ] = await Promise.all([
     // The product catalog — the REAL price a host pays. A free product (e.g. a
     // beta tier) costs R0 even if it grants a paid plan tier for feature access.
@@ -152,6 +193,30 @@ export async function buildPlatformReport(
     service
       .from("properties")
       .select("id", { count: "exact", head: true })
+      .is("deleted_at", null)
+      .eq("is_published", true),
+    // Credit units moved in the period (grant / purchase / debit / refund).
+    service
+      .from("wielo_credit_ledger")
+      .select("delta, kind, created_at")
+      .gte("created_at", periodStart),
+    // Platform quote + Looking-For volume in the period.
+    service
+      .from("quotes")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", periodStart),
+    service
+      .from("looking_for_posts")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", periodStart),
+    service
+      .from("looking_for_responses")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", periodStart),
+    // Geography — published listings by province (all-time distribution).
+    service
+      .from("properties")
+      .select("province")
       .is("deleted_at", null)
       .eq("is_published", true),
   ]);
@@ -214,11 +279,21 @@ export async function buildPlatformReport(
   );
   const bookingCount = bookingRows?.length ?? 0;
 
-  // ── Monthly time series (last 12 calendar months) ──
+  // ── Monthly time series (range-aware) ──
+  // The chart used to always show a fixed last-12-months window regardless of
+  // the selected range. Now it spans exactly the calendar months the range
+  // covers (period start → current month), so 30D/90D/6M/YTD actually move the
+  // Revenue + User-growth charts. Clamped to [2, 12] so a line always renders.
   const now = new Date(nowMs);
+  const periodStartDate = new Date(periodStart);
+  const rawMonthSpan =
+    (now.getFullYear() - periodStartDate.getFullYear()) * 12 +
+    (now.getMonth() - periodStartDate.getMonth()) +
+    1;
+  const monthsShown = Math.min(12, Math.max(2, rawMonthSpan));
   const months: MonthlyPoint[] = [];
   const monthIndex = new Map<string, number>();
-  for (let i = 11; i >= 0; i--) {
+  for (let i = monthsShown - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     monthIndex.set(key, months.length);
@@ -314,20 +389,97 @@ export async function buildPlatformReport(
     .sort((a, b) => b.count - a.count);
 
   // Period-scoped collected (charges within the range).
-  const collectedPeriod = wieloRows
-    .filter(
-      (r) =>
-        r.status === "completed" &&
-        r.type === "charge" &&
-        r.date >= periodStart,
-    )
-    .reduce((s, r) => s + r.amount, 0);
+  const periodCharges = wieloRows.filter(
+    (r) =>
+      r.status === "completed" && r.type === "charge" && r.date >= periodStart,
+  );
+  const collectedPeriod = periodCharges.reduce((s, r) => s + r.amount, 0);
+
+  // ── Payment-method split (period charges by provider) ──
+  const providerAmt: Record<string, number> = {};
+  const providerCnt: Record<string, number> = {};
+  let vatCollected = 0;
+  for (const r of periodCharges) {
+    const key = (r.provider ?? "unknown").toLowerCase();
+    providerAmt[key] = (providerAmt[key] ?? 0) + r.amount;
+    providerCnt[key] = (providerCnt[key] ?? 0) + 1;
+    if (r.vatAmount) vatCollected += r.vatAmount;
+  }
+  const paymentMethods: PaymentMethodSlice[] = Object.keys(providerAmt)
+    .map((provider) => ({
+      provider,
+      amount: Math.round(providerAmt[provider]),
+      count: providerCnt[provider],
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  // ── Credit-note detail (period refunds / credits / adjustments) ──
+  const cnCnt: Record<string, number> = {};
+  const cnAmt: Record<string, number> = {};
+  for (const r of wieloRows) {
+    if (r.status !== "completed" || r.date < periodStart) continue;
+    if (r.type !== "refund" && r.type !== "credit" && r.type !== "adjustment")
+      continue;
+    cnCnt[r.type] = (cnCnt[r.type] ?? 0) + 1;
+    cnAmt[r.type] = (cnAmt[r.type] ?? 0) + Math.abs(r.amount);
+  }
+  const creditNotes: CreditNoteSlice[] = Object.keys(cnCnt)
+    .map((kind) => ({
+      kind,
+      count: cnCnt[kind],
+      amount: Math.round(cnAmt[kind]),
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  // ── Affiliate liabilities (Wielo → affiliates, period) ──
+  let affiliateCommissions = 0;
+  let affiliatePayouts = 0;
+  for (const r of wieloRows) {
+    if (r.status !== "completed" || r.date < periodStart) continue;
+    if (r.type === "commission") affiliateCommissions += Math.abs(r.amount);
+    else if (r.type === "payout") affiliatePayouts += Math.abs(r.amount);
+  }
+
+  // ── Credits (units) moved in the period ──
+  let creditsPurchased = 0;
+  let creditsGranted = 0;
+  let creditsSpent = 0;
+  for (const c of creditLedgerRows ?? []) {
+    const delta = Number(c.delta ?? 0);
+    if (c.kind === "purchase") creditsPurchased += delta;
+    else if (c.kind === "grant") creditsGranted += delta;
+    else if (c.kind === "debit") creditsSpent += Math.abs(delta);
+  }
+
+  // ── Geography — published listings by province ──
+  const geoCount: Record<string, number> = {};
+  for (const g of geoRows ?? []) {
+    const province =
+      ((g.province as string) || "Unspecified").trim() || "Unspecified";
+    geoCount[province] = (geoCount[province] ?? 0) + 1;
+  }
+  const geography: GeoSlice[] = Object.keys(geoCount)
+    .map((province) => ({ province, listings: geoCount[province] }))
+    .sort((a, b) => b.listings - a.listings);
+
+  // ── Take-rate + month-over-month growth ──
+  const takeRate = gmv > 0 ? (stats.collected / gmv) * 100 : 0;
+  const momOf = (pick: (m: MonthlyPoint) => number): number | null => {
+    if (months.length < 2) return null;
+    const last = pick(months[months.length - 1]);
+    const prev = pick(months[months.length - 2]);
+    if (prev === 0) return null;
+    return Math.round(((last - prev) / prev) * 1000) / 10;
+  };
+  const momRevenue = momOf((m) => m.revenue);
+  const momSignups = momOf((m) => m.signups);
 
   return {
     generatedAt: new Date(nowMs).toISOString(),
     range,
     rangeLabel: RANGE_LABEL[range],
     periodStart,
+    monthsShown,
     kpis: {
       mrr: Math.round(mrr),
       arr: Math.round(arr),
@@ -345,13 +497,28 @@ export async function buildPlatformReport(
       collectedPeriod: Math.round(collectedPeriod),
       outstanding: Math.round(stats.pending),
       refunded: Math.round(stats.refunded),
+      vatCollected: Math.round(vatCollected),
+      takeRate: Math.round(takeRate * 10) / 10,
+      momRevenue,
+      momSignups,
       gmv: Math.round(gmv),
       bookingCount,
       activeListings: activeListings ?? 0,
+      creditsPurchased,
+      creditsGranted,
+      creditsSpent,
+      quotesCreated: quotesCreated ?? 0,
+      lookingForPosts: lookingForPosts ?? 0,
+      lookingForResponses: lookingForResponses ?? 0,
+      affiliateCommissions: Math.round(affiliateCommissions),
+      affiliatePayouts: Math.round(affiliatePayouts),
     },
     monthly: months,
     plans: planSlices,
     statusFunnel,
+    paymentMethods,
+    creditNotes,
+    geography,
   };
 }
 

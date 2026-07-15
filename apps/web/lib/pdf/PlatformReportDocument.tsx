@@ -40,6 +40,21 @@ export function PlatformReportDocument({
     [`Collected (${report.rangeLabel.toLowerCase()})`, zar(k.collectedPeriod)],
     ["Outstanding", zar(k.outstanding)],
     ["Refunded", zar(k.refunded)],
+    ["VAT collected", zar(k.vatCollected)],
+    ["Take-rate", `${k.takeRate}%`],
+    ["MoM revenue", k.momRevenue !== null ? `${k.momRevenue}%` : "—"],
+    ["MoM signups", k.momSignups !== null ? `${k.momSignups}%` : "—"],
+  ];
+
+  const engagement: [string, string][] = [
+    ["Credits bought", String(k.creditsPurchased)],
+    ["Credits granted", String(k.creditsGranted)],
+    ["Credits spent", String(k.creditsSpent)],
+    ["Quotes created", String(k.quotesCreated)],
+    ["Looking-For posts", String(k.lookingForPosts)],
+    ["Looking-For quotes", String(k.lookingForResponses)],
+    ["Affiliate commissions", zar(k.affiliateCommissions)],
+    ["Affiliate payouts", zar(k.affiliatePayouts)],
   ];
 
   const growth: [string, string][] = [
@@ -83,21 +98,68 @@ export function PlatformReportDocument({
         <Section title="Revenue & subscriptions" rows={headline} />
         <Section title="Growth & retention" rows={growth} />
         <Section title="Platform volume" rows={ops} />
+        <Section title="Engagement, credits & affiliate" rows={engagement} />
 
         {report.plans.length > 0 ? (
           <View style={{ marginTop: 18 }}>
             <Text style={sectionTitle}>Plan distribution</Text>
             <View style={tableHeader}>
               <Text style={{ flex: 2 }}>Plan</Text>
-              <Text style={{ flex: 1, textAlign: "right" }}>Subs</Text>
-              <Text style={{ flex: 1, textAlign: "right" }}>MRR</Text>
+              <Text style={{ flex: 1, textAlign: "right" }}>Count</Text>
+              <Text style={{ flex: 1, textAlign: "right" }}>MRR / total</Text>
             </View>
             {report.plans.map((p) => (
               <View key={p.key} style={tableRow}>
-                <Text style={{ flex: 2 }}>{p.name}</Text>
-                <Text style={{ flex: 1, textAlign: "right" }}>{p.count}</Text>
+                <Text style={{ flex: 2 }}>
+                  {p.name}
+                  {p.type === "one_off" ? " (one-off)" : ""}
+                  {p.testOnly ? " (test)" : ""}
+                </Text>
+                <Text style={{ flex: 1, textAlign: "right" }}>
+                  {p.count} {p.type === "one_off" ? "sold" : "subs"}
+                </Text>
                 <Text style={{ flex: 1, textAlign: "right" }}>
                   {zar(p.mrr)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {report.paymentMethods.length > 0 ? (
+          <View style={{ marginTop: 18 }}>
+            <Text style={sectionTitle}>
+              Payment methods ({report.rangeLabel.toLowerCase()})
+            </Text>
+            <View style={tableHeader}>
+              <Text style={{ flex: 2 }}>Provider</Text>
+              <Text style={{ flex: 1, textAlign: "right" }}>Charges</Text>
+              <Text style={{ flex: 1, textAlign: "right" }}>Collected</Text>
+            </View>
+            {report.paymentMethods.map((p) => (
+              <View key={p.provider} style={tableRow}>
+                <Text style={{ flex: 2 }}>{p.provider}</Text>
+                <Text style={{ flex: 1, textAlign: "right" }}>{p.count}</Text>
+                <Text style={{ flex: 1, textAlign: "right" }}>
+                  {zar(p.amount)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {report.geography.length > 0 ? (
+          <View style={{ marginTop: 18 }}>
+            <Text style={sectionTitle}>Listings by province</Text>
+            <View style={tableHeader}>
+              <Text style={{ flex: 2 }}>Province</Text>
+              <Text style={{ flex: 1, textAlign: "right" }}>Listings</Text>
+            </View>
+            {report.geography.map((g) => (
+              <View key={g.province} style={tableRow}>
+                <Text style={{ flex: 2 }}>{g.province}</Text>
+                <Text style={{ flex: 1, textAlign: "right" }}>
+                  {g.listings}
                 </Text>
               </View>
             ))}
