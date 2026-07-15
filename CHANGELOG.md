@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-15 — Dual-quote-system: Upload-a-PDF quote type + guest download tracking.
+
+- **Upload quote type** (`d847f8a3`): a host can now UPLOAD a finished quote PDF (from a 3rd-party tool) instead of
+  building it in Wielo — quote_type='upload' + attachment_path/name in a PRIVATE quote-uploads bucket (migration
+  20260715180000). The manual-quote flow gains a "Build it here / Upload a PDF" toggle (build stays the default);
+  upload shows a file dropzone (uploadQuoteAttachmentAction validates type + 10MB, stores keyed by host). Guests
+  download the actual file via a token-gated /q/[id]/[token]/file route that mints a short-lived signed URL.
+- **Guest download tracking** (founder request): quote_view_events gains a 'kind' ('view'|'download'; migration
+  20260715190000). The token-gated PDF + file routes record kind='download' when the GUEST downloads (never the
+  host's own dashboard download). The host quote record now shows "<guest> downloaded this quote N times — last
+  <when>" beside the "opened" nudge, plus an Activity-timeline entry; the view count filters kind='view' so a
+  download no longer inflates opens. Verified live: a guest download served the real file via signed URL AND
+  recorded a download event; the host record showed the indicator while "Viewed" stayed "—".
+
 ## 2026-07-15 — Dual-quote-system (Phase 1 cont.): guest-facing custom quotes + edit.
 
 - **Guest-facing custom quotes** (`0b70eb91`): the guest portal quote view, public token quote page, both PDF routes,

@@ -2,7 +2,32 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM build — SAVE POINT `bb5868d3`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM build — SAVE POINT `d847f8a3`) — START HERE
+
+**▶▶ ONLY CONCERN 4 LEFT.** Concerns 1, 2, 3a, 3b + a download-tracking request are ALL shipped + verified live.
+The last piece is the **quote-only account class + Wielo Quotes subscription + admin block** (plan §4, decisions
+D2–D5). Plan: `docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md`; memory `project-dual-quote-system`.
+
+**✅ DONE + VERIFIED LIVE (this session):**
+- **Concern 1** soft-validation (`71b2486b`) · **Concern 2** edit a custom quote (`bb5868d3`).
+- **Concern 3a** Custom (build-detached) quote — host + guest + accept-without-booking (`c09f7b70`/`0b70eb91`).
+- **Concern 3b** UPLOAD a PDF (`d847f8a3`): quote_type='upload' + private `quote-uploads` bucket (migration
+  `20260715180000`); manual-quote "Build it here / Upload a PDF" toggle; guest downloads via token-gated
+  `/q/[id]/[token]/file` signed-URL route.
+- **Download tracking** (founder request, `d847f8a3`): `quote_view_events.kind` ('view'|'download', migration
+  `20260715190000`); token PDF+file routes record guest downloads; host record shows "<guest> downloaded this quote
+  N times — last <when>" beside the viewed nudge + timeline; view count excludes downloads.
+
+**⏳ CONCERN 4 (the last, biggest piece) — NOT STARTED:** (a) `hosts.account_kind='quote_only'` + own onboarding +
+a SCOPED dashboard shell (Looking-For/Quotes/Credits/Inbox only; gated off listings/calendar/bookings/payments/
+website); (b) a **Wielo Quotes** membership tier (grants credits) — name still deferred; (c) admin block
+(`quote_access` / `platform_access`, audited). Needs founder sign-off on any new schema (CLAUDE.md).
+GOTCHAs: in-app browser can't drive a file picker (verify uploads via storage REST + the /file route); host quote
+record "stay" section still shows "—" for custom/upload (minor polish); `scope`/`headcount` NOT NULL in DB.
+
+---
+
+## ⭐ PRIOR ANCHOR (2026-07-15 · DUAL-QUOTE build — SAVE POINT `bb5868d3`)
 
 **▶▶ BUILDING the dual-quote-system** (founder: "ship the whole working 100% MVP-ready feature"). Plan:
 `docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md`; memory `project-dual-quote-system`.
