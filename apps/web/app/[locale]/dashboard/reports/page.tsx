@@ -32,6 +32,8 @@ import { WebsiteTraffic } from "./_components/WebsiteTraffic";
 import { loadWebsiteAnalyticsForWebsites } from "@/lib/website/analytics";
 import { DeepAnalytics } from "./_components/DeepAnalytics";
 import { loadHostDeepAnalytics } from "@/lib/reports/hostDeepAnalytics";
+import { QuotesOnlyReport } from "./_components/QuotesOnlyReport";
+import { resolveAccountScope } from "@/lib/host/accountScope";
 
 export const metadata: Metadata = {
   title: "Analytics & Reports",
@@ -63,13 +65,22 @@ export default async function ReportsPage({
   // Get host
   const { data: host } = await supabase
     .from("hosts")
-    .select("id, display_name")
+    .select("id, display_name, account_kind, quote_access, platform_access")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .maybeSingle();
 
   if (!host) {
     redirect("/dashboard");
+  }
+
+  // Quote-only accounts (or a platform-blocked account) get a QUOTE-SCOPED
+  // report — their quoting/acceptance/credits/Looking-For activity — instead of
+  // the accommodation report (they have no listings/bookings). Every user with
+  // reporting access gets their own full relevant report.
+  const scope = resolveAccountScope(host);
+  if (scope.quotesOnly) {
+    return renderQuotesOnlyReport(host.id, searchParams);
   }
 
   // Check feature permission: analytics_basic (Basic+)
@@ -873,6 +884,130 @@ export default async function ReportsPage({
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+// ── Quote-only account report ──────────────────────────────────────────────
+// A quote_only (or platform-blocked) account has no listings/bookings, so it
+// gets a report scoped to what it DOES: quotes sent + accepted, credits, and
+// Looking-For performance. Same date defaults as the full report.
+async function renderQuotesOnlyReport(
+  hostId: string,
+  searchParams?: { start?: string; end?: string },
+) {
+  const today = new Date();
+  const toLocalISO = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
+  const startDate =
+    searchParams?.start || toLocalISO(new Date(today.getFullYear(), 0, 1));
+  const endDate = searchParams?.end || toLocalISO(today);
+
+  const supabase = createServerClient();
+  const admin = createAdminClient();
+
+  const [lfRes, quotesRes, walletRes, ledgerRes] = await Promise.all([
+    supabase.rpc("fetch_looking_for_stats", {
+      p_host_id: hostId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    }),
+    supabase
+      .from("quotes")
+      .select("status, total_amount, created_at")
+      .eq("host_id", hostId)
+      .gte("created_at", startDate)
+      .lte("created_at", endDate),
+    admin.from("wielo_credit_wallet").select("balance").eq("host_id", hostId),
+    admin
+      .from("wielo_credit_ledger")
+      .select("delta, kind, created_at")
+      .eq("host_id", hostId)
+      .gte("created_at", startDate),
+  ]);
+
+  const SENT = new Set([
+    "sent",
+    "accepted",
+    "declined",
+    "expired",
+    "converted",
+  ]);
+  const ACCEPTED = new Set(["accepted", "converted"]);
+  let sent = 0;
+  let accepted = 0;
+  let valueAccepted = 0;
+  for (const q of quotesRes.data ?? []) {
+    const status = q.status as string;
+    if (SENT.has(status)) sent += 1;
+    if (ACCEPTED.has(status)) {
+      accepted += 1;
+      valueAccepted += Number(q.total_amount ?? 0);
+    }
+  }
+
+  const balance = (walletRes.data ?? []).reduce(
+    (s, w) => s + Number(w.balance ?? 0),
+    0,
+  );
+  let spent = 0;
+  let granted = 0;
+  for (const c of ledgerRes.data ?? []) {
+    const d = Number(c.delta ?? 0);
+    if (c.kind === "debit") spent += Math.abs(d);
+    else if (c.kind === "grant" || c.kind === "purchase") granted += d;
+  }
+
+  const lookingFor =
+    (lfRes.data as {
+      posts_viewed: number;
+      quotes_sent: number;
+      quotes_viewed: number;
+      quotes_accepted: number;
+      acceptance_rate: number;
+      view_rate: number;
+      avg_response_hours: number;
+      revenue_from_looking_for: number;
+      regional_breakdown: Array<{ region: string; count: number }>;
+      category_breakdown: Array<{ category: string; count: number }>;
+      trend: Array<{ month: string; quotes_sent: number; accepted: number }>;
+    } | null) ?? null;
+
+  const periodLabel = `${new Date(startDate).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+  })} – ${new Date(endDate).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+  })}`;
+
+  return (
+    <>
+      <header className="border-b border-brand-line bg-white">
+        <div className="px-5 py-6 lg:px-8 lg:py-7">
+          <div className="text-[11px] font-medium text-brand-mute">
+            Tools · Analytics
+          </div>
+          <h1 className="mt-0.5 font-display text-xl font-bold leading-none text-brand-ink lg:text-2xl">
+            Quotes & Reports
+          </h1>
+        </div>
+      </header>
+      <QuotesOnlyReport
+        data={{
+          periodLabel,
+          quotes: {
+            sent,
+            accepted,
+            acceptanceRate: sent > 0 ? (accepted / sent) * 100 : 0,
+            valueAccepted: Math.round(valueAccepted),
+          },
+          credits: { balance, spent, granted },
+          lookingFor,
+        }}
+      />
     </>
   );
 }

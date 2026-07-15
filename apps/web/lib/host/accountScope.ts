@@ -40,6 +40,11 @@ const QUOTES_ONLY_ALLOWED = [
   "/dashboard/inbox",
   "/dashboard/guests",
   "/dashboard/settings",
+  // Reporting is open to quote-only accounts too — the reports page renders a
+  // quote-scoped view (quotes / acceptance / credits / Looking-For) for them
+  // instead of the accommodation report. Every user with reporting access gets
+  // their full relevant report.
+  "/dashboard/reports",
 ] as const;
 
 /** Where a quotes-only account lands + is bounced back to. */
