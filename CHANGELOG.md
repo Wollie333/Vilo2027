@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-15 — Reporting enhancement BUILT + verified live on BOTH surfaces (host + admin).
+
+Executed the reporting enhancement (founder: "report every metric — refine, enhance, polish"). Two commits, both
+pushed to main; every change verified live per Principle #9.
+
+**Host `dashboard/reports` (`6b4fcb94`):** rewrote `ReportsFilters` to be fully URL-driven — branded `DateRangePicker`,
+data-driven Listing + Channel dropdowns, compare + Day/Week/Month grouping toggle all write the query string the page
+reads and re-fetches from (was local `useState` that never reached the RPCs). Removed the dead Region filter (no RPC
+support) and the no-op Schedule button. Replaced the `Math.random()` occupancy "trend" with a real occupied/available
+gauge, the hardcoded "24 active listings" with a live count, and the hardcoded ChannelMix "15%" with `HEADLINE_OTA_RATE`.
+Rendered the Looking-For monthly trend chart, widened the PDF/XLSX "full report" export to include headline KPIs +
+channel mix + funnel + Looking-For (was the property table only), fixed a default-date off-by-one, and deleted dead code
+(`page-minimal.tsx`, `ExportButton.tsx`). **DB fix (migration `20260715250000`, pushed `--linked`):** `fetch_looking_for_stats`
+referenced `b.total_price` (column is `total_amount`) and raised on every call, so the whole Looking-For analytics
+section silently failed to load — corrected the column.
+
+**Admin `admin/reporting` (`a143bde3`):** made the range filter actually move the charts — `buildPlatformReport` now
+builds a range-aware monthly series so 30D/90D/6M/YTD reshape the Revenue + User-growth charts and the "over N months"
+header (was a fixed 12-month series). Fixed the plan donut mislabelling one-off products as subscriptions (subscription-only
+header count, One-off + Test tags, MRR share %). Rendered the previously-hidden booking count + monthly signups (MoM), and
+added payment-method split, VAT, MoM revenue/signup growth, credit-note detail, take-rate, Wielo Credits bought/granted/spent,
+quote + Looking-For volume, affiliate commissions/payouts, and host geography by province — all from existing data. Widened
+the admin PDF to match. Optional follow-up metrics (host add-ons/coupons/credits, admin cohort retention/GMV trend,
+per-RPC region support) surfaced in `CURRENT_TASK.md`, not silently dropped.
+
+---
+
 ## 2026-07-15 — Reporting enhancement AUDIT (save point — build deferred to a new session).
 
 Founder asked to make the reporting feature report every metric (refine/enhance/polish), scope = BOTH surfaces (host

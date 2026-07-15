@@ -2,27 +2,40 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐⭐⭐ NEXT TASK (start here, NEW SESSION · 2026-07-15) — REPORTING ENHANCEMENT ("report every metric")
+## ⭐⭐⭐ DONE (2026-07-15) — REPORTING ENHANCEMENT ("report every metric") — BOTH SURFACES ✅ SHIPPED + VERIFIED LIVE
 
 **Founder directive:** *"work on the reporting feature so each and every metric is reported on — refine, enhance and
-polish."* Scope = **BOTH surfaces** (host `dashboard/reports` + admin `admin/reporting`). This is a SAVE POINT —
-audit done, build NOT started. **Full file-anchored plan: `docs/features/REPORTING_ENHANCEMENT_AUDIT.md`** (read it
-first). Repo clean at this commit.
+polish."* Scope = **BOTH** host `dashboard/reports` + admin `admin/reporting`. Plan: `docs/features/REPORTING_ENHANCEMENT_AUDIT.md`.
+Two clean commits: host `6b4fcb94`, admin `a143bde3` (pushed to main).
 
-**Headline findings (see the doc for the full list):**
-- **Both feature works** — host analytics RPCs are real + rich. This is enhancement/polish, not a rebuild.
-- **Robustness:** the 12 analytics RPCs live only in the live DB, NOT in committed migrations → capture them into a
-  migration first (a fresh env would show the "Failed to Load Analytics" error).
-- **Host highest-leverage fix = H1:** the filter bar (`ReportsFilters`) is non-functional (local state only, never
-  writes to the URL the page reads) → date range, region + channel filters are all DEAD. Plus hardcoded "24 active
-  listings" (H3/H4), `Math.random()` occupancy bars (H2), dead code (`page-minimal.tsx`, `ExportButton.tsx`).
-- **Admin A1:** the range filter doesn't affect the charts (`buildPlatformReport` always builds a fixed 12-month
-  series); A2: plan donut mislabels one-off products as subscriptions. Add per-plan share, payment-method split, VAT,
-  MoM %, credit-notes, affiliate, Wielo Credits, quote volume, take-rate, retention, geography.
-- Unshown-but-available: host LF `trend` + `quotes_accepted` count; admin `bookingCount` + monthly `signups`.
+**HOST (`6b4fcb94`) — verified live (host@wielotest.com):**
+- **H1 filter bar now URL-driven** (was local state, never reached the RPCs): branded `DateRangePicker` writes
+  `?start/?end`, data-driven Listing + Channel dropdowns write `?listing/?channel`, compare + grouping write the URL,
+  page re-fetches. Removed the DEAD Region filter (no RPC support) + no-op Schedule button. Verified: listing click →
+  `?listing=…` + re-fetch; grouping toggle re-buckets chart.
+- **H2** occupancy gauge = real occupied/available (was `Math.random()`). **H3/H4** real active-listing count (was
+  hardcoded 24). **H10** ChannelMix commission % reads `HEADLINE_OTA_RATE` (was 15% hardcoded). **H14** revenue-trend
+  Day/Week/Month toggle re-buckets via `?grouping` (was decorative). **H11/H12** deleted `page-minimal.tsx` +
+  `ExportButton.tsx`. Fixed default-date off-by-one (`toISOString` UTC shift → local ISO).
+- **LF trend chart** now rendered. **Wider PDF/XLSX export** = KPIs + channel mix + funnel + LF (was property table only).
+- **DB FIX (migration `20260715250000`, pushed --linked):** `fetch_looking_for_stats` referenced `b.total_price`
+  (doesn't exist) → raised on every call, so the ENTIRE Looking-For analytics section silently failed. Now
+  `b.total_amount`; verified the section renders instead of erroring.
 
-**Build order:** (1) migration to capture RPCs · (2) host H1 filters→URL then H2/H3/H4 + dead-code removal ·
-(3) host new metrics + wider export · (4) admin A1/A2 + platform metrics · (5) verify live on both surfaces.
+**ADMIN (`a143bde3`) — verified live (super-admin):**
+- **A1** range filter now moves the charts — `buildPlatformReport` builds a range-aware `monthly` series (clamped
+  [2,12]); "over N months" header + Revenue/User-growth charts follow 30D/90D/6M/YTD. Verified: 30D → 2-month chart.
+- **A2** plan donut fixed — header counts only subscriptions; one-offs get a "One-off" tag + read "sold"; test sales
+  get a "Test" tag; subs show MRR share %. Verified: "11 subscriptions" + StayFlow one-off/test tags + 94.8%/5.2%.
+- Rendered hidden `bookingCount` + monthly signups (as MoM). New metrics (all from existing data): payment-method
+  split, VAT, MoM revenue+signups %, credit-note detail, take-rate, Wielo Credits bought/granted/spent, quote + LF
+  volume, affiliate commissions/payouts, geography by province. Widened the admin PDF too (route 200).
+
+**⏳ OPTIONAL FOLLOW-UP (surfaced, not silently dropped):** host-side NEW metrics not yet added — payment-method split
+for host income, add-ons/extras revenue, coupon usage, Wielo Credits balance, weekday/weekend split (need more data
+plumbing). Admin: cohort retention/LTV/NRR, GMV trend chart, booking-status distribution, listings-per-host. A proper
+`p_region` on the 12 analytics RPCs would let the Region filter come back (larger DB change). See memory
+`project-reporting-enhancement`.
 
 ---
 
