@@ -57,6 +57,17 @@ export function PlatformReportDocument({
     ["Affiliate payouts", zar(k.affiliatePayouts)],
   ];
 
+  const retention: [string, string][] = [
+    ["Lifetime rev / host", zar(k.lifetimeRevenuePerHost)],
+    ["ARR / account", zar(k.arrPerAccount)],
+    ["Est. LTV", k.estimatedLtv !== null ? zar(k.estimatedLtv) : "—"],
+    [
+      "Avg lifespan",
+      k.avgLifespanMonths !== null ? `${k.avgLifespanMonths} mo` : "—",
+    ],
+    ["Monthly churn", `${k.monthlyChurnRate}%`],
+  ];
+
   const growth: [string, string][] = [
     ["Total users", k.totalUsers.toLocaleString("en-ZA")],
     ["Hosts", k.hosts.toLocaleString("en-ZA")],
@@ -99,6 +110,7 @@ export function PlatformReportDocument({
         <Section title="Growth & retention" rows={growth} />
         <Section title="Platform volume" rows={ops} />
         <Section title="Engagement, credits & affiliate" rows={engagement} />
+        <Section title="Retention & lifetime value" rows={retention} />
 
         {report.plans.length > 0 ? (
           <View style={{ marginTop: 18 }}>

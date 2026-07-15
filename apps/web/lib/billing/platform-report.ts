@@ -27,6 +27,13 @@ export type BookingStatusSlice = {
   count: number;
 };
 
+export type SubscriberMovement = {
+  month: string;
+  iso: string;
+  added: number;
+  churned: number;
+};
+
 export type PlanSlice = {
   key: string;
   name: string;
@@ -96,6 +103,12 @@ export type PlatformReport = {
     // Affiliate liabilities (Wielo → affiliates) in the period.
     affiliateCommissions: number;
     affiliatePayouts: number;
+    // Retention & lifetime value.
+    lifetimeRevenuePerHost: number; // collected all-time ÷ paying hosts
+    arrPerAccount: number; // ARPU × 12
+    monthlyChurnRate: number; // subs cancelled in last 30d ÷ active, %
+    estimatedLtv: number | null; // ARPU ÷ monthly churn (null if no churn)
+    avgLifespanMonths: number | null; // 1 ÷ monthly churn (null if no churn)
   };
   monthly: MonthlyPoint[];
   plans: PlanSlice[];
@@ -104,6 +117,7 @@ export type PlatformReport = {
   creditNotes: CreditNoteSlice[];
   geography: GeoSlice[];
   bookingStatus: BookingStatusSlice[];
+  subscriberMovement: SubscriberMovement[];
 };
 
 const RANGE_LABEL: Record<ReportRange, string> = {
@@ -179,7 +193,9 @@ export async function buildPlatformReport(
     service.from("products").select("id, name, price, billing_cycle, type"),
     service
       .from("subscriptions")
-      .select("product_id, plan, billing_cycle, status"),
+      .select(
+        "product_id, plan, billing_cycle, status, created_at, cancelled_at",
+      ),
     // Revenue rows for the selected environment. Default "live" — test-key
     // transactions are excluded from the real business view, but the founder can
     // flip the Overview to Test/All to see them while building.
@@ -264,6 +280,7 @@ export async function buildPlatformReport(
     }
   }
   const arr = mrr * 12;
+  const arpu = payingHosts > 0 ? Math.round(mrr / payingHosts) : 0;
   const stats = wieloLedgerStats(wieloRows);
   const totalSubs = (subs ?? []).length;
   const churnRate = totalSubs > 0 ? (churned / totalSubs) * 100 : 0;
@@ -501,6 +518,48 @@ export async function buildPlatformReport(
     .map(([status, count]) => ({ status, count }))
     .sort((a, b) => b.count - a.count);
 
+  // ── Subscriber movement (added vs churned per month) + retention/LTV ──
+  const now30 = new Date(nowMs - 30 * 86_400_000).toISOString();
+  const addedByMonth = new Array(months.length).fill(0);
+  const churnedByMonth = new Array(months.length).fill(0);
+  let activeSubs = 0;
+  let churnedLast30 = 0;
+  for (const s of subs ?? []) {
+    if (s.status === "active" || s.status === "trialing") activeSubs += 1;
+    const created = s.created_at as string | null;
+    const cancelled = s.cancelled_at as string | null;
+    if (created) {
+      const idx = monthIndex.get(keyOf(created));
+      if (idx != null) addedByMonth[idx] += 1;
+    }
+    if (cancelled) {
+      const idx = monthIndex.get(keyOf(cancelled));
+      if (idx != null) churnedByMonth[idx] += 1;
+      if (cancelled >= now30) churnedLast30 += 1;
+    }
+  }
+  const subscriberMovement: SubscriberMovement[] = months.map((m, i) => ({
+    month: m.label,
+    iso: keyOf(m.month),
+    added: addedByMonth[i],
+    churned: churnedByMonth[i],
+  }));
+
+  // Monthly churn = subs cancelled in the last 30 days ÷ the base that were
+  // active at the start of that window (active now + those since churned).
+  const churnBase = activeSubs + churnedLast30;
+  const monthlyChurnRate =
+    churnBase > 0 ? Math.round((churnedLast30 / churnBase) * 1000) / 10 : 0;
+  // LTV = ARPU ÷ monthly churn (standard SaaS estimate); null when no churn yet.
+  const estimatedLtv =
+    monthlyChurnRate > 0 ? Math.round(arpu / (monthlyChurnRate / 100)) : null;
+  const avgLifespanMonths =
+    monthlyChurnRate > 0
+      ? Math.round((100 / monthlyChurnRate) * 10) / 10
+      : null;
+  const lifetimeRevenuePerHost =
+    payingHosts > 0 ? Math.round(stats.collected / payingHosts) : 0;
+
   return {
     generatedAt: new Date(nowMs).toISOString(),
     range,
@@ -510,7 +569,7 @@ export async function buildPlatformReport(
     kpis: {
       mrr: Math.round(mrr),
       arr: Math.round(arr),
-      arpu: payingHosts > 0 ? Math.round(mrr / payingHosts) : 0,
+      arpu,
       payingHosts,
       totalUsers,
       hosts,
@@ -539,6 +598,11 @@ export async function buildPlatformReport(
       lookingForResponses: lookingForResponses ?? 0,
       affiliateCommissions: Math.round(affiliateCommissions),
       affiliatePayouts: Math.round(affiliatePayouts),
+      lifetimeRevenuePerHost,
+      arrPerAccount: arpu * 12,
+      monthlyChurnRate,
+      estimatedLtv,
+      avgLifespanMonths,
     },
     monthly: months,
     plans: planSlices,
@@ -547,6 +611,7 @@ export async function buildPlatformReport(
     creditNotes,
     geography,
     bookingStatus,
+    subscriberMovement,
   };
 }
 

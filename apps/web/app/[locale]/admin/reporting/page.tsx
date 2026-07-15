@@ -13,6 +13,7 @@ import { PlanDonutChart } from "./_components/PlanDonutChart";
 import { RevenueAreaChart } from "./_components/RevenueAreaChart";
 import { UserGrowthChart } from "./_components/UserGrowthChart";
 import { GmvTrendChart } from "./_components/GmvTrendChart";
+import { SubscriberMovementChart } from "./_components/SubscriberMovementChart";
 
 export const dynamic = "force-dynamic";
 
@@ -224,6 +225,64 @@ export default async function AdminReportingPage({
         </p>
       </section>
 
+      {/* Retention & lifetime value */}
+      <section>
+        <h2 className="mb-3 font-display text-base font-bold text-brand-ink">
+          Retention & lifetime value
+        </h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+          <AdminKpiCard
+            label="Lifetime rev / host"
+            value={zar(k.lifetimeRevenuePerHost)}
+            sub="collected ÷ paying hosts"
+          />
+          <AdminKpiCard
+            label="ARR / account"
+            value={zar(k.arrPerAccount)}
+            sub="ARPU × 12"
+          />
+          <AdminKpiCard
+            label="Est. LTV"
+            value={k.estimatedLtv !== null ? zar(k.estimatedLtv) : "—"}
+            sub="ARPU ÷ monthly churn"
+          />
+          <AdminKpiCard
+            label="Avg lifespan"
+            value={
+              k.avgLifespanMonths !== null ? `${k.avgLifespanMonths} mo` : "—"
+            }
+            sub="1 ÷ monthly churn"
+          />
+          <AdminKpiCard
+            label="Monthly churn"
+            value={`${k.monthlyChurnRate}%`}
+            sub="cancelled ÷ active · 30d"
+          />
+        </div>
+        <div className="mt-3 grid gap-5 lg:grid-cols-3">
+          <SubscriberMovementChart data={report.subscriberMovement} />
+          <div className="rounded-card border border-brand-line bg-white p-5 shadow-card lg:p-6">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-brand-mute">
+              Lifetime & recurring
+            </div>
+            <div className="mt-4 space-y-3">
+              <MiniStat label="MRR" value={zar(k.mrr)} />
+              <MiniStat label="ARR" value={zar(k.arr)} />
+              <MiniStat label="ARPU" value={zar(k.arpu)} />
+              <MiniStat
+                label="Collected all-time"
+                value={zar(k.collectedAllTime)}
+              />
+              <MiniStat label="Paying hosts" value={String(k.payingHosts)} />
+            </div>
+            <p className="mt-4 text-[11px] text-brand-mute">
+              LTV &amp; lifespan are estimates from current ARPU and last-30-day
+              churn — they sharpen as more subscription history accrues.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* GMV trend + booking-status distribution */}
       <section className="grid gap-5 lg:grid-cols-3">
         <GmvTrendChart
@@ -365,6 +424,15 @@ function BreakdownCard({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-brand-line pb-2 text-sm last:border-0 last:pb-0">
+      <span className="text-brand-mute">{label}</span>
+      <span className="font-semibold text-brand-ink">{value}</span>
     </div>
   );
 }
