@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-07-15 — Credits §3 (part 2): UI spend/block verified live + low-credit banner.
+
+Founder mandate: harden + test the Looking-For + Wielo Credits surface to 100% MVP-ready. Founder note this session:
+keep the consumable **Wielo Credits** (metering wallet) strictly separate from the financial **credit-note**
+accounting (`wielo_credit_notes`/`platform_ledger`) — do not break the financial spine. Honoured: this change is
+read-only against the metering wallet and touches no accounting path.
+- **UI spend/block verified live** — drove respond→build→preview→send as the test host. At **0 credits the send is
+  blocked** (quote stays `draft`, no `looking_for_responses` row, wallet unchanged, no debit ledger row); on a funded
+  wallet the send **debits 1** (quote `sent`, response row created, `debit -1` ledger row, header CreditPill updates,
+  My-Quotes-Sent lists it). Closes the last-open §3 item ("send-path debit not yet UI-driven").
+- **Low-credit banner** — new `LowCreditBanner` on the Looking-For respond page shows the credit state *before* a host
+  builds a whole quote: empty wallet = a hard "you're out of quote credits" notice + Top-up CTA; 1–3 left = a soft
+  "N credits left" nudge; healthy = nothing. Reads the balance via `getCreditBalance` and mirrors
+  `LOOKING_FOR_QUOTE_CREDIT_COST`. Verified live at 50/2/0. `tsc` + `lint` + `build` green (`d889ed76`).
+
 ## 2026-07-15 — §3 (part 1): Looking-For quotes SPEND a credit (subscription-granted, refunded on expiry).
 
 Founder decisions: subscription grants credits monthly + buy top-ups; only Looking-For responses cost a credit

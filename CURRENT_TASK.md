@@ -2,7 +2,33 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For + Credits — SAVE POINT `4bf944b2`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For + Credits — SAVE POINT `d889ed76`) — START HERE
+
+**✅ JUST DONE (`d889ed76`, verified live end-to-end):** the §3 credit **spend/block
+is now driven THROUGH THE UI**, plus a new **low-credit banner**. As test host Lerato:
+send at **0 credits is blocked** (quote stays `draft`, `sent_at` null, no
+`looking_for_responses` row, wallet unchanged, no debit ledger row); send on a funded
+wallet **debits 2→1** (quote `sent`, response row, `debit -1` ledger, header CreditPill
+updates, My-Quotes-Sent lists it). New `LowCreditBanner`
+(`dashboard/looking-for/_components/LowCreditBanner.tsx`) on the respond page: **out** =
+amber "you're out of quote credits" + Top-up CTA · **1–3 left** = soft nudge · **>3** =
+nothing (verified at 50/2/0). Read-only (`getCreditBalance`), mirrors
+`LOOKING_FOR_QUOTE_CREDIT_COST` — NO accounting/credit-note path touched (kept the
+metering wallet strictly separate from `wielo_credit_notes`/`platform_ledger`).
+tsc+lint+build green. Test data (post guests, wallet, quotes) all restored after.
+**GOTCHA:** the respond QuoteForm renders TWO "Review & send" footers (desktop + hidden
+mobile) — a `read_page` ref can point at the hidden one so the preview never opens; click
+the VISIBLE green button by screenshot coords.
+
+**▶▶ NEXT NOW:** (1) verify the **live SUBSCRIPTION grant** (set a product's per-cycle
+credit grant, activate a sub, confirm wallet tops up, idempotent per product+period); (2)
+**admin suspend/pause a post** + **guest active-post cap** surfacing; (3) **harden + test
+sweep** (extend `verify-credits.mjs`, RLS/idempotency/error-UX audit across LF + credits).
+Then §1 host record, §7 admin email-templates.
+
+---
+
+## ⭐ PRIOR ANCHOR (2026-07-15 · SAVE POINT `4bf944b2`)
 
 **▶▶ FOUNDER MANDATE (active):** *"refine this credit and looking-for feature… harden it, enhance it, and test it
 well, so it is 100% MVP ready."* Treat the whole **Looking-For + Wielo Credits** surface as the current task —
