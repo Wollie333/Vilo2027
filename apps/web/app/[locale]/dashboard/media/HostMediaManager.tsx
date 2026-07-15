@@ -318,7 +318,13 @@ function WebsiteMediaDetail({
     });
   }
   function remove() {
-    if (!window.confirm("Delete this image? It's removed wherever it's used."))
+    // Honest warning: deleting the object does NOT update pages/sections that
+    // reference it — those would show a broken image until the host replaces it.
+    if (
+      !window.confirm(
+        "Delete this image? If it's used on a page, that page will show a broken image until you replace it there.",
+      )
+    )
       return;
     start(async () => {
       const res = await deleteWebsiteMediaAction(item.websiteId, item.path);
