@@ -340,24 +340,40 @@ export const createUserAction = withAdminAudit<
     // Stash for the audit target (see getTargetId).
     (args as { userId?: string }).userId = userId;
 
-    // The auth trigger seeds a user_profiles row — set the name here. Role is set
-    // by ensureHostForUser for host/quote_only; a guest keeps the default role.
-    await service
-      .from("user_profiles")
-      .update({ full_name: fullName })
-      .eq("id", userId);
+    // Provision the profile + host substrate atomically: if ANY step fails, roll
+    // back the just-created auth user so we never leave a half-provisioned orphan
+    // that can still sign in (sweep finding #8). The account only "exists" once
+    // its whole substrate is in place. Every write is error-checked (finding #10
+    // — a swallowed account_kind error would leave a "quote_only" account with
+    // full host access).
+    try {
+      // The auth trigger seeds a user_profiles row — set the name here. Role is
+      // set by ensureHostForUser for host/quote_only; a guest keeps its default.
+      const { error: profErr } = await service
+        .from("user_profiles")
+        .update({ full_name: fullName })
+        .eq("id", userId);
+      if (profErr) throw new Error(profErr.message);
 
-    if (d.accountType === "host" || d.accountType === "quote_only") {
-      const hostId = await ensureHostForUser(service, userId);
-      if (d.accountType === "quote_only") {
-        await service
-          .from("hosts")
-          .update({
-            account_kind: "quote_only",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", hostId);
+      if (d.accountType === "host" || d.accountType === "quote_only") {
+        const hostId = await ensureHostForUser(service, userId);
+        if (d.accountType === "quote_only") {
+          const { error: kindErr } = await service
+            .from("hosts")
+            .update({
+              account_kind: "quote_only",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", hostId);
+          if (kindErr) throw new Error(kindErr.message);
+        }
       }
+    } catch (e) {
+      // Roll back the orphaned auth user (best-effort), then surface the failure.
+      await service.auth.admin.deleteUser(userId).catch(() => {});
+      throw e instanceof Error
+        ? e
+        : new Error("Could not finish setting up the user.");
     }
 
     // A shareable magic sign-in link (no password) so the admin can test/hand it
@@ -428,6 +444,14 @@ export const setHostAccessAction = withAdminAudit<
       .select("id, account_kind, quote_access, platform_access")
       .maybeSingle();
     if (error) throw new Error(error.message);
+    // A zero-row update (a plain guest with no host row, or a soft-deleted host)
+    // returns no data — don't report success on a no-op (sweep finding #12). The
+    // caller/admin needs to know the switch didn't take.
+    if (!data) {
+      throw new Error(
+        "This account has no active host profile — the access switch didn't apply. Create the host substrate first.",
+      );
+    }
     revalidatePath(`/admin/users/${d.userId}`);
     revalidatePath("/admin/users");
     return { result: { ok: true }, after: data };
