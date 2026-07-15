@@ -302,6 +302,21 @@ export async function createQuoteAction(
     return { ok: false, error: "Could not assign a quote number." };
   }
 
+  // The upload object key is client-supplied. Reject any attachment_path that
+  // isn't under THIS host's own storage prefix, so a crafted payload can't point
+  // the quote at another host's private file — the token download route signs
+  // whatever path is stored (finding #9).
+  if (
+    parsed.data.quote_type === "upload" &&
+    parsed.data.attachment_path &&
+    !parsed.data.attachment_path.startsWith(`${host.hostId}/`)
+  ) {
+    return {
+      ok: false,
+      error: "That attachment doesn't belong to your account.",
+    };
+  }
+
   const { addonsTotal, discountAmount, total } = totalsFor(parsed.data);
   const { deposit, balance } = depositFor(
     total,
@@ -472,6 +487,19 @@ export async function updateQuoteAction(
   // Custom/upload quotes carry no listing/dates and a NOT-NULL scope keeps its
   // harmless default — mirror createQuoteAction so an edit doesn't null the DB.
   const isAccommodation = parsed.data.quote_type === "accommodation";
+
+  // Reject a client-supplied upload path outside this host's storage prefix
+  // (finding #9) — same guard as createQuoteAction.
+  if (
+    parsed.data.quote_type === "upload" &&
+    parsed.data.attachment_path &&
+    !parsed.data.attachment_path.startsWith(`${own.hostId}/`)
+  ) {
+    return {
+      ok: false,
+      error: "That attachment doesn't belong to your account.",
+    };
+  }
 
   const { error: updErr } = await supabase
     .from("quotes")
@@ -729,6 +757,42 @@ export async function sendQuoteAction(
         ok: false,
         error:
           "Quote sending is disabled on your account. Contact Wielo support.",
+      };
+    }
+  }
+
+  // Server-side visibility guard (finding #4): a host may only quote a Looking-For
+  // post actually addressed to them — active, not expired, and either public or
+  // privately targeted at this host. The browse UI filters this, but a crafted
+  // send with an arbitrary post id would otherwise write a cross-tenant response
+  // and spam the post owner. Enforce it here (before the credit debit) regardless
+  // of the UI.
+  if (current.looking_for_post_id && current.host_id) {
+    const { data: post } = await supabase
+      .from("looking_for_posts")
+      .select("id, status, is_public, expires_at")
+      .eq("id", current.looking_for_post_id)
+      .maybeSingle();
+    const isOpen =
+      !!post &&
+      post.status === "active" &&
+      (!post.expires_at ||
+        new Date(post.expires_at as string).getTime() > Date.now());
+    let allowed = isOpen && post!.is_public === true;
+    if (isOpen && !allowed) {
+      const { data: tgt } = await supabase
+        .from("looking_for_post_targets")
+        .select("post_id")
+        .eq("post_id", current.looking_for_post_id)
+        .eq("host_id", current.host_id)
+        .maybeSingle();
+      allowed = !!tgt;
+    }
+    if (!allowed) {
+      return {
+        ok: false,
+        error:
+          "This request is no longer open to you — it may have closed, expired, or wasn't addressed to you.",
       };
     }
   }

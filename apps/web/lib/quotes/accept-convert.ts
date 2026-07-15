@@ -54,11 +54,20 @@ export async function acceptAndConvertQuote(
   // records the acceptance (no booking, no calendar, no payment schedule) and
   // closes any Looking-For loop; the host arranges next steps off-platform.
   if (quote.quote_type === "custom" || quote.quote_type === "upload") {
-    await admin
+    // Atomically claim the sent→accepted transition so the notifications/messages
+    // fire exactly once (finding #6): only the caller that flips it from 'sent'
+    // wins; a concurrent/repeat accept matches 0 rows and returns without
+    // re-firing. An already-'accepted' quote is a no-op idempotent success.
+    const { data: claimed } = await admin
       .from("quotes")
       .update({ status: "accepted", accepted_at: new Date().toISOString() })
       .eq("id", quoteId)
-      .in("status", ["sent", "accepted"]);
+      .eq("status", "sent")
+      .select("id")
+      .maybeSingle();
+    if (!claimed) {
+      return { ok: true, bookingId: null };
+    }
 
     if (quote.looking_for_post_id) {
       await admin
@@ -193,6 +202,20 @@ export async function acceptAndConvertQuote(
     .select("id, deposit_amount")
     .single();
   if (bookErr || !booking) {
+    // A concurrent accept already created THE booking for this quote — the
+    // uq_bookings_quote_id partial unique index rejected our duplicate insert
+    // (finding #6). Return the winning booking idempotently instead of erroring
+    // or creating a second booking + deposit + calendar hold.
+    if (bookErr?.code === "23505") {
+      const { data: existingBooking } = await admin
+        .from("bookings")
+        .select("id")
+        .eq("quote_id", quote.id)
+        .maybeSingle();
+      if (existingBooking?.id) {
+        return { ok: true, bookingId: existingBooking.id };
+      }
+    }
     return { ok: false, error: "Could not create the booking." };
   }
 
