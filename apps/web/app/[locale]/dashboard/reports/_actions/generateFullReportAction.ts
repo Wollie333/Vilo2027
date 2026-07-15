@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import {
   generatePDF,
@@ -8,6 +9,7 @@ import {
   type PropertyPerformanceRow,
 } from "@/lib/reports/export/pdf";
 import { generateXLSX } from "@/lib/reports/export/xlsx";
+import { loadHostDeepAnalytics } from "@/lib/reports/hostDeepAnalytics";
 
 interface ExportFilters {
   startDate: string;
@@ -184,6 +186,37 @@ export async function generateFullReportAction(
       }
     : undefined;
 
+  // In-depth analytics (booking behaviour, revenue-by-month, guests,
+  // cancellations) so the exported report matches the on-screen depth.
+  const deepRaw = await loadHostDeepAnalytics(
+    createAdminClient(),
+    host.id,
+    filters.startDate,
+    filters.endDate,
+  );
+  const deep: ReportData["deep"] = deepRaw.hasData
+    ? {
+        avgNights: deepRaw.avgNights,
+        medianLeadDays: deepRaw.medianLeadDays,
+        avgPartySize: deepRaw.avgPartySize,
+        lengthOfStay: deepRaw.lengthOfStay,
+        leadTime: deepRaw.leadTime,
+        partySize: deepRaw.partySize,
+        revenueByMonth: deepRaw.revenueByMonth.map((m) => ({
+          month: m.month,
+          revenue: m.revenue,
+          adr: m.adr,
+          bookings: m.bookings,
+        })),
+        guests: deepRaw.guests,
+        cancellations: {
+          total: deepRaw.cancellations.total,
+          rate: deepRaw.cancellations.rate,
+          reasons: deepRaw.cancellations.reasons,
+        },
+      }
+    : undefined;
+
   // A report with no property rows AND no summary has nothing to say.
   if (properties.length === 0 && !summary) {
     return { success: false, error: "No data available to export" };
@@ -198,6 +231,7 @@ export async function generateFullReportAction(
     channels,
     funnel,
     lookingFor,
+    deep,
   };
 
   try {

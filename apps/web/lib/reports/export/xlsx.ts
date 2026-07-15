@@ -103,7 +103,98 @@ export async function generateXLSX(data: ReportData): Promise<Buffer> {
     }
   }
 
-  // ── Sheet 2: Property Performance ─────────────────────────────────────────
+  // ── Sheet: In-depth analytics ─────────────────────────────────────────────
+  if (data.deep) {
+    const d = data.deep;
+    const deep = workbook.addWorksheet("In-depth analytics");
+    deep.getColumn(1).width = 26;
+    deep.getColumn(2).width = 16;
+    deep.getColumn(3).width = 14;
+    deep.getColumn(4).width = 14;
+
+    let r = 1;
+    const heading = (label: string) => {
+      const c = deep.getCell(`A${r}`);
+      c.value = label;
+      c.font = { bold: true, color: { argb: "FF064E3B" }, size: 11 };
+      r += 1;
+    };
+    const kv = (label: string, value: string | number, fmt?: string) => {
+      deep.getCell(`A${r}`).value = label;
+      const vc = deep.getCell(`B${r}`);
+      vc.value = value;
+      if (fmt && typeof value === "number") vc.numFmt = fmt;
+      r += 1;
+    };
+
+    heading("Booking behaviour");
+    kv("Avg length of stay (nights)", d.avgNights);
+    kv("Median lead time (days)", d.medianLeadDays);
+    kv("Avg party size", d.avgPartySize);
+    kv("Repeat guest rate %", d.guests.repeatRate / 100, "0.0%");
+    r += 1;
+
+    heading("Length of stay (bookings)");
+    for (const b of d.lengthOfStay) kv(`${b.label} nights`, b.count);
+    r += 1;
+
+    heading("Booking lead time (bookings)");
+    for (const b of d.leadTime) kv(b.label, b.count);
+    r += 1;
+
+    heading("Party size (bookings)");
+    for (const b of d.partySize) kv(`${b.label} guests`, b.count);
+    r += 1;
+
+    if (d.revenueByMonth.length > 0) {
+      heading("Revenue & ADR by month");
+      deep.getCell(`A${r}`).value = "Month";
+      deep.getCell(`B${r}`).value = "Bookings";
+      deep.getCell(`C${r}`).value = "Revenue";
+      deep.getCell(`D${r}`).value = "ADR";
+      deep.getRow(r).font = { bold: true };
+      r += 1;
+      for (const m of d.revenueByMonth) {
+        deep.getCell(`A${r}`).value = m.month;
+        deep.getCell(`B${r}`).value = m.bookings;
+        const rev = deep.getCell(`C${r}`);
+        rev.value = m.revenue;
+        rev.numFmt = "R #,##0";
+        const adr = deep.getCell(`D${r}`);
+        adr.value = m.adr;
+        adr.numFmt = "R #,##0";
+        r += 1;
+      }
+      r += 1;
+    }
+
+    if (d.guests.top.length > 0) {
+      heading(
+        `Top guests (${d.guests.returning} returning of ${d.guests.total})`,
+      );
+      deep.getCell(`A${r}`).value = "Guest";
+      deep.getCell(`B${r}`).value = "Stays";
+      deep.getCell(`C${r}`).value = "Revenue";
+      deep.getRow(r).font = { bold: true };
+      r += 1;
+      for (const g of d.guests.top) {
+        deep.getCell(`A${r}`).value = g.name;
+        deep.getCell(`B${r}`).value = g.bookings;
+        const rev = deep.getCell(`C${r}`);
+        rev.value = g.revenue;
+        rev.numFmt = "R #,##0";
+        r += 1;
+      }
+      r += 1;
+    }
+
+    heading(
+      `Cancellations — ${d.cancellations.total} (${d.cancellations.rate}%)`,
+    );
+    for (const c of d.cancellations.reasons) kv(c.label, c.count);
+  }
+
+  // ── Sheet: Property Performance ───────────────────────────────────────────
   const sheet = workbook.addWorksheet("Property Performance");
 
   sheet.mergeCells("A1:K1");
