@@ -204,6 +204,7 @@ export function QuoteForm({
   variant = "embedded",
   userId,
   serverDraft = null,
+  quotesOnly = false,
 }: {
   listings: QuoteFormListing[];
   initial?: QuoteFormInitial;
@@ -217,6 +218,9 @@ export function QuoteForm({
   // Present only in "page" contexts — enables auto-save drafts.
   userId?: string;
   serverDraft?: LoadedDraft | null;
+  // A quotes-only account has no listings, so accommodation quotes are impossible
+  // — the form defaults to (and is locked to) a custom/upload quote.
+  quotesOnly?: boolean;
 }) {
   const isPage = variant === "page";
   const router = useRouter();
@@ -245,7 +249,9 @@ export function QuoteForm({
       ? "custom"
       : initial?.quoteType === "upload"
         ? "upload"
-        : "accommodation",
+        : quotesOnly
+          ? "custom"
+          : "accommodation",
   );
   const isCustomQuote = quoteType === "custom" || quoteType === "upload";
   const isUploadQuote = quoteType === "upload";
@@ -1279,8 +1285,10 @@ export function QuoteForm({
             />
 
             {/* Quote type — accommodation (listing + calendar) vs custom (line
-                items, no calendar). Only choosable on a new quote. */}
-            {!initial?.id && (
+                items, no calendar). Only choosable on a new quote, and only when
+                the account can make accommodation quotes (a quotes-only account
+                has no listings, so it's custom/upload only — hide the picker). */}
+            {!initial?.id && !quotesOnly && (
               <div className="mt-5">
                 <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
                   Quote type

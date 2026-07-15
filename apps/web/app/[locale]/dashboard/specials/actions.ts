@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireHost as getHost } from "@/lib/host/current";
+import { assertFullHost as getHost } from "@/lib/host/current";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireHost as getHost } from "@/lib/host/current";
+import { assertFullHost as getHost } from "@/lib/host/current";
 import { resolveListingHostContext } from "@/lib/host/adminListingHost";
 import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";

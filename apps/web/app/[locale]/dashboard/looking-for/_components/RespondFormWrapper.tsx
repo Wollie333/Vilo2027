@@ -16,6 +16,8 @@ interface RespondFormWrapperProps {
   initial: QuoteFormInitial;
   templates: MessageTemplate[];
   guestName: string;
+  /** Quotes-only account → custom/upload quote only (no listings to pick). */
+  quotesOnly?: boolean;
 }
 
 export function RespondFormWrapper({
@@ -23,6 +25,7 @@ export function RespondFormWrapper({
   initial,
   templates,
   guestName,
+  quotesOnly = false,
 }: RespondFormWrapperProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>();
   const [notes, setNotes] = useState(initial.notes ?? "");
@@ -68,6 +71,7 @@ export function RespondFormWrapper({
       {/* Quote form with updated notes */}
       <QuoteForm
         listings={listings}
+        quotesOnly={quotesOnly}
         initial={{
           ...initial,
           notes,

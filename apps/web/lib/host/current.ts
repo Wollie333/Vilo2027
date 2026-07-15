@@ -48,16 +48,35 @@ export async function getMyHostId(
  * currentHost / getMyHostId). Most files import it aliased to their old local
  * name so call sites are unchanged.
  */
-export async function requireHost(opts?: {
-  /**
-   * Allow a quotes-only / platform-blocked account through. Pass `true` ONLY in
-   * the quote surfaces a scoped account is entitled to (Looking-For, Quotes,
-   * Credits, Inbox, Guests, Settings + shared profile/notifications). Every
-   * other host-only mutation leaves it false so a scoped account is rejected
-   * server-side — the real access boundary (the sidebar lock is only UX).
-   */
-  allowQuotesOnly?: boolean;
-}): Promise<
+export async function requireHost(): Promise<
+  { ok: true; hostId: string; userId: string } | { ok: false; error: string }
+> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+  const { data } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!data) return { ok: false, error: "No host profile." };
+  return { ok: true, hostId: data.id, userId: user.id };
+}
+
+/**
+ * Assert the signed-in user is a FULL host — NOT a quotes-only account and NOT an
+ * account an admin blocked (platform_access=false) — and return their host id.
+ * This is the SERVER-SIDE access boundary for host-only Server Actions (listings,
+ * bookings, calendar, website, …); the sidebar lock + route gate are only UX, so
+ * a scoped/blocked account that scripts one of these actions is rejected here.
+ * Quote surfaces (Looking-For / Quotes / Credits / Inbox / Guests / Settings)
+ * keep calling the permissive requireHost() so a scoped account can use them.
+ * Callers do `const h = await assertFullHost(); if (!h.ok) return h;`.
+ */
+export async function assertFullHost(): Promise<
   { ok: true; hostId: string; userId: string } | { ok: false; error: string }
 > {
   const supabase = createServerClient();
@@ -72,22 +91,8 @@ export async function requireHost(opts?: {
     .is("deleted_at", null)
     .maybeSingle();
   if (!data) return { ok: false, error: "No host profile." };
-  if (!opts?.allowQuotesOnly && resolveAccountScope(data).quotesOnly) {
+  if (resolveAccountScope(data).quotesOnly) {
     return { ok: false, error: FULL_HOST_ONLY_ERROR };
   }
   return { ok: true, hostId: data.id, userId: user.id };
-}
-
-/**
- * Assert the signed-in user is a FULL host (not a quotes-only / platform-blocked
- * account) and return their host id. The server-side access boundary for host-
- * only Server Actions that resolve the host by themselves (not via requireHost)
- * — e.g. createListingAction, createManualBookingAction, addIcalFeedAction.
- * Returns a discriminated result so callers do
- * `const h = await assertFullHost(); if (!h.ok) return h;`.
- */
-export async function assertFullHost(): Promise<
-  { ok: true; hostId: string; userId: string } | { ok: false; error: string }
-> {
-  return requireHost();
 }

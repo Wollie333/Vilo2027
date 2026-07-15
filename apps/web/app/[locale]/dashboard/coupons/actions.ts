@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireHost as getHost } from "@/lib/host/current";
+import { assertFullHost as getHost } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { couponInputSchema, type CouponInput } from "./schemas";

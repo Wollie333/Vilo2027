@@ -3,6 +3,7 @@ import { ArrowLeft, Search } from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
 import { hostHasFeature } from "@/lib/products/featureGate";
+import { resolveAccountScope } from "@/lib/host/accountScope";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { stripHtml } from "@/lib/sanitiseHtml";
@@ -35,10 +36,14 @@ export default async function RespondToPostPage({ params }: Props) {
 
   const { data: host } = await supabase
     .from("hosts")
-    .select("id")
+    .select("id, account_kind, quote_access, platform_access")
     .eq("user_id", user.id)
     .is("deleted_at", null)
     .maybeSingle();
+
+  // A quotes-only account has no listings, so it responds with a custom/upload
+  // quote — never the accommodation path.
+  const quotesOnly = resolveAccountScope(host).quotesOnly;
 
   // Signed in but not yet a host (e.g. a guest who clicked "Send a quote"):
   // send them through host signup, carrying the quote intent forward so they
@@ -148,12 +153,13 @@ export default async function RespondToPostPage({ params }: Props) {
   // host — even one with a live listing — saw the "profile isn't live" state.
   const listings = await loadQuoteFormListings(supabase, host.id);
 
-  // First-time host whose profile isn't live yet: they have a host row but no
-  // active (published) listing, so there's nothing to quote from. Guide them to
-  // finish their listing rather than dropping them into an empty quote form.
+  // First-time FULL host whose profile isn't live yet: they have a host row but
+  // no active (published) listing, so there's nothing to quote from. Guide them
+  // to finish their listing rather than dropping them into an empty quote form.
   // The quote intent is preserved — once a listing is live, this same request
-  // link takes them straight to the form.
-  if (!listings || listings.length === 0) {
+  // link takes them straight to the form. A quotes-only account is EXEMPT: it has
+  // no listings by design and responds with a custom quote (below).
+  if (!quotesOnly && (!listings || listings.length === 0)) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -248,6 +254,7 @@ export default async function RespondToPostPage({ params }: Props) {
       {/* Quote form with pre-filled data and template support */}
       <RespondFormWrapper
         listings={listings}
+        quotesOnly={quotesOnly}
         initial={{
           guestName: guest?.full_name ?? "",
           guestEmail: guest?.email ?? "",

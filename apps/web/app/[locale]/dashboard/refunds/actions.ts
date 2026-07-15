@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { logFinanceEvent } from "@/lib/finance/audit";
 import { assertPeriodOpen } from "@/lib/finance/periods";
-import { requireHost as getMyHostId } from "@/lib/host/current";
+import { assertFullHost as getMyHostId } from "@/lib/host/current";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
