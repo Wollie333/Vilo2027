@@ -70,6 +70,7 @@ export default async function RespondToPostPage({ params }: Props) {
       category,
       check_in_date,
       check_out_date,
+      date_flexibility_days,
       adults,
       children,
       infants,
@@ -225,6 +226,18 @@ export default async function RespondToPostPage({ params }: Props) {
                     day: "numeric",
                     month: "short",
                   })}
+                </span>
+              )}
+              {post.check_in_date && (post.date_flexibility_days ?? 0) > 0 && (
+                <span className="text-brand-primary">
+                  {" "}
+                  ·{" "}
+                  {post.date_flexibility_days === 7
+                    ? "± 1 week"
+                    : post.date_flexibility_days === 14
+                      ? "± 2 weeks"
+                      : `± ${post.date_flexibility_days}d`}{" "}
+                  flexible
                 </span>
               )}
               {post.adults && (

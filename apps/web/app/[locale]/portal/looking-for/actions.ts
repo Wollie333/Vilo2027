@@ -17,6 +17,7 @@ type CreateRequestInput = {
   category: string;
   check_in_date?: string;
   check_out_date?: string;
+  date_flexibility_days?: number;
   adults: number;
   children: number;
   infants: number;
@@ -142,6 +143,7 @@ export async function createRequestAction(input: CreateRequestInput) {
       category: input.category,
       check_in_date: input.check_in_date || null,
       check_out_date: input.check_out_date || null,
+      date_flexibility_days: input.date_flexibility_days ?? 0,
       adults: input.adults,
       children: input.children,
       infants: input.infants,
@@ -232,6 +234,7 @@ export async function updateRequestAction(
       category: input.category,
       check_in_date: input.check_in_date || null,
       check_out_date: input.check_out_date || null,
+      date_flexibility_days: input.date_flexibility_days ?? 0,
       adults: input.adults,
       children: input.children,
       infants: input.infants,

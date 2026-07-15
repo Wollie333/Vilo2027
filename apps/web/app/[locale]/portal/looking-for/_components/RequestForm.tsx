@@ -53,6 +53,7 @@ export type RequestEditValues = {
   category: "accommodation" | "experience" | "venue" | "event" | "other";
   checkIn: string;
   checkOut: string;
+  dateFlexibilityDays: string; // "0" = exact dates
   adults: string;
   children: string;
   infants: string;
@@ -74,6 +75,7 @@ export const BLANK_REQUEST: RequestEditValues = {
   category: "accommodation",
   checkIn: "",
   checkOut: "",
+  dateFlexibilityDays: "0",
   adults: "2",
   children: "0",
   infants: "0",
@@ -162,6 +164,9 @@ export function RequestForm({
   const [category, setCategory] = useState(initial.category);
   const [checkIn, setCheckIn] = useState(initial.checkIn);
   const [checkOut, setCheckOut] = useState(initial.checkOut);
+  const [dateFlexibilityDays, setDateFlexibilityDays] = useState(
+    initial.dateFlexibilityDays,
+  );
   const [adults, setAdults] = useState(initial.adults);
   const [children, setChildren] = useState(initial.children);
   const [infants, setInfants] = useState(initial.infants);
@@ -189,6 +194,7 @@ export function RequestForm({
       category,
       checkIn,
       checkOut,
+      dateFlexibilityDays,
       adults,
       children,
       infants,
@@ -209,6 +215,7 @@ export function RequestForm({
       category,
       checkIn,
       checkOut,
+      dateFlexibilityDays,
       adults,
       children,
       infants,
@@ -231,6 +238,7 @@ export function RequestForm({
     setCategory(p.category);
     setCheckIn(p.checkIn);
     setCheckOut(p.checkOut);
+    setDateFlexibilityDays(p.dateFlexibilityDays);
     setAdults(p.adults);
     setChildren(p.children);
     setInfants(p.infants);
@@ -274,11 +282,13 @@ export function RequestForm({
   const displayTitle = trimmedTitle || "New request";
   const guestCount =
     (Number(adults) || 0) + (Number(children) || 0) + (Number(infants) || 0);
+  const flexDays = Number(dateFlexibilityDays) || 0;
+  const flexSuffix = checkIn && flexDays > 0 ? ` · ${flexLabel(flexDays)}` : "";
   const datesLabel =
     checkIn && checkOut
-      ? `${fmtShort(checkIn)} → ${fmtShort(checkOut)}`
+      ? `${fmtShort(checkIn)} → ${fmtShort(checkOut)}${flexSuffix}`
       : checkIn
-        ? `From ${fmtShort(checkIn)}`
+        ? `From ${fmtShort(checkIn)}${flexSuffix}`
         : "Flexible dates";
   const whereLabel = locationText || region || "Anywhere";
   const budgetLabel =
@@ -395,6 +405,7 @@ export function RequestForm({
       category,
       check_in_date: checkIn || undefined,
       check_out_date: checkOut || undefined,
+      date_flexibility_days: checkIn ? flexDays : 0,
       adults: Number(adults) || 1,
       children: Number(children) || 0,
       infants: Number(infants) || 0,
@@ -425,6 +436,13 @@ export function RequestForm({
     if (checkIn && checkOut && checkOut < checkIn) {
       toast.error("Check-out can't be before check-in.");
       setSection("dates");
+      return;
+    }
+    if (checkIn && quoteDeadline && quoteDeadline > checkIn) {
+      toast.error(
+        "The quote deadline must be on or before your check-in date.",
+      );
+      setSection("photo");
       return;
     }
     startSave(async () => {
@@ -711,6 +729,34 @@ export function RequestForm({
                   />
                 </div>
               </div>
+              {checkIn ? (
+                <div className="space-y-2 sm:max-w-xs">
+                  <Label>How flexible are your dates?</Label>
+                  <Select
+                    value={dateFlexibilityDays}
+                    onValueChange={(v) => {
+                      setDateFlexibilityDays(v);
+                      touch();
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Exact dates</SelectItem>
+                      <SelectItem value="1">± 1 day</SelectItem>
+                      <SelectItem value="2">± 2 days</SelectItem>
+                      <SelectItem value="3">± 3 days</SelectItem>
+                      <SelectItem value="7">± 1 week</SelectItem>
+                      <SelectItem value="14">± 2 weeks</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-brand-mute">
+                    Let hosts know if your trip can shift a little — more
+                    flexibility means more quotes.
+                  </p>
+                </div>
+              ) : null}
               <div className="grid grid-cols-3 gap-4">
                 <NumberField
                   id="adults"
@@ -929,6 +975,7 @@ export function RequestForm({
                     <DatePicker
                       id="quote_deadline"
                       value={quoteDeadline}
+                      max={checkIn || undefined}
                       onChange={(iso) => {
                         setQuoteDeadline(iso);
                         touch();
@@ -936,7 +983,9 @@ export function RequestForm({
                       clearable
                     />
                     <p className="text-xs text-brand-mute">
-                      Stop accepting quotes after this date
+                      {checkIn
+                        ? `Stop accepting quotes after this date (on or before your check-in, ${fmtShort(checkIn)}).`
+                        : "Stop accepting quotes after this date."}
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -1130,6 +1179,13 @@ function fmtShort(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
+}
+
+function flexLabel(days: number): string {
+  if (days <= 0) return "Exact dates";
+  if (days === 7) return "± 1 week";
+  if (days === 14) return "± 2 weeks";
+  return `± ${days} day${days === 1 ? "" : "s"}`;
 }
 
 function NumberField({

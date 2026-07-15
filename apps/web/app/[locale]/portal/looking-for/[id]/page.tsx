@@ -59,6 +59,7 @@ export default async function PostDetailPage({ params }: Props) {
       category,
       check_in_date,
       check_out_date,
+      date_flexibility_days,
       adults,
       children,
       infants,
@@ -212,6 +213,15 @@ export default async function PostDetailPage({ params }: Props) {
                   ? `From ${new Date(post.check_in_date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}`
                   : "Flexible"}
             </p>
+            {post.check_in_date && (post.date_flexibility_days ?? 0) > 0 && (
+              <p className="text-xs text-brand-mute">
+                {post.date_flexibility_days === 7
+                  ? "± 1 week flexible"
+                  : post.date_flexibility_days === 14
+                    ? "± 2 weeks flexible"
+                    : `± ${post.date_flexibility_days} day${post.date_flexibility_days === 1 ? "" : "s"} flexible`}
+              </p>
+            )}
           </div>
 
           {/* Guests */}
