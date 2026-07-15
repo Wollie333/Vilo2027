@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-07-16 — In-depth reporting for every user with reporting access.
+
+Founder: "every user with reporting access gets their full, in-depth report." Built in four verified phases, each
+committed + pushed:
+
+- **In-depth host analytics** (`b21e0fcb`): new "In-depth analytics" section on `dashboard/reports` from one all-time
+  bookings query (`lib/reports/hostDeepAnalytics.ts`, no new RPC) — booking behaviour (avg length-of-stay, median lead
+  time, avg party size) with distribution charts, revenue & ADR by month (composed), booking pace, guest new/returning/
+  repeat + top guests, and cancellations with reasons.
+- **Quote-only accounts get a scoped report** (`53da561e`): `/dashboard/reports` is now in the quotes-only allow-list;
+  quote_only (or platform-blocked) accounts get a "Quotes & Reports" view (quotes sent/accepted/acceptance/value,
+  Wielo Credits, Looking-For performance) instead of the upgrade lock screen.
+- **Full report delivery** (`fb72400d`): the PDF/XLSX exports gained an "In-depth analytics" page/sheet so the download
+  matches the on-screen depth.
+- **Admin retention & lifetime value** (`9ad4e0da`): admin/reporting gained lifetime rev/host, ARR/account, estimated
+  LTV, avg lifespan, monthly churn, and a new-vs-churned subscriber-movement chart (from subscriptions created_at/
+  cancelled_at); also in the admin PDF. LTV/lifespan honestly show "—" when there's no recent churn.
+
+All verified live on the relevant surfaces/accounts.
+
+---
+
 ## 2026-07-15 — Website traffic stats added to host reporting.
 
 Founder asked for the website stats in the reporting. Added a "Website traffic" section to `dashboard/reports` that

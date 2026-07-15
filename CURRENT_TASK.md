@@ -37,10 +37,18 @@ Two clean commits: host `6b4fcb94`, admin `a143bde3` (pushed to main).
   (Caught + fixed a real bug live: bookings check-in column is `check_in`, not `start_date`.)
 - **Admin**: GMV-by-month trend area chart + booking-status distribution (added to the page AND the PDF).
 
-**⏳ STILL DEFERRED (genuinely bigger, surfaced not dropped):** admin **cohort retention / LTV / NRR** (needs real
-cohort infrastructure — a naive LTV would mislead, so intentionally not shipped); the **Region filter** on the host
-reports would need a `p_region` param added to the 12 analytics RPCs (larger DB change). See memory
-`project-reporting-enhancement`.
+**✅ IN-DEPTH REPORTING FOR EVERY USER (2026-07-16) — 4 phases SHIPPED + verified live:**
+- **Host deep analytics** (`b21e0fcb`): new "In-depth analytics" section — length-of-stay, booking lead time, party
+  size, revenue+ADR by month, booking pace, guest new/returning/repeat + top guests, cancellations (one all-time
+  bookings query, no new RPC).
+- **Quote-only scoped report** (`53da561e`): quote_only/blocked accounts now reach `/dashboard/reports` and get a
+  "Quotes & Reports" view (quotes/acceptance/value/credits/Looking-For) instead of the upgrade lock screen.
+- **Wider exports** (`fb72400d`): PDF/XLSX gained an in-depth analytics page/sheet.
+- **Admin retention/LTV** (`9ad4e0da`): lifetime rev/host, ARR/account, est. LTV, avg lifespan, monthly churn +
+  subscriber-movement chart (also in admin PDF); LTV honestly "—" when no recent churn.
+
+**⏳ STILL DEFERRED:** NRR / true cohort-retention curves (need per-cohort MRR over time); the **Region filter**
+needs a `p_region` param on the 12 analytics RPCs (larger DB change). See memory `project-reporting-enhancement`.
 
 ---
 
