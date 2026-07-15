@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { guestCan } from "@/lib/guests/permissions";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { notifyMatchingAlerts } from "@/lib/looking-for/matchAlerts";
 import { revalidatePath } from "next/cache";
 
 const REQUEST_IMAGE_BUCKET = "looking-for-images";
@@ -171,6 +172,22 @@ export async function createRequestAction(input: CreateRequestInput) {
     user_id: user.id,
     action: "guest_post",
     post_id: post.id,
+  });
+
+  // Real-time: notify hosts whose active saved-search alert matches this request.
+  await notifyMatchingAlerts({
+    id: post.id,
+    title: input.title,
+    category: input.category,
+    location_region: input.location_region ?? null,
+    location_text: input.location_text ?? null,
+    adults: input.adults,
+    children: input.children,
+    infants: input.infants,
+    budget_min: input.budget_min ?? null,
+    budget_max: input.budget_max ?? null,
+    check_in_date: input.check_in_date ?? null,
+    is_public: input.is_public,
   });
 
   revalidatePath("/portal/looking-for");
