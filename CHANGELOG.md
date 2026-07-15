@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-15 — Dual-quote-system (Phase 1 cont.): guest-facing custom quotes + edit.
+
+- **Guest-facing custom quotes** (`0b70eb91`): the guest portal quote view, public token quote page, both PDF routes,
+  and the QuoteSentGuest email all render a custom/upload quote by its TITLE with no listing/dates; PDF routes fall
+  back to the host's default business when there's no listing. **Accepting a custom quote records the acceptance but
+  creates no booking** (acceptAndConvertQuote returns bookingId null; accept callers + UIs no-op the pay hand-off; the
+  portal shows "you accepted — the host will be in touch"). Verified live: a guest viewed a custom quote, downloaded a
+  valid PDF, and accepted it (status accepted, no booking row).
+- **Edit a custom quote** (`bb5868d3`): updateQuoteAction branches on quote_type (null listing/dates, scope keeps its
+  NOT-NULL default, persists the title); the edit page loads quote_type + title so a custom quote reopens in custom
+  mode. This is the concern-2 negotiation loop — revise the same quote instead of spawning new ones. Verified live.
+- Founder clarified the model: "Custom" = the Wielo quote builder **detached** from accommodation (the default manual
+  quote); "Upload" = an optional PDF from a 3rd-party tool, not a replacement for building.
+
 ## 2026-07-15 — Dual-quote-system (Phase 1): soft validation + Custom quote type.
 
 Started building the Looking-For quote-types redesign (plan:

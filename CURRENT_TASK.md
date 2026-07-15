@@ -2,7 +2,36 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM build — SAVE POINT `c09f7b70`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM build — SAVE POINT `bb5868d3`) — START HERE
+
+**▶▶ BUILDING the dual-quote-system** (founder: "ship the whole working 100% MVP-ready feature"). Plan:
+`docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md`; memory `project-dual-quote-system`.
+Decisions locked: full-system-in-one-release · soft-validation LF-only · quote-only = flag on `hosts`
+(`account_kind`) · picker in the same form · name deferred. Founder clarified: **"Custom" = the Wielo quote builder
+DETACHED from accommodation (the DEFAULT manual quote); "Upload" = optional PDF from a 3rd party.**
+
+**✅ DONE + VERIFIED LIVE:**
+- **Concern 1 — soft validation** (`71b2486b`): over-capacity on an LF response = warning in preview, not a block.
+- **Concern 3a — Custom quote type** (`c09f7b70` host + `0b70eb91` guest): `quotes.quote_type`
+  (accommodation|custom|upload) + `title`, listing/dates nullable (migration `20260715170000`). Step-1 picker;
+  Custom mode = no listing/rooms/dates, title field, single-total price. HOST: build + SEND verified. GUEST: portal
+  view + public token page + BOTH pdf routes + `QuoteSentGuest` email all type-aware (title, no dates; PDF falls back
+  to host default business). **Custom ACCEPT = records accepted, NO booking** (`acceptAndConvertQuote` bookingId=null;
+  callers/UIs no-op the pay hand-off; portal "you accepted — host will be in touch"). Verified: guest viewed +
+  downloaded valid PDF + accepted (status accepted, no booking row).
+- **Concern 2 — edit a custom quote** (`bb5868d3`): `updateQuoteAction` branches on type (null listing/dates, scope
+  default, persists title); edit page loads quote_type+title → reopens in custom mode. Verified: edit page loads custom.
+
+**⏳ NEXT (to finish the feature):** (1) **Concern 3b — UPLOAD quote type** (file attach to a private bucket + guest
+view/download; inside the Custom flow as "have a PDF? upload it instead"); (2) **Concern 4 — quote-only accounts**
+(`hosts.account_kind='quote_only'`, scoped dashboard shell, gated off accommodation/booking/website) + **Wielo Quotes
+subscription tier** + **admin block** (quote_access / platform_access, audited). GOTCHA: `scope`/`headcount` still
+NOT NULL in DB (custom inserts defaults); TWO "Review & send" footers (click visible one); the page-variant "Continue"
+sometimes won't advance — jump via rail or it's already valid.
+
+---
+
+## ⭐ PRIOR ANCHOR (2026-07-15 · DUAL-QUOTE build — SAVE POINT `c09f7b70`)
 
 **▶▶ NOW BUILDING the dual-quote-system redesign** (founder: "do the less risky option… follow the flow, test,
 refine"). Plan: `docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md`; memory
