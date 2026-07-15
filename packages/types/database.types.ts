@@ -8206,6 +8206,8 @@ export type Database = {
           converted_booking_id: string | null
           created_at: string
           currency: string
+          decline_note: string | null
+          decline_reason: string | null
           declined_at: string | null
           deleted_at: string | null
           deposit_amount: number
@@ -8253,6 +8255,8 @@ export type Database = {
           converted_booking_id?: string | null
           created_at?: string
           currency?: string
+          decline_note?: string | null
+          decline_reason?: string | null
           declined_at?: string | null
           deleted_at?: string | null
           deposit_amount?: number
@@ -8300,6 +8304,8 @@ export type Database = {
           converted_booking_id?: string | null
           created_at?: string
           currency?: string
+          decline_note?: string | null
+          decline_reason?: string | null
           declined_at?: string | null
           deleted_at?: string | null
           deposit_amount?: number

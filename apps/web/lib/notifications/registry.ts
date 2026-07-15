@@ -183,6 +183,9 @@ export type LookingForRefs = {
   quoteCount?: number;
   postId?: string;
   quoteId?: string;
+  // Why the guest declined (host-facing) — label + optional free-text note.
+  declineReason?: string;
+  declineNote?: string;
 };
 
 export type AffiliateRefs = {

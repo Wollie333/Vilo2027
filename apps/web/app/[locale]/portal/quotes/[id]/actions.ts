@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { dispatchEvent } from "@/lib/notifications/dispatch";
+import {
+  DECLINE_REASONS,
+  declineReasonLabel,
+} from "@/lib/quotes/decline-reasons";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { acceptAndConvertQuote } from "@/lib/quotes/accept-convert";
@@ -93,14 +97,29 @@ export async function acceptMyQuoteAction(
 
 export async function declineMyQuoteAction(
   quoteId: string,
+  input?: { reason?: string; note?: string },
 ): Promise<ActionResult> {
   const gate = await gateByOwner(quoteId);
   if (!gate.ok) return gate;
 
+  // Validate the structured reason against the shared list; keep an optional
+  // free-text note (trimmed, capped) so the host learns why.
+  const reason =
+    input?.reason && DECLINE_REASONS.some((r) => r.value === input.reason)
+      ? input.reason
+      : null;
+  const note = input?.note?.trim().slice(0, 1000) || null;
+  const reasonLabel = reason ? declineReasonLabel(reason) : null;
+
   const admin = createAdminClient();
   const { data: q } = await admin
     .from("quotes")
-    .update({ status: "declined", declined_at: new Date().toISOString() })
+    .update({
+      status: "declined",
+      declined_at: new Date().toISOString(),
+      decline_reason: reason,
+      decline_note: note,
+    })
     .eq("id", quoteId)
     .select(
       "conversation_id, host_id, looking_for_post_id, guest_name, quote_number, property_id",
@@ -114,14 +133,20 @@ export async function declineMyQuoteAction(
       .update({ pipeline_stage: "declined" })
       .eq("id", q.conversation_id);
     // Post a "declined" card into the thread — left unread for the host (a
-    // guest-initiated event) so it surfaces in their inbox badge.
+    // guest-initiated event) so it surfaces in their inbox badge. Include the
+    // reason + note so the host sees why without leaving the thread.
+    const cardBody = reasonLabel
+      ? note
+        ? `Quote declined — ${reasonLabel}. “${note}”`
+        : `Quote declined — ${reasonLabel}.`
+      : "Quote declined.";
     await admin.from("messages").insert({
       conversation_id: q.conversation_id,
       sender_id: null,
       is_system_message: true,
       system_event: "quote_declined",
       quote_id: quoteId,
-      body: "Quote declined.",
+      body: cardBody,
       read_by_host: false,
       read_by_guest: true,
     });
@@ -167,6 +192,8 @@ export async function declineMyQuoteAction(
             postTitle: postRow?.title ?? undefined,
             listingName: propRow?.name ?? postRow?.title ?? undefined,
             quoteNumber: q.quote_number ?? undefined,
+            declineReason: reasonLabel ?? undefined,
+            declineNote: note ?? undefined,
           },
         });
       }

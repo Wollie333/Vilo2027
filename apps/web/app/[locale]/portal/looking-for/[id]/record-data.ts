@@ -12,6 +12,7 @@ import {
   mapQuoteRow,
 } from "@/components/inbox/quote-thread";
 import { formatMoney } from "@/lib/format";
+import { declineReasonLabel } from "@/lib/quotes/decline-reasons";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -72,6 +73,8 @@ export type RecordQuote = {
   convertedBookingId: string | null;
   acceptedAt: string | null;
   declinedAt: string | null;
+  declineReason: string | null;
+  declineNote: string | null;
 };
 
 export type RecordThread = {
@@ -211,13 +214,15 @@ export async function loadRequestRecord(
       converted_booking_id: string | null;
       accepted_at: string | null;
       declined_at: string | null;
+      decline_reason: string | null;
+      decline_note: string | null;
     }
   >();
   if (quoteIds.length > 0) {
     const { data: qRows } = await admin
       .from("quotes")
       .select(
-        "id, quote_number, total_amount, currency, status, check_in, check_out, headcount, deposit_amount, valid_until, notes, accept_token, converted_booking_id, accepted_at, declined_at, looking_for_post_id",
+        "id, quote_number, total_amount, currency, status, check_in, check_out, headcount, deposit_amount, valid_until, notes, accept_token, converted_booking_id, accepted_at, declined_at, decline_reason, decline_note, looking_for_post_id",
       )
       .eq("looking_for_post_id", postId)
       .in("id", quoteIds);
@@ -377,6 +382,8 @@ export async function loadRequestRecord(
           convertedBookingId: qRow.converted_booking_id,
           acceptedAt: qRow.accepted_at,
           declinedAt: qRow.declined_at,
+          declineReason: qRow.decline_reason,
+          declineNote: qRow.decline_note,
         }
       : null;
     return {
@@ -434,11 +441,18 @@ export async function loadRequestRecord(
       });
     }
     if (r.quote?.declinedAt) {
+      const rsn = r.quote.declineReason
+        ? declineReasonLabel(r.quote.declineReason)
+        : null;
       timeline.push({
         at: r.quote.declinedAt,
         kind: "quote_declined",
         label: `${r.host.name}'s quote was declined`,
-        detail: null,
+        detail: rsn
+          ? r.quote.declineNote
+            ? `${rsn} — “${r.quote.declineNote}”`
+            : rsn
+          : null,
       });
     }
   }

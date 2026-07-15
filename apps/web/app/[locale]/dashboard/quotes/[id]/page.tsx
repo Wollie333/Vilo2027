@@ -31,6 +31,7 @@ import {
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { getMyHostId } from "@/lib/host/current";
+import { declineReasonLabel } from "@/lib/quotes/decline-reasons";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteActions } from "./QuoteActions";
@@ -129,7 +130,8 @@ export default async function QuoteDetailPage({
       discount_type, discount_value, discount_amount, discount_reason,
       deposit_amount,
       notes, accept_token, valid_until,
-      sent_at, accepted_at, declined_at, converted_at, converted_booking_id,
+      sent_at, accepted_at, declined_at, decline_reason, decline_note,
+      converted_at, converted_booking_id,
       created_at,
       listing:properties ( id, name, slug, city, province, property_photos ( url, sort_order ) )
     `,
@@ -332,6 +334,11 @@ export default async function QuoteDetailPage({
       title: "Quote declined",
       kind: "Quote",
       tone: "red",
+      meta: quote.decline_reason
+        ? quote.decline_note
+          ? `${declineReasonLabel(quote.decline_reason)} — “${quote.decline_note}”`
+          : declineReasonLabel(quote.decline_reason)
+        : undefined,
     });
   if (quote.converted_at)
     activity.push({

@@ -164,6 +164,9 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     postTitle: "Wedding venue near Prince Albert",
     listingName: "Karoo Sky Guesthouse",
     quoteNumber: "Q-0011",
+    declineReason: "Price too high",
+    declineNote:
+      "Loved the venue but it was a bit over our budget — thank you!",
   },
 
   looking_for_new_post_region: {

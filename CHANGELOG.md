@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-15 — Decline-reason capture: guests tell the host WHY a quote was declined.
+
+- **Decline modal** (portal + public-token paths) — a reason **dropdown** (shared `DECLINE_REASONS`) + an optional
+  **message to the host** textarea, replacing the bare confirm. Migration `20260715150003` adds
+  `quotes.decline_reason` + `decline_note`.
+- **Surfaced to the quote sender (host)** everywhere: the `LookingForQuoteDeclinedHost` **email** (Reason row +
+  message block), the inbox **thread "declined" card** ("Quote declined — Price too high. '…'"), the
+  `looking_for_quote_declined` **in-app/push** refs, the **host quote detail** activity ("Quote declined" + reason
+  meta), and the guest **record Timeline** event detail. `declineMyQuoteAction` + `guestDeclineQuoteAction` both
+  store + relay it.
+- **Verified live:** declined a seeded quote via the portal modal (Price too high + note) → quote row stored both
+  fields · thread card shows reason+note · host in-app "Quote declined" fired · guest record Timeline shows
+  "Price too high — '…'". `tsc` + `lint` + `build` + 38 email render tests green.
+
 ## 2026-07-15 — §4 Wielo Credits foundation + Looking-For timeline uses the shared activity feed.
 
 - **Wielo Credits — the platform metering layer** (founder-approved schema). Migrations `20260715150000`
