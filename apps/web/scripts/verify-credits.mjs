@@ -86,9 +86,33 @@ async function run() {
   r = await apply(1, "refund", `debit:${TS}`);
   assert("refund +1 again is idempotent", r.balance === start + 3, `got ${r.balance}`);
 
-  // Net back to the starting balance (adjustment) so the probe is balance-neutral.
+  // Refund the debit (idempotent) already nets us to start + 3; drop back to
+  // start before the subscription block so its assertions read cleanly.
   r = await apply(-3, "adjustment", `cleanup:${TS}`);
   assert("adjustment nets back to start", r.balance === start, `got ${r.balance}`);
+
+  // ── Subscription grant: idempotent per (product, period). Activation and each
+  //    renewal within the SAME period top up exactly once; a NEW period grants
+  //    again. Mirrors grantSubscriptionCredits, whose ref_id is
+  //    `${productId}:${periodStartYYYY-MM-DD}` — the semantics every settle path
+  //    (Paystack / PayPal / free-fulfil) AND the admin activate path now share.
+  const PROD = `subprobe:${TS}`;
+  r = await apply(5, "grant", `${PROD}:2026-07-01`);
+  assert("sub grant period-1 +5", r.balance === start + 5, `got ${r.balance}`);
+  r = await apply(5, "grant", `${PROD}:2026-07-01`);
+  assert(
+    "sub grant period-1 idempotent (renewal within period is a no-op)",
+    r.balance === start + 5,
+    `got ${r.balance}`,
+  );
+  r = await apply(5, "grant", `${PROD}:2026-08-01`);
+  assert(
+    "sub grant period-2 tops up again (+5)",
+    r.balance === start + 10,
+    `got ${r.balance}`,
+  );
+  r = await apply(-10, "adjustment", `subcleanup:${TS}`);
+  assert("sub grant cleanup nets back to start", r.balance === start, `got ${r.balance}`);
 
   console.log(`\n${failures === 0 ? "PASS ✓" : `FAIL ✗ (${failures})`}`);
   process.exit(failures === 0 ? 0 : 1);

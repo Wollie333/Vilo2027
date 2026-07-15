@@ -12,6 +12,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
+import { grantSubscriptionCredits } from "@/lib/credits/wallet";
 import {
   adminPostUpgradeCardToHostThread,
   adminPostPaymentLinkToHostThread,
@@ -730,6 +731,18 @@ export const adminUpdateSubscriptionAction = withAdminAudit<
       if (error) throw new Error(error.message);
     }
 
+    // Mirror the settle-path activateMappedPlan: an active-like membership/service
+    // grants its per-cycle credit allotment (idempotent per product+period). Without
+    // this, admin-activating a plan silently skipped the Wielo Credits that a
+    // Paystack/PayPal/free purchase of the SAME plan grants. Best-effort.
+    if (activeLike && productId) {
+      await grantSubscriptionCredits(service, {
+        hostId: d.hostId,
+        productId,
+        periodStart: existing?.current_period_start ?? now,
+      });
+    }
+
     // ─── Auto-ledger on downgrade: cancelling a PAID sub that was live posts a
     // pro-rated money document for the UNUSED portion — a credit note by default,
     // or a refund (admin's choice). The mint triggers turn the ledger row into a
@@ -1047,6 +1060,15 @@ export const setUserProductAction = withAdminAudit<
           .insert({ host_id: hostId, ...patch });
         if (error) throw new Error(error.message);
       }
+
+      // Immediate activation grants the plan's per-cycle Wielo Credits (idempotent
+      // per product+period) — same as a real purchase settling. "paylink" is
+      // excluded above: its credits are granted by the settle path once paid.
+      await grantSubscriptionCredits(service, {
+        hostId,
+        productId: product.id,
+        periodStart: patch.current_period_start,
+      });
     }
 
     // ─── Auto-ledger: a paid upgrade/add records the money for the pro-rated
