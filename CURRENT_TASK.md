@@ -8,8 +8,19 @@
 supersedes the tail of `LOOKING_FOR_NEXT_PHASE_PLAN.md`. Decisions locked; order confirmed. Also memory
 `project-looking-for-crm-and-batch`.
 
-**▶▶ NEXT = §3 limits/quotas OR §4 Wielo Credits — BOTH need founder SCHEMA sign-off first** (new tables/columns;
-CLAUDE.md hard rule). Then §7 admin email-templates categorisation (own detailed plan) → §1 host record (quote page).
+**▶▶ NEXT = §3 limits/quotas** (admin suspend/pause · guest post cap · **host quote cap now consumes credits** via
+`applyCredit` debit + expiry-refund — §4 foundation is live). Then §7 admin email-templates categorisation (own
+detailed plan) → §1 host record (the quote page becomes the tabbed host record). §3 needs a small schema add
+(paused/suspended status) — founder pre-approved the schema approach for the credits/limits batch.
+
+**✅ §4 Wielo Credits foundation DONE (`8f14f666`, verified live end-to-end):** wallet + ledger + atomic/idempotent
+`apply_wielo_credit` RPC (migrations `20260715150000..150002`); engine `lib/credits/wallet.ts`; credit packages =
+Products category (`product_type=wielo_credits`, one-off) with qty+purpose; buying grants to the host wallet on
+settle (Paystack return + PayPal + webhook, idempotent); header **CreditPill** + summary modal + `/dashboard/credits`
+top-up store. Entitlements stay boolean; credits meter the countable. Verified: admin created "50 Quote Credits"
+(R149) → host pill/store → idempotent grant → pill+modal show 50. **Timeline restyle DONE:** Looking-For record
+Timeline tab now uses the shared `ActivityTimeline`. **Dev/demo data left:** "50 Quote Credits" product + 50 demo
+credits on demo host Lerato (`test-order-001` ledger ref).
 
 **✅ §5 DONE (`3fe4dba9`):** Looking-For notifications wired for every stage, both sides (email + in-app/push).
 Added `looking_for_quote_accepted` (from `acceptAndConvertQuote`) + `looking_for_quote_declined` (from
