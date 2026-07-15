@@ -8,8 +8,13 @@ import { Link } from "@/i18n/navigation";
 import { stripHtml } from "@/lib/sanitiseHtml";
 import { RequestInfoCard } from "@/components/looking-for/RequestInfoCard";
 import { RequestRequirements } from "@/components/looking-for/RequestRequirements";
+import {
+  getCreditBalance,
+  LOOKING_FOR_QUOTE_CREDIT_COST,
+} from "@/lib/credits/wallet";
 import { loadQuoteFormListings } from "../../../quotes/_listings";
 import { LookingForLocked } from "../../_components/LookingForLocked";
+import { LowCreditBanner } from "../../_components/LowCreditBanner";
 import { RespondFormWrapper } from "../../_components/RespondFormWrapper";
 
 interface Props {
@@ -193,6 +198,10 @@ export default async function RespondToPostPage({ params }: Props) {
     .eq("host_id", host.id)
     .order("sort_order");
 
+  // Quote-credit balance — a Looking-For quote spends a credit on send, so warn
+  // (or hard-block via the banner CTA) before the host builds the whole quote.
+  const creditBalance = await getCreditBalance(supabase, host.id, "quote");
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -228,6 +237,12 @@ export default async function RespondToPostPage({ params }: Props) {
         requirements={
           <RequestRequirements postId={post.id} variant="compact" />
         }
+      />
+
+      {/* Low/out-of-credit heads-up — before the host builds the whole quote. */}
+      <LowCreditBanner
+        balance={creditBalance}
+        cost={LOOKING_FOR_QUOTE_CREDIT_COST}
       />
 
       {/* Quote form with pre-filled data and template support */}
