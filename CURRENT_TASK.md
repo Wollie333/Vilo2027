@@ -8,8 +8,16 @@
 supersedes the tail of `LOOKING_FOR_NEXT_PHASE_PLAN.md`. Decisions locked; order confirmed. Also memory
 `project-looking-for-crm-and-batch`.
 
-**▶▶ NEXT = §5 Looking-For notifications** (both sides / all stages · email + inbox · flowchart + wire; task #6).
-Then: §3 limits/quotas → §4 Wielo Credits → §7 admin email-templates categorisation → §1 host record (quote page).
+**▶▶ NEXT = §3 limits/quotas OR §4 Wielo Credits — BOTH need founder SCHEMA sign-off first** (new tables/columns;
+CLAUDE.md hard rule). Then §7 admin email-templates categorisation (own detailed plan) → §1 host record (quote page).
+
+**✅ §5 DONE (`3fe4dba9`):** Looking-For notifications wired for every stage, both sides (email + in-app/push).
+Added `looking_for_quote_accepted` (from `acceptAndConvertQuote`) + `looking_for_quote_declined` (from
+`declineMyQuoteAction`) host events; enabled emails on existing `new_post_region` (host) + `post_expiring` (guest).
+4 new templates on the §6 Shell (`LookingForQuoteAcceptedHost/DeclinedHost/NewRequestHost/RequestExpiringGuest`),
+registered + sample payloads. Every dispatch carries camel email props (accept/decline/matchAlerts/worker drainers).
+Flowchart matrix in `docs/lifecycles/looking-for.md`. **Verified live:** accepted email renders; a real portal
+decline created the host's "Quote declined" in-app notification end-to-end. quote_viewed stays in-app-only (spam).
 
 **✅ §2 DONE (`b0ea39b1`):** shared `components/looking-for/RequestInfoCard.tsx` — compact HORIZONTAL request card
 (image + title + fact row + condensed requirement chips via `RequestRequirements variant="compact"`), replacing the
