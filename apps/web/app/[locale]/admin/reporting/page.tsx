@@ -14,6 +14,7 @@ import { RevenueAreaChart } from "./_components/RevenueAreaChart";
 import { UserGrowthChart } from "./_components/UserGrowthChart";
 import { GmvTrendChart } from "./_components/GmvTrendChart";
 import { SubscriberMovementChart } from "./_components/SubscriberMovementChart";
+import { CohortRetention } from "./_components/CohortRetention";
 
 export const dynamic = "force-dynamic";
 
@@ -282,6 +283,9 @@ export default async function AdminReportingPage({
           </div>
         </div>
       </section>
+
+      {/* Cohort retention triangle */}
+      <CohortRetention data={report.cohorts} />
 
       {/* GMV trend + booking-status distribution */}
       <section className="grid gap-5 lg:grid-cols-3">

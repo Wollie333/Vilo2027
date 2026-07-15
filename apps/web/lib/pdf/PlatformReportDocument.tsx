@@ -66,6 +66,16 @@ export function PlatformReportDocument({
       k.avgLifespanMonths !== null ? `${k.avgLifespanMonths} mo` : "—",
     ],
     ["Monthly churn", `${k.monthlyChurnRate}%`],
+    [
+      "Net revenue retention",
+      report.cohorts.nrr !== null ? `${report.cohorts.nrr}%` : "—",
+    ],
+    [
+      "Logo retention",
+      report.cohorts.logoRetention !== null
+        ? `${report.cohorts.logoRetention}%`
+        : "—",
+    ],
   ];
 
   const growth: [string, string][] = [

@@ -34,6 +34,23 @@ export type SubscriberMovement = {
   churned: number;
 };
 
+export type CohortRow = {
+  label: string; // "Jul 25"
+  size: number; // subscriptions that started that month
+  /** % of the cohort still active at month-offset n; null for future offsets. */
+  retention: (number | null)[];
+};
+
+export type CohortAnalysis = {
+  hasData: boolean;
+  offsets: number[]; // column headers: 0,1,2,...
+  rows: CohortRow[];
+  /** Net (gross) revenue retention across cohorts ≥1 month old, %. */
+  nrr: number | null;
+  /** Logo retention across cohorts ≥1 month old (active ÷ started), %. */
+  logoRetention: number | null;
+};
+
 export type PlanSlice = {
   key: string;
   name: string;
@@ -118,6 +135,7 @@ export type PlatformReport = {
   geography: GeoSlice[];
   bookingStatus: BookingStatusSlice[];
   subscriberMovement: SubscriberMovement[];
+  cohorts: CohortAnalysis;
 };
 
 const RANGE_LABEL: Record<ReportRange, string> = {
@@ -560,6 +578,92 @@ export async function buildPlatformReport(
   const lifetimeRevenuePerHost =
     payingHosts > 0 ? Math.round(stats.collected / payingHosts) : 0;
 
+  // ── Cohort retention triangle + net revenue retention ──
+  // Group subscriptions by the calendar month they STARTED, then for each later
+  // month-offset count how many of that cohort are still active (not cancelled
+  // by the end of that month). Classic retention triangle + a revenue-weighted
+  // NRR. Purely from created_at/cancelled_at + the product's MRR.
+  const absOf = (iso: string): number => {
+    const d = new Date(iso);
+    return d.getFullYear() * 12 + d.getMonth();
+  };
+  const nowDate = new Date(nowMs);
+  const nowAbs = nowDate.getFullYear() * 12 + nowDate.getMonth();
+  const mrrOfSub = (productId: string | null): number => {
+    const prod = productId ? productById.get(productId) : null;
+    const price = prod ? Number(prod.price ?? 0) : 0;
+    return prod?.billing_cycle === "annual" ? price / 12 : price;
+  };
+
+  type CohortAcc = {
+    abs: number;
+    label: string;
+    subs: { cancelledAbs: number | null; mrr: number }[];
+  };
+  const cohortMap = new Map<number, CohortAcc>();
+  for (const s of subs ?? []) {
+    const created = s.created_at as string | null;
+    if (!created) continue;
+    const cAbs = absOf(created);
+    const d = new Date(created);
+    const label = `${MONTH_LABELS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+    const acc = cohortMap.get(cAbs) ?? { abs: cAbs, label, subs: [] };
+    acc.subs.push({
+      cancelledAbs: s.cancelled_at ? absOf(s.cancelled_at as string) : null,
+      mrr: mrrOfSub((s.product_id as string) ?? null),
+    });
+    cohortMap.set(cAbs, acc);
+  }
+
+  const cohortList = [...cohortMap.values()].sort((a, b) => a.abs - b.abs);
+  const MAX_OFFSET = 12;
+  // Show the most recent 8 cohorts (oldest→newest) so the triangle stays legible.
+  const shownCohorts = cohortList.slice(-8);
+  const maxAge = shownCohorts.reduce(
+    (m, c) => Math.max(m, Math.min(MAX_OFFSET, nowAbs - c.abs)),
+    0,
+  );
+  const offsets = Array.from({ length: maxAge + 1 }, (_, i) => i);
+
+  const cohortRows: CohortRow[] = shownCohorts.map((c) => {
+    const size = c.subs.length;
+    const retention = offsets.map((n) => {
+      if (n > nowAbs - c.abs) return null; // future — not yet observable
+      const active = c.subs.filter(
+        (x) => x.cancelledAbs === null || x.cancelledAbs > c.abs + n,
+      ).length;
+      return size > 0 ? Math.round((active / size) * 100) : 0;
+    });
+    return { label: c.label, size, retention };
+  });
+
+  // Revenue + logo retention across cohorts at least a month old.
+  let startMrr = 0;
+  let currentMrr = 0;
+  let startedCount = 0;
+  let activeCount = 0;
+  for (const c of cohortList) {
+    if (nowAbs - c.abs < 1) continue; // too young to measure retention
+    for (const x of c.subs) {
+      startMrr += x.mrr;
+      startedCount += 1;
+      if (x.cancelledAbs === null) {
+        currentMrr += x.mrr;
+        activeCount += 1;
+      }
+    }
+  }
+  const cohorts: CohortAnalysis = {
+    hasData: cohortRows.length > 0,
+    offsets,
+    rows: cohortRows,
+    nrr: startMrr > 0 ? Math.round((currentMrr / startMrr) * 1000) / 10 : null,
+    logoRetention:
+      startedCount > 0
+        ? Math.round((activeCount / startedCount) * 1000) / 10
+        : null,
+  };
+
   return {
     generatedAt: new Date(nowMs).toISOString(),
     range,
@@ -612,6 +716,7 @@ export async function buildPlatformReport(
     geography,
     bookingStatus,
     subscriberMovement,
+    cohorts,
   };
 }
 
