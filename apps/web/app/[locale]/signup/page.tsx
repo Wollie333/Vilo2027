@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  FileText,
   Home,
   Luggage,
   ShieldCheck,
@@ -54,6 +55,13 @@ export default async function SignupChoicePage() {
               eyebrow="For property owners"
               title="I want to host my property"
               desc="List a guesthouse, B&B, lodge or cottage. Take direct bookings on a flat monthly fee."
+            />
+            <ChoiceCard
+              href="/signup/quotes"
+              icon={<FileText className="h-6 w-6" />}
+              eyebrow="For operators & planners"
+              title="I want to send quotes"
+              desc="Respond to what travellers are looking for and send quotes — no property listing needed."
             />
           </div>
 
