@@ -72,6 +72,11 @@ const STATUS_STYLES: Record<string, string> = {
   expired: "bg-amber-100 text-amber-700",
   fulfilled: "bg-blue-100 text-blue-700",
   cancelled: "bg-red-100 text-red-700",
+  suspended: "bg-slate-200 text-slate-700",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  suspended: "Paused",
 };
 
 const QUOTE_STATUS_STYLES: Record<string, string> = {
@@ -170,7 +175,8 @@ export function RequestRecord({
           <span
             className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[post.status] ?? STATUS_STYLES.draft}`}
           >
-            {post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+            {STATUS_LABELS[post.status] ??
+              post.status.charAt(0).toUpperCase() + post.status.slice(1)}
           </span>
           <Badge variant="secondary" className="capitalize">
             {post.category}
@@ -186,6 +192,14 @@ export function RequestRecord({
         <h1 className="font-display text-xl font-bold text-brand-ink">
           {post.title}
         </h1>
+
+        {post.status === "suspended" && (
+          <p className="mt-3 rounded-card border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            This request is <strong>paused</strong> and hidden from hosts while
+            our team takes a look. It isn&apos;t receiving new quotes right now
+            — we&apos;ll be in touch if anything is needed.
+          </p>
+        )}
 
         {/* Stat band */}
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-brand-mute">

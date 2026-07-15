@@ -62,6 +62,51 @@ export async function removePostAction(postId: string) {
   return { success: true };
 }
 
+export async function suspendPostAction(postId: string) {
+  await requirePermission("platform.features");
+
+  const service = createAdminClient();
+
+  // Neutral "take offline for now" — distinct from moderation flagging. Hidden
+  // from public / host browse / respond (all gate on status = 'active'); the
+  // guest owner still sees their post badged "Paused". Reversible via resume.
+  const { error } = await service
+    .from("looking_for_posts")
+    .update({ status: "suspended", updated_at: new Date().toISOString() })
+    .eq("id", postId)
+    .eq("status", "active");
+
+  if (error) {
+    console.error("Failed to suspend post:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin/looking-for/posts");
+  return { success: true };
+}
+
+export async function resumePostAction(postId: string) {
+  await requirePermission("platform.features");
+
+  const service = createAdminClient();
+
+  // Resume a paused post back to live. Keep the existing expiry — a pause is not
+  // a fresh post; if it already lapsed while paused the hourly cron expires it.
+  const { error } = await service
+    .from("looking_for_posts")
+    .update({ status: "active", updated_at: new Date().toISOString() })
+    .eq("id", postId)
+    .eq("status", "suspended");
+
+  if (error) {
+    console.error("Failed to resume post:", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin/looking-for/posts");
+  return { success: true };
+}
+
 export async function reinstatePostAction(postId: string) {
   await requirePermission("platform.features");
 

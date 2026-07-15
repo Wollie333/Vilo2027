@@ -1,7 +1,14 @@
 "use client";
 
 import { useTransition } from "react";
-import { MoreHorizontal, Flag, CheckCircle, Trash2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  Flag,
+  CheckCircle,
+  Trash2,
+  PauseCircle,
+  PlayCircle,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +24,8 @@ import {
   unflagPostAction,
   removePostAction,
   reinstatePostAction,
+  suspendPostAction,
+  resumePostAction,
 } from "./actions";
 
 interface PostActionsProps {
@@ -30,6 +39,7 @@ export function PostActions({ postId, status }: PostActionsProps) {
   const isFlagged = status === "flagged";
   const isCancelled = status === "cancelled";
   const isActive = status === "active";
+  const isSuspended = status === "suspended";
 
   function handleFlag() {
     startTransition(async () => {
@@ -55,6 +65,18 @@ export function PostActions({ postId, status }: PostActionsProps) {
     });
   }
 
+  function handleSuspend() {
+    startTransition(async () => {
+      await suspendPostAction(postId);
+    });
+  }
+
+  function handleResume() {
+    startTransition(async () => {
+      await resumePostAction(postId);
+    });
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -74,6 +96,20 @@ export function PostActions({ postId, status }: PostActionsProps) {
           <DropdownMenuItem onClick={handleUnflag}>
             <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
             Approve (unflag)
+          </DropdownMenuItem>
+        )}
+
+        {isActive && (
+          <DropdownMenuItem onClick={handleSuspend}>
+            <PauseCircle className="mr-2 h-4 w-4 text-slate-600" />
+            Pause (suspend)
+          </DropdownMenuItem>
+        )}
+
+        {isSuspended && (
+          <DropdownMenuItem onClick={handleResume}>
+            <PlayCircle className="mr-2 h-4 w-4 text-green-600" />
+            Resume post
           </DropdownMenuItem>
         )}
 
