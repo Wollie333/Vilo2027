@@ -106,8 +106,8 @@
   <!-- B: host tools -->
   <rect x="470" y="142" width="360" height="52" rx="12" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
   <text x="484" y="160" class="actorA">HOST TOOLS</text>
-  <text x="484" y="177" class="t">Bookmark · Pass ("not a fit") · Saved alert*</text>
-  <text x="484" y="189" class="s">toggleBookmark · passOnPost · createAlert</text>
+  <text x="484" y="177" class="t">Bookmark · Pass · Saved alert → real-time notify</text>
+  <text x="484" y="189" class="s">bookmark · pass · alert matches new posts on create</text>
 
   <!-- B: admin -->
   <rect x="470" y="218" width="360" height="52" rx="12" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
@@ -121,15 +121,15 @@
   <text x="484" y="481" class="t">Extend +7d · Cancel · Mark fulfilled (OTA/direct)</text>
   <text x="484" y="493" class="s">extend · cancel · markFulfilled · reopen</text>
 
-  <!-- B: cron -->
+  <!-- B: cron + worker -->
   <rect x="470" y="598" width="360" height="52" rx="12" fill="var(--ambersoft)" stroke="var(--amberline)" stroke-width="1.5"/>
-  <text x="484" y="616" class="actorA">CRON</text>
-  <text x="484" y="633" class="t">Auto-expire past-window posts → expired</text>
-  <text x="484" y="645" class="s">looking_for_auto_expire (hourly)</text>
+  <text x="484" y="616" class="actorA">CRON + WORKER</text>
+  <text x="484" y="633" class="t">Auto-expire · drain expiring-soon + region digest</text>
+  <text x="484" y="645" class="s">auto_expire · /api/looking-for-worker (hourly)</text>
 
-  <!-- gaps banner -->
-  <rect x="90" y="686" width="740" height="66" rx="12" fill="var(--gapsoft)" stroke="var(--gapline)" stroke-width="1.5" stroke-dasharray="5 3"/>
-  <text x="106" y="706" class="actorG">NOT BUILT YET  ( * )</text>
+  <!-- now-live banner -->
+  <rect x="90" y="686" width="740" height="66" rx="12" fill="var(--psoft)" stroke="var(--p)" stroke-width="1.5"/>
+  <text x="106" y="706" class="actor">NOW LIVE  (2026-07-15)</text>
   <text x="106" y="724" class="gapt">Saved-search matcher · "new request in your area" · "request expiring soon"</text>
-  <text x="106" y="740" class="s">Crons fill looking_for_region_digest_queue / _expiry_notifications, but nothing drains them and the two events are never dispatched. Alerts are CRUD-only (no matching engine).</text>
+  <text x="106" y="740" class="s">Real-time alert matcher on post-create (notifyMatchingAlerts) + /api/looking-for-worker drains both cron queues. calculate_looking_for_match_score fixed (is_published / province).</text>
 </svg>

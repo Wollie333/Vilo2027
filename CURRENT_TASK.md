@@ -2,13 +2,26 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-14 · Looking-For audit done) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For enhancement in progress) — START HERE
 
-**▶▶ NEXT TASK = deep-audit COUPONS** per `MVP_READINESS_AND_AUDIT_BACKLOG.md` (#3) — Quotes, Specials &
-Looking-for are now ✅ audited. Approach as before: trace creation → validity windows → per-code/per-guest
-limits → stacking with seasonal/specials/add-ons → server-side re-price → ledger + invoice lines; verify LIVE;
-close gaps in-task; write/refresh `docs/lifecycles/coupons.md` (a stub already exists). Remaining after: Add-ons ·
-Media manager · Reports · Product gating + the guest/host/admin sweep.
+**▶▶ IN PROGRESS = Looking-For "refine/enhance/enrich" (founder, 4 workstreams).** Order + status:
+1. ✅ **Posting UX re-skin** (`8e479c4f`) — `RequestForm` → create-data layout (left-rail steps + health ring +
+   autosave + Review), verified live.
+2. ✅ **Notifications + matching engine** (`bb4d8653`) — fixed `calculate_looking_for_match_score`; real-time
+   saved-search alert matcher (`lib/looking-for/matchAlerts.ts` in `createRequestAction`); `/api/looking-for-worker`
+   drains expiring-soon + region-digest queues (migration `20260714130000`). All verified live.
+3. ⏳ **Host discovery++** — NEXT. Enrich the host browse board (`dashboard/looking-for` `RequestsBoard` /
+   `RequestCard`): live match-score sort (RPC now works), availability + budget-fit, richer cards, guest trust
+   badges, quick-quote from the card, response-time nudges.
+4. ⏳ **Guest decision UX** — after #3. Enrich compare-quotes + accept: host trust (rating/reviews/response-time),
+   listing photo/summary in each quote, best-value cues, tighter accept→pay.
+**After all 4:** back to the audit backlog — **deep-audit COUPONS** (`MVP_READINESS_AND_AUDIT_BACKLOG.md` #3;
+`docs/lifecycles/coupons.md` stub exists), then Add-ons · Media manager · Reports · Product gating + the sweep.
+
+**✅ EARLIER — LOOKING-FOR deep audit (2026-07-14).** The feature was **dead at three consecutive hops** and
+missing the guest email — all fixed + verified LIVE host→guest end-to-end, `build`+`lint` green. Doc
+`docs/lifecycles/looking-for.md`; memory `project-looking-for-audit`. The bugs: (1) host browse board selected
+`user_profiles.display_name` (no such col → 42703 → every host saw zero requests) → `full_name`; (2) respond page
 
 **✅ JUST CLOSED — LOOKING-FOR deep audit (2026-07-14).** The feature was **dead at three consecutive hops** and
 missing the guest email — all fixed + verified LIVE host→guest end-to-end, `build`+`lint` green. Doc

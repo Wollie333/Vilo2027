@@ -134,8 +134,8 @@ in `lib/notifications/registry.ts`):
 |---|---|---|---|
 | `looking_for_quote_received` | guest | in-app · push · **email (`QuoteSentGuest`)** | `sendQuoteAction` |
 | `looking_for_quote_viewed` | host | in-app · push | `markQuotesViewedAction` |
-| `looking_for_new_post_region` | host | in-app · push | ⚠️ **never dispatched** (gap) |
-| `looking_for_post_expiring` | guest | in-app · push | ⚠️ **never dispatched** (gap) |
+| `looking_for_new_post_region` | host | in-app · push | `notifyMatchingAlerts` (real-time, on create) + the worker's region digest |
+| `looking_for_post_expiring` | guest | in-app · push | `/api/looking-for-worker` (drains the expiry queue) |
 
 The guest quote email reuses the audited `QuoteSentGuest` template (a Looking-For
 response *is* a quote); `sendQuoteAction` enriches the dispatch refs with the fields
@@ -192,15 +192,26 @@ through the same cloud email worker that ships every other Wielo email.
 
 ---
 
+## Enhancements (2026-07-15)
+
+- **Guest post form → create-data layout.** `RequestForm` re-skinned to the
+  standard left-rail / health-ring / Review / autosave pattern (add-ons · specials ·
+  coupons convention). New draft entity `looking_for_request`; the new/edit pages
+  dropped their headers (the form owns the shell).
+- **Saved-search alert matcher (real-time).** `lib/looking-for/matchAlerts.ts` —
+  `createRequestAction` now notifies every host whose active alert matches a new
+  public post (`looking_for_new_post_region`), bumping `match_count` /
+  `last_notified_at`. Alerts finally do something.
+- **Notification worker.** `/api/looking-for-worker` (bearer-gated, hourly cron via
+  the Vault pattern, migration `20260714130000`) drains both queues: expiring-soon →
+  guest, region digest → hosts in the province without an active alert. Idempotent
+  via `dispatched_at` (new) / `processed_at`.
+- **`calculate_looking_for_match_score` fixed** — referenced `properties.is_active`
+  + `properties.region` (neither exists); now `is_published` / `province`. No longer
+  dead — returns real scores (used by Host discovery).
+
 ## Known gaps (not fixed — founder call)
 
-- **Saved-search alerts do nothing.** `looking_for_alerts` is CRUD-only; no matcher
-  runs new posts against alerts (`match_count`/`last_notified_at` never update), and
-  `calculate_looking_for_match_score` (`..230000`) is dead code.
-- **Region-digest & expiry notifications never fire.** The crons populate
-  `looking_for_region_digest_queue` and `looking_for_expiry_notifications`, but no
-  worker drains them, and `looking_for_new_post_region` / `looking_for_post_expiring`
-  are never dispatched.
 - **Quotas aren't enforced on send.** `sendQuoteAction` doesn't call
   `check_host_quote_quota` before inserting (pre-MVP the feature gate is open anyway).
 - **`response.thread_id` is often null** — a Looking-For quote's `conversation_id`

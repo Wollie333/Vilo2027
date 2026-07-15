@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-15 — Looking-For enhancement pass — create-data form + matching/notification engine.
+
+Founder: "refine, enhance and enrich Looking-For" + specifically build the alert matcher and the
+new-request/expiring notifications. Two shipped + verified-live workstreams:
+
+**1. Guest post form → create-data layout (`8e479c4f`).** Re-skinned `RequestForm` from a long stacked
+form to the standard add-ons/specials convention: identity bar, left-rail step tabs (Basics · Dates &
+guests · Location & budget · Photo & preferences · Review), live health ring + per-step green checks,
+autosave draft + resume banner (new `looking_for_request` draft entity), one primary CTA on Review. The
+new/edit pages dropped their headers (the form owns the shell). Verified live: title flows to the identity
+bar, ring/checks flip, autosave persisted to `form_drafts` + cleared on post, posting landed on the detail page.
+
+**2. Matching + notification engine (`bb4d8653`).** Made three modelled-but-inert pieces work:
+- **Fixed `calculate_looking_for_match_score`** — referenced `properties.is_active` + `properties.region`
+  (neither exists → 42703); now `is_published`/`province`. Verified: returns 55% (region+capacity).
+- **Real-time saved-search alert matcher** (`lib/looking-for/matchAlerts.ts`) — `createRequestAction` now
+  notifies every host whose active alert matches a new public post (`looking_for_new_post_region`), bumping
+  `match_count`/`last_notified_at`. Verified: host got the in-app alert, counters bumped.
+- **`/api/looking-for-worker`** (bearer-gated, hourly cron via the Vault pattern, migration `20260714130000`)
+  drains the two cron-filled queues nothing ever dispatched: expiring-soon → guest, region digest → hosts in
+  the province without an active alert. Idempotent via `dispatched_at`/`processed_at`. Verified: dispatched
+  both events, set both gates, idempotent on re-run, 401 without bearer.
+
+Docs `docs/lifecycles/looking-for.md` + `looking-for-flow.svg` updated (gaps → now-live). build + lint green.
+
 ## 2026-07-14 — Looking-For deep audit — feature was dead at 3 hops; fixed + verified live end-to-end.
 
 Deep lifecycle audit of Looking-For (guest posts a request → host quotes it → guest accepts). Traced and drove
