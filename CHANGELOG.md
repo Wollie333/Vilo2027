@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-15 — Reporting enhancement follow-up metrics (host revenue breakdown + admin GMV/status).
+
+Continued the reporting enhancement with the follow-up new-metrics that were surfaced as optional. All verified live;
+two commits pushed to main.
+
+**Host `dashboard/reports` (`f052a60e`):** new "Revenue breakdown" section — payment-method split (Paystack/PayPal/EFT,
+from the period ledger already on the page), add-ons collected, coupon redemptions + discount given, Wielo Credits
+balance with period spent/granted, and a revenue-by-check-in-day chart with a weekend (Fri/Sat) share. Caught and fixed
+a real bug during live verification: the bookings check-in column is `check_in`, not `start_date`, so the query was
+erroring silently and zeroing the weekday/coupon metrics.
+
+**Admin `admin/reporting` (`137f80d8`):** GMV-by-month trend area chart (booking value for stays checking in each month)
+and a booking-status distribution across every status — both added to the page and the downloadable PDF. Remaining
+deferred items (admin cohort retention/LTV and the host Region filter's per-RPC `p_region` support) are documented in
+`CURRENT_TASK.md`.
+
+---
+
 ## 2026-07-15 — Reporting enhancement BUILT + verified live on BOTH surfaces (host + admin).
 
 Executed the reporting enhancement (founder: "report every metric — refine, enhance, polish"). Two commits, both

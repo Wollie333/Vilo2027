@@ -31,10 +31,15 @@ Two clean commits: host `6b4fcb94`, admin `a143bde3` (pushed to main).
   split, VAT, MoM revenue+signups %, credit-note detail, take-rate, Wielo Credits bought/granted/spent, quote + LF
   volume, affiliate commissions/payouts, geography by province. Widened the admin PDF too (route 200).
 
-**⏳ OPTIONAL FOLLOW-UP (surfaced, not silently dropped):** host-side NEW metrics not yet added — payment-method split
-for host income, add-ons/extras revenue, coupon usage, Wielo Credits balance, weekday/weekend split (need more data
-plumbing). Admin: cohort retention/LTV/NRR, GMV trend chart, booking-status distribution, listings-per-host. A proper
-`p_region` on the 12 analytics RPCs would let the Region filter come back (larger DB change). See memory
+**✅ FOLLOW-UP METRICS ALSO DONE (`f052a60e` host, `137f80d8` admin) — verified live:**
+- **Host** new "Revenue breakdown" section: payment-method split, add-ons collected, coupon redemptions + discount
+  given, Wielo Credits balance + spent/granted, and revenue-by-check-in-day with a weekend (Fri/Sat) share chart.
+  (Caught + fixed a real bug live: bookings check-in column is `check_in`, not `start_date`.)
+- **Admin**: GMV-by-month trend area chart + booking-status distribution (added to the page AND the PDF).
+
+**⏳ STILL DEFERRED (genuinely bigger, surfaced not dropped):** admin **cohort retention / LTV / NRR** (needs real
+cohort infrastructure — a naive LTV would mislead, so intentionally not shipped); the **Region filter** on the host
+reports would need a `p_region` param added to the 12 analytics RPCs (larger DB change). See memory
 `project-reporting-enhancement`.
 
 ---
