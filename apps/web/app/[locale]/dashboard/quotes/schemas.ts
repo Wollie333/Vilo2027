@@ -118,6 +118,19 @@ export const quoteOrBookingBaseSchema = z
         path: ["attachment_path"],
       });
     }
+    // Custom / upload quotes have no listing name to fall back on, so a title is
+    // required to identify the quote (finding #14) — enforced server-side, not
+    // just in the form UI.
+    if (
+      (v.quote_type === "custom" || v.quote_type === "upload") &&
+      !(v.title ?? "").trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Give the quote a title.",
+        path: ["title"],
+      });
+    }
     if (v.quote_type !== "accommodation") return;
     if (!v.property_id) {
       ctx.addIssue({
