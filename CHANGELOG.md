@@ -5,6 +5,23 @@
 
 ---
 
+## 2026-07-16 — Cohort retention/NRR + region filter (the last two deferred reporting items).
+
+- **Cohort retention & NRR** (`97f37819`): admin/reporting gained a colour-coded start-month cohort retention triangle
+  (% of each cohort still subscribed by months-since-signup) plus headline net-revenue-retention and logo-retention,
+  computed from subscriptions created_at/cancelled_at + product MRR. Also in the admin PDF. Verified by temporarily
+  backdating a few subscriptions to create real cohorts + churn (then restoring): triangle decayed to 50% at M2,
+  NRR 66.7%, logo retention 60%.
+- **Region filter** (`1b88d749`): added an optional `p_region` param to the 11 host analytics RPCs (migration
+  20260716120000) so the report can scope to one province, and restored the data-driven Region dropdown. The migration
+  was generated from live pg_get_functiondef dumps and validated in a BEGIN/ROLLBACK transaction (recreate + test-call
+  all 11 with a region, then roll back) before pushing. Verified live: Gauteng (no listings) zeroes the whole report to
+  R0 while Western Cape keeps the full R18 630 — proving it excludes out-of-region data.
+
+Both were the "genuinely deferred" items from the previous entry — now done.
+
+---
+
 ## 2026-07-16 — In-depth reporting for every user with reporting access.
 
 Founder: "every user with reporting access gets their full, in-depth report." Built in four verified phases, each

@@ -47,8 +47,14 @@ Two clean commits: host `6b4fcb94`, admin `a143bde3` (pushed to main).
 - **Admin retention/LTV** (`9ad4e0da`): lifetime rev/host, ARR/account, est. LTV, avg lifespan, monthly churn +
   subscriber-movement chart (also in admin PDF); LTV honestly "—" when no recent churn.
 
-**⏳ STILL DEFERRED:** NRR / true cohort-retention curves (need per-cohort MRR over time); the **Region filter**
-needs a `p_region` param on the 12 analytics RPCs (larger DB change). See memory `project-reporting-enhancement`.
+**✅ THE TWO DEFERRED ITEMS ALSO DONE (2026-07-16) — verified live:**
+- **Cohort retention & NRR** (`97f37819`): admin start-month retention triangle + net-revenue/logo retention (from
+  subscriptions created_at/cancelled_at + MRR); also in the admin PDF.
+- **Region filter** (`1b88d749`, migration `20260716120000`): optional `p_region` on the 11 host analytics RPCs +
+  restored data-driven Region dropdown. Migration validated in a BEGIN/ROLLBACK transaction before push. Verified:
+  Gauteng (no listings) → whole report R0; Western Cape → full data.
+
+Nothing outstanding on reporting. See memory `project-reporting-enhancement`.
 
 ---
 
