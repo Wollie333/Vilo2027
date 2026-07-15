@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
 import {
+  applyCredit,
   grantCreditsForOrder,
   grantSubscriptionCredits,
 } from "@/lib/credits/wallet";
@@ -1084,6 +1085,10 @@ const setProductSchema = z.object({
   // Timing of a membership SWITCH: "end_of_cycle" schedules the switch for the
   // current membership's period end (the cron applies it) instead of now.
   timing: z.enum(["now", "end_of_cycle"]).optional(),
+  // Optional per-activation credit override: grant THIS many Wielo Credits for
+  // the cycle instead of the product's default credit_quantity. null/omitted =
+  // use the product default.
+  creditOverride: z.number().int().min(0).max(1_000_000).nullable().optional(),
   reason: z.string().optional(),
 });
 
@@ -1281,11 +1286,13 @@ export const setUserProductAction = withAdminAudit<
 
       // Immediate activation grants the plan's per-cycle Wielo Credits (idempotent
       // per product+period) — same as a real purchase settling. "paylink" is
-      // excluded above: its credits are granted by the settle path once paid.
+      // excluded above: its credits are granted by the settle path once paid. An
+      // admin can override the allotment for this activation (creditOverride).
       await grantSubscriptionCredits(service, {
         hostId,
         productId: product.id,
         periodStart: patch.current_period_start,
+        overrideQty: parsed.data.creditOverride ?? null,
       });
     }
 
@@ -1579,6 +1586,81 @@ export const sellProductAction = withAdminAudit<
     revalidatePath(`/admin/users`);
     revalidatePath("/admin/subscriptions/revenue");
     return { result: { ok: true }, after: { userId, productId } };
+  },
+);
+
+// ─── Manually assign / adjust a user's Wielo Credits (admin) ──────────
+// A direct wallet movement — grant (positive) or remove (negative) any number of
+// credits to a host's wallet, independent of a subscription or package (gifts,
+// comps, corrections). Runs through the single atomic apply_wielo_credit path so
+// it can't drive the balance negative. Credits are per-host, so the user must be
+// a host / quote-only account. Audited.
+const adjustCreditsSchema = z.object({
+  userId: z.string().uuid(),
+  // Signed: +grant, −remove. Non-zero, bounded.
+  delta: z
+    .number()
+    .int()
+    .refine((v) => v !== 0, "Enter a non-zero amount.")
+    .refine((v) => Math.abs(v) <= 1_000_000, "That amount is too large."),
+  purpose: z.string().trim().min(1).max(40).default("quote"),
+  reason: z.string().trim().min(1, "Add a short reason.").max(200),
+});
+
+export const adjustUserCreditsAction = withAdminAudit<
+  z.infer<typeof adjustCreditsSchema>,
+  { ok: true; balance: number }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "user.adjust_credits",
+    targetType: "user",
+    getTargetId: (a) => a.userId,
+    getOwnerUserId: (a) => a.userId,
+  },
+  async (args, service) => {
+    const parsed = adjustCreditsSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const d = parsed.data;
+    const { data: host } = await service
+      .from("hosts")
+      .select("id")
+      .eq("user_id", d.userId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!host?.id) {
+      throw new Error(
+        "This user has no host account — credits only apply to host / quote-only accounts.",
+      );
+    }
+    const admin = await requirePermission("subscriptions.edit");
+    const res = await applyCredit(
+      {
+        hostId: host.id,
+        purpose: d.purpose,
+        delta: d.delta,
+        kind: "adjustment",
+        reason: `Admin adjustment: ${d.reason}`,
+        refType: "admin_adjustment",
+        refId: crypto.randomUUID(),
+        createdBy: admin.userId,
+      },
+      service,
+    );
+    if (!res.ok) {
+      throw new Error(
+        res.error === "INSUFFICIENT_CREDITS"
+          ? "That would take the balance below zero."
+          : "Could not adjust the credits.",
+      );
+    }
+    revalidatePath(`/admin/users/${d.userId}`);
+    return {
+      result: { ok: true, balance: res.balance },
+      after: { userId: d.userId, delta: d.delta, balance: res.balance },
+    };
   },
 );
 
@@ -2184,6 +2266,7 @@ export async function setUserProduct(input: {
   productId: string;
   charge?: "paid" | "paylink" | "none";
   timing?: "now" | "end_of_cycle";
+  creditOverride?: number | null;
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {
     const r = await setUserProductAction(input);
@@ -2397,6 +2480,20 @@ export async function sellProduct(input: {
   try {
     const r = await sellProductAction(input);
     return { ok: true, payUrl: r.payUrl };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
+}
+
+export async function adjustUserCredits(input: {
+  userId: string;
+  delta: number;
+  reason: string;
+  purpose?: string;
+}): Promise<{ ok: true; balance: number } | { ok: false; error: string }> {
+  try {
+    const r = await adjustUserCreditsAction({ purpose: "quote", ...input });
+    return { ok: true, balance: r.balance };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };
   }

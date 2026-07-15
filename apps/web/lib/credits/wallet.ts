@@ -222,10 +222,19 @@ export async function spendQuoteCredit(
  * current billing period. Idempotent per (product, period start) so activation +
  * each renewal grants exactly once. No-op unless the product carries a
  * credit_quantity. Best-effort — never throws into the settle path.
+ *
+ * `overrideQty` (admin activation only): grant THIS many credits for the period
+ * instead of the product default — lets an admin set a custom allotment when
+ * activating a subscription for a user. Idempotent on the same (product, period).
  */
 export async function grantSubscriptionCredits(
   admin: Client,
-  input: { hostId: string; productId: string; periodStart: string },
+  input: {
+    hostId: string;
+    productId: string;
+    periodStart: string;
+    overrideQty?: number | null;
+  },
 ): Promise<void> {
   try {
     const { data: product } = await admin
@@ -233,7 +242,10 @@ export async function grantSubscriptionCredits(
       .select("credit_quantity, credit_purpose, name")
       .eq("id", input.productId)
       .maybeSingle();
-    const qty = Number(product?.credit_quantity ?? 0);
+    const qty =
+      input.overrideQty != null
+        ? Number(input.overrideQty)
+        : Number(product?.credit_quantity ?? 0);
     if (qty <= 0) return;
     // One grant per billing period — the period start makes the ref unique per
     // cycle so renewals top up again.

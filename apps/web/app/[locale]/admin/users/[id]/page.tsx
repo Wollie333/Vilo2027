@@ -7,6 +7,7 @@ import {
 } from "@/lib/admin/supportGrant";
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
 import { fetchWieloLedger, isAffiliateTxn } from "@/lib/billing/wielo-ledger";
+import { getCreditBalance } from "@/lib/credits/wallet";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
 import { getAllPlans } from "@/lib/plans/getPlans";
 import { getInternalCatalog } from "@/lib/products/getProducts";
@@ -44,6 +45,11 @@ export default async function AdminUserDetailPage({
     )
     .eq("user_id", user.id)
     .maybeSingle();
+
+  // Wielo Credits wallet balance (host-scoped) for the admin "Assign credits" card.
+  const creditBalance = host?.id
+    ? await getCreditBalance(service, host.id, "quote")
+    : 0;
 
   const [
     { count: bookingsAsGuestCount },
@@ -672,6 +678,7 @@ export default async function AdminUserDetailPage({
       : null,
     subscription: sub,
     subscriptions: subRows,
+    creditBalance,
     productPurchases,
     counts: {
       bookingsAsGuest: bookingsAsGuestCount ?? 0,

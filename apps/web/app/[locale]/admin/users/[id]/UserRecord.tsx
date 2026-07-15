@@ -95,6 +95,7 @@ import type { Txn } from "@/lib/finance/transactions";
 
 import {
   addAdminUserNote,
+  adjustUserCredits,
   adminCreateAddon,
   adminDeleteAddon,
   adminDeletePolicy,
@@ -224,6 +225,8 @@ export type UserRecordData = {
       targetName: string | null;
     } | null;
   }[];
+  // Wielo Credits wallet balance (host-scoped, purpose 'quote').
+  creditBalance: number;
   // Once-off product purchases (product_orders whose product is a `product`).
   productPurchases: {
     id: string;
@@ -2029,11 +2032,61 @@ function ProductsPanel({
   const [chargeTiming, setChargeTiming] = useState<"now" | "end_of_cycle">(
     "now",
   );
+  // Optional per-activation Wielo Credits override (blank = the product default).
+  const [creditOverride, setCreditOverride] = useState("");
+  const parsedOverride = (): number | null => {
+    const t = creditOverride.trim();
+    if (t === "") return null;
+    const n = Number(t);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : null;
+  };
   const closeCharge = () => {
     setCharge(null);
     setPayLink(null);
     setChargeTiming("now");
+    setCreditOverride("");
   };
+
+  // ── Manual "Assign credits" (Part 1) — grant/remove any amount to the wallet.
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const [creditAmt, setCreditAmt] = useState("");
+  const [creditReason, setCreditReason] = useState("");
+  const [balance, setBalance] = useState(data.creditBalance);
+  const closeCredits = () => {
+    setCreditsOpen(false);
+    setCreditAmt("");
+    setCreditReason("");
+  };
+  function submitCredits() {
+    const amt = Math.trunc(Number(creditAmt));
+    if (!Number.isFinite(amt) || amt === 0) {
+      toast.error("Enter a non-zero amount (use a minus sign to remove).");
+      return;
+    }
+    if (!creditReason.trim()) {
+      toast.error("Add a short reason.");
+      return;
+    }
+    start(async () => {
+      const r = await adjustUserCredits({
+        userId,
+        delta: amt,
+        reason: creditReason.trim(),
+      });
+      if (r.ok) {
+        setBalance(r.balance);
+        toast.success(
+          `${amt > 0 ? "Granted" : "Removed"} ${Math.abs(amt)} credit${
+            Math.abs(amt) === 1 ? "" : "s"
+          }. New balance: ${r.balance}.`,
+        );
+        closeCredits();
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
 
   // Sell a ONCE-OFF product (separate from the subscription charge dialog).
   const [sell, setSell] = useState<CatalogProduct | null>(null);
@@ -2126,6 +2179,7 @@ function ProductsPanel({
         userId,
         productId,
         charge: mode,
+        creditOverride: parsedOverride(),
       });
       setBusyId(null);
       if (r.ok) {
@@ -2382,6 +2436,34 @@ function ProductsPanel({
 
   return (
     <div className="space-y-6">
+      {/* Wielo Credits wallet — balance + manual assign (grant/remove). */}
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            Wielo Credits
+          </div>
+          <div className="mt-0.5 flex items-baseline gap-1.5">
+            <span className="font-display text-2xl font-bold text-brand-primary">
+              {balance}
+            </span>
+            <span className="text-xs text-brand-mute">credits</span>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={pending || !hostId}
+          onClick={() => setCreditsOpen(true)}
+          title={
+            hostId
+              ? undefined
+              : "Credits only apply to host / quote-only accounts."
+          }
+        >
+          Assign credits
+        </Button>
+      </section>
+
       {/* Active subscriptions — 1 membership + N services */}
       <section>
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -2560,6 +2642,43 @@ function ProductsPanel({
         )}
       </div>
 
+      {/* Assign / adjust Wielo Credits manually */}
+      <FormModal
+        open={creditsOpen}
+        onOpenChange={(o) => (o ? null : closeCredits())}
+        title="Assign credits"
+        description="Grant or remove Wielo Credits on this account. Use a minus sign to remove."
+      >
+        <div className="space-y-4">
+          <Lbl label="Amount (use −5 to remove 5)">
+            <Input
+              type="number"
+              value={creditAmt}
+              onChange={(e) => setCreditAmt(e.target.value)}
+              placeholder="e.g. 10 or -5"
+            />
+          </Lbl>
+          <Lbl label="Reason">
+            <Input
+              value={creditReason}
+              onChange={(e) => setCreditReason(e.target.value)}
+              placeholder="e.g. Goodwill top-up"
+            />
+          </Lbl>
+          <div className="rounded-md border border-brand-line bg-brand-light/40 px-3 py-2 text-[12px] text-brand-mute">
+            Current balance:{" "}
+            <span className="font-semibold text-brand-ink">{balance}</span>. A
+            removal can&apos;t take the balance below zero.
+          </div>
+        </div>
+        <FormModalFooter>
+          <FormModalCancel onClick={closeCredits} />
+          <Button onClick={submitCredits} disabled={pending}>
+            {pending ? "Working…" : "Apply"}
+          </Button>
+        </FormModalFooter>
+      </FormModal>
+
       {/* Sell a once-off product */}
       <FormModal
         open={!!sell}
@@ -2718,6 +2837,23 @@ function ProductsPanel({
                   );
                 })()
               : null}
+            {charge.product.creditQuantity != null &&
+            charge.product.creditQuantity > 0 ? (
+              <Lbl label="Credits this cycle (optional override)">
+                <Input
+                  type="number"
+                  min={0}
+                  value={creditOverride}
+                  onChange={(e) => setCreditOverride(e.target.value)}
+                  placeholder={`Default: ${charge.product.creditQuantity}`}
+                />
+                <p className="mt-1 text-[12px] text-brand-mute">
+                  Leave blank to grant the plan default (
+                  {charge.product.creditQuantity}). Set a number to grant that
+                  many Wielo Credits for this activation instead.
+                </p>
+              </Lbl>
+            ) : null}
             {payLink ? (
               <div className="rounded-md border border-status-confirmed/30 bg-status-confirmed/5 p-3">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
