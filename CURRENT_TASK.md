@@ -2,9 +2,42 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For + Credits — SAVE POINT `d889ed76`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For + Credits — SAVE POINT `03100af9`) — START HERE
 
-**✅ JUST DONE (`d889ed76`, verified live end-to-end):** the §3 credit **spend/block
+**✅ CREDIT-HARDENING MANDATE COMPLETE. NEXT = the dual-quote-system redesign
+(plan written, awaiting founder decisions).** Founder chose "finish everything,
+then plan." All remaining mandate items done + verified this session:
+- **Subscription grant** (`848a9957`): fixed a real gap — admin plan-activation
+  paths never granted credits (unlike the Paystack/PayPal/free settle paths);
+  now all paths call `grantSubscriptionCredits` (idempotent per product+period).
+  Proven live via `verify-sub-grant.mjs` 7/7 (product `credit_quantity`→wallet,
+  per-period idempotent, zero-credit no-op, restored); `verify-credits.mjs` 13/13.
+- **Admin pause/suspend a post** (`03100af9`): new `suspended` status (migration
+  `20260715160000`) + Pause/Resume admin actions; auto-hidden from public/host-
+  browse/respond; guest owner sees "Paused" badge + notice. VERIFIED LIVE
+  (super-admin owns the demo post): pause→guest Paused + respond blocked→resume.
+- **Guest post-cap surfacing**: portal shows "N requests left today/this month"
+  by Post-a-Request (same `check_guest_post_quota` the create enforces). Live-verified.
+- **Harden sweep**: no LF-quote send bypasses the idempotent debit (all via
+  `sendQuoteAction`; revisions reuse quote id → no double charge); credit-table
+  RLS = read-own-only + service-role writes (append-only).
+
+**▶▶ THE REDESIGN (founder's 4 concerns) — PLAN WRITTEN, awaiting sign-off:**
+`docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md` (memory
+`project-dual-quote-system`). ONE "quote", THREE engines picked on step 1:
+**Accommodation** (calendar builder, soft-validate so a 60-guest wedding is still
+quotable), **Custom** (line items, no calendar — Experience/safari quotes),
+**Upload** (attach a finished PDF). Then a **quote-only account class** + a
+**Wielo Quotes subscription** (name TBD) for external non-host users, host
+priority, + admin block from the rest of Wielo. **Needs founder decisions D0–D6**
+(§9 of the plan: naming, MVP cut, account model, tier vs product_type, priority,
+block granularity) before building.
+
+---
+
+## ⭐ PRIOR ANCHOR (2026-07-15 · SAVE POINT `d889ed76`)
+
+**✅ DONE (`d889ed76`, verified live end-to-end):** the §3 credit **spend/block
 is now driven THROUGH THE UI**, plus a new **low-credit banner**. As test host Lerato:
 send at **0 credits is blocked** (quote stays `draft`, `sent_at` null, no
 `looking_for_responses` row, wallet unchanged, no debit ledger row); send on a funded

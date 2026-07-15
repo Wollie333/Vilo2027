@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-15 — Credits §3 (part 3): mandate complete + dual-quote-system plan.
+
+Closed the remaining Looking-For + Credits hardening items (founder: "finish everything, then plan"), then wrote
+the plan for the next redesign.
+- **Subscription grant — gap fixed + proven live.** The admin plan-activation paths (`adminUpdateSubscription`,
+  `setUserProduct`) wrote the subscription but never granted the plan's Wielo Credits — unlike the Paystack/PayPal/
+  free settle paths. Wired `grantSubscriptionCredits` into both immediate-activation branches (idempotent per
+  product+period; paylink still defers to its settle path). `verify-sub-grant.mjs` (new, 7/7) proves a product's
+  `credit_quantity` flows to the wallet, is idempotent within a period, tops up next period, and no-ops for a
+  zero-credit product; `verify-credits.mjs` extended with the per-period scenario (13/13). (`848a9957`)
+- **Admin pause/suspend a Looking-For post.** New `suspended` status (migration `20260715160000`) + Pause/Resume
+  admin actions — a neutral, reversible "take it offline", distinct from moderation flagging. Auto-hidden from the
+  public list, host browse and respond page (all gate on `status='active'`); the guest owner still sees it badged
+  "Paused" with a short explanation. **Verified live** (super-admin owns the demo post): pause → guest Paused +
+  respond blocked → resume → active.
+- **Guest post-cap surfacing.** The portal now shows the remaining post allowance ("N requests left today/this
+  month") beside Post a Request, from the same `check_guest_post_quota` the create action enforces.
+- **Harden sweep.** Confirmed no Looking-For quote reaches `sent` without the idempotent credit debit (all sends
+  route through `sendQuoteAction`; revisions reuse the quote id so they never double-charge); credit-table RLS is
+  read-own-only with service-role-only writes (append-only ledger). (`03100af9`)
+- **Plan written (no build):** `docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md` — quote types
+  (Accommodation / Custom / Upload) + soft validation + edit-to-negotiate + a standalone "Wielo Quotes" subscription
+  for external non-host users with admin block. Awaiting founder decisions D0–D6.
+
 ## 2026-07-15 — Credits §3 (part 2): UI spend/block verified live + low-credit banner.
 
 Founder mandate: harden + test the Looking-For + Wielo Credits surface to 100% MVP-ready. Founder note this session:
