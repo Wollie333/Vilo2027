@@ -28,10 +28,13 @@ quote_only account + scoped shell (verified live); (2) Credits page lists Wielo 
 to payments/ledger/staff/booking-edit (suspend re-enforced); (5) atomic guest-post quota RPC
 `record_guest_post_and_check` (migration 20260715240000). See memory `project-quote-system-hardening`.
 
-**⏳ STILL OPTIONAL (not blocking):** (3) self-serve quote-only→full-host UPGRADE (today the lock screen routes to
-"Message Wielo" = admin-driven — needs founder call on whether self-serve is wanted); (6) proactive low-credit
-notification (push/email; the respond-page banner exists); (7) `docs/lifecycles/quote-only-and-credits.md`;
-(8) guest-side custom/upload accept polish; defense-in-depth RLS restrictive backstop (app-layer covers today).
+**✅ ITEM 3 DONE** (`13bd4b28`): self-serve quote-only→full-host UPGRADE — `upgradeToFullHostAction` flips
+account_kind (NOT platform_access, so an admin block persists); `UpgradeToHostButton` on the lock screen + a
+persistent sidebar card. Verified live (flip → full shell, 0 locked tabs, admin notified).
+
+**⏳ STILL OPTIONAL (not blocking):** (6) proactive low-credit notification (push/email; respond-page banner exists);
+(7) `docs/lifecycles/quote-only-and-credits.md`; (8) guest-side custom/upload accept polish; defense-in-depth RLS
+restrictive backstop (app-layer covers today); live Paystack card run for the Wielo Quotes purchase (external).
 
 ---
 
