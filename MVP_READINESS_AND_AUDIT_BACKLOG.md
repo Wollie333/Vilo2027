@@ -128,8 +128,12 @@ the edge/branch cases, fix what's wrong, and record a `docs/lifecycles/<feature>
    single-quote mark-viewed. **Open gaps (founder call):** saved-search alert matcher +
    region-digest/expiry-notify drainers are unbuilt (crons populate queues, nothing
    drains them).
-3. **Coupons** — creation, validity windows, per-code/per-guest limits, stacking
-   with seasonal/specials/add-ons, server-side re-price, ledger + invoice lines.
+3. ~~**Coupons**~~ ✅ **AUDITED 2026-07-16** — `docs/lifecycles/coupons.md`. Full-matrix
+   pass: creation/validity/limits + stacking (stacks with seasonal/add-ons, NOT deals —
+   intentional) + server re-price all verified. **Fixed:** invoices never itemized the
+   coupon discount even though both renderers already read `line_items.discount_amount`
+   (migration `20260716130000` adds `discount_amount`+`coupon_code`; verified via ROLLBACK).
+   By-design edges (gate stub, anon per-guest cap, ZAR-only currency, no admin UI) documented.
 4. ~~**Specials (deals)**~~ ✅ **AUDITED 2026-07-13** — `docs/lifecycles/specials.md`.
    Verified live: server re-pricing (client never trusted), VAT-inclusive display
    (flat + per-night), sold-out enforcement (3 layers), window/min-max-night guards,
@@ -144,12 +148,15 @@ the edge/branch cases, fix what's wrong, and record a `docs/lifecycles/<feature>
 6. **Media manager** — as the **single source of truth** for the host's media bank
    (listing/room photos, website assets, brand assets): upload, reuse across
    surfaces, deletion safety, storage limits per plan.
-7. **Reports** — every KPI + chart re-derived (revenue, occupancy, channel mix,
-   savings, cash position, property performance, CSV/PDF exports).
-8. **Product feature gating** — `check_feature_permission` at UI **and** edge/server
-   layers for every gated feature × plan; confirm the pre-MVP short-circuit
-   (`AGENT_RULES §3.4`) is the only thing opening features, and map what each plan
-   really unlocks before pricing goes live.
+7. ~~**Reports**~~ ✅ **DONE 2026-07-15/16** (comprehensive both surfaces). Host: functional
+   filters, in-depth booking analytics, revenue breakdown, website traffic, region filter,
+   quote-only scoped report, wide PDF/XLSX exports. Admin: payment/VAT/take-rate/geography/
+   booking-status, retention & LTV, cohort retention/NRR, subscriber movement. Fixed a broken
+   `fetch_looking_for_stats` RPC. See CHANGELOG 2026-07-15/16.
+8. ~~**Product feature gating**~~ ✅ **AUDITED 2026-07-16** (clean). SSOT `hostHasFeature`
+   (fail-closed) + canonical `check_feature_permission` across 32 files; no hardcoded plan
+   logic. Open only via the pre-MVP switch (`PRE_MVP_FEATURES_OPEN`) + all-enabled
+   `plan_features` seed. To go paid: flip the switch + configure `plan_features` per plan.
 
 **Also owed (full guest/host/admin sweep):** website builder/CMS + published
 render parity (Principle #9), reviews chain (delay 5→60 min still pending),
