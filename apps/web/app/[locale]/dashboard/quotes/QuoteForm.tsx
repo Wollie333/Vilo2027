@@ -18,6 +18,7 @@ import {
   Send,
   Tag,
   Trash2,
+  TriangleAlert,
   User,
   X,
   type LucideIcon,
@@ -395,6 +396,12 @@ export function QuoteForm({
   const overCapacity = capacityLimit !== Infinity && partySize > capacityLimit;
   const capacityRemaining =
     capacityLimit === Infinity ? 999 : Math.max(0, capacityLimit - partySize);
+
+  // A Looking-For response is an OFFER, not a booking — so over-capacity is a soft
+  // warning here (the host may be pitching an overflow/multi-unit arrangement for a
+  // 60-guest wedding), not a hard block. Direct-booking quotes keep the hard block
+  // (a real booking must fit). D1 in LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.
+  const isLookingForResponse = !!initial?.lookingForPostId;
 
   // ── Returning-guest search ───────────────────────────────────────
   const [guestResults, setGuestResults] = useState<
@@ -823,7 +830,7 @@ export function QuoteForm({
       toast.error("Add a price before sending.");
       return false;
     }
-    if (overCapacity) {
+    if (overCapacity && !isLookingForResponse) {
       toast.error(
         `That's more guests than this sleeps (${capacityLimit}). Adults + children must fit.`,
       );
@@ -2568,6 +2575,18 @@ export function QuoteForm({
               </div>
 
               <div className="max-h-[64vh] overflow-y-auto bg-brand-light/50 p-4">
+                {overCapacity && isLookingForResponse && (
+                  <div className="mb-3 flex items-start gap-2.5 rounded-card border border-amber-300 bg-amber-50 p-3">
+                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                    <p className="text-[13px] text-amber-800">
+                      This is more guests ({partySize}) than{" "}
+                      {listing?.name ?? "your place"} usually sleeps (
+                      {capacityLimit}). You can still send this offer — just
+                      make sure your reply explains how you&apos;d host the
+                      group.
+                    </p>
+                  </div>
+                )}
                 <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
                   {/* hero */}
                   <div className="relative bg-brand-gradient-dark p-5 text-white">

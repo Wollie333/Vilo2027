@@ -204,11 +204,15 @@ Each phase ships independently and is verified in builder + live (Principle #9).
 - **D0 — Name: DEFERRED.** Use placeholder **"Wielo Quotes"** in code/UI copy;
   founder renames before launch (keep it a single constant to swap once).
 
+**LOCKED (D2, founder 2026-07-15):** **Quote-only account = a flag on `hosts`**
+(`hosts.account_kind in ('host','quote_only')`) — shared data substrate, fully
+separate SCOPED experience (own onboarding + dashboard shell; no listings/
+calendar/bookings/payments/website). Reuses the ~25 `host_id`-keyed tables
+(quotes, credits, subscriptions, inbox) untouched — a separate table would force
+re-plumbing the money core we just hardened. Can split into a real entity later
+(pre-MVP) if Wielo Quotes ever spins out. Rationale in `project-dual-quote-system`.
+
 **PROPOSED (defaults — founder to confirm/adjust):**
-- **D2 — Quote-only account = a flag on `hosts`.** Reuse `hosts.id` (credits +
-  quotes already key off it) with `hosts.account_kind in ('host','quote_only')`;
-  gate every accommodation/booking/website surface off for `quote_only`. Avoids a
-  parallel identity + duplicating the credits/quotes/inbox plumbing.
 - **D3 — Wielo Quotes = a membership TIER** (product_type `membership`), not a new
   product_type — rides the existing sub/credit/ledger/activation machinery
   (activation now grants credits on every path). A `quote_only` account holds this
