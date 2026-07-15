@@ -136,8 +136,12 @@ export const upsertProductAction = withAdminAudit<
       setup_fee_label: d.setupFeeLabel ?? null,
       setup_fee_affiliate_type: d.setupFeeAffiliateType,
       setup_fee_affiliate_value: d.setupFeeAffiliateValue,
-      credit_quantity: isCredits ? (d.creditQuantity ?? null) : null,
-      credit_purpose: isCredits ? d.creditPurpose : null,
+      // Credit grant: a wielo_credits package grants on purchase; a subscription
+      // (membership/service) grants this many per billing cycle. Both read
+      // products.credit_quantity — only a once-off `product` never grants.
+      credit_quantity:
+        isCredits || isSubLike ? (d.creditQuantity ?? null) : null,
+      credit_purpose: isCredits || isSubLike ? d.creditPurpose : null,
       bullets: d.bullets as never,
       slug,
       payment_methods: d.paymentMethods.length

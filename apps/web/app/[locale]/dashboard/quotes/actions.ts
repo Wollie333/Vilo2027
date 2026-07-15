@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getBrandName } from "@/lib/brand";
+import { spendQuoteCredit } from "@/lib/credits/wallet";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { formatMoney } from "@/lib/format";
 import { requireHost as getHostId } from "@/lib/host/current";
@@ -619,6 +620,21 @@ export async function sendQuoteAction(
   if (!current) return { ok: false, error: "Quote not found." };
   if (current.status !== "draft" && current.status !== "sent") {
     return { ok: false, error: "Only draft quotes can be sent." };
+  }
+
+  // Looking-For responses cost a quote-credit (founder: 1/quote, refunded on
+  // unaccepted expiry via a DB trigger). Debit BEFORE marking sent so we can
+  // block a host who's out of credits; idempotent per quote, so re-sending the
+  // same quote never double-charges. Direct (non-Looking-For) quotes are free.
+  if (current.looking_for_post_id && current.host_id) {
+    const spend = await spendQuoteCredit(supabase, current.host_id, quoteId);
+    if (!spend.ok) {
+      return {
+        ok: false,
+        error:
+          "You're out of quote credits. Top up from the credits menu to send this quote.",
+      };
+    }
   }
 
   const validUntil = new Date(Date.now() + validDays * 86_400_000);

@@ -2,7 +2,10 @@ import "server-only";
 
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
-import { grantCreditsForOrder } from "@/lib/credits/wallet";
+import {
+  grantCreditsForOrder,
+  grantSubscriptionCredits,
+} from "@/lib/credits/wallet";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { convertZarToUsd } from "@/lib/fx";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
@@ -773,6 +776,14 @@ async function activateMappedPlan(
   } else {
     await admin.from("subscriptions").insert({ host_id: host.id, ...patch });
   }
+
+  // Grant this plan's recurring credit allotment for the new period (idempotent
+  // per product+period, so activation + each renewal tops up exactly once).
+  await grantSubscriptionCredits(admin, {
+    hostId: host.id,
+    productId,
+    periodStart: patch.current_period_start,
+  });
 }
 
 export type ConfirmProductResult =

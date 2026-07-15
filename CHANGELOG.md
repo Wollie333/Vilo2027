@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-15 — §3 (part 1): Looking-For quotes SPEND a credit (subscription-granted, refunded on expiry).
+
+Founder decisions: subscription grants credits monthly + buy top-ups; only Looking-For responses cost a credit
+(1/quote, refunded on unaccepted expiry).
+- **Spend on send** — `sendQuoteAction` now debits 1 quote-credit for a Looking-For quote *before* marking it sent;
+  a host who's out of credits is **blocked** with "top up" messaging. Idempotent per quote (a re-send never
+  double-charges). `spendQuoteCredit` + `LOOKING_FOR_QUOTE_CREDIT_COST` in `lib/credits/wallet.ts`.
+- **Refund on unaccepted expiry** — DB trigger `refund_lf_quote_credit_on_expire` (migration `20260715150004`)
+  refunds the credit when a sent→expired Looking-For quote lapses, wherever the flip happens (incl. the hourly
+  expire-quotes pg_cron). Idempotent; only refunds a quote that was actually debited. **Verified live** (debit 50→49,
+  expire→refund 49→50, ledger shows debit+refund).
+- **Subscription grants credits** — a membership/service product now carries a per-cycle **credit grant**
+  (admin ProductEditor field; `products.credit_quantity/credit_purpose` reused). `activateMappedPlan` + the Paystack
+  webhook grant the allotment on activation/renewal via `grantSubscriptionCredits` (idempotent per product+period).
+- **Probe** `apps/web/scripts/verify-credits.mjs` — exercises the `apply_wielo_credit` RPC end-to-end
+  (grant/idempotent · debit/idempotent · INSUFFICIENT guard · refund/idempotent · balance-neutral). **9/9 PASS.**
+- ⏳ REMAINING in §3 (next session): drive the debit + block **through the send UI**, verify the **subscription
+  grant live**, then build **admin suspend/pause** a post + **guest active-post cap** surfacing. Consider a
+  low-credit banner on the respond page. Then §1 host record, §7 email-admin.
+
 ## 2026-07-15 — Decline-reason capture: guests tell the host WHY a quote was declined.
 
 - **Decline modal** (portal + public-token paths) — a reason **dropdown** (shared `DECLINE_REASONS`) + an optional

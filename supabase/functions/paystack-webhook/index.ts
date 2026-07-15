@@ -522,6 +522,21 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
             .from("subscriptions")
             .insert({ host_id: host.id, ...patch });
         }
+
+        // Grant this plan's recurring credit allotment for the period (idempotent
+        // per product+period via apply_wielo_credit). Mirrors activateMappedPlan.
+        const grantQty = Number(product.credit_quantity ?? 0);
+        if (grantQty > 0) {
+          await supabase.rpc("apply_wielo_credit", {
+            p_host_id: host.id,
+            p_purpose: (product.credit_purpose as string) || "quote",
+            p_delta: grantQty,
+            p_kind: "grant",
+            p_reason: `Plan credits · ${product.name ?? "subscription"}`,
+            p_ref_type: "subscription",
+            p_ref_id: `${order.product_id}:${now.slice(0, 10)}`,
+          });
+        }
       }
     }
   }

@@ -268,12 +268,16 @@ export function ProductEditor({
               className="font-mono uppercase"
             />
           </Field>
-          {isCredits ? (
+          {isCredits || isSubLike ? (
             <>
-              <Field label="Credits granted">
+              <Field
+                label={
+                  isCredits ? "Credits granted" : "Credit grant (per cycle)"
+                }
+              >
                 <Input
                   type="number"
-                  min={1}
+                  min={0}
                   value={f.creditQuantity ?? 0}
                   onChange={(e) =>
                     set("creditQuantity", Number(e.target.value) || 0)

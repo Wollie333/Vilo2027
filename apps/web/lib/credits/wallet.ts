@@ -11,6 +11,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type CreditPurpose = "quote" | "ai" | (string & {});
 
+// Credits a host spends to send one Looking-For quote. Founder: 1 per quote,
+// refunded if the quote expires unaccepted (the refund is a DB trigger).
+export const LOOKING_FOR_QUOTE_CREDIT_COST = 1;
+
 export type CreditWallet = {
   purpose: string;
   balance: number;
@@ -183,5 +187,70 @@ export async function grantCreditsForOrder(
     );
   } catch (err) {
     console.error("[credits] grantCreditsForOrder failed", err);
+  }
+}
+
+/**
+ * Spend the quote-credit cost for sending ONE Looking-For quote. Idempotent per
+ * quote (ref_type='quote', ref_id=quoteId, kind='debit') so a re-send never
+ * double-charges. Returns { ok:false, error:'INSUFFICIENT_CREDITS' } when the
+ * host's wallet can't cover it — the caller blocks the send and prompts a top-up.
+ * The matching refund on unaccepted expiry is a DB trigger.
+ */
+export async function spendQuoteCredit(
+  admin: Client,
+  hostId: string,
+  quoteId: string,
+  purpose: CreditPurpose = "quote",
+): Promise<ApplyCreditResult> {
+  return applyCredit(
+    {
+      hostId,
+      purpose,
+      delta: -LOOKING_FOR_QUOTE_CREDIT_COST,
+      kind: "debit",
+      reason: "Looking-For quote sent",
+      refType: "quote",
+      refId: quoteId,
+    },
+    admin,
+  );
+}
+
+/**
+ * Grant the recurring credit allotment a subscription product includes, for the
+ * current billing period. Idempotent per (product, period start) so activation +
+ * each renewal grants exactly once. No-op unless the product carries a
+ * credit_quantity. Best-effort — never throws into the settle path.
+ */
+export async function grantSubscriptionCredits(
+  admin: Client,
+  input: { hostId: string; productId: string; periodStart: string },
+): Promise<void> {
+  try {
+    const { data: product } = await admin
+      .from("products")
+      .select("credit_quantity, credit_purpose, name")
+      .eq("id", input.productId)
+      .maybeSingle();
+    const qty = Number(product?.credit_quantity ?? 0);
+    if (qty <= 0) return;
+    // One grant per billing period — the period start makes the ref unique per
+    // cycle so renewals top up again.
+    const periodKey = input.periodStart.slice(0, 10);
+    await applyCredit(
+      {
+        hostId: input.hostId,
+        purpose: (product?.credit_purpose as string) || "quote",
+        delta: qty,
+        kind: "grant",
+        reason: `Plan credits · ${product?.name ?? "subscription"}`,
+        refType: "subscription",
+        refId: `${input.productId}:${periodKey}`,
+      },
+      admin,
+    );
+  } catch (err) {
+    console.error("[credits] grantSubscriptionCredits failed", err);
   }
 }
