@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-07-15 — Website traffic stats added to host reporting.
+
+Founder asked for the website stats in the reporting. Added a "Website traffic" section to `dashboard/reports` that
+surfaces the first-party, cookieless site analytics (previously only on the Website → Overview tab): visitors,
+pageviews, booking clicks, click-through + pages/visit (each with vs-previous-window deltas), a visitors/pageviews
+trend chart, top pages, traffic sources, and a desktop/mobile split — rolled up across every site a host owns via a
+new `loadWebsiteAnalyticsForWebsites` helper (reuses the existing aggregator). Hidden for hosts with no website; clean
+zero-state when a site has no visits yet. Verified live in both the populated and empty states (`9bf5479c`).
+
+---
+
 ## 2026-07-15 — Reporting enhancement follow-up metrics (host revenue breakdown + admin GMV/status).
 
 Continued the reporting enhancement with the follow-up new-metrics that were surfaced as optional. All verified live;
