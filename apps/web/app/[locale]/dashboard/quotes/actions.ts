@@ -181,6 +181,51 @@ function depositFor(
   return { deposit: total, balance: 0 }; // full
 }
 
+// Upload a finished quote FILE for an 'upload' quote (built in a 3rd-party tool).
+// Stores it in the PRIVATE quote-uploads bucket keyed by host; returns the object
+// path + original name to carry on the quote. The file is served later through a
+// server-signed URL (never public). Host-only; validates type + size.
+const QUOTE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const QUOTE_UPLOAD_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+export async function uploadQuoteAttachmentAction(
+  formData: FormData,
+): Promise<ActionResult<{ path: string; name: string }>> {
+  const host = await getHostId();
+  if (!host.ok) return host;
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "Choose a file to upload." };
+  }
+  if (file.size > QUOTE_UPLOAD_MAX_BYTES) {
+    return { ok: false, error: "File too large — keep it under 10 MB." };
+  }
+  if (file.type && !QUOTE_UPLOAD_TYPES.has(file.type)) {
+    return { ok: false, error: "Upload a PDF, Word doc, or image." };
+  }
+
+  const safeName = (file.name || "quote")
+    .replace(/[^\w.\- ]+/g, "_")
+    .slice(-120);
+  const path = `${host.hostId}/${crypto.randomUUID()}-${safeName}`;
+  const admin = createAdminClient();
+  const { error } = await admin.storage
+    .from("quote-uploads")
+    .upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (error) {
+    console.error("[quotes] attachment upload failed", error);
+    return { ok: false, error: "Could not upload the file. Try again." };
+  }
+  return { ok: true, data: { path, name: file.name || safeName } };
+}
+
 export async function createQuoteAction(
   input: CreateQuoteInput,
 ): Promise<ActionResult<{ id: string; quoteNumber: string }>> {
@@ -271,6 +316,14 @@ export async function createQuoteAction(
       quote_type: parsed.data.quote_type,
       property_id: isAccommodation ? (parsed.data.property_id ?? null) : null,
       title: parsed.data.title || null,
+      attachment_path:
+        parsed.data.quote_type === "upload"
+          ? parsed.data.attachment_path || null
+          : null,
+      attachment_name:
+        parsed.data.quote_type === "upload"
+          ? parsed.data.attachment_name || null
+          : null,
       quote_number: numberResult as unknown as string,
       guest_name: parsed.data.guest_name,
       guest_email: parsed.data.guest_email,
@@ -425,6 +478,14 @@ export async function updateQuoteAction(
     .update({
       property_id: isAccommodation ? (parsed.data.property_id ?? null) : null,
       title: parsed.data.title || null,
+      attachment_path:
+        parsed.data.quote_type === "upload"
+          ? parsed.data.attachment_path || null
+          : null,
+      attachment_name:
+        parsed.data.quote_type === "upload"
+          ? parsed.data.attachment_name || null
+          : null,
       guest_name: parsed.data.guest_name,
       guest_email: parsed.data.guest_email,
       guest_phone: parsed.data.guest_phone || null,

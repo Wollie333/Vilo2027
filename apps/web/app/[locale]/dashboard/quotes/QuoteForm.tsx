@@ -12,6 +12,7 @@ import {
   Eye,
   ListPlus,
   Lock,
+  Paperclip,
   Pencil,
   Plus,
   Search,
@@ -53,6 +54,7 @@ import {
   searchGuestsAction,
   sendQuoteAction,
   updateQuoteAction,
+  uploadQuoteAttachmentAction,
 } from "./actions";
 
 export type QuoteFormRoom = {
@@ -110,6 +112,9 @@ export type QuoteFormInitial = {
   quoteType?: "accommodation" | "custom" | "upload";
   /** Headline for a custom/upload quote (no listing name to fall back on). */
   title?: string;
+  /** Uploaded-quote file (quote_type = 'upload'). */
+  attachmentPath?: string;
+  attachmentName?: string;
   listingId?: string;
   guestName?: string;
   guestEmail?: string;
@@ -230,13 +235,33 @@ export function QuoteForm({
   // effect skip that commit so a restored hand-set price isn't re-priced over.
   const restoringRef = useRef(false);
 
-  // Quote type — accommodation (listing + calendar) vs custom (line items, no
-  // calendar). 'upload' comes in a later phase. Drives which sections render.
-  const [quoteType, setQuoteType] = useState<"accommodation" | "custom">(
-    initial?.quoteType === "custom" ? "custom" : "accommodation",
+  // Quote type — accommodation (listing + calendar) vs a "manual" quote with no
+  // calendar: built here (custom) or an uploaded file (upload). isCustomQuote =
+  // either manual mode (both hide listing/dates + use a single total).
+  const [quoteType, setQuoteType] = useState<
+    "accommodation" | "custom" | "upload"
+  >(
+    initial?.quoteType === "custom"
+      ? "custom"
+      : initial?.quoteType === "upload"
+        ? "upload"
+        : "accommodation",
   );
-  const isCustomQuote = quoteType === "custom";
+  const isCustomQuote = quoteType === "custom" || quoteType === "upload";
+  const isUploadQuote = quoteType === "upload";
   const [customTitle, setCustomTitle] = useState(initial?.title ?? "");
+  const [attachment, setAttachment] = useState<{
+    path: string;
+    name: string;
+  } | null>(
+    initial?.attachmentPath
+      ? {
+          path: initial.attachmentPath,
+          name: initial.attachmentName ?? "Quote file",
+        }
+      : null,
+  );
+  const [uploading, setUploading] = useState(false);
 
   const [listingId, setListingId] = useState(
     initial?.listingId ?? listings[0]?.id ?? "",
@@ -715,11 +740,35 @@ export function QuoteForm({
     setPriceMode(mode);
   }
 
+  async function handleAttachmentUpload(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await uploadQuoteAttachmentAction(fd);
+      if (!r.ok || !r.data) {
+        toast.error(r.ok ? "Upload failed." : r.error);
+        return;
+      }
+      const uploaded = r.data;
+      setAttachment(uploaded);
+      // Seed the title from the filename if the host hasn't set one.
+      if (!customTitle.trim()) {
+        setCustomTitle(uploaded.name.replace(/\.[^.]+$/, "").slice(0, 200));
+      }
+      toast.success("File uploaded");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function buildInput() {
     if (priceMode === "single") {
       return {
         quote_type: quoteType,
         title: isCustomQuote ? customTitle.trim() : undefined,
+        attachment_path: isUploadQuote ? (attachment?.path ?? "") : undefined,
+        attachment_name: isUploadQuote ? (attachment?.name ?? "") : undefined,
         property_id: isCustomQuote ? undefined : listingId,
         guest_name: guestName.trim(),
         guest_email: guestEmail.trim(),
@@ -830,9 +879,13 @@ export function QuoteForm({
       return false;
     }
     if (isCustomQuote) {
-      // Custom quotes have no listing/calendar — just a title + a price.
+      // Custom/upload quotes have no listing/calendar — just a title + a price.
       if (!customTitle.trim()) {
         toast.error("Give this quote a short title.");
+        return false;
+      }
+      if (isUploadQuote && !attachment) {
+        toast.error("Upload the quote file first.");
         return false;
       }
     } else {
@@ -1018,7 +1071,10 @@ export function QuoteForm({
   const co = fmtDayShort(checkOut);
   const firstName = guestName.trim().split(/\s+/)[0] || "the guest";
   const step1Done = isCustomQuote
-    ? !!customTitle.trim() && !!guestName && !!guestEmail
+    ? !!customTitle.trim() &&
+      !!guestName &&
+      !!guestEmail &&
+      (!isUploadQuote || !!attachment)
     : !!listingId && datesValid && !!guestName && !!guestEmail;
 
   // ── Auto-save drafts (page variant only) ─────────────────────────
@@ -1240,7 +1296,7 @@ export function QuoteForm({
                       {
                         v: "custom" as const,
                         t: "Custom quote",
-                        d: "Line items, no calendar (e.g. an experience)",
+                        d: "Build here or upload a PDF — no calendar",
                       },
                     ] as const
                   ).map((o) => (
@@ -1249,7 +1305,7 @@ export function QuoteForm({
                       type="button"
                       onClick={() => setQuoteType(o.v)}
                       className={`rounded-[12px] border p-3 text-left transition ${
-                        quoteType === o.v
+                        (o.v === "custom" ? isCustomQuote : quoteType === o.v)
                           ? "border-brand-primary bg-brand-accent/40 ring-1 ring-brand-primary"
                           : "border-brand-line bg-white hover:border-brand-primary/40"
                       }`}
@@ -1266,6 +1322,24 @@ export function QuoteForm({
               </div>
             )}
 
+            {/* Manual quote — build it here (default) or upload a finished PDF.
+                Only switchable on a new quote. */}
+            {isCustomQuote && !initial?.id && (
+              <div className="mt-5">
+                <FieldLabel>How do you want to quote?</FieldLabel>
+                <Seg
+                  value={isUploadQuote ? "upload" : "build"}
+                  onChange={(v) =>
+                    setQuoteType(v === "upload" ? "upload" : "custom")
+                  }
+                  options={[
+                    { value: "build", label: "Build it here" },
+                    { value: "upload", label: "Upload a PDF" },
+                  ]}
+                />
+              </div>
+            )}
+
             {/* Custom-quote headline (no listing name to fall back on). */}
             {isCustomQuote && (
               <div className="mt-5">
@@ -1275,6 +1349,50 @@ export function QuoteForm({
                   onChange={(e) => setCustomTitle(e.target.value)}
                   placeholder="e.g. Sunset safari drive for 4"
                 />
+              </div>
+            )}
+
+            {/* Uploaded quote file. */}
+            {isUploadQuote && (
+              <div className="mt-5">
+                <FieldLabel>Quote file *</FieldLabel>
+                {attachment ? (
+                  <div className="flex items-center justify-between gap-3 rounded-[10px] border border-brand-line bg-brand-light/40 px-3 py-2.5">
+                    <span className="flex min-w-0 items-center gap-2 text-[13px] text-brand-ink">
+                      <Paperclip className="h-4 w-4 shrink-0 text-brand-primary" />
+                      <span className="truncate">{attachment.name}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAttachment(null)}
+                      className="shrink-0 text-[12px] font-semibold text-brand-mute hover:text-status-cancelled"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-dashed border-brand-line bg-white px-3 py-4 text-[13px] font-medium text-brand-mute transition hover:border-brand-primary/50 hover:text-brand-ink">
+                    <Paperclip className="h-4 w-4" />
+                    {uploading
+                      ? "Uploading…"
+                      : "Choose a PDF, Word doc or image"}
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void handleAttachmentUpload(f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+                <p className="mt-1.5 text-[11.5px] text-brand-mute">
+                  The guest downloads this file. Set the total below so Wielo
+                  can track the quote.
+                </p>
               </div>
             )}
 

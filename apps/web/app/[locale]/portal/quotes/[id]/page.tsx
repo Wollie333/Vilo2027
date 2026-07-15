@@ -46,7 +46,7 @@ export default async function PortalQuotePage({
     .select(
       `
       id, quote_number, status, guest_id, guest_email,
-      guest_name, quote_type, title,
+      guest_name, quote_type, title, attachment_name,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until, conversation_id,
@@ -104,7 +104,15 @@ export default async function PortalQuotePage({
     booking = b ?? null;
   }
   const needsPayment = !!booking && booking.payment_status !== "paid";
-  const pdfHref = `/q/${quote.id}/${quote.accept_token}/pdf`;
+  // Upload quotes hand back the host's actual file; every other type renders a
+  // generated PDF.
+  const isUploadQuote = quote.quote_type === "upload";
+  const downloadHref = isUploadQuote
+    ? `/q/${quote.id}/${quote.accept_token}/file`
+    : `/q/${quote.id}/${quote.accept_token}/pdf`;
+  const downloadLabel = isUploadQuote
+    ? (quote.attachment_name ?? "Download quote")
+    : "Download PDF";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -126,12 +134,13 @@ export default async function PortalQuotePage({
           Prepared for {quote.guest_name}
         </p>
         <a
-          href={pdfHref}
+          href={downloadHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+          className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
         >
-          <Download className="h-3.5 w-3.5" /> Download PDF
+          <Download className="h-3.5 w-3.5 shrink-0" />{" "}
+          <span className="truncate">{downloadLabel}</span>
         </a>
       </header>
 

@@ -8165,18 +8165,21 @@ export type Database = {
         Row: {
           device: string | null
           id: string
+          kind: string
           opened_at: string
           quote_id: string
         }
         Insert: {
           device?: string | null
           id?: string
+          kind?: string
           opened_at?: string
           quote_id: string
         }
         Update: {
           device?: string | null
           id?: string
+          kind?: string
           opened_at?: string
           quote_id?: string
         }
@@ -8195,6 +8198,8 @@ export type Database = {
           accept_token: string
           accepted_at: string | null
           addons_total: number
+          attachment_name: string | null
+          attachment_path: string | null
           balance_amount: number
           balance_due_days: number
           base_amount: number
@@ -8246,6 +8251,8 @@ export type Database = {
           accept_token?: string
           accepted_at?: string | null
           addons_total?: number
+          attachment_name?: string | null
+          attachment_path?: string | null
           balance_amount?: number
           balance_due_days?: number
           base_amount: number
@@ -8297,6 +8304,8 @@ export type Database = {
           accept_token?: string
           accepted_at?: string | null
           addons_total?: number
+          attachment_name?: string | null
+          attachment_path?: string | null
           balance_amount?: number
           balance_due_days?: number
           base_amount?: number

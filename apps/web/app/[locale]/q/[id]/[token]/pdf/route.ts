@@ -6,6 +6,7 @@ import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { type QuoteBanking, type QuoteBusiness } from "@/lib/pdf/QuoteDocument";
 import { hostLogoDataUri } from "@/lib/pdf/logo";
 import { renderQuotePdf } from "@/lib/pdf/render";
+import { recordQuoteDownload } from "@/lib/quotes/tracking";
 import { effectiveVatRate, vatOf } from "@/lib/pricing/vat";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -274,6 +275,8 @@ export async function GET(
       : null,
     brandName: await getBrandName(),
   });
+
+  await recordQuoteDownload(admin, params.id, headers().get("user-agent"));
 
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,

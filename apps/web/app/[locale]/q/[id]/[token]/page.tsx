@@ -65,6 +65,7 @@ export default async function PublicQuotePage({
     .select(
       `
       id, quote_number, status, accept_token, host_id, quote_type, title,
+      attachment_name,
       guest_name, guest_email, guest_phone,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
@@ -235,27 +236,43 @@ export default async function PublicQuotePage({
       footerTitle={quote.notes ? "A note from your host" : undefined}
       footerNote={quote.notes ?? undefined}
       belowPaper={
-        expired ? (
-          <div className="rounded-card border border-status-cancelled/30 bg-status-cancelled/5 p-5 text-center shadow-card">
-            <p className="text-sm font-medium text-status-cancelled">
-              This quote expired on {fmtDate(quote.valid_until)}.
-            </p>
-            <p className="mt-1 text-xs text-brand-mute">
-              Reach out to the host for an updated quote.
-            </p>
-          </div>
-        ) : decided ? (
-          <div className="rounded-card border border-brand-line bg-white p-5 text-center shadow-card">
-            <p className="text-sm font-medium text-brand-ink">
-              You&rsquo;ve already responded to this quote.
-            </p>
-            <p className="mt-1 text-xs text-brand-mute">
-              Status: {quote.status}
-            </p>
-          </div>
-        ) : (
-          <QuoteResponseActions quoteId={quote.id} token={quote.accept_token} />
-        )
+        <>
+          {isCustomQuote && quote.quote_type === "upload" ? (
+            <a
+              href={`/q/${quote.id}/${quote.accept_token}/file`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-4 flex items-center justify-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+            >
+              Download the quote
+              {quote.attachment_name ? ` · ${quote.attachment_name}` : ""}
+            </a>
+          ) : null}
+          {expired ? (
+            <div className="rounded-card border border-status-cancelled/30 bg-status-cancelled/5 p-5 text-center shadow-card">
+              <p className="text-sm font-medium text-status-cancelled">
+                This quote expired on {fmtDate(quote.valid_until)}.
+              </p>
+              <p className="mt-1 text-xs text-brand-mute">
+                Reach out to the host for an updated quote.
+              </p>
+            </div>
+          ) : decided ? (
+            <div className="rounded-card border border-brand-line bg-white p-5 text-center shadow-card">
+              <p className="text-sm font-medium text-brand-ink">
+                You&rsquo;ve already responded to this quote.
+              </p>
+              <p className="mt-1 text-xs text-brand-mute">
+                Status: {quote.status}
+              </p>
+            </div>
+          ) : (
+            <QuoteResponseActions
+              quoteId={quote.id}
+              token={quote.accept_token}
+            />
+          )}
+        </>
       }
     />
   );

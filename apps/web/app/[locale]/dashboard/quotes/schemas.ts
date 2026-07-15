@@ -42,6 +42,11 @@ export const quoteOrBookingBaseSchema = z
     // Headline for custom/upload quotes (no listing name to fall back on).
     title: z.string().trim().max(200).optional().or(z.literal("")),
 
+    // Uploaded-quote file (quote_type = 'upload') — path in the private
+    // quote-uploads bucket + original filename.
+    attachment_path: z.string().max(500).optional().or(z.literal("")),
+    attachment_name: z.string().max(200).optional().or(z.literal("")),
+
     guest_name: z.string().trim().min(1, "Guest name is required.").max(200),
     guest_email: z.string().trim().email("Must be a valid email."),
     guest_phone: z.string().trim().max(40).optional().or(z.literal("")),
@@ -106,6 +111,13 @@ export const quoteOrBookingBaseSchema = z
   // Accommodation quotes need a listing + valid dates + (for per-room) rooms.
   // Custom/upload quotes don't — they're line-item / file offers with no calendar.
   .superRefine((v, ctx) => {
+    if (v.quote_type === "upload" && !v.attachment_path) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Upload the quote file first.",
+        path: ["attachment_path"],
+      });
+    }
     if (v.quote_type !== "accommodation") return;
     if (!v.property_id) {
       ctx.addIssue({

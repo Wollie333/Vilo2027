@@ -148,6 +148,7 @@ export default async function QuoteDetailPage({
     { data: roomLines },
     { data: versions },
     viewEventsRes,
+    downloadEventsRes,
     { data: noteRows },
   ] = await Promise.all([
     supabase
@@ -172,6 +173,14 @@ export default async function QuoteDetailPage({
       .from("quote_view_events")
       .select("id, device, opened_at", { count: "exact" })
       .eq("quote_id", params.id)
+      .eq("kind", "view")
+      .order("opened_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("quote_view_events")
+      .select("id, device, opened_at", { count: "exact" })
+      .eq("quote_id", params.id)
+      .eq("kind", "download")
       .order("opened_at", { ascending: false })
       .limit(20),
     supabase
@@ -251,6 +260,11 @@ export default async function QuoteDetailPage({
   const viewEvents = viewEventsRes.data ?? [];
   const views = viewEventsRes.count ?? 0;
 
+  // Download tracking — the guest downloaded the PDF / uploaded file.
+  const downloadEvents = downloadEventsRes.data ?? [];
+  const downloads = downloadEventsRes.count ?? 0;
+  const lastDownloaded = downloadEvents.length > 0 ? downloadEvents[0] : null;
+
   const nights = nightsBetween(quote.check_in, quote.check_out);
   const lastViewed = viewEvents.length > 0 ? viewEvents[0] : null;
 
@@ -319,6 +333,15 @@ export default async function QuoteDetailPage({
       kind: "View",
       tone: "amber",
       meta: `${views - i}${ordinal(views - i)} view${v.device ? ` · ${v.device}` : ""}`,
+    });
+  });
+  (downloadEvents ?? []).forEach((d, i) => {
+    activity.push({
+      at: d.opened_at,
+      title: `${quote.guest_name} downloaded the quote`,
+      kind: "View",
+      tone: "violet",
+      meta: `${downloads - i}${ordinal(downloads - i)} download${d.device ? ` · ${d.device}` : ""}`,
     });
   });
   if (quote.accepted_at)
@@ -553,6 +576,19 @@ export default async function QuoteDetailPage({
                     ? ` — last seen ${fmtDateTime(lastViewed.opened_at)}`
                     : ""}
                   . A friendly nudge often closes it.
+                </div>
+              </div>
+            ) : null}
+            {downloads > 0 ? (
+              <div className="mx-6 mb-6 mt-0 flex items-center gap-3 rounded-[12px] border border-brand-line bg-white px-4 py-3">
+                <Download className="h-4 w-4 shrink-0 text-brand-primary" />
+                <div className="flex-1 text-[12.5px] text-brand-ink">
+                  {quote.guest_name} downloaded this quote{" "}
+                  {downloads === 1 ? "once" : `${downloads} times`}
+                  {lastDownloaded
+                    ? ` — last ${fmtDateTime(lastDownloaded.opened_at)}`
+                    : ""}
+                  .
                 </div>
               </div>
             ) : null}
