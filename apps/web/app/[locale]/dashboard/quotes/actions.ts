@@ -416,17 +416,24 @@ export async function updateQuoteAction(
     parsed.data.deposit_pct,
   );
 
+  // Custom/upload quotes carry no listing/dates and a NOT-NULL scope keeps its
+  // harmless default — mirror createQuoteAction so an edit doesn't null the DB.
+  const isAccommodation = parsed.data.quote_type === "accommodation";
+
   const { error: updErr } = await supabase
     .from("quotes")
     .update({
-      property_id: parsed.data.property_id,
+      property_id: isAccommodation ? (parsed.data.property_id ?? null) : null,
+      title: parsed.data.title || null,
       guest_name: parsed.data.guest_name,
       guest_email: parsed.data.guest_email,
       guest_phone: parsed.data.guest_phone || null,
-      check_in: parsed.data.check_in,
-      check_out: parsed.data.check_out,
+      check_in: isAccommodation ? (parsed.data.check_in ?? null) : null,
+      check_out: isAccommodation ? (parsed.data.check_out ?? null) : null,
       headcount: parsed.data.headcount,
-      scope: parsed.data.scope,
+      scope: isAccommodation
+        ? (parsed.data.scope ?? "whole_listing")
+        : "whole_listing",
       base_amount: parsed.data.base_amount,
       cleaning_fee: parsed.data.cleaning_fee,
       addons_total: addonsTotal,
