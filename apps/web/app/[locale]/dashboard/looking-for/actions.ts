@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { stripHtml } from "@/lib/sanitiseHtml";
 import { revalidatePath } from "next/cache";
 
 type FetchPostsInput = {
@@ -138,7 +139,7 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
     return {
       id: row.id,
       title: row.title,
-      description: row.description,
+      description: row.description ? stripHtml(row.description) : null,
       category: row.category,
       check_in_date: row.check_in_date,
       check_out_date: row.check_out_date,

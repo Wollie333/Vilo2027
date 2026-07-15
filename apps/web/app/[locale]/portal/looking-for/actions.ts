@@ -5,6 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { guestCan } from "@/lib/guests/permissions";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { notifyMatchingAlerts } from "@/lib/looking-for/matchAlerts";
+import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { revalidatePath } from "next/cache";
 
 const REQUEST_IMAGE_BUCKET = "looking-for-images";
@@ -139,7 +140,9 @@ export async function createRequestAction(input: CreateRequestInput) {
     .insert({
       guest_id: input.guest_id,
       title: input.title,
-      description: input.description || null,
+      description: input.description
+        ? sanitiseListingHtml(input.description)
+        : null,
       category: input.category,
       check_in_date: input.check_in_date || null,
       check_out_date: input.check_out_date || null,
@@ -230,7 +233,9 @@ export async function updateRequestAction(
     .from("looking_for_posts")
     .update({
       title: input.title,
-      description: input.description || null,
+      description: input.description
+        ? sanitiseListingHtml(input.description)
+        : null,
       category: input.category,
       check_in_date: input.check_in_date || null,
       check_out_date: input.check_out_date || null,

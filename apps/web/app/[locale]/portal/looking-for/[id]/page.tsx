@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import { PostActions } from "./_components/PostActions";
 import { markQuotesViewedAction } from "../actions";
+import { RequestDetailsHtml } from "@/components/looking-for/RequestDetailsHtml";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -184,7 +185,7 @@ export default async function PostDetailPage({ params }: Props) {
           </div>
 
           {post.description && (
-            <p className="mt-3 text-sm text-brand-mute">{post.description}</p>
+            <RequestDetailsHtml html={post.description} className="mt-3" />
           )}
         </div>
 

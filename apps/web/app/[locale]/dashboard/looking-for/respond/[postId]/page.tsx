@@ -5,6 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import { stripHtml } from "@/lib/sanitiseHtml";
 import { loadQuoteFormListings } from "../../../quotes/_listings";
 import { LookingForLocked } from "../../_components/LookingForLocked";
 import { RespondFormWrapper } from "../../_components/RespondFormWrapper";
@@ -270,7 +271,7 @@ export default async function RespondToPostPage({ params }: Props) {
           },
           headcount:
             (post.adults ?? 2) + (post.children ?? 0) + (post.infants ?? 0),
-          notes: post.description ?? "",
+          notes: post.description ? stripHtml(post.description) : "",
           lookingForPostId: post.id,
         }}
         templates={(templates ?? []).map((t) => ({

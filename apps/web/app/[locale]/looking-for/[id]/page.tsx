@@ -16,6 +16,8 @@ import {
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
+import { stripHtml } from "@/lib/sanitiseHtml";
+import { RequestDetailsHtml } from "@/components/looking-for/RequestDetailsHtml";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
@@ -60,9 +62,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const description = post.description
-    ? post.description.slice(0, 155) +
-      (post.description.length > 155 ? "..." : "")
+  const descText = post.description ? stripHtml(post.description) : "";
+  const description = descText
+    ? descText.slice(0, 155) + (descText.length > 155 ? "..." : "")
     : `Looking for ${post.category}${post.location_region ? ` in ${post.location_region}` : ""}${post.adults ? ` for ${post.adults} guests` : ""}`;
 
   return {
@@ -303,9 +305,10 @@ export default async function PublicPostDetailPage({ params }: Props) {
                   <h2 className="mb-2 text-sm font-medium text-brand-mute">
                     Additional Details
                   </h2>
-                  <p className="whitespace-pre-wrap text-brand-ink">
-                    {post.description}
-                  </p>
+                  <RequestDetailsHtml
+                    html={post.description}
+                    className="text-brand-ink"
+                  />
                 </div>
               )}
 

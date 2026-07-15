@@ -26,8 +26,8 @@ import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import {
   Select,
   SelectContent,
@@ -660,16 +660,14 @@ export function RequestForm({
                   ) : null}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Details (optional)</Label>
-                  <Textarea
-                    id="description"
-                    rows={4}
-                    placeholder="Any specific requirements, preferences, or questions for hosts…"
+                  <Label>Details (optional)</Label>
+                  <RichTextEditor
                     value={description}
-                    onChange={(e) => {
-                      setDescription(e.target.value);
+                    onChange={(html) => {
+                      setDescription(html);
                       touch();
                     }}
+                    placeholder="Add headings, bullet points and detail — what you need, must-haves, the occasion…"
                   />
                 </div>
                 <div className="space-y-2 sm:max-w-xs">

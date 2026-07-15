@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
+import { stripHtml } from "@/lib/sanitiseHtml";
 
 import { DirectoryFilters } from "./_components/DirectoryFilters";
 import { QuoteButton } from "./_components/QuoteButton";
@@ -306,7 +307,7 @@ export default async function LookingForDirectoryPage({ searchParams }: Props) {
 
                     {post.description && (
                       <p className="mt-3 line-clamp-2 text-sm text-brand-mute">
-                        &ldquo;{post.description}&rdquo;
+                        &ldquo;{stripHtml(post.description)}&rdquo;
                       </p>
                     )}
                   </div>
