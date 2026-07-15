@@ -21,7 +21,7 @@ export type CatalogProduct = {
   billingCycle: string | null;
   trialDays: number;
   slug: string | null;
-  /** membership | service (both subscription-like). */
+  /** membership | service | product | wielo_credits. */
   productType: string;
   /** Feature tier this product grants (plans.key); falls back to slug. */
   planKey: string | null;
@@ -31,6 +31,9 @@ export type CatalogProduct = {
   isFree: boolean;
   bullets: string[];
   paymentMethods: string[];
+  /** For a wielo_credits package: how many credits it grants + the wallet. */
+  creditQuantity: number | null;
+  creditPurpose: string | null;
 };
 
 function toBullets(raw: unknown): string[] {
@@ -47,7 +50,7 @@ async function load(
   let q = db
     .from("products")
     .select(
-      "id, name, description, product_type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods",
+      "id, name, description, product_type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods, credit_quantity, credit_purpose",
     )
     .in("product_type", types)
     .eq("is_active", true);
@@ -73,6 +76,9 @@ async function load(
     paymentMethods: Array.isArray(p.payment_methods)
       ? (p.payment_methods as string[])
       : ["paystack"],
+    creditQuantity:
+      p.credit_quantity != null ? Number(p.credit_quantity) : null,
+    creditPurpose: (p.credit_purpose as string | null) ?? null,
   }));
 }
 
@@ -83,11 +89,11 @@ export function getSubscriptionProducts(): Promise<CatalogProduct[]> {
 }
 
 // The FULL internal catalog an admin can sell from a user's record: active
-// products of EVERY type (membership + service + once-off product), ignoring
-// is_visible (visibility only gates the public pricing page, not internal
-// selling). Uncached.
+// products of EVERY type (membership + service + once-off product + wielo_credits
+// packages), ignoring is_visible (visibility only gates the public pricing page,
+// not internal selling). Uncached.
 export function getInternalCatalog(): Promise<CatalogProduct[]> {
-  return load(["membership", "service", "product"], false);
+  return load(["membership", "service", "product", "wielo_credits"], false);
 }
 
 export type SellableProduct = {

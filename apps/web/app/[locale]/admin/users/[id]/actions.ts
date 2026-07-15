@@ -12,7 +12,10 @@ import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
-import { grantSubscriptionCredits } from "@/lib/credits/wallet";
+import {
+  grantCreditsForOrder,
+  grantSubscriptionCredits,
+} from "@/lib/credits/wallet";
 import {
   adminPostUpgradeCardToHostThread,
   adminPostPaymentLinkToHostThread,
@@ -1435,10 +1438,12 @@ export const cancelScheduledChangeAction = withAdminAudit<
   },
 );
 
-// ─── Sell a ONCE-OFF product to a user (not a subscription) ──────────
-// A `product` (once-off) is purchased, not activated: "paid" records a completed
-// sale (paid order + completed charge → invoice mints); "paylink" creates a
-// pending order + pay-link and drops it into the buyer's Wielo inbox (hosts).
+// ─── Sell a ONCE-OFF product or CREDIT PACKAGE to a user (not a subscription) ──
+// A `product` (once-off) or `wielo_credits` package is purchased, not activated:
+// "paid" records a completed sale (paid order + completed charge → invoice mints;
+// a credit package also grants its credits to the buyer's wallet); "paylink"
+// creates a pending order + pay-link into the buyer's Wielo inbox (credits are
+// granted by the settle path once paid).
 const sellSchema = z.object({
   hostId: z.string().uuid().optional(),
   userId: z.string().uuid(),
@@ -1470,9 +1475,13 @@ export const sellProductAction = withAdminAudit<
     if (!product || !product.is_active) {
       throw new Error("Product not found or inactive.");
     }
-    if (product.product_type !== "product") {
+    if (
+      product.product_type !== "product" &&
+      product.product_type !== "wielo_credits"
+    ) {
       throw new Error("Use the subscription flow for memberships / services.");
     }
+    const isCreditPack = product.product_type === "wielo_credits";
 
     const { data: prof } = await service
       .from("user_profiles")
@@ -1514,19 +1523,34 @@ export const sellProductAction = withAdminAudit<
 
     // mode "paid": record a completed sale.
     const token = crypto.randomUUID().replace(/-/g, "");
-    const { error: ordErr } = await service.from("product_orders").insert({
-      product_id: product.id,
-      product_name: product.name,
-      payer_email: email,
-      payer_user_id: userId,
-      amount: price,
-      currency,
-      status: "paid",
-      paid_at: now,
-      pay_token: token,
-      created_by: admin.userId,
-    });
+    const { data: ord, error: ordErr } = await service
+      .from("product_orders")
+      .insert({
+        product_id: product.id,
+        product_name: product.name,
+        payer_email: email,
+        payer_user_id: userId,
+        amount: price,
+        currency,
+        status: "paid",
+        paid_at: now,
+        pay_token: token,
+        created_by: admin.userId,
+      })
+      .select("id")
+      .single();
     if (ordErr) throw new Error(ordErr.message);
+
+    // A credit-package sale grants its credits to the buyer's wallet now
+    // (idempotent per order; no-op if the buyer has no host wallet). A paylink
+    // sale grants on payment via the settle path instead.
+    if (isCreditPack && ord?.id) {
+      await grantCreditsForOrder(service, {
+        id: ord.id,
+        product_id: product.id,
+        payer_user_id: userId,
+      });
+    }
 
     if (price > 0) {
       const { data: led, error: ledErr } = await service

@@ -247,6 +247,7 @@ export type UserRecordData = {
     isFree: boolean;
     isRecommended: boolean;
     bullets: string[];
+    creditQuantity: number | null;
   }[];
   counts: { bookingsAsGuest: number; refunds: number; listings: number };
   listings: {
@@ -2199,6 +2200,11 @@ function ProductsPanel({
   const oneOffProducts = data.products.filter(
     (p) => p.productType === "product",
   );
+  // Wielo Credits packages — also SOLD (order + charge); paying grants the credits
+  // to the buyer's wallet (grantCreditsForOrder on the paid order).
+  const creditPackages = data.products.filter(
+    (p) => p.productType === "wielo_credits",
+  );
 
   // A once-off product card with a "Sell" button (opens the sell dialog).
   const renderOneOff = (p: UserRecordData["products"][number]) => (
@@ -2214,6 +2220,55 @@ function ProductsPanel({
           {p.isFree ? "Free" : formatMoney(p.price, p.currency)}
         </span>
         <span className="text-xs text-brand-mute">one-off</span>
+      </div>
+      {p.bullets.length > 0 ? (
+        <ul className="mt-3 space-y-1.5">
+          {p.bullets.slice(0, 4).map((b, i) => (
+            <li key={i} className="text-[12px] leading-snug text-brand-mute">
+              • {b}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="mt-4 flex items-center gap-2 pt-1">
+        <Button
+          size="sm"
+          disabled={pending}
+          onClick={() => {
+            setSellLink(null);
+            setSell(p);
+          }}
+        >
+          Sell
+        </Button>
+        <Link
+          href={`/admin/products/${p.id}`}
+          className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary hover:underline"
+        >
+          <ExternalLink className="h-3.5 w-3.5" /> Edit
+        </Link>
+      </div>
+    </div>
+  );
+
+  // A Wielo Credits package card — SOLD like a once-off product (same Sell
+  // dialog), but headlined by the credit quantity it grants.
+  const renderCreditPack = (p: UserRecordData["products"][number]) => (
+    <div
+      key={p.id}
+      className="relative flex flex-col rounded-card border border-brand-line bg-white p-5 shadow-card"
+    >
+      <div className="font-display text-base font-bold text-brand-ink">
+        {p.name}
+      </div>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className="font-display text-2xl font-bold text-brand-primary">
+          {p.creditQuantity ?? 0}
+        </span>
+        <span className="text-xs text-brand-mute">credits</span>
+      </div>
+      <div className="mt-1 text-[13px] font-semibold text-brand-ink">
+        {p.isFree ? "Free" : formatMoney(p.price, p.currency)}
       </div>
       {p.bullets.length > 0 ? (
         <ul className="mt-3 space-y-1.5">
@@ -2488,6 +2543,16 @@ function ProductsPanel({
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {oneOffProducts.map(renderOneOff)}
+                </div>
+              </div>
+            ) : null}
+            {creditPackages.length > 0 ? (
+              <div>
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Credit packages
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {creditPackages.map(renderCreditPack)}
                 </div>
               </div>
             ) : null}

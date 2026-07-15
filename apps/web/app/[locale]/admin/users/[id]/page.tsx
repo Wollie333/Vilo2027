@@ -728,6 +728,7 @@ export default async function AdminUserDetailPage({
       isFree: p.isFree,
       isRecommended: p.isRecommended,
       bullets: p.bullets,
+      creditQuantity: p.creditQuantity,
     })),
     wieloLedger: wieloRows,
     wieloBalance,
