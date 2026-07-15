@@ -25,6 +25,10 @@ import {
   RefundDeclinedGuest,
   RefundRequestHost,
   QuoteSentGuest,
+  LookingForQuoteAcceptedHost,
+  LookingForQuoteDeclinedHost,
+  LookingForNewRequestHost,
+  LookingForRequestExpiringGuest,
   ReviewRequestGuest,
   StayDetailsGuest,
   StaffInvite,
@@ -154,6 +158,45 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "guest",
     subject: (p) =>
       `Your quote for ${str(p.listingName, "your request")} · ${str(p.quoteNumber, "Q")}`,
+  },
+
+  // Looking-For host: the guest accepted your quote (booking created).
+  looking_for_quote_accepted: {
+    Template: LookingForQuoteAcceptedHost as ComponentType<
+      Record<string, unknown>
+    >,
+    recipient: "host",
+    subject: (p) =>
+      `${str(p.guestName, "A guest")} accepted your quote · ${str(p.quoteNumber, "Q")}`,
+  },
+
+  // Looking-For host: the guest declined your quote.
+  looking_for_quote_declined: {
+    Template: LookingForQuoteDeclinedHost as ComponentType<
+      Record<string, unknown>
+    >,
+    recipient: "host",
+    subject: (p) => `Update on your quote for ${str(p.postTitle, "a request")}`,
+  },
+
+  // Looking-For host: a new guest request matches your area/saved search.
+  looking_for_new_post_region: {
+    Template: LookingForNewRequestHost as ComponentType<
+      Record<string, unknown>
+    >,
+    recipient: "host",
+    subject: (p) =>
+      `New request: ${str(p.postTitle, "accommodation")}${p.locationText ? ` in ${str(p.locationText)}` : ""}`,
+  },
+
+  // Looking-For guest: your request is about to expire.
+  looking_for_post_expiring: {
+    Template: LookingForRequestExpiringGuest as ComponentType<
+      Record<string, unknown>
+    >,
+    recipient: "guest",
+    subject: (p) =>
+      `Your request "${str(p.postTitle, "on Wielo")}" is expiring soon`,
   },
   review_request_guest: {
     Template: ReviewRequestGuest as ComponentType<Record<string, unknown>>,

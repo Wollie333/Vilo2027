@@ -1,3 +1,5 @@
+import { formatMoney } from "@/lib/format";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -29,7 +31,7 @@ export async function acceptAndConvertQuote(
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
       discount_amount, deposit_amount, balance_amount, balance_due_days,
-      converted_booking_id, conversation_id, looking_for_post_id
+      converted_booking_id, conversation_id, looking_for_post_id, quote_number
     `,
     )
     .eq("id", quoteId)
@@ -206,6 +208,69 @@ export async function acceptAndConvertQuote(
       })
       .eq("id", quote.looking_for_post_id)
       .eq("status", "active");
+
+    // Notify the host that the guest accepted their Looking-For quote (in-app +
+    // push + the LookingForQuoteAcceptedHost email). Best-effort.
+    try {
+      const [{ data: hostRow }, { data: postRow }, { data: propRow }] =
+        await Promise.all([
+          admin
+            .from("hosts")
+            .select("user_id, display_name")
+            .eq("id", quote.host_id)
+            .maybeSingle(),
+          admin
+            .from("looking_for_posts")
+            .select("title")
+            .eq("id", quote.looking_for_post_id)
+            .maybeSingle(),
+          quote.property_id
+            ? admin
+                .from("properties")
+                .select("name")
+                .eq("id", quote.property_id)
+                .maybeSingle()
+            : Promise.resolve({ data: null as { name: string } | null }),
+        ]);
+      const fmtD = (iso: string | null): string =>
+        iso
+          ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })
+          : "—";
+      if (hostRow?.user_id) {
+        await dispatchEvent({
+          kind: "looking_for_quote_accepted",
+          recipientUserId: hostRow.user_id,
+          hostId: quote.host_id,
+          refs: {
+            post_id: quote.looking_for_post_id,
+            quote_id: quoteId,
+            post_title: postRow?.title ?? undefined,
+            guest_first_name:
+              (quote.guest_name ?? "").split(" ")[0] || undefined,
+            // Email props (LookingForQuoteAcceptedHost):
+            hostFirstName:
+              (hostRow.display_name ?? "").split(" ")[0] || undefined,
+            guestName: quote.guest_name ?? undefined,
+            postTitle: postRow?.title ?? undefined,
+            listingName: propRow?.name ?? postRow?.title ?? undefined,
+            checkIn: fmtD(quote.check_in),
+            checkOut: fmtD(quote.check_out),
+            totalAmount: formatMoney(
+              Number(quote.total_amount ?? 0),
+              quote.currency ?? "ZAR",
+            ),
+            quoteNumber: quote.quote_number ?? undefined,
+            quoteId,
+          },
+        });
+      }
+    } catch {
+      // Non-fatal — the booking is already created.
+    }
   }
 
   // Auto-advance the inbox pipeline so the host's board tracks the deal without

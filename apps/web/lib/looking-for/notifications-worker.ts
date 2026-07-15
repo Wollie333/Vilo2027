@@ -17,23 +17,18 @@ export type LookingForDrainResult = {
   regionNotified: number;
 };
 
+type ExpiryPost = {
+  id: string;
+  title: string | null;
+  guest_id: string | null;
+  status: string;
+  quote_count: number | null;
+};
+
 type ExpiryRow = {
   id: string;
   days_before: number;
-  post:
-    | {
-        id: string;
-        title: string | null;
-        guest_id: string | null;
-        status: string;
-      }
-    | {
-        id: string;
-        title: string | null;
-        guest_id: string | null;
-        status: string;
-      }[]
-    | null;
+  post: ExpiryPost | ExpiryPost[] | null;
 };
 
 export async function drainLookingForNotifications(): Promise<LookingForDrainResult> {
@@ -49,7 +44,7 @@ export async function drainLookingForNotifications(): Promise<LookingForDrainRes
   const { data: expiryRows } = await admin
     .from("looking_for_expiry_notifications")
     .select(
-      "id, days_before, post:looking_for_posts(id, title, guest_id, status)",
+      "id, days_before, post:looking_for_posts(id, title, guest_id, status, quote_count)",
     )
     .is("dispatched_at", null)
     .limit(500);
@@ -67,6 +62,11 @@ export async function drainLookingForNotifications(): Promise<LookingForDrainRes
           post_id: post.id,
           post_title: post.title ?? undefined,
           expires_in_days: raw.days_before,
+          // Email props (LookingForRequestExpiringGuest):
+          postTitle: post.title ?? undefined,
+          postId: post.id,
+          expiresInDays: raw.days_before,
+          quoteCount: post.quote_count ?? 0,
         },
       });
       result.expiryDispatched += 1;
@@ -90,6 +90,33 @@ export async function drainLookingForNotifications(): Promise<LookingForDrainRes
     const samplePostId = ((row.sample_post_ids as string[] | null) ?? [])[0];
 
     if (region && samplePostId) {
+      // Sample post details to enrich the host email/notification.
+      const { data: sample } = await admin
+        .from("looking_for_posts")
+        .select(
+          "title, location_text, adults, children, infants, budget_min, budget_max, check_in_date",
+        )
+        .eq("id", samplePostId)
+        .maybeSingle();
+      const sGuests =
+        (sample?.adults ?? 0) +
+        (sample?.children ?? 0) +
+        (sample?.infants ?? 0);
+      const sBudget =
+        sample?.budget_min && sample?.budget_max
+          ? `R ${sample.budget_min.toLocaleString("en-ZA").replace(/,/g, " ")} – R ${sample.budget_max.toLocaleString("en-ZA").replace(/,/g, " ")}`
+          : sample?.budget_max
+            ? `Up to R ${sample.budget_max.toLocaleString("en-ZA").replace(/,/g, " ")}`
+            : sample?.budget_min
+              ? `From R ${sample.budget_min.toLocaleString("en-ZA").replace(/,/g, " ")}`
+              : undefined;
+      const sCheckIn = sample?.check_in_date
+        ? new Date(`${sample.check_in_date}T00:00:00`).toLocaleDateString(
+            "en-ZA",
+            { day: "numeric", month: "short", year: "numeric" },
+          )
+        : undefined;
+
       // Hosts with a published listing in this province.
       const { data: props } = await admin
         .from("properties")
@@ -118,7 +145,7 @@ export async function drainLookingForNotifications(): Promise<LookingForDrainRes
         if (targets.length) {
           const { data: hostRows } = await admin
             .from("hosts")
-            .select("id, user_id")
+            .select("id, user_id, display_name")
             .in("id", targets)
             .is("deleted_at", null);
           for (const h of hostRows ?? []) {
@@ -127,7 +154,23 @@ export async function drainLookingForNotifications(): Promise<LookingForDrainRes
               kind: "looking_for_new_post_region",
               recipientUserId: h.user_id as string,
               hostId: h.id as string,
-              refs: { post_id: samplePostId, location_text: region },
+              refs: {
+                post_id: samplePostId,
+                location_text: sample?.location_text ?? region,
+                // Email props (LookingForNewRequestHost):
+                hostFirstName:
+                  ((h.display_name as string | null) ?? "").split(" ")[0] ||
+                  undefined,
+                postTitle: sample?.title ?? undefined,
+                locationText: sample?.location_text ?? region,
+                postId: samplePostId,
+                checkIn: sCheckIn,
+                guests:
+                  sGuests > 0
+                    ? `${sGuests} guest${sGuests === 1 ? "" : "s"}`
+                    : undefined,
+                budget: sBudget,
+              },
             });
             result.regionNotified += 1;
           }

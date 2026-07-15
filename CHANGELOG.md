@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-07-15 — §5 Looking-For notifications: both sides, all stages (email + inbox + flowchart + wire).
+
+- **Six-event lifecycle, every stage now has a Wielo-branded email + in-app/push, both sides.** Added two host
+  events — **`looking_for_quote_accepted`** (dispatched from `acceptAndConvertQuote`) and
+  **`looking_for_quote_declined`** (from `declineMyQuoteAction`) — and **enabled emails** on the existing
+  `looking_for_new_post_region` (host) and `looking_for_post_expiring` (guest) events.
+- **4 new templates on the §6 shell:** `LookingForQuoteAcceptedHost`, `LookingForQuoteDeclinedHost`,
+  `LookingForNewRequestHost`, `LookingForRequestExpiringGuest` — exported from `@vilo/emails`, registered in
+  `EMAIL_REGISTRY`, with admin preview sample payloads. `quote_viewed` stays in-app/push only (email = spam).
+- **Dispatch enrichment** — every dispatch now carries the camelCase email props: accept/decline paths fetch host/
+  post/listing; `matchAlerts` + the region-digest/expiry drainers in `notifications-worker` pass title/location/
+  dates/guests/budget/host-name so the newly-enabled emails render.
+- **Flowchart** — `docs/lifecycles/looking-for.md` updated with the full stage→event→channel→recipient matrix + an
+  ASCII loop diagram.
+- **Verified live:** the `LookingForQuoteAcceptedHost` email renders on the shell; a real guest **decline** through
+  the portal UI created the host's **"Quote declined"** in-app notification end-to-end (same path enqueues the
+  email → cloud worker). `tsc` + `lint` + 38 email render tests green.
+
 ## 2026-07-15 — §6 Wielo email shell + quote shows requested-vs-quoted dates.
 
 - **Shared Wielo email shell** (`emails/components/Shell.tsx`) in the founder's table-based style, Wielo-branded:

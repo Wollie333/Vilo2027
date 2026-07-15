@@ -100,7 +100,7 @@ export async function notifyMatchingAlerts(
     const { data: alerts } = await admin
       .from("looking_for_alerts")
       .select(
-        "id, host_id, category, location_region, min_budget, max_budget, min_guests, max_guests, check_in_from, check_in_to, match_count, host:hosts(user_id)",
+        "id, host_id, category, location_region, min_budget, max_budget, min_guests, max_guests, check_in_from, check_in_to, match_count, host:hosts(user_id, display_name)",
       )
       .eq("is_active", true);
 
@@ -115,6 +115,23 @@ export async function notifyMatchingAlerts(
       const userId = hostRel?.user_id ?? null;
       if (!userId) continue;
 
+      const loc = post.location_text ?? post.location_region ?? undefined;
+      const guests = guestTotal(post);
+      const budget =
+        post.budget_min && post.budget_max
+          ? `R ${post.budget_min.toLocaleString("en-ZA").replace(/,/g, " ")} – R ${post.budget_max.toLocaleString("en-ZA").replace(/,/g, " ")}`
+          : post.budget_max
+            ? `Up to R ${post.budget_max.toLocaleString("en-ZA").replace(/,/g, " ")}`
+            : post.budget_min
+              ? `From R ${post.budget_min.toLocaleString("en-ZA").replace(/,/g, " ")}`
+              : undefined;
+      const checkIn = post.check_in_date
+        ? new Date(`${post.check_in_date}T00:00:00`).toLocaleDateString(
+            "en-ZA",
+            { day: "numeric", month: "short", year: "numeric" },
+          )
+        : undefined;
+
       await dispatchEvent({
         kind: "looking_for_new_post_region",
         recipientUserId: userId,
@@ -122,8 +139,21 @@ export async function notifyMatchingAlerts(
         refs: {
           post_id: post.id,
           post_title: post.title ?? undefined,
-          location_text:
-            post.location_text ?? post.location_region ?? undefined,
+          location_text: loc,
+          // Email props (LookingForNewRequestHost):
+          hostFirstName:
+            (
+              (hostRel as { display_name?: string | null })?.display_name ?? ""
+            ).split(" ")[0] || undefined,
+          postTitle: post.title ?? undefined,
+          locationText: loc,
+          postId: post.id,
+          checkIn,
+          guests:
+            guests > 0
+              ? `${guests} guest${guests === 1 ? "" : "s"}`
+              : undefined,
+          budget,
         },
       });
 

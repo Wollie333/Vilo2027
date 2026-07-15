@@ -170,6 +170,19 @@ export type LookingForRefs = {
   quoteNumber?: string;
   validUntil?: string;
   acceptToken?: string;
+  // Additional camelCase props consumed by the Looking-For host/guest emails
+  // (accepted/declined/new-request/expiring). Snake-case keys above still feed
+  // the in-app + push builders.
+  hostFirstName?: string;
+  guestName?: string;
+  postTitle?: string;
+  locationText?: string;
+  guests?: string;
+  budget?: string;
+  expiresInDays?: number;
+  quoteCount?: number;
+  postId?: string;
+  quoteId?: string;
 };
 
 export type AffiliateRefs = {
@@ -941,6 +954,7 @@ export const NOTIFICATION_REGISTRY = {
     category: "looking_for",
     feature: "looking_for",
     severity: "default",
+    emailTemplate: "looking_for_post_expiring",
     refKeys: ["post_id"],
     push: (r) => ({
       title: "Request expiring soon",
@@ -965,6 +979,7 @@ export const NOTIFICATION_REGISTRY = {
     category: "looking_for",
     feature: "looking_for",
     severity: "info",
+    emailTemplate: "looking_for_new_post_region",
     refKeys: ["post_id"],
     push: (r) => ({
       title: "New guest request nearby",
@@ -1001,6 +1016,53 @@ export const NOTIFICATION_REGISTRY = {
       link: "/dashboard/looking-for/my-quotes",
     }),
     dedupeKey: (r) => `lf_viewed:${r.quote_id ?? r.post_id}`,
+  } satisfies EventBuilder<LookingForRefs>,
+
+  looking_for_quote_accepted: {
+    category: "looking_for",
+    feature: "looking_for",
+    severity: "high",
+    emailTemplate: "looking_for_quote_accepted",
+    refKeys: ["post_id", "quote_id"],
+    push: (r) => ({
+      title: "Your quote was accepted! 🎉",
+      body: clip(
+        `${r.guestName ?? r.guest_first_name ?? "The guest"} accepted your quote${r.post_title ? ` for "${r.post_title}"` : ""} — booking created`,
+      ),
+      data: link("/dashboard/quotes/[id]", { id: r.quote_id ?? "" }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "Quote accepted 🎉",
+      body: `${r.guestName ?? r.guest_first_name ?? "Guest"} · ${r.post_title ?? "your quote"}`,
+      link: r.quote_id
+        ? `/dashboard/quotes/${r.quote_id}`
+        : "/dashboard/looking-for/my-quotes",
+    }),
+    dedupeKey: (r) => `lf_accepted:${r.quote_id ?? r.post_id}`,
+  } satisfies EventBuilder<LookingForRefs>,
+
+  looking_for_quote_declined: {
+    category: "looking_for",
+    feature: "looking_for",
+    severity: "default",
+    emailTemplate: "looking_for_quote_declined",
+    refKeys: ["post_id", "quote_id"],
+    push: (r) => ({
+      title: "Quote declined",
+      body: clip(
+        `${r.guestName ?? r.guest_first_name ?? "The guest"} declined your quote${r.post_title ? ` for "${r.post_title}"` : ""}`,
+      ),
+      data: link("/dashboard/looking-for/my-quotes"),
+      sound: null,
+    }),
+    inApp: (r) => ({
+      title: "Quote declined",
+      body: `${r.guestName ?? r.guest_first_name ?? "Guest"} · ${r.post_title ?? "your quote"}`,
+      link: "/dashboard/looking-for/my-quotes",
+    }),
+    dedupeKey: (r) => `lf_declined:${r.quote_id ?? r.post_id}`,
   } satisfies EventBuilder<LookingForRefs>,
 
   // ─── Affiliate

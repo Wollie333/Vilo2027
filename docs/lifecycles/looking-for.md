@@ -127,21 +127,37 @@ Guest post lifecycle actions (`portal/looking-for/actions.ts` + `PostActions`):
 
 ## Side-effects (notifications / emails / usage)
 
-`notification_categories.looking_for` + four events (`..200000` migration, mirrored
-in `lib/notifications/registry.ts`):
+`notification_categories.looking_for` + **six** events (mirrored in
+`lib/notifications/registry.ts`). Every stage now has a Wielo-branded email on the
+shared `Shell` (§6) **and** in-app/push, both sides of the lifecycle:
 
-| Event | To | Channels | Fires from |
-|---|---|---|---|
-| `looking_for_quote_received` | guest | in-app · push · **email (`QuoteSentGuest`)** | `sendQuoteAction` |
-| `looking_for_quote_viewed` | host | in-app · push | `markQuotesViewedAction` |
-| `looking_for_new_post_region` | host | in-app · push | `notifyMatchingAlerts` (real-time, on create) + the worker's region digest |
-| `looking_for_post_expiring` | guest | in-app · push | `/api/looking-for-worker` (drains the expiry queue) |
+| Stage | Event | To | Channels | Fires from |
+|---|---|---|---|---|
+| New request matches host area/alert | `looking_for_new_post_region` | host | in-app · push · **email (`LookingForNewRequestHost`)** | `notifyMatchingAlerts` (real-time, on create) + the worker's region digest |
+| Host sends a quote | `looking_for_quote_received` | guest | in-app · push · **email (`QuoteSentGuest`)** | `sendQuoteAction` |
+| Guest views the quote | `looking_for_quote_viewed` | host | in-app · push | `markQuotesViewedAction` |
+| **Guest accepts the quote** | `looking_for_quote_accepted` | host | in-app · push · **email (`LookingForQuoteAcceptedHost`)** | `acceptAndConvertQuote` |
+| **Guest declines the quote** | `looking_for_quote_declined` | host | in-app · push · **email (`LookingForQuoteDeclinedHost`)** | `declineMyQuoteAction` |
+| Request expiring soon | `looking_for_post_expiring` | guest | in-app · push · **email (`LookingForRequestExpiringGuest`)** | `/api/looking-for-worker` (drains the expiry queue) |
 
+`quote_viewed` stays in-app/push only by design (an email per view would be spam).
 The guest quote email reuses the audited `QuoteSentGuest` template (a Looking-For
-response *is* a quote); `sendQuoteAction` enriches the dispatch refs with the fields
-that template renders (`listingName`, `quoteNumber`, `totalAmount`, dates, nights,
-`acceptToken`). Usage ledger: `guest_post` on create, `host_quote` on send
-(`guest_extension` is defined but never written).
+response *is* a quote), now also showing the guest's **requested** window (+ flex)
+beside the host's **quoted** dates. Every dispatch carries both the snake_case refs
+(for the in-app/push builders) and the camelCase props each email renders. Usage
+ledger: `guest_post` on create, `host_quote` on send.
+
+**Full-loop notification flow:**
+
+```
+guest posts request ──▶ [new_post_region] ──▶ matching HOSTS (email + in-app)
+host sends quote ──────▶ [quote_received]  ──▶ GUEST (email + in-app)
+guest opens quote ─────▶ [quote_viewed]    ──▶ HOST (in-app/push)
+        │
+        ├─ accepts ────▶ [quote_accepted]  ──▶ HOST (email + in-app) · booking created
+        └─ declines ───▶ [quote_declined]  ──▶ HOST (email + in-app)
+request nears expiry ──▶ [post_expiring]   ──▶ GUEST (email + in-app) · "extend?"
+```
 
 ---
 

@@ -146,6 +146,45 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     acceptToken: "sampletoken0123456789",
   },
 
+  looking_for_quote_accepted: {
+    hostFirstName: "Amara",
+    guestName: "Lerato Nkosi",
+    postTitle: "Wedding venue near Prince Albert",
+    listingName: "Karoo Sky Guesthouse",
+    checkIn: "12 Aug 2026",
+    checkOut: "14 Aug 2026",
+    totalAmount: "R 45,000.00",
+    quoteNumber: "Q-0011",
+    quoteId: "00000000-0000-0000-0000-000000000002",
+  },
+
+  looking_for_quote_declined: {
+    hostFirstName: "Amara",
+    guestName: "Lerato Nkosi",
+    postTitle: "Wedding venue near Prince Albert",
+    listingName: "Karoo Sky Guesthouse",
+    quoteNumber: "Q-0011",
+  },
+
+  looking_for_new_post_region: {
+    hostFirstName: "Amara",
+    guestFirstName: "Lerato",
+    postTitle: "Wedding venue near Prince Albert",
+    locationText: "Prince Albert, Western Cape",
+    checkIn: "12 Aug 2026",
+    guests: "80 guests",
+    budget: "R 60 000 – R 70 000",
+    postId: "00000000-0000-0000-0000-000000000003",
+  },
+
+  looking_for_post_expiring: {
+    guestFirstName: "Lerato",
+    postTitle: "Wedding venue near Prince Albert",
+    expiresInDays: 2,
+    quoteCount: 3,
+    postId: "00000000-0000-0000-0000-000000000003",
+  },
+
   review_request_guest: {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",

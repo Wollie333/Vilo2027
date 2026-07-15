@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { acceptAndConvertQuote } from "@/lib/quotes/accept-convert";
@@ -101,7 +102,9 @@ export async function declineMyQuoteAction(
     .from("quotes")
     .update({ status: "declined", declined_at: new Date().toISOString() })
     .eq("id", quoteId)
-    .select("conversation_id")
+    .select(
+      "conversation_id, host_id, looking_for_post_id, guest_name, quote_number, property_id",
+    )
     .single();
   if (!q) return { ok: false, error: "Could not record your decline." };
 
@@ -122,6 +125,54 @@ export async function declineMyQuoteAction(
       read_by_host: false,
       read_by_guest: true,
     });
+  }
+
+  // If this quote answered a Looking-For request, tell the host it was declined
+  // (in-app + push + LookingForQuoteDeclinedHost email). Best-effort.
+  if (q.looking_for_post_id && q.host_id) {
+    try {
+      const [{ data: hostRow }, { data: postRow }, { data: propRow }] =
+        await Promise.all([
+          admin
+            .from("hosts")
+            .select("user_id, display_name")
+            .eq("id", q.host_id)
+            .maybeSingle(),
+          admin
+            .from("looking_for_posts")
+            .select("title")
+            .eq("id", q.looking_for_post_id)
+            .maybeSingle(),
+          q.property_id
+            ? admin
+                .from("properties")
+                .select("name")
+                .eq("id", q.property_id)
+                .maybeSingle()
+            : Promise.resolve({ data: null as { name: string } | null }),
+        ]);
+      if (hostRow?.user_id) {
+        await dispatchEvent({
+          kind: "looking_for_quote_declined",
+          recipientUserId: hostRow.user_id,
+          hostId: q.host_id,
+          refs: {
+            post_id: q.looking_for_post_id,
+            quote_id: quoteId,
+            post_title: postRow?.title ?? undefined,
+            guest_first_name: (q.guest_name ?? "").split(" ")[0] || undefined,
+            hostFirstName:
+              (hostRow.display_name ?? "").split(" ")[0] || undefined,
+            guestName: q.guest_name ?? undefined,
+            postTitle: postRow?.title ?? undefined,
+            listingName: propRow?.name ?? postRow?.title ?? undefined,
+            quoteNumber: q.quote_number ?? undefined,
+          },
+        });
+      }
+    } catch {
+      // Non-fatal.
+    }
   }
 
   revalidatePath("/portal/quotes");

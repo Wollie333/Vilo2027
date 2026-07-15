@@ -28,6 +28,10 @@ export { default as RefundCompletedGuest } from "./templates/RefundCompletedGues
 export { default as RefundDeclinedGuest } from "./templates/RefundDeclinedGuest";
 export { default as RefundRequestHost } from "./templates/RefundRequestHost";
 export { default as QuoteSentGuest } from "./templates/QuoteSentGuest";
+export { default as LookingForQuoteAcceptedHost } from "./templates/LookingForQuoteAcceptedHost";
+export { default as LookingForQuoteDeclinedHost } from "./templates/LookingForQuoteDeclinedHost";
+export { default as LookingForNewRequestHost } from "./templates/LookingForNewRequestHost";
+export { default as LookingForRequestExpiringGuest } from "./templates/LookingForRequestExpiringGuest";
 export { default as ReviewRequestGuest } from "./templates/ReviewRequestGuest";
 export { default as StayDetailsGuest } from "./templates/StayDetailsGuest";
 export { default as StaffInvite } from "./templates/StaffInvite";
