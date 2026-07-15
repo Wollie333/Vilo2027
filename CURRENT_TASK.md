@@ -8,9 +8,18 @@
 supersedes the tail of `LOOKING_FOR_NEXT_PHASE_PLAN.md`. Decisions locked; order confirmed. Also memory
 `project-looking-for-crm-and-batch`.
 
-**▶▶ NEXT = §2 respond-page compact HORIZONTAL info card + §1 host record shell** (task #5, in progress). Then
-(founder-confirmed order): §6 Wielo email shell (build FIRST) → §5 Looking-For notifications (both sides/all stages)
-→ §3 limits/quotas → §4 Wielo Credits → §7 admin email-templates categorisation.
+**▶▶ NEXT = §5 Looking-For notifications** (both sides / all stages · email + inbox · flowchart + wire; task #6).
+Then: §3 limits/quotas → §4 Wielo Credits → §7 admin email-templates categorisation → §1 host record (quote page).
+
+**✅ §2 DONE (`b0ea39b1`):** shared `components/looking-for/RequestInfoCard.tsx` — compact HORIZONTAL request card
+(image + title + fact row + condensed requirement chips via `RequestRequirements variant="compact"`), replacing the
+two stacked cards on the host respond page. Verified live as the test host.
+**✅ §6 DONE (`50b8953a`):** Wielo table-based email shell (`emails/components/Shell.tsx` — dark header · eyebrow/
+title/subtitle/pill · accent line · footer) + `DetailTable` + `MessageBlock` helpers (exported from `@vilo/emails`);
+`QuoteSentGuest` migrated onto it (first Looking-For adopter; rest migrate in §7). **+ founder date request:** quotes
+now show the guest's REQUESTED window (+ flex) beside the host's QUOTED dates on ALL surfaces — quote email
+("You requested" row), guest CRM record quote cards ("Requested:"/"Quoted:"), compare page. Verified live (email
+preview + guest record). **§1 host record DECIDED:** the quote detail page becomes the tabbed host record (task #11).
 
 **✅ JUST SHIPPED — Feature 3: guest Looking-For CRM record + archive (`54790f90`, verified live).** Per-post detail
 is a tabbed CRM record (Overview/Quotes/Messages/Timeline via shared `RecordTabs`); `record-data.ts` loader;
