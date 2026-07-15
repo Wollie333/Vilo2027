@@ -2,7 +2,40 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM — SAVE POINT `971c3762`) — START HERE
+## ⭐⭐ NEXT TASK (start here, new session · 2026-07-15) — ADMIN "ADD USER + ASSIGN SUBSCRIPTION"
+
+**Founder ask:** *"create the ability for admin to add a user to the Wielo app and assign them subscription etc."*
+This is the admin-driven alternative to self-serve signup (ties into concern 4 — admin creates a quote-only user +
+assigns the Wielo Quotes subscription). Repo clean at `4887297d`; no dev server running.
+
+**What EXISTS already (reuse, don't rebuild):**
+- Assigning a subscription/product to an EXISTING user is DONE + audited:
+  `setUserProduct`/`setUserProductAction`, `adminUpdateSubscription`, `sellProduct`/`sellProductAction` (in
+  `apps/web/app/[locale]/admin/users/[id]/actions.ts`). Activation grants plan credits on every path (fixed `848a9957`).
+- Quote-only account class + admin "Account type & access" card (`setHostAccess`, `HostAccessControls.tsx`) — set
+  account_kind + quote_access/platform_access on an existing user.
+- `hosts.account_kind` ('host'|'quote_only'), `ensureHostForUser` (`lib/hosts/ensureHost.ts`) creates a host row.
+
+**What's MISSING (the task):** an admin flow to CREATE a brand-new user, then land on their record to assign a plan.
+Concrete build plan:
+1. **`createUserAction`** (audited, `permissionKey` like `users.role`) in the admin users actions: `supabase.auth.admin
+   .createUser({ email, email_confirm, user_metadata })` (service role) → insert `user_profiles` (role: 'host' |
+   'guest') → if host/quote_only, `ensureHostForUser` + set `hosts.account_kind`. Send a set-password / magic invite
+   (reuse `sendPasswordReset`/generate_link pattern). Return the new user id. Handle duplicate-email gracefully.
+2. **UI:** an "Add user" button on `/admin/users` (`page.tsx` list header) → a small dialog/form (email, full name,
+   account type: Host / Quote-only / Guest). On submit → create → redirect to `/admin/users/{id}` where the existing
+   subscription/product controls assign the plan (incl. a Wielo Quotes membership once it's seeded).
+3. **Wielo Quotes product** (still open from concern 4): seed a membership product (name/price/credit_quantity — needs
+   founder input) so admins can assign it. Admin ProductEditor at `/admin/products` already supports credit grant.
+4. Verify live: create a quote-only user from admin → magic-link in → confirm the scoped shell + the account exists;
+   assign a subscription → confirm it activates + grants credits.
+**GOTCHAs:** client-callable server action MUST be `export async function` (NOT a `withAdminAudit` const — wrap it,
+see `setHostAccess`/`reinstateUser`). Prohibited-action rule: DON'T set passwords for users — send an invite/
+set-password link instead (Principle/AGENT_RULES). Super-admin login for testing = generate_link magic link.
+
+---
+
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM — SAVE POINT `971c3762`) — dual-quote reference
 
 **▶▶ ALL 4 CONCERNS BUILT + VERIFIED LIVE. Only concern-4 finish (self-serve signup + Wielo Quotes product) left.**
 Plan: `docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md`; memory `project-dual-quote-system`.
