@@ -20,7 +20,9 @@ export type EditorProduct = {
   id: string | null;
   name: string;
   description: string;
-  productType: "membership" | "service" | "product";
+  productType: "membership" | "service" | "product" | "wielo_credits";
+  creditQuantity: number | null;
+  creditPurpose: string;
   price: number;
   currency: string;
   billingCycle: "weekly" | "monthly" | "quarterly" | "biannual" | "annual";
@@ -89,9 +91,15 @@ export function ProductEditor({
         name: f.name.trim(),
         description: f.description.trim() || null,
         productType: f.productType,
+        creditQuantity:
+          f.productType === "wielo_credits" ? (f.creditQuantity ?? null) : null,
+        creditPurpose: f.creditPurpose || "quote",
         price: f.price,
         currency: f.currency.trim().toUpperCase() || "ZAR",
-        billingCycle: f.productType !== "product" ? f.billingCycle : null,
+        billingCycle:
+          f.productType === "membership" || f.productType === "service"
+            ? f.billingCycle
+            : null,
         isActive: f.isActive,
         isRecommended: f.isRecommended,
         sortOrder: f.sortOrder,
@@ -162,6 +170,12 @@ export function ProductEditor({
     });
   }
 
+  // membership | service are subscription-like (billing cycle, trial, setup fee).
+  // product + wielo_credits are once-off; credits carry qty + purpose instead.
+  const isSubLike =
+    f.productType === "membership" || f.productType === "service";
+  const isCredits = f.productType === "wielo_credits";
+
   return (
     <div className="max-w-2xl space-y-6">
       {/* Details */}
@@ -214,9 +228,10 @@ export function ProductEditor({
               <option value="membership">Membership (Wielo plan)</option>
               <option value="service">Service (subscription)</option>
               <option value="product">Product (once-off)</option>
+              <option value="wielo_credits">Credit package (once-off)</option>
             </select>
           </Field>
-          {f.productType !== "product" ? (
+          {isSubLike ? (
             <Field label="Duration">
               <select
                 value={f.billingCycle}
@@ -253,7 +268,32 @@ export function ProductEditor({
               className="font-mono uppercase"
             />
           </Field>
-          {f.productType !== "product" ? (
+          {isCredits ? (
+            <>
+              <Field label="Credits granted">
+                <Input
+                  type="number"
+                  min={1}
+                  value={f.creditQuantity ?? 0}
+                  onChange={(e) =>
+                    set("creditQuantity", Number(e.target.value) || 0)
+                  }
+                  className="font-mono"
+                />
+              </Field>
+              <Field label="Credit purpose">
+                <select
+                  value={f.creditPurpose || "quote"}
+                  onChange={(e) => set("creditPurpose", e.target.value)}
+                  className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+                >
+                  <option value="quote">Quote credits</option>
+                  <option value="ai">AI credits</option>
+                </select>
+              </Field>
+            </>
+          ) : null}
+          {isSubLike ? (
             <Field label="Trial days (0 = none)">
               <Input
                 type="number"
@@ -304,7 +344,7 @@ export function ProductEditor({
       </section>
 
       {/* Setup fee — once-off charge bundled with a subscription */}
-      {f.productType !== "product" ? (
+      {isSubLike ? (
         <section className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
           <div>
             <h2 className="font-display text-sm font-bold text-brand-ink">

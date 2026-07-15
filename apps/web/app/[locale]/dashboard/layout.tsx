@@ -5,10 +5,12 @@ import { AppHeader } from "@/app/_components/AppHeader";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { VerifyEmailBanner } from "@/components/auth/VerifyEmailBanner";
+import { getCreditBalance, getCreditLedger } from "@/lib/credits/wallet";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { AvatarMenu } from "./_components/AvatarMenu";
+import { CreditPill, type CreditLedgerRow } from "./_components/CreditPill";
 import { EntitySearch } from "./_components/EntitySearch";
 import { MobileBottomNav } from "./_components/MobileBottomNav";
 import { NotificationBell } from "./_components/notifications/NotificationBell";
@@ -75,6 +77,9 @@ export default async function DashboardLayout({
   let canWebsite = false;
   // Looking For — gate the Looking For sidebar section on entitlement.
   let canLookingFor = false;
+  // Wielo Credits — host quote-credit balance + recent ledger for the header pill.
+  let creditBalance = 0;
+  let creditLedger: CreditLedgerRow[] = [];
 
   if (host) {
     const [
@@ -110,6 +115,18 @@ export default async function DashboardLayout({
       (guestSummary as { total_count?: number } | null)?.total_count ?? 0;
     canWebsite = websiteEnabled;
     canLookingFor = lookingForEnabled;
+
+    creditBalance = await getCreditBalance(supabase, host.id, "quote");
+    creditLedger = (
+      await getCreditLedger(supabase, host.id, { purpose: "quote", limit: 8 })
+    ).map((r) => ({
+      id: r.id,
+      delta: r.delta,
+      balanceAfter: r.balanceAfter,
+      kind: r.kind,
+      reason: r.reason,
+      createdAt: r.createdAt,
+    }));
   }
 
   // canHost for the workspace switcher: true if they have a hosts row OR
@@ -140,6 +157,9 @@ export default async function DashboardLayout({
             actions={
               <>
                 <SavingsBadge />
+                {host ? (
+                  <CreditPill balance={creditBalance} ledger={creditLedger} />
+                ) : null}
                 {host?.handle ? (
                   <a
                     href={`/book/${host.handle}`}

@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-15 — §4 Wielo Credits foundation + Looking-For timeline uses the shared activity feed.
+
+- **Wielo Credits — the platform metering layer** (founder-approved schema). Migrations `20260715150000`
+  (wallet + ledger + `products.credit_quantity/credit_purpose` + product_type `wielo_credits`), `..150001`
+  (`apply_wielo_credit` — atomic + idempotent RPC: ensure-row, apply delta, guard ≥0, append ledger, dedupe on
+  ref), `..150002` (credit packages generate `type='one_off'`). Engine `lib/credits/wallet.ts` (get/apply/ledger +
+  `grantCreditsForOrder`). Entitlements stay boolean (`check_feature_permission`); credits meter the countable.
+- **Credit packages = a Products category** — admin ProductEditor gains "Credit package (once-off)" with credits-
+  granted + purpose fields; buying one grants credits to the buyer's host wallet on settle
+  (`confirmProductOrderByReference` + PayPal capture + Paystack webhook, all idempotent). `activateMappedPlan` +
+  webhook no longer mis-treat credit packages as subscriptions.
+- **Host surface** — header **credit-balance pill** (`CreditPill`) → summary modal (balance + recent ledger) +
+  Top-up CTA; **`/dashboard/credits`** top-up store listing active packages (buy via the normal `/p/[slug]` flow).
+- **Verified live end-to-end:** admin created "50 Quote Credits" (R149, type=one_off) → host top-up page + pill
+  show it → `apply_wielo_credit` grant (idempotent: 2nd call stays 50, one ledger row) → pill "50 credits" + modal
+  activity. `tsc` + `lint` + `pnpm build` green; types regenerated.
+- **Looking-For record Timeline** now renders via the shared `ActivityTimeline` (same search + filter + colour-coded
+  rail as the user/guest History feeds) instead of a bespoke list (founder consistency request). Verified live.
+- NOTE (dev/demo data left): a "50 Quote Credits" package product + 50 demo credits on the demo host (Lerato).
+
 ## 2026-07-15 — §5 Looking-For notifications: both sides, all stages (email + inbox + flowchart + wire).
 
 - **Six-event lifecycle, every stage now has a Wielo-branded email + in-app/push, both sides.** Added two host

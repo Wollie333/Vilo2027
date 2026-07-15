@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   Banknote,
   Calendar,
-  CheckCircle,
   Clock,
   Edit,
   Eye,
@@ -17,6 +16,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
+import {
+  ActivityTimeline,
+  type ActivityCategory,
+  type ActivityActorKind,
+  type ActivityEvent,
+} from "@/components/admin/ActivityTimeline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InboxAvatar } from "@/components/inbox/InboxAvatar";
@@ -26,6 +31,22 @@ import { Link } from "@/i18n/navigation";
 import { PostActions } from "./_components/PostActions";
 import { RequestMessages } from "./RequestMessages";
 import type { RequestRecordData, TimelineEvent } from "./record-data";
+
+// Map a Looking-For timeline event onto the shared ActivityTimeline vocabulary
+// so the record's Timeline tab reads like the History/Activity feeds elsewhere.
+const TIMELINE_MAP: Record<
+  TimelineEvent["kind"],
+  { category: ActivityCategory; actor: string; actorKind: ActivityActorKind }
+> = {
+  posted: { category: "system", actor: "You", actorKind: "user" },
+  quote_received: { category: "booking", actor: "Host", actorKind: "host" },
+  quote_viewed: { category: "booking", actor: "You", actorKind: "user" },
+  quote_accepted: { category: "booking", actor: "You", actorKind: "user" },
+  quote_declined: { category: "booking", actor: "You", actorKind: "user" },
+  message: { category: "support", actor: "You", actorKind: "user" },
+  fulfilled: { category: "booking", actor: "You", actorKind: "user" },
+  cancelled: { category: "system", actor: "You", actorKind: "user" },
+};
 
 function fmtRel(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -347,17 +368,22 @@ export function RequestRecord({
       {tab === "messages" && <RequestMessages data={data} />}
 
       {tab === "timeline" && (
-        <div className="rounded-card border border-brand-line bg-white p-6">
-          {data.timeline.length === 0 ? (
-            <p className="text-sm text-brand-mute">No activity yet.</p>
-          ) : (
-            <ol className="space-y-4">
-              {data.timeline.map((ev, i) => (
-                <TimelineRow key={i} ev={ev} />
-              ))}
-            </ol>
-          )}
-        </div>
+        <ActivityTimeline
+          title="Timeline"
+          emptyLabel="No activity yet."
+          events={data.timeline.map((ev, i): ActivityEvent => {
+            const m = TIMELINE_MAP[ev.kind];
+            return {
+              id: String(i),
+              category: m.category,
+              title: ev.label,
+              actor: m.actor,
+              actorKind: m.actorKind,
+              context: ev.detail,
+              at: ev.at,
+            };
+          })}
+        />
       )}
     </div>
   );
@@ -400,39 +426,5 @@ function EmptyCard({
       <h3 className="font-medium text-brand-ink">{title}</h3>
       <p className="mt-1 text-sm text-brand-mute">{body}</p>
     </div>
-  );
-}
-
-const TIMELINE_TINT: Record<TimelineEvent["kind"], string> = {
-  posted: "bg-brand-light text-brand-mute",
-  quote_received: "bg-blue-100 text-blue-700",
-  quote_viewed: "bg-blue-50 text-blue-600",
-  quote_accepted: "bg-green-100 text-green-700",
-  quote_declined: "bg-red-100 text-red-700",
-  message: "bg-brand-light text-brand-mute",
-  fulfilled: "bg-blue-100 text-blue-700",
-  cancelled: "bg-red-100 text-red-700",
-};
-
-function TimelineRow({ ev }: { ev: TimelineEvent }) {
-  const Icon =
-    ev.kind === "quote_accepted" || ev.kind === "fulfilled"
-      ? CheckCircle
-      : ev.kind === "quote_received"
-        ? MessageSquare
-        : Clock;
-  return (
-    <li className="flex items-start gap-3">
-      <span
-        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${TIMELINE_TINT[ev.kind]}`}
-      >
-        <Icon className="h-3.5 w-3.5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-brand-ink">{ev.label}</p>
-        {ev.detail && <p className="text-xs text-brand-mute">{ev.detail}</p>}
-      </div>
-      <time className="shrink-0 text-xs text-brand-mute">{fmtRel(ev.at)}</time>
-    </li>
   );
 }

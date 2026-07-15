@@ -13,9 +13,19 @@ const upsertSchema = z.object({
   id: z.string().uuid().optional().nullable(),
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(4000).optional().nullable(),
-  // membership (Wielo sub) | service (subscription service) | product (once-off).
+  // membership (Wielo sub) | service (subscription service) | product (once-off)
+  // | wielo_credits (once-off credit package that tops up a host's credit wallet).
   // membership + service are "subscription-like" (billing cycle, plan tier).
-  productType: z.enum(["membership", "service", "product"]),
+  productType: z.enum(["membership", "service", "product", "wielo_credits"]),
+  // Only for productType=wielo_credits: how many credits + which wallet purpose.
+  creditQuantity: z
+    .number()
+    .int()
+    .min(1)
+    .max(1_000_000)
+    .nullable()
+    .default(null),
+  creditPurpose: z.string().trim().min(1).max(40).default("quote"),
   price: z.number().min(0).max(10_000_000),
   currency: z.string().trim().min(3).max(3).default("ZAR"),
   billingCycle: z
@@ -100,7 +110,9 @@ export const upsertProductAction = withAdminAudit<
     }
 
     // `type` is a GENERATED column derived from product_type — write product_type.
-    const isSubLike = d.productType !== "product";
+    const isSubLike =
+      d.productType === "membership" || d.productType === "service";
+    const isCredits = d.productType === "wielo_credits";
     const row = {
       name: d.name,
       description: d.description ?? null,
@@ -124,6 +136,8 @@ export const upsertProductAction = withAdminAudit<
       setup_fee_label: d.setupFeeLabel ?? null,
       setup_fee_affiliate_type: d.setupFeeAffiliateType,
       setup_fee_affiliate_value: d.setupFeeAffiliateValue,
+      credit_quantity: isCredits ? (d.creditQuantity ?? null) : null,
+      credit_purpose: isCredits ? d.creditPurpose : null,
       bullets: d.bullets as never,
       slug,
       payment_methods: d.paymentMethods.length

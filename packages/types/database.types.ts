@@ -6770,6 +6770,8 @@ export type Database = {
           billing_cycle: string | null
           bullets: Json
           created_at: string
+          credit_purpose: string | null
+          credit_quantity: number | null
           currency: string
           description: string | null
           id: string
@@ -6799,6 +6801,8 @@ export type Database = {
           billing_cycle?: string | null
           bullets?: Json
           created_at?: string
+          credit_purpose?: string | null
+          credit_quantity?: number | null
           currency?: string
           description?: string | null
           id?: string
@@ -6828,6 +6832,8 @@ export type Database = {
           billing_cycle?: string | null
           bullets?: Json
           created_at?: string
+          credit_purpose?: string | null
+          credit_quantity?: number | null
           currency?: string
           description?: string | null
           id?: string
@@ -10655,6 +10661,56 @@ export type Database = {
           },
         ]
       }
+      wielo_credit_ledger: {
+        Row: {
+          balance_after: number
+          created_at: string
+          created_by: string | null
+          delta: number
+          host_id: string
+          id: string
+          kind: string
+          purpose: string
+          reason: string | null
+          ref_id: string | null
+          ref_type: string | null
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          host_id: string
+          id?: string
+          kind: string
+          purpose?: string
+          reason?: string | null
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          host_id?: string
+          id?: string
+          kind?: string
+          purpose?: string
+          reason?: string | null
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wielo_credit_ledger_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wielo_credit_notes: {
         Row: {
           buyer_snapshot: Json
@@ -10735,6 +10791,41 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wielo_credit_wallet: {
+        Row: {
+          balance: number
+          created_at: string
+          host_id: string
+          id: string
+          purpose: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          host_id: string
+          id?: string
+          purpose?: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          host_id?: string
+          id?: string
+          purpose?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wielo_credit_wallet_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
         ]
@@ -11075,6 +11166,19 @@ export type Database = {
         Returns: undefined
       }
       apply_due_subscription_changes: { Args: never; Returns: undefined }
+      apply_wielo_credit: {
+        Args: {
+          p_created_by?: string
+          p_delta: number
+          p_host_id: string
+          p_kind: string
+          p_purpose: string
+          p_reason?: string
+          p_ref_id?: string
+          p_ref_type?: string
+        }
+        Returns: number
+      }
       block_special_dates: {
         Args: {
           p_check_in: string

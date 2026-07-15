@@ -434,13 +434,45 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   ) {
     const { data: product } = await supabase
       .from("products")
-      .select("product_type, slug, billing_cycle, plan_key")
+      .select(
+        "product_type, slug, billing_cycle, plan_key, credit_quantity, credit_purpose, name",
+      )
       .eq("id", order.product_id)
       .maybeSingle();
+
+    // Credit package → top up the buyer's host wallet via the atomic + idempotent
+    // RPC (backstop for the return-path grant). Never becomes a subscription.
+    if (product && product.product_type === "wielo_credits") {
+      const qty = Number(product.credit_quantity ?? 0);
+      if (qty > 0) {
+        const { data: creditHost } = await supabase
+          .from("hosts")
+          .select("id")
+          .eq("user_id", order.payer_user_id)
+          .is("deleted_at", null)
+          .maybeSingle();
+        if (creditHost?.id) {
+          await supabase.rpc("apply_wielo_credit", {
+            p_host_id: creditHost.id,
+            p_purpose: (product.credit_purpose as string) || "quote",
+            p_delta: qty,
+            p_kind: "purchase",
+            p_reason: `Purchased: ${product.name ?? "credit package"}`,
+            p_ref_type: "product_order",
+            p_ref_id: order.id,
+          });
+        }
+      }
+    }
+
     // Multi-subscription: membership | service become subscriptions (once-off
-    // `product` lives in product_orders only). A host holds one membership + N
-    // services, so key the row by (host_id, product_id) — never one-per-host.
-    if (product && product.product_type !== "product") {
+    // `product` + credit packages live in product_orders only). A host holds one
+    // membership + N services, so key the row by (host_id, product_id).
+    if (
+      product &&
+      product.product_type !== "product" &&
+      product.product_type !== "wielo_credits"
+    ) {
       const isMembership = product.product_type === "membership";
       const { data: host } = await supabase
         .from("hosts")

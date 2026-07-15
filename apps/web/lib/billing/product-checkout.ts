@@ -2,6 +2,7 @@ import "server-only";
 
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
+import { grantCreditsForOrder } from "@/lib/credits/wallet";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { convertZarToUsd } from "@/lib/fx";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
@@ -680,8 +681,15 @@ async function activateMappedPlan(
     .eq("id", productId)
     .maybeSingle();
   // Only subscription-like products (membership | service) become subscriptions;
-  // once-off products live in product_orders only.
-  if (!product || product.product_type === "product") return;
+  // once-off products + credit packages live in product_orders only (credits are
+  // granted separately by grantCreditsForOrder).
+  if (
+    !product ||
+    product.product_type === "product" ||
+    product.product_type === "wielo_credits"
+  ) {
+    return;
+  }
   const isMembership = product.product_type === "membership";
 
   const { data: host } = await admin
@@ -871,6 +879,9 @@ export async function confirmProductOrderByReference(
     await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
   }
 
+  // Credit-package order → top up the buyer's Wielo Credits wallet (idempotent).
+  await grantCreditsForOrder(admin, order);
+
   // Reflect it back to the buyer: their inbox pay card → "payment received".
   await setPayCardStatus(admin, {
     userId: order.payer_user_id,
@@ -983,6 +994,9 @@ export async function capturePayPalProductOrder(
   if (order.activate_on_pay !== false) {
     await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
   }
+
+  // Credit-package order → top up the buyer's Wielo Credits wallet (idempotent).
+  await grantCreditsForOrder(admin, order);
 
   // Reflect it back to the buyer: their inbox pay card → "payment received".
   await setPayCardStatus(admin, {
