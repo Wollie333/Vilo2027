@@ -11,6 +11,7 @@ import {
   Home as HomeIcon,
   Inbox,
   Layers,
+  ListChecks,
   Mail,
   Megaphone,
   Package,
@@ -125,6 +126,12 @@ const PLATFORM: GmailNavItem[] = [
     match: "prefix",
   },
   {
+    href: "/admin/platform/looking-for",
+    label: "Looking-For reqs",
+    icon: ListChecks,
+    match: "prefix",
+  },
+  {
     href: "/admin/broadcasts",
     label: "Broadcasts",
     icon: Megaphone,
@@ -172,6 +179,7 @@ const NAV_PERM: Record<string, string> = {
   "/admin/platform/categories": "platform.settings",
   "/admin/platform/deal-categories": "platform.settings",
   "/admin/platform/amenities": "platform.settings",
+  "/admin/platform/looking-for": "platform.settings",
   "/admin/platform/staff": "platform.staff",
   "/admin/audit": "audit.view",
 };

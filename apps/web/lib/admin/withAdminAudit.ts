@@ -76,6 +76,8 @@ export const AUDIT_TARGET_TYPES = [
   "affiliate_settings",
   "marketing_asset",
   "special_category",
+  "looking_for_requirement_group",
+  "looking_for_requirement_option",
   "permission_denied",
 ] as const;
 
