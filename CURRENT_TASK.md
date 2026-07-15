@@ -2,21 +2,44 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For enhancement in progress) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For — SAVE POINT `8e479c4f`→`bd2a19d7`) — START HERE
 
-**▶▶ IN PROGRESS = Looking-For "refine/enhance/enrich" (founder, 4 workstreams).** Order + status:
-1. ✅ **Posting UX re-skin** (`8e479c4f`) — `RequestForm` → create-data layout (left-rail steps + health ring +
-   autosave + Review), verified live.
-2. ✅ **Notifications + matching engine** (`bb4d8653`) — fixed `calculate_looking_for_match_score`; real-time
-   saved-search alert matcher (`lib/looking-for/matchAlerts.ts` in `createRequestAction`); `/api/looking-for-worker`
-   drains expiring-soon + region-digest queues (migration `20260714130000`). All verified live.
-3. ⏳ **Host discovery++** — NEXT. Enrich the host browse board (`dashboard/looking-for` `RequestsBoard` /
-   `RequestCard`): live match-score sort (RPC now works), availability + budget-fit, richer cards, guest trust
-   badges, quick-quote from the card, response-time nudges.
-4. ⏳ **Guest decision UX** — after #3. Enrich compare-quotes + accept: host trust (rating/reviews/response-time),
-   listing photo/summary in each quote, best-value cues, tighter accept→pay.
-**After all 4:** back to the audit backlog — **deep-audit COUPONS** (`MVP_READINESS_AND_AUDIT_BACKLOG.md` #3;
-`docs/lifecycles/coupons.md` stub exists), then Add-ons · Media manager · Reports · Product gating + the sweep.
+**▶▶ NEXT = 3 new founder requests → `docs/features/LOOKING_FOR_NEXT_PHASE_PLAN.md` (read it first).**
+1. **Location step → Google-Maps address + pin + radius** — type address (autocomplete prefill, like signup) OR
+   drop a pin, then set a radius to describe the area. Reuse the listing editor's map/geocode
+   (`dashboard/properties/[id]/edit/Editor.tsx` + `/api/geo`). Add `location_radius_km` (migration); `location_lat/lng`
+   already exist.
+2. **Public advanced-search page** — 1/4 sidebar of live params + 3/4 horizontal enriched cards. Evolve
+   `looking-for/page.tsx` + `DirectoryFilters.tsx`; reuse requirements chips + flex + trust; radius "near me".
+3. **Guest Looking-For CRM archive tab** — archive of the guest's own posts, each a CRM record (quotes + threads in
+   one place). Follow `admin/users/[id]/UserRecord.tsx`; evolve `portal/looking-for/[id]/page.tsx`; reuse inbox
+   thread primitives.
+
+**⚠️ VERIFY FIRST next session:** the requirements **ADMIN UI** (`/admin/platform/looking-for`, `bd2a19d7`) is
+build/lint-green but **NOT driven live** — log in as super-admin (`wollie@manamarketing.co.za`, magiclink →
+`/auth/confirm`), add/edit/delete a group+option, confirm it flows to the guest picker. Guest-facing requirements
+flow IS verified live.
+
+**✅ DONE THIS SESSION — Looking-For "refine/enhance/enrich" (all verified live except the admin UI noted above):**
+- **Form re-skin** (`8e479c4f`) → create-data layout (left-rail steps · health ring · autosave · Review).
+- **Template modal** (`342d169f`) — "Quick start templates" grid → "Use a template" button + modal.
+- **Notifications + matching engine** (`bb4d8653`) — fixed `calculate_looking_for_match_score`; real-time alert
+  matcher (`lib/looking-for/matchAlerts.ts`); `/api/looking-for-worker` drains expiry + region-digest queues
+  (migration `20260714130000`). + docs (`71224874`).
+- **Flexible dates + deadline cap** (`7ba8918e`) — `date_flexibility_days` (migration `20260715120000`); quote
+  deadline capped at check-in.
+- **WYSIWYG details** (`e7d767d4`) — Tiptap `RichTextEditor` in Basics, sanitised HTML (migration `20260715130000`),
+  `RequestDetailsHtml` render.
+- **Admin-managed Requirements step** (`26870208` guest + `bd2a19d7` admin) — `looking_for_requirement_groups`/
+  `_options`/`_post_requirements` (migration `20260715140000`), `lib/looking-for/requirements.ts` loader,
+  `RequirementsPicker` step, `RequestRequirements` display, admin CRUD at `/admin/platform/looking-for`.
+
+**Deferred earlier workstreams (from the 4-workstream selection, still open):** **Host discovery++** (enrich
+`RequestsBoard`/`RequestCard`: match-score sort — RPC now works — availability/budget-fit, trust badges,
+quick-quote) and **Guest decision UX** (compare-quotes host trust + listing photo in quotes). These overlap the 3
+new requests above (esp. #2/#3) — fold in where sensible.
+**After Looking-For:** audit backlog — **COUPONS** (`MVP_READINESS_AND_AUDIT_BACKLOG.md` #3), then Add-ons · Media
+manager · Reports · Product gating + the sweep.
 
 **✅ EARLIER — LOOKING-FOR deep audit (2026-07-14).** The feature was **dead at three consecutive hops** and
 missing the guest email — all fixed + verified LIVE host→guest end-to-end, `build`+`lint` green. Doc

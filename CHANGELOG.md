@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-07-15 — Looking-For enhancement pass (cont.) — flex dates, WYSIWYG, admin-managed requirements.
+
+Continuing the "refine/enhance/enrich" pass. All verified live except the requirements admin UI (build/lint-green,
+not yet click-tested — needs a super-admin session; flagged for next session).
+
+- **Template modal** (`342d169f`) — the big "Quick start templates" grid in Basics became a compact "Use a
+  template" button that opens a modal picker (select → prefill + close). Verified live.
+- **Flexible dates + deadline cap** (`7ba8918e`) — guests can say "these dates ± N days" (Exact / ±1/2/3 days /
+  ±1/2 weeks; `date_flexibility_days`, migration `20260715120000`), shown on the rail/detail/host summary; the quote
+  deadline picker is capped at the check-in date. Verified live (posted with date_flexibility_days=2).
+- **WYSIWYG details** (`e7d767d4`) — the plain Details textarea became the shared Tiptap `RichTextEditor`; HTML
+  sanitised on write (migration `20260715130000` relaxed the length cap), rendered via `RequestDetailsHtml` on the
+  guest + public detail; plain-text surfaces stripHtml. Verified live (bulleted list stored + rendered).
+- **Admin-managed Requirements step** (`26870208` guest, `bd2a19d7` admin) — a new "Requirements" form step where
+  guests pick from an admin taxonomy (Property type · Bedrooms · Bathrooms · Size · Facilities; single/multi
+  select). Migration `20260715140000` (3 tables + RLS + audit types + seed), loader `lib/looking-for/requirements.ts`,
+  `RequirementsPicker`, read-only `RequestRequirements` on guest/public/respond, and an admin CRUD page at
+  `/admin/platform/looking-for`. Guest flow verified live (4 selections persisted + rendered grouped); admin UI
+  build-verified, live-check pending.
+
+**Save point:** founder queued 3 new features → `docs/features/LOOKING_FOR_NEXT_PHASE_PLAN.md` (map+radius location
+picker · public advanced-search page · guest Looking-For CRM archive). Next session starts there.
+
 ## 2026-07-15 — Looking-For enhancement pass — create-data form + matching/notification engine.
 
 Founder: "refine, enhance and enrich Looking-For" + specifically build the alert matcher and the
