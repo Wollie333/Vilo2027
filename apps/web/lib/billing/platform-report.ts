@@ -16,9 +16,15 @@ export type MonthlyPoint = {
   month: string; // ISO first-of-month
   label: string; // e.g. "Jan"
   revenue: number; // Wielo revenue collected that month
+  gmv: number; // host↔guest booking value for stays checking in that month
   signups: number; // total signups that month
   hosts: number; // host signups that month
   guests: number; // guest signups that month
+};
+
+export type BookingStatusSlice = {
+  status: string;
+  count: number;
 };
 
 export type PlanSlice = {
@@ -97,6 +103,7 @@ export type PlatformReport = {
   paymentMethods: PaymentMethodSlice[];
   creditNotes: CreditNoteSlice[];
   geography: GeoSlice[];
+  bookingStatus: BookingStatusSlice[];
 };
 
 const RANGE_LABEL: Record<ReportRange, string> = {
@@ -165,6 +172,7 @@ export async function buildPlatformReport(
     { count: lookingForPosts },
     { count: lookingForResponses },
     { data: geoRows },
+    { data: allBookingStatusRows },
   ] = await Promise.all([
     // The product catalog — the REAL price a host pays. A free product (e.g. a
     // beta tier) costs R0 even if it grants a paid plan tier for feature access.
@@ -188,7 +196,7 @@ export async function buildPlatformReport(
       .or(`email.is.null,email.neq.${WIELO_SUPPORT_EMAIL}`),
     service
       .from("bookings")
-      .select("total_amount, status")
+      .select("total_amount, status, check_in")
       .in("status", REVENUE_BOOKING_STATUSES),
     service
       .from("properties")
@@ -219,6 +227,8 @@ export async function buildPlatformReport(
       .select("province")
       .is("deleted_at", null)
       .eq("is_published", true),
+    // ALL bookings (every status) for the status-distribution breakdown.
+    service.from("bookings").select("status").is("deleted_at", null),
   ]);
 
   // ── Revenue / subscriptions ── (product-driven, not plan-tier)
@@ -301,6 +311,7 @@ export async function buildPlatformReport(
       month: d.toISOString(),
       label: MONTH_LABELS[d.getMonth()],
       revenue: 0,
+      gmv: 0,
       signups: 0,
       hosts: 0,
       guests: 0,
@@ -324,6 +335,12 @@ export async function buildPlatformReport(
     months[idx].signups += 1;
     if (u.role === "host") months[idx].hosts += 1;
     else if (u.role === "guest") months[idx].guests += 1;
+  }
+  // GMV per month — booking value for stays checking in that month.
+  for (const b of bookingRows ?? []) {
+    if (!b.check_in) continue;
+    const idx = monthIndex.get(keyOf(b.check_in as string));
+    if (idx != null) months[idx].gmv += Number(b.total_amount ?? 0);
   }
 
   // One-off sales: EVERY paid product_order (any product), grouped — so a one-off
@@ -474,6 +491,16 @@ export async function buildPlatformReport(
   const momRevenue = momOf((m) => m.revenue);
   const momSignups = momOf((m) => m.signups);
 
+  // ── Booking-status distribution (every status, all-time) ──
+  const bkStatusCount: Record<string, number> = {};
+  for (const b of allBookingStatusRows ?? []) {
+    const status = (b.status as string) ?? "unknown";
+    bkStatusCount[status] = (bkStatusCount[status] ?? 0) + 1;
+  }
+  const bookingStatus: BookingStatusSlice[] = Object.entries(bkStatusCount)
+    .map(([status, count]) => ({ status, count }))
+    .sort((a, b) => b.count - a.count);
+
   return {
     generatedAt: new Date(nowMs).toISOString(),
     range,
@@ -519,6 +546,7 @@ export async function buildPlatformReport(
     paymentMethods,
     creditNotes,
     geography,
+    bookingStatus,
   };
 }
 

@@ -12,6 +12,7 @@ import { AdminKpiCard } from "../_components/AdminKpiCard";
 import { PlanDonutChart } from "./_components/PlanDonutChart";
 import { RevenueAreaChart } from "./_components/RevenueAreaChart";
 import { UserGrowthChart } from "./_components/UserGrowthChart";
+import { GmvTrendChart } from "./_components/GmvTrendChart";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function AdminReportingPage({
   const k = report.kpis;
 
   const revenueTotal = report.monthly.reduce((s, m) => s + m.revenue, 0);
+  const gmvTotal = report.monthly.reduce((s, m) => s + m.gmv, 0);
 
   return (
     <div className="space-y-8">
@@ -220,6 +222,26 @@ export default async function AdminReportingPage({
           (confirmed/checked-in/completed). Wielo never holds this — it&apos;s a
           platform-scale metric, not Wielo income.
         </p>
+      </section>
+
+      {/* GMV trend + booking-status distribution */}
+      <section className="grid gap-5 lg:grid-cols-3">
+        <GmvTrendChart
+          data={report.monthly.map((m) => ({ label: m.label, gmv: m.gmv }))}
+          total={gmvTotal}
+          months={report.monthsShown}
+        />
+        <BreakdownCard
+          title="Bookings by status"
+          subtitle="All bookings · all-time"
+          empty="No bookings yet."
+          rows={report.bookingStatus.map((b) => ({
+            key: b.status,
+            label: b.status.replace(/_/g, " "),
+            meta: "",
+            value: String(b.count),
+          }))}
+        />
       </section>
 
       {/* Payment methods + credit notes */}

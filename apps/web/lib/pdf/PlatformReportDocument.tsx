@@ -166,6 +166,22 @@ export function PlatformReportDocument({
           </View>
         ) : null}
 
+        {report.bookingStatus.length > 0 ? (
+          <View style={{ marginTop: 18 }}>
+            <Text style={sectionTitle}>Bookings by status</Text>
+            <View style={tableHeader}>
+              <Text style={{ flex: 2 }}>Status</Text>
+              <Text style={{ flex: 1, textAlign: "right" }}>Count</Text>
+            </View>
+            {report.bookingStatus.map((b) => (
+              <View key={b.status} style={tableRow}>
+                <Text style={{ flex: 2 }}>{b.status.replace(/_/g, " ")}</Text>
+                <Text style={{ flex: 1, textAlign: "right" }}>{b.count}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
         <Text style={footer}>
           {brandName} · Wielo records only money paid to {brandName}{" "}
           (subscriptions + products). GMV is host↔guest booking value flowing
