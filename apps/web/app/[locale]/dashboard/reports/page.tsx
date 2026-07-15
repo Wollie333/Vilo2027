@@ -27,6 +27,7 @@ import { PopularRooms } from "./_components/PopularRooms";
 import { RefundsCancellations } from "./_components/RefundsCancellations";
 import { ScheduledReportsSection } from "./_components/ScheduledReportsSection";
 import { LookingForStats } from "./_components/LookingForStats";
+import { RevenueBreakdown } from "./_components/RevenueBreakdown";
 
 export const metadata: Metadata = {
   title: "Analytics & Reports",
@@ -506,6 +507,103 @@ export default async function ReportsPage({
     month: "short",
   })}`;
 
+  // ---- Revenue breakdown (new host metrics) --------------------------------
+  // Payment-method split + add-ons come from the SAME period ledger slice above
+  // (no extra query). Coupons + weekday/weekend need the period's bookings, and
+  // Wielo Credits come from the host's credit wallet + ledger.
+  const methodAgg: Record<string, { amount: number; count: number }> = {};
+  let addonsCollected = 0;
+  for (const e of periodEntries) {
+    if (e.cashEffect > 0) {
+      const m = (e.method || "other").toLowerCase();
+      methodAgg[m] = methodAgg[m] ?? { amount: 0, count: 0 };
+      methodAgg[m].amount += e.amount;
+      methodAgg[m].count += 1;
+      if (e.category === "addon") addonsCollected += e.amount;
+    }
+  }
+  const paymentMethods = Object.entries(methodAgg)
+    .map(([method, v]) => ({
+      method,
+      amount: Math.round(v.amount),
+      count: v.count,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const [
+    { data: periodBookings },
+    { data: creditWallet },
+    { data: creditLog },
+  ] = await Promise.all([
+    admin
+      .from("bookings")
+      .select("total_amount, check_in, status, coupon_id, coupon_discount")
+      .eq("host_id", host.id)
+      .is("deleted_at", null)
+      .in("status", ["confirmed", "checked_in", "checked_out", "completed"])
+      .gte("check_in", startDate)
+      .lte("check_in", endDate),
+    admin
+      .from("wielo_credit_wallet")
+      .select("balance, purpose")
+      .eq("host_id", host.id),
+    admin
+      .from("wielo_credit_ledger")
+      .select("delta, kind, created_at")
+      .eq("host_id", host.id)
+      .gte("created_at", startDate),
+  ]);
+
+  // Coupons + weekday/weekend from the period's revenue bookings.
+  const weekdayRevenue = [0, 0, 0, 0, 0, 0, 0]; // Mon-first
+  let couponCount = 0;
+  let couponDiscount = 0;
+  let weekendRevenue = 0;
+  let totalDayRevenue = 0;
+  for (const b of periodBookings ?? []) {
+    const amount = Number(b.total_amount ?? 0);
+    if (b.coupon_id) {
+      couponCount += 1;
+      couponDiscount += Number(b.coupon_discount ?? 0);
+    }
+    if (b.check_in) {
+      const dow = (new Date(b.check_in as string).getDay() + 6) % 7; // Mon=0
+      weekdayRevenue[dow] += amount;
+      totalDayRevenue += amount;
+      if (dow === 4 || dow === 5) weekendRevenue += amount; // Fri, Sat
+    }
+  }
+  const weekendShare =
+    totalDayRevenue > 0 ? (weekendRevenue / totalDayRevenue) * 100 : 0;
+
+  // Wielo Credits — balance (quote wallet) + period movement.
+  const creditsBalance = (creditWallet ?? []).reduce(
+    (s, w) => s + Number(w.balance ?? 0),
+    0,
+  );
+  let creditsSpent = 0;
+  let creditsGranted = 0;
+  for (const c of creditLog ?? []) {
+    const delta = Number(c.delta ?? 0);
+    if (c.kind === "debit") creditsSpent += Math.abs(delta);
+    else if (c.kind === "grant" || c.kind === "purchase")
+      creditsGranted += delta;
+  }
+
+  const revenueBreakdown = {
+    currency: cashCurrency,
+    paymentMethods,
+    addonsCollected: Math.round(addonsCollected),
+    coupons: { count: couponCount, discountGiven: Math.round(couponDiscount) },
+    credits: {
+      balance: creditsBalance,
+      spent: creditsSpent,
+      granted: creditsGranted,
+    },
+    weekdayRevenue: weekdayRevenue.map((v) => Math.round(v)),
+    weekendShare,
+  };
+
   return (
     <>
       {/* Header */}
@@ -592,6 +690,9 @@ export default async function ReportsPage({
 
             {/* Secondary Metrics */}
             <SecondaryMetrics data={secondaryMetrics} />
+
+            {/* Revenue breakdown — payment methods, add-ons, coupons, credits */}
+            <RevenueBreakdown data={revenueBreakdown} />
 
             {/* Looking For Performance */}
             {lookingForStats && <LookingForStats data={lookingForStats} />}
