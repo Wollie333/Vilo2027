@@ -18,6 +18,7 @@ import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
 import { stripHtml } from "@/lib/sanitiseHtml";
 import { RequestDetailsHtml } from "@/components/looking-for/RequestDetailsHtml";
+import { RequestRequirements } from "@/components/looking-for/RequestRequirements";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
@@ -311,6 +312,11 @@ export default async function PublicPostDetailPage({ params }: Props) {
                   />
                 </div>
               )}
+
+              <RequestRequirements
+                postId={post.id}
+                className="border-b border-brand-line p-6"
+              />
 
               {/* Stats */}
               <div className="flex items-center justify-between p-6">

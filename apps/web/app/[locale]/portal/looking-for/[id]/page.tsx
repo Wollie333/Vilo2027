@@ -32,6 +32,7 @@ import { Link } from "@/i18n/navigation";
 import { PostActions } from "./_components/PostActions";
 import { markQuotesViewedAction } from "../actions";
 import { RequestDetailsHtml } from "@/components/looking-for/RequestDetailsHtml";
+import { RequestRequirements } from "@/components/looking-for/RequestRequirements";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -187,6 +188,7 @@ export default async function PostDetailPage({ params }: Props) {
           {post.description && (
             <RequestDetailsHtml html={post.description} className="mt-3" />
           )}
+          <RequestRequirements postId={id} className="mt-4" />
         </div>
 
         <div className="grid grid-cols-2 gap-4 border-b border-brand-line p-6 md:grid-cols-4">

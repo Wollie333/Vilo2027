@@ -4649,18 +4649,21 @@ export type Database = {
       looking_for_expiry_notifications: {
         Row: {
           days_before: number
+          dispatched_at: string | null
           id: string
           post_id: string
           sent_at: string | null
         }
         Insert: {
           days_before: number
+          dispatched_at?: string | null
           id?: string
           post_id: string
           sent_at?: string | null
         }
         Update: {
           days_before?: number
+          dispatched_at?: string | null
           id?: string
           post_id?: string
           sent_at?: string | null
@@ -4707,6 +4710,51 @@ export type Database = {
           },
           {
             foreignKeyName: "looking_for_passes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      looking_for_post_requirements: {
+        Row: {
+          created_at: string
+          group_slug: string | null
+          id: string
+          option_id: string | null
+          option_key: string
+          option_label: string | null
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_slug?: string | null
+          id?: string
+          option_id?: string | null
+          option_key: string
+          option_label?: string | null
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          group_slug?: string | null
+          id?: string
+          option_id?: string | null
+          option_key?: string
+          option_label?: string | null
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_post_requirements_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_requirement_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_post_requirements_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "looking_for_posts"
@@ -4798,6 +4846,7 @@ export type Database = {
           check_out_date: string | null
           children: number
           created_at: string
+          date_flexibility_days: number
           description: string | null
           event_type: string | null
           expires_at: string | null
@@ -4839,6 +4888,7 @@ export type Database = {
           check_out_date?: string | null
           children?: number
           created_at?: string
+          date_flexibility_days?: number
           description?: string | null
           event_type?: string | null
           expires_at?: string | null
@@ -4880,6 +4930,7 @@ export type Database = {
           check_out_date?: string | null
           children?: number
           created_at?: string
+          date_flexibility_days?: number
           description?: string | null
           event_type?: string | null
           expires_at?: string | null
@@ -5009,6 +5060,92 @@ export type Database = {
           sample_post_ids?: string[]
         }
         Relationships: []
+      }
+      looking_for_requirement_groups: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          icon: string
+          id: string
+          is_published: boolean
+          label: string
+          select_mode: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string
+          id?: string
+          is_published?: boolean
+          label: string
+          select_mode?: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string
+          id?: string
+          is_published?: boolean
+          label?: string
+          select_mode?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      looking_for_requirement_options: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          group_id: string
+          icon: string
+          id: string
+          is_published: boolean
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          group_id: string
+          icon?: string
+          id?: string
+          is_published?: boolean
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          group_id?: string
+          icon?: string
+          id?: string
+          is_published?: boolean
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_requirement_options_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_requirement_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       looking_for_responses: {
         Row: {

@@ -5,6 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { guestCan } from "@/lib/guests/permissions";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { notifyMatchingAlerts } from "@/lib/looking-for/matchAlerts";
+import { replacePostRequirements } from "@/lib/looking-for/writeRequirements";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { revalidatePath } from "next/cache";
 
@@ -32,6 +33,7 @@ type CreateRequestInput = {
   quote_deadline?: string;
   min_host_rating?: number;
   image_url?: string | null;
+  requirement_keys?: string[];
 };
 
 /**
@@ -179,6 +181,9 @@ export async function createRequestAction(input: CreateRequestInput) {
     post_id: post.id,
   });
 
+  // Save the admin-managed requirement selections (Property type, Facilities…).
+  await replacePostRequirements(post.id, input.requirement_keys ?? []);
+
   // Real-time: notify hosts whose active saved-search alert matches this request.
   await notifyMatchingAlerts({
     id: post.id,
@@ -262,6 +267,12 @@ export async function updateRequestAction(
   if (error) {
     console.error("Failed to update request:", error);
     return { success: false, error: error.message };
+  }
+
+  // Replace the requirement selections when the caller manages them (the form
+  // always sends the array; omit it and existing selections are left untouched).
+  if (input.requirement_keys !== undefined) {
+    await replacePostRequirements(postId, input.requirement_keys);
   }
 
   revalidatePath("/portal/looking-for");

@@ -6,6 +6,7 @@ import { hostHasFeature } from "@/lib/products/featureGate";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { stripHtml } from "@/lib/sanitiseHtml";
+import { RequestRequirements } from "@/components/looking-for/RequestRequirements";
 import { loadQuoteFormListings } from "../../../quotes/_listings";
 import { LookingForLocked } from "../../_components/LookingForLocked";
 import { RespondFormWrapper } from "../../_components/RespondFormWrapper";
@@ -254,6 +255,13 @@ export default async function RespondToPostPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* What the guest requires (admin-managed taxonomy) */}
+      <RequestRequirements
+        postId={post.id}
+        title="What the guest needs"
+        className="rounded-card border border-brand-line bg-white p-4"
+      />
 
       {/* Quote form with pre-filled data and template support */}
       <RespondFormWrapper

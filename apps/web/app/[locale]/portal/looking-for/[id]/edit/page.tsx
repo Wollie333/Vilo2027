@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 import { loadFormDraft } from "@/lib/drafts/store";
+import { getLookingForRequirements } from "@/lib/looking-for/requirements";
 import {
   RequestForm,
   type RequestEditValues,
@@ -64,6 +65,14 @@ export default async function EditRequestPage({ params }: Props) {
     redirect("/portal/looking-for");
   }
 
+  const [{ data: reqRows }, requirementGroups] = await Promise.all([
+    supabase
+      .from("looking_for_post_requirements")
+      .select("option_key")
+      .eq("post_id", post.id),
+    getLookingForRequirements(),
+  ]);
+
   const initial: RequestEditValues = {
     title: post.title ?? "",
     description: post.description ?? "",
@@ -88,6 +97,7 @@ export default async function EditRequestPage({ params }: Props) {
     minHostRating:
       post.min_host_rating != null ? String(post.min_host_rating) : "",
     imageUrl: post.image_url ?? "",
+    requirementKeys: (reqRows ?? []).map((r) => r.option_key as string),
   };
 
   const serverDraft = await loadFormDraft(supabase, user.id, {
@@ -103,6 +113,7 @@ export default async function EditRequestPage({ params }: Props) {
       postId={post.id}
       initial={initial}
       serverDraft={serverDraft}
+      requirementGroups={requirementGroups}
     />
   );
 }

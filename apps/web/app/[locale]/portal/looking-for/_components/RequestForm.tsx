@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   ImagePlus,
+  ListChecks,
   Loader2,
   MapPin,
   Pencil,
@@ -44,6 +45,8 @@ import {
 } from "../actions";
 import { TemplateSelector } from "./TemplateSelector";
 import type { RequestTemplate } from "./request-templates";
+import { RequirementsPicker } from "./RequirementsPicker";
+import type { RequirementGroupWithOptions } from "@/lib/looking-for/requirements";
 
 // Numeric fields stay as strings so a restored draft drops straight back into
 // the same setters (mirrors the coupon / add-on / special editors).
@@ -67,6 +70,7 @@ export type RequestEditValues = {
   quoteDeadline: string;
   minHostRating: string; // "" = any, else "3" | "3.5" | "4" | "4.5"
   imageUrl: string;
+  requirementKeys: string[];
 };
 
 export const BLANK_REQUEST: RequestEditValues = {
@@ -89,15 +93,23 @@ export const BLANK_REQUEST: RequestEditValues = {
   quoteDeadline: "",
   minHostRating: "",
   imageUrl: "",
+  requirementKeys: [],
 };
 
-type SectionKey = "basics" | "dates" | "location" | "photo" | "review";
+type SectionKey =
+  | "basics"
+  | "dates"
+  | "location"
+  | "requirements"
+  | "photo"
+  | "review";
 type SectionDef = { key: SectionKey; label: string; icon: LucideIcon };
 
 const SECTIONS: SectionDef[] = [
   { key: "basics", label: "Basics", icon: TypeIcon },
   { key: "dates", label: "Dates & guests", icon: Calendar },
   { key: "location", label: "Location & budget", icon: MapPin },
+  { key: "requirements", label: "Requirements", icon: ListChecks },
   { key: "photo", label: "Photo & preferences", icon: ImagePlus },
   { key: "review", label: "Review", icon: ClipboardCheck },
 ];
@@ -114,6 +126,10 @@ const PANEL_META: Record<SectionKey, { title: string; desc: string }> = {
   location: {
     title: "Location & budget",
     desc: "Where you want to be and roughly what you'd spend. All optional.",
+  },
+  requirements: {
+    title: "Requirements",
+    desc: "What the place must have. All optional — pick what matters to you.",
   },
   photo: {
     title: "Photo & preferences",
@@ -145,6 +161,7 @@ interface RequestFormProps {
   postId?: string;
   initial: RequestEditValues;
   serverDraft: LoadedDraft | null;
+  requirementGroups: RequirementGroupWithOptions[];
 }
 
 export function RequestForm({
@@ -153,6 +170,7 @@ export function RequestForm({
   postId,
   initial,
   serverDraft,
+  requirementGroups,
 }: RequestFormProps) {
   const router = useRouter();
   const [savePending, startSave] = useTransition();
@@ -180,6 +198,9 @@ export function RequestForm({
   const [quoteDeadline, setQuoteDeadline] = useState(initial.quoteDeadline);
   const [minHostRating, setMinHostRating] = useState(initial.minHostRating);
   const [imageUrl, setImageUrl] = useState(initial.imageUrl);
+  const [requirementKeys, setRequirementKeys] = useState<string[]>(
+    initial.requirementKeys,
+  );
 
   const [dirty, setDirty] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>();
@@ -208,6 +229,7 @@ export function RequestForm({
       quoteDeadline,
       minHostRating,
       imageUrl,
+      requirementKeys,
     }),
     [
       title,
@@ -229,6 +251,7 @@ export function RequestForm({
       quoteDeadline,
       minHostRating,
       imageUrl,
+      requirementKeys,
     ],
   );
 
@@ -252,6 +275,7 @@ export function RequestForm({
     setQuoteDeadline(p.quoteDeadline);
     setMinHostRating(p.minHostRating);
     setImageUrl(p.imageUrl);
+    setRequirementKeys(p.requirementKeys ?? []);
     setDirty(true);
     toast.success("Draft restored");
   }, []);
@@ -291,6 +315,10 @@ export function RequestForm({
         ? `From ${fmtShort(checkIn)}${flexSuffix}`
         : "Flexible dates";
   const whereLabel = locationText || region || "Anywhere";
+  const requirementLabels = requirementGroups
+    .flatMap((g) => g.options)
+    .filter((o) => requirementKeys.includes(o.slug))
+    .map((o) => o.label);
   const budgetLabel =
     budgetMin || budgetMax
       ? `${budgetMin ? `R${budgetMin}` : "R0"}${
@@ -336,6 +364,8 @@ export function RequestForm({
         return (Number(adults) || 0) >= 1;
       case "location":
         return Boolean(locationText || region);
+      case "requirements":
+        return true; // optional
       case "photo":
         return true; // everything here is optional
       case "review":
@@ -351,6 +381,10 @@ export function RequestForm({
         return `${datesLabel} · ${guestCount} guest${guestCount === 1 ? "" : "s"}`;
       case "location":
         return `${whereLabel} · ${budgetLabel}`;
+      case "requirements":
+        return requirementKeys.length > 0
+          ? `${requirementKeys.length} selected`
+          : "Optional";
       case "photo":
         return imageUrl ? "Photo added" : isPublic ? "Public" : "Private";
       case "review":
@@ -419,6 +453,7 @@ export function RequestForm({
       quote_deadline: quoteDeadline || undefined,
       min_host_rating: minHostRating ? Number(minHostRating) : undefined,
       image_url: imageUrl || undefined,
+      requirement_keys: requirementKeys,
     };
   }
 
@@ -880,6 +915,20 @@ export function RequestForm({
             </div>
           ) : null}
 
+          {/* ----- REQUIREMENTS ----- */}
+          {section === "requirements" ? (
+            <div className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <RequirementsPicker
+                groups={requirementGroups}
+                value={requirementKeys}
+                onChange={(keys) => {
+                  setRequirementKeys(keys);
+                  touch();
+                }}
+              />
+            </div>
+          ) : null}
+
           {/* ----- PHOTO & PREFERENCES ----- */}
           {section === "photo" ? (
             <div className="space-y-4">
@@ -1097,6 +1146,16 @@ export function RequestForm({
                   value={budgetLabel}
                   muted={budgetLabel === "Flexible budget"}
                   onEdit={() => setSection("location")}
+                />
+                <SummaryRow
+                  label="Requirements"
+                  value={
+                    requirementLabels.length > 0
+                      ? requirementLabels.join(" · ")
+                      : "None set"
+                  }
+                  muted={requirementLabels.length === 0}
+                  onEdit={() => setSection("requirements")}
                 />
                 <SummaryRow
                   label="Visibility"
