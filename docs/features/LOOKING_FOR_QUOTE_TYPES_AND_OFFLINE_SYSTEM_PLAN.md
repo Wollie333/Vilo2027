@@ -190,18 +190,37 @@ Each phase ships independently and is verified in builder + live (Principle #9).
 - Sub/credit/ledger activation — every path now grants (this session's fix).
 - Distinct-by-purpose forms rule (`feedback-quote-vs-booking-forms-distinct`).
 
-## 9. Decisions needed from the founder
-- **D0 — Name** of the offering/subscription ("Wielo Quotes" / "Quote Pro" /
-  other) and the quote-only account label the guest sees ("Quote partner"?).
-- **D1** — Soft-validation scope: only Looking-For responses, or all quotes?
-- **D2** — Quote-only account: a flag on `hosts` (reuse credits/quotes keying) or
-  a separate entity?
-- **D3** — Wielo Quotes as a membership **tier** (recommended) or a new
-  `product_type`?
-- **D4** — Host priority mechanics (sort / cap / badge — pick).
-- **D5** — Admin block granularity (quote-only-off / full-suspend / both).
-- **D6** — MVP cut: is the external non-host user class in the first release, or
-  do Phases 1–3 (host-facing quote types) ship first and Phases 4–5 follow?
+## 9. Decisions
+
+**LOCKED (founder, 2026-07-15):**
+- **D6 — MVP cut: FULL dual-system in one release.** External non-host quote-only
+  users + the Wielo Quotes subscription + admin block ship WITH the host-facing
+  quote types, not after. Build order still follows §7 phases internally, but all
+  five phases are in-scope for the release.
+- **D1 — Soft-validation: Looking-For responses ONLY.** Over-capacity / no-dates
+  becomes a warning-with-confirm only when responding to a Looking-For post. The
+  direct-booking quote path + checkout keep the HARD capacity/availability block
+  (a real booking must fit). Gate the softening on "is this an LF response".
+- **D0 — Name: DEFERRED.** Use placeholder **"Wielo Quotes"** in code/UI copy;
+  founder renames before launch (keep it a single constant to swap once).
+
+**PROPOSED (defaults — founder to confirm/adjust):**
+- **D2 — Quote-only account = a flag on `hosts`.** Reuse `hosts.id` (credits +
+  quotes already key off it) with `hosts.account_kind in ('host','quote_only')`;
+  gate every accommodation/booking/website surface off for `quote_only`. Avoids a
+  parallel identity + duplicating the credits/quotes/inbox plumbing.
+- **D3 — Wielo Quotes = a membership TIER** (product_type `membership`), not a new
+  product_type — rides the existing sub/credit/ledger/activation machinery
+  (activation now grants credits on every path). A `quote_only` account holds this
+  membership + optional credit top-up packages.
+- **D4 — Host priority = sort + badge + quota, data-driven.** Verified hosts' A/B
+  quotes sort above quote-only users' on the guest compare view; a "Verified host"
+  vs "Quote partner" badge; quote-only users get a tighter `looking_for_quotas`
+  row (fewer quotes/day). All via `check_feature_permission` + quotas, no hardcoding.
+- **D5 — Admin block = two levels.** (i) `quote_access` off = can't send quotes;
+  (ii) `platform_access` off = bounced from host/guest surfaces to the quotes-only
+  shell (or fully suspended via existing account-lifecycle). Admin toggles both,
+  audited.
 
 ## 10. Risks / open questions
 - Shared `QuoteForm` softening must not weaken the real **booking** capacity/
