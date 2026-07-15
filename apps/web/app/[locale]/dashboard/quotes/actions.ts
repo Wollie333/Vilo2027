@@ -665,7 +665,9 @@ export async function sendQuoteAction(
       await Promise.all([
         supabase
           .from("looking_for_posts")
-          .select("title, guest_id")
+          .select(
+            "title, guest_id, check_in_date, check_out_date, date_flexibility_days",
+          )
           .eq("id", current.looking_for_post_id)
           .maybeSingle(),
         supabase
@@ -700,6 +702,22 @@ export async function sendQuoteAction(
             year: "numeric",
           })
         : "—";
+    // The guest's originally requested window (with their flexibility), shown on
+    // the quote next to the host's quoted dates so the guest can see the match.
+    const flexLbl = (d: number | null): string =>
+      !d || d <= 0
+        ? ""
+        : d === 7
+          ? " (± 1 week)"
+          : d === 14
+            ? " (± 2 weeks)"
+            : ` (± ${d} day${d === 1 ? "" : "s"})`;
+    const requestedDates =
+      postData?.check_in_date && postData?.check_out_date
+        ? `${fmtD(postData.check_in_date)} – ${fmtD(postData.check_out_date)}${flexLbl(postData.date_flexibility_days)}`
+        : postData?.check_in_date
+          ? `From ${fmtD(postData.check_in_date)}${flexLbl(postData.date_flexibility_days)}`
+          : undefined;
     const nights =
       q?.check_in && q?.check_out
         ? Math.max(
@@ -728,6 +746,7 @@ export async function sendQuoteAction(
           hostName: hostData?.display_name ?? undefined,
           checkIn: fmtD(q?.check_in ?? null),
           checkOut: fmtD(q?.check_out ?? null),
+          requestedDates,
           nights,
           totalAmount: formatMoney(
             Number(q?.total_amount ?? 0),

@@ -39,7 +39,9 @@ export default async function CompareQuotesPage({ params }: Props) {
   // Fetch the post
   const { data: post, error: postError } = await supabase
     .from("looking_for_posts")
-    .select("id, title, guest_id")
+    .select(
+      "id, title, guest_id, check_in_date, check_out_date, date_flexibility_days",
+    )
     .eq("id", id)
     .single();
 
@@ -126,6 +128,35 @@ export default async function CompareQuotesPage({ params }: Props) {
               Compare Quotes
             </h1>
             <p className="text-sm text-brand-mute">{post.title}</p>
+            {(() => {
+              const fmt = (iso: string) =>
+                new Date(iso).toLocaleDateString("en-ZA", {
+                  day: "numeric",
+                  month: "short",
+                });
+              const flex =
+                post.check_in_date && (post.date_flexibility_days ?? 0) > 0
+                  ? post.date_flexibility_days === 7
+                    ? " · ± 1 week"
+                    : post.date_flexibility_days === 14
+                      ? " · ± 2 weeks"
+                      : ` · ± ${post.date_flexibility_days} day${post.date_flexibility_days === 1 ? "" : "s"}`
+                  : "";
+              const requested =
+                post.check_in_date && post.check_out_date
+                  ? `${fmt(post.check_in_date)} – ${fmt(post.check_out_date)}${flex}`
+                  : post.check_in_date
+                    ? `From ${fmt(post.check_in_date)}${flex}`
+                    : null;
+              return requested ? (
+                <p className="mt-0.5 text-xs text-brand-mute">
+                  <span className="font-medium text-brand-ink">
+                    You requested:
+                  </span>{" "}
+                  {requested}
+                </p>
+              ) : null;
+            })()}
           </div>
         </div>
       </div>
@@ -145,7 +176,7 @@ export default async function CompareQuotesPage({ params }: Props) {
               Deposit
             </div>
             <div className="flex h-[60px] items-center text-sm font-medium text-brand-mute">
-              Dates
+              Quoted dates
             </div>
             <div className="flex h-[60px] items-center text-sm font-medium text-brand-mute">
               Guests

@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-07-15 — §6 Wielo email shell + quote shows requested-vs-quoted dates.
+
+- **Shared Wielo email shell** (`emails/components/Shell.tsx`) in the founder's table-based style, Wielo-branded:
+  dark forest header band (logo + eyebrow + title + subtitle + optional status pill) · emerald accent line · white
+  body · branded footer. Plus reusable content helpers **`DetailTable`** (label→value bordered table, auto-hides
+  null rows) and **`MessageBlock`** (left-accent panel). Exported from `@vilo/emails`.
+- **Migrated `QuoteSentGuest`** (the Looking-For quote email) onto the shell as the first adopter — dark header +
+  "NEW QUOTE" eyebrow + "💬 QUOTE" pill + detail table. Remaining templates migrate in §7.
+- **Requested-vs-quoted dates** (founder) — the quote now shows the guest's originally REQUESTED window (+ their
+  flexibility) beside the host's QUOTED dates, on every surface: the quote email (`You requested` row, only for
+  Looking-For quotes — `sendQuoteAction` now passes `requestedDates`; `LookingForRefs` extended), the guest CRM
+  record quote cards (`Requested:` / `Quoted:` lines), and the compare page (`You requested:` header + "Quoted
+  dates" label). Verified live (email preview + guest record).
+
 ## 2026-07-15 — Looking-For §2: compact horizontal request info card (host respond page).
 
 - **Shared `components/looking-for/RequestInfoCard.tsx`** — compact HORIZONTAL card: request image (left) + title +

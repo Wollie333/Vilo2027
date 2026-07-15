@@ -1,3 +1,11 @@
+// Shared Wielo email shell + content helpers (table-based, brand-styled).
+export { default as Shell } from "./components/Shell";
+export type { ShellPill } from "./components/Shell";
+export { default as DetailTable } from "./components/DetailTable";
+export type { DetailRow } from "./components/DetailTable";
+export { default as MessageBlock } from "./components/MessageBlock";
+export { default as Button } from "./components/Button";
+
 export { default as AccountSuspended } from "./templates/AccountSuspended";
 export { default as AdminMessageGeneric } from "./templates/AdminMessageGeneric";
 export { default as BroadcastCritical } from "./templates/BroadcastCritical";

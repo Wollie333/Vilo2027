@@ -129,6 +129,23 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     acceptToken: "sampletoken0123456789",
   },
 
+  // Looking-For quote → guest (same QuoteSentGuest template), but enriched with
+  // the guest's originally requested dates + flexibility alongside the quote.
+  looking_for_quote_received: {
+    guestFirstName: "Lerato",
+    listingName: "Karoo Sky Guesthouse",
+    hostName: "Amara",
+    checkIn: "12 Aug 2026",
+    checkOut: "14 Aug 2026",
+    nights: 2,
+    totalAmount: "R 45,000.00",
+    quoteNumber: "Q-0011",
+    validUntil: "20 Jul 2026",
+    requestedDates: "12 Aug 2026 – 14 Aug 2026 (± 1 day)",
+    quoteId: "00000000-0000-0000-0000-000000000002",
+    acceptToken: "sampletoken0123456789",
+  },
+
   review_request_guest: {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",

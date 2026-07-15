@@ -2,10 +2,10 @@ import { Text } from "@react-email/components";
 import * as React from "react";
 
 import Button from "../components/Button";
-import Heading from "../components/Heading";
-import Layout from "../components/Layout";
+import DetailTable from "../components/DetailTable";
+import Shell from "../components/Shell";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wieloplatform.com";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://wielo.co.za";
 
 type Props = {
   guestFirstName?: string;
@@ -17,6 +17,9 @@ type Props = {
   totalAmount?: string;
   quoteNumber?: string;
   validUntil?: string;
+  // The guest's originally requested window (with flexibility), for Looking-For
+  // quotes — shown next to the host's quoted dates. Omitted for direct quotes.
+  requestedDates?: string;
   // The public token quote page — accept with no login.
   quoteId?: string;
   acceptToken?: string;
@@ -32,6 +35,7 @@ export default function QuoteSentGuest({
   totalAmount = "—",
   quoteNumber = "Q-XXXX",
   validUntil = "",
+  requestedDates = "",
   quoteId = "",
   acceptToken = "",
 }: Props) {
@@ -40,62 +44,49 @@ export default function QuoteSentGuest({
       ? `${APP_URL}/q/${quoteId}/${acceptToken}`
       : `${APP_URL}/portal/quotes`;
   return (
-    <Layout
+    <Shell
       preview={`Your quote for ${listingName} — ${checkIn} to ${checkOut}.`}
+      eyebrow="New quote"
+      title={`Your quote is ready, ${guestFirstName}`}
+      subtitle={`${hostName} has prepared a quote for your stay at ${listingName}.`}
+      pill={{ label: "QUOTE", emoji: "💬" }}
     >
-      <Heading>Your quote is ready, {guestFirstName} 🎉</Heading>
-      <Text>
-        {hostName} has prepared a quote for your stay at{" "}
-        <strong>{listingName}</strong>. Review it and accept whenever
-        you&apos;re ready — no login needed.
+      <Text style={{ margin: "0 0 20px", fontSize: 14, color: "#4A7C6A" }}>
+        Review it and accept whenever you&apos;re ready — no login needed.
       </Text>
 
-      <div
-        style={{
-          background: "#F2F8F4",
-          border: "1px solid #C7DCC9",
-          borderRadius: 12,
-          padding: 20,
-          margin: "16px 0",
-        }}
-      >
-        <Text style={{ margin: "2px 0", fontSize: 14 }}>
-          <span style={{ color: "#6B7280" }}>Quote:</span>{" "}
-          <strong style={{ fontFamily: "monospace" }}>{quoteNumber}</strong>
-        </Text>
-        <Text style={{ margin: "2px 0", fontSize: 14 }}>
-          <span style={{ color: "#6B7280" }}>Check in:</span>{" "}
-          <strong>{checkIn}</strong>
-        </Text>
-        <Text style={{ margin: "2px 0", fontSize: 14 }}>
-          <span style={{ color: "#6B7280" }}>Check out:</span>{" "}
-          <strong>{checkOut}</strong>
-        </Text>
-        <Text style={{ margin: "2px 0", fontSize: 14 }}>
-          <span style={{ color: "#6B7280" }}>Length of stay:</span>{" "}
-          <strong>
-            {nights} {nights === 1 ? "night" : "nights"}
-          </strong>
-        </Text>
-        <Text style={{ margin: "2px 0", fontSize: 14 }}>
-          <span style={{ color: "#6B7280" }}>Total:</span>{" "}
-          <strong>{totalAmount}</strong>
-        </Text>
-      </div>
+      <DetailTable
+        label="Quote details"
+        rows={[
+          { label: "Quote", value: quoteNumber },
+          { label: "Listing", value: listingName },
+          {
+            label: "You requested",
+            value: requestedDates ? requestedDates : null,
+          },
+          { label: "Quoted check in", value: checkIn },
+          { label: "Quoted check out", value: checkOut },
+          {
+            label: "Length of stay",
+            value: `${nights} ${nights === 1 ? "night" : "nights"}`,
+          },
+          { label: "Total", value: totalAmount },
+        ]}
+      />
 
-      <Button href={acceptUrl}>View &amp; accept quote</Button>
+      <Button href={acceptUrl}>View &amp; accept quote →</Button>
 
       {validUntil ? (
-        <Text style={{ marginTop: 16, fontSize: 13, color: "#6B7280" }}>
+        <Text style={{ marginTop: 20, fontSize: 13, color: "#4A7C6A" }}>
           This quote is valid until <strong>{validUntil}</strong>. Your dates
           are held for you until then.
         </Text>
       ) : null}
 
-      <Text style={{ marginTop: 12, fontSize: 13, color: "#6B7280" }}>
+      <Text style={{ marginTop: 12, fontSize: 13, color: "#4A7C6A" }}>
         Questions? Reply to this email or message {hostName} through your Wielo
         inbox.
       </Text>
-    </Layout>
+    </Shell>
   );
 }

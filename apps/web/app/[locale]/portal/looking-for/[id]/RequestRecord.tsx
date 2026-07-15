@@ -88,6 +88,23 @@ export function RequestRecord({
     ? Math.ceil((new Date(post.expires_at).getTime() - Date.now()) / 86_400_000)
     : null;
 
+  // The guest's originally requested window (+ flexibility) — shown on each
+  // quote card next to the host's quoted dates so the match is obvious.
+  const flexSuffix =
+    post.check_in_date && (post.date_flexibility_days ?? 0) > 0
+      ? post.date_flexibility_days === 7
+        ? " · ± 1 week"
+        : post.date_flexibility_days === 14
+          ? " · ± 2 weeks"
+          : ` · ± ${post.date_flexibility_days} day${post.date_flexibility_days === 1 ? "" : "s"}`
+      : "";
+  const requestedDates =
+    post.check_in_date && post.check_out_date
+      ? `${fmtDate(post.check_in_date)} – ${fmtDate(post.check_out_date)}${flexSuffix}`
+      : post.check_in_date
+        ? `From ${fmtDate(post.check_in_date)}${flexSuffix}`
+        : null;
+
   const guestTotal = post.adults + (post.children ?? 0) + (post.infants ?? 0);
   const guestSummary =
     (post.children ?? 0) > 0 || (post.infants ?? 0) > 0
@@ -272,10 +289,26 @@ export function RequestRecord({
                     </h3>
                     <p className="text-sm text-brand-mute">
                       Sent {fmtRel(r.sentAt)}
-                      {r.quote?.checkIn && r.quote?.checkOut
-                        ? ` · ${fmtDate(r.quote.checkIn)} – ${fmtDate(r.quote.checkOut)}`
-                        : ""}
                     </p>
+                    <div className="mt-1 space-y-0.5 text-xs text-brand-mute">
+                      {requestedDates && (
+                        <p>
+                          <span className="font-medium text-brand-ink">
+                            Requested:
+                          </span>{" "}
+                          {requestedDates}
+                        </p>
+                      )}
+                      {r.quote?.checkIn && r.quote?.checkOut && (
+                        <p>
+                          <span className="font-medium text-brand-ink">
+                            Quoted:
+                          </span>{" "}
+                          {fmtDate(r.quote.checkIn)} –{" "}
+                          {fmtDate(r.quote.checkOut)}
+                        </p>
+                      )}
+                    </div>
                     {r.quote?.notes && (
                       <p className="mt-1 line-clamp-2 max-w-md text-sm text-brand-mute">
                         {r.quote.notes}

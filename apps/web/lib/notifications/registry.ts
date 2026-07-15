@@ -162,6 +162,9 @@ export type LookingForRefs = {
   hostName?: string;
   checkIn?: string;
   checkOut?: string;
+  // The guest's originally requested window (+ flexibility), shown on the quote
+  // email beside the host's quoted dates.
+  requestedDates?: string;
   nights?: number;
   totalAmount?: string;
   quoteNumber?: string;
