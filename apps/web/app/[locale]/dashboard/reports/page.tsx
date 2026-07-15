@@ -28,6 +28,8 @@ import { RefundsCancellations } from "./_components/RefundsCancellations";
 import { ScheduledReportsSection } from "./_components/ScheduledReportsSection";
 import { LookingForStats } from "./_components/LookingForStats";
 import { RevenueBreakdown } from "./_components/RevenueBreakdown";
+import { WebsiteTraffic } from "./_components/WebsiteTraffic";
+import { loadWebsiteAnalyticsForWebsites } from "@/lib/website/analytics";
 
 export const metadata: Metadata = {
   title: "Analytics & Reports",
@@ -604,6 +606,20 @@ export default async function ReportsPage({
     weekendShare,
   };
 
+  // ---- Website traffic (first-party, cookieless site analytics) ------------
+  // Rolling 30-day window across every site the host owns (the analytics beacon
+  // is window-based, independent of the report's date filter).
+  const { data: hostSites } = await admin
+    .from("host_websites")
+    .select("id")
+    .eq("host_id", host.id)
+    .is("deleted_at", null);
+  const websiteIds = (hostSites ?? []).map((s) => s.id as string);
+  const websiteAnalytics =
+    websiteIds.length > 0
+      ? await loadWebsiteAnalyticsForWebsites(admin, websiteIds, "30d")
+      : null;
+
   return (
     <>
       {/* Header */}
@@ -693,6 +709,14 @@ export default async function ReportsPage({
 
             {/* Revenue breakdown — payment methods, add-ons, coupons, credits */}
             <RevenueBreakdown data={revenueBreakdown} />
+
+            {/* Website traffic — first-party site analytics */}
+            {websiteAnalytics && (
+              <WebsiteTraffic
+                data={websiteAnalytics}
+                siteCount={websiteIds.length}
+              />
+            )}
 
             {/* Looking For Performance */}
             {lookingForStats && <LookingForStats data={lookingForStats} />}

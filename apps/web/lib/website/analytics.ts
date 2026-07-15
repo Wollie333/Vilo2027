@@ -93,6 +93,22 @@ export async function loadWebsiteAnalytics(
   range: AnalyticsRange = "30d",
   now: Date = new Date(),
 ): Promise<WebsiteAnalytics> {
+  return loadWebsiteAnalyticsForWebsites(sb, [websiteId], range, now);
+}
+
+/**
+ * Same rollup as {@link loadWebsiteAnalytics} but across MANY websites at once —
+ * used by the host reports page to show one combined figure for a host that owns
+ * several sites. Passing a single id behaves identically to the single-site call.
+ */
+export async function loadWebsiteAnalyticsForWebsites(
+  sb: Db,
+  websiteIds: string[],
+  range: AnalyticsRange = "30d",
+  now: Date = new Date(),
+): Promise<WebsiteAnalytics> {
+  if (websiteIds.length === 0) return emptyAnalytics(range);
+
   const days = RANGE_DAYS[range];
   const end = now;
   const start = new Date(end.getTime() - days * 86_400_000);
@@ -101,7 +117,7 @@ export async function loadWebsiteAnalytics(
   const { data, error } = await sb
     .from("website_analytics_events")
     .select("event, path, session_id, referrer_host, device, created_at")
-    .eq("website_id", websiteId)
+    .in("website_id", websiteIds)
     .gte("created_at", prevStart.toISOString())
     .order("created_at", { ascending: true })
     .limit(50_000);
