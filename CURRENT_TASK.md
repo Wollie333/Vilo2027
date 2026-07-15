@@ -2,7 +2,30 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM build — SAVE POINT `d847f8a3`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · DUAL-QUOTE-SYSTEM — SAVE POINT `971c3762`) — START HERE
+
+**▶▶ ALL 4 CONCERNS BUILT + VERIFIED LIVE. Only concern-4 finish (self-serve signup + Wielo Quotes product) left.**
+Plan: `docs/features/LOOKING_FOR_QUOTE_TYPES_AND_OFFLINE_SYSTEM_PLAN.md`; memory `project-dual-quote-system`.
+
+**✅ DONE + VERIFIED LIVE (this session):**
+- **Concern 1** soft-validation (`71b2486b`) · **Concern 2** edit a custom quote (`bb5868d3`).
+- **Concern 3a** Custom (build-detached) quote — host + guest + accept-without-booking (`c09f7b70`/`0b70eb91`).
+- **Concern 3b** UPLOAD a PDF (`d847f8a3`) + **download tracking** on the host record (`quote_view_events.kind`).
+- **Concern 4 CORE** (`971c3762`): quote-only account class — `hosts.account_kind` + `quote_access` +
+  `platform_access` (migration `20260715200000`); scoped dashboard shell (Sidebar/MobileBottomNav) + `QuotesOnlyGuard`
+  route bounce; `sendQuoteAction` blocks when quote_access off; admin "Account type & access" card (`setHostAccess`,
+  audited). Verified: host→quote_only gave the scoped shell + bounced host routes; admin flip wrote an audit row.
+
+**⏳ CONCERN 4 FINISH (remaining):** (a) a self-serve **quote-only signup/onboarding** flow (today an admin flips an
+existing host via the user record); (b) the **Wielo Quotes membership product** (a membership with credit_quantity —
+admin can already create one via ProductEditor; seed one + point signup at it). Both need founder sign-off on
+product/pricing. Minor polish: host quote record "stay" section shows "—" for custom/upload (make type-aware).
+GOTCHAs: client-callable server action MUST be `export async function` (not a `withAdminAudit` const — wrap it);
+in-app browser can't drive a file picker (verify uploads via storage REST + the /file route).
+
+---
+
+## ⭐ PRIOR ANCHOR (2026-07-15 · SAVE POINT `d847f8a3`)
 
 **▶▶ ONLY CONCERN 4 LEFT.** Concerns 1, 2, 3a, 3b + a download-tracking request are ALL shipped + verified live.
 The last piece is the **quote-only account class + Wielo Quotes subscription + admin block** (plan §4, decisions

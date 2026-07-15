@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-15 — Dual-quote-system (concern 4 core): quote-only accounts + scoped shell + admin block.
+
+The external quote-system-only account class. A hosts row flagged account_kind='quote_only' (migration
+20260715200000, plus quote_access / platform_access admin switches) gets a SCOPED dashboard shell — only
+Looking-For / Quotes / Credits / Inbox / Guests / Settings; all accommodation/booking/website surfaces are gated off.
+- Shell + guard: the dashboard layout resolves the account scope (resolveAccountScope) and passes quotesOnly to the
+  Sidebar + MobileBottomNav (stripped nav); a client QuotesOnlyGuard bounces any host-only route to Looking-For.
+  Underlying data is RLS-scoped, so the guard is UX not the security boundary.
+- Admin block (two levels): setHostAccess (audited) flips account_kind and the quote_access / platform_access switches
+  from a compact "Account type & access" card on the user record. quote_access=false also blocks sendQuoteAction;
+  platform_access=false bounces the account to the quotes-only shell.
+- Verified live: flipping a host to quote_only gave the scoped sidebar and bounced /dashboard + /dashboard/calendar
+  to Looking-For; the admin card flipped account_kind and wrote an admin_audit_log entry.
+- Remaining (concern 4): a self-serve quote-only signup + the Wielo Quotes membership product (admin can flip an
+  existing host today).
+
 ## 2026-07-15 — Dual-quote-system: Upload-a-PDF quote type + guest download tracking.
 
 - **Upload quote type** (`d847f8a3`): a host can now UPLOAD a finished quote PDF (from a 3rd-party tool) instead of
