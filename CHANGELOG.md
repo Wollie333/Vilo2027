@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-15 — Looking-For guest CRM record + archive (Feature 3) + latent-bug fixes + big-batch plan.
+
+- **Requirements admin UI verified LIVE** (carry-over) — drove `/admin/platform/looking-for` as super-admin:
+  add option → appears in the guest picker; edit + unpublish → hidden from the guest picker; delete → soft-delete
+  (`deleted_at`) + admin_audit_log entry with reason. Cache revalidation (revalidateTag) flows admin→guest live.
+- **Feature 3 — Guest Looking-For CRM record + archive.** The per-post detail is now a tabbed CRM record mirroring
+  the guest-record convention (shared `RecordTabs`): **Overview** (facts + rich details + requirement chips),
+  **Quotes** (each response → quote card, View & accept, Compare), **Messages** (per-host thread switcher reusing
+  the inbox `ChatMessageWall`/`ChatComposer` + inline quote/booking cards; unread badge + mark-read on open),
+  **Timeline** (posted / quote received / viewed / accepted, newest-first). New `record-data.ts` loader assembles
+  post + responses + quotes (admin client, token-gated RLS) + threads + messages + activity. The list page became an
+  **archive** (status filter pills with counts + per-post unread badge + last-activity). Verified live end-to-end
+  with a seeded quote/thread (cleaned up after).
+- **🔴 Latent-prod bugs fixed in-task:** (1) `hosts.logo_url` does not exist (column is `avatar_url`) — the old
+  detail + compare pages selected it, so the host join errored and **every guest-side quote silently vanished**;
+  (2) the compare page selected non-existent `quotes.adults/children/infants/notes_to_guest/expires_at` (correct:
+  `headcount`/`notes`/`valid_until`). Both would break the instant a real quote arrived. Also switched money display
+  to the deterministic `formatMoney` (killed a server/client hydration mismatch).
+- **Founder big batch captured + planned** → `docs/features/LOOKING_FOR_LIMITS_CREDITS_NOTIFICATIONS_PLAN.md`:
+  CRM records (guest+host) mirror the record convention; compact horizontal respond-page info card; Looking-For
+  limits (admin suspend/pause · guest post cap · host quote cap); **Wielo Credits** (consumable, credits-as-metering
+  layer alongside permissions; credit packages = a Products category bought via existing commerce; header balance
+  pill + top-up modal; admin controls cost/qty); Looking-For notifications (both sides/all stages, email+inbox,
+  flowchart + wire); a Wielo table-based **email shell** (build first); and a SEPARATE **admin email-templates
+  categorisation** overhaul. Decisions locked with founder (consumable credits, shell-first).
+
 ## 2026-07-15 — Looking-For enhancement pass (cont.) — flex dates, WYSIWYG, admin-managed requirements.
 
 Continuing the "refine/enhance/enrich" pass. All verified live except the requirements admin UI (build/lint-green,

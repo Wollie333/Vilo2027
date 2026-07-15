@@ -66,7 +66,7 @@ export default async function CompareQuotesPage({ params }: Props) {
       host:hosts(
         id,
         display_name,
-        logo_url,
+        avatar_url,
         bio
       ),
       quote:quotes(
@@ -74,14 +74,12 @@ export default async function CompareQuotesPage({ params }: Props) {
         total_amount,
         currency,
         status,
-        expires_at,
+        valid_until,
         check_in,
         check_out,
-        adults,
-        children,
-        infants,
+        headcount,
         deposit_amount,
-        notes_to_guest
+        notes
       )
     `,
     )
@@ -176,22 +174,18 @@ export default async function CompareQuotesPage({ params }: Props) {
               total_amount: number;
               currency: string;
               status: string;
-              expires_at: string | null;
+              valid_until: string | null;
               check_in: string | null;
               check_out: string | null;
-              adults: number;
-              children: number;
-              infants: number;
+              headcount: number | null;
               deposit_amount: number | null;
-              notes_to_guest: string | null;
+              notes: string | null;
             } | null;
 
-            const totalGuests = quote
-              ? quote.adults + (quote.children ?? 0) + (quote.infants ?? 0)
-              : 0;
+            const totalGuests = quote?.headcount ?? 0;
 
             const isExpired =
-              quote?.expires_at && new Date(quote.expires_at) < new Date();
+              quote?.valid_until && new Date(quote.valid_until) < new Date();
 
             return (
               <div
@@ -276,10 +270,10 @@ export default async function CompareQuotesPage({ params }: Props) {
                     <span
                       className={`text-sm ${isExpired ? "text-red-600" : "text-brand-mute"}`}
                     >
-                      {quote?.expires_at
+                      {quote?.valid_until
                         ? isExpired
                           ? "Expired"
-                          : new Date(quote.expires_at).toLocaleDateString(
+                          : new Date(quote.valid_until).toLocaleDateString(
                               "en-ZA",
                               {
                                 day: "numeric",
@@ -294,7 +288,7 @@ export default async function CompareQuotesPage({ params }: Props) {
                   {/* Notes */}
                   <div className="min-h-[60px]">
                     <p className="line-clamp-3 text-sm text-brand-mute">
-                      {quote?.notes_to_guest || "No notes"}
+                      {quote?.notes || "No notes"}
                     </p>
                   </div>
                 </div>
