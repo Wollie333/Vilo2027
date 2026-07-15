@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-15 — Admin "Add user + assign subscription": admin-driven user creation.
+
+Admins can now CREATE a brand-new user from the platform (the admin-driven alternative to self-serve signup, and the
+path to spin up a quote-only account without waiting on signup).
+- `createUserAction` (audited, users.role) provisions the auth user via service role (email_confirm, NO password —
+  prohibited), sets the profile name, and shapes the substrate for the chosen account type: guest = plain profile;
+  host = ensureHostForUser; quote_only = ensureHostForUser + hosts.account_kind='quote_only'. Duplicate/soft-deleted
+  emails are rejected with a clear message. Returns the new user id + a magic sign-in link (shareable / for testing —
+  no password is ever set). The audit row references the new user id (the handler stashes it back onto args for
+  getTargetId).
+- UI: an "Add user" button on `/admin/users` header opens a dialog (email · full name · account type
+  Host/Quote-only/Guest); on create it copies the sign-in link and redirects to the new user's record, where the
+  existing subscription/product controls assign a plan.
+- Verified live: created a quote-only user from the dialog → user_profiles (role host, name), hosts
+  (account_kind=quote_only), and a user.create audit row all correct in the DB; the record page rendered with the
+  "Account type & access = Quote-only" card + "No subscription on file yet" assign controls; the returned magic link
+  signed the new user straight into the scoped quotes-only shell.
+- Still open (needs founder pricing): seed a Wielo Quotes membership product so admins can assign it here.
+
 ## 2026-07-15 — Dual-quote-system (concern 4 core): quote-only accounts + scoped shell + admin block.
 
 The external quote-system-only account class. A hosts row flagged account_kind='quote_only' (migration

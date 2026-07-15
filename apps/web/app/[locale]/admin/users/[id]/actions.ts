@@ -262,6 +262,129 @@ export const changeUserRoleAction = withAdminAudit<
   },
 );
 
+// ─── Create a brand-new user (admin-driven) ───────────────────
+// The admin adds a user to Wielo: provision the auth user (service role, no
+// password — a magic sign-in link is returned instead so the founder can log in
+// as them / share it), then shape the profile + host substrate for the chosen
+// account type. `guest` = plain profile; `host` = full host substrate;
+// `quote_only` = host substrate flagged account_kind='quote_only' (the scoped
+// quotes-only shell). Landing on the new user's record lets the existing
+// subscription/product controls assign a plan. Audited (users.role).
+//
+// account_type → role / substrate:
+//   guest      → role stays 'guest', no host row
+//   host       → ensureHostForUser (role → 'host'), account_kind 'host'
+//   quote_only → ensureHostForUser + hosts.account_kind = 'quote_only'
+const createUserSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address.").max(200),
+  fullName: z.string().trim().max(120).optional().nullable(),
+  accountType: z.enum(["guest", "host", "quote_only"]),
+  reason: z.string().max(500).optional(),
+});
+
+export const createUserAction = withAdminAudit<
+  z.infer<typeof createUserSchema>,
+  { ok: true; userId: string; loginUrl?: string }
+>(
+  {
+    permissionKey: "users.role",
+    actionName: "user.create",
+    targetType: "user",
+    // The new user id isn't known from args — the handler stashes it back onto
+    // args (same object reference) so the audit row can reference it; falls back
+    // to the email otherwise (kept in payload.args either way).
+    getTargetId: (a) => (a as { userId?: string }).userId ?? a.email,
+  },
+  async (args, service) => {
+    const parsed = createUserSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const d = parsed.data;
+    const email = d.email.toLowerCase();
+    const fullName = d.fullName?.trim() || null;
+
+    // Refuse an email that already has an account (incl. soft-deleted, so we
+    // don't collide with the 30-day hold). Clear message rather than a raw
+    // GoTrue "already registered" error.
+    const { data: dupe } = await service
+      .from("user_profiles")
+      .select("id, deleted_at")
+      .eq("email", email)
+      .maybeSingle();
+    if (dupe) {
+      throw new Error(
+        dupe.deleted_at
+          ? "A deleted account already uses this email — restore or purge it first."
+          : "A user with this email already exists.",
+      );
+    }
+
+    // Provision the auth user — confirmed (so a magic link signs them straight
+    // in), NO password (prohibited to set one for a user; they set their own via
+    // the returned link / the record's "Send password reset").
+    const { data: created, error: createErr } =
+      await service.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        user_metadata: fullName ? { full_name: fullName } : {},
+      });
+    if (createErr || !created?.user) {
+      const msg = createErr?.message?.toLowerCase() ?? "";
+      if (msg.includes("already") || msg.includes("registered")) {
+        throw new Error("A user with this email already exists.");
+      }
+      throw new Error(createErr?.message ?? "Could not create the user.");
+    }
+    const userId = created.user.id;
+    // Stash for the audit target (see getTargetId).
+    (args as { userId?: string }).userId = userId;
+
+    // The auth trigger seeds a user_profiles row — set the name here. Role is set
+    // by ensureHostForUser for host/quote_only; a guest keeps the default role.
+    await service
+      .from("user_profiles")
+      .update({ full_name: fullName })
+      .eq("id", userId);
+
+    if (d.accountType === "host" || d.accountType === "quote_only") {
+      const hostId = await ensureHostForUser(service, userId);
+      if (d.accountType === "quote_only") {
+        await service
+          .from("hosts")
+          .update({
+            account_kind: "quote_only",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", hostId);
+      }
+    }
+
+    // A shareable magic sign-in link (no password) so the admin can test/hand it
+    // over. Best-effort — the account exists regardless; the record's password
+    // reset is the fallback. Uses the request origin so a dev link resolves here.
+    let loginUrl: string | undefined;
+    const origin = headers().get("origin") ?? "";
+    if (origin) {
+      const { data: link } = await service.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+        options: { redirectTo: `${origin}/auth/confirm?next=/dashboard` },
+      });
+      const hashed = link?.properties?.hashed_token;
+      if (hashed) {
+        loginUrl = `${origin}/auth/confirm?token_hash=${hashed}&type=magiclink&next=/dashboard`;
+      }
+    }
+
+    revalidatePath("/admin/users");
+    return {
+      result: { ok: true, userId, loginUrl },
+      after: { userId, email, accountType: d.accountType },
+    };
+  },
+);
+
 // ─── Quote-only account class + access switches ───────────────
 // Set a user's host account_kind ('host' | 'quote_only') and the two admin block
 // switches (quote_access / platform_access). A quote_only account gets the scoped
@@ -2318,6 +2441,33 @@ export async function setHostAccess(input: {
     return {
       ok: false as const,
       error: e instanceof Error ? e.message : "Could not update access.",
+    };
+  }
+}
+
+// Client-callable wrapper for the admin "Add user" dialog. Returns the new
+// user's id (to redirect to their record) + an optional magic sign-in link.
+export async function createUser(input: {
+  email: string;
+  fullName?: string | null;
+  accountType: "guest" | "host" | "quote_only";
+}): Promise<
+  { ok: true; userId: string; loginUrl?: string } | { ok: false; error: string }
+> {
+  const parsed = createUserSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+  try {
+    const r = await createUserAction(parsed.data);
+    return { ok: true, userId: r.userId, loginUrl: r.loginUrl };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Could not create the user.",
     };
   }
 }

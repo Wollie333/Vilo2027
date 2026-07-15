@@ -15,6 +15,7 @@ import {
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
 import { AdminSegments } from "../_components/AdminSegments";
 import { AdminStatBand } from "../_components/AdminStatBand";
+import { AddUserButton } from "./AddUserButton";
 
 type UserRow = {
   id: string;
@@ -238,13 +239,16 @@ export default async function AdminUsersPage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-bold text-brand-ink">
-          Users
-        </h1>
-        <p className="mt-1 text-[13px] text-brand-mute">
-          Every account on the platform — guests, hosts, and staff.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-brand-ink">
+            Users
+          </h1>
+          <p className="mt-1 text-[13px] text-brand-mute">
+            Every account on the platform — guests, hosts, and staff.
+          </p>
+        </div>
+        <AddUserButton />
       </header>
 
       {/* KPI band — matches the overview's seamless stat tiles. */}

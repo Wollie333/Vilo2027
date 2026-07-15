@@ -2,7 +2,21 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐⭐ NEXT TASK (start here, new session · 2026-07-15) — ADMIN "ADD USER + ASSIGN SUBSCRIPTION"
+## ⭐⭐ DONE (2026-07-15) — ADMIN "ADD USER + ASSIGN SUBSCRIPTION" ✅ SHIPPED + VERIFIED LIVE
+
+**Founder ask:** *"create the ability for admin to add a user to the Wielo app and assign them subscription etc."*
+BUILT: `createUserAction` + client wrapper `createUser` (in `admin/users/[id]/actions.ts`) + `AddUserButton.tsx`
+dialog on the `/admin/users` header. Creates the auth user (service role, email_confirm, NO password → magic
+sign-in link returned), shapes the substrate per account type (guest / host / quote_only via ensureHostForUser +
+account_kind), rejects duplicate/soft-deleted emails, audits `user.create` with the new user id, then redirects to
+the record where the EXISTING sub/product controls assign a plan. **Verified live** (DB rows + audit + record page +
+magic-link login into the scoped quotes-only shell). Build + lint + tsc all green.
+**⏳ STILL OPEN (needs founder pricing input):** seed the **Wielo Quotes membership product** (name / price /
+credit_quantity) via admin ProductEditor so it can be assigned from the record. Assign-to-existing-user already works.
+
+---
+
+## ⭐ PRIOR NEXT TASK (superseded above · 2026-07-15) — ADMIN "ADD USER + ASSIGN SUBSCRIPTION"
 
 **Founder ask:** *"create the ability for admin to add a user to the Wielo app and assign them subscription etc."*
 This is the admin-driven alternative to self-serve signup (ties into concern 4 — admin creates a quote-only user +
