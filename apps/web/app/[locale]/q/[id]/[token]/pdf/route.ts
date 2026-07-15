@@ -64,7 +64,7 @@ export async function GET(
     .select(
       `
       id, quote_number, status, created_at, valid_until, accept_token,
-      guest_name, guest_email, guest_phone,
+      guest_name, guest_email, guest_phone, quote_type, title,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       discount_amount, discount_reason, notes, host_id,
@@ -83,8 +83,22 @@ export async function GET(
   const listingObj = Array.isArray(quote.listing)
     ? quote.listing[0]
     : (quote.listing as { name?: string; business_id?: string | null } | null);
-  const businessId =
+  const isCustomQuote =
+    quote.quote_type === "custom" || quote.quote_type === "upload";
+  let businessId =
     (listingObj as { business_id?: string | null } | null)?.business_id ?? null;
+  if (!businessId) {
+    // Custom/upload quotes have no listing — number/brand off the host default.
+    const hostRow = Array.isArray(quote.host) ? quote.host[0] : quote.host;
+    const { data: defBiz } = await admin
+      .from("businesses")
+      .select("id")
+      .eq("host_id", (hostRow as { id?: string } | null)?.id ?? "")
+      .eq("is_default", true)
+      .eq("is_archived", false)
+      .maybeSingle();
+    businessId = defBiz?.id ?? null;
+  }
   const quoteVatRate = effectiveVatRate(
     (listingObj as { vat_number?: string | null; vat_rate?: number } | null) ??
       {},
@@ -158,7 +172,9 @@ export async function GET(
     subtotal: number;
   }[] = [
     {
-      description: `${listingObj?.name ?? "Stay"} — base`,
+      description: isCustomQuote
+        ? (quote.title ?? "Quote")
+        : `${listingObj?.name ?? "Stay"} — base`,
       quantity: 1,
       unit_price: quote.base_amount,
       subtotal: quote.base_amount,
@@ -234,6 +250,8 @@ export async function GET(
       email: quote.guest_email,
       phone: quote.guest_phone,
     },
+    quoteType: isCustomQuote ? "custom" : "accommodation",
+    title: quote.title ?? null,
     stay: {
       listingName: listingObj?.name ?? null,
       checkIn: quote.check_in,

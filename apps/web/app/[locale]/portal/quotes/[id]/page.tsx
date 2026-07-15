@@ -46,7 +46,7 @@ export default async function PortalQuotePage({
     .select(
       `
       id, quote_number, status, guest_id, guest_email,
-      guest_name,
+      guest_name, quote_type, title,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until, conversation_id,
@@ -73,6 +73,14 @@ export default async function PortalQuotePage({
   const listingName = Array.isArray(quote.listing)
     ? quote.listing[0]?.name
     : (quote.listing as { name?: string } | null)?.name;
+
+  // Custom/upload quotes have no listing or dates — show the title + a plain
+  // "quote" framing instead of a stay.
+  const isCustomQuote =
+    quote.quote_type === "custom" || quote.quote_type === "upload";
+  const heading = isCustomQuote
+    ? (quote.title ?? "Your quote")
+    : `Your stay at ${listingName ?? "—"}`;
 
   const expired = quote.valid_until && new Date(quote.valid_until) < new Date();
   const actionable = quote.status === "sent" && !expired;
@@ -112,7 +120,7 @@ export default async function PortalQuotePage({
           Quote · {quote.quote_number}
         </div>
         <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-          Your stay at {listingName ?? "—"}
+          {heading}
         </h1>
         <p className="mt-2 text-sm text-brand-mute">
           Prepared for {quote.guest_name}
@@ -127,28 +135,34 @@ export default async function PortalQuotePage({
         </a>
       </header>
 
-      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <div className="grid gap-4 text-sm sm:grid-cols-3">
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-              Check-in
+      {!isCustomQuote ? (
+        <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <div className="grid gap-4 text-sm sm:grid-cols-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
+                Check-in
+              </div>
+              <div className="font-medium text-brand-ink">{quote.check_in}</div>
             </div>
-            <div className="font-medium text-brand-ink">{quote.check_in}</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-              Check-out
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
+                Check-out
+              </div>
+              <div className="font-medium text-brand-ink">
+                {quote.check_out}
+              </div>
             </div>
-            <div className="font-medium text-brand-ink">{quote.check_out}</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-              Guests
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
+                Guests
+              </div>
+              <div className="font-medium text-brand-ink">
+                {quote.headcount}
+              </div>
             </div>
-            <div className="font-medium text-brand-ink">{quote.headcount}</div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
         <h2 className="font-display text-base font-bold text-brand-ink">
@@ -157,7 +171,9 @@ export default async function PortalQuotePage({
         <table className="mt-3 w-full text-sm">
           <tbody className="divide-y divide-brand-line">
             <tr>
-              <td className="py-2 text-brand-ink">Stay — base</td>
+              <td className="py-2 text-brand-ink">
+                {isCustomQuote ? (quote.title ?? "Quote") : "Stay — base"}
+              </td>
               <td className="py-2 text-right font-medium text-brand-ink">
                 {formatMoney(quote.base_amount, quote.currency)}
               </td>
@@ -225,6 +241,18 @@ export default async function PortalQuotePage({
           </p>
           <p className="mt-1 text-xs text-brand-mute">
             Changed your mind? Message the host for an updated quote.
+          </p>
+        </div>
+      ) : isAcceptedLike && isCustomQuote ? (
+        <div className="rounded-card border border-brand-line bg-white p-5 text-center shadow-card">
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-status-confirmed/10 text-status-confirmed">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+          <p className="mt-3 text-sm font-semibold text-brand-ink">
+            You accepted this quote.
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-xs text-brand-mute">
+            The host will be in touch about next steps and payment.
           </p>
         </div>
       ) : isAcceptedLike && needsPayment && booking?.pay_token ? (

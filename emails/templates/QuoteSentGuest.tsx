@@ -20,6 +20,9 @@ type Props = {
   // The guest's originally requested window (with flexibility), for Looking-For
   // quotes — shown next to the host's quoted dates. Omitted for direct quotes.
   requestedDates?: string;
+  // Custom/upload quotes have no listing or dates — show the title instead.
+  quoteType?: "accommodation" | "custom" | "upload";
+  title?: string;
   // The public token quote page — accept with no login.
   quoteId?: string;
   acceptToken?: string;
@@ -36,19 +39,31 @@ export default function QuoteSentGuest({
   quoteNumber = "Q-XXXX",
   validUntil = "",
   requestedDates = "",
+  quoteType = "accommodation",
+  title = "",
   quoteId = "",
   acceptToken = "",
 }: Props) {
+  const isCustom = quoteType === "custom" || quoteType === "upload";
+  const subject = isCustom ? title || "your quote" : listingName;
   const acceptUrl =
     quoteId && acceptToken
       ? `${APP_URL}/q/${quoteId}/${acceptToken}`
       : `${APP_URL}/portal/quotes`;
   return (
     <Shell
-      preview={`Your quote for ${listingName} — ${checkIn} to ${checkOut}.`}
+      preview={
+        isCustom
+          ? `Your quote from ${hostName} — ${subject}.`
+          : `Your quote for ${listingName} — ${checkIn} to ${checkOut}.`
+      }
       eyebrow="New quote"
       title={`Your quote is ready, ${guestFirstName}`}
-      subtitle={`${hostName} has prepared a quote for your stay at ${listingName}.`}
+      subtitle={
+        isCustom
+          ? `${hostName} has prepared a quote for ${subject}.`
+          : `${hostName} has prepared a quote for your stay at ${listingName}.`
+      }
       pill={{ label: "QUOTE", emoji: "💬" }}
     >
       <Text style={{ margin: "0 0 20px", fontSize: 14, color: "#4A7C6A" }}>
@@ -57,21 +72,29 @@ export default function QuoteSentGuest({
 
       <DetailTable
         label="Quote details"
-        rows={[
-          { label: "Quote", value: quoteNumber },
-          { label: "Listing", value: listingName },
-          {
-            label: "You requested",
-            value: requestedDates ? requestedDates : null,
-          },
-          { label: "Quoted check in", value: checkIn },
-          { label: "Quoted check out", value: checkOut },
-          {
-            label: "Length of stay",
-            value: `${nights} ${nights === 1 ? "night" : "nights"}`,
-          },
-          { label: "Total", value: totalAmount },
-        ]}
+        rows={
+          isCustom
+            ? [
+                { label: "Quote", value: quoteNumber },
+                { label: "For", value: subject },
+                { label: "Total", value: totalAmount },
+              ]
+            : [
+                { label: "Quote", value: quoteNumber },
+                { label: "Listing", value: listingName },
+                {
+                  label: "You requested",
+                  value: requestedDates ? requestedDates : null,
+                },
+                { label: "Quoted check in", value: checkIn },
+                { label: "Quoted check out", value: checkOut },
+                {
+                  label: "Length of stay",
+                  value: `${nights} ${nights === 1 ? "night" : "nights"}`,
+                },
+                { label: "Total", value: totalAmount },
+              ]
+        }
       />
 
       <Button href={acceptUrl}>View &amp; accept quote →</Button>

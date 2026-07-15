@@ -47,24 +47,29 @@ export async function guestAcceptQuoteAction(
   const gate = await gateByToken(quoteId, token);
   if (!gate.ok) return gate;
 
-  // Accepting auto-creates the booking (pending payment); the guest pays next.
+  // Accepting an accommodation quote auto-creates the booking (pending payment);
+  // a custom/upload quote has no booking (bookingId null).
   const res = await acceptAndConvertQuote(quoteId);
   if (!res.ok) return { ok: false, error: res.error };
 
   // The booking's pay_token drives the public /pay/[token] page so the guest can
   // pay immediately after accepting (every booking gets one by default).
-  const supabase = createAdminClient();
-  const { data: booking } = await supabase
-    .from("bookings")
-    .select("pay_token")
-    .eq("id", res.bookingId)
-    .maybeSingle();
+  let payToken: string | null = null;
+  if (res.bookingId) {
+    const supabase = createAdminClient();
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("pay_token")
+      .eq("id", res.bookingId)
+      .maybeSingle();
+    payToken = booking?.pay_token ?? null;
+  }
 
   revalidatePath(`/q/${quoteId}/${token}`);
   return {
     ok: true,
-    bookingId: res.bookingId,
-    payToken: booking?.pay_token ?? null,
+    bookingId: res.bookingId ?? undefined,
+    payToken,
   };
 }
 

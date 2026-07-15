@@ -64,7 +64,7 @@ export default async function PublicQuotePage({
     .from("quotes")
     .select(
       `
-      id, quote_number, status, accept_token, host_id,
+      id, quote_number, status, accept_token, host_id, quote_type, title,
       guest_name, guest_email, guest_phone,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
@@ -94,6 +94,8 @@ export default async function PublicQuotePage({
     ? quote.listing[0]
     : quote.listing;
   const listingName = (quoteListing as { name?: string } | null)?.name;
+  const isCustomQuote =
+    quote.quote_type === "custom" || quote.quote_type === "upload";
   const quoteBusinessId =
     (quoteListing as { business_id?: string | null } | null)?.business_id ??
     null;
@@ -139,8 +141,13 @@ export default async function PublicQuotePage({
 
   const lineRows: DocLine[] = [
     {
-      title: `${listingName ?? "Stay"} — base`,
-      sub: nights ? `${nights} night${nights === 1 ? "" : "s"}` : null,
+      title: isCustomQuote
+        ? (quote.title ?? "Quote")
+        : `${listingName ?? "Stay"} — base`,
+      sub:
+        !isCustomQuote && nights
+          ? `${nights} night${nights === 1 ? "" : "s"}`
+          : null,
       amount: formatMoney(quote.base_amount, c),
     },
   ];
@@ -189,17 +196,23 @@ export default async function PublicQuotePage({
         },
       }}
       metaRows={[
-        { label: "Guests", value: String(quote.headcount) },
+        ...(isCustomQuote
+          ? [{ label: "Quote", value: quote.title ?? "Custom quote" }]
+          : [{ label: "Guests", value: String(quote.headcount) }]),
         ...(quote.valid_until
           ? [{ label: "Valid until", value: fmtDate(quote.valid_until) }]
           : []),
       ]}
-      stay={{
-        listingName: listingName ?? null,
-        checkIn: fmtDate(quote.check_in),
-        checkOut: fmtDate(quote.check_out),
-        nights: String(nights ?? "—"),
-      }}
+      stay={
+        isCustomQuote
+          ? undefined
+          : {
+              listingName: listingName ?? null,
+              checkIn: fmtDate(quote.check_in),
+              checkOut: fmtDate(quote.check_out),
+              nights: String(nights ?? "—"),
+            }
+      }
       lineHeaders={{ desc: "Description", amount: "Amount" }}
       lines={lineRows}
       totals={

@@ -66,6 +66,10 @@ export type QuoteRefs = {
   quoteId: string;
   guestFirstName?: string;
   listingName?: string;
+  /** accommodation | custom | upload — custom/upload have no listing/dates. */
+  quoteType?: string;
+  /** Headline for a custom/upload quote (no listing name). */
+  title?: string;
   hostName?: string;
   checkIn?: string;
   checkOut?: string;
@@ -159,6 +163,8 @@ export type LookingForRefs = {
   // (the in-app/push builders ignore these — they render the guest's email).
   guestFirstName?: string;
   listingName?: string;
+  quoteType?: string;
+  title?: string;
   hostName?: string;
   checkIn?: string;
   checkOut?: string;

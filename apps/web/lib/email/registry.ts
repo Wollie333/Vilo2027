@@ -145,7 +145,7 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     Template: QuoteSentGuest as ComponentType<Record<string, unknown>>,
     recipient: "guest",
     subject: (p) =>
-      `Your quote for ${str(p.listingName, "your stay")} · ${str(p.quoteNumber, "Q")}`,
+      `Your quote for ${str(p.title || p.listingName, "your stay")} · ${str(p.quoteNumber, "Q")}`,
   },
 
   // Looking-For quote → guest. Reuses the same QuoteSentGuest email as the
@@ -157,7 +157,7 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     Template: QuoteSentGuest as ComponentType<Record<string, unknown>>,
     recipient: "guest",
     subject: (p) =>
-      `Your quote for ${str(p.listingName, "your request")} · ${str(p.quoteNumber, "Q")}`,
+      `Your quote for ${str(p.title || p.listingName, "your request")} · ${str(p.quoteNumber, "Q")}`,
   },
 
   // Looking-For host: the guest accepted your quote (booking created).

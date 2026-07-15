@@ -72,26 +72,31 @@ export async function acceptMyQuoteAction(
       .is("guest_id", null);
   }
 
-  // Accepting auto-creates the booking (pending payment). The guest pays next.
+  // Accepting an accommodation quote auto-creates the booking (pending payment);
+  // a custom/upload quote has no booking (bookingId null) — just records acceptance.
   const res = await acceptAndConvertQuote(quoteId);
   if (!res.ok) return { ok: false, error: res.error };
 
   // Mirror the public token flow: hand back the booking's pay_token so the
   // portal can offer "Continue to pay" straight away instead of stranding the
   // guest on the accepted quote with no way to secure it.
-  const { data: booking } = await createAdminClient()
-    .from("bookings")
-    .select("pay_token")
-    .eq("id", res.bookingId)
-    .maybeSingle();
+  let payToken: string | null = null;
+  if (res.bookingId) {
+    const { data: booking } = await createAdminClient()
+      .from("bookings")
+      .select("pay_token")
+      .eq("id", res.bookingId)
+      .maybeSingle();
+    payToken = booking?.pay_token ?? null;
+  }
 
   revalidatePath("/portal/quotes");
   revalidatePath(`/portal/quotes/${quoteId}`);
   revalidatePath("/portal/trips");
   return {
     ok: true,
-    bookingId: res.bookingId,
-    payToken: booking?.pay_token ?? null,
+    bookingId: res.bookingId ?? undefined,
+    payToken,
   };
 }
 

@@ -721,7 +721,7 @@ export async function sendQuoteAction(
         supabase
           .from("quotes")
           .select(
-            "guest_name, check_in, check_out, total_amount, currency, quote_number, accept_token, property_id",
+            "guest_name, check_in, check_out, total_amount, currency, quote_number, accept_token, property_id, quote_type, title",
           )
           .eq("id", quoteId)
           .maybeSingle(),
@@ -786,6 +786,8 @@ export async function sendQuoteAction(
           // Fields the QuoteSentGuest email template renders:
           guestFirstName: (q?.guest_name ?? "").split(" ")[0] || undefined,
           listingName: listingName ?? postData.title ?? undefined,
+          quoteType: q?.quote_type ?? undefined,
+          title: q?.title ?? undefined,
           hostName: hostData?.display_name ?? undefined,
           checkIn: fmtD(q?.check_in ?? null),
           checkOut: fmtD(q?.check_out ?? null),
@@ -813,7 +815,7 @@ export async function sendQuoteAction(
     const { data: q } = await admin
       .from("quotes")
       .select(
-        "guest_id, guest_name, guest_email, check_in, check_out, total_amount, currency, quote_number, accept_token, property_id",
+        "guest_id, guest_name, guest_email, check_in, check_out, total_amount, currency, quote_number, accept_token, property_id, quote_type, title",
       )
       .eq("id", quoteId)
       .maybeSingle();
@@ -873,6 +875,8 @@ export async function sendQuoteAction(
             quoteId,
             guestFirstName: (q.guest_name ?? "").split(" ")[0] || undefined,
             listingName: propRow?.name ?? undefined,
+            quoteType: q.quote_type ?? undefined,
+            title: q.title ?? undefined,
             hostName: hostRow?.display_name ?? undefined,
             checkIn: fmtD(q.check_in),
             checkOut: fmtD(q.check_out),

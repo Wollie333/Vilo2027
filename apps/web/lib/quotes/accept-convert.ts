@@ -15,8 +15,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Idempotent: if a booking already exists for the quote, it's returned as-is.
 
 export type AcceptConvertResult =
-  | { ok: true; bookingId: string }
-  | { ok: false; error: string };
+  // bookingId is null for custom/upload quotes — accepting them records the
+  // acceptance but creates no accommodation booking.
+  { ok: true; bookingId: string | null } | { ok: false; error: string };
 
 export async function acceptAndConvertQuote(
   quoteId: string,
@@ -27,7 +28,8 @@ export async function acceptAndConvertQuote(
     .from("quotes")
     .select(
       `
-      id, host_id, property_id, guest_name, guest_email, guest_phone, guest_id,
+      id, host_id, property_id, quote_type, title, guest_name, guest_email,
+      guest_phone, guest_id,
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
       discount_amount, deposit_amount, balance_amount, balance_due_days,
@@ -46,6 +48,82 @@ export async function acceptAndConvertQuote(
   }
   if (!["sent", "accepted"].includes(quote.status)) {
     return { ok: false, error: "This quote can no longer be accepted." };
+  }
+
+  // ── Custom / upload quotes are NOT accommodation bookings. Accepting one just
+  // records the acceptance (no booking, no calendar, no payment schedule) and
+  // closes any Looking-For loop; the host arranges next steps off-platform.
+  if (quote.quote_type === "custom" || quote.quote_type === "upload") {
+    await admin
+      .from("quotes")
+      .update({ status: "accepted", accepted_at: new Date().toISOString() })
+      .eq("id", quoteId)
+      .in("status", ["sent", "accepted"]);
+
+    if (quote.looking_for_post_id) {
+      await admin
+        .from("looking_for_responses")
+        .update({ status: "accepted" })
+        .eq("quote_id", quoteId);
+      await admin
+        .from("looking_for_posts")
+        .update({ status: "fulfilled", updated_at: new Date().toISOString() })
+        .eq("id", quote.looking_for_post_id)
+        .eq("status", "active");
+
+      try {
+        const { data: hostRow } = await admin
+          .from("hosts")
+          .select("user_id, display_name")
+          .eq("id", quote.host_id)
+          .maybeSingle();
+        if (hostRow?.user_id) {
+          await dispatchEvent({
+            kind: "looking_for_quote_accepted",
+            recipientUserId: hostRow.user_id,
+            hostId: quote.host_id,
+            refs: {
+              post_id: quote.looking_for_post_id,
+              quote_id: quoteId,
+              guest_first_name:
+                (quote.guest_name ?? "").split(" ")[0] || undefined,
+              hostFirstName:
+                (hostRow.display_name ?? "").split(" ")[0] || undefined,
+              guestName: quote.guest_name ?? undefined,
+              postTitle: quote.title ?? undefined,
+              listingName: quote.title ?? undefined,
+              totalAmount: formatMoney(
+                Number(quote.total_amount ?? 0),
+                quote.currency ?? "ZAR",
+              ),
+              quoteNumber: quote.quote_number ?? undefined,
+              quoteId,
+            },
+          });
+        }
+      } catch {
+        // Non-fatal — the quote is already accepted.
+      }
+    }
+
+    if (quote.conversation_id) {
+      await admin
+        .from("conversations")
+        .update({ pipeline_stage: "accepted" })
+        .eq("id", quote.conversation_id);
+      await admin.from("messages").insert({
+        conversation_id: quote.conversation_id,
+        sender_id: null,
+        is_system_message: true,
+        system_event: "quote_accepted",
+        quote_id: quoteId,
+        body: "Quote accepted — the host will follow up on next steps.",
+        read_by_host: false,
+        read_by_guest: true,
+      });
+    }
+
+    return { ok: true, bookingId: null };
   }
 
   const [{ data: rooms }, { data: addons }] = await Promise.all([

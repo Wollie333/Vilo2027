@@ -70,7 +70,7 @@ export async function GET(
     .select(
       `
       id, quote_number, status, created_at, valid_until, accept_token,
-      guest_name, guest_email, guest_phone,
+      guest_name, guest_email, guest_phone, quote_type, title,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       discount_amount, discount_reason,
@@ -90,8 +90,25 @@ export async function GET(
   const listingObj = Array.isArray(quote.listing)
     ? quote.listing[0]
     : (quote.listing as { name?: string; business_id?: string | null } | null);
-  const businessId =
+  const isCustomQuote =
+    quote.quote_type === "custom" || quote.quote_type === "upload";
+  let businessId =
     (listingObj as { business_id?: string | null } | null)?.business_id ?? null;
+  // Custom/upload quotes have no listing — fall back to the host's default
+  // business so the PDF still carries the right banking + business header.
+  if (!businessId) {
+    const { data: defBiz } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq(
+        "host_id",
+        (Array.isArray(quote.host) ? quote.host[0] : quote.host)?.id ?? "",
+      )
+      .eq("is_default", true)
+      .eq("is_archived", false)
+      .maybeSingle();
+    businessId = defBiz?.id ?? null;
+  }
   const hostObj = Array.isArray(quote.host)
     ? quote.host[0]
     : (quote.host as {
@@ -229,7 +246,9 @@ export async function GET(
     subtotal: number;
   }[] = [];
   lineRows.push({
-    description: `${doc.listingName ?? "Stay"} — base`,
+    description: isCustomQuote
+      ? (quote.title ?? "Quote")
+      : `${doc.listingName ?? "Stay"} — base`,
     quantity: 1,
     unit_price: doc.baseAmount,
     subtotal: doc.baseAmount,
@@ -305,6 +324,8 @@ export async function GET(
       email: doc.guestEmail,
       phone: doc.guestPhone,
     },
+    quoteType: isCustomQuote ? "custom" : "accommodation",
+    title: quote.title ?? null,
     stay: {
       listingName: doc.listingName,
       checkIn: doc.checkIn,

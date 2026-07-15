@@ -46,6 +46,10 @@ export type QuoteProps = {
     email: string;
     phone: string | null;
   };
+  /** accommodation (stay summary) vs custom/upload (no listing/dates). */
+  quoteType?: "accommodation" | "custom" | "upload";
+  /** Headline for a custom/upload quote (no listing name). */
+  title?: string | null;
   stay: {
     listingName: string | null;
     checkIn: string;
@@ -159,34 +163,47 @@ export function QuoteDocument({ quote }: { quote: QuoteProps }) {
           </View>
         </View>
 
-        <View style={styles.staySummaryBox}>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Listing</Text>
-            <Text style={styles.staySummaryValue}>
-              {quote.stay.listingName ?? "—"}
-            </Text>
+        {quote.quoteType === "custom" || quote.quoteType === "upload" ? (
+          <View style={styles.staySummaryBox}>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Quote</Text>
+              <Text style={styles.staySummaryValue}>
+                {quote.title ?? "Custom quote"}
+              </Text>
+            </View>
           </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Check-in</Text>
-            <Text style={styles.staySummaryValue}>
-              {formatDate(quote.stay.checkIn)}
-            </Text>
+        ) : (
+          <View style={styles.staySummaryBox}>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Listing</Text>
+              <Text style={styles.staySummaryValue}>
+                {quote.stay.listingName ?? "—"}
+              </Text>
+            </View>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Check-in</Text>
+              <Text style={styles.staySummaryValue}>
+                {formatDate(quote.stay.checkIn)}
+              </Text>
+            </View>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Check-out</Text>
+              <Text style={styles.staySummaryValue}>
+                {formatDate(quote.stay.checkOut)}
+              </Text>
+            </View>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Nights</Text>
+              <Text style={styles.staySummaryValue}>{quote.stay.nights}</Text>
+            </View>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Guests</Text>
+              <Text style={styles.staySummaryValue}>
+                {quote.stay.headcount}
+              </Text>
+            </View>
           </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Check-out</Text>
-            <Text style={styles.staySummaryValue}>
-              {formatDate(quote.stay.checkOut)}
-            </Text>
-          </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Nights</Text>
-            <Text style={styles.staySummaryValue}>{quote.stay.nights}</Text>
-          </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Guests</Text>
-            <Text style={styles.staySummaryValue}>{quote.stay.headcount}</Text>
-          </View>
-        </View>
+        )}
 
         <View style={styles.tableHeader}>
           <Text style={[styles.th, styles.colDesc]}>Description</Text>
