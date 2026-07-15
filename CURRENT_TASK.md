@@ -2,6 +2,30 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## ⭐⭐⭐ NEXT TASK (start here, NEW SESSION · 2026-07-15) — REPORTING ENHANCEMENT ("report every metric")
+
+**Founder directive:** *"work on the reporting feature so each and every metric is reported on — refine, enhance and
+polish."* Scope = **BOTH surfaces** (host `dashboard/reports` + admin `admin/reporting`). This is a SAVE POINT —
+audit done, build NOT started. **Full file-anchored plan: `docs/features/REPORTING_ENHANCEMENT_AUDIT.md`** (read it
+first). Repo clean at this commit.
+
+**Headline findings (see the doc for the full list):**
+- **Both feature works** — host analytics RPCs are real + rich. This is enhancement/polish, not a rebuild.
+- **Robustness:** the 12 analytics RPCs live only in the live DB, NOT in committed migrations → capture them into a
+  migration first (a fresh env would show the "Failed to Load Analytics" error).
+- **Host highest-leverage fix = H1:** the filter bar (`ReportsFilters`) is non-functional (local state only, never
+  writes to the URL the page reads) → date range, region + channel filters are all DEAD. Plus hardcoded "24 active
+  listings" (H3/H4), `Math.random()` occupancy bars (H2), dead code (`page-minimal.tsx`, `ExportButton.tsx`).
+- **Admin A1:** the range filter doesn't affect the charts (`buildPlatformReport` always builds a fixed 12-month
+  series); A2: plan donut mislabels one-off products as subscriptions. Add per-plan share, payment-method split, VAT,
+  MoM %, credit-notes, affiliate, Wielo Credits, quote volume, take-rate, retention, geography.
+- Unshown-but-available: host LF `trend` + `quotes_accepted` count; admin `bookingCount` + monthly `signups`.
+
+**Build order:** (1) migration to capture RPCs · (2) host H1 filters→URL then H2/H3/H4 + dead-code removal ·
+(3) host new metrics + wider export · (4) admin A1/A2 + platform metrics · (5) verify live on both surfaces.
+
+---
+
 ## ⭐⭐ DONE (2026-07-15) — ADMIN "ADD USER + ASSIGN SUBSCRIPTION" ✅ SHIPPED + VERIFIED LIVE
 
 **Founder ask:** *"create the ability for admin to add a user to the Wielo app and assign them subscription etc."*

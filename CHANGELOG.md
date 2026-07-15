@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-07-15 — Reporting enhancement AUDIT (save point — build deferred to a new session).
+
+Founder asked to make the reporting feature report every metric (refine/enhance/polish), scope = BOTH surfaces (host
+`dashboard/reports` + admin `admin/reporting`). Ran a comprehensive read-only audit and captured the full,
+file-anchored gap list + build plan in `docs/features/REPORTING_ENHANCEMENT_AUDIT.md` (no code changed yet). Headlines:
+the host analytics engine (12 `fetch_*` RPCs) is real + rich (enhancement, not a rebuild), but those RPCs live only in
+the DB — not in committed migrations (fresh env would error) → capture them first. Host: the filter bar is
+non-functional (never writes the URL the page reads → date/region/channel filters dead), hardcoded "24 active
+listings", `Math.random()` occupancy bars, dead code (`page-minimal.tsx`, `ExportButton.tsx`). Admin: the range filter
+doesn't affect the charts, the plan donut miscounts one-off products as subscriptions; add per-plan share,
+payment-method split, VAT, MoM %, credit-notes, affiliate, credits, quote volume, take-rate, retention, geography.
+Next session picks this up from `CURRENT_TASK.md` / memory `project-reporting-enhancement`.
+
+## 2026-07-15 — Quote-only self-serve upgrade to full host account.
+
+A quotes-only account can upgrade itself (lock screen CTA + persistent sidebar card) — `upgradeToFullHostAction` flips
+account_kind quote_only→host (NOT platform_access, so an admin block persists), notifies admins, re-renders the full
+shell. Verified live (flip → 0 locked tabs).
+
 ## 2026-07-15 — Quote-only MVP: self-serve signup + purchase path + finished hardening.
 
 Closed the top MVP gaps for the quote-only / credits feature.
