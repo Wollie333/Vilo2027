@@ -29,6 +29,7 @@ type Lines = {
   base_amount: number;
   cleaning_fee: number;
   discount_amount?: number;
+  coupon_code?: string | null;
   rooms: { room_name: string; base_amount: number; cleaning_fee: number }[];
   addons: {
     label: string;
@@ -199,7 +200,9 @@ export default async function PublicInvoicePage({
         ...(discount > 0
           ? [
               {
-                label: "Discount",
+                label: lines.coupon_code
+                  ? `Discount (${lines.coupon_code})`
+                  : "Discount",
                 value: `− ${formatMoney(discount, c)}`,
                 tone: "mute" as const,
               },

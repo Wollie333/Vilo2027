@@ -56,6 +56,36 @@ Create via the new editor → guest preview recomputes → autosave local+server
 list shows it → edit loads the values → applied at checkout: **25% off a R4,080
 stay = −R1,020, VAT recomputed to R504, total R5,037 → R3,864.**
 
+## Deep audit — 2026-07-16 (full-matrix pass)
+
+**Stacking / order of operations** (`lib/pricing/engine.ts` `couponDiscountFor`,
+applied LAST on the already stay-discounted base; cleaning never eligible):
+- Coupons DO stack with seasonal/weekend/LOS/whole-property discounts + add-ons.
+- Coupons do NOT stack with **specials/deals** — `lib/specials/pricing.ts` hardcodes
+  `couponDiscount: 0` and deal checkout never passes a coupon. Intentional.
+
+**Fixed: invoice now itemizes the coupon discount.** `ensure_booking_invoice` built
+`line_items` with NO discount line, yet both invoice renderers (`invoice/[token]/
+page.tsx` + `pdf/route.ts` → `InvoiceDocument`) already read `line_items.discount_amount`
+— so the reduction was baked into the total but invisible on the document. Migration
+`20260716130000` adds `discount_amount` + `coupon_code` to `line_items`; renderers now
+show "Discount (CODE) − R…". **Verified** via a ROLLBACK txn: a freshly generated
+invoice for a coupon booking emitted `discount_amount:250, coupon_code:AUDIT10`.
+- NOTE: `ensure_booking_invoice` is create-if-missing (not regenerate) — the line
+  appears on invoices generated AFTER a coupon is set (new coupon bookings). Fine
+  pre-MVP (no real invoices to backfill).
+
+**By-design / deferred (not bugs):**
+- Feature gate stubbed open (`actions.ts` `assertFeatureEnabled` → true, pre-MVP
+  AGENT_RULES §3.4). Restore `check_feature_permission` before paid tiers.
+- Per-guest cap unenforceable for anonymous checkouts (only the total cap applies;
+  the DB per-guest cap needs a signed-in `guest_id`).
+- No currency guard in `resolveCoupon` (coupon vs booking currency) — impossible today
+  (frontend ZAR-locked); add when multi-currency arrives.
+- No admin coupon UI — admin access is DB-only via RLS `is_super_admin()`.
+- Cosmetic: FK names `coupons_listing_id_fkey`/`_room_id_fkey` still say "listing"
+  after the `property_id` column rename.
+
 ## Follow-ups / ideas
 - Preview could note "won't apply below R{min_spend}" when a minimum is set.
 - Copy-code affordance + clone-coupon on the list.

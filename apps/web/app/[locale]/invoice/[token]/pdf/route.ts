@@ -23,6 +23,7 @@ type Lines = {
   base_amount: number;
   cleaning_fee: number;
   discount_amount?: number;
+  coupon_code?: string | null;
   price_breakdown?: {
     seasonalNights?: number;
     weekendNights?: number;
@@ -251,6 +252,7 @@ export async function GET(
     lines: lineRows,
     subtotal: invoice.subtotal,
     discountAmount: lines.discount_amount ?? 0,
+    discountLabel: lines.coupon_code ?? null,
     seasonSummary: seasonSummary(lines.price_breakdown),
     vatAmount: invoice.vat_amount,
     totalAmount: invoice.total_amount,

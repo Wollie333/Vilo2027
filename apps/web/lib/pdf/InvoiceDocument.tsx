@@ -55,6 +55,8 @@ export type InvoiceProps = {
   lines: InvoiceLineItem[];
   subtotal: number;
   discountAmount?: number;
+  /** Coupon code shown next to the discount, e.g. "SUMMER10". */
+  discountLabel?: string | null;
   /** e.g. "3 season-priced nights · 2 weekend nights" — the "why". */
   seasonSummary?: string | null;
   vatAmount: number;
@@ -221,7 +223,11 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
           </View>
           {invoice.discountAmount && invoice.discountAmount > 0 ? (
             <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>Discount</Text>
+              <Text style={styles.totalsLabel}>
+                {invoice.discountLabel
+                  ? `Discount (${invoice.discountLabel})`
+                  : "Discount"}
+              </Text>
               <Text style={styles.totalsValue}>
                 −{formatMoney(invoice.discountAmount, invoice.currency)}
               </Text>
