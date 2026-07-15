@@ -2,23 +2,36 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For — SAVE POINT `8e479c4f`→`bd2a19d7`) — START HERE
+## ⭐ NEW-SESSION RESUME ANCHOR (2026-07-15 · Looking-For CRM + BIG BATCH — SAVE POINT `54790f90`) — START HERE
 
-**▶▶ NEXT = 3 new founder requests → `docs/features/LOOKING_FOR_NEXT_PHASE_PLAN.md` (read it first).**
-1. **Location step → Google-Maps address + pin + radius** — type address (autocomplete prefill, like signup) OR
-   drop a pin, then set a radius to describe the area. Reuse the listing editor's map/geocode
-   (`dashboard/properties/[id]/edit/Editor.tsx` + `/api/geo`). Add `location_radius_km` (migration); `location_lat/lng`
-   already exist.
-2. **Public advanced-search page** — 1/4 sidebar of live params + 3/4 horizontal enriched cards. Evolve
-   `looking-for/page.tsx` + `DirectoryFilters.tsx`; reuse requirements chips + flex + trust; radius "near me".
-3. **Guest Looking-For CRM archive tab** — archive of the guest's own posts, each a CRM record (quotes + threads in
-   one place). Follow `admin/users/[id]/UserRecord.tsx`; evolve `portal/looking-for/[id]/page.tsx`; reuse inbox
-   thread primitives.
+**▶▶ READ FIRST: `docs/features/LOOKING_FOR_LIMITS_CREDITS_NOTIFICATIONS_PLAN.md`** — the founder's big batch,
+supersedes the tail of `LOOKING_FOR_NEXT_PHASE_PLAN.md`. Decisions locked; order confirmed. Also memory
+`project-looking-for-crm-and-batch`.
 
-**⚠️ VERIFY FIRST next session:** the requirements **ADMIN UI** (`/admin/platform/looking-for`, `bd2a19d7`) is
-build/lint-green but **NOT driven live** — log in as super-admin (`wollie@manamarketing.co.za`, magiclink →
-`/auth/confirm`), add/edit/delete a group+option, confirm it flows to the guest picker. Guest-facing requirements
-flow IS verified live.
+**▶▶ NEXT = §2 respond-page compact HORIZONTAL info card + §1 host record shell** (task #5, in progress). Then
+(founder-confirmed order): §6 Wielo email shell (build FIRST) → §5 Looking-For notifications (both sides/all stages)
+→ §3 limits/quotas → §4 Wielo Credits → §7 admin email-templates categorisation.
+
+**✅ JUST SHIPPED — Feature 3: guest Looking-For CRM record + archive (`54790f90`, verified live).** Per-post detail
+is a tabbed CRM record (Overview/Quotes/Messages/Timeline via shared `RecordTabs`); `record-data.ts` loader;
+`RequestRecord.tsx` + `RequestMessages.tsx` (inbox chat wall/composer reuse, inline quote cards, unread+mark-read).
+List → archive (status filters + unread + last-activity). **🔴 Fixed latent bug that killed EVERY guest-side quote:**
+`hosts.logo_url` doesn't exist → `avatar_url`; compare page's `quotes.adults/notes_to_guest/expires_at` →
+`headcount/notes/valid_until`. Money → `formatMoney` (killed hydration mismatch). Requirements ADMIN UI verified live
+(add/edit/unpublish/delete → guest picker; soft-delete+audit).
+
+**KEY DECISIONS (founder, 2026-07-15):** (a) **Wielo Credits = consumable** (1/quote, refunded on unaccepted
+expiry) AND a **platform metering layer** alongside existing boolean `check_feature_permission` (don't force
+access-gates into credits); plans grant recurring credits/purpose (`quote` now, `ai` later); **credit packages = a new
+Products CATEGORY** bought via existing commerce; header balance pill + top-up modal; admin sets cost/qty. (b) **Build
+the Wielo email shell BEFORE wiring notifications.** (c) Both guest AND host records mirror the guest-record
+convention. **NEEDS founder sign-off before any credits/limits SCHEMA (CLAUDE.md).**
+
+**GOTCHAS (reconfirmed):** `hosts` has `avatar_url` NOT `logo_url`; `quotes` has `headcount`/`notes`/`valid_until`
+NOT `adults`/`notes_to_guest`/`expires_at`; `looking_for_responses.thread_id` == quote's `conversation_id`. Use
+`formatMoney` (`lib/format`) for money, never bare `toLocaleString` (hydration mismatch). Browser tool: viewport
+1280×720 but screenshots 800×450 → click by `ref`. Super-admin verify login: `POST $SB/auth/v1/admin/generate_link`
+→ `hashed_token` → `/auth/confirm?token_hash=…&type=magiclink&next=…`.
 
 **✅ DONE THIS SESSION — Looking-For "refine/enhance/enrich" (all verified live except the admin UI noted above):**
 - **Form re-skin** (`8e479c4f`) → create-data layout (left-rail steps · health ring · autosave · Review).
