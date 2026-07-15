@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-15 — Quote-only MVP: self-serve signup + purchase path + finished hardening.
+
+Closed the top MVP gaps for the quote-only / credits feature.
+- **Self-serve quote-only signup** (`/signup/quotes`, linked from the signup chooser): same hardened account creation
+  as host signup (rate limit · Turnstile · HIBP · soft email verify · consent · affiliate bind), but provisions a
+  `hosts.account_kind='quote_only'` account up front (auth-user rollback on failure). Lands in the scoped shell.
+  Verified live: signed up → quote_only account + auto handle + scoped shell (host tabs locked).
+- **Self-serve credits/membership** — the Credits page now lists credit-bearing MEMBERSHIPS (Wielo Quotes R99/mo →
+  5 credits) with a Subscribe button (→ `/p/wielo-quotes`) alongside the once-off packs; both settle through
+  `activateMappedPlan → grantSubscriptionCredits`. The subscribe page renders R99/month + Continue to payment (the
+  card step is external Paystack).
+- **Finished the server-side scope sweep** (#4) — assertFullHost now also guards payments/ledger/staff + booking-edit
+  actions, re-enforcing the admin suspend there.
+- **Atomic guest-post quota** (#5, migration 20260715240000) — `record_guest_post_and_check` RPC serializes the
+  check+record under a per-user advisory lock, closing the TOCTOU; the post rolls back if it loses the last slot.
+
+## 2026-07-15 — Assign credits: manual wallet grant + per-activation override.
+
+Two ways to assign credits on the admin user record: a manual "Assign credits" card (grant/remove any amount, atomic,
+audited) and a per-activation "Credits this cycle" override when activating a credit-bearing subscription. Verified
+live (+10 → 54→64; override 99 granted instead of the default 5).
+
+## 2026-07-15 — Remove Bernie test product + credit packages in the user Products tab.
+
+Deleted the Bernie test membership + all associated rows (subscription, orders, ledger, commissions, invoices/CNs).
+The admin user-record Products tab now lists wielo_credits packages with a Sell action (sellProductAction grants on a
+paid sale). Verified: sold 50 Quote Credits (R149) → wallet 4→54.
+
 ## 2026-07-15 — Quote-only UX (show-but-lock) + deep quote-system hardening sweep.
 
 **Founder UX:** a quotes-only (Wielo Quotes / R99) account now SEES the whole host sidebar with every host-only tab

@@ -22,9 +22,16 @@ sweep from all angles, harden + super-integrate"). Multi-agent sweep = 12 confir
 locked IA + upgrade screen, and built + SENT a custom quote (credit 5→4); full host unaffected; credit cross-host
 idempotency proven via RPC. See memory `project-quote-system-hardening`.
 
-**⏳ REMAINING (optional):** (a) LOW #11 guest-quota TOCTOU (needs an atomic check-and-record DB fn); (b) defense-in-
-depth RLS restrictive backstop on host-only tables (app-layer assertFullHost covers the confirmed surfaces today);
-(c) extend assertFullHost to the last un-swapped host-only files (ledger/payments/bookings-edit/website-wizard loader).
+**✅ MVP-READINESS ITEMS 1/2/4/5 DONE** (`4a39c789`, `15eef443`): (1) self-serve quote-only signup `/signup/quotes` →
+quote_only account + scoped shell (verified live); (2) Credits page lists Wielo Quotes membership Subscribe →
+`/p/wielo-quotes` + packs (purchase→activate→grant proven; card step external Paystack); (4) assertFullHost extended
+to payments/ledger/staff/booking-edit (suspend re-enforced); (5) atomic guest-post quota RPC
+`record_guest_post_and_check` (migration 20260715240000). See memory `project-quote-system-hardening`.
+
+**⏳ STILL OPTIONAL (not blocking):** (3) self-serve quote-only→full-host UPGRADE (today the lock screen routes to
+"Message Wielo" = admin-driven — needs founder call on whether self-serve is wanted); (6) proactive low-credit
+notification (push/email; the respond-page banner exists); (7) `docs/lifecycles/quote-only-and-credits.md`;
+(8) guest-side custom/upload accept polish; defense-in-depth RLS restrictive backstop (app-layer covers today).
 
 ---
 
