@@ -41,6 +41,7 @@ import {
 } from "@/app/_components/GmailNav";
 import { isQuotesOnlyAllowedPath } from "@/lib/host/accountScope";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
+import { UpgradeToHostButton } from "./UpgradeToHostButton";
 
 // Channel-based IA (plan §5). Five groups: an always-open daily-driver block,
 // then collapsible PROPERTIES / CHANNELS / FINANCES / INSIGHTS. Each per-Property
@@ -409,6 +410,21 @@ export function Sidebar({
                 <div className="text-[10px] text-brand-mute">5 quick steps</div>
               </div>
             </Link>
+          ) : null}
+          {quotesOnly ? (
+            <div className="rounded-md border border-brand-primary/30 bg-brand-accent/30 p-3">
+              <div className="text-[12px] font-semibold text-brand-ink">
+                Want the full platform?
+              </div>
+              <div className="mt-0.5 text-[10.5px] leading-snug text-brand-mute">
+                Unlock listings, bookings & your website.
+              </div>
+              <UpgradeToHostButton
+                variant="outline"
+                label="Upgrade to full host"
+                className="mt-2 h-8 w-full rounded-md text-[12px]"
+              />
+            </div>
           ) : null}
         </div>
       }

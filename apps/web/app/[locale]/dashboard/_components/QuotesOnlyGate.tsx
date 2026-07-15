@@ -1,10 +1,12 @@
 "use client";
 
-import { Lock, MessageSquare, Sparkles } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
 import { isQuotesOnlyAllowedPath } from "@/lib/host/accountScope";
+
+import { UpgradeToHostButton } from "./UpgradeToHostButton";
 
 // Friendly section names for the lock headline, keyed by the dashboard path
 // prefix. Falls back to a prettified segment for anything unlisted.
@@ -82,13 +84,7 @@ function UpgradeLockScreen({ label }: { label: string }) {
           the calendar, payments and your own booking website.
         </p>
         <div className="mt-6 flex flex-col gap-2.5">
-          <Link
-            href="/dashboard/inbox"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-pill bg-brand-primary px-5 text-[13px] font-semibold text-white transition-colors hover:bg-brand-secondary"
-          >
-            <MessageSquare className="h-4 w-4" />
-            Message Wielo to upgrade
-          </Link>
+          <UpgradeToHostButton className="h-10 w-full rounded-pill" />
           <Link
             href="/dashboard/looking-for"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-pill border border-brand-line bg-white px-5 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
