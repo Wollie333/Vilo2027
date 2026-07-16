@@ -387,9 +387,12 @@ export function ThreadQuoteCard({
   const hostHref = isDraft
     ? `/dashboard/quotes/${quote.id}/edit`
     : `/dashboard/quotes/${quote.id}`;
-  const guestHref = quote.acceptToken
-    ? `/q/${quote.id}/${quote.acceptToken}`
-    : null;
+  // A signed-in guest views the quote inside the portal shell — no accept-token
+  // needed (ownership is resolved by guest_id/email). The tokenised /q/[id]/[token]
+  // page is reserved for unauthenticated email magic-link recipients; sending a
+  // logged-in guest there rendered outside the portal (broken layout) and 404'd
+  // whenever the token had rotated.
+  const guestHref = `/portal/quotes/${quote.id}`;
 
   return (
     <div className="mx-auto w-full max-w-[420px] overflow-hidden rounded-card border border-brand-line bg-white shadow-card">

@@ -1572,14 +1572,23 @@ function StepPlan({
             <button
               type="button"
               key={p.id}
-              onClick={() => onSelect?.(p.slug)}
+              disabled={p.soldOut}
+              onClick={() => {
+                if (!p.soldOut) onSelect?.(p.slug);
+              }}
               className={`relative flex flex-col rounded-card border p-5 text-left transition ${
-                selected
-                  ? "border-brand-primary bg-white shadow-glow ring-1 ring-brand-primary"
-                  : "border-brand-line bg-white hover:border-brand-primary/50"
+                p.soldOut
+                  ? "cursor-not-allowed border-brand-line bg-brand-light/40 opacity-60"
+                  : selected
+                    ? "border-brand-primary bg-white shadow-glow ring-1 ring-brand-primary"
+                    : "border-brand-line bg-white hover:border-brand-primary/50"
               }`}
             >
-              {p.isRecommended ? (
+              {p.soldOut ? (
+                <span className="absolute -top-2 right-4 rounded-pill bg-brand-ink px-2 py-0.5 text-[10px] font-semibold text-white">
+                  Sold out
+                </span>
+              ) : p.isRecommended ? (
                 <span className="absolute -top-2 right-4 rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-semibold text-white">
                   Most popular
                 </span>

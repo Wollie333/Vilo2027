@@ -14,6 +14,7 @@ import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
 import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
+import { isProductSoldOut } from "@/lib/products/stock";
 import { notifyAdmins } from "@/lib/admin/notify";
 import { setPayCardStatus } from "@/lib/inbox/platform-thread";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -79,6 +80,14 @@ export async function createProductOrder(
     return { ok: false, error: "Product not found or inactive." };
   }
   const isOverride = input.amountOverride != null && input.amountOverride > 0;
+  // Sold-out guard — only for NEW units (a custom-amount top-up / upgrade delta
+  // doesn't consume a slot). A capped product locks once it hits its limit.
+  if (!isOverride && (await isProductSoldOut(admin, product.id))) {
+    return {
+      ok: false,
+      error: "This is sold out — no more are available.",
+    };
+  }
   const base = isOverride
     ? Number(input.amountOverride)
     : Number(product.price);
@@ -284,6 +293,9 @@ export async function fulfilFreeProductBySlug(
   }
   if (Number(product.price) !== 0) {
     return { ok: false, error: "This product isn't free." };
+  }
+  if (await isProductSoldOut(admin, product.id)) {
+    return { ok: false, error: "This is sold out — no more are available." };
   }
 
   const cleanEmail = email.trim().toLowerCase();

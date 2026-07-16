@@ -6790,6 +6790,7 @@ export type Database = {
           is_active: boolean
           is_recommended: boolean
           is_visible: boolean
+          max_quantity: number | null
           name: string
           payment_methods: string[]
           plan_key: string | null
@@ -6821,6 +6822,7 @@ export type Database = {
           is_active?: boolean
           is_recommended?: boolean
           is_visible?: boolean
+          max_quantity?: number | null
           name: string
           payment_methods?: string[]
           plan_key?: string | null
@@ -6852,6 +6854,7 @@ export type Database = {
           is_active?: boolean
           is_recommended?: boolean
           is_visible?: boolean
+          max_quantity?: number | null
           name?: string
           payment_methods?: string[]
           plan_key?: string | null
@@ -11781,6 +11784,7 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      product_units_sold: { Args: { p_product_id: string }; Returns: number }
       recalculate_listing_ranking: {
         Args: { p_listing_id: string }
         Returns: undefined

@@ -34,13 +34,22 @@ export default async function ProductLandingPage({
   const { data: p } = await service
     .from("products")
     .select(
-      "id, name, description, type, price, currency, billing_cycle, trial_days, is_active, is_visible, bullets",
+      "id, name, description, type, price, currency, billing_cycle, trial_days, is_active, is_visible, bullets, max_quantity",
     )
     .eq("slug", params.slug)
     .maybeSingle();
 
   // Hidden + inactive = draft → 404. Otherwise the page is reachable by link.
   if (!p || (!p.is_active && !p.is_visible)) notFound();
+
+  // Capped product (limited beta): lock the buy CTA once the cap is reached.
+  let soldOut = false;
+  if (p.max_quantity != null) {
+    const { data: sold } = await service.rpc("product_units_sold", {
+      p_product_id: p.id,
+    });
+    soldOut = Number(sold ?? 0) >= Number(p.max_quantity);
+  }
 
   const bullets = Array.isArray(p.bullets)
     ? (p.bullets as unknown[]).filter((b): b is string => typeof b === "string")
@@ -87,7 +96,11 @@ export default async function ProductLandingPage({
         ) : null}
 
         <div className="mt-6">
-          {p.is_active ? (
+          {soldOut ? (
+            <div className="rounded-md border border-brand-line bg-brand-light/40 px-4 py-3 text-center text-sm font-medium text-brand-mute">
+              Sold out — no more are available.
+            </div>
+          ) : p.is_active ? (
             <BuyForm
               slug={params.slug}
               free={Number(p.price) === 0}

@@ -177,7 +177,15 @@ export const sendPasswordResetAction = withAdminAudit<
     const origin = headers().get("origin") ?? "";
     // Our own recovery link (through /auth/confirm → /reset-password) so the
     // user always lands on the set-new-password page, never the dashboard.
-    await sendPasswordResetEmail({ email, origin });
+    // Branch on the real send result so the admin UI reports the truth (the
+    // helper is best-effort and never throws) — otherwise "sent" is a lie when
+    // email delivery is down (e.g. RESEND_API_KEY unset).
+    const sent = await sendPasswordResetEmail({ email, origin });
+    if (!sent.ok) {
+      throw new Error(
+        "Couldn't send the reset email — check email delivery (RESEND_API_KEY / from-address).",
+      );
+    }
     return { result: { ok: true }, after: { email } };
   },
 );

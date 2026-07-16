@@ -73,12 +73,13 @@ export default async function AdminProductEditorPage({
       trialDays: 0,
       isVisible: true,
       slug: null,
+      maxQuantity: null,
     };
   } else {
     const { data } = await service
       .from("products")
       .select(
-        "id, name, description, product_type, credit_quantity, credit_purpose, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, affiliate_duration, affiliate_duration_months, setup_fee, setup_fee_label, setup_fee_affiliate_type, setup_fee_affiliate_value, bullets, payment_methods, trial_days, is_visible, slug",
+        "id, name, description, product_type, credit_quantity, credit_purpose, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, affiliate_duration, affiliate_duration_months, setup_fee, setup_fee_label, setup_fee_affiliate_type, setup_fee_affiliate_value, bullets, payment_methods, trial_days, is_visible, slug, max_quantity",
       )
       .eq("id", params.id)
       .maybeSingle();
@@ -126,6 +127,7 @@ export default async function AdminProductEditorPage({
       trialDays: data.trial_days ?? 0,
       isVisible: data.is_visible ?? true,
       slug: data.slug ?? null,
+      maxQuantity: data.max_quantity != null ? Number(data.max_quantity) : null,
     };
 
     const { data: pf } = await service

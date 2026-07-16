@@ -324,10 +324,25 @@ export async function createQuoteAction(
     parsed.data.deposit_pct,
   );
 
+  // A Looking-For response belongs to the guest who POSTED — link the quote to
+  // that account so they can always open it in their portal (/portal/quotes/[id]
+  // gates on guest_id OR guest_email; linking the id means an email mismatch
+  // between the typed contact and their login can't 404 the recipient).
+  let lfGuestId: string | null = null;
+  if (parsed.data.looking_for_post_id) {
+    const { data: lfPost } = await supabase
+      .from("looking_for_posts")
+      .select("guest_id")
+      .eq("id", parsed.data.looking_for_post_id)
+      .maybeSingle();
+    lfGuestId = lfPost?.guest_id ?? null;
+  }
+
   const { data: quote, error: insErr } = await supabase
     .from("quotes")
     .insert({
       host_id: host.hostId,
+      guest_id: lfGuestId,
       quote_type: parsed.data.quote_type,
       property_id: isAccommodation ? (parsed.data.property_id ?? null) : null,
       title: parsed.data.title || null,

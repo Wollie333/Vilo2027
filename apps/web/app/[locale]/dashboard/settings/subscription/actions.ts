@@ -14,6 +14,7 @@ import { hostPostToWieloThread } from "@/lib/inbox/platform-thread";
 import { notifyAdmins } from "@/lib/admin/notify";
 import { getPlan } from "@/lib/plans/getPlans";
 import { pickCurrentMembershipIndex } from "@/lib/subscriptions/currentMembership";
+import { isProductSoldOut } from "@/lib/products/stock";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -303,6 +304,16 @@ export async function switchToProductAction(input: {
 
   if (existing?.product_id === product.id) {
     return { ok: false, error: "You're already on this plan." };
+  }
+
+  // Capped product (e.g. limited beta): block the switch once it's sold out.
+  // (Checked after the "already on this plan" guard so a current holder isn't
+  // told "sold out" by their own occupied slot.)
+  if (await isProductSoldOut(admin, product.id)) {
+    return {
+      ok: false,
+      error: "This plan is sold out — no more are available.",
+    };
   }
 
   // Upgrade-only for self-serve hosts: switching to a CHEAPER product is a

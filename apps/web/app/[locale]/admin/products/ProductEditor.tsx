@@ -42,6 +42,8 @@ export type EditorProduct = {
   trialDays: number;
   isVisible: boolean;
   slug: string | null;
+  /** Hard cap on total units ever sold (null = unlimited). */
+  maxQuantity: number | null;
 };
 
 type FeatureState = { isEnabled: boolean; limitValue: number | null };
@@ -123,6 +125,7 @@ export function ProductEditor({
           : ["paystack"],
         trialDays: f.trialDays,
         isVisible: f.isVisible,
+        maxQuantity: f.maxQuantity,
       });
       if (r.ok) {
         toast.success(isNew ? "Product created." : "Product saved.");
@@ -553,6 +556,27 @@ export function ProductEditor({
               onChange={(e) => set("sortOrder", Number(e.target.value) || 0)}
               className="w-24 font-mono"
             />
+          </Field>
+          <Field label="Max quantity">
+            <Input
+              type="number"
+              min={0}
+              placeholder="Unlimited"
+              value={f.maxQuantity ?? ""}
+              onChange={(e) =>
+                set(
+                  "maxQuantity",
+                  e.target.value.trim() === ""
+                    ? null
+                    : Math.max(0, Number(e.target.value) || 0),
+                )
+              }
+              className="w-28 font-mono"
+            />
+            <p className="mt-1 text-[11px] text-brand-mute">
+              Blank = unlimited. Locks signup once this many are sold (e.g. a
+              limited beta).
+            </p>
           </Field>
           <label className="flex items-end gap-2 pb-2 text-sm">
             <input

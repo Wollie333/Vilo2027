@@ -4970,11 +4970,32 @@ function ReferralsPanel({ data }: { data: UserRecordData }) {
                 Affiliate programme
               </div>
               {data.affiliateSlug ? (
-                <div className="mt-0.5 font-mono text-[12px] text-brand-mute">
-                  /r/{data.affiliateSlug}
-                  {stats && stats.status !== "active"
-                    ? ` · ${stats.status}`
-                    : ""}
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="font-mono text-[12px] text-brand-mute">
+                    /r/{data.affiliateSlug}
+                    {stats && stats.status !== "active"
+                      ? ` · ${stats.status}`
+                      : ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const base =
+                        process.env.NEXT_PUBLIC_APP_URL ||
+                        process.env.NEXT_PUBLIC_SITE_URL ||
+                        (typeof window !== "undefined"
+                          ? window.location.origin
+                          : "https://wielo.co.za");
+                      navigator.clipboard?.writeText(
+                        `${base}/r/${data.affiliateSlug}`,
+                      );
+                      toast.success("Affiliate link copied.");
+                    }}
+                    className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+                    title="Copy this user's affiliate link"
+                  >
+                    <Link2 className="h-3 w-3" /> Copy link
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -5359,6 +5380,8 @@ function humanizeAudit(
       return { category: "account", title: "Reinstated the account" };
     case "user.password_reset":
       return { category: "account", title: "Sent a password reset email" };
+    case "user.password_reset_self":
+      return { category: "account", title: "Reset their password" };
     case "user.update_profile":
       return { category: "account", title: "Updated the profile" };
     case "user.change_role":

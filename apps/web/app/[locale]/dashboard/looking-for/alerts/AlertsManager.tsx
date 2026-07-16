@@ -25,6 +25,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormModal, FormModalFooter } from "@/components/ui/form-modal";
+import {
+  LOOKING_FOR_CATEGORIES,
+  SA_PROVINCES,
+} from "@/lib/looking-for/regions";
 
 import {
   createAlertAction,
@@ -337,21 +341,34 @@ export function AlertsManager({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">Any category</SelectItem>
-                  <SelectItem value="accommodation">Accommodation</SelectItem>
-                  <SelectItem value="experience">Experience</SelectItem>
+                  {LOOKING_FOR_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label htmlFor="alert-region">Region</Label>
-              <Input
-                id="alert-region"
-                value={form.location_region}
-                placeholder="e.g. Western Cape"
-                onChange={(e) =>
-                  setForm({ ...form, location_region: e.target.value })
+              <Select
+                value={form.location_region || "any"}
+                onValueChange={(v) =>
+                  setForm({ ...form, location_region: v === "any" ? "" : v })
                 }
-              />
+              >
+                <SelectTrigger id="alert-region">
+                  <SelectValue placeholder="Any region" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any region</SelectItem>
+                  {SA_PROVINCES.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

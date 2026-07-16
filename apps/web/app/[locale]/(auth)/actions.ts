@@ -222,6 +222,23 @@ export async function resetPasswordAction(
     return { ok: false, error: friendlyAuthError(error.message) };
   }
 
+  // Record the reset on the user's History timeline (admin user record reads
+  // admin_audit_log for target_id = this user). Actor is the user themselves.
+  // Best-effort — never block the reset on an audit write.
+  try {
+    await createAdminClient()
+      .from("admin_audit_log")
+      .insert({
+        admin_id: user.id,
+        target_type: "user",
+        target_id: user.id,
+        action: "user.password_reset_self",
+        payload: { self: true },
+      });
+  } catch {
+    // Non-fatal: the password is already changed.
+  }
+
   const destination = await resolvePostAuthDestination(user.id, null);
   redirect(destination);
 }

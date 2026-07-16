@@ -56,6 +56,8 @@ const upsertSchema = z.object({
     .default(["paystack"]),
   trialDays: z.number().int().min(0).max(365).default(0),
   isVisible: z.boolean().default(true),
+  // Hard cap on total units ever sold (null = unlimited).
+  maxQuantity: z.number().int().min(0).max(10_000_000).nullable().default(null),
   reason: z.string().optional(),
 });
 
@@ -147,6 +149,7 @@ export const upsertProductAction = withAdminAudit<
       payment_methods: d.paymentMethods.length
         ? d.paymentMethods
         : ["paystack"],
+      max_quantity: d.maxQuantity ?? null,
       updated_at: new Date().toISOString(),
     };
 

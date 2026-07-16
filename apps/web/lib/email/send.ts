@@ -1,7 +1,9 @@
 import type { ReactElement } from "react";
 import { Resend } from "resend";
 
-const FROM = process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
+// `||` (not `??`) so a defined-but-EMPTY EMAIL_FROM_ADDRESS still falls back to
+// the default sender — an empty from-address makes Resend reject every send.
+const FROM = process.env.EMAIL_FROM_ADDRESS || "Wielo <onboarding@resend.dev>";
 
 /**
  * Send a one-off transactional email directly via Resend (outside the

@@ -248,10 +248,13 @@ export async function updateRequestAction(
     return { success: false, error: "Not authenticated" };
   }
 
-  // Verify ownership
+  // Verify ownership + snapshot the prior match-relevant fields so we can fire
+  // alerts to hosts this edit NEWLY matches (without re-notifying prior matches).
   const { data: existing } = await supabase
     .from("looking_for_posts")
-    .select("guest_id")
+    .select(
+      "guest_id, title, category, location_region, location_text, adults, children, infants, budget_min, budget_max, check_in_date, is_public",
+    )
     .eq("id", postId)
     .single();
 
@@ -303,6 +306,40 @@ export async function updateRequestAction(
   if (input.requirement_keys !== undefined) {
     await replacePostRequirements(postId, input.requirement_keys);
   }
+
+  // Fire alerts for hosts this edit NEWLY matches — e.g. the guest just added a
+  // region/dates/budget, or flipped the post public. Passing the prior version
+  // means hosts already notified at create aren't pinged again. Best-effort.
+  await notifyMatchingAlerts(
+    {
+      id: postId,
+      title: input.title ?? existing.title ?? null,
+      category: input.category ?? existing.category,
+      location_region: input.location_region ?? null,
+      location_text: input.location_text ?? null,
+      adults: input.adults ?? existing.adults,
+      children: input.children ?? existing.children,
+      infants: input.infants ?? existing.infants,
+      budget_min: input.budget_min ?? null,
+      budget_max: input.budget_max ?? null,
+      check_in_date: input.check_in_date ?? null,
+      is_public: input.is_public ?? existing.is_public,
+    },
+    {
+      id: postId,
+      title: existing.title ?? null,
+      category: existing.category,
+      location_region: existing.location_region,
+      location_text: existing.location_text,
+      adults: existing.adults,
+      children: existing.children,
+      infants: existing.infants,
+      budget_min: existing.budget_min,
+      budget_max: existing.budget_max,
+      check_in_date: existing.check_in_date,
+      is_public: existing.is_public,
+    },
+  );
 
   revalidatePath("/portal/looking-for");
   revalidatePath(`/portal/looking-for/${postId}`);

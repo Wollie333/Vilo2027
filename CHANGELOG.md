@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-07-16 — Founder batch: quote-404 fix · password-reset honesty + history · product quantity cap · alerts refinement · admin affiliate copy-link.
+
+- **Guest quote 404 / broken layout fixed.** The Messages-tab / inbox quote card sent a signed-in guest to the
+  tokenised public page `/q/[id]/[token]` (rendered outside the portal shell → "weird layout"; a rotated token → 404).
+  It now routes guests to the in-portal `/portal/quotes/[id]` (portal shell, ownership by guest_id/email, no token).
+  Also **linked Looking-For quotes to the post owner's `guest_id`** at creation so the recipient always owns their
+  quote even if the display email differs from their login (was `guest_id` NULL → email-only match). Verified: the
+  quote opens in the portal shell with line items + Accept/Decline.
+- **Admin password-reset is now honest + recorded.** The admin "Reset password" reported "sent" unconditionally while
+  the Resend send was a silent no-op — it now branches on the real send result and surfaces the true error. Root cause
+  of zero delivery: `RESEND_API_KEY` + `EMAIL_FROM_ADDRESS` are unset (founder infra). Hardened `send.ts` to use `||`
+  (not `??`) so an empty from-address falls back to the default sender. **A user completing a self-serve reset now
+  writes a `user.password_reset_self` History entry** ("Reset their password") on the admin user record. Verified:
+  the admin toast now correctly reads "Couldn't send… check email delivery".
+- **Product quantity cap (limited beta).** New `products.max_quantity` (NULL = unlimited) + a `product_units_sold`
+  RPC (one authoritative counter — distinct subscription holders for subs, paid orders for one-off/credits). Admin
+  editor gets a "Max quantity" field. Checkout-start guards (`createProductOrder`, free-fulfil, subscription switch)
+  refuse once sold out; the public buy surfaces (`/p/[slug]`, signup wizard) show "Sold out" and disable the CTA.
+  Verified: capping Beta at its sold count locked `/p/beta`; set Beta's real cap to 30.
+- **Host Looking-For alerts refined.** Region is now a Select bound to the nine provinces (was free-text → silent
+  mismatches); the category filter now offers the full post vocabulary (accommodation/experience/venue/event/other,
+  was only two). **Alerts now fire on post EDITS** (not just create) — only for alerts the edit NEWLY matches, so
+  hosts already notified aren't re-pinged (e.g. a guest adds a region/dates or flips a post public). Shared
+  `lib/looking-for/regions.ts` is the single region/category vocabulary.
+- **Admin affiliate copy-link.** The user record's Affiliate tab gets a one-click "Copy link" that copies the user's
+  full `/r/<slug>` referral URL. Verified live.
+
 ## 2026-07-16 — Looking-For search radius: map pin + "within N km" (guest sets, hosts see).
 
 A guest posting a Looking-For request can now drop a **map pin** and pick a **search radius** (5–200 km); hosts see

@@ -91,6 +91,12 @@ export function alertMatchesPost(a: AlertRow, p: PostForAlertMatch): boolean {
 
 export async function notifyMatchingAlerts(
   post: PostForAlertMatch,
+  // When set (an EDIT), only alerts that match the new post but did NOT match
+  // this prior version fire — so a guest who edits a public post to add a region
+  // / dates / budget reaches the newly-matching hosts, without re-spamming hosts
+  // who were already notified. A prior version that wasn't public matched nobody,
+  // so publishing an edit correctly notifies every current match.
+  previous?: PostForAlertMatch | null,
 ): Promise<{ matched: number }> {
   // Private/targeted requests aren't broadcast to alert-holders.
   if (!post.is_public) return { matched: 0 };
@@ -111,6 +117,10 @@ export async function notifyMatchingAlerts(
 
     for (const raw of alerts as unknown as AlertRow[]) {
       if (!alertMatchesPost(raw, post)) continue;
+      // Skip alerts already satisfied by the prior (public) version on an edit.
+      if (previous && previous.is_public && alertMatchesPost(raw, previous)) {
+        continue;
+      }
       const hostRel = Array.isArray(raw.host) ? raw.host[0] : raw.host;
       const userId = hostRel?.user_id ?? null;
       if (!userId) continue;

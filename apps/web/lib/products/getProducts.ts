@@ -34,6 +34,14 @@ export type CatalogProduct = {
   /** For a wielo_credits package: how many credits it grants + the wallet. */
   creditQuantity: number | null;
   creditPurpose: string | null;
+  /** Optional hard cap on total units sold (NULL = unlimited). */
+  maxQuantity: number | null;
+  /** Units sold so far (only computed for capped products; 0 otherwise). */
+  unitsSold: number;
+  /** True once a capped product has hit its limit — lock the buy/signup CTA. */
+  soldOut: boolean;
+  /** Slots left for a capped product; null when uncapped. */
+  remaining: number | null;
 };
 
 function toBullets(raw: unknown): string[] {
@@ -50,12 +58,25 @@ async function load(
   let q = db
     .from("products")
     .select(
-      "id, name, description, product_type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods, credit_quantity, credit_purpose",
+      "id, name, description, product_type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods, credit_quantity, credit_purpose, max_quantity",
     )
     .in("product_type", types)
     .eq("is_active", true);
   if (visibleOnly) q = q.eq("is_visible", true);
   const { data } = await q.order("sort_order", { ascending: true });
+
+  // Compute units-sold ONLY for capped products (usually 0–2) so uncapped
+  // catalogs stay a single query. One authoritative counter (product_units_sold).
+  const soldByProduct = new Map<string, number>();
+  const capped = (data ?? []).filter((p) => p.max_quantity != null);
+  await Promise.all(
+    capped.map(async (p) => {
+      const { data: sold } = await db.rpc("product_units_sold", {
+        p_product_id: p.id,
+      });
+      soldByProduct.set(p.id, Number(sold ?? 0));
+    }),
+  );
 
   return (data ?? []).map((p) => ({
     id: p.id,
@@ -79,6 +100,15 @@ async function load(
     creditQuantity:
       p.credit_quantity != null ? Number(p.credit_quantity) : null,
     creditPurpose: (p.credit_purpose as string | null) ?? null,
+    maxQuantity: p.max_quantity != null ? Number(p.max_quantity) : null,
+    unitsSold: soldByProduct.get(p.id) ?? 0,
+    soldOut:
+      p.max_quantity != null &&
+      (soldByProduct.get(p.id) ?? 0) >= Number(p.max_quantity),
+    remaining:
+      p.max_quantity != null
+        ? Math.max(0, Number(p.max_quantity) - (soldByProduct.get(p.id) ?? 0))
+        : null,
   }));
 }
 
