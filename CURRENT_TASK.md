@@ -2,7 +2,85 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt8) — **START HERE** (supersedes pt7 below)
+## 🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt9) — **START HERE** (supersedes pt8 below)
+
+**Repo clean + pushed `273651a6`. `pnpm build` (888 pages) · `pnpm lint` · tests green. Migrations
+synced through `20260716280000`.** Only untracked = the mobile eslint scaffold (founder: *"leave it"*).
+
+### ▶ THE ONE THING THAT MATTERS NEXT: the founder's real smoke test
+**Nothing on this platform has ever run.** Live DB: **2 hosts · 0 properties · 0 bookings · 0 quotes ·
+0 LF posts · 0 ical_feeds.** Everything below was verified as far as an agent can reach — SQL rehearsed
+in `BEGIN; … ROLLBACK;` on live **with negative controls**, 888-page builds, admin UI driven in a
+browser — but **five flows are blocked on real data**, and one carries real risk:
+
+1. 🔴 **Walk ONE signup (Beta, R0 — no gateway keys needed).** ⚠️ **I shipped `trg_one_active_membership`
+   into the exact path signup writes to.** I rehearsed 10 cases incl. "signup inserts the product-less
+   baseline" — but a rehearsal reproduces *what I think signup does*, **it is not signup**. If the guard
+   is wrong, signup breaks. **The agent CANNOT test this** (creating accounts / entering passwords is
+   out of scope). Confirm: exactly ONE active subscription + the right credit balance.
+2. **Then ONE booking → check-out.** That single pass exercises: booking → payment → confirm → access
+   card + `stay_details_guest` email → check-out → review request (**now 60 min**) → `drain-review-requests`
+   → the email worker. It converts most ⚠️ below into ✅ — or says exactly what's broken.
+
+### ✅ SHIPPED THIS SESSION (all applied to live + verified)
+| | |
+|---|---|
+| **GDPR purge FIXED** `20260716230000` | Was broken on **4** tables (notes said 3) + a hidden **guest-purge** cascade bug. Negative control: old fn → `23503`; new → 17/17. |
+| **One membership per host** `20260716240000` | `trg_one_active_membership`. **Paused frees the slot**; max-only, no minimum (both founder calls). Also fixed `pickCurrentMembershipIndex`, which skipped the product-less baseline and **would have blocked real hosts**; +17 tests. |
+| **Product form → create-data layout** `f342b490` | 672px→870px, dead space 566px→60px, scroll 5.1→1.08 screens. Zero logic changed. |
+| **Lifecycle docs COMPLETE** | Wrote `subscriptions` · `reviews` · `access-details` · `calendar-sync`. **Index had 4 phantom rows + 7 unlisted docs** — rebuilt + audited both ways. **0 ⬜ remain.** |
+| **Review moderation bypass CLOSED** `20260716250000` | A host could un-hide a review an admin hid. Proven live (4 abuses) → all blocked, 9/9. |
+| **Review delay 5→60 min** | Founder asked 2026-07-12; never done. Not in SQL — one TS line. |
+| **`auto-publish-reviews` RETIRED** `20260716260000` | Vestigial; would have silently republished any future unpublish-without-flagging. |
+| **Room access save FIXED** | Shared zod schema gained a required parent-level field the room form never rendered → Save silently did nothing. Split → `roomAccessSchema`; +11 tests. |
+| **Rankings cron FIXED** `20260716270000` | 🔑 **A RENAME ORPHANS pg_cron** (`cron.job.command` is TEXT). Rankings were **frozen 30 days**. Green at 18:30. |
+| **Missing-policy alert BUILT** `20260716280000` | Had 3 faults; naive fix = **daily nag forever**. Now ≤1/property/week + re-checks at send. 5/5 live. |
+
+### ⚠️ VERIFIED-AS-FAR-AS-POSSIBLE, NOT PROVEN (needs the smoke test)
+signup end-to-end · booking chain · review request actually sending · check-in reminder · access card +
+email · **email delivery** (queue holds only 2 dead-lettered `affiliate_*` rows from 07-11) · iCal
+import (0 feeds) · card rail (no gateway test keys).
+
+### 🔴 FOUNDER-ONLY (I cannot do these)
+1. **Rotate `email_worker_secret` + `ical_sync_worker_secret`** — pasted in plaintext into the 07-16
+   chat. Not catastrophic (no data access) but they bear 6 workers. New value in **BOTH** Vault
+   *and* the Vercel env var (`EMAIL_WORKER_SECRET`) so they match.
+2. **3 optional Vault secrets** still missing → `looking_for_worker_url` · `blog_publish_url` ·
+   `website_domain_poll_url` (same pattern, `https://wielo.co.za/api/<route>`, bearer =
+   `email_worker_secret`). `external_reviews_*` needs its **own** new secret in Vault **and** Vercel.
+3. **Decide: access unlock gates on status but NOT payment** — contradicts its own migration header
+   ("confirmed **+ paid**"). A `confirmed` booking with money owing still unlocks the door code.
+   Gating on payment could lock out a legit EFT-on-arrival guest → founder's call. See
+   `docs/lifecycles/access-details.md`.
+
+### 🔑 THE LESSON OF THIS SESSION — green means nothing, three different ways
+- **A Vercel deploy** went READY in **1.16s** (`FULL TURBO` cache hit) while the build was broken.
+- **A Vault-gated cron** reports `succeeded` while doing nothing (unset secret → `NOTICE` + return).
+- **A rename** left crons failing every 15 min for **30 days** in total silence.
+**Always run the negative control** — a test that passes against broken code proves nothing. It caught
+the `credit_notes` FK, the selector bug, and a moderation case that passed only because it was a no-op.
+
+### 🔴 GOTCHAS (cost me real time today)
+- **Bash `rm -rf .next` SILENTLY FAILS on Windows** (`Directory not empty`) → corrupted `.next` → build
+  dies with **`exit 3221226505`** (`0xC0000409`, native) at a *varying* point, or `MODULE_NOT_FOUND`.
+  **I misdiagnosed it twice as flaky memory pressure**, and a stash/unstash control passed *by luck*.
+  ✅ Use PowerShell `Remove-Item -Recurse -Force .next` → builds 888/888 first try.
+- **`notification_queue` IS the email queue.** A direct SQL insert bypasses `dispatchEvent` → no dedupe,
+  and needs an `EMAIL_REGISTRY` entry or the drain dead-letters it `no_template` (see the 2 stuck
+  `affiliate_*` rows — those kinds still have no template).
+- **`vault.create_secret` is NOT idempotent** (`23505` on re-run — harmless); `vault.update_secret` is.
+  **Never `SELECT *` from `vault.decrypted_secrets`** — filter `WHERE name LIKE '%_url'`.
+- **All worker URLs are on `https://wielo.co.za`** (founder was right; `*.vercel.app` is partly SSO-gated
+  → a protection toggle would kill every worker *silently*).
+- `supabase db query --linked --file` runs **no psql meta-commands** (`\i` fails) + returns only the LAST
+  statement's rows → inline includes, accumulate into a TEMP TABLE.
+- `policies.type` (NOT `policy_type`) and policies are **host-scoped**; `property_policies.policy_type` is
+  real. `properties.property_type` ∈ {accommodation, experience}.
+- Commit subject **lowercase**; header ≤~100 chars.
+
+---
+
+## 🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt8) — ⚠️ SUPERSEDED by pt9 above
 
 **Repo clean + pushed at `45ddc246`. `pnpm build` (888 pages) + `pnpm lint` green. Migrations in sync
 through `20260716220000`.** Only untracked = the mobile eslint scaffold (founder: *"leave it"*).
