@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-07-16 — Fix `looking_for_posts.quote_count` drifting permanently high (migration `20260716180000`).
+
+- **Bug:** the counter could only ever climb. The original trigger (`20260628100000`) was
+  `AFTER INSERT ON looking_for_responses → quote_count = quote_count + 1` with **no DELETE handling** — but
+  `looking_for_responses` cascades from **both** `looking_for_posts` and **`hosts`** (`host_id … ON DELETE CASCADE`).
+  So deleting or purging a host silently removed their responses while every post they'd quoted kept counting them.
+  Found live: a post reporting `quote_count = 3` with exactly **1** real response.
+- **Why it mattered (not cosmetic):** `quote_count` is read on the public board and public post page ("N quotes"),
+  the host browse board + `RequestCard`, the admin posts list, the guest portal list, and the saved-search digest
+  worker — and the host board **filters** on it (`.eq("quote_count", 0)` = "no quotes yet"), so an inflated count
+  also **hid a post from exactly the hosts most likely to quote it**. Nothing in app code ever writes the column;
+  the trigger was the only writer.
+- **Fix:** replaced the delta trigger with a **recompute** (`sync_looking_for_quote_count`) firing
+  `AFTER INSERT OR DELETE OR UPDATE OF post_id`, which sets `quote_count = COUNT(*) of that post's responses`. A
+  `+1`/`-1` counter drifts the moment any path is missed; a recompute is idempotent and self-healing.
+  `UNIQUE(post_id, host_id)` means one response per host, so `COUNT(*)` *is* the quote count by definition. Handles
+  the response-moved-between-posts case (recounts the old post too) and branches on `TG_OP` rather than
+  `COALESCE(NEW.post_id, OLD.post_id)` — `NEW` is unassigned on DELETE and would raise at runtime. Old trigger +
+  function dropped.
+- **Backfill** reconciles every already-drifted row, with the `looking_for_posts_updated_at` trigger temporarily
+  disabled around it: the record timeline reads `updated_at` as the fulfilled/cancelled event time, so a blind
+  backfill would have rewritten history on already-fulfilled posts.
+- **Verified:** whole migration rehearsed in a `BEGIN; … ROLLBACK;` on live first — backfill 3→1, INSERT increments
+  (1→2), DELETE decrements (2→0, the path the old trigger missed), 0 drifted posts table-wide; all four passed and
+  rolled back. Then `db push --linked` for real and re-verified against live: 0 drifted posts, wedding post
+  stored=1/truth=1, new trigger present, old trigger + function gone, `updated_at` trigger re-enabled. Guest portal
+  list now shows **1 quote** (was 3). No column changes → no type regen needed.
+- ⚠️ **Adjacent, NOT fixed (flagged):** `view_count` has a similar shape — `/looking-for/[id]/page.tsx` does a
+  read-modify-write (`update({view_count: post.view_count + 1})`, lost-update race under concurrency) *while* a
+  separate trigger on `looking_for_post_views` also increments it. Worth its own pass.
+
+---
+
 ## 2026-07-16 — Guest Looking-For record: Overview enriched + the missing post image.
 
 - **The post's own photo now renders on the guest's record.** `looking_for_posts.image_url` is uploaded by the guest

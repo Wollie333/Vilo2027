@@ -26,9 +26,12 @@ sideways; also fixes the host respond + public post pages).
 ### 🔎 Founder decisions / notes left open
 1. **Stray mobile eslint scaffold** (`apps/mobile/eslint.config.js` + `package.json` + `pnpm-lock.yaml`, uncommitted).
    Founder: **"leave it — we'll get to it once the web app is complete and working."** Left UNSTAGED deliberately.
-2. **Data oddity (not fixed, out of scope):** post `a1b86dff…` has `quote_count = 3` but only **1** real quote /
-   `looking_for_responses` row. The record UI counts real rows (shows 1), but the **public board reads
-   `quote_count`** — so the denormalised counter looks wrong/stale. Worth an audit of what maintains it.
+2. ✅ **`quote_count` drift — FIXED** (migration `20260716180000`, applied to live + verified). Root cause: the
+   trigger only ever INCREMENTED and had no DELETE path, while `looking_for_responses` cascades from **`hosts`** —
+   so purging a host inflated the count forever. Replaced with a **recompute** trigger + backfill. 0 drifted posts.
+   ⚠️ **`view_count` is next door and still broken:** `/looking-for/[id]/page.tsx` does a read-modify-write
+   (`update({view_count: post.view_count + 1})` — lost-update race) *while* a trigger on `looking_for_post_views`
+   also increments it. Not fixed — flagged for its own pass.
 3. **Quote-only hosts own no listings** → their LF quotes have `property_id = null` → no thumbnail on the Quotes tab.
    Correct behaviour, not a bug. Full hosts get the cover (proven live via a temporary property_id + verified restore).
 
