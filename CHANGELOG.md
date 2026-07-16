@@ -5,6 +5,58 @@
 
 ---
 
+## 2026-07-16 (pt11) — The wire pass: three dead features, and the day our own security fix took the public site down.
+
+Founder's order was **live bug → wire → deletes**. This is the wire pass over the three real gaps in
+`docs/WIRING_AUDIT.md` §2. **The finding: adding the missing caller was never the whole job.** Each of
+the three had a *second fault underneath* that only a caller could ever have revealed — so shipping
+just the button would have produced three green, broken features. The same mistake in a new coat.
+
+### 🚨 We broke the public site yesterday and didn't know (FIXED `20260716340000`)
+
+**`20260716320000` — yesterday's own security fix — made every public page raise for every signed-out
+visitor, for ~24 hours, on live.** It looped over every `SECURITY DEFINER` function `anon` could
+execute and revoked it. Correct for the ~85 privileged RPCs it targeted. But five of them are **not
+RPCs** — they are the helpers the **RLS policies themselves call**: `get_my_host_id()`,
+`get_my_host_id_as_staff()`, `get_my_role()`, `is_super_admin()`, `has_admin_permission(text)`.
+
+🔑 **A policy calling a function the reader cannot EXECUTE does not evaluate false — it RAISES.** And
+permissive policies are OR'd with **no guaranteed short-circuit**, so a `public_read_*` policy sitting
+beside a `host_manage_*` one does not save you. Proven on live as `anon`, each a plain `SELECT`:
+`properties`, `reviews`, `external_reviews`, `blocked_dates`, `addons`, `property_rooms`, `specials`,
+`coupons`, `hosts` → **all `42501 permission denied for function get_my_host_id`**.
+
+**Why it hid for a day is this project's own thesis turned on its author:** nothing has ever run, and
+the pages that prerender use `createAdminClient()` (service_role bypasses RLS). `..320000` verified its
+RPCs **over real HTTP** and never once read a **table** as `anon` — *the negative control was run on the
+wrong surface.* It surfaced only because an unrelated rehearsal happened to ask **"can `anon` actually
+see this now?"**. Granting the five back is safe and a different species: each keys solely on
+`auth.uid()` and takes **no caller-supplied identity**, so `anon` gets NULL/false and learns only "I am
+nobody" — unlike `fetch_primary_kpis(p_host_id)`, which hands you any host's revenue. Verified 10/10
+tables read as `anon` while credits/KPIs still `42501`; over real HTTP, public tables `200`, kpis `401`.
+📌 **Now auto-flagged** (red flag 6), and flag 3 **excludes RLS helpers** so the two can't contradict
+each other and lure the next reader into re-breaking it.
+
+### ✅ The three gaps, wired — each with the fault underneath
+
+| | |
+|---|---|
+| **Bookmarks** | The button was local `useState`. **Underneath:** `toggleBookmarkAction` `await`ed its writes and **discarded the errors**, returning `success:true` unconditionally — wiring the button would have moved the lie from the component into the action. Now: errors returned; host from the **session** (was a client-supplied `hostId`); `is_bookmarked` seeded from the DB; `23505` treated as the state the host asked for. |
+| **Host review disputes** `20260716330000` | **The button could never have worked.** `review_flags` has had **RLS enabled and ZERO policies since May** (`20260501000007:65`) — RLS with no policy denies every non-service-role write, so the insert **always** raised. Proven on live: `42501`, **not** `23503` — the FK on deliberately-fake uuids never got a say because RLS refused first. And the **"unique check on (review_id, flagged_by)" the comment claimed never existed.** Both now real; rehearsed with **6 controls** incl. the pre-migration control (must fail). Also: the admin queue never **read** `review_flags`, so the host's typed explanation went nowhere — `flagged_reason` alone is an enum, and "other" tells a moderator nothing. Now shown as "Host said:". |
+| **External reviews** | Built the mapping dropdown `getHostPropertiesAction` was written for but never given. An unmapped review now says **"Not shown on a page"** instead of rendering nothing. Rehearsed on live: host maps → 1 row → persists → the public query returns it; another host → 0 rows. **This rehearsal is what caught the `anon` regression above.** |
+
+### 🔑 Method notes
+- **The negative control has to run on the surface the user actually touches.** `..320000` proved its
+  RPCs were locked over real HTTP and was still catastrophically wrong about tables.
+- **A dead feature hides its own bugs.** `review_flags` was broken for ~2 months behind a missing button.
+- ⚠️ `pnpm build` dying with `exit 3221226505` (`0xC0000409`) was **NOT** stale `.next` this time —
+  deleting `.next` didn't help; `NODE_OPTIONS=--max-old-space-size=8192` did. Try both.
+
+**Green:** 888 pages · lint clean · `tsc` clean · 315 tests (5 skipped). **Not yet seen in a browser** —
+0 properties / 0 reviews / 0 posts means there is nothing to render. Still the founder's smoke test.
+
+---
+
 ## 2026-07-16 — The reality map + the wiring audit (founder: *"we keep going over the same features and they're still not done"*).
 
 He was right, and the `view_count` autopsy explains why. That feature had a table, a trigger, an

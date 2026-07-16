@@ -2,7 +2,68 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt10) — **START HERE** (supersedes pt9 below)
+## 🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt11) — **START HERE** (supersedes pt10 below)
+
+**Repo clean + pushed `7d0fc876`. `pnpm build` (888) · `pnpm lint` · `tsc` · 315 tests green.
+Migrations synced through `20260716340000`.** Only untracked = the mobile eslint scaffold
+(founder: *"leave it"*). **The two tools from pt10 still apply — read `docs/SCHEMA.md`, run
+`node scripts/audit-wiring.mjs`. Do not go back to guessing.**
+
+### 🚨 WE BROKE THE PUBLIC SITE YESTERDAY AND DIDN'T KNOW — fixed `20260716340000`
+**pt10's own security fix (`..320000`) made every public page raise `42501` for every signed-out
+visitor, for ~24 hours, on live.** It revoked `anon` from every `SECURITY DEFINER` function. Right for
+the ~85 privileged RPCs. But five were **not RPCs** — they are the helpers **RLS policies themselves
+call**: `get_my_host_id()` · `get_my_host_id_as_staff()` · `get_my_role()` · `is_super_admin()` ·
+`has_admin_permission(text)`.
+- 🔑 **A policy calling a function the reader can't EXECUTE doesn't evaluate false — it RAISES.**
+  Permissive policies are OR'd with **no guaranteed short-circuit**, so a `public_read_*` policy next
+  to a `host_manage_*` one does **not** save you. Proven as `anon`: `properties`, `reviews`,
+  `external_reviews`, `blocked_dates`, `addons`, `property_rooms`, `specials`, `coupons`, `hosts` — **all 42501.**
+- 🔑 **THE LESSON: `..320000` verified its RPCs over real HTTP and never read a TABLE as `anon`. The
+  negative control ran on the WRONG SURFACE.** It was caught only because an unrelated rehearsal asked
+  *"can anon actually see this now?"*. It hid because nothing has ever run + prerender uses
+  `createAdminClient()` (service_role bypasses RLS).
+- Safe to grant back: each keys on `auth.uid()` and takes **no caller-supplied identity** → anon gets
+  NULL/false. Unlike `fetch_primary_kpis(p_host_id)`, which leaks any host's revenue — **still revoked
+  (re-verified)**. 📌 Auto-flagged now (red flag 6); flag 3 excludes RLS helpers so they can't argue.
+
+### ✅ THE WIRE PASS — 3 gaps wired (founder's order: live bug → **wire** → deletes; 2 of 3 done)
+**Every one hid a SECOND fault underneath that only a caller could reveal.** Adding just the button
+would have shipped three green, broken features.
+| | |
+|---|---|
+| **Bookmarks** | **Underneath:** the action `await`ed its writes, **discarded errors**, returned `success:true` always — wiring the button would have moved the lie into the action. Now: errors returned · host from the **session** (was client-supplied `hostId`) · `is_bookmarked` seeded from DB · `23505` = the state asked for. |
+| **Review disputes** `..330000` | **The button could NEVER have worked.** `review_flags` = **RLS enabled + ZERO policies since May** (`20260501000007:65`) → insert always raised. Proven: `42501`, **not** `23503` — RLS refused before the FK on fake uuids got a say. And the **UNIQUE the comment claimed never existed**. 6 controls incl. pre-migration (must fail). Admin queue never **read** `review_flags` → the host's typed explanation went nowhere; now "Host said:". |
+| **External reviews** | Built the dropdown `getHostPropertiesAction` was written for. Unmapped → **"Not shown on a page"**. Rehearsed: maps → 1 row → persists → public query returns it; other host → 0 rows. **This caught the anon regression above.** |
+
+### ▶ NEXT
+1. 🔴 **STILL the founder's SMOKE TEST — walk ONE signup (Beta R0), then ONE booking → check-out.**
+   Unchanged since pt9 and still the only thing that turns "code exists" into "it works".
+   **The agent CANNOT do it** (creating accounts / entering passwords is out of scope).
+2. ⚠️ **The 3 wired UIs are NOT seen in a browser** — 0 properties / 0 reviews / 0 LF posts means
+   there is literally nothing to render. Proven at the DB layer against live with negative controls;
+   the components are **built, not witnessed**. Founder rule #9 says say so loudly. **Saying so.**
+3. **`docs/WIRING_AUDIT.md`, still open:** the other 2 unwired (external-review **reply**, brochure
+   **remove**) · §3 founder decisions · **~40 safe deletes** (re-run the sweep to a fixed point).
+4. 🔴 **IDOR still open:** analytics fns take `p_host_id` and never check ownership → any **signed-in**
+   user reads another host's KPIs. `..320000` closed only the *unauthenticated* half.
+
+### 🔴 FOUNDER-ONLY (unchanged)
+1. **Rotate `email_worker_secret` + `ical_sync_worker_secret`** — Vault **AND** Vercel.
+2. **4 Vault-gated crons still dead** → auto-flagged in `docs/SCHEMA.md`.
+3. **Decide:** access unlock gates on status but NOT payment (`docs/lifecycles/access-details.md`).
+
+### 🔑 METHOD (pt11 additions — both earned the hard way)
+- **Run the negative control ON THE SURFACE THE USER TOUCHES.** Proving the RPCs were locked over real
+  HTTP was true, rigorous — and missed a total outage one layer over.
+- **A dead feature hides its own bugs.** `review_flags` was broken ~2 months behind a missing button.
+  So *expect* a second fault when wiring anything from the audit; don't just add the caller.
+- ⚠️ `pnpm build` dying `exit 3221226505` (`0xC0000409`) was **NOT** stale `.next` this time — deleting
+  `.next` didn't help, `NODE_OPTIONS=--max-old-space-size=8192` did. Try both before diagnosing.
+
+---
+
+## 🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt10) — ⚠️ SUPERSEDED by pt11 above
 
 **Repo clean + pushed `a401371e`. `pnpm build` (888) · `pnpm lint` · 315 tests green. Types
 regenerated. Migrations synced through `20260716320000`.** Only untracked = the mobile eslint
