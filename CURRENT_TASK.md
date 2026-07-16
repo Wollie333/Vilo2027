@@ -2,7 +2,74 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt7) — NEXT SESSION STARTS HERE: 2 DB ITEMS
+## 🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt8) — **START HERE** (supersedes pt7 below)
+
+**Repo clean + pushed at `45ddc246`. `pnpm build` (888 pages) + `pnpm lint` green. Migrations in sync
+through `20260716220000`.** Only untracked = the mobile eslint scaffold (founder: *"leave it"*).
+
+### 🗄️ LIVE DB STATE (blank slate, ready to test on)
+- **3 accounts:** `wollie@manamarketing.co.za` (the ONLY super admin) · `sumasteenkamp@gmail.com`
+  (**Sumarie**, @sumarie) · `support@wielo.co.za` (**Wielo Support — INFRASTRUCTURE, never delete**).
+- 2 hosts (Sumarie + super admin). **0** properties / bookings / quotes / Looking-For posts.
+- Credit dials: **plan defaults** free 0 · pro 50 · business 200. **Product dials:** Beta 50 ·
+  Wielo Quotes 5 · Starter none (falls back to plan pro=50).
+
+### ▶ NEXT (founder sequenced: GDPR purge FIRST)
+1. 🔴 **Fix `app_purge_user_account` — GDPR erasure is BROKEN.** Full detail in memory
+   `project-gdpr-purge-broken` + pt7 below. It dies on 3 RESTRICT edges it never clears:
+   **`forfeit_statements`**→bookings (and its guard needs `app.allow_forfeit_statement_purge`, a GUC
+   **nothing sets**), **`credit_notes`**→invoices, **`looking_for_responses`**→quotes (the fn predates
+   Looking-For). ⚠️ **quotes must be deleted BETWEEN looking_for_responses and looking_for_posts**
+   (RESTRICT pair); `refund_requests` before `payments`. **Then test against an account that actually
+   has all three — nothing ever has.** Legal obligation.
+2. **Enforce "no membership → no account"** (founder rule). True by construction but **unenforced**.
+   Want: (a) every host has ≥1 active subscription, (b) **at most ONE active membership** per host —
+   founder: *"one subscription product, many services, many packages"*. "Membership" needs a join to
+   `products.product_type`, so a partial unique index can't express it → likely a trigger.
+   ⚠️ **A wrong guard blocks signup** — rehearse hard.
+3. **Product-form UI polish** (founder: *"the UI is not nice, make it professional"*). I only did the
+   targeted **Wielo credits card**; the rest of `admin/products/ProductEditor.tsx` is untouched. Ask the
+   founder what specifically reads as unpolished before redesigning.
+
+### ✅ THE CREDIT SYSTEM (built + verified live this arc)
+**ONE balance, priced per action** (founder-locked): **see a Looking-For request = 1 credit, quote = 1
+credit**, both off the single `quote` wallet (= "Wielo Credits" in the host header). **Never expires.**
+- **Admin sets it in ONE place:** product form → **"Wielo credits"** card → *Credits included each
+  billing cycle* (works on **create AND edit**; saves to `product_features.wielo_credits_per_month`,
+  which is what the grant engine reads). Blank/0 **deletes** the row so the plan default applies.
+  `products.credit_quantity` now means **one-off credit packages ONLY**.
+- Resolution: `check_feature_permission` → host override → product → plan → default.
+  Readers: `hostFeatureLimit()` / `resolveFeatureLimit(client,…)` (`lib/products/featureGate.ts`).
+- Lead locking: SSOT `lib/looking-for/leadAccess.ts`; **mask SERVER-SIDE, never blur**; a host's own
+  request is excluded from their board + refused in `unlockLead` before any money moves.
+
+### 🔴 GOTCHAS THAT BIT ME — read before touching credits/wipes
+- **`apply_wielo_credit`'s idempotency key EXCLUDES `purpose`** (`host_id, ref_type, ref_id, kind`).
+  Two purposes sharing a `ref_id` → the 2nd is a **SILENT NO-OP**. Bit me twice; the 2nd **destroyed 199
+  credits** (caught only by a ROLLBACK rehearsal). **Encode purpose/direction in `ref_id`; assert
+  conservation (total before == after) in every rehearsal.**
+- **NEVER prune NULL-product subscriptions** — they are the **guest tier** signup creates
+  (`signup/host/actions.ts` §4). I nearly shipped a migration cancelling every new signup's baseline.
+- **Principle #11's old TRUNCATE recipe was WRONG** — it would have wiped `plan_features` (killing the
+  credit system), `platform_settings`, `help_articles` + INSERT-only audit tables. **Row-level DELETE,
+  child-first.** Config survives automatically because its user FKs are `ON DELETE SET NULL`.
+- `supabase db query --linked --file x.sql` returns **only the LAST statement's rows** → accumulate into
+  a `CREATE TEMP TABLE` + `SELECT *`. **Rehearse every migration in `BEGIN; … ROLLBACK;` first.**
+- **Commit subject must be LOWERCASE** (commitlint `subject-case`); header ≤~100 chars.
+- Agent **cannot drive signup** (creating accounts / entering passwords out of scope) → test by
+  reproducing signup's insert + driving the **admin** activation.
+- Build sometimes throws `Cannot find module './49192.js'` after edits → `rm -rf .next` and rebuild.
+
+### ⚠️ UNVERIFIED / FOUNDER TO DO
+- **The signup wizard end-to-end is UNPROVEN** (steps 1→5, membership selection, payment settle →
+  `activateMappedPlan`). The pieces are individually correct + the retire fix is verified via the admin
+  path. **Highest-value founder test: walk ONE signup with Beta (R0, no gateway needed) and confirm you
+  land with exactly ONE active subscription + the right credit balance.**
+- **Card rail still needs gateway test keys** (backlog: "Paystack/PayPal sandbox E2E").
+
+---
+
+## 🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt7) — ⚠️ SUPERSEDED by pt8 above (kept for the GDPR detail)
 
 **Repo clean + pushed. `pnpm build` (888 pages) + `pnpm lint` green. DB = blank slate, 3 accounts.**
 Founder sequenced these: **GDPR purge FIRST** (legal), then the membership guard.
