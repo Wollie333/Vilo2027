@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-07-16 — Guest Looking-For record: Overview enriched + the missing post image.
+
+- **The post's own photo now renders on the guest's record.** `looking_for_posts.image_url` is uploaded by the guest
+  on the request form and was already shown on the public board, the public post page, and the host respond card —
+  the guest's own record (`/portal/looking-for/[id]`) was the only surface that never even *selected* the column.
+  Added to `POST_COLUMNS` + `RecordPost` and rendered as a banner at the top of Overview (fixed `h-44 sm:h-56` rather
+  than an aspect box — guests upload portrait phone shots, and an aspect ratio pushed the whole record below the
+  fold). No image → a dashed "Add a photo to your request" prompt linking to the edit page.
+- **Overview now answers "how am I doing?"** — all derived from data the loader already had in memory, no new
+  queries: a **next-action** strip (accepted → pay/view booking · N quotes awaiting → compare · none yet → who's
+  being notified, using the pin radius · all declined → edit request); a **quote summary** (count, lowest, average,
+  highest, plus lowest-vs-`budget_max` fit shown as "Within your budget" / "R X over budget"); a host avatar row with
+  time-to-first-quote; a **recent activity** preview (last 3 timeline events); and a **reach** band (views, quotes,
+  quotes-as-%-of-views, first reply, days left).
+- **Surfaced request fields that were captured but displayed nowhere** on the record: `quote_deadline`,
+  `min_host_rating`, `is_all_in_quote`, `sub_category`/`event_type`, `vendor_needs`.
+- **Quotes tab now shows *which listing* a quote is for** (cover thumbnail + name + "Specific room"/city). Extracted
+  one `loadQuoteSubjects` helper in `record-data.ts` and reused it for both the response quotes and the inline
+  message-wall cards, replacing a duplicated cover-fetch block.
+- **Fixed a real overflow bug** (shared, so it also fixes the host respond page + public post page): the Looking-For
+  rich-text `PROSE` class in `components/looking-for/RequestDetailsHtml.tsx` had no word-breaking, so an unbroken
+  string in a description overflowed the card and forced the **whole page to scroll sideways**. Added `break-words`
+  (overflow-wrap is inherited, so it covers every child element). Verified: zero horizontally-overflowing elements.
+- **Verified live** as the post owner (`wollie@manamarketing.co.za`) on both branches: a post with 1 quote (image +
+  summary + "Within your budget" on R65 000 vs a R70 000 ceiling + new facts) and a post with 0 quotes (empty state
+  naming the 25 km radius, zero-safe stats — no divide-by-zero on 0 views). The quote-thumbnail path was proven by
+  temporarily pointing the quote at a listing with a cover, then restoring `property_id` to `null` and diffing
+  against a backup. ⚠️ Note for the founder: quote-only hosts own no listings, so their LF quotes legitimately have
+  `property_id = null` and show no thumbnail — that's correct, not a bug.
+
+---
+
 ## 2026-07-16 — Credits notification · booking-confirmation email fix · email-flow audit.
 
 - **Admin credit grant now notifies the user.** When an admin tops up a user's Wielo Credits, the user gets an in-app

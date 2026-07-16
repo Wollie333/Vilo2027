@@ -29,11 +29,70 @@ function one<T>(v: T | T[] | null | undefined): T | null {
   return v ?? null;
 }
 
+/** What a quote is *for* — listing name, cover photo, and a short detail line. */
+export type QuoteSubject = {
+  name: string | null;
+  image: string | null;
+  detail: string | null;
+};
+
+/**
+ * Resolve the listing subject (name + cover + detail) for a set of quote rows.
+ * Shared by the response quotes and the inline message-wall cards so both show
+ * the same cover art off one pair of queries.
+ */
+async function loadQuoteSubjects(
+  admin: ReturnType<typeof createAdminClient>,
+  rows: Array<{
+    id: string;
+    property_id: string | null;
+    scope?: string | null;
+  }>,
+): Promise<Map<string, QuoteSubject>> {
+  const byQuote = new Map<string, QuoteSubject>();
+  const propIds = Array.from(
+    new Set(rows.map((r) => r.property_id).filter((id): id is string => !!id)),
+  );
+  if (propIds.length === 0) return byQuote;
+
+  const [{ data: props }, { data: coverPhotos }] = await Promise.all([
+    admin.from("properties").select("id, name, city").in("id", propIds),
+    admin
+      .from("property_photos")
+      .select("property_id, url, sort_order")
+      .in("property_id", propIds)
+      .is("room_id", null)
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  const nameById = new Map((props ?? []).map((p) => [p.id, p.name]));
+  const cityById = new Map((props ?? []).map((p) => [p.id, p.city]));
+  const coverById = new Map<string, string>();
+  for (const ph of coverPhotos ?? [])
+    if (!coverById.has(ph.property_id)) coverById.set(ph.property_id, ph.url);
+
+  for (const r of rows) {
+    if (!r.property_id) continue;
+    byQuote.set(r.id, {
+      name: nameById.get(r.property_id) ?? null,
+      image: coverById.get(r.property_id) ?? null,
+      detail:
+        r.scope === "rooms"
+          ? "Specific room"
+          : (cityById.get(r.property_id) ?? "Whole place"),
+    });
+  }
+  return byQuote;
+}
+
 export type RecordPost = {
   id: string;
   title: string;
   description: string | null;
   category: string;
+  sub_category: string | null;
+  event_type: string | null;
+  image_url: string | null;
   check_in_date: string | null;
   check_out_date: string | null;
   date_flexibility_days: number | null;
@@ -47,6 +106,10 @@ export type RecordPost = {
   budget_max: number | null;
   budget_currency: string | null;
   budget_per: string | null;
+  is_all_in_quote: boolean | null;
+  min_host_rating: number | null;
+  quote_deadline: string | null;
+  vendor_needs: string[] | null;
   status: string;
   is_urgent: boolean;
   is_public: boolean;
@@ -76,6 +139,7 @@ export type RecordQuote = {
   declinedAt: string | null;
   declineReason: string | null;
   declineNote: string | null;
+  subject: QuoteSubject | null;
 };
 
 export type RecordThread = {
@@ -129,9 +193,11 @@ export type RequestRecordData = {
 };
 
 const POST_COLUMNS = `
-  id, title, description, category, check_in_date, check_out_date,
+  id, title, description, category, sub_category, event_type, image_url,
+  check_in_date, check_out_date,
   date_flexibility_days, adults, children, infants, location_text,
   location_region, search_radius_km, budget_min, budget_max, budget_currency, budget_per,
+  is_all_in_quote, min_host_rating, quote_deadline, vendor_needs,
   status, is_urgent, is_public, view_count, quote_count, created_at,
   updated_at, expires_at, fulfilled_via, guest_id
 `;
@@ -217,17 +283,23 @@ export async function loadRequestRecord(
       declined_at: string | null;
       decline_reason: string | null;
       decline_note: string | null;
+      property_id: string | null;
+      scope: string | null;
     }
   >();
+  const subjectByResponseQuote = new Map<string, QuoteSubject>();
   if (quoteIds.length > 0) {
     const { data: qRows } = await admin
       .from("quotes")
       .select(
-        "id, quote_number, total_amount, currency, status, check_in, check_out, headcount, deposit_amount, valid_until, notes, accept_token, converted_booking_id, accepted_at, declined_at, decline_reason, decline_note, looking_for_post_id",
+        "id, quote_number, total_amount, currency, status, check_in, check_out, headcount, deposit_amount, valid_until, notes, accept_token, converted_booking_id, accepted_at, declined_at, decline_reason, decline_note, property_id, scope, looking_for_post_id",
       )
       .eq("looking_for_post_id", postId)
       .in("id", quoteIds);
     for (const q of qRows ?? []) quoteRowById.set(q.id, q);
+
+    for (const [id, s] of await loadQuoteSubjects(admin, qRows ?? []))
+      subjectByResponseQuote.set(id, s);
   }
 
   // ---- Conversation threads (guest owns them via RLS) + messages. ----
@@ -306,45 +378,7 @@ export async function loadRequestRecord(
       .in("id", cardQuoteIds);
 
     // Subject cover (listing name + thumbnail) per quote.
-    const propIds = Array.from(
-      new Set(
-        (qRows ?? [])
-          .map((q) => q.property_id)
-          .filter((id): id is string => !!id),
-      ),
-    );
-    const subjectByQuote = new Map<
-      string,
-      { name: string | null; image: string | null; detail: string | null }
-    >();
-    if (propIds.length > 0) {
-      const [{ data: props }, { data: coverPhotos }] = await Promise.all([
-        admin.from("properties").select("id, name, city").in("id", propIds),
-        admin
-          .from("property_photos")
-          .select("property_id, url, sort_order")
-          .in("property_id", propIds)
-          .is("room_id", null)
-          .order("sort_order", { ascending: true }),
-      ]);
-      const nameById = new Map((props ?? []).map((p) => [p.id, p.name]));
-      const cityById = new Map((props ?? []).map((p) => [p.id, p.city]));
-      const coverById = new Map<string, string>();
-      for (const ph of coverPhotos ?? [])
-        if (!coverById.has(ph.property_id))
-          coverById.set(ph.property_id, ph.url);
-      for (const q of qRows ?? []) {
-        if (!q.property_id) continue;
-        subjectByQuote.set(q.id, {
-          name: nameById.get(q.property_id) ?? null,
-          image: coverById.get(q.property_id) ?? null,
-          detail:
-            q.scope === "rooms"
-              ? "Specific room"
-              : (cityById.get(q.property_id) ?? "Whole place"),
-        });
-      }
-    }
+    const subjectByQuote = await loadQuoteSubjects(admin, qRows ?? []);
     for (const q of qRows ?? []) {
       quotesById[q.id] = mapQuoteRow(q, undefined, subjectByQuote.get(q.id));
     }
@@ -385,6 +419,7 @@ export async function loadRequestRecord(
           declinedAt: qRow.declined_at,
           declineReason: qRow.decline_reason,
           declineNote: qRow.decline_note,
+          subject: subjectByResponseQuote.get(qRow.id) ?? null,
         }
       : null;
     return {

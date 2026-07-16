@@ -2,7 +2,43 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16 pt5) — REMAINING-FIXES BATCH (1 item left + 1 ops check)
+## 🟢🟢🟢 SAVE POINT (2026-07-16 pt6) — GUEST LOOKING-FOR RECORD: OVERVIEW ENRICHED. PT5 BATCH IS CLOSED.
+
+**Green: `pnpm build` + `pnpm lint`. Verified live in the portal.** See CHANGELOG top entry for full detail.
+
+### ⚠️ CORRECTION TO THE PT5 ANCHOR BELOW — both its open items are CLOSED
+- **"Item 1 — reporting extras (NOT started)" was STALE.** All three named parts had already shipped *before* that
+  anchor was written: host add-ons/coupons/credits metrics = `f052a60e` (`RevenueBreakdown.tsx`, rendered at
+  `dashboard/reports/page.tsx:763`); admin retention + GMV trend = `137f80d8` + `9ad4e0da` + `97f37819` (all three
+  rendered in `admin/reporting/page.tsx`); `p_region` = `1b88d749` + migration `20260716120000` (11 RPCs; the page
+  passes `p_region` 10×). `MVP_READINESS_AND_AUDIT_BACKLOG.md` item 7 also marks Reports ✅ DONE. **Do not rebuild.**
+- **"Item 2 — email-worker Vault secrets": founder CONFIRMED working in prod (2026-07-16).**
+
+### ✅ DONE this arc — guest Looking-For record (`/portal/looking-for/[id]`)
+Founder ask: *"enrich the overview tab … make the UI more friendly with the record images and the text — it looks
+incomplete."* Root cause found: the record never selected `looking_for_posts.image_url`, so the guest was the only
+person who couldn't see the photo they uploaded. Fixed + Overview rebuilt (next-action strip, quote summary with
+budget fit, host avatars, recent activity, reach band), unused fields surfaced (`quote_deadline`, `min_host_rating`,
+`is_all_in_quote`, `sub_category`/`event_type`, `vendor_needs`), Quotes tab gained listing cover + name, and a shared
+**overflow bug** was fixed (`RequestDetailsHtml` `PROSE` had no `break-words` → long strings scrolled the whole page
+sideways; also fixes the host respond + public post pages).
+
+### 🔎 Founder decisions / notes left open
+1. **Stray mobile eslint scaffold** (`apps/mobile/eslint.config.js` + `package.json` + `pnpm-lock.yaml`, uncommitted).
+   Founder: **"leave it — we'll get to it once the web app is complete and working."** Left UNSTAGED deliberately.
+2. **Data oddity (not fixed, out of scope):** post `a1b86dff…` has `quote_count = 3` but only **1** real quote /
+   `looking_for_responses` row. The record UI counts real rows (shows 1), but the **public board reads
+   `quote_count`** — so the denormalised counter looks wrong/stale. Worth an audit of what maintains it.
+3. **Quote-only hosts own no listings** → their LF quotes have `property_id = null` → no thumbnail on the Quotes tab.
+   Correct behaviour, not a bug. Full hosts get the cover (proven live via a temporary property_id + verified restore).
+
+### ▶ Suggested next (founder to pick — all from `MVP_READINESS_AND_AUDIT_BACKLOG.md`)
+**G8/G9 legal text freeze** (natural follow-on from G7 last arc) · next **deep audit** (subscriptions lifecycle ·
+notifications/push matrix · website published-render parity) · **pre-launch data wipe** · **media SSOT epic**.
+
+---
+
+## 🟢🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16 pt5) — ⚠️ SUPERSEDED (see pt6 above; both items CLOSED)
 
 **Repo clean + pushed at `fc220c11`. Green: `pnpm build` + `pnpm lint` (web).** Full detail in memory
 `project-founder-remaining-fixes-jul16` + the CHANGELOG top 3 entries. Emails now deliver (founder set
