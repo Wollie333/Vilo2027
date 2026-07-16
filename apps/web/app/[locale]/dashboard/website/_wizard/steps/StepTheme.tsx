@@ -52,14 +52,25 @@ export function StepTheme({
                   : "border-brand-line hover:border-brand-mute"
               }`}
             >
-              <WizardThemePreview
-                base={theme.base}
-                slug={theme.slug}
-                accent={accent}
-                siteName={state.siteName}
-                logoUrl={logoUrl}
-                compact
-              />
+              {theme.previewUrl ? (
+                <div className="aspect-[16/10] w-full overflow-hidden bg-brand-light">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={theme.previewUrl}
+                    alt={theme.name}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+              ) : (
+                <WizardThemePreview
+                  base={theme.base}
+                  slug={theme.slug}
+                  accent={accent}
+                  siteName={state.siteName}
+                  logoUrl={logoUrl}
+                  compact
+                />
+              )}
               <div className="flex items-center justify-between border-t border-brand-line bg-white px-3 py-2">
                 <span className="text-[13px] font-semibold text-brand-ink">
                   {theme.name}
@@ -87,13 +98,24 @@ export function StepTheme({
             Preview — {selectedTheme.name}
           </p>
           <div className="overflow-hidden rounded-card border border-brand-line">
-            <WizardThemePreview
-              base={selectedTheme.base}
-              slug={selectedTheme.slug}
-              accent={selectedTheme.base?.palette?.accent ?? "#0a7d4b"}
-              siteName={state.siteName}
-              logoUrl={logoUrl}
-            />
+            {selectedTheme.previewUrl ? (
+              <div className="aspect-[16/10] w-full overflow-hidden bg-brand-light">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedTheme.previewUrl}
+                  alt={selectedTheme.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <WizardThemePreview
+                base={selectedTheme.base}
+                slug={selectedTheme.slug}
+                accent={selectedTheme.base?.palette?.accent ?? "#0a7d4b"}
+                siteName={state.siteName}
+                logoUrl={logoUrl}
+              />
+            )}
           </div>
         </div>
       ) : null}

@@ -1,11 +1,33 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { SITE_PRESETS, DEFAULT_PRESET, type SitePreset } from "./themes";
+
+/**
+ * A cookieless Supabase client for reading the PUBLIC theme catalogue.
+ *
+ * `site_themes` has a public read RLS policy (`select using (is_active and
+ * deleted_at is null)`), so the catalogue can be read with the anon key — no
+ * service role needed. Prefer the service-role key when present (bypasses RLS,
+ * e.g. to resolve a base by slug regardless of is_active), but fall back to the
+ * always-present anon key. This is what stops the picker silently collapsing to
+ * a single preset when SUPABASE_SERVICE_ROLE_KEY isn't wired into a given
+ * deployment environment (the previous `createAdminClient()` THREW in that case,
+ * and every caller's try/catch degraded to the one-theme fallback).
+ */
+function themesReadClient(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 /** One selectable theme for the Brand Studio gallery / preset cards. */
 export type ThemeOption = {
@@ -61,7 +83,8 @@ function presetThemes(): ThemeOption[] {
  */
 export async function loadActiveThemes(): Promise<ThemeOption[]> {
   try {
-    const sb = createAdminClient() as unknown as SupabaseClient;
+    const sb = themesReadClient();
+    if (!sb) return presetThemes();
     const { data, error } = await sb
       .from("site_themes")
       .select(
@@ -114,7 +137,8 @@ export async function getThemeBundle(
   themeId: string,
 ): Promise<ThemeBundle | null> {
   try {
-    const sb = createAdminClient() as unknown as SupabaseClient;
+    const sb = themesReadClient();
+    if (!sb) return null;
     const { data, error } = await sb
       .from("site_themes")
       .select("slug, base, page_templates")
@@ -147,7 +171,8 @@ export async function getThemeBundle(
  */
 export async function loadDefaultTheme(): Promise<ThemeBundle | null> {
   try {
-    const sb = createAdminClient() as unknown as SupabaseClient;
+    const sb = themesReadClient();
+    if (!sb) return null;
     const { data, error } = await sb
       .from("site_themes")
       .select("slug, base, page_templates")
@@ -183,7 +208,8 @@ export async function resolveThemePageTemplates(
   slug: string,
 ): Promise<ThemePageTemplate[]> {
   try {
-    const sb = createAdminClient() as unknown as SupabaseClient;
+    const sb = themesReadClient();
+    if (!sb) return [];
     const { data, error } = await sb
       .from("site_themes")
       .select("page_templates")
@@ -205,15 +231,17 @@ export async function resolveThemePageTemplates(
  */
 export async function resolveThemeBase(slug: string): Promise<SitePreset> {
   try {
-    const sb = createAdminClient() as unknown as SupabaseClient;
-    const { data, error } = await sb
-      .from("site_themes")
-      .select("base")
-      .eq("slug", slug)
-      .is("deleted_at", null)
-      .maybeSingle();
-    const row = data as { base?: SitePreset } | null;
-    if (!error && row?.base?.palette) return row.base;
+    const sb = themesReadClient();
+    if (sb) {
+      const { data, error } = await sb
+        .from("site_themes")
+        .select("base")
+        .eq("slug", slug)
+        .is("deleted_at", null)
+        .maybeSingle();
+      const row = data as { base?: SitePreset } | null;
+      if (!error && row?.base?.palette) return row.base;
+    }
   } catch {
     // fall through to preset fallback
   }
