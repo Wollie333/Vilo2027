@@ -78,10 +78,36 @@ with a public URL.
 every legitimate caller uses the service-role client, so nothing broke). **Verified by re-running the
 attack:** it now returns `42501: permission denied for function apply_wielo_credit`.
 
-> ⚠️ **STILL OPEN: 80 more `SECURITY DEFINER` functions are anon-executable.** Some legitimately serve
-> public pages as `anon`, so a blanket revoke would break browsing — each needs a judgement. They are
-> now listed and re-checked on every `generate-schema-doc.mjs` run. **This deserves its own pass
-> before launch**, and belongs in `SECURITY_CHECKLIST.md`.
+### ✅ The rest of the surface is closed too (`20260716320000`) — 89 → 4
+
+The other 80 were worse than they looked. **Proven as `anon`:**
+
+```sql
+SET LOCAL ROLE anon;
+SELECT fetch_primary_kpis('<host>', '2020-01-01', '2030-01-01');
+--> {"adr": {...}, "revpar": {...}, "revenue": {...}}     -- it RETURNED.
+```
+
+Any host's revenue, ADR and RevPAR, to an anonymous caller who knows a `host_id` — and host ids are
+not secret. Zeros only because there are no bookings yet. Same for `fetch_host_guests` (guest PII),
+`fetch_guest_demographics`, `fetch_revenue_trend`, plus writers like `ensure_booking_invoice`.
+
+Each of the 80 was classified by **who actually calls it and with which client** — `createAdminClient()`
+is service-role and never needs the anon grant; `createServerClient()` acts as `anon` only when the
+visitor is signed out. Revoked PUBLIC + anon, granted back `authenticated` + `service_role`. **anon
+keeps exactly 4**, all read-only and genuinely reachable signed-out: `fetch_platform_commission_saved`,
+`get_listing_policy_summary`, `product_units_sold`, `check_feature_permission`.
+
+**Safe because the public booking flow never runs as anon** — `lib/bookings/persist.ts` and
+`lib/website/siteCheckout.ts` both use `createAdminClient()`. Verified over **real HTTP with the real
+publishable key**: the two public RPCs return `200`; `fetch_primary_kpis`, `apply_wielo_credit` and
+`fetch_host_guests` all return `401 / 42501 permission denied`.
+
+> ⚠️ **STILL OPEN — IDOR, a different bug.** These functions take `p_host_id` as an argument and never
+> verify the caller owns that host. Any **signed-in** user can still read another host's KPIs by passing
+> their id. This migration removed the *unauthenticated* exposure — the difference between "needs
+> nothing" and "needs a free account". Closing it needs an ownership check inside each function: its own
+> pass, and it belongs in `SECURITY_CHECKLIST.md`.
 
 ---
 

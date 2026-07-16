@@ -26,89 +26,6 @@ it after any migration.
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
 
-### 80 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
-
-- `_host_guest_rows`
-- `_materialize_booking_party`
-- `affiliate_tier_bonus`
-- `apply_due_subscription_changes`
-- `block_special_dates`
-- `booking_business_id`
-- `broadcast_audience`
-- `business_doc_code`
-- `calculate_booking_price`
-- `calculate_looking_for_match_score`
-- `calculate_policy_refund_amount`
-- `can_send_broadcast`
-- `check_feature_permission`
-- `check_host_availability_for_dates`
-- `check_host_quote_quota`
-- `claim_email_queue_batch`
-- `claim_push_queue_batch`
-- `count_broadcast_recipients`
-- `effective_vat_rate`
-- `enqueue_in_app_notification`
-- `ensure_booking_invoice`
-- `ensure_host_booking_terms`
-- `ensure_host_default_policies`
-- `ensure_host_legal_presets`
-- `ensure_host_policy_presets`
-- `ensure_listing_policy_assignments`
-- `expire_specials`
-- `fetch_channel_mix`
-- `fetch_conversion_funnel`
-- `fetch_guest_demographics`
-- `fetch_guest_record`
-- `fetch_host_guests`
-- `fetch_host_guests_summary`
-- `fetch_host_savings`
-- `fetch_looking_for_stats`
-- `fetch_platform_commission_saved`
-- `fetch_popular_rooms`
-- `fetch_primary_kpis`
-- `fetch_property_performance`
-- `fetch_refunds_cancellations`
-- `fetch_regional_breakdown`
-- `fetch_revenue_trend`
-- `fetch_seasonality_heatmap`
-- `fetch_secondary_metrics`
-- `fetch_time_to_book`
-- `get_host_inbox_stats`
-- `get_host_refund_stats`
-- `get_listing_availability`
-- `get_listing_policy_summary`
-- `get_min_nights_for_stay`
-- `get_my_host_id`
-- `get_my_host_id_as_staff`
-- `get_my_role`
-- `has_admin_permission`
-- `import_ical_blocks`
-- `increment_help_article_view`
-- `is_period_closed`
-- `is_super_admin`
-- `listing_doc_code`
-- `log_subscription_event`
-- `mark_delivery_read`
-- `materialize_booking_party`
-- `next_credit_note_number`
-- `next_forfeit_number`
-- `next_invoice_number`
-- `next_quote_number`
-- `next_receipt_number`
-- `next_refund_number`
-- `product_units_sold`
-- `recalculate_listing_ranking`
-- `redeem_special`
-- `release_addon_stock`
-- `release_booking_addon_stock`
-- `release_special`
-- `reserve_addon_stock`
-- `resolve_listing_policy_id`
-- `resolve_notification_prefs`
-- `send_due_access_cards`
-- `snapshot_booking_policies`
-- `vote_help_article`
-
 ### 73 × SECURITY DEFINER function with **no pinned `search_path`** — runs as owner, resolves object names via the caller's path. Fix: `SET search_path = public, pg_temp`.
 
 - `_host_guest_rows`
@@ -191,6 +108,13 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 - `poll-website-domains` needs `website_domain_poll_url`
 - `publish-scheduled-posts` needs `blog_publish_url`
 - `sync-external-reviews` needs `external_reviews_worker_url`, `external_reviews_worker_secret`
+
+### 4 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
+
+- `check_feature_permission`
+- `fetch_platform_commission_saved`
+- `get_listing_policy_summary`
+- `product_units_sold`
 
 ### 1 × SECURITY INVOKER trigger writing to a DIFFERENT RLS table — if the target's policy excludes the user who fired the trigger, the write matches **zero rows and says nothing** (this is the `view_count` bug). VERIFY each hit: it is safe if every writer reaches it through a SECURITY DEFINER function.
 
