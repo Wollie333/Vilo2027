@@ -1,7 +1,7 @@
 "use client";
 
-import { Link } from "@/i18n/navigation";
-import { usePathname } from "next/navigation";
+import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
+import { usePathname } from "@/i18n/navigation";
 
 const TABS = [
   { href: "/portal/settings", label: "Profile", match: "exact" as const },
@@ -27,31 +27,29 @@ const TABS = [
   },
 ];
 
+/**
+ * Guest settings section nav. Uses the shared `RecordTabs` underline bar so it
+ * matches every other tab strip on the platform (record pages, host settings,
+ * admin settings) — it used to hand-roll solid pills, which was the odd one out.
+ */
 export function PortalSettingsTabs() {
-  const pathname = usePathname();
+  // next-intl's usePathname (not next/navigation's) returns the pathname WITHOUT
+  // the locale prefix, so these locale-less hrefs match on /af/... too. The old
+  // pill version compared against the raw pathname, so under localePrefix
+  // "as-needed" no tab highlighted at all on any non-English locale.
+  const path = usePathname();
+
+  const activeHref =
+    TABS.find((t) =>
+      t.match === "exact"
+        ? path === t.href
+        : path === t.href || path.startsWith(`${t.href}/`),
+    )?.href ?? TABS[0].href;
 
   return (
-    <nav className="flex flex-wrap gap-2" aria-label="Settings sections">
-      {TABS.map((tab) => {
-        const isActive =
-          tab.match === "exact"
-            ? pathname === tab.href
-            : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            aria-current={isActive ? "page" : undefined}
-            className={`rounded-pill border px-3.5 py-1.5 text-[13px] font-semibold transition ${
-              isActive
-                ? "border-brand-primary bg-brand-primary text-white"
-                : "border-brand-line bg-white text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-            }`}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <RecordTabs
+      tabs={TABS.map((t) => ({ key: t.href, label: t.label, href: t.href }))}
+      active={activeHref}
+    />
   );
 }

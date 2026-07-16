@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-16 — Unify tab design on the user-record underline bar.
+
+- **Founder ask:** *"we want all tabs on all relevant pages to display like the tabs currently in the user record …
+  go to guest settings and fix the design … look for other pages with pills as tabs and fix them as well."*
+- **`RecordTabs` is now the SSOT for route tabs too.** It was callback-only, so every section nav that navigates to a
+  real page hand-rolled its own bar. Added an optional `href` per tab → renders a `<Link>` (keeping prefetch,
+  middle-click and open-in-new-tab) instead of a `<button>`; `onSelect` is now optional. Both modes share one class
+  string + one body, so a link tab and a panel tab cannot drift apart visually. Added `aria-current="page"`.
+- **Converted the two bars that actually looked wrong:**
+  - `portal/settings/_components/PortalSettingsTabs.tsx` — **solid brand-primary pills** → underline bar. This is the
+    one the founder pointed at.
+  - `admin/subscriptions/_SubsTabs.tsx` — a divergent hand-rolled underline (`border-b-2 px-4 py-2.5 text-sm
+    font-medium` + `text-brand-primary`) that read heavier and sat differently → underline bar.
+- **Fixed a latent i18n bug in both.** Each compared the **raw** `next/navigation` pathname against locale-less
+  hrefs. Under `localePrefix: "as-needed"` English has no prefix (so it worked) but `/af`, `/fr`, `/de`, `/pt` do —
+  meaning **no tab highlighted at all on any non-English locale**. Both now use next-intl's `usePathname`
+  (`@/i18n/navigation`), which returns the pathname without the locale prefix. That also removes `_SubsTabs`'
+  hand-rolled `replace(/^\/[a-z]{2}(?=\/)/, "")`.
+- **Audited the rest — deliberately unchanged.** `SettingsTabs` (host) + `AdminSettingsTabs` already use
+  `py-3 text-[14px] font-semibold text-brand-secondary` + the `h-[2.5px]` indicator, i.e. already identical to
+  `RecordTabs`; `AffiliateNav`/`AffiliateAdminNav`/`ProfileTabs` are the same underline family (their `rounded-pill`
+  is count badges, not tabs); `WebsiteTabs` is intentionally CMS-var themed. **Filters are not tabs** and were left
+  as chips by design: reviews `FilterTabs`, the Looking-For list status chips, `AudienceTabs` (segmented control) and
+  `RangeTabs` (30D/90D/6M/YTD). Reviews deliberately runs both — underline tabs for *view*, chips for *filter*.
+- **Verified live:** guest settings renders the underline bar, clicking Notifications navigates and moves the active
+  underline; admin Subscriptions (Hosts/Customers/Products/Revenue) matches. Remaining (not done): the already-
+  matching bars still hand-roll their markup — pure de-dup, no visual change.
+
+---
+
 ## 2026-07-16 — Fix `looking_for_posts.quote_count` drifting permanently high (migration `20260716180000`).
 
 - **Bug:** the counter could only ever climb. The original trigger (`20260628100000`) was

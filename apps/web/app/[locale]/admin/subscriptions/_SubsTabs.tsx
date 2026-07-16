@@ -1,8 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-
-import { Link } from "@/i18n/navigation";
+import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
+import { usePathname } from "@/i18n/navigation";
 
 const TABS = [
   { href: "/admin/subscriptions", label: "Hosts", exact: true },
@@ -11,30 +10,25 @@ const TABS = [
   { href: "/admin/subscriptions/revenue", label: "Revenue", exact: false },
 ] as const;
 
-// Tab strip across the admin subscription console. Active state derived from the
-// pathname (stripping the /[locale] prefix the router adds).
+/**
+ * Tab strip across the admin subscription console. Uses the shared `RecordTabs`
+ * underline bar so it matches the rest of the platform — it previously
+ * hand-rolled its own underline (border-b-2, py-2.5, brand-primary text) which
+ * read heavier and sat differently to every other tab strip.
+ */
 export function SubsTabs() {
-  const pathname = usePathname();
-  const path = pathname.replace(/^\/[a-z]{2}(?=\/)/, "");
+  // next-intl's usePathname already returns the pathname without the locale
+  // prefix, so the hand-rolled regex strip isn't needed.
+  const path = usePathname();
+
+  const activeHref =
+    TABS.find((t) => (t.exact ? path === t.href : path.startsWith(t.href)))
+      ?.href ?? TABS[0].href;
 
   return (
-    <nav className="flex items-center gap-1 border-b border-brand-line">
-      {TABS.map((t) => {
-        const active = t.exact ? path === t.href : path.startsWith(t.href);
-        return (
-          <Link
-            key={t.href}
-            href={t.href}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-              active
-                ? "border-brand-primary text-brand-primary"
-                : "border-transparent text-brand-mute hover:text-brand-ink"
-            }`}
-          >
-            {t.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <RecordTabs
+      tabs={TABS.map((t) => ({ key: t.href, label: t.label, href: t.href }))}
+      active={activeHref}
+    />
   );
 }
