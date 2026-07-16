@@ -34,6 +34,14 @@ export const EXPECTED_REFS: Record<string, RefSpec> = {
   },
   eft_proof_received_host: { required: ["booking_id"] },
 
+  // Queued straight from SQL by the alert-missing-policies cron, so the refs are
+  // snake_case and thin; listingMissingPolicyResolver re-reads the property (and
+  // re-checks the policy is still absent) at send time.
+  listing_missing_policy: {
+    required: ["listing_id"],
+    optional: ["listing_name", "missing_type"],
+  },
+
   review_request_guest: {
     required: ["booking_id"],
     optional: ["review_url"],

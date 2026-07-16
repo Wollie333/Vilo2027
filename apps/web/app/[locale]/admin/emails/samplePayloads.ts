@@ -188,6 +188,14 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     postId: "00000000-0000-0000-0000-000000000003",
   },
 
+  listing_missing_policy: {
+    firstName: "Amara",
+    listingName: "Sunbird Cottage",
+    policiesUrl:
+      "https://wielo.co.za/dashboard/properties/00000000-0000-0000-0000-000000000004/edit?tab=policies",
+    missingType: "cancellation",
+  },
+
   review_request_guest: {
     guestFirstName: "Lerato",
     listingName: "Sunbird Cottage",

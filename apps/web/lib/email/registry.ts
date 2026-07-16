@@ -17,6 +17,7 @@ import {
   EftInstructionsGuest,
   EftProofReceivedHost,
   EftRefundSentGuest,
+  ListingMissingPolicy,
   ListingPublishedHost,
   NewReviewHost,
   RefundAdminOverrideHost,
@@ -85,6 +86,18 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "host",
     subject: (p) =>
       `${str(p.listingName, "Your listing")} is live on ${str(p.brand_name, "Wielo")} 🎉`,
+  },
+
+  // A published property with no cancellation policy attached. Queued by the
+  // alert-missing-policies cron, which INSERTs straight into notification_queue
+  // (the email queue) rather than going through dispatchEvent — so this entry is
+  // mandatory: without it the drain marks the row `no_template` and it dies.
+  // That is exactly what happened to the affiliate_* kinds still sitting failed.
+  listing_missing_policy: {
+    Template: ListingMissingPolicy as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: (p) =>
+      `${str(p.listingName, "Your listing")} needs a ${str(p.missingType, "cancellation")} policy`,
   },
 
   booking_confirmed_host: {

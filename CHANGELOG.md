@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-16 — Build the missing-policy alert properly (founder call: build it, don't delete it).
+
+- **`alert-missing-policies` now works** (`20260716280000`). It had **three** separate faults, and fixing
+  any one alone would have made it worse, not better:
+  1. **Renamed tables** — still read `listings` / `listing_policies` / `lp.listing_id`, so it had failed
+     daily since the 2026-06-17 rename (same root cause as `recalculate-rankings`).
+  2. **No email existed.** It INSERTs straight into `notification_queue` — which, despite the name, **is
+     the email queue**. A direct insert bypasses `dispatchEvent`, so the drain looks the type up in
+     `EMAIL_REGISTRY`, finds nothing, and dead-letters the row as `no_template`. The kind existed
+     **nowhere** in `apps/web`. Repointing the SQL alone would have queued rows that silently die —
+     exactly what the still-failed `affiliate_*` rows from 07-11 are.
+  3. 🔑 **No dedupe — the real trap.** `shouldSkipEmail` lives in `dispatchEvent`, and the drain ignores
+     `dedupe_key`, so a direct insert is deduped by **nothing**. Fixed as-was, this would have emailed
+     every host **every day at 10:00, per property, forever**. It now self-throttles to at most one per
+     property per 7 days via a `NOT EXISTS` on `dedupe_key`.
+- **The email leads with why it matters**, not tidiness: with no policy attached there is nothing for the
+  booking's `policy_snapshot` to freeze, so the refund engine falls back to **0%** — the guest is told
+  they get nothing back and the host inherits the argument. Button deep-links to the Policies tab
+  (`?tab=policies`, verified: the editor reads `searchParams.tab` and validates it against `TABS`).
+- **The resolver re-checks at send time** that the policy is *still* missing, so a host who fixes it
+  between the 10:00 queue and the drain is never emailed. The queued payload stays thin (ids only).
+- **Rehearsed on live in a rollback, 5 cases:** published+no policy alerts once · published+has policy
+  quiet · unpublished quiet · **second tick same week does NOT re-nag** · policy added → goes silent.
+  All pass. Then applied and verified: **zero crons still reference `listings`**.
+- ✅ **`recalculate-rankings` ran green at 18:30** — its first success since 2026-06-17. Rankings unfrozen.
+- Also added the new template to the admin email preview fixtures, so it's inspectable like every other.
+  Build 888 pages, 39 render tests, lint clean.
+
+---
+
 ## 2026-07-16 — Vault secrets created; and a rename that had frozen property rankings for 30 days.
 
 - **The two guest-facing Vault secrets are set** (founder). `review_request_worker_url` +

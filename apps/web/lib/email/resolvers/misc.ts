@@ -255,6 +255,41 @@ const listingPublishedHostResolver: EmailResolver = async (refs, ctx) => {
   };
 };
 
+// A published property has no cancellation policy. The cron queues only
+// { listing_id, listing_name, missing_type } (snake_case, straight from SQL);
+// everything the template renders is resolved here, so the queued payload stays
+// thin and nothing stale can be emailed if the property changes before the drain.
+const listingMissingPolicyResolver: EmailResolver = async (refs, ctx) => {
+  const listingId = refId(refs, "listing_id");
+  if (!listingId) return {};
+
+  const { data: listing } = await ctx.supabase
+    .from("properties")
+    .select("name, host_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (!listing) return {};
+
+  // Re-check before emailing: the cron may have queued this hours ago and the
+  // host may have fixed it since. Emailing "you have no policy" at someone who
+  // just added one is worse than not emailing at all.
+  const { count } = await ctx.supabase
+    .from("property_policies")
+    .select("id", { count: "exact", head: true })
+    .eq("property_id", listingId)
+    .eq("policy_type", "cancellation");
+  if ((count ?? 0) > 0) return {};
+
+  const host = await loadHostUser(ctx.supabase, listing.host_id);
+
+  return {
+    firstName: firstName(host?.user_full_name ?? host?.display_name),
+    listingName: listing.name ?? "your listing",
+    policiesUrl: `${APP_URL}/dashboard/properties/${listingId}/edit?tab=policies`,
+    missingType: (refs.missing_type as string | undefined) ?? "cancellation",
+  };
+};
+
 const accountSuspendedResolver: EmailResolver = async (refs, ctx) => {
   const hostId = refId(refs, "host_id");
   if (!hostId) return {};
@@ -268,6 +303,7 @@ const accountSuspendedResolver: EmailResolver = async (refs, ctx) => {
 export const MISC_RESOLVERS: Record<string, EmailResolver> = {
   welcome_host: welcomeHostResolver,
   listing_published_host: listingPublishedHostResolver,
+  listing_missing_policy: listingMissingPolicyResolver,
   account_suspended: accountSuspendedResolver,
   subscription_welcome: subscriptionWelcomeResolver,
   subscription_expiring: subscriptionExpiringResolver,
