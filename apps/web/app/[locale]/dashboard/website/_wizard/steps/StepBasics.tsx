@@ -1,10 +1,13 @@
 "use client";
 
-import { ImageOff } from "lucide-react";
+import { ImageOff, Loader2, Upload, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
+import { createClient } from "@/lib/supabase/client";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
+import { createWizardLogoUploadUrl } from "../../actions";
 import type { WizardState } from "../wizardState";
 
 export function StepBasics({
@@ -22,6 +25,51 @@ export function StepBasics({
   const canNext =
     state.siteName.trim().length > 0 && state.subdomain.length >= 3;
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [logoErr, setLogoErr] = useState<string | null>(null);
+
+  async function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setLogoErr("Please choose an image file.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setLogoErr("Please use an image under 4 MB.");
+      return;
+    }
+    setLogoErr(null);
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const res = await createWizardLogoUploadUrl(ext);
+      if (!res.ok) {
+        setLogoErr(
+          res.error === "locked"
+            ? "The website builder isn't enabled on your plan yet."
+            : "Couldn't start the upload. Please try again.",
+        );
+        return;
+      }
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from("website-assets")
+        .uploadToSignedUrl(res.data.path, res.data.token, file, {
+          contentType: file.type,
+        });
+      if (error) {
+        setLogoErr("Upload failed. Please try again.");
+        return;
+      }
+      update({ logoPath: res.data.path });
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div>
@@ -33,21 +81,70 @@ export function StepBasics({
         </p>
       </div>
 
-      {/* Logo (prefilled from the business; change later in Brand Studio) */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-card border border-brand-line bg-brand-light">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt=""
-              className="h-full w-full object-contain"
+      {/* Logo — prefilled from the business if it has one; upload or change here */}
+      <div>
+        <label className="block text-[13px] font-semibold text-brand-ink">
+          Logo
+        </label>
+        <div className="mt-1.5 flex items-center gap-3">
+          <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-card border border-brand-line bg-brand-light">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt=""
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <ImageOff className="h-5 w-5 text-brand-mute" />
+            )}
+            {logoUrl && !uploading ? (
+              <button
+                type="button"
+                onClick={() => update({ logoPath: null })}
+                aria-label="Remove logo"
+                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/75"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            ) : null}
+          </div>
+
+          <div className="min-w-0">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              onChange={onLogoChange}
+              className="hidden"
             />
-          ) : (
-            <ImageOff className="h-5 w-5 text-brand-mute" />
-          )}
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line px-3 py-2 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light disabled:opacity-60"
+            >
+              {uploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
+              {uploading
+                ? "Uploading…"
+                : logoUrl
+                  ? "Change logo"
+                  : "Upload logo"}
+            </button>
+            <p className="mt-1 text-[12px] text-brand-mute">
+              {logoUrl
+                ? "Pulled from your business — change it here or later in Brand Studio."
+                : "PNG, JPG, SVG or WebP, up to 4 MB. You can change it later."}
+            </p>
+            {logoErr ? (
+              <p className="mt-1 text-[12px] text-red-600">{logoErr}</p>
+            ) : null}
+          </div>
         </div>
-        <p className="text-[12px] text-brand-mute">{t("wizardLogoNote")}</p>
       </div>
 
       <div>

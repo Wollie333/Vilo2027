@@ -51,11 +51,20 @@ export async function loadWizardContext(): Promise<WizardContext | null> {
 
   const name = biz?.trading_name?.trim() || biz?.legal_name?.trim() || "";
 
+  // The business logo lives in the `host-logos` bucket, so resolve it to its
+  // public URL and pass THAT as the prefill: websiteAssetUrl() passes absolute
+  // URLs through unchanged, so it renders in the wizard preview and, once stored
+  // on brand.logo_path, on the live site — without copying buckets.
+  const businessLogoUrl = biz?.logo_path
+    ? (supabase.storage.from("host-logos").getPublicUrl(biz.logo_path).data
+        ?.publicUrl ?? null)
+    : null;
+
   return {
     businessId,
     defaultName: name,
     defaultSubdomain: slugify(name).slice(0, 63),
-    logoPath: biz?.logo_path ?? null,
+    logoPath: businessLogoUrl,
     contactEmail: "",
     contactPhone: "",
     themes,

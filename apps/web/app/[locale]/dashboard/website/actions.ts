@@ -988,6 +988,34 @@ export type UploadTicket = { path: string; token: string };
 // (BRAND_ASSET_KEYS) and a `{websiteId}/{slot}-{uuid}.{ext}` storage path. The
 // browser uploads straight to Storage (no body cap) then registers the path.
 
+/**
+ * Issue a signed upload URL for a logo chosen in the SETUP WIZARD, before any
+ * website exists. The object lands under `wizard/{hostId}/…` in the public
+ * website-assets bucket; the returned path is held in wizard state and stored on
+ * brand.logo_path at create, where the public site resolves it like any other
+ * website asset. Host + feature gated; uses the admin client to mint the signed
+ * URL (RLS-independent, same as the per-site brand-asset flow).
+ */
+export async function createWizardLogoUploadUrl(
+  ext: string,
+): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
+  const host = await assertFullHost();
+  if (!host.ok) return { ok: false, error: "not_authorized" };
+  if (!(await assertWebsiteFeature(host.hostId)))
+    return { ok: false, error: "locked" };
+
+  const safeExt =
+    (ext || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+  const path = `wizard/${host.hostId}/logo-${crypto.randomUUID()}.${safeExt}`;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from("website-assets")
+    .createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: "upload_start_failed" };
+  return { ok: true, data: { path, token: data.token } };
+}
+
 /** Issue a signed upload URL for a brand asset slot. */
 export async function createWebsiteBrandAssetUploadUrl(
   websiteId: string,
