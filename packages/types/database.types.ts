@@ -4006,6 +4006,7 @@ export type Database = {
         Row: {
           brand: Json
           business_id: string
+          content_profile: Json
           created_at: string
           custom_domain: string | null
           deleted_at: string | null
@@ -4031,6 +4032,7 @@ export type Database = {
         Insert: {
           brand?: Json
           business_id: string
+          content_profile?: Json
           created_at?: string
           custom_domain?: string | null
           deleted_at?: string | null
@@ -4056,6 +4058,7 @@ export type Database = {
         Update: {
           brand?: Json
           business_id?: string
+          content_profile?: Json
           created_at?: string
           custom_domain?: string | null
           deleted_at?: string | null

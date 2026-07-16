@@ -1,4 +1,6 @@
 import type { ThemeOption } from "@/lib/site/themes.server";
+import type { ContentProfile } from "@/lib/website/contentProfile.schema";
+import type { SiteAnswers } from "@/lib/website/aiPrompts";
 
 /**
  * The six pages the wizard builds, in canonical order (spec-locked — no extra
@@ -85,6 +87,11 @@ export type WizardState = {
   paymentVisibility: Record<string, boolean>;
   /** Per-policy "show on website" toggles, keyed by WizardPolicy.key. */
   policyVisibility: Record<string, boolean>;
+  /** The host's raw answers for the AI content step (the "Your story" step). */
+  answers: SiteAnswers;
+  /** The generated content profile (null until generated / skipped). Passed into
+   *  the build so seeding hydrates the theme pages with the host's copy. */
+  contentProfile: ContentProfile | null;
 };
 
 /** The data the wizard needs to start (prefill + theme catalogue + account config). */
@@ -122,6 +129,8 @@ export function initialWizardState(p: WizardProps): WizardState {
     policyVisibility: Object.fromEntries(
       p.policies.map((pol) => [pol.key, pol.configured]),
     ),
+    answers: {},
+    contentProfile: null,
   };
 }
 

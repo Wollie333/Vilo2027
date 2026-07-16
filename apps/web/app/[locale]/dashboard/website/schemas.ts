@@ -10,6 +10,7 @@ import {
   formSettingsSchema,
   FORM_TYPES,
 } from "@/lib/website/forms.schema";
+import { contentProfileSchema } from "@/lib/website/contentProfile.schema";
 import { roomDetailOverrideSchema } from "@/lib/website/roomDetailOverride";
 import { pageDocSchema } from "@/lib/website/pageDoc.schema";
 
@@ -98,6 +99,9 @@ export const createWebsiteWizardSchema = z.object({
     )
     .max(6)
     .optional(),
+  /** The host's content profile from the "Your story" step (canonical slots),
+   *  hydrated into the seeded theme pages. Empty → the theme's demo copy shows. */
+  contentProfile: contentProfileSchema.optional(),
 });
 
 export type CreateWebsiteWizardInput = z.infer<

@@ -333,6 +333,45 @@
   padding-top: 40px;
 }
 
+/* --- LOCATION (map + directions) ---------------------------------------- */
+/* Round the embedded map to match the gallery/room imagery (the iframe has no
+   inline radius, so this is safe). POI rows keep the theme hairline dividers +
+   aqua distances, which are already inline. */
+.wielo-oceansview [data-section-type="location"] iframe {
+  border-radius: var(--site-img-radius);
+}
+
+/* --- FAQ (accordion) ---------------------------------------------------- */
+/* Airier rows than the compact default, so "Good to know" reads like the
+   reference. Card background/border/radius/shadow + the question/answer type
+   stay host-editable via the el-card, el-question and el-answer slots (all
+   inline); we only touch padding, which the block does NOT set inline. */
+.wielo-oceansview [data-section-type="faq"] details {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* --- HOST BIO ----------------------------------------------------------- */
+/* The name renders in the display face already; tighten its tracking to match
+   the editorial About headings. `letter-spacing` isn't set inline, so this is
+   safe; the photo radius/shadow + name colour/size stay host-editable. */
+.wielo-oceansview [data-section-type="host_bio"] h3 {
+  letter-spacing: -0.01em;
+}
+
+/* --- AMENITIES (facilities grid) ---------------------------------------- */
+/* Soft hover lift on the facility cards, matching the room + feature tiles.
+   Only `transform` is animated — background/border are inline (host-editable),
+   so we deliberately leave them alone. Targets the flat grid only (the inline
+   `.site-amen-pill` and categorized `.site-amen-cats` variants are skinned
+   above / render on-brand from --am-* tokens). */
+.wielo-oceansview [data-section-type="amenities"] .grid > div {
+  transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.wielo-oceansview [data-section-type="amenities"] .grid > div:hover {
+  transform: translateY(-4px);
+}
+
 /* ======================================================================
  * SABELA LODGE — dark-first editorial safari lodge (ebony · warm bone · gold)
  * Ref: docs/themes/sabela/{theme.source.css, base.md, pages/*.html}

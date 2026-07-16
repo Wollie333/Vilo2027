@@ -84,6 +84,24 @@ export const SITE_PRESETS = {
     font: "elegant",
     radius: "sm",
   },
+  // Oceans View — bright Mediterranean beach resort. Airy white ground, deep
+  // teal-navy ink, aqua accent; bold grotesk display, soft rounded corners.
+  // Fallback for when the DB theme base is unavailable (else it collapses to
+  // "warm"); the coral secondary + navy bands come from the .wielo-oceansview skin.
+  oceansview: {
+    label: "Oceans View",
+    palette: {
+      bg: "#FFFFFF",
+      surface: "#FFFFFF",
+      ink: "#0E2C3A",
+      mute: "#5E7884",
+      line: "#E9E1D1",
+      accent: "#12A5B5",
+      accentInk: "#FFFFFF",
+    },
+    font: "grotesk",
+    radius: "lg",
+  },
 } as const;
 
 export type SitePresetKey = keyof typeof SITE_PRESETS;

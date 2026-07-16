@@ -15,6 +15,7 @@ import { StepDone } from "./steps/StepDone";
 import { StepPages } from "./steps/StepPages";
 import { StepPayments } from "./steps/StepPayments";
 import { StepReview } from "./steps/StepReview";
+import { StepStory } from "./steps/StepStory";
 import { StepTheme } from "./steps/StepTheme";
 import { WizardSidebar } from "./WizardSidebar";
 import {
@@ -27,6 +28,7 @@ type Step =
   | "basics"
   | "theme"
   | "colors"
+  | "story"
   | "payments"
   | "pages"
   | "review"
@@ -37,6 +39,7 @@ const NAV_STEPS: Step[] = [
   "basics",
   "theme",
   "colors",
+  "story",
   "payments",
   "pages",
   "review",
@@ -108,6 +111,7 @@ export function WebsiteWizard(props: WizardProps) {
       },
       hiddenPolicyTypes,
       pages: state.pages.map((p) => ({ kind: p.kind, include: p.include })),
+      contentProfile: state.contentProfile ?? undefined,
     });
     if (res.ok) {
       setCreatedId(res.id);
@@ -182,8 +186,16 @@ export function WebsiteWizard(props: WizardProps) {
               themes={props.themes}
               state={state}
               update={update}
-              onNext={() => setStep("payments")}
+              onNext={() => setStep("story")}
               onBack={() => setStep("theme")}
+            />
+          ) : null}
+          {step === "story" ? (
+            <StepStory
+              state={state}
+              update={update}
+              onNext={() => setStep("payments")}
+              onBack={() => setStep("colors")}
             />
           ) : null}
           {step === "payments" ? (
@@ -193,7 +205,7 @@ export function WebsiteWizard(props: WizardProps) {
               state={state}
               update={update}
               onNext={() => setStep("pages")}
-              onBack={() => setStep("colors")}
+              onBack={() => setStep("story")}
             />
           ) : null}
           {step === "pages" ? (

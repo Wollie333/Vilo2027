@@ -52,7 +52,16 @@ import { hasRoomOverride } from "@/lib/website/roomDetailOverride";
 import {
   getThemeRoomDetailSections,
   hasThemeRoomDetailTemplate,
+  getThemeTemplatePageDoc,
 } from "@/lib/website/themeSections";
+import { flatSectionsToPageDoc } from "@/lib/website/blueprints";
+import { parseSectionsLoose } from "@/lib/website/sections.schema";
+import type { PageDoc } from "@/lib/website/pageDoc.schema";
+import { hydratePageDoc } from "@/lib/website/hydrateProfile";
+import type {
+  ContentProfile,
+  DerivedContent,
+} from "@/lib/website/contentProfile.schema";
 import type {
   FormField,
   FormSettings,
@@ -495,6 +504,39 @@ export async function createWebsiteAction(
  * card (createWebsiteAction) and the setup wizard (createWebsiteWithWizardAction)
  * so both produce an identical working site.
  */
+/** Map a canonical page kind to a theme's blueprint template key. Convention:
+ *  `<slug>_<kind>`, with the blog page surfaced as the theme's "journal" template. */
+function themeTemplateKeyForKind(slug: string, kind: string): string {
+  const alias = kind === "blog" ? "journal" : kind;
+  return `${slug}_${alias}`;
+}
+
+/** Build a page's Builder-V2 PageDoc for seeding. Prefer the active theme's rich
+ *  blueprint (its hardcoded starter copy = demo data that the gallery previews and
+ *  the wizard replaces); fall back to the generic standard spine for pages the
+ *  theme doesn't art-direct. Then hydrate with the host's content profile so real
+ *  answers overwrite the demo copy (empty slots keep the demo). */
+function buildSeededPageDoc(
+  slug: string | null,
+  tpl: ThemePageTemplate,
+  profile: ContentProfile,
+  derived: DerivedContent,
+): PageDoc {
+  let doc: PageDoc | null = null;
+  if (slug) {
+    doc = getThemeTemplatePageDoc(
+      slug,
+      themeTemplateKeyForKind(slug, tpl.kind),
+    );
+  }
+  if (!doc) {
+    doc = flatSectionsToPageDoc(parseSectionsLoose(tpl.sections), {
+      title: tpl.title,
+    });
+  }
+  return hydratePageDoc(doc, tpl.kind, profile, derived);
+}
+
 async function seedWebsiteContent(
   supabase: ReturnType<typeof createServerClient>,
   opts: {
@@ -505,9 +547,16 @@ async function seedWebsiteContent(
     /** Setup-wizard page selection: restricts to the 6 guide pages + applies the
      *  host's order/inclusion. Omit (legacy card) to seed the full standard set. */
     wizardPages?: WizardPageSel[];
+    /** Host content profile (canonical slots) hydrated into the seeded pages. */
+    contentProfile?: ContentProfile;
+    /** Account-derived fallbacks for empty content slots. */
+    derived?: DerivedContent;
   },
 ): Promise<void> {
   const { siteId, siteName, businessId, theme, wizardPages } = opts;
+  const profile: ContentProfile = opts.contentProfile ?? {};
+  const derived: DerivedContent = opts.derived ?? {};
+  const themeSlug = theme?.slug ?? null;
 
   // Seed the 4 default forms (contact / quote / booking / subscribe) so the site
   // is a working site out of the box — the host can drag any into a page via the
@@ -547,7 +596,9 @@ async function seedWebsiteContent(
       nav_label: tpl.nav_label,
       nav_order: tpl.nav_order,
       show_in_nav: tpl.show_in_nav,
-      draft_sections: tpl.sections,
+      // Seed the rich theme blueprint as a Builder-V2 PageDoc, hydrated with the
+      // host's content profile (empty profile → the theme's own demo copy).
+      draft_sections: buildSeededPageDoc(themeSlug, tpl, profile, derived),
       published_sections: [],
     })),
   );
@@ -613,6 +664,7 @@ export async function createWebsiteWithWizardAction(
     paymentsVisibility,
     hiddenPolicyTypes,
     pages,
+    contentProfile,
   } = parsed.data;
 
   const subErr = validateSubdomain(subdomain);
@@ -694,6 +746,9 @@ export async function createWebsiteWithWizardAction(
         payments: paymentsVisibility ?? {},
         policies: hiddenPolicyTypes ?? [],
       },
+      // The host's content profile (canonical slots) from the "Your story" step;
+      // stored so a later theme switch can re-hydrate the same copy.
+      content_profile: contentProfile ?? {},
     })
     .select("id")
     .single();
@@ -705,6 +760,8 @@ export async function createWebsiteWithWizardAction(
     businessId,
     theme: bundle,
     wizardPages: pages,
+    // Hydrate the seeded theme pages with the host's answers (empty → demo copy).
+    contentProfile: contentProfile ?? {},
   });
 
   // Auto-publish — copy draft→published per page + freeze the snapshot + set
