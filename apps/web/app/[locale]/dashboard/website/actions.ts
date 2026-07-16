@@ -58,6 +58,7 @@ import { flatSectionsToPageDoc } from "@/lib/website/blueprints";
 import { parseSectionsLoose } from "@/lib/website/sections.schema";
 import type { PageDoc } from "@/lib/website/pageDoc.schema";
 import { hydratePageDoc } from "@/lib/website/hydrateProfile";
+import { buildLegalSeed } from "@/lib/website/legalPages";
 import type {
   ContentProfile,
   DerivedContent,
@@ -491,6 +492,7 @@ export async function createWebsiteAction(
     siteName,
     businessId,
     theme: defaultTheme,
+    hostId: host.hostId,
   });
 
   revalidatePath("/dashboard/website");
@@ -544,6 +546,10 @@ async function seedWebsiteContent(
     siteName: string;
     businessId: string;
     theme: ThemeBundle | null;
+    /** Owning host — used to seed the legal pages (house_rules policy lookup). */
+    hostId?: string;
+    /** Public contact email woven into the built-in legal templates. */
+    contactEmail?: string;
     /** Setup-wizard page selection: restricts to the 6 guide pages + applies the
      *  host's order/inclusion. Omit (legacy card) to seed the full standard set. */
     wizardPages?: WizardPageSel[];
@@ -603,6 +609,19 @@ async function seedWebsiteContent(
     })),
   );
 
+  // Auto-generate the legal + footer pages (Privacy / Terms + House Rules when
+  // the host has one) and graft a "Legal" footer column. Best-effort: a failure
+  // here never blocks the site create. Requires the owning host (house_rules
+  // lookup) — the legacy create card passes it too.
+  if (opts.hostId) {
+    await seedLegalPages(supabase, {
+      siteId,
+      hostId: opts.hostId,
+      siteName,
+      contactEmail: opts.contactEmail,
+    });
+  }
+
   // Sync the business's properties + rooms as the initial (visible) channel set.
   const { data: props } = await supabase
     .from("properties")
@@ -635,6 +654,51 @@ async function seedWebsiteContent(
         })),
       );
     }
+  }
+}
+
+/**
+ * Seed the auto-generated legal pages (Privacy / Terms + House Rules when the
+ * host has one) and append a "Legal" footer column to the site's navigation.
+ * Best-effort: any failure is swallowed so it can never fail the site create.
+ */
+async function seedLegalPages(
+  supabase: ReturnType<typeof createServerClient>,
+  opts: {
+    siteId: string;
+    hostId: string;
+    siteName: string;
+    contactEmail?: string;
+  },
+): Promise<void> {
+  try {
+    const { pages, footerColumn } = await buildLegalSeed(supabase, {
+      hostId: opts.hostId,
+      siteName: opts.siteName,
+      contactEmail: opts.contactEmail,
+    });
+    if (pages.length) {
+      await supabase
+        .from("website_pages")
+        .insert(pages.map((p) => ({ website_id: opts.siteId, ...p })));
+    }
+    if (footerColumn) {
+      // Append the Legal column to the (defaulted) navigation footer, preserving
+      // any existing footer config.
+      const { data: row } = await supabase
+        .from("host_websites")
+        .select("navigation")
+        .eq("id", opts.siteId)
+        .maybeSingle<{ navigation: unknown }>();
+      const nav = navigationSchema.parse(row?.navigation ?? {});
+      nav.footer.columns = [...nav.footer.columns, footerColumn].slice(0, 5);
+      await supabase
+        .from("host_websites")
+        .update({ navigation: nav })
+        .eq("id", opts.siteId);
+    }
+  } catch {
+    // Legal pages are additive polish — never block the create on them.
   }
 }
 
@@ -759,6 +823,8 @@ export async function createWebsiteWithWizardAction(
     siteName: siteName.trim(),
     businessId,
     theme: bundle,
+    hostId: host.hostId,
+    contactEmail: contactEmail?.trim() || undefined,
     wizardPages: pages,
     // Hydrate the seeded theme pages with the host's answers (empty → demo copy).
     contentProfile: contentProfile ?? {},
