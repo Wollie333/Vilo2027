@@ -1,6 +1,37 @@
 # Looking-For credit allowances — admin-controlled monthly quotas
 
-**Status:** design locked (founder decisions below), build not started.
+**Status:** ✅ **BUILT + LIVE.** Phases 1–4 done (`52dced5f`, `1276cd4b`, `d33d92da`, `a616c39e`,
+`20260716190000`, `20260716200000`). Read §0 FIRST — it supersedes anything below it.
+
+---
+
+## 0. FINAL MODEL (founder, 2026-07-16) — supersedes all earlier sections
+
+> *"this is just way too complex … one simple credit system and top up system … to
+> be able to see a looking for post detail = 1 credit, to quote = 1 credit … they
+> pay in credits to see contact details of looking for request as well as pay 1
+> credit to actually quote, that deducts from their wielo credit balance, which
+> never expires."*
+
+**ONE balance. ONE top-up. Priced per action.**
+
+| | |
+|---|---|
+| Wallet | **one** — `quote` (the "Wielo Credits" balance in the host header / admin record / credit packages). `WIELO_CREDIT_PURPOSE` in `lib/credits/wallet.ts`. |
+| See a request's details | **1 credit** (`LOOKING_FOR_LEAD_CREDIT_COST`) — charged at unlock, permanent + idempotent per request |
+| Send a quote | **1 credit** (`LOOKING_FOR_QUOTE_CREDIT_COST`) — refunded by DB trigger if it expires unaccepted |
+| Monthly allowance | **one dial** — `wielo_credits_per_month` (product editor + per-host override) |
+| Expiry | **never** — grants accumulate; nothing resets or prunes |
+| Top-up | existing `wielo_credits` package products (e.g. "50 Quote Credits") |
+
+The earlier two-wallet / two-dial design (`quote_request` purpose,
+`looking_for_quote_*_per_month` keys) was **rejected as too complex and has been
+removed** — migration `20260716200000` folds any `quote_request` balance into
+`quote`, deletes both old keys, and drops `looking_for_quotas`.
+
+---
+
+**Original brief (historical — see §0 for what shipped):**
 **Founder ask (2026-07-16):** *"make sure the admin can also set how many quote
 requests a user can receive per month (this is also a credit package — once the
 user runs out of monthly quote requests they can buy more credits). I need the

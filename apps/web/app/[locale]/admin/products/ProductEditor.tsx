@@ -273,13 +273,14 @@ export function ProductEditor({
               className="font-mono uppercase"
             />
           </Field>
-          {isCredits || isSubLike ? (
+          {/* Credit-package products only. A membership's recurring allotment is
+              NOT set here any more — it comes from the "Wielo credits / month"
+              permission below, which is the single dial behind the single
+              balance. Leaving these on memberships would offer a number that
+              nothing reads. */}
+          {isCredits ? (
             <>
-              <Field
-                label={
-                  isCredits ? "Credits granted" : "Credit grant (per cycle)"
-                }
-              >
+              <Field label="Credits granted">
                 <Input
                   type="number"
                   min={0}
@@ -296,7 +297,7 @@ export function ProductEditor({
                   onChange={(e) => set("creditPurpose", e.target.value)}
                   className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
                 >
-                  <option value="quote">Quote credits</option>
+                  <option value="quote">Wielo credits</option>
                   <option value="ai">AI credits</option>
                 </select>
               </Field>

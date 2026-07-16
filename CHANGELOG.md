@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-07-16 — Phase 4: consolidate onto ONE Wielo credit balance (migration `20260716200000`).
+
+- **Founder:** *"this is just way too complex … one simple credit system and top up system … to see a
+  looking for post detail = 1 credit, to quote = 1 credit … deducts from their wielo credit balance,
+  which never expires."* The objection was to **two wallets and two dials**, not to the credit count —
+  so the previous "replying is free" change (`a616c39e`) was **reverted**: quoting costs its own credit
+  again, it just comes off the same balance.
+- **The model now:** ONE wallet (`quote` — the Wielo Credits balance already in the host header, on the
+  admin record, and sold by the credit packages), priced per action — **see a request = 1, quote = 1** —
+  and ONE monthly dial, `wielo_credits_per_month`. Credits **never expire**.
+- **Removed:** the `quote_request` wallet purpose and both `looking_for_quote_*_per_month` keys (deleted
+  from `plan_features`, `product_features` **and** `host_feature_overrides`, so no screen offers a number
+  nothing reads). Any `quote_request` balance is **folded into `quote` through the ledger** — never by
+  touching the wallet directly (AGENT_RULES §4.7).
+- **Retired `looking_for_quotas`** (was Phase 5): admin-editable since `20260628100000` and read by
+  **nothing**. Table dropped, `/admin/looking-for/quotas` route deleted (nothing linked to it — it was
+  reachable only by direct URL). `looking_for_usage` kept: it's an append-only log, not a limit.
+- **Product editor:** "Credit grant (per cycle)" + "Credit purpose" now show **only on credit-package
+  products**. They no longer drive membership grants, so leaving them on memberships would have offered
+  another set-it-and-nothing-happens number.
+- 🔴 **The rehearsal caught a credit-destroying bug — the exact landmine documented in Phase 2.** The
+  fold's debit and grant initially shared one `ref_id`, and `apply_wielo_credit` dedupes on
+  `(host_id, ref_type, ref_id, kind)` **without `purpose`** — so the grant silently no-opped: the old
+  wallet drained while the new one stayed at 260, **destroying 199 credits**. Caught in `BEGIN; …
+  ROLLBACK;` before anything committed; fixed with distinct per-direction refs. A conservation check
+  (total credits before == after) is now part of the rehearsal.
+- **Verified:** rehearsed on live (one dial × 3 plans, zero old dials anywhere, business resolves 200,
+  fold 260 + 199 = **459** with the old wallet zeroed, quota table gone, **total credits conserved at
+  783**), then pushed and re-verified. Types regenerated (`looking_for_quotas` gone). Live loop re-driven:
+  header and paywall both read **459** — *"1 credit to see the guest's details… Sending a quote costs 1
+  more"* — and unlocking took it to **458** with the debit on `purpose: quote`. Build + lint green.
+
+---
+
 ## 2026-07-16 — One credit per deal (founder decision).
 
 - **Founder:** *"I do not want two credits per deal… in a perfect world they have a balance and the

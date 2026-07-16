@@ -5,26 +5,28 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   ALLOWANCE_FEATURE_BY_PURPOSE,
   LOOKING_FOR_LEAD_CREDIT_COST,
+  WIELO_CREDIT_PURPOSE,
   applyCredit,
 } from "@/lib/credits/wallet";
 import { resolveFeatureLimit } from "@/lib/products/featureGate";
 
 // ---------------------------------------------------------------------------
 // Lead access — the ONE place that decides whether a host may see a Looking-For
-// lead, and the only path that spends a lead credit to unlock one.
+// request's details, and the only path that spends a credit to open one.
 //
-// Model (founder, 2026-07-16): a lead is never dropped — it always arrives, but
-// stays locked until the host has allowance for it. Unlocking spends 1
-// `quote_request` credit; the unlock is permanent and idempotent, so a host is
-// charged once per lead no matter how often they revisit it. Replying is metered
-// separately (`quote` purpose), so the founder can price leads and replies on
-// independent dials.
+// Model (founder, 2026-07-16): a request is never dropped — it always appears,
+// but its details stay locked until the host spends a credit. Seeing costs 1
+// credit, quoting costs another 1, and BOTH come off the same Wielo credit
+// balance, which never expires. One balance, one top-up, priced per action.
+//
+// The unlock is permanent and idempotent, so a host pays once to see a given
+// request no matter how often they revisit it.
 //
 // Keep every surface (board, respond page) dumb: they ask this module what's
 // unlocked and call `unlockLead`. No credit logic in components.
 // ---------------------------------------------------------------------------
 
-export const LEAD_PURPOSE = "quote_request";
+export const LEAD_PURPOSE = WIELO_CREDIT_PURPOSE;
 const LEAD_FEATURE = ALLOWANCE_FEATURE_BY_PURPOSE[LEAD_PURPOSE];
 
 export type LeadAccess = {

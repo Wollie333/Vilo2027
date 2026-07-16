@@ -53,12 +53,12 @@ export function LeadLocked({
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="font-medium text-brand-ink">
-            {canAfford ? "Unlock this request" : "You're out of lead credits"}
+            {canAfford ? "See this request" : "You're out of Wielo credits"}
           </h3>
           <p className="mt-0.5 text-sm text-brand-mute">
             {canAfford
-              ? `See the full request and send a quote — ${cost} credit${cost !== 1 ? "s" : ""} for the whole deal, replying is included. You have ${balance}.`
-              : "This request is waiting for you. Top up to see the full details and quote."}
+              ? `${cost} credit${cost !== 1 ? "s" : ""} to see the guest's details and full brief. Sending a quote costs 1 more. You have ${balance}.`
+              : "This request is waiting for you. Top up to see the guest's details and quote."}
           </p>
 
           {error && (
@@ -68,13 +68,13 @@ export function LeadLocked({
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {canAfford ? (
               <Button size="sm" onClick={handleUnlock} disabled={pending}>
-                {pending ? "Unlocking…" : `Unlock · ${cost} credit`}
+                {pending ? "Unlocking…" : `See request · ${cost} credit`}
               </Button>
             ) : (
               <Button size="sm" asChild>
                 <Link href="/dashboard/settings/subscription">
                   <Sparkles className="mr-1.5 h-4 w-4" />
-                  Buy lead credits
+                  Buy Wielo credits
                 </Link>
               </Button>
             )}

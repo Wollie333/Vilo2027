@@ -9,7 +9,6 @@ import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { formatMoney } from "@/lib/format";
 import { requireHost as getHostId } from "@/lib/host/current";
 import { isSelfRecipient, SELF_RECIPIENT_ERROR } from "@/lib/host/self";
-import { isLeadUnlocked } from "@/lib/looking-for/leadAccess";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -906,30 +905,22 @@ export async function sendQuoteAction(
     }
   }
 
-  // ONE credit per deal (founder, 2026-07-16: "I do not want two credits per
-  // deal"). Unlocking the lead is the charge — replying to a lead you already
-  // paid for is free. Without this the host pays twice for one deal, because the
-  // respond form is gated behind an unlock, so every Looking-For quote is
-  // preceded by one.
+  // Priced per action, off the single Wielo credit balance (founder: "to see a
+  // looking for post detail = 1 credit, to quote = 1 credit"). Seeing the request
+  // was charged at the unlock; this is the separate charge for quoting it.
   //
-  // The send-side debit stays for any Looking-For quote that was NOT reached via
-  // an unlock, and is idempotent per quote so re-sending never double-charges.
-  // Direct (non-Looking-For) quotes have always been free.
+  // Debited BEFORE marking sent so a host who's out of credits is blocked, and
+  // idempotent per quote so re-sending never double-charges. Refunded by a DB
+  // trigger if the quote expires unaccepted. Direct (non-Looking-For) quotes are
+  // free — they aren't platform-supplied leads.
   if (current.looking_for_post_id && current.host_id) {
-    const paidAtUnlock = await isLeadUnlocked(
-      supabase,
-      current.host_id,
-      current.looking_for_post_id,
-    );
-    if (!paidAtUnlock) {
-      const spend = await spendQuoteCredit(supabase, current.host_id, quoteId);
-      if (!spend.ok) {
-        return {
-          ok: false,
-          error:
-            "You're out of quote credits. Top up from the credits menu to send this quote.",
-        };
-      }
+    const spend = await spendQuoteCredit(supabase, current.host_id, quoteId);
+    if (!spend.ok) {
+      return {
+        ok: false,
+        error:
+          "You're out of Wielo credits. Top up from the credits menu to send this quote.",
+      };
     }
   }
 

@@ -12,32 +12,40 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type CreditPurpose = "quote" | "ai" | (string & {});
 
-// Credits a host spends to send one Looking-For quote. Founder: 1 per quote,
-// refunded if the quote expires unaccepted (the refund is a DB trigger).
+// ---------------------------------------------------------------------------
+// ONE balance, priced per action (founder, 2026-07-16: "one simple credit system
+// and top up system … to see a looking for post detail = 1 credit, to quote = 1
+// credit … deducts from their wielo credit balance, which never expires").
+//
+// Both costs draw on the SAME `quote` wallet — the Wielo Credits balance the
+// header shows, the credit packages sell, and the admin record displays. There
+// is deliberately no second wallet: a host tops up one number and spends it on
+// whatever they choose to do.
+// ---------------------------------------------------------------------------
+
+/** Credits to send one Looking-For quote. Refunded on unaccepted expiry (DB trigger). */
 export const LOOKING_FOR_QUOTE_CREDIT_COST = 1;
 
-// Credits a host spends to unlock ONE Looking-For lead (see the unlock ledger,
-// `looking_for_post_unlocks`). Separate wallet from the send-side cost so the
-// founder can price leads and replies independently.
+/** Credits to see one Looking-For request's full details (guest + brief). */
 export const LOOKING_FOR_LEAD_CREDIT_COST = 1;
 
+/** The single wallet every Wielo credit spend and grant runs through. */
+export const WIELO_CREDIT_PURPOSE = "quote";
+
 /**
- * Which feature limit funds each wallet purpose per billing period — the SSOT
+ * The ONE feature limit that funds the ONE wallet each billing period — the SSOT
  * for subscription grants (founder-confirmed 2026-07-16).
  *
- * `products.credit_quantity` / `credit_purpose` used to drive this, but it can
- * only express ONE purpose per product, which is exactly why it can't serve an
- * ask for two independent allowances on one plan. It now applies ONLY to one-off
- * `wielo_credits` package products (see `grantCreditsForOrder`), which is a
- * different path and unaffected.
+ * `products.credit_quantity` / `credit_purpose` used to drive this. It now
+ * applies ONLY to one-off `wielo_credits` package products (see
+ * `grantCreditsForOrder`) — a different path, unaffected.
  *
- * Admins set these numbers on the screens that already exist: per product in the
+ * Admins set the number on screens that already exist: per product in the
  * product editor, per host in /admin/platform/features. See
  * docs/features/LOOKING_FOR_CREDIT_ALLOWANCES_PLAN.md
  */
 export const ALLOWANCE_FEATURE_BY_PURPOSE: Record<string, string> = {
-  quote: "looking_for_quote_responses_per_month",
-  quote_request: "looking_for_quote_requests_per_month",
+  [WIELO_CREDIT_PURPOSE]: "wielo_credits_per_month",
 };
 
 export type CreditWallet = {

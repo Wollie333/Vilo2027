@@ -5035,62 +5035,6 @@ export type Database = {
           },
         ]
       }
-      looking_for_quotas: {
-        Row: {
-          guest_extensions_per_month: number | null
-          guest_posts_per_day: number | null
-          guest_posts_per_month: number | null
-          guest_posts_per_year: number | null
-          host_quotes_per_day: number | null
-          host_quotes_per_month: number | null
-          host_quotes_per_year: number | null
-          id: string
-          plan_id: string
-          public_quote_count_cap: number | null
-          quote_expiry_days: number | null
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          guest_extensions_per_month?: number | null
-          guest_posts_per_day?: number | null
-          guest_posts_per_month?: number | null
-          guest_posts_per_year?: number | null
-          host_quotes_per_day?: number | null
-          host_quotes_per_month?: number | null
-          host_quotes_per_year?: number | null
-          id?: string
-          plan_id: string
-          public_quote_count_cap?: number | null
-          quote_expiry_days?: number | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          guest_extensions_per_month?: number | null
-          guest_posts_per_day?: number | null
-          guest_posts_per_month?: number | null
-          guest_posts_per_year?: number | null
-          host_quotes_per_day?: number | null
-          host_quotes_per_month?: number | null
-          host_quotes_per_year?: number | null
-          id?: string
-          plan_id?: string
-          public_quote_count_cap?: number | null
-          quote_expiry_days?: number | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "looking_for_quotas_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       looking_for_region_digest_queue: {
         Row: {
           id: string
