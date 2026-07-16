@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-07-16 — Carry each membership's configured credit grant onto the new dial (migration `20260716220000`).
+
+- **Bug I introduced in Phase 4, caught by the founder asking "can admin still set credits on
+  subscription products?"** `20260716200000` made `wielo_credits_per_month` the SSOT and
+  `grantSubscriptionCredits` stopped reading `products.credit_quantity` — but the values **already
+  configured there were never migrated**. Live consequence: **Wielo Quotes** (`credit_quantity = 5`, and
+  its selling point literally says *"5 quote credits every month"*) granted **0**, falling back to plan
+  `free`; **Beta** (`credit_quantity = 50`) granted **200** from plan `business`. Neither was what the
+  admin configured.
+- **Fix:** copy `credit_quantity` → `product_features.wielo_credits_per_month` for every membership with
+  a non-zero value. `credit_quantity` stays meaningful ONLY for one-off `wielo_credits` packages
+  (`grantCreditsForOrder`), which is also the only place the product editor still shows it.
+- **Verified:** rehearsed in `BEGIN; … ROLLBACK;` (Beta 50 → 50, Wielo Quotes 5 → 5, Starter untouched),
+  then pushed and re-checked against live: Beta now **resolves 50** (was 200) and Wielo Quotes carries
+  **5** (was 0).
+- **Admin surfaces confirmed live** (the founder's actual question):
+  - **Credit packages** — "50 Quote Credits" shows **Credits granted** + **Credit purpose**
+    (Wielo credits / AI credits). ✅
+  - **Subscription products** — the per-cycle field is gone; the monthly allowance is the
+    **"Wielo credits / month"** permission (`wielo_credits_per_month`), which reveals a **Qty** input when
+    toggled on. ✅ (Toggled on to confirm, then discarded without saving — verified unsaved in the DB.)
+
+---
+
 ## 2026-07-16 — Derive host-ness from a hosts row, not `user_profiles.role`.
 
 - **Why:** every account is a guest; `role` is a *signup label* that reads `"host"` for someone who is
