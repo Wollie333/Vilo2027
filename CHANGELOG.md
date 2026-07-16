@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-07-16 — Fix: payment never retired the signup "guest tier" (the duplicate-subscription root cause).
+
+- **Founder's model was already built.** Signup (`signup/host/actions.ts` §4) already inserts a baseline
+  subscription — `plan` free, **`product_id` NULL**, `status` active — i.e. *"step one creates a guest
+  account, and approved payment upgrades it"*. The product-less rows previously written off as "legacy
+  seed leftovers" were **that baseline**, not junk.
+- **The defect was one `&&`.** Both activation paths chose what to retire with
+  `.filter((s) => s.product_id && s.product_id !== productId)` — which skips exactly the row with no
+  product. So the guest tier survived every upgrade and hosts ended up holding **two active
+  memberships**, breaking the one-per-host rule the code's own comment claims to enforce. Fixed in
+  `lib/billing/product-checkout.ts` (purchase settle) **and** `admin/users/[id]/actions.ts`
+  (`retireOtherMemberships`, admin activation): a product-less active subscription **is** a membership —
+  the guest tier — it just has no catalog row.
+- **Not cosmetic.** `check_feature_permission` resolves allowances with `max(limit_value)` across every
+  active subscription, so the stale baseline out-votes the plan the host pays for. On a paid credit
+  meter that's free inventory.
+- **Verified live end-to-end.** Reproduced the exact signup insert on a test host (Beta active +
+  product-less baseline = 2 active), then drove the real admin *Change membership → Starter → Activate
+  without charging*: **active subscriptions 2 → 1**, the **baseline now `cancelled`**, and resolved
+  credits **200 → 50** — the host's own plan finally winning. Host restored to its prior state (Beta
+  active, baseline removed). Build (888 pages) + lint green.
+- Note: the signup form itself wasn't driven — creating accounts / entering passwords is out of scope
+  for the agent, and the fix is in the retire logic, which was exercised directly.
+
+---
+
 ## 2026-07-16 — Blank slate: wiped to 3 accounts + fixed Principle #11 (which would have broken the app).
 
 Founder: *"remove all demo data and user data … only keep the super admins and sumarie host account …
