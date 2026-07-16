@@ -24,6 +24,7 @@ export function StepTheme({
 }) {
   const t = useTranslations("website");
   const logoUrl = websiteAssetUrl(state.logoPath ?? undefined);
+  const selectedTheme = themes.find((x) => x.id === state.themeId);
 
   return (
     <div className="space-y-5">
@@ -78,6 +79,24 @@ export function StepTheme({
           );
         })}
       </div>
+
+      {/* Larger preview of the currently-selected theme (updates on selection). */}
+      {selectedTheme ? (
+        <div>
+          <p className="mb-1.5 text-[12px] font-semibold text-brand-mute">
+            Preview — {selectedTheme.name}
+          </p>
+          <div className="overflow-hidden rounded-card border border-brand-line">
+            <WizardThemePreview
+              base={selectedTheme.base}
+              slug={selectedTheme.slug}
+              accent={selectedTheme.base?.palette?.accent ?? "#0a7d4b"}
+              siteName={state.siteName}
+              logoUrl={logoUrl}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-between pt-1">
         <button
