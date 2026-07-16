@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
@@ -53,6 +53,48 @@ const ERROR_KEY: Record<string, string> = {
   subdomain_taken: "errSubdomainTaken",
   already_exists: "errAlreadyExists",
   business_not_found: "errBusinessNotFound",
+};
+
+/** Per-step chrome for the conversational shell: a short progress label and a
+ *  warm assistant line that frames the step above the controls (the "answer
+ *  card"). Kept in English (wizard is English-first); the step controls keep
+ *  their own i18n labels. */
+const STEP_INTRO: Partial<Record<Step, { label: string; message: string }>> = {
+  basics: {
+    label: "Basics",
+    message:
+      "Hi! Let's get your website live in a few minutes. First, the basics — your site name and how guests reach you.",
+  },
+  theme: {
+    label: "Theme",
+    message:
+      "Great. Now pick a look — choose the theme that feels most like your place.",
+  },
+  colors: {
+    label: "Colours",
+    message:
+      "Nice choice. Let's set your colours — pick a palette or drop in your own.",
+  },
+  story: {
+    label: "Your story",
+    message:
+      "Now the fun part: tell me a little about your place and I'll write your website copy for you. You can edit everything after.",
+  },
+  payments: {
+    label: "Payments",
+    message:
+      "Almost there. How should guests pay, and which policies should show on your site?",
+  },
+  pages: {
+    label: "Pages",
+    message:
+      "Here are the pages I'll build for you. Keep them all, or toggle any off.",
+  },
+  review: {
+    label: "Review",
+    message:
+      "That's everything — here's a quick summary. Ready to build your site?",
+  },
 };
 
 export function WebsiteWizard(props: WizardProps) {
@@ -129,42 +171,76 @@ export function WebsiteWizard(props: WizardProps) {
     ? NAV_STEPS.indexOf(step)
     : NAV_STEPS.length;
   const dismissable = step !== "building" && step !== "done";
+  const intro = STEP_INTRO[step];
+  const stepNumber = NAV_STEPS.includes(step)
+    ? NAV_STEPS.indexOf(step) + 1
+    : NAV_STEPS.length;
+  const statusLine =
+    step === "done"
+      ? "All done"
+      : step === "building"
+        ? "Building your site…"
+        : `Step ${stepNumber} of ${NAV_STEPS.length}${intro ? ` · ${intro.label}` : ""}`;
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="flex w-full flex-col overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        {/* header */}
-        <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
-          <div className="flex items-center gap-2">
-            {NAV_STEPS.map((s, i) => (
-              <span
-                key={s}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === navIndex
-                    ? "w-6 bg-brand-primary"
-                    : i < navIndex
-                      ? "w-1.5 bg-brand-primary"
-                      : "w-1.5 bg-brand-line"
-                }`}
-              />
-            ))}
+        {/* header — assistant identity + progress + close */}
+        <div className="flex items-center justify-between gap-3 border-b border-brand-line px-5 py-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-white">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <div className="leading-tight">
+              <p className="text-[13px] font-semibold text-brand-ink">
+                Website setup
+              </p>
+              <p className="text-[11px] text-brand-mute">{statusLine}</p>
+            </div>
           </div>
-          {dismissable ? (
-            <button
-              type="button"
-              onClick={close}
-              aria-label={t("cancel")}
-              className="rounded-full p-1 text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          ) : (
-            <span className="h-6 w-6" />
-          )}
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-1 sm:flex">
+              {NAV_STEPS.map((s, i) => (
+                <span
+                  key={s}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === navIndex
+                      ? "w-6 bg-brand-primary"
+                      : i < navIndex
+                        ? "w-1.5 bg-brand-primary"
+                        : "w-1.5 bg-brand-line"
+                  }`}
+                />
+              ))}
+            </div>
+            {dismissable ? (
+              <button
+                type="button"
+                onClick={close}
+                aria-label={t("cancel")}
+                className="rounded-full p-1 text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : (
+              <span className="h-6 w-6" />
+            )}
+          </div>
         </div>
 
-        {/* body */}
-        <div className="px-5 py-5 sm:px-7 sm:py-6">
+        {/* conversation body — assistant bubble, then the step controls as the reply */}
+        <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
+          {intro ? (
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+              </span>
+              <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-brand-line bg-brand-light px-4 py-2.5 text-[13px] leading-relaxed text-brand-ink">
+                {intro.message}
+              </div>
+            </div>
+          ) : null}
+
           {step === "basics" ? (
             <StepBasics
               state={state}
