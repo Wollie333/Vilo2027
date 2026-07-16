@@ -92,7 +92,19 @@ for (const c of crons) {
   }
 }
 
-// 3. SECURITY DEFINER without a pinned search_path is a privilege-escalation
+// 3. SECURITY DEFINER + executable by `anon` = an RLS bypass on a public URL.
+//    PROVEN 2026-07-16: as `anon`, `apply_wielo_credit` minted 500 credits, and
+//    the publishable key reaches POST /rest/v1/rpc/. Postgres grants EXECUTE to
+//    PUBLIC on CREATE, and anon inherits it — so `REVOKE ... FROM anon` is a
+//    NO-OP. You must revoke from PUBLIC. See 20260716310000.
+for (const f of functions) {
+  if (f.secdef && f.anon_exec && !f.trigger) {
+    flag("**SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.",
+      `\`${f.name}\``);
+  }
+}
+
+// 4. SECURITY DEFINER without a pinned search_path is a privilege-escalation
 //    surface (this repo has already shipped a fix-search_path migration).
 for (const f of functions) {
   if (!f.secdef) continue;

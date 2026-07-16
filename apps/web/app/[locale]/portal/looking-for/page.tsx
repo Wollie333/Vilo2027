@@ -105,36 +105,13 @@ export default async function GuestLookingForPage({ searchParams }: Props) {
 
   const canPost = await guestCan("looking_for_post");
 
-  // Surface the guest's remaining post allowance so they see the cap BEFORE they
-  // hit it (the create action enforces the same check_guest_post_quota RPC).
-  let quotaHint: string | null = null;
-  if (canPost) {
-    const { data: q } = await supabase.rpc("check_guest_post_quota", {
-      p_user_id: user.id,
-    });
-    const quota = (q ?? {}) as {
-      remaining_today?: number;
-      remaining_month?: number;
-      remaining_year?: number;
-    };
-    // Pick the tightest real cap — the RPC returns 999 for an uncapped period.
-    const tightest = (
-      [
-        [quota.remaining_today ?? 999, "today"],
-        [quota.remaining_month ?? 999, "this month"],
-        [quota.remaining_year ?? 999, "this year"],
-      ] as Array<[number, string]>
-    )
-      .filter(([n]) => n < 999)
-      .sort((a, b) => a[0] - b[0])[0];
-    if (tightest) {
-      const [remaining, period] = tightest;
-      quotaHint =
-        remaining <= 0
-          ? `No requests left ${period}`
-          : `${remaining} request${remaining === 1 ? "" : "s"} left ${period}`;
-    }
-  }
+  // No allowance hint: guest posting is uncapped (20260716300000). This used to
+  // read check_guest_post_quota, which has raised on every call since the credits
+  // consolidation dropped the table under it — the error was discarded here, so
+  // `remaining_*` fell back to 999, every period filtered out as "uncapped", and
+  // the hint silently disappeared instead of failing. Restore this only alongside
+  // a real cap in `plan_features`.
+  const quotaHint: string | null = null;
 
   const activeCount = allPosts.filter((p) => p.status === "active").length;
   const fulfilledCount = allPosts.filter(

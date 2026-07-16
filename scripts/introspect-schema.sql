@@ -70,6 +70,8 @@ SELECT jsonb_build_object(
       'secdef', p.prosecdef,
       'config', p.proconfig,
       'trigger', p.prorettype = 'trigger'::regtype,
+      'anon_exec', has_function_privilege('anon', p.oid, 'EXECUTE'),
+      'authed_exec', has_function_privilege('authenticated', p.oid, 'EXECUTE'),
       'src', p.prosrc
     ) ORDER BY p.proname)
     FROM pg_proc p

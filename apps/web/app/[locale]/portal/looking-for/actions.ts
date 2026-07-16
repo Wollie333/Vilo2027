@@ -112,28 +112,10 @@ export async function createRequestAction(input: CreateRequestInput) {
     };
   }
 
-  // Check quota
-  const { data: quotaCheck, error: quotaError } = await supabase.rpc(
-    "check_guest_post_quota",
-    { p_user_id: user.id },
-  );
-
-  if (quotaError) {
-    console.error("Quota check failed:", quotaError);
-    // Continue anyway in pre-MVP (quota enforcement can be lenient)
-  } else if (
-    quotaCheck &&
-    typeof quotaCheck === "object" &&
-    (quotaCheck as { allowed?: boolean }).allowed === false
-  ) {
-    // check_guest_post_quota returns JSONB { allowed, remaining_*, limit_hit } —
-    // NOT a bare boolean, so the old `=== false` compare never matched and the
-    // limit was never enforced.
-    return {
-      success: false,
-      error: "You've reached your daily post limit. Try again tomorrow.",
-    };
-  }
+  // No post cap. `guestCan('looking_for_post')` above is the whole gate — see
+  // 20260716300000: the per-plan quota had no limits source left to read once
+  // credits replaced `looking_for_quotas`, and every guest is on the `free`
+  // baseline, which pre-MVP policy requires to be open anyway.
 
   // Set expiry (30 days by default)
   const expiresAt = new Date();
@@ -180,30 +162,23 @@ export async function createRequestAction(input: CreateRequestInput) {
     return { success: false, error: error.message };
   }
 
-  // Record usage + re-check the quota ATOMICALLY (finding #11): the pre-check
-  // above is a fast UX reject, but two concurrent posts could both pass it. This
-  // RPC serializes the count+record per user under an advisory lock — if this
-  // post lost the race for the last slot, it's refused here and we roll it back.
-  const { data: quotaResult, error: recErr } = await supabase.rpc(
-    "record_guest_post_and_check",
-    { p_user_id: user.id, p_post_id: post.id },
-  );
+  // Record the action log row. This deliberately does NOT swallow its error: the
+  // predecessor did (`console.error` + "continue anyway"), which is exactly why a
+  // hard 42P01 on every single post went unnoticed for a day and left
+  // `looking_for_usage` silently empty. A logging failure here is a real bug —
+  // surface it rather than let the platform lie about what it recorded.
+  const { error: recErr } = await supabase.rpc("record_guest_post", {
+    p_user_id: user.id,
+    p_post_id: post.id,
+  });
   if (recErr) {
-    // Best-effort in pre-MVP: the post stands even if usage recording hiccups.
-    console.error("Quota record failed:", recErr);
-  } else if (
-    quotaResult &&
-    typeof quotaResult === "object" &&
-    (quotaResult as { allowed?: boolean }).allowed === false
-  ) {
-    // Lost the race — another request just used the last slot. Roll this one back.
     await createAdminClient()
       .from("looking_for_posts")
       .delete()
       .eq("id", post.id);
     return {
       success: false,
-      error: "You've reached your post limit. Try again later.",
+      error: "Could not post your request. Please try again.",
     };
   }
 

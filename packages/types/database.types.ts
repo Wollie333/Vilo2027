@@ -4006,6 +4006,7 @@ export type Database = {
         Row: {
           brand: Json
           business_id: string
+          content_profile: Json
           created_at: string
           custom_domain: string | null
           deleted_at: string | null
@@ -4031,6 +4032,7 @@ export type Database = {
         Insert: {
           brand?: Json
           business_id: string
+          content_profile?: Json
           created_at?: string
           custom_domain?: string | null
           deleted_at?: string | null
@@ -4056,6 +4058,7 @@ export type Database = {
         Update: {
           brand?: Json
           business_id?: string
+          content_profile?: Json
           created_at?: string
           custom_domain?: string | null
           deleted_at?: string | null
@@ -11253,7 +11256,6 @@ export type Database = {
         Args: { p_feature_key: string; p_host_id: string }
         Returns: Json
       }
-      check_guest_post_quota: { Args: { p_user_id: string }; Returns: Json }
       check_host_availability_for_dates: {
         Args: { p_check_in: string; p_check_out: string; p_host_id: string }
         Returns: Json
@@ -11784,9 +11786,9 @@ export type Database = {
         Args: { p_listing_id: string }
         Returns: undefined
       }
-      record_guest_post_and_check: {
+      record_guest_post: {
         Args: { p_post_id: string; p_user_id: string }
-        Returns: Json
+        Returns: undefined
       }
       redeem_coupon: {
         Args: {

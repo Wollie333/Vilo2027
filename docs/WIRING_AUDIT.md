@@ -51,9 +51,43 @@ Each of these fooled the first version of the detector. Keep them in mind before
 
 ---
 
+## 🚨 0. CRITICAL — `anon` could mint credits and settle payouts (FIXED `20260716310000`)
+
+Found by asking the audit's question of the DB grant layer. **Proven on live in a rollback**, as role
+`anon` with no JWT claims at all:
+
+```sql
+SET LOCAL ROLE anon;
+SELECT apply_wielo_credit('<host>','quote',500,'grant',...);   -->  605
+```
+
+500 Wielo credits minted into a host's wallet by a signed-out caller. And the surface is reachable:
+`POST /rest/v1/rpc/is_super_admin` with the **publishable** key returns `200` — that key ships in the
+browser bundle by design. So this was open to anyone on the internet. Same exposure for
+`settle_affiliate_payout`, `set_affiliate_status`, `create_affiliate_payout` — all of which take
+*"who am I"* as a caller-supplied `p_admin` argument and never verify it, because they were only ever
+meant to be called by trusted server code.
+
+**Root cause is a Postgres default, not a typo.** `CREATE FUNCTION` grants `EXECUTE` to **PUBLIC**
+automatically, and `anon` inherits through PUBLIC. Every `REVOKE ALL ON FUNCTION … FROM anon` in this
+repo was therefore a **no-op** — revoking a grant `anon` never directly held while the inherited
+PUBLIC grant stayed. `SECURITY DEFINER` runs as owner and bypasses RLS, so each one is an RLS bypass
+with a public URL.
+
+**Fixed** for the 7 money-movers + `record_guest_post` (looped by name so overloads can't be missed;
+every legitimate caller uses the service-role client, so nothing broke). **Verified by re-running the
+attack:** it now returns `42501: permission denied for function apply_wielo_credit`.
+
+> ⚠️ **STILL OPEN: 80 more `SECURITY DEFINER` functions are anon-executable.** Some legitimately serve
+> public pages as `anon`, so a blanket revoke would break browsing — each needs a judgement. They are
+> now listed and re-checked on every `generate-schema-doc.mjs` run. **This deserves its own pass
+> before launch**, and belongs in `SECURITY_CHECKLIST.md`.
+
+---
+
 ## 🔴 1. LIVE BUGS — broken right now, on production
 
-### `check_guest_post_quota` throws on every call — guest post caps are unenforced
+### ✅ FIXED `20260716300000` — `check_guest_post_quota` threw on every call
 **Proven on live** by calling it:
 ```
 ERROR: 42P01: relation "looking_for_quotas" does not exist
@@ -73,10 +107,20 @@ the function raising at runtime. The live DB has the function and not the table 
 the "X requests left" hint has silently vanished; and because the function raises *before* its
 insert, `looking_for_usage` records **no `guest_post` rows at all** — the usage log is quietly empty.
 
-**Decision needed:** move guest posting onto credits (consistent with the consolidation's intent),
-or recreate the function against a surviving limits source. Either way the three fail-open
-`catch`-and-continue sites should fail closed — they are why a hard error went unnoticed.
-(They also violate the no-`console` rule.)
+**Resolution — guest posting is uncapped for MVP, deliberately and visibly.** There was no per-guest
+limit source left to point at, and inventing one would have been inventing product policy: guests have
+no subscription (`lib/guests/permissions.ts` is explicit that guest capabilities are GLOBAL booleans
+with no limit concept), `looking_for_quotas` keyed limits by `plan_id` while every guest sits on the
+product-less `free` baseline, and CLAUDE.md's pre-MVP policy requires every feature be OPEN on `free`
+anyway. So the cap is gone rather than fake. `check_guest_post_quota` and the misnamed
+`record_guest_post_and_check` are dropped; `record_guest_post` records the action log and **does not
+swallow its error** — the fail-open habit is exactly what hid a hard `42P01` for a day. When a cap is
+wanted, add a `plan_features` key and gate via `check_feature_permission` (the mandated SSOT).
+
+📌 **The root cause is worth remembering.** `..200000`'s own comment justified the drop:
+*"Admin-editable since 20260628100000 and read by NOTHING."* That was false — the table **was** read,
+by a **DB function**, not by TypeScript. The author checked app code and missed the database. That
+blind spot is precisely what `audit-wiring.mjs` sweep 2 now closes.
 
 ---
 
