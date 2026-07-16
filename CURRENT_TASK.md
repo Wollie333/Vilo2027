@@ -2,7 +2,90 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt9) — **START HERE** (supersedes pt8 below)
+## 🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt10) — **START HERE** (supersedes pt9 below)
+
+**Repo clean + pushed `a401371e`. `pnpm build` (888) · `pnpm lint` · 315 tests green. Types
+regenerated. Migrations synced through `20260716320000`.** Only untracked = the mobile eslint
+scaffold (founder: *"leave it"*).
+
+### 🧭 READ THIS FIRST, EVERY SESSION — two new tools replace guessing
+| | |
+|---|---|
+| **`docs/SCHEMA.md`** | The schema **GENERATED FROM THE LIVE DB** — 180 tables · 158 fns · 36 crons, every column/FK/RLS policy/trigger as they ACTUALLY are. **Read it instead of querying or trusting a note.** Regen: `node scripts/generate-schema-doc.mjs` (byte-identical on re-run; run after ANY migration). Its **Automated red flags** re-run our real traps every time. |
+| **`node scripts/audit-wiring.mjs`** | *"What calls this?"* — the ONE question build/lint/tests are blind to. Standing inventory + verdicts: **`docs/WIRING_AUDIT.md`**. |
+
+**Founder, 2026-07-16:** *"it feels like we are continuously going over the same features and they
+still not done."* **He was right.** `view_count` had a table, trigger, action, UI *and a lifecycle
+doc* — and `recordPostViewAction` had never been invoked by anything, ever. **"Done" has meant "the
+code exists"**, and nothing here has ever executed to contradict it. Hand-written docs are the
+instrument that lied, so both tools above are **derived**, not written.
+
+### 🚨 SHIPPED — two PROVEN vulnerabilities, both open to the whole internet
+Found by asking the audit's question of the **grant** layer. Neither is visible to build/lint/tests.
+1. **`anon` could MINT CREDITS.** `SET LOCAL ROLE anon; SELECT apply_wielo_credit(...500...)` → **605**.
+   Same for `settle_affiliate_payout` / `set_affiliate_status` / `create_affiliate_payout` (all take
+   `p_admin` as a caller-supplied uuid, never verified). ✅ `20260716310000`.
+2. **`anon` could read ANY host's revenue.** `fetch_primary_kpis('<host>',…)` **RETURNED** ADR/RevPAR/
+   revenue (zeros ONLY because 0 bookings). Same for `fetch_host_guests` (guest PII) + ~20 more.
+   ✅ `20260716320000` — **89 anon-executable → 4**.
+- 🔑 **ROOT CAUSE — a Postgres default, not a typo: `CREATE FUNCTION` grants EXECUTE to *PUBLIC*, and
+  `anon` inherits it. So EVERY `REVOKE … FROM anon` in this repo was a NO-OP. Revoke from PUBLIC.**
+- **anon keeps exactly 4** (read-only, genuinely signed-out-reachable): `fetch_platform_commission_saved`
+  · `get_listing_policy_summary` · `product_units_sold` · `check_feature_permission`. Safe because
+  **public booking NEVER runs as anon** (`persist.ts` + `siteCheckout.ts` use `createAdminClient()`).
+- **Verified over REAL HTTP with the real publishable key:** public 2 → `200`; kpis / credits / guests
+  → `401 42501`. *(I only found this because MY OWN migration failed ITS OWN negative control.)*
+
+### ✅ ALSO SHIPPED
+- **`view_count` FIXED** `..290000` — had never counted a host view. Pipeline dead (nothing inserted);
+  the only live writer was the public page's RMW, which **RLS restricted to the post's own guest** →
+  it measured *"times the guest reloaded their own post"*. 🔑 **`SECURITY DEFINER` is load-bearing** —
+  the naive fix would have shipped **green and counted nothing**. Wired `lib/looking-for/postViews.ts`.
+- **`check_guest_post_quota` LIVE BUG FIXED** `..300000` — raised `42P01` on EVERY call since
+  `..200000` dropped `looking_for_quotas` under it. Its comment claimed the table was *"read by
+  NOTHING"* — **false: it was read by a DB FUNCTION, not TypeScript.** All 3 call sites **failed
+  OPEN**. Guest posting now **uncapped deliberately** (guests have no limits source; pre-MVP policy
+  requires `free` open). `record_guest_post` records the log and **does not swallow errors**.
+
+### ▶ NEXT
+1. 🔴 **STILL the founder's smoke test — walk ONE signup (Beta, R0).** Unchanged from pt9 and still
+   the only thing that converts "code exists" into "it works". `trg_one_active_membership` still sits
+   in signup's path. **The agent CANNOT test this.**
+2. **From `docs/WIRING_AUDIT.md` (founder chose: live bug → wire → deletes; 1 of 3 done):**
+   - **Wire 3 real gaps:** bookmarks **fake success** (`RequestCard.tsx:271` is local `useState` — it
+     LIES to the host) · hosts **cannot flag a review** (no button; admin queue defaults to flagged) ·
+     external reviews **can never render** (`property_id` never written — 📌 the docs blame Vault
+     secrets; **wrong**, manual Refresh bypasses Vault: it's a missing dropdown).
+   - **~40 safe deletes** (each traced to a *verified* live replacement). Re-run the sweep to a fixed
+     point — 2 files are only transitively dead.
+3. 🔴 **IDOR (open, flagged):** the analytics fns take `p_host_id` and **never verify ownership** → any
+   **signed-in** user can read another host's KPIs. `..320000` removed the *unauthenticated* exposure
+   only. Needs an ownership check inside each fn → `SECURITY_CHECKLIST.md`.
+
+### 🔴 FOUNDER-ONLY (unchanged from pt9)
+1. **Rotate `email_worker_secret` + `ical_sync_worker_secret`** (plaintext in the 07-16 chat) — new
+   value in **BOTH** Vault and the Vercel env.
+2. **4 Vault-gated crons still dead** (secrets unset → they report `succeeded` doing nothing):
+   `drain-looking-for-notifications` · `poll-website-domains` · `publish-scheduled-posts` ·
+   `sync-external-reviews`. Now auto-flagged in `docs/SCHEMA.md`.
+3. **Decide:** access unlock gates on status but **NOT payment** — `docs/lifecycles/access-details.md`.
+
+### 🔑 METHOD (this is what actually caught everything)
+- **ALWAYS RUN THE NEGATIVE CONTROL** — a test that passes against broken code proves nothing. It
+  caught the RLS-blocked trigger, my own no-op REVOKE, and the fake invoice-corruption hole.
+- **Verify every mechanical hit.** The sweep v1 claimed **834** dead exports; ~745 were the
+  `withAdminAudit` same-file wrapper pattern. Real number: **89**.
+- **Ask what READS it, not just what calls it.** I nearly reported "anon can corrupt your invoice
+  numbering" — `platform_counters` IS anon-writable with no RLS (proven), but `next_invoice_number`
+  uses a **sequence** and **nothing reads that table**. Dead, not dangerous.
+- **3 docstrings actively lie** about being called (`startPlanCheckoutAction`,
+  `adminSendPlatformMessageByEmailAction`, `assignCancellationPresetAction`).
+- ⚠️ `/booking-management` 404s **ON PURPOSE** (`FOR_HOSTS_PAGE_HIDDEN = true`). Don't chase it.
+- ✅ **No revenue gap** (dug hard): hosts DO subscribe via `PlanPicker` → `switchToProductAction`.
+
+---
+
+## 🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt9) — ⚠️ SUPERSEDED by pt10 above
 
 **Repo clean + pushed `273651a6`. `pnpm build` (888 pages) · `pnpm lint` · tests green. Migrations
 synced through `20260716280000`.** Only untracked = the mobile eslint scaffold (founder: *"leave it"*).
