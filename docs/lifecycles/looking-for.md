@@ -56,14 +56,20 @@ status widen).
 
 Supporting: **`looking_for_quotas`** (per-plan caps), **`looking_for_usage`**
 (action log: `guest_post`\|`host_quote`\|`guest_extension`), **`looking_for_post_views`**
-(`UNIQUE(post_id,host_id)`, trigger bumps `view_count`), **`looking_for_bookmarks`**,
+(`UNIQUE(post_id,host_id)` — this is what makes `view_count` mean *distinct hosts*),
+**`looking_for_bookmarks`**,
 **`looking_for_passes`** ("not a fit"), **`looking_for_alerts`** (saved searches —
 flat filter columns after `..220000` dropped `criteria_json`), **`looking_for_post_targets`**
 (private/targeted requests). `quotes` gains `looking_for_post_id`.
 
-Triggers: `set_looking_for_post_expiry` (BEFORE INSERT), `increment_looking_for_quote_count`
-(AFTER INSERT on responses — fires on first insert only, so re-send upserts don't
-double-count), `increment_looking_for_view_count`. RPCs `check_guest_post_quota` /
+Triggers: `set_looking_for_post_expiry` (BEFORE INSERT), plus the two counter triggers
+`sync_looking_for_quote_count` (`..180000`) and `sync_looking_for_view_count` (`..290000`).
+Both **recompute** — `COUNT(*)` over the source table on INSERT/DELETE/UPDATE, never `+1` —
+because responses and views cascade from **`hosts`** as well as posts, so a delta counter
+strands the count high the moment a host is purged. Both are **`SECURITY DEFINER` and must
+stay that way**: the counter lives on the *guest's* post while the row that fires the trigger
+is written by a *host*, and `looking_for_posts`' UPDATE policy only admits the guest — as
+`SECURITY INVOKER` the UPDATE silently matches zero rows. RPCs `check_guest_post_quota` /
 `check_host_quote_quota` return **JSONB** `{allowed, remaining_*, limit_hit}`.
 
 RLS: posts — public SELECT of `active AND is_public`, guest full CRUD own; responses —
@@ -82,8 +88,9 @@ service-role INSERT. Host-owned tables gate via `hosts.user_id = auth.uid()`.
 2. **Host browses** — `dashboard/looking-for` → `RequestsBoard` →
    `fetchLookingForPostsAction`. Reads public + host-targeted `active`, unexpired
    posts, joins the guest profile, marks `already_quoted` from `looking_for_responses`,
-   batch-checks `check_host_availability_for_dates`. A card view →
-   `recordPostViewAction` (upsert view → trigger bumps `view_count`).
+   batch-checks `check_host_availability_for_dates`. The board records **no** views —
+   it is a list, and scrolling past a card is not "seen". `view_count` counts detail
+   opens only (steps 3 and 3b).
 
 3. **Host opens the respond page** — `dashboard/looking-for/respond/[postId]`.
    Gate chain: auth → is a host (else `/signup/host?next=…`) → `looking_for_access`
@@ -91,7 +98,16 @@ service-role INSERT. Host-owned tables gate via `hosts.user_id = auth.uid()`.
    redirect to the quote) → has ≥1 quotable listing (else "finish your listing").
    Listings load via the shared **`loadQuoteFormListings`** (`dashboard/quotes/_listings.ts`).
    Renders `RespondFormWrapper` → `QuoteForm` seeded with the request's guest, dates,
-   headcount, note, and **`lookingForPostId`**.
+   headcount, note, and **`lookingForPostId`**. Once the gates pass the host is looking
+   at the request, so this is where the view is recorded → `recordPostView`
+   (`lib/looking-for/postViews.ts`) — the ONE writer. Recorded even while the lead is
+   still locked (the request card renders either way, so they *have* seen it), and never
+   for a host opening their own request.
+
+3b. **Public detail page** — `/looking-for/[id]` is the same "detail view" and records
+   the same way when the viewer resolves to a host. Signed-out visitors and plain guests
+   cost nothing (the host lookup is skipped) and are not counted: `view_count` is
+   "Seen by X **hosts**", not page loads.
 
 4. **Host saves the quote** — `QuoteForm` → `createQuoteAction`
    (`dashboard/quotes/actions.ts`). Inserts a `quotes` row (`status='draft'`)

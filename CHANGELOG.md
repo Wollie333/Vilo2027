@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-07-16 — `view_count` has never counted a single host view (backlog item: "race + double-count").
+
+- **The recorded diagnosis was wrong, and the truth was worse.** The note said `view_count` had a race
+  plus a double-count from two competing writers. In fact **one writer is dead and the other is inverted**,
+  so "Seen by X hosts" has never once counted a host. Three faults, end to end (`20260716290000`):
+  1. **The counting pipeline is DEAD.** Nothing inserts into `looking_for_post_views`.
+     `recordPostViewAction` was written for it and **never called from anywhere** — so the trigger has
+     never fired in the life of the platform. `docs/lifecycles/looking-for.md` claimed the board called
+     it. It did not. The doc was written from the plan, not the code.
+  2. **The only live writer was backwards.** The public post page did a read-modify-write
+     (`update({view_count: view_count + 1})`) on every load. That is a lost-update race — but RLS made it
+     something else entirely: `looking_for_posts`' UPDATE policy is `guest_id = auth.uid()`, so the write
+     silently matched **zero rows** for every visitor and every host, and succeeded **only for the post's
+     own guest**. In practice `view_count` measured *"times the guest reloaded their own post."*
+  3. **The trigger could only climb** — `AFTER INSERT → +1`, no DELETE path, while `looking_for_post_views`
+     cascades from **`hosts`** as well as posts. Identical to the `quote_count` defect fixed yesterday in
+     `..180000`; same table, one column over.
+- 🔑 **`SECURITY DEFINER` is load-bearing — the negative control caught it.** Mirroring yesterday's
+  `quote_count` fix verbatim would have **built green, linted green, and counted nothing**: the counter
+  lives on the *guest's* post but the trigger fires on a row the *host* inserts, so as `SECURITY INVOKER`
+  it runs as `authenticated` and its UPDATE matches zero rows — silently. Proven on live *before* writing
+  the migration: old trigger + host insert → `view rows=1, view_count=0`. The row insert stays RLS-gated,
+  which is the real boundary — a host can still only record their **own** view.
+- **Fix = recompute, not delta** (the `..180000` pattern): `COUNT(*)` over `looking_for_post_views`, whose
+  `UNIQUE(post_id, host_id)` *is* the definition of "distinct hosts". Idempotent and self-healing.
+  **Also hardened the `quote_count` twin** to `SECURITY DEFINER` — it works today only because its one
+  writer happens to use the service-role client; the day anyone swaps that, it dies silently. No
+  behaviour change.
+- **Wired the writer that never existed:** new SSOT `lib/looking-for/postViews.ts` → `recordPostView`,
+  called from **both** detail surfaces — the respond page (after the gates pass; recorded even while the
+  lead is locked, since the request card renders either way) and the public post page (only when the
+  viewer resolves to a host). The **board records nothing** — it's a list, and scrolling past a card is
+  not "seen". A host never counts their own request (matching `unlockLead`'s existing guard). Deleted the
+  dead `recordPostViewAction`.
+- **Verified 9/9 against the DEPLOYED trigger** in a live rollback: old fn gone · both fns
+  `SECURITY DEFINER` with pinned `search_path` · the exact host-insert case that returned 0 pre-migration
+  now counts 1 · same host twice → still 1 · cascade → self-heals to 0 · `quote_count` still counts and
+  still heals after hardening. +4 unit tests, confirmed to **fail** against the guard removed.
+- Lifecycle doc corrected — it named **both** superseded triggers and a call site that never existed.
+- `build` 888/888 · `lint` clean · `vitest` 315 passed.
+
 ## 2026-07-16 — Build the missing-policy alert properly (founder call: build it, don't delete it).
 
 - **`alert-missing-policies` now works** (`20260716280000`). It had **three** separate faults, and fixing

@@ -15,6 +15,7 @@ import {
   LOOKING_FOR_QUOTE_CREDIT_COST,
 } from "@/lib/credits/wallet";
 import { loadLeadAccess } from "@/lib/looking-for/leadAccess";
+import { recordPostView } from "@/lib/looking-for/postViews";
 import { loadQuoteFormListings } from "../../../quotes/_listings";
 import { LeadLocked } from "../../_components/LeadLocked";
 import { LookingForLocked } from "../../_components/LookingForLocked";
@@ -200,6 +201,17 @@ export default async function RespondToPostPage({ params }: Props) {
     email: string;
     phone: string | null;
   } | null;
+
+  // Every gate above has passed, so the host is now looking at this request —
+  // that is the "distinct host loaded the detail view" event `view_count` counts.
+  // Recorded even when the lead is still locked: the request card below always
+  // renders, so they HAVE seen it. Idempotent, so a re-render can't inflate it.
+  await recordPostView(supabase, {
+    postId: post.id,
+    hostId: host.id,
+    guestUserId: guest?.id,
+    viewerUserId: user.id,
+  });
 
   // Fetch host's message templates
   const { data: templates } = await supabase

@@ -17,6 +17,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
 import { stripHtml } from "@/lib/sanitiseHtml";
+import { recordPostView } from "@/lib/looking-for/postViews";
 import { RequestDetailsHtml } from "@/components/looking-for/RequestDetailsHtml";
 import { RequestRequirements } from "@/components/looking-for/RequestRequirements";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,7 @@ export default async function PublicPostDetailPage({ params }: Props) {
       created_at,
       expires_at,
       image_url,
+      guest_id,
       guest:user_profiles!guest_id(full_name, avatar_url)
     `,
     )
@@ -179,12 +181,27 @@ export default async function PublicPostDetailPage({ params }: Props) {
       )
     : null;
 
-  // Increment view count (fire and forget)
-  supabase
-    .from("looking_for_posts")
-    .update({ view_count: (post.view_count ?? 0) + 1 })
-    .eq("id", id)
-    .then(() => {});
+  // A host opening this page has loaded the request's detail view — the same
+  // event the respond page records, and all `view_count` has ever meant to count.
+  // Signed-out visitors and plain guests are not "hosts who saw it", so they cost
+  // nothing: the host lookup is skipped unless someone is actually signed in.
+  if (user) {
+    const { data: viewerHost } = await supabase
+      .from("hosts")
+      .select("id")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (viewerHost) {
+      await recordPostView(supabase, {
+        postId: id,
+        hostId: viewerHost.id,
+        guestUserId: post.guest_id,
+        viewerUserId: user.id,
+      });
+    }
+  }
 
   return (
     <div className="bg-brand-light text-brand-ink">

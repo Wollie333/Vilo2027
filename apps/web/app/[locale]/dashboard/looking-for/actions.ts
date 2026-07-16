@@ -253,23 +253,6 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
 }
 
 /**
- * Record a host viewing a Looking For post (for view count tracking).
- */
-export async function recordPostViewAction(postId: string, hostId: string) {
-  const supabase = createServerClient();
-
-  // Insert view record (will be ignored if already exists due to unique constraint)
-  await supabase
-    .from("looking_for_post_views")
-    .upsert(
-      { post_id: postId, host_id: hostId },
-      { onConflict: "post_id,host_id", ignoreDuplicates: true },
-    );
-
-  return { success: true };
-}
-
-/**
  * Bookmark/unbookmark a Looking For post.
  */
 export async function toggleBookmarkAction(postId: string, hostId: string) {
