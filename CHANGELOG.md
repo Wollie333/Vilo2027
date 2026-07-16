@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-07-16 — The last three lifecycle docs — which found six background jobs silently dead.
+
+- **Wrote `reviews.md`, `access-details.md`, `calendar-sync.md`** — the last three ⬜ rows. Researched
+  from source and audited against live, not written from memory. The index is now complete.
+- 🔴 **The real find: 7 of the 14 Vault secrets the crons need do not exist on live, so six background
+  jobs tick and do nothing.** Every Vault-gated cron reads a worker URL and, if unset, `RAISE NOTICE`s
+  and returns — so `cron.job_run_details` shows **`succeeded`** with no error, no queue row and no
+  alert. **A green Vault-gated cron is not evidence the feature works** — the same shape as the
+  `FULL TURBO` green deploy earlier today. No migration creates these secrets; each is a manual
+  one-time `vault.create_secret` documented only in a migration header, so a fresh environment
+  silently has six dead features.
+  - **`drain-review-requests` → no guest is ever automatically asked for a review.** The host-initiated
+    path still works (it calls `sendReviewRequest` directly).
+  - **`drain-checkin-reminders` → no day-before check-in reminder.** Narrow blast radius: the access
+    card and `stay_details_guest` email are unaffected — they're pure in-DB SQL with no Vault
+    dependency, delivered by `drain-email-queue`, which *is* configured.
+  - Also dead: `drain-looking-for-notifications`, `publish-scheduled-posts`, `sync-external-reviews`,
+    `poll-website-domains`.
+  - Good news it also settled: `email_worker_url`/`_secret` **are** set, closing a standing ⚠️OPS worry.
+- **`sync-ical-feeds` is green, Vault-configured — and has never imported anything**, because
+  `ical_feeds` has 0 rows, so every "success" is an early return. Green ≠ working, again.
+- **Reviews: the founder's 5 min → 60 min review-request delay was never made.** It's still 5 minutes,
+  and it isn't in SQL — one line at `dashboard/bookings/actions.ts:21`.
+- **Other verified gaps now written down rather than lost:** a host can undo admin moderation (RLS is a
+  blanket `FOR UPDATE` and `protect_review_content` leaves the flag/publish columns editable);
+  `auto-publish-reviews` is vestigial and would silently revert any future "unpublish without
+  flagging"; `reviews.review_token`'s "expires in 30 days" comment is false (HMAC links never expire);
+  the `review_flags` anti-spam constraint the code comments claim **does not exist**; access unlock is
+  gated on status but **not payment**, contradicting its own migration header; and room access save
+  looks broken — a shared zod schema gained a required property-level field that the room form never
+  registers, so the button silently does nothing (⚠️ not reproduced in-browser).
+- Each doc leads with its failure mode and carries the one-liner to re-run the audit.
+
+---
+
 ## 2026-07-16 — Lifecycle docs: write the subscriptions flow, and make the index honest again.
 
 - **`docs/lifecycles/subscriptions.md` written** — the flow was listed as "to be written" while the

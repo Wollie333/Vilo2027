@@ -45,13 +45,36 @@ Steps documented but **not yet verified live** are marked `⚠️ not verified`.
 | Support inbox (host↔Wielo + guest↔Wielo platform threads) | `support-inbox.md` | 🟢 driven live both directions; admin UI click-through ⚠️ not screenshotted |
 | Auto-save drafts (baseline-gated persist → resume banner → clear) | `autosave-drafts.md` | 🟢 wired on add-on · special · booking · quote · coupon |
 | Media manager (upload → library → attach) | `media-manager.md` | 🟡 not a single source of truth — unifying it is an epic |
-| Reviews (post-checkout request → submit → reply → feature) | `reviews.md` | ⬜ to be written |
-| Access details (card + email + trip-page unlock) | `access-details.md` | ⬜ to be written |
-| Calendar sync (iCal import/export, block conflicts) | `calendar-sync.md` | ⬜ to be written |
+| Reviews (post-checkout request → submit → reply → feature) | `reviews.md` | 🔴 written 2026-07-16 — **auto review requests never send** (`drain-review-requests` missing its Vault secret); the 5→60 min delay change was never made |
+| Access details (card + email + trip-page unlock) | `access-details.md` | 🔴 written 2026-07-16 — card + email work; **the day-before reminder never fires** (missing Vault secret); room access save looks broken |
+| Calendar sync (iCal import/export, block conflicts) | `calendar-sync.md` | 🟡 written 2026-07-16 — cron green + Vault set, but **0 feeds exist so it has never imported**; real OTA round-trip ⚠️ unproven |
 
 Add a row when you start a new feature's flow. Backfill the remaining core
 features (reviews, access-details, calendar-sync) first — they anchor everything
 else.
+
+## 🔴 Vault-gated crons — 7 of 14 secrets are missing (audited live 2026-07-16)
+
+Nine crons call an HTTP worker by reading a URL/secret out of Supabase Vault. **If the
+secret is unset they `RAISE NOTICE` and return** — a *silent soft-skip*: the job shows
+**`succeeded`** in `cron.job_run_details`, with no error, no queue row and no alert. A
+green cron here is **not** evidence the feature works. No migration creates these; each
+is a manual one-time `vault.create_secret` documented only in a migration header.
+
+| Cron | Needs | State |
+|---|---|---|
+| `drain-email-queue` | `email_worker_url` · `email_worker_secret` | ✅ works |
+| `drain-push-queue` | `push_worker_url` · `broadcast_worker_url` · `digest_worker_url` | ✅ works |
+| `sync-ical-feeds` | `ical_sync_worker_url` · `ical_sync_worker_secret` | ✅ set (but 0 feeds → never imports) |
+| `drain-review-requests` | `review_request_worker_url` | 🔴 **missing** → no guest is ever asked for a review |
+| `drain-checkin-reminders` | `checkin_reminder_worker_url` | 🔴 **missing** → no day-before reminder |
+| `drain-looking-for-notifications` | `looking_for_worker_url` | 🔴 **missing** |
+| `publish-scheduled-posts` | `blog_publish_url` | 🔴 **missing** |
+| `sync-external-reviews` | `external_reviews_worker_url` · `_secret` | 🔴 **missing** |
+| `poll-website-domains` | `website_domain_poll_url` | 🔴 **missing** |
+
+Re-run the audit any time: diff `SELECT name FROM vault.secrets` against
+`grep -rhoE "WHERE name = '[a-z_]+'" supabase/migrations/*.sql`.
 
 > **Keep this table honest.** It is the entry point for Principle #12, so a wrong
 > row is worse than a missing one: on 2026-07-16 it listed four docs that did not
