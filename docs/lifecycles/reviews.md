@@ -132,12 +132,20 @@ which is the unrelated directory-promotion table. Don't conflate them.
 
 1. 🔴 **`drain-review-requests` is dead** — missing Vault secret (top of this doc).
 2. 🔴 **The 5→60 min delay change was never made** — `bookings/actions.ts:21`.
-3. **A host can undo admin moderation.** RLS `host_respond_reviews` is a blanket
-   `FOR UPDATE USING (host_id = get_my_host_id())`, and `protect_review_content()`
-   deliberately leaves the flag/publish columns editable. Nothing stops a host
-   `UPDATE reviews SET is_published=true, flagged=false` on a review an admin hid —
-   or hiding a bad review themselves. The admin UI assumes those columns are
-   admin-only; **RLS does not enforce it.**
+3. ✅ **FIXED `20260716250000` — a host could undo admin moderation.** RLS
+   `host_respond_reviews` is a blanket `FOR UPDATE USING (host_id =
+   get_my_host_id())` and `protect_review_content()` left the flag/publish columns
+   editable, so a host could `UPDATE reviews SET is_published=true, flagged=false`
+   on a review an admin hid — or bury a bad review outright. **Proven on live**
+   (4 abuses possible), then closed in the trigger, since a policy cannot express
+   "these columns are off-limits" and widening RLS would break the reply flow.
+   🔑 The exemption is **not** `is_super_admin()`: that is `auth.uid()`-based and so
+   is FALSE for the service-role client, which is exactly how `hideReviewAction` /
+   `restoreReviewAction` write — gating on it would have broken admin moderation
+   itself. It gates on `auth.uid() IS NOT NULL` (a real end-user session); trusted
+   no-JWT contexts (service role, pg_cron) pass through. A host may still reply and
+   still **raise** a flag; they cannot publish/unpublish, **clear** a flag, or set
+   `admin_decision`. Rehearsed live, 9 cases, before/after.
 4. **`auto-publish-reviews` is vestigial and contradicts the flow.** It still runs
    `*/15` setting `is_published=true WHERE is_published=false AND flagged=false`, but
    submissions now publish immediately, so it matches nothing on the happy path. It is

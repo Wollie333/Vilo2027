@@ -123,16 +123,20 @@ only through the trip page, via the service role, after the booking is verified 
 
 1. 🔴 **`drain-checkin-reminders` never fires** — Vault `checkin_reminder_worker_url`
    missing (top of this doc).
-2. 🔴 **Room access can't be saved — likely a live regression.**
-   `RoomAccessSection.tsx` builds its form with `zodResolver(listingAccessSchema)` but
-   registers **no** `send_lead_minutes` field. `20260712120000` added that key to the
-   **shared** schema as **required**, so `handleSubmit` fails validation on a field
-   that isn't on the form, `onSubmit` never fires, and **no `<FormMessage/>` surfaces
-   it — the "Save room access" button silently does nothing.** Even server-side it
-   re-parses with the same schema → `"Some fields look wrong."` Root cause: a shared
-   schema extended with a property-level field while a room-level form reuses it. Fix:
-   `roomAccessSchema = listingAccessSchema.omit({ send_lead_minutes: true })`.
-   ⚠️ Not reproduced in the browser — verify before relying on this.
+2. ✅ **FIXED — room access could not be saved.** `RoomAccessSection.tsx` used
+   `zodResolver(listingAccessSchema)` but registered **no** `send_lead_minutes` field.
+   `20260712120000` added that key to the **shared** schema as **required**, so
+   `handleSubmit` failed validation on a field that wasn't on the form, `onSubmit`
+   never fired, and with no field there was no `<FormMessage/>` to say why — **"Save
+   room access" silently did nothing.** The server agreed: `updateRoomAccessAction`
+   re-parsed with the same schema, so even a hand-crafted call got *"Some fields look
+   wrong"* — while never writing `send_lead_minutes`, because `property_room_access`
+   has no such column. The field was demanded and discarded.
+   Fixed by splitting the schema: **`roomAccessSchema = listingAccessSchema.omit({
+   send_lead_minutes: true })`**, used by both the form and the action. Locked with
+   11 unit tests (`edit/accessSchemas.test.ts`) whose first case proves the old
+   pairing fails. **Root cause worth remembering: a shared schema gained a
+   parent-level required field while a child form reused it.** Keep them split.
 3. **Timezone mismatch between the two schedules.** `send_due_access_cards()` computes
    check-in in `Africa/Johannesburg`; the reminder worker computes "tomorrow" in
    **UTC**. For SA (UTC+2) they disagree for 2 hours each day around the date boundary,

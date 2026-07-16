@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-07-16 — Close two of the gaps the lifecycle docs found: moderation bypass + room access save.
+
+- **A host could undo an admin's moderation** (`20260716250000`). RLS `host_respond_reviews` is a
+  blanket `FOR UPDATE USING (host_id = get_my_host_id())` and `protect_review_content()` left the
+  flag/publish columns editable, so a host could `UPDATE reviews SET is_published=true, flagged=false`
+  on a review an admin hid — or bury a bad review outright. **Proven on live before fixing:** four
+  abuses possible. Closed in the trigger, because a policy cannot express "these columns are off-limits"
+  and widening RLS would break the reply flow.
+- 🔑 **The exemption is deliberately NOT `is_super_admin()`.** That function is `auth.uid()`-based, so
+  it is FALSE for the service-role client — which is exactly how `hideReviewAction` /
+  `restoreReviewAction` write. Gating on it would have broken admin moderation itself. It gates on
+  `auth.uid() IS NOT NULL` (a real end-user session); trusted no-JWT contexts (service role, pg_cron)
+  pass through. A host may still reply and still **raise** a flag; they cannot publish/unpublish,
+  **clear** a flag, or set `admin_decision`.
+- **Rehearsed live, 9 cases, before and after.** Control: 4 abuses possible. After: all four blocked,
+  every legitimate path (host flag, host reply, admin hide, admin restore, content immutability) still
+  passing. Re-ran the same control against the deployed trigger: 9/9. One case initially passed for the
+  **wrong reason** — "undo admin moderation" was a no-op against a review that was already published, so
+  the test now has an admin hide it first; a test that passes because nothing happened proves nothing.
+- **Room access could not be saved.** `RoomAccessSection` used `zodResolver(listingAccessSchema)` but
+  never registered `send_lead_minutes`, which `20260712120000` had added to that **shared** schema as
+  required — so `handleSubmit` failed on a field that wasn't on the form, `onSubmit` never fired, and
+  with no field there was no `<FormMessage/>` to say why: **the Save button silently did nothing.** The
+  server agreed, and never wrote the column anyway (`property_room_access` has no such column) — the
+  field was demanded and discarded. Split into `roomAccessSchema = listingAccessSchema.omit({
+  send_lead_minutes: true })`, used by form and action; 11 unit tests whose first case proves the old
+  pairing fails.
+- **Correcting an earlier diagnosis:** the `exit 3221226505` (`0xC0000409`) build crashes are **not**
+  flaky memory pressure. The root cause is a **corrupted `.next`** — bash `rm -rf .next` silently fails
+  on Windows locked files ("Directory not empty"), leaving a half-deleted tree that surfaces as either a
+  native crash or `MODULE_NOT_FOUND` from `webpack-runtime.js`. PowerShell
+  `Remove-Item -Recurse -Force .next` clears it; the build then passes 888/888 first time.
+
+---
+
 ## 2026-07-16 — The last three lifecycle docs — which found six background jobs silently dead.
 
 - **Wrote `reviews.md`, `access-details.md`, `calendar-sync.md`** — the last three ⬜ rows. Researched

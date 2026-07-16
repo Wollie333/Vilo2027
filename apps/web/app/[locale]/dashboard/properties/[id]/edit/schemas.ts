@@ -175,6 +175,26 @@ export const listingAccessSchema = z.object({
 });
 export type ListingAccessInput = z.infer<typeof listingAccessSchema>;
 
+/**
+ * The ROOM-level access form. Same six fields, no `send_lead_minutes`.
+ *
+ * A room has no lead time of its own: the access card + stay-details email are
+ * scheduled per PROPERTY from `property_access.send_lead_minutes`, and
+ * `property_room_access` has no such column — `updateRoomAccessAction` never
+ * wrote it either.
+ *
+ * This exists because the room form reused `listingAccessSchema`, and when
+ * `send_lead_minutes` was added there as a REQUIRED field (20260712120000) the
+ * room form began failing validation on a field it never rendered: handleSubmit
+ * rejected, onSubmit never fired, and with no field there was no <FormMessage/>
+ * to show it — so "Save room access" silently did nothing. Keep the two schemas
+ * split; do not point a room form at the property schema again.
+ */
+export const roomAccessSchema = listingAccessSchema.omit({
+  send_lead_minutes: true,
+});
+export type RoomAccessInput = z.infer<typeof roomAccessSchema>;
+
 export const localPickSchema = z.object({
   category: z.enum(["eat", "drink", "do", "see", "shop", "other"]),
   title: z.string().trim().min(1, "Add a name.").max(120),

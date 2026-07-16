@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { updateRoomAccessAction } from "../../../actions";
-import { listingAccessSchema, type ListingAccessInput } from "../../../schemas";
+import { roomAccessSchema, type RoomAccessInput } from "../../../schemas";
 
 export type RoomAccessInitial = {
   check_in_method: string | null;
@@ -40,8 +40,12 @@ export function RoomAccessSection({
   access: RoomAccessInitial | null;
 }) {
   const [pending, start] = useTransition();
-  const form = useForm<ListingAccessInput>({
-    resolver: zodResolver(listingAccessSchema),
+  // roomAccessSchema, NOT listingAccessSchema: the property schema requires
+  // send_lead_minutes, which this form has no field for — validating against it
+  // made handleSubmit fail on an unregistered field, so Save did nothing and
+  // nothing said why. A room has no lead time of its own.
+  const form = useForm<RoomAccessInput>({
+    resolver: zodResolver(roomAccessSchema),
     defaultValues: {
       check_in_method: access?.check_in_method ?? "",
       check_in_instructions: access?.check_in_instructions ?? "",
@@ -52,7 +56,7 @@ export function RoomAccessSection({
     },
   });
 
-  function onSubmit(values: ListingAccessInput) {
+  function onSubmit(values: RoomAccessInput) {
     start(async () => {
       const r = await updateRoomAccessAction(listingId, roomId, values);
       if (r.ok) toast.success("Room access saved.");

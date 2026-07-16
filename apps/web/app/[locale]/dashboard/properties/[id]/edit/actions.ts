@@ -19,6 +19,7 @@ import {
   listingAccessSchema,
   localPickSchema,
   patchSchema,
+  roomAccessSchema,
   roomCapacityFromBeds,
   roomPatchSchema,
   type BedInput,
@@ -26,6 +27,7 @@ import {
   type ListingAccessInput,
   type LocalPickInput,
   type PatchInput,
+  type RoomAccessInput,
   type RoomPatch,
 } from "./schemas";
 
@@ -1435,12 +1437,15 @@ export async function updateRoomAction(
 export async function updateRoomAccessAction(
   listingId: string,
   roomId: string,
-  input: ListingAccessInput,
+  input: RoomAccessInput,
 ): Promise<ActionResult> {
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const parsed = listingAccessSchema.safeParse(input);
+  // roomAccessSchema, NOT listingAccessSchema: the property schema requires
+  // send_lead_minutes, which this action never wrote anyway (property_room_access
+  // has no such column) — so requiring it only rejected every valid room save.
+  const parsed = roomAccessSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Some fields look wrong. Check the form." };
   }

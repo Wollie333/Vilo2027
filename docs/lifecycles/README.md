@@ -45,8 +45,8 @@ Steps documented but **not yet verified live** are marked `⚠️ not verified`.
 | Support inbox (host↔Wielo + guest↔Wielo platform threads) | `support-inbox.md` | 🟢 driven live both directions; admin UI click-through ⚠️ not screenshotted |
 | Auto-save drafts (baseline-gated persist → resume banner → clear) | `autosave-drafts.md` | 🟢 wired on add-on · special · booking · quote · coupon |
 | Media manager (upload → library → attach) | `media-manager.md` | 🟡 not a single source of truth — unifying it is an epic |
-| Reviews (post-checkout request → submit → reply → feature) | `reviews.md` | 🔴 written 2026-07-16 — **auto review requests never send** (`drain-review-requests` missing its Vault secret); the 5→60 min delay change was never made |
-| Access details (card + email + trip-page unlock) | `access-details.md` | 🔴 written 2026-07-16 — card + email work; **the day-before reminder never fires** (missing Vault secret); room access save looks broken |
+| Reviews (post-checkout request → submit → reply → feature) | `reviews.md` | 🔴 written 2026-07-16 — **auto review requests never send** (`drain-review-requests` missing its Vault secret); the 5→60 min delay change was never made. ✅ moderation-bypass closed (`20260716250000`) |
+| Access details (card + email + trip-page unlock) | `access-details.md` | 🔴 written 2026-07-16 — card + email work; **the day-before reminder never fires** (missing Vault secret). ✅ room-access save fixed |
 | Calendar sync (iCal import/export, block conflicts) | `calendar-sync.md` | 🟡 written 2026-07-16 — cron green + Vault set, but **0 feeds exist so it has never imported**; real OTA round-trip ⚠️ unproven |
 
 Add a row when you start a new feature's flow. Backfill the remaining core
