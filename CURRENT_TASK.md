@@ -2,7 +2,32 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16) — MVP AUDITS BATCH DONE
+## 🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16) — FOUNDER 8-REQUEST BATCH DONE + VERIFIED
+
+**All 8 founder requests this session are SHIPPED + verified live (see CHANGELOG top entry + memory
+`project-founder-batch-jul16-part2`). Green: `pnpm build` + `pnpm lint` pass.**
+
+1. ✅ **Skip-email on `/p/[slug]` checkout** for logged-in buyers (session email server-side, client value ignored).
+2. ✅ **Admin "Assign credits" card at the TOP of the user record** (`CreditsCard` above tabs; removed Products-tab dup).
+3. ✅ **Thank-you set-password → dashboard** for a new credit buyer (`claimProductAccount` + `SetPasswordCard`; provisions
+   host, grants credits + activates plan idempotently, magic-link → dashboard). Verified: 50 credits landed.
+4. ✅ **Password reset → `/reset-password` then login** (our own `generateLink` recovery through `/auth/confirm`; branded
+   `PasswordReset` email; `/auth/confirm` forces reset-password on `type=recovery`). Root cause = Supabase `redirect_to`
+   allowlist fallback to bare SITE_URL.
+5. ✅ **Admin plan change takes effect for a logged-in user** — verified (dynamic + live-read; no plan in JWT). CAVEAT:
+   `staleTimes.dynamic:120` can lag a *soft* client-nav up to 120s; reload is immediate. NOT changed (global perf knob) —
+   raise with founder if snappier soft-nav propagation is wanted.
+6. ✅ **Unified email design** — `Layout` now delegates to `Shell` (all ~30 old templates adopt the Looking-For design);
+   auth emails migrated to Shell templates (`ConfirmEmail`/`ExistingAccount`/`PasswordReset`) via new `sendReactEmail`.
+7. ✅ **Removed bogus "999 quotes today / 999 month" card** on `/dashboard/looking-for` (deleted `QuotaWidget.tsx`).
+8. ✅ **Custom-quote line items** — custom quotes get the itemised line-item card (only `upload` stays single-total).
+
+**GOTCHAs reinforced:** autosave server draft (`form_drafts`) restores on the new-quote page — Discard + reload to clear
+before testing quote-type switches. `staleTimes.dynamic:120` client Router Cache. Recovery/magiclink tokens are single-use.
+
+---
+
+## 🟢 PRIOR SAVE POINT (2026-07-16) — MVP AUDITS BATCH DONE
 
 **Repo clean + pushed at `ad85c71b`.** Founder ask this session: reporting arc → then MVP-readiness
 **items 1 (deep audits) + 2 (launch blockers)** "as far as you can." Full map = memory

@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-07-16 — Founder batch: checkout skip-email · admin credits · claim-account · password-reset · custom-quote line items · unified email design.
+
+Eight founder requests, all verified live (both surfaces where applicable):
+
+- **Skip-email on product checkout** (`/p/[slug]`): a logged-in buyer no longer sees the redundant email step — the
+  page reads the session email server-side (and IGNORES any client value, so credits/plan always land on the buyer's
+  own account) and goes straight to payment. Files: `p/[slug]/page.tsx` + `BuyForm.tsx` + `actions.ts`. Verified:
+  signed-in user → "Signed in as … / Continue to payment", no email field.
+- **Admin "Assign credits" at the top of the user record**: extracted a self-contained `CreditsCard` (balance +
+  grant/remove modal via the audited `adjustUserCreditsAction`) rendered above the tabs in `UserRecord`, and removed
+  the duplicate that lived inside the Products tab (single source of balance state). Verified: card + modal at top.
+- **Thank-you set-password → dashboard for a new buyer**: `claimProductAccount` (lib) + `claimProductAccountAction`
+  + `SetPasswordCard` on the pay/product Receipt. A new credit-package buyer sets a password → we set it on their
+  passwordless lead, provision a host (shared `ensureHostForUser`), grant the order's credits AND activate any mapped
+  plan (both idempotent — they skipped at pay time with no host), then magic-link them into `/dashboard`. Verified
+  end-to-end: password → dashboard with 50 credits granted.
+- **Password reset lands on the reset page (not the dashboard)**: root cause was `resetPasswordForEmail`'s
+  `redirect_to` falling back to the bare SITE_URL (not allowlisted) → homepage → dashboard. Now we mint our OWN
+  recovery link via `admin.generateLink` and route it through our `/auth/confirm` (token_hash flow) → `/reset-password`,
+  emailed with the branded `PasswordReset` template (`lib/auth/passwordReset.ts`; used by both self-serve
+  `forgotPasswordAction` and admin `sendPasswordResetAction`). Also hardened `/auth/confirm` to force `/reset-password`
+  on `type=recovery` even if `next` is dropped. Verified: recovery link → reset page, with and without `next`.
+- **Custom-quote line items**: custom quotes were pinned to single-total mode, which has no line-item card. Now only
+  `upload` quotes stay single; `custom` quotes get the itemised card (custom lines + discount + the itemised/single
+  toggle), with accommodation/calendar rows hidden. `QuoteForm.tsx`. Verified: custom quote → "Your price" shows the
+  itemised card + "Custom line" adds a row.
+- **Removed the bogus "999 quotes today / 999 month" card** on `/dashboard/looking-for` (stale quota widget,
+  superseded by the credits model) — deleted `QuotaWidget.tsx` + its dead `check_host_quote_quota` call.
+- **Unified email design**: every email now shares the Looking-For/quote design system. Made `Shell.title` optional and
+  had the legacy `Layout` delegate to `Shell`, so all ~30 old-`Layout` templates instantly adopt the dark brand header
+  band + green accent + branded footer in one change. Migrated the bespoke auth emails (verify / existing-account /
+  password-reset) to Shell-based React templates (`ConfirmEmail`, `ExistingAccount`, `PasswordReset`) sent via a new
+  `sendReactEmail` helper. Verified via `/admin/emails` preview: `booking_confirmed_guest` now renders in the new design.
+- **Plan changes take effect for a logged-in user**: verified — all dashboard surfaces are `force-dynamic` + live-read,
+  gating is a per-request RPC (no plan baked into the session/JWT). Changing a plan (Free→Starter) reflected on the
+  user's next page load with no re-login. Note: Next's `staleTimes.dynamic: 120` means a *soft* client-nav back to an
+  already-visited route can lag up to 120s; a reload/fresh-nav is always immediate.
+
 ## 2026-07-16 — MVP-readiness deep audits (Coupons, Add-ons, Media, feature gating).
 
 Worked the MVP-readiness backlog items 1 (deep audits) + 2 (launch blockers) "as far as possible". Each audit

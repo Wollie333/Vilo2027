@@ -1,6 +1,7 @@
 import "server-only";
 
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
+import { isBreachedPassword, passwordSchema } from "@/lib/auth/password";
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import {
   grantCreditsForOrder,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/credits/wallet";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { convertZarToUsd } from "@/lib/fx";
+import { ensureHostForUser } from "@/lib/hosts/ensureHost";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createPayPalOrder, capturePayPalOrder } from "@/lib/paypal";
 import { getPlatformPayPal } from "@/lib/payments/platform-paypal";
@@ -367,6 +369,114 @@ export async function fulfilFreeProductBySlug(
   if (linkErr || !hashed) {
     // Account is provisioned; they just need to sign in manually.
     return { ok: false, error: "You're set up — please sign in to continue." };
+  }
+  const loginUrl = `${origin}/auth/confirm?token_hash=${hashed}&type=magiclink&next=/dashboard`;
+  return { ok: true, loginUrl };
+}
+
+export type ClaimAccountResult =
+  | { ok: true; loginUrl: string }
+  | { ok: false; error: string };
+
+/**
+ * Thank-you-page account claim: a buyer who paid as a passwordless lead sets a
+ * password, and we (1) set that password on their auth user, (2) provision a
+ * host so credits/plan can attach, (3) grant the order's credits AND activate any
+ * mapped plan (both idempotent — they no-op'd at pay time because the buyer had
+ * no host yet), then (4) return a magic-link that signs them in and lands on the
+ * dashboard. Idempotent for a re-submit. Only meaningful for a PAID order whose
+ * buyer isn't a full account yet.
+ */
+export async function claimProductAccount(
+  payToken: string,
+  password: string,
+  origin: string,
+): Promise<ClaimAccountResult> {
+  // Enforce the shared password policy (length + variety) then the HIBP check.
+  const parsed = passwordSchema.safeParse(password);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Choose a stronger password.",
+    };
+  }
+  if (await isBreachedPassword(password)) {
+    return {
+      ok: false,
+      error:
+        "That password has appeared in a data breach. Please choose a different one.",
+    };
+  }
+
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("product_orders")
+    .select("id, product_id, payer_email, payer_user_id, status")
+    .eq("pay_token", payToken)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status !== "paid") {
+    return { ok: false, error: "This purchase isn't paid yet." };
+  }
+  const email = (order.payer_email ?? "").trim().toLowerCase();
+  if (!email) return { ok: false, error: "This order has no email on file." };
+
+  // Ensure a user (lead) exists for this email, then claim it with the password.
+  let userId = order.payer_user_id as string | null;
+  if (!userId) {
+    const lead = await findOrCreateLeadIdentity(admin, {
+      email,
+      name: email.split("@")[0],
+    });
+    userId = lead?.guestId ?? null;
+    if (userId) {
+      await admin
+        .from("product_orders")
+        .update({ payer_user_id: userId })
+        .eq("id", order.id);
+    }
+  }
+  if (!userId) {
+    return { ok: false, error: "Couldn't set up your account. Try again." };
+  }
+
+  const { error: pwErr } = await admin.auth.admin.updateUserById(userId, {
+    password,
+  });
+  if (pwErr) {
+    return { ok: false, error: "Couldn't set your password. Try again." };
+  }
+
+  // Provision a host so the wallet/plan can attach, then run the (idempotent)
+  // grants that skipped at pay time because there was no host yet.
+  try {
+    await ensureHostForUser(admin, userId);
+  } catch {
+    return {
+      ok: false,
+      error: "Couldn't set up your host account. Try again.",
+    };
+  }
+  await grantCreditsForOrder(admin, {
+    id: order.id,
+    product_id: order.product_id,
+    payer_user_id: userId,
+  });
+  await activateMappedPlan(admin, userId, order.product_id, new Date());
+
+  // Magic link → auto sign-in → dashboard (the password is set for next time).
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email,
+    options: { redirectTo: `${origin}/auth/confirm?next=/dashboard` },
+  });
+  const hashed = link?.properties?.hashed_token;
+  if (linkErr || !hashed) {
+    // Password is set — they can sign in manually if the link couldn't mint.
+    return {
+      ok: false,
+      error: "You're all set — please sign in with your new password.",
+    };
   }
   const loginUrl = `${origin}/auth/confirm?token_hash=${hashed}&type=magiclink&next=/dashboard`;
   return { ok: true, loginUrl };

@@ -8,18 +8,32 @@ import { Input } from "@/components/ui/input";
 
 import { buyProductAction } from "./actions";
 
-export function BuyForm({ slug, free }: { slug: string; free: boolean }) {
+export function BuyForm({
+  slug,
+  free,
+  sessionEmail,
+}: {
+  slug: string;
+  free: boolean;
+  // Set when the buyer is already signed in — the email step is skipped and the
+  // button goes straight to payment. The server ignores any client email and
+  // uses the session's, so we don't even send this value.
+  sessionEmail?: string | null;
+}) {
   const [email, setEmail] = useState("");
   // null = idle; otherwise a modal is shown with this phase.
   const [phase, setPhase] = useState<null | "working" | "redirecting">(null);
 
   const busy = phase !== null;
+  const authed = !!sessionEmail;
 
   function submit() {
     setPhase("working");
     (async () => {
       try {
-        const r = await buyProductAction(slug, email.trim());
+        // Authed → the action resolves the email from the session; the arg is
+        // ignored server-side. Anonymous → send the typed email.
+        const r = await buyProductAction(slug, authed ? "" : email.trim());
         if (r.ok) {
           setPhase("redirecting");
           // Free → magic link (auto sign-in → dashboard); paid → pay page.
@@ -35,21 +49,30 @@ export function BuyForm({ slug, free }: { slug: string; free: boolean }) {
     })();
   }
 
+  const canSubmit = authed ? !busy : !busy && !!email.trim();
+
   return (
     <div className="space-y-2">
-      <Input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Your email"
-        disabled={busy}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && email.trim() && !busy) submit();
-        }}
-      />
+      {authed ? (
+        <p className="text-[13px] text-brand-mute">
+          Signed in as{" "}
+          <span className="font-medium text-brand-ink">{sessionEmail}</span>
+        </p>
+      ) : (
+        <Input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email"
+          disabled={busy}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && email.trim() && !busy) submit();
+          }}
+        />
+      )}
       <button
         type="button"
-        disabled={busy || !email.trim()}
+        disabled={!canSubmit}
         onClick={submit}
         className="inline-flex w-full items-center justify-center rounded-md bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
       >

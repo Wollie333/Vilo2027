@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerClient } from "@/lib/supabase/server";
 
 import { BuyForm } from "./BuyForm";
 
@@ -21,6 +22,14 @@ export default async function ProductLandingPage({
 }: {
   params: { slug: string };
 }) {
+  // A signed-in buyer skips the email step entirely — we already know who they
+  // are, so the form goes straight to payment (and grants to THEIR account).
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const sessionEmail = user?.email ?? null;
+
   const service = createAdminClient();
   const { data: p } = await service
     .from("products")
@@ -79,7 +88,11 @@ export default async function ProductLandingPage({
 
         <div className="mt-6">
           {p.is_active ? (
-            <BuyForm slug={params.slug} free={Number(p.price) === 0} />
+            <BuyForm
+              slug={params.slug}
+              free={Number(p.price) === 0}
+              sessionEmail={sessionEmail}
+            />
           ) : (
             <div className="rounded-md border border-brand-line bg-brand-light/40 px-4 py-3 text-center text-sm text-brand-mute">
               Not available for purchase right now.

@@ -127,6 +127,7 @@ export default async function ProductPayPage({
           invoiceToken: invoice?.hosted_token ?? null,
           buyerEmail: order.payer_email,
           hasAccount,
+          payToken: params.token,
           signupHref: `/signup/host?order=${params.token}`,
           eventId: invoice?.invoice_number ?? order.id,
           productId: order.product_id,

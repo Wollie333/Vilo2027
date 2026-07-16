@@ -6,7 +6,6 @@ import { hostHasFeature } from "@/lib/products/featureGate";
 
 import { LookingForLocked } from "./_components/LookingForLocked";
 import { RequestsBoard } from "./_components/RequestsBoard";
-import { QuotaWidget } from "./_components/QuotaWidget";
 
 export default async function LookingForBrowsePage() {
   const supabase = createServerClient();
@@ -40,19 +39,9 @@ export default async function LookingForBrowsePage() {
     );
   }
 
-  // Fetch quota status for the host
-  const { data: quotaStatus } = await supabase.rpc("check_host_quote_quota", {
-    p_host_id: host.id,
-  });
-
   return (
     <div className="space-y-6">
       <LookingForHeader />
-      <QuotaWidget
-        remainingToday={quotaStatus?.remaining_today ?? 0}
-        remainingMonth={quotaStatus?.remaining_month ?? 0}
-        allowed={quotaStatus?.allowed ?? true}
-      />
       <RequestsBoard hostId={host.id} />
     </div>
   );

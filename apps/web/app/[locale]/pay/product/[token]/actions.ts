@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import {
   capturePayPalProductOrder,
+  claimProductAccount,
   recordProductEftIntent,
   startProductPaystack,
   startProductPayPal,
@@ -62,4 +63,17 @@ export async function recordProductEftAction(
   token: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   return recordProductEftIntent(token);
+}
+
+// Public (token-gated) — a new buyer sets a password on the thank-you page. We
+// claim their passwordless account, provision their host, grant the order's
+// credits / activate its plan, and return a magic-link the client follows into
+// the dashboard.
+export async function claimProductAccountAction(
+  token: string,
+  password: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const origin = headers().get("origin") ?? "";
+  const r = await claimProductAccount(token, password, origin);
+  return r.ok ? { ok: true, url: r.loginUrl } : { ok: false, error: r.error };
 }

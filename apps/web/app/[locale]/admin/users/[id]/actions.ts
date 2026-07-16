@@ -5,10 +5,10 @@ import { headers } from "next/headers";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
 import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
-import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
@@ -175,11 +175,9 @@ export const sendPasswordResetAction = withAdminAudit<
     const email = prof?.email;
     if (!email) throw new Error("This user has no email on file.");
     const origin = headers().get("origin") ?? "";
-    const supabase = createServerClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/confirm?next=/reset-password`,
-    });
-    if (error) throw new Error(error.message);
+    // Our own recovery link (through /auth/confirm → /reset-password) so the
+    // user always lands on the set-new-password page, never the dashboard.
+    await sendPasswordResetEmail({ email, origin });
     return { result: { ok: true }, after: { email } };
   },
 );

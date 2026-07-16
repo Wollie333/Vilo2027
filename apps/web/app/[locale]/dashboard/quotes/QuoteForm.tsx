@@ -663,11 +663,14 @@ export function QuoteForm({
     ],
   );
 
-  // Custom quotes have no calendar to auto-price from — pin them to a single
-  // hand-entered total so the itemised nightly-rate machinery never engages.
+  // Upload quotes carry an attached file for one agreed figure — pin them to a
+  // single hand-entered total. Custom quotes, though, have no calendar but STILL
+  // build line-by-line: they get the itemised card (custom lines + discount) so a
+  // quotes-only host can itemise a bespoke quote. Only the accommodation/calendar
+  // machinery is skipped (guarded by !datesValid + !isCustomQuote below).
   useEffect(() => {
-    if (isCustomQuote && priceMode !== "single") setPriceMode("single");
-  }, [isCustomQuote, priceMode]);
+    if (isUploadQuote && priceMode !== "single") setPriceMode("single");
+  }, [isUploadQuote, priceMode]);
 
   useEffect(() => {
     if (restoringRef.current) return; // don't re-price over a restored draft
@@ -1861,7 +1864,7 @@ export function QuoteForm({
               title="Your price"
               sub="The heart of your reply. Tweak any line, add charges, or give a discount — the guest sees exactly this."
               right={
-                isCustomQuote ? null : (
+                isUploadQuote ? null : (
                   <div className="flex w-full rounded-[10px] border border-brand-line bg-brand-light p-[3px] sm:w-auto">
                     {(
                       [
@@ -1885,7 +1888,12 @@ export function QuoteForm({
 
             {priceMode === "itemised" ? (
               <>
-                {!datesValid ? (
+                {isCustomQuote ? (
+                  <p className="mt-5 inline-flex items-center gap-1.5 text-xs text-brand-mute">
+                    <Calculator className="h-3.5 w-3.5" />
+                    Build your quote line by line — add a line for each charge.
+                  </p>
+                ) : !datesValid ? (
                   <p className="mt-5 text-xs text-brand-mute">
                     Add dates above — the price fills in from your calendar
                     automatically.
@@ -1906,8 +1914,9 @@ export function QuoteForm({
                     <span />
                   </div>
 
-                  {/* Accommodation */}
-                  {scope === "rooms" ? (
+                  {/* Accommodation (listing-based quotes only — a custom quote
+                      has no calendar, so it builds purely from custom lines). */}
+                  {isCustomQuote ? null : scope === "rooms" ? (
                     pricedRooms.length > 0 ? (
                       pricedRooms.map((r) => (
                         <PriceRow
@@ -1959,8 +1968,8 @@ export function QuoteForm({
                     />
                   )}
 
-                  {/* Cleaning */}
-                  {scope === "rooms" ? (
+                  {/* Cleaning (listing-based quotes only). */}
+                  {isCustomQuote ? null : scope === "rooms" ? (
                     totals.cleaning > 0 ? (
                       <PriceRow
                         title="Cleaning fee"

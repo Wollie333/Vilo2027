@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { Resend } from "resend";
 
 const FROM = process.env.EMAIL_FROM_ADDRESS ?? "Wielo <onboarding@resend.dev>";
@@ -23,6 +24,34 @@ export async function sendTransactionalEmail(input: {
       to: input.to,
       subject: input.subject,
       html: input.html,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "send failed" };
+  }
+}
+
+/**
+ * Send a one-off transactional email whose body is a React Email component
+ * (the shared @vilo/emails Shell templates). Mirrors sendTransactionalEmail but
+ * lets auth/enquiry emails use the SAME branded design system as every queued
+ * email, instead of hand-rolled inline HTML. Best-effort; never throws.
+ */
+export async function sendReactEmail(input: {
+  to: string;
+  subject: string;
+  react: ReactElement;
+}): Promise<{ ok: boolean; error?: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { ok: false, error: "RESEND_API_KEY not set" };
+  try {
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send({
+      from: FROM,
+      to: input.to,
+      subject: input.subject,
+      react: input.react,
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true };

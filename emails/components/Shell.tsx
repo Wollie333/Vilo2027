@@ -39,7 +39,9 @@ type Props = {
   preview: string;
   /** Small uppercase label above the title, e.g. "Looking For". */
   eyebrow?: string;
-  title: string;
+  /** Optional header title. When omitted the dark band shows just the brand row
+      (used by templates that place their own heading in the body). */
+  title?: string;
   subtitle?: string;
   /** Optional status chip, top-right of the header. */
   pill?: ShellPill;
@@ -89,7 +91,7 @@ export default function Shell({
             </Row>
 
             {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-            <Text style={styles.title}>{title}</Text>
+            {title ? <Text style={styles.title}>{title}</Text> : null}
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </Section>
 

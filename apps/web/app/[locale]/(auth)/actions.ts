@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { isBreachedPassword } from "@/lib/auth/password";
+import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
 import { resolvePostAuthDestination } from "@/lib/auth/postAuth";
 import { safeNextPath } from "@/lib/auth/safeNext";
 import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
@@ -149,14 +150,13 @@ export async function forgotPasswordAction(
     };
   }
 
-  const supabase = createServerClient();
   const origin = headers().get("origin") ?? "";
 
   // Fire-and-forget by design: always redirect to the "check your inbox" state,
   // even if the email isn't registered, to avoid account-enumeration leaks.
-  await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${origin}/auth/confirm?next=/reset-password`,
-  });
+  // We mint our OWN recovery link (through /auth/confirm → /reset-password) so
+  // the reset always lands on the set-new-password page — not the dashboard.
+  await sendPasswordResetEmail({ email: parsed.data.email, origin });
 
   redirect("/forgot-password?sent=1");
 }

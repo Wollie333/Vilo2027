@@ -2,8 +2,12 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { createElement } from "react";
+
+import { ConfirmEmail, ExistingAccount } from "@vilo/emails";
+
 import { getBrandName } from "@/lib/brand";
-import { sendTransactionalEmail } from "@/lib/email/send";
+import { sendReactEmail } from "@/lib/email/send";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // App-level email verification (soft).
@@ -56,37 +60,10 @@ export function verifyVerificationToken(token: string): string | null {
   return userId;
 }
 
-function verifyEmailHtml(input: {
-  brandName: string;
-  link: string;
-  firstName: string | null;
-}): string {
-  const greeting = input.firstName ? `Hi ${input.firstName},` : "Hi there,";
-  return `
-  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937;">
-    <h1 style="font-size:20px;font-weight:700;color:#064E3B;margin:0 0 16px;">Confirm your email</h1>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">${greeting}</p>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 24px;">
-      Welcome to ${input.brandName}. Please confirm this is your email address so we can
-      keep your account and bookings secure.
-    </p>
-    <a href="${input.link}" style="display:inline-block;background:#10B981;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:8px;">
-      Confirm my email
-    </a>
-    <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:24px 0 0;">
-      If the button doesn't work, copy and paste this link into your browser:<br />
-      <a href="${input.link}" style="color:#10B981;word-break:break-all;">${input.link}</a>
-    </p>
-    <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:16px 0 0;">
-      This link expires in 3 days. Didn't create a ${input.brandName} account? You can
-      safely ignore this email.
-    </p>
-  </div>`;
-}
-
 /**
- * Send (or resend) the verification email to a user. Best-effort: returns
- * `{ ok: false }` when Resend isn't configured or the send fails, never throws.
+ * Send (or resend) the verification email to a user. Uses the shared Shell-based
+ * ConfirmEmail template so it matches every other Wielo email. Best-effort:
+ * returns `{ ok: false }` when Resend isn't configured or the send fails.
  */
 export async function sendVerificationEmail(input: {
   userId: string;
@@ -101,51 +78,25 @@ export async function sendVerificationEmail(input: {
   const brandName = await getBrandName();
   const token = createVerificationToken(input.userId);
   const link = `${base}/verify-email?token=${encodeURIComponent(token)}`;
-  const res = await sendTransactionalEmail({
+  const res = await sendReactEmail({
     to: input.email,
     subject: `Confirm your email — ${brandName}`,
-    html: verifyEmailHtml({
+    react: createElement(ConfirmEmail, {
+      firstName: input.firstName ?? "there",
+      confirmUrl: link,
       brandName,
-      link,
-      firstName: input.firstName ?? null,
     }),
   });
   if (!res.ok) console.error("[verifyEmail] send failed:", res.error);
   return { ok: res.ok };
 }
 
-function existingAccountHtml(input: {
-  brandName: string;
-  signInLink: string;
-  resetLink: string;
-}): string {
-  return `
-  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937;">
-    <h1 style="font-size:20px;font-weight:700;color:#064E3B;margin:0 0 16px;">You already have an account</h1>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hi there,</p>
-    <p style="font-size:15px;line-height:1.6;margin:0 0 24px;">
-      Someone (hopefully you) just tried to sign up for ${input.brandName} with this email
-      address — but you already have an account. There's nothing new to set up; just sign in.
-    </p>
-    <a href="${input.signInLink}" style="display:inline-block;background:#10B981;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:8px;">
-      Sign in
-    </a>
-    <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:24px 0 0;">
-      Forgot your password? <a href="${input.resetLink}" style="color:#10B981;">Reset it here</a>.
-    </p>
-    <p style="font-size:13px;line-height:1.6;color:#6b7280;margin:16px 0 0;">
-      If this wasn't you, you can safely ignore this email — no one can access your account without
-      your password.
-    </p>
-  </div>`;
-}
-
 /**
  * Anti-enumeration: when someone tries to sign up with an email that already
  * has an account, we DON'T confirm existence to the browser — instead we email
- * the real owner a heads-up (+ a sign-in / reset link). Best-effort; inert
- * without a Resend key. The signup rate limit caps how often this can fire, so
- * it can't be used to email-bomb an inbox.
+ * the real owner a heads-up (+ a sign-in / reset link). Uses the shared
+ * ExistingAccount Shell template. Best-effort; inert without a Resend key. The
+ * signup rate limit caps how often this can fire, so it can't email-bomb an inbox.
  */
 export async function sendExistingAccountNotice(input: {
   email: string;
@@ -154,13 +105,13 @@ export async function sendExistingAccountNotice(input: {
   const base = input.origin || process.env.NEXT_PUBLIC_APP_URL || "";
   if (!base || !input.email) return { ok: false };
   const brandName = await getBrandName();
-  const res = await sendTransactionalEmail({
+  const res = await sendReactEmail({
     to: input.email,
     subject: `You already have a ${brandName} account`,
-    html: existingAccountHtml({
+    react: createElement(ExistingAccount, {
+      signInUrl: `${base}/login`,
+      resetUrl: `${base}/forgot-password`,
       brandName,
-      signInLink: `${base}/login`,
-      resetLink: `${base}/forgot-password`,
     }),
   });
   return { ok: res.ok };

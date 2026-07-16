@@ -7,6 +7,7 @@ import {
   Building2,
   Calendar,
   CalendarCheck,
+  Coins,
   CreditCard,
   FileMinus,
   Link2,
@@ -511,6 +512,134 @@ const TAB_ALIASES: Record<string, string> = {
   support: "data",
 };
 
+// Top-of-record Wielo Credits balance + one-click "Assign credits" modal. Shown
+// on every tab for a host / quote-only account so an admin can grant (or remove)
+// credits from anywhere in the record. Self-contained: owns its own balance
+// state, moved only through the audited adjustUserCredits action (which runs the
+// atomic apply_wielo_credit path, so it can't drive the wallet below zero).
+function CreditsCard({
+  userId,
+  hostId,
+  initialBalance,
+}: {
+  userId: string;
+  hostId: string | null;
+  initialBalance: number;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [balance, setBalance] = useState(initialBalance);
+  const [open, setOpen] = useState(false);
+  const [amt, setAmt] = useState("");
+  const [reason, setReason] = useState("");
+  const close = () => {
+    setOpen(false);
+    setAmt("");
+    setReason("");
+  };
+
+  function submit() {
+    const n = Math.trunc(Number(amt));
+    if (!Number.isFinite(n) || n === 0) {
+      toast.error("Enter a non-zero amount (use a minus sign to remove).");
+      return;
+    }
+    if (!reason.trim()) {
+      toast.error("Add a short reason.");
+      return;
+    }
+    start(async () => {
+      const r = await adjustUserCredits({
+        userId,
+        delta: n,
+        reason: reason.trim(),
+      });
+      if (r.ok) {
+        setBalance(r.balance);
+        toast.success(
+          `${n > 0 ? "Granted" : "Removed"} ${Math.abs(n)} credit${
+            Math.abs(n) === 1 ? "" : "s"
+          }. New balance: ${r.balance}.`,
+        );
+        close();
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-line bg-white p-4 shadow-card">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
+          <Coins className="h-5 w-5" />
+        </span>
+        <div>
+          <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+            Wielo Credits
+          </div>
+          <div className="mt-0.5 flex items-baseline gap-1.5">
+            <span className="font-display text-2xl font-bold text-brand-primary">
+              {balance}
+            </span>
+            <span className="text-xs text-brand-mute">credits</span>
+          </div>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={pending || !hostId}
+        onClick={() => setOpen(true)}
+        title={
+          hostId
+            ? undefined
+            : "Credits only apply to host / quote-only accounts."
+        }
+      >
+        <Gift className="mr-1.5 h-4 w-4" /> Assign credits
+      </Button>
+
+      <FormModal
+        open={open}
+        onOpenChange={(o) => (o ? null : close())}
+        title="Assign credits"
+        description="Grant or remove Wielo Credits on this account. Use a minus sign to remove."
+      >
+        <div className="space-y-4">
+          <Lbl label="Amount (use −5 to remove 5)">
+            <Input
+              type="number"
+              value={amt}
+              onChange={(e) => setAmt(e.target.value)}
+              placeholder="e.g. 10 or -5"
+            />
+          </Lbl>
+          <Lbl label="Reason">
+            <Input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. Goodwill top-up"
+            />
+          </Lbl>
+          <div className="rounded-md border border-brand-line bg-brand-light/40 px-3 py-2 text-[12px] text-brand-mute">
+            Current balance:{" "}
+            <span className="font-semibold text-brand-ink">{balance}</span>. A
+            removal can&apos;t take the balance below zero.
+          </div>
+        </div>
+        <FormModalFooter>
+          <FormModalCancel onClick={close} />
+          <Button onClick={submit} disabled={pending}>
+            {pending ? "Working…" : "Apply"}
+          </Button>
+        </FormModalFooter>
+      </FormModal>
+    </section>
+  );
+}
+
 export function UserRecord({ data }: { data: UserRecordData }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -685,6 +814,13 @@ export function UserRecord({ data }: { data: UserRecordData }) {
 
         {/* Working column */}
         <div className="flex min-w-0 flex-col gap-5">
+          {host ? (
+            <CreditsCard
+              userId={user.id}
+              hostId={host.id}
+              initialBalance={data.creditBalance}
+            />
+          ) : null}
           <RecordTabs
             active={tab}
             onSelect={setTab}
@@ -2047,46 +2183,9 @@ function ProductsPanel({
     setCreditOverride("");
   };
 
-  // ── Manual "Assign credits" (Part 1) — grant/remove any amount to the wallet.
-  const [creditsOpen, setCreditsOpen] = useState(false);
-  const [creditAmt, setCreditAmt] = useState("");
-  const [creditReason, setCreditReason] = useState("");
-  const [balance, setBalance] = useState(data.creditBalance);
-  const closeCredits = () => {
-    setCreditsOpen(false);
-    setCreditAmt("");
-    setCreditReason("");
-  };
-  function submitCredits() {
-    const amt = Math.trunc(Number(creditAmt));
-    if (!Number.isFinite(amt) || amt === 0) {
-      toast.error("Enter a non-zero amount (use a minus sign to remove).");
-      return;
-    }
-    if (!creditReason.trim()) {
-      toast.error("Add a short reason.");
-      return;
-    }
-    start(async () => {
-      const r = await adjustUserCredits({
-        userId,
-        delta: amt,
-        reason: creditReason.trim(),
-      });
-      if (r.ok) {
-        setBalance(r.balance);
-        toast.success(
-          `${amt > 0 ? "Granted" : "Removed"} ${Math.abs(amt)} credit${
-            Math.abs(amt) === 1 ? "" : "s"
-          }. New balance: ${r.balance}.`,
-        );
-        closeCredits();
-        router.refresh();
-      } else {
-        toast.error(r.error);
-      }
-    });
-  }
+  // Manual "Assign credits" now lives in the always-visible CreditsCard at the
+  // top of the record (see UserRecord) — removed from here to avoid a second,
+  // divergent balance state.
 
   // Sell a ONCE-OFF product (separate from the subscription charge dialog).
   const [sell, setSell] = useState<CatalogProduct | null>(null);
@@ -2436,34 +2535,6 @@ function ProductsPanel({
 
   return (
     <div className="space-y-6">
-      {/* Wielo Credits wallet — balance + manual assign (grant/remove). */}
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-            Wielo Credits
-          </div>
-          <div className="mt-0.5 flex items-baseline gap-1.5">
-            <span className="font-display text-2xl font-bold text-brand-primary">
-              {balance}
-            </span>
-            <span className="text-xs text-brand-mute">credits</span>
-          </div>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={pending || !hostId}
-          onClick={() => setCreditsOpen(true)}
-          title={
-            hostId
-              ? undefined
-              : "Credits only apply to host / quote-only accounts."
-          }
-        >
-          Assign credits
-        </Button>
-      </section>
-
       {/* Active subscriptions — 1 membership + N services */}
       <section>
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -2641,43 +2712,6 @@ function ProductsPanel({
           </div>
         )}
       </div>
-
-      {/* Assign / adjust Wielo Credits manually */}
-      <FormModal
-        open={creditsOpen}
-        onOpenChange={(o) => (o ? null : closeCredits())}
-        title="Assign credits"
-        description="Grant or remove Wielo Credits on this account. Use a minus sign to remove."
-      >
-        <div className="space-y-4">
-          <Lbl label="Amount (use −5 to remove 5)">
-            <Input
-              type="number"
-              value={creditAmt}
-              onChange={(e) => setCreditAmt(e.target.value)}
-              placeholder="e.g. 10 or -5"
-            />
-          </Lbl>
-          <Lbl label="Reason">
-            <Input
-              value={creditReason}
-              onChange={(e) => setCreditReason(e.target.value)}
-              placeholder="e.g. Goodwill top-up"
-            />
-          </Lbl>
-          <div className="rounded-md border border-brand-line bg-brand-light/40 px-3 py-2 text-[12px] text-brand-mute">
-            Current balance:{" "}
-            <span className="font-semibold text-brand-ink">{balance}</span>. A
-            removal can&apos;t take the balance below zero.
-          </div>
-        </div>
-        <FormModalFooter>
-          <FormModalCancel onClick={closeCredits} />
-          <Button onClick={submitCredits} disabled={pending}>
-            {pending ? "Working…" : "Apply"}
-          </Button>
-        </FormModalFooter>
-      </FormModal>
 
       {/* Sell a once-off product */}
       <FormModal
