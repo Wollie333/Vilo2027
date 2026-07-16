@@ -4911,8 +4911,16 @@ CASE
 - `FOREIGN KEY (flagged_by) REFERENCES user_profiles(id) ON DELETE CASCADE`
 - `FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE`
 
+**Unique:**
+- `UNIQUE (review_id, flagged_by)`
+
 **Checks:**
 - `CHECK ((reason = ANY (ARRAY['false_information'::text, 'personal_attack'::text, 'booking_never_occurred'::text, 'other'::text])))`
+
+**RLS policies:**
+- `host_flag_own_reviews` (INSERT) — `CHECK ((flagged_by = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM reviews r
+  WHERE ((r.id = review_flags.review_id) AND (r.host_id = get_my_host_id())))))`
 
 ### `review_helpful_votes`
 
@@ -5156,7 +5164,7 @@ CASE
 - `site_themes_updated_at` → `update_updated_at()`
 
 **RLS policies:**
-- `site_themes_admin_all` (ALL) — `USING is_super_admin()`
+- `site_themes_admin_all` (ALL) — `USING is_super_admin() CHECK is_super_admin()`
 - `site_themes_read` (SELECT) — `USING (is_active AND (deleted_at IS NULL))`
 
 ### `special_addons`

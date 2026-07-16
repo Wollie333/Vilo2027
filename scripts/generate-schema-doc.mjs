@@ -92,13 +92,23 @@ for (const c of crons) {
   }
 }
 
+// The functions RLS policies themselves call. Flags 3 and 6 both need this, and
+// they pull in OPPOSITE directions — 3 wants anon revoked, 6 requires anon kept —
+// so an RLS helper must never be reported by 3, or the next reader "fixes" it and
+// takes the public site down again (exactly what 20260716320000 did).
+const policyExprs = tables.flatMap((t) =>
+  (t.policies ?? []).map((p) => `${p.using ?? ""} ${p.check ?? ""}`),
+);
+const isRlsHelper = (name) =>
+  policyExprs.some((e) => new RegExp(`\\b${name}\\s*\\(`).test(e));
+
 // 3. SECURITY DEFINER + executable by `anon` = an RLS bypass on a public URL.
 //    PROVEN 2026-07-16: as `anon`, `apply_wielo_credit` minted 500 credits, and
 //    the publishable key reaches POST /rest/v1/rpc/. Postgres grants EXECUTE to
 //    PUBLIC on CREATE, and anon inherits it — so `REVOKE ... FROM anon` is a
 //    NO-OP. You must revoke from PUBLIC. See 20260716310000.
 for (const f of functions) {
-  if (f.secdef && f.anon_exec && !f.trigger) {
+  if (f.secdef && f.anon_exec && !f.trigger && !isRlsHelper(f.name)) {
     flag("**SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.",
       `\`${f.name}\``);
   }
@@ -130,6 +140,27 @@ for (const t of tables) {
           `\`${tg.name}\` on \`${t.name}\` → writes \`${target}\``);
       }
     }
+  }
+}
+
+// 6. THE MIRROR IMAGE OF FLAG 3, and a bug we shipped for real. A function named
+//    inside an RLS policy must be EXECUTABLE by every role that reads the table —
+//    anon included. A policy calling a function the caller can't execute does not
+//    evaluate false, it RAISES; and permissive policies are OR'd with no
+//    guaranteed short-circuit, so a `public_read_*` policy next to a
+//    `host_manage_*` one does NOT save you.
+//    PROVEN 2026-07-16: 20260716320000 revoked anon from every SECURITY DEFINER
+//    function and swept up get_my_host_id / is_super_admin, which ~40 policies
+//    call. Every public table then raised `42501 permission denied for function
+//    get_my_host_id` for signed-out visitors — the whole public site. Nobody
+//    noticed because prerender uses the service-role client. Fixed 20260716340000.
+//    These helpers are safe for anon: they key on auth.uid() and take no
+//    caller-supplied identity, so anon gets NULL/false and learns nothing.
+for (const f of functions) {
+  if (f.anon_exec || f.trigger) continue;
+  if (isRlsHelper(f.name)) {
+    flag("**Function called by an RLS policy that `anon` CANNOT execute** — every signed-out read of any table with that policy raises `42501` instead of evaluating false. This took the whole public site down once (`20260716320000` → fixed in `..340000`). If the function keys on `auth.uid()` and takes no caller-supplied identity, `anon` must keep EXECUTE: it returns NULL/false and leaks nothing.",
+      `\`${f.name}\``);
   }
 }
 
