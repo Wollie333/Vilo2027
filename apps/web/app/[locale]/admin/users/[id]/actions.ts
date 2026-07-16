@@ -697,18 +697,32 @@ async function retireOtherMemberships(
     .select("id, product_id")
     .eq("host_id", hostId)
     .in("status", ["trialing", "active", "past_due"]);
-  const pids = (active ?? [])
-    .map((s) => s.product_id)
-    .filter((x): x is string => !!x && x !== keepProductId);
-  if (!pids.length) return;
-  const { data: mem } = await service
-    .from("products")
-    .select("id")
-    .in("id", pids)
-    .eq("product_type", "membership");
-  const memIds = new Set((mem ?? []).map((p) => p.id));
-  const retire = (active ?? [])
-    .filter((s) => s.product_id && memIds.has(s.product_id))
+
+  // Must NOT require a product_id. Signup inserts a baseline subscription with
+  // product_id = NULL — the free "guest" tier every account starts on
+  // (signup/host/actions.ts §4) — and the old `s.product_id && …` filter skipped
+  // exactly that row, so it survived every upgrade and left the host with two
+  // active memberships. Observed live: switching the test host to Starter left
+  // its product-less 'business' baseline active, and because
+  // check_feature_permission takes max(limit_value) across active subscriptions,
+  // that baseline out-voted the paid plan (200 credits instead of 50).
+  const others = (active ?? []).filter((s) => s.product_id !== keepProductId);
+  const pids = others.map((s) => s.product_id).filter((x): x is string => !!x);
+
+  const memIds = new Set<string>();
+  if (pids.length) {
+    const { data: mem } = await service
+      .from("products")
+      .select("id")
+      .in("id", pids)
+      .eq("product_type", "membership");
+    for (const p of mem ?? []) memIds.add(p.id);
+  }
+
+  // Product-backed memberships AND the product-less signup baseline — the latter
+  // IS a membership (the guest tier), it just has no catalog row.
+  const retire = others
+    .filter((s) => !s.product_id || memIds.has(s.product_id))
     .map((s) => s.id);
   if (retire.length) {
     await service

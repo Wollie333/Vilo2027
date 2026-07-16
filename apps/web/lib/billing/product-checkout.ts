@@ -868,28 +868,43 @@ async function activateMappedPlan(
       .select("id, product_id")
       .eq("host_id", host.id)
       .in("status", ["trialing", "active", "past_due"]);
-    const others = (active ?? []).filter(
-      (s) => s.product_id && s.product_id !== productId,
-    );
+
+    // NOTE: this deliberately does NOT require a product_id. Signup inserts a
+    // baseline subscription with product_id = NULL (the free "guest" tier every
+    // account starts on — signup/host/actions.ts §4), and the old filter
+    // (`s.product_id && …`) skipped exactly that row. The baseline therefore
+    // survived every upgrade, leaving TWO active memberships and breaking the
+    // "one active membership" rule this block exists to enforce.
+    //
+    // It isn't cosmetic: check_feature_permission resolves allowances with
+    // max(limit_value) across every active subscription, so a stale baseline can
+    // out-vote the plan the host actually pays for — seen live, a host on Starter
+    // (pro = 50 credits) resolving 200 from a leftover 'business' baseline.
+    const others = (active ?? []).filter((s) => s.product_id !== productId);
     const pids = others
       .map((s) => s.product_id)
       .filter((x): x is string => !!x);
+
+    const memIds = new Set<string>();
     if (pids.length) {
       const { data: memProds } = await admin
         .from("products")
         .select("id")
         .in("id", pids)
         .eq("product_type", "membership");
-      const memIds = new Set((memProds ?? []).map((p) => p.id));
-      const retire = others
-        .filter((s) => s.product_id && memIds.has(s.product_id))
-        .map((s) => s.id);
-      if (retire.length) {
-        await admin
-          .from("subscriptions")
-          .update({ status: "cancelled", updated_at: now.toISOString() })
-          .in("id", retire);
-      }
+      for (const p of memProds ?? []) memIds.add(p.id);
+    }
+
+    // Retire product-backed memberships AND the product-less signup baseline —
+    // the latter IS a membership (the guest tier), it just has no catalog row.
+    const retire = others
+      .filter((s) => !s.product_id || memIds.has(s.product_id))
+      .map((s) => s.id);
+    if (retire.length) {
+      await admin
+        .from("subscriptions")
+        .update({ status: "cancelled", updated_at: now.toISOString() })
+        .in("id", retire);
     }
   }
 
