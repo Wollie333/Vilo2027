@@ -52,6 +52,7 @@ export default async function AdminProductEditorPage({
       productType: "membership",
       creditQuantity: null,
       creditPurpose: "quote",
+      creditsPerMonth: null,
       price: 0,
       currency: "ZAR",
       billingCycle: "monthly",
@@ -128,6 +129,9 @@ export default async function AdminProductEditorPage({
       isVisible: data.is_visible ?? true,
       slug: data.slug ?? null,
       maxQuantity: data.max_quantity != null ? Number(data.max_quantity) : null,
+      // Filled in from product_features just below — it lives there, not on
+      // products, because that's what the credit grant engine resolves through.
+      creditsPerMonth: null,
     };
 
     const { data: pf } = await service
@@ -140,6 +144,13 @@ export default async function AdminProductEditorPage({
         limitValue: row.limit_value,
       };
     }
+
+    // Surface the credit allowance as a first-class field on the editor.
+    const credits = productFeatures["wielo_credits_per_month"];
+    product.creditsPerMonth =
+      credits?.isEnabled && credits.limitValue != null
+        ? Number(credits.limitValue)
+        : null;
   }
 
   return (

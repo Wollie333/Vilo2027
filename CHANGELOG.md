@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-16 — A real credit field on products (undoing the mess Phase 4 made of the admin UI).
+
+- **Founder:** *"even when I edit an existing product subscription there is no clear credit assignment
+  field… I want to implement a clean and easy credit system… can you just make it work."* Fair. Phase 4
+  removed the clear "Credit grant (per cycle)" box from memberships and replaced it with a row buried
+  among ~25 identical-looking permission toggles — and on the **create** page it didn't exist at all
+  ("Save the product first, then assign which features it unlocks"), so a **new membership could not be
+  given credits by any means**. That was a regression I introduced.
+- **Now:** a first-class **"Wielo credits"** card on the product form, next to Price and Payment methods
+  — one plain **"Credits included each billing cycle"** number box, with copy explaining the model
+  (1 credit to see a request, 1 to quote, never expires, top up with a package). It saves to
+  `product_features.wielo_credits_per_month` (the SSOT the grant engine resolves through) **on create
+  AND edit**. The duplicate row is filtered out of the permissions list, so there is exactly ONE place
+  to set it and no way for two copies to disagree.
+- Blank/0 **deletes** the product-level row rather than writing a hard 0, so the plan default can still
+  answer — writing 0 would have silently overridden it.
+- `products.credit_quantity` is now unambiguous: **one-off credit packages only** (its on-purchase
+  grant), which is also the only place the editor still shows it.
+- **Verified live:** opened Starter → the card renders → typed **25** → Save → DB shows
+  `wielo_credits_per_month = 25, is_enabled = true` → reloaded and the form **round-trips 25**, with the
+  duplicate gone from the permissions list. Starter then reset to its prior state (no product dial; plan
+  `pro` = 50 applies). Build (888 pages) + lint green.
+
+---
+
 ## 2026-07-16 — Carry each membership's configured credit grant onto the new dial (migration `20260716220000`).
 
 - **Bug I introduced in Phase 4, caught by the founder asking "can admin still set credits on

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Coins, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -23,6 +23,13 @@ export type EditorProduct = {
   productType: "membership" | "service" | "product" | "wielo_credits";
   creditQuantity: number | null;
   creditPurpose: string;
+  /**
+   * Membership/service only: Wielo credits included each billing cycle. Stored
+   * as the `wielo_credits_per_month` permission (what the grant engine reads),
+   * surfaced here as a first-class field instead of a row buried in the
+   * permissions list. null/0 = none from this product.
+   */
+  creditsPerMonth: number | null;
   price: number;
   currency: string;
   billingCycle: "weekly" | "monthly" | "quarterly" | "biannual" | "annual";
@@ -93,11 +100,13 @@ export function ProductEditor({
         name: f.name.trim(),
         description: f.description.trim() || null,
         productType: f.productType,
-        // Credit grant saves for a credit package (on-purchase grant) AND a
-        // subscription (per-cycle grant) — only a once-off `product` never grants.
+        // A credit package's on-purchase grant.
         creditQuantity:
-          f.productType === "product" ? null : (f.creditQuantity ?? null),
+          f.productType === "wielo_credits" ? (f.creditQuantity ?? null) : null,
         creditPurpose: f.creditPurpose || "quote",
+        // A subscription's recurring allowance (saved as the
+        // wielo_credits_per_month permission by the action).
+        creditsPerMonth: isSubLike ? (f.creditsPerMonth ?? null) : null,
         price: f.price,
         currency: f.currency.trim().toUpperCase() || "ZAR",
         billingCycle:
@@ -273,11 +282,6 @@ export function ProductEditor({
               className="font-mono uppercase"
             />
           </Field>
-          {/* Credit-package products only. A membership's recurring allotment is
-              NOT set here any more — it comes from the "Wielo credits / month"
-              permission below, which is the single dial behind the single
-              balance. Leaving these on memberships would offer a number that
-              nothing reads. */}
           {isCredits ? (
             <>
               <Field label="Credits granted">
@@ -317,6 +321,49 @@ export function ProductEditor({
           ) : null}
         </div>
       </section>
+
+      {/* Wielo credits — a first-class card, not a row buried in the permissions
+          list. This is the ONLY place a subscription's credit allowance is set;
+          it saves to the `wielo_credits_per_month` permission, which is what the
+          grant engine reads, and it works while creating the product. */}
+      {isSubLike ? (
+        <section className="space-y-3 rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <div className="flex items-center gap-2">
+            <Coins className="h-4 w-4 text-brand-primary" />
+            <h2 className="font-display text-sm font-bold text-brand-ink">
+              Wielo credits
+            </h2>
+          </div>
+          <p className="max-w-prose text-xs text-brand-mute">
+            Credits are the single balance a host spends on Looking-For:{" "}
+            <strong className="font-semibold text-brand-ink">1 to see</strong> a
+            request&apos;s details and{" "}
+            <strong className="font-semibold text-brand-ink">1 to quote</strong>{" "}
+            it. They never expire, and hosts can top up with a credit package.
+          </p>
+          <div className="flex flex-wrap items-end gap-4">
+            <Field label="Credits included each billing cycle">
+              <Input
+                type="number"
+                min={0}
+                placeholder="0"
+                value={f.creditsPerMonth ?? ""}
+                onChange={(e) =>
+                  set(
+                    "creditsPerMonth",
+                    e.target.value === "" ? null : Number(e.target.value) || 0,
+                  )
+                }
+                className="w-40 font-mono"
+              />
+            </Field>
+            <p className="pb-2 text-xs text-brand-mute">
+              Granted each cycle on purchase and every renewal. Leave blank or 0
+              to give none from this product — the plan default applies instead.
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       {/* Payment methods */}
       <section className="space-y-3 rounded-card border border-brand-line bg-white p-5 shadow-card">
@@ -633,87 +680,91 @@ export function ProductEditor({
         ) : (
           <div className="overflow-hidden rounded-card border border-brand-line bg-white">
             <ul className="divide-y divide-brand-line">
-              {featureCatalog.map((feat) => {
-                const st = features[feat.key] ?? {
-                  isEnabled: false,
-                  limitValue: null,
-                };
-                const on = st.isEnabled;
-                const hasQty = feat.scope !== "toggle";
-                return (
-                  <li
-                    key={feat.key}
-                    className="flex items-center gap-4 px-5 py-3.5"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-semibold text-brand-ink">
-                          {feat.label}
-                        </span>
-                        {feat.scope === "per_business" ? (
-                          <span className="rounded-pill bg-brand-light px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
-                            per business
+              {featureCatalog
+                // Wielo credits have their own card above — showing the same
+                // number twice invites the two copies to disagree.
+                .filter((feat) => feat.key !== "wielo_credits_per_month")
+                .map((feat) => {
+                  const st = features[feat.key] ?? {
+                    isEnabled: false,
+                    limitValue: null,
+                  };
+                  const on = st.isEnabled;
+                  const hasQty = feat.scope !== "toggle";
+                  return (
+                    <li
+                      key={feat.key}
+                      className="flex items-center gap-4 px-5 py-3.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] font-semibold text-brand-ink">
+                            {feat.label}
                           </span>
-                        ) : null}
+                          {feat.scope === "per_business" ? (
+                            <span className="rounded-pill bg-brand-light px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
+                              per business
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-0.5 font-mono text-[11px] text-brand-mute">
+                          {feat.key}
+                        </div>
                       </div>
-                      <div className="mt-0.5 font-mono text-[11px] text-brand-mute">
-                        {feat.key}
-                      </div>
-                    </div>
-                    {/* Quantity for capacity + per-business features (blank = unlimited). */}
-                    {on && hasQty ? (
-                      <label className="flex items-center gap-1.5 text-[10.5px] text-brand-mute">
-                        {feat.scope === "per_business" ? "Per biz" : "Qty"}
-                        <input
-                          type="number"
-                          min={0}
-                          value={st.limitValue ?? ""}
-                          placeholder="∞"
-                          onChange={(e) => {
-                            const v = e.target.value.trim();
-                            setFeatures((s) => ({
-                              ...s,
-                              [feat.key]: {
+                      {/* Quantity for capacity + per-business features (blank = unlimited). */}
+                      {on && hasQty ? (
+                        <label className="flex items-center gap-1.5 text-[10.5px] text-brand-mute">
+                          {feat.scope === "per_business" ? "Per biz" : "Qty"}
+                          <input
+                            type="number"
+                            min={0}
+                            value={st.limitValue ?? ""}
+                            placeholder="∞"
+                            onChange={(e) => {
+                              const v = e.target.value.trim();
+                              setFeatures((s) => ({
+                                ...s,
+                                [feat.key]: {
+                                  ...st,
+                                  limitValue: v === "" ? null : Number(v),
+                                },
+                              }));
+                            }}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              saveFeature(feat.key, {
                                 ...st,
                                 limitValue: v === "" ? null : Number(v),
-                              },
-                            }));
-                          }}
-                          onBlur={(e) => {
-                            const v = e.target.value.trim();
-                            saveFeature(feat.key, {
-                              ...st,
-                              limitValue: v === "" ? null : Number(v),
-                            });
-                          }}
-                          className="w-16 rounded-md border border-brand-line px-2 py-1 text-center font-mono text-[12px] focus:border-brand-primary focus:outline-none"
-                        />
-                      </label>
-                    ) : null}
-                    {savingFeat === feat.key ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-mute" />
-                    ) : null}
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={on}
-                      aria-label={feat.label}
-                      onClick={() =>
-                        saveFeature(feat.key, { ...st, isEnabled: !on })
-                      }
-                      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                        on ? "bg-brand-primary" : "bg-brand-line"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                          on ? "left-[22px]" : "left-0.5"
+                              });
+                            }}
+                            className="w-16 rounded-md border border-brand-line px-2 py-1 text-center font-mono text-[12px] focus:border-brand-primary focus:outline-none"
+                          />
+                        </label>
+                      ) : null}
+                      {savingFeat === feat.key ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-mute" />
+                      ) : null}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={on}
+                        aria-label={feat.label}
+                        onClick={() =>
+                          saveFeature(feat.key, { ...st, isEnabled: !on })
+                        }
+                        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                          on ? "bg-brand-primary" : "bg-brand-line"
                         }`}
-                      />
-                    </button>
-                  </li>
-                );
-              })}
+                      >
+                        <span
+                          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                            on ? "left-[22px]" : "left-0.5"
+                          }`}
+                        />
+                      </button>
+                    </li>
+                  );
+                })}
             </ul>
           </div>
         )}

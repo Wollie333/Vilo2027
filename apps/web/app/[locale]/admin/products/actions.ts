@@ -26,6 +26,17 @@ const upsertSchema = z.object({
     .nullable()
     .default(null),
   creditPurpose: z.string().trim().min(1).max(40).default("quote"),
+  // Only for membership/service: Wielo credits included each billing cycle.
+  // Persisted as the `wielo_credits_per_month` permission (the SSOT the grant
+  // engine reads) rather than products.credit_quantity, which now only covers
+  // one-off credit packages. null = unlimited, 0 = none.
+  creditsPerMonth: z
+    .number()
+    .int()
+    .min(0)
+    .max(1_000_000)
+    .nullable()
+    .default(null),
   price: z.number().min(0).max(10_000_000),
   currency: z.string().trim().min(3).max(3).default("ZAR"),
   billingCycle: z
@@ -138,12 +149,12 @@ export const upsertProductAction = withAdminAudit<
       setup_fee_label: d.setupFeeLabel ?? null,
       setup_fee_affiliate_type: d.setupFeeAffiliateType,
       setup_fee_affiliate_value: d.setupFeeAffiliateValue,
-      // Credit grant: a wielo_credits package grants on purchase; a subscription
-      // (membership/service) grants this many per billing cycle. Both read
-      // products.credit_quantity — only a once-off `product` never grants.
-      credit_quantity:
-        isCredits || isSubLike ? (d.creditQuantity ?? null) : null,
-      credit_purpose: isCredits || isSubLike ? d.creditPurpose : null,
+      // credit_quantity now covers ONE-OFF credit packages only — the amount a
+      // buyer's wallet is topped up by (grantCreditsForOrder). A subscription's
+      // recurring allowance is the `wielo_credits_per_month` permission written
+      // below, which is what grantSubscriptionCredits actually reads.
+      credit_quantity: isCredits ? (d.creditQuantity ?? null) : null,
+      credit_purpose: isCredits ? d.creditPurpose : null,
       bullets: d.bullets as never,
       slug,
       payment_methods: d.paymentMethods.length
@@ -168,6 +179,34 @@ export const upsertProductAction = withAdminAudit<
         .single();
       if (error) throw new Error(error.message);
       id = data.id;
+    }
+
+    // A subscription's monthly Wielo credits live in product_features, because
+    // that's the SSOT grantSubscriptionCredits resolves through. Written here so
+    // it can be set while CREATING the product — previously the only way in was
+    // the permissions list, which needs a saved product, so a new membership
+    // could not be given credits at all.
+    if (isSubLike) {
+      const qty = d.creditsPerMonth;
+      if (qty == null || qty <= 0) {
+        // 0 / blank = no allowance from this product; drop the row so the
+        // plan-level default can answer instead of a hard 0 overriding it.
+        await service
+          .from("product_features")
+          .delete()
+          .eq("product_id", id)
+          .eq("feature_key", "wielo_credits_per_month");
+      } else {
+        await service.from("product_features").upsert(
+          {
+            product_id: id,
+            feature_key: "wielo_credits_per_month",
+            is_enabled: true,
+            limit_value: qty,
+          },
+          { onConflict: "product_id,feature_key" },
+        );
+      }
     }
 
     revalidatePath("/admin/products");
