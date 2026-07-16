@@ -48,6 +48,17 @@ const nextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
+  async redirects() {
+    // Beta-signup landing → the external Google Form. Covers both the bare path
+    // and any locale-prefixed variant (e.g. /en/beta). 302 (permanent: false) so
+    // the target can be changed later without browsers caching it forever.
+    const BETA_FORM =
+      "https://docs.google.com/forms/d/e/1FAIpQLSc46bibCtWXcQi9ybg6oLAWO8DiSqWhNEALzJeXL-IrQ2lLLg/viewform?usp=sharing&ouid=101478690721282291997";
+    return [
+      { source: "/beta", destination: BETA_FORM, permanent: false },
+      { source: "/:locale/beta", destination: BETA_FORM, permanent: false },
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: SUPABASE_HOST ?? "**.supabase.co" },
