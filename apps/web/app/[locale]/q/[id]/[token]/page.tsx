@@ -65,7 +65,7 @@ export default async function PublicQuotePage({
     .select(
       `
       id, quote_number, status, accept_token, host_id, quote_type, title,
-      attachment_name,
+      attachment_name, brochure_path, brochure_name,
       guest_name, guest_email, guest_phone,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
@@ -246,6 +246,17 @@ export default async function PublicQuotePage({
             >
               Download the quote
               {quote.attachment_name ? ` · ${quote.attachment_name}` : ""}
+            </a>
+          ) : null}
+          {quote.brochure_path ? (
+            <a
+              href={`/q/${quote.id}/${quote.accept_token}/brochure`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-4 flex items-center justify-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+            >
+              Download brochure
+              {quote.brochure_name ? ` · ${quote.brochure_name}` : ""}
             </a>
           ) : null}
           {expired ? (

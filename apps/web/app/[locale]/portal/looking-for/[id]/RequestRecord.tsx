@@ -80,12 +80,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const QUOTE_STATUS_STYLES: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-600",
-  sent: "bg-blue-100 text-blue-700",
-  viewed: "bg-blue-100 text-blue-700",
-  accepted: "bg-green-100 text-green-700",
-  declined: "bg-red-100 text-red-700",
-  expired: "bg-amber-100 text-amber-700",
+  draft: "border-brand-line bg-brand-light text-brand-mute",
+  sent: "border-brand-accent bg-brand-accent/40 text-brand-secondary",
+  viewed: "border-brand-accent bg-brand-accent/40 text-brand-secondary",
+  accepted:
+    "border-status-confirmed/30 bg-status-confirmed/10 text-status-confirmed",
+  declined:
+    "border-status-cancelled/30 bg-status-cancelled/10 text-status-cancelled",
+  expired: "border-brand-line bg-brand-light text-brand-mute",
 };
 
 export function RequestRecord({
@@ -316,7 +318,7 @@ export function RequestRecord({
             responses.map((r) => (
               <div
                 key={r.id}
-                className="flex flex-col gap-4 rounded-card border border-brand-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-4 rounded-card border border-brand-line bg-white p-4 shadow-card transition hover:border-brand-primary/40 hover:shadow-lift sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
                   <InboxAvatar
@@ -360,14 +362,13 @@ export function RequestRecord({
                 <div className="flex items-center gap-4 sm:justify-end">
                   {r.quote && (
                     <div className="text-right">
-                      <p className="font-semibold text-brand-ink">
+                      <p className="font-display text-[15px] font-bold text-brand-ink">
                         {formatMoney(r.quote.totalAmount, r.quote.currency)}
                       </p>
                       <span
-                        className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${QUOTE_STATUS_STYLES[r.quote.status] ?? QUOTE_STATUS_STYLES.sent}`}
+                        className={`mt-0.5 inline-flex items-center rounded-pill border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${QUOTE_STATUS_STYLES[r.quote.status] ?? QUOTE_STATUS_STYLES.sent}`}
                       >
-                        {r.quote.status.charAt(0).toUpperCase() +
-                          r.quote.status.slice(1)}
+                        {r.quote.status}
                       </span>
                     </div>
                   )}

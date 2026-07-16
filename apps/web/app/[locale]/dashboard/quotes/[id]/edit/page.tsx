@@ -39,7 +39,7 @@ export default async function EditQuotePage({
   const { data: quote } = await supabase
     .from("quotes")
     .select(
-      "id, quote_type, title, property_id, status, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, price_mode, base_amount, cleaning_fee, notes, guests_breakdown, discount_type, discount_value, discount_reason, deposit_type, deposit_pct, balance_due_days, conversation_id, created_at",
+      "id, quote_type, title, property_id, status, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, price_mode, base_amount, cleaning_fee, notes, guests_breakdown, discount_type, discount_value, discount_reason, deposit_type, deposit_pct, balance_due_days, conversation_id, created_at, brochure_path, brochure_name",
     )
     .eq("id", params.id)
     .is("deleted_at", null)
@@ -222,6 +222,8 @@ export default async function EditQuotePage({
       | "custom"
       | "upload",
     title: quote.title ?? "",
+    brochurePath: quote.brochure_path ?? undefined,
+    brochureName: quote.brochure_name ?? undefined,
     listingId: quote.property_id,
     guestName: quote.guest_name ?? "",
     guestEmail: quote.guest_email ?? "",

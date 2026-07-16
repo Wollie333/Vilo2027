@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {
   ArrowLeft,
+  BookOpen,
   CheckCircle2,
   CreditCard,
   Download,
@@ -47,6 +48,7 @@ export default async function PortalQuotePage({
       `
       id, quote_number, status, guest_id, guest_email,
       guest_name, quote_type, title, attachment_name,
+      brochure_path, brochure_name,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until, conversation_id,
@@ -113,6 +115,11 @@ export default async function PortalQuotePage({
   const downloadLabel = isUploadQuote
     ? (quote.attachment_name ?? "Download quote")
     : "Download PDF";
+  // Optional host brochure attached to this quote — served token-gated, same as
+  // the upload file.
+  const brochureHref = quote.brochure_path
+    ? `/q/${quote.id}/${quote.accept_token}/brochure`
+    : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -133,15 +140,30 @@ export default async function PortalQuotePage({
         <p className="mt-2 text-sm text-brand-mute">
           Prepared for {quote.guest_name}
         </p>
-        <a
-          href={downloadHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
-        >
-          <Download className="h-3.5 w-3.5 shrink-0" />{" "}
-          <span className="truncate">{downloadLabel}</span>
-        </a>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <a
+            href={downloadHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex max-w-full items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+          >
+            <Download className="h-3.5 w-3.5 shrink-0" />{" "}
+            <span className="truncate">{downloadLabel}</span>
+          </a>
+          {brochureHref ? (
+            <a
+              href={brochureHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex max-w-full items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+            >
+              <BookOpen className="h-3.5 w-3.5 shrink-0" />{" "}
+              <span className="truncate">
+                {quote.brochure_name ?? "Download brochure"}
+              </span>
+            </a>
+          ) : null}
+        </div>
       </header>
 
       {!isCustomQuote ? (

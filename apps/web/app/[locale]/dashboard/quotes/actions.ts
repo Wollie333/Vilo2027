@@ -226,6 +226,95 @@ export async function uploadQuoteAttachmentAction(
   return { ok: true, data: { path, name: file.name || safeName } };
 }
 
+// ─── Host brochure (upload once, reuse across quotes) ────────────────────────
+// A host uploads a brochure ONCE; it's saved on their account
+// (host_business_details, next to the logo) and can be optionally attached to
+// any quote. Same private-bucket + signed-URL trust model as the quote upload.
+const BROCHURE_MAX_BYTES = 15 * 1024 * 1024; // 15 MB
+const BROCHURE_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+export async function uploadHostBrochureAction(
+  formData: FormData,
+): Promise<ActionResult<{ path: string; name: string }>> {
+  const host = await getHostId();
+  if (!host.ok) return host;
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "Choose a brochure to upload." };
+  }
+  if (file.size > BROCHURE_MAX_BYTES) {
+    return { ok: false, error: "Brochure too large — keep it under 15 MB." };
+  }
+  if (file.type && !BROCHURE_TYPES.has(file.type)) {
+    return { ok: false, error: "Upload a PDF or Word document." };
+  }
+
+  const safeName = (file.name || "brochure")
+    .replace(/[^\w.\- ]+/g, "_")
+    .slice(-120);
+  const path = `${host.hostId}/${crypto.randomUUID()}-${safeName}`;
+  const admin = createAdminClient();
+  const { error: upErr } = await admin.storage
+    .from("host-brochures")
+    .upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (upErr) {
+    console.error("[brochure] upload failed", upErr);
+    return { ok: false, error: "Could not upload the brochure. Try again." };
+  }
+
+  const name = file.name || safeName;
+  // Persist on the host row so it's reusable across every quote (account-level).
+  const { error: saveErr } = await admin
+    .from("hosts")
+    .update({ brochure_path: path, brochure_name: name })
+    .eq("id", host.hostId);
+  if (saveErr) {
+    console.error("[brochure] save failed", saveErr);
+    return {
+      ok: false,
+      error: "Uploaded, but couldn't save it to your account.",
+    };
+  }
+  return { ok: true, data: { path, name } };
+}
+
+// The host's saved brochure (for the quote form's "attach" toggle). Null = none.
+export async function getHostBrochureAction(): Promise<
+  ActionResult<{ path: string; name: string } | null>
+> {
+  const host = await getHostId();
+  if (!host.ok) return host;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("hosts")
+    .select("brochure_path, brochure_name")
+    .eq("id", host.hostId)
+    .maybeSingle();
+  if (!data?.brochure_path) return { ok: true, data: null };
+  return {
+    ok: true,
+    data: { path: data.brochure_path, name: data.brochure_name ?? "Brochure" },
+  };
+}
+
+// Remove the saved brochure from the account (keeps any already-sent quote's
+// snapshot intact).
+export async function removeHostBrochureAction(): Promise<ActionResult> {
+  const host = await getHostId();
+  if (!host.ok) return host;
+  const admin = createAdminClient();
+  await admin
+    .from("hosts")
+    .update({ brochure_path: null, brochure_name: null })
+    .eq("id", host.hostId);
+  return { ok: true };
+}
+
 export async function createQuoteAction(
   input: CreateQuoteInput,
 ): Promise<ActionResult<{ id: string; quoteNumber: string }>> {
@@ -385,6 +474,8 @@ export async function createQuoteAction(
       policy_snapshot: policySnapshot,
       guests_breakdown: parsed.data.guests_breakdown ?? null,
       looking_for_post_id: parsed.data.looking_for_post_id ?? null,
+      brochure_path: parsed.data.brochure_path || null,
+      brochure_name: parsed.data.brochure_name || null,
       status: "draft",
     })
     .select("id, quote_number")
@@ -555,6 +646,8 @@ export async function updateQuoteAction(
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
       guests_breakdown: parsed.data.guests_breakdown ?? null,
+      brochure_path: parsed.data.brochure_path || null,
+      brochure_name: parsed.data.brochure_name || null,
       // Bump the live version when we snapshotted the prior one.
       version:
         current.status === "sent"

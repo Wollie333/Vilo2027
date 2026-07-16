@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-16 — Founder batch: reset-password UX · confirm-email-on-reset · quote-card redesign · host brochure · /beta redirect.
+
+- **Reset-password UX.** Each password field on `/reset-password` gets a show/hide eye toggle, and a live
+  "Passwords match ✓ / don't match ✗" indicator under the confirm field. Verified live (reveal + red→green flip).
+- **Setting/resetting a password confirms the email.** Completing a reset (`resetPasswordAction`) or setting a
+  password from a claim link (`claim/actions.ts`) stamps `user_profiles.email_verified_at` via `markEmailVerified`
+  — the emailed link already proves inbox ownership. Best-effort.
+- **Looking-For quote cards redesigned.** The host "My Quotes Sent" card (`dashboard/looking-for/my-quotes`) now
+  shows the price (was fetched but never rendered), is clickable through to the quote, and uses design-system status
+  pills + shadow/hover. Fixed a latent embed bug where the quote came back as an array. The guest "Quotes" cards
+  (`RequestRecord`) adopt the same design-system status pills + hover. Fixed the compare view's broken avatar
+  (`logo_url` → `avatar_url`). Verified live (host card shows R 65 000 + arrow).
+- **Host brochure — upload once, reuse on any quote.** A host uploads a brochure PDF/Word ONCE (saved on their
+  account, private `host-brochures` bucket) and optionally attaches it to a quote with a checkbox on the quote form.
+  The guest viewing the quote gets a "Download brochure" button next to "Download PDF" (both the in-portal and the
+  emailed token page). Snapshot on the quote (`brochure_path`/`brochure_name`) keeps the guest download token-gated
+  and self-contained. Migration `20260716160000`. Verified end-to-end: upload → account save → attach toggle → guest
+  download (signed-URL redirect).
+- **/beta redirect** → the beta-signup Google Form (`next.config.mjs`, shipped separately as an emergency).
+
 ## 2026-07-16 — Founder batch: quote-404 fix · password-reset honesty + history · product quantity cap · alerts refinement · admin affiliate copy-link.
 
 - **Guest quote 404 / broken layout fixed.** The Messages-tab / inbox quote card sent a signed-in guest to the

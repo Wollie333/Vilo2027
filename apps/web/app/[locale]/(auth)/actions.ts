@@ -7,7 +7,10 @@ import { isBreachedPassword } from "@/lib/auth/password";
 import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
 import { resolvePostAuthDestination } from "@/lib/auth/postAuth";
 import { safeNextPath } from "@/lib/auth/safeNext";
-import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
+import {
+  markEmailVerified,
+  sendVerificationEmail,
+} from "@/lib/auth/verifyEmail";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -221,6 +224,12 @@ export async function resetPasswordAction(
   if (error) {
     return { ok: false, error: friendlyAuthError(error.message) };
   }
+
+  // Completing a reset via the emailed recovery link PROVES the user owns the
+  // inbox — so confirm their email at the same time (app-level truth is
+  // user_profiles.email_verified_at; GoTrue auto-confirms, so it can't prove it).
+  // Best-effort — never block the reset on this.
+  await markEmailVerified(user.id);
 
   // Record the reset on the user's History timeline (admin user record reads
   // admin_audit_log for target_id = this user). Actor is the user themselves.

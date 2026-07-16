@@ -47,6 +47,11 @@ export const quoteOrBookingBaseSchema = z
     attachment_path: z.string().max(500).optional().or(z.literal("")),
     attachment_name: z.string().max(200).optional().or(z.literal("")),
 
+    // Optional host brochure attached to THIS quote (path in host-brochures).
+    // Empty = not attached. Applies to any quote_type.
+    brochure_path: z.string().max(500).optional().or(z.literal("")),
+    brochure_name: z.string().max(200).optional().or(z.literal("")),
+
     guest_name: z.string().trim().min(1, "Guest name is required.").max(200),
     guest_email: z.string().trim().email("Must be a valid email."),
     guest_phone: z.string().trim().max(40).optional().or(z.literal("")),

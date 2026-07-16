@@ -1,6 +1,17 @@
 import { redirect } from "next/navigation";
-import { SendHorizonal, Clock, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Banknote,
+  Calendar,
+  Clock,
+  Eye,
+  MapPin,
+  SendHorizonal,
+  Zap,
+} from "lucide-react";
 
+import { Link } from "@/i18n/navigation";
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { LookingForLocked } from "../_components/LookingForLocked";
@@ -97,34 +108,95 @@ export default async function MyQuotesSentPage() {
       ) : (
         <div className="space-y-3">
           {responses.map((response) => {
-            const post = response.post as unknown as { title: string } | null;
-            return (
-              <div
+            const post = response.post as unknown as {
+              title: string;
+              location_text: string | null;
+              check_in_date: string | null;
+              check_out_date: string | null;
+            } | null;
+            // Supabase can return an embedded to-one as an array — normalise.
+            const quoteRaw = response.quote as unknown;
+            const quote = (
+              Array.isArray(quoteRaw) ? quoteRaw[0] : quoteRaw
+            ) as {
+              id: string;
+              total_amount: number | null;
+              currency: string | null;
+            } | null;
+            const sent = new Date(response.sent_at).toLocaleDateString(
+              "en-ZA",
+              {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              },
+            );
+            const dates =
+              post?.check_in_date && post?.check_out_date
+                ? `${fmtShort(post.check_in_date)} – ${fmtShort(post.check_out_date)}`
+                : null;
+
+            const Body = (
+              <>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate font-display text-[15px] font-semibold text-brand-ink">
+                      {post?.title ?? "Unknown request"}
+                    </h3>
+                    <StatusBadge status={response.status} />
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-brand-mute">
+                    {post?.location_text ? (
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{post.location_text}</span>
+                      </span>
+                    ) : null}
+                    {dates ? (
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 shrink-0" />
+                        {dates}
+                      </span>
+                    ) : null}
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      Sent {sent}
+                    </span>
+                    {response.viewed_at ? (
+                      <span className="flex items-center gap-1.5 text-brand-primary">
+                        <Eye className="h-3.5 w-3.5 shrink-0" />
+                        Seen
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  {quote?.total_amount != null ? (
+                    <span className="flex items-center gap-1.5 font-display text-[15px] font-bold text-brand-ink">
+                      <Banknote className="h-4 w-4 text-brand-mute" />
+                      {formatMoney(quote.total_amount, quote.currency ?? "ZAR")}
+                    </span>
+                  ) : null}
+                  {quote?.id ? (
+                    <ArrowRight className="h-4 w-4 text-brand-mute" />
+                  ) : null}
+                </div>
+              </>
+            );
+
+            const cls =
+              "flex items-center justify-between gap-4 rounded-card border border-brand-line bg-white p-4 shadow-card transition";
+            return quote?.id ? (
+              <Link
                 key={response.id}
-                className="flex items-center justify-between rounded-card border border-brand-line bg-white p-4"
+                href={`/dashboard/quotes/${quote.id}`}
+                className={`${cls} hover:border-brand-primary/40 hover:shadow-lift`}
               >
-                <div>
-                  <h3 className="font-medium text-brand-ink">
-                    {post?.title ?? "Unknown request"}
-                  </h3>
-                  <p className="text-sm text-brand-mute">
-                    Sent{" "}
-                    {new Date(response.sent_at).toLocaleDateString("en-ZA", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <StatusBadge status={response.status} />
-                  {response.viewed_at && (
-                    <p className="mt-1 text-xs text-brand-mute">
-                      Viewed{" "}
-                      {new Date(response.viewed_at).toLocaleDateString("en-ZA")}
-                    </p>
-                  )}
-                </div>
+                {Body}
+              </Link>
+            ) : (
+              <div key={response.id} className={cls}>
+                {Body}
               </div>
             );
           })}
@@ -256,20 +328,29 @@ function formatResponseTime(hours: number): string {
   return `${days}d`;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    sent: "bg-gray-100 text-gray-700",
-    viewed: "bg-blue-100 text-blue-700",
-    accepted: "bg-green-100 text-green-700",
-    declined: "bg-red-100 text-red-700",
-    expired: "bg-amber-100 text-amber-700",
-  };
+function fmtShort(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+  });
+}
 
+function StatusBadge({ status }: { status: string }) {
+  // Design-system status tokens (matches the guest quote list + thread card).
+  const styles: Record<string, string> = {
+    sent: "border-brand-line bg-brand-light text-brand-mute",
+    viewed: "border-brand-accent bg-brand-accent/40 text-brand-secondary",
+    accepted:
+      "border-status-confirmed/30 bg-status-confirmed/10 text-status-confirmed",
+    declined:
+      "border-status-cancelled/30 bg-status-cancelled/10 text-status-cancelled",
+    expired: "border-brand-line bg-brand-light text-brand-mute",
+  };
   return (
     <span
-      className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${styles[status] ?? styles.sent}`}
+      className={`inline-flex shrink-0 items-center rounded-pill border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${styles[status] ?? styles.sent}`}
     >
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {status}
     </span>
   );
 }

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 
+import { markEmailVerified } from "@/lib/auth/verifyEmail";
 import { createServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -46,6 +47,10 @@ export async function claimGuestAccountAction(input: {
     .from("user_profiles")
     .update({ is_lead: false })
     .eq("id", user.id);
+
+  // Setting a password from the emailed sign-in link proves inbox ownership —
+  // confirm their email too (best-effort). See resetPasswordAction.
+  await markEmailVerified(user.id);
 
   return { ok: true };
 }

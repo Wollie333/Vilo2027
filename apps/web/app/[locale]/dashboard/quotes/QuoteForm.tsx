@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   Clock,
   Eye,
+  FileText,
   ListPlus,
   Lock,
   Paperclip,
@@ -51,9 +52,11 @@ import { QuoteCalendar } from "./QuoteCalendar";
 import {
   createQuoteAction,
   priceQuoteAction,
+  getHostBrochureAction,
   searchGuestsAction,
   sendQuoteAction,
   updateQuoteAction,
+  uploadHostBrochureAction,
   uploadQuoteAttachmentAction,
 } from "./actions";
 
@@ -115,6 +118,9 @@ export type QuoteFormInitial = {
   /** Uploaded-quote file (quote_type = 'upload'). */
   attachmentPath?: string;
   attachmentName?: string;
+  /** Host brochure attached to this quote (any quote_type). */
+  brochurePath?: string;
+  brochureName?: string;
   listingId?: string;
   guestName?: string;
   guestEmail?: string;
@@ -268,6 +274,38 @@ export function QuoteForm({
       : null,
   );
   const [uploading, setUploading] = useState(false);
+
+  // Host brochure — uploaded ONCE to the account, then optionally attached to any
+  // quote so the guest can download it alongside the quote PDF. `brochure` is the
+  // saved account brochure; `attachBrochure` is whether THIS quote includes it.
+  const [brochure, setBrochure] = useState<{
+    path: string;
+    name: string;
+  } | null>(
+    initial?.brochurePath
+      ? { path: initial.brochurePath, name: initial.brochureName ?? "Brochure" }
+      : null,
+  );
+  const [attachBrochure, setAttachBrochure] = useState(
+    Boolean(initial?.brochurePath),
+  );
+  const [brochureUploading, setBrochureUploading] = useState(false);
+
+  // Load the host's saved brochure once, so an existing brochure is offered even
+  // on a brand-new quote (default it ON — the host uploaded it to be shared).
+  useEffect(() => {
+    let cancelled = false;
+    void getHostBrochureAction().then((r) => {
+      if (cancelled || !r.ok || !r.data) return;
+      const loaded = r.data;
+      setBrochure((prev) => prev ?? loaded);
+      if (!initial?.id) setAttachBrochure(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [listingId, setListingId] = useState(
     initial?.listingId ?? listings[0]?.id ?? "",
@@ -771,6 +809,33 @@ export function QuoteForm({
     }
   }
 
+  async function handleBrochureUpload(file: File) {
+    setBrochureUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await uploadHostBrochureAction(fd);
+      if (!r.ok || !r.data) {
+        toast.error(r.ok ? "Upload failed." : r.error);
+        return;
+      }
+      setBrochure(r.data);
+      setAttachBrochure(true);
+      toast.success("Brochure saved to your account");
+    } finally {
+      setBrochureUploading(false);
+    }
+  }
+
+  // Attach the saved brochure to this quote only when the host opted in.
+  function brochureFields() {
+    const on = attachBrochure && brochure;
+    return {
+      brochure_path: on ? brochure.path : "",
+      brochure_name: on ? brochure.name : "",
+    };
+  }
+
   function buildInput() {
     if (priceMode === "single") {
       return {
@@ -778,6 +843,7 @@ export function QuoteForm({
         title: isCustomQuote ? customTitle.trim() : undefined,
         attachment_path: isUploadQuote ? (attachment?.path ?? "") : undefined,
         attachment_name: isUploadQuote ? (attachment?.name ?? "") : undefined,
+        ...brochureFields(),
         property_id: isCustomQuote ? undefined : listingId,
         guest_name: guestName.trim(),
         guest_email: guestEmail.trim(),
@@ -840,6 +906,7 @@ export function QuoteForm({
     return {
       quote_type: quoteType,
       title: isCustomQuote ? customTitle.trim() : undefined,
+      ...brochureFields(),
       property_id: isCustomQuote ? undefined : listingId,
       guest_name: guestName.trim(),
       guest_email: guestEmail.trim(),
@@ -2426,6 +2493,72 @@ export function QuoteForm({
                   + Directions
                 </Pill>
               </div>
+            </div>
+
+            {/* Host brochure — upload ONCE, reuse on any quote. The guest can
+                download it alongside the quote. */}
+            <div className="mt-5 rounded-[12px] border border-brand-line bg-brand-light/20 p-4">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <FileText className="h-4 w-4 text-brand-primary" />
+                <span className="text-sm font-semibold text-brand-ink">
+                  Brochure
+                </span>
+                <span className="text-[11px] text-brand-mute">
+                  optional · guests can download it with your quote
+                </span>
+              </div>
+
+              {brochure ? (
+                <div className="mt-3 space-y-2">
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm text-brand-ink">
+                    <input
+                      type="checkbox"
+                      checked={attachBrochure}
+                      onChange={(e) => setAttachBrochure(e.target.checked)}
+                      className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary/30"
+                    />
+                    <span>
+                      Include{" "}
+                      <span className="font-medium">{brochure.name}</span>
+                    </span>
+                  </label>
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-medium text-brand-mute transition hover:text-brand-ink">
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,application/pdf"
+                      className="hidden"
+                      disabled={brochureUploading}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void handleBrochureUpload(f);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Paperclip className="h-3.5 w-3.5" />
+                    {brochureUploading ? "Uploading…" : "Replace brochure"}
+                  </label>
+                </div>
+              ) : (
+                <label className="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-brand-ink transition hover:bg-brand-light">
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf"
+                    className="hidden"
+                    disabled={brochureUploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void handleBrochureUpload(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Paperclip className="h-4 w-4" />
+                  {brochureUploading ? "Uploading…" : "Upload a brochure"}
+                </label>
+              )}
+              <p className="mt-2 text-[11px] leading-relaxed text-brand-mute">
+                Saved to your account — upload once, reuse on every quote. PDF
+                or Word, up to 15 MB.
+              </p>
             </div>
           </section>
         </>

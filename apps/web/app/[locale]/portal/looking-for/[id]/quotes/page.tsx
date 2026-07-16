@@ -197,7 +197,7 @@ export default async function CompareQuotesPage({ params }: Props) {
             const host = response.host as unknown as {
               id: string;
               display_name: string;
-              logo_url: string | null;
+              avatar_url: string | null;
               bio: string | null;
             } | null;
             const quote = response.quote as unknown as {
@@ -227,10 +227,10 @@ export default async function CompareQuotesPage({ params }: Props) {
                 <div className="border-b border-brand-line p-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-light font-medium text-brand-mute">
-                      {host?.logo_url ? (
+                      {host?.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={host.logo_url}
+                          src={host.avatar_url}
                           alt={host.display_name}
                           className="h-full w-full rounded-full object-cover"
                         />

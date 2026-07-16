@@ -4106,6 +4106,8 @@ export type Database = {
           avg_rating: number | null
           avg_response_hours: number | null
           bio: string | null
+          brochure_name: string | null
+          brochure_path: string | null
           cover_photo_url: string | null
           created_at: string
           default_currency: string
@@ -4137,6 +4139,8 @@ export type Database = {
           avg_rating?: number | null
           avg_response_hours?: number | null
           bio?: string | null
+          brochure_name?: string | null
+          brochure_path?: string | null
           cover_photo_url?: string | null
           created_at?: string
           default_currency?: string
@@ -4168,6 +4172,8 @@ export type Database = {
           avg_rating?: number | null
           avg_response_hours?: number | null
           bio?: string | null
+          brochure_name?: string | null
+          brochure_path?: string | null
           cover_photo_url?: string | null
           created_at?: string
           default_currency?: string
@@ -8218,6 +8224,8 @@ export type Database = {
           balance_amount: number
           balance_due_days: number
           base_amount: number
+          brochure_name: string | null
+          brochure_path: string | null
           check_in: string | null
           check_out: string | null
           cleaning_fee: number
@@ -8271,6 +8279,8 @@ export type Database = {
           balance_amount?: number
           balance_due_days?: number
           base_amount: number
+          brochure_name?: string | null
+          brochure_path?: string | null
           check_in?: string | null
           check_out?: string | null
           cleaning_fee?: number
@@ -8324,6 +8334,8 @@ export type Database = {
           balance_amount?: number
           balance_due_days?: number
           base_amount?: number
+          brochure_name?: string | null
+          brochure_path?: string | null
           check_in?: string | null
           check_out?: string | null
           cleaning_fee?: number
