@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-07-16 — Looking-For credit allowances, Phase 2: the grant engine.
+
+- **`grantSubscriptionCredits` now grants per purpose from the resolved allowance** instead of
+  `products.credit_quantity` (founder-confirmed): it loops `ALLOWANCE_FEATURE_BY_PURPOSE`
+  (`quote` ← `looking_for_quote_responses_per_month`, `quote_request` ←
+  `looking_for_quote_requests_per_month`) and tops each wallet up per billing period.
+  `credit_quantity`/`credit_purpose` now applies **only** to one-off `wielo_credits` package products
+  via `grantCreditsForOrder` — untouched. It could only ever express one purpose per product, which is
+  exactly why it couldn't serve an ask for two allowances on one plan.
+- **`resolveFeatureLimit(client, hostId, key)`** split out of `hostFeatureLimit`: the grant runs from
+  webhooks / settle paths / admin actions with a service-role client and **no user session**, where the
+  cookie-based server client isn't usable. `check_feature_permission` is SECURITY DEFINER so any client
+  resolves the same answer.
+- 🔴 **Caught a silent, catastrophic bug before it shipped.** `apply_wielo_credit`'s idempotency
+  predicate is `(host_id, ref_type, ref_id, kind)` — it does **not** include `purpose`. Granting two
+  purposes under one ref makes the **second a silent no-op**. Proven on live in a `ROLLBACK`: with a
+  shared ref the `quote_request` wallet was not merely under-funded, it was **never created** — so every
+  host would have resolved to 0 leads and every lead would have locked, with no error anywhere. Fixed by
+  encoding the purpose in `ref_id` (`{productId}:{periodKey}:{purpose}`) rather than altering a shared
+  money RPC (AGENT_RULES §4.7). Documented in the plan doc for anyone adding a third purpose.
+- **Decisions taken:** `null` limit (unlimited) → grant nothing, and the Phase 3 spend path must bypass
+  metering (a 0 wallet would otherwise read as "blocked"). Credits **accumulate rather than reset** —
+  pre-existing engine behaviour, and the only safe option while one wallet holds both the plan allowance
+  and purchased top-ups, since a reset would destroy paid credits; unused allowance therefore rolls over
+  (⚠️ founder to confirm). `overrideQty` applies to the `quote` purpose only, matching its historical
+  meaning.
+- **Verified end-to-end through the real code path**, not just typecheck: switched the test host to
+  Starter via the admin "Change membership → Activate without charging" flow. Two grants landed with
+  purpose-suffixed refs and **both wallets funded** — `quote` 60 → 260, and `quote_request` **created at
+  200** (it did not exist before). Test host's subscriptions then restored to the exact pre-switch
+  snapshot (Starter row removed, Beta reinstated); the granted test credits were left in place (harmless,
+  and useful for Phase 3 unlock testing). Build + lint green.
+- ⚠️ **Landmine #1 demonstrated on live, not theorised.** After switching to Starter (plan `pro` = **50**),
+  the host still resolved **200** — because a stale, product-less `business` subscription row
+  (`0b111111-…-aa`) is still `active` and `check_feature_permission` takes `max(limit_value)` across every
+  active sub. That's a host getting **4× their entitlement** from a row nobody retired. On a paid meter,
+  duplicate subscriptions are free inventory. Reinforces the backlog's "prune duplicate active
+  subscription row" — it now has teeth.
+
+---
+
 ## 2026-07-16 — Looking-For credit allowances, Phase 1 (migration `20260716190000`).
 
 Founder ask: admin sets how many quote **requests** (leads) a host gets per month and how many **responses** they may

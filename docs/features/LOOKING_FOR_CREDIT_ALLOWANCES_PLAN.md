@@ -141,9 +141,28 @@ of the allowance.
 
 1. **Schema** — the two tables above + `resolve_credit_allowance` RPC + seed plan
    defaults for both purposes. Validate in `BEGIN; … ROLLBACK;` on live first.
-2. **Grant engine** — extend `grantSubscriptionCredits` to grant *per purpose*
-   from the resolved allowance (not just `products.credit_quantity`, which only
-   carries one purpose per product). Idempotent per (host, purpose, period).
+2. ✅ **Grant engine — DONE.** `grantSubscriptionCredits` now loops
+   `ALLOWANCE_FEATURE_BY_PURPOSE` and grants each purpose from the resolved
+   allowance. `resolveFeatureLimit(client, …)` split out of `hostFeatureLimit`
+   because the grant runs from webhooks/settle/admin with a service-role client
+   and no user session.
+
+   🔴 **`apply_wielo_credit`'s idempotency key does NOT include `purpose`** —
+   it is `(host_id, ref_type, ref_id, kind)`. Granting two purposes under one
+   ref makes the **second a silent no-op**: proven on live in a ROLLBACK — the
+   `quote_request` wallet was not merely under-funded, it was **never created**.
+   Every host would have had 0 leads and every lead would have locked, silently.
+   Mitigated by encoding the purpose in `ref_id`
+   (`{productId}:{periodKey}:{purpose}`) rather than altering a shared money RPC.
+   **Anything adding a second purpose must do the same.**
+
+   Decisions taken here: `null` limit (unlimited) → grant nothing, and the spend
+   path must bypass metering (a 0 wallet would read as "blocked"). Credits
+   **accumulate, not reset** — pre-existing engine behaviour, and the only safe
+   option while one wallet holds both the plan allowance and purchased top-ups
+   (a reset would destroy paid credits), so unused allowance rolls over —
+   **founder to confirm**. `overrideQty` applies to the `quote` purpose only,
+   matching its historical meaning.
 
    ⚠️ **Two competing sources of "credits per cycle" — must be resolved here.**
    The product editor already exposes **"Credit grant (per cycle)"**

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { cache } from "react";
 
 import { createServerClient } from "@/lib/supabase/server";
@@ -54,6 +55,34 @@ export type FeatureLimit = {
 };
 
 /**
+ * Core limit resolution against an explicit client.
+ *
+ * Split out from `hostFeatureLimit` because the credit-grant path runs from
+ * webhooks / settle paths / admin actions with a service-role client and NO user
+ * session, where the cookie-based server client isn't usable.
+ * `check_feature_permission` is SECURITY DEFINER, so any client resolves the same
+ * answer.
+ */
+export async function resolveFeatureLimit(
+  client: SupabaseClient,
+  hostId: string,
+  featureKey: string,
+): Promise<FeatureLimit> {
+  const { data, error } = await client.rpc("check_feature_permission", {
+    p_host_id: hostId,
+    p_feature_key: featureKey,
+  });
+  if (error) {
+    // Fail closed, and say which layer we believe answered, so a caller that
+    // logs this can tell a real 0 from an errored 0.
+    return { limit: 0, source: "error" };
+  }
+  const perm = (data ?? null) as FeaturePermission | null;
+  if (!perm?.is_enabled) return { limit: 0, source: perm?.source ?? "default" };
+  return { limit: perm.limit_value ?? null, source: perm.source ?? "default" };
+}
+
+/**
  * SSOT reader for a host's NUMERIC allowance on a quantity feature (one with
  * `scope: "total"` / `"per_business"` in the canonical catalog).
  *
@@ -81,20 +110,5 @@ export const hostFeatureLimit = cache(async function hostFeatureLimit(
   hostId: string,
   featureKey: string,
 ): Promise<FeatureLimit> {
-  const supabase = createServerClient();
-  const { data, error } = await supabase.rpc("check_feature_permission", {
-    p_host_id: hostId,
-    p_feature_key: featureKey,
-  });
-  if (error) {
-    // Fail closed, and say which layer we believe answered, so a caller that
-    // logs this can tell a real 0 from an errored 0.
-    return { limit: 0, source: "error" };
-  }
-  const perm = (data ?? null) as FeaturePermission | null;
-  if (!perm?.is_enabled) return { limit: 0, source: perm?.source ?? "default" };
-  return {
-    limit: perm.limit_value ?? null,
-    source: perm.source ?? "default",
-  };
+  return resolveFeatureLimit(createServerClient(), hostId, featureKey);
 });

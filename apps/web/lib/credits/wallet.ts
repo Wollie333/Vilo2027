@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { resolveFeatureLimit } from "@/lib/products/featureGate";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Wielo Credits engine — the platform metering layer. A per-host wallet keyed by
@@ -14,6 +15,30 @@ export type CreditPurpose = "quote" | "ai" | (string & {});
 // Credits a host spends to send one Looking-For quote. Founder: 1 per quote,
 // refunded if the quote expires unaccepted (the refund is a DB trigger).
 export const LOOKING_FOR_QUOTE_CREDIT_COST = 1;
+
+// Credits a host spends to unlock ONE Looking-For lead (see the unlock ledger,
+// `looking_for_post_unlocks`). Separate wallet from the send-side cost so the
+// founder can price leads and replies independently.
+export const LOOKING_FOR_LEAD_CREDIT_COST = 1;
+
+/**
+ * Which feature limit funds each wallet purpose per billing period — the SSOT
+ * for subscription grants (founder-confirmed 2026-07-16).
+ *
+ * `products.credit_quantity` / `credit_purpose` used to drive this, but it can
+ * only express ONE purpose per product, which is exactly why it can't serve an
+ * ask for two independent allowances on one plan. It now applies ONLY to one-off
+ * `wielo_credits` package products (see `grantCreditsForOrder`), which is a
+ * different path and unaffected.
+ *
+ * Admins set these numbers on the screens that already exist: per product in the
+ * product editor, per host in /admin/platform/features. See
+ * docs/features/LOOKING_FOR_CREDIT_ALLOWANCES_PLAN.md
+ */
+export const ALLOWANCE_FEATURE_BY_PURPOSE: Record<string, string> = {
+  quote: "looking_for_quote_responses_per_month",
+  quote_request: "looking_for_quote_requests_per_month",
+};
 
 export type CreditWallet = {
   purpose: string;
@@ -218,14 +243,24 @@ export async function spendQuoteCredit(
 }
 
 /**
- * Grant the recurring credit allotment a subscription product includes, for the
- * current billing period. Idempotent per (product, period start) so activation +
- * each renewal grants exactly once. No-op unless the product carries a
- * credit_quantity. Best-effort — never throws into the settle path.
+ * Top the host's wallets up to their monthly allowance for the billing period —
+ * one grant per purpose in `ALLOWANCE_FEATURE_BY_PURPOSE`, resolved through the
+ * entitlement chain (host override → product → plan → default). Idempotent per
+ * (product, period, purpose), so activation + every renewal grants exactly once.
+ * Best-effort — never throws into the settle path.
  *
- * `overrideQty` (admin activation only): grant THIS many credits for the period
- * instead of the product default — lets an admin set a custom allotment when
- * activating a subscription for a user. Idempotent on the same (product, period).
+ * A `null` limit means UNLIMITED, which a counting wallet cannot represent: we
+ * grant nothing and the spend path must bypass metering for that purpose instead
+ * (a wallet of 0 would otherwise read as "blocked" for an unlimited host).
+ *
+ * Credits ACCUMULATE rather than reset each period — that is the pre-existing
+ * engine behaviour and it is also the only safe option while one wallet holds
+ * both the plan allowance and purchased top-ups: a reset would destroy credits
+ * the host paid for. So an unused allowance rolls over. Flagged for the founder.
+ *
+ * `overrideQty` (admin activation only) overrides the **quote** (reply) allotment
+ * for this activation, matching its historical meaning — the old code granted a
+ * single product-level quantity whose purpose defaulted to 'quote'.
  */
 export async function grantSubscriptionCredits(
   admin: Client,
@@ -239,29 +274,47 @@ export async function grantSubscriptionCredits(
   try {
     const { data: product } = await admin
       .from("products")
-      .select("credit_quantity, credit_purpose, name")
+      .select("name")
       .eq("id", input.productId)
       .maybeSingle();
-    const qty =
-      input.overrideQty != null
-        ? Number(input.overrideQty)
-        : Number(product?.credit_quantity ?? 0);
-    if (qty <= 0) return;
+
     // One grant per billing period — the period start makes the ref unique per
     // cycle so renewals top up again.
     const periodKey = input.periodStart.slice(0, 10);
-    await applyCredit(
-      {
-        hostId: input.hostId,
-        purpose: (product?.credit_purpose as string) || "quote",
-        delta: qty,
-        kind: "grant",
-        reason: `Plan credits · ${product?.name ?? "subscription"}`,
-        refType: "subscription",
-        refId: `${input.productId}:${periodKey}`,
-      },
-      admin,
-    );
+
+    for (const [purpose, featureKey] of Object.entries(
+      ALLOWANCE_FEATURE_BY_PURPOSE,
+    )) {
+      const { limit } = await resolveFeatureLimit(
+        admin,
+        input.hostId,
+        featureKey,
+      );
+      if (limit === null) continue; // unlimited → nothing to meter
+
+      const qty =
+        purpose === "quote" && input.overrideQty != null
+          ? Number(input.overrideQty)
+          : limit;
+      if (qty <= 0) continue;
+
+      await applyCredit(
+        {
+          hostId: input.hostId,
+          purpose,
+          delta: qty,
+          kind: "grant",
+          reason: `Plan credits · ${product?.name ?? "subscription"}`,
+          refType: "subscription",
+          // The purpose MUST be in the ref: apply_wielo_credit's idempotency
+          // predicate is (host_id, ref_type, ref_id, kind) and does NOT include
+          // purpose — so sharing a ref across purposes would make the second
+          // grant a silent no-op and that wallet would never be funded.
+          refId: `${input.productId}:${periodKey}:${purpose}`,
+        },
+        admin,
+      );
+    }
   } catch (err) {
     console.error("[credits] grantSubscriptionCredits failed", err);
   }
