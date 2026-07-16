@@ -2,6 +2,55 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## 🟢🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16 pt5) — REMAINING-FIXES BATCH (1 item left + 1 ops check)
+
+**Repo clean + pushed at `fc220c11`. Green: `pnpm build` + `pnpm lint` (web).** Full detail in memory
+`project-founder-remaining-fixes-jul16` + the CHANGELOG top 3 entries. Emails now deliver (founder set
+`RESEND_API_KEY` in Vercel — NOT in local `apps/web/.env.local`, so local dev can't test real delivery).
+
+### ✅ DONE + verified live this arc (all pushed)
+- **Geo-radius alert matching** (`9151b525`) — LF search radius now gates host alerts: a host is only notified
+  if one of their PUBLISHED properties is within the guest's pinned radius (haversine). `lib/looking-for/matchAlerts.ts`
+  + geo fields plumbed through create/update callers. Verified: 20km host notified, 1256km host excluded.
+- **Add-on refundability G7** (`9151b525`) — `addons.is_refundable` (migration `20260716170000`); non-refundable
+  add-ons retained FIRST on cancel (`policyRefundFor` = `max(0, policyRefund − nonRefundableRetained)`); editor
+  toggle + cancel-dialog retained line. Verified.
+- **Admin credit grant → user notification** (`fc220c11`) — new `credits_added_admin` event (in-app+push);
+  `adjustUserCreditsAction` dispatches on a positive delta. Verified: user got "Wielo added 10 credits … balance 60".
+- **Booking-confirmation email fix** (`fc220c11`) — guests paying their OWN card/PayPal got no confirmation email
+  (`lib/payments/pay-booking.ts` settle = authoritative, no webhook); both paths now dispatch `booking_confirmed_guest`.
+- **Reset-password UX + email-confirm + quote-card redesign + HOST BROCHURE + `/beta` redirect** (`5c6da056`,
+  `e4b72176`) — see memory `project-founder-batch-jul16-part4`.
+
+### 🔧 FIX THESE IN THE NEW SESSION
+1. **Reporting extras (item 3 — NOT started).** Host add-ons/coupons/credits metrics · admin retention + GMV-trend
+   charts · `p_region` on the report RPCs. It's a big multi-part feature: host RPCs are called in
+   `app/[locale]/dashboard/reports/page.tsx` + `_actions/generateFullReportAction.ts` (fetch_primary_kpis,
+   fetch_secondary_metrics, fetch_revenue_trend, fetch_channel_mix, fetch_conversion_funnel, fetch_looking_for_stats,
+   …); admin in `app/[locale]/admin/reporting/`. Region filter partly exists (`20260716120000_analytics_region_filter`).
+   Approach: add metrics as new RPCs OR compute in TS (booking_addons / coupon usage / credit ledger) + new report
+   components; DB-fn edits = dump `pg_get_functiondef` → modify → validate in `BEGIN;…ROLLBACK;` → `db push`.
+2. **OPS (founder — confirm in prod, not code):** the email QUEUE drains via pg_cron `drain-email-queue` →
+   `POST /api/email-worker`, which reads `email_worker_url` + `email_worker_secret` from **Supabase Vault** (must
+   match Vercel `EMAIL_WORKER_SECRET`). If unset, queued emails (alerts, quotes, booking confirmations) silently never
+   send even with the Resend key. Password-reset sends DIRECTLY so it's unaffected. Confirm the Vault secrets exist.
+
+### GOTCHAs / test context
+- **Login** (no real password flow): `POST $SB/auth/v1/admin/generate_link` (service-role, from `apps/web/.env.local`)
+  → `/auth/confirm?token_hash=…&type=magiclink&next=…`. Test accounts: super-admin/guest owner
+  `wollie@manamarketing.co.za` (id `66fe4644…`, host `d5e1f6c2…`? no — affiliate); test host `host@wielotest.com`
+  = Lerato (host `0b111111…`, user `72811b8e…`); quote-only `quoteonly.test@wielotest.com` (host `d5e1f6c2…`).
+- **Python absent** on this box — parse curl JSON with `node -e`; write curl output to the scratchpad dir, not `/tmp`.
+- Dev-server port auto-shifts (3000 busy). Browser automation can't drive `<input type=file>` → verify uploads via
+  the storage REST API + DB. Radix Selects portal at document level. `staleTimes.dynamic:120` client Router Cache can
+  serve a stale page/404 for a URL visited before its data existed — soft-nav from a list clears it.
+- **Stray uncommitted `apps/mobile/eslint.config.js` + `apps/mobile/package.json` + `pnpm-lock.yaml`** appeared during
+  the session (NOT my edits — a mobile eslint setup). Left UNSTAGED. Decide whether to keep/commit or discard.
+- `host_business_details` was RENAMED to `businesses` (multi-per-host) by `20260617000200`; one-per-account brand
+  assets (logo, brochure) live on `hosts`. Commit-msg hook = Conventional Commits, header ≤~100 chars.
+
+---
+
 ## 🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16 pt3) — LOOKING-FOR SEARCH RADIUS DONE + VERIFIED
 
 **Shipped + pushed `4b7a3d3f`. Green: `pnpm build` + `pnpm lint`. Repo clean.** Finished the in-flight
