@@ -21,9 +21,9 @@ The **host-initiated** path (Reviews → Request) does work: it calls
 `sendReviewRequest()` directly and delivers through `drain-email-queue`, whose Vault
 secrets *are* set. Fix = create the secret (see [Operational notes](#operational-notes)).
 
-**Also: the founder asked for the request delay to change 5 min → 60 min. It never
-happened.** It is still 5 minutes, and it is not in SQL — it's one line of TypeScript:
-`dashboard/bookings/actions.ts:21` → `REVIEW_REQUEST_DELAY_MS = 5 * 60 * 1000`.
+✅ **The request delay is now 60 minutes** (`REVIEW_REQUEST_DELAY_MINUTES`,
+`dashboard/bookings/actions.ts`) — the founder asked for 5 → 60 back on 2026-07-12 and
+it had never been done. It is **not** in SQL, despite two migrations commenting on it.
 
 ---
 
@@ -131,7 +131,7 @@ which is the unrelated directory-promotion table. Don't conflate them.
 ## Gaps (each verified, none fixed)
 
 1. 🔴 **`drain-review-requests` is dead** — missing Vault secret (top of this doc).
-2. 🔴 **The 5→60 min delay change was never made** — `bookings/actions.ts:21`.
+2. ✅ **FIXED — the delay is 60 minutes** (`REVIEW_REQUEST_DELAY_MINUTES`).
 3. ✅ **FIXED `20260716250000` — a host could undo admin moderation.** RLS
    `host_respond_reviews` is a blanket `FOR UPDATE USING (host_id =
    get_my_host_id())` and `protect_review_content()` left the flag/publish columns
@@ -146,12 +146,15 @@ which is the unrelated directory-promotion table. Don't conflate them.
    no-JWT contexts (service role, pg_cron) pass through. A host may still reply and
    still **raise** a flag; they cannot publish/unpublish, **clear** a flag, or set
    `admin_decision`. Rehearsed live, 9 cases, before/after.
-4. **`auto-publish-reviews` is vestigial and contradicts the flow.** It still runs
-   `*/15` setting `is_published=true WHERE is_published=false AND flagged=false`, but
-   submissions now publish immediately, so it matches nothing on the happy path. It is
-   harmless *only* because `hideReviewAction` also sets `flagged:true` and the cron
-   filters on that — incidental coupling, not design. **Any future "unpublish without
-   flagging" would be silently reverted within 15 minutes.**
+4. ✅ **RETIRED `20260716260000` — `auto-publish-reviews`.** A leftover of the
+   abandoned 48-hour window: it published anything `is_published=false AND
+   flagged=false AND publish_at <= now()`, but submissions publish immediately, so it
+   matched nothing. It was harmless *only* because `hideReviewAction` also sets
+   `flagged:true` — incidental coupling, not design — so **any future "unpublish
+   without flagging" would have been silently republished within 15 minutes**, with no
+   audit trail. `20260716250000` made that live rather than theoretical by exempting
+   no-JWT contexts (pg_cron). Unscheduled, and the `publish_at` / `is_published`
+   column comments (which still described the 48-hour window) corrected.
 5. **`reviews.review_token` / `token_expires_at` are dead columns.** Tokens are HMAC,
    keyed by env. The column COMMENT ("Expires in 30 days") is **false** — HMAC links
    never expire; the only revocation is rotating the secret, which kills *every*
@@ -161,8 +164,9 @@ which is the unrelated directory-promotion table. Don't conflate them.
 7. **`review_flags` anti-spam does not exist.** The code comments claim "the unique
    check on (review_id, flagged_by) keeps hosts from flag-spamming" — **no migration
    ever adds that constraint.**
-8. **Stale `publish_at` contract** — the column comment and `is_published` default
-   still describe the abandoned 48-hour moderation window.
+8. ✅ **Stale `publish_at` contract** — column comments corrected in `20260716260000`.
+   The `is_published` DEFAULT false is deliberately left: every insert names the
+   column, so it's unreachable, and false is the safe way to be wrong.
 9. **Worker retry semantics are inverted from its own comment.** A missing booking
    returns `{ok:true, skipped}` → the worker stamps `sent_at` → **not** retried. Only
    an email failure leaves the row — and that then retries **every minute forever**,

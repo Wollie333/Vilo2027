@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-07-16 — The review-request delay finally becomes 60 minutes, and a dead cron stops being a footgun.
+
+- **The post-checkout review-request delay is 60 minutes, not 5.** The founder asked for this on
+  2026-07-12 and it was never done — it survived because it isn't in SQL: two migrations *comment* on
+  "checkout + 5 min" but the only real value was one TypeScript line. Now a named
+  `REVIEW_REQUEST_DELAY_MINUTES = 60`, with the reasoning recorded (five minutes after the host taps
+  Check out the guest is still travelling; an hour later they've left and can actually reflect) and the
+  three stale "5 min" comments updated so the next reader isn't misled the way this one was.
+- **Retired `auto-publish-reviews` (`20260716260000`).** A leftover of the abandoned 48-hour moderation
+  window: it published anything `is_published=false AND flagged=false AND publish_at <= now()`, but
+  submissions have published immediately since `20260610000001`, so it matched nothing. Verified dead
+  before removing: nothing writes `reviews.publish_at` in the future, and the only writer of
+  `is_published=false` is `hideReviewAction`, which also sets `flagged=true` — so the cron's own filter
+  skipped it. **It was harmless purely by coincidence.** Any future "unpublish without flagging" — an
+  admin correction, a takedown, a retraction — would have been **silently republished within 15
+  minutes**, with no audit trail. `20260716250000` made that footgun live rather than theoretical, since
+  it exempts no-JWT contexts and so explicitly permits pg_cron to flip `is_published` even though hosts
+  no longer can. Verified on live: gone, the three real review crons untouched.
+- **Corrected the column contract it came from.** `reviews.publish_at` / `is_published` comments still
+  described the 48-hour window — actively misleading, claiming a delay and an expiry that don't exist.
+  The `is_published` DEFAULT false is deliberately left: every insert names the column, so the default
+  is unreachable, and false is the safe way to be wrong.
+
+---
+
 ## 2026-07-16 — Close two of the gaps the lifecycle docs found: moderation bypass + room access save.
 
 - **A host could undo an admin's moderation** (`20260716250000`). RLS `host_respond_reviews` is a

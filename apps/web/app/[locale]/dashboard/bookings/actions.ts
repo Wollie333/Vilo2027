@@ -18,7 +18,12 @@ import { createServerClient } from "@/lib/supabase/server";
 
 // How long after checkout the guest's review request is sent. The review
 // request worker drains review_request_queue rows once send_at has passed.
-const REVIEW_REQUEST_DELAY_MS = 5 * 60 * 1000;
+//
+// 60 minutes, not 5 (founder call): a guest is still travelling or settling up
+// five minutes after the host taps Check out, and asking then reads as automated.
+// An hour later they have left and can actually reflect on the stay.
+const REVIEW_REQUEST_DELAY_MINUTES = 60;
+const REVIEW_REQUEST_DELAY_MS = REVIEW_REQUEST_DELAY_MINUTES * 60 * 1000;
 
 export type BookingActionResult = { ok: true } | { ok: false; error: string };
 
@@ -35,7 +40,8 @@ const NOTIFY_KIND = {
   decline: "booking_declined_guest",
   cancel: "booking_cancelled_guest",
   // NB: checkout does NOT notify here — it enqueues a delayed review request
-  // (checkout + 5 min) into review_request_queue; see enqueueReviewRequest.
+  // (REVIEW_REQUEST_DELAY_MINUTES after checkout) into review_request_queue;
+  // see enqueueReviewRequest.
 } as const;
 
 type Transition = {
@@ -82,7 +88,7 @@ const TRANSITIONS: Record<
   },
 };
 
-// Schedule the post-checkout review request (checkout + 5 min). Uses the admin
+// Schedule the post-checkout review request (REVIEW_REQUEST_DELAY_MINUTES). Uses the admin
 // client because review_request_queue is service-role-only; ignores conflicts
 // so a backstop-cron row (or a re-run) never double-schedules. Best-effort —
 // a queue hiccup must not fail the checkout itself.
@@ -161,7 +167,7 @@ async function applyTransition(
     });
   }
 
-  // Checkout → schedule the review request for 5 minutes from now. The worker
+  // Checkout → schedule the review request (REVIEW_REQUEST_DELAY_MINUTES). The worker
   // re-validates (paid + no existing review) before sending. Enqueue whenever
   // we can reach the guest — an account (in-app + email) OR just an email
   // (account-less manual bookings get a direct email with the link).
