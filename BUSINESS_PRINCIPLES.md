@@ -491,19 +491,53 @@ The whole point of a wipe is a *working* fresh app to test on. Deleting
 functionality data defeats the purpose — you get a broken app, not a clean one.
 "Clean" means clean of users, not stripped of the platform's furniture.
 
+### Accounts that must ALWAYS survive a wipe
+
+- **`support@wielo.co.za` ("Wielo Support") — NEVER delete. It is infrastructure,
+  not a user.** It is the platform identity behind the host↔Wielo support inbox
+  (`conversations.channel = 'platform'`, `lib/inbox/platform-thread.ts`). Deleting
+  it breaks support messaging for every host. (Founder, 2026-07-16.)
+- The **super admin** account(s) in `platform_staff` — without one there is no way
+  back into `/admin`.
+
 ### How to apply it
 
-- **Wipe from the user roots, not by "delete everything except a list."** The safe,
-  provable method: `TRUNCATE public.hosts, public.user_profiles RESTART IDENTITY
-  CASCADE;` then `DELETE FROM auth.users;`. `TRUNCATE ... CASCADE` only follows FKs
-  that *point at* those roots (their child rows), so reference/config tables — which
-  are *parents*, never children — are physically incapable of being caught in the
-  cascade. This makes "never delete functionality data" a structural guarantee, not
-  a hand-maintained allow-list that can drift.
+> ⚠️ **CORRECTION (2026-07-16).** This section previously prescribed
+> `TRUNCATE public.hosts, public.user_profiles RESTART IDENTITY CASCADE;` and
+> claimed reference tables were *"physically incapable of being caught in the
+> cascade"* because they are parents. **That is false, and following it would break
+> the app.** Two reasons:
+>
+> 1. **`TRUNCATE ... CASCADE` empties whole dependent TABLES, not just the rows that
+>    reference a deleted user.** It is table-level, not row-level.
+> 2. **A reference table is a child the moment it carries a `created_by` /
+>    `updated_by` / `author_id` FK to `user_profiles`** — which several do.
+>
+> Measured against live on 2026-07-16, that TRUNCATE would have wiped:
+> **`plan_features` (3 rows — the Wielo-credit allowance dial; every host would
+> resolve 0 credits and the whole credit system would lock), `platform_settings`
+> (7), `admin_audit_log` (169), `policy_snapshots` (48), `subscription_history`
+> (27), `help_articles` + `help_article_*`** — i.e. exactly the "NEVER DELETE" list
+> above, plus three tables CLAUDE.md marks INSERT-only.
+
+- **Use row-level `DELETE` from the user roots** — it only removes rows that actually
+  reference a deleted user, and `ON DELETE SET NULL` columns (like `updated_by` on a
+  config table) are simply nulled instead of destroying the row.
+- **Order the deletes child-first.** The FK graph is not uniformly `CASCADE`:
+  `hosts.user_id → user_profiles` is **RESTRICT**, `properties.host_id → hosts` is
+  RESTRICT, and `payments` / `invoices` / `credit_notes` / `policy_snapshots` /
+  `refund_requests` / `looking_for_posts` all block `bookings`. A naive
+  `DELETE FROM auth.users` fails outright.
+- **Compute the blast radius BEFORE running anything**, don't trust a remembered
+  playbook. Walk the FK graph recursively from the roots and list every table that
+  would be touched, then diff that against the "NEVER DELETE" list above.
+- **Rehearse in `BEGIN; … ROLLBACK;` on the real database** and assert both sides
+  inside the transaction before committing anything.
 - **Verify both sides after any wipe** (ties into Principle #9): user tables → 0
-  rows and `auth.users` empty; reference tables still populated
-  (`site_themes`, `plans`, `amenity_catalog`, etc.); and the app still boots on the
-  blank slate. Never report a wipe done until the app is seen working fresh.
+  rows and `auth.users` down to the kept accounts; reference tables still populated
+  (`site_themes`, `plans`, `plan_features`, `amenity_catalog`, `platform_settings`);
+  and the app still boots on the blank slate. Never report a wipe done until the app
+  is seen working fresh.
 - **If ever in doubt whether a table is user or functionality data, ask the founder
   before deleting it** — don't guess and risk breaking the app.
 
