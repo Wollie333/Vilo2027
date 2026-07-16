@@ -13,7 +13,11 @@ import { requireHost as getMyHostId } from "@/lib/host/current";
 import { hostPostToWieloThread } from "@/lib/inbox/platform-thread";
 import { notifyAdmins } from "@/lib/admin/notify";
 import { getPlan } from "@/lib/plans/getPlans";
-import { pickCurrentMembershipIndex } from "@/lib/subscriptions/currentMembership";
+import {
+  isLiveMembershipStatus,
+  isMembershipProductType,
+  pickCurrentMembershipIndex,
+} from "@/lib/subscriptions/currentMembership";
 import { isProductSoldOut } from "@/lib/products/stock";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -503,6 +507,32 @@ export async function reactivateSubscriptionAction(): Promise<ActionResult> {
     return {
       ok: false,
       error: "Subscription isn't paused or scheduled to cancel.",
+    };
+  }
+
+  // One active membership per host is enforced in the DB (trg_one_active_membership),
+  // and a paused membership frees the slot — so a host can pause, buy another, then
+  // try to resume the paused one, and the write would raise a raw FK-style error.
+  // membershipSubId prefers a LIVE membership, which makes that hard to reach from
+  // this button, but "hard to reach" is not "unreachable": say something the host
+  // can act on rather than surfacing a database exception.
+  const { data: siblings } = await supabase
+    .from("subscriptions")
+    .select("id, status, product:products ( product_type )")
+    .eq("host_id", host.hostId)
+    .neq("id", existing.id);
+  const blockedBy = (siblings ?? []).find((s) => {
+    const p = Array.isArray(s.product) ? s.product[0] : s.product;
+    return (
+      isLiveMembershipStatus(s.status) &&
+      isMembershipProductType(p?.product_type ?? null)
+    );
+  });
+  if (blockedBy) {
+    return {
+      ok: false,
+      error:
+        "You already have an active membership. Cancel that one first, then resume this.",
     };
   }
 

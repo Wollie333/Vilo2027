@@ -18,6 +18,29 @@ export type MembershipCandidate = {
 };
 
 /**
+ * True when a subscription row is a MEMBERSHIP.
+ *
+ * `productType` is null exactly when the row has no catalog product, because every
+ * caller reads it as `product?.product_type ?? null` off a joined `products` row
+ * and `subscriptions.product_id` is FK-constrained (so it can't dangle). A
+ * product-less subscription is the baseline signup inserts — plan `free`,
+ * `product_id` NULL — which IS a membership: the guest tier every account starts
+ * on (`signup/host/actions.ts` §4). It just has no catalog row.
+ *
+ * Excluding it was the same mistake the retire paths made with `s.product_id && …`
+ * (fixed in 39e17078): the baseline became invisible, so a host holding one looked
+ * like they had no membership at all. A `service` / `product` / `wielo_credits` sub
+ * reports its real type and is still correctly excluded.
+ */
+export function isMembershipProductType(productType: string | null): boolean {
+  return productType === null || productType === "membership";
+}
+
+function isMembershipCandidate(c: MembershipCandidate): boolean {
+  return isMembershipProductType(c.productType);
+}
+
+/**
  * Index of the host's current membership within `rows`, or -1 if none.
  *
  * Prefers a LIVE membership (active/trialing/past_due), newest first; if none is
@@ -35,7 +58,7 @@ export function pickCurrentMembershipIndex<T>(
 
   rows.forEach((row, i) => {
     const c = read(row);
-    if (c.productType !== "membership") return;
+    if (!isMembershipCandidate(c)) return;
     const t = c.createdAt ? new Date(c.createdAt).getTime() : 0;
     if (t >= anyTime) {
       anyTime = t;

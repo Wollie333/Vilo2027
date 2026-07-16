@@ -23,11 +23,16 @@ through `20260716220000`.** Only untracked = the mobile eslint scaffold (founder
    cascade being blocked by `quotes.looking_for_post_id`. Third-party posts are **severed (SET NULL)**,
    never deleted. Verified live before/after with a negative control (old fn → `23503`; new fn → 17/17).
    Order + traps + method now in `docs/lifecycles/account-deletion.md`.
-2. **Enforce "no membership → no account"** (founder rule). True by construction but **unenforced**.
-   Want: (a) every host has ≥1 active subscription, (b) **at most ONE active membership** per host —
-   founder: *"one subscription product, many services, many packages"*. "Membership" needs a join to
-   `products.product_type`, so a partial unique index can't express it → likely a trigger.
-   ⚠️ **A wrong guard blocks signup** — rehearse hard.
+2. ✅ **DONE — one active membership per host, enforced** (`20260716240000`,
+   `trg_one_active_membership`). Membership = `product_id IS NULL` (the signup guest-tier baseline)
+   **OR** `products.product_type='membership'`; held = `trialing/active/past_due` (**paused frees the
+   slot** — founder call); services/packages unlimited. **Max only, no minimum** (founder call: a
+   minimum would make admin *cancel membership* impossible). Rehearsed live across 10 cases —
+   **signup's baseline insert still passes** — then re-verified 10/10 against the deployed trigger.
+   🔑 Also fixed `pickCurrentMembershipIndex`, which skipped the product-less baseline (the same
+   `s.product_id && …` bug as `39e17078`) and would have made the guard block real hosts; +17 unit
+   tests, confirmed to fail against the old predicate. ⏳ Gap: no `docs/lifecycles/` doc for
+   memberships/subscriptions.
 3. **Product-form UI polish** (founder: *"the UI is not nice, make it professional"*). I only did the
    targeted **Wielo credits card**; the rest of `admin/products/ProductEditor.tsx` is untouched. Ask the
    founder what specifically reads as unpolished before redesigning.

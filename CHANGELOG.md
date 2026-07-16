@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-07-16 — One active membership per host, enforced in the DB (and the selector bug that would have broken it).
+
+- **The rule is now a DB trigger** (`20260716240000`, `trg_one_active_membership`): a host may hold at
+  most one active membership, alongside unlimited services/packages — founder: *"one subscription
+  product, many services, many packages."* Three call sites already retire other memberships first and
+  their comments said *"else the DB trigger rejects the write"*; the trigger was simply never added.
+- **Why it matters:** `check_feature_permission` resolves allowances with `max(limit_value)` across
+  active subscriptions, so a second active membership out-votes the plan the host pays for (seen live: a
+  Starter host resolving 200 credits instead of 50). `39e17078` fixed the cause; this stops it returning.
+- **Found and fixed the bug that would have made the guard bite real hosts.**
+  `pickCurrentMembershipIndex` skipped any row whose `productType !== "membership"` — but the signup
+  baseline has `product_id = NULL`, so the guest tier was **invisible to the selector**: the same
+  `s.product_id && …` mistake `39e17078` fixed in the retire paths. For a host with a cancelled
+  membership plus an active baseline it returned the *cancelled* row, so `switchPlan` would have updated
+  that and left the baseline active — two active memberships, blocked. Fixed, with the membership
+  predicate exported so the selector, the resume guard and the trigger share one definition.
+- **Paused frees the slot** (founder call): only `trialing/active/past_due` hold it, matching the retire
+  filters and `isLiveMembershipStatus`. So `reactivateSubscriptionAction` could hit the trigger raw — it
+  now pre-empts with "You already have an active membership" instead of surfacing a DB exception.
+- **Max only, no minimum** (founder call): a "every host has ≥1 active membership" rule would make admin
+  *cancel membership* impossible, and it's true by construction today since signup always inserts the
+  baseline.
+- **Rehearsed on live in `BEGIN; … ROLLBACK;` across 10 cases** — the point being what must still be
+  ALLOWED, not just what's blocked: **signup's baseline insert passes**, retire-then-activate passes,
+  services/packages are unlimited, renewal and cancel pass, paused-then-buy passes; a second membership
+  and resume-while-active are blocked. Re-ran the same script against the deployed trigger: 10/10. No
+  existing live host violates it. 17 new unit tests on the selector, and they were confirmed to FAIL
+  against the old predicate (exactly the 3 baseline cases) before being accepted. `pnpm build` 888 pages
+  and `pnpm lint` green.
+- **Gap flagged, not fixed:** memberships/subscriptions still have no `docs/lifecycles/` doc.
+
+---
+
 ## 2026-07-16 — The GDPR erasure path was broken. Fixed, and proven against an account that has the rows.
 
 - **`app_purge_user_account` could not erase any account holding a forfeit statement, a credit note, a
