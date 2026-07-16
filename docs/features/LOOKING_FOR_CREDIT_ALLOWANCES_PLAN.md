@@ -71,41 +71,46 @@ independently (and so a host who unlocks but doesn't quote still consumes a lead
 > founder wants "unlock includes the reply", make `spendQuoteCredit` a no-op when
 > the post was already unlocked by that host.
 
-### Allowance resolution — mirror `check_feature_permission`
+### ⚠️ Allowance resolution — REUSE the entitlement system, don't mirror it
 
-The platform already has a canonical precedence for entitlements:
-**host override → active/trialing product → active/trialing plan → default**
-(`check_feature_permission`, wrapped by `hostHasFeature`, fail-closed).
-
-The numeric allowance resolver MUST mirror it rather than invent a new order:
+**Superseded during Phase 1 (2026-07-16).** The first draft proposed a new
+`credit_allowances` table mirroring `check_feature_permission`'s precedence.
+Dumping the live function showed that is unnecessary — **the entitlement system
+already carries a numeric `limit_value` at all three levels**:
 
 ```
-resolve_credit_allowance(p_host_id, p_purpose) -> monthly_qty
-  host override (credit_allowances.host_id) → plan default (credit_allowances.plan_id)
-  → NULL (= unlimited) / 0 (= none) per the seeded default
+check_feature_permission(p_host_id, p_feature_key) -> jsonb
+  1. host_feature_overrides (host_id, feature_key, is_enabled, limit_value, expires_at)
+  2. product_features JOIN subscriptions (status in trialing|active)   -- "plan default"
+  3. plan_features     JOIN subscriptions ON s.plan = pf.plan          -- legacy fallback
+  4. default { is_enabled:false, limit_value:null, source:'default' }
 ```
+
+…and **the admin UI for both already exists**:
+
+| Founder's ask | Already-built home |
+|---|---|
+| "control the **default** … per month" | `/admin/products` → `ProductEditor` (`product_features.limit_value`) — **10 rows on live already have limits** |
+| "… as well as **for each host**" | `/admin/platform/features` → `HostOverrideForm` (`host_feature_overrides.limit_value`) — **3 rows on live already have limits** |
+
+Any feature in `CANONICAL_PRODUCT_FEATURES` (`lib/products/features.ts`) with
+`scope: "total"` automatically gets a quantity input in the product editor. So
+adding two catalog entries delivers the entire admin surface with **no new table
+and no new admin UI**.
+
+**`limit_value` is set by admins but read by nothing** — `hostHasFeature`
+resolves the RPC then discards it, keeping only `is_enabled`. That is the *same
+"admin can set it, nothing enforces it" trap* as `looking_for_quotas` (§2). Phase 1
+closes it with a reader.
+
+`credit_allowances` is therefore **NOT built**. Only `looking_for_post_unlocks` is
+genuinely new.
 
 ## 5. Schema (Phase 1)
 
 ```sql
--- Monthly allowance per purpose, at plan scope OR host scope (exactly one).
-CREATE TABLE credit_allowances (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  plan_id     TEXT,                 -- plan scope (default for everyone on the plan)
-  host_id     UUID REFERENCES hosts(id) ON DELETE CASCADE,  -- per-host override
-  purpose     TEXT NOT NULL,        -- 'quote' | 'quote_request'
-  monthly_qty INT,                  -- NULL = unlimited, 0 = none
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_by  UUID REFERENCES user_profiles(id),
-  CHECK ((plan_id IS NOT NULL) <> (host_id IS NOT NULL)),
-  CHECK (monthly_qty IS NULL OR monthly_qty >= 0)
-);
-CREATE UNIQUE INDEX credit_allowances_plan ON credit_allowances(plan_id, purpose)
-  WHERE plan_id IS NOT NULL;
-CREATE UNIQUE INDEX credit_allowances_host ON credit_allowances(host_id, purpose)
-  WHERE host_id IS NOT NULL;
-
--- Which LF leads a host has paid to see. UNIQUE => never charged twice.
+-- Which LF leads a host has paid to see. UNIQUE => never charged twice for the
+-- same lead, which also makes the unlock action safely idempotent.
 CREATE TABLE looking_for_post_unlocks (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id     UUID NOT NULL REFERENCES looking_for_posts(id) ON DELETE CASCADE,
@@ -115,6 +120,23 @@ CREATE TABLE looking_for_post_unlocks (
 );
 ```
 
+Plus two catalog entries (`scope: "total"`) and a `hostFeatureLimit()` reader:
+
+| Feature key | Meters |
+|---|---|
+| `looking_for_quote_requests_per_month` | leads a host may unlock per month |
+| `looking_for_quote_responses_per_month` | quotes a host may send per month |
+
+### Why `hostFeatureLimit` must NOT honour `PRE_MVP_FEATURES_OPEN`
+
+`hostHasFeature` short-circuits to `true` pre-MVP so the founder can smoke-test
+(AGENT_RULES §3.4). A **limit is a quantity, not an entitlement**, and credits
+already meter for real pre-MVP (`spendQuoteCredit` blocks at 0 today, switch or
+no switch). Short-circuiting limits to "unlimited" would make the very feature the
+founder asked to control untestable. So the reader resolves honestly; the pre-MVP
+switch keeps governing *access* to Looking-For (`looking_for_access`), not the size
+of the allowance.
+
 ## 6. Phases
 
 1. **Schema** — the two tables above + `resolve_credit_allowance` RPC + seed plan
@@ -122,6 +144,21 @@ CREATE TABLE looking_for_post_unlocks (
 2. **Grant engine** — extend `grantSubscriptionCredits` to grant *per purpose*
    from the resolved allowance (not just `products.credit_quantity`, which only
    carries one purpose per product). Idempotent per (host, purpose, period).
+
+   ⚠️ **Two competing sources of "credits per cycle" — must be resolved here.**
+   The product editor already exposes **"Credit grant (per cycle)"**
+   (`products.credit_quantity`) + **"Credit purpose"** (`products.credit_purpose`,
+   a Quote/AI dropdown). That is what `grantSubscriptionCredits` reads today. It
+   can only express **one** purpose per product, which is exactly why it can't
+   satisfy the founder's ask (two allowances on one plan).
+
+   Proposed: the two `*_per_month` feature limits become the SSOT for
+   subscription grants (they're per-purpose and already have plan/product/host
+   precedence). `products.credit_quantity` stays ONLY for one-off **credit
+   package** products (`product_type='wielo_credits'`, e.g. the live "50 Quote
+   Credits"), which `grantCreditsForOrder` reads — that path is unaffected.
+   Leaving both live for subscriptions would double-grant. Confirm with the
+   founder, then hide/retire the per-cycle field on membership products.
 3. **Lead locking** — host LF board + respond page: a post with no unlock row is
    **locked/blurred** with "Top up to unlock". Unlock action = spend 1
    `quote_request` credit (idempotent on the unlock row) → reveal. Guest side

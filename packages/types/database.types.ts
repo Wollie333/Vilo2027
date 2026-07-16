@@ -4816,6 +4816,42 @@ export type Database = {
           },
         ]
       }
+      looking_for_post_unlocks: {
+        Row: {
+          host_id: string
+          id: string
+          post_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          host_id: string
+          id?: string
+          post_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          host_id?: string
+          id?: string
+          post_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "looking_for_post_unlocks_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "looking_for_post_unlocks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "looking_for_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       looking_for_post_views: {
         Row: {
           host_id: string

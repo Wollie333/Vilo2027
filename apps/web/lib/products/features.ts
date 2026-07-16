@@ -44,11 +44,26 @@ export const CANONICAL_PRODUCT_FEATURES: CanonicalFeature[] = [
     scope: "toggle",
   },
   { key: "custom_profile_url", label: "Custom host page URL", scope: "toggle" },
-  // Looking For (guest request marketplace)
+  // Looking For (guest request marketplace). Access is the on/off gate; the two
+  // limits below are the monthly allowances the credit wallets are topped up to
+  // each billing period — leads a host may unlock, and quotes they may send.
+  // Both are "total" so the product editor renders a quantity input and the
+  // per-host override form can raise it for one host. NULL = unlimited.
+  // See docs/features/LOOKING_FOR_CREDIT_ALLOWANCES_PLAN.md
   {
     key: "looking_for_access",
     label: "Looking For marketplace",
     scope: "toggle",
+  },
+  {
+    key: "looking_for_quote_requests_per_month",
+    label: "Looking For leads / month",
+    scope: "total",
+  },
+  {
+    key: "looking_for_quote_responses_per_month",
+    label: "Looking For quotes / month",
+    scope: "total",
   },
   // Website channel
   { key: "website_builder", label: "Website builder", scope: "toggle" },

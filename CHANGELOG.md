@@ -5,6 +5,51 @@
 
 ---
 
+## 2026-07-16 — Looking-For credit allowances, Phase 1 (migration `20260716190000`).
+
+Founder ask: admin sets how many quote **requests** (leads) a host gets per month and how many **responses** they may
+send — plan default + per-host override, metered by credits, top up with a credit package.
+Plan: `docs/features/LOOKING_FOR_CREDIT_ALLOWANCES_PLAN.md`.
+
+- **Scope collapsed after reading the live DB.** The plan originally proposed a new `credit_allowances` table
+  mirroring `check_feature_permission`'s precedence. Dumping the live function showed that's unnecessary: it has
+  **always resolved a numeric `limit_value`** alongside `is_enabled`, with exactly the precedence needed
+  (`host_feature_overrides` → `product_features` → `plan_features` → default) — and **the admin UI already exists**
+  (`/admin/products` `ProductEditor` sets product limits; `/admin/platform/features` `HostOverrideForm` sets per-host
+  ones). Live already had 10 product rows and 3 host rows carrying limits. So **no allowance table and no new admin
+  UI were built** — two catalog entries deliver the whole surface.
+- **`limit_value` was write-only.** Admins could set it; `hostHasFeature` resolved the RPC and **discarded** it,
+  keeping only `is_enabled` — the same "settable but unenforced" trap as `looking_for_quotas`. New
+  **`hostFeatureLimit(hostId, featureKey)`** in `lib/products/featureGate.ts` is the read path: returns
+  `{ limit, source }` (`null` = unlimited, `0` = none) and reports which layer answered.
+  It deliberately does **not** honour `PRE_MVP_FEATURES_OPEN` — that switch keeps *access* open for smoke-testing,
+  but a limit is a quantity, credits already meter for real pre-MVP (`spendQuoteCredit` blocks at 0), and
+  short-circuiting to unlimited would make the allowances untestable.
+- **Two catalog entries** (`lib/products/features.ts`, `scope: "total"` so the editor renders a quantity input):
+  `looking_for_quote_requests_per_month` ("Looking For leads / month") and `looking_for_quote_responses_per_month`
+  ("Looking For quotes / month"). **Verified live**: both now render in the product editor with the enable toggle +
+  number input, no admin code touched.
+- **New table `looking_for_post_unlocks`** (`UNIQUE(post_id, host_id)` = the idempotency key, so a host can never be
+  charged twice for the same lead) + RLS: a host reads only its own unlocks; inserts go through the server action
+  that spends the credit first, so no client can insert its way to a free lead.
+- **Seeded `plan_features` defaults** (it was empty on live, and without a row every host would fail-closed to 0 =
+  everything locked). Numbers carried from `looking_for_quotas.host_quotes_per_month` — the founder's own prior
+  intent, from the table this epic retires: free 0 / pro 50 / business 200. Starting points, editable in the admin UI.
+- **Verified:** rehearsed in `BEGIN; … ROLLBACK;` on live (6 plan rows, business resolves 200 from source `plan`,
+  unlock insert idempotent), then pushed and re-verified: table + RLS + 1 policy live, and single-subscription hosts
+  resolve **free → 0, pro → 50, business → 200**, all `source: plan`. Types regenerated (new table). Build + lint green.
+- ⚠️ **Found while verifying — for Phase 2:** hosts with **multiple active subscriptions** get the *most generous*
+  allowance, because `check_feature_permission` uses `max(limit_value)` / `bool_or(is_enabled)` across every active
+  sub. Live has two such hosts (one with duplicate `business` rows, one with `free` **and** `pro` → resolves 50, not
+  0). Pre-existing semantics, not introduced here, but for a **paid** meter it means a stale duplicate subscription
+  hands out free leads. Relevant to the backlog's "prune duplicate active subscription row".
+- ⚠️ **Also for Phase 2:** products already carry **"Credit grant (per cycle)" + "Credit purpose"**
+  (`products.credit_quantity`/`credit_purpose`) — a second, single-purpose way to express the same monthly number,
+  and what `grantSubscriptionCredits` reads today. Both live for subscriptions would double-grant; the plan proposes
+  the feature limits become SSOT and `credit_quantity` stays only for one-off credit packages.
+
+---
+
 ## 2026-07-16 — Unify tab design on the user-record underline bar.
 
 - **Founder ask:** *"we want all tabs on all relevant pages to display like the tabs currently in the user record …
