@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-07-16 — Vault secrets created; and a rename that had frozen property rankings for 30 days.
+
+- **The two guest-facing Vault secrets are set** (founder). `review_request_worker_url` +
+  `checkin_reminder_worker_url` → **5 of 14 still missing**, down from 7. Automatic review requests and
+  the day-before check-in reminder are unblocked. ⚠️ **Neither is proven end to end** — with 0 bookings
+  nothing is ever due, so both crons early-return and report `succeeded` exactly as they did while
+  broken. Docs say so loudly rather than claiming victory.
+- **All worker URLs moved to `https://wielo.co.za`.** The founder challenged the old
+  `https://vilo2027.vercel.app` convention and was right: it's a pre-rename leftover, and `*.vercel.app`
+  on this project is already partly SSO-gated (`vilo2027-wollie333s-projects.vercel.app` redirects to
+  `vercel.com/login`), so a Deployment-Protection toggle would kill every worker **silently** — today's
+  bug again — whereas a custom-domain outage takes the site down and is noticed instantly. All 7
+  migrated; `drain-email-queue` verified still succeeding every minute afterwards.
+- 🔑 **Found while checking cron health: a table rename silently orphans pg_cron jobs.**
+  `cron.job.command` is TEXT — `ALTER TABLE … RENAME` cannot reach inside it. The
+  `listings` → `properties` rename (`20260617000200`) broke **`recalculate-rankings`**: last success
+  `2026-06-17 14:00`, first failure `14:15`, then **failing every 15 minutes for ~30 days**. **Property
+  rankings have been frozen since 17 June** and nothing said a word. Fixed (`20260716270000`) and the
+  cron's exact body executed live to prove it: no error. The function itself was clean — only the cron's
+  SQL was stale. **After any rename: `SELECT jobname, command FROM cron.job WHERE command ILIKE
+  '%<old>%'`.**
+- ⚠️ **`alert-missing-policies` is broken by the same rename and is left failing deliberately.** Its
+  notification kind `listing_missing_policy` exists **nowhere** in `apps/web` — not in the registry, not
+  in any migration. Repointing its SQL would silently queue rows of a type nothing renders or sends,
+  which is worse than a job that fails visibly. It needs a decision: build the notification, or
+  unschedule the cron.
+- **Two Vault gotchas worth knowing:** `vault.create_secret` is **not idempotent** (unique
+  `secrets_name_idx` → re-running raises `23505`, which is harmless but alarming); `vault.update_secret`
+  is. And **never `SELECT *` from `vault.decrypted_secrets`** — filter `WHERE name LIKE '%_url'`, or
+  live bearer tokens end up in a transcript.
+
+---
+
 ## 2026-07-16 — The review-request delay finally becomes 60 minutes, and a dead cron stops being a footgun.
 
 - **The post-checkout review-request delay is 60 minutes, not 5.** The founder asked for this on

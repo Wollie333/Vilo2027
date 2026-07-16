@@ -2,7 +2,7 @@
 
 > How a guest gets the door code. **Two independent schedules that are easy to
 > confuse** — the access card + email (lead-time based, pure SQL) and the day-before
-> check-in reminder (hourly, HTTP worker). Only one of them works today.
+> check-in reminder (hourly, HTTP worker). They fail differently — read the table.
 >
 > Steps marked ✅ were traced through code; ⚠️/🔴 mark what is unproven or broken.
 
@@ -12,15 +12,18 @@
 |---|---|---|
 | Cron | `send-access-cards` — `*/15 * * * *` | `drain-checkin-reminders` — `10 * * * *` |
 | Mechanism | **pure in-DB SQL** — `send_due_access_cards()` | `net.http_post` → Next.js route |
-| Vault needed | **none** ✅ | `checkin_reminder_worker_url` 🔴 **MISSING** |
+| Vault needed | **none** ✅ | `checkin_reminder_worker_url` ✅ **created 2026-07-16** |
 | Timing | **`send_lead_minutes` before check-in** (default 60) | **check_in == tomorrow** |
-| Status today | works (email still needs `drain-email-queue`, which is configured ✅) | 🔴 **never fires** |
+| Status today | works | ✅ unblocked — ⚠️ unproven (needs a real booking) |
 | Migration | `20260605000001` → current def `20260712120000` | `20260707150000` |
 
-🔴 **`drain-checkin-reminders` is active and silently skipping.** Its DO block reads
-Vault `checkin_reminder_worker_url`, which **no migration creates** — it's a manual
-one-time `vault.create_secret` documented only in the migration header, and it was
-never run. Unset → `RAISE NOTICE` + return: no error, no row, no alert.
+**Until 2026-07-16 the reminder was dead.** Its DO block reads Vault
+`checkin_reminder_worker_url`, which **no migration creates** — a manual one-time
+`vault.create_secret` documented only in the migration header, and it had never been
+run. Unset → `RAISE NOTICE` + return: no error, no row, no alert. The secret now exists.
+
+⚠️ **Still unproven:** with 0 bookings nothing is ever due, so the cron early-returns and
+reports `succeeded` exactly as it did while broken. **A green run proves nothing here.**
 
 **Blast radius is narrow:** only the day-before nudge is lost. The access card and
 `stay_details_guest` email do **not** depend on Vault at all — they're emitted by
@@ -82,7 +85,7 @@ only through the trip page, via the service role, after the booking is verified 
   category, so it ignores notification preferences.
 - DB writes: `messages`, `email_queue`, `bookings.access_card_sent_at`.
 
-### Step 3 — The day-before reminder 🔴 DEAD (missing Vault secret)
+### Step 3 — The day-before reminder ✅ unblocked, ⚠️ never yet exercised
 - Trigger: cron `drain-checkin-reminders`, `10 * * * *` · Actor: system
 - Functions/files: `20260707150000_checkin_reminder_cron.sql` →
   `app/api/checkin-reminder-worker/route.ts`.
@@ -94,7 +97,7 @@ only through the trip page, via the service role, after the booking is verified 
 - **The worker is its own idempotency gate** (`alreadyReminded()` against
   `notification_delivery_log`), because in-app is not de-duped by `dispatchEvent`.
 - `check_in_reminder_guest` is **push + in-app only — no email template**, by design.
-- 🔴 Never fires: the Vault URL doesn't exist.
+- ✅ `checkin_reminder_worker_url` created 2026-07-16 → `https://wielo.co.za/api/checkin-reminder-worker`. ⚠️ Unproven until a real booking has `check_in = tomorrow`.
 
 ### Step 4 — The guest sees the details on the trip page ✅
 - Functions/files: `portal/trips/[id]/page.tsx` — fetch via `createAdminClient()`
@@ -121,8 +124,8 @@ only through the trip page, via the service role, after the booking is verified 
 
 ## Gaps (each verified, none fixed)
 
-1. 🔴 **`drain-checkin-reminders` never fires** — Vault `checkin_reminder_worker_url`
-   missing (top of this doc).
+1. ✅ **FIXED — `drain-checkin-reminders` never fired** (Vault `checkin_reminder_worker_url`
+   missing; created 2026-07-16). ⚠️ Still unproven end to end — see the top of this doc.
 2. ✅ **FIXED — room access could not be saved.** `RoomAccessSection.tsx` used
    `zodResolver(listingAccessSchema)` but registered **no** `send_lead_minutes` field.
    `20260712120000` added that key to the **shared** schema as **required**, so

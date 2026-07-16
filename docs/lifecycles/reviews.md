@@ -3,23 +3,25 @@
 > Check-out → request → submit → publish → host reply → feature/moderate.
 > Steps marked ✅ were traced through code; ⚠️ marks what is broken or unproven.
 
-## 🔴 Read this first — automatic review requests do not send
+## ✅ Read this first — the blocker is cleared (but unproven end to end)
 
 Verified on live 2026-07-16:
 
 | | State |
 |---|---|
 | `drain-review-requests` cron | **active**, `* * * * *` |
-| Vault `review_request_worker_url` | **MISSING** ❌ |
+| Vault `review_request_worker_url` | ✅ **created 2026-07-16** → `https://wielo.co.za/api/review-request-worker` |
 
-The cron reads that Vault secret and, if it's unset, `RAISE NOTICE`s and returns —
-a **silent soft-skip**: no error, no queue row, no alert. So `review_request_queue`
-fills up on every check-out and **never drains**. **No guest is ever automatically
-asked for a review.**
+**Until 2026-07-16 this was dead.** The cron reads that Vault secret and, if it's unset,
+`RAISE NOTICE`s and returns — a **silent soft-skip**: no error, no queue row, no alert.
+No migration creates the secret; it's a manual one-time `vault.create_secret`. So
+`review_request_queue` filled on every check-out and never drained, and **no guest was
+ever automatically asked for a review**. The secret now exists.
 
-The **host-initiated** path (Reviews → Request) does work: it calls
-`sendReviewRequest()` directly and delivers through `drain-email-queue`, whose Vault
-secrets *are* set. Fix = create the secret (see [Operational notes](#operational-notes)).
+⚠️ **Still unproven end to end.** The DB is a blank slate (0 bookings), so nothing has
+ever been due: the cron early-returns and reports `succeeded` exactly as it did when it
+was broken. **A green run here still proves nothing** — that is the whole trap. It will
+first be exercised ~1 minute after a real check-out (then +60 min for the guest's email).
 
 ✅ **The request delay is now 60 minutes** (`REVIEW_REQUEST_DELAY_MINUTES`,
 `dashboard/bookings/actions.ts`) — the founder asked for 5 → 60 back on 2026-07-12 and
@@ -57,29 +59,29 @@ which is the unrelated directory-promotion table. Don't conflate them.
 - Functions/files: `dashboard/bookings/actions.ts` → `applyTransition('checkOut')`
   → `status='completed'`, `checked_out_at=now` → `enqueueReviewRequest()` (`:168`).
 - Logic: gated on `guest_id || guest_email`. Upsert `onConflict:'booking_id',
-  ignoreDuplicates:true`, `send_at = now + 5 min`. **Wrapped in try/catch that
+  ignoreDuplicates:true`, `send_at = now + REVIEW_REQUEST_DELAY_MINUTES` (60). **Wrapped in try/catch that
   swallows errors** — a failed enqueue is invisible.
 - DB writes: `bookings`, `review_request_queue`.
-- Next: → Step 2 (which currently never runs).
+- Next: → Step 2.
 
-### Step 2 — The queue drains 🔴 DEAD (missing Vault secret)
+### Step 2 — The queue drains ✅ unblocked, ⚠️ never yet exercised
 - Trigger: cron `drain-review-requests`, `* * * * *` (`20260610000002`) · Actor: system
 - Logic: read Vault `review_request_worker_url` + `email_worker_secret` → **if either
   unset, NOTICE + return** → count due rows (`sent_at IS NULL AND send_at <= now()`)
   → if 0 return → else `net.http_post` the worker.
 - Worker: `app/api/review-request-worker/route.ts`, bearer `EMAIL_WORKER_SECRET`,
   BATCH_SIZE 50 → `sendReviewRequest(booking_id)` → stamps `sent_at`.
-- 🔴 `review_request_worker_url` is not in Vault → this has never fired.
+- ✅ `review_request_worker_url` created 2026-07-16 → `https://wielo.co.za/api/review-request-worker`. ⚠️ With 0 bookings nothing is due, so it still early-returns; unproven until a real check-out.
 
 ### Step 3 — The 24-hour backstop ⚠️
 - Trigger: cron `queue-review-requests`, `0 9 * * *` · Actor: system
 - Logic: enqueue any `completed` booking, paid (`payment_status ∈ completed,
   partially_refunded, refunded`), checked out >24h ago, with no review and no queue
-  row. **Filters `guest_id IS NOT NULL`** → an account-less guest whose 5-min enqueue
+  row. **Filters `guest_id IS NOT NULL`** → an account-less guest whose enqueue
   failed is **never recovered**, even though `sendReviewRequest` supports email-only
-  guests. It also feeds the same dead Step 2.
+  guests.
 
-### Step 4 — The request is sent ✅ (only via the host-initiated path today)
+### Step 4 — The request is sent ✅
 - Functions/files: **SSOT `lib/reviews/request.ts` → `sendReviewRequest(bookingId)`**.
 - Re-validates: `status='completed'`, `payment_status ∈ PAID_STATUSES`, no existing
   review. Two branches:
@@ -128,9 +130,9 @@ which is the unrelated directory-promotion table. Don't conflate them.
 
 ---
 
-## Gaps (each verified, none fixed)
+## Gaps (each verified on live; ✅ = fixed 2026-07-16)
 
-1. 🔴 **`drain-review-requests` is dead** — missing Vault secret (top of this doc).
+1. ✅ **FIXED — `drain-review-requests` was dead** (missing Vault secret; created 2026-07-16). ⚠️ Still unproven end to end — see the top of this doc.
 2. ✅ **FIXED — the delay is 60 minutes** (`REVIEW_REQUEST_DELAY_MINUTES`).
 3. ✅ **FIXED `20260716250000` — a host could undo admin moderation.** RLS
    `host_respond_reviews` is a blanket `FOR UPDATE USING (host_id =
@@ -179,11 +181,19 @@ which is the unrelated directory-promotion table. Don't conflate them.
 
 ## Operational notes
 
-To turn automatic review requests on:
-`SELECT vault.create_secret('https://wielo.co.za/api/review-request-worker',
-'review_request_worker_url', '');` — `email_worker_secret` is already set. Then
-confirm `cron.job_run_details` shows the worker actually being posted, not the
-early-return.
+✅ `review_request_worker_url` was created 2026-07-16, so the queue can drain. **To prove
+it actually does**, you need one real check-out — then confirm `cron.job_run_details`
+shows the worker being POSTed rather than the early-return:
+
+```sql
+select j.jobname, d.status, d.start_time, left(d.return_message, 80)
+from cron.job_run_details d join cron.job j on j.jobid = d.jobid
+where j.jobname = 'drain-review-requests'
+order by d.start_time desc limit 5;
+```
+
+⚠️ `succeeded` alone means nothing — it is identical for "posted the worker" and "no rows
+due, returned early". Cross-check `review_request_queue` for a row whose `sent_at` fills in.
 
 ## Related
 
