@@ -115,7 +115,13 @@ export async function generateSiteContentAction(
   answers: SiteAnswersInput,
 ): Promise<GenerateResult> {
   const parsedAnswers = siteAnswersSchema.safeParse(answers);
-  if (!parsedAnswers.success) return { ok: false, error: "invalid_input" };
+  if (!parsedAnswers.success) {
+    const detail = parsedAnswers.error.issues
+      .map((i) => `${i.path.join(".") || "?"}: ${i.message}`)
+      .join("; ");
+    console.error(`[ai] invalid answers: ${detail}`);
+    return { ok: false, error: "invalid_input", detail };
+  }
   if (!aiConfigured()) return { ok: false, error: "ai_not_configured" };
 
   const loaded = await loadSiteForAi(websiteId);
@@ -150,7 +156,16 @@ export async function generateSiteContentAction(
   }
 
   const parsed = aiContentSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: "ai_invalid" };
+  if (!parsed.success) {
+    const detail = parsed.error.issues
+      .slice(0, 4)
+      .map((i) => `${i.path.join(".") || "?"}: ${i.message}`)
+      .join("; ");
+    console.error(
+      `[ai] response schema mismatch: ${detail} | raw=${JSON.stringify(raw).slice(0, 300)}`,
+    );
+    return { ok: false, error: "ai_invalid", detail };
+  }
 
   const merged = mergeContentProfile(
     loaded.profile,
@@ -172,7 +187,13 @@ export async function generateWizardContentAction(
   answers: SiteAnswersInput,
 ): Promise<GenerateResult> {
   const parsedAnswers = siteAnswersSchema.safeParse(answers);
-  if (!parsedAnswers.success) return { ok: false, error: "invalid_input" };
+  if (!parsedAnswers.success) {
+    const detail = parsedAnswers.error.issues
+      .map((i) => `${i.path.join(".") || "?"}: ${i.message}`)
+      .join("; ");
+    console.error(`[ai] invalid answers: ${detail}`);
+    return { ok: false, error: "invalid_input", detail };
+  }
   if (!aiConfigured()) return { ok: false, error: "ai_not_configured" };
 
   const host = await assertFullHost();
@@ -220,7 +241,16 @@ export async function generateWizardContentAction(
   }
 
   const parsed = aiContentSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: "ai_invalid" };
+  if (!parsed.success) {
+    const detail = parsed.error.issues
+      .slice(0, 4)
+      .map((i) => `${i.path.join(".") || "?"}: ${i.message}`)
+      .join("; ");
+    console.error(
+      `[ai] response schema mismatch: ${detail} | raw=${JSON.stringify(raw).slice(0, 300)}`,
+    );
+    return { ok: false, error: "ai_invalid", detail };
+  }
   return { ok: true, profile: aiContentToProfile(parsed.data) };
 }
 
@@ -242,7 +272,13 @@ export async function regenerateSlotAction(
     return { ok: false, error: "invalid_slot" };
   }
   const parsedAnswers = siteAnswersSchema.safeParse(answers);
-  if (!parsedAnswers.success) return { ok: false, error: "invalid_input" };
+  if (!parsedAnswers.success) {
+    const detail = parsedAnswers.error.issues
+      .map((i) => `${i.path.join(".") || "?"}: ${i.message}`)
+      .join("; ");
+    console.error(`[ai] invalid answers: ${detail}`);
+    return { ok: false, error: "invalid_input", detail };
+  }
   if (!aiConfigured()) return { ok: false, error: "ai_not_configured" };
 
   const loaded = await loadSiteForAi(websiteId);
