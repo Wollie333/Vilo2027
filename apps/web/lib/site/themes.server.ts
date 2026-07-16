@@ -90,36 +90,71 @@ function presetThemes(): ThemeOption[] {
  * consolidation lane after the migration is applied).
  */
 export async function loadActiveThemes(): Promise<ThemeOption[]> {
-  try {
-    const sb = themesReadClient();
-    if (!sb) return presetThemes();
-    const { data, error } = await sb
-      .from("site_themes")
-      .select(
-        "id, slug, name, description, preview_image_path, base, is_premium, price",
-      )
-      .eq("is_active", true)
-      // Every active theme is offered (default first via sort_order). The
-      // catalogue is curated in site_themes — currently Safari only.
-      .is("deleted_at", null)
-      .order("sort_order", { ascending: true });
-
-    const rows = (data ?? []) as ThemeRow[];
-    if (error || rows.length === 0) return presetThemes();
-
-    return rows.map((r) => ({
-      id: r.id,
-      slug: r.slug,
-      name: r.name,
-      description: r.description ?? null,
-      previewUrl: websiteAssetUrl(r.preview_image_path),
-      base: (r.base ?? {}) as SitePreset,
-      isPremium: !!r.is_premium,
-      price: r.price ?? null,
-    }));
-  } catch {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // Try BOTH keys, anon first: site_themes is public-read, so the anon key is the
+  // intended path. A key that is present but WRONG (e.g. a new `sb_secret_…` value
+  // where the legacy `eyJ…` JWT is expected) fails on its own attempt and we move
+  // to the next — instead of the whole loader collapsing to a single preset the
+  // moment SUPABASE_SERVICE_ROLE_KEY is set to something the client rejects.
+  const attempts: Array<{ label: string; key: string | undefined }> = [
+    { label: "anon", key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY },
+    { label: "service", key: process.env.SUPABASE_SERVICE_ROLE_KEY },
+  ];
+  if (!url) {
+    console.warn("[themes-load] NEXT_PUBLIC_SUPABASE_URL missing → preset");
     return presetThemes();
   }
+
+  for (const { label, key } of attempts) {
+    if (!key) continue;
+    try {
+      const sb = createClient(url, key, {
+        auth: { autoRefreshToken: false, persistSession: false },
+        global: {
+          fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+            fetch(input, { ...init, cache: "no-store" }),
+        },
+      });
+      const { data, error } = await sb
+        .from("site_themes")
+        .select(
+          "id, slug, name, description, preview_image_path, base, is_premium, price",
+        )
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("sort_order", { ascending: true });
+
+      const rows = (data ?? []) as ThemeRow[];
+      if (error) {
+        console.warn(
+          `[themes-load] ${label} key error: ${error.code ?? ""} ${error.message}`,
+        );
+        continue;
+      }
+      if (rows.length === 0) {
+        console.warn(`[themes-load] ${label} key returned 0 rows`);
+        continue;
+      }
+      console.info(`[themes-load] ${label} key → ${rows.length} themes`);
+      return rows.map((r) => ({
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        description: r.description ?? null,
+        previewUrl: websiteAssetUrl(r.preview_image_path),
+        base: (r.base ?? {}) as SitePreset,
+        isPremium: !!r.is_premium,
+        price: r.price ?? null,
+      }));
+    } catch (e) {
+      console.warn(
+        `[themes-load] ${label} key threw: ${(e as Error)?.message ?? e}`,
+      );
+    }
+  }
+
+  console.warn("[themes-load] all attempts empty/failed → preset fallback");
+  return presetThemes();
 }
 
 /** One page template carried by a theme (seeds website_pages on apply). */
