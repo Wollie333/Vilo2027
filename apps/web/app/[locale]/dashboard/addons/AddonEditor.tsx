@@ -17,6 +17,7 @@ import {
   Pencil,
   Percent,
   Plus,
+  RotateCcw,
   ShoppingCart,
   Trash2,
   Type as TypeIcon,
@@ -66,6 +67,7 @@ export type AddonEditModel = {
   stockQuantity: number | null;
   isRequired: boolean;
   isActive: boolean;
+  isRefundable: boolean;
   leadTimeDays: number;
   category: AddonCategory | null;
   vatIncluded: boolean;
@@ -224,6 +226,7 @@ type AddonDraftPayload = {
   leadTimeDays: number;
   dailyCapacity: string;
   vatIncluded: boolean;
+  isRefundable?: boolean;
 };
 
 export function AddonEditor({
@@ -335,6 +338,7 @@ export function AddonEditor({
   // Preserved as-is on save; the redesigned editor has no "required" toggle.
   const [isRequired] = useState(addon.isRequired);
   const [isActive, setIsActive] = useState(addon.isActive);
+  const [isRefundable, setIsRefundable] = useState(addon.isRefundable);
   const [vatIncluded, setVatIncluded] = useState(addon.vatIncluded);
   const [imageUrl, setImageUrl] = useState<string | null>(addon.imageUrl);
 
@@ -363,6 +367,7 @@ export function AddonEditor({
       leadTimeDays,
       dailyCapacity,
       vatIncluded,
+      isRefundable,
     }),
     [
       name,
@@ -377,6 +382,7 @@ export function AddonEditor({
       leadTimeDays,
       dailyCapacity,
       vatIncluded,
+      isRefundable,
     ],
   );
 
@@ -393,6 +399,7 @@ export function AddonEditor({
     setLeadTimeDays(p.leadTimeDays);
     setDailyCapacity(p.dailyCapacity);
     setVatIncluded(p.vatIncluded);
+    setIsRefundable(p.isRefundable ?? true);
     setDirty(true);
     toast.success("Draft restored");
   }, []);
@@ -510,6 +517,7 @@ export function AddonEditor({
           stockQuantity.trim() === "" ? null : Number(stockQuantity),
         is_required: isRequired,
         is_active: isActive,
+        is_refundable: isRefundable,
         lead_time_days: leadTimeDays,
         category,
         vat_included: vatIncluded,
@@ -1170,6 +1178,31 @@ export function AddonEditor({
                       touch();
                     }}
                     label="Toggle VAT included"
+                  />
+                </div>
+
+                <div className="mt-3 flex items-center justify-between rounded-[12px] border border-brand-line px-3.5 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary">
+                      <RotateCcw className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <div className="text-[13px] font-medium text-brand-ink">
+                        Refundable on cancellation
+                      </div>
+                      <div className="text-[11px] text-brand-mute">
+                        Off = the guest keeps paying for this even if they
+                        cancel (retained before the policy refund)
+                      </div>
+                    </div>
+                  </div>
+                  <Toggle
+                    checked={isRefundable}
+                    onChange={() => {
+                      setIsRefundable((v) => !v);
+                      touch();
+                    }}
+                    label="Toggle refundable on cancellation"
                   />
                 </div>
 

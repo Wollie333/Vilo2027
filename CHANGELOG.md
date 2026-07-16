@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-16 — Remaining fixes (1/2): geo-radius alert matching · add-on refundability (G7).
+
+- **Geo-radius alert matching.** The Looking-For search radius now powers host alerts: when a guest pins a location +
+  radius, a host with a matching saved-search alert is only notified if one of their PUBLISHED properties sits inside
+  that radius (haversine distance). Region/category/budget filters still apply on top; a host with no geocoded property
+  isn't suppressed (the region digest already excludes alert-holders, so they'd otherwise hear nothing). Fires on
+  create AND edit (newly-matching only). Verified live end-to-end: a host 20 km from the pin was notified; a host
+  1256 km away (same province) was correctly excluded. Files: `lib/looking-for/matchAlerts.ts`,
+  `portal/looking-for/actions.ts`.
+- **Add-on refundability (G7).** New per-add-on "Refundable on cancellation" toggle (`addons.is_refundable`, default
+  true, migration `20260716170000`). Non-refundable add-ons (a booked chef, event tickets) are retained FIRST on a
+  cancellation — `policyRefundFor` subtracts what was paid for them before the policy refund
+  (`refund = max(0, policyRefund − nonRefundableAddonsPaid)`), and the cancel dialog shows the retained amount. Wired
+  through the add-on editor + schema + create/update actions. Verified live: toggle saves; the refund query correctly
+  retained R500 for a non-refundable add-on.
+
 ## 2026-07-16 — Founder batch: reset-password UX · confirm-email-on-reset · quote-card redesign · host brochure · /beta redirect.
 
 - **Reset-password UX.** Each password field on `/reset-password` gets a show/hide eye toggle, and a live

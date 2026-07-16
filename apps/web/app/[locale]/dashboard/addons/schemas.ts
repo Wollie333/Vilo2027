@@ -143,6 +143,9 @@ export const addonInputSchema = z.object({
   stock_quantity: z.number().int().min(0).max(99999).nullable().optional(),
   is_required: z.boolean().default(false),
   is_active: z.boolean().default(true),
+  // When false, the amount paid for this add-on is retained on cancellation
+  // (subtracted from the policy refund first — G7).
+  is_refundable: z.boolean().default(true),
   lead_time_days: z.number().int().min(0).max(365).default(0),
   category: addonCategorySchema.nullable().optional(),
   vat_included: z.boolean().default(false),

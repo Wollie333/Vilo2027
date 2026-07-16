@@ -52,6 +52,7 @@ export function AddonTemplatesModal({
         stock_quantity: null,
         is_required: false,
         is_active: true,
+        is_refundable: true,
         lead_time_days: t.leadTimeDays,
         category: t.category,
         vat_included: false,

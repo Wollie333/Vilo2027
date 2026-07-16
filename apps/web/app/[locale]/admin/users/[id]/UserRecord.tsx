@@ -4000,6 +4000,7 @@ function AddonEditModal({
       stock_quantity: num(form.stock_quantity),
       is_required: form.is_required,
       is_active: form.is_active,
+      is_refundable: true,
       lead_time_days: Number(form.lead_time_days) || 0,
       category: (form.category || null) as AddonInput["category"],
       vat_included: form.vat_included,

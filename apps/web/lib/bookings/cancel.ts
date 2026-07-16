@@ -43,6 +43,8 @@ export type PolicyRefund = {
   ruleApplied: string | null;
   daysBeforeCheckIn: number | null;
   totalPaid: number;
+  /** Amount retained because non-refundable add-ons were booked (G7). */
+  nonRefundableRetained: number;
 };
 
 /** Policy-entitled refund for cancelling this booking now (preview + apply). */
@@ -60,13 +62,30 @@ export async function policyRefundFor(
     days_before_checkin?: number | null;
     total_paid?: number | string;
   };
+  const policyRefund = Number(r.refund_amount ?? 0);
+
+  // G7: non-refundable add-ons are retained FIRST — subtract what was paid for
+  // add-ons flagged non-refundable before returning anything. Join the booking's
+  // add-on lines to the catalog flag (custom lines with no addon_id stay
+  // refundable). refund = max(0, policyRefund − nonRefundableAddonsPaid).
+  const { data: addonLines } = await admin
+    .from("booking_addons")
+    .select("subtotal, addon:addons!inner(is_refundable)")
+    .eq("booking_id", bookingId)
+    .eq("addon.is_refundable", false);
+  const nonRefundableRetained = (addonLines ?? []).reduce(
+    (sum, line) => sum + Number((line as { subtotal?: number }).subtotal ?? 0),
+    0,
+  );
+
   return {
-    refundAmount: Number(r.refund_amount ?? 0),
+    refundAmount: Math.max(0, policyRefund - nonRefundableRetained),
     refundPercent: Number(r.refund_percent ?? 0),
     ruleApplied: r.rule_applied ?? null,
     daysBeforeCheckIn:
       r.days_before_checkin == null ? null : Number(r.days_before_checkin),
     totalPaid: Number(r.total_paid ?? 0),
+    nonRefundableRetained,
   };
 }
 

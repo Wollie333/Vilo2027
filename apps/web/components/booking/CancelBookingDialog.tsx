@@ -18,6 +18,8 @@ export type RefundPreview = {
   refundAmount: number;
   refundPercent: number;
   ruleApplied: string | null;
+  /** Amount held back because non-refundable add-ons were booked (G7). */
+  nonRefundableRetained?: number;
 };
 
 /** loadPreview may also return the booking total + net paid — when it does (host
@@ -141,6 +143,14 @@ export function CancelBookingDialog({
           <div>
             <p className="font-medium">This can&rsquo;t be undone.</p>
             <p className="mt-0.5">{refundLine}</p>
+            {preview?.nonRefundableRetained
+              ? preview.nonRefundableRetained > 0 && (
+                  <p className="mt-1 text-[12.5px]">
+                    Includes {money(preview.nonRefundableRetained)} for
+                    non-refundable add-ons, kept back before the policy refund.
+                  </p>
+                )
+              : null}
           </div>
         </div>
 

@@ -26,7 +26,29 @@ export type PostForAlertMatch = {
   budget_max: number | null;
   check_in_date: string | null;
   is_public: boolean;
+  // Optional pinned location + radius (km). When both a pin and a radius are
+  // set, a host only matches if one of their published properties is within it.
+  location_lat?: number | null;
+  location_lng?: number | null;
+  search_radius_km?: number | null;
 };
+
+// Great-circle distance in km between two lat/lng points (haversine).
+function distanceKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const R = 6371; // Earth radius, km
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 
 type AlertRow = {
   id: string;
@@ -112,6 +134,29 @@ export async function notifyMatchingAlerts(
 
     if (!alerts?.length) return { matched: 0 };
 
+    // Geo gate: when the guest pinned a location + radius, only hosts with a
+    // PUBLISHED property inside that radius should hear about it. Preload every
+    // published property's coordinates once, grouped by host.
+    const hasGeo =
+      post.location_lat != null &&
+      post.location_lng != null &&
+      (post.search_radius_km ?? 0) > 0;
+    const propsByHost = new Map<string, { lat: number; lng: number }[]>();
+    if (hasGeo) {
+      const { data: props } = await admin
+        .from("properties")
+        .select("host_id, latitude, longitude")
+        .eq("is_published", true)
+        .is("deleted_at", null)
+        .not("latitude", "is", null)
+        .not("longitude", "is", null);
+      for (const p of props ?? []) {
+        const arr = propsByHost.get(p.host_id) ?? [];
+        arr.push({ lat: Number(p.latitude), lng: Number(p.longitude) });
+        propsByHost.set(p.host_id, arr);
+      }
+    }
+
     const nowIso = new Date().toISOString();
     let matched = 0;
 
@@ -120,6 +165,26 @@ export async function notifyMatchingAlerts(
       // Skip alerts already satisfied by the prior (public) version on an edit.
       if (previous && previous.is_public && alertMatchesPost(raw, previous)) {
         continue;
+      }
+      // Proximity gate — the guest limited to N km of a pin, so a host with a
+      // GEOCODED property only qualifies if one sits inside the radius. A host
+      // with no geocoded property isn't suppressed (we can't prove they're far,
+      // and the region digest excludes alert-holders, so they'd otherwise hear
+      // nothing) — their other alert filters already matched.
+      if (hasGeo) {
+        const coords = propsByHost.get(raw.host_id) ?? [];
+        if (coords.length > 0) {
+          const within = coords.some(
+            (c) =>
+              distanceKm(
+                post.location_lat as number,
+                post.location_lng as number,
+                c.lat,
+                c.lng,
+              ) <= (post.search_radius_km as number),
+          );
+          if (!within) continue;
+        }
       }
       const hostRel = Array.isArray(raw.host) ? raw.host[0] : raw.host;
       const userId = hostRel?.user_id ?? null;

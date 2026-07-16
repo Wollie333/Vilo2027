@@ -224,6 +224,9 @@ export async function createRequestAction(input: CreateRequestInput) {
     budget_max: input.budget_max ?? null,
     check_in_date: input.check_in_date ?? null,
     is_public: input.is_public,
+    location_lat: input.location_lat ?? null,
+    location_lng: input.location_lng ?? null,
+    search_radius_km: input.search_radius_km ?? null,
   });
 
   revalidatePath("/portal/looking-for");
@@ -253,7 +256,7 @@ export async function updateRequestAction(
   const { data: existing } = await supabase
     .from("looking_for_posts")
     .select(
-      "guest_id, title, category, location_region, location_text, adults, children, infants, budget_min, budget_max, check_in_date, is_public",
+      "guest_id, title, category, location_region, location_text, adults, children, infants, budget_min, budget_max, check_in_date, is_public, location_lat, location_lng, search_radius_km",
     )
     .eq("id", postId)
     .single();
@@ -324,6 +327,9 @@ export async function updateRequestAction(
       budget_max: input.budget_max ?? null,
       check_in_date: input.check_in_date ?? null,
       is_public: input.is_public ?? existing.is_public,
+      location_lat: input.location_lat ?? null,
+      location_lng: input.location_lng ?? null,
+      search_radius_km: input.search_radius_km ?? null,
     },
     {
       id: postId,
@@ -338,6 +344,9 @@ export async function updateRequestAction(
       budget_max: existing.budget_max,
       check_in_date: existing.check_in_date,
       is_public: existing.is_public,
+      location_lat: existing.location_lat,
+      location_lng: existing.location_lng,
+      search_radius_km: existing.search_radius_km,
     },
   );
 

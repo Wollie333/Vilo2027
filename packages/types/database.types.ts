@@ -93,6 +93,7 @@ export type Database = {
           id: string
           image_path: string | null
           is_active: boolean
+          is_refundable: boolean
           is_required: boolean
           lead_time_days: number
           max_quantity: number | null
@@ -116,6 +117,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           is_active?: boolean
+          is_refundable?: boolean
           is_required?: boolean
           lead_time_days?: number
           max_quantity?: number | null
@@ -139,6 +141,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           is_active?: boolean
+          is_refundable?: boolean
           is_required?: boolean
           lead_time_days?: number
           max_quantity?: number | null
