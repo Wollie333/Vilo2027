@@ -2,6 +2,29 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## 🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16 pt3) — LOOKING-FOR SEARCH RADIUS DONE + VERIFIED
+
+**Shipped + pushed `4b7a3d3f`. Green: `pnpm build` + `pnpm lint`. Repo clean.** Finished the in-flight
+map-pin/search-radius feature on Looking-For requests (was uncommitted at session start).
+
+- Guests drop a **map pin** + pick a **radius** (5–200 km) on the request form's Location step; hosts see
+  **"· within N km"** beside the location. Display-only (no geo-matching yet).
+- Migration `20260716140000` (already applied to linked DB) adds `search_radius_km` (`location_lat/lng` pre-existed);
+  **types regenerated**. Create + update actions persist all three; edit page loads them back (pin round-trips).
+- Display wired on `RequestInfoCard` (respond page), host board `RequestCard`, public detail, guest CRM record.
+- **Bug fixed in `LocationPicker`**: radius circle never drew on initial load (async Leaflet init mutated refs without
+  re-triggering the marker/circle effects) → added `mapReady` state flag in the effect deps. Verified: circle now
+  frames on a fresh edit-load.
+- **Verified live end-to-end** (Principle #9): guest edit → pin @ Graskop → 50 km → save (DB `search_radius_km=50`,
+  lat/lng set) → "within 50 km" shows on host board card + respond page + public detail + guest record.
+- Lifecycle doc updated (`docs/lifecycles/looking-for.md` §Search radius). Memory `project-looking-for-search-radius`.
+
+**GOTCHA reinforced:** magic-link login via `POST $SB/auth/v1/admin/generate_link` → `/auth/confirm?token_hash=…`
+(guest owner = `wollie@manamarketing.co.za`, test host = `host@wielotest.com`). Python is absent on this box — parse
+JSON with `node -e`, and write curl output to the scratchpad dir (not `/tmp`). Radix Selects portal at document level.
+
+---
+
 ## 🟢 SAVE POINT / NEW-SESSION RESUME ANCHOR (2026-07-16) — FOUNDER 8-REQUEST BATCH DONE + VERIFIED
 
 **All 8 founder requests this session are SHIPPED + verified live (see CHANGELOG top entry + memory
