@@ -47,13 +47,21 @@ export function LocationPicker({
   latitude,
   longitude,
   onSelect,
+  radiusKm,
 }: {
   latitude: number | null;
   longitude: number | null;
   onSelect: (s: LocationSelection) => void;
+  // When set (and a pin exists), draws a search-radius circle around the pin.
+  // Undefined/null = no circle (the default for address-only consumers).
+  radiusKm?: number | null;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Suggestion[]>([]);
+  // Flips true once Leaflet has loaded and the map exists. Included in the
+  // marker/circle effect deps so they re-run after the async map init (a ref
+  // mutation alone wouldn't re-trigger them, so the circle never drew on load).
+  const [mapReady, setMapReady] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -65,6 +73,7 @@ export function LocationPicker({
   const mapElRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markerRef = useRef<import("leaflet").Marker | null>(null);
+  const circleRef = useRef<import("leaflet").Circle | null>(null);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
   const coordsRef = useRef({ lat: latitude, lng: longitude });
   coordsRef.current = { lat: latitude, lng: longitude };
@@ -114,21 +123,12 @@ export function LocationPicker({
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      if (hasPin) {
-        const m = L.marker([lat, lng], {
-          draggable: true,
-          icon: pinIcon(L),
-        }).addTo(map);
-        m.on("dragend", () => {
-          const p = m.getLatLng();
-          void emitFromPoint(p.lat, p.lng);
-        });
-        markerRef.current = m;
-      }
-
       map.on("click", (e: import("leaflet").LeafletMouseEvent) => {
         void emitFromPoint(e.latlng.lat, e.latlng.lng);
       });
+
+      // Signal readiness so the marker/circle effects run against the live map.
+      setMapReady(true);
     })();
 
     return () => {
@@ -136,6 +136,7 @@ export function LocationPicker({
       mapRef.current?.remove();
       mapRef.current = null;
       markerRef.current = null;
+      circleRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -168,7 +169,38 @@ export function LocationPicker({
       map.setView(pos, Math.max(map.getZoom(), 14));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latitude, longitude]);
+  }, [latitude, longitude, mapReady]);
+
+  // ── Draw / update the search-radius circle when radius or coords change. ──
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    if (!L || !map) return;
+    const km = radiusKm ?? 0;
+    const hasPin = latitude != null && longitude != null;
+    if (!hasPin || km <= 0) {
+      circleRef.current?.remove();
+      circleRef.current = null;
+      return;
+    }
+    const center: [number, number] = [latitude, longitude];
+    const meters = km * 1000;
+    if (circleRef.current) {
+      circleRef.current.setLatLng(center);
+      circleRef.current.setRadius(meters);
+    } else {
+      circleRef.current = L.circle(center, {
+        radius: meters,
+        color: "#10B981",
+        weight: 1.5,
+        fillColor: "#10B981",
+        fillOpacity: 0.12,
+      }).addTo(map);
+    }
+    // Fit the map to the circle so the whole radius is visible.
+    map.fitBounds(circleRef.current.getBounds(), { padding: [24, 24] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [radiusKm, latitude, longitude, mapReady]);
 
   // ── Debounced type-ahead (Google Places via /api/geo) — 220ms after a key. ──
   useEffect(() => {

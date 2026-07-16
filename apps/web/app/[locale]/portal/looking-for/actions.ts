@@ -25,6 +25,9 @@ type CreateRequestInput = {
   infants: number;
   location_text?: string;
   location_region?: string;
+  location_lat?: number;
+  location_lng?: number;
+  search_radius_km?: number;
   budget_min?: number;
   budget_max?: number;
   budget_per?: string;
@@ -154,6 +157,9 @@ export async function createRequestAction(input: CreateRequestInput) {
       infants: input.infants,
       location_text: input.location_text || null,
       location_region: input.location_region || null,
+      location_lat: input.location_lat ?? null,
+      location_lng: input.location_lng ?? null,
+      search_radius_km: input.search_radius_km ?? null,
       budget_min: input.budget_min || null,
       budget_max: input.budget_max || null,
       budget_currency: "ZAR",
@@ -270,6 +276,9 @@ export async function updateRequestAction(
       infants: input.infants,
       location_text: input.location_text || null,
       location_region: input.location_region || null,
+      location_lat: input.location_lat ?? null,
+      location_lng: input.location_lng ?? null,
+      search_radius_km: input.search_radius_km ?? null,
       budget_min: input.budget_min || null,
       budget_max: input.budget_max || null,
       budget_per: input.budget_per || null,

@@ -89,6 +89,7 @@ export default async function RespondToPostPage({ params }: Props) {
       infants,
       location_text,
       location_region,
+      search_radius_km,
       budget_min,
       budget_max,
       budget_per,
@@ -229,6 +230,7 @@ export default async function RespondToPostPage({ params }: Props) {
         imageUrl={post.image_url}
         locationText={post.location_text}
         locationRegion={post.location_region}
+        radiusKm={post.search_radius_km}
         checkIn={post.check_in_date}
         checkOut={post.check_out_date}
         flexDays={post.date_flexibility_days}

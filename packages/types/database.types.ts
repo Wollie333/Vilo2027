@@ -4877,6 +4877,7 @@ export type Database = {
           quote_count: number
           quote_deadline: string | null
           reopen_count: number
+          search_radius_km: number | null
           status: string
           sub_category: string | null
           title: string
@@ -4919,6 +4920,7 @@ export type Database = {
           quote_count?: number
           quote_deadline?: string | null
           reopen_count?: number
+          search_radius_km?: number | null
           status?: string
           sub_category?: string | null
           title: string
@@ -4961,6 +4963,7 @@ export type Database = {
           quote_count?: number
           quote_deadline?: string | null
           reopen_count?: number
+          search_radius_km?: number | null
           status?: string
           sub_category?: string | null
           title?: string

@@ -112,6 +112,7 @@ export default async function PublicPostDetailPage({ params }: Props) {
       infants,
       location_text,
       location_region,
+      search_radius_km,
       budget_min,
       budget_max,
       budget_currency,
@@ -262,6 +263,12 @@ export default async function PublicPostDetailPage({ params }: Props) {
                   </div>
                   <p className="text-sm font-medium text-brand-ink">
                     {post.location_text ?? post.location_region ?? "Flexible"}
+                    {post.search_radius_km && post.search_radius_km > 0 ? (
+                      <span className="text-brand-primary">
+                        {" "}
+                        · within {post.search_radius_km} km
+                      </span>
+                    ) : null}
                   </p>
                 </div>
                 <div className="space-y-1">

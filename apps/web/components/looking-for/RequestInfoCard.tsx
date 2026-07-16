@@ -29,6 +29,8 @@ export type RequestInfoCardProps = {
   eyebrow?: string | null;
   locationText?: string | null;
   locationRegion?: string | null;
+  /** Optional search radius (km) around the guest's pin — shown as "within N km". */
+  radiusKm?: number | null;
   checkIn?: string | null;
   checkOut?: string | null;
   flexDays?: number | null;
@@ -52,6 +54,7 @@ export function RequestInfoCard({
   eyebrow,
   locationText,
   locationRegion,
+  radiusKm,
   checkIn,
   checkOut,
   flexDays,
@@ -130,6 +133,11 @@ export function RequestInfoCard({
             <span className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
               {locationText ?? locationRegion ?? "Flexible"}
+              {radiusKm && radiusKm > 0 ? (
+                <span className="text-brand-primary">
+                  · within {radiusKm} km
+                </span>
+              ) : null}
             </span>
             <span className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 shrink-0" />

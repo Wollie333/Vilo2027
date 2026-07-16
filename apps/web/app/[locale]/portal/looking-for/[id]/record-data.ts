@@ -42,6 +42,7 @@ export type RecordPost = {
   infants: number | null;
   location_text: string | null;
   location_region: string | null;
+  search_radius_km: number | null;
   budget_min: number | null;
   budget_max: number | null;
   budget_currency: string | null;
@@ -130,7 +131,7 @@ export type RequestRecordData = {
 const POST_COLUMNS = `
   id, title, description, category, check_in_date, check_out_date,
   date_flexibility_days, adults, children, infants, location_text,
-  location_region, budget_min, budget_max, budget_currency, budget_per,
+  location_region, search_radius_km, budget_min, budget_max, budget_currency, budget_per,
   status, is_urgent, is_public, view_count, quote_count, created_at,
   updated_at, expires_at, fulfilled_via, guest_id
 `;

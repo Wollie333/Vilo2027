@@ -31,6 +31,7 @@ export type LookingForPost = {
   infants: number;
   location_text: string | null;
   location_region: string | null;
+  search_radius_km: number | null;
   budget_min: number | null;
   budget_max: number | null;
   budget_currency: string;

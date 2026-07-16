@@ -246,6 +246,12 @@ export function RequestRecord({
             <div className="grid grid-cols-2 gap-4 p-6 md:grid-cols-4">
               <Fact icon={<MapPin className="h-3.5 w-3.5" />} label="Location">
                 {post.location_text ?? post.location_region ?? "Flexible"}
+                {post.search_radius_km && post.search_radius_km > 0 ? (
+                  <span className="text-brand-primary">
+                    {" "}
+                    · within {post.search_radius_km} km
+                  </span>
+                ) : null}
               </Fact>
               <Fact icon={<Calendar className="h-3.5 w-3.5" />} label="Dates">
                 {post.check_in_date && post.check_out_date

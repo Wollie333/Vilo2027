@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-07-16 — Looking-For search radius: map pin + "within N km" (guest sets, hosts see).
+
+A guest posting a Looking-For request can now drop a **map pin** and pick a **search radius** (5–200 km); hosts see
+**"within N km of <place>"** so they know how far the guest will travel. Display-only (no geo-matching change).
+Verified live end-to-end on every surface.
+
+- **Guest form** (`RequestForm` → `LocationPicker`): the Location & budget step now leads with a Leaflet map +
+  address search; picking a place drops the pin, auto-fills the location label + snaps the Region dropdown to the
+  matched province, and defaults the radius to 25 km. A green radius circle draws around the pin and grows/shrinks
+  with the selected radius; "Clear pin" resets it. New columns `location_lat`, `location_lng`, `search_radius_km`
+  (migration `20260716140000`; `location_lat/lng` pre-existed).
+- **LocationPicker fix**: the radius circle never drew on initial load — the async Leaflet init mutated refs without
+  re-triggering the marker/circle effects. Added a `mapReady` state flag (in the effect deps) so the marker + circle
+  render and frame correctly the moment the map exists. Verified: circle now shows framed on a fresh edit-load.
+- **Write path**: both `createRequestAction` and `updateRequestAction` persist the three fields; the edit page loads
+  them back (`initial.locationLat/Lng/searchRadiusKm`) so the pin + radius round-trip.
+- **Host + guest display** (`RequestInfoCard`, host board `RequestCard`, public detail, guest CRM record): all append
+  "· within N km" beside the location. Selects extended with `search_radius_km`.
+- Verified live: guest edit → drop pin at Graskop → 50 km → save (DB `search_radius_km=50`, `lat/lng` set) → the
+  radius shows on the host board card, the respond page, the public detail page, and the guest record.
+
 ## 2026-07-16 — Founder batch: checkout skip-email · admin credits · claim-account · password-reset · custom-quote line items · unified email design.
 
 Eight founder requests, all verified live (both surfaces where applicable):

@@ -226,6 +226,28 @@ through the same cloud email worker that ships every other Wielo email.
   + `properties.region` (neither exists); now `is_published` / `province`. No longer
   dead — returns real scores (used by Host discovery).
 
+## Search radius (map pin) — added 2026-07-16
+
+A request can carry an optional **pinned location + search radius**. The guest form's
+Location & budget step leads with a Leaflet map (`components/location/LocationPicker.tsx`);
+picking a place drops a draggable pin, auto-fills the location label, snaps the Region
+select to the matched province, and defaults the radius to 25 km. The radius (5–200 km)
+draws a circle around the pin. Columns on `looking_for_posts`: `location_lat`,
+`location_lng`, `search_radius_km` (all nullable — a post can still be region/text-only).
+Migration `20260716140000_looking_for_search_radius.sql`.
+
+- **Write:** `createRequestAction` + `updateRequestAction` persist all three; the edit
+  page (`[id]/edit/page.tsx`) loads them back so the pin round-trips.
+- **Display (host + guest):** `RequestInfoCard` (respond page + shared card), the host
+  board `RequestCard`, the public detail page, and the guest CRM record all render
+  "· within N km" beside the location.
+- **Scope:** display only — the radius is **not** yet used by the alert matcher or
+  `calculate_looking_for_match_score` (would need lat/lng on listings + a distance calc).
+  Geo-matching is a future enhancement.
+- **Gotcha:** `LocationPicker` loads Leaflet asynchronously; the marker/circle effects
+  depend on a `mapReady` state flag so they run once the map exists (a ref mutation alone
+  won't re-trigger them — this was why the circle didn't draw on first load).
+
 ## Known gaps (not fixed — founder call)
 
 - **Quotas aren't enforced on send.** `sendQuoteAction` doesn't call

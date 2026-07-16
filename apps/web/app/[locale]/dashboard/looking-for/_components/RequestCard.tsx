@@ -144,6 +144,11 @@ export function RequestCard({ post }: RequestCardProps) {
           <p className="mt-1 flex items-center gap-1 text-sm text-brand-mute">
             <MapPin className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{post.location_text}</span>
+            {post.search_radius_km && post.search_radius_km > 0 ? (
+              <span className="shrink-0 text-brand-primary">
+                · within {post.search_radius_km} km
+              </span>
+            ) : null}
           </p>
         )}
 

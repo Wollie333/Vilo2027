@@ -24,6 +24,10 @@ import { toast } from "sonner";
 
 import { ResumeDraftBanner } from "@/components/drafts/ResumeDraftBanner";
 import { useAutosaveDraft } from "@/components/drafts/useAutosaveDraft";
+import {
+  LocationPicker,
+  type LocationSelection,
+} from "@/components/location/LocationPicker";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +66,9 @@ export type RequestEditValues = {
   infants: string;
   locationText: string;
   region: string;
+  locationLat: string; // "" = no pin
+  locationLng: string;
+  searchRadiusKm: string; // "" = no radius
   budgetMin: string;
   budgetMax: string;
   budgetPer: "night" | "total" | "person";
@@ -85,6 +92,9 @@ export const BLANK_REQUEST: RequestEditValues = {
   infants: "0",
   locationText: "",
   region: "",
+  locationLat: "",
+  locationLng: "",
+  searchRadiusKm: "",
   budgetMin: "",
   budgetMax: "",
   budgetPer: "night",
@@ -153,6 +163,9 @@ const REGIONS = [
   "Limpopo",
 ];
 
+// Search-radius presets (km) around the dropped pin.
+const RADIUS_OPTIONS = [5, 10, 25, 50, 100, 200];
+
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 interface RequestFormProps {
@@ -190,6 +203,9 @@ export function RequestForm({
   const [infants, setInfants] = useState(initial.infants);
   const [locationText, setLocationText] = useState(initial.locationText);
   const [region, setRegion] = useState(initial.region);
+  const [locationLat, setLocationLat] = useState(initial.locationLat);
+  const [locationLng, setLocationLng] = useState(initial.locationLng);
+  const [searchRadiusKm, setSearchRadiusKm] = useState(initial.searchRadiusKm);
   const [budgetMin, setBudgetMin] = useState(initial.budgetMin);
   const [budgetMax, setBudgetMax] = useState(initial.budgetMax);
   const [budgetPer, setBudgetPer] = useState(initial.budgetPer);
@@ -221,6 +237,9 @@ export function RequestForm({
       infants,
       locationText,
       region,
+      locationLat,
+      locationLng,
+      searchRadiusKm,
       budgetMin,
       budgetMax,
       budgetPer,
@@ -243,6 +262,9 @@ export function RequestForm({
       infants,
       locationText,
       region,
+      locationLat,
+      locationLng,
+      searchRadiusKm,
       budgetMin,
       budgetMax,
       budgetPer,
@@ -267,6 +289,9 @@ export function RequestForm({
     setInfants(p.infants);
     setLocationText(p.locationText);
     setRegion(p.region);
+    setLocationLat(p.locationLat ?? "");
+    setLocationLng(p.locationLng ?? "");
+    setSearchRadiusKm(p.searchRadiusKm ?? "");
     setBudgetMin(p.budgetMin);
     setBudgetMax(p.budgetMax);
     setBudgetPer(p.budgetPer);
@@ -431,6 +456,25 @@ export function RequestForm({
     touch();
   }
 
+  // Map drop / search pick → set the pin + prefill the text location and region.
+  function handleLocationSelect(s: LocationSelection) {
+    setLocationLat(String(s.latitude));
+    setLocationLng(String(s.longitude));
+    // Fill the human-readable location if the user hasn't typed their own.
+    const parts = [
+      s.address_line1 || s.city,
+      s.municipality,
+      s.province,
+    ].filter((x): x is string => Boolean(x));
+    const label = parts.slice(0, 2).join(", ");
+    if (label && !locationText.trim()) setLocationText(label);
+    // Snap the region dropdown to the matched province when we have one.
+    if (s.province && REGIONS.includes(s.province)) setRegion(s.province);
+    // Default a sensible radius the first time a pin is dropped.
+    if (!searchRadiusKm) setSearchRadiusKm("25");
+    touch();
+  }
+
   function buildPayload() {
     const numOrUndef = (s: string) => (s.trim() === "" ? undefined : Number(s));
     return {
@@ -445,6 +489,9 @@ export function RequestForm({
       infants: Number(infants) || 0,
       location_text: locationText.trim() || undefined,
       location_region: region || undefined,
+      location_lat: numOrUndef(locationLat),
+      location_lng: numOrUndef(locationLng),
+      search_radius_km: numOrUndef(searchRadiusKm),
       budget_min: numOrUndef(budgetMin),
       budget_max: numOrUndef(budgetMax),
       budget_per: budgetPer,
@@ -831,7 +878,63 @@ export function RequestForm({
           {/* ----- LOCATION & BUDGET ----- */}
           {section === "location" ? (
             <div className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
-              <div className="grid gap-4 sm:grid-cols-2">
+              {/* Map pin + search — drop a pin where you want to be. */}
+              <div className="space-y-2">
+                <Label>Where do you want to be?</Label>
+                <LocationPicker
+                  latitude={locationLat ? Number(locationLat) : null}
+                  longitude={locationLng ? Number(locationLng) : null}
+                  radiusKm={searchRadiusKm ? Number(searchRadiusKm) : null}
+                  onSelect={handleLocationSelect}
+                />
+              </div>
+
+              {/* Radius around the pin (only meaningful once a pin is set). */}
+              <div className="grid gap-4 border-t border-brand-line pt-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Search radius</Label>
+                  <Select
+                    value={searchRadiusKm || "none"}
+                    onValueChange={(v) => {
+                      setSearchRadiusKm(v === "none" ? "" : v);
+                      touch();
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="No radius" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No radius</SelectItem>
+                      {RADIUS_OPTIONS.map((km) => (
+                        <SelectItem key={km} value={String(km)}>
+                          Within {km} km
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-brand-mute">
+                    Hosts within this distance of your pin are the best match.
+                  </p>
+                </div>
+                {locationLat && locationLng ? (
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationLat("");
+                        setLocationLng("");
+                        setSearchRadiusKm("");
+                        touch();
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 py-2 text-[13px] font-medium text-brand-mute transition hover:text-brand-ink"
+                    >
+                      <X className="h-3.5 w-3.5" /> Clear pin
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-4 border-t border-brand-line pt-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Region</Label>
                   <Select
