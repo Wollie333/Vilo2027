@@ -22,6 +22,18 @@ type FetchPostsInput = {
 export async function fetchLookingForPostsAction(input: FetchPostsInput) {
   const supabase = createServerClient();
 
+  // A host is also a guest — same person, one user_id — so they can post their
+  // own Looking-For request. Never show it back to them on their host board: they
+  // could spend a credit unlocking their own contact details, and `isSelfRecipient`
+  // would then refuse the quote anyway. Excluded here, and guarded again in
+  // `unlockLead` since the respond page is reachable by URL.
+  const { data: selfHost } = await supabase
+    .from("hosts")
+    .select("user_id")
+    .eq("id", input.hostId)
+    .maybeSingle();
+  const selfUserId = (selfHost?.user_id as string | undefined) ?? null;
+
   // First, get IDs of posts that target this host (for private posts)
   const { data: targetedPosts } = await supabase
     .from("looking_for_post_targets")
@@ -62,6 +74,11 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
     )
     .eq("status", "active")
     .gt("expires_at", new Date().toISOString());
+
+  // Never surface the host's own request back to them (see above).
+  if (selfUserId) {
+    query = query.neq("guest_id", selfUserId);
+  }
 
   // Filter for public posts OR posts targeted at this host
   if (targetedPostIds.length > 0) {
@@ -561,13 +578,13 @@ export async function unlockLeadAction(
   // only, so a client can never insert its way to a free lead.
   const result = await unlockLead(createAdminClient(), host.id, postId);
   if (!result.ok) {
-    return {
-      success: false,
-      error:
-        result.error === "INSUFFICIENT_CREDITS"
-          ? "You're out of lead credits. Top up to unlock this request."
-          : "Could not unlock this request.",
-    };
+    const message =
+      result.error === "INSUFFICIENT_CREDITS"
+        ? "You're out of Wielo credits. Top up to see this request."
+        : result.error === "OWN_REQUEST"
+          ? "This is your own request — you can see it in your guest portal."
+          : "Could not unlock this request.";
+    return { success: false, error: message };
   }
 
   revalidatePath("/dashboard/looking-for");

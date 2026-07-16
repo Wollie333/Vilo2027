@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-16 — A host is also a guest: don't sell them their own Looking-For request.
+
+- **Founder:** *"the host needs guest facilities as well, as they can also be a guest — how would we
+  manage that?"* **Good news: the platform already models it**, and the session proved it — the super
+  admin (`user_profiles.role = 'host'`) owned the Looking-For posts as a **guest** and used `/portal`
+  throughout. The model:
+  - **the USER is the guest identity** — guest surfaces key off `user_id` (`bookings.guest_id`,
+    `looking_for_posts.guest_id`, `/portal/*`);
+  - **the HOST is a business the user owns** — host surfaces key off `host_id`
+    (`subscriptions.host_id`, `wielo_credit_wallet.host_id`, `/dashboard/*`).
+  - `user_profiles.role` is **not a gate** — it's only read for counting (admin users page,
+    `platform-report`) and set at signup. Nothing blocks access on it, which is why host-as-guest works.
+    Credits are host-scoped, so guest activity can never spend them.
+- 🔴 **The one real gap, found and fixed:** the Looking-For host board had **no self-exclusion**. A host
+  who posts a request as a guest saw their **own** request on their host board — and with lead locking
+  live could **spend a credit to unlock their own contact details**, after which `isSelfRecipient` would
+  refuse the quote anyway. Paying to unlock yourself, for nothing.
+- **Fixed in two places:** `fetchLookingForPostsAction` excludes posts whose `guest_id` is the host's own
+  `user_id`, and `unlockLead` refuses with `OWN_REQUEST` **before any money moves** — the board filter
+  alone isn't enough because the respond page is reachable by URL.
+- **Verified live with an A/B + negative control.** Same post, same filters: `guest_id` = the host →
+  board shows **"No requests yet"**; `guest_id` = Sumarie → board **shows it** ("Unlock & Quote"). So the
+  exclusion is what hid it, not an unrelated filter. Then via direct URL on their own post: *"This is
+  your own request — you can see it in your guest portal."* and the balance held at **105** — **no credit
+  moved**. Test post removed. Build (888 pages) + lint green.
+
+---
+
 ## 2026-07-16 — Fix: payment never retired the signup "guest tier" (the duplicate-subscription root cause).
 
 - **Founder's model was already built.** Signup (`signup/host/actions.ts` §4) already inserts a baseline

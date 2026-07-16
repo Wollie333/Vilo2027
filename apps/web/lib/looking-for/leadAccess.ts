@@ -106,7 +106,7 @@ export async function isLeadUnlocked(
 
 export type UnlockResult =
   | { ok: true; alreadyUnlocked: boolean }
-  | { ok: false; error: "INSUFFICIENT_CREDITS" | "FAILED" };
+  | { ok: false; error: "INSUFFICIENT_CREDITS" | "FAILED" | "OWN_REQUEST" };
 
 /**
  * Unlock one lead for a host. Spend first, then record — so a failed spend can
@@ -124,6 +124,22 @@ export async function unlockLead(
 ): Promise<UnlockResult> {
   if (await isLeadUnlocked(admin, hostId, postId)) {
     return { ok: true, alreadyUnlocked: true };
+  }
+
+  // A host is also a guest, so they can post their own request. Never charge
+  // someone to unlock their own contact details — and `isSelfRecipient` would
+  // refuse the quote afterwards anyway, so the credit would buy nothing. The
+  // board already hides these; this guards the URL, before any money moves.
+  const [{ data: post }, { data: self }] = await Promise.all([
+    admin
+      .from("looking_for_posts")
+      .select("guest_id")
+      .eq("id", postId)
+      .maybeSingle(),
+    admin.from("hosts").select("user_id").eq("id", hostId).maybeSingle(),
+  ]);
+  if (post?.guest_id && self?.user_id && post.guest_id === self.user_id) {
+    return { ok: false, error: "OWN_REQUEST" };
   }
 
   const { limit } = await resolveFeatureLimit(admin, hostId, LEAD_FEATURE);
