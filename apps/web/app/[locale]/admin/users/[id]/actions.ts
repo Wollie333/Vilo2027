@@ -23,6 +23,7 @@ import {
   adminPostToHostThread,
 } from "@/lib/inbox/platform-thread";
 import { ensureHostForUser } from "@/lib/hosts/ensureHost";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import {
   DELETED_ACCOUNT_HOLD_DAYS,
   hardPurgeUserAccount,
@@ -1661,6 +1662,20 @@ export const adjustUserCreditsAction = withAdminAudit<
           ? "That would take the balance below zero."
           : "Could not adjust the credits.",
       );
+    }
+    // Notify the user when Wielo TOPS UP their wallet (a grant, not a removal).
+    // Best-effort — never fail the adjustment on a notification hiccup.
+    if (d.delta > 0) {
+      try {
+        await dispatchEvent({
+          kind: "credits_added_admin",
+          recipientUserId: d.userId,
+          hostId: host.id,
+          refs: { amount: d.delta, balance: res.balance },
+        });
+      } catch {
+        // non-fatal
+      }
     }
     revalidatePath(`/admin/users/${d.userId}`);
     return {

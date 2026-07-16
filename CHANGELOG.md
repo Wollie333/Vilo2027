@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-16 — Credits notification · booking-confirmation email fix · email-flow audit.
+
+- **Admin credit grant now notifies the user.** When an admin tops up a user's Wielo Credits, the user gets an in-app
+  + push notification ("Credits added to your account — Wielo added N credits … your balance is now X"). New
+  registry event `credits_added_admin` (in-app + push, no email), dispatched from `adjustUserCreditsAction` only on a
+  positive delta. Verified live: admin added 10 → user notification created with amount + new balance.
+- **Booking confirmation email fix.** A guest who paid their OWN card/PayPal got an in-thread card but NO confirmation
+  email — the self-serve settle path (`lib/payments/pay-booking.ts`, the authoritative path since there's no Paystack
+  webhook) posted the card but never dispatched `booking_confirmed_guest`. Both settle paths (card + PayPal) now email
+  the guest on first confirmation (mirrors the host-side manual-payment path). Found via an email-flow audit.
+- **Email-flow audit (post RESEND_API_KEY):** password-reset, Looking-For alert, and quote-sent flows are all wired
+  correctly (right recipient/template). ⚠️ **Ops:** the email queue drains via a pg_cron job → `/api/email-worker`
+  that reads its URL + secret from **Supabase Vault** (`email_worker_url`, `email_worker_secret`); if those aren't set
+  per-environment (and matching Vercel's `EMAIL_WORKER_SECRET`), queued emails silently never send even with the key.
+  Confirm those Vault secrets are populated in production.
+
 ## 2026-07-16 — Remaining fixes (1/2): geo-radius alert matching · add-on refundability (G7).
 
 - **Geo-radius alert matching.** The Looking-For search radius now powers host alerts: when a guest pins a location +

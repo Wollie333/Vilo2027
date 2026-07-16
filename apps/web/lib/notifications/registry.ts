@@ -119,6 +119,14 @@ export type AccountRefs = {
   reason?: string;
 };
 
+export type CreditsRefs = {
+  /** How many credits were added (positive). */
+  amount?: number | string;
+  /** New wallet balance after the grant. */
+  balance?: number | string;
+  reason?: string;
+};
+
 export type ListingPublishedRefs = {
   property_id: string;
   host_id?: string;
@@ -241,6 +249,28 @@ export const NOTIFICATION_REGISTRY = {
     }),
     dedupeKey: (r) => `listing_published:${r.property_id}`,
   } satisfies EventBuilder<ListingPublishedRefs>,
+
+  // Wielo (an admin) topped up the user's credit wallet.
+  credits_added_admin: {
+    category: "subscription",
+    feature: "account",
+    severity: "default",
+    refKeys: ["amount"],
+    push: (r) => ({
+      title: "Credits added to your account",
+      body: clip(
+        `Wielo added ${r.amount ?? "some"} credit${String(r.amount) === "1" ? "" : "s"} to your account.`,
+      ),
+      data: link("/dashboard/credits"),
+      sound: null,
+    }),
+    inApp: (r) => ({
+      title: "Credits added to your account",
+      body: `Wielo added ${r.amount ?? "some"} credit${String(r.amount) === "1" ? "" : "s"} to your account${r.balance != null ? ` — your balance is now ${r.balance}` : ""}.`,
+      link: "/dashboard/credits",
+    }),
+    dedupeKey: () => null,
+  } satisfies EventBuilder<CreditsRefs>,
 
   // ─── Bookings (host)
   booking_request_host: {

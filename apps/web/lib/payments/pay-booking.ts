@@ -19,6 +19,7 @@ import {
   sumCompletedPaid,
 } from "@/lib/payments/ledger";
 import { postGuestSystemCard } from "@/lib/messaging/system-card";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type StartBookingPaymentResult =
@@ -335,7 +336,7 @@ export async function confirmHostCardPaymentByReference(opts: {
     .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
     .eq("id", opts.bookingId)
     .eq("status", "pending")
-    .select("id");
+    .select("id, guest_id");
   if (confirmErr) {
     throw new Error(
       `Payment captured but booking ${opts.bookingId} failed to confirm: ${confirmErr.message}`,
@@ -343,12 +344,35 @@ export async function confirmHostCardPaymentByReference(opts: {
   }
 
   // First-time confirmation → drop a "payment received, booking confirmed" card
-  // into the guest's thread so they can jump to their trip + invoice/receipt.
+  // into the guest's thread AND email the guest their confirmation (this
+  // self-serve card/PayPal settle is the authoritative path — there's no
+  // webhook — so without this a guest who pays their own card got no email).
   if (confirmed && confirmed.length > 0) {
     await postPaymentConfirmedCard(admin, opts.bookingId);
+    await notifyBookingConfirmed(admin, opts.bookingId, confirmed[0].guest_id);
   }
 
   return true;
+}
+
+// Email + notify the guest their booking is confirmed. Best-effort — a
+// notification hiccup must never fail an already-captured payment.
+async function notifyBookingConfirmed(
+  admin: ReturnType<typeof createAdminClient>,
+  bookingId: string,
+  guestId: string | null,
+): Promise<void> {
+  if (!guestId) return;
+  try {
+    await dispatchEvent({
+      kind: "booking_confirmed_guest",
+      recipientUserId: guestId,
+      guestId,
+      refs: { booking_id: bookingId },
+    });
+  } catch {
+    // non-fatal
+  }
 }
 
 /**
@@ -415,7 +439,7 @@ export async function capturePayPalOrderForBooking(opts: {
     .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
     .eq("id", opts.bookingId)
     .eq("status", "pending")
-    .select("id");
+    .select("id, guest_id");
   if (confirmErr) {
     throw new Error(
       `PayPal captured but booking ${opts.bookingId} failed to confirm: ${confirmErr.message}`,
@@ -424,6 +448,7 @@ export async function capturePayPalOrderForBooking(opts: {
 
   if (confirmed && confirmed.length > 0) {
     await postPaymentConfirmedCard(admin, opts.bookingId);
+    await notifyBookingConfirmed(admin, opts.bookingId, confirmed[0].guest_id);
   }
 
   return true;
