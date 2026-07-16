@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-16 — Lifecycle docs: write the subscriptions flow, and make the index honest again.
+
+- **`docs/lifecycles/subscriptions.md` written** — the flow was listed as "to be written" while the
+  feature grew a DB-enforced invariant. Covers the guest-tier baseline, both activation paths
+  (self-serve settle + admin), the self-serve switch/pause/resume/cancel paths, the three subscription
+  crons read from the migrations (`apply-subscription-changes` hourly, `restrict-overdue-subscriptions`
+  hourly, `subscription-expiry-warnings` daily 08:00), the one-membership rule, and the credits model.
+- **Leads with the vocabulary**, because every bug this feature has ever had is the same shape: treating
+  a product-less row as "not a membership". It shipped twice (`s.product_id && …` in both retire paths,
+  `productType !== 'membership'` in the selector). The doc states the rule as a table so the next person
+  can't miss it, and flags the **three definitions of "held" that must stay in step** (trigger,
+  `isLiveMembershipStatus`, retire filters).
+- **Honest about what isn't proven:** there is **no auto-renew charge** — renewal only happens when a
+  payment settles. The three crons are documented from the migrations and marked ⚠️ not verified.
+- **The index had drifted badly and that is why this doc was missed.** It listed 4 docs that don't exist,
+  omitted 7 that do (account-deletion, addons, autosave-drafts, coupons, looking-for, media-manager,
+  statement), and still called `specials.md` "to be written" long after it shipped — so "subscriptions
+  is tracked" looked true while nothing was there. Index rebuilt against the directory and audited both
+  ways: every existing doc is listed, and the only absent rows are the three genuinely marked ⬜
+  (reviews, access-details, calendar-sync). Added a note to keep it honest in the same change.
+- **`turbo.json`: added `ANTHROPIC_API_KEY` + the two model overrides.** Correcting an earlier claim —
+  this was **not** broken. The key is only read inside `aiConfigured()`/`generateJson()`, called
+  exclusively from `"use server"` actions, which run at runtime where Vercel injects env directly;
+  Turborepo's build-step filtering never touches them. Listed for consistency with the other
+  runtime-only secrets already there, and to silence a warning that actively misled the outage triage.
+
+---
+
 ## 2026-07-16 — One active membership per host, enforced in the DB (and the selector bug that would have broken it).
 
 - **The rule is now a DB trigger** (`20260716240000`, `trg_one_active_membership`): a host may hold at

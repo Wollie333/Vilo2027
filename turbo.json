@@ -24,7 +24,10 @@
         "NEXT_PUBLIC_SENTRY_DSN",
         "NEXT_PUBLIC_POSTHOG_KEY",
         "NEXT_PUBLIC_POSTHOG_HOST",
-        "BANKING_CIPHER_KEY"
+        "BANKING_CIPHER_KEY",
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_MODEL_QUALITY",
+        "ANTHROPIC_MODEL_FAST"
       ]
     },
     "dev": {
