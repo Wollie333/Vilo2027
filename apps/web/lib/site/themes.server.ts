@@ -26,6 +26,14 @@ function themesReadClient(): SupabaseClient | null {
   if (!url || !key) return null;
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
+    // Read the catalogue fresh every request. Supabase-js reads through `fetch`,
+    // which the Next.js/Vercel Data Cache would otherwise persist — including a
+    // stale empty result from before the anon grant / service key was in place,
+    // which no redeploy would clear. `no-store` keeps the picker always current.
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: "no-store" }),
+    },
   });
 }
 
