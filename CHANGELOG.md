@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-07-16 — Blank slate: wiped to 3 accounts + fixed Principle #11 (which would have broken the app).
+
+Founder: *"remove all demo data and user data … only keep the super admins and sumarie host account …
+I need a blank slate so we can add new hosts and test these credits and subscription stuff."*
+
+- **KEPT (3):** `wollie@manamarketing.co.za` (the **only** super admin), `sumasteenkamp@gmail.com`
+  (Sumarie, @sumarie — ⚠️ **not** `sumi@gmail.com`, which was a decoy named "Wollie Steenkamo"), and
+  `support@wielo.co.za`. **13 accounts + all demo data deleted.** Host records for Sumarie and the super
+  admin survive; properties/bookings/quotes/Looking-For posts are all at **0**.
+- 🔴 **Principle #11's prescribed method was WRONG and would have broken the app.** It said to
+  `TRUNCATE public.hosts, public.user_profiles CASCADE`, claiming reference tables were *"physically
+  incapable of being caught in the cascade"* because they're parents. Both halves are false: TRUNCATE
+  CASCADE empties whole dependent **tables** (not the rows referencing a deleted user), and a reference
+  table **is** a child once it carries a `created_by`/`updated_by` FK to `user_profiles`. Measured on
+  live, it would have wiped **`plan_features`** (the Wielo-credit dial — every host would resolve 0
+  credits and the credit system would lock), `platform_settings`, `help_articles`, and the INSERT-only
+  `admin_audit_log` (169), `policy_snapshots` (48) and `subscription_history` (27). Principle #11
+  rewritten (`8e2e6289`) + the founder's rule that **`support@wielo.co.za` is infrastructure, never
+  deleted**.
+- **The correct method, now documented:** row-level `DELETE`, child-first. Those config tables reference
+  `user_profiles` with **ON DELETE SET NULL**, so a row-level delete merely nulls `updated_by` and the
+  config survives by itself — proven in the rehearsal (`plan_features` 3, `platform_settings` 7,
+  products/themes/amenities all intact).
+- 🔴 **GDPR erasure is BROKEN on live — found while doing this, not fixed.** The platform's own
+  `app_purge_user_account(user_id)` (the legal erasure path) fails on three RESTRICT edges it never
+  clears: **`forfeit_statements`** (block `bookings`, and their immutability guard wants an
+  `app.allow_forfeit_statement_purge` GUC nothing sets), **`credit_notes`** (block `invoices`), and
+  **`looking_for_responses`** (block `quotes` — the function predates Looking-For). Any account holding
+  any of those cannot be erased. Worked around here; **needs its own fix** — it's a legal obligation.
+  Also note `quotes.looking_for_post_id` and `looking_for_responses.quote_id` form a RESTRICT pair, so
+  quotes must be deleted *between* responses and posts.
+- **Run as a one-off script, deliberately NOT a migration** — a "delete all users" migration must never
+  exist in the history where it could be replayed post-launch.
+- **Verified independently against live after commit:** 3 accounts (exact emails), 1 super admin, 2
+  hosts, 0 properties/bookings/quotes/LF posts; `wielo_credits_per_month` dial 3, `platform_settings` 7,
+  products 5, themes 4, amenities 102.
+
+---
+
 ## 2026-07-16 — Phase 4: consolidate onto ONE Wielo credit balance (migration `20260716200000`).
 
 - **Founder:** *"this is just way too complex … one simple credit system and top up system … to see a
