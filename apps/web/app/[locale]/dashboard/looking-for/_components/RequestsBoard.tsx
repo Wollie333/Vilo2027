@@ -38,6 +38,11 @@ export type LookingForPost = {
   budget_per: string | null;
   is_urgent: boolean;
   is_targeted: boolean; // True if this is a private post targeted at the host
+  /**
+   * Has the host spent a lead credit on this request? When false the server
+   * withholds `description` / `guest_name` / `guest_avatar` — don't expect them.
+   */
+  is_unlocked: boolean;
   view_count: number;
   quote_count: number;
   created_at: string;

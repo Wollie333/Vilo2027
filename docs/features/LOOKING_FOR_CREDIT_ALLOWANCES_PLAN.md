@@ -178,10 +178,30 @@ of the allowance.
    Credits"), which `grantCreditsForOrder` reads — that path is unaffected.
    Leaving both live for subscriptions would double-grant. Confirm with the
    founder, then hide/retire the per-cycle field on membership products.
-3. **Lead locking** — host LF board + respond page: a post with no unlock row is
-   **locked/blurred** with "Top up to unlock". Unlock action = spend 1
-   `quote_request` credit (idempotent on the unlock row) → reveal. Guest side
-   untouched.
+3. ✅ **Lead locking — DONE.** SSOT `lib/looking-for/leadAccess.ts`
+   (`loadLeadAccess` / `loadUnlockedPostIds` / `unlockLead`); surfaces stay dumb.
+   `unlockLeadAction` does auth only. `LeadLocked.tsx` is the paywall.
+
+   **What a lead credit buys — masked SERVER-SIDE, not blurred.** The board action
+   already returned `description` + `guest_name` + `guest_avatar`; a CSS blur would
+   still ship them in the payload. `fetchLookingForPostsAction` now nulls them for
+   locked posts and returns `is_unlocked`. The teaser (category · location+radius ·
+   dates · guests · budget) always shows, so a host can judge before spending, and
+   the lead is never dropped. The respond page always renders the request card but
+   gates the quote form — which carries the guest's name/email/phone and the full
+   brief — behind `LeadLocked`.
+
+   Spend-then-record ordering, so a failed spend can't leave a free unlock; the
+   unlock row's UNIQUE is the idempotency key; a duplicate-key race is treated as
+   success because the credit was already deduped. Unlimited (`limit === null`)
+   bypasses the wallet entirely.
+
+   Verified live as the test host: board listed both leads with the guest masked
+   ("Guest") + "Unlock & Quote"; respond page showed "Costs 1 lead credit — you
+   have 200" with the form hidden; unlocking spent **exactly one** credit
+   (200 → 199, one debit, one unlock row) and revealed the form; a repeat spend on
+   the same ref left the balance at 199. Board then showed the unlocked lead with
+   the real guest name + brief + "Send Quote", beside a still-locked one.
 4. **Admin UI** — plan defaults screen (replaces the retired quotas screen) +
    per-host override on the admin host/user record. Reuse `withAdminAudit`.
 5. **Retire** `looking_for_quotas` + `/admin/looking-for/quotas` (drop table,

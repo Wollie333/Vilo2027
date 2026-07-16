@@ -11,9 +11,12 @@ import { RequestInfoCard } from "@/components/looking-for/RequestInfoCard";
 import { RequestRequirements } from "@/components/looking-for/RequestRequirements";
 import {
   getCreditBalance,
+  LOOKING_FOR_LEAD_CREDIT_COST,
   LOOKING_FOR_QUOTE_CREDIT_COST,
 } from "@/lib/credits/wallet";
+import { loadLeadAccess } from "@/lib/looking-for/leadAccess";
 import { loadQuoteFormListings } from "../../../quotes/_listings";
+import { LeadLocked } from "../../_components/LeadLocked";
 import { LookingForLocked } from "../../_components/LookingForLocked";
 import { LowCreditBanner } from "../../_components/LowCreditBanner";
 import { RespondFormWrapper } from "../../_components/RespondFormWrapper";
@@ -209,6 +212,14 @@ export default async function RespondToPostPage({ params }: Props) {
   // (or hard-block via the banner CTA) before the host builds the whole quote.
   const creditBalance = await getCreditBalance(supabase, host.id, "quote");
 
+  // Lead access. The request card below always renders (a lead is never dropped
+  // — the host can always see enough to judge whether it's worth a credit), but
+  // the quote form carries the guest's name/email/phone and the full brief, so
+  // THAT is what a lead credit buys.
+  const leadAccess = await loadLeadAccess(supabase, host.id, [post.id]);
+  const leadUnlocked =
+    leadAccess.unlimited || leadAccess.unlockedIds.has(post.id);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -247,39 +258,49 @@ export default async function RespondToPostPage({ params }: Props) {
         }
       />
 
-      {/* Low/out-of-credit heads-up — before the host builds the whole quote. */}
-      <LowCreditBanner
-        balance={creditBalance}
-        cost={LOOKING_FOR_QUOTE_CREDIT_COST}
-      />
+      {!leadUnlocked ? (
+        <LeadLocked
+          postId={post.id}
+          balance={leadAccess.balance}
+          cost={LOOKING_FOR_LEAD_CREDIT_COST}
+        />
+      ) : (
+        <>
+          {/* Low/out-of-credit heads-up — before the host builds the whole quote. */}
+          <LowCreditBanner
+            balance={creditBalance}
+            cost={LOOKING_FOR_QUOTE_CREDIT_COST}
+          />
 
-      {/* Quote form with pre-filled data and template support */}
-      <RespondFormWrapper
-        listings={listings}
-        quotesOnly={quotesOnly}
-        initial={{
-          guestName: guest?.full_name ?? "",
-          guestEmail: guest?.email ?? "",
-          guestPhone: guest?.phone ?? "",
-          checkIn: post.check_in_date ?? "",
-          checkOut: post.check_out_date ?? "",
-          guestsBreakdown: {
-            adults: post.adults ?? 2,
-            children: post.children ?? 0,
-            infants: post.infants ?? 0,
-          },
-          headcount:
-            (post.adults ?? 2) + (post.children ?? 0) + (post.infants ?? 0),
-          notes: post.description ? stripHtml(post.description) : "",
-          lookingForPostId: post.id,
-        }}
-        templates={(templates ?? []).map((t) => ({
-          id: t.id,
-          title: t.title,
-          body: t.body,
-        }))}
-        guestName={guest?.full_name ?? "Guest"}
-      />
+          {/* Quote form with pre-filled data and template support */}
+          <RespondFormWrapper
+            listings={listings}
+            quotesOnly={quotesOnly}
+            initial={{
+              guestName: guest?.full_name ?? "",
+              guestEmail: guest?.email ?? "",
+              guestPhone: guest?.phone ?? "",
+              checkIn: post.check_in_date ?? "",
+              checkOut: post.check_out_date ?? "",
+              guestsBreakdown: {
+                adults: post.adults ?? 2,
+                children: post.children ?? 0,
+                infants: post.infants ?? 0,
+              },
+              headcount:
+                (post.adults ?? 2) + (post.children ?? 0) + (post.infants ?? 0),
+              notes: post.description ? stripHtml(post.description) : "",
+              lookingForPostId: post.id,
+            }}
+            templates={(templates ?? []).map((t) => ({
+              id: t.id,
+              title: t.title,
+              body: t.body,
+            }))}
+            guestName={guest?.full_name ?? "Guest"}
+          />
+        </>
+      )}
     </div>
   );
 }

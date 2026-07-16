@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Check,
   Bookmark,
+  Lock,
   Zap,
   Star,
   CalendarCheck,
@@ -199,11 +200,18 @@ export function RequestCard({ post }: RequestCardProps) {
           )}
         </div>
 
-        {post.description && (
+        {post.description ? (
           <p className="mt-3 line-clamp-2 text-sm text-brand-mute">
             &ldquo;{post.description}&rdquo;
           </p>
-        )}
+        ) : !post.is_unlocked ? (
+          // The brief + guest identity are withheld server-side until a lead
+          // credit is spent — this says so rather than showing a blank card.
+          <p className="mt-3 flex items-center gap-1.5 text-sm text-brand-mute">
+            <Lock className="h-3.5 w-3.5 shrink-0" />
+            Guest details are locked — unlock to read the full request.
+          </p>
+        ) : null}
       </div>
 
       {/* Footer with metrics and actions */}
@@ -237,10 +245,22 @@ export function RequestCard({ post }: RequestCardProps) {
             Quoted
           </Button>
         ) : (
+          // Locked leads still route to the respond page — that's where the
+          // unlock lives, so the host sees the request card + what a credit buys
+          // before spending. One paywall, one place.
           <Button size="sm" className="flex-1 gap-1.5" asChild>
             <Link href={`/dashboard/looking-for/respond/${post.id}`}>
-              <MessageSquare className="h-4 w-4" />
-              Send Quote
+              {post.is_unlocked ? (
+                <>
+                  <MessageSquare className="h-4 w-4" />
+                  Send Quote
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4" />
+                  Unlock &amp; Quote
+                </>
+              )}
             </Link>
           </Button>
         )}

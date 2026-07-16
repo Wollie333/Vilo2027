@@ -1,7 +1,9 @@
 "use server";
 
-import { createServerClient } from "@/lib/supabase/server";
+import { loadLeadAccess, unlockLead } from "@/lib/looking-for/leadAccess";
 import { stripHtml } from "@/lib/sanitiseHtml";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 type FetchPostsInput = {
@@ -128,8 +130,16 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
   const quotedPostIds = new Set((responses ?? []).map((r) => r.post_id));
   const targetedPostIdSet = new Set(targetedPostIds);
 
+  // Lead access. A locked lead is still LISTED (never dropped) — the host sees
+  // enough to judge it — but the parts a lead credit actually buys are stripped
+  // HERE, server-side. Masking in the component would still ship the guest's
+  // name and brief in the payload for anyone reading the network tab.
+  const leadAccess = await loadLeadAccess(supabase, input.hostId, postIds);
+
   // Transform the data
   const posts = (data ?? []).map((row) => {
+    const unlocked =
+      leadAccess.unlimited || leadAccess.unlockedIds.has(row.id as string);
     // Handle the guest relation - can be object or array depending on query
     const guest = row.guest as unknown as {
       full_name: string | null;
@@ -140,7 +150,9 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
     return {
       id: row.id,
       title: row.title,
-      description: row.description ? stripHtml(row.description) : null,
+      // Withheld until unlocked — the brief is the lead.
+      description:
+        unlocked && row.description ? stripHtml(row.description) : null,
       category: row.category,
       check_in_date: row.check_in_date,
       check_out_date: row.check_out_date,
@@ -160,8 +172,11 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
       quote_count: row.quote_count,
       created_at: row.created_at,
       expires_at: row.expires_at,
-      guest_name: guest?.full_name ?? null,
-      guest_avatar: guest?.avatar_url ?? null,
+      is_unlocked: unlocked,
+      // Guest identity is withheld until unlocked, so a host can't skip the
+      // credit and reach the guest another way.
+      guest_name: unlocked ? (guest?.full_name ?? null) : null,
+      guest_avatar: unlocked ? (guest?.avatar_url ?? null) : null,
       guest_verification: {
         email_verified: true, // All registered guests have verified email
         phone_verified: Boolean(guest?.phone_verified_at),
@@ -517,5 +532,45 @@ export async function deleteAlertAction(alertId: string) {
   }
 
   revalidatePath("/dashboard/looking-for/alerts");
+  return { success: true };
+}
+
+/**
+ * Unlock one Looking-For lead for the signed-in host, spending a lead credit.
+ * Thin wrapper: ownership + auth here, all the money/idempotency rules live in
+ * `lib/looking-for/leadAccess.ts` so the board and the respond page can't drift.
+ */
+export async function unlockLeadAction(
+  postId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not signed in" };
+
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!host) return { success: false, error: "Not authorized" };
+
+  // The unlock insert + wallet RPC are privileged: the table's RLS grants SELECT
+  // only, so a client can never insert its way to a free lead.
+  const result = await unlockLead(createAdminClient(), host.id, postId);
+  if (!result.ok) {
+    return {
+      success: false,
+      error:
+        result.error === "INSUFFICIENT_CREDITS"
+          ? "You're out of lead credits. Top up to unlock this request."
+          : "Could not unlock this request.",
+    };
+  }
+
+  revalidatePath("/dashboard/looking-for");
+  revalidatePath(`/dashboard/looking-for/respond/${postId}`);
   return { success: true };
 }

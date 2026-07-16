@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-07-16 — Looking-For credit allowances, Phase 3: lead locking.
+
+- **One SSOT, dumb surfaces** (founder: "easiest, most logical, manageable, scalable"):
+  `lib/looking-for/leadAccess.ts` owns every rule — `loadLeadAccess` / `loadUnlockedPostIds` /
+  `unlockLead`. `unlockLeadAction` does auth and nothing else; `_components/LeadLocked.tsx` only calls
+  the action and reports the result. No credit logic in components, so the board and the respond page
+  can't drift.
+- **The lead is never dropped** — it's always listed. The teaser (category · location + radius · dates ·
+  guests · budget) always shows so a host can judge before spending.
+- **What a credit buys is masked SERVER-SIDE, not blurred.** `fetchLookingForPostsAction` already
+  returned `description`, `guest_name` and `guest_avatar` — a CSS blur would still ship all of it in the
+  payload for anyone reading the network tab. Locked posts now have those nulled in the action and carry
+  `is_unlocked`. The respond page always renders the request card but gates the **quote form** — which
+  carries the guest's name/email/phone and the full brief — behind the paywall. That's the real value, so
+  that's the cut.
+- **Money rules:** spend-then-record, so a failed spend can never leave a free unlock; the unlock row's
+  `UNIQUE(post_id, host_id)` is the idempotency key; a duplicate-key race counts as success because the
+  credit was already deduped by `apply_wielo_credit`. An unlimited allowance (`limit === null`) bypasses
+  the wallet entirely — a 0 balance would otherwise read as "blocked" for an unmetered host.
+- **Verified live end-to-end** as the test host: board listed both leads with the guest masked to "Guest"
+  and "🔒 Unlock & Quote"; respond page showed the teaser + *"Costs 1 lead credit — you have 200"* with
+  the form hidden; unlocking spent **exactly one** credit (200 → 199, one debit `looking_for_post`, one
+  unlock row) and revealed the quote builder; a repeat spend on the same ref left the balance at **199**.
+  The board then showed the unlocked lead with the real guest name + brief + "Send Quote" **beside** a
+  still-locked one. Build + lint green.
+- ⚠️ Still open: hosts spend 1 lead credit to unlock + 1 quote credit to reply = **2 credits per deal**.
+  Intended (two independent dials, and a host may unlock 20 leads but quote 5) — founder to confirm.
+
+---
+
 ## 2026-07-16 — Looking-For credit allowances, Phase 2: the grant engine.
 
 - **`grantSubscriptionCredits` now grants per purpose from the resolved allowance** instead of
