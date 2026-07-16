@@ -24,7 +24,6 @@ export function StepTheme({
 }) {
   const t = useTranslations("website");
   const logoUrl = websiteAssetUrl(state.logoPath ?? undefined);
-  const selectedTheme = themes.find((x) => x.id === state.themeId);
 
   return (
     <div className="space-y-5">
@@ -37,7 +36,7 @@ export function StepTheme({
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid max-w-lg grid-cols-2 gap-3">
         {themes.map((theme) => {
           const selected = theme.id === state.themeId;
           const accent = theme.base?.palette?.accent ?? "#0a7d4b";
@@ -90,35 +89,6 @@ export function StepTheme({
           );
         })}
       </div>
-
-      {/* Larger preview of the currently-selected theme (updates on selection). */}
-      {selectedTheme ? (
-        <div>
-          <p className="mb-1.5 text-[12px] font-semibold text-brand-mute">
-            Preview — {selectedTheme.name}
-          </p>
-          <div className="overflow-hidden rounded-card border border-brand-line">
-            {selectedTheme.previewUrl ? (
-              <div className="aspect-[16/10] w-full overflow-hidden bg-brand-light">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selectedTheme.previewUrl}
-                  alt={selectedTheme.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            ) : (
-              <WizardThemePreview
-                base={selectedTheme.base}
-                slug={selectedTheme.slug}
-                accent={selectedTheme.base?.palette?.accent ?? "#0a7d4b"}
-                siteName={state.siteName}
-                logoUrl={logoUrl}
-              />
-            )}
-          </div>
-        </div>
-      ) : null}
 
       <div className="flex items-center justify-between pt-1">
         <button
