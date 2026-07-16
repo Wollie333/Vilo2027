@@ -2,13 +2,14 @@
 
 import { Flag, Hourglass, Loader2, Pin, PinOff } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 
 import { toggleFeaturedReviewAction } from "./actions";
+import { FlagReviewDialog } from "./FlagReviewDialog";
 import { ReplyComposer } from "./ReplyComposer";
 import { StarRow } from "./StarRow";
 
@@ -78,6 +79,7 @@ export function ReviewCard(props: ReviewCardProps) {
   const brandName = useBrandName();
   const router = useRouter();
   const [featuring, startFeaturing] = useTransition();
+  const [flagOpen, setFlagOpen] = useState(false);
   const hasReply = props.hostResponse != null && props.hostResponse.length > 0;
   const av = avatarStyle(props.guestName);
 
@@ -173,6 +175,18 @@ export function ReviewCard(props: ReviewCardProps) {
               )}
               {props.isFeatured ? "Unfeature" : "Feature on listing"}
             </button>
+            {/* Already-flagged reviews show the badge above instead — the
+                action's UNIQUE (review_id, flagged_by) allows one per host. */}
+            {!props.flagged ? (
+              <button
+                type="button"
+                onClick={() => setFlagOpen(true)}
+                className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white px-2.5 py-0.5 text-[11px] font-medium text-brand-mute transition-colors hover:border-status-cancelled/30 hover:bg-status-cancelled/10 hover:text-status-cancelled"
+              >
+                <Flag className="h-3 w-3" />
+                Report
+              </button>
+            ) : null}
             {!hasReply ? (
               <span className="inline-flex items-center gap-1 rounded-pill border border-status-pending/30 bg-status-pending/10 px-2 py-0.5 text-[11px] font-medium text-status-pending">
                 <Hourglass className="h-3 w-3" />
@@ -195,6 +209,13 @@ export function ReviewCard(props: ReviewCardProps) {
         guestName={props.guestName}
         initialBody={props.hostResponse ?? ""}
         hasReply={hasReply}
+      />
+
+      <FlagReviewDialog
+        open={flagOpen}
+        onOpenChange={setFlagOpen}
+        reviewId={props.id}
+        guestName={props.guestName}
       />
     </article>
   );

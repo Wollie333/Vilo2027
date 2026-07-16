@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import {
   Calendar,
   MapPin,
@@ -35,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 
+import { toggleBookmarkAction } from "../actions";
 import type { LookingForPost } from "./RequestsBoard";
 import { GuestVerificationIcons } from "./GuestTrustBadge";
 
@@ -43,7 +45,26 @@ interface RequestCardProps {
 }
 
 export function RequestCard({ post }: RequestCardProps) {
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(post.is_bookmarked);
+  const [isSaving, startSaving] = useTransition();
+
+  // Optimistic, but it reverts on failure and says so. The whole point of
+  // wiring this is that the icon must never claim a save that didn't happen.
+  function handleToggleBookmark() {
+    const next = !isBookmarked;
+    setIsBookmarked(next);
+    startSaving(async () => {
+      const result = await toggleBookmarkAction(post.id);
+      if (!result.success) {
+        setIsBookmarked(!next);
+        toast.error(result.error ?? "Couldn't save that request.");
+        return;
+      }
+      setIsBookmarked(result.bookmarked);
+      toast.success(result.bookmarked ? "Request saved" : "Removed from saved");
+    });
+  }
+
   const guestSummary =
     post.children > 0 || post.infants > 0
       ? `${post.adults} adult${post.adults !== 1 ? "s" : ""}${post.children > 0 ? `, ${post.children} child${post.children !== 1 ? "ren" : ""}` : ""}${post.infants > 0 ? `, ${post.infants} infant${post.infants !== 1 ? "s" : ""}` : ""}`
@@ -268,7 +289,10 @@ export function RequestCard({ post }: RequestCardProps) {
           variant="ghost"
           size="sm"
           className="px-2"
-          onClick={() => setIsBookmarked(!isBookmarked)}
+          onClick={handleToggleBookmark}
+          disabled={isSaving}
+          aria-pressed={isBookmarked}
+          aria-label={isBookmarked ? "Remove from saved" : "Save request"}
         >
           <Bookmark
             className={`h-4 w-4 ${isBookmarked ? "fill-brand-primary text-brand-primary" : ""}`}

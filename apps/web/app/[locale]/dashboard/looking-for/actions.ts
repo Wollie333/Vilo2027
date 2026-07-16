@@ -1,5 +1,6 @@
 "use server";
 
+import { requireHost } from "@/lib/host/current";
 import { loadLeadAccess, unlockLead } from "@/lib/looking-for/leadAccess";
 import { stripHtml } from "@/lib/sanitiseHtml";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -147,6 +148,17 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
   const quotedPostIds = new Set((responses ?? []).map((r) => r.post_id));
   const targetedPostIdSet = new Set(targetedPostIds);
 
+  // Seed the bookmark icon from the DB. Without this the card renders unsaved
+  // on every load, which is the same lie by a different route: the host saves a
+  // request, comes back, and the board says they never did.
+  const { data: bookmarks } = await supabase
+    .from("looking_for_bookmarks")
+    .select("post_id")
+    .eq("host_id", input.hostId)
+    .in("post_id", postIds);
+
+  const bookmarkedPostIds = new Set((bookmarks ?? []).map((b) => b.post_id));
+
   // Lead access. A locked lead is still LISTED (never dropped) — the host sees
   // enough to judge it — but the parts a lead credit actually buys are stripped
   // HERE, server-side. Masking in the component would still ship the guest's
@@ -207,6 +219,7 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
       },
       distance_km: null, // Will be calculated by RPC later
       already_quoted: quotedPostIds.has(row.id),
+      is_bookmarked: bookmarkedPostIds.has(row.id),
     };
   });
 
@@ -254,29 +267,54 @@ export async function fetchLookingForPostsAction(input: FetchPostsInput) {
 
 /**
  * Bookmark/unbookmark a Looking For post.
+ *
+ * The host comes from the session, never from the caller — Looking-For is a
+ * quote surface, so the permissive requireHost() is the right guard.
+ *
+ * Every write error is returned rather than swallowed: this action reported
+ * `success: true` even when RLS rejected the write, so the one caller wired to
+ * it would have inherited the same lie the local-useState button told.
  */
-export async function toggleBookmarkAction(postId: string, hostId: string) {
+export async function toggleBookmarkAction(postId: string) {
+  const h = await requireHost();
+  if (!h.ok) return { success: false as const, error: h.error };
+
   const supabase = createServerClient();
 
-  // Check if already bookmarked
-  const { data: existing } = await supabase
+  const { data: existing, error: readError } = await supabase
     .from("looking_for_bookmarks")
     .select("id")
     .eq("post_id", postId)
-    .eq("host_id", hostId)
+    .eq("host_id", h.hostId)
     .maybeSingle();
 
-  if (existing) {
-    // Remove bookmark
-    await supabase.from("looking_for_bookmarks").delete().eq("id", existing.id);
-    return { success: true, bookmarked: false };
-  } else {
-    // Add bookmark
-    await supabase
-      .from("looking_for_bookmarks")
-      .insert({ post_id: postId, host_id: hostId });
-    return { success: true, bookmarked: true };
+  if (readError) {
+    return { success: false as const, error: readError.message };
   }
+
+  if (existing) {
+    const { error } = await supabase
+      .from("looking_for_bookmarks")
+      .delete()
+      .eq("id", existing.id);
+    if (error) return { success: false as const, error: error.message };
+
+    revalidatePath("/dashboard/looking-for/saved");
+    return { success: true as const, bookmarked: false };
+  }
+
+  const { error } = await supabase
+    .from("looking_for_bookmarks")
+    .insert({ post_id: postId, host_id: h.hostId });
+
+  // UNIQUE (host_id, post_id): a double-click races two inserts. The row the
+  // host asked for exists either way, so report the state, not the collision.
+  if (error && error.code !== "23505") {
+    return { success: false as const, error: error.message };
+  }
+
+  revalidatePath("/dashboard/looking-for/saved");
+  return { success: true as const, bookmarked: true };
 }
 
 /**

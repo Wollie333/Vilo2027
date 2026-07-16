@@ -51,6 +51,50 @@ Each of these fooled the first version of the detector. Keep them in mind before
 
 ---
 
+## 🚨 0.1 CRITICAL — our own fix took the public site down (FIXED `20260716340000`)
+
+**`20260716320000`, the migration directly below, broke every public page for every
+signed-out visitor — for ~24 hours, on live.** Found 2026-07-16 pt11 while rehearsing
+something unrelated (the external-review mapping); one probe step asked "can `anon`
+actually see this now?" and got an error that had nothing to do with the feature.
+
+That migration looped over every `SECURITY DEFINER` function `anon` could execute and
+revoked it, keeping an allowlist of four. Correct for the ~85 privileged RPCs it was
+aimed at. But five of the functions it swept up are **not RPCs** — they are the helpers
+the **RLS policies themselves call**: `get_my_host_id()`, `get_my_host_id_as_staff()`,
+`get_my_role()`, `is_super_admin()`, `has_admin_permission(text)`.
+
+🔑 **A policy calling a function the reader cannot EXECUTE does not evaluate false — it
+RAISES.** And permissive policies are OR'd with **no guaranteed short-circuit**, so a
+`public_read_*` policy sitting beside a `host_manage_*` one does not save you. Proven on
+live as role `anon`, each a plain `SELECT`:
+
+```
+properties       -> 42501 permission denied for function get_my_host_id_as_staff
+reviews          -> 42501 permission denied for function get_my_host_id
+external_reviews -> 42501 permission denied for function get_my_host_id
+blocked_dates, addons, property_rooms, specials, coupons, hosts  -> same
+```
+
+**Why it went unnoticed for a day** is this document's own thesis, turned on its author:
+nothing has ever run (0 properties, 0 bookings), and the pages that *do* prerender use
+`createAdminClient()` — service_role, which bypasses RLS. `..320000` verified its RPCs
+**over real HTTP** and never once read a **table** as `anon`. The negative control was run
+on the wrong surface.
+
+**Fixed** by granting the five back to `anon`. Safe, and a different species to the other
+85: each keys solely on `auth.uid()` and takes **no caller-supplied identity**, so `anon`
+gets `NULL`/`false` and learns only "I am nobody". Compare `fetch_primary_kpis(p_host_id)`,
+which hands you any host's revenue if you know their id — those stay revoked. Verified:
+10/10 tables read as `anon`; `apply_wielo_credit` and `fetch_primary_kpis` still `42501`;
+over real HTTP with the real publishable key, public tables `200`, kpis `401`.
+
+📌 **Now auto-flagged** — `generate-schema-doc.mjs` red flag 6 fails on any function named
+in a policy that `anon` can't execute, and flag 3 **excludes** RLS helpers so the two
+can't argue and lure the next reader into re-breaking it.
+
+---
+
 ## 🚨 0. CRITICAL — `anon` could mint credits and settle payouts (FIXED `20260716310000`)
 
 Found by asking the audit's question of the DB grant layer. **Proven on live in a rollback**, as role
@@ -154,11 +198,16 @@ blind spot is precisely what `audit-wiring.mjs` sweep 2 now closes.
 
 The feature is built and expected to work. Nothing calls it.
 
+> ✅ **The first three are WIRED (2026-07-16 pt11).** Wiring each one uncovered a
+> second fault *underneath* it that would have made the button fail on its first
+> click. Adding the caller alone would have shipped three green, broken features —
+> which is the same mistake in a new coat. Details in each row.
+
 | What | Evidence | Blast radius |
 |---|---|---|
-| **Bookmarks fake success** | `RequestCard.tsx:271` — `onClick={() => setIsBookmarked(!isBookmarked)}`, pure local `useState(false)` at `:46`. `toggleBookmarkAction` (`looking-for/actions.ts:258`) is the only writer of `looking_for_bookmarks`. | **Worse than `view_count`: it lies to the user.** The icon fills brand-primary so the host believes it saved, then it resets on refresh. "Saved Requests" is a live sidebar item (`Sidebar.tsx:156`) that renders its empty state forever. Even wired, initial state is hardcoded `false` and must be seeded from the DB. |
-| **Hosts cannot dispute a review** | `flagReviewAction` (`dashboard/reviews/actions.ts:238`) has no caller. `ReviewCard.tsx:155` renders a read-only "Flagged" *badge* — no button exists. | Every downstream consumer is built: host "Flagged" tab (`FilterTabs.tsx:50`), an admin queue that **defaults** to the flagged tab (`admin/reviews/page.tsx:92`), an `/admin` counter (`admin/page.tsx:57`). The queue can never receive a host complaint. Sharpest tell: migration `20260716250000:24` (written **yesterday**) preserved the host's RLS right to flag and names `flagReviewAction` — a guard authored for a caller that has never existed. |
-| **External reviews can never appear** | `mapExternalReviewToPropertyAction` is the only writer of `external_reviews.property_id`; the sync Edge Function never sets it (`external-reviews-sync/index.ts:314` omits the column). The public query hard-filters `.eq("property_id", listingId)` (`property/[slug]/reviews-data.ts:158`). | `property_id` is permanently NULL, so **no external review can ever render on any property page** — the entire public point of the feature. `getHostPropertiesAction` exists to fill a mapping dropdown that was never built (`ExternalReviewsHub.tsx:712` renders the name read-only). |
+| ✅ **Bookmarks fake success** — WIRED | `RequestCard.tsx:271` — `onClick={() => setIsBookmarked(!isBookmarked)}`, pure local `useState(false)` at `:46`. `toggleBookmarkAction` (`looking-for/actions.ts:258`) is the only writer of `looking_for_bookmarks`. | **Worse than `view_count`: it lies to the user.** The icon fills brand-primary so the host believes it saved, then it resets on refresh. "Saved Requests" is a live sidebar item (`Sidebar.tsx:156`) that renders its empty state forever. **Fault underneath:** the action itself `await`ed its insert/delete and **discarded the error**, returning `{success:true}` unconditionally — so wiring the button would have moved the lie from the component into the action. Now: errors returned, host resolved from the session (was a client-supplied `hostId`), `is_bookmarked` seeded from the DB, 23505 treated as the state the host asked for. |
+| ✅ **Hosts cannot dispute a review** — WIRED | `flagReviewAction` (`dashboard/reviews/actions.ts:238`) has no caller. `ReviewCard.tsx:155` renders a read-only "Flagged" *badge* — no button exists. | Every downstream consumer is built: host "Flagged" tab (`FilterTabs.tsx:50`), an admin queue that **defaults** to the flagged tab (`admin/reviews/page.tsx:92`), an `/admin` counter (`admin/page.tsx:57`). **Two faults underneath, both fixed in `20260716330000`:** (1) `review_flags` has had **RLS enabled and ZERO policies since May** (`20260501000007:65`), so the insert raised `42501` — proven on live; the action could *never* have succeeded. (2) The "unique check on (review_id, flagged_by)" its comment claims **never existed**. Both now real, rehearsed with 6 controls. Also: the admin queue never read `review_flags`, so the host's typed explanation went nowhere — now surfaced under "Host said:". |
+| ✅ **External reviews can never appear** — WIRED | `mapExternalReviewToPropertyAction` is the only writer of `external_reviews.property_id`; the sync Edge Function never sets it (`external-reviews-sync/index.ts:314` omits the column). The public query hard-filters `.eq("property_id", listingId)` (`property/[slug]/reviews-data.ts:158`). | `property_id` is permanently NULL, so **no external review can ever render on any property page** — the entire public point of the feature. `getHostPropertiesAction` exists to fill a mapping dropdown that was never built (`ExternalReviewsHub.tsx:712` renders the name read-only). **Dropdown built**; an unmapped review now says "Not shown on a page" instead of rendering nothing. Rehearsed on live: host maps → 1 row → persists → the public query returns it; another host → 0 rows. ⚠️ **The rehearsal is what caught the `anon` regression in §0.1** — the public-visibility step failed for a reason that had nothing to do with this feature. |
 | **Cannot reply to an external review** | `replyToExternalReviewAction` (`lib/external-reviews/actions.ts:649`) has no caller; the Hub has no textarea/button. | Hosts see replies made on Google/Facebook directly, but can never compose one from Wielo. The `external-review-reply` Edge Function and its `reply_synced` columns are unreachable. |
 | **Brochure can never be removed** | `removeHostBrochureAction` (`quotes/actions.ts:307`) has no caller. `QuoteForm.tsx:55` imports the get + upload actions, not the remove; UI offers only "Include" and "Replace". | Once uploaded, `hosts.brochure_path` stays populated forever. Minor; ~10 lines to wire. |
 

@@ -163,9 +163,25 @@ which is the unrelated directory-promotion table. Don't conflate them.
    outstanding link at once.
 6. **`REVIEW_TOKEN_SECRET` falls back to `SUPABASE_SERVICE_ROLE_KEY`** — rotating the
    service-role key silently invalidates every outstanding review link.
-7. **`review_flags` anti-spam does not exist.** The code comments claim "the unique
-   check on (review_id, flagged_by) keeps hosts from flag-spamming" — **no migration
-   ever adds that constraint.**
+7. ✅ **FIXED `20260716330000` — the host could never flag at all, and the anti-spam
+   was fiction.** Two faults, found when the button was finally wired (pt11):
+   - **`review_flags` had RLS enabled and ZERO policies from May to July.**
+     `20260501000007:65` ran `ENABLE ROW LEVEL SECURITY` and never wrote a policy.
+     RLS with no policy **denies every non-service-role write**, so
+     `flagReviewAction`'s insert always raised. Proven on live as `authenticated`:
+     `42501 new row violates row-level security policy for table "review_flags"` —
+     **not** `23503`, so the FK on deliberately-fake uuids never got a say: RLS
+     refused first. 🔑 Nobody noticed because **the action had no caller to notice
+     with** — a dead feature hides its own bugs, and both would have surfaced on the
+     new button's first click.
+   - **The anti-spam constraint the comments claimed did not exist.** It does now
+     (`review_flags_one_per_flagger`), and the action reports the 23505 honestly
+     ("already reported") instead of advising a retry that cannot work.
+   Rehearsed on live with 6 controls incl. the pre-migration control (must fail),
+   a different host (42501), and a spoofed `flagged_by` (42501).
+   Also wired: the admin queue never **read** `review_flags`, so the host's typed
+   explanation was written and read by nobody — `flagged_reason` alone is an enum.
+   It now renders under "Host said:".
 8. ✅ **Stale `publish_at` contract** — column comments corrected in `20260716260000`.
    The `is_published` DEFAULT false is deliberately left: every insert names the
    column, so it's unreachable, and false is the safe way to be wrong.

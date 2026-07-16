@@ -13,6 +13,14 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
+// Mirrors the reason CHECK on review_flags / the host's FlagReviewDialog.
+const FLAG_REASON_LABELS: Record<string, string> = {
+  false_information: "Contains false information",
+  personal_attack: "Personal attack",
+  booking_never_occurred: "Guest never stayed",
+  other: "Other",
+};
+
 type Tab = "flagged" | "all" | "pending";
 
 type Filters = {
@@ -22,13 +30,18 @@ type Filters = {
   rating: string; // "" | "1".."5"
 };
 
+// `flags` is what the host actually wrote when they reported the review.
+// reviews.flagged_reason only carries the enum ("other" tells a moderator
+// nothing), so without this embed the host's explanation was written to
+// review_flags and read by no one.
 const SELECT = `
   id, host_id, rating, body, flagged, flagged_reason, is_published, admin_decision,
   created_at, publish_at,
   listing:properties!reviews_listing_id_fkey ( name ),
   host:hosts ( handle, display_name ),
   booking:bookings ( guest_name ),
-  photos:review_photos ( storage_path, sort_order )
+  photos:review_photos ( storage_path, sort_order ),
+  flags:review_flags ( reason, details, created_at )
 `;
 
 function buildQuery(service: ReturnType<typeof createAdminClient>, f: Filters) {
@@ -160,6 +173,9 @@ export default async function AdminReviewsPage({
       | { guest_name: string | null }[]
       | null;
     photos: { storage_path: string; sort_order: number }[] | null;
+    flags:
+      | { reason: string; details: string | null; created_at: string }[]
+      | null;
   };
 
   const list = (rows as Row[] | null) ?? [];
@@ -377,7 +393,20 @@ export default async function AdminReviewsPage({
                 {r.flagged_reason ? (
                   <div className="mt-3 rounded border border-status-cancelled/30 bg-status-cancelled/5 px-3 py-2 text-[12.5px] text-brand-dark">
                     <span className="text-brand-mute">Flag reason:</span>{" "}
-                    {r.flagged_reason}
+                    {FLAG_REASON_LABELS[r.flagged_reason] ?? r.flagged_reason}
+                    {/* What the host actually wrote — the reason enum alone
+                        isn't enough to judge a dispute on. */}
+                    {(r.flags ?? []).map((f, i) =>
+                      f.details ? (
+                        <p
+                          key={i}
+                          className="mt-1.5 border-t border-status-cancelled/20 pt-1.5 text-brand-dark"
+                        >
+                          <span className="text-brand-mute">Host said:</span>{" "}
+                          &ldquo;{f.details}&rdquo;
+                        </p>
+                      ) : null,
+                    )}
                   </div>
                 ) : null}
               </article>

@@ -256,8 +256,9 @@ export async function flagReviewAction(
   }
 
   // Two-step: insert the audit row + set the review's flagged flag for
-  // admin attention. The unique check on (review_id, flagged_by) keeps
-  // hosts from flag-spamming the same review.
+  // admin attention. `review_flags_one_per_flagger` (20260716330000) is what
+  // stops a host flag-spamming the same review — until then this comment
+  // claimed a constraint that no migration had ever created.
   const { error: flagErr } = await supabase.from("review_flags").insert({
     review_id: reviewId,
     flagged_by: user.id,
@@ -268,6 +269,14 @@ export async function flagReviewAction(
         : null,
   });
   if (flagErr) {
+    // "Try again" is the wrong advice for a duplicate — retrying can't help,
+    // and the host has already been heard.
+    if (flagErr.code === "23505") {
+      return {
+        ok: false,
+        error: "You've already reported this review — we're looking at it.",
+      };
+    }
     return { ok: false, error: "Couldn't flag the review. Try again." };
   }
 

@@ -62,6 +62,8 @@ export type LookingForPost = {
   };
   distance_km: number | null;
   already_quoted: boolean;
+  /** Seeded from `looking_for_bookmarks` — the card must not assume unsaved. */
+  is_bookmarked: boolean;
 };
 
 export function RequestsBoard({ hostId }: RequestsBoardProps) {

@@ -431,6 +431,26 @@ function ExternalReviewsFeed({ sources }: { sources: SourceData[] }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [properties, setProperties] = useState<{ id: string; name: string }[]>(
+    [],
+  );
+
+  // The host's places, for the mapping dropdown below. Until a review is mapped
+  // to one, `external_reviews.property_id` stays NULL and the public property
+  // page — which filters on it — can never show the review. That was the whole
+  // point of importing them.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { getHostPropertiesAction } =
+        await import("@/lib/external-reviews/actions");
+      const result = await getHostPropertiesAction();
+      if (!cancelled && result.ok) setProperties(result.properties);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Import the action dynamically to avoid server/client mismatch
   const loadReviews = useCallback(
@@ -531,6 +551,42 @@ function ExternalReviewsFeed({ sources }: { sources: SourceData[] }) {
       } else {
         toast.error(result.error);
       }
+    });
+  };
+
+  // Map a review to one of the host's properties (or clear it).
+  const handleMapProperty = async (
+    reviewId: string,
+    propertyId: string | null,
+  ) => {
+    startTransition(async () => {
+      const { mapExternalReviewToPropertyAction } =
+        await import("@/lib/external-reviews/actions");
+      const result = await mapExternalReviewToPropertyAction(
+        reviewId,
+        propertyId,
+      );
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === reviewId
+            ? {
+                ...r,
+                propertyId,
+                propertyName:
+                  properties.find((p) => p.id === propertyId)?.name ?? null,
+              }
+            : r,
+        ),
+      );
+      toast.success(
+        propertyId
+          ? "Review linked — it can now show on that property's page."
+          : "Review unlinked from the property.",
+      );
     });
   };
 
@@ -709,11 +765,42 @@ function ExternalReviewsFeed({ sources }: { sources: SourceData[] }) {
                         <Icon className="h-3 w-3" />
                         {config.name}
                       </span>
-                      {review.propertyName && (
+                      {/* The mapping dropdown. A review with no property_id
+                          cannot render on any property page, so an unmapped
+                          review says so rather than showing nothing. */}
+                      {properties.length > 0 ? (
+                        <label className="flex items-center gap-1">
+                          <span className="sr-only">
+                            Link this review to a property
+                          </span>
+                          <select
+                            value={review.propertyId ?? ""}
+                            disabled={isPending}
+                            onChange={(e) =>
+                              handleMapProperty(
+                                review.id,
+                                e.target.value === "" ? null : e.target.value,
+                              )
+                            }
+                            className={`max-w-[170px] truncate rounded border bg-white px-1.5 py-0.5 text-xs focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/10 disabled:opacity-50 ${
+                              review.propertyId
+                                ? "border-brand-line text-brand-ink"
+                                : "border-amber-300 bg-amber-50 text-amber-700"
+                            }`}
+                          >
+                            <option value="">Not shown on a page —</option>
+                            {properties.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : review.propertyName ? (
                         <span className="max-w-[150px] truncate">
                           → {review.propertyName}
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
