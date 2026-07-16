@@ -67,7 +67,9 @@ export function StepStory({
       setNote("The website builder isn't enabled on your plan yet.");
     } else {
       setNote(
-        "Couldn't write the copy just now. You can continue and edit it later.",
+        res.detail
+          ? `Couldn't write the copy: ${res.detail}`
+          : "Couldn't write the copy just now. You can continue and edit it later.",
       );
     }
   }

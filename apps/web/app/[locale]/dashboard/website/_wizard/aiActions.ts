@@ -48,11 +48,11 @@ export type SiteAnswersInput = z.infer<typeof siteAnswersSchema>;
 
 type GenerateResult =
   | { ok: true; profile: ContentProfile }
-  | { ok: false; error: string };
+  | { ok: false; error: string; detail?: string };
 
 type RegenResult =
   | { ok: true; slot: AiStringSlot; value: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; detail?: string };
 
 /** Owner-scoped fetch of the site + the context the prompt needs. */
 async function loadSiteForAi(websiteId: string): Promise<
@@ -141,7 +141,12 @@ export async function generateSiteContentAction(
     if (err instanceof AiUnavailableError) {
       return { ok: false, error: "ai_not_configured" };
     }
-    return { ok: false, error: "ai_failed" };
+    // Surface the real provider error (e.g. a retired model id or a bad key) —
+    // logged for the runtime logs AND returned as `detail` so the wizard can
+    // show exactly what went wrong instead of a generic "couldn't write".
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error(`[ai] generate failed: ${detail}`);
+    return { ok: false, error: "ai_failed", detail };
   }
 
   const parsed = aiContentSchema.safeParse(raw);
@@ -206,7 +211,12 @@ export async function generateWizardContentAction(
     if (err instanceof AiUnavailableError) {
       return { ok: false, error: "ai_not_configured" };
     }
-    return { ok: false, error: "ai_failed" };
+    // Surface the real provider error (e.g. a retired model id or a bad key) —
+    // logged for the runtime logs AND returned as `detail` so the wizard can
+    // show exactly what went wrong instead of a generic "couldn't write".
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error(`[ai] generate failed: ${detail}`);
+    return { ok: false, error: "ai_failed", detail };
   }
 
   const parsed = aiContentSchema.safeParse(raw);
@@ -259,7 +269,12 @@ export async function regenerateSlotAction(
     if (err instanceof AiUnavailableError) {
       return { ok: false, error: "ai_not_configured" };
     }
-    return { ok: false, error: "ai_failed" };
+    // Surface the real provider error (e.g. a retired model id or a bad key) —
+    // logged for the runtime logs AND returned as `detail` so the wizard can
+    // show exactly what went wrong instead of a generic "couldn't write".
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error(`[ai] generate failed: ${detail}`);
+    return { ok: false, error: "ai_failed", detail };
   }
 
   const parsed = regenResultSchema.safeParse(raw);

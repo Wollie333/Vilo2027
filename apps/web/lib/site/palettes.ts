@@ -125,6 +125,33 @@ export function generatePalettes(baseAccent: string): SitePalette[] {
   });
 }
 
+/**
+ * A small light→base→deep ramp of an accent, for palette-card swatches. Pure +
+ * dependency-free (shares the hsl helpers), so the wizard cards + live preview
+ * stay in sync.
+ */
+export function accentRamp(accent: string): {
+  light: string;
+  base: string;
+  deep: string;
+} {
+  const { r, g, b } = hexToRgb(accent);
+  const hsl = rgbToHsl(r, g, b);
+  return {
+    light: hslToHex({
+      ...hsl,
+      s: clamp(hsl.s - 8, 0, 100),
+      l: clamp(hsl.l + 20, 0, 100),
+    }),
+    base: accent,
+    deep: hslToHex({
+      ...hsl,
+      s: clamp(hsl.s + 6, 0, 100),
+      l: clamp(hsl.l - 16, 0, 100),
+    }),
+  };
+}
+
 /** True for a valid `#rgb` / `#rrggbb` hex. */
 export function isHexColor(v: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.trim());
