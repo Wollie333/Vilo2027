@@ -14,14 +14,15 @@ through `20260716220000`.** Only untracked = the mobile eslint scaffold (founder
 - Credit dials: **plan defaults** free 0 · pro 50 · business 200. **Product dials:** Beta 50 ·
   Wielo Quotes 5 · Starter none (falls back to plan pro=50).
 
-### ▶ NEXT (founder sequenced: GDPR purge FIRST)
-1. 🔴 **Fix `app_purge_user_account` — GDPR erasure is BROKEN.** Full detail in memory
-   `project-gdpr-purge-broken` + pt7 below. It dies on 3 RESTRICT edges it never clears:
-   **`forfeit_statements`**→bookings (and its guard needs `app.allow_forfeit_statement_purge`, a GUC
-   **nothing sets**), **`credit_notes`**→invoices, **`looking_for_responses`**→quotes (the fn predates
-   Looking-For). ⚠️ **quotes must be deleted BETWEEN looking_for_responses and looking_for_posts**
-   (RESTRICT pair); `refund_requests` before `payments`. **Then test against an account that actually
-   has all three — nothing ever has.** Legal obligation.
+### ▶ NEXT (founder sequenced)
+1. ✅ **DONE — `app_purge_user_account` fixed + proven** (`20260716230000`). Was broken on **4** tables,
+   not the 3 recorded: `forfeit_statements` (+ the `app.allow_forfeit_statement_purge` GUC nothing set),
+   `credit_notes` (RESTRICTs invoices AND bookings AND hosts), `looking_for_responses`→quotes, and
+   **`looking_for_posts`→bookings via `fulfilled_booking_id`** (never recorded). Also fixed a second
+   defect nothing had noticed: **purging a GUEST** failed on the `user_profiles`→`looking_for_posts`
+   cascade being blocked by `quotes.looking_for_post_id`. Third-party posts are **severed (SET NULL)**,
+   never deleted. Verified live before/after with a negative control (old fn → `23503`; new fn → 17/17).
+   Order + traps + method now in `docs/lifecycles/account-deletion.md`.
 2. **Enforce "no membership → no account"** (founder rule). True by construction but **unenforced**.
    Want: (a) every host has ≥1 active subscription, (b) **at most ONE active membership** per host —
    founder: *"one subscription product, many services, many packages"*. "Membership" needs a join to

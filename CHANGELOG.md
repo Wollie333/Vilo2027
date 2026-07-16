@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-07-16 — The GDPR erasure path was broken. Fixed, and proven against an account that has the rows.
+
+- **`app_purge_user_account` could not erase any account holding a forfeit statement, a credit note, a
+  Looking-For post or a Looking-For response.** It raised, the request errored, and the POPIA/GDPR
+  obligation went unmet. Migration `20260716230000`.
+- **The recorded diagnosis was incomplete.** It named 3 edges; the live FK graph has **4 tables**, and two
+  block more than was recorded: `credit_notes` RESTRICTs `hosts` and `bookings` (not just `invoices`),
+  `forfeit_statements` RESTRICTs `hosts` too, and **`looking_for_posts` → `bookings`** via
+  `fulfilled_booking_id` was not recorded at all. The order is now derived from the graph, not by
+  inspection.
+- **Found a second defect nothing had noticed: purging a GUEST.** `looking_for_posts.guest_id` CASCADEs
+  from `user_profiles`, but `quotes.looking_for_post_id` (NO ACTION) blocks that cascade — so deleting a
+  guest who had received quotes would fail *outside* the function, with nothing able to fix it. Their
+  posts and the quotes on them are now cleared inside the RPC.
+- **A third party's post may point at the purged account's booking** (`fulfilled_booking_id`, NO ACTION).
+  That reference is **severed to NULL**, not deleted — another user's post is not ours to erase.
+- **Why this survived:** nothing had ever run it against an account that actually held these rows, and
+  `docs/lifecycles/account-deletion.md` asserted the purge was "previously proven". It wasn't. That claim
+  is corrected, and the doc now carries the erasure order, every trap, and how it was verified.
+- **Verified on live, before and after, in `BEGIN; … ROLLBACK;`** against an account that is both host and
+  guest holding a booking, payment, invoice, credit note, forfeit statement, its own LF post, another
+  host's quote on it, an LF response, and a third party's post referencing its booking. Negative control
+  first — the OLD function fails with `23503 credit_notes_invoice_id_fkey`. After the push, the same
+  script passes all 17 assertions against the deployed function: everything erased, third-party user/host/
+  post intact, only the booking reference severed. Types regenerated (unchanged — signature is the same).
+
+---
+
 ## 2026-07-16 — A real credit field on products (undoing the mess Phase 4 made of the admin UI).
 
 - **Founder:** *"even when I edit an existing product subscription there is no clear credit assignment

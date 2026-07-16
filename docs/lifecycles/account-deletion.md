@@ -61,9 +61,53 @@ funnel through it, so the two stay symmetric.
   Guards: target must be deleted, past the hold (`isPurgeEligible`), and not a super_admin.
 - Irreversible — this is the ONLY place user data is truly destroyed. No cron runs it.
 - Verified: the gate is verified live (fresh delete → button disabled + "unlocks in 30 days"). The purge
-  *execution* reuses the previously-proven self-service purge RPC + `deleteUser`; the >30-day click was
-  NOT re-driven this pass (no eligible account exists without back-dating a seed user, which would destroy it).
+  *execution* is verified as of 2026-07-16 (`20260716230000`) against an account holding every blocking
+  row type — see "Erasure order" below. The >30-day click itself was NOT re-driven (no eligible account
+  exists without back-dating a seed user, which would destroy it).
 - Next: account and all its rows are gone; the email frees up for re-signup.
+
+---
+
+## Erasure order — `app_purge_user_account`
+
+⚠️ **This RPC had never been exercised against a realistic account, and was broken.** Until
+`20260716230000` it raised on any account holding a **forfeit statement, a credit note, a Looking-For
+post or a Looking-For response** — so those accounts simply could not be erased, and the POPIA/GDPR
+obligation went unmet. The claim above that it was "previously proven" was false: the earlier evidence
+only ever covered accounts with none of those rows.
+
+The delete order is **derived from the live FK graph**, not by inspection. Every RESTRICT/NO ACTION edge
+reachable from `user_profiles`/`hosts` must be cleared, deepest first:
+
+```
+set app.allow_policy_snapshot_purge + app.allow_forfeit_statement_purge   (both immutability triggers)
+UPDATE looking_for_posts SET fulfilled_booking_id = NULL   -- third parties: sever, never delete
+forfeit_statements → credit_notes                          -- credit_notes BEFORE invoices
+refund_status_history → refunds → refund_requests          -- all BEFORE payments
+payments → policy_snapshots → reviews → invoices
+looking_for_responses → quotes → looking_for_posts         -- quotes sit BETWEEN the two
+bookings → properties → host_feature_overrides → hosts
+admin/staff hats → data_requests
+```
+
+**Traps this order encodes** (each one is a real FK, verified live):
+- `credit_notes.invoice_id` is **NOT NULL RESTRICT** → credit notes must die before invoices.
+- `forfeit_statements` + `credit_notes` RESTRICT **both** `bookings` **and** `hosts`.
+- `looking_for_responses.quote_id` → `quotes` is NO ACTION, and `quotes.looking_for_post_id` →
+  `looking_for_posts` is NO ACTION → **quotes must die between responses and posts**.
+- `looking_for_posts.fulfilled_booking_id` → `bookings` is NO ACTION and belongs to *another guest*.
+  It is **SET NULL, not deleted** — a third party's post is not ours to erase.
+- `looking_for_posts.guest_id` CASCADEs from `user_profiles`, but `quotes.looking_for_post_id` blocks
+  that cascade → a **guest** who received quotes could not be deleted either, outside the RPC entirely.
+  Their posts + the quotes on them are now cleared inside it, before `auth.users` is deleted.
+- `looking_for_post_unlocks` CASCADEs from both `hosts` and `looking_for_posts` → needs no handling.
+
+**How it was verified** (rehearsal in `BEGIN; … ROLLBACK;` on live): build an account that is both host
+and guest, holding a booking, payment, invoice, credit note, forfeit statement, its own LF post, a quote
+on that post from *another* host, an LF response, and a *third party's* post pointing at its booking.
+Then `app_purge_user_account` + `DELETE FROM auth.users`, and assert. Negative control first: the OLD
+function fails with `23503 credit_notes_invoice_id_fkey`. The new one erases everything, leaves the third
+party's user, host and post intact, and severs only the booking reference.
 
 ---
 
