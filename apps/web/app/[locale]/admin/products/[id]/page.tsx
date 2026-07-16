@@ -161,11 +161,9 @@ export default async function AdminProductEditorPage({
       >
         <ArrowLeft className="h-4 w-4" /> All products
       </Link>
-      <header>
-        <h1 className="font-display text-2xl font-bold text-brand-ink">
-          {isNew ? "New product" : `Edit ${product.name}`}
-        </h1>
-      </header>
+      {/* The editor's identity bar carries the breadcrumb + live title (and
+          reflects the name as you type), so a static <h1> here would just be a
+          second, staler copy of it. */}
       <ProductEditor
         product={product}
         isNew={isNew}
