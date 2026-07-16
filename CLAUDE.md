@@ -17,6 +17,17 @@ At the start of every session, read in this order:
 7. `DEVSTACK.md` — locked versions and dev environment setup
 8. `ENV_VARS.md` — every environment variable and where to get it
 
+**Before any DB work, read `docs/SCHEMA.md` — not `supabase_database.md`, not a lifecycle doc.**
+`docs/SCHEMA.md` is **generated from the live database** (`node scripts/generate-schema-doc.mjs`):
+every table, column, FK, RLS policy, trigger, function and cron, as they ACTUALLY are. Prose goes
+stale and this project has been burned by it repeatedly — a rename orphaned a cron for 30 days, a
+lifecycle doc described a call site that never existed. Regenerate it after any migration. Its
+"Automated red flags" section re-runs the traps that have already cost us real time.
+
+**Before claiming a feature is done, ask what calls it** — `node scripts/audit-wiring.mjs`.
+The dominant bug in this codebase is a feature that exists, builds green, lints green, and is
+invoked by nothing (see `docs/WIRING_AUDIT.md` for the standing inventory and the autopsy).
+
 Read these for their specific domain:
 - `BOOKING_SYNC.md` — iCal calendar sync spec (import/export, DB schema, Edge Functions)
 - `DESIGN_SYSTEM.md` — brand colours, typography, components, UI patterns

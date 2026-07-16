@@ -1,0 +1,175 @@
+# Wielo — Wiring Audit (2026-07-16)
+
+> **The question this answers:** *"Which features exist in the code but have never actually run?"*
+>
+> Not "does it compile" — everything compiles. Not "does it lint" — everything lints.
+> **Does anything call it?**
+
+## Why this exists
+
+`view_count` was fixed on 2026-07-16 and the autopsy is the whole reason for this document.
+The feature had a table, a trigger, a server action, a UI, and a lifecycle doc describing how it
+all worked. Every piece existed and had been ticked off. The only missing thing was the single
+line that **calls** the action — `recordPostViewAction` had never been invoked by anything, ever.
+It built green, linted green, and had never once run. The lifecycle doc confidently described a
+call site that was never written.
+
+That is not a one-off. It is the dominant failure mode of this codebase, and it is invisible to
+every check we run, because **nothing on this platform has ever executed** (0 properties,
+0 bookings, 0 Looking-For posts). "Done" has meant "the code exists".
+
+So this audit asks the only question that catches it: **what invokes this?**
+
+## Method (and how to re-run it)
+
+Mechanical, then verified by hand. Never trust the output of step 1 alone — see *False positives*.
+
+```bash
+node scripts/audit-wiring.mjs          # exported runtime symbols with zero references
+node scripts/generate-schema-doc.mjs   # regenerates docs/SCHEMA.md + its automated red flags
+```
+
+`docs/SCHEMA.md` is generated from the **live** database and re-runs the DB-side trap checks
+(orphaned crons, unset Vault secrets, unpinned `search_path`, RLS-crossing triggers) on every run.
+
+### False positives this sweep must survive
+
+Each of these fooled the first version of the detector. Keep them in mind before believing a hit:
+
+1. **Next.js entrypoints** (`page.tsx`, `route.ts`, `generateMetadata`, …) are exported and never
+   imported *by design*. Excluded.
+2. **The `withAdminAudit` pattern.** `export const fooAction = withAdminAudit(...)` is often used
+   only by a thin `export async function foo()` in the *same file*. Same-file references must
+   count, or every audited admin action reads as dead. (This produced ~745 false hits at first.)
+   ⚠️ Note: some client components import the `withAdminAudit` const **directly**
+   (`PlanEditor.tsx:60`), so callability cannot be used to infer deadness either way.
+3. **Transitive death.** A file whose only caller is itself dead looks alive. `ListingSettingsDialog`
+   and `SetupChecklist` are dead only because their sole importers are dead.
+   **Re-run the sweep after each deletion pass until it reaches a fixed point.**
+4. **A DB object may be superseded rather than unwired** — `next_invoice_number` uses a *sequence*,
+   so `platform_counters` is dead, not a live counter. Always ask what *reads* it.
+
+---
+
+## 🔴 1. LIVE BUGS — broken right now, on production
+
+### `check_guest_post_quota` throws on every call — guest post caps are unenforced
+**Proven on live** by calling it:
+```
+ERROR: 42P01: relation "looking_for_quotas" does not exist
+CONTEXT: PL/pgSQL function check_guest_post_quota(uuid) line 24
+```
+`20260716200000_consolidate_wielo_credits.sql` (shipped **yesterday**) dropped `looking_for_quotas`,
+but the function still reads it. PL/pgSQL binds table names late, so the `DROP` succeeded and left
+the function raising at runtime. The live DB has the function and not the table — visible in
+`packages/types/database.types.ts`, which lists `check_guest_post_quota` and no `looking_for_quotas`.
+
+**Why nobody noticed: all three call sites fail OPEN.**
+- `portal/looking-for/actions.ts:121` — `if (quotaError) { console.error(...); // Continue anyway }`
+- `portal/looking-for/page.tsx:112` — error discarded; `remaining_*` defaults to 999 → hint never shows
+- `record_guest_post_and_check` → `portal/looking-for/actions.ts:188` — `recErr` logged and swallowed
+
+**Blast radius:** the guest post cap is entirely unenforced (a guest can post unlimited requests);
+the "X requests left" hint has silently vanished; and because the function raises *before* its
+insert, `looking_for_usage` records **no `guest_post` rows at all** — the usage log is quietly empty.
+
+**Decision needed:** move guest posting onto credits (consistent with the consolidation's intent),
+or recreate the function against a surviving limits source. Either way the three fail-open
+`catch`-and-continue sites should fail closed — they are why a hard error went unnoticed.
+(They also violate the no-`console` rule.)
+
+---
+
+## 🟠 2. UNWIRED FEATURES — the `view_count` class
+
+The feature is built and expected to work. Nothing calls it.
+
+| What | Evidence | Blast radius |
+|---|---|---|
+| **Bookmarks fake success** | `RequestCard.tsx:271` — `onClick={() => setIsBookmarked(!isBookmarked)}`, pure local `useState(false)` at `:46`. `toggleBookmarkAction` (`looking-for/actions.ts:258`) is the only writer of `looking_for_bookmarks`. | **Worse than `view_count`: it lies to the user.** The icon fills brand-primary so the host believes it saved, then it resets on refresh. "Saved Requests" is a live sidebar item (`Sidebar.tsx:156`) that renders its empty state forever. Even wired, initial state is hardcoded `false` and must be seeded from the DB. |
+| **Hosts cannot dispute a review** | `flagReviewAction` (`dashboard/reviews/actions.ts:238`) has no caller. `ReviewCard.tsx:155` renders a read-only "Flagged" *badge* — no button exists. | Every downstream consumer is built: host "Flagged" tab (`FilterTabs.tsx:50`), an admin queue that **defaults** to the flagged tab (`admin/reviews/page.tsx:92`), an `/admin` counter (`admin/page.tsx:57`). The queue can never receive a host complaint. Sharpest tell: migration `20260716250000:24` (written **yesterday**) preserved the host's RLS right to flag and names `flagReviewAction` — a guard authored for a caller that has never existed. |
+| **External reviews can never appear** | `mapExternalReviewToPropertyAction` is the only writer of `external_reviews.property_id`; the sync Edge Function never sets it (`external-reviews-sync/index.ts:314` omits the column). The public query hard-filters `.eq("property_id", listingId)` (`property/[slug]/reviews-data.ts:158`). | `property_id` is permanently NULL, so **no external review can ever render on any property page** — the entire public point of the feature. `getHostPropertiesAction` exists to fill a mapping dropdown that was never built (`ExternalReviewsHub.tsx:712` renders the name read-only). |
+| **Cannot reply to an external review** | `replyToExternalReviewAction` (`lib/external-reviews/actions.ts:649`) has no caller; the Hub has no textarea/button. | Hosts see replies made on Google/Facebook directly, but can never compose one from Wielo. The `external-review-reply` Edge Function and its `reply_synced` columns are unreachable. |
+| **Brochure can never be removed** | `removeHostBrochureAction` (`quotes/actions.ts:307`) has no caller. `QuoteForm.tsx:55` imports the get + upload actions, not the remove; UI offers only "Include" and "Replace". | Once uploaded, `hosts.brochure_path` stays populated forever. Minor; ~10 lines to wire. |
+
+> **📌 The external-reviews docs are wrong.** `CURRENT_TASK.md` and `docs/lifecycles/README.md` say
+> the feature is blocked on missing Vault secrets. Only the **cron half** is. The manual **Refresh**
+> button is live and **bypasses Vault entirely** (`actions.ts:286` calls the Edge Function directly
+> with the service-role key). Set every Vault secret today and reviews would *still* sync into a
+> table no property page can read. It is blocked on a **missing dropdown**, not a secret.
+
+---
+
+## 🟡 3. FOUNDER DECISIONS
+
+1. **The plan-key billing lane.** `startPlanCheckoutAction` is dead, **but there is no revenue gap** —
+   hosts subscribe via `PlanPicker.tsx:53` → `switchToProductAction` → Paystack, and signup's paid
+   path is live at `signup/host/actions.ts:232`. The dead action is the **sole** reachable caller of
+   `switchPlanAction` and `startSubscriptionCheckout` (`lib/billing/platform-billing.ts:49`).
+   Delete all three, or park for Phase 3 — **do not delete piecemeal**.
+   (`isPlatformBillingConfigured` must stay; still used at `actions.ts:353`.)
+2. **Website builder capability loss.** Commit `57e262da` ("delete old builder (phase 6)") removed
+   every caller of per-page SEO (`savePageSeoAction`), the SEO coach (`analyzeSeo`), the
+   accessibility checker (`analyzeA11y`), saved sections, site-width layout, and room overrides.
+   V3 re-wired only 5 actions and references none of these. The RoomBuilder loss was signed off;
+   **per-page SEO + a11y + saved sections look like unintended collateral** — they were deliberately
+   added one commit earlier (`4b630629`). Site-level SEO survives via a different action, which
+   masks the per-page gap. Re-wire into V3, or delete ~10 exports + 2 analyzer files.
+3. **`passOnPostAction`** — PREMATURE. No caller **and no reader**: the browse query never filters
+   passes, so wiring the button alone would hide nothing. Build both halves or delete action + table.
+
+---
+
+## 🟢 4. SAFE DELETES — verified replacement exists
+
+Each was traced to a **live, working** replacement (the replacement was confirmed to render/persist,
+not merely assumed from a comment).
+
+| Symbol | Superseded by |
+|---|---|
+| `check_host_quote_quota` (DB) | Credits: `spendQuoteCredit` (`quotes/actions.ts:917`) + `unlockLead`. Deliberate replacement; `looking_for_quotas` dropped in `..200000`. |
+| `get_listing_availability` (DB) | `listing_is_available_whole` / `room_is_available`. ⚠️ **It ignores bookings entirely — wiring it would be a regression.** |
+| `get_host_inbox_stats` (DB) | Computed inline (`inbox/page.tsx:112`). |
+| `get_host_refund_stats` (DB) | Computed inline. Also counts `status='escalated'`, a state removed in `20260614000001`. |
+| `platform_counters` (table) | Sequences (`next_invoice_number` → `seq_invoice_number`). **Nothing reads it.** ⚠️ It is also the only table on the platform with **no RLS**, and `anon` holds full SELECT/INSERT/UPDATE/DELETE on it — proven in a rollback: as `anon` I read it, rewrote `last_invoice_number` to 999999, and deleted the row. Harmless today because it is dead. **Drop it.** |
+| `deletePolicyAction` | `retirePolicyAction` (`RetirePolicyModal.tsx:63`) — strictly safer; reassigns listings first. |
+| `assignCancellationPresetAction` | `PolicyPicker` → `setListingPolicyAction` (real policy rows). |
+| `markNoShowBookingAction` | `forfeitBookingAction` (`BookingActions.tsx:165`), which sets `status:'no_show'` itself and does more. ⚠️ The two disagree on semantics (`TRANSITIONS.noShow` says dates stay blocked + no guest notice; forfeit releases dates *and* notifies) — deleting the dead one removes the contradiction. |
+| `markComplete` + `markCompleteAction` | `fulfillExport` / `fulfillDeletion`. Coverage is total: `CHECK (request_type IN ('export','deletion'))`. |
+| `adminSendPlatformMessageByEmailAction` | `adminSendPaymentLinkToInboxAction`. **Its comment lies** — claims the revenue ledger calls it. |
+| `togglePlanActiveAction`, `toggleServiceActiveAction`, `toggleProductActive` (+ its const) | An "Active" checkbox inside each editor, saved via the normal upsert. |
+| `RoomsGroupCard` **+ `ListingSettingsDialog`** | `rooms/page.tsx` defines its own `ListingGroupCard`. The dialog is transitively dead. Booking-mode switching survives at `BasicTab.tsx:176`. |
+| `FirstLoginHero` **+ `SetupChecklist`** | `OnboardingDashboard`. `SetupChecklist` is transitively dead. |
+| `CreateWebsiteCard` | `CreateWebsiteButton` (`website/page.tsx:145`); gating intact. |
+| `loadWizardContext` | `loadWizardAccount.ts` (the V1 wizard shipped and works). |
+| `saveWebsiteRoomsAction` | Rooms auto-pull on publish (`9123ab57`, deliberate). |
+| 8 × google/facebook helpers | The Deno Edge Functions reimplement them locally. ⚠️ **Delete the named exports only** — sibling OAuth exports in the same files are live. Duplication is a real drift hazard (two star-rating mappings). |
+| `SetupSidePanel`, `CompletedSetupHeader`, `AcademyCards`, `ComingSoon`, `SettingsHero`, `previewDealCategoryKey`, `checkSubdomainAvailabilityAction` | Superseded/never-adopted UI. |
+| `lib/products/entitlements.ts` (**whole module**) | `lib/products/featureGate` → `hostHasFeature`. |
+| Trivial unused helpers | `getCreditWallets`, `isRegisteredType`, `isPlatformPayPalEnabled`, `getActiveMetaPixelId`, `randomId`, `getCronLabel`, `isValidCron`, `businessDisplayName`, `getListingBusinessId`, `formatAggregatedRatingTooltip`, `isWideRoute`, `useBranding`. |
+
+---
+
+## ⚪ 5. Systemic — from `docs/SCHEMA.md`'s automated red flags
+
+- **4 Vault-gated crons whose secrets are unset** — they report `succeeded` while doing nothing:
+  `drain-looking-for-notifications`, `poll-website-domains`, `publish-scheduled-posts`,
+  `sync-external-reviews`. Founder-only (`vault.create_secret` per environment).
+- **74 `SECURITY DEFINER` functions with no pinned `search_path`.** Each resolves object names via
+  the caller's path. Fix is mechanical: `SET search_path = public, pg_temp`.
+- **1 `SECURITY INVOKER` trigger writing to another RLS table** —
+  `tr_help_article_feedback_counters` on `help_article_feedback` → `help_articles`.
+  **Verified safe**: its only writer is `vote_help_article`, which is `SECURITY DEFINER`, so the
+  trigger runs as owner and bypasses RLS. Left as-is; the check is worth keeping.
+- **`isAuthorized()` in `external-reviews-sync/index.ts:25` can never return false** — both branches
+  `return true`, so the shared-secret gate is decorative. Mitigated (not exploitable) because
+  functions deploy without `--no-verify-jwt` (`deploy-functions.yml:36`) so the platform verifies
+  the JWT — but note the public **anon key is a valid JWT**, so the effective gate is weak. Worth a
+  real check or an honest comment.
+
+---
+
+## The rule this audit exists to enforce
+
+**A feature is not done when the code exists. It is done when something calls it and you have
+watched it run.** Until the smoke test happens, treat every ⚠️ in `CURRENT_TASK.md` as unproven.

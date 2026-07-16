@@ -5,6 +5,49 @@
 
 ---
 
+## 2026-07-16 — The reality map + the wiring audit (founder: *"we keep going over the same features and they're still not done"*).
+
+He was right, and the `view_count` autopsy explains why. That feature had a table, a trigger, an
+action, a UI **and a lifecycle doc** — and `recordPostViewAction` had never been invoked by anything,
+ever. It built green, linted green, never ran. **"Done" has meant "the code exists"**, and nothing on
+this platform has ever executed (0 properties / 0 bookings) to contradict it. Two tools now answer the
+only questions that catch this:
+
+- **`node scripts/generate-schema-doc.mjs` → `docs/SCHEMA.md`** — the schema **generated from the live
+  DB**: 180 tables · 158 functions · 36 crons · every column, FK, RLS policy and trigger as they
+  ACTUALLY are. Hand-written docs are the instrument that lied to us, so this one is derived and
+  regenerable (byte-identical on re-run — no diff churn). `CLAUDE.md` now points at it instead of prose.
+  Its **Automated red flags** re-run the traps that already cost real time, every time: orphaned crons,
+  unset Vault secrets, unpinned `search_path`, and RLS-crossing triggers (the `view_count` bug).
+- **`node scripts/audit-wiring.mjs`** — *"what calls this?"*. Full inventory: **`docs/WIRING_AUDIT.md`**.
+
+**Found: 89 dead exports + 4 DB functions with no caller anywhere.** Most are SUPERSEDED (safe deletes,
+each traced to a *verified* live replacement, not a trusted comment). The rest:
+
+- 🔴 **LIVE BUG — `check_guest_post_quota` raises `42P01` on every call.** `..200000` (shipped
+  yesterday) dropped `looking_for_quotas` but the function still reads it; PL/pgSQL late-binds, so the
+  DROP succeeded. **Proven by calling it on live.** All three call sites **fail OPEN** (`// Continue
+  anyway`) — which is exactly why a hard error went unnoticed. Guest post caps are **entirely
+  unenforced**, the "X requests left" hint is silently gone, and `looking_for_usage` records **no
+  `guest_post` rows** (it raises before the insert).
+- 🟠 **Bookmarks fake success** — the button is `onClick={() => setIsBookmarked(!x)}`, pure local state.
+  It fills brand-primary so the host believes it saved, then resets on refresh; "Saved Requests" is a
+  live sidebar item that renders empty forever. **Worse than `view_count`: it lies to the user.**
+- 🟠 **Hosts cannot dispute a review** — `flagReviewAction` has no button, yet the host Flagged tab, an
+  admin queue that *defaults* to flagged, and an `/admin` counter are all built. Yesterday's
+  `20260716250000` preserved the host's RLS right to flag **for a caller that has never existed**.
+- 🟠 **External reviews can never render** — `property_id` is never written and the public query
+  hard-filters on it. 📌 **The docs blame missing Vault secrets; that is wrong** — manual Refresh
+  bypasses Vault entirely. It is blocked on a **missing dropdown**.
+- ✅ **No revenue gap** (dug hard because it looked like one): hosts *do* subscribe via `PlanPicker` →
+  `switchToProductAction` → Paystack.
+
+🔑 **Method:** v1 of the sweep reported **834** dead exports; ~745 were the `withAdminAudit` same-file
+wrapper pattern. The real number is 89 — **verify every mechanical hit**. And *ask what READS it*: I
+nearly reported "anon can corrupt your invoice numbering" — `platform_counters` really is the one table
+with no RLS and full `anon` CRUD (proven in a rollback: rewrote `last_invoice_number` to 999999, deleted
+the row) — but `next_invoice_number` uses a **sequence** and nothing reads that table. Dead, not dangerous.
+
 ## 2026-07-16 — `view_count` has never counted a single host view (backlog item: "race + double-count").
 
 - **The recorded diagnosis was wrong, and the truth was worse.** The note said `view_count` had a race
