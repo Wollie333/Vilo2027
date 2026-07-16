@@ -9,6 +9,7 @@ import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { formatMoney } from "@/lib/format";
 import { requireHost as getHostId } from "@/lib/host/current";
 import { isSelfRecipient, SELF_RECIPIENT_ERROR } from "@/lib/host/self";
+import { isLeadUnlocked } from "@/lib/looking-for/leadAccess";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -905,18 +906,30 @@ export async function sendQuoteAction(
     }
   }
 
-  // Looking-For responses cost a quote-credit (founder: 1/quote, refunded on
-  // unaccepted expiry via a DB trigger). Debit BEFORE marking sent so we can
-  // block a host who's out of credits; idempotent per quote, so re-sending the
-  // same quote never double-charges. Direct (non-Looking-For) quotes are free.
+  // ONE credit per deal (founder, 2026-07-16: "I do not want two credits per
+  // deal"). Unlocking the lead is the charge — replying to a lead you already
+  // paid for is free. Without this the host pays twice for one deal, because the
+  // respond form is gated behind an unlock, so every Looking-For quote is
+  // preceded by one.
+  //
+  // The send-side debit stays for any Looking-For quote that was NOT reached via
+  // an unlock, and is idempotent per quote so re-sending never double-charges.
+  // Direct (non-Looking-For) quotes have always been free.
   if (current.looking_for_post_id && current.host_id) {
-    const spend = await spendQuoteCredit(supabase, current.host_id, quoteId);
-    if (!spend.ok) {
-      return {
-        ok: false,
-        error:
-          "You're out of quote credits. Top up from the credits menu to send this quote.",
-      };
+    const paidAtUnlock = await isLeadUnlocked(
+      supabase,
+      current.host_id,
+      current.looking_for_post_id,
+    );
+    if (!paidAtUnlock) {
+      const spend = await spendQuoteCredit(supabase, current.host_id, quoteId);
+      if (!spend.ok) {
+        return {
+          ok: false,
+          error:
+            "You're out of quote credits. Top up from the credits menu to send this quote.",
+        };
+      }
     }
   }
 

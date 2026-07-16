@@ -66,10 +66,24 @@ A host spends `quote_request` to *see* a lead and `quote` to *answer* it. These
 are deliberately separate wallets so the founder can price leads and replies
 independently (and so a host who unlocks but doesn't quote still consumes a lead).
 
-> **Open nuance to confirm at build time:** unlocking then quoting costs 2 credits
-> total (1 of each purpose). That is intended — two different wallets — but if the
-> founder wants "unlock includes the reply", make `spendQuoteCredit` a no-op when
-> the post was already unlocked by that host.
+> **RESOLVED (founder, 2026-07-16): ONE credit per deal — "I do not want two
+> credits per deal… in a perfect world they have a balance and the credits do not
+> expire, they paid for it".**
+>
+> The unlock IS the charge; replying to a lead you already paid for is free
+> (`sendQuoteAction` skips `spendQuoteCredit` when `isLeadUnlocked`). A host with an
+> **unlimited** lead allowance never pays at the unlock, so they pay on send
+> instead — either way **exactly one credit per deal**.
+>
+> **Credits never expire** — already true and now deliberate: grants accumulate,
+> nothing resets or prunes them, and purchased credits share the wallet.
+>
+> ⚠️ **Consequence to face in Phase 4:** because the respond form is gated behind an
+> unlock, a metered host's `quote` wallet is now only ever spent by an
+> unlimited-lead host. The **"Looking For quotes / month" dial is therefore close to
+> inert** for metered hosts — the lead dial is the real meter. Recommend collapsing
+> to ONE dial + ONE balance (matches "they have a balance"), or the second number
+> becomes another set-it-and-nothing-happens trap like `looking_for_quotas`.
 
 ### ⚠️ Allowance resolution — REUSE the entitlement system, don't mirror it
 

@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-07-16 — One credit per deal (founder decision).
+
+- **Founder:** *"I do not want two credits per deal… in a perfect world they have a balance and the
+  credits do not expire, they paid for it."*
+- **Cause:** `spendQuoteCredit` fires only for Looking-For quotes (direct quotes were always free), and
+  Phase 3 gates the respond form behind an unlock — so every Looking-For quote was preceded by one, and
+  the two charges always stacked.
+- **Fix:** `sendQuoteAction` now skips the quote-credit debit when the host already unlocked that lead
+  (`isLeadUnlocked`). The unlock is the charge; replying is included. A host with an **unlimited** lead
+  allowance never pays at the unlock, so they pay on send instead — **exactly one credit per deal either
+  way**. The send-side debit remains for any Looking-For quote not reached via an unlock, and stays
+  idempotent per quote.
+- **Credits never expire** — already the behaviour and now deliberate: grants accumulate, nothing resets
+  or prunes them, and purchased credits share the wallet. (A monthly reset would have destroyed paid
+  credits — which is why it was never built.)
+- **UI truthfulness:** the paywall now says *"1 credit for the whole deal, replying is included"*, and the
+  low-quote-credit banner is hidden on a lead that was paid for at unlock — it would have been warning
+  about a charge that no longer happens.
+- **Verified live:** sent a real quote on an already-unlocked lead — `quote` wallet held at **260** (no
+  charge) and the lead wallet at **199**, so the deal cost exactly **1** credit, spent at unlock. Bonus:
+  `looking_for_responses` went to 2 and `quote_count` auto-corrected to **2**, confirming the recompute
+  trigger from `20260716180000` in the real path. Build + lint green.
+- ⚠️ **Consequence for Phase 4:** since the form is gated behind an unlock, a metered host's `quote`
+  wallet is now only ever spent by an unlimited-lead host — so **"Looking For quotes / month" is close to
+  inert** and the lead dial is the real meter. Recommend collapsing to ONE dial + ONE balance (matches
+  "they have a balance"), or it becomes another set-it-and-nothing-happens trap.
+
+---
+
 ## 2026-07-16 — Looking-For credit allowances, Phase 3: lead locking.
 
 - **One SSOT, dumb surfaces** (founder: "easiest, most logical, manageable, scalable"):

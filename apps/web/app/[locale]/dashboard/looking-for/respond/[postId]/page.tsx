@@ -217,8 +217,14 @@ export default async function RespondToPostPage({ params }: Props) {
   // the quote form carries the guest's name/email/phone and the full brief, so
   // THAT is what a lead credit buys.
   const leadAccess = await loadLeadAccess(supabase, host.id, [post.id]);
-  const leadUnlocked =
-    leadAccess.unlimited || leadAccess.unlockedIds.has(post.id);
+  const paidAtUnlock = leadAccess.unlockedIds.has(post.id);
+  const leadUnlocked = leadAccess.unlimited || paidAtUnlock;
+
+  // ONE credit per deal. If the host paid at the unlock, sending is free — so the
+  // quote-credit warning would be a lie. It still applies to a host with an
+  // unlimited lead allowance, who never pays at the unlock and so pays on send:
+  // either way exactly one credit per deal.
+  const sendCostsCredit = !paidAtUnlock;
 
   return (
     <div className="space-y-6">
@@ -266,11 +272,14 @@ export default async function RespondToPostPage({ params }: Props) {
         />
       ) : (
         <>
-          {/* Low/out-of-credit heads-up — before the host builds the whole quote. */}
-          <LowCreditBanner
-            balance={creditBalance}
-            cost={LOOKING_FOR_QUOTE_CREDIT_COST}
-          />
+          {/* Low/out-of-credit heads-up — only when this send will actually
+              charge (i.e. the lead wasn't already paid for at the unlock). */}
+          {sendCostsCredit && (
+            <LowCreditBanner
+              balance={creditBalance}
+              cost={LOOKING_FOR_QUOTE_CREDIT_COST}
+            />
+          )}
 
           {/* Quote form with pre-filled data and template support */}
           <RespondFormWrapper

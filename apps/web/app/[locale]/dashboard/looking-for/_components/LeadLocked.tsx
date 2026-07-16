@@ -57,7 +57,7 @@ export function LeadLocked({
           </h3>
           <p className="mt-0.5 text-sm text-brand-mute">
             {canAfford
-              ? `See the full request and send a quote. Costs ${cost} lead credit${cost !== 1 ? "s" : ""} — you have ${balance}.`
+              ? `See the full request and send a quote — ${cost} credit${cost !== 1 ? "s" : ""} for the whole deal, replying is included. You have ${balance}.`
               : "This request is waiting for you. Top up to see the full details and quote."}
           </p>
 
