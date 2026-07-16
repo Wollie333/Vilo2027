@@ -226,27 +226,52 @@ export function RequestRecord({
 
       {/* Identity band */}
       <div className="rounded-card border border-brand-line bg-white p-5">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[post.status] ?? STATUS_STYLES.draft}`}
-          >
-            {STATUS_LABELS[post.status] ??
-              post.status.charAt(0).toUpperCase() + post.status.slice(1)}
-          </span>
-          <Badge variant="secondary" className="capitalize">
-            {post.category}
-          </Badge>
-          {post.is_urgent && (
-            <Badge variant="destructive" className="gap-1">
-              <Zap className="h-3 w-3" />
-              Urgent
-            </Badge>
+        <div className="flex gap-4">
+          {/* The photo the guest uploaded. A thumbnail, not a banner: uploads are
+              arbitrary (portrait phone shots, flyers) and crop badly at any large
+              size — and this is a record, so identity beats decoration. */}
+          {post.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={post.image_url}
+              alt={post.title}
+              className="h-16 w-16 shrink-0 rounded-card border border-brand-line object-cover sm:h-20 sm:w-20"
+            />
+          ) : (
+            <Link
+              href={`/portal/looking-for/${post.id}/edit`}
+              title="Add a photo to your request"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-card border border-dashed border-brand-line bg-brand-light text-brand-mute transition hover:border-brand-primary/40 hover:text-brand-primary sm:h-20 sm:w-20"
+            >
+              <ImagePlus className="h-5 w-5" />
+              <span className="sr-only">Add a photo to your request</span>
+            </Link>
           )}
-          {!post.is_public && <Badge variant="outline">Private</Badge>}
+
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[post.status] ?? STATUS_STYLES.draft}`}
+              >
+                {STATUS_LABELS[post.status] ??
+                  post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+              </span>
+              <Badge variant="secondary" className="capitalize">
+                {post.category}
+              </Badge>
+              {post.is_urgent && (
+                <Badge variant="destructive" className="gap-1">
+                  <Zap className="h-3 w-3" />
+                  Urgent
+                </Badge>
+              )}
+              {!post.is_public && <Badge variant="outline">Private</Badge>}
+            </div>
+            <h1 className="font-display text-xl font-bold text-brand-ink">
+              {post.title}
+            </h1>
+          </div>
         </div>
-        <h1 className="font-display text-xl font-bold text-brand-ink">
-          {post.title}
-        </h1>
 
         {post.status === "suspended" && (
           <p className="mt-3 rounded-card border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -297,41 +322,6 @@ export function RequestRecord({
       {/* Panels */}
       {tab === "overview" && (
         <div className="space-y-4">
-          {/* Cover photo. The guest uploads this on the request form and every
-              other surface already renders it (public board, public post page,
-              host respond card) — their own record was the only one that didn't. */}
-          {post.image_url ? (
-            <div className="h-44 w-full overflow-hidden rounded-card border border-brand-line bg-brand-light sm:h-56">
-              {/* Fixed banner height rather than an aspect ratio: guests upload
-                  anything (portrait phone shots included), and an aspect box
-                  would let a tall image push the whole record below the fold. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={post.image_url}
-                alt={post.title}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ) : (
-            <Link
-              href={`/portal/looking-for/${post.id}/edit`}
-              className="flex items-center gap-3 rounded-card border border-dashed border-brand-line bg-white px-5 py-4 transition hover:border-brand-primary/40"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-primary">
-                <ImagePlus className="h-5 w-5" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-medium text-brand-ink">
-                  Add a photo to your request
-                </span>
-                <span className="block text-xs text-brand-mute">
-                  Requests with a photo stand out to hosts browsing the board.
-                </span>
-              </span>
-              <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-brand-mute" />
-            </Link>
-          )}
-
           {/* What to do next — the record should tell the guest, not make them
               work it out from the tabs. */}
           {acceptedResponse ? (

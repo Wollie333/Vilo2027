@@ -10,9 +10,11 @@
 - **The post's own photo now renders on the guest's record.** `looking_for_posts.image_url` is uploaded by the guest
   on the request form and was already shown on the public board, the public post page, and the host respond card —
   the guest's own record (`/portal/looking-for/[id]`) was the only surface that never even *selected* the column.
-  Added to `POST_COLUMNS` + `RecordPost` and rendered as a banner at the top of Overview (fixed `h-44 sm:h-56` rather
-  than an aspect box — guests upload portrait phone shots, and an aspect ratio pushed the whole record below the
-  fold). No image → a dashed "Add a photo to your request" prompt linking to the edit page.
+  Added to `POST_COLUMNS` + `RecordPost` and rendered as a **thumbnail in the identity band**, left of the badges and
+  title (`h-16 w-16 sm:h-20 sm:w-20`). Founder call, and correct: uploads are arbitrary (portrait phone shots,
+  flyers, headshots) and crop badly at any large size, a banner pushed the whole record below the fold, and this is a
+  record — identity beats decoration. The thumbnail also stays visible across every tab. No image → a dashed
+  placeholder linking to the edit page.
 - **Overview now answers "how am I doing?"** — all derived from data the loader already had in memory, no new
   queries: a **next-action** strip (accepted → pay/view booking · N quotes awaiting → compare · none yet → who's
   being notified, using the pin radius · all declined → edit request); a **quote summary** (count, lowest, average,
