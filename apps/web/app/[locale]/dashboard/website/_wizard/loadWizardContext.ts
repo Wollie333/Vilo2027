@@ -46,7 +46,9 @@ export async function loadWizardContext(): Promise<WizardContext | null> {
       .select("id")
       .eq("business_id", businessId)
       .maybeSingle(),
-    loadActiveThemes(),
+    // Pass the authenticated client so the catalogue read can evaluate the
+    // is_super_admin() RLS policy (anon may lack EXECUTE on it).
+    loadActiveThemes(supabase),
   ]);
 
   const name = biz?.trading_name?.trim() || biz?.legal_name?.trim() || "";
