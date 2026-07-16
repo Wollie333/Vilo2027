@@ -2,6 +2,68 @@
 
 > Reset at the start of every session. This is the session contract.
 
+## 🟢🟢🟢🟢 SAVE POINT (2026-07-16 pt7) — NEXT SESSION STARTS HERE: 2 DB ITEMS
+
+**Repo clean + pushed. `pnpm build` (888 pages) + `pnpm lint` green. DB = blank slate, 3 accounts.**
+Founder sequenced these: **GDPR purge FIRST** (legal), then the membership guard.
+
+### 1. 🔴 FIX `app_purge_user_account` — GDPR erasure is BROKEN on live
+The platform's own account-erasure function (SECURITY DEFINER; the "delete my account" / `data_requests`
+path) **fails on 3 RESTRICT edges it never clears**. Any account holding ANY of them cannot be erased —
+a legal obligation (POPIA/GDPR). Full detail: memory `project-gdpr-purge-broken`.
+1. **`forfeit_statements` → `bookings`** (RESTRICT). The fn never deletes them → its `DELETE FROM
+   bookings` raises. Worse: `forbid_forfeit_statement_mutation()` blocks the delete unless
+   `app.allow_forfeit_statement_purge = 'on'` — **a GUC nothing in the codebase sets** (the fn only sets
+   `app.allow_policy_snapshot_purge`).
+2. **`credit_notes` → `invoices`** (RESTRICT). Fn deletes `invoices` without clearing `credit_notes`.
+3. **`looking_for_responses` → `quotes`** (RESTRICT). Fn **predates Looking-For** entirely.
+
+⚠️ **Ordering trap:** `quotes.looking_for_post_id → looking_for_posts` AND
+`looking_for_responses.quote_id → quotes` are BOTH RESTRICT → **quotes must be deleted BETWEEN
+looking_for_responses and looking_for_posts**. Also `refund_requests → payments` (refund_requests first).
+
+**Working order (proved live in the 2026-07-16 wipe):**
+```
+set_config('app.allow_forfeit_statement_purge','on',true);
+set_config('app.allow_policy_snapshot_purge','on',true);
+forfeit_statements → credit_notes → looking_for_post_unlocks → looking_for_responses
+                   → quotes → looking_for_posts     -- THEN the existing body
+```
+**Fix:** extend the fn to clear those, scoped to the user/host, before its existing deletes. **Then test
+it against an account that actually has all three** — the gap is that nothing ever did. Rehearse in
+`BEGIN; … ROLLBACK;` on live first.
+
+### 2. Enforce "no membership plan → no user account" (founder rule)
+Now **true by construction** but **unenforced**. Signup inserts a baseline `plan='free'`,
+`product_id=NULL`, `status='active'` subscription = the **guest tier** (`signup/host/actions.ts` §4) —
+see memory `project-signup-guest-tier-model`. **NEVER prune NULL-product subs; they are the guest tier.**
+Founder's rule: **ONE subscription product (membership) per host, but many services and many packages.**
+Wanted: a DB guard for (a) every host has ≥1 active subscription, (b) at most ONE active membership per
+host. Note "membership" needs a join to `products.product_type`, so a partial unique index alone won't
+express it — likely a trigger. ⚠️ **A wrong guard blocks signup** — rehearse hard.
+
+### ✅ Done this arc (all pushed, all verified live unless noted)
+Wielo credits consolidated to **ONE balance** (see a request = 1, quote = 1, never expires, one dial
+`wielo_credits_per_month`) · lead locking (mask **server-side**, never blur) · `quote_count` recompute
+trigger · guest LF record Overview + image · tab unification · **blank slate** (3 accounts) ·
+**Principle #11 corrected** (its TRUNCATE recipe would have wiped `plan_features` and killed the credit
+system) · signup-baseline retire fix (the duplicate-subscription root cause) · host-is-also-a-guest
+self-request guard · host-ness derived from a hosts row.
+
+### GOTCHAs
+- **`apply_wielo_credit`'s idempotency key EXCLUDES `purpose`** → two purposes sharing a `ref_id` = the
+  2nd is a **silent no-op**. Bit me twice; the 2nd **destroyed 199 credits** (caught in ROLLBACK).
+  **Encode purpose/direction in `ref_id`; assert conservation in every rehearsal.**
+- `supabase db query --linked --file x.sql` returns **only the LAST statement's rows** → accumulate into
+  a `CREATE TEMP TABLE` + `SELECT *`. Rehearse every migration in `BEGIN; … ROLLBACK;` before `db push`.
+- **Commit subject must be LOWERCASE** (commitlint `subject-case`); header ≤~100 chars.
+- Agent can't drive signup (creating accounts / entering passwords is out of scope) — test by
+  reproducing signup's insert + driving the admin activation.
+- Stray `apps/mobile/eslint.config.js` + `package.json` + `pnpm-lock.yaml` still UNSTAGED — founder:
+  *"leave it, we'll get to it once the web app is complete and working."*
+
+---
+
 ## 🟢🟢🟢 SAVE POINT (2026-07-16 pt6) — GUEST LOOKING-FOR RECORD: OVERVIEW ENRICHED. PT5 BATCH IS CLOSED.
 
 **Green: `pnpm build` + `pnpm lint`. Verified live in the portal.** See CHANGELOG top entry for full detail.

@@ -223,7 +223,7 @@ export async function buildPlatformReport(
     }),
     service
       .from("user_profiles")
-      .select("role, created_at")
+      .select("id, created_at")
       .is("deleted_at", null)
       // Exclude the internal Wielo Support bot so the footprint counts match
       // the Users list (which hides it) — it is not a real guest.
@@ -306,14 +306,28 @@ export async function buildPlatformReport(
     trials + payingHosts > 0 ? (payingHosts / (trials + payingHosts)) * 100 : 0;
 
   // ── Users / growth ──
+  // Host-ness is DERIVED from owning a hosts row, never from user_profiles.role.
+  // Every account is a guest; role is a signup label that reads "host" for
+  // someone who is both, so counting on it under-reports. Hosts and Guests stay
+  // mutually exclusive (guests = accounts with no host record) so the split still
+  // sums to the total.
+  const { data: hostUserRows } = await service
+    .from("hosts")
+    .select("user_id")
+    .is("deleted_at", null);
+  const hostUserIds = new Set(
+    (hostUserRows ?? []).map((h) => h.user_id as string).filter(Boolean),
+  );
+  const isHost = (id: unknown) => hostUserIds.has(id as string);
+
   let totalUsers = 0;
   let hosts = 0;
   let guests = 0;
   let newUsersPeriod = 0;
   for (const u of profiles ?? []) {
     totalUsers += 1;
-    if (u.role === "host") hosts += 1;
-    else if (u.role === "guest") guests += 1;
+    if (isHost(u.id)) hosts += 1;
+    else guests += 1;
     if (u.created_at && u.created_at >= periodStart) newUsersPeriod += 1;
   }
 
@@ -362,14 +376,14 @@ export async function buildPlatformReport(
     const idx = monthIndex.get(keyOf(r.date));
     if (idx != null) months[idx].revenue += r.amount;
   }
-  // Signups per month by role.
+  // Signups per month, split the same derived way as the totals above.
   for (const u of profiles ?? []) {
     if (!u.created_at) continue;
     const idx = monthIndex.get(keyOf(u.created_at));
     if (idx == null) continue;
     months[idx].signups += 1;
-    if (u.role === "host") months[idx].hosts += 1;
-    else if (u.role === "guest") months[idx].guests += 1;
+    if (isHost(u.id)) months[idx].hosts += 1;
+    else months[idx].guests += 1;
   }
   // GMV per month — booking value for stays checking in that month.
   for (const b of bookingRows ?? []) {

@@ -140,8 +140,22 @@ export default async function AdminUsersPage({
   // KPI + segment counts (all non-deleted users, excluding the Wielo Support bot).
   const { data: allRows } = await service
     .from("user_profiles")
-    .select("role, is_active, created_at, email")
+    .select("id, is_active, created_at, email")
     .is("deleted_at", null);
+
+  // Host-ness is DERIVED from owning a hosts row, not from user_profiles.role.
+  // Every account is a guest — role is a signup label that says "host" for someone
+  // who is both, so counting on it under-reports. Hosts and Guests stay mutually
+  // exclusive here (guests = accounts with no host record) so the two cards still
+  // sum to the total.
+  const { data: hostRows } = await service
+    .from("hosts")
+    .select("user_id")
+    .is("deleted_at", null);
+  const hostUserIds = new Set(
+    (hostRows ?? []).map((h) => h.user_id as string).filter(Boolean),
+  );
+
   const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
   let total = 0;
   let hosts = 0;
@@ -151,8 +165,8 @@ export default async function AdminUsersPage({
   for (const u of allRows ?? []) {
     if (u.email === WIELO_SUPPORT_EMAIL) continue;
     total += 1;
-    if (u.role === "host") hosts += 1;
-    else if (u.role === "guest") guests += 1;
+    if (hostUserIds.has(u.id as string)) hosts += 1;
+    else guests += 1;
     if (u.is_active === false) suspended += 1;
     if (u.created_at && u.created_at >= since30) new30 += 1;
   }

@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-07-16 — Derive host-ness from a hosts row, not `user_profiles.role`.
+
+- **Why:** every account is a guest; `role` is a *signup label* that reads `"host"` for someone who is
+  both, so counting on it under-reports. Founder's call: **Hosts and Guests stay mutually exclusive**
+  (guests = accounts with **no** host record), so the two cards still sum to the total.
+- **Fixed the counts** in `admin/users/page.tsx` (KPI + segment counts) and
+  `lib/billing/platform-report.ts` (totals **and** the per-month signup split): both now build a
+  `Set` of `hosts.user_id` (non-deleted) and derive `isHost` from it. `user_profiles` selects `id`
+  instead of `role`.
+- **Left alone deliberately** (per-row display / targeting, not counts): the `RolePill` and the plan
+  column on the users table, `UserRecord`'s primary-role label, broadcast audience targeting
+  (`admin/notifications/actions.ts`), and `dashboard/layout.tsx`'s `isHostByRole` — which is already
+  OR'd with a hosts-row check for `canHost`, so it's correct.
+- **Verified live:** admin Users renders **Total 2 = Hosts 2 + Guests 0**, buckets exclusive and summing,
+  Wielo Support still excluded. ⚠️ **Honest caveat:** with only 3 accounts left post-wipe, both measures
+  give identical numbers — this proves **no regression**, not the fix. The skew only shows once an
+  account exists that is a host by one measure and not the other. Build (888 pages) + lint green.
+
+---
+
 ## 2026-07-16 — A host is also a guest: don't sell them their own Looking-For request.
 
 - **Founder:** *"the host needs guest facilities as well, as they can also be a guest — how would we
