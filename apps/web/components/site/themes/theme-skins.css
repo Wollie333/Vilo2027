@@ -603,8 +603,7 @@
 }
 
 /* --- HERO --------------------------------------------------------------- */
-/* Structural rhythm only (type is host-editable via --el-*/
---site-hero-*). */
+/* Structural rhythm only (type stays host-editable via the el/site-hero vars). */
 .wielo-safari [data-section-type="hero"] .site-hero-title {
   max-width: 16ch;
   margin-top: 22px;
