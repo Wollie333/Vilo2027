@@ -63,9 +63,11 @@ const roomDetail = {
     }),
   overview: () =>
     build("room_overview", (s) => {
+      // Single content column — name, fact pills, description. No price aside:
+      // the booking dock / room_rate form is the sole price + CTA on the page.
       s.props.show_facts = true;
-      s.props.show_price = true;
-      s.props.variant = "split";
+      s.props.show_price = false;
+      s.props.variant = "stacked";
     }),
   amenities: () =>
     build("room_amenities", (s) => {
