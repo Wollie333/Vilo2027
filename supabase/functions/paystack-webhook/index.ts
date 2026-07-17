@@ -142,14 +142,29 @@ Deno.serve(async (req: Request) => {
     return new Response("Invalid signature", { status: 401 });
   }
 
-  // Reply early — process async per AGENT_RULES.md §1.3.
   const event = JSON.parse(rawBody) as PaystackEvent;
 
-  // Fire-and-forget so we don't block the 200.
-  processEvent(event, rawBody).catch(() => {
-    // Failure is swallowed here on purpose; Paystack will retry on non-200.
-    // Investigation tooling lands when Sentry/PostHog wire up.
-  });
+  // Process synchronously and let the HTTP status drive Paystack's retry.
+  //
+  // The old code fired processEvent and returned 200 unconditionally with a
+  // comment claiming "Paystack will retry on non-200" — but it NEVER returned
+  // non-200, so a transient failure (a DB blip mid-settlement) silently lost
+  // that event forever, with no queue to catch it. processEvent is fast (a
+  // handful of indexed single-row writes) and idempotent (every settle guards on
+  // status='pending', and the return-page verify already re-runs the same work),
+  // so awaiting it is safe and, crucially, a 500 now makes Paystack redeliver.
+  try {
+    await processEvent(event, rawBody);
+  } catch (err) {
+    console.error(
+      "paystack-webhook: processEvent failed, asking for retry",
+      err,
+    );
+    return new Response(JSON.stringify({ ok: false }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
