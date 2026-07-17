@@ -87,6 +87,27 @@ const roomDetail = {
       s.props.heading = "Things to know";
       s.props.variant = "grid";
     }),
+  // Live rate table (all the property's rooms + nightly rates) — the directory
+  // listing's "Rates" block. Auto-sourced; renders nothing on the live site when
+  // the property has no priced rooms.
+  rates: () =>
+    build("room_rates", (s) => {
+      s.props.heading = "Rates";
+      s.props.note =
+        "Per room, per night. Your final price is confirmed at checkout.";
+    }),
+  // Seasonal pricing periods (property_seasonal_pricing, grouped by label) — only
+  // appears on the live site when the host has configured seasonal rules.
+  seasonal: () =>
+    build("seasonal_pricing", (s) => {
+      s.props.heading = "Seasonal pricing";
+    }),
+  // "Where you'll be" — city/province + keyless map (exact address stays private
+  // until booking). Renders nothing when the property has no location set.
+  location: () =>
+    build("location", (s) => {
+      s.props.heading = "Where you'll be";
+    }),
 };
 
 // ── Safari — unfenced wilderness lodge (savanna ochre, bushveld green) ────
@@ -1727,8 +1748,11 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.rates(),
+    roomDetail.seasonal(),
     roomDetail.policies(),
     safari.reviews(),
+    roomDetail.location(),
     safari.ctaBanner(),
   ],
   sabela: () => [
@@ -1736,8 +1760,11 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.rates(),
+    roomDetail.seasonal(),
     roomDetail.policies(),
     sabela.reviews(),
+    roomDetail.location(),
     sabela.ctaBanner(),
   ],
   oceansview: () => [
@@ -1745,8 +1772,11 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.rates(),
+    roomDetail.seasonal(),
     roomDetail.policies(),
     oceansview.reviews(),
+    roomDetail.location(),
     oceansview.ctaBanner(),
   ],
   marmalade: () => [
@@ -1754,8 +1784,11 @@ const ROOM_DETAIL: Record<string, () => WebsiteSection[]> = {
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.rates(),
+    roomDetail.seasonal(),
     roomDetail.policies(),
     marmalade.reviews(),
+    roomDetail.location(),
     marmalade.ctaBanner(),
   ],
 };
@@ -1787,6 +1820,9 @@ export function getThemeRoomDetailSections(
     roomDetail.overview(),
     roomDetail.amenities(),
     roomDetail.rate(),
+    roomDetail.rates(),
+    roomDetail.seasonal(),
     roomDetail.policies(),
+    roomDetail.location(),
   ];
 }
