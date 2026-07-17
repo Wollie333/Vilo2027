@@ -137,8 +137,11 @@ export const SITE_PRESETS = {
       line: "#E4D6BE",
       accent: "#C8702E",
       accentInk: "#FFFFFF",
+      secondary: "#9C3B52", // berry — the reference's stamp/seal + secondary CTA
     },
-    font: "serif",
+    // "homely" = Gloock display heading + Karla body (the reference's fonts);
+    // plain "serif" fell back to Georgia, losing the Gloock postcard voice.
+    font: "homely",
     radius: "lg",
   },
 } as const;

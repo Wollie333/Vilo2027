@@ -641,13 +641,14 @@
   --site-navy-ink: #f4ecdb;
   --site-navy-mute: #cbb998;
 
-  /* Hero display type — Gloock display serif scale (marmalade theme.css). Read by
-     HeroSection as the `--el-*` fallback, so it stays host-editable. */
+  /* Hero display type — Gloock display serif scale (marmalade theme.css: 400
+     weight, tracking 0, 1.05 leading). Read by HeroSection as the `--el-*`
+     fallback, so it stays host-editable. */
   --site-hero-title-size: clamp(2.6rem, 5.4vw, 4.6rem);
   --site-hero-title-weight: 400;
   --site-hero-title-lh: 1.05;
-  --site-hero-title-ls: -0.01em;
-  --site-hero-sub-size: clamp(1.02rem, 1.5vw, 1.28rem);
+  --site-hero-title-ls: 0;
+  --site-hero-sub-size: clamp(1.05rem, 1.6vw, 1.3rem);
 
   /* Intro stat badge + section eyebrows in the marmalade accent. */
   --site-intro-badge-bg: var(--site-surface);
@@ -656,12 +657,29 @@
   --site-intro-eyebrow-fg: var(--site-accent);
 }
 
-/* Editorial display scale for section headings (descendant beats the inline
-   modular scale, host edits still win). */
+/* Reference fidelity (descendant beats the inline modular scale, no !important,
+   host edits still win) — marmalade's postcard recipe from theme.css: Gloock
+   400 display headings at tracking 0 and 1.05 leading, 17px body, pill CTAs,
+   small-radius (10px) postcards with a deep soft shadow, 14px photo corners.
+   Font is enforced here too so the Gloock display voice holds even if the DB
+   base drifts off the homely stack. */
 .wielo-marmalade [data-section-type] {
+  --site-font-heading:
+    "Gloock", "Playfair Display", Georgia, Cambria, "Times New Roman", ui-serif,
+    serif;
+  --site-weight-heading: 400;
+  --site-tracking-heading: 0;
+  --site-leading-heading: 1.05;
+  --site-text-base: 17px;
   --site-h1: clamp(2.6rem, 5.4vw, 4.6rem);
   --site-h2: clamp(2rem, 4vw, 3.2rem);
-  --site-h3: 1.4rem;
+  --site-h3: 1.5rem;
+  --site-h4: 1.25rem;
+  --site-btn-primary-radius: 999px;
+  --site-btn-secondary-radius: 999px;
+  --site-card-radius: 10px;
+  --site-img-radius: 14px;
+  --site-card-shadow: 0 30px 56px -28px rgba(44, 38, 32, 0.5);
 }
 
 /* --- MARMALADE home section skins ---------------------------------------- */
