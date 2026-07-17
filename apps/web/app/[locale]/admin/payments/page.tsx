@@ -14,6 +14,18 @@ import { requirePermission } from "@/lib/admin";
 
 import { AdminStatBand } from "../_components/AdminStatBand";
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+import { MarkEftReceivedButton } from "./MarkEftReceivedButton";
+
+// A pending EFT charge for a Wielo product order — its provider_reference is
+// "eft_<orderId>". These are the only ledger rows an admin settles by hand.
+function isPendingProductEft(r: WieloTxn): boolean {
+  return (
+    r.status === "pending" &&
+    r.provider === "eft" &&
+    !!r.providerReference &&
+    /^eft_[0-9a-f-]{6,}$/i.test(r.providerReference)
+  );
+}
 
 export const dynamic = "force-dynamic";
 
@@ -203,6 +215,20 @@ export default async function AdminPaymentsPage({
           },
         ]
       : []),
+    {
+      header: "",
+      // A pending product EFT is the only ledger row that needs a manual settle;
+      // every other row is settled by its provider or is a completed record.
+      cell: (r) =>
+        isPendingProductEft(r) ? (
+          <MarkEftReceivedButton
+            providerReference={r.providerReference as string}
+            label={`${productLabel(r)} · ${formatMoney(r.amount, r.currency)} · ${
+              r.userName ?? r.userEmail ?? "guest"
+            }`}
+          />
+        ) : null,
+    },
   ];
 
   return (

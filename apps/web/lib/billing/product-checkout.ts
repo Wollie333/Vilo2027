@@ -982,6 +982,111 @@ export async function recordProductEftIntent(
   return { ok: true };
 }
 
+// Settle a product order paid by EFT — the admin has SEEN the funds land in the
+// bank and marks it received. recordProductEftIntent only posts a PENDING ledger
+// row; until this runs the order never becomes paid, no plan activates, no
+// credits/promo are granted. This is the EFT sibling of
+// confirmProductOrderByReference: no provider verification (the admin's mark IS
+// the confirmation), same downstream settle, idempotent once the order is paid.
+export async function markProductOrderEftReceived(
+  payToken: string,
+): Promise<ConfirmProductResult> {
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("product_orders")
+    .select(
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
+    )
+    .eq("pay_token", payToken)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status === "paid") {
+    return {
+      ok: true,
+      status: "paid",
+      payToken: order.pay_token,
+      alreadyPaid: true,
+    };
+  }
+
+  const environment = order.environment ?? "live";
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const ref = `eft_${order.id}`;
+
+  await admin
+    .from("product_orders")
+    .update({ status: "paid", paid_at: nowIso, method: "eft", environment })
+    .eq("id", order.id);
+
+  // Flip the pending EFT revenue row to completed (or insert if it's missing —
+  // e.g. the buyer never opened the bank-details panel that seeds it).
+  const { data: led } = await admin
+    .from("platform_ledger")
+    .select("id, status")
+    .eq("provider_reference", ref)
+    .maybeSingle();
+  if (led) {
+    if (led.status !== "completed") {
+      await admin
+        .from("platform_ledger")
+        .update({ status: "completed", paid_at: nowIso, environment })
+        .eq("id", led.id);
+    }
+  } else {
+    await admin.from("platform_ledger").insert({
+      user_id: order.payer_user_id,
+      product_id: order.product_id,
+      type: "charge",
+      status: "completed",
+      amount: Number(order.amount),
+      setup_fee_amount: Number(order.setup_fee_amount ?? 0),
+      currency: order.currency,
+      provider: "eft",
+      provider_reference: ref,
+      coupon_id: order.coupon_id ?? null,
+      environment,
+      paid_at: nowIso,
+      reason: "Product purchase (EFT)",
+    });
+  }
+
+  // Same downstream settle as the card path.
+  await recordPromoRedemption(admin, order);
+  try {
+    const { data: row } = await admin
+      .from("platform_ledger")
+      .select("id")
+      .eq("provider_reference", ref)
+      .maybeSingle();
+    if (row?.id) await accrueAffiliateAndNotify(admin, row.id);
+  } catch {
+    // Commission accrual must never break settlement.
+  }
+  if (order.activate_on_pay !== false) {
+    await activateMappedPlan(
+      admin,
+      order.payer_user_id,
+      order.product_id,
+      now,
+      order.billing_cycle as "monthly" | "annual" | null,
+    );
+  }
+  await grantCreditsForOrder(admin, order);
+  await setPayCardStatus(admin, {
+    userId: order.payer_user_id,
+    payToken: order.pay_token,
+    status: "received",
+  });
+
+  return {
+    ok: true,
+    status: "paid",
+    payToken: order.pay_token,
+    alreadyPaid: false,
+  };
+}
+
 function addMonths(d: Date, n: number): string {
   const x = new Date(d);
   x.setUTCMonth(x.getUTCMonth() + n);
