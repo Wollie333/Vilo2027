@@ -2520,13 +2520,18 @@ function ProductsPanel({
               disabled={pending}
               onClick={() => onCatalogClick(p)}
             >
+              {/* A PAID plan with nothing on the account is a sale, so say so —
+                  it opens the same dialog ("Send pay-link" / "Mark as paid" /
+                  "Activate without charging"). Labelling it "Activate" hid that
+                  a subscription can be sold at all. Free plans really are just
+                  activated, and a switch is a pro-rated upgrade. */}
               {busyId === p.id
                 ? "Working…"
                 : canSwitchMembership
                   ? "Switch to this"
-                  : isMembership
+                  : p.isFree
                     ? "Activate"
-                    : "Add"}
+                    : "Sell"}
             </Button>
           )}
           <Link
