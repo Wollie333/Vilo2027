@@ -10,6 +10,7 @@ import {
   Share2,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -61,7 +62,10 @@ export function PostActions({ postId, status }: PostActionsProps) {
     startTransition(async () => {
       const result = await extendRequestAction(postId);
       if (result.success) {
+        toast.success("Extended by 7 days.");
         router.refresh();
+      } else {
+        toast.error(result.error || "Could not extend the request.");
       }
     });
   }
@@ -71,14 +75,20 @@ export function PostActions({ postId, status }: PostActionsProps) {
       const result = await duplicateRequestAction(postId);
       if (result.success && "data" in result && result.data?.id) {
         router.push(`/portal/looking-for/${result.data.id}`);
+      } else if (!result.success) {
+        toast.error(result.error || "Could not duplicate the request.");
       }
     });
   }
 
-  function handleShare() {
+  async function handleShare() {
     const url = `${window.location.origin}/looking-for/${postId}`;
-    navigator.clipboard.writeText(url);
-    // Could add toast notification here
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard.");
+    } catch {
+      toast.error("Could not copy the link.");
+    }
   }
 
   function handleMarkFulfilled() {
@@ -87,6 +97,8 @@ export function PostActions({ postId, status }: PostActionsProps) {
       if (result.success) {
         setShowFulfilledDialog(false);
         router.refresh();
+      } else {
+        toast.error(result.error || "Could not mark it fulfilled.");
       }
     });
   }
@@ -97,6 +109,8 @@ export function PostActions({ postId, status }: PostActionsProps) {
       if (result.success) {
         setShowCancelDialog(false);
         router.push("/portal/looking-for");
+      } else {
+        toast.error(result.error || "Could not cancel the request.");
       }
     });
   }
@@ -106,6 +120,8 @@ export function PostActions({ postId, status }: PostActionsProps) {
       const result = await reopenRequestAction(postId);
       if (result.success) {
         router.refresh();
+      } else {
+        toast.error(result.error || "Could not re-open the request.");
       }
     });
   }
