@@ -9,6 +9,7 @@ import {
   Flag,
   Gauge,
   Home as HomeIcon,
+  Image as ImageIcon,
   Inbox,
   Layers,
   ListChecks,
@@ -114,6 +115,14 @@ const MODERATION: GmailNavItem[] = [
 
 const PLATFORM: GmailNavItem[] = [
   { href: "/admin/platform/settings", label: "Settings", icon: FileText },
+  {
+    // App-scoped image store for the Wielo business side (affiliate resources,
+    // promo art). Distinct from a host's own media library.
+    href: "/admin/library",
+    label: "System library",
+    icon: ImageIcon,
+    match: "prefix",
+  },
   { href: "/admin/platform/features", label: "Feature flags", icon: Flag },
   {
     href: "/admin/platform/categories",
