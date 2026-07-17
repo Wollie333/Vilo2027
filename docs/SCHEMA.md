@@ -16,7 +16,7 @@ it after any migration.
 
 | | |
 |---|---|
-| Tables | **182** (181 with RLS) |
+| Tables | **181** (181 with RLS) |
 | Functions | **160** (127 SECURITY DEFINER, 57 trigger fns) |
 | Cron jobs | **36** (11 Vault-gated, 0 inactive) |
 | Vault secrets set | **9** |
@@ -3382,18 +3382,6 @@ CASE
 
 **RLS policies:**
 - `plans_public_read` (SELECT) — `USING (is_active = true)`
-
-### `platform_counters`  — ⚠️ **NO RLS**
-
-| column | type | null | default |
-|---|---|---|---|
-| `id` | boolean | — | `true` |
-| `last_invoice_number` | integer | — | `0` |
-| `updated_at` | timestamp with time zone | — | `now()` |
-| `last_credit_note_number` | integer | — | `0` |
-
-**Checks:**
-- `CHECK (id)`
 
 ### `platform_coupon_redemptions`
 

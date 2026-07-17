@@ -53,6 +53,7 @@ import {
   createQuoteAction,
   priceQuoteAction,
   getHostBrochureAction,
+  removeHostBrochureAction,
   searchGuestsAction,
   sendQuoteAction,
   updateQuoteAction,
@@ -822,6 +823,23 @@ export function QuoteForm({
       setBrochure(r.data);
       setAttachBrochure(true);
       toast.success("Brochure saved to your account");
+    } finally {
+      setBrochureUploading(false);
+    }
+  }
+
+  // Remove the account brochure entirely (not just detach it from this quote).
+  async function handleBrochureRemove() {
+    setBrochureUploading(true);
+    try {
+      const r = await removeHostBrochureAction();
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
+      setBrochure(null);
+      setAttachBrochure(false);
+      toast.success("Brochure removed from your account");
     } finally {
       setBrochureUploading(false);
     }
@@ -2537,6 +2555,15 @@ export function QuoteForm({
                     <Paperclip className="h-3.5 w-3.5" />
                     {brochureUploading ? "Uploading…" : "Replace brochure"}
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => void handleBrochureRemove()}
+                    disabled={brochureUploading}
+                    className="inline-flex items-center gap-1.5 text-[12px] font-medium text-brand-mute transition hover:text-status-cancelled disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Remove brochure
+                  </button>
                 </div>
               ) : (
                 <label className="mt-3 inline-flex cursor-pointer items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-1.5 text-[12.5px] font-semibold text-brand-ink transition hover:bg-brand-light">
