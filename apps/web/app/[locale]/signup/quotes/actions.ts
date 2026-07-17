@@ -7,7 +7,7 @@ import { getConsentVersion } from "@/lib/auth/consent";
 import { isBreachedPassword } from "@/lib/auth/password";
 import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
 import {
-  sendExistingAccountNotice,
+  sendSignupCollisionEmail,
   sendVerificationEmail,
 } from "@/lib/auth/verifyEmail";
 import { clientIpFromHeaders, verifyTurnstile } from "@/lib/security/turnstile";
@@ -83,11 +83,15 @@ export async function createQuotesAccountAction(
       msg.includes("registered") ||
       msg.includes("exists")
     ) {
-      await sendExistingAccountNotice({ email: d.email, origin });
+      // A passwordless lead gets a claim link, not a "just sign in" notice they
+      // have no password to act on (BUSINESS_PRINCIPLES #1 rule 3).
+      const sent = await sendSignupCollisionEmail({ email: d.email, origin });
       return {
         ok: false,
         error:
-          "We couldn't complete your signup. If you already have an account, sign in or reset your password.",
+          sent === "claim"
+            ? "You already have an account with this email — check your inbox for a link to set your password."
+            : "We couldn't complete your signup. If you already have an account, sign in or reset your password.",
       };
     }
     return { ok: false, error: "Could not create your account. Try again." };

@@ -8,7 +8,7 @@ import { getConsentVersion } from "@/lib/auth/consent";
 import { isBreachedPassword } from "@/lib/auth/password";
 import { checkSignupRateLimit } from "@/lib/auth/rateLimit";
 import {
-  sendExistingAccountNotice,
+  sendSignupCollisionEmail,
   sendVerificationEmail,
 } from "@/lib/auth/verifyEmail";
 import { combineName } from "@/lib/profile/name";
@@ -94,12 +94,17 @@ export async function createGuestAccountAction(
       msg.includes("exists")
     ) {
       // Anti-enumeration: don't confirm the email is registered. Email the real
-      // owner a heads-up instead, and return a neutral, non-committal message.
-      await sendExistingAccountNotice({ email: d.email, origin });
+      // owner instead — a passwordless lead (added as a party guest on someone's
+      // booking, or from an enquiry) gets a claim link rather than a "just sign
+      // in" notice they could never act on (BUSINESS_PRINCIPLES #1 rule 3:
+      // signup must never dead-end a returning passwordless guest).
+      const sent = await sendSignupCollisionEmail({ email: d.email, origin });
       return {
         ok: false,
         error:
-          "We couldn't complete your signup. If you already have an account, sign in or reset your password.",
+          sent === "claim"
+            ? "You already have an account with this email — check your inbox for a link to set your password."
+            : "We couldn't complete your signup. If you already have an account, sign in or reset your password.",
       };
     }
     return { ok: false, error: "Could not create your account. Try again." };

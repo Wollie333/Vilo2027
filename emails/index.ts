@@ -44,5 +44,6 @@ export { default as WelcomeHost } from "./templates/WelcomeHost";
 export { default as AffiliateCommissionEarned } from "./templates/AffiliateCommissionEarned";
 export { default as AffiliatePayoutPaid } from "./templates/AffiliatePayoutPaid";
 export { default as PasswordReset } from "./templates/PasswordReset";
+export { default as ClaimAccount } from "./templates/ClaimAccount";
 export { default as ConfirmEmail } from "./templates/ConfirmEmail";
 export { default as ExistingAccount } from "./templates/ExistingAccount";

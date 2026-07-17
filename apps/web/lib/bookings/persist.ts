@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PricingModel } from "@/app/[locale]/dashboard/addons/schemas";
 import { notifyAdmins } from "@/lib/admin/notify";
+import { mintPartyGuestIdentities } from "@/lib/bookings/mintPartyGuestIdentities";
 import { notifyGuestEftInstructions } from "@/lib/bookings/notifyGuestEftInstructions";
 import { notifyHostNewBooking } from "@/lib/bookings/notifyHostNewBooking";
 import {
@@ -265,6 +266,11 @@ export async function persistBookingAndPay(
   // booking reference) so they can pay even after leaving the success page. The
   // helper no-ops for card bookings (status stays 'pending', not 'pending_eft').
   await notifyGuestEftInstructions(admin, booking.id);
+
+  // 9. Mint a Wielo guest account for every party guest on the booking
+  // (BUSINESS_PRINCIPLES #1 rule 1 names this entry point). Uniform across every
+  // creation path for the same reason as 7 and 8. Best-effort.
+  await mintPartyGuestIdentities(admin, booking.id);
 
   return { ok: true, redirectTo: pay.redirectTo, bookingId: booking.id };
 }

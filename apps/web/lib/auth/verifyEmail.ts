@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { createElement } from "react";
 
-import { ConfirmEmail, ExistingAccount } from "@vilo/emails";
+import { ClaimAccount, ConfirmEmail, ExistingAccount } from "@vilo/emails";
 
 import { getBrandName } from "@/lib/brand";
 import { sendReactEmail } from "@/lib/email/send";
@@ -89,6 +89,66 @@ export async function sendVerificationEmail(input: {
   });
   if (!res.ok) console.error("[verifyEmail] send failed:", res.error);
   return { ok: res.ok };
+}
+
+/**
+ * Signup collided with an email that already has an account — route it to the
+ * right email and tell the caller which one went out.
+ *
+ * A PASSWORDLESS account (`is_lead`, minted when they were added as a party
+ * guest on a booking or sent an enquiry) must never be told "you already have an
+ * account, just sign in": they have no password, so that strands them forever.
+ * BUSINESS_PRINCIPLES #1 rule 3 requires we recognise them and prompt them to
+ * set a password instead.
+ *
+ * The claim link goes to their INBOX, never to the browser that typed the
+ * address — otherwise anyone could type a stranger's email and take the account.
+ * Mirrors create-enquiry.ts: magiclink → /auth/confirm → /claim.
+ *
+ * Returns `"claim"` when a lead was sent a claim link, `"existing"` otherwise,
+ * so signup can word its (still non-committal) response. Best-effort.
+ */
+export async function sendSignupCollisionEmail(input: {
+  email: string;
+  origin: string;
+}): Promise<"claim" | "existing"> {
+  const base = input.origin || process.env.NEXT_PUBLIC_APP_URL || "";
+  const email = input.email.trim().toLowerCase();
+  try {
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("user_profiles")
+      .select("id, full_name, is_lead")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (base && profile?.is_lead) {
+      const { data: link } = await admin.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+      });
+      const hashed = link?.properties?.hashed_token;
+      if (hashed) {
+        const claimUrl = `${base}/auth/confirm?token_hash=${hashed}&type=magiclink&next=${encodeURIComponent("/claim")}`;
+        const brandName = await getBrandName();
+        await sendReactEmail({
+          to: email,
+          subject: `Set your password — ${brandName}`,
+          react: createElement(ClaimAccount, {
+            firstName:
+              (profile.full_name ?? "").trim().split(/\s+/)[0] || "there",
+            claimUrl,
+            brandName,
+          }),
+        });
+        return "claim";
+      }
+    }
+  } catch {
+    // fall through to the generic notice
+  }
+  await sendExistingAccountNotice({ email, origin: input.origin });
+  return "existing";
 }
 
 /**
