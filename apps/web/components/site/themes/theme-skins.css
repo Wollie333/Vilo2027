@@ -414,13 +414,14 @@
   --site-navy-ink: #f1eadb;
   --site-navy-mute: #a99b7f;
 
-  /* Hero display type — editorial Cormorant Garamond scale (base.md). Read by
+  /* Hero display type — editorial Cormorant Garamond scale (reference
+     hero-full: clamp(2.8rem, 6.4vw, 5.6rem) @ weight 700, tracking 0). Read by
      HeroSection as the `--el-*` fallback, so it stays host-editable. */
-  --site-hero-title-size: clamp(2.8rem, 6vw, 5.2rem);
-  --site-hero-title-weight: 600;
+  --site-hero-title-size: clamp(2.8rem, 6.4vw, 5.6rem);
+  --site-hero-title-weight: 700;
   --site-hero-title-lh: 1.07;
-  --site-hero-title-ls: -0.02em;
-  --site-hero-sub-size: clamp(1.02rem, 1.5vw, 1.28rem);
+  --site-hero-title-ls: 0;
+  --site-hero-sub-size: clamp(1.1rem, 1.7vw, 1.45rem);
 
   /* Intro stat badge: gold-on-raised-dark (matches the lodge palette). */
   --site-intro-badge-bg: var(--site-soft);
@@ -429,12 +430,24 @@
   --site-intro-eyebrow-fg: var(--site-accent);
 }
 
-/* Section heading scale (descendant beats the root's inline modular scale, no
-   !important, host edits still win) — sabela's editorial display sizes. */
+/* Reference fidelity (descendant beats the root's inline modular scale, no
+   !important, host edits still win) — sabela's editorial display recipe from
+   theme.source.css: Cormorant 700 @ tracking 0, tight 1.07 leading, 17px body,
+   pill CTAs, sharp cards with a deep soft shadow, near-sharp imagery. */
 .wielo-sabela [data-section-type] {
+  --site-weight-heading: 700;
+  --site-tracking-heading: 0;
+  --site-leading-heading: 1.07;
+  --site-text-base: 17px;
   --site-h1: clamp(2.8rem, 6vw, 5.2rem);
   --site-h2: clamp(2rem, 3.6vw, 3.1rem);
   --site-h3: 1.4rem;
+  --site-h4: 1.2rem;
+  --site-btn-primary-radius: 9999px;
+  --site-btn-secondary-radius: 9999px;
+  --site-card-radius: 6px;
+  --site-img-radius: 4px;
+  --site-card-shadow: 0 30px 60px -34px rgba(0, 0, 0, 0.32);
 }
 
 /* --- Section eyebrow "tag" (editorial gold + 26px rule) ------------------ */
