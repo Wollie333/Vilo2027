@@ -104,10 +104,11 @@ export async function uploadEftProofAction(
     })
     .eq("id", bookingId);
 
-  // A pending_eft booking has NO payments row yet — one is created when the host
-  // records the payment — so this is a no-op at this point in the lifecycle. It
-  // keeps an existing record in step when there is one; the host's own view of
-  // the proof hangs off the booking (see dashboard/bookings/[id]).
+  // A real EFT checkout DOES create a pending `payments` row up front, so this
+  // sets the proof on the payment record too — that's what the host's payment
+  // page (dashboard/payments/[id]) reads. It no-ops for a booking that has no
+  // row yet (the seeded fixtures have none), which is why the host's primary
+  // view of the proof hangs off the BOOKING, not the payment.
   await admin
     .from("payments")
     .update({ eft_proof_url: path })

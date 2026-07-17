@@ -3099,6 +3099,21 @@ function BookingsTable({
       ),
     },
     { header: "Status", cell: (b) => <StatusPill status={b.status} /> },
+    {
+      header: "",
+      align: "right",
+      // The row used to be inert: an admin could see the booking but not open
+      // it. The host's own /dashboard/bookings/[id] is scoped to host_id, so it
+      // 404s for an admin — /admin/bookings/[id] is the unscoped read-only view.
+      cell: (b) => (
+        <Link
+          href={`/admin/bookings/${b.id}`}
+          className="inline-flex items-center gap-1 text-[12.5px] font-medium text-brand-primary hover:underline"
+        >
+          Open <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      ),
+    },
   ];
 
   return (
