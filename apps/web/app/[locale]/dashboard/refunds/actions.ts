@@ -255,11 +255,14 @@ export async function hostInitiatedRefundAction(input: {
   );
   if (!period.ok) return { ok: false, error: period.error };
 
+  // A payment that has already had a PARTIAL refund is still refundable up to its
+  // remaining balance, so include 'partially_refunded' — filtering to 'completed'
+  // alone blocked a legitimate second refund.
   const { data: payment } = await supabase
     .from("payments")
     .select("id, status, amount, refunded_amount")
     .eq("booking_id", booking.id)
-    .eq("status", "completed")
+    .in("status", ["completed", "partially_refunded"])
     .order("captured_at", { ascending: false })
     .limit(1)
     .maybeSingle();

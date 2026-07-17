@@ -61,11 +61,13 @@ export async function requestRefundAction(input: {
   // across host scope without RLS bouncing us).
   const admin = createAdminClient();
 
+  // Include 'partially_refunded': a payment already partly refunded is still
+  // refundable up to its remaining balance (the cap check below enforces it).
   const { data: payment } = await admin
     .from("payments")
     .select("id, status, amount, refunded_amount")
     .eq("booking_id", booking.id)
-    .eq("status", "completed")
+    .in("status", ["completed", "partially_refunded"])
     .order("captured_at", { ascending: false })
     .limit(1)
     .maybeSingle();
