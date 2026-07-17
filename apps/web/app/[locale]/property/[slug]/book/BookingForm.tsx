@@ -1479,7 +1479,7 @@ export function BookingForm({
                             onClick={() => setRoomGuestCount(r, g - 1)}
                             disabled={isPending || g <= r.minGuests}
                             aria-label="Fewer guests"
-                            className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                            className="flex h-11 w-11 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
                           >
                             <Minus className="h-3.5 w-3.5" />
                           </button>
@@ -1491,7 +1491,7 @@ export function BookingForm({
                             onClick={() => setRoomGuestCount(r, g + 1)}
                             disabled={isPending || g >= r.maxGuests}
                             aria-label="More guests"
-                            className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                            className="flex h-11 w-11 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
                           >
                             <Plus className="h-3.5 w-3.5" />
                           </button>
@@ -1865,7 +1865,7 @@ export function BookingForm({
                           onClick={() => setAddonQuantity(a.id, qty - 1)}
                           disabled={!canDec || isPending}
                           aria-label="Fewer"
-                          className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                          className="flex h-11 w-11 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
                         >
                           <Minus className="h-3.5 w-3.5" />
                         </button>
@@ -1880,7 +1880,7 @@ export function BookingForm({
                           onClick={() => setAddonQuantity(a.id, qty + 1)}
                           disabled={!canInc || isPending}
                           aria-label="More"
-                          className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                          className="flex h-11 w-11 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
                         >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
@@ -2059,7 +2059,7 @@ export function BookingForm({
                       type="button"
                       onClick={() => removeGuest(i)}
                       aria-label="Remove guest"
-                      className="flex h-7 w-7 items-center justify-center rounded text-brand-mute hover:bg-white hover:text-status-cancelled"
+                      className="flex h-11 w-11 items-center justify-center rounded text-brand-mute hover:bg-white hover:text-status-cancelled"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

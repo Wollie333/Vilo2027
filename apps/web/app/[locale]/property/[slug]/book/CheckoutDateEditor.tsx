@@ -132,8 +132,12 @@ export function CheckoutDateEditor({
   }
 
   return (
-    <div className="p-5">
-      <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+    // Trim horizontal padding on mobile so the 7-column calendar cells get as
+    // close to the 44px tap target as a phone allows (a full 44px WIDTH is
+    // physically impossible for 7 columns inside the page margins on a 375px
+    // screen — the 44px HEIGHT carries the tap target, as on native pickers).
+    <div className="px-3 py-5 sm:p-5">
+      <div className="rounded-card border border-brand-line bg-brand-light/40 px-2.5 py-4 sm:p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-brand-ink">
           <CalendarDays className="h-4 w-4 text-brand-primary" />
           Your dates
@@ -151,7 +155,7 @@ export function CheckoutDateEditor({
               }
               disabled={!canGoPrev}
               aria-label="Previous month"
-              className="inline-flex h-8 w-8 items-center justify-center rounded text-brand-ink transition-colors hover:bg-brand-light disabled:cursor-not-allowed disabled:text-brand-line disabled:hover:bg-transparent"
+              className="inline-flex h-11 w-11 items-center justify-center rounded text-brand-ink transition-colors hover:bg-brand-light disabled:cursor-not-allowed disabled:text-brand-line disabled:hover:bg-transparent"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -166,7 +170,7 @@ export function CheckoutDateEditor({
                 )
               }
               aria-label="Next month"
-              className="inline-flex h-8 w-8 items-center justify-center rounded text-brand-ink transition-colors hover:bg-brand-light"
+              className="inline-flex h-11 w-11 items-center justify-center rounded text-brand-ink transition-colors hover:bg-brand-light"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -190,7 +194,7 @@ export function CheckoutDateEditor({
               if (!iso) {
                 // Leading blank before the first of the month.
                 // eslint-disable-next-line react/no-array-index-key
-                return <div key={`blank-${i}`} className="h-9 w-full" />;
+                return <div key={`blank-${i}`} className="h-11 w-full" />;
               }
               const dayNum = Number(iso.slice(8, 10));
               const disabled = iso < floor || (!!ceiling && iso > ceiling);
@@ -201,7 +205,7 @@ export function CheckoutDateEditor({
               const isToday = iso === today;
 
               let cls =
-                "h-9 w-full text-sm transition-colors disabled:cursor-not-allowed";
+                "h-11 w-full text-sm transition-colors disabled:cursor-not-allowed";
               if (disabled) {
                 cls += " text-brand-line";
               } else if (isEdge) {
