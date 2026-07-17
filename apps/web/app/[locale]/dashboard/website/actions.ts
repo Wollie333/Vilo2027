@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { encryptSecret } from "@/lib/crypto/payments";
-import { assertFullHost } from "@/lib/host/current";
+import { requireHost } from "@/lib/host/current";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import type { SitePreset } from "@/lib/site/themes";
 import {
@@ -180,7 +180,7 @@ async function assertWebsiteOwnership(
 ): Promise<
   { ok: true; hostId: string; subdomain: string } | { ok: false; error: string }
 > {
-  const host = await assertFullHost();
+  const host = await requireHost();
   if (!host.ok) return { ok: false, error: "not_authorized" };
   const supabase = createServerClient();
   const { data: site } = await supabase
@@ -433,7 +433,7 @@ export async function createWebsiteAction(
   const subErr = validateSubdomain(subdomain);
   if (subErr) return { ok: false, error: subErr };
 
-  const host = await assertFullHost();
+  const host = await requireHost();
   if (!host.ok) return host;
   if (!(await assertWebsiteFeature(host.hostId)))
     return { ok: false, error: "locked" };
@@ -734,7 +734,7 @@ export async function createWebsiteWithWizardAction(
   const subErr = validateSubdomain(subdomain);
   if (subErr) return { ok: false, error: subErr };
 
-  const host = await assertFullHost();
+  const host = await requireHost();
   if (!host.ok) return host;
   if (!(await assertWebsiteFeature(host.hostId)))
     return { ok: false, error: "locked" };
@@ -999,7 +999,7 @@ export type UploadTicket = { path: string; token: string };
 export async function createWizardLogoUploadUrl(
   ext: string,
 ): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
-  const host = await assertFullHost();
+  const host = await requireHost();
   if (!host.ok) return { ok: false, error: "not_authorized" };
   if (!(await assertWebsiteFeature(host.hostId)))
     return { ok: false, error: "locked" };

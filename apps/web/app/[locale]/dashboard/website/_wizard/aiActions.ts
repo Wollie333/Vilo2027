@@ -12,7 +12,7 @@
 // nothing here touches prices or publishes.
 import { z } from "zod";
 
-import { assertFullHost } from "@/lib/host/current";
+import { requireHost } from "@/lib/host/current";
 import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 import {
@@ -64,7 +64,7 @@ async function loadSiteForAi(websiteId: string): Promise<
     }
   | { ok: false; error: string }
 > {
-  const host = await assertFullHost();
+  const host = await requireHost();
   if (!host.ok) return { ok: false, error: "not_authorized" };
   const supabase = createServerClient();
   const { data: site } = await supabase
@@ -196,7 +196,7 @@ export async function generateWizardContentAction(
   }
   if (!aiConfigured()) return { ok: false, error: "ai_not_configured" };
 
-  const host = await assertFullHost();
+  const host = await requireHost();
   if (!host.ok) return { ok: false, error: "not_authorized" };
   if (!(await hostHasFeature(host.hostId, "website_builder"))) {
     return { ok: false, error: "locked" };
