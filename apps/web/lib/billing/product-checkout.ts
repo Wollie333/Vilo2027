@@ -73,13 +73,19 @@ export async function createProductOrder(
     // accepts a code and charges as if you hadn't typed it is a lying label).
     // Ignored for a custom-amount top-up: that's an admin-priced delta.
     promoCode?: string | null;
+    // Billing cycle the buyer chose (the monthly/annual toggle). "annual" bills
+    // the product's annual_price for a 12-month period; anything else bills the
+    // monthly price. Ignored for a custom-amount top-up.
+    cycle?: "monthly" | "annual" | null;
   },
   origin?: string | null,
 ): Promise<CreateOrderResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
     .from("products")
-    .select("id, name, price, currency, is_active, product_type, setup_fee")
+    .select(
+      "id, name, price, annual_price, currency, is_active, product_type, setup_fee, billing_cycle",
+    )
     .eq("id", input.productId)
     .maybeSingle();
   if (!product || !product.is_active) {
@@ -94,9 +100,24 @@ export async function createProductOrder(
       error: "This is sold out — no more are available.",
     };
   }
+
+  // Annual toggle: bill annual_price for a yearly order, else the monthly price.
+  // Only honour "annual" when the product actually has an annual price set —
+  // otherwise a stale/forged cycle would leave the amount NaN. The chosen cycle
+  // is recorded on the order so activation grants the matching period.
+  const wantsAnnual =
+    !isOverride && input.cycle === "annual" && product.annual_price != null;
+  const orderCycle: "monthly" | "annual" | null = isOverride
+    ? null
+    : wantsAnnual
+      ? "annual"
+      : ((input.cycle as "monthly" | null) ??
+        (product.billing_cycle === "annual" ? null : "monthly"));
   const base = isOverride
     ? Number(input.amountOverride)
-    : Number(product.price);
+    : wantsAnnual
+      ? Number(product.annual_price)
+      : Number(product.price);
 
   // Guest-first: an order ALWAYS belongs to a user — find the account by email or
   // create a guest lead — so no transaction is ever orphaned and the buyer's
@@ -171,6 +192,7 @@ export async function createProductOrder(
     setup_fee_amount: setupFee,
     coupon_id: couponId,
     discount_amount: discount,
+    billing_cycle: orderCycle,
     currency: product.currency,
     status: "pending",
     pay_token: payToken,
@@ -324,6 +346,7 @@ export async function startProductPurchaseBySlug(
   origin?: string | null,
   buyer?: { name?: string | null; phone?: string | null },
   promoCode?: string | null,
+  cycle?: "monthly" | "annual" | null,
 ): Promise<CreateOrderResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
@@ -342,6 +365,7 @@ export async function startProductPurchaseBySlug(
       name: buyer?.name ?? null,
       phone: buyer?.phone ?? null,
       promoCode: promoCode ?? null,
+      cycle: cycle ?? null,
     },
     origin,
   );
@@ -361,6 +385,8 @@ export async function startProductCheckoutDirect(
   // without threading it here a new host could never use a welcome code — the
   // exact moment they are most likely to have one.
   promoCode?: string | null,
+  // The monthly/annual toggle choice from the plan step.
+  cycle?: "monthly" | "annual" | null,
 ): Promise<CreateOrderResult> {
   const order = await startProductPurchaseBySlug(
     slug,
@@ -368,6 +394,7 @@ export async function startProductCheckoutDirect(
     origin,
     undefined,
     promoCode,
+    cycle,
   );
   if (!order.ok) return order;
 
@@ -975,6 +1002,11 @@ async function activateMappedPlan(
   payerUserId: string | null,
   productId: string | null,
   now: Date,
+  // The cycle the buyer paid for (from the order). When "annual", the period is
+  // 12 months regardless of the product's base billing_cycle — so a plan billed
+  // monthly by default still grants a full year when bought annually. Null falls
+  // back to the product's billing_cycle (free grants, legacy orders).
+  cycleOverride?: "monthly" | "annual" | null,
 ): Promise<void> {
   if (!payerUserId || !productId) return;
   const { data: product } = await admin
@@ -1023,7 +1055,13 @@ async function activateMappedPlan(
     if (planRow) plan = planRow.key;
   }
 
-  const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+  // The buyer's chosen cycle wins; otherwise the product's base cycle.
+  const cycle =
+    cycleOverride === "annual" || cycleOverride === "monthly"
+      ? cycleOverride
+      : product.billing_cycle === "annual"
+        ? "annual"
+        : "monthly";
   const periodEnd = addMonths(now, cycle === "annual" ? 12 : 1);
   const patch = {
     product_id: productId,
@@ -1117,7 +1155,7 @@ export async function confirmProductOrderByReference(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
     )
     .eq("provider_reference", reference)
     .maybeSingle();
@@ -1205,7 +1243,13 @@ export async function confirmProductOrderByReference(
   // A custom-amount top-up order (e.g. a pro-rated upgrade delta) only collects
   // money — the plan was activated at admin time, so don't re-activate it here.
   if (order.activate_on_pay !== false) {
-    await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
+    await activateMappedPlan(
+      admin,
+      order.payer_user_id,
+      order.product_id,
+      now,
+      order.billing_cycle as "monthly" | "annual" | null,
+    );
   }
 
   // Credit-package order → top up the buyer's Wielo Credits wallet (idempotent).
@@ -1239,7 +1283,7 @@ export async function capturePayPalProductOrder(
   const { data: order } = await admin
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, pay_token, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
     )
     .eq("provider_reference", orderId)
     .maybeSingle();
@@ -1325,7 +1369,13 @@ export async function capturePayPalProductOrder(
 
   // Custom-amount top-up (upgrade delta) → collect only; don't re-activate.
   if (order.activate_on_pay !== false) {
-    await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
+    await activateMappedPlan(
+      admin,
+      order.payer_user_id,
+      order.product_id,
+      now,
+      order.billing_cycle as "monthly" | "annual" | null,
+    );
   }
 
   // Credit-package order → top up the buyer's Wielo Credits wallet (idempotent).

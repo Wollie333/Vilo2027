@@ -17,11 +17,13 @@ export type AppliedPromo = { code: string; discount: number; total: number };
  */
 export function SignupPromoField({
   slug,
+  cycle = "monthly",
   applied,
   onApplied,
   onRemoved,
 }: {
   slug: string;
+  cycle?: "monthly" | "annual";
   applied: AppliedPromo | null;
   onApplied: (promo: AppliedPromo) => void;
   onRemoved: () => void;
@@ -34,7 +36,7 @@ export function SignupPromoField({
   function apply() {
     setError(null);
     start(async () => {
-      const r = await previewSignupPromoAction(slug, code);
+      const r = await previewSignupPromoAction(slug, code, cycle);
       if (r.ok) {
         onApplied({ code: r.code, discount: r.discount, total: r.total });
         setCode("");

@@ -556,7 +556,11 @@ export function Wizard({
 
       // Paid plan chosen → go to checkout for that product.
       if (isPaid && chosen?.slug) {
-        const co = await startSignupCheckoutAction(chosen.slug, promo?.code);
+        const co = await startSignupCheckoutAction(
+          chosen.slug,
+          promo?.code,
+          data.billingCycle,
+        );
         if (!co.ok) {
           toast.error(co.error);
           return;
@@ -664,6 +668,13 @@ export function Wizard({
               // A code is validated against a specific product, so switching
               // plans must drop it — otherwise a Starter-only code would look
               // like it still applied to Business.
+              setPromo(null);
+            }}
+            cycle={data.billingCycle}
+            onCycleChange={(c) => {
+              patch({ billingCycle: c });
+              // The promo preview is priced for a specific cycle, so a cycle
+              // change invalidates it — re-apply after switching.
               setPromo(null);
             }}
             promo={promo}
@@ -1485,6 +1496,8 @@ function StepPlan({
   products = [],
   selectedSlug = null,
   onSelect,
+  cycle = "monthly",
+  onCycleChange,
   promo = null,
   onPromoApplied,
   onPromoRemoved,
@@ -1494,6 +1507,8 @@ function StepPlan({
   products?: CatalogProduct[];
   selectedSlug?: string | null;
   onSelect?: (slug: string | null) => void;
+  cycle?: "monthly" | "annual";
+  onCycleChange?: (c: "monthly" | "annual") => void;
   promo?: AppliedPromo | null;
   onPromoApplied?: (promo: AppliedPromo) => void;
   onPromoRemoved?: () => void;
@@ -1590,10 +1605,56 @@ function StepPlan({
         subtitle="Start free or jump onto a paid tier — you can change it anytime from settings."
       />
 
-      <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Monthly / annual toggle — only when some plan offers an annual price. */}
+      {products.some((p) => p.annualPrice != null) ? (
+        <div className="mt-6 flex justify-center">
+          <div
+            role="tablist"
+            aria-label="Billing cycle"
+            className="inline-flex rounded-pill border border-brand-line bg-white p-1"
+          >
+            {(["monthly", "annual"] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                role="tab"
+                aria-selected={cycle === c}
+                onClick={() => onCycleChange?.(c)}
+                className={`rounded-pill px-4 py-1.5 text-[13px] font-semibold transition ${
+                  cycle === c
+                    ? "bg-brand-primary text-white"
+                    : "text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {c === "monthly" ? "Monthly" : "Annual"}
+                {c === "annual" ? (
+                  <span
+                    className={`ml-1.5 rounded-pill px-1.5 py-0.5 text-[10px] font-bold ${
+                      cycle === c
+                        ? "bg-white/20 text-white"
+                        : "bg-brand-accent text-brand-primary"
+                    }`}
+                  >
+                    2 months free
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {products.map((p) => {
           const selected = p.slug === selectedSlug;
-          const cycle = cycleLabel[p.billingCycle ?? "monthly"] ?? "month";
+          // Annual price only when the plan offers one AND annual is selected;
+          // otherwise the monthly price. The period word follows suit, so the
+          // card can never show an annual price against "/month".
+          const showAnnual = cycle === "annual" && p.annualPrice != null;
+          const shownPrice = showAnnual ? (p.annualPrice as number) : p.price;
+          const periodWord = showAnnual
+            ? "year"
+            : (cycleLabel[p.billingCycle ?? "monthly"] ?? "month");
           return (
             <button
               type="button"
@@ -1642,10 +1703,10 @@ function StepPlan({
 
               <div className="mt-4 flex items-baseline gap-1.5">
                 <span className="font-display text-3xl font-bold text-brand-ink">
-                  {p.isFree ? "Free" : rand(p.price)}
+                  {p.isFree ? "Free" : rand(shownPrice)}
                 </span>
                 {!p.isFree ? (
-                  <span className="text-xs text-brand-mute">/{cycle}</span>
+                  <span className="text-xs text-brand-mute">/{periodWord}</span>
                 ) : null}
               </div>
               <div className="mt-1 min-h-[16px] text-[11px] text-brand-mute">
@@ -1680,6 +1741,7 @@ function StepPlan({
       {selectedPaidSlug ? (
         <SignupPromoField
           slug={selectedPaidSlug}
+          cycle={cycle}
           applied={promo}
           onApplied={(p) => onPromoApplied?.(p)}
           onRemoved={() => onPromoRemoved?.()}

@@ -370,7 +370,7 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   const { data: order } = await supabase
     .from("product_orders")
     .select(
-      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, environment, activate_on_pay, coupon_id, discount_amount",
+      "id, product_id, payer_user_id, amount, setup_fee_amount, currency, status, environment, activate_on_pay, coupon_id, discount_amount, billing_cycle",
     )
     .eq("provider_reference", ref)
     .maybeSingle();
@@ -493,7 +493,15 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
         .eq("user_id", order.payer_user_id)
         .maybeSingle();
       if (host) {
-        const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+        // The buyer's chosen cycle (recorded on the order) wins over the
+        // product's base cycle, so an annual purchase of a monthly-default plan
+        // still grants a full year.
+        const cycle =
+          order.billing_cycle === "annual" || order.billing_cycle === "monthly"
+            ? order.billing_cycle
+            : product.billing_cycle === "annual"
+              ? "annual"
+              : "monthly";
         const periodEnd = addMonths(new Date(), cycle === "annual" ? 12 : 1);
         const { data: sub } = await supabase
           .from("subscriptions")

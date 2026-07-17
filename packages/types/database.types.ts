@@ -6824,6 +6824,7 @@ export type Database = {
         Row: {
           activate_on_pay: boolean
           amount: number
+          billing_cycle: string | null
           coupon_id: string | null
           created_at: string
           created_by: string | null
@@ -6845,6 +6846,7 @@ export type Database = {
         Insert: {
           activate_on_pay?: boolean
           amount: number
+          billing_cycle?: string | null
           coupon_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -6866,6 +6868,7 @@ export type Database = {
         Update: {
           activate_on_pay?: boolean
           amount?: number
+          billing_cycle?: string | null
           coupon_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -6917,10 +6920,12 @@ export type Database = {
       }
       products: {
         Row: {
+          account_kind: string
           affiliate_duration: string
           affiliate_duration_months: number | null
           affiliate_type: string
           affiliate_value: number
+          annual_price: number | null
           billing_cycle: string | null
           bullets: Json
           created_at: string
@@ -6949,10 +6954,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_kind?: string
           affiliate_duration?: string
           affiliate_duration_months?: number | null
           affiliate_type?: string
           affiliate_value?: number
+          annual_price?: number | null
           billing_cycle?: string | null
           bullets?: Json
           created_at?: string
@@ -6981,10 +6988,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_kind?: string
           affiliate_duration?: string
           affiliate_duration_months?: number | null
           affiliate_type?: string
           affiliate_value?: number
+          annual_price?: number | null
           billing_cycle?: string | null
           bullets?: Json
           created_at?: string

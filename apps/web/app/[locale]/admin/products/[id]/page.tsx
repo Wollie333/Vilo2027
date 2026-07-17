@@ -54,6 +54,7 @@ export default async function AdminProductEditorPage({
       creditPurpose: "quote",
       creditsPerMonth: null,
       price: 0,
+      annualPrice: null,
       currency: "ZAR",
       billingCycle: "monthly",
       isActive: true,
@@ -80,7 +81,7 @@ export default async function AdminProductEditorPage({
     const { data } = await service
       .from("products")
       .select(
-        "id, name, description, product_type, credit_quantity, credit_purpose, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, affiliate_duration, affiliate_duration_months, setup_fee, setup_fee_label, setup_fee_affiliate_type, setup_fee_affiliate_value, bullets, payment_methods, trial_days, is_visible, slug, max_quantity",
+        "id, name, description, product_type, credit_quantity, credit_purpose, price, annual_price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, affiliate_duration, affiliate_duration_months, setup_fee, setup_fee_label, setup_fee_affiliate_type, setup_fee_affiliate_value, bullets, payment_methods, trial_days, is_visible, slug, max_quantity",
       )
       .eq("id", params.id)
       .maybeSingle();
@@ -94,6 +95,7 @@ export default async function AdminProductEditorPage({
       creditQuantity: data.credit_quantity ?? null,
       creditPurpose: (data.credit_purpose as string | null) ?? "quote",
       price: Number(data.price ?? 0),
+      annualPrice: data.annual_price != null ? Number(data.annual_price) : null,
       currency: data.currency ?? "ZAR",
       billingCycle:
         (data.billing_cycle as EditorProduct["billingCycle"]) ?? "monthly",

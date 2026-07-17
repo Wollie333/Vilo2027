@@ -38,6 +38,9 @@ const upsertSchema = z.object({
     .nullable()
     .default(null),
   price: z.number().min(0).max(10_000_000),
+  // Once-a-year total for the monthly/annual toggle. null = annual not offered.
+  // Only meaningful for subscription-like products (membership | service).
+  annualPrice: z.number().min(0).max(10_000_000).nullable().default(null),
   currency: z.string().trim().min(3).max(3).default("ZAR"),
   billingCycle: z
     .enum(["weekly", "monthly", "quarterly", "biannual", "annual"])
@@ -131,6 +134,9 @@ export const upsertProductAction = withAdminAudit<
       description: d.description ?? null,
       product_type: d.productType,
       price: d.price,
+      // Annual price only applies to subscription products; a once-off or credit
+      // pack has no billing cycle to toggle.
+      annual_price: isSubLike ? (d.annualPrice ?? null) : null,
       currency: d.currency,
       billing_cycle: isSubLike ? (d.billingCycle ?? "monthly") : null,
       is_active: d.isActive,

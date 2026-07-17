@@ -224,6 +224,8 @@ export async function startSignupCheckoutAction(
   // exactly the moment a new host is most likely to hold one. An invalid code
   // fails the call — it must never quietly bill full price.
   promoCode?: string | null,
+  // The monthly/annual toggle choice.
+  cycle?: "monthly" | "annual" | null,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const supabase = createServerClient();
   const {
@@ -245,6 +247,7 @@ export async function startSignupCheckoutAction(
     origin,
     true,
     promoCode,
+    cycle,
   );
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, url: r.url };
@@ -260,6 +263,7 @@ export async function startSignupCheckoutAction(
 export async function previewSignupPromoAction(
   slug: string,
   code: string,
+  cycle?: "monthly" | "annual" | null,
 ): Promise<
   | { ok: true; code: string; discount: number; total: number }
   | { ok: false; error: string }
@@ -267,7 +271,9 @@ export async function previewSignupPromoAction(
   const admin = createAdminClient();
   const { data: product } = await admin
     .from("products")
-    .select("id, price, setup_fee, currency, product_type, is_active")
+    .select(
+      "id, price, annual_price, setup_fee, currency, product_type, is_active",
+    )
     .eq("slug", slug)
     .maybeSingle();
   if (!product || !product.is_active) {
@@ -279,9 +285,14 @@ export async function previewSignupPromoAction(
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Mirror createProductOrder's subtotal: price + setup fee. The setup fee is
-  // only skipped for a repeat purchase, which a signing-up host never is.
-  const subtotal = Number(product.price) + Number(product.setup_fee ?? 0);
+  // Mirror createProductOrder's subtotal on the SAME cycle the buyer will be
+  // charged: annual price when annual is chosen and offered, else monthly.
+  // Otherwise a promo preview on an annual plan would discount the monthly base.
+  const base =
+    cycle === "annual" && product.annual_price != null
+      ? Number(product.annual_price)
+      : Number(product.price);
+  const subtotal = base + Number(product.setup_fee ?? 0);
   const promo = await resolvePlatformCoupon(admin, {
     code,
     productId: product.id,

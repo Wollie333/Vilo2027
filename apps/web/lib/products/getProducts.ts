@@ -17,8 +17,12 @@ export type CatalogProduct = {
   name: string;
   description: string | null;
   price: number;
+  /** Once-a-year total when annual billing is offered; null = monthly only. */
+  annualPrice: number | null;
   currency: string;
   billingCycle: string | null;
+  /** Which signup this plan belongs to: 'host' (default) or 'quote_only'. */
+  accountKind: "host" | "quote_only";
   trialDays: number;
   slug: string | null;
   /** membership | service | product | wielo_credits. */
@@ -53,16 +57,19 @@ function toBullets(raw: unknown): string[] {
 async function load(
   types: string[] = ["membership", "service"],
   visibleOnly = true,
+  accountKind?: "host" | "quote_only",
 ): Promise<CatalogProduct[]> {
   const db = createAdminClient();
   let q = db
     .from("products")
     .select(
-      "id, name, description, product_type, price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods, credit_quantity, credit_purpose, max_quantity",
+      "id, name, description, product_type, price, annual_price, currency, billing_cycle, trial_days, slug, plan_key, setup_fee, setup_fee_label, is_recommended, is_active, is_visible, bullets, payment_methods, credit_quantity, credit_purpose, max_quantity, account_kind",
     )
     .in("product_type", types)
     .eq("is_active", true);
   if (visibleOnly) q = q.eq("is_visible", true);
+  // Each signup shows only its own plans (host vs quote-only).
+  if (accountKind) q = q.eq("account_kind", accountKind);
   const { data } = await q.order("sort_order", { ascending: true });
 
   // Compute units-sold ONLY for capped products (usually 0–2) so uncapped
@@ -83,8 +90,10 @@ async function load(
     name: p.name,
     description: p.description ?? null,
     price: Number(p.price ?? 0),
+    annualPrice: p.annual_price != null ? Number(p.annual_price) : null,
     currency: p.currency ?? "ZAR",
     billingCycle: p.billing_cycle ?? "monthly",
+    accountKind: (p.account_kind as "host" | "quote_only" | null) ?? "host",
     trialDays: p.trial_days ?? 0,
     slug: p.slug ?? null,
     productType: p.product_type ?? "membership",
@@ -114,8 +123,10 @@ async function load(
 
 // Visible, active subscription products for the pricing page + signup. Uncached
 // — always reflects the live `products` table.
-export function getSubscriptionProducts(): Promise<CatalogProduct[]> {
-  return load();
+export function getSubscriptionProducts(
+  accountKind?: "host" | "quote_only",
+): Promise<CatalogProduct[]> {
+  return load(["membership", "service"], true, accountKind);
 }
 
 // The FULL internal catalog an admin can sell from a user's record: active

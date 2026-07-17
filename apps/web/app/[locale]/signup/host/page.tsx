@@ -187,8 +187,9 @@ export default async function HostSignupPage({
   }
 
   // Real subscription products to pick from in the toolkit step (read fresh so
-  // it always reflects exactly what's active + visible in admin).
-  const products = await getSubscriptionProducts();
+  // it always reflects exactly what's active + visible in admin). HOST plans
+  // only — the quote-only plan (Wielo Quotes) belongs to /signup/quotes.
+  const products = await getSubscriptionProducts("host");
 
   // Flatten the category tree to accommodation leaves only (skip the
   // Accommodation root). MVP lists accommodation only.

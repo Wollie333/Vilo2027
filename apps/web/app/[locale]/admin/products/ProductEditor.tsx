@@ -48,6 +48,8 @@ export type EditorProduct = {
    */
   creditsPerMonth: number | null;
   price: number;
+  /** Once-a-year total for the monthly/annual toggle; null = annual not offered. */
+  annualPrice: number | null;
   currency: string;
   billingCycle: "weekly" | "monthly" | "quarterly" | "biannual" | "annual";
   isActive: boolean;
@@ -157,6 +159,7 @@ export function ProductEditor({
         // wielo_credits_per_month permission by the action).
         creditsPerMonth: isSubLike ? (f.creditsPerMonth ?? null) : null,
         price: f.price,
+        annualPrice: isSubLike ? (f.annualPrice ?? null) : null,
         currency: f.currency.trim().toUpperCase() || "ZAR",
         billingCycle:
           f.productType === "membership" || f.productType === "service"
@@ -532,7 +535,7 @@ export function ProductEditor({
                     </select>
                   </Field>
                 ) : null}
-                <Field label="Price">
+                <Field label={isSubLike ? "Price / month" : "Price"}>
                   <Input
                     type="number"
                     min={0}
@@ -541,6 +544,27 @@ export function ProductEditor({
                     className="font-mono"
                   />
                 </Field>
+                {isSubLike ? (
+                  <Field label="Price / year (optional)">
+                    <Input
+                      type="number"
+                      min={0}
+                      // Empty = no annual option (monthly only). A value enables
+                      // the monthly/annual toggle at checkout for this plan.
+                      value={f.annualPrice ?? ""}
+                      placeholder="No annual option"
+                      onChange={(e) =>
+                        set(
+                          "annualPrice",
+                          e.target.value.trim() === ""
+                            ? null
+                            : Number(e.target.value) || 0,
+                        )
+                      }
+                      className="font-mono"
+                    />
+                  </Field>
+                ) : null}
                 <Field label="Currency">
                   <Input
                     value={f.currency}
