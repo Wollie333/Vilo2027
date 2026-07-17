@@ -196,17 +196,46 @@
 }
 .ovroom .field input,
 .ovroom .field select {
+  appearance: none;
+  -webkit-appearance: none;
   font-family: var(--site-font-body, "Manrope", system-ui, sans-serif);
   font-size: 15px;
+  line-height: 1.2;
   color: var(--site-ink, #0e2c3a);
   background: var(--site-surface, #ffffff);
   border: 1.5px solid var(--site-line, #e9e1d1);
   border-radius: var(--site-radius-sm, 11px);
   padding: 14px 15px;
   width: 100%;
+  min-height: 52px;
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
+}
+/* Native date + select: force our border/radius/padding over the browser control
+   and tint the picker to the theme accent. */
+.ovroom .field input[type="date"] {
+  color-scheme: light;
+  accent-color: var(--site-accent, #12a5b5);
+  cursor: pointer;
+}
+.ovroom .field input[type="date"]::-webkit-datetime-edit {
+  color: var(--site-ink, #0e2c3a);
+}
+.ovroom .field input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+.ovroom .field input[type="date"]:hover::-webkit-calendar-picker-indicator {
+  opacity: 0.85;
+}
+.ovroom .field select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235E7884' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
 }
 .ovroom .field input:focus,
 .ovroom .field select:focus {
@@ -372,13 +401,19 @@
 }
 
 /* ── booking card (sticky) ──────────────────────────────────────────────── */
+/* The booking column is the sticky element (the grid item, not the card inside
+   it — a content-height aside gives the card no room to travel). Anchored below
+   the app's sticky header via --wielo-sticky-top (set by SiteChrome). */
+.ovroom .rlayout > aside {
+  position: sticky;
+  top: calc(var(--wielo-sticky-top, 96px) + 20px);
+  align-self: start;
+}
 .ovroom .bkcard {
   background: var(--site-surface, #ffffff);
   border: 1px solid var(--site-line, #e9e1d1);
   border-radius: var(--site-radius-lg, 22px);
   padding: 26px;
-  position: sticky;
-  top: 100px;
   box-shadow: 0 30px 60px -32px rgba(10, 34, 48, 0.36);
 }
 .ovroom .bktrust {
@@ -886,7 +921,7 @@
   .ovroom .rlayout {
     grid-template-columns: 1fr;
   }
-  .ovroom .bkcard {
+  .ovroom .rlayout > aside {
     position: static;
   }
   .ovroom .gtk {

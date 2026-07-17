@@ -220,10 +220,11 @@ export function OceansViewRoomDetail({
   });
   const hasBars = items.length >= 3;
 
-  // Other rooms — dedupe the current room out; duplicate the list for a seamless
-  // marquee loop when there are enough cards to scroll.
+  // Other rooms — dedupe the current room out; ALWAYS duplicate the list once so
+  // the marquee loops seamlessly (the track animates by exactly one set width,
+  // -50%), even with just a couple of other rooms.
   const others = (otherRooms ?? []).filter((r) => r.id !== room.id);
-  const loop = others.length >= 3 ? [...others, ...others] : others;
+  const loop = others.length ? [...others, ...others] : [];
 
   const tag =
     room.facts[0] && !/^sleeps/i.test(room.facts[0]) ? room.facts[0] : null;
