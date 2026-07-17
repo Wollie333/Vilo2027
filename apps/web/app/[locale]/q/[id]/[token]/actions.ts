@@ -89,6 +89,9 @@ export async function guestDeclineQuoteAction(
   const reasonLabel = reason ? declineReasonLabel(reason) : null;
 
   const supabase = createAdminClient();
+  // Guard the transition: only a still-'sent' quote can be declined. Without
+  // this, a decline racing a concurrent accept (gateByToken read 'sent' a moment
+  // ago) would overwrite 'accepted' → 'declined'. 0 rows = already answered.
   const { data: q } = await supabase
     .from("quotes")
     .update({
@@ -98,9 +101,10 @@ export async function guestDeclineQuoteAction(
       decline_note: note,
     })
     .eq("id", quoteId)
+    .eq("status", "sent")
     .select("conversation_id")
-    .single();
-  if (!q) return { ok: false, error: "Could not record your decline." };
+    .maybeSingle();
+  if (!q) return { ok: false, error: "This quote can no longer be answered." };
 
   if (q.conversation_id) {
     await supabase

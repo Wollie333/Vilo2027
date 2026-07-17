@@ -173,7 +173,18 @@ export async function addTripGuestAction(
     .eq("id", bookingId)
     .maybeSingle();
   if (!booking) return { ok: false, error: "Booking not found." };
-  if (booking.status === "cancelled" || booking.status === "declined") {
+  // The real terminal enum values are cancelled_by_host / cancelled_by_guest
+  // (not "cancelled"), plus declined / expired / no_show — the old guard checked
+  // "cancelled" which never matches, so a guest could add party members to a
+  // dead booking.
+  const DEAD_BOOKING_STATUSES = [
+    "cancelled_by_host",
+    "cancelled_by_guest",
+    "declined",
+    "expired",
+    "no_show",
+  ];
+  if (DEAD_BOOKING_STATUSES.includes(booking.status)) {
     return { ok: false, error: "This booking is no longer active." };
   }
 
