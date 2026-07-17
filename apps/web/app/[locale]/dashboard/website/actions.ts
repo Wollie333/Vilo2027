@@ -2225,6 +2225,52 @@ export async function deleteWebsiteAction(
 }
 
 /**
+ * TEST/RESET — HARD-delete a website so the business is back to having NO site
+ * and the setup wizard can be run again from scratch. Unlike deleteWebsiteAction
+ * (soft, retained for recovery), this removes the host_websites row itself, which
+ * FREES the one-per-business `business_id` + the unique `subdomain` — both plain
+ * UNIQUE, so a soft delete would otherwise still block re-creating. Every child
+ * table (pages, forms, properties, rooms, blog, analytics, restore points, media,
+ * domain events) is `ON DELETE CASCADE`, so they go with it in one statement.
+ *
+ * Owner-checked; runs as the host's own session (the host_websites_owner_all RLS
+ * policy is FOR ALL, so the owner can delete). Intended for testing/refining the
+ * wizard — surfaced in the editor Danger Zone as "Delete & start over".
+ */
+export async function resetWebsiteForTestingAction(
+  websiteId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("host_websites")
+    .delete()
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "delete_failed" };
+
+  // Best-effort: drop the site's uploaded assets folder so a fresh run starts
+  // clean (harmless if it fails / the service key is unavailable).
+  try {
+    const admin = createAdminClient();
+    const { data: objs } = await admin.storage
+      .from("website-assets")
+      .list(websiteId);
+    if (objs?.length) {
+      await admin.storage
+        .from("website-assets")
+        .remove(objs.map((o) => `${websiteId}/${o.name}`));
+    }
+  } catch {
+    // ignore — orphaned storage objects are harmless
+  }
+
+  revalidatePath("/dashboard/website");
+  return { ok: true };
+}
+
+/**
  * Save per-room visibility + cosmetic display overrides + order. Upserts one
  * `website_rooms` row per submitted room (sort_order = array index, so the host's
  * reorder sticks). Every room_id is verified to belong to the website's business

@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import {
   deleteWebsiteAction,
   publishWebsiteAction,
+  resetWebsiteForTestingAction,
   saveWebsiteSettingsAction,
   unpublishWebsiteAction,
 } from "@/app/[locale]/dashboard/website/actions";
@@ -274,6 +275,27 @@ export function SettingsForm({
         return;
       }
       toast.success(t("settingsDeleted"));
+      localeRouter.push("/dashboard/website");
+    });
+  }
+
+  // TEST/RESET — hard-delete the site so the business is back to no-site and the
+  // setup wizard can be run again from scratch (frees business_id + subdomain).
+  function onReset() {
+    startLifecycle(async () => {
+      const ok = await modal.destructive({
+        title: "Delete site & start over?",
+        description:
+          "This permanently deletes this website and everything in it (pages, forms, media, settings), freeing the business so you can run the setup wizard again from scratch. This cannot be undone. Intended for testing.",
+        confirmLabel: "Delete & start over",
+      });
+      if (!ok) return;
+      const res = await resetWebsiteForTestingAction(websiteId);
+      if (!res.ok) {
+        toast.error(t("saveError"));
+        return;
+      }
+      toast.success("Site deleted — you can run the wizard again.");
       localeRouter.push("/dashboard/website");
     });
   }
@@ -892,6 +914,27 @@ export function SettingsForm({
               <Trash2 style={{ width: 14, height: 14 }} />
             )}
             {t("settingsDeleteCta")}
+          </button>
+        </Setrow>
+        <Setrow
+          title="Delete & start over (testing)"
+          desc="Permanently delete this site and reset the business so you can run the setup wizard again from scratch. Frees the subdomain. Cannot be undone."
+        >
+          <button
+            type="button"
+            className="btn btn-sm btn-danger"
+            onClick={onReset}
+            disabled={lifecycle}
+          >
+            {lifecycle ? (
+              <Loader2
+                className="animate-spin"
+                style={{ width: 14, height: 14 }}
+              />
+            ) : (
+              <Trash2 style={{ width: 14, height: 14 }} />
+            )}
+            Delete &amp; start over
           </button>
         </Setrow>
       </Sblock>
