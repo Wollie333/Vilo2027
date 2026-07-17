@@ -18,7 +18,7 @@ it after any migration.
 |---|---|
 | Tables | **181** (181 with RLS) |
 | Functions | **160** (127 SECURITY DEFINER, 57 trigger fns) |
-| Cron jobs | **36** (11 Vault-gated, 0 inactive) |
+| Cron jobs | **37** (12 Vault-gated, 0 inactive) |
 | Vault secrets set | **9** |
 
 ## 🚩 Automated red flags
@@ -101,11 +101,12 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 - `update_payment_refunded_amount`
 - `vote_help_article`
 
-### 4 × Vault-gated cron whose secret is NOT set. An unset secret makes the job return early — so it reports `succeeded` while doing nothing at all. Needs a founder to `vault.create_secret` per environment.
+### 5 × Vault-gated cron whose secret is NOT set. An unset secret makes the job return early — so it reports `succeeded` while doing nothing at all. Needs a founder to `vault.create_secret` per environment.
 
 - `drain-looking-for-notifications` needs `looking_for_worker_url`
 - `poll-website-domains` needs `website_domain_poll_url`
 - `publish-scheduled-posts` needs `blog_publish_url`
+- `reconcile-host-card-payments` needs `booking_reconcile_worker_url`
 - `sync-external-reviews` needs `external_reviews_worker_url`, `external_reviews_worker_secret`
 
 ### 4 × **SECURITY DEFINER function executable by `anon`** — runs as owner, bypasses RLS, reachable at `POST /rest/v1/rpc/<name>` with the publishable key. Some legitimately serve public pages; each needs a judgement. Remember `REVOKE ... FROM anon` is a NO-OP — revoke from **PUBLIC**.
@@ -153,6 +154,7 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 | `publish-scheduled-posts` | `*/5 * * * *` | yes | yes |
 | `queue-review-requests` | `0 9 * * *` | yes | — |
 | `recalculate-rankings` | `*/15 * * * *` | yes | — |
+| `reconcile-host-card-payments` | `*/5 * * * *` | yes | yes |
 | `restrict-overdue-subscriptions` | `0 * * * *` | yes | — |
 | `scheduled-reports-hourly` | `0 * * * *` | yes | — |
 | `send-access-cards` | `*/15 * * * *` | yes | — |
