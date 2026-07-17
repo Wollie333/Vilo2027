@@ -28,24 +28,35 @@ No horizontal scroll on any step · sticky bar keeps price + action reachable ·
 (not native `type=date`) · the 2nd "Reserve & get bank details" btn is **deliberately `hidden` on
 mobile**, not a dup-footer bug.
 
+### ✅ THE ANONYMOUS PATH IS NOW AUDITED — and it is CLEAN
+Signed out via the app's own logout (verified: no auth cookie left) and re-walked step 2 @390×844 —
+**the path ~95% of guests take.** **No blocker.** "Create your guest account": name/email/phone/
+password all **309×42, reachable**, correct `autocomplete` on each, **0 overflowing els, no h-scroll**,
+Continue enabled 123×44 → no dead-end. Its grid was already `sm:grid-cols-2` (correctly responsive).
+🔑 **A hit test on an element scrolled OUT OF VIEW returns a FALSE `unreachable`** — `elementFromPoint`
+only reads the visible viewport. **Scroll into view BEFORE hit-testing or you cry wolf.** (The T&C
+checkbox is 16×16 but wrapped in a `<label>` → the label text is the real target. Not a defect.)
+
 ### ▶ NEXT (in order)
-1. 🔴 **THE ANONYMOUS BOOKING PATH IS STILL UNAUDITED** — this session was signed in as `host1`, so it
-   only saw the authenticated step 2. **A signed-out guest gets a DIFFERENT step 2** (inline account
-   creation + password field, `BookingForm.tsx` ~1956). **That is the path ~95% of real guests take.**
-2. 🔴 **iOS zoom-on-focus — FOUND, NOT FIXED, NOT WITNESSED.** Every checkout input is
+1. 🔴 **iOS zoom-on-focus — FOUND, NOT FIXED, NOT WITNESSED.** Every checkout input is
    `font-size: 14px`; viewport meta sets no `maximum-scale` → **iOS Safari auto-zooms any field under
    16px**, throwing the guest into a zoomed page mid-checkout. **Could NOT witness it — the preview
    browser is Chromium, which doesn't do this. Needs a real iOS device.** The fix touches the shared
    input component (app-wide) → **founder's call.**
-3. **Still under the 44px bar:** calendar day cells **38×36** (capped by `max-w-[320px]`,
+2. **Still under the 44px bar:** calendar day cells **38×36** (capped by `max-w-[320px]`,
    `CheckoutDateEditor.tsx:142`), month nav **32×32**, add-on/room steppers **28×28**.
-4. 🔴 **FOUNDER'S SMOKE SIGNUP** (unchanged, founder-only — the agent may not create accounts / enter
+3. 🔴 **FOUNDER'S SMOKE SIGNUP** (unchanged, founder-only — the agent may not create accounts / enter
    passwords). Walk `/en/signup/host` (Beta R0): new logo? exactly ONE active sub? right credits?
    ⚠️ **The seed writes hosts DIRECTLY — it does NOT test signup**; `trg_one_active_membership` is
    still unproven in signup's path. **Reserve was NOT clicked this session** — it writes a real
    booking to the linked cloud DB; that is the founder's to run.
-5. `docs/WIRING_AUDIT.md`: external-review **reply** + brochure **remove** · §3 decisions · ~40 deletes.
-6. 🔴 **IDOR still open** — analytics fns take `p_host_id`, never check ownership.
+4. `docs/WIRING_AUDIT.md`: external-review **reply** + brochure **remove** · §3 decisions · ~40 deletes.
+5. 🔴 **IDOR still open** — analytics fns take `p_host_id`, never check ownership.
+
+### ⚠️ OPS — `preview_stop` does NOT kill the dev server's node tree
+Twice this session it said *"stopped"* while **3–4 node procs lived on** (incl. a **1403 MB** next
+worker). **This is the mechanism behind pt12's 92 orphans.** Always verify `Get-Process node` after
+stopping and `Stop-Process -Force` the survivors → [[feedback-only-run-needed-node-processes]].
 
 ### 🔴 FOUNDER-ONLY (unchanged)
 1. **Rotate `email_worker_secret` + `ical_sync_worker_secret`** — Vault **AND** Vercel.

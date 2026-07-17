@@ -37,19 +37,36 @@ primary action reachable throughout · dates 18→21 priced correctly (R1 450×3
 picker, not a native `<input type=date>` · **the "Reserve & get bank details" second button is
 deliberately `hidden` on mobile — not a duplicate-footer bug.**
 
+### ✅ THE ANONYMOUS PATH — audited, and it is CLEAN
+Signed out via the app's own logout (verified: no auth cookie, only `vilo_cookie_consent`) and walked
+step 2 again at 390×844 — **the path ~95% of real guests take, and a total blind spot until now.**
+- **No blocker.** "Create your guest account" renders correctly: name / email / phone / password all
+  **309×42 and reachable**, correct `autocomplete` on each (`name`/`email`/`tel`/`new-password`),
+  **zero overflowing elements, no horizontal scroll**, Continue enabled at 123×44 → no dead-end.
+- Its parent grid is already `grid gap-4 p-5 sm:grid-cols-2` — correctly responsive, unlike 1595 was.
+- ⚠️ **A hit test on an element scrolled out of view returns a FALSE `unreachable`** (`elementFromPoint`
+  only reads the visible viewport). The textarea + T&C checkbox both looked unreachable until scrolled
+  into view; both are fine. The 16×16 checkbox is wrapped in a `<label>`, so the label text is the
+  real tap target — not a defect. **Scroll into view BEFORE hit-testing, or you cry wolf.**
+- Not driven further: filling the password / clicking Reserve would create an account and write a real
+  booking — founder's smoke test, and out of scope for the agent.
+
 ### ⚠️ FOUND, NOT FIXED — reported honestly
 - 🔴 **iOS zoom-on-focus: every checkout input is `font-size: 14px`** and the viewport meta sets no
   `maximum-scale`. iOS Safari auto-zooms any field under 16px, so tapping Email/Name/Phone throws the
   guest into a zoomed page mid-checkout. **NOT witnessed — the preview browser is Chromium, which does
   not do this. It is a code-level finding, needs a real iOS device.** Fix touches the shared input
-  component (app-wide) → founder's call.
+  component (app-wide) → founder's call. **Confirmed to hit the anonymous path hardest: a guest there
+  must type name + email + password = three forced zooms in the critical path.**
 - Calendar day cells **38×36**, month nav **32×32**, add-on/room steppers **28×28** — all under the
   44px bar. The calendar is capped by `max-w-[320px]` in `CheckoutDateEditor.tsx:142`.
-- **The anonymous booking path is NOT audited** — the session was signed in as `host1`. A signed-out
-  guest gets a *different* step 2 (inline account creation + password). That is the path ~95% of real
-  guests take. Still unaudited.
 - Reserve itself was **not clicked** — it writes a real booking to the linked cloud DB; that is the
   founder's smoke test.
+
+### ⚠️ OPS — `preview_stop` does NOT kill the dev server's node tree
+Twice this session it reported "stopped" while **3–4 node processes lived on**, including a **1403 MB**
+next worker. **This is the mechanism behind pt12's 92 orphans** — every session "stops" its server and
+leaves ~4 behind. Always verify with `Get-Process node` and `Stop-Process -Force` the survivors.
 
 ---
 
