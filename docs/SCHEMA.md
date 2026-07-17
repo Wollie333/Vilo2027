@@ -26,81 +26,6 @@ it after any migration.
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
 
-### 72 × SECURITY DEFINER function with **no pinned `search_path`** — runs as owner, resolves object names via the caller's path. Fix: `SET search_path = public, pg_temp`.
-
-- `_host_guest_rows`
-- `_materialize_booking_party`
-- `assign_receipt_number`
-- `assign_refund_number`
-- `block_special_dates`
-- `booking_business_id`
-- `broadcast_audience`
-- `business_doc_code`
-- `calculate_booking_price`
-- `calculate_policy_refund_amount`
-- `can_send_broadcast`
-- `check_feature_permission`
-- `check_host_quote_quota`
-- `count_broadcast_recipients`
-- `ensure_booking_invoice`
-- `ensure_host_booking_terms`
-- `ensure_host_default_policies`
-- `ensure_host_legal_presets`
-- `ensure_host_policy_presets`
-- `ensure_listing_policy_assignments`
-- `expire_specials`
-- `fetch_guest_record`
-- `fetch_host_guests`
-- `fetch_host_guests_summary`
-- `gen_booking_reference`
-- `gen_refund_reference`
-- `get_host_inbox_stats`
-- `get_host_refund_stats`
-- `get_listing_availability`
-- `get_listing_policy_summary`
-- `get_min_nights_for_stay`
-- `get_my_host_id`
-- `get_my_host_id_as_staff`
-- `get_my_role`
-- `handle_new_user`
-- `has_admin_permission`
-- `increment_help_article_view`
-- `is_super_admin`
-- `listing_doc_code`
-- `log_refund_status_change`
-- `materialize_booking_party`
-- `mint_wielo_invoice_on_ledger_complete`
-- `next_credit_note_number`
-- `next_forfeit_number`
-- `next_invoice_number`
-- `next_quote_number`
-- `next_receipt_number`
-- `next_refund_number`
-- `on_booking_cancelled`
-- `on_booking_confirmed_create_invoice`
-- `on_host_created_default_business`
-- `on_message_inserted`
-- `on_payment_completed_mark_invoice_paid`
-- `on_quote_status_change`
-- `on_review_published`
-- `on_special_status_change`
-- `recalculate_listing_ranking`
-- `redeem_coupon`
-- `redeem_special`
-- `release_addon_stock`
-- `release_booking_addon_stock`
-- `release_special`
-- `reserve_addon_stock`
-- `resolve_listing_policy_id`
-- `seed_host_policies_on_create`
-- `set_listing_default_business`
-- `snapshot_booking_policies`
-- `sync_booking_refund_flag`
-- `sync_listing_policy_label`
-- `sync_review_helpful_count`
-- `update_payment_refunded_amount`
-- `vote_help_article`
-
 ### 5 × Vault-gated cron whose secret is NOT set. An unset secret makes the job return early — so it reports `succeeded` while doing nothing at all. Needs a founder to `vault.create_secret` per environment.
 
 - `drain-looking-for-notifications` needs `looking_for_worker_url`
@@ -173,8 +98,8 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `_access_line` | — | — | callable |
 | `_assert_can_read_host` | — | — | callable |
 | `_can_read_host` | — | — | callable |
-| `_host_guest_rows` | **yes** | **NO** | callable |
-| `_materialize_booking_party` | **yes** | **NO** | callable |
+| `_host_guest_rows` | **yes** | yes | callable |
+| `_materialize_booking_party` | **yes** | yes | callable |
 | `_trg_materialize_booking_party` | — | — | trigger |
 | `accrue_affiliate_commission` | **yes** | yes | callable |
 | `affiliate_tier_bonus` | **yes** | yes | callable |
@@ -182,26 +107,26 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `apply_booking_vat` | **yes** | yes | trigger |
 | `apply_due_subscription_changes` | **yes** | yes | callable |
 | `apply_wielo_credit` | **yes** | yes | callable |
-| `assign_receipt_number` | **yes** | **NO** | trigger |
-| `assign_refund_number` | **yes** | **NO** | trigger |
-| `block_special_dates` | **yes** | **NO** | callable |
-| `booking_business_id` | **yes** | **NO** | callable |
-| `broadcast_audience` | **yes** | **NO** | callable |
-| `business_doc_code` | **yes** | **NO** | callable |
-| `calculate_booking_price` | **yes** | **NO** | callable |
+| `assign_receipt_number` | **yes** | yes | trigger |
+| `assign_refund_number` | **yes** | yes | trigger |
+| `block_special_dates` | **yes** | yes | callable |
+| `booking_business_id` | **yes** | yes | callable |
+| `broadcast_audience` | **yes** | yes | callable |
+| `business_doc_code` | **yes** | yes | callable |
+| `calculate_booking_price` | **yes** | yes | callable |
 | `calculate_looking_for_match_score` | **yes** | yes | callable |
-| `calculate_policy_refund_amount` | **yes** | **NO** | callable |
-| `can_send_broadcast` | **yes** | **NO** | callable |
-| `check_feature_permission` | **yes** | **NO** | callable |
+| `calculate_policy_refund_amount` | **yes** | yes | callable |
+| `can_send_broadcast` | **yes** | yes | callable |
+| `check_feature_permission` | **yes** | yes | callable |
 | `check_host_availability_for_dates` | **yes** | yes | callable |
-| `check_host_quote_quota` | **yes** | **NO** | callable |
+| `check_host_quote_quota` | **yes** | yes | callable |
 | `claim_email_queue_batch` | **yes** | yes | callable |
 | `claim_push_queue_batch` | **yes** | yes | callable |
 | `clawback_affiliate_commission` | **yes** | yes | callable |
 | `clawback_affiliate_commission` | **yes** | yes | callable |
 | `clear_all` | **yes** | yes | callable |
 | `compute_addon_subtotal` | — | — | callable |
-| `count_broadcast_recipients` | **yes** | **NO** | callable |
+| `count_broadcast_recipients` | **yes** | yes | callable |
 | `create_affiliate_payout` | **yes** | yes | callable |
 | `effective_vat_rate` | **yes** | yes | callable |
 | `emit_affiliate_commission_ledger` | **yes** | yes | trigger |
@@ -209,19 +134,19 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `enforce_listing_requires_bank` | **yes** | yes | trigger |
 | `enforce_one_active_membership` | — | — | trigger |
 | `enqueue_in_app_notification` | **yes** | yes | callable |
-| `ensure_booking_invoice` | **yes** | **NO** | callable |
-| `ensure_host_booking_terms` | **yes** | **NO** | callable |
-| `ensure_host_default_policies` | **yes** | **NO** | callable |
-| `ensure_host_legal_presets` | **yes** | **NO** | callable |
-| `ensure_host_policy_presets` | **yes** | **NO** | callable |
-| `ensure_listing_policy_assignments` | **yes** | **NO** | callable |
-| `expire_specials` | **yes** | **NO** | callable |
+| `ensure_booking_invoice` | **yes** | yes | callable |
+| `ensure_host_booking_terms` | **yes** | yes | callable |
+| `ensure_host_default_policies` | **yes** | yes | callable |
+| `ensure_host_legal_presets` | **yes** | yes | callable |
+| `ensure_host_policy_presets` | **yes** | yes | callable |
+| `ensure_listing_policy_assignments` | **yes** | yes | callable |
+| `expire_specials` | **yes** | yes | callable |
 | `fetch_channel_mix` | **yes** | yes | callable |
 | `fetch_conversion_funnel` | **yes** | yes | callable |
 | `fetch_guest_demographics` | **yes** | yes | callable |
-| `fetch_guest_record` | **yes** | **NO** | callable |
-| `fetch_host_guests` | **yes** | **NO** | callable |
-| `fetch_host_guests_summary` | **yes** | **NO** | callable |
+| `fetch_guest_record` | **yes** | yes | callable |
+| `fetch_host_guests` | **yes** | yes | callable |
+| `fetch_host_guests_summary` | **yes** | yes | callable |
 | `fetch_host_savings` | **yes** | yes | callable |
 | `fetch_looking_for_stats` | **yes** | yes | callable |
 | `fetch_platform_commission_saved` | **yes** | yes | callable |
@@ -237,87 +162,87 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `forbid_forfeit_statement_mutation` | — | — | trigger |
 | `forbid_policy_snapshot_mutation` | — | — | trigger |
 | `forbid_second_active_membership` | — | — | trigger |
-| `gen_booking_reference` | **yes** | **NO** | trigger |
-| `gen_refund_reference` | **yes** | **NO** | trigger |
+| `gen_booking_reference` | **yes** | yes | trigger |
+| `gen_refund_reference` | **yes** | yes | trigger |
 | `gen_url_token` | — | — | callable |
 | `generate_host_handle` | — | — | trigger |
 | `generate_listing_slug` | — | — | trigger |
 | `generate_policy_plain_text` | — | — | trigger |
-| `get_host_inbox_stats` | **yes** | **NO** | callable |
-| `get_host_refund_stats` | **yes** | **NO** | callable |
-| `get_listing_availability` | **yes** | **NO** | callable |
-| `get_listing_policy_summary` | **yes** | **NO** | callable |
-| `get_min_nights_for_stay` | **yes** | **NO** | callable |
-| `get_my_host_id` | **yes** | **NO** | callable |
-| `get_my_host_id_as_staff` | **yes** | **NO** | callable |
-| `get_my_role` | **yes** | **NO** | callable |
+| `get_host_inbox_stats` | **yes** | yes | callable |
+| `get_host_refund_stats` | **yes** | yes | callable |
+| `get_listing_availability` | **yes** | yes | callable |
+| `get_listing_policy_summary` | **yes** | yes | callable |
+| `get_min_nights_for_stay` | **yes** | yes | callable |
+| `get_my_host_id` | **yes** | yes | callable |
+| `get_my_host_id_as_staff` | **yes** | yes | callable |
+| `get_my_role` | **yes** | yes | callable |
 | `get_special_booking_conflict` | — | — | callable |
 | `guest_gkey_for_email` | — | — | callable |
-| `handle_new_user` | **yes** | **NO** | trigger |
-| `has_admin_permission` | **yes** | **NO** | callable |
+| `handle_new_user` | **yes** | yes | trigger |
+| `has_admin_permission` | **yes** | yes | callable |
 | `import_ical_blocks` | **yes** | yes | callable |
-| `increment_help_article_view` | **yes** | **NO** | callable |
+| `increment_help_article_view` | **yes** | yes | callable |
 | `is_period_closed` | **yes** | yes | callable |
-| `is_super_admin` | **yes** | **NO** | callable |
-| `listing_doc_code` | **yes** | **NO** | callable |
+| `is_super_admin` | **yes** | yes | callable |
+| `listing_doc_code` | **yes** | yes | callable |
 | `listing_is_available_whole` | — | — | callable |
-| `log_refund_status_change` | **yes** | **NO** | trigger |
+| `log_refund_status_change` | **yes** | yes | trigger |
 | `log_subscription_event` | **yes** | yes | callable |
 | `mark_delivery_read` | **yes** | yes | callable |
-| `materialize_booking_party` | **yes** | **NO** | callable |
+| `materialize_booking_party` | **yes** | yes | callable |
 | `mint_wielo_credit_note_on_ledger_complete` | **yes** | yes | trigger |
-| `mint_wielo_invoice_on_ledger_complete` | **yes** | **NO** | trigger |
-| `next_credit_note_number` | **yes** | **NO** | callable |
-| `next_forfeit_number` | **yes** | **NO** | callable |
-| `next_invoice_number` | **yes** | **NO** | callable |
-| `next_quote_number` | **yes** | **NO** | callable |
-| `next_receipt_number` | **yes** | **NO** | callable |
-| `next_refund_number` | **yes** | **NO** | callable |
-| `on_booking_cancelled` | **yes** | **NO** | trigger |
+| `mint_wielo_invoice_on_ledger_complete` | **yes** | yes | trigger |
+| `next_credit_note_number` | **yes** | yes | callable |
+| `next_forfeit_number` | **yes** | yes | callable |
+| `next_invoice_number` | **yes** | yes | callable |
+| `next_quote_number` | **yes** | yes | callable |
+| `next_receipt_number` | **yes** | yes | callable |
+| `next_refund_number` | **yes** | yes | callable |
+| `on_booking_cancelled` | **yes** | yes | trigger |
 | `on_booking_confirmed` | **yes** | yes | trigger |
-| `on_booking_confirmed_create_invoice` | **yes** | **NO** | trigger |
-| `on_host_created_default_business` | **yes** | **NO** | trigger |
-| `on_message_inserted` | **yes** | **NO** | trigger |
-| `on_payment_completed_mark_invoice_paid` | **yes** | **NO** | trigger |
+| `on_booking_confirmed_create_invoice` | **yes** | yes | trigger |
+| `on_host_created_default_business` | **yes** | yes | trigger |
+| `on_message_inserted` | **yes** | yes | trigger |
+| `on_payment_completed_mark_invoice_paid` | **yes** | yes | trigger |
 | `on_quote_booking_confirmed` | **yes** | yes | trigger |
-| `on_quote_status_change` | **yes** | **NO** | trigger |
-| `on_review_published` | **yes** | **NO** | trigger |
-| `on_special_status_change` | **yes** | **NO** | trigger |
+| `on_quote_status_change` | **yes** | yes | trigger |
+| `on_review_published` | **yes** | yes | trigger |
+| `on_special_status_change` | **yes** | yes | trigger |
 | `on_subscription_change` | **yes** | yes | trigger |
 | `on_subscription_insert` | **yes** | yes | trigger |
 | `product_units_sold` | **yes** | yes | callable |
 | `protect_review_content` | — | — | trigger |
-| `recalculate_listing_ranking` | **yes** | **NO** | callable |
+| `recalculate_listing_ranking` | **yes** | yes | callable |
 | `record_guest_post` | **yes** | yes | callable |
-| `redeem_coupon` | **yes** | **NO** | callable |
+| `redeem_coupon` | **yes** | yes | callable |
 | `redeem_platform_coupon` | **yes** | yes | callable |
-| `redeem_special` | **yes** | **NO** | callable |
+| `redeem_special` | **yes** | yes | callable |
 | `refund_lf_quote_credit_on_expire` | **yes** | yes | trigger |
-| `release_addon_stock` | **yes** | **NO** | callable |
-| `release_booking_addon_stock` | **yes** | **NO** | callable |
-| `release_special` | **yes** | **NO** | callable |
+| `release_addon_stock` | **yes** | yes | callable |
+| `release_booking_addon_stock` | **yes** | yes | callable |
+| `release_special` | **yes** | yes | callable |
 | `release_special_dates` | — | — | callable |
-| `reserve_addon_stock` | **yes** | **NO** | callable |
-| `resolve_listing_policy_id` | **yes** | **NO** | callable |
+| `reserve_addon_stock` | **yes** | yes | callable |
+| `resolve_listing_policy_id` | **yes** | yes | callable |
 | `resolve_notification_prefs` | **yes** | yes | callable |
 | `room_is_available` | — | — | callable |
-| `seed_host_policies_on_create` | **yes** | **NO** | trigger |
+| `seed_host_policies_on_create` | **yes** | yes | trigger |
 | `send_due_access_cards` | **yes** | yes | callable |
 | `set_affiliate_status` | **yes** | yes | callable |
 | `set_guest_credit_business` | — | — | trigger |
-| `set_listing_default_business` | **yes** | **NO** | trigger |
+| `set_listing_default_business` | **yes** | yes | trigger |
 | `set_looking_for_post_expiry` | — | — | trigger |
 | `set_updated_at` | — | — | trigger |
 | `settle_affiliate_payout` | **yes** | yes | callable |
-| `snapshot_booking_policies` | **yes** | **NO** | callable |
+| `snapshot_booking_policies` | **yes** | yes | callable |
 | `special_dates_available` | — | — | callable |
-| `sync_booking_refund_flag` | **yes** | **NO** | trigger |
+| `sync_booking_refund_flag` | **yes** | yes | trigger |
 | `sync_help_article_feedback_counters` | — | — | trigger |
 | `sync_listing_location` | — | — | trigger |
-| `sync_listing_policy_label` | **yes** | **NO** | trigger |
+| `sync_listing_policy_label` | **yes** | yes | trigger |
 | `sync_looking_for_quote_count` | **yes** | yes | trigger |
 | `sync_looking_for_view_count` | **yes** | yes | trigger |
-| `sync_review_helpful_count` | **yes** | **NO** | trigger |
+| `sync_review_helpful_count` | **yes** | yes | trigger |
 | `tg_affiliate_clawback_on_refund` | **yes** | yes | trigger |
 | `tg_notify_affiliate_commission_earned` | **yes** | yes | trigger |
 | `touch_addons_updated_at` | — | — | trigger |
@@ -326,10 +251,10 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `touch_platform_coupons_updated_at` | — | — | trigger |
 | `touch_seasonal_pricing_updated_at` | — | — | trigger |
 | `touch_wielo_credit_wallet` | — | — | trigger |
-| `update_payment_refunded_amount` | **yes** | **NO** | trigger |
+| `update_payment_refunded_amount` | **yes** | yes | trigger |
 | `update_updated_at` | — | — | trigger |
 | `version_policy_on_update` | — | — | trigger |
-| `vote_help_article` | **yes** | **NO** | callable |
+| `vote_help_article` | **yes** | yes | callable |
 
 ## Tables
 
