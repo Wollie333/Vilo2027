@@ -10,6 +10,7 @@ import {
 import { getBrandName } from "@/lib/brand";
 import { getHostParty } from "@/lib/finance/doc-party";
 import { formatMoney } from "@/lib/format";
+import { recordQuoteView } from "@/lib/quotes/tracking";
 import { effectiveVatRate, grossVat, vatOf } from "@/lib/pricing/vat";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -21,27 +22,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function deviceFromUserAgent(ua: string | null): string {
-  if (!ua) return "unknown";
-  if (/iPad|Tablet/i.test(ua)) return "tablet";
-  if (/Mobi|Android|iPhone/i.test(ua)) return "mobile";
-  return "desktop";
-}
-
-async function recordQuoteView(
-  supabase: ReturnType<typeof createAdminClient>,
-  quoteId: string,
-): Promise<void> {
-  try {
-    const ua = headers().get("user-agent");
-    await supabase
-      .from("quote_view_events")
-      .insert({ quote_id: quoteId, device: deviceFromUserAgent(ua) });
-  } catch {
-    // Tracking must never affect the guest's view of the quote.
-  }
-}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -82,7 +62,7 @@ export default async function PublicQuotePage({
   }
 
   if (!["accepted", "declined", "converted"].includes(quote.status)) {
-    await recordQuoteView(supabase, quote.id);
+    await recordQuoteView(supabase, quote.id, headers().get("user-agent"));
   }
 
   const { data: addons } = await supabase

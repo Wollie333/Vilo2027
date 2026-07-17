@@ -8,11 +8,13 @@ import {
   Luggage,
   MessageSquare,
 } from "lucide-react";
+import { headers } from "next/headers";
 import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 
 import { BrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
+import { recordQuoteView } from "@/lib/quotes/tracking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -65,6 +67,15 @@ export default async function PortalQuotePage({
     (quote.guest_id === user.id ||
       (quote.guest_email ?? "").toLowerCase() === email);
   if (!quote || !ownsQuote) notFound();
+
+  // Stamp the guest's view so the "Viewed" quote stage records a timestamp + green
+  // check even when they accept immediately (the accept actions don't record a
+  // view, and this signed-in surface previously recorded nothing). Only while the
+  // quote is still open for a decision, so pay-page revisits after accepting don't
+  // inflate the count. Best-effort — never blocks the page.
+  if (quote.status === "sent") {
+    await recordQuoteView(admin, quote.id, headers().get("user-agent"));
+  }
 
   const { data: addons } = await admin
     .from("quote_addons")

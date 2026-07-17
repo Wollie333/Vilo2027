@@ -168,17 +168,41 @@ export default async function BookingDetailPage({
   // paid, surface the pulsing "Quote accepted — convert" pill + prompt.
   let acceptedQuote: { id: string; amount: number; currency: string } | null =
     null;
+  // Milestones from the originating quote, folded into the booking's timeline
+  // below so the quote lifecycle (sent → viewed → accepted) shows on the booking
+  // it became — including the "viewed" event, which is easy to miss otherwise.
+  let quoteMilestones: {
+    sentAt: string | null;
+    firstViewedAt: string | null;
+    acceptedAt: string | null;
+  } | null = null;
   if (booking.quote_id) {
     const { data: aq } = await supabase
       .from("quotes")
-      .select("id, status, total_amount, currency")
+      .select("id, status, total_amount, currency, sent_at, accepted_at")
       .eq("id", booking.quote_id)
       .maybeSingle();
-    if (aq && aq.status === "accepted") {
-      acceptedQuote = {
-        id: aq.id,
-        amount: Number(aq.total_amount),
-        currency: aq.currency,
+    if (aq) {
+      if (aq.status === "accepted") {
+        acceptedQuote = {
+          id: aq.id,
+          amount: Number(aq.total_amount),
+          currency: aq.currency,
+        };
+      }
+      // Earliest guest view (host-readable via quote_view_events_host_read).
+      const { data: firstView } = await supabase
+        .from("quote_view_events")
+        .select("opened_at")
+        .eq("quote_id", booking.quote_id)
+        .eq("kind", "view")
+        .order("opened_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      quoteMilestones = {
+        sentAt: aq.sent_at,
+        firstViewedAt: firstView?.opened_at ?? null,
+        acceptedAt: aq.accepted_at,
       };
     }
   }
@@ -588,6 +612,19 @@ export default async function BookingDetailPage({
     "Booking",
     channel.label,
   );
+  // Fold the originating quote's lifecycle into the booking timeline (sorted by
+  // date), so "Quote viewed" appears here too, not only on the quote record.
+  if (quoteMilestones) {
+    push(quoteMilestones.acceptedAt, "Quote accepted", "green", "Quote");
+    push(
+      quoteMilestones.firstViewedAt,
+      "Quote viewed",
+      "amber",
+      "Quote",
+      "Guest opened the quote",
+    );
+    push(quoteMilestones.sentAt, "Quote sent", "violet", "Quote");
+  }
 
   // ── Guest conversation thread (the SAME thread as the guest record) ──
   // Resolve it exactly like the guest CRM record: match the booking's guest by
