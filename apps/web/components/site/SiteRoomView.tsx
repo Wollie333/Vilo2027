@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { commerceParams } from "@/lib/analytics/pixel";
 import {
+  assembleSiteDataByType,
   buildSitePreviewPages,
   loadSiteContext,
   loadSiteRoomPage,
@@ -10,9 +11,11 @@ import {
 } from "@/lib/site/loadSitePage";
 import { buildRoomJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 import { FirePixelEvent } from "./FirePixelEvent";
 import { JsonLd } from "./JsonLd";
+import { OceansViewRoomDetail } from "./oceansview/OceansViewRoomDetail";
 import { RoomBookingDock } from "./RoomBookingDock";
 import { RoomDockLayout } from "./RoomDockLayout";
 import { SectionRenderer } from "./SectionRenderer";
@@ -124,6 +127,57 @@ export async function SiteRoomView({
         })}
       />
     ) : null;
+
+  // Oceans View — the founder's bespoke room-detail design. Rendered by a
+  // dedicated component wired to the room's real data (reviews, seasonal rates,
+  // other rooms), inside the themed chrome. Bypasses the generic dock/PageDoc
+  // paths for this theme only.
+  if (ctx.theme.preset === "oceansview") {
+    const sbx = createAdminClient();
+    const extras = await assembleSiteDataByType(
+      sbx,
+      ctx,
+      new Set(["reviews", "seasonal_pricing", "rooms_preview"] as const),
+    );
+    return (
+      <>
+        <JsonLd graph={jsonLdGraph} />
+        {viewContent}
+        <SiteThemeRoot theme={ctx.theme}>
+          <SiteChrome
+            brand={ctx.brand}
+            nav={ctx.nav}
+            navigation={ctx.navigation}
+            conversion={ctx.conversion}
+            analytics={ctx.analytics}
+            layout={ctx.layout}
+            popupForm={ctx.popupForm}
+            websiteId={ctx.websiteId}
+            bookHref={headerBookHref}
+            darkChrome={siteSurfaceIsDark(ctx.theme)}
+            analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+            header={ctx.theme.header}
+            footer={ctx.theme.footer}
+            preview={
+              ctx.preview
+                ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+                : undefined
+            }
+            previewPages={previewPages}
+            pageHasHero={false}
+          >
+            <OceansViewRoomDetail
+              room={room}
+              reviews={extras.reviews}
+              seasonal={extras.seasonal_pricing}
+              otherRooms={extras.rooms_preview?.rooms}
+              roomsHref={roomsHref}
+            />
+          </SiteChrome>
+        </SiteThemeRoot>
+      </>
+    );
+  }
 
   // Builder V2: a PageDoc room-detail template renders through the ONE token
   // renderer inside the generic chrome (the intended cutover behaviour — bypasses
