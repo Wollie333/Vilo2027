@@ -1119,7 +1119,6 @@ CASE
 **RLS policies:**
 - `admin_full_bookings` (ALL) — `USING is_super_admin()`
 - `guest_read_own_bookings` (SELECT) — `USING (guest_id = auth.uid())`
-- `guest_update_own_bookings` (UPDATE) — `USING (guest_id = auth.uid()) CHECK (guest_id = auth.uid())`
 - `host_manage_own_bookings` (ALL) — `USING (host_id = get_my_host_id())`
 - `staff_read_bookings` (SELECT) — `USING (host_id = get_my_host_id_as_staff())`
 - `staff_update_bookings` (UPDATE) — `USING (host_id = get_my_host_id_as_staff())`
