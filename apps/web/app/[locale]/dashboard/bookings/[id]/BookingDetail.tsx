@@ -15,6 +15,7 @@ import {
   DoorClosed,
   DoorOpen,
   ExternalLink,
+  FileText,
   KeyRound,
   Languages,
   Link2,
@@ -202,6 +203,8 @@ export type BookingDetailData = {
   paymentRecordId: string | null;
   paymentRowStatus: string | null;
   showEftManage: boolean;
+  /** Signed URL for the guest's uploaded proof of EFT transfer, if any. */
+  eftProofUrl: string | null;
 
   // Payment ledger.
   amountPaid: number;
@@ -1324,10 +1327,48 @@ function GlanceRow({
   );
 }
 
-// ── Payments ────────────────────────────────────────────────────────────────
+/**
+ * The guest's uploaded proof of their EFT transfer — shown above the payment
+ * controls so the host can check it against their bank and settle in one place.
+ * The link is a short-lived signed URL (the bucket is private).
+ */
+function EftProofCard({ d }: { d: BookingDetailData }) {
+  if (!d.eftProofUrl) return null;
+  return (
+    <Card>
+      <CardHead
+        title="Proof of payment"
+        right={
+          <span className="inline-flex items-center gap-1 rounded-pill border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10.5px] font-semibold text-amber-700">
+            Needs review
+          </span>
+        }
+      />
+      <div className="p-5">
+        <p className="text-[13px] leading-relaxed text-brand-mute">
+          {d.guestName ?? "The guest"} uploaded proof of their transfer. Check
+          it against your bank, then record the payment below to confirm the
+          booking.
+        </p>
+        <a
+          href={d.eftProofUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-[10px] border border-brand-line bg-white px-4 py-3 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+        >
+          <FileText className="h-4 w-4 text-brand-primary" /> View proof of
+          payment
+          <ExternalLink className="h-3.5 w-3.5 text-brand-mute" />
+        </a>
+      </div>
+    </Card>
+  );
+}
+
 function PaymentsPanel({ d }: { d: BookingDetailData }) {
   return (
     <div className="space-y-6">
+      <EftProofCard d={d} />
       <Card>
         <CardHead
           title="Payment & payout"

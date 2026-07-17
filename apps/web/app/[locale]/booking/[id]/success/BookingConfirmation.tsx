@@ -34,6 +34,8 @@ import { firePurchase } from "@/lib/analytics/purchase";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 
+import { EftProofUploader } from "./EftProofUploader";
+
 /* -------------------------------------------------------------------------- */
 /*  Shared data shape (built server-side in page.tsx)                          */
 /* -------------------------------------------------------------------------- */
@@ -42,6 +44,8 @@ export type ConfirmationData = {
   isConfirmed: boolean;
   /** Booking placed via manual EFT and still awaiting the guest's transfer. */
   isEftPending: boolean;
+  /** Guest has already attached proof of their transfer. */
+  proofUploaded: boolean;
   reference: string;
   guestFirstName: string;
   guest: { name: string; email: string; phone: string | null };
@@ -1017,6 +1021,11 @@ function PaymentDetailsCard({ data }: { data: ConfirmationData }) {
                 Your booking is confirmed once they receive it.
               </span>
             </div>
+
+            <EftProofUploader
+              bookingId={data.bookingId}
+              alreadyUploaded={data.proofUploaded}
+            />
           </div>
         ) : null}
       </div>

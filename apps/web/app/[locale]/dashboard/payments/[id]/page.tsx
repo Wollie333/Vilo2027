@@ -25,6 +25,7 @@ import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { getMyHostId } from "@/lib/host/current";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -163,6 +164,17 @@ export default async function PaymentDetailPage({
     .maybeSingle();
 
   if (!payment) notFound();
+
+  // `eft-proofs` is a PRIVATE bucket, so eft_proof_url holds the object PATH —
+  // mint a short-lived signed URL to view it. The query above already scoped to
+  // this host's own booking, so reaching here is the ownership check.
+  let proofUrl: string | null = null;
+  if (payment.eft_proof_url) {
+    const { data: signed } = await createAdminClient()
+      .storage.from("eft-proofs")
+      .createSignedUrl(payment.eft_proof_url, 3600);
+    proofUrl = signed?.signedUrl ?? null;
+  }
 
   const booking = (Array.isArray(payment.booking)
     ? payment.booking[0]
@@ -707,10 +719,10 @@ export default async function PaymentDetailPage({
                 <Detail label="Failed" value={fmtDt(payment.failed_at)} last />
               ) : null}
             </div>
-            {payment.eft_proof_url ? (
+            {proofUrl ? (
               <div className="border-t border-brand-line px-6 py-4">
                 <a
-                  href={payment.eft_proof_url}
+                  href={proofUrl}
                   target="_blank"
                   rel="noreferrer noopener"
                   className="inline-flex items-center gap-2 text-[13px] font-medium text-brand-primary hover:underline"

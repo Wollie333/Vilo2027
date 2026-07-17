@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { sendVerificationEmail } from "@/lib/auth/verifyEmail";
 import { createBookingCore } from "@/lib/bookings/createBooking";
 import { resolveCoupon } from "@/lib/coupons";
 import { nightsBetween, type ResolvedCoupon } from "@/lib/pricing";
@@ -138,6 +139,18 @@ export async function createCheckoutGuestAccountAction(
       .from("user_profiles")
       .update({ full_name, role: "guest" })
       .eq("id", newUser.id);
+
+    // GoTrue auto-confirms (see lib/auth/verifyEmail), so this email is the only
+    // thing that ever proves the guest owns the inbox — and it's the address the
+    // host's check-in details go to. The three /signup/* paths all send it; this
+    // one didn't, so a guest who booked without an account was never asked to
+    // confirm and `email_verified_at` stayed null forever.
+    await sendVerificationEmail({
+      userId: newUser.id,
+      email,
+      origin: headers().get("origin") ?? "",
+      firstName: full_name.trim().split(/\s+/)[0] ?? null,
+    });
   }
 
   return { ok: true };

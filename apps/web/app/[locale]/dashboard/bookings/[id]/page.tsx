@@ -144,13 +144,25 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, policy_acknowledged_at, accepted_terms_version, accepted_privacy_version, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
+      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, eft_proof_url, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, policy_acknowledged_at, accepted_terms_version, accepted_privacy_version, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
     .maybeSingle();
 
   if (!booking) notFound();
+
+  // The guest's uploaded proof of an EFT transfer. `eft-proofs` is a PRIVATE
+  // bucket and the column holds the object PATH, so mint a short-lived signed
+  // URL. The select above is scoped to host_id = myHostId, so reaching here is
+  // the ownership check.
+  let eftProofUrl: string | null = null;
+  if (booking.eft_proof_url) {
+    const { data: signed } = await createAdminClient()
+      .storage.from("eft-proofs")
+      .createSignedUrl(booking.eft_proof_url, 3600);
+    eftProofUrl = signed?.signedUrl ?? null;
+  }
 
   // If this booking came from a quote that's ACCEPTED but not yet converted/
   // paid, surface the pulsing "Quote accepted — convert" pill + prompt.
@@ -764,6 +776,7 @@ export default async function BookingDetailPage({
     paymentRecordId: latestPayment?.id ?? null,
     paymentRowStatus: latestPayment?.status ?? null,
     showEftManage: Boolean(pendingEft),
+    eftProofUrl,
 
     amountPaid: Math.round(amountPaid * 100) / 100,
     // A forfeited booking's outstanding was written off — nothing is owed.

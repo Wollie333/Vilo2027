@@ -100,7 +100,7 @@ export default async function BookingSuccessPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, payment_method, scope, channel, capi_purchase_sent_at, guest_phone, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, listing:properties!inner ( id, host_id, business_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
+      "id, reference, status, payment_status, payment_method, scope, channel, capi_purchase_sent_at, guest_phone, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, eft_proof_url, listing:properties!inner ( id, host_id, business_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -476,6 +476,7 @@ export default async function BookingSuccessPage({
     bookingId: booking.id,
     isConfirmed,
     isEftPending,
+    proofUploaded: !!booking.eft_proof_url,
     reference: booking.reference,
     guestFirstName,
     guest: {
