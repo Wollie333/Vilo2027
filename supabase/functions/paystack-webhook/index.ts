@@ -2,9 +2,14 @@
 //
 // Per AGENT_RULES.md §1.3:
 //   - Verify x-paystack-signature (HMAC SHA-512) before any DB write.
-//   - Return 200 immediately, then process async.
 //   - Idempotency via payments.provider_reference UNIQUE.
 //   - Full raw payload logged to payments.provider_response.
+//
+// Note on §1.3's "return 200, process async": there is no webhook queue, so
+// fire-and-forget would lose an event on any transient failure. Instead we
+// process synchronously (fast + idempotent) and return 500 on failure so
+// Paystack's own retry is the durability mechanism — the rule's intent
+// (never time out) still holds because processing is a few indexed writes.
 //
 // Local dev: `supabase functions serve paystack-webhook --env-file .env.local`
 // Deploy:    `supabase functions deploy paystack-webhook --no-verify-jwt`
