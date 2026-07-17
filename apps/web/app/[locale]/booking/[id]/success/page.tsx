@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { resolvePartyGuests } from "@/lib/bookings/party";
 import { getBrandName } from "@/lib/brand";
 import { sendCapiPurchase } from "@/lib/integrations/meta-capi";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
@@ -472,58 +473,11 @@ export default async function BookingSuccessPage({
     }
   }
 
-  // ── Party members ────────────────────────────────────────────────
-  // Every party guest is minted a Wielo account at booking time
-  // (BUSINESS_PRINCIPLES #1), so prefer their profile's name + photo over the
-  // free text the booker typed — a returning guest shows up as themselves.
-  // Falls back to the typed details when they have no profile of their own yet.
-  const partyRaw = (
-    (booking.additional_guests ?? []) as Array<{
-      name?: string | null;
-      email?: string | null;
-      phone?: string | null;
-    }>
-  )
-    .filter((g) => (g?.name ?? "").trim().length > 0)
-    .map((g) => ({
-      name: (g.name ?? "").trim(),
-      email: g.email?.trim() ? g.email.trim() : null,
-      phone: g.phone?.trim() ? g.phone.trim() : null,
-    }));
-
-  const partyProfiles = new Map<
-    string,
-    { full_name: string | null; avatar_url: string | null }
-  >();
-  const partyEmails = partyRaw
-    .map((g) => g.email?.toLowerCase())
-    .filter((e): e is string => !!e);
-  if (partyEmails.length > 0) {
-    // A guest can't RLS-read another guest's profile, so resolve via admin.
-    const { data: rows } = await admin
-      .from("user_profiles")
-      .select("email, full_name, avatar_url")
-      .in("email", partyEmails);
-    for (const r of rows ?? []) {
-      if (r.email) {
-        partyProfiles.set(r.email.toLowerCase(), {
-          full_name: r.full_name,
-          avatar_url: r.avatar_url,
-        });
-      }
-    }
-  }
-
-  const partyGuests: ConfirmationData["partyGuests"] = partyRaw.map((g) => {
-    const p = g.email ? partyProfiles.get(g.email.toLowerCase()) : undefined;
-    return {
-      name: p?.full_name?.trim() || g.name,
-      email: g.email,
-      phone: g.phone,
-      avatarUrl: p?.avatar_url ?? null,
-      isMember: !!p,
-    };
-  });
+  // Party manifest, resolved against each member's own Wielo profile.
+  const partyGuests = await resolvePartyGuests(
+    admin,
+    booking.additional_guests,
+  );
 
   const data: ConfirmationData = {
     bookingId: booking.id,

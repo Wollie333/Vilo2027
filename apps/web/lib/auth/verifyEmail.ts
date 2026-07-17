@@ -123,11 +123,17 @@ export async function sendSignupCollisionEmail(input: {
       .maybeSingle();
 
     if (base && profile?.is_lead) {
-      const { data: link } = await admin.auth.admin.generateLink({
-        type: "magiclink",
-        email,
-      });
+      const { data: link, error: linkErr } =
+        await admin.auth.admin.generateLink({ type: "magiclink", email });
       const hashed = link?.properties?.hashed_token;
+      // Without a token there's no claim link to send, so the lead silently
+      // drops to the generic notice — which is the one they can't act on. Say so.
+      if (!hashed) {
+        console.error(
+          "[verifyEmail] claim link mint failed:",
+          linkErr?.message,
+        );
+      }
       if (hashed) {
         const claimUrl = `${base}/auth/confirm?token_hash=${hashed}&type=magiclink&next=${encodeURIComponent("/claim")}`;
         const brandName = await getBrandName();
@@ -144,8 +150,8 @@ export async function sendSignupCollisionEmail(input: {
         return "claim";
       }
     }
-  } catch {
-    // fall through to the generic notice
+  } catch (e) {
+    console.error("[verifyEmail] collision routing failed:", e);
   }
   await sendExistingAccountNotice({ email, origin: input.origin });
   return "existing";

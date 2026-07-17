@@ -2,8 +2,10 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { notifyHostEftProof } from "@/lib/bookings/notifyHostEftProof";
+import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { startBookingPayment } from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -116,6 +118,120 @@ export async function uploadEftProofAction(
 
   revalidatePath(`/booking/${bookingId}/success`);
   return { ok: true, fileName: file.name };
+}
+
+// ─── Add someone to the trip after booking ───────────────────────
+const tripGuestSchema = z.object({
+  // Email is mandatory: it is the identity key, and a party guest with no email
+  // can't be minted an account (BUSINESS_PRINCIPLES #1 rule 2). Mirrors the
+  // checkout's own "Each needs a name & email" rule.
+  name: z.string().trim().min(2, "Tell us their name.").max(120),
+  email: z.string().trim().email("Enter a valid email."),
+  phone: z.string().trim().max(40).optional().default(""),
+});
+export type AddTripGuestInput = z.infer<typeof tripGuestSchema>;
+export type AddTripGuestResult =
+  | { ok: true; name: string }
+  | { ok: false; error: string };
+
+/**
+ * Let the booker add someone to their party after the booking exists — the same
+ * manifest the checkout captures, editable later when a friend joins.
+ *
+ * Capped at the booking's own guest count (lead booker + party ≤ guests_count),
+ * which is the same rule the checkout enforces ("up to {guests - 1} other
+ * guests") — a party can't exceed the stay that was paid for.
+ *
+ * Mints the new party member a Wielo account exactly like the booking path does,
+ * through the ONE find-or-create path (BUSINESS_PRINCIPLES #1 rule 1).
+ */
+export async function addTripGuestAction(
+  bookingId: string,
+  input: AddTripGuestInput,
+): Promise<AddTripGuestResult> {
+  const parsed = tripGuestSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Check their details.",
+    };
+  }
+  const { name, email, phone } = parsed.data;
+  const emailLc = email.toLowerCase();
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in to manage your trip." };
+
+  // RLS scopes to the guest's own bookings — a row coming back proves ownership.
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, status, guests_count, additional_guests, guest_email")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking) return { ok: false, error: "Booking not found." };
+  if (booking.status === "cancelled" || booking.status === "declined") {
+    return { ok: false, error: "This booking is no longer active." };
+  }
+
+  const party = (
+    Array.isArray(booking.additional_guests) ? booking.additional_guests : []
+  ) as Array<{
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  }>;
+
+  // The booker is one of the guests, so the party tops out one below the count.
+  const maxParty = Math.max(0, (booking.guests_count ?? 1) - 1);
+  if (party.length >= maxParty) {
+    return {
+      ok: false,
+      error:
+        maxParty === 0
+          ? "This booking is for one guest."
+          : `This booking is for ${booking.guests_count} guests — you've added everyone.`,
+    };
+  }
+
+  const taken = new Set(
+    party
+      .map((g) => (g?.email ?? "").trim().toLowerCase())
+      .filter(Boolean)
+      .concat(
+        (booking.guest_email ?? "").trim().toLowerCase(),
+        (user.email ?? "").toLowerCase(),
+      ),
+  );
+  if (taken.has(emailLc)) {
+    return { ok: false, error: "That person is already on this booking." };
+  }
+
+  const admin = createAdminClient();
+  const { error: upErr } = await admin
+    .from("bookings")
+    .update({
+      additional_guests: [
+        ...party,
+        { name, email: emailLc, ...(phone ? { phone } : {}) },
+      ],
+    })
+    .eq("id", bookingId);
+  if (upErr) return { ok: false, error: "Could not add them. Try again." };
+
+  // Same identity spine as the booking path — reuses an existing account on this
+  // email, else mints a passwordless lead they can claim later.
+  await findOrCreateLeadIdentity(admin, {
+    email: emailLc,
+    name,
+    phone: phone || null,
+  });
+
+  revalidatePath(`/booking/${bookingId}/success`);
+  revalidatePath(`/portal/trips/${bookingId}`);
+  return { ok: true, name };
 }
 
 // Initialize payment for an ALREADY-CREATED booking that the SIGNED-IN guest

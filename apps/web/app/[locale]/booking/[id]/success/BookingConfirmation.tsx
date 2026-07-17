@@ -34,6 +34,7 @@ import { firePurchase } from "@/lib/analytics/purchase";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 
+import { AddTripGuestModal } from "./AddTripGuestModal";
 import { EftProofUploader } from "./EftProofUploader";
 
 /* -------------------------------------------------------------------------- */
@@ -714,7 +715,7 @@ function GuestCard({ data }: { data: ConfirmationData }) {
           </div>
         ))}
       </div>
-      {data.partyGuests.length > 0 ? (
+      {data.partyGuests.length > 0 || data.stay.guests > 1 ? (
         <div className="px-5 pb-5">
           <div className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-brand-mute">
             <Users className="h-3.5 w-3.5 text-brand-primary" /> Also in your
@@ -767,6 +768,11 @@ function GuestCard({ data }: { data: ConfirmationData }) {
               </li>
             ))}
           </ul>
+          <AddTripGuestModal
+            bookingId={data.bookingId}
+            partyCount={data.partyGuests.length}
+            guestsCount={data.stay.guests}
+          />
         </div>
       ) : null}
       {data.specialRequests ? (

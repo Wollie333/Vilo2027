@@ -35,6 +35,8 @@ import {
 } from "lucide-react";
 
 import { PoliciesAsBooked } from "@/components/bookings/PoliciesAsBooked";
+import { AddTripGuestModal } from "@/app/[locale]/booking/[id]/success/AddTripGuestModal";
+import { resolvePartyGuests } from "@/lib/bookings/party";
 import { loadPoliciesAsBooked } from "@/lib/bookings/policiesAsBooked";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
 import {
@@ -733,13 +735,12 @@ export default async function PortalTripDetailPage({
     email: booking.guest_email?.trim() || null,
     phone: booking.guest_phone?.trim() || null,
   };
-  const partyGuests = (booking.additional_guests ?? [])
-    .filter((g) => (g?.name ?? "").trim().length > 0)
-    .map((g) => ({
-      name: (g.name ?? "").trim(),
-      email: g.email?.trim() ? g.email.trim() : null,
-      phone: g.phone?.trim() ? g.phone.trim() : null,
-    }));
+  // Resolved against each member's own Wielo profile (name + photo) via the one
+  // shared reader, so this card and the booking confirmation always agree.
+  const partyGuests = await resolvePartyGuests(
+    createAdminClient(),
+    booking.additional_guests,
+  );
 
   // The IMMUTABLE policies this trip was booked under (cancellation schedule,
   // check-in/out, house rules, T&C) — read from policy_snapshots, never the live
@@ -1028,15 +1029,24 @@ export default async function PortalTripDetailPage({
             </div>
             <ul className="divide-y divide-brand-line">
               {[
-                { ...leadGuest, lead: true },
+                { ...leadGuest, lead: true, avatarUrl: null },
                 ...partyGuests.map((g) => ({ ...g, lead: false })),
               ].map((g, i) => (
                 <li key={i} className="flex items-center gap-3.5 px-6 py-3.5">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-brand-accent font-display text-[13px] font-bold text-brand-secondary">
-                    {(g.name.match(/\b\w/g) ?? [])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase() || "G"}
+                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-pill bg-brand-accent font-display text-[13px] font-bold text-brand-secondary">
+                    {g.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={g.avatarUrl}
+                        alt={g.name}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      (g.name.match(/\b\w/g) ?? [])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase() || "G"
+                    )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -1058,12 +1068,19 @@ export default async function PortalTripDetailPage({
                 </li>
               ))}
             </ul>
-            {partyGuests.length === 0 ? (
-              <div className="border-t border-brand-line px-6 py-3 text-[12px] text-brand-mute">
-                No additional guests added. Anyone the booker adds to the party
-                will appear here.
-              </div>
-            ) : null}
+            <div className="border-t border-brand-line px-6 py-3">
+              {partyGuests.length === 0 ? (
+                <p className="mb-1 text-[12px] text-brand-mute">
+                  No one else added yet. Anyone you add gets their own Wielo
+                  account so your host can reach them.
+                </p>
+              ) : null}
+              <AddTripGuestModal
+                bookingId={booking.id}
+                partyCount={partyGuests.length}
+                guestsCount={booking.guests_count ?? 1}
+              />
+            </div>
           </section>
 
           {/* NOTE FROM HOST */}
