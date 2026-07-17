@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { CancelBookingDialog } from "@/components/booking/CancelBookingDialog";
 import { Button } from "@/components/ui/button";
 import { modal } from "@/components/ui/modal-host";
+import { progress } from "@/components/ui/progress-host";
 
 import {
   cancelBookingAction,
@@ -68,8 +69,47 @@ export function BookingActions({
         checkIn: checkInBookingAction,
         checkOut: checkOutBookingAction,
       } as const;
+      // Contextual stepped modal — tells the host what each action is doing
+      // (emails, ledger, calendar), not just a frozen button.
+      const flow = {
+        confirm: {
+          title: "Confirming booking",
+          successTitle: "Booking confirmed",
+          steps: [
+            "Confirming the booking",
+            "Notifying your guest",
+            "Updating your calendar",
+          ],
+        },
+        decline: {
+          title: "Declining booking",
+          successTitle: "Booking declined",
+          steps: ["Declining the booking", "Notifying your guest"],
+        },
+        cancel: {
+          title: "Cancelling booking",
+          successTitle: "Booking cancelled",
+          steps: [
+            "Cancelling the booking",
+            "Processing any refund",
+            "Notifying your guest",
+          ],
+        },
+        checkIn: {
+          title: "Checking in",
+          successTitle: "Guest checked in",
+          steps: ["Marking the check-in"],
+        },
+        checkOut: {
+          title: "Checking out",
+          successTitle: "Guest checked out",
+          steps: ["Marking the check-out"],
+        },
+      } as const;
       try {
-        const result = await map[kind](bookingId);
+        const result = await progress.during(flow[kind], () =>
+          map[kind](bookingId),
+        );
         if (result.ok) {
           const msg = {
             confirm: "Booking confirmed",
@@ -112,7 +152,18 @@ export function BookingActions({
           confirmLabel: "Forfeit booking",
         });
         if (!ok) return;
-        const result = await forfeitBookingAction(bookingId);
+        const result = await progress.during(
+          {
+            title: "Marking as no-show",
+            successTitle: "Booking forfeited",
+            steps: [
+              "Recording the no-show",
+              "Writing off the balance",
+              "Issuing a statement",
+            ],
+          },
+          () => forfeitBookingAction(bookingId),
+        );
         if (result.ok) {
           toast.success("Booking forfeited — statement issued.");
         } else {

@@ -1277,8 +1277,36 @@ function BookingBalanceLine({
   // Nothing recorded yet and nothing owed (e.g. R0 booking) → show nothing.
   if (!owes && !settled) return null;
 
-  const col = owes ? "#B45309" : "#047857";
-  const Icon = owes ? Clock : CheckCircle2;
+  // Money owed to the host is the thing they most need to notice — render it as
+  // a filled amber chip (label + bold amount + "Owed to you") so it stands out
+  // in the header, not a faint inline note. Settled bookings stay understated.
+  if (owes) {
+    return (
+      <button
+        type="button"
+        onClick={onManage}
+        title="Open payments"
+        className="inline-flex items-center gap-2 whitespace-nowrap rounded-pill border border-amber-300 bg-amber-50 px-3 py-1.5 shadow-sm transition hover:bg-amber-100 hover:shadow"
+      >
+        <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+        <span className="text-[10.5px] font-bold uppercase tracking-wide text-amber-700">
+          Balance due
+        </span>
+        <span className="num font-display text-[15px] font-bold leading-none text-amber-800">
+          {formatMoney(balanceDue, currency)}
+        </span>
+        <span className="text-[11.5px] font-semibold text-amber-700">
+          · Owed to you
+        </span>
+        {refundTotal > 0.005 ? (
+          <span className="text-[11px] text-amber-600/90">
+            · {formatMoney(refundTotal, currency)} refunded
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -1286,18 +1314,9 @@ function BookingBalanceLine({
       title="Open payments"
       className="flex items-center gap-1.5 whitespace-nowrap rounded-pill px-1 text-[11.5px] transition hover:opacity-80"
     >
-      <Icon className="h-3.5 w-3.5" style={{ color: col }} />
-      <span className="text-brand-mute">{owes ? "Balance due" : ""}</span>
-      {owes ? (
-        <span
-          className="num font-display text-[12.5px] font-bold"
-          style={{ color: col }}
-        >
-          {formatMoney(balanceDue, currency)}
-        </span>
-      ) : null}
+      <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "#047857" }} />
       <span className="text-brand-mute">
-        {owes ? "· Owed to you" : "Paid in full"}
+        Paid in full
         {refundTotal > 0.005
           ? ` · ${formatMoney(refundTotal, currency)} refunded`
           : ""}

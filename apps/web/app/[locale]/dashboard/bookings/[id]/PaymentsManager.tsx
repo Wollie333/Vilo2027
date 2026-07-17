@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { LedgerList } from "@/components/finance/LedgerList";
 import { modal } from "@/components/ui/modal-host";
+import { progress } from "@/components/ui/progress-host";
 import { formatMoney } from "@/lib/format";
 import type { Txn } from "@/lib/finance/transactions";
 
@@ -122,12 +123,20 @@ export function PaymentsManager({
         });
         if (!ok) return;
       }
-      const r = await recordBookingPaymentAction({
-        bookingId,
-        amount: value,
-        kind,
-        note: note.trim() || null,
-      });
+      const r = await progress.during(
+        {
+          title: "Recording payment",
+          successTitle: "Payment recorded",
+          steps: ["Recording the payment", "Updating the balance"],
+        },
+        () =>
+          recordBookingPaymentAction({
+            bookingId,
+            amount: value,
+            kind,
+            note: note.trim() || null,
+          }),
+      );
       if (r.ok) {
         toast.success("Payment recorded.");
         setShowForm(false);
@@ -151,7 +160,14 @@ export function PaymentsManager({
         confirmLabel: "Apply credit",
       });
       if (!ok) return;
-      const r = await applyGuestCreditAction({ bookingId, amount: usable });
+      const r = await progress.during(
+        {
+          title: "Applying store credit",
+          successTitle: "Credit applied",
+          steps: ["Applying the credit", "Updating the balance"],
+        },
+        () => applyGuestCreditAction({ bookingId, amount: usable }),
+      );
       if (r.ok) {
         toast.success("Credit applied.");
         router.refresh();
@@ -176,11 +192,19 @@ export function PaymentsManager({
       return;
     }
     start(async () => {
-      const r = await issueBookingCreditNoteAction({
-        bookingId,
-        amount: value,
-        reason: creditReason.trim(),
-      });
+      const r = await progress.during(
+        {
+          title: "Issuing credit note",
+          successTitle: "Credit note issued",
+          steps: ["Issuing the credit note", "Adding to store credit"],
+        },
+        () =>
+          issueBookingCreditNoteAction({
+            bookingId,
+            amount: value,
+            reason: creditReason.trim(),
+          }),
+      );
       if (r.ok) {
         toast.success(
           "Credit note issued — added to the guest's store credit.",

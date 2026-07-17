@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 import { modal } from "@/components/ui/modal-host";
+import { progress } from "@/components/ui/progress-host";
 import {
   Card,
   CardContent,
@@ -62,7 +63,14 @@ export function QuoteActions({
 
   function send() {
     start(async () => {
-      const r = await sendQuoteAction(quoteId);
+      const r = await progress.during(
+        {
+          title: "Sending quote",
+          successTitle: "Quote sent",
+          steps: ["Preparing your quote", "Emailing the guest"],
+        },
+        () => sendQuoteAction(quoteId),
+      );
       if (r.ok) {
         toast.success("Quote sent");
         refresh();
@@ -96,11 +104,23 @@ export function QuoteActions({
   }
   function convert() {
     start(async () => {
-      const r = await convertQuoteAction(quoteId, {
-        state: convertPayState,
-        note: convertNote.trim() || null,
-        payNow,
-      });
+      const r = await progress.during(
+        {
+          title: "Converting quote",
+          successTitle: "Booking created",
+          steps: [
+            "Creating the booking",
+            "Issuing the invoice",
+            "Notifying your guest",
+          ],
+        },
+        () =>
+          convertQuoteAction(quoteId, {
+            state: convertPayState,
+            note: convertNote.trim() || null,
+            payNow,
+          }),
+      );
       if (r.ok && r.data) {
         toast.success("Booking created — invoice attached");
         router.push(`/dashboard/bookings/${r.data.bookingId}`);

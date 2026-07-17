@@ -11,6 +11,7 @@ import { BrandProvider } from "@/components/brand/BrandProvider";
 import { CurrencyProvider } from "@/components/currency/CurrencyProvider";
 import { BusyHost } from "@/components/ui/busy-host";
 import { ModalHost } from "@/components/ui/modal-host";
+import { ProgressHost } from "@/components/ui/progress-host";
 import { Toaster } from "@/components/ui/sonner";
 import { routing } from "@/i18n/routing";
 import { getBranding, getBrandName } from "@/lib/brand";
@@ -107,6 +108,7 @@ export default async function RootLayout({
               <Toaster richColors position="top-center" />
               <ModalHost />
               <BusyHost />
+              <ProgressHost />
             </CurrencyProvider>
           </BrandProvider>
         </NextIntlClientProvider>

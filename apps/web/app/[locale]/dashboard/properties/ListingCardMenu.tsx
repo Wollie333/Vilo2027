@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
+import { progress } from "@/components/ui/progress-host";
 import {
   Dialog,
   DialogContent,
@@ -51,7 +52,18 @@ export function ListingCardMenu({
 
   function onDuplicate() {
     start(async () => {
-      const res = await duplicateListingAction(listingId);
+      const res = await progress.during(
+        {
+          title: "Duplicating listing",
+          successTitle: "Listing duplicated",
+          steps: [
+            "Copying the listing",
+            "Duplicating rooms & photos",
+            "Copying pricing & policies",
+          ],
+        },
+        () => duplicateListingAction(listingId),
+      );
       if (res.ok) {
         toast.success(`Duplicated as draft — “${res.data?.name}”`);
         if (res.data?.warning) {

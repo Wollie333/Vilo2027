@@ -24,6 +24,7 @@ import { Link } from "@/i18n/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { progress } from "@/components/ui/progress-host";
 import { formatMoney } from "@/lib/format";
 import type { CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
 import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
@@ -304,7 +305,20 @@ export function Editor({
   function togglePublish() {
     const next = !isPublished;
     startPublish(async () => {
-      const result = await togglePublishAction(listing.id, next);
+      const result = await progress.during(
+        next
+          ? {
+              title: "Publishing listing",
+              successTitle: "Listing published",
+              steps: ["Publishing your listing", "Making it discoverable"],
+            }
+          : {
+              title: "Unpublishing listing",
+              successTitle: "Listing unpublished",
+              steps: ["Taking your listing offline"],
+            },
+        () => togglePublishAction(listing.id, next),
+      );
       if (result.ok) {
         setIsPublished(next);
         toast.success(next ? "Listing published" : "Listing unpublished");
