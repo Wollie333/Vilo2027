@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { SiteLoadingOverlay } from "../SiteLoadingOverlay";
+import { ThemedDateRange } from "../ThemedDateRange";
 
 /** Thousands-space an integer WITHOUT Intl (SSR/client hydration-safe). */
 function groupThousands(n: number): string {
@@ -88,24 +89,24 @@ export function OceansBookCard({
         </div>
       ) : null}
 
-      <div className="bkgrid">
-        <div className="field">
-          <label>Check in</label>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
-        </div>
-        <div className="field">
-          <label>Check out</label>
-          <input
-            type="date"
-            value={to}
-            min={from || undefined}
-            onChange={(e) => setTo(e.target.value)}
-          />
-        </div>
+      {/* Bespoke themed calendar (a portaled popover, NOT the browser's native
+          date modal) so the picker matches the design and can't be clipped. */}
+      <div className="field">
+        <label>Your dates</label>
+        <ThemedDateRange
+          from={from}
+          to={to}
+          onChange={(f, t) => {
+            setFrom(f);
+            setTo(t);
+          }}
+          accent="var(--site-accent, #12a5b5)"
+          ink="var(--site-ink, #0e2c3a)"
+          mute="var(--site-mute, #5e7884)"
+          line="var(--site-line, #e9e1d1)"
+          surface="var(--site-surface, #ffffff)"
+          radius="var(--site-radius-sm, 11px)"
+        />
       </div>
       <div className="field">
         <label>Guests</label>
