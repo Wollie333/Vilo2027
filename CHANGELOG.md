@@ -5,6 +5,55 @@
 
 ---
 
+## 2026-07-17 (pt14) — The founder's smoke test: 4 of his 5 bugs were features nothing called.
+
+He made a real booking and reported 5 faults. **Four of the five were already built and wired to
+nothing** — this repo's signature failure, found again by asking *what calls this?*
+
+### ✅ Shipped
+- **Verify email** `0bce3ae9` — the checkout's account creation never called `sendVerificationEmail`.
+  **The resend button always worked; that's exactly why it read as "lack of automation" — the send
+  was fine, the TRIGGER was missing.**
+- **EFT proof upload** `0bce3ae9` — the email's "Upload proof of payment" button pointed at a page
+  with no uploader. **~80% already existed and could never fire**: the private bucket, both storage
+  policies, both `eft_proof_url` columns, the host email, and **16 UI files rendering a
+  `pending_eft_review` status that NOTHING had ever set.**
+- **Party guests mint accounts** `c45600d2` — **BUSINESS_PRINCIPLES #1, written 2026-06-10, never
+  enforced.** Rule 1 names this exact entry point; rule 3 is the founder's second ask verbatim. A
+  passwordless lead was being told *"just sign in"* — advice they cannot act on → `ClaimAccount`.
+- **Party profiles** `fdb7240e` + **add-guest modal** `4329825b` — both surfaces, capped at the
+  booking's guest count. **The server cap was proven independently of the UI** by filling the booking
+  behind an open modal: a hidden button is not a guard.
+- **Admin booking view** `48a081f4` — **no `/admin/bookings` existed at all**; the host's page is
+  host-scoped, so an admin clicking a guest's booking would 404.
+- **Sell → inbox + email** `35071b05` — the pay card posted `if (hostId)`, so selling to a **guest**
+  reached nobody. *"It worked in the past"* = it worked for hosts.
+- **Every product type + an email opt-out** `77396acc`; **paid subscriptions now say "Sell"**
+  `08ab17cc` — the button said "Activate", hiding that a subscription could be sold at all.
+- **Upgrading off a free grant was FREE** `fb53b21c` — `proratedAmount(x, start, NULL)` returns 0 and
+  the caller read 0 as "no charge" **while still activating the plan**. Founder's call: charge full
+  price. `membershipSwitchAmount()` is now the one definition, shared by preview and action.
+
+### 🔑 Method — earned the hard way
+- **A seed misleads in BOTH directions.** pt12: a seed's own ✅ proves nothing. pt14: the *seeded*
+  booking had no payments row, so I concluded real ones don't either — **wrong**, real checkouts do
+  create one. Never infer a lifecycle from seeded data.
+- **Check the right surface before crying wolf.** A "0 events" read was the wrong table
+  (`notification_queue`.`type`); a "false unreachable" was an element scrolled out of view. Both
+  nearly shipped as false alarms.
+- **When a bug is reported, ask which email / account / build first.** "Signup still broken" was a
+  **stale server action** (HMR never recompiles them → `rm -rf .next`); the code was correct on a
+  clean build.
+- **A label that lies is a bug** — "PRO-RATED UPGRADE" while charging full price.
+
+### ▶ Next session: self-serve promo codes for Wielo products
+Recon done, and it is **not a rename**: `coupons.host_id` is NOT NULL (a Wielo coupon has no host)
+and `redeem_coupon()` is booking-scoped (a product order is not a booking). Comping is already
+solved by "Activate without charging" — promo codes are only worth building for self-serve
+marketing. Full brief in `CURRENT_TASK.md` → pt14.
+
+---
+
 ## 2026-07-17 (pt13) — Mobile booking audit: a guest could not add an infant on a phone.
 
 **Founder's #2 priority (the mobile booking audit of `/property/<slug>/book`) — started and part done.**

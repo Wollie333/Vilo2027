@@ -2,7 +2,104 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt13) — **START HERE** (supersedes pt12 below)
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt14) — **START HERE** (supersedes pt13 below)
+
+**Repo clean + pushed `fb53b21c`. `pnpm build` (exit 0) · `pnpm lint` (0 warnings) · `tsc` green.**
+Only untracked = the mobile eslint scaffold (founder: *"leave it"*). Machine clean (0 node procs).
+
+### ▶▶ NEXT SESSION BUILDS THIS: self-serve promo codes for WIELO products
+**The goal (founder's words):** *"take the coupon feature and make it work for Wielo products… as
+well as set an admin coupon settings control"* — i.e. **a host types `WELCOME50` at checkout** and
+pays less for a membership / credit pack / one-off. Marketing lever: redemption limits, expiry,
+reporting.
+
+🔑 **THIS IS NOT A RENAME — the recon is done, here are the load-bearing facts:**
+| | |
+|---|---|
+| Resolver | **`apps/web/lib/coupons.ts`** → `resolveCoupon()` (single file, not a dir) |
+| Table | `coupons` — **host-scoped and booking-SHAPED** |
+| 🔴 Blocker 1 | **`coupons.host_id` is NOT NULL.** A Wielo coupon has NO host → it cannot live in this table as-is. Decide: make it nullable (platform = NULL) · a sentinel host · or a separate table. |
+| 🔴 Blocker 2 | **`redeem_coupon(p_coupon_id, p_booking_id, p_guest_id, p_amount, p_currency)` is BOOKING-scoped.** A product order is **not** a booking → the RPC can't record a product redemption without a signature/table change. |
+| Booking-only columns | `property_id`, `room_id`, `addon_id`, `min_nights` — meaningless for a product. `scope` is NOT NULL and needs a product/platform value. |
+| ✅ Reusable as-is | `code` · `discount_type` · `discount_value` · `min_spend` · `starts_at`/`ends_at` · `max_redemptions` · `per_guest_limit` · `redeemed_count` · `is_active` |
+| Where it'd apply | `lib/billing/product-checkout.ts` → `createProductOrder()` (+ the `/pay/product/<token>` surface) |
+
+⚠️ **Before building, re-read `docs/SCHEMA.md` + run `node scripts/audit-wiring.mjs`.** And check
+whether a coupon UI already exists for hosts — this codebase's disease is building things twice.
+
+### ⚖️ WHAT THE FOUNDER ALREADY HAS (do NOT rebuild it)
+**Comping a plan is SOLVED: "Activate without charging"** (one click, audit-logged) sits in the same
+dialog as Sell. The founder originally wanted coupons *"so they pay nothing"* — that outcome already
+exists. **The ONLY reason to build promo codes is self-serve marketing (a host redeems a code
+themselves), which is a different feature from an admin comp.** Agreed with the founder.
+📌 Cheap adjacent win, not yet done: **give "Activate without charging" a reason field** ("Beta comp",
+"goodwill") so a free plan is explainable 6 months later. That's comping's real gap today.
+
+### ✅ SHIPPED THIS SESSION (the founder's smoke-test batch — 5 asks + 3 follow-ups)
+🔑 **THE THROUGH-LINE: 4 of the 5 were features that ALREADY EXISTED and nothing called.** That is
+this repo's signature failure. **Querying back what landed** disproved my OWN claims twice.
+1. ✅ **Verify email** `0bce3ae9` — `createCheckoutGuestAccountAction` never called
+   `sendVerificationEmail`. **The resend button always worked — that's WHY it read as "lack of
+   automation": the send was fine, the TRIGGER was missing.**
+2. ✅ **EFT proof upload** `0bce3ae9` — the email's "Upload proof" button pointed at a page with **no
+   uploader** (`PHASE_PLAN.md:332` ⬜). **~80% existed, wired to nothing**: bucket, RLS, both columns,
+   the host email, and **16 UI files rendering `pending_eft_review` — a status NOTHING had ever set.**
+3. ✅ **Party guests mint accounts** `c45600d2` — was **BUSINESS_PRINCIPLES #1**, written 2026-06-10,
+   never enforced. Rule 1 names this exact entry point; **rule 3 is the founder's 2nd ask verbatim.**
+   Also: a passwordless lead was told *"just sign in"* — advice they **cannot act on**. → `ClaimAccount`.
+4. ✅ **Party profiles on the thank-you page** `fdb7240e` + **add-guest modal** `4329825b` (both
+   surfaces, capped at guest count — **server cap proven by filling the booking behind an open modal**).
+5. ✅ **Admin booking view** `48a081f4` — **no `/admin/bookings` existed at all**; the host's page is
+   host-scoped so an admin got a 404.
+6. ✅ **Sell → inbox + email** `35071b05` — the card posted `if (hostId)`, so selling to a **guest**
+   reached **nobody**. *"It worked in the past"* = it worked for hosts.
+7. ✅ **All product types + email opt-out** `77396acc` · **paid subs now say "Sell"** `08ab17cc` —
+   the button said "Activate", hiding that a subscription could be sold at all.
+8. ✅ **Free-grant upgrade was FREE** `fb53b21c` — `proratedAmount(x, start, NULL)` = 0, and the
+   caller read 0 as "no charge" **while still activating the plan**. Founder's call: charge full
+   price. `membershipSwitchAmount()` is now the ONE definition (preview + action).
+
+### 🔑 METHOD (pt14 — earned the hard way)
+- 🔑 **A seed misleads in BOTH directions.** pt12: a seed's ✅ proves nothing. pt14: the seeded
+  booking had **no payments row**, so I concluded real ones don't either — **wrong**, real checkouts
+  DO create one. **Never infer the lifecycle from seeded data.**
+- 🔑 **Check the RIGHT surface before crying wolf.** A "0 events" read was the wrong table
+  (`notification_queue`.`type`, not `notification_events`); a "false unreachable" was an element
+  scrolled out of view. **Both nearly shipped as false alarms.**
+- 🔑 **When the founder reports a bug, first ask WHICH email/account/build.** His "signup still
+  broken" was a **stale server action** (HMR doesn't recompile them → `rm -rf .next`); the code was
+  correct on a clean build. And `wollie333@` is `is_lead:false`, so it would *correctly* show the
+  old message.
+- 🔑 **A label that lies is a bug.** "PRO-RATED UPGRADE" while charging full price; a card saying
+  "ZAR 9999.00" while its email said "R 9 999,00".
+
+### 🧪 TEST ARTIFACTS LEFT ON THE LINKED DB (safe to clear)
+`BK-0051` (guests_count 4, 2 party members, a proof) · leads `party-test@` (renamed "Thandi Mokoena"
++ photo, for the profile test) and `sipho-later@wielostarter.com` · unpaid StayFlow + 50-credit orders
+and 2 pay cards on **Lerato**'s account · a Starter upgrade offer on **host2** · **host2's
+`current_period_end` set to +25 days** (host1 still NULL — the side-by-side for the pricing fix).
+
+### 🔴 STILL OPEN (unchanged from pt13)
+1. 🔴 **iOS zoom-on-focus — NOT FIXED, NOT WITNESSED.** Every checkout input is `font-size: 14px`,
+   viewport has no `maximum-scale` → **iOS Safari auto-zooms any field <16px**. Preview is Chromium
+   so it can't be witnessed here. App-wide input change → **founder's call.**
+2. **Under the 44px bar:** calendar cells **38×36** (`CheckoutDateEditor.tsx:142` `max-w-[320px]`),
+   month nav **32×32**, add-on/room steppers **28×28**.
+3. 🔴 **FOUNDER-ONLY: smoke SIGNUP** (agent may not create accounts / type passwords).
+4. `docs/WIRING_AUDIT.md`: external-review **reply** + brochure **remove** · §3 decisions · ~40 deletes.
+5. 🔴 **IDOR still open** — analytics fns take `p_host_id`, never check ownership.
+6. ⚠️ **Offer emails are NOT delivery-witnessed** — `RESEND_API_KEY` is empty in `.env.local` so
+   nothing sends locally. Founder confirms Resend works on prod, and the template renders (6329
+   bytes, right content) + the toggle reaches the server (proven via `admin_audit_log.payload.args`).
+
+### 🔴 FOUNDER-ONLY (unchanged)
+1. **Rotate `email_worker_secret` + `ical_sync_worker_secret`** — Vault **AND** Vercel.
+2. **4 Vault-gated crons still dead** → auto-flagged in `docs/SCHEMA.md`.
+3. **Decide:** access unlock gates on status but NOT payment (`docs/lifecycles/access-details.md`).
+
+---
+
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt13) — ⚠️ SUPERSEDED by pt14 above
 
 **`pnpm build` (exit 0) · `pnpm lint` (zero warnings) · `npx tsc --noEmit` all green.** Only untracked
 = the mobile eslint scaffold (founder: *"leave it"*). Machine was clean this session (**0 orphan node
