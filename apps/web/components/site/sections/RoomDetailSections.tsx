@@ -3,21 +3,7 @@ import type { GalleryImage, RoomDetail, RoomPolicies } from "@/lib/site/types";
 
 import { GalleryLightbox } from "../GalleryLightbox";
 import { RoomBookingForm } from "../RoomBookingForm";
-import { Card, SectionHeading, SectionShell, SiteButton } from "./_shared";
-
-function priceLabel(price?: number | null, currency?: string | null) {
-  if (price == null) return null;
-  const ccy = currency ?? "ZAR";
-  try {
-    return new Intl.NumberFormat("en-ZA", {
-      style: "currency",
-      currency: ccy,
-      maximumFractionDigits: 0,
-    }).format(price);
-  } catch {
-    return `${ccy} ${price}`;
-  }
-}
+import { SectionHeading, SectionShell } from "./_shared";
 
 /** Shown in the builder preview / on a non-room page where no room is in scope. */
 function RoomPlaceholder({ label }: { label: string }) {
@@ -112,10 +98,14 @@ export function RoomOverviewSection({
     return <RoomPlaceholder label="The room's name and details appear here." />;
 
   const title = props.heading?.trim() || data.name;
-  const price = props.show_price ? priceLabel(data.price, data.currency) : null;
-  const split = props.variant === "split";
 
-  const body = (
+  // The room-detail page's booking widget (the sticky RoomBookingDock, or the
+  // room_rate form) IS the price + CTA. The overview therefore renders ONLY the
+  // room's story — name, fact pills, description — in a single content column.
+  // It no longer emits its own "From … / Book this room" price aside, which was
+  // a duplicate booking card beside the dock and broke the layout. `show_price`
+  // / `variant:"split"` are intentionally ignored here.
+  return (
     <div>
       <h1
         style={{
@@ -143,49 +133,6 @@ export function RoomOverviewSection({
         </p>
       ) : null}
     </div>
-  );
-
-  const aside =
-    price != null ? (
-      <Card className="p-5">
-        <span style={{ color: "var(--site-mute)" }} className="text-sm">
-          From
-        </span>
-        <div
-          style={{ color: "var(--site-ink)" }}
-          className="text-2xl font-bold"
-        >
-          {price}
-          <span
-            style={{ color: "var(--site-mute)" }}
-            className="text-sm font-normal"
-          >
-            {" "}
-            / night
-          </span>
-        </div>
-        <div className="mt-4">
-          <SiteButton href={data.bookHref} track>
-            Book this room
-          </SiteButton>
-        </div>
-      </Card>
-    ) : null;
-
-  return (
-    <>
-      {split && aside ? (
-        <div className="grid gap-8 md:grid-cols-[1fr_18rem]">
-          {body}
-          <div>{aside}</div>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {body}
-          {aside}
-        </div>
-      )}
-    </>
   );
 }
 
