@@ -7,6 +7,7 @@ import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { PageDocRenderer } from "@/components/site/v2/PageDocRenderer";
 import { sampleDataForDoc } from "@/lib/site/sampleSite";
 import { resolveThemeBase } from "@/lib/site/themes.server";
+import { realWizardPreviewData } from "@/lib/site/wizardPreviewData";
 import { getThemeTemplatePageDoc } from "@/lib/website/themeSections";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export default async function ThemePreviewPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ accent?: string; name?: string }>;
+  searchParams: Promise<{ accent?: string; name?: string; real?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
@@ -40,7 +41,13 @@ export default async function ThemePreviewPage({
   const doc = getThemeTemplatePageDoc(slug, `${slug}_home`);
   if (!doc) notFound();
 
-  const data = sampleDataForDoc(doc);
+  // `real=1` (wizard): overlay the AUTHENTICATED host's own rooms/photos/reviews
+  // onto the theme's sample data, so the preview shows THEIR listing in the theme.
+  // Falls back to sample for anything they haven't set up yet.
+  const data =
+    sp.real === "1"
+      ? { ...sampleDataForDoc(doc), ...(await realWizardPreviewData(doc)) }
+      : sampleDataForDoc(doc);
   const base = await resolveThemeBase(slug);
   const theme = {
     preset: slug,

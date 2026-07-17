@@ -26,6 +26,9 @@ export function WizardLivePreview({
   const qs = new URLSearchParams();
   if (accent) qs.set("accent", accent);
   if (siteName) qs.set("name", siteName);
+  // Overlay the host's real rooms/photos/reviews onto the theme (falls back to
+  // sample for anything not set up yet) — so "your site" shows your listing.
+  qs.set("real", "1");
   const src = `/${locale}/theme-preview/${slug}?${qs.toString()}`;
   const addressText =
     label ??
