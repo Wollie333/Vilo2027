@@ -4,12 +4,18 @@ import { cache } from "react";
 import { createServerClient } from "@/lib/supabase/server";
 
 /**
- * Pre-MVP master switch: when true, every feature gate resolves open so the
- * whole system ships as the MVP and the founder can smoke-test everything
- * (AGENT_RULES.md §3.4). Flip to false to re-enable per-product entitlement
- * (check_feature_permission) before Phase 3 / paid tiers.
+ * Master feature-gate switch.
+ *
+ * ENFORCING (false, 2026-07-17): access gates resolve through the real
+ * entitlement chain (host override → active/trialing product → plan → default
+ * false). Hosts are provisioned via the "Beta" product, which opens every host
+ * feature EXCEPT the website builder (shipping later). A host with no active
+ * subscription is gated out — that is the intended enforcement.
+ *
+ * Set back to true only to temporarily re-open everything for broad smoke-testing
+ * (AGENT_RULES.md §3.4).
  */
-export const PRE_MVP_FEATURES_OPEN = true;
+export const PRE_MVP_FEATURES_OPEN = false;
 
 /**
  * SSOT action-layer feature gate. Resolves whether a host is entitled to a
