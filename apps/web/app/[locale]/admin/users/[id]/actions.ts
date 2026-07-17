@@ -2,10 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { createElement } from "react";
 import { z } from "zod";
+
+import { ProductOffer } from "@vilo/emails";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
+import { getBrandName } from "@/lib/brand";
+import { sendReactEmail } from "@/lib/email/send";
 import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
@@ -19,7 +24,7 @@ import {
 } from "@/lib/credits/wallet";
 import {
   adminPostUpgradeCardToHostThread,
-  adminPostPaymentLinkToHostThread,
+  adminPostPaymentLinkToUserThread,
   adminPostToHostThread,
 } from "@/lib/inbox/platform-thread";
 import { ensureHostForUser } from "@/lib/hosts/ensureHost";
@@ -1480,6 +1485,20 @@ const sellSchema = z.object({
   reason: z.string().optional(),
 });
 
+// Same shape the inbox pay card uses (lib/inbox/platform-thread fmtMoney), so
+// the emailed offer and the in-app card never disagree on the amount.
+function fmtOfferMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-ZA", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
 export const sellProductAction = withAdminAudit<
   z.infer<typeof sellSchema>,
   { ok: true; payUrl?: string }
@@ -1530,18 +1549,46 @@ export const sellProductAction = withAdminAudit<
         publicPayBase(),
       );
       if (!order.ok) throw new Error(order.error);
-      // Drop a pay card into the buyer's Wielo inbox (hosts have a thread).
-      if (hostId) {
-        try {
-          await adminPostPaymentLinkToHostThread(service, {
-            host: { id: hostId, userId },
-            url: order.url,
-            body: `${product.name} — ${currency} ${price.toFixed(2)} due`,
-          });
-        } catch {
-          // best-effort — the link is still returned to the admin
-        }
+
+      // Drop a pay card into the buyer's Wielo inbox. This used to be gated on
+      // `hostId`, so selling to a GUEST posted nothing — the admin got a link and
+      // the buyer was never told. Guests have their own platform thread; resolve
+      // whichever the buyer has.
+      try {
+        await adminPostPaymentLinkToUserThread(service, {
+          userId,
+          url: order.url,
+          body: `${product.name} — ${fmtOfferMoney(price, currency)} due`,
+        });
+      } catch {
+        // best-effort — the link is still returned to the admin
       }
+
+      // Email the offer too. The inbox card only reaches someone who logs in;
+      // the whole point of selling is that they don't have to.
+      try {
+        const { data: buyer } = await service
+          .from("user_profiles")
+          .select("full_name")
+          .eq("id", userId)
+          .maybeSingle();
+        const brandName = await getBrandName();
+        await sendReactEmail({
+          to: email,
+          subject: `${product.name} — ${fmtOfferMoney(price, currency)} to pay`,
+          react: createElement(ProductOffer, {
+            firstName:
+              (buyer?.full_name ?? "").trim().split(/\s+/)[0] || "there",
+            productName: product.name,
+            amount: fmtOfferMoney(price, currency),
+            payUrl: order.url,
+            brandName,
+          }),
+        });
+      } catch {
+        // best-effort — never fail the sale on an email
+      }
+
       revalidatePath(`/admin/users`);
       return {
         result: { ok: true, payUrl: order.url },

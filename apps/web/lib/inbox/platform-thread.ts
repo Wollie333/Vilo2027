@@ -368,18 +368,69 @@ export async function adminPostPaymentLinkToHostThread(
   },
 ): Promise<string> {
   const conversationId = await ensureWieloThread(admin, args.host);
+  return postPaymentLinkCard(admin, conversationId, args.url, args.body, true);
+}
+
+/**
+ * Post a pay CARD into ANY buyer's Wielo thread — host or guest.
+ *
+ * The host-only sibling above stranded every non-host buyer: selling a product
+ * to a guest posted nothing, because they have no `hosts` row. Guests have had
+ * their own platform thread (ensureWieloGuestThread, rendered by /portal/inbox
+ * through the same ChatMessageWall) all along, so the card renders identically.
+ *
+ * Resolves the right thread from the user, so callers don't need to know which
+ * kind of buyer they have.
+ */
+export async function adminPostPaymentLinkToUserThread(
+  admin: Admin,
+  args: { userId: string; url: string; body: string },
+): Promise<string> {
+  const { data: host } = await admin
+    .from("hosts")
+    .select("id")
+    .eq("user_id", args.userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (host?.id) {
+    const conversationId = await ensureWieloThread(admin, {
+      id: host.id as string,
+      userId: args.userId,
+    });
+    return postPaymentLinkCard(
+      admin,
+      conversationId,
+      args.url,
+      args.body,
+      true,
+    );
+  }
+
+  const conversationId = await ensureWieloGuestThread(admin, args.userId);
+  // Guest thread: the unread trigger routes a Wielo-side message to unread_guest,
+  // so read_by_guest must be false or their badge never lights up.
+  return postPaymentLinkCard(admin, conversationId, args.url, args.body, false);
+}
+
+async function postPaymentLinkCard(
+  admin: Admin,
+  conversationId: string,
+  url: string,
+  body: string,
+  toHost: boolean,
+): Promise<string> {
   const supportId = await ensureWieloSupportUser(admin);
   const { error } = await admin.from("messages").insert({
     conversation_id: conversationId,
     sender_id: supportId,
-    body: args.body,
+    body,
     is_system_message: true,
     system_event: "payment_link",
-    attachment_url: args.url,
-    read_by_host: false,
-    read_by_guest: true,
+    attachment_url: url,
+    read_by_host: !toHost,
+    read_by_guest: toHost,
   });
-  if (error)
-    throw new Error(`adminPostPaymentLinkToHostThread: ${error.message}`);
+  if (error) throw new Error(`postPaymentLinkCard: ${error.message}`);
   return conversationId;
 }

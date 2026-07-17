@@ -46,4 +46,5 @@ export { default as AffiliatePayoutPaid } from "./templates/AffiliatePayoutPaid"
 export { default as PasswordReset } from "./templates/PasswordReset";
 export { default as ClaimAccount } from "./templates/ClaimAccount";
 export { default as ConfirmEmail } from "./templates/ConfirmEmail";
+export { default as ProductOffer } from "./templates/ProductOffer";
 export { default as ExistingAccount } from "./templates/ExistingAccount";
