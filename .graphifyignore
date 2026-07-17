@@ -1,0 +1,24 @@
+# graphify focus — same syntax as .gitignore (node_modules etc. already ignored
+# via .gitignore, which graphify respects automatically). This narrows the graph
+# to the web app + backend so it's fast and relevant for CMS work.
+
+# Other apps / packages not part of the web CMS
+apps/mobile/
+emails/
+
+# Build + generated output
+.next/
+dist/
+build/
+coverage/
+storybook-static/
+playwright-report/
+test-results/
+
+# graphify's own output (never index itself)
+graphify-out/
+
+# Lockfiles / vendored
+*.lock
+pnpm-lock.yaml
+uv.lock

@@ -25,6 +25,25 @@ Read these for their specific domain:
 - `DECISIONS.md` — why key decisions were made (check before proposing changes)
 - `PHASE_PLAN.md` — full build order, current phase, what's done and what's next
 - `TESTING.md` — what to test, how to test it, and what the conventions are
+
+---
+
+## Graphify — code map (query instead of grepping; saves tokens)
+
+A local AST knowledge graph of the codebase (TS/TSX/JS + SQL migrations). Prefer
+it over broad `grep`/file-reads when orienting or tracing impact — it answers
+"who calls X", "what does Y depend on", "which tables reference Z" in one call.
+
+- **Bootstrap once per session:** `bash scripts/graphify.sh` — installs the CLI if
+  needed and builds `graphify-out/` (fully local, no API cost, ~45s). Output is
+  gitignored; rebuild each session.
+- **Find / orient:** `graphify explain "SymbolName"` → file+line, callers, callees,
+  and SQL foreign-key references.
+- **Trace a connection / impact:** `graphify path "A" "B"`.
+- **After editing code:** `graphify update . --no-cluster` to refresh before more queries.
+
+It complements the hand-written docs above (it maps *structure*, not intent). Use
+it to locate and scope work; still read the actual file before editing it.
 - `SECURITY_CHECKLIST.md` — pre-launch security audit (run before any production deploy)
 - `NOTIFICATIONS.md` — push payload specs, in-app alerts, token management
 - `CI_CD.md` — GitHub Actions workflow files and deployment order

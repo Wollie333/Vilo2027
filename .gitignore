@@ -68,3 +68,7 @@ worktrees/
 
 .vercel
 .env*
+
+# ─── graphify (local code graph — rebuilt per session, see scripts/graphify.sh) ───
+graphify-out/
+.graphify/
