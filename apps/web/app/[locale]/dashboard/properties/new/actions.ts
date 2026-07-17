@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 import { assertFullHost } from "@/lib/host/current";
+import { assertWithinTotalCap } from "@/lib/products/featureGate";
 
 import { newListingSchema, type NewListingInput } from "./schemas";
 
@@ -24,6 +25,22 @@ export async function createListingAction(
   if (!h.ok) return h;
 
   const supabase = createServerClient();
+
+  // Enforce the account's listings cap (listings_limit). RLS scopes the count to
+  // this host's own non-deleted listings.
+  const { count } = await supabase
+    .from("properties")
+    .select("id", { count: "exact", head: true })
+    .eq("host_id", h.hostId)
+    .is("deleted_at", null);
+  const cap = await assertWithinTotalCap(
+    supabase,
+    h.hostId,
+    "listings_limit",
+    count ?? 0,
+    "listing",
+  );
+  if (!cap.ok) return cap;
 
   // host_manage_own_listings RLS lets the user-bound client insert.
   const { data: listing, error } = await supabase

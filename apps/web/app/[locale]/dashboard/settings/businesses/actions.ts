@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { assertBusinessOwnership } from "@/lib/business/resolveBusiness";
 import { requireHost as resolveHost } from "@/lib/host/current";
+import { assertWithinTotalCap } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -61,6 +62,23 @@ export async function createBusinessAction(
   if (!host.ok) return host;
 
   const supabase = createServerClient();
+
+  // Enforce the account's businesses cap (businesses_limit). The default business
+  // is created at signup (not here), so this caps additional businesses.
+  const { count } = await supabase
+    .from("businesses")
+    .select("id", { count: "exact", head: true })
+    .eq("host_id", host.hostId)
+    .eq("is_archived", false);
+  const cap = await assertWithinTotalCap(
+    supabase,
+    host.hostId,
+    "businesses_limit",
+    count ?? 0,
+    "business",
+  );
+  if (!cap.ok) return cap;
+
   // The host always has a default business (created on signup), so new ones are
   // never the default.
   const { data, error } = await supabase

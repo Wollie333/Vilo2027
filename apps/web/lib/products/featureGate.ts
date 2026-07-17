@@ -118,3 +118,34 @@ export const hostFeatureLimit = cache(async function hostFeatureLimit(
 ): Promise<FeatureLimit> {
   return resolveFeatureLimit(createServerClient(), hostId, featureKey);
 });
+
+/**
+ * Enforce a "total"-scope account cap (e.g. `listings_limit`, `businesses_limit`)
+ * before creating one more of something. Resolves the host's allowance via the
+ * canonical RPC and compares it to how many they already have.
+ *
+ * `null` limit → unlimited (always ok). Fail-closed: a host with no entitlement
+ * resolves to 0 and is blocked. The caller passes its own `currentCount` because
+ * the "active" filter differs per table (properties use deleted_at; businesses
+ * use is_archived).
+ */
+export async function assertWithinTotalCap(
+  client: SupabaseClient,
+  hostId: string,
+  featureKey: string,
+  currentCount: number,
+  label: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { limit } = await resolveFeatureLimit(client, hostId, featureKey);
+  if (limit === null) return { ok: true }; // unlimited
+  if (currentCount >= limit) {
+    return {
+      ok: false,
+      error:
+        limit === 0
+          ? `Your plan doesn’t include ${label}s. Upgrade to add one.`
+          : `Your plan allows ${limit} ${label}${limit === 1 ? "" : "s"}. Upgrade to add more.`,
+    };
+  }
+  return { ok: true };
+}
