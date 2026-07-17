@@ -7,7 +7,10 @@ import { useTranslations } from "next-intl";
 
 import type { ReadinessItem } from "@/lib/website/readiness";
 
-import { createWebsiteWithWizardAction } from "../actions";
+import {
+  createDraftWebsiteAction,
+  createWebsiteWithWizardAction,
+} from "../actions";
 import { StepBasics } from "./steps/StepBasics";
 import { StepBuilding } from "./steps/StepBuilding";
 import { StepColors } from "./steps/StepColors";
@@ -129,6 +132,26 @@ export function WebsiteWizard(props: WizardProps) {
   const update = (patch: Partial<WizardState>) =>
     setState((prev) => ({ ...prev, ...patch }));
 
+  // Phase B — create (or resume) the draft site when the host leaves Basics, so
+  // the row exists during the wizard and finalize UPDATES it. Non-blocking: if
+  // draft creation fails (e.g. a taken subdomain), we still advance — finalize
+  // falls back to the one-shot insert and surfaces the same error there, so the
+  // wizard behaves exactly as before when the draft can't be created.
+  async function advanceFromBasics() {
+    if (!state.draftWebsiteId) {
+      const res = await createDraftWebsiteAction({
+        businessId: props.businessId,
+        siteName: state.siteName,
+        subdomain: state.subdomain,
+        logoPath: state.logoPath ?? undefined,
+      });
+      if (res.ok) {
+        setState((prev) => ({ ...prev, draftWebsiteId: res.id }));
+      }
+    }
+    setStep("theme");
+  }
+
   async function build() {
     setError(null);
     setStep("building");
@@ -166,6 +189,9 @@ export function WebsiteWizard(props: WizardProps) {
       hiddenPolicyTypes,
       pages: state.pages.map((p) => ({ kind: p.kind, include: p.include })),
       contentProfile: state.contentProfile ?? undefined,
+      // Phase B — finalize the draft created after Basics (UPDATE instead of
+      // INSERT). Undefined → legacy one-shot insert path.
+      draftWebsiteId: state.draftWebsiteId ?? undefined,
     });
     if (res.ok) {
       setCreatedId(res.id);
@@ -257,7 +283,7 @@ export function WebsiteWizard(props: WizardProps) {
             <StepBasics
               state={state}
               update={update}
-              onNext={() => setStep("theme")}
+              onNext={advanceFromBasics}
             />
           ) : null}
           {step === "theme" ? (

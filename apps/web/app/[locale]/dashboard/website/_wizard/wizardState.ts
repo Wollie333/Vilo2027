@@ -92,6 +92,10 @@ export type WizardState = {
   /** The generated content profile (null until generated / skipped). Passed into
    *  the build so seeding hydrates the theme pages with the host's copy. */
   contentProfile: ContentProfile | null;
+  /** Phase B — the draft site created after Basics (null until created). Finalize
+   *  updates this row instead of inserting; also lets later steps preview the
+   *  host's real site. */
+  draftWebsiteId: string | null;
 };
 
 /** The data the wizard needs to start (prefill + theme catalogue + account config). */
@@ -136,6 +140,7 @@ export function initialWizardState(p: WizardProps): WizardState {
     ),
     answers: {},
     contentProfile: null,
+    draftWebsiteId: null,
   };
 }
 

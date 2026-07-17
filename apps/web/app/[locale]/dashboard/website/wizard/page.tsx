@@ -67,18 +67,26 @@ export default async function WebsiteWizardPage({
     : businesses[0];
   if (!target) redirect("/dashboard/website");
 
-  // One site per business — if it already has one, the wizard bounces to that
-  // site's editor CLIENT-SIDE (see WebsiteWizard). This is NOT a server redirect
-  // because a server action re-renders this page right after the wizard creates
-  // the site — a server redirect here would then fire and skip the success
-  // screen. The client only bounces on the id present at MOUNT, so a freshly
-  // created site keeps the success screen up until the host clicks through.
+  // One site per business — if it already has a FINALIZED one, the wizard bounces
+  // to that site's editor CLIENT-SIDE (see WebsiteWizard). This is NOT a server
+  // redirect because a server action re-renders this page right after the wizard
+  // creates the site — a server redirect here would then fire and skip the
+  // success screen. The client only bounces on the id present at MOUNT, so a
+  // freshly created site keeps the success screen up until the host clicks
+  // through.
+  //
+  // Phase B — a `draft` row is the wizard's OWN in-progress draft (created after
+  // Basics). It must NOT bounce: the wizard resumes it instead (createDraft…
+  // returns the existing draft), so an abandoned run continues rather than
+  // dumping the host into a half-seeded editor.
   const { data: existing } = await supabase
     .from("host_websites")
-    .select("id")
+    .select("id, status")
     .eq("business_id", target.id)
     .is("deleted_at", null)
     .maybeSingle();
+  const bounceWebsiteId =
+    existing && existing.status !== "draft" ? existing.id : null;
 
   const [t, themes, paymentMethods, policies, rooms] = await Promise.all([
     getTranslations("website"),
@@ -108,7 +116,7 @@ export default async function WebsiteWizardPage({
         paymentMethods={paymentMethods}
         policies={policies}
         rooms={rooms}
-        existingWebsiteId={existing?.id ?? null}
+        existingWebsiteId={bounceWebsiteId}
       />
     </div>
   );

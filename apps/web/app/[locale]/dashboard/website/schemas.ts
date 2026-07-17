@@ -102,11 +102,32 @@ export const createWebsiteWizardSchema = z.object({
   /** The host's content profile from the "Your story" step (canonical slots),
    *  hydrated into the seeded theme pages. Empty → the theme's demo copy shows. */
   contentProfile: contentProfileSchema.optional(),
+  /** Draft site created early (after Basics). When present and owned by the
+   *  host, finalize UPDATES that draft instead of inserting a new row (Phase B).
+   *  Absent → the legacy one-shot insert path (preserved fallback). */
+  draftWebsiteId: z.string().uuid().optional(),
 });
 
 export type CreateWebsiteWizardInput = z.infer<
   typeof createWebsiteWizardSchema
 >;
+
+// Phase B — create (or resume) a minimal draft site after the Basics step, so
+// the row exists during the wizard (unblocks real-content preview + per-section
+// content binding). Only the fields known at Basics.
+export const createDraftWebsiteSchema = z.object({
+  businessId: z.string().uuid(),
+  subdomain: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, "too_short")
+    .max(63, "too_long"),
+  siteName: z.string().trim().min(1, "too_short").max(120),
+  logoPath: z.string().trim().max(400).optional(),
+});
+
+export type CreateDraftWebsiteInput = z.infer<typeof createDraftWebsiteSchema>;
 
 // --- Brand Studio (logos, identity, colours, typography, buttons) ---
 

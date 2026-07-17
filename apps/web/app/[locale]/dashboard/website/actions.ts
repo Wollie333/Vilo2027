@@ -91,6 +91,7 @@ import {
   connectDomainSchema,
   createWebsiteSchema,
   createWebsiteWizardSchema,
+  createDraftWebsiteSchema,
   resetToDefaultSchema,
   restorePointIdSchema,
   saveRestorePointSchema,
@@ -135,6 +136,7 @@ import {
   type DeleteSavedSectionInput,
   type CreateWebsiteInput,
   type CreateWebsiteWizardInput,
+  type CreateDraftWebsiteInput,
   type SaveBlogAuthorsInput,
   type SaveBlogCategoriesInput,
   type SaveBlogPostInput,
@@ -710,6 +712,82 @@ async function seedLegalPages(
  * (per the wizard's design — host can unpublish later). Additive: the existing
  * createWebsiteAction + builder are untouched.
  */
+/**
+ * Phase B — create (or resume) a minimal DRAFT site after the Basics step, so
+ * the row exists during the wizard. Idempotent per business: if a draft already
+ * exists for the business (an earlier abandoned run), return it (resume) instead
+ * of erroring; a non-draft existing site returns `already_exists`. The draft is
+ * intentionally un-seeded — finalize (createWebsiteWithWizardAction) applies the
+ * chosen theme, seeds pages and publishes.
+ */
+export async function createDraftWebsiteAction(
+  input: CreateDraftWebsiteInput,
+): Promise<CreateResult> {
+  const parsed = createDraftWebsiteSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { businessId, subdomain, siteName, logoPath } = parsed.data;
+
+  const subErr = validateSubdomain(subdomain);
+  if (subErr) return { ok: false, error: subErr };
+
+  const host = await requireHost();
+  if (!host.ok) return host;
+  if (!(await assertWebsiteFeature(host.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", businessId)
+    .eq("host_id", host.hostId)
+    .maybeSingle();
+  if (!business) return { ok: false, error: "business_not_found" };
+
+  // Resume: a draft already exists for this business → hand it back. A non-draft
+  // site means this business already went live; the wizard shouldn't be here.
+  const { data: existing } = await supabase
+    .from("host_websites")
+    .select("id, status")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (existing) {
+    if (existing.status === "draft") return { ok: true, id: existing.id };
+    return { ok: false, error: "already_exists" };
+  }
+
+  // Subdomain must be free (globally unique).
+  const { data: taken } = await supabase
+    .from("host_websites")
+    .select("id")
+    .eq("subdomain", subdomain)
+    .maybeSingle();
+  if (taken) return { ok: false, error: "subdomain_taken" };
+
+  const brand: Record<string, unknown> = { name: siteName.trim() };
+  if (logoPath) brand.logo_path = logoPath;
+
+  const { data: site, error: insErr } = await supabase
+    .from("host_websites")
+    .insert({
+      business_id: businessId,
+      host_id: host.hostId,
+      subdomain,
+      status: "draft",
+      brand,
+      // Placeholder theme + empty content; finalize sets the real theme/pages.
+      theme: { preset: "warm" },
+      settings: {},
+      content_profile: {},
+    })
+    .select("id")
+    .single();
+  if (insErr || !site) return { ok: false, error: "create_failed" };
+
+  return { ok: true, id: site.id };
+}
+
 export async function createWebsiteWithWizardAction(
   input: CreateWebsiteWizardInput,
 ): Promise<CreateResult> {
@@ -729,6 +807,7 @@ export async function createWebsiteWithWizardAction(
     hiddenPolicyTypes,
     pages,
     contentProfile,
+    draftWebsiteId,
   } = parsed.data;
 
   const subErr = validateSubdomain(subdomain);
@@ -751,19 +830,31 @@ export async function createWebsiteWithWizardAction(
     .maybeSingle();
   if (!business) return { ok: false, error: "business_not_found" };
 
-  const { data: existing } = await supabase
-    .from("host_websites")
-    .select("id")
-    .eq("business_id", businessId)
-    .maybeSingle();
-  if (existing) return { ok: false, error: "already_exists" };
+  // Phase B — target row resolution. A draft created after Basics (draftWebsiteId,
+  // owned by this host for this business) is UPDATED and finalized; otherwise the
+  // legacy one-shot INSERT path runs (preserved fallback). The one-per-business
+  // guard applies only to the insert path.
+  const draft = draftWebsiteId
+    ? (
+        await supabase
+          .from("host_websites")
+          .select("id, status")
+          .eq("id", draftWebsiteId)
+          .eq("business_id", businessId)
+          .eq("host_id", host.hostId)
+          .maybeSingle()
+      ).data
+    : null;
 
+  // Subdomain must be free — but the draft's own row (same business) doesn't
+  // count against itself.
   const { data: taken } = await supabase
     .from("host_websites")
-    .select("id")
+    .select("id, business_id")
     .eq("subdomain", subdomain)
     .maybeSingle();
-  if (taken) return { ok: false, error: "subdomain_taken" };
+  if (taken && taken.business_id !== businessId)
+    return { ok: false, error: "subdomain_taken" };
 
   // Resolve the chosen theme (catalogue uuid → bundle; fall back to default) and
   // the accent (palette variation or custom) over the theme's base palette.
@@ -788,38 +879,63 @@ export async function createWebsiteWithWizardAction(
     };
   }
 
-  const { data: site, error: insErr } = await supabase
-    .from("host_websites")
-    .insert({
-      business_id: businessId,
-      host_id: host.hostId,
-      subdomain,
-      status: "draft",
-      brand,
-      theme: {
-        preset: slug,
-        ...(base ? { base } : {}),
-        colors: { accent },
-        palette: paletteSwatches,
-      },
-      // Per-site payment/policy visibility from the Payments & policies step.
-      // Checkout reads settings.payments; the "things to know" policy block
-      // hides the types in settings.policies (opt-out list; see
-      // WEBSITE_SETUP_WIZARD_V2_PLAN §5 G-POLVIS).
-      settings: {
-        payments: paymentsVisibility ?? {},
-        policies: hiddenPolicyTypes ?? [],
-      },
-      // The host's content profile (canonical slots) from the "Your story" step;
-      // stored so a later theme switch can re-hydrate the same copy.
-      content_profile: contentProfile ?? {},
-    })
-    .select("id")
-    .single();
-  if (insErr || !site) return { ok: false, error: "create_failed" };
+  const row = {
+    business_id: businessId,
+    host_id: host.hostId,
+    subdomain,
+    status: "draft" as const,
+    brand,
+    theme: {
+      preset: slug,
+      ...(base ? { base } : {}),
+      colors: { accent },
+      palette: paletteSwatches,
+    },
+    // Per-site payment/policy visibility from the Payments & policies step.
+    // Checkout reads settings.payments; the "things to know" policy block
+    // hides the types in settings.policies (opt-out list; see
+    // WEBSITE_SETUP_WIZARD_V2_PLAN §5 G-POLVIS).
+    settings: {
+      payments: paymentsVisibility ?? {},
+      policies: hiddenPolicyTypes ?? [],
+    },
+    // The host's content profile (canonical slots) from the "Your story" step;
+    // stored so a later theme switch can re-hydrate the same copy.
+    content_profile: contentProfile ?? {},
+  };
+
+  let siteId: string;
+  if (draft) {
+    const { error: updErr } = await supabase
+      .from("host_websites")
+      .update(row)
+      .eq("id", draft.id);
+    if (updErr) return { ok: false, error: "create_failed" };
+    siteId = draft.id;
+  } else {
+    const { data: existing } = await supabase
+      .from("host_websites")
+      .select("id")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    if (existing) return { ok: false, error: "already_exists" };
+    const { data: site, error: insErr } = await supabase
+      .from("host_websites")
+      .insert(row)
+      .select("id")
+      .single();
+    if (insErr || !site) return { ok: false, error: "create_failed" };
+    siteId = site.id;
+  }
+
+  // Idempotent seed: clear any prior forms/pages for this site first, so a
+  // finalize RE-RUN (e.g. the host retries after a transient error on a draft
+  // that was partially finalized) can't duplicate them. A fresh insert has none.
+  await supabase.from("website_forms").delete().eq("website_id", siteId);
+  await supabase.from("website_pages").delete().eq("website_id", siteId);
 
   await seedWebsiteContent(supabase, {
-    siteId: site.id,
+    siteId,
     siteName: siteName.trim(),
     businessId,
     theme: bundle,
@@ -836,14 +952,14 @@ export async function createWebsiteWithWizardAction(
   // gate isn't met yet (a brand-new host has no rooms/payment/policy) — that's
   // the intended "wall at the exciting moment": the site is created as a draft
   // and the wizard's final step tells the host exactly what's left to go live.
-  const pub = await publishWebsiteAction(site.id);
+  const pub = await publishWebsiteAction(siteId);
   const published = pub.ok;
   const missing = published
     ? []
-    : (await checkWebsiteReadiness(supabase, host.hostId, site.id)).missing;
+    : (await checkWebsiteReadiness(supabase, host.hostId, siteId)).missing;
 
   revalidatePath("/dashboard/website");
-  return { ok: true, id: site.id, published, missing };
+  return { ok: true, id: siteId, published, missing };
 }
 
 // ============================================================
