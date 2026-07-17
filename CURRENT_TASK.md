@@ -37,6 +37,23 @@ Continue enabled 123×44 → no dead-end. Its grid was already `sm:grid-cols-2` 
 only reads the visible viewport. **Scroll into view BEFORE hit-testing or you cry wolf.** (The T&C
 checkbox is 16×16 but wrapped in a `<label>` → the label text is the real target. Not a defect.)
 
+### 🔴 FOUNDER'S CATCH: *"the phone's control buttons live down there — just make sure"*
+**Right to check; the check found a real bug — but NOT the one he expected.**
+- ✅ **The Continue button is NOT under the phone's system controls.** The app never sets
+  `viewport-fit=cover` (Next's default meta — confirmed live), so iOS/Android inset the viewport and
+  already reserve the home-indicator strip; `env(safe-area-inset-*)` = **0**. **Not broken today**
+  (the dashboard's `MobileBottomNav` safe-area code is a no-op for the same reason). Added the guard
+  anyway → **pixel-identical now, correct if anyone ever sets `viewport-fit=cover`.**
+- 🔴 **What it DID find: the fixed bar permanently buried the footer's legal links.** The wrapper had
+  `padding-bottom: 0` against a **106–121px fixed** bar → at TRUE max scroll **Terms · Privacy ·
+  POPIA · Cookies** hit-tested to the bar: **untappable, no scroll left to escape.**
+- ✅ **Fixed with the MEASURED height, not a constant** (the bar is **68 / 106@390 / 121@360** as the
+  hint wraps — any constant is wrong somewhere): `ResizeObserver` → `--wielo-book-bar-h`, wrapper
+  `pb-[var(--wielo-book-bar-h)] lg:pb-0`. **Witnessed 5 → 0 covered**; padding tracks the bar exactly
+  (no gap); desktop untouched.
+- 🔑 **A `fixed` bar occupies NO layout space — if the page doesn't reserve its height, whatever the
+  document ends on is permanently unreachable, and ONLY a hit test AT TRUE MAX SCROLL reveals it.**
+
 ### ▶ NEXT (in order)
 1. 🔴 **iOS zoom-on-focus — FOUND, NOT FIXED, NOT WITNESSED.** Every checkout input is
    `font-size: 14px`; viewport meta sets no `maximum-scale` → **iOS Safari auto-zooms any field under

@@ -479,6 +479,25 @@ export function BookingForm({
   // the DIRECTORY (Wielo) checkout, so it reaches the Wielo pixel.
   const apiFiredRef = useRef(false);
 
+  // The mobile action bar is `fixed`, so it occupies no layout space and covers
+  // whatever the page ends on. Its height is content-driven (68px, or 121px at
+  // 360px once the step hint wraps), so publish the measured height and let the
+  // page reserve exactly that much — a fixed guess is wrong at some width.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const ro = new ResizeObserver(() =>
+      root.style.setProperty("--wielo-book-bar-h", `${el.offsetHeight}px`),
+    );
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--wielo-book-bar-h");
+    };
+  }, []);
+
   // Explicit acceptance of the cancellation policy + platform terms/privacy.
   // Required before the booking can be confirmed (recorded on the booking).
   const [ack, setAck] = useState(false);
@@ -3185,8 +3204,14 @@ export function BookingForm({
           </div>
         </aside>
 
-        {/* ── Mobile sticky action bar ────────────────────────────── */}
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-line bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+        {/* ── Mobile sticky action bar ──────────────────────────────
+            pb keeps the CTA clear of the iOS home indicator / Android gesture
+            bar once anything sets viewport-fit=cover (matches MobileBottomNav).
+            */}
+        <div
+          ref={barRef}
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-line bg-white/95 px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden"
+        >
           {step === 0 && step0Reason ? (
             <div className="mx-auto mb-2 flex max-w-3xl items-start gap-1.5 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] leading-snug text-amber-800">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />

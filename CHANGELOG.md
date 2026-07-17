@@ -51,6 +51,31 @@ step 2 again at 390×844 — **the path ~95% of real guests take, and a total bl
 - Not driven further: filling the password / clicking Reserve would create an account and write a real
   booking — founder's smoke test, and out of scope for the agent.
 
+### 🔴 FOUNDER'S CATCH: "the phone's control buttons live down there — just make sure"
+**He was right to check, and the check found a real bug — though not the one he expected.**
+- **The Continue button is NOT under the phone's system controls.** The app never sets
+  `viewport-fit=cover` (Next's default viewport meta, confirmed live: `width=device-width,
+  initial-scale=1`), so iOS/Android inset the layout viewport and already reserve the home-indicator /
+  gesture strip. `env(safe-area-inset-*)` therefore resolves to **0** and the bar sits above it.
+  **Not broken today** — and the dashboard's `MobileBottomNav` safe-area code is a no-op for the same
+  reason. Added the guard anyway (`pb-[max(12px,env(safe-area-inset-bottom))]`, matching
+  MobileBottomNav): **pixel-identical today**, correct the day anyone sets `viewport-fit=cover`.
+- 🔴 **What the check DID find: the fixed bar permanently buried the footer's legal links.**
+  `page.tsx`'s wrapper had **`padding-bottom: 0`** against a **106–121px `fixed`** bar, so at TRUE
+  maximum scroll (`scrollY === maxScroll`) **Terms · Privacy · POPIA · Cookies** + the status link sat
+  under it, hit-testing to the bar — **untappable, with no further scroll to escape.** On a checkout
+  page, POPIA/Terms being unreachable is a compliance surface, not a cosmetic nit.
+- **Fixed without a magic number:** the bar's height is content-driven (**68px → 106px @390 → 121px
+  @360** as the step hint wraps), so a constant is wrong at *some* width. `BookingForm` now publishes
+  the **measured** height via a `ResizeObserver` → `--wielo-book-bar-h`, and the page reserves exactly
+  that (`pb-[var(--wielo-book-bar-h)] lg:pb-0`; unset resolves to 0). Observer disconnects on unmount.
+- **Witnessed:** covered controls **5 → 0** at true max scroll. Padding tracks the bar **exactly**
+  (121px @360, 106px @390 — `tracksBarExactly: true`) so there is no gap under the dark footer.
+  Desktop untouched (bar `display:none` → var `0px` → wrapper padding `0px`).
+- 🔑 **A `fixed` bar occupies NO layout space. If the page doesn't reserve its height, whatever the
+  document ends on is permanently unreachable — and only a hit test AT TRUE MAX SCROLL reveals it.
+  Reserve the MEASURED height, not a guessed constant: this bar is 68/106/121px depending on width.**
+
 ### ⚠️ FOUND, NOT FIXED — reported honestly
 - 🔴 **iOS zoom-on-focus: every checkout input is `font-size: 14px`** and the viewport meta sets no
   `maximum-scale`. iOS Safari auto-zooms any field under 16px, so tapping Email/Name/Phone throws the

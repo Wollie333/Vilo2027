@@ -401,7 +401,11 @@ export default async function BookingPage({
     : null;
 
   return (
-    <div className="bg-white text-brand-ink">
+    // The mobile action bar is fixed, so the document must end above it or the
+    // footer's last rows (Terms/Privacy/POPIA) sit under it, unreachable at full
+    // scroll. BookingForm publishes the bar's measured height; unset it resolves
+    // to 0. The bar is lg:hidden, hence lg:pb-0.
+    <div className="bg-white pb-[var(--wielo-book-bar-h)] text-brand-ink lg:pb-0">
       <SiteHeader />
 
       {/* Meta InitiateCheckout — the DIRECTORY (Wielo) side of the booking, so
