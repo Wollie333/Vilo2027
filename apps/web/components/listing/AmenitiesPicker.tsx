@@ -30,6 +30,10 @@ export function AmenitiesPicker({
 }) {
   const [items, setItems] = useState<Item[]>(initial);
   const [pending, start] = useTransition();
+  // Amenity ids with an in-flight per-room assignment — used to disable that
+  // row's select so a fast double-change can't fire overlapping writes that
+  // land out of order (last-write-wins would then disagree with the UI).
+  const [assigning, setAssigning] = useState<Set<string>>(new Set());
   const selected = useMemo(() => new Set(items.map((i) => i.key)), [items]);
 
   function toggle(key: string) {
@@ -66,15 +70,31 @@ export function AmenitiesPicker({
       toast.error("Save amenities first, then assign per-room.");
       return;
     }
-    assignAmenityToRoomAction(listingId, amenityId, roomId).then((result) => {
-      if (result.ok) {
-        setItems((prev) =>
-          prev.map((p) => (p.id === amenityId ? { ...p, roomId } : p)),
-        );
-      } else {
-        toast.error(result.error);
-      }
-    });
+    if (assigning.has(amenityId)) return; // one write per amenity at a time
+    const prevRoomId = items.find((p) => p.id === amenityId)?.roomId ?? null;
+    // Optimistic — reflect the choice immediately, revert on failure.
+    setItems((prev) =>
+      prev.map((p) => (p.id === amenityId ? { ...p, roomId } : p)),
+    );
+    setAssigning((s) => new Set(s).add(amenityId));
+    assignAmenityToRoomAction(listingId, amenityId, roomId)
+      .then((result) => {
+        if (!result.ok) {
+          toast.error(result.error);
+          setItems((prev) =>
+            prev.map((p) =>
+              p.id === amenityId ? { ...p, roomId: prevRoomId } : p,
+            ),
+          );
+        }
+      })
+      .finally(() => {
+        setAssigning((s) => {
+          const next = new Set(s);
+          next.delete(amenityId);
+          return next;
+        });
+      });
   }
 
   if (groups.length === 0) {
@@ -130,7 +150,8 @@ export function AmenitiesPicker({
                     <select
                       value={item.roomId ?? ""}
                       onChange={(e) => assign(item.id, e.target.value || null)}
-                      className="shrink-0 rounded border border-brand-line bg-white px-1.5 py-1 text-[10.5px] text-brand-mute"
+                      disabled={assigning.has(item.id)}
+                      className="shrink-0 rounded border border-brand-line bg-white px-1.5 py-1 text-[10.5px] text-brand-mute disabled:opacity-50"
                       aria-label="Assign amenity to room"
                     >
                       <option value="">All</option>

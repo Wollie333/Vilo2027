@@ -273,7 +273,8 @@ export function PaymentsManager({
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
             >
               <Plus className="h-4 w-4" /> Record a payment
             </button>
@@ -298,7 +299,8 @@ export function PaymentsManager({
             <button
               type="button"
               onClick={() => setCreditOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-accent"
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-accent disabled:opacity-50"
             >
               <FileMinus className="h-4 w-4 text-brand-mute" /> Issue credit
               note

@@ -37,15 +37,16 @@ const PLAN_GATE_MSG = "Upgrade to Pro to use add-ons.";
 const ADDON_BUCKET = "addon-images";
 
 async function assertAddonsEnabled(hostId: string): Promise<boolean> {
+  if (!hostId) return false;
+  // Pre-MVP: every feature is open (AGENT_RULES.md §3.4) — short-circuit BEFORE
+  // the RPC so we skip a wasted round-trip, matching the seasonal-pricing gate.
+  if (PRE_MVP_FEATURES_OPEN) return true;
   const supabase = createServerClient();
   const { data } = await supabase.rpc("check_feature_permission", {
     p_host_id: hostId,
     p_feature_key: "addons",
   });
-  // Pre-MVP: every feature is open (AGENT_RULES.md §3.4) — see PRE_MVP_FEATURES_OPEN.
-  if (PRE_MVP_FEATURES_OPEN) return true;
-  const result = data as { is_enabled: boolean } | null;
-  return result?.is_enabled ?? false;
+  return (data as { is_enabled: boolean } | null)?.is_enabled ?? false;
 }
 
 async function assertAddonOwnership(

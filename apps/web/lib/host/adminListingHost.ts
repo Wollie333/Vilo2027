@@ -48,12 +48,17 @@ export async function resolveListingHostContext(
     return { ok: true, db: rls, hostId, userId: user.id, asAdmin: false };
   }
 
-  const { data: staff } = await rls
-    .from("platform_staff")
-    .select("is_active")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!staff?.is_active) return { ok: false, error: "Not your listing." };
+  // Grant the service-role client ONLY to staff who hold `listings.edit`
+  // (AGENT_RULES §6.4: RBAC via the DB, not an `is_active`-only check).
+  // `has_admin_permission` runs as the caller on the RLS client, super_admin
+  // inherits every key, and it fails closed on any RPC error.
+  const { data: canEdit, error: permErr } = await rls.rpc(
+    "has_admin_permission",
+    { p_key: "listings.edit" },
+  );
+  if (permErr || canEdit !== true) {
+    return { ok: false, error: "Not your listing." };
+  }
 
   try {
     const h = headers();

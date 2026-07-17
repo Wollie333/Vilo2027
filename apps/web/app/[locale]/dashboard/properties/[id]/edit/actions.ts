@@ -76,17 +76,16 @@ async function assertOwnership(
     return { ok: true, userId: user.id, db: rls, asAdmin: false };
   }
 
-  // Not the owner — listings are open to any active platform-staff member
-  // (per the admin permission model: financials + bookings are permission-
-  // gated, but the rest of a user's record is open to admins). Staff access to
-  // /admin is already enforced by the admin layout; this is the action-layer
-  // equivalent for direct calls.
-  const { data: staff } = await rls
-    .from("platform_staff")
-    .select("is_active")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!staff?.is_active) {
+  // Not the owner — grant the service-role client ONLY to staff who actually
+  // hold the `listings.edit` capability (AGENT_RULES §6.4: RBAC via the DB, not
+  // an `is_active`-only check). `has_admin_permission` runs as the caller
+  // (auth.uid()) on the RLS client, super_admin inherits every key, and it
+  // fails closed on any RPC error.
+  const { data: canEdit, error: permErr } = await rls.rpc(
+    "has_admin_permission",
+    { p_key: "listings.edit" },
+  );
+  if (permErr || canEdit !== true) {
     return { ok: false, error: "Not your listing." };
   }
   await logAdminListingEdit(admin, user.id, ownerId, listingId);
@@ -419,7 +418,13 @@ export async function registerListingPhotoAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  if (!storagePath.startsWith(`${listingId}/`)) {
+  // Enforce the EXACT shape createListingPhotoUploadUrl mints —
+  // `<listingId>/<uuid>.<ext>` — not just a `<listingId>/` prefix. A bare
+  // prefix would accept traversal ("<id>/../<other>/x") or an arbitrary
+  // sub-path; pin it to a single lowercased UUID filename with an alnum ext.
+  const escapedId = listingId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const photoPathRe = new RegExp(`^${escapedId}/[0-9a-f-]{36}\\.[a-z0-9]+$`);
+  if (!photoPathRe.test(storagePath)) {
     return { ok: false, error: "Invalid photo path." };
   }
 
@@ -625,11 +630,19 @@ function extOf(path: string): string {
  */
 export async function duplicateListingAction(
   listingId: string,
-): Promise<ActionResult<{ id: string; name: string }>> {
+): Promise<ActionResult<{ id: string; name: string; warning?: string }>> {
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
   const supabase = own.db;
+
+  // Child clones below run as separate statements (supabase-js has no
+  // multi-statement transaction), so a partial failure can't be rolled back
+  // atomically. Rather than silently return ok:true on a half-cloned listing
+  // (the host is told "Duplicated" while quietly losing rooms/photos/pricing),
+  // collect every child-clone failure and surface it as a warning on the
+  // otherwise-successful duplicate so the host knows exactly what to re-add.
+  const issues: string[] = [];
 
   const { data: src } = await supabase
     .from("properties")
@@ -703,7 +716,7 @@ export async function duplicateListingAction(
     ]) {
       delete roomCarry[k];
     }
-    const { data: newRoom } = await supabase
+    const { data: newRoom, error: roomErr } = await supabase
       .from("property_rooms")
       .insert({ ...roomCarry, property_id: newId } as never)
       .select("id")
@@ -711,6 +724,10 @@ export async function duplicateListingAction(
     if (newRoom) {
       roomMap.set(oldRoomId, newRoom.id);
       if (featuredPhotoId) roomFeatured.set(newRoom.id, featuredPhotoId);
+    } else if (roomErr) {
+      // A room that fails to clone also drops its beds, photos and per-room
+      // access (all map by the new room id) — worth flagging to the host.
+      issues.push(`room “${(roomCarry.name as string) ?? "unnamed"}”`);
     }
   }
 
@@ -726,35 +743,49 @@ export async function duplicateListingAction(
     .select("id, storage_path, url, sort_order, room_id, caption")
     .eq("property_id", listingId)
     .order("sort_order", { ascending: true });
+  let photoCopyFailures = 0;
   for (const p of photos ?? []) {
-    // Give the copy its own Storage object so deleting one listing's photo
+    // Give the copy its OWN Storage object so deleting one listing's photo
     // never touches the other's file. If the source object can't be copied
     // (e.g. a seed/imported row whose `url` points at an external host and has
-    // no real object in the bucket), fall back to a reference copy of the row
-    // so the duplicate never silently loses a photo.
+    // no real object in the bucket), SKIP the row rather than inserting one
+    // that reuses the source's storage_path — a shared path means a later
+    // deleteListingPhotoAction on the ORIGINAL would remove()' the object out
+    // from under the duplicate, breaking it. A skipped photo is surfaced in the
+    // warning; a corrupted shared object is not recoverable.
     const newPath = `${newId}/${crypto.randomUUID()}.${extOf(p.storage_path)}`;
     const { error: copyErr } = await admin.storage
       .from("listing-photos")
       .copy(p.storage_path, newPath);
-    const insertRow = copyErr
-      ? { storage_path: p.storage_path, url: p.url }
-      : {
-          storage_path: newPath,
-          url: admin.storage.from("listing-photos").getPublicUrl(newPath).data
-            .publicUrl,
-        };
-    const { data: newPhoto } = await supabase
+    if (copyErr) {
+      photoCopyFailures += 1;
+      continue;
+    }
+    const { data: newPhoto, error: photoErr } = await supabase
       .from("property_photos")
       .insert({
         property_id: newId,
-        ...insertRow,
+        storage_path: newPath,
+        url: admin.storage.from("listing-photos").getPublicUrl(newPath).data
+          .publicUrl,
         sort_order: p.sort_order,
         room_id: mapRoom(p.room_id),
         caption: p.caption,
       })
       .select("id")
       .single();
-    if (newPhoto) photoMap.set(p.id, newPhoto.id);
+    if (newPhoto) {
+      photoMap.set(p.id, newPhoto.id);
+    } else if (photoErr) {
+      // Row insert failed after the object copied — clean up the orphan object.
+      await admin.storage.from("listing-photos").remove([newPath]);
+      photoCopyFailures += 1;
+    }
+  }
+  if (photoCopyFailures > 0) {
+    issues.push(
+      `${photoCopyFailures} photo${photoCopyFailures === 1 ? "" : "s"}`,
+    );
   }
 
   // Re-point each cloned room at its cloned cover photo.
@@ -774,7 +805,7 @@ export async function duplicateListingAction(
     .select("amenity_key, amenity_label, catalog_id, room_id")
     .eq("property_id", listingId);
   if (amenities?.length) {
-    await supabase.from("property_amenities").insert(
+    const { error } = await supabase.from("property_amenities").insert(
       amenities.map((a) => ({
         property_id: newId,
         amenity_key: a.amenity_key,
@@ -783,6 +814,7 @@ export async function duplicateListingAction(
         room_id: mapRoom(a.room_id),
       })),
     );
+    if (error) issues.push("amenities");
   }
 
   // ── Policies (shared policy_id, re-attached to the copy) ──
@@ -791,7 +823,7 @@ export async function duplicateListingAction(
     .select("policy_id, policy_type, room_id")
     .eq("property_id", listingId);
   if (policies?.length) {
-    await supabase.from("property_policies").insert(
+    const { error } = await supabase.from("property_policies").insert(
       policies.map((p) => ({
         property_id: newId,
         policy_id: p.policy_id,
@@ -799,6 +831,7 @@ export async function duplicateListingAction(
         room_id: mapRoom(p.room_id),
       })),
     );
+    if (error) issues.push("policies");
   }
 
   // ── Add-ons (shared addon_id, price overrides preserved) ──
@@ -807,7 +840,7 @@ export async function duplicateListingAction(
     .select("addon_id, room_id, unit_price_override")
     .eq("property_id", listingId);
   if (addons?.length) {
-    await supabase.from("property_addons").insert(
+    const { error } = await supabase.from("property_addons").insert(
       addons.map((a) => ({
         property_id: newId,
         addon_id: a.addon_id,
@@ -815,6 +848,7 @@ export async function duplicateListingAction(
         unit_price_override: a.unit_price_override,
       })),
     );
+    if (error) issues.push("add-ons");
   }
 
   // ── Seasonal pricing ──
@@ -825,7 +859,7 @@ export async function duplicateListingAction(
     )
     .eq("property_id", listingId);
   if (seasons?.length) {
-    await supabase.from("property_seasonal_pricing").insert(
+    const { error } = await supabase.from("property_seasonal_pricing").insert(
       seasons.map((s) => ({
         property_id: newId,
         label: s.label,
@@ -841,6 +875,7 @@ export async function duplicateListingAction(
         room_id: mapRoom(s.room_id),
       })),
     );
+    if (error) issues.push("seasonal pricing");
   }
 
   // ── Room beds ──
@@ -872,7 +907,10 @@ export async function duplicateListingAction(
       sleeps: number;
       sort_order: number;
     }>;
-    if (bedRows.length) await supabase.from("room_beds").insert(bedRows);
+    if (bedRows.length) {
+      const { error } = await supabase.from("room_beds").insert(bedRows);
+      if (error) issues.push("beds");
+    }
   }
 
   // ── Listing-wide guest access ──
@@ -884,9 +922,10 @@ export async function duplicateListingAction(
     .eq("property_id", listingId)
     .maybeSingle();
   if (access) {
-    await supabase
+    const { error } = await supabase
       .from("property_access")
       .insert({ property_id: newId, ...access });
+    if (error) issues.push("guest access");
   }
 
   // ── Per-room guest access ──
@@ -899,15 +938,18 @@ export async function duplicateListingAction(
       "room_id",
       [...roomMap.keys()].length ? [...roomMap.keys()] : ["_none"],
     );
+  let roomAccessFailures = 0;
   for (const ra of roomAccess ?? []) {
     const nr = roomMap.get(ra.room_id);
     if (!nr) continue;
     const raCarry: Record<string, unknown> = { ...ra };
     delete raCarry.room_id;
-    await supabase
+    const { error } = await supabase
       .from("property_room_access")
       .insert({ room_id: nr, ...raCarry } as never);
+    if (error) roomAccessFailures += 1;
   }
+  if (roomAccessFailures > 0) issues.push("room access");
 
   // ── Points of interest + local picks ──
   const { data: pois } = await supabase
@@ -915,9 +957,10 @@ export async function duplicateListingAction(
     .select("category, name, travel_time, sort_order")
     .eq("property_id", listingId);
   if (pois?.length) {
-    await supabase
+    const { error } = await supabase
       .from("property_points_of_interest")
       .insert(pois.map((p) => ({ property_id: newId, ...p })));
+    if (error) issues.push("points of interest");
   }
 
   const { data: picks } = await supabase
@@ -925,14 +968,18 @@ export async function duplicateListingAction(
     .select("category, title, blurb, distance_label, image_path, sort_order")
     .eq("property_id", listingId);
   if (picks?.length) {
-    await supabase
+    const { error } = await supabase
       .from("property_local_picks")
       .insert(picks.map((p) => ({ property_id: newId, ...p })));
+    if (error) issues.push("local picks");
   }
 
   revalidatePath("/dashboard/properties");
   revalidatePath("/dashboard");
-  return { ok: true, data: { id: newId, name: created.name } };
+  const warning = issues.length
+    ? `Some items couldn't be copied and need re-adding: ${issues.join(", ")}.`
+    : undefined;
+  return { ok: true, data: { id: newId, name: created.name, warning } };
 }
 
 export async function togglePublishAction(

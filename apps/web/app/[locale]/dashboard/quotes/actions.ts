@@ -7,7 +7,7 @@ import { getDefaultBusinessId } from "@/lib/business/resolveBusiness";
 import { spendQuoteCredit } from "@/lib/credits/wallet";
 import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { formatMoney } from "@/lib/format";
-import { requireHost as getHostId } from "@/lib/host/current";
+import { assertFullHost, requireHost as getHostId } from "@/lib/host/current";
 import { isSelfRecipient, SELF_RECIPIENT_ERROR } from "@/lib/host/self";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
@@ -1225,6 +1225,14 @@ export async function convertQuoteAction(
 ): Promise<ActionResult<{ bookingId: string }>> {
   const own = await assertOwnership(quoteId);
   if (!own.ok) return own;
+
+  // Converting a quote MINTS a confirmed booking (+ invoice + calendar block),
+  // so it is a full-host action — not part of the quotes-only shell. A
+  // quotes-only / platform-blocked account owning a sent quote must not be able
+  // to script this. Mirrors bookings/new/actions.ts. assertOwnership already
+  // proved this caller owns the quote, so their host = the quote's host.
+  const full = await assertFullHost();
+  if (!full.ok) return { ok: false, error: full.error };
 
   const supabase = createServerClient();
 

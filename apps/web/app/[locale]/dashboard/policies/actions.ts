@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { assertFullHost as getHost } from "@/lib/host/current";
 import { resolveListingHostContext } from "@/lib/host/adminListingHost";
+import { PRE_MVP_FEATURES_OPEN } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -23,15 +24,20 @@ export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
 
-// Pre-MVP policy (AGENT_RULES.md §3.4): every feature is open to the free
-// plan while there's no subscription management UI. plan_features seeds
-// 'policies' = true for all plans; this short-circuits so the founder can
-// smoke-test. To re-enable per-plan gating later, restore:
-//   const { data } = await supabase.rpc("check_feature_permission", {
-//     p_host_id: hostId, p_feature_key: "policies" });
-//   return (data as { is_enabled: boolean } | null)?.is_enabled ?? false;
+// Entitlement gate — aligned with the sibling seasonal-pricing / add-ons gates
+// so all three listing-tab features fail closed on the same RPC (Principle #5,
+// one model). Pre-MVP (AGENT_RULES.md §3.4) the PRE_MVP_FEATURES_OPEN switch
+// still short-circuits open; when it's off (enforcement ON) the 'policies'
+// entitlement resolves via check_feature_permission (Beta grants it).
 async function assertPoliciesEnabled(hostId: string): Promise<boolean> {
-  return !!hostId;
+  if (!hostId) return false;
+  if (PRE_MVP_FEATURES_OPEN) return true;
+  const supabase = createServerClient();
+  const { data } = await supabase.rpc("check_feature_permission", {
+    p_host_id: hostId,
+    p_feature_key: "policies",
+  });
+  return (data as { is_enabled: boolean } | null)?.is_enabled ?? false;
 }
 
 type PolicyRow = {

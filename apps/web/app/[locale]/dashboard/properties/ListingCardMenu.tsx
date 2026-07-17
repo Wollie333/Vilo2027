@@ -54,6 +54,10 @@ export function ListingCardMenu({
       const res = await duplicateListingAction(listingId);
       if (res.ok) {
         toast.success(`Duplicated as draft — “${res.data?.name}”`);
+        if (res.data?.warning) {
+          // Partial clone — the listing exists but some children didn't copy.
+          toast.warning(res.data.warning, { duration: 8000 });
+        }
         router.refresh();
       } else {
         toast.error(res.error);
