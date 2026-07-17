@@ -66,19 +66,3 @@ export function aggregateRating(
     sources: orderedSources,
   };
 }
-
-/**
- * Formats the aggregated rating for display as a tooltip.
- * e.g. "4.72 from 42 reviews (32 Wielo, 8 Google, 2 Facebook)"
- */
-export function formatAggregatedRatingTooltip(
-  rating: AggregatedRating,
-): string {
-  if (rating.totalCount === 0) return "No reviews yet";
-
-  const breakdown = rating.sources
-    .map((s) => `${s.count} ${s.label}`)
-    .join(", ");
-
-  return `${rating.overall.toFixed(2)} from ${rating.totalCount} review${rating.totalCount === 1 ? "" : "s"} (${breakdown})`;
-}

@@ -36,10 +36,6 @@ export function BrandProvider({
   );
 }
 
-export function useBranding(): Branding {
-  return useContext(BrandContext);
-}
-
 export function useBrandName(): string {
   return useContext(BrandContext).brandName;
 }

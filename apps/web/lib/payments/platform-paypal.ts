@@ -38,8 +38,3 @@ export async function getPlatformPayPal(): Promise<PayPalCreds | null> {
     return null;
   }
 }
-
-/** Is Wielo's platform PayPal rail enabled + configured? (for gating the UI). */
-export async function isPlatformPayPalEnabled(): Promise<boolean> {
-  return (await getPlatformPayPal()) !== null;
-}

@@ -34,13 +34,6 @@ export type BusinessRow = {
   is_archived: boolean;
 };
 
-/** Display name for a business — trading name first, then legal, then a stub. */
-export function businessDisplayName(
-  b: Pick<BusinessRow, "trading_name" | "legal_name">,
-): string {
-  return b.trading_name?.trim() || b.legal_name?.trim() || "Untitled business";
-}
-
 /** The host's default (non-archived) business id, or null if none exists yet. */
 export async function getDefaultBusinessId(
   supabase: Supabase,
@@ -69,17 +62,4 @@ export async function assertBusinessOwnership(
     .eq("host_id", hostId)
     .maybeSingle();
   return !!data;
-}
-
-/** The business a listing belongs to (id only). */
-export async function getListingBusinessId(
-  supabase: Supabase,
-  listingId: string,
-): Promise<string | null> {
-  const { data } = await supabase
-    .from("properties")
-    .select("business_id")
-    .eq("id", listingId)
-    .maybeSingle();
-  return data?.business_id ?? null;
 }

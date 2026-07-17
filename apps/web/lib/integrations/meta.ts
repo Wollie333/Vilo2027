@@ -62,12 +62,6 @@ export const getMetaIntegration = cache(async (): Promise<MetaIntegration> => {
   }
 });
 
-// The only value the client may receive: the pixel id, and only when enabled.
-export async function getActiveMetaPixelId(): Promise<string | null> {
-  const m = await getMetaIntegration();
-  return m.pixelEnabled && m.pixelId ? m.pixelId : null;
-}
-
 /**
  * The client-safe set of Wielo platform tracking ids to inject site-wide (via
  * PlatformMarketing in the root layout). Meta pixel obeys its enabled flag; the
