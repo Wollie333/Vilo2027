@@ -1591,8 +1591,9 @@ export function BookingForm({
           )}
 
           {/* Children / infants / pets — only the categories the host allows;
-              priced per the host's room rates. */}
-          <div className="mt-3 grid grid-cols-3 gap-2">
+              priced per the host's room rates. A pill needs ~136px, so three
+              across cannot fit a 360-390px phone: stack until sm. */}
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
             {(
               [
                 // [label, value, setter, allowed, atMax] — only children count
@@ -1628,7 +1629,7 @@ export function BookingForm({
                       type="button"
                       onClick={() => setter(Math.max(0, value - 1))}
                       disabled={isPending || value <= 0}
-                      className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute disabled:opacity-40"
+                      className="flex h-11 w-11 items-center justify-center rounded border border-brand-line text-base text-brand-mute disabled:opacity-40"
                       aria-label={`Fewer ${label.toLowerCase()}`}
                     >
                       −
@@ -1640,7 +1641,7 @@ export function BookingForm({
                       type="button"
                       onClick={() => !atMax && setter(value + 1)}
                       disabled={isPending || atMax}
-                      className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute disabled:opacity-40"
+                      className="flex h-11 w-11 items-center justify-center rounded border border-brand-line text-base text-brand-mute disabled:opacity-40"
                       aria-label={`More ${label.toLowerCase()}`}
                     >
                       +
@@ -3212,7 +3213,7 @@ export function BookingForm({
                 type="button"
                 onClick={pay}
                 disabled={isPending || !canPay}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -3226,7 +3227,7 @@ export function BookingForm({
                 type="button"
                 onClick={goNext}
                 disabled={step === 0 && step0Blocked}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Continue <ArrowRight className="h-4 w-4" />
               </button>

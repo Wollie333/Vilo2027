@@ -5,6 +5,54 @@
 
 ---
 
+## 2026-07-17 (pt13) — Mobile booking audit: a guest could not add an infant on a phone.
+
+**Founder's #2 priority (the mobile booking audit of `/property/<slug>/book`) — started and part done.**
+Walked all 3 steps at 390×844 on the real seeded property (`table-mountain-guest-house`, host A).
+
+### 🔴 THE BUG: the guest count steppers overlapped each other on every phone
+`BookingForm.tsx:1595` was `grid grid-cols-3` — **three columns unconditionally, at every width.**
+Each Children/Infants/Pets pill needs ~136px; a 390px phone gives each cell **96px**. Overflow was
+`visible`, so the steppers did not clip — they spilled **underneath the neighbouring pill**.
+- **Proven with the browser's own hit-testing, not by eye:** `document.elementFromPoint()` at the
+  centre of **"More infants" returned the Pets pill's DIV**, not the button. A real finger tap could
+  never reach it. **A guest could not add an infant to a booking on a 390px phone** — and the tap
+  silently did nothing, so nothing looked broken.
+- **Fixed:** `grid-cols-1 … sm:grid-cols-3`. **This is the file's own convention** — every other grid
+  in it (lines 2050, 2378, 2456) already stacks until `sm`; 1595 was the lone outlier.
+- **Witnessed:** all 6 steppers hit-test to `ITSELF`, and clicking "More infants" moved the count
+  **0 → 1** in the live render. Re-verified at **360 / 390 / 640 / 1536** — no clipping, all reachable,
+  no horizontal scroll. **The tightest 3-col width (640) was checked so the fix was not merely relocated.**
+- 🔑 **Overflow that is `visible` does not clip — it hides the control under its neighbour. Nothing
+  looks wrong; the tap just dies. Only hit-testing finds this class of bug — reading the page cannot.**
+
+### ✅ Principle #10's ≥44px bar, on the controls that carry the booking
+- Age steppers **24×24 → 44×44** (they were the smallest controls in the whole flow).
+- Sticky-bar **Continue / Reserve 40 → 44** (`py-2.5` → `py-3`): the flow's primary action.
+
+### ✅ What the audit CLEARED (all 3 steps, 390×844)
+No page-level horizontal scroll on any step (scrollWidth 390 = innerWidth) · sticky bar keeps price +
+primary action reachable throughout · dates 18→21 priced correctly (R1 450×3 + R250 cleaning = **R4 600**)
+· step 3 offers EFT only, matching the seeded host's connected methods · the calendar is a real inline
+picker, not a native `<input type=date>` · **the "Reserve & get bank details" second button is
+deliberately `hidden` on mobile — not a duplicate-footer bug.**
+
+### ⚠️ FOUND, NOT FIXED — reported honestly
+- 🔴 **iOS zoom-on-focus: every checkout input is `font-size: 14px`** and the viewport meta sets no
+  `maximum-scale`. iOS Safari auto-zooms any field under 16px, so tapping Email/Name/Phone throws the
+  guest into a zoomed page mid-checkout. **NOT witnessed — the preview browser is Chromium, which does
+  not do this. It is a code-level finding, needs a real iOS device.** Fix touches the shared input
+  component (app-wide) → founder's call.
+- Calendar day cells **38×36**, month nav **32×32**, add-on/room steppers **28×28** — all under the
+  44px bar. The calendar is capped by `max-w-[320px]` in `CheckoutDateEditor.tsx:142`.
+- **The anonymous booking path is NOT audited** — the session was signed in as `host1`. A signed-out
+  guest gets a *different* step 2 (inline account creation + password). That is the path ~95% of real
+  guests take. Still unaudited.
+- Reserve itself was **not clicked** — it writes a real booking to the linked cloud DB; that is the
+  founder's smoke test.
+
+---
+
 ## 2026-07-17 (pt12) — Real data at last: two of the three wired features are finally *witnessed*.
 
 **The drought is over.** `apps/web/scripts/seed-starter.mjs` seeds 2 Beta-subscriber hosts (1 published

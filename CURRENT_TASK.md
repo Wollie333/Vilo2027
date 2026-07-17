@@ -2,7 +2,59 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt12) — **START HERE** (supersedes pt11 below)
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt13) — **START HERE** (supersedes pt12 below)
+
+**`pnpm build` (exit 0) · `pnpm lint` (zero warnings) · `npx tsc --noEmit` all green.** Only untracked
+= the mobile eslint scaffold (founder: *"leave it"*). Machine was clean this session (**0 orphan node
+procs**; ONE dev server started, and stopped when done → directive #15).
+
+### 🔴 THE FIND: on a phone, a guest COULD NOT ADD AN INFANT to a booking
+The founder's #2 priority (mobile booking audit of `/property/<slug>/book`) — **started, part done.**
+`BookingForm.tsx:1595` was `grid grid-cols-3`: **3 columns at every width.** Each Children/Infants/Pets
+pill needs ~136px; a 390px phone gives each **96px**. Overflow was `visible` → the steppers didn't
+clip, they spilled **under the next pill**. `elementFromPoint()` at **"More infants"** returned the
+**Pets DIV** — a real tap could never reach it, and it silently did nothing.
+✅ Fixed → `grid-cols-1 … sm:grid-cols-3` (**the file's own convention** — every other grid already
+stacks until `sm`; 1595 was the lone outlier; swept the route to confirm no others).
+✅ **Witnessed:** all 6 steppers hit-test `ITSELF`; "More infants" moved **0 → 1** live. Re-checked at
+**360/390/640/1536** — incl. the tightest 3-col width (640) **so the fix wasn't merely relocated**.
+✅ Also met Principle #10's bar: age steppers **24→44px**, sticky Continue/Reserve **40→44px**.
+🔑 **`overflow: visible` doesn't clip — it hides a control under its neighbour. Nothing LOOKS wrong;
+the tap just dies. Only HIT-TESTING finds this — reading the page cannot.**
+
+### ✅ CLEARED by the audit (all 3 steps @390×844)
+No horizontal scroll on any step · sticky bar keeps price + action reachable · 18→21 priced right
+(R1450×3 + R250 = **R4 600**) · step 3 = EFT only, matching the seeded host · real inline calendar
+(not native `type=date`) · the 2nd "Reserve & get bank details" btn is **deliberately `hidden` on
+mobile**, not a dup-footer bug.
+
+### ▶ NEXT (in order)
+1. 🔴 **THE ANONYMOUS BOOKING PATH IS STILL UNAUDITED** — this session was signed in as `host1`, so it
+   only saw the authenticated step 2. **A signed-out guest gets a DIFFERENT step 2** (inline account
+   creation + password field, `BookingForm.tsx` ~1956). **That is the path ~95% of real guests take.**
+2. 🔴 **iOS zoom-on-focus — FOUND, NOT FIXED, NOT WITNESSED.** Every checkout input is
+   `font-size: 14px`; viewport meta sets no `maximum-scale` → **iOS Safari auto-zooms any field under
+   16px**, throwing the guest into a zoomed page mid-checkout. **Could NOT witness it — the preview
+   browser is Chromium, which doesn't do this. Needs a real iOS device.** The fix touches the shared
+   input component (app-wide) → **founder's call.**
+3. **Still under the 44px bar:** calendar day cells **38×36** (capped by `max-w-[320px]`,
+   `CheckoutDateEditor.tsx:142`), month nav **32×32**, add-on/room steppers **28×28**.
+4. 🔴 **FOUNDER'S SMOKE SIGNUP** (unchanged, founder-only — the agent may not create accounts / enter
+   passwords). Walk `/en/signup/host` (Beta R0): new logo? exactly ONE active sub? right credits?
+   ⚠️ **The seed writes hosts DIRECTLY — it does NOT test signup**; `trg_one_active_membership` is
+   still unproven in signup's path. **Reserve was NOT clicked this session** — it writes a real
+   booking to the linked cloud DB; that is the founder's to run.
+5. `docs/WIRING_AUDIT.md`: external-review **reply** + brochure **remove** · §3 decisions · ~40 deletes.
+6. 🔴 **IDOR still open** — analytics fns take `p_host_id`, never check ownership.
+
+### 🔴 FOUNDER-ONLY (unchanged)
+1. **Rotate `email_worker_secret` + `ical_sync_worker_secret`** — Vault **AND** Vercel.
+2. **4 Vault-gated crons still dead** → auto-flagged in `docs/SCHEMA.md`.
+3. **Decide:** access unlock gates on status but NOT payment (`docs/lifecycles/access-details.md`).
+
+---
+
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt12) — ⚠️ SUPERSEDED by pt13 above
 
 **Repo clean + pushed `e13ea55c`. `pnpm build` (888) · `pnpm lint` · `tsc` green. Migrations synced
 through `20260716340000`.** Only untracked = the mobile eslint scaffold (founder: *"leave it"*).
