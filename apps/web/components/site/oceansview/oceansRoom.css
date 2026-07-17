@@ -803,11 +803,25 @@
   flex-shrink: 0;
 }
 @media (max-width: 640px) {
+  /* Phones: the static row becomes a manual horizontal swipe strip (no auto-slide,
+     no repeats) — cards stay put but the guest can flick them side to side. */
   .ovroom .rooms-row {
-    gap: 18px;
+    gap: 16px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -18px;
+    padding: 0 18px 8px;
+    scrollbar-width: none;
+  }
+  .ovroom .rooms-row::-webkit-scrollbar {
+    display: none;
   }
   .ovroom .rooms-row .room {
-    width: 100%;
+    width: 80vw;
+    max-width: 320px;
+    scroll-snap-align: start;
   }
 }
 @keyframes ovmarquee {
@@ -970,8 +984,32 @@
   .ovroom .revgrid {
     grid-template-columns: 1fr;
   }
+  /* Phones: the marquee stops auto-sliding and becomes a manual swipe strip of
+     the UNIQUE rooms (the loop's duplicate set is hidden), snapping card to card. */
+  .ovroom .marquee {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -18px;
+    padding: 0 18px 8px;
+    scrollbar-width: none;
+  }
+  .ovroom .marquee::-webkit-scrollbar {
+    display: none;
+  }
+  .ovroom .marquee-track {
+    animation: none;
+    width: auto;
+  }
+  .ovroom .marquee-track .room-dupe {
+    display: none;
+  }
   .ovroom .marquee-track .room {
-    width: 82vw;
+    width: 80vw;
+    max-width: 320px;
+    scroll-snap-align: start;
   }
 }
 @media (max-width: 460px) {

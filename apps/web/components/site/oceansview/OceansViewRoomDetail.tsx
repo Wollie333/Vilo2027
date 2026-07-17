@@ -235,8 +235,8 @@ export function OceansViewRoomDetail({
   const loop = useMarquee ? [...others, ...others] : others;
   const renderRoomCard = (r: RoomCard, i: number, decorative: boolean) => (
     <a
-      href={r.bookHref || roomsHref || "#"}
-      className="room"
+      href={r.detailHref || r.bookHref || roomsHref || "#"}
+      className={decorative ? "room room-dupe" : "room"}
       key={i}
       aria-hidden={decorative ? true : undefined}
       tabIndex={decorative ? -1 : undefined}
