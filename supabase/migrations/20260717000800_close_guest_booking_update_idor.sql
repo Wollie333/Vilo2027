@@ -1,0 +1,32 @@
+-- Close the guest booking-tamper hole (IDOR / privilege escalation).
+--
+-- PROVEN LIVE in a rollback txn (2026-07-17): a signed-in guest, over PostgREST
+-- with the publishable key, could run
+--     UPDATE bookings
+--        SET total_amount = 1, balance_due = 0,
+--            status = 'confirmed', payment_status = 'completed'
+--      WHERE id = <their own booking>
+-- and it changed 1 row — self-confirming a booking WITHOUT paying and zeroing
+-- the bill. Cause: the RLS UPDATE policy `guest_update_own_bookings` pinned only
+-- `guest_id` in its WITH CHECK and never restricted the columns; the §4.1 booking
+-- state machine lives only in TypeScript (applyTransition), and no BEFORE-UPDATE
+-- trigger guards the money/status columns.
+--
+-- The policy backs NO legitimate flow. Guests write to bookings exclusively via
+-- the service-role admin client: uploadEftProofAction / addTripGuestAction read
+-- through the authenticated client only to prove ownership, then perform every
+-- write with createAdminClient(). Hosts (not guests) are the ones who update
+-- bookings as `authenticated`, and they keep doing so under
+-- host_manage_own_bookings. So the fix is simply to remove the guest UPDATE grant.
+--
+-- ⚠️ DO NOT re-introduce a guest UPDATE policy without pinning the EXACT columns a
+-- guest may change (today: none). An unscoped WITH CHECK is precisely this bug.
+DROP POLICY IF EXISTS "guest_update_own_bookings" ON public.bookings;
+
+-- Defense in depth: `anon` carried stray write grants on bookings
+-- (INSERT/UPDATE/DELETE/TRUNCATE) inherited from a blanket GRANT. RLS blocks the
+-- row-level ones (there is no anon policy) and PostgREST never exposes TRUNCATE,
+-- but anon has no reason to hold any write privilege here — the public booking
+-- flow runs as service_role (lib/bookings/persist.ts and lib/website/siteCheckout.ts
+-- both use createAdminClient()).
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.bookings FROM anon;
