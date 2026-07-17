@@ -14,7 +14,12 @@ import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
+import {
+  daysRemaining,
+  membershipSwitchAmount,
+  proratedAmount,
+  round2,
+} from "@/lib/billing/proration";
 import { createProductOrder } from "@/lib/billing/product-checkout";
 import {
   applyCredit,
@@ -1334,7 +1339,7 @@ export const setUserProductAction = withAdminAudit<
     let payUrl: string | undefined;
     if ((charge === "paid" || charge === "paylink") && newPrice > 0) {
       const chargeAmount = switchingMembership
-        ? proratedAmount(Math.max(0, newPrice - oldPrice), carryStart, carryEnd)
+        ? membershipSwitchAmount(newPrice, oldPrice, carryStart, carryEnd)
         : round2(newPrice);
       if (chargeAmount > 0) {
         const label = switchingMembership

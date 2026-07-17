@@ -44,6 +44,32 @@ export function proratedAmount(
   return round2(Math.max(0, price) * frac);
 }
 
+/**
+ * What a membership SWITCH costs — the one definition, shared by the admin
+ * preview and the action that actually charges.
+ *
+ * Mid-cycle on a billable plan: only the unused difference (new − old) is billed.
+ * But when there is NO unused period to credit — a free grant with no period end
+ * ("never expires"), or a period already consumed — there is nothing to offset,
+ * so the buyer pays the FULL new price and their cycle starts now.
+ *
+ * Without that second case, `proratedAmount` returns 0 for a free grant and the
+ * paid plan is handed over for nothing: the charge is skipped while the plan
+ * still activates. Comp a plan deliberately with "Activate without charging",
+ * never by accident.
+ */
+export function membershipSwitchAmount(
+  newPrice: number,
+  oldPrice: number,
+  periodStart: string | null | undefined,
+  periodEnd: string | null | undefined,
+  now: Date = new Date(),
+): number {
+  const frac = unusedFraction(periodStart, periodEnd, now);
+  if (frac <= 0) return round2(Math.max(0, newPrice));
+  return round2(Math.max(0, newPrice - oldPrice) * frac);
+}
+
 /** Whole days remaining in the period (for human-readable ledger reasons). */
 export function daysRemaining(
   periodEnd: string | null | undefined,

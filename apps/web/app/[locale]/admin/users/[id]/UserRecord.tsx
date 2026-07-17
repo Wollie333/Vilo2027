@@ -91,7 +91,13 @@ import { modal } from "@/components/ui/modal-host";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/format";
-import { daysRemaining, proratedAmount, round2 } from "@/lib/billing/proration";
+import {
+  daysRemaining,
+  membershipSwitchAmount,
+  proratedAmount,
+  round2,
+  unusedFraction,
+} from "@/lib/billing/proration";
 import type { Txn } from "@/lib/finance/transactions";
 
 import {
@@ -2160,6 +2166,8 @@ function ProductsPanel({
     product: CatalogProduct;
     amount: number;
     isUpgrade: boolean;
+    /** The amount is the unused difference; false = the full price is billed. */
+    prorated: boolean;
   } | null>(null);
   // When the admin picks "Send pay-link", the tier activates and this holds the
   // generated custom-amount pay-link to copy/send to the buyer.
@@ -2228,30 +2236,42 @@ function ProductsPanel({
   function previewDelta(p: CatalogProduct): {
     amount: number;
     isUpgrade: boolean;
+    prorated: boolean;
   } {
-    if (p.isFree || p.price <= 0) return { amount: 0, isUpgrade: false };
+    if (p.isFree || p.price <= 0)
+      return { amount: 0, isUpgrade: false, prorated: false };
     if (
       p.productType === "membership" &&
       activeMembership &&
       activeMembership.productId !== p.id
     ) {
-      const amount = proratedAmount(
-        Math.max(0, p.price - (activeMembership.price ?? 0)),
+      // Same rule the action charges with — a free grant has no unused period to
+      // credit, so it's the full price, not R0. `prorated` says which rule
+      // applied so the dialog can't claim a pro-rata that didn't happen.
+      const amount = membershipSwitchAmount(
+        p.price,
+        activeMembership.price ?? 0,
         activeMembership.currentPeriodStart,
         activeMembership.currentPeriodEnd,
       );
-      return { amount, isUpgrade: true };
+      const prorated =
+        unusedFraction(
+          activeMembership.currentPeriodStart,
+          activeMembership.currentPeriodEnd,
+        ) > 0;
+      return { amount, isUpgrade: true, prorated };
     }
-    return { amount: round2(p.price), isUpgrade: false };
+    return { amount: round2(p.price), isUpgrade: false, prorated: false };
   }
 
   function onCatalogClick(p: CatalogProduct) {
-    const { amount, isUpgrade } = previewDelta(p);
+    const { amount, isUpgrade, prorated } = previewDelta(p);
     setChargeTiming("now");
     // Open the confirm dialog for any membership switch (to offer now vs
     // end-of-cycle timing — incl. a same-price/cheaper downgrade) or whenever a
     // charge is due; otherwise (free/zero, non-switch) just activate.
-    if (isUpgrade || amount > 0) setCharge({ product: p, amount, isUpgrade });
+    if (isUpgrade || amount > 0)
+      setCharge({ product: p, amount, isUpgrade, prorated });
     else activate(p.id, "none");
   }
 
@@ -2824,7 +2844,11 @@ function ProductsPanel({
             {charge.amount > 0 ? (
               <div className="rounded-md border border-brand-primary/30 bg-brand-primary/5 p-3">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                  {charge.isUpgrade ? "Pro-rated upgrade" : "Charge"}
+                  {charge.isUpgrade
+                    ? charge.prorated
+                      ? "Pro-rated upgrade"
+                      : "Full price"
+                    : "Charge"}
                 </div>
                 <div className="mt-0.5 font-display text-xl font-bold text-brand-ink">
                   {formatMoney(charge.amount, charge.product.currency ?? "ZAR")}
@@ -2832,7 +2856,9 @@ function ProductsPanel({
                 {chargeTiming === "now" ? (
                   <p className="mt-1 text-[12px] text-brand-mute">
                     {charge.isUpgrade
-                      ? "Only the unused difference vs the current membership is billed. "
+                      ? charge.prorated
+                        ? "Only the unused difference vs the current membership is billed. "
+                        : "Their current plan has no unused time to credit, so the full price is billed and the cycle starts now. "
                       : ""}
                     <span className="font-medium text-brand-ink">
                       Mark as paid
