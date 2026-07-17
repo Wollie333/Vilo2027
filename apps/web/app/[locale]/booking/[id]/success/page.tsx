@@ -6,6 +6,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { resolvePartyGuests } from "@/lib/bookings/party";
 import { getBrandName } from "@/lib/brand";
+import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { sendCapiPurchase } from "@/lib/integrations/meta-capi";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
 import {
@@ -357,6 +358,20 @@ export default async function BookingSuccessPage({
     branch_code: string | null;
   } | null;
 
+  // account_number is encrypted at rest (v1.<nonce>.<ct>.<tag>) — decrypt it
+  // server-side before it reaches the client. Without this the guest was shown
+  // the ciphertext and couldn't actually pay by EFT (and it leaked the stored
+  // form). decryptAccountNumber returns legacy plain values as-is; guard the
+  // rare decrypt failure so this guest-facing page can't 500.
+  let eftAccountNumber: string | null = null;
+  if (bankRow?.account_number) {
+    try {
+      eftAccountNumber = decryptAccountNumber(bankRow.account_number);
+    } catch (err) {
+      console.error("success: could not decrypt EFT account number", err);
+    }
+  }
+
   const payment: ConfirmationData["payment"] = {
     due: !isConfirmed,
     payUrl: `/booking/${booking.id}/pay`,
@@ -365,7 +380,7 @@ export default async function BookingSuccessPage({
       ? {
           bankName: bankRow.bank_name,
           accountHolder: bankRow.account_holder,
-          accountNumber: bankRow.account_number,
+          accountNumber: eftAccountNumber,
           accountType: bankRow.account_type,
           branchCode: bankRow.branch_code,
         }
