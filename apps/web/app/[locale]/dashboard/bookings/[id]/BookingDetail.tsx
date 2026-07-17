@@ -157,6 +157,9 @@ export type BookingDetailData = {
   vatRate: number;
   currency: string;
   refundTotal: number;
+  stayDiscount: number;
+  couponDiscount: number;
+  couponCode: string | null;
 
   checkInBig: string;
   checkInSub: string;
@@ -1414,6 +1417,25 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
                 <span className="text-brand-ink">
                   {formatMoney(d.cleaningFee, d.currency)}
                 </span>
+              </li>
+            ) : null}
+            {d.stayDiscount > 0 ? (
+              <li className="flex items-center justify-between text-status-confirmed">
+                <span>Discount</span>
+                <span>– {formatMoney(d.stayDiscount, d.currency)}</span>
+              </li>
+            ) : null}
+            {d.couponDiscount > 0 ? (
+              <li className="flex items-center justify-between text-status-confirmed">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  Coupon
+                  {d.couponCode ? (
+                    <span className="rounded-pill bg-brand-light px-2 py-px font-mono text-[11px] font-semibold uppercase tracking-wide text-brand-ink">
+                      {d.couponCode}
+                    </span>
+                  ) : null}
+                </span>
+                <span>– {formatMoney(d.couponDiscount, d.currency)}</span>
               </li>
             ) : null}
             {d.vatAmount > 0 ? (

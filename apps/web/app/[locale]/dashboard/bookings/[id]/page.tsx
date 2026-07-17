@@ -144,7 +144,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, eft_proof_url, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, policy_acknowledged_at, accepted_terms_version, accepted_privacy_version, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
+      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, channel, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, eft_proof_url, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, discount_amount, coupon_id, coupon_discount, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, policy_acknowledged_at, accepted_terms_version, accepted_privacy_version, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -557,6 +557,23 @@ export default async function BookingDetailPage({
     listing.cancellation_policy.replace(/_/g, " ");
 
   const refundTotal = Number(booking.refund_total ?? 0);
+
+  // Discounts applied at checkout — the host receipt must show WHY the total is
+  // lower, matching the guest portal + invoice PDF (which already itemise them).
+  // `discount_amount` = stay/deal discount; `coupon_discount` = a coupon, kept
+  // separate by the pricing engine. Resolve the coupon code for the receipt line.
+  const stayDiscount = Number(booking.discount_amount ?? 0);
+  const couponDiscount = Number(booking.coupon_discount ?? 0);
+  let couponCode: string | null = null;
+  if (booking.coupon_id && couponDiscount > 0) {
+    const { data: c } = await createAdminClient()
+      .from("coupons")
+      .select("code")
+      .eq("id", booking.coupon_id)
+      .maybeSingle();
+    couponCode = (c?.code as string | undefined) ?? null;
+  }
+
   // Live (non-terminal) booking → show the Manage card + let the host record
   // payments. Includes the EFT-pending variants: a booking awaiting an EFT or
   // online (Paystack/PayPal) payment still needs the host to be able to apply
@@ -747,6 +764,9 @@ export default async function BookingDetailPage({
     vatRate: Number(booking.vat_rate ?? 0),
     currency,
     refundTotal,
+    stayDiscount,
+    couponDiscount,
+    couponCode,
 
     checkInBig,
     checkInSub: ciTime ? `From ${ciTime}` : "Time TBC",
