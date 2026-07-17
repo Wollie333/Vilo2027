@@ -21,6 +21,9 @@ export type SiteContext = {
   location?: string;
   propertyDescription?: string;
   hostName?: string;
+  /** A short summary of the host's real rooms, e.g. "Garden Suite (sleeps 2),
+   *  Loft Room (sleeps 3)" — grounds the copy in concrete, true specifics. */
+  rooms?: string;
 };
 
 const SYSTEM = [
@@ -67,9 +70,14 @@ function contextBlock(ctx: SiteContext): string {
   if (ctx.tagline) lines.push(`Existing tagline: ${ctx.tagline}`);
   if (ctx.location) lines.push(`Location: ${ctx.location}`);
   if (ctx.hostName) lines.push(`Host name: ${ctx.hostName}`);
+  if (ctx.rooms) lines.push(`Rooms: ${ctx.rooms}`);
   if (ctx.propertyDescription) {
     lines.push(`Property description: ${ctx.propertyDescription}`);
   }
+  lines.push(
+    "(These are the ONLY concrete facts you may use — draw specifics from here; " +
+      "never invent beyond them.)",
+  );
   return lines.join("\n");
 }
 

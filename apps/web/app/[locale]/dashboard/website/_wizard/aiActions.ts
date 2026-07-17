@@ -54,6 +54,62 @@ type RegenResult =
   | { ok: true; slot: AiStringSlot; value: string }
   | { ok: false; error: string; detail?: string };
 
+/**
+ * Real, concrete facts about the host's property — so the copywriter grounds the
+ * copy in specifics ("the Garden Suite", "Nieu-Bethesda") instead of generalities,
+ * and still never invents. Best-effort: any part may be empty.
+ */
+async function loadHostAiFacts(hostId: string): Promise<{
+  location?: string;
+  propertyDescription?: string;
+  rooms?: string;
+}> {
+  const supabase = createServerClient();
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("city, province")
+    .eq("host_id", hostId)
+    .eq("is_default", true)
+    .eq("is_archived", false)
+    .maybeSingle();
+  const { data: prop } = await supabase
+    .from("properties")
+    .select("id, description, city, province")
+    .eq("host_id", hostId)
+    .is("deleted_at", null)
+    .order("is_published", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let rooms: string | undefined;
+  if (prop?.id) {
+    const { data: rms } = await supabase
+      .from("property_rooms")
+      .select("name, max_guests")
+      .eq("property_id", prop.id)
+      .is("deleted_at", null)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .limit(6);
+    const parts = (rms ?? [])
+      .map((r) =>
+        r.max_guests ? `${r.name} (sleeps ${r.max_guests})` : String(r.name),
+      )
+      .filter(Boolean);
+    rooms = parts.length ? parts.join(", ") : undefined;
+  }
+
+  const location =
+    [prop?.city ?? biz?.city, prop?.province ?? biz?.province]
+      .filter(Boolean)
+      .join(", ") || undefined;
+  return {
+    location,
+    propertyDescription: prop?.description ?? undefined,
+    rooms,
+  };
+}
+
 /** Owner-scoped fetch of the site + the context the prompt needs. */
 async function loadSiteForAi(websiteId: string): Promise<
   | {
@@ -86,6 +142,7 @@ async function loadSiteForAi(websiteId: string): Promise<
     .maybeSingle();
 
   const brand = (site.brand ?? {}) as { name?: string; tagline?: string };
+  const facts = await loadHostAiFacts(host.hostId);
   return {
     ok: true,
     hostId: host.hostId,
@@ -94,6 +151,7 @@ async function loadSiteForAi(websiteId: string): Promise<
       businessName: brand.name ?? "",
       tagline: brand.tagline,
       hostName: hostRow?.display_name ?? undefined,
+      ...facts,
     },
   };
 }
@@ -208,11 +266,13 @@ export async function generateWizardContentAction(
     .select("display_name")
     .eq("id", host.hostId)
     .maybeSingle();
+  const facts = await loadHostAiFacts(host.hostId);
 
   const { system, prompt } = buildSiteContentPrompt(
     {
       businessName: (siteName ?? "").trim(),
       hostName: hostRow?.display_name ?? undefined,
+      ...facts,
     },
     parsedAnswers.data,
   );
@@ -298,12 +358,14 @@ export async function writeWizardSlotAction(
     .select("display_name")
     .eq("id", host.hostId)
     .maybeSingle();
+  const facts = await loadHostAiFacts(host.hostId);
 
   const { system, prompt } = buildSlotRegenPrompt(
     slot,
     {
       businessName: (siteName ?? "").trim(),
       hostName: hostRow?.display_name ?? undefined,
+      ...facts,
     },
     parsedAnswers.data,
   );
