@@ -416,6 +416,7 @@ export function GenericSection({
         <RoomRatesSection
           props={section.props}
           data={dataFor(data, section.id, "room_rates")}
+          interactive={interactive}
         />
       );
     case "seasonal_pricing":
@@ -423,6 +424,7 @@ export function GenericSection({
         <SeasonalPricingSection
           props={section.props}
           data={dataFor(data, section.id, "seasonal_pricing")}
+          interactive={interactive}
         />
       );
     case "room_gallery":
