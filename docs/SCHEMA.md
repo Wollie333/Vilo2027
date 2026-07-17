@@ -17,7 +17,7 @@ it after any migration.
 | | |
 |---|---|
 | Tables | **182** (181 with RLS) |
-| Functions | **159** (127 SECURITY DEFINER, 57 trigger fns) |
+| Functions | **160** (127 SECURITY DEFINER, 57 trigger fns) |
 | Cron jobs | **36** (11 Vault-gated, 0 inactive) |
 | Vault secrets set | **9** |
 
@@ -170,6 +170,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | function | SD | search_path pinned | kind |
 |---|---|---|---|
 | `_access_line` | — | — | callable |
+| `_assert_can_read_host` | — | — | callable |
 | `_can_read_host` | — | — | callable |
 | `_host_guest_rows` | **yes** | **NO** | callable |
 | `_materialize_booking_party` | **yes** | **NO** | callable |

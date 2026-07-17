@@ -38,6 +38,22 @@ ORDER BY tablename;
 - [ ] Staff access matches documented permission matrix (cannot access billing/subscriptions)
 - [ ] `super_admin` role has full access where expected
 - [ ] `service_role` key is only used in Edge Functions (never in client-side code)
+- [ ] **SECURITY DEFINER functions that take a `p_host_id` (or any owner id) verify
+  ownership internally** — they bypass RLS, so a signed-in user could otherwise
+  forge the id over PostgREST and read another host's data (an IDOR). Fixed
+  2026-07-17 (`20260717000500` + `..0600`): 17 analytics functions now call
+  `_assert_can_read_host(p_host_id)`, which RAISEs 42501 for a non-owner and is a
+  no-op for service-role/internal callers (`auth.uid()` IS NULL). 🔑 **The guard
+  helper `_can_read_host` must `COALESCE(... , false)`** — three-valued logic
+  (`false OR NULL` = NULL, `NOT NULL` = NULL) made every `IF NOT _can_read_host`
+  check fail OPEN until `..0600`. Re-check with:
+  ```sql
+  SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  WHERE n.nspname='public' AND p.prosecdef
+    AND pg_get_function_arguments(p.oid) ILIKE '%p_host_id%'
+    AND p.prosrc NOT ILIKE '%_can_read_host%'
+    AND p.prosrc NOT ILIKE '%auth.uid()%';  -- any hit = an unguarded owner-scoped fn
+  ```
 
 Verify with grep:
 ```bash
