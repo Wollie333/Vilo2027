@@ -7,9 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { createWizardImageUploadUrl } from "../actions";
-import { generateWizardContentAction } from "./aiActions";
+import {
+  generateWizardContentAction,
+  writeWizardSlotAction,
+} from "./aiActions";
 import {
   PAGE_SECTIONS,
+  aiSlotFor,
   getExpItems,
   getImageSlot,
   getTextSlot,
@@ -19,6 +23,7 @@ import {
   type ExpItem,
   type ImageSlotId,
   type SectionSpec,
+  type TextField as TextFieldSpec,
 } from "./pageSections";
 import type { WizardState } from "./wizardState";
 
@@ -104,6 +109,8 @@ export function PageSectionsPanel({
             spec={s}
             profile={profile}
             setProfile={setProfile}
+            siteName={state.siteName}
+            answers={state.answers}
           />
         ))}
       </div>
@@ -115,10 +122,14 @@ function SectionCard({
   spec,
   profile,
   setProfile,
+  siteName,
+  answers,
 }: {
   spec: SectionSpec;
   profile: WizardState["contentProfile"] & object;
   setProfile: (p: NonNullable<WizardState["contentProfile"]>) => void;
+  siteName: string;
+  answers: WizardState["answers"];
 }) {
   const p = profile ?? {};
   const isContent = spec.kind === "content";
@@ -145,39 +156,16 @@ function SectionCard({
         </p>
       ) : null}
 
-      {spec.fields?.map((f) =>
-        f.multiline ? (
-          <label key={f.slot} className="mt-2 block">
-            <span className="mb-1 block text-[12px] font-semibold text-brand-mute">
-              {f.label}
-            </span>
-            <textarea
-              rows={3}
-              value={getTextSlot(p, f.slot)}
-              placeholder={f.placeholder}
-              onChange={(e) =>
-                setProfile(setTextSlot(p, f.slot, e.target.value))
-              }
-              className={field}
-            />
-          </label>
-        ) : (
-          <label key={f.slot} className="mt-2 block">
-            <span className="mb-1 block text-[12px] font-semibold text-brand-mute">
-              {f.label}
-            </span>
-            <input
-              type="text"
-              value={getTextSlot(p, f.slot)}
-              placeholder={f.placeholder}
-              onChange={(e) =>
-                setProfile(setTextSlot(p, f.slot, e.target.value))
-              }
-              className={field}
-            />
-          </label>
-        ),
-      )}
+      {spec.fields?.map((f) => (
+        <AiTextField
+          key={f.slot}
+          spec={f}
+          value={getTextSlot(p, f.slot)}
+          onChange={(v) => setProfile(setTextSlot(p, f.slot, v))}
+          siteName={siteName}
+          answers={answers}
+        />
+      ))}
 
       {spec.image ? (
         <ImageDrop
@@ -197,6 +185,79 @@ function SectionCard({
           onChange={(items) => setProfile(setExpItems(p, items))}
         />
       ) : null}
+    </div>
+  );
+}
+
+function AiTextField({
+  spec,
+  value,
+  onChange,
+  siteName,
+  answers,
+}: {
+  spec: TextFieldSpec;
+  value: string;
+  onChange: (v: string) => void;
+  siteName: string;
+  answers: WizardState["answers"];
+}) {
+  const ai = aiSlotFor(spec.slot);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function writeWithAi() {
+    if (!ai) return;
+    setBusy(true);
+    setErr(null);
+    const res = await writeWizardSlotAction(siteName, ai, answers);
+    setBusy(false);
+    if (res.ok) onChange(res.value);
+    else if (res.error === "ai_not_configured")
+      setErr("AI isn't switched on yet — type it here.");
+    else setErr("Couldn't write it — try again or type it here.");
+  }
+
+  return (
+    <div className="mt-2">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-[12px] font-semibold text-brand-mute">
+          {spec.label}
+        </span>
+        {ai ? (
+          <button
+            type="button"
+            onClick={writeWithAi}
+            disabled={busy}
+            className="inline-flex items-center gap-1 rounded-full border border-brand-line bg-white px-2 py-0.5 text-[11px] font-semibold text-brand-primary hover:bg-brand-light disabled:opacity-60"
+          >
+            {busy ? (
+              <RefreshCw className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            {busy ? "Writing…" : "Write with AI"}
+          </button>
+        ) : null}
+      </div>
+      {spec.multiline ? (
+        <textarea
+          rows={3}
+          value={value}
+          placeholder={spec.placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={field}
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          placeholder={spec.placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={field}
+        />
+      )}
+      {err ? <p className="mt-0.5 text-[11px] text-red-500">{err}</p> : null}
     </div>
   );
 }

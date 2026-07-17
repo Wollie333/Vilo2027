@@ -9,6 +9,7 @@
 // repeating item list (experiences cards). Only the slots content_profile actually
 // stores are editable here; host name/photo come from the account.
 
+import type { AiStringSlot } from "@/lib/website/aiContent";
 import type { ContentProfile } from "@/lib/website/contentProfile.schema";
 
 export type TextField = {
@@ -244,6 +245,25 @@ export const PAGE_SECTIONS: Record<string, SectionSpec[]> = {
     },
   ],
 };
+
+// Which text slots the AI can write on their own ("✨ AI" per field). Slots with
+// no mapping (e.g. the welcome text) are host-written only.
+export function aiSlotFor(slot: TextSlot): AiStringSlot | null {
+  switch (slot) {
+    case "home.hero.headline":
+      return "heroHeadline";
+    case "home.hero.subheadline":
+      return "heroSubheadline";
+    case "about.story":
+      return "aboutStory";
+    case "about.hostBio.body":
+      return "hostBioBody";
+    case "experiences.intro":
+      return "experiencesIntro";
+    case "home.intro.body":
+      return null;
+  }
+}
 
 // ── content_profile slot get/set (immutable) ──────────────────
 export function getTextSlot(p: ContentProfile, slot: TextSlot): string {

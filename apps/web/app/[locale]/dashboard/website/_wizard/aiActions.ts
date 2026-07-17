@@ -263,6 +263,78 @@ const regenJsonSchema = {
   required: ["value"],
 } as const;
 
+/**
+ * Wizard-time single-slot write: like regenerateSlotAction but for a site that
+ * doesn't exist yet — generates copy for ONE section field and returns it WITHOUT
+ * persisting. The per-page content step holds it in state; it lands in the right
+ * section at build via hydrateProfile (SLOT_BINDINGS). Fast tier (Haiku).
+ */
+export async function writeWizardSlotAction(
+  siteName: string,
+  slot: AiStringSlot,
+  answers: SiteAnswersInput,
+): Promise<RegenResult> {
+  if (!AI_STRING_SLOTS.includes(slot)) {
+    return { ok: false, error: "invalid_slot" };
+  }
+  const parsedAnswers = siteAnswersSchema.safeParse(answers);
+  if (!parsedAnswers.success) {
+    const detail = parsedAnswers.error.issues
+      .map((i) => `${i.path.join(".") || "?"}: ${i.message}`)
+      .join("; ");
+    return { ok: false, error: "invalid_input", detail };
+  }
+  if (!aiConfigured()) return { ok: false, error: "ai_not_configured" };
+
+  const host = await requireHost();
+  if (!host.ok) return { ok: false, error: "not_authorized" };
+  if (!(await hostHasFeature(host.hostId, "website_builder"))) {
+    return { ok: false, error: "locked" };
+  }
+
+  const supabase = createServerClient();
+  const { data: hostRow } = await supabase
+    .from("hosts")
+    .select("display_name")
+    .eq("id", host.hostId)
+    .maybeSingle();
+
+  const { system, prompt } = buildSlotRegenPrompt(
+    slot,
+    {
+      businessName: (siteName ?? "").trim(),
+      hostName: hostRow?.display_name ?? undefined,
+    },
+    parsedAnswers.data,
+  );
+
+  let raw: unknown;
+  try {
+    raw = await generateJson({
+      system,
+      prompt,
+      tier: "fast",
+      jsonSchema: regenJsonSchema,
+      toolName: "rewrite",
+      toolDescription: "Return the copy.",
+      maxTokens: 600,
+    });
+  } catch (err) {
+    if (err instanceof AiUnavailableError) {
+      return { ok: false, error: "ai_not_configured" };
+    }
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error(`[ai] slot write failed: ${detail}`);
+    return { ok: false, error: "ai_failed", detail };
+  }
+
+  const parsed = regenResultSchema.safeParse(raw);
+  if (!parsed.success || !parsed.data.value.trim()) {
+    return { ok: false, error: "ai_invalid" };
+  }
+  return { ok: true, slot, value: parsed.data.value.trim() };
+}
+
 export async function regenerateSlotAction(
   websiteId: string,
   slot: AiStringSlot,
