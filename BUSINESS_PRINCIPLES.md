@@ -744,3 +744,71 @@ keeps the audit trail honest: a feature marked done is actually done.
   inside a "done" report.
 - Prefer finishing the task in front of you over breadth. Depth-first, verified,
   then next.
+
+---
+
+## Principle #15 — Security is a first-class concern in every change
+
+**Added:** 2026-07-17
+**Status:** Active
+**Founder directive.**
+
+### The principle
+
+**Every line of code we write or edit is written with its security implications
+considered first — never as an afterthought.** Wielo moves real money on hosts'
+behalf, owns guest identity for the whole platform, and stores banking + payment
+credentials. The bar is **industry-standard, enterprise-grade secure code,
+always.** A feature that is functional but insecure is **not done.**
+
+### Why this matters
+
+A single security defect — an IDOR, a missing ownership check, a leaked secret, a
+fail-open gate — can drain a host's revenue, expose every guest's data, or put the
+platform in regulatory jeopardy. Security is not a feature to add later; it is the
+precondition for every feature. These defects are invisible to build/lint/tests —
+only a security mindset catches them. (One audit pass found a guest who could
+self-confirm a booking without paying, ciphertext bank details shipped to the
+client, refunds that could exceed the payment, and 73 privilege-escalation-prone
+DB functions — all green on every automated check.)
+
+### The rules — the security checklist for EVERY change
+
+1. **Authorize by ownership, server-side.** Anything keyed by a client-supplied id
+   (host_id, booking_id, quote_id, payment_id, guest id) must verify the caller
+   **owns** that resource — in the Server Action / Edge Function / RLS policy,
+   never trusting the client. No IDOR, ever.
+2. **Fail closed.** Gates, guards and permission checks default to **DENY** on any
+   miss, error or NULL. Three-valued SQL gets `COALESCE(..., false)`; an unhandled
+   branch denies, never allows.
+3. **Never trust the client for money or identity.** Recompute every amount
+   server-side (Principles #2/#3); never accept a client-supplied price, balance,
+   status, or "who am I".
+4. **Secrets stay server-side; sensitive data is encrypted at rest and decrypted
+   only at a trusted boundary.** No service-role / payment keys / tokens in client
+   code or `NEXT_PUBLIC_*`. Banking/account numbers reach a client only after a
+   server-side decrypt — never ciphertext, never plaintext in a URL.
+5. **Verify authenticity before acting.** Webhook signatures verified before any DB
+   write; a failed verification returns 4xx and does nothing.
+6. **Least privilege at the DB.** RLS enabled with correct policies on every table;
+   `SECURITY DEFINER` functions pin `search_path`; grants scoped to the role that
+   needs them. Revoke from **PUBLIC**, not just `anon`.
+7. **Enforce at the layer that matters.** The server is the authority; UI gating is
+   convenience only. A control hidden in the UI is **not** a security boundary.
+8. **Never leak in errors or logs.** No secrets, banking details, tokens, or raw
+   internals in error messages, logs, or client responses.
+
+### How to apply it
+
+- **Before writing:** ask *"what's the attack here?"* — who could call this with
+  something they don't own, what happens on the error path, what data crosses to
+  the client, what identity is trusted.
+- **When editing an existing feature:** leave it **more secure than you found it.**
+  If you touch code near an ownership check, a gate, a money path, or a secret,
+  verify and harden it as part of the change — never step around a weakness.
+- **Prove it adversarially.** For a security-relevant change, prove the DENY path
+  live (house style: a rollback-txn showing the attack now returns `42501` / 0
+  rows), not just the happy path.
+- **`SECURITY_CHECKLIST.md` + `AGENT_RULES.md §1` hold the standing detail;** this
+  principle is the always-on mindset behind them. When unsure, treat it as a
+  security issue and ask.
