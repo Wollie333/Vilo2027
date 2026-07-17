@@ -2,15 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { createElement } from "react";
 import { z } from "zod";
-
-import { ProductOffer } from "@vilo/emails";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { sendPasswordResetEmail } from "@/lib/auth/passwordReset";
-import { getBrandName } from "@/lib/brand";
-import { sendReactEmail } from "@/lib/email/send";
+import {
+  fmtOfferMoney,
+  sendProductOfferEmail,
+} from "@/lib/billing/offer-email";
 import { assertActiveSupportGrant } from "@/lib/admin/supportGrant";
 import { findFreeSlug, getAffiliateForUser } from "@/lib/affiliate/account";
 import { accrueAffiliateAndNotify } from "@/lib/affiliate/notify";
@@ -1115,6 +1114,9 @@ const setProductSchema = z.object({
   // the cycle instead of the product's default credit_quantity. null/omitted =
   // use the product default.
   creditOverride: z.number().int().min(0).max(1_000_000).nullable().optional(),
+  // Whether a "paylink" upgrade offer is ALSO emailed. The inbox card always
+  // posts; the email is the admin's choice per offer. Defaults on.
+  sendEmail: z.boolean().optional().default(true),
   reason: z.string().optional(),
 });
 
@@ -1409,6 +1411,23 @@ export const setUserProductAction = withAdminAudit<
             currency,
             isUpgrade: switchingMembership,
           });
+
+          // …and email the same offer. The card alone only reaches a host who
+          // logs in, so a membership upgrade could sit unseen indefinitely.
+          // Same sender as a once-off sale, so both offers look identical.
+          if (parsed.data.sendEmail !== false) {
+            await sendProductOfferEmail(service, {
+              userId: hostRow.user_id,
+              email,
+              productName: product.name ?? "your new plan",
+              amount: chargeAmount,
+              currency,
+              payUrl: order.url,
+              note: switchingMembership
+                ? "This is the pro-rated difference for the rest of your current cycle. Your new plan switches on the moment it's paid."
+                : "Your plan switches on the moment this is paid.",
+            });
+          }
         }
       }
     }
@@ -1482,22 +1501,12 @@ const sellSchema = z.object({
   userId: z.string().uuid(),
   productId: z.string().uuid(),
   mode: z.enum(["paid", "paylink"]),
+  // Whether the pay-link is ALSO emailed. The inbox card always posts; the email
+  // is the admin's choice per sale. Defaults on — the buyer should hear about an
+  // offer without having to log in.
+  sendEmail: z.boolean().optional().default(true),
   reason: z.string().optional(),
 });
-
-// Same shape the inbox pay card uses (lib/inbox/platform-thread fmtMoney), so
-// the emailed offer and the in-app card never disagree on the amount.
-function fmtOfferMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-ZA", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
-}
 
 export const sellProductAction = withAdminAudit<
   z.infer<typeof sellSchema>,
@@ -1512,7 +1521,7 @@ export const sellProductAction = withAdminAudit<
   async (args, service) => {
     const parsed = sellSchema.safeParse(args);
     if (!parsed.success) throw new Error("Invalid input.");
-    const { userId, hostId, productId, mode } = parsed.data;
+    const { userId, hostId, productId, mode, sendEmail } = parsed.data;
 
     const { data: product } = await service
       .from("products")
@@ -1564,29 +1573,18 @@ export const sellProductAction = withAdminAudit<
         // best-effort — the link is still returned to the admin
       }
 
-      // Email the offer too. The inbox card only reaches someone who logs in;
-      // the whole point of selling is that they don't have to.
-      try {
-        const { data: buyer } = await service
-          .from("user_profiles")
-          .select("full_name")
-          .eq("id", userId)
-          .maybeSingle();
-        const brandName = await getBrandName();
-        await sendReactEmail({
-          to: email,
-          subject: `${product.name} — ${fmtOfferMoney(price, currency)} to pay`,
-          react: createElement(ProductOffer, {
-            firstName:
-              (buyer?.full_name ?? "").trim().split(/\s+/)[0] || "there",
-            productName: product.name,
-            amount: fmtOfferMoney(price, currency),
-            payUrl: order.url,
-            brandName,
-          }),
+      // Email the offer too — the inbox card only reaches someone who logs in,
+      // and the point of selling is that they don't have to. The admin can turn
+      // this off per sale (e.g. they're phoning the buyer instead).
+      if (sendEmail) {
+        await sendProductOfferEmail(service, {
+          userId,
+          email,
+          productName: product.name,
+          amount: price,
+          currency,
+          payUrl: order.url,
         });
-      } catch {
-        // best-effort — never fail the sale on an email
       }
 
       revalidatePath(`/admin/users`);
@@ -2349,9 +2347,13 @@ export async function setUserProduct(input: {
   charge?: "paid" | "paylink" | "none";
   timing?: "now" | "end_of_cycle";
   creditOverride?: number | null;
+  sendEmail?: boolean;
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {
-    const r = await setUserProductAction(input);
+    const r = await setUserProductAction({
+      ...input,
+      sendEmail: input.sendEmail ?? true,
+    });
     return { ok: true, payUrl: r.payUrl };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };
@@ -2558,9 +2560,13 @@ export async function sellProduct(input: {
   userId: string;
   productId: string;
   mode: "paid" | "paylink";
+  sendEmail?: boolean;
 }): Promise<{ ok: true; payUrl?: string } | { ok: false; error: string }> {
   try {
-    const r = await sellProductAction(input);
+    const r = await sellProductAction({
+      ...input,
+      sendEmail: input.sendEmail ?? true,
+    });
     return { ok: true, payUrl: r.payUrl };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };

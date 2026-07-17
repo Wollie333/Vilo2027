@@ -2181,6 +2181,7 @@ function ProductsPanel({
     setPayLink(null);
     setChargeTiming("now");
     setCreditOverride("");
+    setOfferEmail(true);
   };
 
   // Manual "Assign credits" now lives in the always-visible CreditsCard at the
@@ -2190,9 +2191,13 @@ function ProductsPanel({
   // Sell a ONCE-OFF product (separate from the subscription charge dialog).
   const [sell, setSell] = useState<CatalogProduct | null>(null);
   const [sellLink, setSellLink] = useState<string | null>(null);
+  // Whether a pay-link offer is ALSO emailed. The inbox card always posts; the
+  // email is the admin's call per sale. Shared by both offer dialogs.
+  const [offerEmail, setOfferEmail] = useState(true);
   const closeSell = () => {
     setSell(null);
     setSellLink(null);
+    setOfferEmail(true);
   };
   function doSell(productId: string, mode: "paid" | "paylink") {
     setBusyId(productId);
@@ -2202,6 +2207,7 @@ function ProductsPanel({
         userId,
         productId,
         mode,
+        sendEmail: offerEmail,
       });
       setBusyId(null);
       if (r.ok) {
@@ -2305,6 +2311,7 @@ function ProductsPanel({
         userId,
         productId,
         charge: "paylink",
+        sendEmail: offerEmail,
       });
       setBusyId(null);
       if (r.ok) {
@@ -2743,6 +2750,9 @@ function ProductsPanel({
                 bills the buyer (a pay card lands in their Wielo inbox).
               </p>
             </div>
+            {!sellLink ? (
+              <OfferEmailToggle checked={offerEmail} onChange={setOfferEmail} />
+            ) : null}
             {sellLink ? (
               <div className="rounded-md border border-status-confirmed/30 bg-status-confirmed/5 p-3">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
@@ -2888,6 +2898,9 @@ function ProductsPanel({
                 </p>
               </Lbl>
             ) : null}
+            {!payLink && charge.amount > 0 && chargeTiming === "now" ? (
+              <OfferEmailToggle checked={offerEmail} onChange={setOfferEmail} />
+            ) : null}
             {payLink ? (
               <div className="rounded-md border border-status-confirmed/30 bg-status-confirmed/5 p-3">
                 <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
@@ -2969,6 +2982,39 @@ function ProductsPanel({
         </FormModalFooter>
       </FormModal>
     </div>
+  );
+}
+
+/**
+ * Whether a pay-link offer is ALSO emailed to the buyer. The inbox pay card
+ * always posts — that's the record of the offer — so this only governs the
+ * email, for when the admin is phoning the buyer or doesn't want the nudge.
+ * Shared by the once-off/credit-pack sale and the membership upgrade dialogs.
+ */
+function OfferEmailToggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-brand-line bg-white p-3">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
+      />
+      <span className="text-[13px] text-brand-ink">
+        Also email the offer
+        <span className="mt-0.5 block text-[12px] text-brand-mute">
+          {checked
+            ? "They'll get the offer by email as well as in their Wielo inbox."
+            : "Inbox only — they'll only see it if they log in."}
+        </span>
+      </span>
+    </label>
   );
 }
 
