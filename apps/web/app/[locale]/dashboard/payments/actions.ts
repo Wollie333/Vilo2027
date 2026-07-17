@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { markPaymentReceivedAction } from "@/app/[locale]/dashboard/bookings/[id]/payment-actions";
 import { assertFullHost as requireHost } from "@/lib/host/current";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -63,35 +64,17 @@ export async function updatePaymentStatusAction(
   const now = new Date().toISOString();
 
   if (action === "mark_paid") {
-    const { error: pErr } = await admin
-      .from("payments")
-      .update({ status: "completed", captured_at: now })
-      .eq("id", paymentId);
-    if (pErr) return { ok: false, error: "Could not update the payment." };
-
-    const { error: bErr } = await admin
-      .from("bookings")
-      .update({
-        status: "confirmed",
-        previous_status: booking.status,
-        confirmed_at: now,
-        payment_status: "completed",
-      })
-      .eq("id", booking.id);
-    if (bErr) {
-      return {
-        ok: false,
-        error: "Payment marked paid, but the booking didn't confirm.",
-      };
-    }
-    if (booking.guest_id) {
-      await dispatchEvent({
-        kind: "booking_confirmed_guest",
-        recipientUserId: booking.guest_id,
-        guestId: booking.guest_id,
-        refs: { booking_id: booking.id },
-      });
-    }
+    // Settle through the ledger SSOT: markPaymentReceivedAction recomputes
+    // balance_due + payment_status, posts any overpayment to store credit, and
+    // confirms the booking (the same path the per-booking ledger tab uses).
+    //
+    // This branch previously hard-set payment_status='completed' and NEVER
+    // recomputed balance_due — so a full EFT read "paid" while still showing the
+    // amount owing, a deposit-only EFT was flagged fully paid, and overpayment
+    // credit was silently lost. Straight AGENT_RULES §4.7 violation. (It also
+    // now runs under the accounting-period lock that action already enforces.)
+    const r = await markPaymentReceivedAction(paymentId);
+    if (!r.ok) return r;
   } else {
     const { error: pErr } = await admin
       .from("payments")
