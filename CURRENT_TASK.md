@@ -2,7 +2,65 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt16) — **START HERE** (supersedes pt15 below)
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt17) — **START HERE** (supersedes pt16 below)
+
+**Pushed `bcee7b3a`. `apps/web` build/tsc/lint green. Machine clean (0 node procs).**
+This batch = the founder's "fix these 4" open-items list. 3 of 4 done + verified; #4 in progress.
+
+### ✅ DONE THIS BATCH (all verified live unless noted)
+1. **🔴 IDOR fix** `d7bd44b4` — 17 host-analytics `SECURITY DEFINER` fns took a `p_host_id` and never
+   checked ownership → any signed-in user could read another host's KPIs/revenue/guest-PII over
+   PostgREST. Added `_assert_can_read_host(p_host_id)` (RAISEs 42501 for a non-owner; no-op for
+   service-role/internal where `auth.uid()` IS NULL) to each (`20260717000500`). 🔑 **ROOT bug found +
+   fixed (`..000600`): `_can_read_host` returned NULL not false for a non-owner → `NOT NULL`=NULL →
+   EVERY `IF NOT _can_read_host` FAILED OPEN (incl. 5 pre-existing "guarded" fns like
+   fetch_host_guests). COALESCE to false fixes all at once.** Verified live impersonating a host: own
+   OK, cross-host 42501 (plpgsql + sql), admin preserved, /dashboard/reports still renders.
+   Documented in `SECURITY_CHECKLIST.md §2` with a re-check query.
+2. **Mobile 44px tap targets** `22c844c1` — checkout month-nav (32→44), room+add-on steppers (28→44),
+   remove-guest (28→44), calendar cells (height 36→44). 🔑 **A true 44px calendar-cell WIDTH is
+   physically impossible for a 7-col grid on a 375px phone** (7×44+gaps=320px leaves no room for page
+   margin + nested cards) — trimmed mobile padding so cells reach ~39px wide; the 44px HEIGHT carries
+   the tap target (as native date pickers do). Verified at 375px.
+3. **Wiring cleanup** `bcee7b3a` — (a) **brochure remove WIRED** in QuoteForm (was orphaned
+   `removeHostBrochureAction`); ⚠️ **live click NOT witnessed** — block is 3 steps deep in the quote
+   wizard which resisted automation; code-correct + green. (b) **`platform_counters` DROPPED**
+   (`20260717000700`) — dead (numbering moved to sequences) AND the only table with no RLS + full anon
+   RW; numbering verified intact after. (c) **`entitlements.ts` module DELETED** (0 importers,
+   superseded by featureGate).
+
+### 🔴 IN PROGRESS — #4: offer/email delivery verification (RESUME HERE)
+**Goal:** verify the offer-email path end-to-end EXCEPT the final Resend HTTP call (RESEND_API_KEY is
+empty locally; founder confirms Resend works on prod). **What I mapped before pausing:**
+- **Resend boundary = `apps/web/lib/email/send.ts`**: `sendTransactionalEmail` / `sendReactEmail` read
+  `RESEND_API_KEY`; if unset they return `{ok:false, error:"RESEND_API_KEY not set"}` — so LOCALLY the
+  whole pipeline runs and only the final `resend.emails.send()` is short-circuited.
+- **Pipeline:** an action inserts into **`notification_queue`** → **`drainEmailQueue()`
+  (`lib/email/drain.ts:38`)** calls the `claim_email_queue_batch` RPC, renders each, calls the send fn,
+  then marks `notification_queue.sent_at` / `failed_at`+`error`.
+- **NEXT STEP:** `notification_queue` has NO `channel` column (my query errored on it) — get its real
+  columns first (`grep -n "^### \`notification_queue\`" -A 30 docs/SCHEMA.md`). Then: confirm an offer
+  enqueues a row with the right type+recipient+template, and that draining it reaches the send fn and
+  fails ONLY on the missing key (proving the whole path bar the HTTP call). The offer/sell enqueue is
+  the pt14 `77396acc` path (admin sell → buyer email). Then document the finding + mark #15 done.
+
+### 🔴 STILL OPEN (carried, needs founder)
+1. 🔴 **Card/PayPal/annual + promo SETTLEMENT never witnessed** (agent can't enter payment details).
+2. **External-review reply** — trivial to wire but posts to Google/Facebook via an Edge Function;
+   needs real OAuth + a real external review to test. Left for founder (see `WIRING_AUDIT.md §2`).
+3. **~35 remaining dead-export deletes** — a focused re-verify-and-delete pass of its own (don't bulk
+   it late in an unrelated session). Catalogued in `WIRING_AUDIT.md §4`.
+4. 🔴 **iOS zoom-on-focus** (14px inputs) — app-wide input change → founder's call.
+5. §3 founder decisions (billing-lane, builder-capability deletes) — `WIRING_AUDIT.md §3`.
+
+### 🧪 TEST ARTIFACTS
+Demo host on `wollie@` = the intended deliverable (Mana Bush Lodge etc.). host1 back on Beta. The
+`SAVE30` promo + Starter/Wielo-Quotes annual prices remain (fine). A test image was uploaded to the
+system library then deleted. No stray test data outstanding.
+
+---
+
+## 🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢 SAVE POINT (2026-07-17 pt16) — ⚠️ SUPERSEDED by pt17 above
 
 **Pushed `8cf5a225`. `apps/web` build (exit 0) · lint (0 warnings) · `tsc` green. Machine clean.**
 A five-part founder batch — all shipped in dependency order and **verified live**.

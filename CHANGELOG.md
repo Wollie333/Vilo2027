@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-07-17 (pt17) — The founder's "fix these 4" open-items batch.
+
+### 🔴 IDOR fix (`d7bd44b4`)
+17 host-analytics `SECURITY DEFINER` functions took a `p_host_id` and never checked ownership, so any
+signed-in user could read another host's KPIs, revenue and guest PII directly over PostgREST. Added
+`_assert_can_read_host(p_host_id)` to each (`20260717000500`). 🔑 **Found the ROOT bug while verifying:
+`_can_read_host` returned NULL (not false) for a non-owner — `false OR (hostX = staff-host /*NULL*/)` =
+NULL, and `NOT NULL` = NULL, so EVERY `IF NOT _can_read_host` deny branch silently failed OPEN.** This
+had also been leaking fetch_host_guests / fetch_guest_record cross-host all along. `COALESCE(...,false)`
+(`..000600`) fixes every caller at once. Verified live impersonating a host: own OK, cross-host 42501
+(plpgsql + sql), admin/service-role preserved, reports page still renders. `SECURITY_CHECKLIST.md §2`
+updated with a re-check query.
+
+### Mobile 44px tap targets (`22c844c1`)
+Checkout: month-nav 32→44, room + add-on steppers 28→44, remove-guest 28→44, calendar cell height
+36→44. 🔑 **A true 44px calendar-cell WIDTH is physically impossible for a 7-column grid on a 375px
+phone** — trimmed mobile padding so cells reach ~39px wide; the 44px height carries the tap target, as
+on native date pickers.
+
+### Wiring cleanup (`bcee7b3a`)
+- **Brochure remove** wired into QuoteForm (orphaned `removeHostBrochureAction`). ⚠️ Live click not
+  witnessed — 3 steps deep in the quote wizard; code-correct + green.
+- **`platform_counters` dropped** (`20260717000700`) — dead (numbering moved to sequences) and the only
+  table with no RLS + full `anon` RW. Numbering verified intact after.
+- **`entitlements.ts` deleted** — dead module, 0 importers, superseded by featureGate.
+
+### 🔴 Not done (needs founder)
+Card/PayPal/annual + promo settlement (no payment details), external-review reply (needs real OAuth),
+the ~35 remaining dead-export deletes (own focused pass), iOS zoom-on-focus, §3 founder-decision deletes.
+**In progress:** offer/email delivery verification — the pipeline runs locally but the final Resend call
+is short-circuited (no `RESEND_API_KEY`); see `CURRENT_TASK.md` pt17 for exactly where it was paused.
+
 ## 2026-07-17 (pt16) — Demo host, annual pricing + signup filtering, EFT settle, system library.
 
 A five-part founder batch, each shipped in dependency order and verified live.
