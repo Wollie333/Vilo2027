@@ -60,24 +60,28 @@ export function RateTableSection({
             boxShadow: "var(--el-card-shadow, var(--site-card-shadow))",
           }}
         >
-          <table className="w-full border-collapse text-left text-sm">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--site-line)" }}>
-                <Th>Room</Th>
-                <Th className="text-right">From / night</Th>
-                <Th className="hidden text-right sm:table-cell">Weekend</Th>
-                <Th className="hidden text-right sm:table-cell">Min nights</Th>
-                <Th className="text-right" srOnly>
-                  {cta}
-                </Th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <RateTableRow key={row.roomId} row={row} cta={cta} />
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--site-line)" }}>
+                  <Th>Room</Th>
+                  <Th className="text-right">From / night</Th>
+                  <Th className="hidden text-right sm:table-cell">Weekend</Th>
+                  <Th className="hidden text-right sm:table-cell">
+                    Min nights
+                  </Th>
+                  <Th className="text-right" srOnly>
+                    {cta}
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <RateTableRow key={row.roomId} row={row} cta={cta} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 

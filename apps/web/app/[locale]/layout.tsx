@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -42,6 +42,14 @@ const jetbrainsMono = JetBrains_Mono({
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
+
+// Explicit mobile-first viewport (previously relying on Next's implicit default).
+// Makes the width/initial-scale contract explicit and future-proof; does not set
+// viewport-fit=cover, so safe-area insets stay reserved by the OS.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 // Dynamic so the configurable brand name drives the document title. Child pages
 // set a bare `title` (e.g. "Inbox") and the template appends " · {brand}", so

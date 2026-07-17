@@ -517,6 +517,23 @@ export function buildSiteVars(
   const sz = ty.sizes ?? {};
   const size = (k: keyof SiteTypeSizes) =>
     px(typeof sz[k] === "number" ? (sz[k] as number) : derived[k]);
+  // Mobile-first headings: when a heading has NO per-element px override, emit a
+  // fluid clamp (linear interpolation between a phone floor and the desktop
+  // modular size) so headings never overflow a small screen on the default/
+  // unskinned themes. A host's explicit px size still wins (renders a fixed px,
+  // not a clamp), and the skinned themes override `--site-h*` at the section
+  // level, so this only governs the default path.
+  const fluid = (maxPx: number) => {
+    const max = maxPx;
+    const min = Math.max(15, Math.round(max * 0.72));
+    if (max - min < 2) return px(max); // small sizes: fluid adds nothing
+    const slope = (max - min) / (1280 - 375); // px per px-of-viewport
+    const vw = (slope * 100).toFixed(3); // as vw units
+    const intercept = (min - slope * 375).toFixed(2); // px at 0 viewport
+    return `clamp(${min}px, calc(${intercept}px + ${vw}vw), ${max}px)`;
+  };
+  const heading = (k: keyof SiteTypeSizes) =>
+    typeof sz[k] === "number" ? px(sz[k] as number) : fluid(derived[k]);
 
   // --- Images ---
   const img = theme?.image ?? {};
@@ -611,12 +628,12 @@ export function buildSiteVars(
     "--site-text-sm": size("accent"),
     "--site-text-accent": size("accent"),
     "--site-text-base": size("body"),
-    "--site-h6": size("h6"),
-    "--site-h5": size("h5"),
-    "--site-h4": size("h4"),
-    "--site-h3": size("h3"),
-    "--site-h2": size("h2"),
-    "--site-h1": size("h1"),
+    "--site-h6": heading("h6"),
+    "--site-h5": heading("h5"),
+    "--site-h4": heading("h4"),
+    "--site-h3": heading("h3"),
+    "--site-h2": heading("h2"),
+    "--site-h1": heading("h1"),
 
     "--site-img-radius": imgRadius,
     "--site-img-border": imgBorder,

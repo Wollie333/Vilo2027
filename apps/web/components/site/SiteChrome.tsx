@@ -275,7 +275,7 @@ function BookCta({
       href={href}
       data-wielo-book
       style={style}
-      className="shrink-0 px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
+      className="inline-flex min-h-[44px] shrink-0 items-center justify-center px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
     >
       {label || "Book now"}
     </a>
