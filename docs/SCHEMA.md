@@ -26,7 +26,7 @@ it after any migration.
 These checks re-run on every regeneration. Each is a bug class that has already cost this
 project real time — see the comments in `scripts/generate-schema-doc.mjs` for the history.
 
-### 73 × SECURITY DEFINER function with **no pinned `search_path`** — runs as owner, resolves object names via the caller's path. Fix: `SET search_path = public, pg_temp`.
+### 72 × SECURITY DEFINER function with **no pinned `search_path`** — runs as owner, resolves object names via the caller's path. Fix: `SET search_path = public, pg_temp`.
 
 - `_host_guest_rows`
 - `_materialize_booking_party`
@@ -77,7 +77,6 @@ project real time — see the comments in `scripts/generate-schema-doc.mjs` for 
 - `next_receipt_number`
 - `next_refund_number`
 - `on_booking_cancelled`
-- `on_booking_confirmed`
 - `on_booking_confirmed_create_invoice`
 - `on_host_created_default_business`
 - `on_message_inserted`
@@ -273,7 +272,7 @@ boundary **must** be SD, or RLS silently drops the write (see `sync_looking_for_
 | `next_receipt_number` | **yes** | **NO** | callable |
 | `next_refund_number` | **yes** | **NO** | callable |
 | `on_booking_cancelled` | **yes** | **NO** | trigger |
-| `on_booking_confirmed` | **yes** | **NO** | trigger |
+| `on_booking_confirmed` | **yes** | yes | trigger |
 | `on_booking_confirmed_create_invoice` | **yes** | **NO** | trigger |
 | `on_host_created_default_business` | **yes** | **NO** | trigger |
 | `on_message_inserted` | **yes** | **NO** | trigger |
@@ -3260,6 +3259,7 @@ CASE
 **Checks:**
 - `CHECK ((kind = ANY (ARRAY['deposit'::text, 'balance'::text, 'addon'::text, 'payment'::text, 'refund'::text, 'credit'::text])))`
 - `CHECK ((method = ANY (ARRAY['paystack'::text, 'paypal'::text, 'eft'::text, 'credit'::text])))`
+- `CHECK ((COALESCE(refunded_amount, (0)::numeric) <= amount))`
 - `CHECK ((status = ANY (ARRAY['pending'::text, 'authorised'::text, 'completed'::text, 'failed'::text, 'refunded'::text, 'partially_refunded'::text, 'voided'::text])))`
 
 **Triggers:**
